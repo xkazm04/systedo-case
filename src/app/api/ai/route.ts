@@ -1,5 +1,9 @@
-import { generateAds } from "@/lib/gemini";
-import { validateAdRequest } from "@/lib/ai-types";
+import { generateAds, generateAnalysis, generateBrief } from "@/lib/gemini";
+import {
+  validateAdRequest,
+  validateAnalysisRequest,
+  validateBriefRequest,
+} from "@/lib/ai-types";
 
 // The Gemini SDK needs the Node.js runtime (not Edge).
 export const runtime = "nodejs";
@@ -12,16 +16,30 @@ export async function POST(request: Request) {
     return Response.json({ error: "Neplatný JSON v požadavku." }, { status: 400 });
   }
 
-  const parsed = validateAdRequest(body);
-  if (!parsed.valid) {
-    return Response.json({ error: parsed.error }, { status: 422 });
-  }
+  const mode = (body as { mode?: unknown })?.mode;
 
   try {
-    const response = await generateAds(parsed.value);
-    return Response.json(response);
+    switch (mode) {
+      case "ads": {
+        const parsed = validateAdRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateAds(parsed.value));
+      }
+      case "brief": {
+        const parsed = validateBriefRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateBrief(parsed.value));
+      }
+      case "analysis": {
+        const parsed = validateAnalysisRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateAnalysis(parsed.value));
+      }
+      default:
+        return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });
+    }
   } catch (err) {
-    console.error("[ai] generation failed:", err);
+    console.error(`[ai] generation failed (mode=${String(mode)}):`, err);
     return Response.json(
       { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu." },
       { status: 502 }

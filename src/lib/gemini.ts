@@ -1,38 +1,126 @@
-/** Server-only Gemini integration for the PPC ad generator (Úkol 3).
+/** Server-only Gemini integration for the AI assistant (Úkol 3).
  *
- *  Design choices that matter:
- *   - Structured output: we pass a JSON schema (responseSchema) so the model
- *     returns validated, typed data — not free text we have to parse heuristically.
+ *  Three tools share one pipeline:
+ *   - Structured output: every tool passes a JSON schema (responseSchema) so the
+ *     model returns validated, typed data — never free text we parse heuristically.
  *   - Key stays on the server: GEMINI_API_KEY is read here and never reaches the
- *     client; the browser only ever sees the generated result.
- *   - Graceful fallback: with no API key the module returns a deterministic demo
- *     so the page is fully usable straight from the repo, clearly flagged as demo.
+ *     client; the browser only sees the result.
+ *   - Graceful fallback: with no API key each tool returns a deterministic demo,
+ *     clearly flagged, so the whole page works straight from the repo.
  *
- *  This file must only ever be imported from server code (the route handler).
+ *  Import only from server code (the route handler).
  */
 import { GoogleGenAI, Type } from "@google/genai";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
+  SEO_LIMITS,
   TONE_LABELS,
+  CONTENT_TYPE_LABELS,
   type AdRequest,
-  type AdResponse,
   type AdResult,
+  type AiResponse,
+  type AnalysisRequest,
+  type AnalysisResult,
+  type BriefRequest,
+  type BriefResult,
 } from "./ai-types";
+import { buildSnapshot, snapshotToPromptText, type Snapshot } from "./snapshot";
+import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
 
 const MODEL = "gemini-3-flash-preview";
 
-const SYSTEM_INSTRUCTION = `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
+// --- shared helpers ---------------------------------------------------------
+
+const txt = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+const cleanList = (v: unknown, max: number): string[] =>
+  Array.isArray(v)
+    ? v
+        .filter((x): x is string => typeof x === "string")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, max)
+    : [];
+
+const clamp = (s: string, n: number): string =>
+  s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
+
+const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+// Diacritics -> ASCII for slugs, keyed by numeric code point. An explicit map is
+// dependency-free and predictable (no String.normalize or locale assumptions).
+const DIACRITICS: Record<number, string> = {
+  0x00e1: "a", 0x00e0: "a", 0x00e2: "a", 0x00e4: "a", 0x010d: "c", 0x0107: "c",
+  0x00e7: "c", 0x010f: "d", 0x00e9: "e", 0x011b: "e", 0x00e8: "e", 0x00ea: "e",
+  0x00eb: "e", 0x00ed: "i", 0x00ef: "i", 0x00ee: "i", 0x013a: "l", 0x013e: "l",
+  0x0142: "l", 0x0148: "n", 0x00f1: "n", 0x00f3: "o", 0x00f4: "o", 0x00f6: "o",
+  0x00f8: "o", 0x0159: "r", 0x0155: "r", 0x0161: "s", 0x015b: "s", 0x0165: "t",
+  0x00fa: "u", 0x016f: "u", 0x00fc: "u", 0x00fb: "u", 0x00fd: "y", 0x00ff: "y",
+  0x017e: "z", 0x017a: "z", 0x017c: "z",
+};
+
+const slugify = (s: string): string =>
+  Array.from(s.toLowerCase())
+    .map((ch) => DIACRITICS[ch.codePointAt(0) ?? 0] ?? ch)
+    .join("")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+/** The one place that talks to the model (or falls back to a demo). */
+async function generateStructured<T>(args: {
+  prompt: string;
+  system: string;
+  schema: object;
+  temperature?: number;
+  normalize: (parsed: unknown) => T;
+  demo: () => T;
+}): Promise<AiResponse<T>> {
+  const start = Date.now();
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return {
+      result: args.demo(),
+      meta: { model: MODEL, demo: true, prompt: args.prompt, tookMs: Date.now() - start },
+    };
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+  const response = await ai.models.generateContent({
+    model: MODEL,
+    contents: args.prompt,
+    config: {
+      systemInstruction: args.system,
+      responseMimeType: "application/json",
+      responseSchema: args.schema,
+      temperature: args.temperature ?? 1.0,
+    },
+  });
+
+  const text = response.text;
+  if (!text) throw new Error("Model vrátil prázdnou odpověď.");
+  return {
+    result: args.normalize(JSON.parse(text)),
+    meta: { model: MODEL, demo: false, prompt: args.prompt, tookMs: Date.now() - start },
+  };
+}
+
+// ===========================================================================
+// Tool 1 — PPC ads
+// ===========================================================================
+
+const AD_SYSTEM = `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
 
 Pravidla:
 - Piš výhradně česky, s diakritikou a gramaticky správně.
-- Striktně dodržuj limity znaků: nadpisy max ${AD_LIMITS.headline} znaků, popisky max ${AD_LIMITS.description} znaků, odznaky (callouts) max ${AD_LIMITS.callout} znaků, dlouhý nadpis max ${AD_LIMITS.longHeadline} znaků. Raději buď mírně pod limitem než přes.
+- Striktně dodržuj limity znaků: nadpisy max ${AD_LIMITS.headline} znaků, popisky max ${AD_LIMITS.description} znaků, odznaky (callouts) max ${AD_LIMITS.callout} znaků, dlouhý nadpis max ${AD_LIMITS.longHeadline} znaků. Raději buď mírně pod limitem.
 - Texty musí být konkrétní a relevantní k produktu i cílové skupině. Vyhni se prázdným frázím.
 - Neslibuj nepodložená tvrzení (např. „nejlepší na světě“) ani konkrétní slevy či čísla, která nebyla zadána.
 - Žádné emoji, žádné zbytečné vykřičníky, nepiš celá slova velkými písmeny.
 - Nadpisy ať pokrývají různé úhly: hlavní benefit, cílová skupina, výzva k akci, důvěra/kvalita, šíře sortimentu.`;
 
-function buildPrompt(req: AdRequest): string {
+function buildAdPrompt(req: AdRequest): string {
   return [
     "Vytvoř sadu výkonnostních PPC inzerátů pro tuto kampaň.",
     "",
@@ -52,157 +140,341 @@ function buildPrompt(req: AdRequest): string {
   ].join("\n");
 }
 
-const SCHEMA = {
+const AD_SCHEMA = {
   type: Type.OBJECT,
   properties: {
-    headlines: {
-      type: Type.ARRAY,
-      description: `8 nadpisů, každý max ${AD_LIMITS.headline} znaků`,
-      items: { type: Type.STRING },
-    },
-    descriptions: {
-      type: Type.ARRAY,
-      description: `4 popisky, každý max ${AD_LIMITS.description} znaků`,
-      items: { type: Type.STRING },
-    },
-    callouts: {
-      type: Type.ARRAY,
-      description: `4 odznaky, každý max ${AD_LIMITS.callout} znaků`,
-      items: { type: Type.STRING },
-    },
-    keywords: {
-      type: Type.ARRAY,
-      description: "8 návrhů klíčových slov",
-      items: { type: Type.STRING },
-    },
-    longHeadline: {
-      type: Type.STRING,
-      description: `Dlouhý nadpis, max ${AD_LIMITS.longHeadline} znaků`,
-    },
-    rationale: {
-      type: Type.STRING,
-      description: "1–2 věty zdůvodnění zvolené strategie textů",
-    },
+    headlines: { type: Type.ARRAY, description: `8 nadpisů, každý max ${AD_LIMITS.headline} znaků`, items: { type: Type.STRING } },
+    descriptions: { type: Type.ARRAY, description: `4 popisky, každý max ${AD_LIMITS.description} znaků`, items: { type: Type.STRING } },
+    callouts: { type: Type.ARRAY, description: `4 odznaky, každý max ${AD_LIMITS.callout} znaků`, items: { type: Type.STRING } },
+    keywords: { type: Type.ARRAY, description: "8 návrhů klíčových slov", items: { type: Type.STRING } },
+    longHeadline: { type: Type.STRING, description: `Dlouhý nadpis, max ${AD_LIMITS.longHeadline} znaků` },
+    rationale: { type: Type.STRING, description: "1–2 věty zdůvodnění zvolené strategie textů" },
   },
   required: ["headlines", "descriptions", "callouts", "keywords", "longHeadline", "rationale"],
-  propertyOrdering: [
-    "headlines",
-    "descriptions",
-    "callouts",
-    "keywords",
-    "longHeadline",
-    "rationale",
-  ],
+  propertyOrdering: ["headlines", "descriptions", "callouts", "keywords", "longHeadline", "rationale"],
 };
 
-const cleanList = (v: unknown, max: number): string[] =>
-  Array.isArray(v)
-    ? v
-        .filter((x): x is string => typeof x === "string")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .slice(0, max)
-    : [];
-
-function normalizeResult(parsed: Partial<AdResult>): AdResult {
+function normalizeAdResult(parsed: unknown): AdResult {
+  const o = parsed as Partial<AdResult>;
   return {
-    headlines: cleanList(parsed.headlines, 10),
-    descriptions: cleanList(parsed.descriptions, 6),
-    callouts: cleanList(parsed.callouts, 6),
-    keywords: cleanList(parsed.keywords, 14),
-    longHeadline: typeof parsed.longHeadline === "string" ? parsed.longHeadline.trim() : "",
-    rationale: typeof parsed.rationale === "string" ? parsed.rationale.trim() : "",
+    headlines: cleanList(o.headlines, 10),
+    descriptions: cleanList(o.descriptions, 6),
+    callouts: cleanList(o.callouts, 6),
+    keywords: cleanList(o.keywords, 14),
+    longHeadline: txt(o.longHeadline),
+    rationale: txt(o.rationale),
   };
 }
 
-export async function generateAds(req: AdRequest): Promise<AdResponse> {
-  const prompt = buildPrompt(req);
-  const start = Date.now();
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return {
-      result: demoAds(req),
-      meta: { model: MODEL, demo: true, prompt, tookMs: Date.now() - start },
-    };
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: prompt,
-    config: {
-      systemInstruction: SYSTEM_INSTRUCTION,
-      responseMimeType: "application/json",
-      responseSchema: SCHEMA,
-      temperature: 1.0,
-    },
-  });
-
-  const text = response.text;
-  if (!text) throw new Error("Model vrátil prázdnou odpověď.");
-
-  const result = normalizeResult(JSON.parse(text) as Partial<AdResult>);
-  if (result.headlines.length === 0) throw new Error("Model nevrátil žádné nadpisy.");
-
-  return {
-    result,
-    meta: { model: MODEL, demo: false, prompt, tookMs: Date.now() - start },
-  };
-}
-
-// --- keyless fallback -------------------------------------------------------
-
-const clamp = (s: string, n: number): string =>
-  s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
-
-/** Deterministic, limit-respecting sample so the page works without an API key. */
 function demoAds(req: AdRequest): AdResult {
   const product = req.product.trim();
   const firstBenefit = req.benefits.split(/[,.;]/)[0]?.trim() || "Ověřená kvalita";
   const cta = req.tone === "akcni" ? "Objednejte ještě dnes" : "Nakupte pohodlně online";
 
-  const headlines = [
-    product,
-    firstBenefit,
-    "Skladem, ihned k odeslání",
-    "Doprava zdarma od 999 Kč",
-    "Kvalita, které věříte",
-    cta,
-    "Vybíráme s péčí",
-    "Oblíbená volba zákazníků",
-  ].map((h) => clamp(h, AD_LIMITS.headline));
-
-  const descriptions = [
-    clamp(`${product} — ${firstBenefit.toLowerCase()}. Objednejte online a mějte doma za pár dní.`, AD_LIMITS.description),
-    clamp(`Pro ${req.audience.toLowerCase()}. Pečlivě vybraný sortiment a férové ceny.`, AD_LIMITS.description),
-    clamp("Rychlé dodání, snadné vrácení a podpora, která vám poradí. Nakupujte bez starostí.", AD_LIMITS.description),
-    clamp("Doprava zdarma od 999 Kč. Skladové zásoby a ověřené hodnocení zákazníků.", AD_LIMITS.description),
-  ];
-
-  const callouts = ["Doprava zdarma", "Skladem", "Férové ceny", "Rychlé dodání"].map((c) =>
-    clamp(c, AD_LIMITS.callout)
-  );
-
-  const base = product.toLowerCase();
-  const keywords = [
-    base,
-    `${base} koupit`,
-    `${base} eshop`,
-    `${base} cena`,
-    `${base} online`,
-    `${base} skladem`,
-    `nejlepší ${base}`,
-    `${base} recenze`,
-  ];
-
   return {
-    headlines,
-    descriptions,
-    callouts,
-    keywords,
+    headlines: [product, firstBenefit, "Skladem, ihned k odeslání", "Doprava zdarma od 999 Kč", "Kvalita, které věříte", cta, "Vybíráme s péčí", "Oblíbená volba zákazníků"].map(
+      (h) => clamp(h, AD_LIMITS.headline)
+    ),
+    descriptions: [
+      clamp(`${product} — ${firstBenefit.toLowerCase()}. Objednejte online a mějte doma za pár dní.`, AD_LIMITS.description),
+      clamp(`Pro ${req.audience.toLowerCase()}. Pečlivě vybraný sortiment a férové ceny.`, AD_LIMITS.description),
+      clamp("Rychlé dodání, snadné vrácení a podpora, která vám poradí. Nakupujte bez starostí.", AD_LIMITS.description),
+      clamp("Doprava zdarma od 999 Kč. Skladové zásoby a ověřené hodnocení zákazníků.", AD_LIMITS.description),
+    ],
+    callouts: ["Doprava zdarma", "Skladem", "Férové ceny", "Rychlé dodání"].map((c) => clamp(c, AD_LIMITS.callout)),
+    keywords: (() => {
+      const base = product.toLowerCase();
+      return [base, `${base} koupit`, `${base} eshop`, `${base} cena`, `${base} online`, `${base} skladem`, `nejlepší ${base}`, `${base} recenze`];
+    })(),
     longHeadline: clamp(`${product} — ${firstBenefit}, doprava zdarma od 999 Kč`, AD_LIMITS.longHeadline),
     rationale:
       "Ukázkový výstup: nadpisy kombinují produkt, hlavní benefit, důvěru a výzvu k akci, aby pokryly různé fáze rozhodování. Doplňte GEMINI_API_KEY pro generování modelem.",
   };
+}
+
+export function generateAds(req: AdRequest): Promise<AiResponse<AdResult>> {
+  return generateStructured({
+    prompt: buildAdPrompt(req),
+    system: AD_SYSTEM,
+    schema: AD_SCHEMA,
+    temperature: 1.0,
+    normalize: normalizeAdResult,
+    demo: () => demoAds(req),
+  });
+}
+
+// ===========================================================================
+// Tool 2 — SEO content brief
+// ===========================================================================
+
+const BRIEF_SYSTEM = `Jsi český SEO a obsahový stratég v marketingové agentuře. Připravuješ zadání (brief) pro tvorbu obsahu na web a e-shop.
+
+Pravidla:
+- Piš výhradně česky, s diakritikou a gramaticky správně.
+- Title tag max ${SEO_LIMITS.titleTag} znaků, meta description max ${SEO_LIMITS.metaDescription} znaků (raději mírně pod limitem). Obojí ať obsahuje hlavní klíčové slovo přirozeně.
+- slug: malá písmena bez diakritiky, slova spojená pomlčkou, krátký a výstižný.
+- Osnova (outline) ať má logickou strukturu H2 sekcí s konkrétními odrážkami, co v sekci zaznít.
+- FAQ ať jsou reálné dotazy, které uživatelé hledají.
+- Žádné keyword stuffing, žádné prázdné fráze. Obsah musí být užitečný a věcný.
+- Drž se zadaného JSON schématu.`;
+
+function buildBriefPrompt(req: BriefRequest): string {
+  return [
+    "Připrav SEO obsahový brief pro tuto stránku.",
+    "",
+    `Typ obsahu: ${CONTENT_TYPE_LABELS[req.contentType]}`,
+    `Téma: ${req.topic}`,
+    `Hlavní klíčové slovo: ${req.primaryKeyword}`,
+    `Cílová skupina: ${req.audience}`,
+    "",
+    "Vygeneruj:",
+    `- title tag (max ${SEO_LIMITS.titleTag} znaků),`,
+    `- meta description (max ${SEO_LIMITS.metaDescription} znaků),`,
+    "- H1 nadpis a URL slug,",
+    "- osnovu 5–7 sekcí (H2) s odrážkami,",
+    "- 4 časté dotazy s odpověďmi (FAQ),",
+    "- 8 souvisejících klíčových slov,",
+    "- 4 návrhy kotevního textu pro interní odkazy,",
+    "- krátké zdůvodnění (rationale).",
+  ].join("\n");
+}
+
+const BRIEF_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    titleTag: { type: Type.STRING, description: `SEO title, max ${SEO_LIMITS.titleTag} znaků` },
+    metaDescription: { type: Type.STRING, description: `Meta description, max ${SEO_LIMITS.metaDescription} znaků` },
+    h1: { type: Type.STRING, description: "Hlavní nadpis stránky" },
+    slug: { type: Type.STRING, description: "URL slug, malá písmena, bez diakritiky, slova spojená pomlčkou" },
+    outline: {
+      type: Type.ARRAY,
+      description: "5–7 sekcí H2 s odrážkami",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          heading: { type: Type.STRING },
+          points: { type: Type.ARRAY, items: { type: Type.STRING } },
+        },
+        required: ["heading", "points"],
+        propertyOrdering: ["heading", "points"],
+      },
+    },
+    faq: {
+      type: Type.ARRAY,
+      description: "4 dotazy a odpovědi",
+      items: {
+        type: Type.OBJECT,
+        properties: { question: { type: Type.STRING }, answer: { type: Type.STRING } },
+        required: ["question", "answer"],
+        propertyOrdering: ["question", "answer"],
+      },
+    },
+    keywords: { type: Type.ARRAY, description: "8 souvisejících klíčových slov", items: { type: Type.STRING } },
+    internalLinks: { type: Type.ARRAY, description: "4 návrhy kotevního textu", items: { type: Type.STRING } },
+    rationale: { type: Type.STRING, description: "1–2 věty zdůvodnění" },
+  },
+  required: ["titleTag", "metaDescription", "h1", "slug", "outline", "faq", "keywords", "internalLinks", "rationale"],
+  propertyOrdering: ["titleTag", "metaDescription", "h1", "slug", "outline", "faq", "keywords", "internalLinks", "rationale"],
+};
+
+function normalizeBriefResult(parsed: unknown): BriefResult {
+  const o = parsed as Record<string, unknown>;
+  const outline = Array.isArray(o.outline)
+    ? o.outline
+        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
+        .map((x) => ({ heading: txt(x.heading), points: cleanList(x.points, 8) }))
+        .filter((x) => x.heading)
+        .slice(0, 8)
+    : [];
+  const faq = Array.isArray(o.faq)
+    ? o.faq
+        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
+        .map((x) => ({ question: txt(x.question), answer: txt(x.answer) }))
+        .filter((x) => x.question)
+        .slice(0, 8)
+    : [];
+  return {
+    titleTag: txt(o.titleTag),
+    metaDescription: txt(o.metaDescription),
+    h1: txt(o.h1),
+    slug: txt(o.slug),
+    outline,
+    faq,
+    keywords: cleanList(o.keywords, 12),
+    internalLinks: cleanList(o.internalLinks, 8),
+    rationale: txt(o.rationale),
+  };
+}
+
+function demoBrief(req: BriefRequest): BriefResult {
+  const topic = req.topic.trim();
+  const kw = req.primaryKeyword.trim();
+  const aud = req.audience.trim().toLowerCase();
+  return {
+    titleTag: clamp(`${cap(topic)} | Mionelo`, SEO_LIMITS.titleTag),
+    metaDescription: clamp(
+      `${cap(topic)}: praktické tipy a doporučení pro ${aud}. Přehledný průvodce krok za krokem.`,
+      SEO_LIMITS.metaDescription
+    ),
+    h1: cap(topic),
+    slug: slugify(kw || topic),
+    outline: [
+      { heading: `Proč na tématu „${topic}“ záleží`, points: ["Hlavní přínosy", "Pro koho je obsah určený"] },
+      { heading: "Na co se zaměřit", points: ["Klíčová kritéria výběru", "Časté chyby"] },
+      { heading: "Praktické tipy krok za krokem", points: ["Doporučený postup", "Tipy do praxe"] },
+      { heading: "Doporučené produkty", points: ["Tipy z nabídky", "Na co se zaměřit"] },
+      { heading: "Časté dotazy", points: ["Odpovědi na nejčastější otázky"] },
+    ],
+    faq: [
+      { question: `Co je u tématu „${topic}“ nejdůležitější?`, answer: "Doplní AI po nastavení GEMINI_API_KEY." },
+      { question: "Pro koho se obsah hodí?", answer: `Zejména pro ${aud}.` },
+      { question: "Jak často téma řešit?", answer: "Záleží na potřebách čtenáře — brief slouží jako kostra." },
+    ],
+    keywords: [kw, `${kw} tipy`, `${kw} návod`, `jak na ${kw}`, `${kw} doporučení`].filter(Boolean),
+    internalLinks: ["Související kategorie", "Doporučené produkty", "Další články na blogu", "Bestsellery"],
+    rationale:
+      "Ukázkový brief: title a meta v SEO limitech, osnova H2 a FAQ. Doplňte GEMINI_API_KEY pro plnou verzi od modelu.",
+  };
+}
+
+export function generateBrief(req: BriefRequest): Promise<AiResponse<BriefResult>> {
+  return generateStructured({
+    prompt: buildBriefPrompt(req),
+    system: BRIEF_SYSTEM,
+    schema: BRIEF_SCHEMA,
+    temperature: 0.9,
+    normalize: normalizeBriefResult,
+    demo: () => demoBrief(req),
+  });
+}
+
+// ===========================================================================
+// Tool 3 — performance analysis (grounded in the dataset)
+// ===========================================================================
+
+const ANALYSIS_SYSTEM = `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
+- Odkazuj se na konkrétní kanály a čísla z dat (např. PNO daného kanálu, ROAS, podíl na obratu).
+- Buď konkrétní a akční: doporučení musí být něco, co PPC specialista reálně udělá (úprava rozpočtů a nabídek, řízení PNO, škálování nejlepších kanálů, oprava nejslabších).
+- Piš česky, věcně, bez vaty a marketingových frází.
+- Drž se zadaného JSON schématu.`;
+
+function buildAnalysisPrompt(snapshotText: string): string {
+  return [
+    "Níže jsou reálná výkonnostní data klienta z marketingových kampaní.",
+    "Zanalyzuj je jako PPC specialista a připrav krátké shrnutí pro klienta.",
+    "",
+    "DATA:",
+    snapshotText,
+    "",
+    "Na základě těchto čísel urči: jednovětý verdikt, krátké shrnutí, co se daří (wins), kde jsou rizika (risks) a 3–4 konkrétní další kroky (actions). Vycházej pouze z uvedených dat.",
+  ].join("\n");
+}
+
+const ANALYSIS_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    headline: { type: Type.STRING, description: "Jednovětý verdikt o výkonu" },
+    summary: { type: Type.STRING, description: "Jeden odstavec shrnutí" },
+    wins: { type: Type.ARRAY, description: "3–4 věci, které se daří", items: { type: Type.STRING } },
+    risks: { type: Type.ARRAY, description: "2–3 rizika nebo na co si dát pozor", items: { type: Type.STRING } },
+    actions: {
+      type: Type.ARRAY,
+      description: "3–4 konkrétní doporučené kroky",
+      items: {
+        type: Type.OBJECT,
+        properties: { title: { type: Type.STRING }, detail: { type: Type.STRING } },
+        required: ["title", "detail"],
+        propertyOrdering: ["title", "detail"],
+      },
+    },
+  },
+  required: ["headline", "summary", "wins", "risks", "actions"],
+  propertyOrdering: ["headline", "summary", "wins", "risks", "actions"],
+};
+
+function normalizeAnalysisResult(parsed: unknown): AnalysisResult {
+  const o = parsed as Record<string, unknown>;
+  const actions = Array.isArray(o.actions)
+    ? o.actions
+        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
+        .map((x) => ({ title: txt(x.title), detail: txt(x.detail) }))
+        .filter((x) => x.title)
+        .slice(0, 6)
+    : [];
+  return {
+    headline: txt(o.headline),
+    summary: txt(o.summary),
+    wins: cleanList(o.wins, 6),
+    risks: cleanList(o.risks, 6),
+    actions,
+  };
+}
+
+function demoAnalysis(s: Snapshot): AnalysisResult {
+  const c = s.current;
+  const pnoUnder = c.pno <= s.goalPno;
+  const paid = s.channels.filter((ch) => ch.cost > 0);
+  const best = [...paid].sort((a, b) => b.roas - a.roas)[0];
+  const worst = [...paid].sort((a, b) => b.pno - a.pno)[0];
+  const revUp = s.delta.revenue >= 0;
+
+  const wins: string[] = [
+    `Obrat ${revUp ? "vzrostl" : "klesl"} o ${fmtSignedPct(s.delta.revenue).replace("+", "")} meziobdobně.`,
+  ];
+  if (best) wins.push(`Nejefektivnější kanál ${best.channel} s ROAS ${fmtMultiple(best.roas)}.`);
+  wins.push(pnoUnder ? `Celkové PNO ${fmtPct(c.pno)} je pod cílem ${fmtPct(s.goalPno, 0)}.` : `Konverzní poměr ${fmtPct(c.cr, 2)}.`);
+
+  const risks: string[] = [];
+  if (worst) risks.push(`${worst.channel} má nejvyšší PNO ${fmtPct(worst.pno)} — táhne efektivitu dolů.`);
+  risks.push(
+    pnoUnder
+      ? `Náklady ${fmtSignedPct(s.delta.cost)} meziobdobně — hlídat tempo růstu.`
+      : `Celkové PNO ${fmtPct(c.pno)} je nad cílem ${fmtPct(s.goalPno, 0)}.`
+  );
+
+  const actions: { title: string; detail: string }[] = [];
+  if (best)
+    actions.push({
+      title: `Posílit ${best.channel}`,
+      detail: `Kanál s nejlepším ROAS (${fmtMultiple(best.roas)}) má prostor pro navýšení rozpočtu.`,
+    });
+  if (worst)
+    actions.push({
+      title: `Optimalizovat ${worst.channel}`,
+      detail: `Při PNO ${fmtPct(worst.pno)} zkontrolovat nabídky, vyloučení a kvalitu cílení.`,
+    });
+  actions.push(
+    pnoUnder
+      ? {
+          title: "Škálovat při zachování PNO",
+          detail: `PNO ${fmtPct(c.pno)} dává prostor zvýšit objem, dokud zůstane pod cílem ${fmtPct(s.goalPno, 0)}.`,
+        }
+      : {
+          title: "Srovnat PNO k cíli",
+          detail: "Přealokovat rozpočet od nákladných kanálů k těm s nejlepší návratností.",
+        }
+  );
+
+  return {
+    headline: `${pnoUnder ? "PNO je pod cílem" : "PNO překračuje cíl"}, obrat ${revUp ? "roste" : "klesá"} (${fmtSignedPct(s.delta.revenue)}).`,
+    summary: `Za posledních ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, což odpovídá PNO ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) a ROAS ${fmtMultiple(c.roas)}. Konverze ${s.delta.conversions >= 0 ? "vzrostly" : "klesly"} o ${fmtSignedPct(s.delta.conversions).replace("+", "")}. Ukázkový výstup — doplňte GEMINI_API_KEY pro analýzu od modelu.`,
+    wins,
+    risks,
+    actions,
+  };
+}
+
+export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<AnalysisResult>> {
+  const snapshot = buildSnapshot(req.period);
+  return generateStructured({
+    prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot)),
+    system: ANALYSIS_SYSTEM,
+    schema: ANALYSIS_SCHEMA,
+    temperature: 0.7,
+    normalize: normalizeAnalysisResult,
+    demo: () => demoAnalysis(snapshot),
+  });
 }

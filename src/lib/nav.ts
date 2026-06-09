@@ -31,7 +31,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/ai-asistent",
     label: "AI asistent",
-    blurb: "Generátor inzerátů pro PPC postavený na Gemini — ukázka AI-asistovaného vývoje.",
+    blurb: "Tři marketingové nástroje na Gemini — PPC inzeráty, SEO obsahový brief a analýza výkonu.",
     task: 3,
   },
 ];

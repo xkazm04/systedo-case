@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
-import AdGenerator from "@/components/ai/AdGenerator";
+import AiAssistant from "@/components/ai/AiAssistant";
 import { Bolt, Document, Info, Target } from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "AI asistent — generátor PPC inzerátů",
+  title: "AI asistent — marketingové nástroje na Gemini",
   description:
-    "Generátor PPC inzerátů pro Google Ads a Sklik postavený na Gemini (gemini-3-flash-preview) se strukturovaným výstupem a kontrolou limitů znaků.",
+    "Tři AI nástroje pro marketing postavené na Gemini (gemini-3-flash-preview): generátor PPC inzerátů, SEO obsahový brief a analýza výkonu klienta. Strukturovaný výstup a kontrola limitů.",
 };
 
 const APPROACH = [
@@ -18,7 +18,7 @@ const APPROACH = [
   {
     icon: Target,
     title: "Doménová pravidla v promptu",
-    body: "Do instrukcí jsou zapečené limity Google Ads (30/90/25 znaků) a zásady copywritingu. UI je navíc kontroluje a barevně označí přetečení.",
+    body: "Do instrukcí jsou zapečené limity Google Ads i SEO (nadpisy 30/90 znaků, title 60, meta 155) a oborové zásady. UI je navíc kontroluje a barevně označí přetečení.",
   },
   {
     icon: Bolt,
@@ -41,21 +41,21 @@ export default function AiAssistantPage() {
         <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight text-navy-800 sm:text-4xl">
-              AI generátor PPC inzerátů
+              AI marketingový asistent
             </h1>
             <p className="mt-2 max-w-2xl text-muted">
-              Praktický nástroj z každodenní práce agentury: ze zadání kampaně vytvoří sadu nadpisů,
-              popisků a klíčových slov pro Google Ads i Sklik — s hlídáním limitů znaků a možností
-              vše zkopírovat. Pohání ho <strong className="text-navy-700">Gemini</strong>.
+              Tři nástroje z každodenní práce agentury v jednom rozhraní — generování PPC inzerátů,
+              SEO obsahový brief a analýza výkonu klienta. Každý odpovídá jednomu z pilířů Systedo a
+              pohání ho <strong className="text-navy-700">Gemini</strong>.
             </p>
           </div>
           <Pill tone="brand">gemini-3-flash-preview</Pill>
         </div>
       </div>
 
-      {/* the tool */}
+      {/* the tools */}
       <div className="mt-8">
-        <AdGenerator />
+        <AiAssistant />
       </div>
 
       {/* approach to AI-assisted development */}
