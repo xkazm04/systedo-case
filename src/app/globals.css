@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Design tokens — a Systedo-inspired system.
+   Navy (structure) + teal (brand/accent) + coral (highlight) on a cool canvas.
+   Exposed to Tailwind v4 via @theme, so utilities like `bg-brand-500`,
+   `text-navy-900`, `rounded-card` and `shadow-card` are generated for free.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* canvas + surfaces */
+  --color-canvas: #f4f7f9;
+  --color-surface: #ffffff;
+  --color-ink: #0d1a24;
+  --color-muted: #56697a;
+  --color-line: #e4eaef;
+
+  /* brand — teal / turquoise */
+  --color-brand-50: #ecfdfb;
+  --color-brand-100: #d2faf5;
+  --color-brand-200: #a6f1ea;
+  --color-brand-300: #6ee3da;
+  --color-brand-400: #2dd4ce;
+  --color-brand-500: #14b8b1;
+  --color-brand-600: #0e9c97;
+  --color-brand-700: #11807c;
+  --color-brand-800: #136663;
+  --color-brand-900: #134f4d;
+
+  /* navy — structure / headers */
+  --color-navy-50: #eef3f8;
+  --color-navy-100: #d6e1ec;
+  --color-navy-200: #adc2d6;
+  --color-navy-300: #7693ad;
+  --color-navy-400: #3f5a74;
+  --color-navy-500: #1f3a54;
+  --color-navy-600: #15324b;
+  --color-navy-700: #0f2438;
+  --color-navy-800: #0b1b2b;
+  --color-navy-900: #081521;
+
+  /* coral — accent / attention */
+  --color-coral-400: #ff8a5c;
+  --color-coral-500: #fb7141;
+  --color-coral-600: #ea5a2a;
+
+  /* semantic */
+  --color-positive: #128f6f;
+  --color-negative: #d4503e;
+
+  --radius-card: 1rem;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(13, 26, 36, 0.04), 0 8px 24px -12px rgba(13, 26, 36, 0.12);
+  --shadow-pop: 0 12px 40px -12px rgba(13, 26, 36, 0.25);
+}
+
+/* ---------------------------------------------------------------------------
+   Base
+--------------------------------------------------------------------------- */
+* {
+  border-color: var(--color-line);
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 6rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-navy-800);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Tabular figures for anything that displays numbers in columns. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle dotted grid used behind hero / section backdrops. */
+.bg-dotgrid {
+  background-image: radial-gradient(rgba(13, 26, 36, 0.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ---------------------------------------------------------------------------
+   Small reusable component classes
+--------------------------------------------------------------------------- */
+@layer components {
+  .card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 0.35rem 0.7rem;
+  }
+
+  /* prose links inside the article: brand colour with a soft underline */
+  .link-inline {
+    color: var(--color-brand-700);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: var(--color-brand-200);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 2px;
+    transition: text-decoration-color 0.15s ease, color 0.15s ease;
+  }
+  .link-inline:hover {
+    color: var(--color-brand-800);
+    text-decoration-color: var(--color-brand-500);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

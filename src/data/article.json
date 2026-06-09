@@ -1,0 +1,240 @@
+{
+  "meta": {
+    "title": "Ořechy, semínka a sušené plody: jak je dostat do jídelníčku (a neprohloupit u výběru)",
+    "perex": "Hrst ořechů denně zní jednoduše — dokud nestojíte před regálem plným druhů, gramáží a cen. Tady je praktický průvodce, který vám pomůže vybrat kvalitu, správně skladovat a dostat ořechy, semínka i sušené plody do běžného dne. S láskou a péčí, jak to máme rádi.",
+    "author": "Redakce Mionelo",
+    "role": "Průvodce nákupem",
+    "dateISO": "2026-06-02",
+    "readingMinutes": 8,
+    "category": "Zdravý jídelníček",
+    "tags": ["ořechy", "semínka", "sušené plody", "superpotraviny", "skladování"]
+  },
+  "blocks": [
+    {
+      "type": "p",
+      "content": [
+        "Ořechy a semínka patří k nejjednodušším způsobům, jak do jídelníčku přidat kvalitní tuky, bílkoviny a vlákninu — bez složitého vaření. Ať si vybíráte první sáček ",
+        { "text": "vlašských ořechů", "href": "https://www.mionelo.cz/orechy", "kind": "external" },
+        " nebo doplňujete zásobu ",
+        { "text": "chia semínek", "href": "https://www.mionelo.cz/seminka", "kind": "external" },
+        ", tenhle průvodce vás provede od ",
+        { "text": "výběru kvality", "href": "#kvalita", "kind": "anchor" },
+        " přes ",
+        { "text": "správné dávkování", "href": "#kolik", "kind": "anchor" },
+        " až po ",
+        { "text": "skladování", "href": "#skladovani", "kind": "anchor" },
+        ", aby plody vydržely čerstvé."
+      ]
+    },
+    {
+      "type": "stat",
+      "items": [
+        { "value": "≈ 30 g", "label": "hrst denně jako rozumná porce" },
+        { "value": "15+", "label": "druhů ořechů a semínek běžně po ruce" },
+        { "value": "chlad · tma · sucho", "label": "tři pravidla pro dlouhou trvanlivost" }
+      ]
+    },
+    { "type": "h2", "id": "proc", "text": "Proč na ořeších a semínkách záleží" },
+    {
+      "type": "p",
+      "content": [
+        "Ořechy, semínka a sušené plody jsou energeticky vydatné — v malém objemu nabídnou hodně. To je výhoda (rychlá svačina, sytost) i důvod, proč hlídat ",
+        { "text": "velikost porce", "href": "#kolik", "kind": "anchor" },
+        ". Nejde o jednu zázračnou potravinu, ale o pestrost: každý druh přináší trochu jiný profil."
+      ]
+    },
+    {
+      "type": "ul",
+      "items": [
+        [{ "text": "Zdravé tuky", "bold": true }, " včetně omega-3 — typicky ve vlašských ořeších a lněných semínkách."],
+        [{ "text": "Rostlinné bílkoviny a vláknina", "bold": true }, " pro delší pocit sytosti."],
+        [{ "text": "Minerály a vitaminy", "bold": true }, " — hořčík, zinek, vitamin E, u para ořechů selen."],
+        [{ "text": "Svačina bez přípravy", "bold": true }, " — stačí přesypat do dózy a vzít s sebou."]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "Pestrost vítězí nad jedním „superfoodem“",
+      "content": [
+        "Místo kila jednoho druhu zkuste menší balení několika. Mix vlašských, mandlí a dýňových semínek pokryje víc živin než jakákoli jediná „zázračná“ potravina."
+      ]
+    },
+    { "type": "h2", "id": "prehled", "text": "Malý přehled: co se na co hodí" },
+    {
+      "type": "p",
+      "content": [
+        "Nemusíte znát výživové tabulky nazpaměť. Stačí hrubá představa, který plod se hodí kam."
+      ]
+    },
+    { "type": "h3", "id": "prehled-orechy", "text": "Ořechy" },
+    {
+      "type": "p",
+      "content": [
+        "Vlašské jsou klasika k omega-3, mandle nabídnou vitamin E a vápník, kešu se hodí do slaných i sladkých jídel, lískové do pečení a para ořechy jsou bohaté na selen (stačí pár kusů). Kompletní výběr najdete v kategorii ",
+        { "text": "Ořechy", "href": "https://www.mionelo.cz/orechy", "kind": "external" },
+        "."
+      ]
+    },
+    { "type": "h3", "id": "prehled-seminka", "text": "Semínka" },
+    {
+      "type": "p",
+      "content": [
+        "Chia a lněná po namočení zgelovatí a skvěle zahustí snídani; dýňová a slunečnicová jsou ideální do salátů a na pečivo; sezam dodá chuť i vápník. Prohlédněte si ",
+        { "text": "Semínka", "href": "https://www.mionelo.cz/seminka", "kind": "external" },
+        "."
+      ]
+    },
+    { "type": "h3", "id": "prehled-susene", "text": "Sušené a lyofilizované plody" },
+    {
+      "type": "p",
+      "content": [
+        "Datle osladí bez bílého cukru, fíky a meruňky dodají vlákninu, lyofilizované ovoce skvěle křupe do müsli. U sušeného ovoce ale hlídejte přidaný cukr a síru — víc v sekci ",
+        { "text": "Jak poznat kvalitu", "href": "#kvalita", "kind": "anchor" },
+        ". Sortiment je v kategorii ",
+        { "text": "Sušené a lyofilizované", "href": "https://www.mionelo.cz/susene-a-lyofilizovane", "kind": "external" },
+        "."
+      ]
+    },
+    { "type": "h2", "id": "kolik", "text": "Kolik jich jíst a jak je zařadit" },
+    {
+      "type": "p",
+      "content": [
+        "Rozumná denní porce ořechů je zhruba hrst (25–30 g). Protože jsou kaloricky vydatné, spíš než „kolik nejvíc“ řešte „kam je přidat, aby dávaly smysl“. Pár nápadů, které zvládne každý:"
+      ]
+    },
+    {
+      "type": "ol",
+      "items": [
+        ["Do ranní ", { "text": "snídaně", "href": "https://www.mionelo.cz/snidane", "kind": "external" }, " — ovesná kaše, jogurt nebo smoothie bowl."],
+        ["Domácí granola: ořechy a semínka zapečené s trochou medu nebo datlové pasty."],
+        ["Do salátů místo krutonů — dýňová a slunečnicová semínka, nasekané vlašské."],
+        ["Do ", { "text": "pečení a vaření", "href": "https://www.mionelo.cz/peceni-a-vareni", "kind": "external" }, " — mletá mandle do těsta, sezam na pečivo."],
+        ["Jako svačinu na cesty v odměřené dóze, ať se hrst nezvrhne v celý sáček."]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "tip",
+      "title": "Tip: namáčení",
+      "content": [
+        "Chia a lněná semínka nechte 10–15 minut nabobtnat ve vodě či mléce — vznikne příjemný gel a tělo z nich víc získá. Ořechy přes noc namočené a osušené bývají lépe stravitelné."
+      ]
+    },
+    { "type": "h2", "id": "kvalita", "text": "Jak poznat kvalitu při nákupu" },
+    {
+      "type": "p",
+      "content": [
+        "Mezi sáčky bývají velké rozdíly. Než přidáte do košíku, projděte si rychlý checklist:"
+      ]
+    },
+    {
+      "type": "ul",
+      "items": [
+        [{ "text": "Čerstvost a obrat zásob", "bold": true }, " — u oříšků hraje roli, jak rychle se prodávají; čerstvé jádro nehořkne."],
+        [{ "text": "Bez zbytečných přídavků", "bold": true }, " — ideálně bez přidaného cukru, soli a oleje, pokud je nechcete."],
+        [{ "text": "Původ a zpracování", "bold": true }, " — natural vs. pražené, loupané vs. ve skořápce."],
+        [{ "text": "Obal", "bold": true }, " — znovuuzavíratelný sáček nebo dóza udrží plody déle čerstvé."],
+        ["Hledáte-li certifikované, zamiřte do kategorie ", { "text": "BIO", "href": "https://www.mionelo.cz/bio", "kind": "external" }, "."]
+      ]
+    },
+    {
+      "type": "p",
+      "content": [
+        "Nevíte, čím začít? Dobrým vodítkem bývají ",
+        { "text": "bestsellery", "href": "https://www.mionelo.cz/bestsellery", "kind": "external" },
+        " — to, co si lidé kupují opakovaně, většinou nezklame. A pokud řešíte konkrétní cíl (víc bílkovin, omega-3), pomůžou i ",
+        { "text": "doplňky stravy", "href": "https://www.mionelo.cz/doplnky-stravy", "kind": "external" },
+        "."
+      ]
+    },
+    { "type": "h2", "id": "skladovani", "text": "Skladování, aby vydržely čerstvé" },
+    {
+      "type": "p",
+      "content": [
+        "Za zkažením stojí nejčastěji žluknutí tuků. Trojici nepřátel — teplo, světlo a vzduch — porazíte třemi pravidly:"
+      ]
+    },
+    {
+      "type": "ul",
+      "items": [
+        ["Skladujte v ", { "text": "chladu, tmě a suchu", "bold": true }, " — spíž je lepší než parapet nad linkou."],
+        ["Naloupaná jádra a olejnatá semínka klidně do ", { "text": "lednice nebo mrazáku", "bold": true }, " na delší zásobu."],
+        ["Přesypte do ", { "text": "vzduchotěsné dózy", "bold": true }, " — papírový pytlík čerstvost neudrží."],
+        ["Mletou mandli a lněné semínko spotřebujte rychleji, mletím se kazí dřív."]
+      ]
+    },
+    {
+      "type": "callout",
+      "variant": "warn",
+      "title": "Žluklý ořech poznáte hned",
+      "content": [
+        "Hořká, olejově „barvová“ chuť nebo zatuchlá vůně = žluknutí. Takové plody nejezte, do těla nepatří. Raději nakupujte menší balení častěji než jedno velké na půl roku."
+      ]
+    },
+    { "type": "h2", "id": "shrnuti", "text": "Shrnutí na závěr" },
+    {
+      "type": "p",
+      "content": [
+        "Ořechy, semínka a sušené plody jsou levná cesta, jak jídelníček obohatit o kvalitní tuky, bílkoviny a vlákninu. Klíč je v pestrosti, rozumné porci a správném skladování."
+      ]
+    },
+    {
+      "type": "ul",
+      "items": [
+        ["Mixujte druhy — každý nabízí trochu jiný profil."],
+        ["Držte se zhruba hrsti denně a přidávejte je k jídlu, ne navíc bez rozmyslu."],
+        ["Vybírejte čerstvé, bez zbytečných přídavků, a hned přesypte do dózy."]
+      ]
+    },
+    {
+      "type": "cta",
+      "text": "Pusťte se do toho s čerstvou zásobou — ořechy, semínka i sušené plody máme nachystané.",
+      "href": "https://www.mionelo.cz/orechy",
+      "kind": "external",
+      "cta": "Prohlédnout nabídku"
+    },
+    {
+      "type": "callout",
+      "variant": "info",
+      "title": "Jak tenhle článek souvisí se zbytkem webu",
+      "content": [
+        "Je součástí ukázkové case study pro Systedo. Sezónní poptávku po tomhle sortimentu sledujeme ve ",
+        { "text": "výkonnostním dashboardu", "href": "/dashboard", "kind": "internal" },
+        " a inzeráty na konkrétní produkty pomáhá psát náš ",
+        { "text": "AI asistent", "href": "/ai-asistent", "kind": "internal" },
+        ". Zpět na ",
+        { "text": "přehled studie", "href": "/", "kind": "internal" },
+        "."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "q": "Kolik ořechů je tak akorát na den?",
+      "a": [
+        "Pro většinu lidí sedí zhruba malá hrst, tedy 25–30 g. Ořechy jsou kalorické, takže spíš než množství řešte, ke kterému jídlu je přidáte."
+      ]
+    },
+    {
+      "q": "Jsou ořechy vhodné i při hubnutí?",
+      "a": [
+        "Ano, v rozumné porci. Díky tukům, bílkovinám a vláknině dobře zasytí, což pomáhá ubránit se mlsání. Hlídejte ale velikost porce a vybírejte raději ",
+        { "text": "natural varianty", "href": "https://www.mionelo.cz/orechy", "kind": "external" },
+        " bez přidaného cukru a soli."
+      ]
+    },
+    {
+      "q": "Má smysl semínka a ořechy namáčet?",
+      "a": [
+        "U chia a lněných semínek určitě — nabobtnají a snáz se tráví. U ořechů je namáčení přes noc volitelné, některým lidem zlepší stravitelnost."
+      ]
+    },
+    {
+      "q": "Jak poznám, že už nejsou čerstvé?",
+      "a": [
+        "Podle chuti a vůně. Hořká, olejová nebo zatuchlá nota znamená žluknutí. Takové plody vyhoďte a příště kupte menší balení, které rychleji spotřebujete."
+      ]
+    }
+  ]
+}

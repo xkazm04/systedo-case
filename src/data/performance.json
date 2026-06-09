@@ -1,0 +1,5203 @@
+{
+  "client": {
+    "name": "Mionelo",
+    "domain": "mionelo.cz",
+    "segment": "E-commerce · ořechy, semínka a superpotraviny",
+    "currency": "CZK",
+    "managedBy": "Systedo"
+  },
+  "meta": {
+    "disclaimer": "Ilustrativní data vygenerovaná pro účely případové studie.",
+    "asOf": "2026-06-08",
+    "days": 730,
+    "seed": 20260608
+  },
+  "goals": {
+    "pno": 0.15,
+    "monthlyRevenue": 1600000
+  },
+  "channels": [
+    {
+      "channel": "Google Ads (Search + PMax)",
+      "color": "#1f8f88",
+      "shares": {
+        "visits": 0.22,
+        "cost": 0.33,
+        "conversions": 0.29,
+        "revenue": 0.3
+      }
+    },
+    {
+      "channel": "Google Nákupy",
+      "color": "#2dd4ce",
+      "shares": {
+        "visits": 0.12,
+        "cost": 0.16,
+        "conversions": 0.14,
+        "revenue": 0.14
+      }
+    },
+    {
+      "channel": "Sklik (Seznam)",
+      "color": "#15324b",
+      "shares": {
+        "visits": 0.11,
+        "cost": 0.13,
+        "conversions": 0.12,
+        "revenue": 0.12
+      }
+    },
+    {
+      "channel": "Heureka",
+      "color": "#f59e0b",
+      "shares": {
+        "visits": 0.08,
+        "cost": 0.07,
+        "conversions": 0.1,
+        "revenue": 0.09
+      }
+    },
+    {
+      "channel": "Zboží.cz",
+      "color": "#94a3b8",
+      "shares": {
+        "visits": 0.06,
+        "cost": 0.06,
+        "conversions": 0.07,
+        "revenue": 0.07
+      }
+    },
+    {
+      "channel": "Meta (FB / IG)",
+      "color": "#fb7141",
+      "shares": {
+        "visits": 0.19,
+        "cost": 0.25,
+        "conversions": 0.12,
+        "revenue": 0.13
+      }
+    },
+    {
+      "channel": "Organic & přímá",
+      "color": "#0b1b2b",
+      "shares": {
+        "visits": 0.22,
+        "cost": 0,
+        "conversions": 0.16,
+        "revenue": 0.15
+      }
+    }
+  ],
+  "daily": [
+    {
+      "date": "2024-06-09",
+      "visits": 1073,
+      "cost": 7233,
+      "conversions": 23,
+      "revenue": 36448
+    },
+    {
+      "date": "2024-06-10",
+      "visits": 1062,
+      "cost": 6506,
+      "conversions": 21,
+      "revenue": 30169
+    },
+    {
+      "date": "2024-06-11",
+      "visits": 985,
+      "cost": 5657,
+      "conversions": 19,
+      "revenue": 28032
+    },
+    {
+      "date": "2024-06-12",
+      "visits": 1109,
+      "cost": 8262,
+      "conversions": 24,
+      "revenue": 38578
+    },
+    {
+      "date": "2024-06-13",
+      "visits": 1121,
+      "cost": 6836,
+      "conversions": 24,
+      "revenue": 35250
+    },
+    {
+      "date": "2024-06-14",
+      "visits": 1129,
+      "cost": 8258,
+      "conversions": 25,
+      "revenue": 38768
+    },
+    {
+      "date": "2024-06-15",
+      "visits": 1118,
+      "cost": 6906,
+      "conversions": 23,
+      "revenue": 33628
+    },
+    {
+      "date": "2024-06-16",
+      "visits": 1175,
+      "cost": 8313,
+      "conversions": 24,
+      "revenue": 38545
+    },
+    {
+      "date": "2024-06-17",
+      "visits": 1082,
+      "cost": 7363,
+      "conversions": 22,
+      "revenue": 35006
+    },
+    {
+      "date": "2024-06-18",
+      "visits": 1135,
+      "cost": 8014,
+      "conversions": 25,
+      "revenue": 39256
+    },
+    {
+      "date": "2024-06-19",
+      "visits": 1059,
+      "cost": 6590,
+      "conversions": 22,
+      "revenue": 34335
+    },
+    {
+      "date": "2024-06-20",
+      "visits": 1130,
+      "cost": 7729,
+      "conversions": 24,
+      "revenue": 36159
+    },
+    {
+      "date": "2024-06-21",
+      "visits": 1042,
+      "cost": 6736,
+      "conversions": 21,
+      "revenue": 32282
+    },
+    {
+      "date": "2024-06-22",
+      "visits": 1184,
+      "cost": 6877,
+      "conversions": 24,
+      "revenue": 34971
+    },
+    {
+      "date": "2024-06-23",
+      "visits": 1123,
+      "cost": 6988,
+      "conversions": 23,
+      "revenue": 35856
+    },
+    {
+      "date": "2024-06-24",
+      "visits": 1163,
+      "cost": 7632,
+      "conversions": 24,
+      "revenue": 38283
+    },
+    {
+      "date": "2024-06-25",
+      "visits": 1095,
+      "cost": 6606,
+      "conversions": 22,
+      "revenue": 33632
+    },
+    {
+      "date": "2024-06-26",
+      "visits": 1073,
+      "cost": 6833,
+      "conversions": 23,
+      "revenue": 34312
+    },
+    {
+      "date": "2024-06-27",
+      "visits": 1153,
+      "cost": 7922,
+      "conversions": 25,
+      "revenue": 37234
+    },
+    {
+      "date": "2024-06-28",
+      "visits": 1132,
+      "cost": 7525,
+      "conversions": 25,
+      "revenue": 38405
+    },
+    {
+      "date": "2024-06-29",
+      "visits": 1172,
+      "cost": 7289,
+      "conversions": 24,
+      "revenue": 36032
+    },
+    {
+      "date": "2024-06-30",
+      "visits": 1056,
+      "cost": 6681,
+      "conversions": 22,
+      "revenue": 32796
+    },
+    {
+      "date": "2024-07-01",
+      "visits": 1066,
+      "cost": 6834,
+      "conversions": 22,
+      "revenue": 33220
+    },
+    {
+      "date": "2024-07-02",
+      "visits": 1003,
+      "cost": 6417,
+      "conversions": 20,
+      "revenue": 31541
+    },
+    {
+      "date": "2024-07-03",
+      "visits": 880,
+      "cost": 5122,
+      "conversions": 17,
+      "revenue": 26100
+    },
+    {
+      "date": "2024-07-04",
+      "visits": 1045,
+      "cost": 5841,
+      "conversions": 20,
+      "revenue": 29274
+    },
+    {
+      "date": "2024-07-05",
+      "visits": 1101,
+      "cost": 7413,
+      "conversions": 24,
+      "revenue": 35765
+    },
+    {
+      "date": "2024-07-06",
+      "visits": 1041,
+      "cost": 7733,
+      "conversions": 23,
+      "revenue": 36344
+    },
+    {
+      "date": "2024-07-07",
+      "visits": 1077,
+      "cost": 6347,
+      "conversions": 21,
+      "revenue": 33322
+    },
+    {
+      "date": "2024-07-08",
+      "visits": 931,
+      "cost": 6655,
+      "conversions": 20,
+      "revenue": 31414
+    },
+    {
+      "date": "2024-07-09",
+      "visits": 1059,
+      "cost": 6121,
+      "conversions": 20,
+      "revenue": 31809
+    },
+    {
+      "date": "2024-07-10",
+      "visits": 908,
+      "cost": 5616,
+      "conversions": 17,
+      "revenue": 26713
+    },
+    {
+      "date": "2024-07-11",
+      "visits": 1083,
+      "cost": 7226,
+      "conversions": 22,
+      "revenue": 34354
+    },
+    {
+      "date": "2024-07-12",
+      "visits": 939,
+      "cost": 6571,
+      "conversions": 20,
+      "revenue": 31379
+    },
+    {
+      "date": "2024-07-13",
+      "visits": 1004,
+      "cost": 6993,
+      "conversions": 21,
+      "revenue": 33214
+    },
+    {
+      "date": "2024-07-14",
+      "visits": 1024,
+      "cost": 6035,
+      "conversions": 22,
+      "revenue": 31761
+    },
+    {
+      "date": "2024-07-15",
+      "visits": 1036,
+      "cost": 6268,
+      "conversions": 22,
+      "revenue": 32395
+    },
+    {
+      "date": "2024-07-16",
+      "visits": 982,
+      "cost": 5672,
+      "conversions": 20,
+      "revenue": 29550
+    },
+    {
+      "date": "2024-07-17",
+      "visits": 914,
+      "cost": 5025,
+      "conversions": 18,
+      "revenue": 26004
+    },
+    {
+      "date": "2024-07-18",
+      "visits": 1021,
+      "cost": 6449,
+      "conversions": 21,
+      "revenue": 31037
+    },
+    {
+      "date": "2024-07-19",
+      "visits": 1041,
+      "cost": 6020,
+      "conversions": 21,
+      "revenue": 30590
+    },
+    {
+      "date": "2024-07-20",
+      "visits": 1126,
+      "cost": 8489,
+      "conversions": 26,
+      "revenue": 39907
+    },
+    {
+      "date": "2024-07-21",
+      "visits": 1095,
+      "cost": 7403,
+      "conversions": 23,
+      "revenue": 37198
+    },
+    {
+      "date": "2024-07-22",
+      "visits": 918,
+      "cost": 6366,
+      "conversions": 20,
+      "revenue": 30216
+    },
+    {
+      "date": "2024-07-23",
+      "visits": 958,
+      "cost": 5193,
+      "conversions": 18,
+      "revenue": 26300
+    },
+    {
+      "date": "2024-07-24",
+      "visits": 920,
+      "cost": 5176,
+      "conversions": 17,
+      "revenue": 25362
+    },
+    {
+      "date": "2024-07-25",
+      "visits": 1095,
+      "cost": 7304,
+      "conversions": 22,
+      "revenue": 34879
+    },
+    {
+      "date": "2024-07-26",
+      "visits": 1022,
+      "cost": 6860,
+      "conversions": 23,
+      "revenue": 34661
+    },
+    {
+      "date": "2024-07-27",
+      "visits": 1102,
+      "cost": 6636,
+      "conversions": 22,
+      "revenue": 33356
+    },
+    {
+      "date": "2024-07-28",
+      "visits": 1077,
+      "cost": 6475,
+      "conversions": 22,
+      "revenue": 32592
+    },
+    {
+      "date": "2024-07-29",
+      "visits": 994,
+      "cost": 6155,
+      "conversions": 21,
+      "revenue": 31513
+    },
+    {
+      "date": "2024-07-30",
+      "visits": 1083,
+      "cost": 6226,
+      "conversions": 20,
+      "revenue": 30402
+    },
+    {
+      "date": "2024-07-31",
+      "visits": 946,
+      "cost": 5779,
+      "conversions": 19,
+      "revenue": 27484
+    },
+    {
+      "date": "2024-08-01",
+      "visits": 1168,
+      "cost": 7015,
+      "conversions": 23,
+      "revenue": 35305
+    },
+    {
+      "date": "2024-08-02",
+      "visits": 1161,
+      "cost": 7710,
+      "conversions": 25,
+      "revenue": 38325
+    },
+    {
+      "date": "2024-08-03",
+      "visits": 1136,
+      "cost": 7923,
+      "conversions": 26,
+      "revenue": 37634
+    },
+    {
+      "date": "2024-08-04",
+      "visits": 1091,
+      "cost": 6867,
+      "conversions": 22,
+      "revenue": 33151
+    },
+    {
+      "date": "2024-08-05",
+      "visits": 971,
+      "cost": 6033,
+      "conversions": 20,
+      "revenue": 30805
+    },
+    {
+      "date": "2024-08-06",
+      "visits": 1033,
+      "cost": 5724,
+      "conversions": 20,
+      "revenue": 30442
+    },
+    {
+      "date": "2024-08-07",
+      "visits": 969,
+      "cost": 5555,
+      "conversions": 19,
+      "revenue": 28783
+    },
+    {
+      "date": "2024-08-08",
+      "visits": 1141,
+      "cost": 7026,
+      "conversions": 22,
+      "revenue": 34228
+    },
+    {
+      "date": "2024-08-09",
+      "visits": 1185,
+      "cost": 8489,
+      "conversions": 26,
+      "revenue": 40532
+    },
+    {
+      "date": "2024-08-10",
+      "visits": 1134,
+      "cost": 7380,
+      "conversions": 23,
+      "revenue": 35315
+    },
+    {
+      "date": "2024-08-11",
+      "visits": 1015,
+      "cost": 6675,
+      "conversions": 23,
+      "revenue": 33730
+    },
+    {
+      "date": "2024-08-12",
+      "visits": 1006,
+      "cost": 6476,
+      "conversions": 20,
+      "revenue": 31882
+    },
+    {
+      "date": "2024-08-13",
+      "visits": 979,
+      "cost": 6525,
+      "conversions": 21,
+      "revenue": 32551
+    },
+    {
+      "date": "2024-08-14",
+      "visits": 964,
+      "cost": 5643,
+      "conversions": 19,
+      "revenue": 29575
+    },
+    {
+      "date": "2024-08-15",
+      "visits": 1116,
+      "cost": 5957,
+      "conversions": 22,
+      "revenue": 31828
+    },
+    {
+      "date": "2024-08-16",
+      "visits": 1038,
+      "cost": 6417,
+      "conversions": 21,
+      "revenue": 33417
+    },
+    {
+      "date": "2024-08-17",
+      "visits": 1081,
+      "cost": 7081,
+      "conversions": 23,
+      "revenue": 35663
+    },
+    {
+      "date": "2024-08-18",
+      "visits": 1194,
+      "cost": 8726,
+      "conversions": 28,
+      "revenue": 44750
+    },
+    {
+      "date": "2024-08-19",
+      "visits": 1000,
+      "cost": 6026,
+      "conversions": 20,
+      "revenue": 32240
+    },
+    {
+      "date": "2024-08-20",
+      "visits": 981,
+      "cost": 6695,
+      "conversions": 20,
+      "revenue": 32177
+    },
+    {
+      "date": "2024-08-21",
+      "visits": 1049,
+      "cost": 6352,
+      "conversions": 23,
+      "revenue": 33971
+    },
+    {
+      "date": "2024-08-22",
+      "visits": 1078,
+      "cost": 6769,
+      "conversions": 22,
+      "revenue": 35257
+    },
+    {
+      "date": "2024-08-23",
+      "visits": 1131,
+      "cost": 7812,
+      "conversions": 26,
+      "revenue": 39033
+    },
+    {
+      "date": "2024-08-24",
+      "visits": 1053,
+      "cost": 6218,
+      "conversions": 23,
+      "revenue": 33361
+    },
+    {
+      "date": "2024-08-25",
+      "visits": 1096,
+      "cost": 7949,
+      "conversions": 26,
+      "revenue": 39934
+    },
+    {
+      "date": "2024-08-26",
+      "visits": 1160,
+      "cost": 7405,
+      "conversions": 23,
+      "revenue": 36407
+    },
+    {
+      "date": "2024-08-27",
+      "visits": 983,
+      "cost": 6361,
+      "conversions": 21,
+      "revenue": 33336
+    },
+    {
+      "date": "2024-08-28",
+      "visits": 1073,
+      "cost": 6871,
+      "conversions": 23,
+      "revenue": 34212
+    },
+    {
+      "date": "2024-08-29",
+      "visits": 1179,
+      "cost": 8342,
+      "conversions": 26,
+      "revenue": 41395
+    },
+    {
+      "date": "2024-08-30",
+      "visits": 1064,
+      "cost": 6558,
+      "conversions": 22,
+      "revenue": 32216
+    },
+    {
+      "date": "2024-08-31",
+      "visits": 1047,
+      "cost": 6171,
+      "conversions": 21,
+      "revenue": 31069
+    },
+    {
+      "date": "2024-09-01",
+      "visits": 1382,
+      "cost": 10686,
+      "conversions": 34,
+      "revenue": 52631
+    },
+    {
+      "date": "2024-09-02",
+      "visits": 1371,
+      "cost": 10072,
+      "conversions": 32,
+      "revenue": 49499
+    },
+    {
+      "date": "2024-09-03",
+      "visits": 1194,
+      "cost": 8734,
+      "conversions": 28,
+      "revenue": 42953
+    },
+    {
+      "date": "2024-09-04",
+      "visits": 1199,
+      "cost": 7863,
+      "conversions": 27,
+      "revenue": 41598
+    },
+    {
+      "date": "2024-09-05",
+      "visits": 1227,
+      "cost": 7958,
+      "conversions": 26,
+      "revenue": 40615
+    },
+    {
+      "date": "2024-09-06",
+      "visits": 1345,
+      "cost": 9330,
+      "conversions": 31,
+      "revenue": 48504
+    },
+    {
+      "date": "2024-09-07",
+      "visits": 1264,
+      "cost": 8473,
+      "conversions": 29,
+      "revenue": 44493
+    },
+    {
+      "date": "2024-09-08",
+      "visits": 1366,
+      "cost": 10412,
+      "conversions": 34,
+      "revenue": 52578
+    },
+    {
+      "date": "2024-09-09",
+      "visits": 1226,
+      "cost": 8729,
+      "conversions": 29,
+      "revenue": 42841
+    },
+    {
+      "date": "2024-09-10",
+      "visits": 1219,
+      "cost": 8629,
+      "conversions": 28,
+      "revenue": 44395
+    },
+    {
+      "date": "2024-09-11",
+      "visits": 1226,
+      "cost": 8123,
+      "conversions": 27,
+      "revenue": 39331
+    },
+    {
+      "date": "2024-09-12",
+      "visits": 1164,
+      "cost": 7271,
+      "conversions": 26,
+      "revenue": 39104
+    },
+    {
+      "date": "2024-09-13",
+      "visits": 1247,
+      "cost": 8884,
+      "conversions": 28,
+      "revenue": 45556
+    },
+    {
+      "date": "2024-09-14",
+      "visits": 1486,
+      "cost": 10029,
+      "conversions": 35,
+      "revenue": 51091
+    },
+    {
+      "date": "2024-09-15",
+      "visits": 1248,
+      "cost": 8366,
+      "conversions": 28,
+      "revenue": 42620
+    },
+    {
+      "date": "2024-09-16",
+      "visits": 1194,
+      "cost": 8354,
+      "conversions": 28,
+      "revenue": 43792
+    },
+    {
+      "date": "2024-09-17",
+      "visits": 1277,
+      "cost": 8194,
+      "conversions": 27,
+      "revenue": 41928
+    },
+    {
+      "date": "2024-09-18",
+      "visits": 1353,
+      "cost": 9049,
+      "conversions": 30,
+      "revenue": 43828
+    },
+    {
+      "date": "2024-09-19",
+      "visits": 1272,
+      "cost": 9199,
+      "conversions": 30,
+      "revenue": 48575
+    },
+    {
+      "date": "2024-09-20",
+      "visits": 1301,
+      "cost": 9140,
+      "conversions": 31,
+      "revenue": 45875
+    },
+    {
+      "date": "2024-09-21",
+      "visits": 1447,
+      "cost": 9421,
+      "conversions": 34,
+      "revenue": 49927
+    },
+    {
+      "date": "2024-09-22",
+      "visits": 1409,
+      "cost": 9669,
+      "conversions": 33,
+      "revenue": 51059
+    },
+    {
+      "date": "2024-09-23",
+      "visits": 1286,
+      "cost": 9125,
+      "conversions": 30,
+      "revenue": 47735
+    },
+    {
+      "date": "2024-09-24",
+      "visits": 1275,
+      "cost": 7591,
+      "conversions": 27,
+      "revenue": 40122
+    },
+    {
+      "date": "2024-09-25",
+      "visits": 1305,
+      "cost": 8732,
+      "conversions": 27,
+      "revenue": 44231
+    },
+    {
+      "date": "2024-09-26",
+      "visits": 1431,
+      "cost": 10038,
+      "conversions": 32,
+      "revenue": 51632
+    },
+    {
+      "date": "2024-09-27",
+      "visits": 1256,
+      "cost": 8810,
+      "conversions": 30,
+      "revenue": 46658
+    },
+    {
+      "date": "2024-09-28",
+      "visits": 1342,
+      "cost": 9321,
+      "conversions": 30,
+      "revenue": 47097
+    },
+    {
+      "date": "2024-09-29",
+      "visits": 1458,
+      "cost": 11659,
+      "conversions": 37,
+      "revenue": 59035
+    },
+    {
+      "date": "2024-09-30",
+      "visits": 1420,
+      "cost": 9336,
+      "conversions": 31,
+      "revenue": 46542
+    },
+    {
+      "date": "2024-10-01",
+      "visits": 1315,
+      "cost": 10131,
+      "conversions": 32,
+      "revenue": 51309
+    },
+    {
+      "date": "2024-10-02",
+      "visits": 1336,
+      "cost": 8476,
+      "conversions": 29,
+      "revenue": 43763
+    },
+    {
+      "date": "2024-10-03",
+      "visits": 1447,
+      "cost": 9428,
+      "conversions": 33,
+      "revenue": 51228
+    },
+    {
+      "date": "2024-10-04",
+      "visits": 1363,
+      "cost": 9680,
+      "conversions": 32,
+      "revenue": 48026
+    },
+    {
+      "date": "2024-10-05",
+      "visits": 1402,
+      "cost": 10889,
+      "conversions": 34,
+      "revenue": 53441
+    },
+    {
+      "date": "2024-10-06",
+      "visits": 1514,
+      "cost": 11352,
+      "conversions": 36,
+      "revenue": 58516
+    },
+    {
+      "date": "2024-10-07",
+      "visits": 1401,
+      "cost": 10686,
+      "conversions": 34,
+      "revenue": 53974
+    },
+    {
+      "date": "2024-10-08",
+      "visits": 1478,
+      "cost": 11673,
+      "conversions": 36,
+      "revenue": 57668
+    },
+    {
+      "date": "2024-10-09",
+      "visits": 1315,
+      "cost": 9394,
+      "conversions": 32,
+      "revenue": 47837
+    },
+    {
+      "date": "2024-10-10",
+      "visits": 1330,
+      "cost": 9229,
+      "conversions": 31,
+      "revenue": 46861
+    },
+    {
+      "date": "2024-10-11",
+      "visits": 1411,
+      "cost": 9743,
+      "conversions": 34,
+      "revenue": 51116
+    },
+    {
+      "date": "2024-10-12",
+      "visits": 1562,
+      "cost": 12236,
+      "conversions": 41,
+      "revenue": 66892
+    },
+    {
+      "date": "2024-10-13",
+      "visits": 1514,
+      "cost": 11351,
+      "conversions": 36,
+      "revenue": 58526
+    },
+    {
+      "date": "2024-10-14",
+      "visits": 1338,
+      "cost": 10418,
+      "conversions": 34,
+      "revenue": 52092
+    },
+    {
+      "date": "2024-10-15",
+      "visits": 1487,
+      "cost": 9694,
+      "conversions": 34,
+      "revenue": 52810
+    },
+    {
+      "date": "2024-10-16",
+      "visits": 1541,
+      "cost": 10630,
+      "conversions": 36,
+      "revenue": 56750
+    },
+    {
+      "date": "2024-10-17",
+      "visits": 1390,
+      "cost": 10604,
+      "conversions": 35,
+      "revenue": 52592
+    },
+    {
+      "date": "2024-10-18",
+      "visits": 1460,
+      "cost": 10323,
+      "conversions": 35,
+      "revenue": 53640
+    },
+    {
+      "date": "2024-10-19",
+      "visits": 1454,
+      "cost": 12170,
+      "conversions": 38,
+      "revenue": 62135
+    },
+    {
+      "date": "2024-10-20",
+      "visits": 1390,
+      "cost": 9828,
+      "conversions": 34,
+      "revenue": 51136
+    },
+    {
+      "date": "2024-10-21",
+      "visits": 1544,
+      "cost": 10860,
+      "conversions": 36,
+      "revenue": 56853
+    },
+    {
+      "date": "2024-10-22",
+      "visits": 1307,
+      "cost": 9492,
+      "conversions": 29,
+      "revenue": 47426
+    },
+    {
+      "date": "2024-10-23",
+      "visits": 1482,
+      "cost": 9219,
+      "conversions": 32,
+      "revenue": 50837
+    },
+    {
+      "date": "2024-10-24",
+      "visits": 1374,
+      "cost": 9827,
+      "conversions": 32,
+      "revenue": 52555
+    },
+    {
+      "date": "2024-10-25",
+      "visits": 1521,
+      "cost": 11733,
+      "conversions": 38,
+      "revenue": 60534
+    },
+    {
+      "date": "2024-10-26",
+      "visits": 1400,
+      "cost": 9482,
+      "conversions": 33,
+      "revenue": 52348
+    },
+    {
+      "date": "2024-10-27",
+      "visits": 1419,
+      "cost": 10846,
+      "conversions": 36,
+      "revenue": 59299
+    },
+    {
+      "date": "2024-10-28",
+      "visits": 1455,
+      "cost": 10822,
+      "conversions": 33,
+      "revenue": 53868
+    },
+    {
+      "date": "2024-10-29",
+      "visits": 1356,
+      "cost": 8845,
+      "conversions": 31,
+      "revenue": 46905
+    },
+    {
+      "date": "2024-10-30",
+      "visits": 1430,
+      "cost": 10637,
+      "conversions": 34,
+      "revenue": 53600
+    },
+    {
+      "date": "2024-10-31",
+      "visits": 1414,
+      "cost": 10268,
+      "conversions": 35,
+      "revenue": 53898
+    },
+    {
+      "date": "2024-11-01",
+      "visits": 1790,
+      "cost": 15190,
+      "conversions": 46,
+      "revenue": 75888
+    },
+    {
+      "date": "2024-11-02",
+      "visits": 1864,
+      "cost": 15532,
+      "conversions": 50,
+      "revenue": 81950
+    },
+    {
+      "date": "2024-11-03",
+      "visits": 1788,
+      "cost": 15012,
+      "conversions": 48,
+      "revenue": 76886
+    },
+    {
+      "date": "2024-11-04",
+      "visits": 1794,
+      "cost": 13025,
+      "conversions": 42,
+      "revenue": 66894
+    },
+    {
+      "date": "2024-11-05",
+      "visits": 1628,
+      "cost": 13447,
+      "conversions": 43,
+      "revenue": 67829
+    },
+    {
+      "date": "2024-11-06",
+      "visits": 1531,
+      "cost": 9696,
+      "conversions": 36,
+      "revenue": 53651
+    },
+    {
+      "date": "2024-11-07",
+      "visits": 1803,
+      "cost": 12700,
+      "conversions": 42,
+      "revenue": 65621
+    },
+    {
+      "date": "2024-11-08",
+      "visits": 1546,
+      "cost": 10747,
+      "conversions": 38,
+      "revenue": 58809
+    },
+    {
+      "date": "2024-11-09",
+      "visits": 1816,
+      "cost": 12831,
+      "conversions": 44,
+      "revenue": 69751
+    },
+    {
+      "date": "2024-11-10",
+      "visits": 1638,
+      "cost": 12490,
+      "conversions": 46,
+      "revenue": 67766
+    },
+    {
+      "date": "2024-11-11",
+      "visits": 1527,
+      "cost": 10932,
+      "conversions": 38,
+      "revenue": 57553
+    },
+    {
+      "date": "2024-11-12",
+      "visits": 1712,
+      "cost": 11561,
+      "conversions": 40,
+      "revenue": 62524
+    },
+    {
+      "date": "2024-11-13",
+      "visits": 1586,
+      "cost": 11460,
+      "conversions": 38,
+      "revenue": 59764
+    },
+    {
+      "date": "2024-11-14",
+      "visits": 1491,
+      "cost": 10633,
+      "conversions": 36,
+      "revenue": 58267
+    },
+    {
+      "date": "2024-11-15",
+      "visits": 1873,
+      "cost": 13794,
+      "conversions": 47,
+      "revenue": 73743
+    },
+    {
+      "date": "2024-11-16",
+      "visits": 1680,
+      "cost": 12223,
+      "conversions": 41,
+      "revenue": 61459
+    },
+    {
+      "date": "2024-11-17",
+      "visits": 1564,
+      "cost": 11812,
+      "conversions": 40,
+      "revenue": 60343
+    },
+    {
+      "date": "2024-11-18",
+      "visits": 1498,
+      "cost": 11641,
+      "conversions": 36,
+      "revenue": 58096
+    },
+    {
+      "date": "2024-11-19",
+      "visits": 1479,
+      "cost": 10531,
+      "conversions": 36,
+      "revenue": 54773
+    },
+    {
+      "date": "2024-11-20",
+      "visits": 1586,
+      "cost": 11238,
+      "conversions": 39,
+      "revenue": 62504
+    },
+    {
+      "date": "2024-11-21",
+      "visits": 1604,
+      "cost": 10491,
+      "conversions": 37,
+      "revenue": 55712
+    },
+    {
+      "date": "2024-11-22",
+      "visits": 1609,
+      "cost": 12802,
+      "conversions": 41,
+      "revenue": 67198
+    },
+    {
+      "date": "2024-11-23",
+      "visits": 1825,
+      "cost": 12761,
+      "conversions": 45,
+      "revenue": 69471
+    },
+    {
+      "date": "2024-11-24",
+      "visits": 1885,
+      "cost": 15535,
+      "conversions": 52,
+      "revenue": 79010
+    },
+    {
+      "date": "2024-11-25",
+      "visits": 1549,
+      "cost": 10455,
+      "conversions": 37,
+      "revenue": 57337
+    },
+    {
+      "date": "2024-11-26",
+      "visits": 1723,
+      "cost": 13142,
+      "conversions": 44,
+      "revenue": 67556
+    },
+    {
+      "date": "2024-11-27",
+      "visits": 1773,
+      "cost": 14319,
+      "conversions": 47,
+      "revenue": 72478
+    },
+    {
+      "date": "2024-11-28",
+      "visits": 1583,
+      "cost": 10680,
+      "conversions": 39,
+      "revenue": 59476
+    },
+    {
+      "date": "2024-11-29",
+      "visits": 1601,
+      "cost": 11399,
+      "conversions": 39,
+      "revenue": 61756
+    },
+    {
+      "date": "2024-11-30",
+      "visits": 1664,
+      "cost": 12099,
+      "conversions": 40,
+      "revenue": 62781
+    },
+    {
+      "date": "2024-12-01",
+      "visits": 1988,
+      "cost": 16531,
+      "conversions": 57,
+      "revenue": 92331
+    },
+    {
+      "date": "2024-12-02",
+      "visits": 1859,
+      "cost": 14159,
+      "conversions": 46,
+      "revenue": 75801
+    },
+    {
+      "date": "2024-12-03",
+      "visits": 1652,
+      "cost": 11927,
+      "conversions": 41,
+      "revenue": 61151
+    },
+    {
+      "date": "2024-12-04",
+      "visits": 1677,
+      "cost": 13508,
+      "conversions": 43,
+      "revenue": 69119
+    },
+    {
+      "date": "2024-12-05",
+      "visits": 1761,
+      "cost": 12180,
+      "conversions": 43,
+      "revenue": 64851
+    },
+    {
+      "date": "2024-12-06",
+      "visits": 1986,
+      "cost": 15146,
+      "conversions": 50,
+      "revenue": 81091
+    },
+    {
+      "date": "2024-12-07",
+      "visits": 2069,
+      "cost": 17407,
+      "conversions": 57,
+      "revenue": 90671
+    },
+    {
+      "date": "2024-12-08",
+      "visits": 1949,
+      "cost": 16274,
+      "conversions": 57,
+      "revenue": 86561
+    },
+    {
+      "date": "2024-12-09",
+      "visits": 1934,
+      "cost": 15644,
+      "conversions": 49,
+      "revenue": 79663
+    },
+    {
+      "date": "2024-12-10",
+      "visits": 1855,
+      "cost": 13422,
+      "conversions": 48,
+      "revenue": 75995
+    },
+    {
+      "date": "2024-12-11",
+      "visits": 1670,
+      "cost": 13067,
+      "conversions": 43,
+      "revenue": 68234
+    },
+    {
+      "date": "2024-12-12",
+      "visits": 1963,
+      "cost": 16919,
+      "conversions": 53,
+      "revenue": 86291
+    },
+    {
+      "date": "2024-12-13",
+      "visits": 1883,
+      "cost": 14451,
+      "conversions": 50,
+      "revenue": 75027
+    },
+    {
+      "date": "2024-12-14",
+      "visits": 1823,
+      "cost": 13030,
+      "conversions": 47,
+      "revenue": 69985
+    },
+    {
+      "date": "2024-12-15",
+      "visits": 1808,
+      "cost": 13697,
+      "conversions": 46,
+      "revenue": 73640
+    },
+    {
+      "date": "2024-12-16",
+      "visits": 1761,
+      "cost": 14053,
+      "conversions": 47,
+      "revenue": 71917
+    },
+    {
+      "date": "2024-12-17",
+      "visits": 1630,
+      "cost": 12066,
+      "conversions": 43,
+      "revenue": 64907
+    },
+    {
+      "date": "2024-12-18",
+      "visits": 1881,
+      "cost": 15034,
+      "conversions": 51,
+      "revenue": 78760
+    },
+    {
+      "date": "2024-12-19",
+      "visits": 1949,
+      "cost": 13688,
+      "conversions": 49,
+      "revenue": 76215
+    },
+    {
+      "date": "2024-12-20",
+      "visits": 1867,
+      "cost": 14252,
+      "conversions": 50,
+      "revenue": 74027
+    },
+    {
+      "date": "2024-12-21",
+      "visits": 1993,
+      "cost": 14922,
+      "conversions": 51,
+      "revenue": 76110
+    },
+    {
+      "date": "2024-12-22",
+      "visits": 2073,
+      "cost": 17440,
+      "conversions": 59,
+      "revenue": 95863
+    },
+    {
+      "date": "2024-12-23",
+      "visits": 1709,
+      "cost": 12248,
+      "conversions": 44,
+      "revenue": 67593
+    },
+    {
+      "date": "2024-12-24",
+      "visits": 1864,
+      "cost": 13213,
+      "conversions": 46,
+      "revenue": 71571
+    },
+    {
+      "date": "2024-12-25",
+      "visits": 1704,
+      "cost": 12450,
+      "conversions": 43,
+      "revenue": 64045
+    },
+    {
+      "date": "2024-12-26",
+      "visits": 1917,
+      "cost": 13033,
+      "conversions": 46,
+      "revenue": 73470
+    },
+    {
+      "date": "2024-12-27",
+      "visits": 1864,
+      "cost": 14636,
+      "conversions": 50,
+      "revenue": 77647
+    },
+    {
+      "date": "2024-12-28",
+      "visits": 1999,
+      "cost": 15224,
+      "conversions": 51,
+      "revenue": 80318
+    },
+    {
+      "date": "2024-12-29",
+      "visits": 1772,
+      "cost": 12939,
+      "conversions": 46,
+      "revenue": 70270
+    },
+    {
+      "date": "2024-12-30",
+      "visits": 1836,
+      "cost": 12709,
+      "conversions": 46,
+      "revenue": 70199
+    },
+    {
+      "date": "2024-12-31",
+      "visits": 1961,
+      "cost": 15810,
+      "conversions": 53,
+      "revenue": 84403
+    },
+    {
+      "date": "2025-01-01",
+      "visits": 1161,
+      "cost": 7751,
+      "conversions": 27,
+      "revenue": 40512
+    },
+    {
+      "date": "2025-01-02",
+      "visits": 1208,
+      "cost": 7846,
+      "conversions": 26,
+      "revenue": 42781
+    },
+    {
+      "date": "2025-01-03",
+      "visits": 1393,
+      "cost": 8802,
+      "conversions": 33,
+      "revenue": 49746
+    },
+    {
+      "date": "2025-01-04",
+      "visits": 1383,
+      "cost": 9286,
+      "conversions": 31,
+      "revenue": 49734
+    },
+    {
+      "date": "2025-01-05",
+      "visits": 1315,
+      "cost": 9345,
+      "conversions": 32,
+      "revenue": 49819
+    },
+    {
+      "date": "2025-01-06",
+      "visits": 1268,
+      "cost": 7992,
+      "conversions": 28,
+      "revenue": 44360
+    },
+    {
+      "date": "2025-01-07",
+      "visits": 1182,
+      "cost": 6873,
+      "conversions": 26,
+      "revenue": 39600
+    },
+    {
+      "date": "2025-01-08",
+      "visits": 1217,
+      "cost": 7553,
+      "conversions": 25,
+      "revenue": 40561
+    },
+    {
+      "date": "2025-01-09",
+      "visits": 1216,
+      "cost": 7241,
+      "conversions": 26,
+      "revenue": 41338
+    },
+    {
+      "date": "2025-01-10",
+      "visits": 1408,
+      "cost": 9469,
+      "conversions": 33,
+      "revenue": 51818
+    },
+    {
+      "date": "2025-01-11",
+      "visits": 1460,
+      "cost": 9931,
+      "conversions": 34,
+      "revenue": 53900
+    },
+    {
+      "date": "2025-01-12",
+      "visits": 1236,
+      "cost": 8694,
+      "conversions": 31,
+      "revenue": 46966
+    },
+    {
+      "date": "2025-01-13",
+      "visits": 1232,
+      "cost": 7874,
+      "conversions": 27,
+      "revenue": 42348
+    },
+    {
+      "date": "2025-01-14",
+      "visits": 1186,
+      "cost": 7088,
+      "conversions": 26,
+      "revenue": 39499
+    },
+    {
+      "date": "2025-01-15",
+      "visits": 1383,
+      "cost": 8785,
+      "conversions": 30,
+      "revenue": 50006
+    },
+    {
+      "date": "2025-01-16",
+      "visits": 1368,
+      "cost": 8440,
+      "conversions": 29,
+      "revenue": 47943
+    },
+    {
+      "date": "2025-01-17",
+      "visits": 1490,
+      "cost": 10133,
+      "conversions": 36,
+      "revenue": 57465
+    },
+    {
+      "date": "2025-01-18",
+      "visits": 1246,
+      "cost": 7739,
+      "conversions": 27,
+      "revenue": 40795
+    },
+    {
+      "date": "2025-01-19",
+      "visits": 1409,
+      "cost": 9049,
+      "conversions": 33,
+      "revenue": 49594
+    },
+    {
+      "date": "2025-01-20",
+      "visits": 1227,
+      "cost": 8868,
+      "conversions": 29,
+      "revenue": 47994
+    },
+    {
+      "date": "2025-01-21",
+      "visits": 1408,
+      "cost": 8908,
+      "conversions": 29,
+      "revenue": 46016
+    },
+    {
+      "date": "2025-01-22",
+      "visits": 1194,
+      "cost": 7735,
+      "conversions": 27,
+      "revenue": 41998
+    },
+    {
+      "date": "2025-01-23",
+      "visits": 1391,
+      "cost": 8781,
+      "conversions": 32,
+      "revenue": 48395
+    },
+    {
+      "date": "2025-01-24",
+      "visits": 1338,
+      "cost": 8480,
+      "conversions": 30,
+      "revenue": 47862
+    },
+    {
+      "date": "2025-01-25",
+      "visits": 1364,
+      "cost": 9251,
+      "conversions": 34,
+      "revenue": 53204
+    },
+    {
+      "date": "2025-01-26",
+      "visits": 1366,
+      "cost": 9903,
+      "conversions": 35,
+      "revenue": 55607
+    },
+    {
+      "date": "2025-01-27",
+      "visits": 1209,
+      "cost": 7485,
+      "conversions": 25,
+      "revenue": 40492
+    },
+    {
+      "date": "2025-01-28",
+      "visits": 1423,
+      "cost": 9778,
+      "conversions": 33,
+      "revenue": 52940
+    },
+    {
+      "date": "2025-01-29",
+      "visits": 1414,
+      "cost": 9460,
+      "conversions": 31,
+      "revenue": 50282
+    },
+    {
+      "date": "2025-01-30",
+      "visits": 1328,
+      "cost": 9295,
+      "conversions": 30,
+      "revenue": 48420
+    },
+    {
+      "date": "2025-01-31",
+      "visits": 1326,
+      "cost": 7923,
+      "conversions": 29,
+      "revenue": 46208
+    },
+    {
+      "date": "2025-02-01",
+      "visits": 1373,
+      "cost": 10330,
+      "conversions": 33,
+      "revenue": 54861
+    },
+    {
+      "date": "2025-02-02",
+      "visits": 1359,
+      "cost": 9616,
+      "conversions": 33,
+      "revenue": 52862
+    },
+    {
+      "date": "2025-02-03",
+      "visits": 1306,
+      "cost": 7932,
+      "conversions": 30,
+      "revenue": 46236
+    },
+    {
+      "date": "2025-02-04",
+      "visits": 1244,
+      "cost": 7701,
+      "conversions": 28,
+      "revenue": 43410
+    },
+    {
+      "date": "2025-02-05",
+      "visits": 1398,
+      "cost": 8291,
+      "conversions": 31,
+      "revenue": 47863
+    },
+    {
+      "date": "2025-02-06",
+      "visits": 1285,
+      "cost": 8970,
+      "conversions": 31,
+      "revenue": 47552
+    },
+    {
+      "date": "2025-02-07",
+      "visits": 1289,
+      "cost": 8978,
+      "conversions": 31,
+      "revenue": 49326
+    },
+    {
+      "date": "2025-02-08",
+      "visits": 1583,
+      "cost": 10108,
+      "conversions": 37,
+      "revenue": 57973
+    },
+    {
+      "date": "2025-02-09",
+      "visits": 1454,
+      "cost": 10232,
+      "conversions": 36,
+      "revenue": 58113
+    },
+    {
+      "date": "2025-02-10",
+      "visits": 1454,
+      "cost": 8367,
+      "conversions": 32,
+      "revenue": 48602
+    },
+    {
+      "date": "2025-02-11",
+      "visits": 1288,
+      "cost": 8788,
+      "conversions": 31,
+      "revenue": 51005
+    },
+    {
+      "date": "2025-02-12",
+      "visits": 1439,
+      "cost": 8944,
+      "conversions": 30,
+      "revenue": 46917
+    },
+    {
+      "date": "2025-02-13",
+      "visits": 1337,
+      "cost": 8742,
+      "conversions": 31,
+      "revenue": 46885
+    },
+    {
+      "date": "2025-02-14",
+      "visits": 1425,
+      "cost": 8978,
+      "conversions": 31,
+      "revenue": 50941
+    },
+    {
+      "date": "2025-02-15",
+      "visits": 1563,
+      "cost": 10986,
+      "conversions": 37,
+      "revenue": 59527
+    },
+    {
+      "date": "2025-02-16",
+      "visits": 1460,
+      "cost": 9803,
+      "conversions": 36,
+      "revenue": 53714
+    },
+    {
+      "date": "2025-02-17",
+      "visits": 1505,
+      "cost": 10563,
+      "conversions": 36,
+      "revenue": 57885
+    },
+    {
+      "date": "2025-02-18",
+      "visits": 1268,
+      "cost": 8870,
+      "conversions": 31,
+      "revenue": 50280
+    },
+    {
+      "date": "2025-02-19",
+      "visits": 1358,
+      "cost": 9487,
+      "conversions": 33,
+      "revenue": 54613
+    },
+    {
+      "date": "2025-02-20",
+      "visits": 1531,
+      "cost": 10972,
+      "conversions": 35,
+      "revenue": 58712
+    },
+    {
+      "date": "2025-02-21",
+      "visits": 1480,
+      "cost": 10144,
+      "conversions": 35,
+      "revenue": 56106
+    },
+    {
+      "date": "2025-02-22",
+      "visits": 1572,
+      "cost": 11391,
+      "conversions": 40,
+      "revenue": 62445
+    },
+    {
+      "date": "2025-02-23",
+      "visits": 1377,
+      "cost": 9492,
+      "conversions": 31,
+      "revenue": 49834
+    },
+    {
+      "date": "2025-02-24",
+      "visits": 1527,
+      "cost": 9977,
+      "conversions": 35,
+      "revenue": 52955
+    },
+    {
+      "date": "2025-02-25",
+      "visits": 1360,
+      "cost": 9430,
+      "conversions": 31,
+      "revenue": 51851
+    },
+    {
+      "date": "2025-02-26",
+      "visits": 1261,
+      "cost": 8836,
+      "conversions": 31,
+      "revenue": 50121
+    },
+    {
+      "date": "2025-02-27",
+      "visits": 1417,
+      "cost": 8528,
+      "conversions": 31,
+      "revenue": 49801
+    },
+    {
+      "date": "2025-02-28",
+      "visits": 1419,
+      "cost": 8678,
+      "conversions": 32,
+      "revenue": 48240
+    },
+    {
+      "date": "2025-03-01",
+      "visits": 1490,
+      "cost": 10213,
+      "conversions": 34,
+      "revenue": 56249
+    },
+    {
+      "date": "2025-03-02",
+      "visits": 1474,
+      "cost": 10411,
+      "conversions": 36,
+      "revenue": 59748
+    },
+    {
+      "date": "2025-03-03",
+      "visits": 1620,
+      "cost": 11698,
+      "conversions": 38,
+      "revenue": 63185
+    },
+    {
+      "date": "2025-03-04",
+      "visits": 1638,
+      "cost": 11154,
+      "conversions": 37,
+      "revenue": 59929
+    },
+    {
+      "date": "2025-03-05",
+      "visits": 1498,
+      "cost": 11546,
+      "conversions": 38,
+      "revenue": 61846
+    },
+    {
+      "date": "2025-03-06",
+      "visits": 1612,
+      "cost": 12806,
+      "conversions": 41,
+      "revenue": 67901
+    },
+    {
+      "date": "2025-03-07",
+      "visits": 1637,
+      "cost": 10923,
+      "conversions": 37,
+      "revenue": 59272
+    },
+    {
+      "date": "2025-03-08",
+      "visits": 1524,
+      "cost": 10983,
+      "conversions": 37,
+      "revenue": 60013
+    },
+    {
+      "date": "2025-03-09",
+      "visits": 1735,
+      "cost": 11680,
+      "conversions": 45,
+      "revenue": 67760
+    },
+    {
+      "date": "2025-03-10",
+      "visits": 1424,
+      "cost": 8894,
+      "conversions": 34,
+      "revenue": 51106
+    },
+    {
+      "date": "2025-03-11",
+      "visits": 1441,
+      "cost": 10067,
+      "conversions": 35,
+      "revenue": 58520
+    },
+    {
+      "date": "2025-03-12",
+      "visits": 1610,
+      "cost": 11079,
+      "conversions": 38,
+      "revenue": 59348
+    },
+    {
+      "date": "2025-03-13",
+      "visits": 1624,
+      "cost": 11204,
+      "conversions": 40,
+      "revenue": 66187
+    },
+    {
+      "date": "2025-03-14",
+      "visits": 1643,
+      "cost": 11781,
+      "conversions": 42,
+      "revenue": 66247
+    },
+    {
+      "date": "2025-03-15",
+      "visits": 1743,
+      "cost": 12049,
+      "conversions": 44,
+      "revenue": 66750
+    },
+    {
+      "date": "2025-03-16",
+      "visits": 1790,
+      "cost": 13104,
+      "conversions": 46,
+      "revenue": 73769
+    },
+    {
+      "date": "2025-03-17",
+      "visits": 1580,
+      "cost": 10832,
+      "conversions": 40,
+      "revenue": 61737
+    },
+    {
+      "date": "2025-03-18",
+      "visits": 1525,
+      "cost": 11081,
+      "conversions": 36,
+      "revenue": 60753
+    },
+    {
+      "date": "2025-03-19",
+      "visits": 1579,
+      "cost": 11211,
+      "conversions": 40,
+      "revenue": 66297
+    },
+    {
+      "date": "2025-03-20",
+      "visits": 1605,
+      "cost": 10869,
+      "conversions": 41,
+      "revenue": 61735
+    },
+    {
+      "date": "2025-03-21",
+      "visits": 1616,
+      "cost": 12652,
+      "conversions": 42,
+      "revenue": 70290
+    },
+    {
+      "date": "2025-03-22",
+      "visits": 1704,
+      "cost": 11836,
+      "conversions": 42,
+      "revenue": 67637
+    },
+    {
+      "date": "2025-03-23",
+      "visits": 1676,
+      "cost": 11702,
+      "conversions": 43,
+      "revenue": 66033
+    },
+    {
+      "date": "2025-03-24",
+      "visits": 1601,
+      "cost": 11123,
+      "conversions": 39,
+      "revenue": 65136
+    },
+    {
+      "date": "2025-03-25",
+      "visits": 1539,
+      "cost": 9947,
+      "conversions": 38,
+      "revenue": 57087
+    },
+    {
+      "date": "2025-03-26",
+      "visits": 1474,
+      "cost": 10411,
+      "conversions": 38,
+      "revenue": 60723
+    },
+    {
+      "date": "2025-03-27",
+      "visits": 1652,
+      "cost": 10985,
+      "conversions": 39,
+      "revenue": 62235
+    },
+    {
+      "date": "2025-03-28",
+      "visits": 1599,
+      "cost": 11724,
+      "conversions": 40,
+      "revenue": 67284
+    },
+    {
+      "date": "2025-03-29",
+      "visits": 1501,
+      "cost": 10254,
+      "conversions": 37,
+      "revenue": 60550
+    },
+    {
+      "date": "2025-03-30",
+      "visits": 1587,
+      "cost": 10224,
+      "conversions": 40,
+      "revenue": 61360
+    },
+    {
+      "date": "2025-03-31",
+      "visits": 1654,
+      "cost": 10737,
+      "conversions": 39,
+      "revenue": 61089
+    },
+    {
+      "date": "2025-04-01",
+      "visits": 1634,
+      "cost": 11463,
+      "conversions": 42,
+      "revenue": 65574
+    },
+    {
+      "date": "2025-04-02",
+      "visits": 1462,
+      "cost": 10195,
+      "conversions": 35,
+      "revenue": 57542
+    },
+    {
+      "date": "2025-04-03",
+      "visits": 1698,
+      "cost": 12465,
+      "conversions": 44,
+      "revenue": 72590
+    },
+    {
+      "date": "2025-04-04",
+      "visits": 1676,
+      "cost": 13191,
+      "conversions": 44,
+      "revenue": 70824
+    },
+    {
+      "date": "2025-04-05",
+      "visits": 1654,
+      "cost": 12576,
+      "conversions": 44,
+      "revenue": 70940
+    },
+    {
+      "date": "2025-04-06",
+      "visits": 1809,
+      "cost": 13905,
+      "conversions": 50,
+      "revenue": 78763
+    },
+    {
+      "date": "2025-04-07",
+      "visits": 1579,
+      "cost": 10652,
+      "conversions": 40,
+      "revenue": 60739
+    },
+    {
+      "date": "2025-04-08",
+      "visits": 1452,
+      "cost": 9454,
+      "conversions": 33,
+      "revenue": 51712
+    },
+    {
+      "date": "2025-04-09",
+      "visits": 1711,
+      "cost": 11752,
+      "conversions": 41,
+      "revenue": 63983
+    },
+    {
+      "date": "2025-04-10",
+      "visits": 1577,
+      "cost": 10756,
+      "conversions": 39,
+      "revenue": 60748
+    },
+    {
+      "date": "2025-04-11",
+      "visits": 1785,
+      "cost": 13176,
+      "conversions": 44,
+      "revenue": 71448
+    },
+    {
+      "date": "2025-04-12",
+      "visits": 1579,
+      "cost": 11980,
+      "conversions": 42,
+      "revenue": 68378
+    },
+    {
+      "date": "2025-04-13",
+      "visits": 1618,
+      "cost": 12167,
+      "conversions": 42,
+      "revenue": 68357
+    },
+    {
+      "date": "2025-04-14",
+      "visits": 1717,
+      "cost": 11603,
+      "conversions": 43,
+      "revenue": 65184
+    },
+    {
+      "date": "2025-04-15",
+      "visits": 1559,
+      "cost": 11057,
+      "conversions": 40,
+      "revenue": 62348
+    },
+    {
+      "date": "2025-04-16",
+      "visits": 1754,
+      "cost": 11348,
+      "conversions": 41,
+      "revenue": 63300
+    },
+    {
+      "date": "2025-04-17",
+      "visits": 1758,
+      "cost": 11452,
+      "conversions": 45,
+      "revenue": 68193
+    },
+    {
+      "date": "2025-04-18",
+      "visits": 1665,
+      "cost": 13332,
+      "conversions": 45,
+      "revenue": 72067
+    },
+    {
+      "date": "2025-04-19",
+      "visits": 1693,
+      "cost": 13539,
+      "conversions": 46,
+      "revenue": 73274
+    },
+    {
+      "date": "2025-04-20",
+      "visits": 1761,
+      "cost": 12220,
+      "conversions": 44,
+      "revenue": 73879
+    },
+    {
+      "date": "2025-04-21",
+      "visits": 1773,
+      "cost": 11624,
+      "conversions": 41,
+      "revenue": 67069
+    },
+    {
+      "date": "2025-04-22",
+      "visits": 1739,
+      "cost": 11382,
+      "conversions": 40,
+      "revenue": 66480
+    },
+    {
+      "date": "2025-04-23",
+      "visits": 1546,
+      "cost": 10402,
+      "conversions": 36,
+      "revenue": 58222
+    },
+    {
+      "date": "2025-04-24",
+      "visits": 1807,
+      "cost": 12762,
+      "conversions": 45,
+      "revenue": 71426
+    },
+    {
+      "date": "2025-04-25",
+      "visits": 1838,
+      "cost": 11614,
+      "conversions": 45,
+      "revenue": 69867
+    },
+    {
+      "date": "2025-04-26",
+      "visits": 1597,
+      "cost": 12025,
+      "conversions": 44,
+      "revenue": 68797
+    },
+    {
+      "date": "2025-04-27",
+      "visits": 1708,
+      "cost": 11665,
+      "conversions": 44,
+      "revenue": 66826
+    },
+    {
+      "date": "2025-04-28",
+      "visits": 1814,
+      "cost": 13204,
+      "conversions": 44,
+      "revenue": 71641
+    },
+    {
+      "date": "2025-04-29",
+      "visits": 1788,
+      "cost": 11713,
+      "conversions": 43,
+      "revenue": 68821
+    },
+    {
+      "date": "2025-04-30",
+      "visits": 1595,
+      "cost": 11741,
+      "conversions": 41,
+      "revenue": 65345
+    },
+    {
+      "date": "2025-05-01",
+      "visits": 1684,
+      "cost": 10433,
+      "conversions": 38,
+      "revenue": 60276
+    },
+    {
+      "date": "2025-05-02",
+      "visits": 1749,
+      "cost": 12774,
+      "conversions": 44,
+      "revenue": 69866
+    },
+    {
+      "date": "2025-05-03",
+      "visits": 1603,
+      "cost": 10965,
+      "conversions": 38,
+      "revenue": 62814
+    },
+    {
+      "date": "2025-05-04",
+      "visits": 1807,
+      "cost": 12430,
+      "conversions": 47,
+      "revenue": 75685
+    },
+    {
+      "date": "2025-05-05",
+      "visits": 1708,
+      "cost": 12062,
+      "conversions": 42,
+      "revenue": 71303
+    },
+    {
+      "date": "2025-05-06",
+      "visits": 1718,
+      "cost": 11441,
+      "conversions": 42,
+      "revenue": 65599
+    },
+    {
+      "date": "2025-05-07",
+      "visits": 1501,
+      "cost": 9352,
+      "conversions": 34,
+      "revenue": 52800
+    },
+    {
+      "date": "2025-05-08",
+      "visits": 1698,
+      "cost": 11824,
+      "conversions": 40,
+      "revenue": 64988
+    },
+    {
+      "date": "2025-05-09",
+      "visits": 1817,
+      "cost": 13555,
+      "conversions": 48,
+      "revenue": 76106
+    },
+    {
+      "date": "2025-05-10",
+      "visits": 1649,
+      "cost": 12609,
+      "conversions": 43,
+      "revenue": 72986
+    },
+    {
+      "date": "2025-05-11",
+      "visits": 1646,
+      "cost": 11441,
+      "conversions": 44,
+      "revenue": 66498
+    },
+    {
+      "date": "2025-05-12",
+      "visits": 1746,
+      "cost": 11878,
+      "conversions": 42,
+      "revenue": 65107
+    },
+    {
+      "date": "2025-05-13",
+      "visits": 1574,
+      "cost": 9988,
+      "conversions": 35,
+      "revenue": 55240
+    },
+    {
+      "date": "2025-05-14",
+      "visits": 1566,
+      "cost": 10341,
+      "conversions": 40,
+      "revenue": 61380
+    },
+    {
+      "date": "2025-05-15",
+      "visits": 1582,
+      "cost": 9826,
+      "conversions": 35,
+      "revenue": 54126
+    },
+    {
+      "date": "2025-05-16",
+      "visits": 1839,
+      "cost": 13979,
+      "conversions": 49,
+      "revenue": 76889
+    },
+    {
+      "date": "2025-05-17",
+      "visits": 1688,
+      "cost": 11247,
+      "conversions": 39,
+      "revenue": 62294
+    },
+    {
+      "date": "2025-05-18",
+      "visits": 1748,
+      "cost": 10814,
+      "conversions": 41,
+      "revenue": 62310
+    },
+    {
+      "date": "2025-05-19",
+      "visits": 1482,
+      "cost": 9538,
+      "conversions": 34,
+      "revenue": 55884
+    },
+    {
+      "date": "2025-05-20",
+      "visits": 1612,
+      "cost": 12249,
+      "conversions": 40,
+      "revenue": 67700
+    },
+    {
+      "date": "2025-05-21",
+      "visits": 1731,
+      "cost": 11142,
+      "conversions": 43,
+      "revenue": 65298
+    },
+    {
+      "date": "2025-05-22",
+      "visits": 1782,
+      "cost": 10341,
+      "conversions": 39,
+      "revenue": 62346
+    },
+    {
+      "date": "2025-05-23",
+      "visits": 1663,
+      "cost": 12339,
+      "conversions": 43,
+      "revenue": 71209
+    },
+    {
+      "date": "2025-05-24",
+      "visits": 1798,
+      "cost": 12049,
+      "conversions": 47,
+      "revenue": 72492
+    },
+    {
+      "date": "2025-05-25",
+      "visits": 1840,
+      "cost": 12893,
+      "conversions": 47,
+      "revenue": 74570
+    },
+    {
+      "date": "2025-05-26",
+      "visits": 1569,
+      "cost": 9825,
+      "conversions": 39,
+      "revenue": 60460
+    },
+    {
+      "date": "2025-05-27",
+      "visits": 1484,
+      "cost": 8787,
+      "conversions": 33,
+      "revenue": 54066
+    },
+    {
+      "date": "2025-05-28",
+      "visits": 1615,
+      "cost": 10824,
+      "conversions": 38,
+      "revenue": 62752
+    },
+    {
+      "date": "2025-05-29",
+      "visits": 1701,
+      "cost": 11768,
+      "conversions": 42,
+      "revenue": 69257
+    },
+    {
+      "date": "2025-05-30",
+      "visits": 1858,
+      "cost": 12874,
+      "conversions": 44,
+      "revenue": 72819
+    },
+    {
+      "date": "2025-05-31",
+      "visits": 1896,
+      "cost": 13513,
+      "conversions": 46,
+      "revenue": 75161
+    },
+    {
+      "date": "2025-06-01",
+      "visits": 1558,
+      "cost": 9315,
+      "conversions": 36,
+      "revenue": 56167
+    },
+    {
+      "date": "2025-06-02",
+      "visits": 1529,
+      "cost": 8985,
+      "conversions": 36,
+      "revenue": 55147
+    },
+    {
+      "date": "2025-06-03",
+      "visits": 1461,
+      "cost": 10121,
+      "conversions": 36,
+      "revenue": 59342
+    },
+    {
+      "date": "2025-06-04",
+      "visits": 1306,
+      "cost": 8060,
+      "conversions": 29,
+      "revenue": 46980
+    },
+    {
+      "date": "2025-06-05",
+      "visits": 1478,
+      "cost": 10032,
+      "conversions": 33,
+      "revenue": 56086
+    },
+    {
+      "date": "2025-06-06",
+      "visits": 1331,
+      "cost": 7967,
+      "conversions": 30,
+      "revenue": 46099
+    },
+    {
+      "date": "2025-06-07",
+      "visits": 1547,
+      "cost": 10463,
+      "conversions": 35,
+      "revenue": 58223
+    },
+    {
+      "date": "2025-06-08",
+      "visits": 1536,
+      "cost": 10391,
+      "conversions": 36,
+      "revenue": 58035
+    },
+    {
+      "date": "2025-06-09",
+      "visits": 1420,
+      "cost": 8305,
+      "conversions": 31,
+      "revenue": 49508
+    },
+    {
+      "date": "2025-06-10",
+      "visits": 1510,
+      "cost": 9696,
+      "conversions": 33,
+      "revenue": 55734
+    },
+    {
+      "date": "2025-06-11",
+      "visits": 1491,
+      "cost": 9510,
+      "conversions": 34,
+      "revenue": 55130
+    },
+    {
+      "date": "2025-06-12",
+      "visits": 1571,
+      "cost": 10267,
+      "conversions": 36,
+      "revenue": 59235
+    },
+    {
+      "date": "2025-06-13",
+      "visits": 1562,
+      "cost": 9287,
+      "conversions": 34,
+      "revenue": 55932
+    },
+    {
+      "date": "2025-06-14",
+      "visits": 1408,
+      "cost": 9614,
+      "conversions": 35,
+      "revenue": 55343
+    },
+    {
+      "date": "2025-06-15",
+      "visits": 1399,
+      "cost": 10082,
+      "conversions": 37,
+      "revenue": 57213
+    },
+    {
+      "date": "2025-06-16",
+      "visits": 1470,
+      "cost": 10211,
+      "conversions": 35,
+      "revenue": 59407
+    },
+    {
+      "date": "2025-06-17",
+      "visits": 1355,
+      "cost": 7431,
+      "conversions": 29,
+      "revenue": 44841
+    },
+    {
+      "date": "2025-06-18",
+      "visits": 1284,
+      "cost": 8327,
+      "conversions": 29,
+      "revenue": 47605
+    },
+    {
+      "date": "2025-06-19",
+      "visits": 1445,
+      "cost": 9794,
+      "conversions": 36,
+      "revenue": 55344
+    },
+    {
+      "date": "2025-06-20",
+      "visits": 1554,
+      "cost": 9879,
+      "conversions": 38,
+      "revenue": 60861
+    },
+    {
+      "date": "2025-06-21",
+      "visits": 1469,
+      "cost": 9058,
+      "conversions": 34,
+      "revenue": 55423
+    },
+    {
+      "date": "2025-06-22",
+      "visits": 1378,
+      "cost": 8015,
+      "conversions": 31,
+      "revenue": 49635
+    },
+    {
+      "date": "2025-06-23",
+      "visits": 1391,
+      "cost": 9245,
+      "conversions": 32,
+      "revenue": 54708
+    },
+    {
+      "date": "2025-06-24",
+      "visits": 1491,
+      "cost": 8994,
+      "conversions": 33,
+      "revenue": 56588
+    },
+    {
+      "date": "2025-06-25",
+      "visits": 1543,
+      "cost": 11215,
+      "conversions": 38,
+      "revenue": 64636
+    },
+    {
+      "date": "2025-06-26",
+      "visits": 1519,
+      "cost": 9565,
+      "conversions": 36,
+      "revenue": 58541
+    },
+    {
+      "date": "2025-06-27",
+      "visits": 1510,
+      "cost": 9654,
+      "conversions": 36,
+      "revenue": 59100
+    },
+    {
+      "date": "2025-06-28",
+      "visits": 1468,
+      "cost": 9144,
+      "conversions": 37,
+      "revenue": 57203
+    },
+    {
+      "date": "2025-06-29",
+      "visits": 1625,
+      "cost": 11099,
+      "conversions": 40,
+      "revenue": 66798
+    },
+    {
+      "date": "2025-06-30",
+      "visits": 1429,
+      "cost": 10181,
+      "conversions": 34,
+      "revenue": 58199
+    },
+    {
+      "date": "2025-07-01",
+      "visits": 1395,
+      "cost": 8396,
+      "conversions": 30,
+      "revenue": 50516
+    },
+    {
+      "date": "2025-07-02",
+      "visits": 1244,
+      "cost": 6953,
+      "conversions": 27,
+      "revenue": 42313
+    },
+    {
+      "date": "2025-07-03",
+      "visits": 1371,
+      "cost": 8109,
+      "conversions": 31,
+      "revenue": 47274
+    },
+    {
+      "date": "2025-07-04",
+      "visits": 1392,
+      "cost": 8033,
+      "conversions": 31,
+      "revenue": 48964
+    },
+    {
+      "date": "2025-07-05",
+      "visits": 1415,
+      "cost": 9540,
+      "conversions": 35,
+      "revenue": 57997
+    },
+    {
+      "date": "2025-07-06",
+      "visits": 1378,
+      "cost": 8883,
+      "conversions": 35,
+      "revenue": 55441
+    },
+    {
+      "date": "2025-07-07",
+      "visits": 1354,
+      "cost": 8100,
+      "conversions": 30,
+      "revenue": 48459
+    },
+    {
+      "date": "2025-07-08",
+      "visits": 1367,
+      "cost": 9227,
+      "conversions": 32,
+      "revenue": 53110
+    },
+    {
+      "date": "2025-07-09",
+      "visits": 1394,
+      "cost": 8313,
+      "conversions": 33,
+      "revenue": 52331
+    },
+    {
+      "date": "2025-07-10",
+      "visits": 1283,
+      "cost": 7979,
+      "conversions": 29,
+      "revenue": 46912
+    },
+    {
+      "date": "2025-07-11",
+      "visits": 1351,
+      "cost": 8145,
+      "conversions": 29,
+      "revenue": 47737
+    },
+    {
+      "date": "2025-07-12",
+      "visits": 1283,
+      "cost": 8206,
+      "conversions": 30,
+      "revenue": 50265
+    },
+    {
+      "date": "2025-07-13",
+      "visits": 1378,
+      "cost": 8449,
+      "conversions": 32,
+      "revenue": 49213
+    },
+    {
+      "date": "2025-07-14",
+      "visits": 1368,
+      "cost": 8195,
+      "conversions": 31,
+      "revenue": 47821
+    },
+    {
+      "date": "2025-07-15",
+      "visits": 1273,
+      "cost": 7623,
+      "conversions": 29,
+      "revenue": 44943
+    },
+    {
+      "date": "2025-07-16",
+      "visits": 1382,
+      "cost": 7576,
+      "conversions": 30,
+      "revenue": 48247
+    },
+    {
+      "date": "2025-07-17",
+      "visits": 1206,
+      "cost": 6312,
+      "conversions": 25,
+      "revenue": 38640
+    },
+    {
+      "date": "2025-07-18",
+      "visits": 1438,
+      "cost": 8616,
+      "conversions": 32,
+      "revenue": 51110
+    },
+    {
+      "date": "2025-07-19",
+      "visits": 1540,
+      "cost": 9251,
+      "conversions": 34,
+      "revenue": 55552
+    },
+    {
+      "date": "2025-07-20",
+      "visits": 1516,
+      "cost": 9718,
+      "conversions": 34,
+      "revenue": 55352
+    },
+    {
+      "date": "2025-07-21",
+      "visits": 1241,
+      "cost": 7196,
+      "conversions": 27,
+      "revenue": 44506
+    },
+    {
+      "date": "2025-07-22",
+      "visits": 1331,
+      "cost": 8465,
+      "conversions": 31,
+      "revenue": 50276
+    },
+    {
+      "date": "2025-07-23",
+      "visits": 1392,
+      "cost": 9046,
+      "conversions": 31,
+      "revenue": 51637
+    },
+    {
+      "date": "2025-07-24",
+      "visits": 1383,
+      "cost": 7203,
+      "conversions": 29,
+      "revenue": 45606
+    },
+    {
+      "date": "2025-07-25",
+      "visits": 1346,
+      "cost": 8459,
+      "conversions": 33,
+      "revenue": 54176
+    },
+    {
+      "date": "2025-07-26",
+      "visits": 1371,
+      "cost": 8239,
+      "conversions": 32,
+      "revenue": 49317
+    },
+    {
+      "date": "2025-07-27",
+      "visits": 1307,
+      "cost": 7963,
+      "conversions": 32,
+      "revenue": 50364
+    },
+    {
+      "date": "2025-07-28",
+      "visits": 1298,
+      "cost": 6497,
+      "conversions": 27,
+      "revenue": 41528
+    },
+    {
+      "date": "2025-07-29",
+      "visits": 1295,
+      "cost": 6979,
+      "conversions": 27,
+      "revenue": 43567
+    },
+    {
+      "date": "2025-07-30",
+      "visits": 1361,
+      "cost": 7323,
+      "conversions": 29,
+      "revenue": 46915
+    },
+    {
+      "date": "2025-07-31",
+      "visits": 1298,
+      "cost": 7698,
+      "conversions": 29,
+      "revenue": 45809
+    },
+    {
+      "date": "2025-08-01",
+      "visits": 1371,
+      "cost": 9532,
+      "conversions": 35,
+      "revenue": 57120
+    },
+    {
+      "date": "2025-08-02",
+      "visits": 1345,
+      "cost": 8241,
+      "conversions": 32,
+      "revenue": 51979
+    },
+    {
+      "date": "2025-08-03",
+      "visits": 1367,
+      "cost": 9297,
+      "conversions": 35,
+      "revenue": 54373
+    },
+    {
+      "date": "2025-08-04",
+      "visits": 1412,
+      "cost": 8679,
+      "conversions": 32,
+      "revenue": 51403
+    },
+    {
+      "date": "2025-08-05",
+      "visits": 1502,
+      "cost": 10447,
+      "conversions": 36,
+      "revenue": 61192
+    },
+    {
+      "date": "2025-08-06",
+      "visits": 1280,
+      "cost": 8320,
+      "conversions": 30,
+      "revenue": 50817
+    },
+    {
+      "date": "2025-08-07",
+      "visits": 1461,
+      "cost": 8990,
+      "conversions": 32,
+      "revenue": 53934
+    },
+    {
+      "date": "2025-08-08",
+      "visits": 1463,
+      "cost": 9810,
+      "conversions": 33,
+      "revenue": 56648
+    },
+    {
+      "date": "2025-08-09",
+      "visits": 1363,
+      "cost": 8737,
+      "conversions": 33,
+      "revenue": 54225
+    },
+    {
+      "date": "2025-08-10",
+      "visits": 1423,
+      "cost": 9211,
+      "conversions": 34,
+      "revenue": 55819
+    },
+    {
+      "date": "2025-08-11",
+      "visits": 1508,
+      "cost": 9091,
+      "conversions": 35,
+      "revenue": 54265
+    },
+    {
+      "date": "2025-08-12",
+      "visits": 1315,
+      "cost": 8020,
+      "conversions": 31,
+      "revenue": 51910
+    },
+    {
+      "date": "2025-08-13",
+      "visits": 1337,
+      "cost": 8158,
+      "conversions": 30,
+      "revenue": 48841
+    },
+    {
+      "date": "2025-08-14",
+      "visits": 1454,
+      "cost": 8878,
+      "conversions": 36,
+      "revenue": 56743
+    },
+    {
+      "date": "2025-08-15",
+      "visits": 1444,
+      "cost": 9673,
+      "conversions": 36,
+      "revenue": 58862
+    },
+    {
+      "date": "2025-08-16",
+      "visits": 1362,
+      "cost": 8126,
+      "conversions": 31,
+      "revenue": 52460
+    },
+    {
+      "date": "2025-08-17",
+      "visits": 1462,
+      "cost": 10453,
+      "conversions": 38,
+      "revenue": 62520
+    },
+    {
+      "date": "2025-08-18",
+      "visits": 1561,
+      "cost": 9744,
+      "conversions": 36,
+      "revenue": 60194
+    },
+    {
+      "date": "2025-08-19",
+      "visits": 1297,
+      "cost": 8180,
+      "conversions": 28,
+      "revenue": 47823
+    },
+    {
+      "date": "2025-08-20",
+      "visits": 1427,
+      "cost": 8396,
+      "conversions": 32,
+      "revenue": 50987
+    },
+    {
+      "date": "2025-08-21",
+      "visits": 1540,
+      "cost": 9430,
+      "conversions": 35,
+      "revenue": 60461
+    },
+    {
+      "date": "2025-08-22",
+      "visits": 1378,
+      "cost": 8871,
+      "conversions": 33,
+      "revenue": 55714
+    },
+    {
+      "date": "2025-08-23",
+      "visits": 1487,
+      "cost": 9820,
+      "conversions": 36,
+      "revenue": 60410
+    },
+    {
+      "date": "2025-08-24",
+      "visits": 1476,
+      "cost": 8473,
+      "conversions": 34,
+      "revenue": 54749
+    },
+    {
+      "date": "2025-08-25",
+      "visits": 1444,
+      "cost": 8426,
+      "conversions": 34,
+      "revenue": 53637
+    },
+    {
+      "date": "2025-08-26",
+      "visits": 1474,
+      "cost": 8209,
+      "conversions": 32,
+      "revenue": 50016
+    },
+    {
+      "date": "2025-08-27",
+      "visits": 1418,
+      "cost": 9359,
+      "conversions": 33,
+      "revenue": 56973
+    },
+    {
+      "date": "2025-08-28",
+      "visits": 1368,
+      "cost": 8118,
+      "conversions": 30,
+      "revenue": 51707
+    },
+    {
+      "date": "2025-08-29",
+      "visits": 1462,
+      "cost": 9987,
+      "conversions": 36,
+      "revenue": 62297
+    },
+    {
+      "date": "2025-08-30",
+      "visits": 1510,
+      "cost": 10361,
+      "conversions": 39,
+      "revenue": 66985
+    },
+    {
+      "date": "2025-08-31",
+      "visits": 1626,
+      "cost": 9643,
+      "conversions": 37,
+      "revenue": 61185
+    },
+    {
+      "date": "2025-09-01",
+      "visits": 1652,
+      "cost": 12026,
+      "conversions": 44,
+      "revenue": 70910
+    },
+    {
+      "date": "2025-09-02",
+      "visits": 1718,
+      "cost": 10804,
+      "conversions": 41,
+      "revenue": 67929
+    },
+    {
+      "date": "2025-09-03",
+      "visits": 1518,
+      "cost": 9371,
+      "conversions": 35,
+      "revenue": 57863
+    },
+    {
+      "date": "2025-09-04",
+      "visits": 1748,
+      "cost": 12869,
+      "conversions": 44,
+      "revenue": 75809
+    },
+    {
+      "date": "2025-09-05",
+      "visits": 1635,
+      "cost": 12125,
+      "conversions": 44,
+      "revenue": 71925
+    },
+    {
+      "date": "2025-09-06",
+      "visits": 1885,
+      "cost": 13525,
+      "conversions": 48,
+      "revenue": 79457
+    },
+    {
+      "date": "2025-09-07",
+      "visits": 1802,
+      "cost": 12960,
+      "conversions": 44,
+      "revenue": 76416
+    },
+    {
+      "date": "2025-09-08",
+      "visits": 1817,
+      "cost": 10584,
+      "conversions": 42,
+      "revenue": 64927
+    },
+    {
+      "date": "2025-09-09",
+      "visits": 1785,
+      "cost": 12008,
+      "conversions": 42,
+      "revenue": 71654
+    },
+    {
+      "date": "2025-09-10",
+      "visits": 1824,
+      "cost": 12871,
+      "conversions": 48,
+      "revenue": 81337
+    },
+    {
+      "date": "2025-09-11",
+      "visits": 1565,
+      "cost": 10338,
+      "conversions": 37,
+      "revenue": 62126
+    },
+    {
+      "date": "2025-09-12",
+      "visits": 1795,
+      "cost": 12931,
+      "conversions": 47,
+      "revenue": 76838
+    },
+    {
+      "date": "2025-09-13",
+      "visits": 1661,
+      "cost": 10928,
+      "conversions": 42,
+      "revenue": 69018
+    },
+    {
+      "date": "2025-09-14",
+      "visits": 1918,
+      "cost": 14309,
+      "conversions": 49,
+      "revenue": 84892
+    },
+    {
+      "date": "2025-09-15",
+      "visits": 1579,
+      "cost": 9844,
+      "conversions": 37,
+      "revenue": 61776
+    },
+    {
+      "date": "2025-09-16",
+      "visits": 1544,
+      "cost": 9392,
+      "conversions": 37,
+      "revenue": 57801
+    },
+    {
+      "date": "2025-09-17",
+      "visits": 1579,
+      "cost": 9170,
+      "conversions": 37,
+      "revenue": 58510
+    },
+    {
+      "date": "2025-09-18",
+      "visits": 1645,
+      "cost": 9602,
+      "conversions": 39,
+      "revenue": 60884
+    },
+    {
+      "date": "2025-09-19",
+      "visits": 1792,
+      "cost": 12569,
+      "conversions": 49,
+      "revenue": 76108
+    },
+    {
+      "date": "2025-09-20",
+      "visits": 1720,
+      "cost": 13394,
+      "conversions": 47,
+      "revenue": 79874
+    },
+    {
+      "date": "2025-09-21",
+      "visits": 1620,
+      "cost": 11156,
+      "conversions": 42,
+      "revenue": 68339
+    },
+    {
+      "date": "2025-09-22",
+      "visits": 1845,
+      "cost": 11228,
+      "conversions": 44,
+      "revenue": 70353
+    },
+    {
+      "date": "2025-09-23",
+      "visits": 1743,
+      "cost": 12245,
+      "conversions": 47,
+      "revenue": 79482
+    },
+    {
+      "date": "2025-09-24",
+      "visits": 1639,
+      "cost": 10795,
+      "conversions": 43,
+      "revenue": 66537
+    },
+    {
+      "date": "2025-09-25",
+      "visits": 1794,
+      "cost": 12337,
+      "conversions": 46,
+      "revenue": 78373
+    },
+    {
+      "date": "2025-09-26",
+      "visits": 1850,
+      "cost": 11632,
+      "conversions": 47,
+      "revenue": 74892
+    },
+    {
+      "date": "2025-09-27",
+      "visits": 1958,
+      "cost": 13398,
+      "conversions": 49,
+      "revenue": 79388
+    },
+    {
+      "date": "2025-09-28",
+      "visits": 1750,
+      "cost": 12413,
+      "conversions": 47,
+      "revenue": 75880
+    },
+    {
+      "date": "2025-09-29",
+      "visits": 1870,
+      "cost": 12626,
+      "conversions": 50,
+      "revenue": 84268
+    },
+    {
+      "date": "2025-09-30",
+      "visits": 1747,
+      "cost": 10499,
+      "conversions": 41,
+      "revenue": 64583
+    },
+    {
+      "date": "2025-10-01",
+      "visits": 1778,
+      "cost": 11363,
+      "conversions": 43,
+      "revenue": 70615
+    },
+    {
+      "date": "2025-10-02",
+      "visits": 2016,
+      "cost": 13893,
+      "conversions": 54,
+      "revenue": 89349
+    },
+    {
+      "date": "2025-10-03",
+      "visits": 1895,
+      "cost": 11914,
+      "conversions": 47,
+      "revenue": 73914
+    },
+    {
+      "date": "2025-10-04",
+      "visits": 1920,
+      "cost": 12424,
+      "conversions": 49,
+      "revenue": 76697
+    },
+    {
+      "date": "2025-10-05",
+      "visits": 2037,
+      "cost": 15450,
+      "conversions": 55,
+      "revenue": 94188
+    },
+    {
+      "date": "2025-10-06",
+      "visits": 1788,
+      "cost": 12834,
+      "conversions": 49,
+      "revenue": 78421
+    },
+    {
+      "date": "2025-10-07",
+      "visits": 1951,
+      "cost": 13388,
+      "conversions": 51,
+      "revenue": 88949
+    },
+    {
+      "date": "2025-10-08",
+      "visits": 1949,
+      "cost": 11466,
+      "conversions": 49,
+      "revenue": 76808
+    },
+    {
+      "date": "2025-10-09",
+      "visits": 1781,
+      "cost": 13083,
+      "conversions": 49,
+      "revenue": 81939
+    },
+    {
+      "date": "2025-10-10",
+      "visits": 1784,
+      "cost": 14127,
+      "conversions": 50,
+      "revenue": 85153
+    },
+    {
+      "date": "2025-10-11",
+      "visits": 1825,
+      "cost": 12116,
+      "conversions": 46,
+      "revenue": 76453
+    },
+    {
+      "date": "2025-10-12",
+      "visits": 1768,
+      "cost": 12897,
+      "conversions": 48,
+      "revenue": 81895
+    },
+    {
+      "date": "2025-10-13",
+      "visits": 2048,
+      "cost": 14160,
+      "conversions": 51,
+      "revenue": 86419
+    },
+    {
+      "date": "2025-10-14",
+      "visits": 1789,
+      "cost": 11962,
+      "conversions": 48,
+      "revenue": 75050
+    },
+    {
+      "date": "2025-10-15",
+      "visits": 1723,
+      "cost": 11765,
+      "conversions": 47,
+      "revenue": 78535
+    },
+    {
+      "date": "2025-10-16",
+      "visits": 1850,
+      "cost": 13420,
+      "conversions": 49,
+      "revenue": 84129
+    },
+    {
+      "date": "2025-10-17",
+      "visits": 1789,
+      "cost": 11742,
+      "conversions": 45,
+      "revenue": 74290
+    },
+    {
+      "date": "2025-10-18",
+      "visits": 1869,
+      "cost": 12583,
+      "conversions": 54,
+      "revenue": 84878
+    },
+    {
+      "date": "2025-10-19",
+      "visits": 1837,
+      "cost": 13762,
+      "conversions": 54,
+      "revenue": 92425
+    },
+    {
+      "date": "2025-10-20",
+      "visits": 1919,
+      "cost": 12728,
+      "conversions": 49,
+      "revenue": 84085
+    },
+    {
+      "date": "2025-10-21",
+      "visits": 1923,
+      "cost": 13146,
+      "conversions": 52,
+      "revenue": 83214
+    },
+    {
+      "date": "2025-10-22",
+      "visits": 1884,
+      "cost": 11750,
+      "conversions": 49,
+      "revenue": 76127
+    },
+    {
+      "date": "2025-10-23",
+      "visits": 1766,
+      "cost": 11296,
+      "conversions": 45,
+      "revenue": 74093
+    },
+    {
+      "date": "2025-10-24",
+      "visits": 1798,
+      "cost": 12923,
+      "conversions": 50,
+      "revenue": 85599
+    },
+    {
+      "date": "2025-10-25",
+      "visits": 2044,
+      "cost": 16184,
+      "conversions": 59,
+      "revenue": 101029
+    },
+    {
+      "date": "2025-10-26",
+      "visits": 2009,
+      "cost": 13722,
+      "conversions": 56,
+      "revenue": 92780
+    },
+    {
+      "date": "2025-10-27",
+      "visits": 2023,
+      "cost": 14540,
+      "conversions": 57,
+      "revenue": 89580
+    },
+    {
+      "date": "2025-10-28",
+      "visits": 1976,
+      "cost": 12001,
+      "conversions": 49,
+      "revenue": 80237
+    },
+    {
+      "date": "2025-10-29",
+      "visits": 2030,
+      "cost": 14807,
+      "conversions": 55,
+      "revenue": 93532
+    },
+    {
+      "date": "2025-10-30",
+      "visits": 1932,
+      "cost": 12232,
+      "conversions": 50,
+      "revenue": 80069
+    },
+    {
+      "date": "2025-10-31",
+      "visits": 1825,
+      "cost": 13389,
+      "conversions": 51,
+      "revenue": 83880
+    },
+    {
+      "date": "2025-11-01",
+      "visits": 2270,
+      "cost": 16076,
+      "conversions": 62,
+      "revenue": 106251
+    },
+    {
+      "date": "2025-11-02",
+      "visits": 2205,
+      "cost": 15549,
+      "conversions": 60,
+      "revenue": 98303
+    },
+    {
+      "date": "2025-11-03",
+      "visits": 1972,
+      "cost": 13831,
+      "conversions": 54,
+      "revenue": 87137
+    },
+    {
+      "date": "2025-11-04",
+      "visits": 2234,
+      "cost": 15247,
+      "conversions": 57,
+      "revenue": 93189
+    },
+    {
+      "date": "2025-11-05",
+      "visits": 2093,
+      "cost": 13247,
+      "conversions": 56,
+      "revenue": 89900
+    },
+    {
+      "date": "2025-11-06",
+      "visits": 2049,
+      "cost": 15003,
+      "conversions": 56,
+      "revenue": 93094
+    },
+    {
+      "date": "2025-11-07",
+      "visits": 2196,
+      "cost": 16891,
+      "conversions": 67,
+      "revenue": 105626
+    },
+    {
+      "date": "2025-11-08",
+      "visits": 2407,
+      "cost": 18408,
+      "conversions": 72,
+      "revenue": 124537
+    },
+    {
+      "date": "2025-11-09",
+      "visits": 2212,
+      "cost": 17143,
+      "conversions": 66,
+      "revenue": 114177
+    },
+    {
+      "date": "2025-11-10",
+      "visits": 1983,
+      "cost": 13580,
+      "conversions": 53,
+      "revenue": 84622
+    },
+    {
+      "date": "2025-11-11",
+      "visits": 2186,
+      "cost": 17108,
+      "conversions": 62,
+      "revenue": 106492
+    },
+    {
+      "date": "2025-11-12",
+      "visits": 2192,
+      "cost": 14645,
+      "conversions": 62,
+      "revenue": 97367
+    },
+    {
+      "date": "2025-11-13",
+      "visits": 2228,
+      "cost": 15287,
+      "conversions": 61,
+      "revenue": 100271
+    },
+    {
+      "date": "2025-11-14",
+      "visits": 2161,
+      "cost": 16066,
+      "conversions": 62,
+      "revenue": 101519
+    },
+    {
+      "date": "2025-11-15",
+      "visits": 2296,
+      "cost": 18297,
+      "conversions": 71,
+      "revenue": 119355
+    },
+    {
+      "date": "2025-11-16",
+      "visits": 2295,
+      "cost": 16027,
+      "conversions": 64,
+      "revenue": 109256
+    },
+    {
+      "date": "2025-11-17",
+      "visits": 2256,
+      "cost": 17127,
+      "conversions": 65,
+      "revenue": 106735
+    },
+    {
+      "date": "2025-11-18",
+      "visits": 1999,
+      "cost": 12114,
+      "conversions": 51,
+      "revenue": 80700
+    },
+    {
+      "date": "2025-11-19",
+      "visits": 1993,
+      "cost": 13475,
+      "conversions": 53,
+      "revenue": 86683
+    },
+    {
+      "date": "2025-11-20",
+      "visits": 2173,
+      "cost": 15796,
+      "conversions": 62,
+      "revenue": 102050
+    },
+    {
+      "date": "2025-11-21",
+      "visits": 2350,
+      "cost": 15815,
+      "conversions": 67,
+      "revenue": 107563
+    },
+    {
+      "date": "2025-11-22",
+      "visits": 2462,
+      "cost": 18380,
+      "conversions": 69,
+      "revenue": 112742
+    },
+    {
+      "date": "2025-11-23",
+      "visits": 2360,
+      "cost": 16926,
+      "conversions": 65,
+      "revenue": 105126
+    },
+    {
+      "date": "2025-11-24",
+      "visits": 2381,
+      "cost": 17556,
+      "conversions": 67,
+      "revenue": 115700
+    },
+    {
+      "date": "2025-11-25",
+      "visits": 2165,
+      "cost": 15265,
+      "conversions": 60,
+      "revenue": 100301
+    },
+    {
+      "date": "2025-11-26",
+      "visits": 2298,
+      "cost": 16501,
+      "conversions": 61,
+      "revenue": 107192
+    },
+    {
+      "date": "2025-11-27",
+      "visits": 2052,
+      "cost": 16691,
+      "conversions": 61,
+      "revenue": 106235
+    },
+    {
+      "date": "2025-11-28",
+      "visits": 2232,
+      "cost": 16448,
+      "conversions": 66,
+      "revenue": 104650
+    },
+    {
+      "date": "2025-11-29",
+      "visits": 2175,
+      "cost": 15126,
+      "conversions": 64,
+      "revenue": 100928
+    },
+    {
+      "date": "2025-11-30",
+      "visits": 2340,
+      "cost": 14821,
+      "conversions": 64,
+      "revenue": 102245
+    },
+    {
+      "date": "2025-12-01",
+      "visits": 2335,
+      "cost": 19561,
+      "conversions": 72,
+      "revenue": 121708
+    },
+    {
+      "date": "2025-12-02",
+      "visits": 2203,
+      "cost": 16227,
+      "conversions": 62,
+      "revenue": 106825
+    },
+    {
+      "date": "2025-12-03",
+      "visits": 2220,
+      "cost": 15974,
+      "conversions": 64,
+      "revenue": 110762
+    },
+    {
+      "date": "2025-12-04",
+      "visits": 2292,
+      "cost": 14830,
+      "conversions": 64,
+      "revenue": 101484
+    },
+    {
+      "date": "2025-12-05",
+      "visits": 2361,
+      "cost": 19236,
+      "conversions": 76,
+      "revenue": 130796
+    },
+    {
+      "date": "2025-12-06",
+      "visits": 2236,
+      "cost": 16314,
+      "conversions": 64,
+      "revenue": 104992
+    },
+    {
+      "date": "2025-12-07",
+      "visits": 2449,
+      "cost": 17507,
+      "conversions": 72,
+      "revenue": 117659
+    },
+    {
+      "date": "2025-12-08",
+      "visits": 2253,
+      "cost": 15484,
+      "conversions": 61,
+      "revenue": 101401
+    },
+    {
+      "date": "2025-12-09",
+      "visits": 2151,
+      "cost": 16042,
+      "conversions": 64,
+      "revenue": 103361
+    },
+    {
+      "date": "2025-12-10",
+      "visits": 2141,
+      "cost": 15517,
+      "conversions": 61,
+      "revenue": 98179
+    },
+    {
+      "date": "2025-12-11",
+      "visits": 2194,
+      "cost": 16930,
+      "conversions": 65,
+      "revenue": 106017
+    },
+    {
+      "date": "2025-12-12",
+      "visits": 2321,
+      "cost": 18542,
+      "conversions": 72,
+      "revenue": 117702
+    },
+    {
+      "date": "2025-12-13",
+      "visits": 2457,
+      "cost": 17710,
+      "conversions": 77,
+      "revenue": 120901
+    },
+    {
+      "date": "2025-12-14",
+      "visits": 2201,
+      "cost": 18842,
+      "conversions": 70,
+      "revenue": 117770
+    },
+    {
+      "date": "2025-12-15",
+      "visits": 2578,
+      "cost": 18830,
+      "conversions": 77,
+      "revenue": 131368
+    },
+    {
+      "date": "2025-12-16",
+      "visits": 2125,
+      "cost": 16166,
+      "conversions": 66,
+      "revenue": 110654
+    },
+    {
+      "date": "2025-12-17",
+      "visits": 2329,
+      "cost": 17579,
+      "conversions": 70,
+      "revenue": 114451
+    },
+    {
+      "date": "2025-12-18",
+      "visits": 2376,
+      "cost": 16857,
+      "conversions": 70,
+      "revenue": 114736
+    },
+    {
+      "date": "2025-12-19",
+      "visits": 2514,
+      "cost": 21793,
+      "conversions": 80,
+      "revenue": 136961
+    },
+    {
+      "date": "2025-12-20",
+      "visits": 2439,
+      "cost": 19211,
+      "conversions": 73,
+      "revenue": 121497
+    },
+    {
+      "date": "2025-12-21",
+      "visits": 2634,
+      "cost": 21235,
+      "conversions": 84,
+      "revenue": 144023
+    },
+    {
+      "date": "2025-12-22",
+      "visits": 2390,
+      "cost": 19022,
+      "conversions": 75,
+      "revenue": 120922
+    },
+    {
+      "date": "2025-12-23",
+      "visits": 2330,
+      "cost": 17422,
+      "conversions": 69,
+      "revenue": 113513
+    },
+    {
+      "date": "2025-12-24",
+      "visits": 2218,
+      "cost": 16026,
+      "conversions": 65,
+      "revenue": 110571
+    },
+    {
+      "date": "2025-12-25",
+      "visits": 2321,
+      "cost": 18938,
+      "conversions": 72,
+      "revenue": 121672
+    },
+    {
+      "date": "2025-12-26",
+      "visits": 2347,
+      "cost": 15450,
+      "conversions": 65,
+      "revenue": 106180
+    },
+    {
+      "date": "2025-12-27",
+      "visits": 2545,
+      "cost": 18631,
+      "conversions": 72,
+      "revenue": 121217
+    },
+    {
+      "date": "2025-12-28",
+      "visits": 2436,
+      "cost": 17490,
+      "conversions": 69,
+      "revenue": 115816
+    },
+    {
+      "date": "2025-12-29",
+      "visits": 2357,
+      "cost": 17964,
+      "conversions": 65,
+      "revenue": 112748
+    },
+    {
+      "date": "2025-12-30",
+      "visits": 2127,
+      "cost": 16672,
+      "conversions": 65,
+      "revenue": 110643
+    },
+    {
+      "date": "2025-12-31",
+      "visits": 2156,
+      "cost": 13731,
+      "conversions": 58,
+      "revenue": 92184
+    },
+    {
+      "date": "2026-01-01",
+      "visits": 1760,
+      "cost": 11549,
+      "conversions": 44,
+      "revenue": 74130
+    },
+    {
+      "date": "2026-01-02",
+      "visits": 1622,
+      "cost": 10021,
+      "conversions": 41,
+      "revenue": 65600
+    },
+    {
+      "date": "2026-01-03",
+      "visits": 1823,
+      "cost": 12414,
+      "conversions": 50,
+      "revenue": 86435
+    },
+    {
+      "date": "2026-01-04",
+      "visits": 1773,
+      "cost": 10554,
+      "conversions": 45,
+      "revenue": 74583
+    },
+    {
+      "date": "2026-01-05",
+      "visits": 1645,
+      "cost": 10253,
+      "conversions": 39,
+      "revenue": 67966
+    },
+    {
+      "date": "2026-01-06",
+      "visits": 1577,
+      "cost": 9221,
+      "conversions": 37,
+      "revenue": 59953
+    },
+    {
+      "date": "2026-01-07",
+      "visits": 1673,
+      "cost": 9625,
+      "conversions": 39,
+      "revenue": 63327
+    },
+    {
+      "date": "2026-01-08",
+      "visits": 1678,
+      "cost": 10846,
+      "conversions": 42,
+      "revenue": 72492
+    },
+    {
+      "date": "2026-01-09",
+      "visits": 1680,
+      "cost": 11375,
+      "conversions": 46,
+      "revenue": 75930
+    },
+    {
+      "date": "2026-01-10",
+      "visits": 1660,
+      "cost": 10201,
+      "conversions": 41,
+      "revenue": 66996
+    },
+    {
+      "date": "2026-01-11",
+      "visits": 1845,
+      "cost": 12923,
+      "conversions": 51,
+      "revenue": 84687
+    },
+    {
+      "date": "2026-01-12",
+      "visits": 1566,
+      "cost": 10339,
+      "conversions": 38,
+      "revenue": 67014
+    },
+    {
+      "date": "2026-01-13",
+      "visits": 1614,
+      "cost": 9294,
+      "conversions": 39,
+      "revenue": 62857
+    },
+    {
+      "date": "2026-01-14",
+      "visits": 1511,
+      "cost": 10570,
+      "conversions": 39,
+      "revenue": 68616
+    },
+    {
+      "date": "2026-01-15",
+      "visits": 1673,
+      "cost": 9085,
+      "conversions": 40,
+      "revenue": 63690
+    },
+    {
+      "date": "2026-01-16",
+      "visits": 1697,
+      "cost": 11254,
+      "conversions": 41,
+      "revenue": 71903
+    },
+    {
+      "date": "2026-01-17",
+      "visits": 1833,
+      "cost": 11500,
+      "conversions": 45,
+      "revenue": 74304
+    },
+    {
+      "date": "2026-01-18",
+      "visits": 1757,
+      "cost": 9909,
+      "conversions": 43,
+      "revenue": 70359
+    },
+    {
+      "date": "2026-01-19",
+      "visits": 1761,
+      "cost": 10902,
+      "conversions": 46,
+      "revenue": 74062
+    },
+    {
+      "date": "2026-01-20",
+      "visits": 1703,
+      "cost": 9864,
+      "conversions": 42,
+      "revenue": 67858
+    },
+    {
+      "date": "2026-01-21",
+      "visits": 1521,
+      "cost": 9765,
+      "conversions": 36,
+      "revenue": 63788
+    },
+    {
+      "date": "2026-01-22",
+      "visits": 1638,
+      "cost": 9414,
+      "conversions": 38,
+      "revenue": 67090
+    },
+    {
+      "date": "2026-01-23",
+      "visits": 1724,
+      "cost": 10406,
+      "conversions": 42,
+      "revenue": 69899
+    },
+    {
+      "date": "2026-01-24",
+      "visits": 1672,
+      "cost": 10193,
+      "conversions": 41,
+      "revenue": 70495
+    },
+    {
+      "date": "2026-01-25",
+      "visits": 1887,
+      "cost": 10803,
+      "conversions": 48,
+      "revenue": 77518
+    },
+    {
+      "date": "2026-01-26",
+      "visits": 1870,
+      "cost": 12545,
+      "conversions": 51,
+      "revenue": 85052
+    },
+    {
+      "date": "2026-01-27",
+      "visits": 1809,
+      "cost": 11343,
+      "conversions": 46,
+      "revenue": 76460
+    },
+    {
+      "date": "2026-01-28",
+      "visits": 1661,
+      "cost": 10233,
+      "conversions": 42,
+      "revenue": 67921
+    },
+    {
+      "date": "2026-01-29",
+      "visits": 1703,
+      "cost": 9735,
+      "conversions": 40,
+      "revenue": 64898
+    },
+    {
+      "date": "2026-01-30",
+      "visits": 1924,
+      "cost": 11800,
+      "conversions": 49,
+      "revenue": 77620
+    },
+    {
+      "date": "2026-01-31",
+      "visits": 1788,
+      "cost": 10997,
+      "conversions": 46,
+      "revenue": 72971
+    },
+    {
+      "date": "2026-02-01",
+      "visits": 1745,
+      "cost": 10817,
+      "conversions": 45,
+      "revenue": 77776
+    },
+    {
+      "date": "2026-02-02",
+      "visits": 1811,
+      "cost": 10737,
+      "conversions": 46,
+      "revenue": 72678
+    },
+    {
+      "date": "2026-02-03",
+      "visits": 1656,
+      "cost": 10995,
+      "conversions": 40,
+      "revenue": 70623
+    },
+    {
+      "date": "2026-02-04",
+      "visits": 1659,
+      "cost": 10394,
+      "conversions": 44,
+      "revenue": 74433
+    },
+    {
+      "date": "2026-02-05",
+      "visits": 1743,
+      "cost": 10997,
+      "conversions": 45,
+      "revenue": 78929
+    },
+    {
+      "date": "2026-02-06",
+      "visits": 1834,
+      "cost": 11999,
+      "conversions": 47,
+      "revenue": 81723
+    },
+    {
+      "date": "2026-02-07",
+      "visits": 1739,
+      "cost": 11063,
+      "conversions": 46,
+      "revenue": 75808
+    },
+    {
+      "date": "2026-02-08",
+      "visits": 1785,
+      "cost": 11921,
+      "conversions": 47,
+      "revenue": 81200
+    },
+    {
+      "date": "2026-02-09",
+      "visits": 1706,
+      "cost": 10321,
+      "conversions": 43,
+      "revenue": 74770
+    },
+    {
+      "date": "2026-02-10",
+      "visits": 1674,
+      "cost": 9996,
+      "conversions": 40,
+      "revenue": 64923
+    },
+    {
+      "date": "2026-02-11",
+      "visits": 1597,
+      "cost": 9893,
+      "conversions": 37,
+      "revenue": 65640
+    },
+    {
+      "date": "2026-02-12",
+      "visits": 1691,
+      "cost": 11092,
+      "conversions": 44,
+      "revenue": 74658
+    },
+    {
+      "date": "2026-02-13",
+      "visits": 1825,
+      "cost": 10686,
+      "conversions": 46,
+      "revenue": 74185
+    },
+    {
+      "date": "2026-02-14",
+      "visits": 1759,
+      "cost": 12596,
+      "conversions": 47,
+      "revenue": 82677
+    },
+    {
+      "date": "2026-02-15",
+      "visits": 1923,
+      "cost": 13838,
+      "conversions": 54,
+      "revenue": 89664
+    },
+    {
+      "date": "2026-02-16",
+      "visits": 1771,
+      "cost": 10412,
+      "conversions": 42,
+      "revenue": 73451
+    },
+    {
+      "date": "2026-02-17",
+      "visits": 1910,
+      "cost": 12537,
+      "conversions": 49,
+      "revenue": 82994
+    },
+    {
+      "date": "2026-02-18",
+      "visits": 1689,
+      "cost": 10457,
+      "conversions": 41,
+      "revenue": 69521
+    },
+    {
+      "date": "2026-02-19",
+      "visits": 1674,
+      "cost": 10467,
+      "conversions": 41,
+      "revenue": 68017
+    },
+    {
+      "date": "2026-02-20",
+      "visits": 1808,
+      "cost": 11390,
+      "conversions": 46,
+      "revenue": 74583
+    },
+    {
+      "date": "2026-02-21",
+      "visits": 1920,
+      "cost": 12527,
+      "conversions": 48,
+      "revenue": 82905
+    },
+    {
+      "date": "2026-02-22",
+      "visits": 1935,
+      "cost": 12525,
+      "conversions": 51,
+      "revenue": 88428
+    },
+    {
+      "date": "2026-02-23",
+      "visits": 1647,
+      "cost": 9553,
+      "conversions": 40,
+      "revenue": 63740
+    },
+    {
+      "date": "2026-02-24",
+      "visits": 1657,
+      "cost": 9524,
+      "conversions": 41,
+      "revenue": 66853
+    },
+    {
+      "date": "2026-02-25",
+      "visits": 1635,
+      "cost": 9680,
+      "conversions": 43,
+      "revenue": 69755
+    },
+    {
+      "date": "2026-02-26",
+      "visits": 1746,
+      "cost": 9782,
+      "conversions": 42,
+      "revenue": 68115
+    },
+    {
+      "date": "2026-02-27",
+      "visits": 1915,
+      "cost": 11277,
+      "conversions": 51,
+      "revenue": 82346
+    },
+    {
+      "date": "2026-02-28",
+      "visits": 2065,
+      "cost": 13091,
+      "conversions": 52,
+      "revenue": 85783
+    },
+    {
+      "date": "2026-03-01",
+      "visits": 2158,
+      "cost": 14000,
+      "conversions": 57,
+      "revenue": 98357
+    },
+    {
+      "date": "2026-03-02",
+      "visits": 1826,
+      "cost": 10620,
+      "conversions": 46,
+      "revenue": 74703
+    },
+    {
+      "date": "2026-03-03",
+      "visits": 1776,
+      "cost": 10201,
+      "conversions": 44,
+      "revenue": 69755
+    },
+    {
+      "date": "2026-03-04",
+      "visits": 1902,
+      "cost": 11069,
+      "conversions": 48,
+      "revenue": 79830
+    },
+    {
+      "date": "2026-03-05",
+      "visits": 2163,
+      "cost": 13743,
+      "conversions": 59,
+      "revenue": 96764
+    },
+    {
+      "date": "2026-03-06",
+      "visits": 2061,
+      "cost": 12643,
+      "conversions": 53,
+      "revenue": 85518
+    },
+    {
+      "date": "2026-03-07",
+      "visits": 2131,
+      "cost": 15142,
+      "conversions": 62,
+      "revenue": 100024
+    },
+    {
+      "date": "2026-03-08",
+      "visits": 2115,
+      "cost": 14477,
+      "conversions": 61,
+      "revenue": 101946
+    },
+    {
+      "date": "2026-03-09",
+      "visits": 1859,
+      "cost": 12747,
+      "conversions": 52,
+      "revenue": 87084
+    },
+    {
+      "date": "2026-03-10",
+      "visits": 1766,
+      "cost": 11566,
+      "conversions": 49,
+      "revenue": 84657
+    },
+    {
+      "date": "2026-03-11",
+      "visits": 1921,
+      "cost": 11095,
+      "conversions": 47,
+      "revenue": 76289
+    },
+    {
+      "date": "2026-03-12",
+      "visits": 1954,
+      "cost": 12071,
+      "conversions": 50,
+      "revenue": 83493
+    },
+    {
+      "date": "2026-03-13",
+      "visits": 2088,
+      "cost": 13933,
+      "conversions": 56,
+      "revenue": 99446
+    },
+    {
+      "date": "2026-03-14",
+      "visits": 2234,
+      "cost": 14624,
+      "conversions": 62,
+      "revenue": 103690
+    },
+    {
+      "date": "2026-03-15",
+      "visits": 2143,
+      "cost": 12662,
+      "conversions": 57,
+      "revenue": 93437
+    },
+    {
+      "date": "2026-03-16",
+      "visits": 1849,
+      "cost": 12348,
+      "conversions": 53,
+      "revenue": 90316
+    },
+    {
+      "date": "2026-03-17",
+      "visits": 1931,
+      "cost": 14282,
+      "conversions": 54,
+      "revenue": 95213
+    },
+    {
+      "date": "2026-03-18",
+      "visits": 1792,
+      "cost": 13505,
+      "conversions": 51,
+      "revenue": 90788
+    },
+    {
+      "date": "2026-03-19",
+      "visits": 1831,
+      "cost": 12501,
+      "conversions": 47,
+      "revenue": 83904
+    },
+    {
+      "date": "2026-03-20",
+      "visits": 2029,
+      "cost": 13523,
+      "conversions": 57,
+      "revenue": 92589
+    },
+    {
+      "date": "2026-03-21",
+      "visits": 2115,
+      "cost": 15229,
+      "conversions": 62,
+      "revenue": 105979
+    },
+    {
+      "date": "2026-03-22",
+      "visits": 1920,
+      "cost": 11752,
+      "conversions": 53,
+      "revenue": 86865
+    },
+    {
+      "date": "2026-03-23",
+      "visits": 1824,
+      "cost": 12578,
+      "conversions": 52,
+      "revenue": 85873
+    },
+    {
+      "date": "2026-03-24",
+      "visits": 1805,
+      "cost": 11954,
+      "conversions": 45,
+      "revenue": 80300
+    },
+    {
+      "date": "2026-03-25",
+      "visits": 1985,
+      "cost": 13194,
+      "conversions": 53,
+      "revenue": 89332
+    },
+    {
+      "date": "2026-03-26",
+      "visits": 2174,
+      "cost": 14988,
+      "conversions": 59,
+      "revenue": 105155
+    },
+    {
+      "date": "2026-03-27",
+      "visits": 2029,
+      "cost": 13067,
+      "conversions": 57,
+      "revenue": 96675
+    },
+    {
+      "date": "2026-03-28",
+      "visits": 2311,
+      "cost": 14699,
+      "conversions": 60,
+      "revenue": 97949
+    },
+    {
+      "date": "2026-03-29",
+      "visits": 2292,
+      "cost": 14903,
+      "conversions": 62,
+      "revenue": 100518
+    },
+    {
+      "date": "2026-03-30",
+      "visits": 2092,
+      "cost": 13701,
+      "conversions": 56,
+      "revenue": 96330
+    },
+    {
+      "date": "2026-03-31",
+      "visits": 1846,
+      "cost": 12080,
+      "conversions": 46,
+      "revenue": 81488
+    },
+    {
+      "date": "2026-04-01",
+      "visits": 1849,
+      "cost": 11439,
+      "conversions": 46,
+      "revenue": 76981
+    },
+    {
+      "date": "2026-04-02",
+      "visits": 2166,
+      "cost": 14388,
+      "conversions": 62,
+      "revenue": 105984
+    },
+    {
+      "date": "2026-04-03",
+      "visits": 2171,
+      "cost": 14690,
+      "conversions": 61,
+      "revenue": 98411
+    },
+    {
+      "date": "2026-04-04",
+      "visits": 2296,
+      "cost": 13865,
+      "conversions": 63,
+      "revenue": 101181
+    },
+    {
+      "date": "2026-04-05",
+      "visits": 2208,
+      "cost": 16448,
+      "conversions": 66,
+      "revenue": 115983
+    },
+    {
+      "date": "2026-04-06",
+      "visits": 2007,
+      "cost": 11291,
+      "conversions": 51,
+      "revenue": 82080
+    },
+    {
+      "date": "2026-04-07",
+      "visits": 1992,
+      "cost": 11254,
+      "conversions": 50,
+      "revenue": 81702
+    },
+    {
+      "date": "2026-04-08",
+      "visits": 1951,
+      "cost": 12014,
+      "conversions": 51,
+      "revenue": 84883
+    },
+    {
+      "date": "2026-04-09",
+      "visits": 2159,
+      "cost": 15480,
+      "conversions": 62,
+      "revenue": 104855
+    },
+    {
+      "date": "2026-04-10",
+      "visits": 2100,
+      "cost": 13622,
+      "conversions": 59,
+      "revenue": 99434
+    },
+    {
+      "date": "2026-04-11",
+      "visits": 2377,
+      "cost": 16579,
+      "conversions": 71,
+      "revenue": 119664
+    },
+    {
+      "date": "2026-04-12",
+      "visits": 2000,
+      "cost": 14928,
+      "conversions": 60,
+      "revenue": 101560
+    },
+    {
+      "date": "2026-04-13",
+      "visits": 2261,
+      "cost": 13920,
+      "conversions": 58,
+      "revenue": 100828
+    },
+    {
+      "date": "2026-04-14",
+      "visits": 2194,
+      "cost": 12505,
+      "conversions": 58,
+      "revenue": 94792
+    },
+    {
+      "date": "2026-04-15",
+      "visits": 2181,
+      "cost": 14781,
+      "conversions": 61,
+      "revenue": 107281
+    },
+    {
+      "date": "2026-04-16",
+      "visits": 2127,
+      "cost": 13306,
+      "conversions": 56,
+      "revenue": 90813
+    },
+    {
+      "date": "2026-04-17",
+      "visits": 2323,
+      "cost": 13999,
+      "conversions": 61,
+      "revenue": 99073
+    },
+    {
+      "date": "2026-04-18",
+      "visits": 2038,
+      "cost": 13664,
+      "conversions": 56,
+      "revenue": 93587
+    },
+    {
+      "date": "2026-04-19",
+      "visits": 2244,
+      "cost": 14660,
+      "conversions": 62,
+      "revenue": 102896
+    },
+    {
+      "date": "2026-04-20",
+      "visits": 2055,
+      "cost": 12409,
+      "conversions": 59,
+      "revenue": 94316
+    },
+    {
+      "date": "2026-04-21",
+      "visits": 1938,
+      "cost": 12639,
+      "conversions": 50,
+      "revenue": 88447
+    },
+    {
+      "date": "2026-04-22",
+      "visits": 2087,
+      "cost": 12445,
+      "conversions": 53,
+      "revenue": 86650
+    },
+    {
+      "date": "2026-04-23",
+      "visits": 2248,
+      "cost": 12921,
+      "conversions": 56,
+      "revenue": 98319
+    },
+    {
+      "date": "2026-04-24",
+      "visits": 2001,
+      "cost": 14219,
+      "conversions": 60,
+      "revenue": 101081
+    },
+    {
+      "date": "2026-04-25",
+      "visits": 2157,
+      "cost": 13283,
+      "conversions": 60,
+      "revenue": 99806
+    },
+    {
+      "date": "2026-04-26",
+      "visits": 2306,
+      "cost": 14914,
+      "conversions": 65,
+      "revenue": 104253
+    },
+    {
+      "date": "2026-04-27",
+      "visits": 2176,
+      "cost": 13270,
+      "conversions": 55,
+      "revenue": 97263
+    },
+    {
+      "date": "2026-04-28",
+      "visits": 2022,
+      "cost": 12096,
+      "conversions": 51,
+      "revenue": 89179
+    },
+    {
+      "date": "2026-04-29",
+      "visits": 2016,
+      "cost": 12742,
+      "conversions": 56,
+      "revenue": 89576
+    },
+    {
+      "date": "2026-04-30",
+      "visits": 1994,
+      "cost": 12550,
+      "conversions": 55,
+      "revenue": 90992
+    },
+    {
+      "date": "2026-05-01",
+      "visits": 2186,
+      "cost": 13376,
+      "conversions": 62,
+      "revenue": 99566
+    },
+    {
+      "date": "2026-05-02",
+      "visits": 2279,
+      "cost": 14068,
+      "conversions": 61,
+      "revenue": 107567
+    },
+    {
+      "date": "2026-05-03",
+      "visits": 2272,
+      "cost": 15267,
+      "conversions": 64,
+      "revenue": 108935
+    },
+    {
+      "date": "2026-05-04",
+      "visits": 1842,
+      "cost": 11715,
+      "conversions": 50,
+      "revenue": 84240
+    },
+    {
+      "date": "2026-05-05",
+      "visits": 1927,
+      "cost": 13103,
+      "conversions": 54,
+      "revenue": 91272
+    },
+    {
+      "date": "2026-05-06",
+      "visits": 2084,
+      "cost": 13547,
+      "conversions": 55,
+      "revenue": 93813
+    },
+    {
+      "date": "2026-05-07",
+      "visits": 1877,
+      "cost": 12019,
+      "conversions": 51,
+      "revenue": 90077
+    },
+    {
+      "date": "2026-05-08",
+      "visits": 2293,
+      "cost": 16464,
+      "conversions": 66,
+      "revenue": 114430
+    },
+    {
+      "date": "2026-05-09",
+      "visits": 1941,
+      "cost": 13700,
+      "conversions": 55,
+      "revenue": 94477
+    },
+    {
+      "date": "2026-05-10",
+      "visits": 2251,
+      "cost": 13361,
+      "conversions": 60,
+      "revenue": 103135
+    },
+    {
+      "date": "2026-05-11",
+      "visits": 2213,
+      "cost": 13323,
+      "conversions": 60,
+      "revenue": 101977
+    },
+    {
+      "date": "2026-05-12",
+      "visits": 2139,
+      "cost": 13458,
+      "conversions": 58,
+      "revenue": 97234
+    },
+    {
+      "date": "2026-05-13",
+      "visits": 1960,
+      "cost": 11568,
+      "conversions": 50,
+      "revenue": 84965
+    },
+    {
+      "date": "2026-05-14",
+      "visits": 2010,
+      "cost": 11995,
+      "conversions": 52,
+      "revenue": 91544
+    },
+    {
+      "date": "2026-05-15",
+      "visits": 2103,
+      "cost": 12418,
+      "conversions": 54,
+      "revenue": 93179
+    },
+    {
+      "date": "2026-05-16",
+      "visits": 1982,
+      "cost": 12718,
+      "conversions": 52,
+      "revenue": 87726
+    },
+    {
+      "date": "2026-05-17",
+      "visits": 2225,
+      "cost": 14429,
+      "conversions": 63,
+      "revenue": 109410
+    },
+    {
+      "date": "2026-05-18",
+      "visits": 2092,
+      "cost": 13276,
+      "conversions": 56,
+      "revenue": 92335
+    },
+    {
+      "date": "2026-05-19",
+      "visits": 1861,
+      "cost": 11235,
+      "conversions": 50,
+      "revenue": 83266
+    },
+    {
+      "date": "2026-05-20",
+      "visits": 2051,
+      "cost": 12773,
+      "conversions": 51,
+      "revenue": 90865
+    },
+    {
+      "date": "2026-05-21",
+      "visits": 2012,
+      "cost": 10702,
+      "conversions": 51,
+      "revenue": 82465
+    },
+    {
+      "date": "2026-05-22",
+      "visits": 2053,
+      "cost": 11687,
+      "conversions": 53,
+      "revenue": 86551
+    },
+    {
+      "date": "2026-05-23",
+      "visits": 2179,
+      "cost": 14226,
+      "conversions": 58,
+      "revenue": 103029
+    },
+    {
+      "date": "2026-05-24",
+      "visits": 2207,
+      "cost": 15574,
+      "conversions": 63,
+      "revenue": 111962
+    },
+    {
+      "date": "2026-05-25",
+      "visits": 1925,
+      "cost": 12054,
+      "conversions": 55,
+      "revenue": 91343
+    },
+    {
+      "date": "2026-05-26",
+      "visits": 1970,
+      "cost": 11108,
+      "conversions": 50,
+      "revenue": 81000
+    },
+    {
+      "date": "2026-05-27",
+      "visits": 2199,
+      "cost": 13655,
+      "conversions": 56,
+      "revenue": 97148
+    },
+    {
+      "date": "2026-05-28",
+      "visits": 2155,
+      "cost": 12376,
+      "conversions": 58,
+      "revenue": 95055
+    },
+    {
+      "date": "2026-05-29",
+      "visits": 2341,
+      "cost": 14847,
+      "conversions": 61,
+      "revenue": 109228
+    },
+    {
+      "date": "2026-05-30",
+      "visits": 2226,
+      "cost": 14396,
+      "conversions": 63,
+      "revenue": 103859
+    },
+    {
+      "date": "2026-05-31",
+      "visits": 2238,
+      "cost": 13964,
+      "conversions": 67,
+      "revenue": 108166
+    },
+    {
+      "date": "2026-06-01",
+      "visits": 1949,
+      "cost": 10102,
+      "conversions": 46,
+      "revenue": 76031
+    },
+    {
+      "date": "2026-06-02",
+      "visits": 1638,
+      "cost": 10225,
+      "conversions": 44,
+      "revenue": 77531
+    },
+    {
+      "date": "2026-06-03",
+      "visits": 1786,
+      "cost": 10152,
+      "conversions": 41,
+      "revenue": 71036
+    },
+    {
+      "date": "2026-06-04",
+      "visits": 1762,
+      "cost": 9837,
+      "conversions": 46,
+      "revenue": 74751
+    },
+    {
+      "date": "2026-06-05",
+      "visits": 2028,
+      "cost": 11619,
+      "conversions": 50,
+      "revenue": 84780
+    },
+    {
+      "date": "2026-06-06",
+      "visits": 1928,
+      "cost": 10845,
+      "conversions": 48,
+      "revenue": 82816
+    },
+    {
+      "date": "2026-06-07",
+      "visits": 1686,
+      "cost": 10059,
+      "conversions": 44,
+      "revenue": 74901
+    },
+    {
+      "date": "2026-06-08",
+      "visits": 1836,
+      "cost": 10443,
+      "conversions": 48,
+      "revenue": 77666
+    }
+  ]
+}
