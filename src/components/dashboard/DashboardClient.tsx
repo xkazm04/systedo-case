@@ -136,7 +136,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       {/* KPI cards — 1 col on small phones, 2 on larger phones, 5 on desktop.
           Keyed by period so the values ease in (staggered) on each switch. */}
       <div
-        key={periodKey}
+        key={`kpi-${periodKey}`}
         className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 lg:grid-cols-5"
       >
         {HEADLINE_METRICS.map((m, i) => (
@@ -175,7 +175,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       </div>
 
       {/* channels + side rail */}
-      <div key={periodKey} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
+      <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-navy-800">Výkon podle kanálů</h2>

@@ -10,11 +10,19 @@ import {
   type AnalysisResult,
 } from "@/lib/ai-types";
 import { useAiTool } from "./useAiTool";
-import { Group, PromptDisclosure, ResultMeta, ToolEmpty, ToolError, ToolLoading } from "./primitives";
+import {
+  Group,
+  LoadingTimer,
+  PromptDisclosure,
+  ResultMeta,
+  TimeoutState,
+  ToolEmpty,
+  ToolError,
+} from "./primitives";
 
 export default function PerformanceAnalyst() {
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
-  const { status, data, error, run, reset } = useAiTool<AnalysisResult>("analysis");
+  const { status, data, error, timedOut, run, reset } = useAiTool<AnalysisResult>("analysis");
 
   const r = data?.result;
   const copyAllText = r
@@ -93,8 +101,13 @@ export default function PerformanceAnalyst() {
             hint="Tip: vyber období a klikni na Analyzovat data."
           />
         )}
-        {status === "loading" && <ToolLoading />}
-        {status === "error" && <ToolError message={error ?? ""} onRetry={reset} />}
+        {status === "loading" && <LoadingTimer />}
+        {status === "error" &&
+          (timedOut ? (
+            <TimeoutState onRetry={reset} />
+          ) : (
+            <ToolError message={error ?? ""} onRetry={reset} />
+          ))}
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">

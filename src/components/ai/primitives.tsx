@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import { Check, Copy, Info } from "@/components/icons";
+import { Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
+import { AI_TIMER_TARGET_MS } from "./useAiTool";
 
 /** Form field with label. */
 export function Field({
@@ -174,23 +175,6 @@ export function ToolEmpty({
   );
 }
 
-/** Skeleton shown while a request is in flight. */
-export function ToolLoading() {
-  return (
-    <div className="animate-fade-in space-y-5">
-      <div className="h-7 w-48 animate-pulse rounded-full bg-navy-100" />
-      {[0, 1].map((g) => (
-        <div key={g} className="space-y-2">
-          <div className="h-4 w-24 animate-pulse rounded bg-navy-100" />
-          {[0, 1, 2].map((r) => (
-            <div key={r} className="h-11 animate-pulse rounded-lg bg-navy-50" />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /** Error state with a retry handler. */
 export function ToolError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
@@ -201,6 +185,91 @@ export function ToolError({ message, onRetry }: { message: string; onRetry: () =
         type="button"
         onClick={onRetry}
         className="mt-4 rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300"
+      >
+        Zkusit znovu
+      </button>
+    </div>
+  );
+}
+
+/** Animated loading indicator: a ring that fills toward the ~15s target the
+ *  model usually needs. Results render the instant the response arrives (the
+ *  ring is purely visual); past 15s it keeps spinning until the 30s hard limit. */
+export function LoadingTimer() {
+  const [elapsed, setElapsed] = useState(0); // seconds
+
+  useEffect(() => {
+    const start = performance.now();
+    const id = setInterval(() => setElapsed((performance.now() - start) / 1000), 100);
+    return () => clearInterval(id);
+  }, []);
+
+  const target = AI_TIMER_TARGET_MS / 1000;
+  const progress = Math.min(elapsed / target, 1);
+  const over = elapsed >= target;
+  const R = 42;
+  const C = 2 * Math.PI * R;
+  const color = over ? "var(--color-coral-500)" : "var(--color-brand-500)";
+
+  return (
+    <div
+      data-testid="ai-loading"
+      className="card flex animate-fade-in flex-col items-center justify-center p-10 text-center"
+    >
+      <div className="relative h-28 w-28">
+        <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="var(--color-line)" strokeWidth="6" />
+          <circle
+            cx="50"
+            cy="50"
+            r={R}
+            fill="none"
+            stroke={color}
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - progress)}
+            className={over ? "animate-pulse" : ""}
+            style={{ transition: "stroke-dashoffset 0.12s linear, stroke 0.3s ease" }}
+          />
+        </svg>
+        <div className="absolute inset-0 grid place-items-center">
+          <span className="tnum text-2xl font-semibold text-navy-800">{Math.floor(elapsed)}s</span>
+        </div>
+      </div>
+      <p className="mt-5 text-base font-semibold text-navy-800">
+        {over ? "Model přemýšlí o něco déle…" : "Generuji odpověď…"}
+      </p>
+      <p className="mt-1 max-w-xs text-sm text-muted">
+        Výsledek se zobrazí ihned, jakmile dorazí.{over ? " Limit je 30 sekund." : ""}
+      </p>
+    </div>
+  );
+}
+
+/** Timeout illustration shown when the model doesn't answer within 30s. */
+export function TimeoutState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      data-testid="ai-timeout"
+      className="card flex animate-fade-in flex-col items-center justify-center p-10 text-center"
+    >
+      <div className="relative">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-[#fff0e9] text-coral-600">
+          <Clock width={30} height={30} />
+        </span>
+        <span className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-coral-500 text-xs font-bold text-white">
+          !
+        </span>
+      </div>
+      <h2 className="mt-5 text-lg font-semibold text-navy-800">Vypršel časový limit</h2>
+      <p className="mt-2 max-w-sm text-sm text-muted">
+        Model neodpověděl do 30 sekund. Někdy stačí druhý pokus — zkuste to prosím znovu.
+      </p>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="mt-5 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
       >
         Zkusit znovu
       </button>

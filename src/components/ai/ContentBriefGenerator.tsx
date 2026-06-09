@@ -16,11 +16,12 @@ import {
   CopyButton,
   Field,
   Group,
+  LoadingTimer,
   PromptDisclosure,
   ResultMeta,
+  TimeoutState,
   ToolEmpty,
   ToolError,
-  ToolLoading,
   inputClass,
 } from "./primitives";
 
@@ -69,7 +70,7 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
 
 export default function ContentBriefGenerator() {
   const [form, setForm] = useState<BriefRequest>(EMPTY);
-  const { status, data, error, run, reset } = useAiTool<BriefResult>("brief");
+  const { status, data, error, timedOut, run, reset } = useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -195,8 +196,13 @@ export default function ContentBriefGenerator() {
             hint="Tip: zkuste „Vyplnit ukázku“ a klikněte na Vytvořit brief."
           />
         )}
-        {status === "loading" && <ToolLoading />}
-        {status === "error" && <ToolError message={error ?? ""} onRetry={reset} />}
+        {status === "loading" && <LoadingTimer />}
+        {status === "error" &&
+          (timedOut ? (
+            <TimeoutState onRetry={reset} />
+          ) : (
+            <ToolError message={error ?? ""} onRetry={reset} />
+          ))}
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">

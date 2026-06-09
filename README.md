@@ -55,18 +55,28 @@ npm run seed         # přegeneruje src/data/performance.json
 
 ## AI asistent (Úkol 3) — Gemini
 
-Generátor PPC inzerátů pro Google Ads a Sklik. Pohání ho **`gemini-3-flash-preview`**
-přes oficiální **`@google/genai`** SDK.
+**Tři nástroje v jednom rozhraní**, každý odpovídá jednomu pilíři Systedo. Pohání je
+**`gemini-3-flash-preview`** přes oficiální **`@google/genai`** SDK.
+
+- **PPC inzeráty** (výkonnostní reklama) — nadpisy, popisky a klíčová slova s hlídáním
+  limitů znaků pro Google Ads i Sklik.
+- **Obsahový brief** (tvorba obsahu) — SEO title/meta v limitech, náhled ve vyhledávání,
+  osnova H2, FAQ a návrhy interních odkazů.
+- **Analýza dat** (analýzy a strategie) — interpretace **reálných dat z dashboardu**;
+  model dostává jen skutečná čísla a nesmí žádná vymýšlet.
 
 Co stojí za pozornost z pohledu AI-asistovaného vývoje:
 
 - **Strukturovaný výstup** — model vrací JSON podle schématu (`responseSchema`),
   výsledek je rovnou typovaný a validovaný, žádné křehké parsování textu.
-- **Doménová pravidla** — limity Google Ads (30 / 90 / 25 znaků) jsou zapečené
-  v promptu a UI je navíc barevně kontroluje.
-- **Klíč zůstává na serveru** — volání běží v `/api/ai` (Route Handler, Node runtime).
-- **Funguje i bez klíče** — bez `GEMINI_API_KEY` se vrátí deterministická ukázka
-  v limitech, jasně označená jako demo. Stránka je tak plně použitelná z repa.
+- **Doménová pravidla** — limity Google Ads i SEO jsou zapečené v promptu a UI je
+  navíc barevně kontroluje.
+- **Klíč zůstává na serveru** — volání běží v `/api/ai` (Route Handler, Node runtime),
+  s jediným `generateStructured()` pipeline pro všechny tři nástroje.
+- **Funguje i bez klíče** — bez `GEMINI_API_KEY` se vrátí deterministická ukázka,
+  jasně označená jako demo. Stránka je tak plně použitelná z repa.
+- **Animovaný časovač** — při čekání se plní kruhový indikátor k ~15 s; výsledek se
+  zobrazí ihned po doručení, po 30 s se ukáže stylizovaná hláška o vypršení limitu.
 - **Transparentnost** — UI umí zobrazit přesný prompt poslaný modelu.
 
 ### Nastavení klíče
@@ -75,6 +85,24 @@ Co stojí za pozornost z pohledu AI-asistovaného vývoje:
 cp .env.example .env.local
 # doplňte GEMINI_API_KEY=...   (klíč zdarma: https://aistudio.google.com/apikey)
 ```
+
+---
+
+## Testy (Playwright E2E)
+
+End-to-end testy pro `/ai-asistent` ověřují všechny tři nástroje proti **reálnému
+Gemini API** — dev server si nastartují samy:
+
+```bash
+# 1) do .env.local doplňte GEMINI_API_KEY
+# 2) spusťte
+npm run test:e2e
+```
+
+Pokrývají: vykreslení záložek, generování inzerátů / briefu / analýzy živým modelem
+(včetně kontroly, že nejde o ukázkový režim), zachování stavu při přepínání nástrojů
+a stylizovanou hlášku po vypršení 30s limitu. Bez `GEMINI_API_KEY` se testy proti
+modelu přeskočí; strukturální test a test timeoutu poběží i tak.
 
 ---
 

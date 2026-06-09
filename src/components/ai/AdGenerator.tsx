@@ -16,12 +16,13 @@ import { useAiTool } from "./useAiTool";
 import {
   Field,
   Group,
+  LoadingTimer,
   PromptDisclosure,
   ResultMeta,
   TextRow,
+  TimeoutState,
   ToolEmpty,
   ToolError,
-  ToolLoading,
   inputClass,
 } from "./primitives";
 
@@ -38,7 +39,7 @@ const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "g
 
 export default function AdGenerator() {
   const [form, setForm] = useState<AdRequest>(EMPTY);
-  const { status, data, error, run, reset } = useAiTool<AdResult>("ads");
+  const { status, data, error, timedOut, run, reset } = useAiTool<AdResult>("ads");
 
   const set = <K extends keyof AdRequest>(key: K, value: AdRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -179,8 +180,13 @@ export default function AdGenerator() {
             hint="Tip: zkuste „Vyplnit ukázku“ a klikněte na Vygenerovat."
           />
         )}
-        {status === "loading" && <ToolLoading />}
-        {status === "error" && <ToolError message={error ?? ""} onRetry={reset} />}
+        {status === "loading" && <LoadingTimer />}
+        {status === "error" &&
+          (timedOut ? (
+            <TimeoutState onRetry={reset} />
+          ) : (
+            <ToolError message={error ?? ""} onRetry={reset} />
+          ))}
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">

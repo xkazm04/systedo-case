@@ -5,21 +5,33 @@ import type { AiResponse } from "@/lib/ai-types";
 
 type Status = "idle" | "loading" | "done" | "error";
 
+/** Hard ceiling: if the model hasn't answered in 30s, abort and show a timeout. */
+export const AI_TIMEOUT_MS = 30_000;
+/** Visual target for the loading timer — the response usually arrives by here. */
+export const AI_TIMER_TARGET_MS = 15_000;
+
 /** Shared request lifecycle for every AI tool: posts {mode, ...payload} to the
- *  single /api/ai endpoint and tracks status / data / error. */
+ *  single /api/ai endpoint, tracks status/data/error, and aborts after 30s. */
 export function useAiTool<T>(mode: string) {
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
 
   async function run(payload: Record<string, unknown>) {
     setStatus("loading");
     setError(null);
+    setTimedOut(false);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, ...payload }),
+        signal: controller.signal,
       });
       const json = await res.json();
       if (!res.ok) {
@@ -30,15 +42,23 @@ export function useAiTool<T>(mode: string) {
       setData(json as AiResponse<T>);
       setStatus("done");
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      if (controller.signal.aborted) {
+        setTimedOut(true);
+        setError("Model neodpověděl do 30 sekund.");
+      } else {
+        setError("Nepodařilo se spojit se serverem.");
+      }
       setStatus("error");
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   function reset() {
     setStatus("idle");
     setError(null);
+    setTimedOut(false);
   }
 
-  return { status, data, error, run, reset };
+  return { status, data, error, timedOut, run, reset };
 }

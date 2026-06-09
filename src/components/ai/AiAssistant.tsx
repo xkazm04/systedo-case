@@ -71,13 +71,13 @@ export default function AiAssistant() {
       {/* All tools stay mounted (state is preserved across tab switches); the
           active one re-runs its fade because the class flips from hidden. */}
       <div className="mt-6">
-        <div className={tab === "ads" ? "animate-fade-up" : "hidden"}>
+        <div data-testid="tool-ads" className={tab === "ads" ? "animate-fade-up" : "hidden"}>
           <AdGenerator />
         </div>
-        <div className={tab === "brief" ? "animate-fade-up" : "hidden"}>
+        <div data-testid="tool-brief" className={tab === "brief" ? "animate-fade-up" : "hidden"}>
           <ContentBriefGenerator />
         </div>
-        <div className={tab === "analysis" ? "animate-fade-up" : "hidden"}>
+        <div data-testid="tool-analysis" className={tab === "analysis" ? "animate-fade-up" : "hidden"}>
           <PerformanceAnalyst />
         </div>
       </div>
