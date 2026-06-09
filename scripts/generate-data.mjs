@@ -38,7 +38,9 @@ const round = (n, step = 1) => Math.round(n / step) * step;
 // Two years of history so every period (incl. "12 měsíců") has an equal-length
 // comparison window before it.
 const DAYS = 730;
-const AS_OF = "2026-06-08"; // last complete day represented in the dataset
+// End on a month boundary so the 12-month view is exactly 12 complete calendar
+// months (no partial leading/trailing bucket that would dip the trend chart).
+const AS_OF = "2026-05-31"; // last complete day represented in the dataset
 
 // Seasonality multiplier per calendar month (0 = Jan). A Czech baby-goods
 // e-shop peaks before Christmas and in spring, dips mid-summer.

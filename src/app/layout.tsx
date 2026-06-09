@@ -9,8 +9,16 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 const SITE = "Systedo · Case study";
 
+// Resolve the canonical origin from the deploy environment so OG / canonical
+// URLs are correct regardless of the Vercel project or custom domain.
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://systedo-case.vercel.app");
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://systedo-case.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Systedo · Case study — AI Vibecoder",
     template: `%s · ${SITE}`,
