@@ -140,9 +140,18 @@ export default function TrendChart({
           </g>
         ))}
 
-        {/* area + line */}
-        <path d={areaPath} fill={`url(#${gradId})`} />
-        <path d={linePath} fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+        {/* area + line — keyed so it re-fades when the series or metric changes */}
+        <g key={`${metric}-${n}`} className="animate-fade-in">
+          <path d={areaPath} fill={`url(#${gradId})`} />
+          <path
+            d={linePath}
+            fill="none"
+            stroke={color}
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
 
         {/* x labels */}
         {xLabels.map(({ i, d }) => (

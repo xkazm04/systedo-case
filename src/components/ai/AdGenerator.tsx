@@ -221,7 +221,7 @@ export default function AdGenerator() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {status === "loading" ? (
             <>
@@ -242,7 +242,7 @@ export default function AdGenerator() {
         {status === "idle" && <EmptyState />}
         {status === "loading" && <LoadingState />}
         {status === "error" && (
-          <div className="card border-negative/30 p-6">
+          <div className="card animate-fade-in border-negative/30 p-6">
             <p className="text-sm font-semibold text-negative">Generování selhalo</p>
             <p className="mt-1 text-sm text-muted">{error}</p>
             <button
@@ -256,7 +256,7 @@ export default function AdGenerator() {
         )}
 
         {status === "done" && data && (
-          <div className="space-y-5">
+          <div className="animate-fade-up space-y-5">
             {/* results header */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +394,7 @@ function Group({
 
 function EmptyState() {
   return (
-    <div className="card flex flex-col items-center justify-center p-10 text-center">
+    <div className="card flex animate-fade-in flex-col items-center justify-center p-10 text-center">
       <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
         <Sparkles width={28} height={28} />
       </span>
@@ -410,7 +410,7 @@ function EmptyState() {
 
 function LoadingState() {
   return (
-    <div className="space-y-5">
+    <div className="animate-fade-in space-y-5">
       <div className="h-7 w-48 animate-pulse rounded-full bg-navy-100" />
       {[0, 1].map((g) => (
         <div key={g} className="space-y-2">

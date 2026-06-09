@@ -31,7 +31,7 @@ export default function DashboardPage() {
         <div className="flex flex-col items-start gap-2 md:items-end">
           <Pill tone="neutral">
             <Info width={13} height={13} />
-            {meta.disclaimer}
+            <span title={meta.disclaimer}>Ilustrativní data</span>
           </Pill>
           <span className="text-sm text-muted">Data k {fmtDate(meta.asOf)}</span>
         </div>

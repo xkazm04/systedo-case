@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import ArticleBody from "@/components/article/ArticleBody";
+import ArticleToc from "@/components/article/ArticleToc";
+import ReadingProgress from "@/components/article/ReadingProgress";
 import { ArrowRight, Document } from "@/components/icons";
 import { article, inlineToText, tableOfContents } from "@/lib/article";
 import { fmtDate } from "@/lib/format";
@@ -47,6 +49,7 @@ export default function ArticlePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <ReadingProgress />
 
       {/* article header */}
       <section className="border-b border-line bg-surface">
@@ -82,17 +85,7 @@ export default function ArticlePage() {
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
               Obsah článku
             </p>
-            <nav className="mt-4 space-y-1 border-l border-line">
-              {toc.map((item) => (
-                <a
-                  key={item.id}
-                  href={`#${item.id}`}
-                  className="-ml-px block border-l-2 border-transparent py-1.5 pl-4 text-sm text-muted transition-colors hover:border-brand-400 hover:text-navy-700"
-                >
-                  {item.text}
-                </a>
-              ))}
-            </nav>
+            <ArticleToc items={toc} />
           </div>
         </aside>
 

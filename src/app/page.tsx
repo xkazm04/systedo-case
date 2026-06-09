@@ -77,7 +77,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700"
+                className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99]"
               >
                 Otevřít dashboard
                 <ArrowRight width={17} height={17} />
@@ -152,7 +152,7 @@ export default function HomePage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="card group flex flex-col p-6 transition-all hover:-translate-y-1 hover:shadow-pop"
+                className="card group flex flex-col p-6 transition-all hover:-translate-y-1 hover:shadow-pop active:translate-y-0 active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700 transition-colors group-hover:bg-brand-600 group-hover:text-white">

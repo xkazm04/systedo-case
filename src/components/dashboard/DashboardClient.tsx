@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import KpiCard from "@/components/dashboard/KpiCard";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
@@ -28,28 +28,55 @@ function Segmented<T extends string>({
   onChange: (v: T) => void;
   ariaLabel: string;
 }) {
+  const refs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  // Slide a single background pill to the active tab instead of snapping the
+  // background between buttons. Re-measure on value change and on resize.
+  useEffect(() => {
+    const el = refs.current[value];
+    if (!el) return;
+    const measure = () => setPill({ left: el.offsetLeft, width: el.offsetWidth });
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [value, options]);
+
   return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className="inline-flex rounded-pill bg-navy-50 p-1"
-    >
-      {options.map((o) => {
-        const active = o.value === value;
-        return (
-          <button
-            key={o.value}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(o.value)}
-            className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              active ? "bg-surface text-navy-800 shadow-card" : "text-muted hover:text-navy-700"
-            }`}
-          >
-            {o.label}
-          </button>
-        );
-      })}
+    // scrollable on narrow screens so the control never pushes the page wider
+    <div className="max-w-full overflow-x-auto no-scrollbar">
+      <div
+        role="tablist"
+        aria-label={ariaLabel}
+        className="relative inline-flex w-max rounded-pill bg-navy-50 p-1"
+      >
+        {pill && (
+          <span
+            aria-hidden
+            className="absolute bottom-1 top-1 rounded-pill bg-surface shadow-card transition-all duration-300 ease-out"
+            style={{ left: pill.left, width: pill.width }}
+          />
+        )}
+        {options.map((o) => {
+          const active = o.value === value;
+          return (
+            <button
+              key={o.value}
+              ref={(el) => {
+                refs.current[o.value] = el;
+              }}
+              role="tab"
+              aria-selected={active}
+              onClick={() => onChange(o.value)}
+              className={`relative z-10 shrink-0 rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                active ? "text-navy-800" : "text-muted hover:text-navy-700"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -106,9 +133,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         />
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        {HEADLINE_METRICS.map((m) => (
+      {/* KPI cards — 1 col on small phones, 2 on larger phones, 5 on desktop.
+          Keyed by period so the values ease in (staggered) on each switch. */}
+      <div
+        key={periodKey}
+        className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 lg:grid-cols-5"
+      >
+        {HEADLINE_METRICS.map((m, i) => (
           <KpiCard
             key={m}
             meta={METRICS[m]}
@@ -117,6 +148,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             spark={buckets.map((b) => b[m])}
             footnote={footnotes[m]}
             emphasised={m === "pno"}
+            delayMs={i * 55}
           />
         ))}
       </div>
@@ -143,7 +175,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       </div>
 
       {/* channels + side rail */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div key={periodKey} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-semibold text-navy-800">Výkon podle kanálů</h2>

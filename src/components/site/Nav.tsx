@@ -75,7 +75,7 @@ export default function Nav() {
       </nav>
 
       {open && (
-        <div className="border-t border-line bg-surface md:hidden">
+        <div className="animate-drop border-t border-line bg-surface md:hidden">
           <div className="mx-auto max-w-6xl px-4 py-3">
             {NAV_ITEMS.map((item) => {
               const active = isActive(pathname, item.href);

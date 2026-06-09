@@ -11,6 +11,7 @@ export default function KpiCard({
   spark,
   footnote,
   emphasised = false,
+  delayMs = 0,
 }: {
   meta: MetricMeta;
   value: number;
@@ -18,12 +19,14 @@ export default function KpiCard({
   spark: number[];
   footnote?: React.ReactNode;
   emphasised?: boolean;
+  delayMs?: number;
 }) {
   return (
     <div
-      className={`card flex flex-col p-5 ${
+      className={`card flex animate-fade-up flex-col p-4 sm:p-5 ${
         emphasised ? "ring-1 ring-brand-200" : ""
       }`}
+      style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-muted" title={meta.description}>
@@ -32,7 +35,7 @@ export default function KpiCard({
         <DeltaBadge delta={delta} goodDirection={meta.goodDirection} size="xs" />
       </div>
 
-      <p className="tnum mt-3 text-[1.7rem] font-semibold leading-none tracking-tight text-navy-800">
+      <p className="tnum mt-3 text-2xl font-semibold leading-none tracking-tight text-navy-800">
         {meta.format(value)}
       </p>
 
