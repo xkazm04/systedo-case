@@ -86,8 +86,12 @@ export interface PeriodResult {
  *  comparison window, then compute totals and relative deltas for each metric. */
 export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult {
   const n = daily.length;
-  const current = daily.slice(Math.max(0, n - days));
-  const previous = daily.slice(Math.max(0, n - days * 2), Math.max(0, n - days));
+  // Cap the window to half the series so the current and comparison windows are
+  // always equal length. Without this, a period longer than half the data would
+  // be compared against a shorter baseline and inflate every delta.
+  const span = Math.min(days, Math.floor(n / 2));
+  const current = daily.slice(n - span);
+  const previous = daily.slice(n - span * 2, n - span);
   const c = totalsOf(current);
   const p = totalsOf(previous);
 
