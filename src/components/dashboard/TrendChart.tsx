@@ -85,9 +85,11 @@ export default function TrendChart({
   const fmtX = (iso: string) => (granularity === "month" ? fmtMonth(iso) : fmtDateShort(iso));
 
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {
+    // the overlay rect's own left edge already sits at x = PAD.l, so px is
+    // measured from the plot origin — no extra PAD.l offset needed.
     const rect = e.currentTarget.getBoundingClientRect();
     const px = e.clientX - rect.left;
-    const idx = Math.round(((px - PAD.l) / plotW) * (n - 1));
+    const idx = Math.round((px / plotW) * (n - 1));
     setHover(Math.min(n - 1, Math.max(0, idx)));
   };
 
