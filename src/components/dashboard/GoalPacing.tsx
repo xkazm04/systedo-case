@@ -25,6 +25,9 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
     pace,
     onPace,
     projection,
+    projectionLow,
+    projectionHigh,
+    goalProbability,
     attainment,
     willHitGoal,
   } = pacing;
@@ -63,6 +66,11 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
             <span className={`text-sm font-semibold ${goalTone}`}>
               {fmtPct(attainment, 0)} cíle
             </span>
+            {!complete && (
+              <span className="text-sm text-muted">
+                · {fmtPct(goalProbability, 0)} šance na splnění
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-muted">
             {complete ? "Finální obrat" : "Výhled na konec měsíce"} · cíl{" "}
@@ -103,9 +111,29 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
               title={`Cíl ${fmtCZK(goal)}`}
             />
           </div>
+          {/* forecast confidence interval (P10–P90) on the same axis as the bar */}
+          {!complete && projectionHigh > projectionLow && (
+            <div
+              className="relative mt-2 h-3"
+              title={`Pravděpodobné rozpětí konce měsíce ${fmtCZK(projectionLow)} – ${fmtCZK(projectionHigh)}`}
+            >
+              <div
+                className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-navy-200"
+                style={{
+                  left: pct(projectionLow),
+                  width: `calc(${pct(projectionHigh)} - ${pct(projectionLow)})`,
+                }}
+              />
+              <div
+                className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-navy-400 ring-2 ring-surface"
+                style={{ left: pct(projection) }}
+              />
+            </div>
+          )}
           <p className="mt-2 text-[11px] text-muted">
             Plná barva = obrat zatím{complete ? "" : ", světlá = výhled"}; svislá značka ={" "}
-            cíl{complete ? "" : ", tenká = dnešní plán"}.
+            cíl{complete ? "" : ", tenká = dnešní plán"}
+            {complete ? "" : "; tenká čára = pravděpodobné rozpětí (P10–P90)"}.
           </p>
         </div>
 
