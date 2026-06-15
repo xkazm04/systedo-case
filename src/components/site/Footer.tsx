@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NAV_ITEMS } from "@/lib/nav";
+import { STACK_FACTS } from "@/lib/site";
 import { External, Logo } from "@/components/icons";
 
 export default function Footer() {
@@ -55,10 +56,9 @@ export default function Footer() {
             O projektu
           </h2>
           <ul className="mt-4 space-y-2.5 text-sm text-onyx-muted">
-            <li>Next.js 16 · App Router</li>
-            <li>JSON persistence (bez DB)</li>
-            <li>LLM · claude-sonnet (dev) · gemini-3-flash-preview (prod)</li>
-            <li>Nasaditelné na Vercel</li>
+            {STACK_FACTS.map((fact) => (
+              <li key={fact}>{fact}</li>
+            ))}
           </ul>
         </div>
       </div>

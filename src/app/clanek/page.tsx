@@ -27,7 +27,7 @@ const figures = figureBlocks(article);
 const breadcrumbs: Crumb[] = [
   { label: "Domů", href: "/" },
   { label: navLabel(ARTICLE_PATH, "Článek"), href: ARTICLE_PATH },
-  { label: meta.category, href: categoryHubPath(meta.category) },
+  { label: meta.category, href: categoryHubPath() },
   { label: meta.title },
 ];
 

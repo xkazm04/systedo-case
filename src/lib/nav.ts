@@ -70,10 +70,10 @@ export function slugify(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/** Path to the (future) blog hub filtered by a category. The article page lives
- *  at /clanek today; once it grows into a listing hub the same URL filters by
- *  category — so the visible breadcrumb link and the BreadcrumbList JSON-LD stay
- *  pointed at one consistent address. */
-export function categoryHubPath(category: string): string {
-  return `/clanek?kategorie=${slugify(category)}`;
+/** Path to the article hub. The case study has a single article surface at
+ *  /clanek; a `?kategorie=` filter would live here once a real listing hub
+ *  exists, but until then we point at /clanek directly rather than emit a query
+ *  that resolves to nothing — so the breadcrumb link and its JSON-LD aren't dead. */
+export function categoryHubPath(): string {
+  return "/clanek";
 }
