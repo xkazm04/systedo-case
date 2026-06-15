@@ -5,7 +5,7 @@ import KpiCard from "@/components/dashboard/KpiCard";
 import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
-import { Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
+import { Bolt, Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
 import {
   bucketize,
   channelRowsCompared,
@@ -16,10 +16,11 @@ import {
   monthlyPacing,
   PERIODS,
   TREND_METRICS,
+  type Anomaly,
   type ChannelRow,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
-import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { fmtCZK, fmtDateShort, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 
 function Segmented<T extends string>({
   options,
@@ -97,6 +98,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
 
   // Flagged days across the whole series (chart markers + the alerts feed).
   const anomalies = detectAnomalies(data.daily, data.goals);
+  const topAnomalies = [...anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
@@ -243,6 +245,45 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             <p className="mt-2 text-[11px] text-muted">Svislá značka = cílová hodnota PNO.</p>
           </div>
 
+          {/* anomaly alerts feed */}
+          {topAnomalies.length > 0 && (
+            <div className="card p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
+                <Bolt width={17} height={17} className="text-coral-600" />
+                Upozornění
+                <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[11px]">
+                  {anomalies.length}
+                </span>
+              </div>
+              <ul className="mt-3 space-y-3">
+                {topAnomalies.map((a, i) => {
+                  const ins = anomalyLine(a);
+                  return (
+                    <li key={i} className="flex gap-2.5 text-sm">
+                      <span
+                        className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                          ins.tone === "good"
+                            ? "bg-positive-soft text-positive"
+                            : "bg-coral-soft text-coral-600"
+                        }`}
+                      >
+                        {ins.tone === "good" ? (
+                          <TrendUp width={12} height={12} />
+                        ) : (
+                          <TrendDown width={12} height={12} />
+                        )}
+                      </span>
+                      <span className="leading-snug text-navy-700">
+                        <span className="tnum font-medium text-navy-800">{fmtDateShort(a.date)}</span>{" "}
+                        — {ins.text}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           {/* insights */}
           <div className="card p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
@@ -343,4 +384,34 @@ function buildInsights(
   }
 
   return out.slice(0, 4);
+}
+
+// --- anomaly feed line ------------------------------------------------------
+
+function anomalyLine(a: Anomaly): { tone: "good" | "warn"; text: string } {
+  const m = METRICS[a.metric].short;
+  const good = METRICS[a.metric].goodDirection;
+  const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
+  const favourable =
+    a.kind === "outage" || a.kind === "goal-breach"
+      ? false
+      : a.kind === "spike"
+        ? good === "up"
+        : good === "down";
+  let text: string;
+  switch (a.kind) {
+    case "spike":
+      text = `${m} — nárůst ${fmtSignedPct(devPct)} nad očekávání`;
+      break;
+    case "drop":
+      text = `${m} — propad ${fmtSignedPct(devPct)} pod očekávání`;
+      break;
+    case "outage":
+      text = `${m} — výpadek (hodnota u nuly)`;
+      break;
+    case "goal-breach":
+      text = `Překročení cílového PNO (${fmtPct(a.observed)})`;
+      break;
+  }
+  return { tone: favourable ? "good" : "warn", text };
 }
