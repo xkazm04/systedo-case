@@ -189,10 +189,36 @@ export interface MonthlyPacing {
   onPace: boolean;
   /** seasonality-weighted month-end revenue projection */
   projection: number;
+  /** P10 month-end revenue — lower confidence band */
+  projectionLow: number;
+  /** P90 month-end revenue — upper confidence band */
+  projectionHigh: number;
+  /** probability the month ends at or above goal (0..1), from the normal CDF */
+  goalProbability: number;
   /** projection / goal */
   attainment: number;
   /** projection ≥ goal */
   willHitGoal: boolean;
+}
+
+/** σ of the de-seasonalised daily revenue over a trailing window — the day-to-day
+ *  noise used to size the forecast confidence band. */
+function dailyRevenueSigma(daily: DailyPoint[], weights: number[]): number {
+  const window = Math.min(daily.length, 56);
+  const recent = daily.slice(daily.length - window);
+  if (recent.length < 2) return 0;
+  const adj = recent.map((p) => p.revenue / (weights[dayOfWeek(p.date)] || 1));
+  const mean = adj.reduce((a, b) => a + b, 0) / adj.length;
+  const variance = adj.reduce((a, b) => a + (b - mean) ** 2, 0) / adj.length;
+  return Math.sqrt(variance);
+}
+
+/** Standard normal CDF (Abramowitz-Stegun 26.2.17), dependency-free. */
+function normalCdf(z: number): number {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
 }
 
 /** UTC day-of-week (0=Sun..6=Sat) for an ISO date string. */
@@ -263,6 +289,17 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
   }
   const projection = weightElapsed > 0 ? (mtd * weightMonth) / weightElapsed : mtd;
 
+  // Confidence band: only the remaining days are uncertain (mtd is banked).
+  // Treat remaining de-seasonalised days as iid, so the remaining-sum std grows
+  // with √daysRemaining. ±1.2816σ ≈ the P10/P90 interval.
+  const sigma = dailyRevenueSigma(daily, weights);
+  const remainingStd = sigma * Math.sqrt(daysRemaining);
+  const z90 = 1.2816;
+  const projectionLow = Math.max(mtd, projection - z90 * remainingStd);
+  const projectionHigh = projection + z90 * remainingStd;
+  const goalProbability =
+    remainingStd > 0 ? normalCdf((projection - goal) / remainingStd) : projection >= goal ? 1 : 0;
+
   return {
     monthStart: `${ym}-01`,
     daysInMonth,
@@ -275,6 +312,9 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
     pace: proratedTarget > 0 ? (mtd - proratedTarget) / proratedTarget : 0,
     onPace: mtd >= proratedTarget,
     projection,
+    projectionLow,
+    projectionHigh,
+    goalProbability,
     attainment: goal > 0 ? projection / goal : 0,
     willHitGoal: projection >= goal,
   };
