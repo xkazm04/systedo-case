@@ -17,6 +17,21 @@ export const metadata: Metadata = {
 
 const journey = [...NAV_ITEMS].sort((a, b) => a.task - b.task);
 
+/** Supplementary pages outside the task journey, so every route is reachable
+ *  from the map (not just the in-page links that surface them). */
+const META_PAGES: { href: string; label: string; blurb: string }[] = [
+  {
+    href: "/clanek/vykon",
+    label: "Datový report",
+    blurb: "Automaticky generovaný výkonnostní report — data z dashboardu publikovaná jako strukturovaný článek.",
+  },
+  {
+    href: "/design-system",
+    label: "Design system",
+    blurb: "Živý přehled sdílených UI primitiv, barevných tokenů, ikon a lokalizace (cs/en).",
+  },
+];
+
 // SiteNavigation structured data, derived from the same array as the page.
 const jsonLd = {
   "@context": "https://schema.org",
@@ -74,6 +89,36 @@ export default function MapaPage() {
             </li>
           ))}
         </ol>
+
+        {/* supplementary pages */}
+        <h2 className="mt-12 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          Doplňkové stránky
+        </h2>
+        <ul className="mt-4 space-y-3">
+          {META_PAGES.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="group flex items-start gap-4 rounded-card border border-line bg-surface p-5 transition-colors hover:border-brand-300"
+              >
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-navy-50 text-sm font-semibold text-navy-700">
+                  +
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-1.5 font-semibold text-navy-800">
+                    {item.label}
+                    <ArrowRight
+                      width={15}
+                      height={15}
+                      className="text-muted transition-transform group-hover:translate-x-0.5"
+                    />
+                  </span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted">{item.blurb}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </Container>
     </>
   );

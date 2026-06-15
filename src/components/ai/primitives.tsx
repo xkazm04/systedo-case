@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
-import { Check, Clock, Copy, Info } from "@/components/icons";
+import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
-import { fmtDateTime, fmtRelative } from "@/lib/format";
+import { fmtDateTime, fmtInt, fmtRelative } from "@/lib/format";
 import { AI_TIMER_TARGET_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
 
 /** Form field with label. */
@@ -134,6 +134,41 @@ export function ResultMeta({
           <span className="pill bg-navy-50 text-muted" title={fmtDateTime(createdAt)}>
             <Clock width={13} height={13} />
             <time dateTime={createdAt}>{fmtRelative(createdAt)}</time>
+          </span>
+        )}
+        {/* token usage + cost — makes the "subscription (free) vs metered API"
+            story explicit; only on real provider runs. */}
+        {!meta.demo && meta.estCostUsd !== undefined && (
+          meta.usage ? (
+            <span
+              className="pill bg-navy-50 text-muted"
+              title={`${fmtInt(meta.usage.inputTokens)} vstupních + ${fmtInt(
+                meta.usage.outputTokens
+              )} výstupních tokenů`}
+            >
+              {fmtInt(meta.usage.totalTokens)} tok · ~${meta.estCostUsd.toFixed(4)}
+            </span>
+          ) : meta.estCostUsd === 0 ? (
+            <span
+              className="pill bg-navy-50 text-muted"
+              title="Vývojový provider běží na předplatném (Claude Code) — bez platby za token"
+            >
+              předplatné · 0 $
+            </span>
+          ) : null
+        )}
+        {/* the output was auto-corrected to the platform limits */}
+        {meta.repaired && (
+          <span
+            className="pill bg-brand-50 text-brand-700"
+            title={
+              meta.violations?.length
+                ? `Automaticky opraveno do limitů: ${meta.violations.join("; ")}`
+                : "Výstup byl automaticky opraven do limitů"
+            }
+          >
+            <Bolt width={13} height={13} />
+            Samoopraveno
           </span>
         )}
       </div>
