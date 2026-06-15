@@ -49,8 +49,11 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 ## Open follow-ups (from the 2026-06-15 feature+moonshot scan)
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
   (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
-  (analytics UI surfacing).** Open: Waves 2 (steering), 3 (persistence), 4 (AI content),
-  6 (locale), 7 (pipeline/SEO).
+  (analytics UI surfacing), Wave 2 (steering — budget moves on the campaign console).**
+  Open: Waves 3 (persistence), 4 (AI content), 6 (locale), 7 (pipeline/SEO).
+- Steering leftovers (see `FIXES-WAVE-2.md`): the dashboard "Co kdyby?" channel
+  simulator is blocked on real per-channel daily series (channel shares are static);
+  recommend→simulate→*measure* and the autonomous agent both need Wave 3 persistence.
 - The analytics core (`detectAnomalies`, delta `significance`, `channelRowsCompared`,
   pacing `projectionLow/High` + `goalProbability`, `buildMetricsSnapshot`) is in
   `metrics.ts`, wired into the AI grounding (`snapshot.ts`) AND rendered on the
