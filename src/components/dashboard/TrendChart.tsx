@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Bucket } from "@/lib/metrics";
+import type { Anomaly, Bucket } from "@/lib/metrics";
 import { METRICS } from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
-import { fmtDateShort, fmtMonth, fmtSignedPct } from "@/lib/format";
+import { fmtDateShort, fmtMonth, fmtPct, fmtSignedPct } from "@/lib/format";
 
 const COLORS: Record<MetricKey, string> = {
   revenue: "var(--color-brand-500)",
@@ -21,17 +21,42 @@ const H = 300;
 const PAD = { t: 18, r: 14, b: 30, l: 14 };
 const READOUT: MetricKey[] = ["revenue", "cost", "conversions", "visits", "pno"];
 
+/** Czech, one-line reason for an anomaly marker's tooltip. */
+function anomalyReason(a: Anomaly): string {
+  const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
+  switch (a.kind) {
+    case "spike":
+      return `Prudký nárůst ${fmtSignedPct(devPct)} nad očekávání`;
+    case "drop":
+      return `Propad ${fmtSignedPct(devPct)} pod očekávání`;
+    case "outage":
+      return "Výpadek — hodnota u nuly oproti očekávání";
+    case "goal-breach":
+      return `Překročení cílového PNO (${fmtPct(a.observed)})`;
+  }
+}
+
+/** A favourable anomaly = movement in the metric's good direction. */
+function anomalyFavourable(a: Anomaly, good: "up" | "down"): boolean {
+  if (a.kind === "outage" || a.kind === "goal-breach") return false;
+  return a.kind === "spike" ? good === "up" : good === "down";
+}
+
 export default function TrendChart({
   data,
   compare,
   metric,
   granularity,
+  anomalies,
 }: {
   data: Bucket[];
   /** equal-length previous window, overlaid index-aligned as a faint dotted line */
   compare?: Bucket[];
   metric: MetricKey;
   granularity: "day" | "month";
+  /** flagged days for the whole series; only those matching the current metric
+   *  and a visible bucket are drawn as markers */
+  anomalies?: Anomaly[];
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(760);
@@ -50,6 +75,23 @@ export default function TrendChart({
   const values = data.map((d) => d[metric]);
   const color = COLORS[metric];
   const meta = METRICS[metric];
+
+  // Anomalies for the current metric, mapped to the visible bucket index (exact
+  // date for daily granularity, same YYYY-MM for monthly). Keep the most extreme
+  // when several map to one bucket.
+  const anomalyByIndex = new Map<number, Anomaly>();
+  if (anomalies) {
+    for (const a of anomalies) {
+      if (a.metric !== metric) continue;
+      const idx =
+        granularity === "month"
+          ? data.findIndex((d) => d.date.slice(0, 7) === a.date.slice(0, 7))
+          : data.findIndex((d) => d.date === a.date);
+      if (idx < 0) continue;
+      const prev = anomalyByIndex.get(idx);
+      if (!prev || Math.abs(a.z) > Math.abs(prev.z)) anomalyByIndex.set(idx, a);
+    }
+  }
 
   // Comparison window, aligned to the current series by index (point i of the
   // prior window sits under point i of the current one). Clipped to the current
@@ -112,6 +154,7 @@ export default function TrendChart({
   };
 
   const active = hover ?? n - 1;
+  const activeAnomaly = anomalyByIndex.get(active);
   const tipBucket = data[active];
   const tipX = x(active);
   // keep the tooltip inside the chart bounds
@@ -200,6 +243,31 @@ export default function TrendChart({
           />
         </g>
 
+        {/* anomaly markers — diamonds tinted by whether the move is favourable */}
+        {[...anomalyByIndex.entries()].map(([i, a]) => {
+          const tone = anomalyFavourable(a, meta.goodDirection)
+            ? "var(--color-brand-600)"
+            : "var(--color-coral-500)";
+          const cx = x(i);
+          const cy = y(values[i]);
+          return (
+            <rect
+              key={`anom-${metric}-${i}`}
+              className="animate-fade-in"
+              x={cx - 4}
+              y={cy - 4}
+              width={8}
+              height={8}
+              fill="var(--color-surface)"
+              stroke={tone}
+              strokeWidth={2}
+              transform={`rotate(45 ${cx.toFixed(1)} ${cy.toFixed(1)})`}
+            >
+              <title>{`${fmtX(data[i].date)}: ${anomalyReason(a)}`}</title>
+            </rect>
+          );
+        })}
+
         {/* x labels */}
         {xLabels.map(({ i, d }) => (
           <text
@@ -285,6 +353,17 @@ export default function TrendChart({
           <p className="tnum mt-1 text-lg font-semibold" style={{ color }}>
             {meta.format(tipBucket[metric])}
           </p>
+          {activeAnomaly && (
+            <p
+              className={`mt-1 text-[11px] font-medium ${
+                anomalyFavourable(activeAnomaly, meta.goodDirection)
+                  ? "text-positive"
+                  : "text-coral-600"
+              }`}
+            >
+              {anomalyReason(activeAnomaly)}
+            </p>
+          )}
           {cmpVal !== undefined && (
             <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[11px]">
               <span className="text-muted">

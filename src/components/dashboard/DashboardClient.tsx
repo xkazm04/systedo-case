@@ -9,6 +9,7 @@ import { Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
 import {
   bucketize,
   channelRowsCompared,
+  detectAnomalies,
   evaluatePeriod,
   HEADLINE_METRICS,
   METRICS,
@@ -93,6 +94,9 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
 
   // Current-month goal pacing + forecast (independent of the period selector).
   const pacing = monthlyPacing(data.daily, data.goals.monthlyRevenue);
+
+  // Flagged days across the whole series (chart markers + the alerts feed).
+  const anomalies = detectAnomalies(data.daily, data.goals);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
@@ -187,6 +191,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             compare={compareBuckets}
             metric={trendMetric}
             granularity={period.granularity}
+            anomalies={anomalies}
           />
         </div>
       </div>
