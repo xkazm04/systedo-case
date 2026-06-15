@@ -67,6 +67,10 @@ export default function Footer() {
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© {new Date().getFullYear()} — případová studie, nikoli oficiální web Systedo.</span>
           <span className="flex items-center gap-3">
+            <Link href="/mapa" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
+              Mapa
+            </Link>
+            <span aria-hidden className="text-onyx-line">·</span>
             <Link href="/design-system" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
               Design system
             </Link>

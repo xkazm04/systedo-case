@@ -54,6 +54,12 @@ export function navLabel(href: string, fallback = ""): string {
   return NAV_ITEMS.find((i) => i.href === href)?.label ?? fallback;
 }
 
+/** All routes for the sitemap, derived from the one nav model plus the meta
+ *  pages, so adding a page is a single edit away from the sitemap. */
+export function sitemapEntries(): string[] {
+  return [...NAV_ITEMS.map((i) => i.href), "/mapa", "/clanek/vykon", "/design-system"];
+}
+
 /** Diacritics-aware slug ("Zdravý jídelníček" → "zdravy-jidelnicek"). */
 export function slugify(value: string): string {
   return value
