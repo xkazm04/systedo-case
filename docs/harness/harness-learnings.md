@@ -54,8 +54,11 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
   (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
   (analytics UI surfacing), Wave 2 (steering — budget moves), Wave 3 (persistence —
-  campaign_snapshots + eval dedupe + change strip).** Open: Waves 4 (AI content),
-  6 (locale), 7 (pipeline/SEO).
+  campaign_snapshots + eval dedupe + change strip), Wave 4 (content — data-story
+  article at /clanek/vykon from the snapshot).** Open: Waves 6 (locale), 7 (pipeline/SEO).
+- Content-theme leftovers (see `FIXES-WAVE-4.md`): the AI-generated-Article-from-topic
+  moonshot (hard: Block union as an LLM schema), the `/clanek/[slug]` collection, and
+  the trend-chart "Vysvětlit vývoj" AI narration are all open.
 - Steering leftovers (see `FIXES-WAVE-2.md`): the dashboard "Co kdyby?" channel
   simulator is blocked on real per-channel daily series (channel shares are static);
   recommend→simulate→*measure* and the autonomous agent both need Wave 3 persistence.
