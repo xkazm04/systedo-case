@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { CampaignReport, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
-import type { Campaign, CampaignPeriod } from "@/lib/campaigns/types";
+import type { Campaign, CampaignPeriod, ChangesSummary } from "@/lib/campaigns/types";
 
 export interface CampaignsMeta {
   source: string;
@@ -16,9 +16,11 @@ interface State {
   reports: Record<string, CampaignReport>;
   /** full score history per key ("overall" or campaign id), oldest → newest */
   histories: Record<string, ReportHistoryPoint[]>;
+  /** what changed since the prior sync (null until ≥2 syncs exist) */
+  changes: ChangesSummary | null;
 }
 
-const EMPTY: State = { campaigns: [], meta: null, reports: {}, histories: {} };
+const EMPTY: State = { campaigns: [], meta: null, reports: {}, histories: {}, changes: null };
 
 /** Client lifecycle for the campaigns page: loads the synced state, re-syncs from
  *  the connector, and runs per-campaign / portfolio AI evaluations. Tracks busy
@@ -41,6 +43,7 @@ export function useCampaigns() {
         meta: json.meta ?? null,
         reports: json.reports ?? {},
         histories: json.histories ?? {},
+        changes: json.changes ?? null,
       });
     } catch {
       setError("Nepodařilo se načíst kampaně.");
@@ -72,6 +75,7 @@ export function useCampaigns() {
         meta: json.meta ?? null,
         reports: json.reports ?? {},
         histories: json.histories ?? {},
+        changes: json.changes ?? null,
       });
     } catch {
       setError("Nepodařilo se spojit se serverem.");
@@ -122,6 +126,7 @@ export function useCampaigns() {
     meta: state.meta,
     reports: state.reports,
     histories: state.histories,
+    changes: state.changes,
     loading,
     syncing,
     error,

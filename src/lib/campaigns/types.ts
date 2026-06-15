@@ -155,6 +155,35 @@ export function aggregate(rows: Campaign[]): CampaignTotals {
   return { ...sum, ...deriveMetrics(sum), count: rows.length };
 }
 
+// --- sync-over-sync change diff (client-safe shapes) -------------------------
+
+/** One campaign's movement between the two most recent syncs. */
+export interface CampaignChange {
+  campaignId: string;
+  name: string;
+  kind: "added" | "removed" | "changed";
+  costBefore: number;
+  costAfter: number;
+  /** relative change in cost / conversion value vs the prior sync */
+  costDelta: number;
+  valueDelta: number;
+  roasBefore: number;
+  roasAfter: number;
+}
+
+/** "What changed since the last sync" — diff of the two most recent snapshots. */
+export interface ChangesSummary {
+  /** ISO timestamp of the prior sync the diff is against */
+  since: string;
+  /** ISO timestamp of the current sync */
+  current: string;
+  added: number;
+  removed: number;
+  changed: number;
+  /** the most notable movers, biggest value swing first */
+  items: CampaignChange[];
+}
+
 export interface TypeGroup {
   type: CampaignType;
   total: CampaignTotals;

@@ -2,6 +2,7 @@
  *  into SQLite (POST). Node runtime + dynamic because it talks to node:sqlite. */
 import { getConnector } from "@/lib/campaigns/connector";
 import {
+  getLatestChanges,
   getReportHistories,
   getReportsForPeriod,
   getSyncMeta,
@@ -31,6 +32,7 @@ function loadState() {
     meta,
     reports: meta ? getReportsForPeriod(meta.period) : {},
     histories: getReportHistories(),
+    changes: getLatestChanges(),
   };
 }
 

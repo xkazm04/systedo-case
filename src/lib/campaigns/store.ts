@@ -12,7 +12,12 @@ import type {
   EvalScope,
   ReportHistoryPoint,
 } from "../ai-types";
-import type { Campaign, CampaignPeriod } from "./types";
+import type {
+  Campaign,
+  CampaignChange,
+  CampaignPeriod,
+  ChangesSummary,
+} from "./types";
 
 export interface SyncMeta {
   source: string;
@@ -322,4 +327,86 @@ export function getReportHistories(): Record<string, ReportHistoryPoint[]> {
     out[key].push(toHistoryPoint(r));
   }
   return out;
+}
+
+// --- sync-over-sync change diff ---------------------------------------------
+
+interface SnapshotRowDb {
+  campaign_id: string;
+  status: string;
+  cost: number;
+  conversions: number;
+  conversion_value: number;
+}
+
+/** Diff the two most recent snapshot batches into a "what changed since the last
+ *  sync" summary (added / removed / changed campaigns + per-metric deltas). Returns
+ *  null until at least two syncs exist. Names resolve from the current campaign set
+ *  (a removed campaign falls back to its id). */
+export function getLatestChanges(): ChangesSummary | null {
+  const db = getDb();
+  const times = db
+    .prepare("SELECT DISTINCT synced_at FROM campaign_snapshots ORDER BY synced_at DESC LIMIT 2")
+    .all() as unknown as { synced_at: string }[];
+  if (times.length < 2) return null;
+
+  const current = times[0].synced_at;
+  const since = times[1].synced_at;
+
+  const loadBatch = (t: string): Map<string, SnapshotRowDb> => {
+    const rows = db
+      .prepare(
+        "SELECT campaign_id, status, cost, conversions, conversion_value FROM campaign_snapshots WHERE synced_at = ?"
+      )
+      .all(t) as unknown as SnapshotRowDb[];
+    return new Map(rows.map((r) => [r.campaign_id, r]));
+  };
+  const curMap = loadBatch(current);
+  const prevMap = loadBatch(since);
+  const names = new Map(listCampaigns().map((c) => [c.id, c.name]));
+
+  const roas = (cost: number, value: number) => (cost > 0 ? value / cost : 0);
+  const rel = (a: number, b: number) => (b > 0 ? (a - b) / b : a > 0 ? 1 : 0);
+
+  let added = 0;
+  let removed = 0;
+  let changed = 0;
+  const items: CampaignChange[] = [];
+
+  for (const [id, c] of curMap) {
+    const p = prevMap.get(id);
+    const name = names.get(id) ?? id;
+    if (!p) {
+      added++;
+      items.push({
+        campaignId: id, name, kind: "added",
+        costBefore: 0, costAfter: c.cost, costDelta: 1, valueDelta: 1,
+        roasBefore: 0, roasAfter: roas(c.cost, c.conversion_value),
+      });
+      continue;
+    }
+    const costDelta = rel(c.cost, p.cost);
+    const valueDelta = rel(c.conversion_value, p.conversion_value);
+    if (Math.abs(costDelta) >= 0.05 || Math.abs(valueDelta) >= 0.05 || c.status !== p.status) {
+      changed++;
+      items.push({
+        campaignId: id, name, kind: "changed",
+        costBefore: p.cost, costAfter: c.cost, costDelta, valueDelta,
+        roasBefore: roas(p.cost, p.conversion_value), roasAfter: roas(c.cost, c.conversion_value),
+      });
+    }
+  }
+
+  for (const [id, p] of prevMap) {
+    if (curMap.has(id)) continue;
+    removed++;
+    items.push({
+      campaignId: id, name: names.get(id) ?? id, kind: "removed",
+      costBefore: p.cost, costAfter: 0, costDelta: -1, valueDelta: -1,
+      roasBefore: roas(p.cost, p.conversion_value), roasAfter: 0,
+    });
+  }
+
+  items.sort((a, b) => Math.abs(b.valueDelta) - Math.abs(a.valueDelta) || b.costAfter - a.costAfter);
+  return { since, current, added, removed, changed, items: items.slice(0, 6) };
 }

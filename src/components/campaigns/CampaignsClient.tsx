@@ -13,6 +13,7 @@ import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct, fmtRelative } from "@/lib/for
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
+import ChangeStrip from "./ChangeStrip";
 import CampaignTable from "./CampaignTable";
 import ReportView from "./ReportView";
 
@@ -27,6 +28,7 @@ export default function CampaignsClient() {
     meta,
     reports,
     histories,
+    changes,
     loading,
     syncing,
     error,
@@ -168,6 +170,9 @@ export default function CampaignsClient() {
           </div>
         ))}
       </div>
+
+      {/* what changed since the previous sync */}
+      {changes && changes.items.length > 0 && <ChangeStrip changes={changes} />}
 
       <TypeBreakdown campaigns={campaigns} />
 
