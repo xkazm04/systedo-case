@@ -1,6 +1,7 @@
 /** Campaigns API: list the synced state (GET) and sync from the Ads connector
  *  into SQLite (POST). Node runtime + dynamic because it talks to node:sqlite. */
-import { getConnector } from "@/lib/campaigns/connector";
+import { auth } from "@/auth";
+import { getConnectorForUser } from "@/lib/campaigns/connector";
 import {
   getLatestChanges,
   getReportHistories,
@@ -68,7 +69,11 @@ export async function POST(request: Request) {
   const raw = (body as { period?: unknown } | null)?.period;
   const period: CampaignPeriod = isCampaignPeriod(raw) ? raw : "30d";
 
-  const connector = getConnector();
+  // Live Google Ads for a signed-in user who has selected an account (and a
+  // developer token is configured); the deterministic sample provider otherwise.
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  const connector = await getConnectorForUser(userId);
   let campaigns;
   try {
     campaigns = await connector.fetchCampaigns(period);

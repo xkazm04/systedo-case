@@ -14,6 +14,7 @@ import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
 import ChangeStrip from "./ChangeStrip";
+import AdsAccountPicker from "./AdsAccountPicker";
 import CampaignTable from "./CampaignTable";
 import ReportView from "./ReportView";
 
@@ -159,6 +160,9 @@ export default function CampaignsClient() {
           {error}
         </p>
       )}
+
+      {/* connect a Google Ads account (live data) — sample data otherwise */}
+      <AdsAccountPicker onConnected={() => sync(period)} />
 
       {/* portfolio KPIs */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,0 +1,175 @@
+/** Minimal Google Ads API (REST) client — server-only, dependency-free (uses
+ *  fetch, no google-ads-api lib). Calls are made on behalf of the signed-in user
+ *  with their OAuth access token + the app's developer token. Returns data already
+ *  mapped into this app's framework-free `Campaign` model.
+ *
+ *  Requires GOOGLE_ADS_DEVELOPER_TOKEN; without it the connector stays on sample
+ *  data and these functions are never called. */
+import {
+  CAMPAIGN_PERIOD_DAYS,
+  type Campaign,
+  type CampaignPeriod,
+  type CampaignStatus,
+  type CampaignType,
+} from "@/lib/campaigns/types";
+
+const API_VERSION = "v18";
+const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
+
+export interface AdsAccount {
+  /** customer id, digits only (no dashes) */
+  customerId: string;
+  /** descriptive name when available, else the formatted id */
+  name: string;
+}
+
+export function adsConfigured(): boolean {
+  return Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN);
+}
+
+function headers(accessToken: string): Record<string, string> {
+  const h: Record<string, string> = {
+    Authorization: `Bearer ${accessToken}`,
+    "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? "",
+    "Content-Type": "application/json",
+  };
+  const login = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/\D/g, "");
+  if (login) h["login-customer-id"] = login;
+  return h;
+}
+
+/** Pretty "123-456-7890" from a raw customer id. */
+export function formatCustomerId(id: string): string {
+  const d = id.replace(/\D/g, "");
+  return d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : d;
+}
+
+/** Customer ids the user's Google account can access (across any MCCs). */
+export async function listAccessibleCustomers(accessToken: string): Promise<string[]> {
+  const res = await fetch(`${BASE}/customers:listAccessibleCustomers`, {
+    method: "GET",
+    headers: headers(accessToken),
+  });
+  if (!res.ok) {
+    throw new Error(`Google Ads listAccessibleCustomers ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+  const json = (await res.json()) as { resourceNames?: string[] };
+  // "customers/1234567890" → "1234567890"
+  return (json.resourceNames ?? []).map((rn) => rn.split("/")[1]!).filter(Boolean);
+}
+
+interface SearchRow {
+  campaign?: {
+    id?: string;
+    name?: string;
+    status?: string;
+    advertisingChannelType?: string;
+  };
+  customer?: { descriptiveName?: string; id?: string };
+  metrics?: {
+    impressions?: string | number;
+    clicks?: string | number;
+    costMicros?: string | number;
+    conversions?: string | number;
+    conversionsValue?: string | number;
+  };
+}
+
+/** Run a GAQL query against one customer via searchStream; returns flat rows. */
+async function searchStream(accessToken: string, customerId: string, query: string): Promise<SearchRow[]> {
+  const res = await fetch(`${BASE}/customers/${customerId}/googleAds:searchStream`, {
+    method: "POST",
+    headers: headers(accessToken),
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) {
+    throw new Error(`Google Ads searchStream ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+  // searchStream returns an array of batches, each { results: [...] }.
+  const batches = (await res.json()) as Array<{ results?: SearchRow[] }>;
+  return batches.flatMap((b) => b.results ?? []);
+}
+
+/** Descriptive name for a customer (best-effort; falls back to the formatted id). */
+export async function getAccountName(accessToken: string, customerId: string): Promise<AdsAccount> {
+  try {
+    const rows = await searchStream(
+      accessToken,
+      customerId,
+      "SELECT customer.descriptive_name, customer.id FROM customer LIMIT 1"
+    );
+    const name = rows[0]?.customer?.descriptiveName;
+    return { customerId, name: name || formatCustomerId(customerId) };
+  } catch {
+    return { customerId, name: formatCustomerId(customerId) };
+  }
+}
+
+const CHANNEL_TYPE: Record<string, CampaignType> = {
+  SEARCH: "search",
+  PERFORMANCE_MAX: "performance_max",
+  SHOPPING: "shopping",
+  DISPLAY: "display",
+  DEMAND_GEN: "demand_gen",
+  VIDEO: "video",
+};
+
+function toStatus(s: string | undefined): CampaignStatus {
+  return s === "ENABLED" ? "enabled" : "paused";
+}
+
+function num(v: string | number | undefined): number {
+  const n = typeof v === "string" ? Number(v) : (v ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function dateRange(days: number): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date(end.getTime() - days * 86_400_000);
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: fmt(start), end: fmt(end) };
+}
+
+/** Campaigns + aggregated metrics for the period, mapped into the app's model. */
+export async function fetchCampaigns(
+  accessToken: string,
+  customerId: string,
+  period: CampaignPeriod
+): Promise<Campaign[]> {
+  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
+  // No segments.date in SELECT → metrics aggregate per campaign over the range.
+  const query = `
+    SELECT
+      campaign.id,
+      campaign.name,
+      campaign.status,
+      campaign.advertising_channel_type,
+      metrics.impressions,
+      metrics.clicks,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.conversions_value
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+  `;
+  const rows = await searchStream(accessToken, customerId, query);
+
+  return rows
+    .filter((r) => r.campaign?.id)
+    .map((r) => {
+      const c = r.campaign!;
+      const m = r.metrics ?? {};
+      return {
+        id: String(c.id),
+        name: c.name ?? `Kampaň ${c.id}`,
+        type: CHANNEL_TYPE[c.advertisingChannelType ?? ""] ?? "search",
+        status: toStatus(c.status),
+        impressions: num(m.impressions),
+        clicks: num(m.clicks),
+        // cost is reported in micros of the account currency.
+        cost: Math.round(num(m.costMicros) / 1_000_000),
+        conversions: num(m.conversions),
+        conversionValue: Math.round(num(m.conversionsValue)),
+      } satisfies Campaign;
+    });
+}
