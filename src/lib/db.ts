@@ -58,6 +58,18 @@ const SCHEMA = `
     count        INTEGER NOT NULL,
     PRIMARY KEY (bucket, ip)
   );
+
+  CREATE TABLE IF NOT EXISTS campaign_snapshots (
+    synced_at        TEXT NOT NULL,
+    campaign_id      TEXT NOT NULL,
+    status           TEXT NOT NULL,
+    cost             REAL NOT NULL,
+    conversions      REAL NOT NULL,
+    conversion_value REAL NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_snapshots_time
+    ON campaign_snapshots (synced_at, campaign_id);
 `;
 
 export function getDb(): DatabaseSync {

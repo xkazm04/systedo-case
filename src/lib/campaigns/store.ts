@@ -55,6 +55,7 @@ export function upsertCampaigns(
   meta: { source: string; period: CampaignPeriod }
 ): void {
   const db = getDb();
+  const syncedAt = new Date().toISOString();
   db.exec("BEGIN");
   try {
     db.exec("DELETE FROM campaigns");
@@ -77,6 +78,16 @@ export function upsertCampaigns(
         i
       )
     );
+    // Append-only history: snapshot this synced set so the destructive replace
+    // above no longer discards the prior state (powers change diffing + trends).
+    const snap = db.prepare(
+      `INSERT INTO campaign_snapshots
+         (synced_at, campaign_id, status, cost, conversions, conversion_value)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    );
+    for (const c of campaigns) {
+      snap.run(syncedAt, c.id, c.status, c.cost, c.conversions, c.conversionValue);
+    }
     db.prepare(
       `INSERT INTO sync_meta (id, source, period, synced_at)
        VALUES (1, ?, ?, ?)
@@ -84,7 +95,7 @@ export function upsertCampaigns(
          source = excluded.source,
          period = excluded.period,
          synced_at = excluded.synced_at`
-    ).run(meta.source, meta.period, new Date().toISOString());
+    ).run(meta.source, meta.period, syncedAt);
     db.exec("COMMIT");
   } catch (err) {
     db.exec("ROLLBACK");
