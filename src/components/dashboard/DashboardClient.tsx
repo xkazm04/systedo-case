@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight } from "@/components/icons";
 import KpiCard from "@/components/dashboard/KpiCard";
 import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
@@ -135,10 +137,18 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
     <div className="space-y-6">
       {/* period selector */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted">
-          Období: <span className="font-medium text-navy-700">posledních {period.label}</span>
-          <span className="text-muted"> · srovnání s předchozím stejně dlouhým obdobím</span>
-        </p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="text-sm text-muted">
+            Období: <span className="font-medium text-navy-700">posledních {period.label}</span>
+            <span className="text-muted"> · srovnání s předchozím stejně dlouhým obdobím</span>
+          </p>
+          <Link
+            href="/clanek/vykon"
+            className="inline-flex items-center gap-1 text-sm font-medium text-brand-accent hover:underline"
+          >
+            Datový report <ArrowRight width={14} height={14} />
+          </Link>
+        </div>
         <Segmented
           ariaLabel="Výběr období"
           options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
