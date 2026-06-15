@@ -12,6 +12,7 @@ import {
 import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
+import BudgetMoves from "./BudgetMoves";
 import CampaignTable from "./CampaignTable";
 import ReportView from "./ReportView";
 
@@ -169,6 +170,9 @@ export default function CampaignsClient() {
       </div>
 
       <TypeBreakdown campaigns={campaigns} />
+
+      {/* deterministic budget-reallocation recommendations */}
+      <BudgetMoves campaigns={campaigns} />
 
       {/* portfolio AI evaluation */}
       <section className="card p-5 sm:p-6">
