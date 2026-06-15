@@ -48,7 +48,14 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 
 ## Open follow-ups (from the 2026-06-15 feature+moonshot scan)
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
-  (7-wave plan). Wave 5 (API hardening) done; Waves 1–4, 6, 7 open.
+  (7-wave plan). **Done: Wave 5 (API hardening) + Wave 1 (analytics core).**
+  Open: Waves 2 (steering), 3 (persistence), 4 (AI content), 6 (locale), 7 (pipeline/SEO).
+- **Wave 1b (UI surfacing) pending** — the analytics core (`detectAnomalies`,
+  delta `significance`, `channelRowsCompared`, pacing `projectionLow/High` +
+  `goalProbability`, `buildMetricsSnapshot`) is built in `metrics.ts` and wired into
+  the AI grounding (`snapshot.ts`), but the dashboard UI doesn't render it yet:
+  TrendChart anomaly markers, KpiCard noise-dimming, ChannelTable delta column,
+  GoalPacing confidence band. See `FIXES-WAVE-1.md`.
 - Deferred from the API/wrapper reports (adjacent to Wave 5): streaming
   (`generateStructuredStream`), AI-output caching/persistence (`generations` table),
   versioned-prompt eval harness, eval fingerprint dedupe, non-destructive sync
