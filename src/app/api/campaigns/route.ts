@@ -37,7 +37,12 @@ function loadState() {
 }
 
 export function GET() {
-  return Response.json(loadState());
+  try {
+    return Response.json(loadState());
+  } catch (err) {
+    console.error("[campaigns] loadState failed:", err);
+    return Response.json({ error: "Nepodařilo se načíst stav kampaní." }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
