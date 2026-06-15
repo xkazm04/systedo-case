@@ -143,25 +143,34 @@ export interface MonthlyPacing {
   willHitGoal: boolean;
 }
 
-/** Average revenue per weekday (Sun..Sat) over a trailing window of whole weeks,
- *  normalised so the mean weekday weight is 1. Falls back to flat weights when
- *  there is too little data. This captures the day-of-week seasonality baked
- *  into the series so remaining days can be weighted by their weekday mix. */
-function weekdayWeights(daily: DailyPoint[]): number[] {
+/** UTC day-of-week (0=Sun..6=Sat) for an ISO date string. */
+const dayOfWeek = (date: string): number => new Date(`${date}T00:00:00Z`).getUTCDay();
+
+/** Average value per weekday (Sun..Sat) for an additive metric over a trailing
+ *  window of whole weeks, normalised so the mean weekday weight is 1. Falls back
+ *  to flat weights when there is too little data. Captures the day-of-week
+ *  seasonality baked into the series so days can be weighted by their weekday mix
+ *  (used by the forecast) or de-seasonalised (used by anomaly detection). */
+function weekdayWeightsFor(daily: DailyPoint[], key: RawMetric): number[] {
   const window = Math.min(daily.length, 84); // up to 12 whole weeks
   const recent = daily.slice(daily.length - window);
   const sum = new Array(7).fill(0);
   const count = new Array(7).fill(0);
   for (const p of recent) {
-    const dow = new Date(`${p.date}T00:00:00Z`).getUTCDay();
-    sum[dow] += p.revenue;
-    count[dow] += 1;
+    const d = dayOfWeek(p.date);
+    sum[d] += p[key];
+    count[d] += 1;
   }
   const avg = sum.map((s, i) => (count[i] > 0 ? s / count[i] : 0));
   const present = avg.filter((_, i) => count[i] > 0);
   const mean = present.length > 0 ? present.reduce((a, b) => a + b, 0) / present.length : 0;
   if (!(mean > 0)) return new Array(7).fill(1);
   return avg.map((a, i) => (count[i] > 0 && a > 0 ? a / mean : 1));
+}
+
+/** Revenue weekday weights — the seasonality baseline used by the forecast. */
+function weekdayWeights(daily: DailyPoint[]): number[] {
+  return weekdayWeightsFor(daily, "revenue");
 }
 
 /**
@@ -278,6 +287,97 @@ export function channelRows(channels: ChannelShare[], totals: Totals): ChannelRo
       };
     })
     .sort((a, b) => b.revenue - a.revenue);
+}
+
+// --- anomaly detection ------------------------------------------------------
+
+export type AnomalyKind = "spike" | "drop" | "outage" | "goal-breach";
+
+export interface Anomaly {
+  date: string;
+  /** the metric that anomalies (revenue/cost/conversions/visits, or pno for a breach) */
+  metric: MetricKey;
+  observed: number;
+  /** de-seasonalised rolling expectation for that day (the goal for a breach) */
+  expected: number;
+  /** standardised deviation from the rolling baseline (signed) */
+  z: number;
+  kind: AnomalyKind;
+}
+
+export interface AnomalyOptions {
+  /** trailing baseline window in days (a multiple of 7 keeps weekdays balanced) */
+  window?: number;
+  /** |z| threshold to flag a point */
+  z?: number;
+}
+
+/**
+ * Flag individual days whose metric value deviates from a de-seasonalised
+ * trailing baseline (spike / drop / outage), plus PNO goal-breaches that are
+ * actually driven by an anomalous day (a cost spike or a revenue collapse) so
+ * normal daily variance isn't reported. Pure; reuses the same weekday-seasonality
+ * idea as `monthlyPacing`, so it can't double-count weekend dips.
+ */
+export function detectAnomalies(
+  daily: DailyPoint[],
+  goals: { pno: number },
+  options: AnomalyOptions = {}
+): Anomaly[] {
+  const window = options.window ?? 28;
+  const threshold = options.z ?? 2.5;
+  if (daily.length < window + 1) return [];
+
+  const metrics: RawMetric[] = ["revenue", "cost", "conversions", "visits"];
+  const out: Anomaly[] = [];
+  const zByMetric: Partial<Record<RawMetric, Map<string, number>>> = {};
+
+  for (const key of metrics) {
+    const weights = weekdayWeightsFor(daily, key);
+    // De-seasonalise so a normal weekend low isn't mistaken for a drop.
+    const adj = daily.map((p) => {
+      const w = weights[dayOfWeek(p.date)] || 1;
+      return p[key] / (w > 0 ? w : 1);
+    });
+    const zMap = new Map<string, number>();
+    for (let i = window; i < daily.length; i++) {
+      const base = adj.slice(i - window, i);
+      const mean = base.reduce((a, b) => a + b, 0) / base.length;
+      const variance = base.reduce((a, b) => a + (b - mean) ** 2, 0) / base.length;
+      const std = Math.sqrt(variance);
+      if (!(std > 0)) continue;
+      const z = (adj[i] - mean) / std;
+      zMap.set(daily[i].date, z);
+      if (Math.abs(z) < threshold) continue;
+      const w = weights[dayOfWeek(daily[i].date)] || 1;
+      const expected = mean * (w > 0 ? w : 1);
+      const observed = daily[i][key];
+      const nearZero = expected > 0 && observed <= expected * 0.1;
+      const kind: AnomalyKind = z < 0 && nearZero ? "outage" : z > 0 ? "spike" : "drop";
+      out.push({ date: daily[i].date, metric: key, observed, expected, z, kind });
+    }
+    zByMetric[key] = zMap;
+  }
+
+  // PNO goal-breach: a day whose pno exceeds the goal AND is driven by an
+  // anomalous cost spike or revenue collapse (not ordinary daily variance).
+  const costZ = zByMetric.cost;
+  const revZ = zByMetric.revenue;
+  for (let i = window; i < daily.length; i++) {
+    const p = daily[i];
+    if (p.revenue <= 0) continue;
+    const pno = p.cost / p.revenue;
+    if (pno <= goals.pno) continue;
+    const cz = costZ?.get(p.date) ?? 0;
+    const rz = revZ?.get(p.date) ?? 0;
+    if (cz >= threshold || rz <= -threshold) {
+      out.push({ date: p.date, metric: "pno", observed: pno, expected: goals.pno, z: Math.max(cz, -rz), kind: "goal-breach" });
+    }
+  }
+
+  return out.sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : Math.abs(b.z) - Math.abs(a.z)
+  );
 }
 
 // --- metric metadata --------------------------------------------------------
