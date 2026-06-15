@@ -1,5 +1,6 @@
 import type { ChannelRow, Totals } from "@/lib/metrics";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import DeltaBadge from "@/components/dashboard/DeltaBadge";
 
 /** Colour PNO relative to the agreed goal: efficient = green, on plan = neutral,
  *  over budget = coral. Organic (cost 0) is treated as fully efficient. */
@@ -14,17 +15,20 @@ export default function ChannelTable({
   rows,
   totals,
   goalPno,
+  revenueDelta,
 }: {
   rows: ChannelRow[];
   totals: Totals;
   goalPno: number;
+  /** period-over-period revenue change for the Celkem footer row */
+  revenueDelta?: number;
 }) {
   const maxShare = Math.max(...rows.map((r) => r.revenueShare), 0.0001);
 
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+        <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-5 py-3 font-semibold">Kanál</th>
@@ -32,7 +36,8 @@ export default function ChannelTable({
               <th className="px-3 py-3 text-right font-semibold">Konverze</th>
               <th className="px-5 py-3 text-right font-semibold">Obrat</th>
               <th className="px-3 py-3 text-right font-semibold">PNO</th>
-              <th className="px-5 py-3 text-right font-semibold">ROAS</th>
+              <th className="px-3 py-3 text-right font-semibold">ROAS</th>
+              <th className="px-5 py-3 text-right font-semibold">Změna obratu</th>
             </tr>
           </thead>
           <tbody>
@@ -67,8 +72,17 @@ export default function ChannelTable({
                 <td className={`tnum px-3 py-3 text-right font-medium ${pnoTone(r.pno, goalPno)}`}>
                   {r.pno > 0 ? fmtPct(r.pno) : "—"}
                 </td>
-                <td className="tnum px-5 py-3 text-right text-navy-700">
+                <td className="tnum px-3 py-3 text-right text-navy-700">
                   {r.roas > 0 ? fmtMultiple(r.roas) : "—"}
+                </td>
+                <td className="px-5 py-3 text-right">
+                  {r.delta ? (
+                    <span className="inline-flex justify-end">
+                      <DeltaBadge delta={r.delta.revenue} goodDirection="up" size="xs" />
+                    </span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -80,7 +94,16 @@ export default function ChannelTable({
               <td className="tnum px-3 py-3 text-right">{fmtInt(totals.conversions)}</td>
               <td className="tnum px-5 py-3 text-right">{fmtCZK(totals.revenue)}</td>
               <td className="tnum px-3 py-3 text-right">{fmtPct(totals.pno)}</td>
-              <td className="tnum px-5 py-3 text-right">{fmtMultiple(totals.roas)}</td>
+              <td className="tnum px-3 py-3 text-right">{fmtMultiple(totals.roas)}</td>
+              <td className="px-5 py-3 text-right">
+                {revenueDelta !== undefined ? (
+                  <span className="inline-flex justify-end">
+                    <DeltaBadge delta={revenueDelta} goodDirection="up" size="xs" />
+                  </span>
+                ) : (
+                  <span className="text-muted">—</span>
+                )}
+              </td>
             </tr>
           </tfoot>
         </table>

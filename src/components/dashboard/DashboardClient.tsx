@@ -8,13 +8,14 @@ import ChannelTable from "@/components/dashboard/ChannelTable";
 import { Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
 import {
   bucketize,
-  channelRows,
+  channelRowsCompared,
   evaluatePeriod,
   HEADLINE_METRICS,
   METRICS,
   monthlyPacing,
   PERIODS,
   TREND_METRICS,
+  type ChannelRow,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
@@ -100,7 +101,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // Bucketize the comparison window too so the chart can overlay it (index-aligned).
   const compareBuckets = bucketize(result.comparePoints, period.granularity);
   const c = result.current;
-  const channels = channelRows(data.channels, c);
+  const channels = channelRowsCompared(data.channels, result.current, result.previous);
 
   // contextual secondary stat under each KPI
   const footnotes: Record<MetricKey, React.ReactNode> = {
@@ -197,7 +198,12 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             <h2 className="text-base font-semibold text-navy-800">Výkon podle kanálů</h2>
             <span className="text-xs text-muted">{period.label}</span>
           </div>
-          <ChannelTable rows={channels} totals={c} goalPno={goalPno} />
+          <ChannelTable
+            rows={channels}
+            totals={c}
+            goalPno={goalPno}
+            revenueDelta={result.delta.revenue}
+          />
         </div>
 
         <aside className="space-y-6">
@@ -275,7 +281,7 @@ interface Insight {
 }
 
 function buildInsights(
-  channels: ReturnType<typeof channelRows>,
+  channels: ChannelRow[],
   revenueDelta: number,
   pno: number,
   goalPno: number
