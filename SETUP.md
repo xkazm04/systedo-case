@@ -68,10 +68,26 @@ sync, and the connector queries it with your OAuth token.
 - The Ads connector reads the signed-in user's token + selected customer to call
   the Google Ads API; without a developer token it falls back to sample data.
 
-## Production notes
+## What's already multi-tenant
 
-- Set `FIREBASE_SERVICE_ACCOUNT` (full key JSON) instead of the local key file.
-- Set `AUTH_SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_ADS_DEVELOPER_TOKEN`, and
-  the production redirect URI on the OAuth client.
-- The campaign cache currently uses local SQLite; for serverless multi-instance
-  it should move to Firestore (per `userId + customerId`).
+- **Auth + tokens** — per user, in Firestore (Auth.js Firestore adapter).
+- **Selected Ads account** — per user (`adsConnections/{userId}`).
+- **Live sync** — the connector fetches each user's own selected account.
+
+## Remaining production step: per-user campaign persistence
+
+The synced campaigns / AI reports / snapshots **cache** still lives in local
+**SQLite** (`src/lib/db.ts`, `src/lib/campaigns/store.ts`). That's fine for a
+single local instance, but for a multi-user cloud it must move to **per-user
+Firestore** (e.g. `tenants/{userId}/campaigns`, `…/reports`, `…/snapshots`) —
+both because SQLite-on-disk doesn't work on serverless / multi-instance, and to
+isolate each user's data. The connector, the account picker and the token/refresh
+plumbing are already per-user, so this is a focused store-layer swap (best done
+once a live developer token lets us verify the live sync end-to-end).
+
+## Production env
+
+- `FIREBASE_SERVICE_ACCOUNT` = the full service-account key JSON (instead of the
+  local `.data/firebase-sa.json` file).
+- `AUTH_SECRET`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`,
+  `GOOGLE_ADS_DEVELOPER_TOKEN`, and the production OAuth redirect URI.
