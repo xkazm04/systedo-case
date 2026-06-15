@@ -52,12 +52,15 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 
 ## Open follow-ups (from the 2026-06-15 feature+moonshot scan)
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
-  (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
-  (analytics UI surfacing), Wave 2 (steering — budget moves), Wave 3 (persistence —
-  campaign_snapshots + eval dedupe + change strip), Wave 4 (content — data-story
-  article at /clanek/vykon), Wave 7 (pipeline/SEO — /mapa+sitemap, drift fix, CI
-  badges/dependabot).** Open: **only Wave 6 (multi-market locale)** + the
-  package-extraction moonshots.
+  (7-wave plan). **ALL 7 WAVES DONE** (Wave 1 analytics core, 1b analytics UI,
+  2 steering, 3 persistence, 4 content, 5 API hardening, 6 locale, 7 pipeline/SEO).
+  Remaining from the scan: only the standalone package-extraction **moonshots**
+  (structured-llm SDK, LLM Quality Gate, design-token package, AI case-study starter)
+  + per-theme leftovers in the FIXES-WAVE-*.md docs.
+- `format.ts` is now a `createFormatters(locale)` factory (cs-CZ/CZK default + en-US/USD),
+  with all named exports preserved as a destructured default instance — multi-market
+  capable. A real per-user switcher still needs the active locale threaded to each of
+  the ~199 render sites (context/cookie); the factory is the prerequisite.
 - Content-theme leftovers (see `FIXES-WAVE-4.md`): the AI-generated-Article-from-topic
   moonshot (hard: Block union as an LLM schema), the `/clanek/[slug]` collection, and
   the trend-chart "Vysvětlit vývoj" AI narration are all open.
