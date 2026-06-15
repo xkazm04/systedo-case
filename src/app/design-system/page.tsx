@@ -3,6 +3,7 @@ import type { SVGProps, ReactElement } from "react";
 import Link from "next/link";
 import { Container, Eyebrow, Pill, PILL_TONE_NAMES } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
+import LocaleShowcase from "@/components/LocaleShowcase";
 import * as Icons from "@/components/icons";
 import { ArrowRight } from "@/components/icons";
 import {
@@ -189,6 +190,7 @@ export default function DesignSystemPage() {
               ["Pill", "#pill"],
               ["Ikony", "#ikony"],
               ["Sparkline", "#sparkline"],
+              ["Lokalizace", "#lokalizace"],
               ["Plochy", "#plochy"],
             ].map(([label, href]) => (
               <a
@@ -364,6 +366,17 @@ export default function DesignSystemPage() {
               </div>
             ))}
           </div>
+        </Section>
+
+        {/* -------------------------------------------------------- Localization */}
+        <Section
+          id="lokalizace"
+          testid="ds-locale"
+          eyebrow="Chokepoint"
+          title="Lokalizace — jeden formátovací zdroj"
+          intro="Veškeré formátování čísel, měn a dat teče přes createFormatters(locale). Přepněte trh a stejná data se přepíšou — důkaz, že je produkt připravený na víc jazyků i měn z jednoho místa."
+        >
+          <LocaleShowcase />
         </Section>
 
         {/* ------------------------------------------------------ Radius/shadow */}
