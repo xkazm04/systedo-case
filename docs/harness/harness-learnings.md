@@ -48,14 +48,17 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 
 ## Open follow-ups (from the 2026-06-15 feature+moonshot scan)
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
-  (7-wave plan). **Done: Wave 5 (API hardening) + Wave 1 (analytics core).**
-  Open: Waves 2 (steering), 3 (persistence), 4 (AI content), 6 (locale), 7 (pipeline/SEO).
-- **Wave 1b (UI surfacing) pending** — the analytics core (`detectAnomalies`,
-  delta `significance`, `channelRowsCompared`, pacing `projectionLow/High` +
-  `goalProbability`, `buildMetricsSnapshot`) is built in `metrics.ts` and wired into
-  the AI grounding (`snapshot.ts`), but the dashboard UI doesn't render it yet:
-  TrendChart anomaly markers, KpiCard noise-dimming, ChannelTable delta column,
-  GoalPacing confidence band. See `FIXES-WAVE-1.md`.
+  (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
+  (analytics UI surfacing).** Open: Waves 2 (steering), 3 (persistence), 4 (AI content),
+  6 (locale), 7 (pipeline/SEO).
+- The analytics core (`detectAnomalies`, delta `significance`, `channelRowsCompared`,
+  pacing `projectionLow/High` + `goalProbability`, `buildMetricsSnapshot`) is in
+  `metrics.ts`, wired into the AI grounding (`snapshot.ts`) AND rendered on the
+  dashboard (anomaly markers + feed, noise-dimmed KPI deltas, channel delta column,
+  pacing confidence band). See `FIXES-WAVE-1.md` + `FIXES-WAVE-1b.md`.
+- Optional leftover: the side-rail `buildInsights` is still inline JSX in
+  `DashboardClient.tsx` — could be ported into the engine as structured data
+  (metrics-engine.md #5) so dashboard + AI share one insight source.
 - Deferred from the API/wrapper reports (adjacent to Wave 5): streaming
   (`generateStructuredStream`), AI-output caching/persistence (`generations` table),
   versioned-prompt eval harness, eval fingerprint dedupe, non-destructive sync
