@@ -18,8 +18,12 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 - **2026-06-15** — SQLite store (`src/lib/db.ts`): one `DatabaseSync` handle cached
   on `globalThis.__systedoDb` (survives HMR), schema is one `CREATE TABLE IF NOT
   EXISTS` block in `SCHEMA`. Tables: `campaigns`, `sync_meta` (pinned `CHECK id=1`,
-  single-tenant), `reports`, and `rate_limits` (added Wave 5). `.data/systedo.db`
-  is gitignored.
+  single-tenant), `reports` (now with `input_hash`), `rate_limits` (Wave 5),
+  `campaign_snapshots` (Wave 3). `.data/systedo.db` is gitignored. **Adding a column
+  to an existing table needs a guarded `ALTER` in `getDb` after `db.exec(SCHEMA)`** —
+  `CREATE TABLE IF NOT EXISTS` won't alter an existing table (see the `input_hash`
+  migration). Client components must import DB-derived *types* from `types.ts`
+  (framework-free), never from `store.ts` (server-only, pulls in `node:sqlite`).
 - **2026-06-15** — The `AiMeta` envelope (`src/lib/ai-types.ts`) is the contract the
   client UI renders and the store persists; extend it with **optional** fields only.
 - **2026-06-15** — Quality pipeline: `npm run check` = `typecheck && lint && build`.
@@ -49,8 +53,9 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
 ## Open follow-ups (from the 2026-06-15 feature+moonshot scan)
 - 100 opportunities triaged in `docs/harness/feature-moonshot-scan-2026-06-15/INDEX.md`
   (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
-  (analytics UI surfacing), Wave 2 (steering — budget moves on the campaign console).**
-  Open: Waves 3 (persistence), 4 (AI content), 6 (locale), 7 (pipeline/SEO).
+  (analytics UI surfacing), Wave 2 (steering — budget moves), Wave 3 (persistence —
+  campaign_snapshots + eval dedupe + change strip).** Open: Waves 4 (AI content),
+  6 (locale), 7 (pipeline/SEO).
 - Steering leftovers (see `FIXES-WAVE-2.md`): the dashboard "Co kdyby?" channel
   simulator is blocked on real per-channel daily series (channel shares are static);
   recommend→simulate→*measure* and the autonomous agent both need Wave 3 persistence.
