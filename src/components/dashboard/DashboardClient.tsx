@@ -152,6 +152,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             meta={METRICS[m]}
             value={c[m]}
             delta={result.delta[m]}
+            significance={result.significance[m]}
             spark={buckets.map((b) => b[m])}
             footnote={footnotes[m]}
             emphasised={m === "pno"}

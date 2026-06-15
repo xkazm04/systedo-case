@@ -1,6 +1,6 @@
 import Sparkline from "@/components/charts/Sparkline";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
-import type { MetricMeta } from "@/lib/metrics";
+import type { MetricMeta, Significance } from "@/lib/metrics";
 
 /** One headline metric: current value, change vs the comparison window, a trend
  *  sparkline, and an optional contextual footnote (e.g. PNO vs. goal). */
@@ -8,6 +8,7 @@ export default function KpiCard({
   meta,
   value,
   delta,
+  significance,
   spark,
   footnote,
   emphasised = false,
@@ -16,6 +17,7 @@ export default function KpiCard({
   meta: MetricMeta;
   value: number;
   delta: number;
+  significance?: Significance;
   spark: number[];
   footnote?: React.ReactNode;
   emphasised?: boolean;
@@ -32,7 +34,12 @@ export default function KpiCard({
         <p className="text-sm font-medium text-muted" title={meta.description}>
           {meta.label}
         </p>
-        <DeltaBadge delta={delta} goodDirection={meta.goodDirection} size="xs" />
+        <DeltaBadge
+          delta={delta}
+          goodDirection={meta.goodDirection}
+          size="xs"
+          significance={significance}
+        />
       </div>
 
       <p className="tnum mt-3 text-2xl font-semibold leading-none tracking-tight text-navy-800">
