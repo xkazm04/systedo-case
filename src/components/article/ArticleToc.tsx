@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { subscribeSection } from "./section-store";
 
 interface TocItem {
   id: string;
@@ -48,6 +49,17 @@ export default function ArticleToc({ items }: { items: TocItem[] }) {
     headings.forEach((h) => observer.observe(h));
     return () => observer.disconnect();
   }, [items]);
+
+  // When a reader copies a section's permalink, jump the highlight to it. Guard
+  // against ids we don't own (e.g. an h3 permalink) so the indicator only moves
+  // for sections actually listed in the TOC.
+  useEffect(
+    () =>
+      subscribeSection((id) => {
+        if (items.some((i) => i.id === id)) setActive(id);
+      }),
+    [items]
+  );
 
   // slide the highlight to the active item (and keep it aligned on resize)
   useEffect(() => {

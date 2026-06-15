@@ -1,0 +1,132 @@
+/** Registry of LLM "tools" — one entry per place the app uses the wrapper.
+ *
+ *  Each id MUST match a `// llm-tool: <id>` tag at a real `generateStructured`
+ *  call site in src/ (enforced by coverage.test.mjs / the gate). Each entry is a
+ *  self-contained fixture that exercises the REAL wrapper (→ real Claude in dev)
+ *  with a schema mirroring that tool's shape, plus a lenient validator.
+ *
+ *  Keeping fixtures here (rather than importing the app's tool modules) avoids
+ *  pulling the data/JSON graph into the test runner and keeps each probe small
+ *  and fast, while the coverage check guarantees the fixtures stay in 1:1 sync
+ *  with the actual call sites.
+ */
+import { Type } from "@google/genai";
+
+const isStr = (v) => typeof v === "string" && v.trim().length > 0;
+const isStrArr = (v, min = 1) => Array.isArray(v) && v.filter(isStr).length >= min;
+const num = (v) => (typeof v === "number" ? v : Number(v));
+
+export const LLM_TOOLS = [
+  {
+    id: "ads",
+    label: "PPC inzeráty",
+    system:
+      "Jsi český PPC specialista. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Vytvoř krátkou sadu PPC inzerátů pro e-shop s ořechy a semínky. Vrať 3 nadpisy (do 30 znaků), 2 popisky (do 90 znaků) a krátké zdůvodnění.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        headlines: { type: Type.ARRAY, items: { type: Type.STRING } },
+        descriptions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        rationale: { type: Type.STRING },
+      },
+      required: ["headlines", "descriptions", "rationale"],
+    },
+    validate: (r) => r && isStrArr(r.headlines, 2) && isStrArr(r.descriptions, 1) && isStr(r.rationale),
+  },
+  {
+    id: "brief",
+    label: "SEO obsahový brief",
+    system:
+      "Jsi český SEO stratég. Piš česky, dodržuj SEO limity a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Připrav stručný SEO brief pro článek o skladování ořechů. Vrať title tag (do 60 znaků), meta description (do 155 znaků) a osnovu 2–3 sekcí, každá s odrážkami.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        titleTag: { type: Type.STRING },
+        metaDescription: { type: Type.STRING },
+        outline: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              heading: { type: Type.STRING },
+              points: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ["heading", "points"],
+          },
+        },
+      },
+      required: ["titleTag", "metaDescription", "outline"],
+    },
+    validate: (r) =>
+      r &&
+      isStr(r.titleTag) &&
+      isStr(r.metaDescription) &&
+      Array.isArray(r.outline) &&
+      r.outline.length >= 1 &&
+      isStr(r.outline[0]?.heading),
+  },
+  {
+    id: "analysis",
+    label: "Analýza výkonu",
+    system:
+      "Jsi český specialista na výkonnostní marketing. Vycházej jen z předaných čísel a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Data: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×. Vrať jednovětý verdikt, krátké shrnutí a 2 doporučené kroky (title + detail).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        headline: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        actions: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { title: { type: Type.STRING }, detail: { type: Type.STRING } },
+            required: ["title", "detail"],
+          },
+        },
+      },
+      required: ["headline", "summary", "actions"],
+    },
+    validate: (r) =>
+      r && isStr(r.headline) && isStr(r.summary) && Array.isArray(r.actions) && isStr(r.actions[0]?.title),
+  },
+  {
+    id: "campaign-eval",
+    label: "Vyhodnocení kampaně / portfolia",
+    system:
+      "Jsi český PPC stratég. Vyhodnoť kampaň podle předaných čísel a vrať pouze validní JSON dle schématu.",
+    prompt:
+      "Kampaň „Search · Brand“: náklady 55 000 Kč, hodnota konverzí 1 030 000 Kč, ROAS 18,9×, PNO 5,3 %. Cíl PNO 18 %. Vrať skóre 0–100, jednovětý verdikt a 2 doporučení (title, detail, priority high|medium|low).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        verdict: { type: Type.STRING },
+        score: { type: Type.NUMBER },
+        recommendations: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              detail: { type: Type.STRING },
+              priority: { type: Type.STRING },
+            },
+            required: ["title", "detail", "priority"],
+          },
+        },
+      },
+      required: ["verdict", "score", "recommendations"],
+    },
+    validate: (r) => {
+      if (!r || !isStr(r.verdict)) return false;
+      const s = num(r.score);
+      if (!Number.isFinite(s) || s < 0 || s > 100) return false;
+      return Array.isArray(r.recommendations) && isStr(r.recommendations[0]?.title);
+    },
+  },
+];

@@ -4,21 +4,48 @@ import {
   validateAnalysisRequest,
   validateBriefRequest,
 } from "@/lib/ai-types";
+import {
+  RATE_RULES,
+  acquireSlot,
+  clientIp,
+  payloadTooLarge,
+  rateLimit,
+  releaseSlot,
+  tooLarge,
+  tooManyRequests,
+} from "@/lib/ai/rate-limit";
 
 // The Gemini SDK needs the Node.js runtime (not Edge).
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Neplatný JSON v požadavku." }, { status: 400 });
+  // Abuse guards first — this endpoint is a public, unauthenticated POST that
+  // shells out to a paid provider, so it must be throttled before any work.
+  if (tooLarge(request)) {
+    return payloadTooLarge("Požadavek je příliš velký.");
+  }
+  const limited = rateLimit(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()]);
+  if (!limited.ok) {
+    return tooManyRequests(
+      limited.retryAfter,
+      `Příliš mnoho požadavků. Zkuste to prosím znovu za ${limited.retryAfter} s.`
+    );
+  }
+  if (!acquireSlot()) {
+    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
   }
 
-  const mode = (body as { mode?: unknown })?.mode;
-
+  let mode: unknown;
   try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return Response.json({ error: "Neplatný JSON v požadavku." }, { status: 400 });
+    }
+
+    mode = (body as { mode?: unknown })?.mode;
+
     switch (mode) {
       case "ads": {
         const parsed = validateAdRequest(body);
@@ -44,5 +71,7 @@ export async function POST(request: Request) {
       { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu." },
       { status: 502 }
     );
+  } finally {
+    releaseSlot();
   }
 }

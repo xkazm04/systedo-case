@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
-import { AI_TIMER_TARGET_MS } from "./useAiTool";
+import { fmtDateTime, fmtRelative } from "@/lib/format";
+import { AI_TIMER_TARGET_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
 
 /** Form field with label. */
 export function Field({
@@ -72,7 +73,7 @@ export function TextRow({ text, limit }: { text: string; limit: number }) {
   return (
     <li
       className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-        over ? "border-negative/40 bg-[#fcf1ef]" : "border-line bg-surface"
+        over ? "border-negative/40 bg-negative-soft" : "border-line bg-surface"
       }`}
     >
       <span className="min-w-0 flex-1 text-sm text-navy-800">{text}</span>
@@ -103,21 +104,36 @@ export function Group({
   );
 }
 
-/** Result header: model badge, demo / live status, and an optional "copy all". */
-export function ResultMeta({ meta, copyAllText }: { meta: AiMeta; copyAllText?: string }) {
+/** Result header: model badge, demo / live status, an optional relative
+ *  "generated X ago" stamp for stored reports, and an optional "copy all". */
+export function ResultMeta({
+  meta,
+  copyAllText,
+  createdAt,
+}: {
+  meta: AiMeta;
+  copyAllText?: string;
+  createdAt?: string;
+}) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="pill bg-navy-50 text-navy-700">{meta.model}</span>
         {meta.demo ? (
-          <span className="pill bg-[#fff0e9] text-coral-600">
+          <span className="pill bg-coral-soft text-coral-600">
             <Info width={13} height={13} />
             Ukázkový režim (bez API klíče)
           </span>
         ) : (
-          <span className="pill bg-[#e7f4ef] text-positive">
+          <span className="pill bg-positive-soft text-positive">
             <Check width={13} height={13} />
             Vygenerováno modelem · {(meta.tookMs / 1000).toFixed(1)} s
+          </span>
+        )}
+        {createdAt && (
+          <span className="pill bg-navy-50 text-muted" title={fmtDateTime(createdAt)}>
+            <Clock width={13} height={13} />
+            <time dateTime={createdAt}>{fmtRelative(createdAt)}</time>
           </span>
         )}
       </div>
@@ -143,7 +159,7 @@ export function PromptDisclosure({ prompt }: { prompt: string }) {
         <span className="text-muted">{open ? "skrýt" : "zobrazit"}</span>
       </button>
       {open && (
-        <pre className="overflow-x-auto border-t border-line bg-navy-800 px-5 py-4 font-mono text-xs leading-relaxed text-navy-100">
+        <pre className="overflow-x-auto border-t border-line bg-onyx px-5 py-4 font-mono text-xs leading-relaxed text-onyx-ink">
           {prompt}
         </pre>
       )}
@@ -241,7 +257,7 @@ export function LoadingTimer() {
         {over ? "Model přemýšlí o něco déle…" : "Generuji odpověď…"}
       </p>
       <p className="mt-1 max-w-xs text-sm text-muted">
-        Výsledek se zobrazí ihned, jakmile dorazí.{over ? " Limit je 30 sekund." : ""}
+        Výsledek se zobrazí ihned, jakmile dorazí.{over ? ` Limit je ${AI_TIMEOUT_SECONDS} sekund.` : ""}
       </p>
     </div>
   );
@@ -255,7 +271,7 @@ export function TimeoutState({ onRetry }: { onRetry: () => void }) {
       className="card flex animate-fade-in flex-col items-center justify-center p-10 text-center"
     >
       <div className="relative">
-        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-[#fff0e9] text-coral-600">
+        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-coral-soft text-coral-600">
           <Clock width={30} height={30} />
         </span>
         <span className="absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-coral-500 text-xs font-bold text-white">
@@ -264,7 +280,7 @@ export function TimeoutState({ onRetry }: { onRetry: () => void }) {
       </div>
       <h2 className="mt-5 text-lg font-semibold text-navy-800">Vypršel časový limit</h2>
       <p className="mt-2 max-w-sm text-sm text-muted">
-        Model neodpověděl do 30 sekund. Někdy stačí druhý pokus — zkuste to prosím znovu.
+        Model neodpověděl do {AI_TIMEOUT_SECONDS} sekund. Někdy stačí druhý pokus — zkuste to prosím znovu.
       </p>
       <button
         type="button"

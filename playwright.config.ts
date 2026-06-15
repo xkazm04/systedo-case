@@ -13,7 +13,9 @@ export default defineConfig({
   // Real model calls — keep it serial and give each test room to breathe.
   fullyParallel: false,
   workers: 1,
-  timeout: 70_000,
+  // Generous: the dev provider is the Claude Code CLI (medium thinking + cold
+  // start), and the timeout test deliberately waits out the 60s client ceiling.
+  timeout: 100_000,
   expect: { timeout: 15_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {

@@ -4,20 +4,20 @@ import { External, Logo } from "@/components/icons";
 
 export default function Footer() {
   return (
-    <footer className="mt-24 border-t border-line bg-navy-800 text-navy-100">
+    <footer className="mt-24 border-t border-line bg-onyx text-onyx-ink">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-navy-700 text-brand-400">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx-soft text-brand-400">
               <Logo width={20} height={20} />
             </span>
             <span className="text-[15px] font-semibold tracking-tight text-white">Systedo</span>
           </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-navy-200">
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-onyx-muted">
             Ukázková případová studie pro pozici <strong className="text-white">AI Vibecoder</strong>.
             Tři úkoly, tři stránky, jeden konzistentní příběh klienta. Data jsou ilustrativní.
           </p>
-          <p className="mt-4 text-sm text-navy-300">
+          <p className="mt-4 text-sm text-onyx-muted">
             Inspirováno přístupem{" "}
             <a
               href="https://www.systedo.cz/"
@@ -33,7 +33,7 @@ export default function Footer() {
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-navy-300">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-onyx-muted">
             Stránky
           </h2>
           <ul className="mt-4 space-y-2.5">
@@ -41,7 +41,7 @@ export default function Footer() {
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className="text-sm text-navy-100 transition-colors hover:text-brand-300"
+                  className="text-sm text-onyx-ink transition-colors hover:text-brand-300"
                 >
                   {item.label}
                 </Link>
@@ -51,22 +51,28 @@ export default function Footer() {
         </div>
 
         <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-navy-300">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-onyx-muted">
             O projektu
           </h2>
-          <ul className="mt-4 space-y-2.5 text-sm text-navy-200">
+          <ul className="mt-4 space-y-2.5 text-sm text-onyx-muted">
             <li>Next.js 16 · App Router</li>
             <li>JSON persistence (bez DB)</li>
-            <li>Gemini · gemini-3-flash-preview</li>
+            <li>LLM · claude-sonnet (dev) · gemini-3-flash-preview (prod)</li>
             <li>Nasaditelné na Vercel</li>
           </ul>
         </div>
       </div>
 
-      <div className="border-t border-navy-700">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-navy-300 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="border-t border-onyx-line">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>© {new Date().getFullYear()} — případová studie, nikoli oficiální web Systedo.</span>
-          <span>Vytvořeno s důrazem na UX, datovou konzistenci a čistý kód.</span>
+          <span className="flex items-center gap-3">
+            <Link href="/design-system" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
+              Design system
+            </Link>
+            <span aria-hidden className="text-onyx-line">·</span>
+            <span>Vytvořeno s důrazem na UX, datovou konzistenci a čistý kód.</span>
+          </span>
         </div>
       </div>
     </footer>

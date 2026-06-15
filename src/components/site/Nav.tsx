@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NAV_ITEMS } from "@/lib/nav";
 import { Close, External, Logo, Menu } from "@/components/icons";
+import ThemeToggle from "@/components/site/ThemeToggle";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -18,7 +19,7 @@ export default function Nav() {
     <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="group flex items-center gap-2.5" aria-label="Systedo — domů">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-navy-800 text-brand-400 transition-colors group-hover:bg-navy-700">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-400 transition-colors group-hover:bg-onyx-soft">
             <Logo width={20} height={20} />
           </span>
           <span className="flex flex-col leading-none">
@@ -57,11 +58,12 @@ export default function Nav() {
             href="https://www.systedo.cz/"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden items-center gap-1.5 rounded-pill border border-line px-3.5 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-700 sm:inline-flex"
+            className="hidden items-center gap-1.5 rounded-pill border border-line px-3.5 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent sm:inline-flex"
           >
             systedo.cz
             <External width={15} height={15} />
           </a>
+          <ThemeToggle />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}

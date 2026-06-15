@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import DashboardClient from "@/components/dashboard/DashboardClient";
+import TaskPager from "@/components/site/TaskPager";
 import { Info } from "@/components/icons";
 import { performance } from "@/lib/data";
 import { fmtDate } from "@/lib/format";
@@ -40,6 +41,8 @@ export default function DashboardPage() {
       <div className="mt-8">
         <DashboardClient data={performance} />
       </div>
+
+      <TaskPager current="/dashboard" />
     </Container>
   );
 }

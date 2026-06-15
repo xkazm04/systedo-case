@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Bolt, Sparkles } from "@/components/icons";
+import { useMemo, useState } from "react";
+import { Bolt, Check, Close, Gauge, Sparkles } from "@/components/icons";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
@@ -12,6 +12,14 @@ import {
   type Platform,
   type Tone,
 } from "@/lib/ai-types";
+import {
+  AD_STRENGTH_LABELS,
+  AD_STRENGTH_ORDER,
+  computeAdStrength,
+  type AdStrength,
+  type AdStrengthFactor,
+  type AdStrengthRating,
+} from "@/lib/ad-strength";
 import { useAiTool } from "./useAiTool";
 import {
   Field,
@@ -25,6 +33,128 @@ import {
   ToolError,
   inputClass,
 } from "./primitives";
+
+/** Per-rating accents for the strength meter — red → orange → blue → green. */
+const RATING_STYLE: Record<AdStrengthRating, { bar: string; chip: string }> = {
+  poor: { bar: "bg-negative", chip: "bg-negative-soft text-negative" },
+  average: { bar: "bg-coral-500", chip: "bg-coral-soft text-coral-600" },
+  good: { bar: "bg-brand-500", chip: "bg-brand-50 text-brand-accent" },
+  excellent: { bar: "bg-positive", chip: "bg-positive-soft text-positive" },
+};
+
+/** Tiny status glyph for a strength factor: met / partial / not met. */
+function FactorIcon({ status }: { status: AdStrengthFactor["status"] }) {
+  if (status === "pass") return <Check width={15} height={15} className="text-positive" />;
+  if (status === "fail") return <Close width={14} height={14} className="text-negative" />;
+  return <span className="block h-1.5 w-1.5 rounded-full bg-coral-500" aria-hidden />;
+}
+
+/** Google-Ads-style "Ad Strength" rating with a segmented meter and the factor
+ *  checklist that tells the user what would push the set toward Excellent. */
+function AdStrengthMeter({ strength }: { strength: AdStrength }) {
+  const filled = AD_STRENGTH_ORDER.indexOf(strength.rating) + 1;
+  const style = RATING_STYLE[strength.rating];
+  const ratingLabel = AD_STRENGTH_LABELS[strength.rating];
+  return (
+    <div data-testid="ad-strength" className="rounded-card border border-line bg-surface p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Gauge width={18} height={18} className="text-brand-600" />
+          <h3 className="text-sm font-semibold text-navy-800">Síla inzerátu</h3>
+        </div>
+        <span className={`pill ${style.chip}`}>{ratingLabel}</span>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <div
+          className="flex flex-1 gap-1.5"
+          role="img"
+          aria-label={`Síla inzerátu: ${ratingLabel}, ${strength.score} ze 100`}
+        >
+          {AD_STRENGTH_ORDER.map((rating, i) => (
+            <span
+              key={rating}
+              className={`h-2 flex-1 rounded-full transition-colors ${i < filled ? style.bar : "bg-navy-100"}`}
+            />
+          ))}
+        </div>
+        <span className="tnum shrink-0 text-xs font-medium text-muted">{strength.score}/100</span>
+      </div>
+
+      <ul className="mt-4 space-y-2">
+        {strength.factors.map((f, i) => (
+          <li key={i} className="flex items-start gap-2.5">
+            <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center">
+              <FactorIcon status={f.status} />
+            </span>
+            <span className="min-w-0 text-sm leading-snug">
+              <span className="font-medium text-navy-800">{f.label}</span>
+              <span className="text-muted"> — {f.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** URL-path seed for the preview: lowercase, de-accented, dash-joined. */
+const slugify = (s: string): string =>
+  s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 28)
+    .replace(/-+$/g, "");
+
+/** Live preview that assembles a sample responsive search ad the way Google
+ *  shows it: up to 3 headlines joined with " | " and up to 2 descriptions. */
+function RsaPreview({
+  headlines,
+  descriptions,
+  pathSeed,
+  platform,
+}: {
+  headlines: string[];
+  descriptions: string[];
+  pathSeed: string;
+  platform: Platform;
+}) {
+  const title = headlines.filter((h) => h.trim()).slice(0, 3).join(" | ");
+  const desc = descriptions.filter((d) => d.trim()).slice(0, 2).join(" ");
+  const path = slugify(pathSeed);
+  const isGoogle = platform === "google";
+  return (
+    <div data-testid="rsa-preview" className="rounded-card border border-line bg-surface p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">{isGoogle ? "Náhled inzerátu (RSA)" : "Náhled inzerátu"}</p>
+        <span className="pill bg-navy-50 text-muted">Ukázková kombinace</span>
+      </div>
+      <div className="mt-3">
+        <div className="flex items-center gap-2">
+          <span
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-[11px] font-semibold text-white"
+            aria-hidden
+          >
+            M
+          </span>
+          <div className="min-w-0 leading-tight">
+            <p className="text-xs font-semibold text-navy-800">Sponzorováno · Mionelo</p>
+            <p className="truncate text-xs text-serp-url">
+              www.mionelo.cz{path ? ` › ${path}` : ""}
+            </p>
+          </div>
+        </div>
+        <p className="mt-2 text-xl leading-snug text-serp-link">{title || "Nadpis inzerátu"}</p>
+        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-navy-600">
+          {desc || "Popisek inzerátu se zobrazí tady."}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 const EXAMPLE: AdRequest = {
   product: "Kešu ořechy natural, 500 g",
@@ -56,6 +186,7 @@ export default function AdGenerator() {
   }
 
   const r = data?.result;
+  const strength = useMemo(() => (r ? computeAdStrength(r) : null), [r]);
   const copyAllText = r
     ? [
         "NADPISY:",
@@ -77,7 +208,7 @@ export default function AdGenerator() {
           <button
             type="button"
             onClick={() => setForm(EXAMPLE)}
-            className="text-xs font-semibold text-brand-700 hover:text-brand-800"
+            className="text-xs font-semibold text-brand-accent hover:text-brand-800"
           >
             Vyplnit ukázku
           </button>
@@ -191,6 +322,16 @@ export default function AdGenerator() {
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
             <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+
+            <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+              <RsaPreview
+                headlines={r.headlines}
+                descriptions={r.descriptions}
+                pathSeed={r.keywords[0] ?? form.product}
+                platform={form.platform}
+              />
+              {strength && <AdStrengthMeter strength={strength} />}
+            </div>
 
             <Group title="Nadpisy" hint={`max ${AD_LIMITS.headline} znaků`}>
               <ul className="space-y-2">

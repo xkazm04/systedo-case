@@ -22,7 +22,7 @@ export default function DeltaBadge({
 
   const improving = goodDirection === "up" ? delta > 0 : delta < 0;
   const Icon = delta > 0 ? TrendUp : TrendDown;
-  const tone = improving ? "bg-[#e7f4ef] text-positive" : "bg-[#fbeae7] text-negative";
+  const tone = improving ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative";
 
   return (
     <span

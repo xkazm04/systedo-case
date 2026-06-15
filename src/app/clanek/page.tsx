@@ -1,22 +1,45 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
+import Breadcrumbs from "@/components/article/Breadcrumbs";
 import ReadingProgress from "@/components/article/ReadingProgress";
-import { ArrowRight, Document } from "@/components/icons";
-import { article, inlineToText, tableOfContents } from "@/lib/article";
+import ShareBar from "@/components/article/ShareBar";
+import TaskPager from "@/components/site/TaskPager";
+import { Document } from "@/components/icons";
+import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/article";
 import { fmtDate } from "@/lib/format";
+import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
+import { canonical } from "@/lib/site";
 
 const { meta, blocks, faq } = article;
+
+const ARTICLE_PATH = "/clanek";
+const articleUrl = canonical(ARTICLE_PATH);
+
+// Figure blocks are promoted into the JSON-LD graph: each becomes an ImageObject
+// node and the Article references them via `image`, making them eligible for
+// Google image rich results without any extra authoring.
+const figures = figureBlocks(article);
+
+// Breadcrumb trail (Domů › Článek › category › title), reused for both the
+// visible <Breadcrumbs> and the BreadcrumbList JSON-LD so they never drift.
+const breadcrumbs: Crumb[] = [
+  { label: "Domů", href: "/" },
+  { label: navLabel(ARTICLE_PATH, "Článek"), href: ARTICLE_PATH },
+  { label: meta.category, href: categoryHubPath(meta.category) },
+  { label: meta.title },
+];
 
 export const metadata: Metadata = {
   title: meta.title,
   description: meta.perex,
-  openGraph: { title: meta.title, description: meta.perex, type: "article" },
+  alternates: { canonical: ARTICLE_PATH },
+  openGraph: { title: meta.title, description: meta.perex, type: "article", url: articleUrl },
 };
 
-// Structured data: Article + FAQPage, so the page is rich-result ready.
+// Structured data: Article + BreadcrumbList + FAQPage, so the page is
+// rich-result ready (breadcrumb trail included as a SERP rich snippet).
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -28,6 +51,29 @@ const jsonLd = {
       datePublished: meta.dateISO,
       articleSection: meta.category,
       keywords: meta.tags.join(", "),
+      ...(figures.length ? { image: figures.map((f) => canonical(f.src)) } : {}),
+    },
+    // One ImageObject per figure — gives each article image its own node with an
+    // absolute contentUrl, caption and intrinsic dimensions for rich results.
+    ...figures.map((f) => ({
+      "@type": "ImageObject",
+      url: canonical(f.src),
+      contentUrl: canonical(f.src),
+      description: f.alt,
+      ...(f.caption ? { caption: f.caption } : {}),
+      ...(f.width ? { width: f.width } : {}),
+      ...(f.height ? { height: f.height } : {}),
+    })),
+    {
+      "@type": "BreadcrumbList",
+      itemListElement: breadcrumbs.map((crumb, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        name: crumb.label,
+        // The trailing crumb (current article) has no href, so it resolves to
+        // the article's own canonical URL.
+        item: canonical(crumb.href ?? ARTICLE_PATH),
+      })),
     },
     {
       "@type": "FAQPage",
@@ -54,7 +100,10 @@ export default function ArticlePage() {
       {/* article header */}
       <section className="border-b border-line bg-surface">
         <Container className="max-w-3xl py-12 sm:py-16">
-          <Eyebrow>Úkol 2 · Článek pro mionelo.cz</Eyebrow>
+          <Breadcrumbs items={breadcrumbs} />
+          <div className="mt-6">
+            <Eyebrow>Úkol 2 · Článek pro mionelo.cz</Eyebrow>
+          </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Pill tone="brand">{meta.category}</Pill>
             <span>·</span>
@@ -66,14 +115,17 @@ export default function ArticlePage() {
             {meta.title}
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted">{meta.perex}</p>
-          <div className="mt-6 flex items-center gap-3 border-t border-line pt-6">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-navy-800 text-brand-400">
-              <Document width={18} height={18} />
-            </span>
-            <div className="text-sm">
-              <p className="font-semibold text-navy-800">{meta.author}</p>
-              <p className="text-muted">{meta.role}</p>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-onyx text-brand-400">
+                <Document width={18} height={18} />
+              </span>
+              <div className="text-sm">
+                <p className="font-semibold text-navy-800">{meta.author}</p>
+                <p className="text-muted">{meta.role}</p>
+              </div>
             </div>
+            <ShareBar url={articleUrl} title={meta.title} />
           </div>
         </Container>
       </section>
@@ -139,34 +191,9 @@ export default function ArticlePage() {
             </div>
           </section>
 
-          {/* continue reading — links to the other pages of the site */}
-          <section className="mt-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              Pokračujte ve studii
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <Link
-                href="/dashboard"
-                className="card group flex items-center justify-between p-5 transition-all hover:-translate-y-0.5 hover:shadow-pop"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-navy-800">Výkonnostní dashboard</p>
-                  <p className="mt-0.5 text-sm text-muted">Jak si klient vede v číslech</p>
-                </div>
-                <ArrowRight width={18} height={18} className="text-brand-600 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <Link
-                href="/ai-asistent"
-                className="card group flex items-center justify-between p-5 transition-all hover:-translate-y-0.5 hover:shadow-pop"
-              >
-                <div>
-                  <p className="text-sm font-semibold text-navy-800">AI asistent</p>
-                  <p className="mt-0.5 text-sm text-muted">Generátor PPC inzerátů na Gemini</p>
-                </div>
-                <ArrowRight width={18} height={18} className="text-brand-600 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-          </section>
+          {/* prev/next pager — walks the reviewer through the case study in
+              task order, replacing the bespoke "continue reading" cards */}
+          <TaskPager current="/clanek" />
         </article>
       </Container>
     </>

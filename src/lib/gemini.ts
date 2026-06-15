@@ -1,16 +1,18 @@
-/** Server-only Gemini integration for the AI assistant (Úkol 3).
+/** Server-only AI tools layer. Defines the app's structured-generation tools
+ *  (PPC ads, SEO brief, performance analysis, campaign/portfolio evaluation) and
+ *  runs them all through the provider-switching LLM wrapper (./llm):
+ *  Claude Code CLI in development, Gemini in production.
  *
- *  Three tools share one pipeline:
- *   - Structured output: every tool passes a JSON schema (responseSchema) so the
- *     model returns validated, typed data — never free text we parse heuristically.
- *   - Key stays on the server: GEMINI_API_KEY is read here and never reaches the
- *     client; the browser only sees the result.
- *   - Graceful fallback: with no API key each tool returns a deterministic demo,
- *     clearly flagged, so the whole page works straight from the repo.
+ *  Each tool:
+ *   - Structured output: passes a JSON schema so the model returns validated,
+ *     typed data — never free text we parse heuristically.
+ *   - Graceful fallback: a deterministic demo when no provider is available,
+ *     clearly flagged, so the whole app works straight from the repo.
  *
- *  Import only from server code (the route handler).
+ *  Every model call goes through `generateStructured` — the single chokepoint.
+ *  Import only from server code (the route handlers).
  */
-import { GoogleGenAI, Type } from "@google/genai";
+import { Type } from "@google/genai";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
@@ -24,11 +26,25 @@ import {
   type AnalysisResult,
   type BriefRequest,
   type BriefResult,
+  type CampaignReportResult,
+  type EvalPriority,
+  type EvalRecommendation,
+  type EvalScope,
 } from "./ai-types";
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "./snapshot";
-import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
-
-const MODEL = "gemini-3-flash-preview";
+import {
+  CAMPAIGN_TYPE_LABELS,
+  TARGET_PNO,
+  TARGET_ROAS,
+  aggregate,
+  groupByType,
+  withMetrics,
+  type Campaign,
+  type CampaignPeriod,
+} from "./campaigns/types";
+import { buildCampaignPrompt, buildOverallPrompt } from "./campaigns/report-input";
+import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
+import { generateStructured } from "./llm";
 
 // --- shared helpers ---------------------------------------------------------
 
@@ -45,6 +61,17 @@ const cleanList = (v: unknown, max: number): string[] =>
 
 const clamp = (s: string, n: number): string =>
   s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
+
+/** Like cleanList, but also clamps each item to a max character length so the
+ *  server never emits over-limit ad copy that Google Ads / Sklik would reject. */
+const cleanClampedList = (v: unknown, maxCount: number, maxLen: number): string[] =>
+  cleanList(v, maxCount).map((s) => clamp(s, maxLen));
+
+/** Collect char-limit violations for a list of strings (used for self-repair). */
+const lenViolations = (label: string, items: string[], max: number): string[] =>
+  items
+    .map((s, i) => (s.length > max ? `${label} #${i + 1} má ${s.length} znaků (limit ${max}).` : null))
+    .filter((v): v is string => v !== null);
 
 const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
@@ -66,45 +93,6 @@ const slugify = (s: string): string =>
     .join("")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-
-/** The one place that talks to the model (or falls back to a demo). */
-async function generateStructured<T>(args: {
-  prompt: string;
-  system: string;
-  schema: object;
-  temperature?: number;
-  normalize: (parsed: unknown) => T;
-  demo: () => T;
-}): Promise<AiResponse<T>> {
-  const start = Date.now();
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    return {
-      result: args.demo(),
-      meta: { model: MODEL, demo: true, prompt: args.prompt, tookMs: Date.now() - start },
-    };
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: args.prompt,
-    config: {
-      systemInstruction: args.system,
-      responseMimeType: "application/json",
-      responseSchema: args.schema,
-      temperature: args.temperature ?? 1.0,
-    },
-  });
-
-  const text = response.text;
-  if (!text) throw new Error("Model vrátil prázdnou odpověď.");
-  return {
-    result: args.normalize(JSON.parse(text)),
-    meta: { model: MODEL, demo: false, prompt: args.prompt, tookMs: Date.now() - start },
-  };
-}
 
 // ===========================================================================
 // Tool 1 — PPC ads
@@ -157,13 +145,31 @@ const AD_SCHEMA = {
 function normalizeAdResult(parsed: unknown): AdResult {
   const o = parsed as Partial<AdResult>;
   return {
-    headlines: cleanList(o.headlines, 10),
-    descriptions: cleanList(o.descriptions, 6),
-    callouts: cleanList(o.callouts, 6),
+    // Clamp to the platform limits — the guaranteed floor even if the model (or
+    // the self-repair re-prompt) leaves something over-length.
+    headlines: cleanClampedList(o.headlines, 10, AD_LIMITS.headline),
+    descriptions: cleanClampedList(o.descriptions, 6, AD_LIMITS.description),
+    callouts: cleanClampedList(o.callouts, 6, AD_LIMITS.callout),
     keywords: cleanList(o.keywords, 14),
-    longHeadline: txt(o.longHeadline),
+    longHeadline: clamp(txt(o.longHeadline), AD_LIMITS.longHeadline),
     rationale: txt(o.rationale),
   };
+}
+
+/** Flag raw ad output that exceeds the Google Ads / Sklik character limits, so
+ *  the wrapper can re-prompt the model to self-correct before we clamp. */
+function validateAds(parsed: unknown): string[] {
+  const o = parsed as Partial<AdResult> | null;
+  if (!o || typeof o !== "object") return [];
+  const v: string[] = [];
+  v.push(...lenViolations("Nadpis", cleanList(o.headlines, 10), AD_LIMITS.headline));
+  v.push(...lenViolations("Popisek", cleanList(o.descriptions, 6), AD_LIMITS.description));
+  v.push(...lenViolations("Odznak", cleanList(o.callouts, 6), AD_LIMITS.callout));
+  const long = txt(o.longHeadline);
+  if (long.length > AD_LIMITS.longHeadline) {
+    v.push(`Dlouhý nadpis má ${long.length} znaků (limit ${AD_LIMITS.longHeadline}).`);
+  }
+  return v;
 }
 
 function demoAds(req: AdRequest): AdResult {
@@ -188,17 +194,19 @@ function demoAds(req: AdRequest): AdResult {
     })(),
     longHeadline: clamp(`${product} — ${firstBenefit}, doprava zdarma od 999 Kč`, AD_LIMITS.longHeadline),
     rationale:
-      "Ukázkový výstup: nadpisy kombinují produkt, hlavní benefit, důvěru a výzvu k akci, aby pokryly různé fáze rozhodování. Doplňte GEMINI_API_KEY pro generování modelem.",
+      "Ukázkový výstup: nadpisy kombinují produkt, hlavní benefit, důvěru a výzvu k akci, aby pokryly různé fáze rozhodování. Připojte LLM (Claude Code v devu, Gemini v produkci) pro generování modelem.",
   };
 }
 
 export function generateAds(req: AdRequest): Promise<AiResponse<AdResult>> {
   return generateStructured({
+    // llm-tool: ads
     prompt: buildAdPrompt(req),
     system: AD_SYSTEM,
     schema: AD_SCHEMA,
     temperature: 1.0,
     normalize: normalizeAdResult,
+    validate: validateAds,
     demo: () => demoAds(req),
   });
 }
@@ -294,8 +302,9 @@ function normalizeBriefResult(parsed: unknown): BriefResult {
         .slice(0, 8)
     : [];
   return {
-    titleTag: txt(o.titleTag),
-    metaDescription: txt(o.metaDescription),
+    // Clamp the SEO fields to their best-practice limits (guaranteed floor).
+    titleTag: clamp(txt(o.titleTag), SEO_LIMITS.titleTag),
+    metaDescription: clamp(txt(o.metaDescription), SEO_LIMITS.metaDescription),
     h1: txt(o.h1),
     slug: txt(o.slug),
     outline,
@@ -304,6 +313,23 @@ function normalizeBriefResult(parsed: unknown): BriefResult {
     internalLinks: cleanList(o.internalLinks, 8),
     rationale: txt(o.rationale),
   };
+}
+
+/** Flag raw brief output whose title tag / meta description exceed the SEO
+ *  limits, so the wrapper can re-prompt before we clamp. */
+function validateBrief(parsed: unknown): string[] {
+  const o = parsed as Partial<BriefResult> | null;
+  if (!o || typeof o !== "object") return [];
+  const v: string[] = [];
+  const tt = txt(o.titleTag);
+  if (tt.length > SEO_LIMITS.titleTag) {
+    v.push(`Title tag má ${tt.length} znaků (limit ${SEO_LIMITS.titleTag}).`);
+  }
+  const md = txt(o.metaDescription);
+  if (md.length > SEO_LIMITS.metaDescription) {
+    v.push(`Meta description má ${md.length} znaků (limit ${SEO_LIMITS.metaDescription}).`);
+  }
+  return v;
 }
 
 function demoBrief(req: BriefRequest): BriefResult {
@@ -333,17 +359,19 @@ function demoBrief(req: BriefRequest): BriefResult {
     keywords: [kw, `${kw} tipy`, `${kw} návod`, `jak na ${kw}`, `${kw} doporučení`].filter(Boolean),
     internalLinks: ["Související kategorie", "Doporučené produkty", "Další články na blogu", "Bestsellery"],
     rationale:
-      "Ukázkový brief: title a meta v SEO limitech, osnova H2 a FAQ. Doplňte GEMINI_API_KEY pro plnou verzi od modelu.",
+      "Ukázkový brief: title a meta v SEO limitech, osnova H2 a FAQ. Připojte LLM (Claude Code v devu, Gemini v produkci) pro plnou verzi od modelu.",
   };
 }
 
 export function generateBrief(req: BriefRequest): Promise<AiResponse<BriefResult>> {
   return generateStructured({
+    // llm-tool: brief
     prompt: buildBriefPrompt(req),
     system: BRIEF_SYSTEM,
     schema: BRIEF_SCHEMA,
     temperature: 0.9,
     normalize: normalizeBriefResult,
+    validate: validateBrief,
     demo: () => demoBrief(req),
   });
 }
@@ -460,7 +488,7 @@ function demoAnalysis(s: Snapshot): AnalysisResult {
 
   return {
     headline: `${pnoUnder ? "PNO je pod cílem" : "PNO překračuje cíl"}, obrat ${revUp ? "roste" : "klesá"} (${fmtSignedPct(s.delta.revenue)}).`,
-    summary: `Za posledních ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, což odpovídá PNO ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) a ROAS ${fmtMultiple(c.roas)}. Konverze ${s.delta.conversions >= 0 ? "vzrostly" : "klesly"} o ${fmtSignedPct(s.delta.conversions).replace("+", "")}. Ukázkový výstup — doplňte GEMINI_API_KEY pro analýzu od modelu.`,
+    summary: `Za posledních ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, což odpovídá PNO ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) a ROAS ${fmtMultiple(c.roas)}. Konverze ${s.delta.conversions >= 0 ? "vzrostly" : "klesly"} o ${fmtSignedPct(s.delta.conversions).replace("+", "")}. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro analýzu od modelu.`,
     wins,
     risks,
     actions,
@@ -470,11 +498,204 @@ function demoAnalysis(s: Snapshot): AnalysisResult {
 export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<AnalysisResult>> {
   const snapshot = buildSnapshot(req.period);
   return generateStructured({
+    // llm-tool: analysis
     prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot)),
     system: ANALYSIS_SYSTEM,
     schema: ANALYSIS_SCHEMA,
     temperature: 0.7,
     normalize: normalizeAnalysisResult,
     demo: () => demoAnalysis(snapshot),
+  });
+}
+
+// ===========================================================================
+// Tool 4 — campaign / portfolio evaluation (grounded in synced Google Ads data)
+// ===========================================================================
+
+const EVAL_SYSTEM = `Jsi zkušený český PPC stratég a specialista na Google Ads v marketingové agentuře. Vyhodnocuješ výkon reklamních kampaní a připravuješ klientovi stručný hodnoticí report s konkrétními dalšími kroky.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
+- Skóre 0–100 vyjadřuje zdraví kampaně/portfolia vůči cílovému PNO a vůči ostatním kampaním: ~80+ výborné, ~60–79 solidní, ~40–59 průměrné s rezervami, pod 40 podvýkonné.
+- Doporučení musí být akční a konkrétní (navýšit/snížit rozpočet, upravit nabídky, vyloučení, cílení, kreativu, utlumit či pozastavit) a seřazená podle priority (high/medium/low).
+- Odkazuj se na konkrétní čísla (ROAS, PNO, CPA, podíl na nákladech).
+- Piš česky, věcně, bez marketingových frází. Drž se zadaného JSON schématu.`;
+
+const EVAL_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    verdict: { type: Type.STRING, description: "Jednovětý verdikt o výkonu" },
+    score: { type: Type.NUMBER, description: "Skóre zdraví 0–100" },
+    summary: { type: Type.STRING, description: "Jeden odstavec shrnutí" },
+    strengths: { type: Type.ARRAY, description: "2–4 silné stránky", items: { type: Type.STRING } },
+    weaknesses: { type: Type.ARRAY, description: "1–4 slabiny nebo rizika", items: { type: Type.STRING } },
+    recommendations: {
+      type: Type.ARRAY,
+      description: "2–5 konkrétních doporučených kroků s prioritou",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          detail: { type: Type.STRING },
+          priority: { type: Type.STRING, description: "Priorita: high, medium nebo low" },
+        },
+        required: ["title", "detail", "priority"],
+        propertyOrdering: ["title", "detail", "priority"],
+      },
+    },
+  },
+  required: ["verdict", "score", "summary", "strengths", "weaknesses", "recommendations"],
+  propertyOrdering: ["verdict", "score", "summary", "strengths", "weaknesses", "recommendations"],
+};
+
+function normalizePriority(v: unknown): EvalPriority {
+  const s = txt(v).toLowerCase();
+  return s === "high" || s === "low" ? s : "medium";
+}
+
+function normalizeReport(parsed: unknown): CampaignReportResult {
+  const o = parsed as Record<string, unknown>;
+  const recommendations: EvalRecommendation[] = Array.isArray(o.recommendations)
+    ? o.recommendations
+        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
+        .map((x) => ({ title: txt(x.title), detail: txt(x.detail), priority: normalizePriority(x.priority) }))
+        .filter((x) => x.title)
+        .slice(0, 6)
+    : [];
+  const raw = typeof o.score === "number" ? o.score : Number(o.score);
+  const score = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
+  return {
+    verdict: txt(o.verdict),
+    score,
+    summary: txt(o.summary),
+    strengths: cleanList(o.strengths, 6),
+    weaknesses: cleanList(o.weaknesses, 6),
+    recommendations,
+  };
+}
+
+/** Map ROAS to a 0–100 health score relative to the target — shared by the demo
+ *  fallbacks so a keyless run still produces a believable, data-driven number. */
+function healthScore(roas: number): number {
+  if (roas <= 0) return 5;
+  return Math.max(5, Math.min(99, Math.round(40 + (roas / TARGET_ROAS - 1) * 40)));
+}
+
+function demoCampaignReport(target: Campaign, all: Campaign[]): CampaignReportResult {
+  const t = withMetrics(target);
+  const portfolio = aggregate(all);
+  const beatsTarget = t.pno > 0 && t.pno <= TARGET_PNO;
+  const costShare = portfolio.cost > 0 ? target.cost / portfolio.cost : 0;
+
+  const strengths: string[] = [];
+  const weaknesses: string[] = [];
+  if (t.roas > 0) {
+    (beatsTarget ? strengths : weaknesses).push(
+      `ROAS ${fmtMultiple(t.roas)} ${beatsTarget ? "překonává" : "nedosahuje"} cílovou hodnotu ${fmtMultiple(TARGET_ROAS)}.`
+    );
+  }
+  if (t.ctr >= 0.05) strengths.push(`Vysoká míra prokliku (CTR ${fmtPct(t.ctr, 2)}).`);
+  if (t.conversions > 0)
+    strengths.push(`Přináší ${fmtInt(t.conversions)} konverzí při CPA ${fmtCZK(t.cpa)}.`);
+  if (!beatsTarget && t.pno > 0)
+    weaknesses.push(`PNO ${fmtPct(t.pno)} je nad cílem ${fmtPct(TARGET_PNO, 0)} — táhne efektivitu dolů.`);
+  if (target.status === "paused") weaknesses.push("Kampaň je aktuálně pozastavená.");
+
+  const recommendations: EvalRecommendation[] = [
+    beatsTarget
+      ? {
+          title: "Navýšit rozpočet",
+          detail: `Při ROAS ${fmtMultiple(t.roas)} pod cílovým PNO má kampaň prostor pro škálování.`,
+          priority: "high",
+        }
+      : {
+          title: "Srovnat efektivitu k cíli",
+          detail: `Zkontrolovat nabídky, vyloučení a cílení a snížit PNO ${fmtPct(t.pno)} k cíli ${fmtPct(TARGET_PNO, 0)}.`,
+          priority: "high",
+        },
+    {
+      title: "Zlepšit kreativu a relevanci",
+      detail: `CTR ${fmtPct(t.ctr, 2)} a konverzní poměr ${fmtPct(t.convRate, 2)} ukazují prostor v inzerátech a vstupních stránkách.`,
+      priority: "medium",
+    },
+  ];
+
+  return {
+    verdict: `${beatsTarget ? "Efektivní kampaň nad cílem" : "Kampaň pod cílovou efektivitou"} (ROAS ${fmtMultiple(t.roas)}).`,
+    score: healthScore(t.roas),
+    summary: `Kampaň „${target.name}“ (${CAMPAIGN_TYPE_LABELS[target.type]}) utratila ${fmtCZK(t.cost)} a přinesla ${fmtCZK(t.conversionValue)} při ROAS ${fmtMultiple(t.roas)} a PNO ${fmtPct(t.pno)}. Tvoří ${fmtPct(costShare)} nákladů portfolia. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro vyhodnocení modelem.`,
+    strengths,
+    weaknesses,
+    recommendations,
+  };
+}
+
+function demoOverallReport(all: Campaign[]): CampaignReportResult {
+  const portfolio = aggregate(all);
+  const rows = all.map(withMetrics);
+  const types = groupByType(all);
+  const best = [...rows].sort((a, b) => b.roas - a.roas)[0];
+  const worst = [...rows].filter((c) => c.cost > 0).sort((a, b) => a.roas - b.roas)[0] ?? best;
+  const bestType = [...types].sort((a, b) => b.total.roas - a.total.roas)[0];
+  const underTarget = portfolio.pno > 0 && portfolio.pno <= TARGET_PNO;
+
+  const strengths: string[] = [
+    `Nejvýkonnější kampaň „${best.name}“ s ROAS ${fmtMultiple(best.roas)}.`,
+    `Nejefektivnější typ ${CAMPAIGN_TYPE_LABELS[bestType.type]} (ROAS ${fmtMultiple(bestType.total.roas)}).`,
+  ];
+  const weaknesses: string[] = [
+    `Nejslabší kampaň „${worst.name}“ s ROAS ${fmtMultiple(worst.roas)} a PNO ${fmtPct(worst.pno)}.`,
+  ];
+  if (!underTarget)
+    weaknesses.push(`Celkové PNO ${fmtPct(portfolio.pno)} je nad cílem ${fmtPct(TARGET_PNO, 0)}.`);
+
+  const recommendations: EvalRecommendation[] = [
+    {
+      title: `Přesunout rozpočet do „${best.name}“`,
+      detail: `Kampaň s nejlepším ROAS (${fmtMultiple(best.roas)}) unese vyšší objem při zachování efektivity.`,
+      priority: "high",
+    },
+    {
+      title: `Optimalizovat nebo utlumit „${worst.name}“`,
+      detail: `Při ROAS ${fmtMultiple(worst.roas)} a nákladech ${fmtCZK(worst.cost)} přealokovat rozpočet k efektivnějším kampaním.`,
+      priority: "high",
+    },
+    {
+      title: underTarget ? "Škálovat při zachování PNO" : "Srovnat PNO k cíli",
+      detail: underTarget
+        ? `Portfolio s PNO ${fmtPct(portfolio.pno)} má prostor zvýšit objem, dokud zůstane pod cílem ${fmtPct(TARGET_PNO, 0)}.`
+        : `Přealokovat od nákladných typů k těm s nejlepší návratností, aby PNO kleslo k ${fmtPct(TARGET_PNO, 0)}.`,
+      priority: "medium",
+    },
+  ];
+
+  return {
+    verdict: `Portfolio ${underTarget ? "je v cíli" : "překračuje cílové PNO"} (ROAS ${fmtMultiple(portfolio.roas)}, PNO ${fmtPct(portfolio.pno)}).`,
+    score: healthScore(portfolio.roas),
+    summary: `${portfolio.count} kampaní utratilo ${fmtCZK(portfolio.cost)} a přineslo ${fmtCZK(portfolio.conversionValue)} při ROAS ${fmtMultiple(portfolio.roas)} a PNO ${fmtPct(portfolio.pno)} (cíl ${fmtPct(TARGET_PNO, 0)}). Výkon táhnou ${CAMPAIGN_TYPE_LABELS[bestType.type]} a brandové vyhledávání. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro vyhodnocení modelem.`,
+    strengths,
+    weaknesses,
+    recommendations,
+  };
+}
+
+export function generateCampaignEvaluation(args: {
+  scope: EvalScope;
+  target: Campaign | null;
+  campaigns: Campaign[];
+  period: CampaignPeriod;
+}): Promise<AiResponse<CampaignReportResult>> {
+  const single = args.scope === "campaign" && args.target;
+  return generateStructured({
+    // llm-tool: campaign-eval
+    prompt: single
+      ? buildCampaignPrompt(args.target!, args.campaigns, args.period)
+      : buildOverallPrompt(args.campaigns, args.period),
+    system: EVAL_SYSTEM,
+    schema: EVAL_SCHEMA,
+    temperature: 0.6,
+    normalize: normalizeReport,
+    demo: () =>
+      single ? demoCampaignReport(args.target!, args.campaigns) : demoOverallReport(args.campaigns),
   });
 }

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import AiAssistant from "@/components/ai/AiAssistant";
+import TaskPager from "@/components/site/TaskPager";
 import { Bolt, Document, Info, Target } from "@/components/icons";
 
 export const metadata: Metadata = {
-  title: "AI asistent — marketingové nástroje na Gemini",
+  title: "AI asistent — marketingové nástroje na Claude a Gemini",
   description:
-    "Tři AI nástroje pro marketing postavené na Gemini (gemini-3-flash-preview): generátor PPC inzerátů, SEO obsahový brief a analýza výkonu klienta. Strukturovaný výstup a kontrola limitů.",
+    "Tři AI nástroje pro marketing postavené na LLM wrapperu (claude-sonnet v devu, gemini-3-flash-preview v produkci): generátor PPC inzerátů, SEO obsahový brief a analýza výkonu klienta. Strukturovaný výstup a kontrola limitů.",
 };
 
 const APPROACH = [
@@ -46,10 +47,11 @@ export default function AiAssistantPage() {
             <p className="mt-2 max-w-2xl text-muted">
               Tři nástroje z každodenní práce agentury v jednom rozhraní — generování PPC inzerátů,
               SEO obsahový brief a analýza výkonu klienta. Každý odpovídá jednomu z pilířů Systedo a
-              pohání ho <strong className="text-navy-700">Gemini</strong>.
+              pohání je <strong className="text-navy-700">LLM wrapper</strong> (Claude Sonnet v devu,
+              Gemini v produkci).
             </p>
           </div>
-          <Pill tone="brand">gemini-3-flash-preview</Pill>
+          <Pill tone="brand">claude-sonnet</Pill>
         </div>
       </div>
 
@@ -74,7 +76,7 @@ export default function AiAssistantPage() {
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {APPROACH.map((a) => (
             <div key={a.title} className="card p-5">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-accent">
                 <a.icon width={20} height={20} />
               </span>
               <h3 className="mt-4 text-sm font-semibold text-navy-800">{a.title}</h3>
@@ -91,6 +93,8 @@ export default function AiAssistantPage() {
           získáte zdarma v Google AI Studiu. Bez něj běží nástroj v ukázkovém režimu.
         </div>
       </section>
+
+      <TaskPager current="/ai-asistent" />
     </Container>
   );
 }

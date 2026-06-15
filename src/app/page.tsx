@@ -6,6 +6,7 @@ import {
   Bolt,
   Document,
   Gauge,
+  Layers,
   Sparkles,
   Target,
 } from "@/components/icons";
@@ -18,6 +19,7 @@ const TASK_ICONS = {
   1: Gauge,
   2: Document,
   3: Sparkles,
+  4: Layers,
 } as const;
 
 const STACK_REASONS = [
@@ -84,7 +86,7 @@ export default function HomePage() {
               </Link>
               <a
                 href="#proc-stack"
-                className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-5 py-3 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-700"
+                className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-5 py-3 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
               >
                 Proč Next.js?
               </a>
@@ -115,7 +117,15 @@ export default function HomePage() {
                   {fmtCZKCompact(last30.revenue)}
                 </p>
               </div>
-              <Sparkline values={monthlyRevenue} width={150} height={52} />
+              <Sparkline
+                values={monthlyRevenue}
+                width={150}
+                height={52}
+                autoColor
+                dot
+                describe
+                formatValue={fmtCZKCompact}
+              />
             </div>
 
             <dl className="mt-6 grid grid-cols-2 gap-3">
@@ -134,20 +144,20 @@ export default function HomePage() {
       <Container className="py-16 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Eyebrow>Tři stránky</Eyebrow>
+            <Eyebrow>Čtyři stránky</Eyebrow>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
               Co najdeš uvnitř
             </h2>
           </div>
           <p className="max-w-md text-sm text-muted">
-            Každý úkol ze zadání má vlastní stránku. Vzájemně se prolínají přes navigaci i odkazy
-            uvnitř obsahu.
+            Každý úkol ze zadání má vlastní stránku — plus bonusový přehled kampaní. Vzájemně se
+            prolínají přes navigaci i odkazy uvnitř obsahu.
           </p>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {NAV_ITEMS.filter((i) => i.task > 0).map((item) => {
-            const Icon = TASK_ICONS[item.task as 1 | 2 | 3];
+            const Icon = TASK_ICONS[item.task as 1 | 2 | 3 | 4];
             return (
               <Link
                 key={item.href}
@@ -155,7 +165,7 @@ export default function HomePage() {
                 className="card group flex flex-col p-6 transition-all hover:-translate-y-1 hover:shadow-pop active:translate-y-0 active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700 transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
                     <Icon width={22} height={22} />
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
@@ -164,7 +174,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="mt-5 text-lg font-semibold text-navy-800">{item.label}</h3>
                 <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{item.blurb}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700">
+                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent">
                   Otevřít stránku
                   <ArrowRight
                     width={16}
@@ -179,7 +189,7 @@ export default function HomePage() {
       </Container>
 
       {/* ---------------------------------------------------------- Stack reasons */}
-      <section id="proc-stack" className="scroll-mt-24 border-y border-line bg-navy-800">
+      <section id="proc-stack" className="scroll-mt-24 border-y border-line bg-onyx">
         <Container className="py-16 sm:py-20">
           <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr]">
             <div>
@@ -190,7 +200,7 @@ export default function HomePage() {
               <h2 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Proč Next.js (App Router)
               </h2>
-              <p className="mt-4 max-w-md text-navy-200">
+              <p className="mt-4 max-w-md text-onyx-muted">
                 Zadání nechává volbu nástroje na mně. Vybral jsem Next.js 16, protože nejlépe
                 pokrývá tři odlišné potřeby najednou: obsahové stránky, interaktivní dashboard a
                 bezpečné volání LLM ze serveru.
@@ -200,7 +210,7 @@ export default function HomePage() {
                   (t) => (
                     <span
                       key={t}
-                      className="rounded-pill border border-navy-600 bg-navy-700/60 px-3 py-1.5 text-xs font-medium text-navy-100"
+                      className="rounded-pill border border-onyx-line bg-onyx-soft/60 px-3 py-1.5 text-xs font-medium text-onyx-ink"
                     >
                       {t}
                     </span>
@@ -213,13 +223,13 @@ export default function HomePage() {
               {STACK_REASONS.map((r, i) => (
                 <div
                   key={r.title}
-                  className="rounded-card border border-navy-700 bg-navy-700/40 p-5"
+                  className="rounded-card border border-onyx-line bg-onyx-soft/40 p-5"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-500/15 text-brand-300">
                     {[<Bolt key="a" width={17} height={17} />, <Target key="b" width={17} height={17} />, <Document key="c" width={17} height={17} />, <Gauge key="d" width={17} height={17} />][i]}
                   </span>
                   <h3 className="mt-4 text-sm font-semibold text-white">{r.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-navy-200">{r.body}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-onyx-muted">{r.body}</p>
                 </div>
               ))}
             </div>
@@ -241,7 +251,7 @@ export default function HomePage() {
               souboru <code className="rounded bg-navy-50 px-1.5 py-0.5 text-navy-700">README.md</code>.
             </p>
           </div>
-          <pre className="overflow-x-auto rounded-card bg-navy-800 p-5 font-mono text-[13px] leading-relaxed text-navy-100">
+          <pre className="overflow-x-auto rounded-card bg-onyx p-5 font-mono text-[13px] leading-relaxed text-onyx-ink">
             <code>
               <span className="text-navy-400"># instalace a běh</span>
               {"\n"}npm install

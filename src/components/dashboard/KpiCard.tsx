@@ -45,6 +45,12 @@ export default function KpiCard({
           values={spark}
           width={104}
           height={34}
+          autoColor
+          goodDirection={meta.goodDirection}
+          dot
+          baseline
+          describe
+          formatValue={meta.formatCompact}
           stroke={emphasised ? "var(--color-brand-600)" : "var(--color-navy-300)"}
           fill={emphasised ? "var(--color-brand-100)" : "var(--color-navy-50)"}
         />

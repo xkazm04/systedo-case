@@ -3,19 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
+import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 const SITE = "Systedo · Case study";
-
-// Resolve the canonical origin from the deploy environment so OG / canonical
-// URLs are correct regardless of the Vercel project or custom domain.
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://systedo-case.vercel.app");
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -39,16 +32,31 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1b2b",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f7f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0f16" },
+  ],
 };
+
+/** Runs before paint: applies an explicitly-chosen theme from localStorage so
+ *  there is no flash of the wrong palette. Absence of a stored choice means
+ *  "follow the system", which the prefers-color-scheme CSS handles on its own. */
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="cs" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
+    <html
+      lang="cs"
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="flex min-h-full flex-col">
         <a
           href="#obsah"
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-navy-800 focus:px-4 focus:py-2 focus:text-sm focus:text-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-onyx focus:px-4 focus:py-2 focus:text-sm focus:text-onyx-ink"
         >
           Přejít na obsah
         </a>

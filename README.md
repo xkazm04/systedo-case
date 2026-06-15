@@ -12,6 +12,7 @@ generuje jeho inzeráty.
 | Výkonnostní dashboard | `/dashboard` | 1 |
 | Článek pro mionelo.cz | `/clanek` | 2 |
 | AI generátor PPC inzerátů | `/ai-asistent` | 3 |
+| Přehled kampaní (Google Ads + AI) | `/kampane` | bonus |
 
 Stránky jsou navzájem prolinkované přes navigaci v hlavičce, patičku i odkazy přímo
 v obsahu.
@@ -53,10 +54,12 @@ npm run seed         # přegeneruje src/data/performance.json
 
 ---
 
-## AI asistent (Úkol 3) — Gemini
+## AI asistent (Úkol 3) — Claude / Gemini přes LLM wrapper
 
 **Tři nástroje v jednom rozhraní**, každý odpovídá jednomu pilíři Systedo. Pohání je
-**`gemini-3-flash-preview`** přes oficiální **`@google/genai`** SDK.
+**LLM wrapper** (`src/lib/llm`), který přepíná providera podle prostředí — v devu
+**Claude Code CLI** (model `sonnet`, přes měsíční předplatné), v produkci **Gemini**
+(`gemini-3-flash-preview`). Viz sekce **LLM wrapper** níže.
 
 - **PPC inzeráty** (výkonnostní reklama) — nadpisy, popisky a klíčová slova s hlídáním
   limitů znaků pro Google Ads i Sklik.
@@ -71,20 +74,102 @@ Co stojí za pozornost z pohledu AI-asistovaného vývoje:
   výsledek je rovnou typovaný a validovaný, žádné křehké parsování textu.
 - **Doménová pravidla** — limity Google Ads i SEO jsou zapečené v promptu a UI je
   navíc barevně kontroluje.
-- **Klíč zůstává na serveru** — volání běží v `/api/ai` (Route Handler, Node runtime),
-  s jediným `generateStructured()` pipeline pro všechny tři nástroje.
-- **Funguje i bez klíče** — bez `GEMINI_API_KEY` se vrátí deterministická ukázka,
-  jasně označená jako demo. Stránka je tak plně použitelná z repa.
-- **Animovaný časovač** — při čekání se plní kruhový indikátor k ~15 s; výsledek se
-  zobrazí ihned po doručení, po 30 s se ukáže stylizovaná hláška o vypršení limitu.
+- **Klíč/přístup zůstává na serveru** — volání běží v `/api/ai` (Route Handler, Node
+  runtime), s jediným `generateStructured()` chokepointem pro všechny nástroje.
+- **Funguje i bez providera** — když není dostupný (v devu chybí Claude CLI, v produkci
+  klíč), vrátí se deterministická ukázka, jasně označená jako demo.
+- **Animovaný časovač** — při čekání se plní kruhový indikátor; výsledek se zobrazí ihned
+  po doručení, po 60 s se ukáže stylizovaná hláška o vypršení limitu (sazba pro Claude
+  v devu).
 - **Transparentnost** — UI umí zobrazit přesný prompt poslaný modelu.
 
-### Nastavení klíče
+### Nastavení
 
 ```bash
+# Vývoj (dev) — žádný klíč není potřeba, stačí přihlášené Claude Code:
+claude            # ověřte, že jste přihlášení (subscription)
+npm run dev
+
+# Produkce — Gemini:
 cp .env.example .env.local
 # doplňte GEMINI_API_KEY=...   (klíč zdarma: https://aistudio.google.com/apikey)
 ```
+
+---
+
+## Kampaně (bonus) — Google Ads přehled + AI vyhodnocení
+
+Stránka `/kampane` je kompaktní přehled marketingových kampaní klienta s napojením na
+**Google Ads**, srovnáním čísel **podle kampaní i podle typů** (Search, Performance Max,
+Shopping, Display, Demand Gen, Video) a **AI vyhodnocením po řádcích** i pro celé
+portfolio — s konkrétními doporučenými dalšími kroky. Data se ukládají do **lokální
+SQLite**, takže přežijí reload i restart serveru.
+
+Co stojí za pozornost:
+
+- **Konektor jako adaptér.** `src/lib/campaigns/connector.ts` má jedno rozhraní a dva
+  poskytovatele: ukázkový (deterministická, realistická data — funguje hned z repa) a
+  reálný Google Ads. Reálný se aktivuje, jakmile jsou v prostředí `GOOGLE_ADS_*`
+  proměnné (viz `.env.example`); samotné volání API je připravený, jasně označený seam.
+- **AI vyhodnocení.** Čtvrtý nástroj pohání stejný **LLM wrapper** jako AI asistent
+  (Claude v devu / Gemini v produkci, strukturovaný výstup dle schématu, **funguje i bez
+  providera** v ukázkovém režimu). Vrací skóre 0–100, verdikt, silné stránky, slabiny a
+  doporučení s prioritou — to vše **výhradně z reálných čísel** dané kampaně / portfolia.
+- **Lokální dev režim.** Persistuje se přes vestavěné **`node:sqlite`** (Node 22.5+/24),
+  takže žádná nová závislost ani build krok. Databáze žije v `.data/systedo.db`
+  (gitignored); smazáním složky `.data` se přehled vyresetuje do prázdného stavu.
+
+> Pozn.: kvůli SQLite na disku je tato stránka určená pro lokální běh — zbytek webu
+> (dashboard, článek, AI asistent) zůstává bez databáze a nasaditelný na Vercel.
+
+```bash
+npm run dev          # /kampane → „Synchronizovat z Google Ads" → analýza po řádcích
+```
+
+---
+
+## LLM wrapper (Claude v devu, Gemini v produkci)
+
+Všechna volání LLM v aplikaci jdou přes **jeden wrapper** (`src/lib/llm`), který přepíná
+providera podle prostředí:
+
+| Prostředí | Provider | Model | Proč |
+| --- | --- | --- | --- |
+| `development` | **Claude Code CLI** (`claude -p`) | `claude-sonnet` (latest Sonnet, *medium thinking*) | využívá měsíční předplatné — výrazně lepší cena za token při lokální práci |
+| `production` | **Google Gemini API** | `gemini-3-flash-preview` | bezserverové nasazení (Vercel) |
+
+- **Jeden chokepoint.** Vrstva nástrojů (`src/lib/gemini.ts`) volá jen
+  `generateStructured()`; přístup k providerům (`@google/genai`, spouštění `claude`) je
+  uzavřený ve `src/lib/llm/{gemini,claude}.ts`. Hlídá to test (viz níže).
+- **Claude přes `cmd`.** `src/lib/llm/claude.ts` spouští `claude -p - --model sonnet
+  --max-turns 1`, prompt jde přes stdin, JSON se robustně vytáhne z výstupu. Pro vnořené
+  spuštění se čistí `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT` a nastaví `MAX_THINKING_TOKENS`.
+- **Stejný kontrakt.** Schéma se u Gemini předává jako `responseSchema`, u Claude se vloží
+  do promptu; obě cesty vrací stejně typovaný, normalizovaný výsledek.
+
+### Test suite + pre-commit brána
+
+Cíl: každé místo, které používá wrapper, má test proti **reálnému Claude** — ale jakmile
+jednou projde, už se znovu nespouští (každé volání modelu trvá), dokud se LLM kód nezmění.
+
+```bash
+npm run llm:list           # vypíše všechna místa volající wrapper (call sites)
+npm run test:llm:coverage  # statická brána (rychlá): každý call site je otagovaný + má test
+npm run test:llm           # spustí nástroje proti reálnému Claude (pomalé)
+npm run llm:gate           # brána: coverage + (jen při změně LLM kódu) reálný běh
+```
+
+- **Kontrakt pokrytí.** Každý `generateStructured(` call site nese tag `// llm-tool: <id>`
+  a každý `id` má záznam v `test-llm/registry.mjs` (= test). Nový LLM nástroj bez testu
+  bránu shodí. (`test-llm/callsites.mjs` to staticky ověří.)
+- **Prove-once.** `scripts/llm-gate.mjs` spočítá hash LLM-relevantních souborů; když se
+  shoduje s posledním úspěchem (`.llm-gate-cache.json`, verzovaný), reálné testy
+  **přeskočí**. Změna LLM kódu hash změní → testy se přehrají a cache se obnoví.
+- **Pre-commit.** `.husky/pre-commit` spouští `node scripts/llm-gate.mjs` (po
+  `lint-staged`). Coverage běží vždy; reálný běh jen když je potřeba.
+
+> Reálné testy potřebují přihlášené Claude Code (`claude`). Bez něj spadnou —
+> přesně to brána hlídá.
 
 ---
 
@@ -154,25 +239,33 @@ src/
     dashboard/page.tsx     # Úkol 1
     clanek/page.tsx        # Úkol 2
     ai-asistent/page.tsx   # Úkol 3
-    api/ai/route.ts        # serverové volání Gemini
+    kampane/page.tsx       # Bonus — přehled kampaní
+    api/ai/route.ts        # serverové volání LLM (přes wrapper)
+    api/campaigns/         # GET/POST sync + analyze (SQLite, server-only)
     layout.tsx, globals.css, icon.svg
   components/
     site/                  # Nav, Footer
     dashboard/             # KPI karty, graf, tabulka kanálů, orchestrátor
     article/               # renderer strukturovaného obsahu
     ai/                    # AdGenerator (klientské UI)
+    campaigns/             # tabulka, srovnání podle typu, AI report (klient)
     charts/                # Sparkline (bez závislostí)
     ui.tsx, icons.tsx
   lib/
     metrics.ts             # čistá analytická vrstva
     format.ts              # české formátování (Kč, %, čísla)
     data.ts, article.ts    # načítání JSON
-    gemini.ts              # integrace Gemini (server-only)
+    llm/                   # LLM wrapper: index (switch) + claude/gemini providery + models
+    gemini.ts              # vrstva AI nástrojů (volá wrapper, server-only)
+    db.ts                  # node:sqlite připojení (server-only)
+    campaigns/             # model, konektor, store, sample data, prompty
     ai-types.ts, types.ts, nav.ts
   data/
     performance.json       # „databáze" dashboardu (generovaná)
     article.json           # obsah článku (headless-CMS model)
 scripts/generate-data.mjs  # seed dat
+scripts/llm-gate.mjs       # pre-commit brána pro LLM wrapper (coverage + prove-once)
+test-llm/                  # node:test suite proti reálnému Claude + registry call sites
 ```
 
 ---

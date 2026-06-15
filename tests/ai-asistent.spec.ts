@@ -11,8 +11,9 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
  */
 
 const HAS_KEY = Boolean(process.env.GEMINI_API_KEY);
-// Real-model latency: the app aborts at 30s, so allow a little more here.
-const RESULT_TIMEOUT = 35_000;
+// Real-model latency. In dev the provider is the Claude Code CLI (slower than
+// Gemini); the app aborts at 60s, so allow ample room here.
+const RESULT_TIMEOUT = 65_000;
 
 /** Inactive tool panels stay mounted (hidden); scope to the active one. */
 function tool(page: Page, id: "ads" | "brief" | "analysis"): Locator {
@@ -53,6 +54,10 @@ test.describe("/ai-asistent", () => {
     await expect(t.getByRole("heading", { name: "Klíčová slova" })).toBeVisible();
     // character counters are rendered (e.g. "27/30")
     await expect(t.getByText(/\/30/).first()).toBeVisible();
+    // Ad Strength meter + live RSA preview render from the generated set
+    await expect(t.getByTestId("ad-strength").getByRole("heading", { name: "Síla inzerátu" })).toBeVisible();
+    await expect(t.getByTestId("rsa-preview")).toBeVisible();
+    await expect(t.getByTestId("rsa-preview").getByText(/Sponzorováno/)).toBeVisible();
   });
 
   test("Brief: generates an SEO content brief with the live model", async ({ page }) => {
@@ -108,7 +113,7 @@ test.describe("/ai-asistent", () => {
   });
 
   test("shows a styled timeout illustration when the model does not respond", async ({ page }) => {
-    // Intercept the API and never answer; the app aborts at 30s and shows the
+    // Intercept the API and never answer; the app aborts at 60s and shows the
     // timeout illustration. No API key needed — the request never reaches it.
     await page.route("**/api/ai", async () => {
       // deliberately never fulfilled
@@ -119,7 +124,7 @@ test.describe("/ai-asistent", () => {
     await t.getByRole("button", { name: "Vygenerovat inzeráty" }).click();
 
     await expect(t.getByTestId("ai-loading")).toBeVisible();
-    await expect(t.getByTestId("ai-timeout")).toBeVisible({ timeout: 40_000 });
+    await expect(t.getByTestId("ai-timeout")).toBeVisible({ timeout: 70_000 });
     await expect(t.getByRole("heading", { name: "Vypršel časový limit" })).toBeVisible();
     await expect(t.getByRole("button", { name: "Zkusit znovu" })).toBeVisible();
   });

@@ -5,13 +5,17 @@ import type { AiResponse } from "@/lib/ai-types";
 
 type Status = "idle" | "loading" | "done" | "error";
 
-/** Hard ceiling: if the model hasn't answered in 30s, abort and show a timeout. */
-export const AI_TIMEOUT_MS = 30_000;
+/** Hard ceiling: if the model hasn't answered in time, abort and show a timeout.
+ *  Sized for the dev provider (Claude Code CLI, incl. medium thinking + cold
+ *  start); Gemini in production answers well inside this. */
+export const AI_TIMEOUT_MS = 60_000;
 /** Visual target for the loading timer — the response usually arrives by here. */
-export const AI_TIMER_TARGET_MS = 15_000;
+export const AI_TIMER_TARGET_MS = 18_000;
+/** The hard ceiling in whole seconds, for user-facing copy. */
+export const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
 
 /** Shared request lifecycle for every AI tool: posts {mode, ...payload} to the
- *  single /api/ai endpoint, tracks status/data/error, and aborts after 30s. */
+ *  single /api/ai endpoint, tracks status/data/error, and aborts after the ceiling. */
 export function useAiTool<T>(mode: string) {
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<AiResponse<T> | null>(null);
@@ -44,7 +48,7 @@ export function useAiTool<T>(mode: string) {
     } catch {
       if (controller.signal.aborted) {
         setTimedOut(true);
-        setError("Model neodpověděl do 30 sekund.");
+        setError(`Model neodpověděl do ${AI_TIMEOUT_SECONDS} sekund.`);
       } else {
         setError("Nepodařilo se spojit se serverem.");
       }

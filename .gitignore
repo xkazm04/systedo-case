@@ -20,6 +20,9 @@
 # production
 /build
 
+# local sqlite (campaigns feature, local-dev mode)
+/.data
+
 # misc
 .DS_Store
 *.pem
@@ -46,3 +49,6 @@ next-env.d.ts
 /playwright-report
 /blob-report
 /playwright/.cache
+
+# claude code tooling (logs, worktrees, local settings)
+/.claude

@@ -67,6 +67,14 @@
         "Nemusíte znát výživové tabulky nazpaměť. Stačí hrubá představa, který plod se hodí kam."
       ]
     },
+    {
+      "type": "figure",
+      "src": "/clanek/prehled-druhu.svg",
+      "alt": "Tři skupiny potravin vedle sebe — ořechy (vlašské, mandle, kešu), semínka (chia, lněná, dýňová) a sušené plody (datle, fíky, lyofilizované ovoce) — s krátkým popisem, na co se každá skupina hodí.",
+      "caption": "Tři skupiny, tři role v jídelníčku: ořechy nesou kvalitní tuky, semínka vlákninu a minerály, sušené plody přirozenou sladkost.",
+      "width": 1200,
+      "height": 675
+    },
     { "type": "h3", "id": "prehled-orechy", "text": "Ořechy" },
     {
       "type": "p",
@@ -154,6 +162,14 @@
       "content": [
         "Za zkažením stojí nejčastěji žluknutí tuků. Trojici nepřátel — teplo, světlo a vzduch — porazíte třemi pravidly:"
       ]
+    },
+    {
+      "type": "figure",
+      "src": "/clanek/skladovani.svg",
+      "alt": "Tři pravidla skladování ořechů a semínek znázorněná jako ikony: chlad (spíž nebo lednice), tma (pryč z parapetu) a sucho (vzduchotěsná dóza místo papírového sáčku).",
+      "caption": "Chlad, tma a sucho — tři pravidla, která drží tuky před žluknutím.",
+      "width": 1200,
+      "height": 675
     },
     {
       "type": "ul",

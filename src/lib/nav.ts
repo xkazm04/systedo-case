@@ -9,6 +9,12 @@ export interface NavItem {
   task: number;
 }
 
+/** One step in a breadcrumb trail. The final crumb (current page) omits `href`. */
+export interface Crumb {
+  label: string;
+  href?: string;
+}
+
 export const NAV_ITEMS: NavItem[] = [
   {
     href: "/",
@@ -34,4 +40,34 @@ export const NAV_ITEMS: NavItem[] = [
     blurb: "Tři marketingové nástroje na Gemini — PPC inzeráty, SEO obsahový brief a analýza výkonu.",
     task: 3,
   },
+  {
+    href: "/kampane",
+    label: "Kampaně",
+    blurb: "Bonus: přehled kampaní z Google Ads se srovnáním podle typů, AI vyhodnocením a uložením do SQLite.",
+    task: 4,
+  },
 ];
+
+/** Label of a nav item by its href, so breadcrumbs reuse the same wording as
+ *  the header/footer instead of hard-coding strings that can drift. */
+export function navLabel(href: string, fallback = ""): string {
+  return NAV_ITEMS.find((i) => i.href === href)?.label ?? fallback;
+}
+
+/** Diacritics-aware slug ("Zdravý jídelníček" → "zdravy-jidelnicek"). */
+export function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Path to the (future) blog hub filtered by a category. The article page lives
+ *  at /clanek today; once it grows into a listing hub the same URL filters by
+ *  category — so the visible breadcrumb link and the BreadcrumbList JSON-LD stay
+ *  pointed at one consistent address. */
+export function categoryHubPath(category: string): string {
+  return `/clanek?kategorie=${slugify(category)}`;
+}

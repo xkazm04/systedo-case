@@ -40,10 +40,10 @@ function SerpPreview({ title, meta, slug }: { title: string; meta: string; slug:
     <div className="rounded-card border border-line bg-surface p-5">
       <p className="text-xs text-muted">Náhled ve vyhledávání</p>
       <div className="mt-2">
-        <p className="truncate text-xs text-[#3a7d3a]">
+        <p className="truncate text-xs text-serp-url">
           mionelo.cz › blog › {slug || "url-slug"}
         </p>
-        <p className="mt-0.5 text-lg leading-snug text-[#1a4ba0]">{title || "Title tag"}</p>
+        <p className="mt-0.5 text-lg leading-snug text-serp-link">{title || "Title tag"}</p>
         <p className="mt-1 line-clamp-2 text-sm text-navy-600">
           {meta || "Meta description se zobrazí tady."}
         </p>
@@ -55,7 +55,7 @@ function SerpPreview({ title, meta, slug }: { title: string; meta: string; slug:
 function SeoLine({ label, value, limit }: { label: string; value: string; limit: number }) {
   const over = value.length > limit;
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${over ? "border-negative/40 bg-[#fcf1ef]" : "border-line"}`}>
+    <div className={`rounded-lg border px-3 py-2.5 ${over ? "border-negative/40 bg-negative-soft" : "border-line"}`}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</span>
         <div className="flex items-center gap-1.5">
@@ -110,7 +110,7 @@ export default function ContentBriefGenerator() {
           <button
             type="button"
             onClick={() => setForm(EXAMPLE)}
-            className="text-xs font-semibold text-brand-700 hover:text-brand-800"
+            className="text-xs font-semibold text-brand-accent hover:text-brand-800"
           >
             Vyplnit ukázku
           </button>
@@ -232,7 +232,7 @@ export default function ContentBriefGenerator() {
                 {r.outline.map((s, i) => (
                   <li key={i} className="rounded-card border border-line bg-surface p-4">
                     <div className="flex items-center gap-2.5">
-                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-800 text-xs font-semibold text-white">
+                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-xs font-semibold text-white">
                         {i + 1}
                       </span>
                       <h4 className="font-semibold text-navy-800">{s.heading}</h4>

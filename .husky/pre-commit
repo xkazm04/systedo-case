@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+npx lint-staged
+
+# LLM wrapper gate: every place the app uses the wrapper must be tested, and
+# (only when the LLM code changed) it must pass against real Claude Code. A cached
+# pass is not re-run. See scripts/llm-gate.mjs.
+node scripts/llm-gate.mjs

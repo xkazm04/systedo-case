@@ -14,23 +14,27 @@ export function Container({
 /** Small uppercase kicker above a heading. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-700">
+    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-brand-accent">
       <span className="h-px w-6 bg-brand-400" aria-hidden />
       {children}
     </span>
   );
 }
 
-type PillTone = "brand" | "navy" | "positive" | "negative" | "neutral" | "coral";
+export type PillTone = "brand" | "navy" | "positive" | "negative" | "neutral" | "coral";
 
 const PILL_TONES: Record<PillTone, string> = {
   brand: "bg-brand-50 text-brand-800",
   navy: "bg-navy-50 text-navy-700",
-  positive: "bg-[#e7f4ef] text-positive",
-  negative: "bg-[#fbeae7] text-negative",
+  positive: "bg-positive-soft text-positive",
+  negative: "bg-negative-soft text-negative",
   neutral: "bg-navy-50 text-muted",
-  coral: "bg-[#fff0e9] text-coral-600",
+  coral: "bg-coral-soft text-coral-600",
 };
+
+/** Every available Pill tone, so the design-system showcase can enumerate them
+ *  straight from the source of truth instead of hard-coding the list. */
+export const PILL_TONE_NAMES = Object.keys(PILL_TONES) as PillTone[];
 
 export function Pill({
   children,

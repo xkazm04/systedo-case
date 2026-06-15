@@ -1,0 +1,466 @@
+{
+  "$schema": "https://vibeman.dev/schemas/context-map.json",
+  "projectId": "081e8fd1-14c8-4a38-ad60-2e522019d1e6",
+  "projectName": "systedo-case",
+  "projectPath": "C:\\Users\\kazda\\kiro\\systedo-case",
+  "version": "2.0.0",
+  "groups": [
+    {
+      "name": "Site Shell & Landing",
+      "domain": "feature",
+      "type": null,
+      "color": "#3B82F6",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Home, App Shell & Transitions",
+          "description": "The landing rozcestník that introduces the case study, justifies the Next.js stack and links to every task page, plus the global HTML shell and the per-navigation fade transition wrapping every route.",
+          "businessFeature": "Home & App Shell",
+          "category": "ui",
+          "filePaths": [
+            "src/app/page.tsx",
+            "src/app/layout.tsx",
+            "src/app/template.tsx",
+            "src/lib/site.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Header & Footer Navigation",
+          "description": "Lets visitors move through the case study: a site-wide header and footer plus a documentation-style prev/next task pager, all driven by one typed navigation model so links never drift. The header also hosts a system-aware light/dark theme toggle.",
+          "businessFeature": "Primary Navigation",
+          "category": "ui",
+          "filePaths": [
+            "src/components/site/Nav.tsx",
+            "src/components/site/Footer.tsx",
+            "src/components/site/TaskPager.tsx",
+            "src/components/site/ThemeToggle.tsx",
+            "src/lib/nav.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Performance Dashboard",
+      "domain": "feature",
+      "type": null,
+      "color": "#06B6D4",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Dashboard Workspace & KPIs",
+          "description": "Interactive performance dashboard for the client: headline KPI cards (visits, cost, conversions, revenue, PNO) with period switching, period-over-period delta badges, a monthly revenue-goal pacing card with a seasonality-aware month-end forecast, and auto-generated insights.",
+          "businessFeature": "Performance Dashboard",
+          "category": "ui",
+          "filePaths": [
+            "src/app/dashboard/page.tsx",
+            "src/components/dashboard/DashboardClient.tsx",
+            "src/components/dashboard/KpiCard.tsx",
+            "src/components/dashboard/GoalPacing.tsx",
+            "src/components/dashboard/DeltaBadge.tsx"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Trend Chart & Channel Breakdown",
+          "description": "Dependency-free SVG trend chart with switchable metrics and a faint previous-period overlay (period-over-period delta in the hover tooltip), plus the channel-mix table that breaks the selected period down by marketing channel and reconciles to the headline totals.",
+          "businessFeature": "Performance Visualisations",
+          "category": "ui",
+          "filePaths": [
+            "src/components/dashboard/TrendChart.tsx",
+            "src/components/dashboard/ChannelTable.tsx",
+            "tests/dashboard-comparison.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Metrics Analytics Engine",
+          "description": "Pure analytics layer that turns the daily time series into totals, equal-length period comparisons, chart buckets and channel rows, with the metric metadata (labels, formats, good-direction) the UI renders.",
+          "businessFeature": "Performance Metrics",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/metrics.ts",
+            "src/lib/data.ts",
+            "src/lib/types.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Performance Dataset & Seed",
+          "description": "The JSON 'database' behind the dashboard plus the seeded PRNG generator that produces a reproducible, internally-consistent two-year daily series (visits, cost, conversions, revenue).",
+          "businessFeature": "Performance Dataset",
+          "category": "data",
+          "filePaths": [
+            "src/data/performance.json",
+            "scripts/generate-data.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "AI Marketing Assistant",
+      "domain": "feature",
+      "type": null,
+      "color": "#8B5CF6",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "LLM Wrapper Test Gate",
+          "description": "The pre-commit gate that keeps the AI layer honest: it verifies every LLM call site goes through the wrapper chokepoint and is tagged + test-registered, then runs the real Claude wrapper test suite only when LLM code changed (cached by content hash) so the slow model calls don't repeat needlessly.",
+          "businessFeature": "LLM Test Gate",
+          "category": "test",
+          "filePaths": [
+            "scripts/llm-gate.mjs",
+            "test-llm/callsites.mjs",
+            "test-llm/registry.mjs",
+            "test-llm/resolve-hooks.mjs",
+            "test-llm/setup.mjs",
+            "test-llm/real.test.mjs",
+            "test-llm/coverage.test.mjs",
+            ".llm-gate-cache.json"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "AI Assistant Workspace",
+          "description": "The tabbed AI workspace page hosting the three marketing tools in one interface, with shared form/result primitives, a copy-prompt transparency panel and a request-lifecycle hook with an animated loading timer and 30s timeout. Includes the Playwright e2e suite for the page.",
+          "businessFeature": "AI Assistant Workspace",
+          "category": "ui",
+          "filePaths": [
+            "src/app/ai-asistent/page.tsx",
+            "src/components/ai/AiAssistant.tsx",
+            "src/components/ai/primitives.tsx",
+            "src/components/ai/useAiTool.ts",
+            "tests/ai-asistent.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/ai"
+          ]
+        },
+        {
+          "name": "AI Tool Forms (Ads, Brief, Analysis)",
+          "description": "The three client-side tool forms: a PPC ad generator with Google Ads/Sklik character-limit checks, a Google-style Ad Strength meter and a live responsive-search-ad preview; an SEO content brief builder with a search-result preview; and a performance analysis tool grounded in the dashboard data.",
+          "businessFeature": "AI Marketing Tools",
+          "category": "ui",
+          "filePaths": [
+            "src/components/ai/AdGenerator.tsx",
+            "src/components/ai/ContentBriefGenerator.tsx",
+            "src/components/ai/PerformanceAnalyst.tsx",
+            "src/lib/ad-strength.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/ai"
+          ]
+        },
+        {
+          "name": "AI Generation Tools & API",
+          "description": "The server-only AI tools and their single /api/ai endpoint: ads, SEO brief, performance analysis and campaign evaluation, each with JSON-schema structured output, request validation and a dataset snapshot that grounds the analysis prompt in real dashboard numbers.",
+          "businessFeature": "AI Generation Pipeline",
+          "category": "api",
+          "filePaths": [
+            "src/app/api/ai/route.ts",
+            "src/lib/gemini.ts",
+            "src/lib/ai-types.ts",
+            "src/lib/snapshot.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/ai"
+          ]
+        },
+        {
+          "name": "LLM Provider Wrapper",
+          "description": "The single chokepoint for every AI call: one generateStructured() entry point that switches provider by environment — Claude Code CLI (Sonnet via subscription) in development, Google Gemini in production — stamps the result with the active model and degrades to a deterministic demo when no provider is configured.",
+          "businessFeature": "LLM Provider Wrapper",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/llm/index.ts",
+            "src/lib/llm/models.ts",
+            "src/lib/llm/claude.ts",
+            "src/lib/llm/gemini.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Content Article",
+      "domain": "feature",
+      "type": null,
+      "color": "#F59E0B",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Article Reading Experience",
+          "description": "The published article page: breadcrumb trail, a typed renderer for structured blocks (headings, lists, callouts, CTAs, lazy next/image figures), hover-to-copy heading permalink anchors that sync the TOC highlight, a sticky table of contents, a reading-progress bar, a UTM-tagged share + copy-link bar, an FAQ accordion and Article/ImageObject/Breadcrumb/FAQ JSON-LD.",
+          "businessFeature": "Content Article",
+          "category": "ui",
+          "filePaths": [
+            "src/app/clanek/page.tsx",
+            "src/components/article/ArticleBody.tsx",
+            "src/components/article/ArticleToc.tsx",
+            "src/components/article/Breadcrumbs.tsx",
+            "src/components/article/HeadingAnchor.tsx",
+            "src/components/article/ReadingProgress.tsx",
+            "src/components/article/ShareBar.tsx",
+            "src/components/article/section-store.ts",
+            "tests/clanek-anchors.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Headless Article Content",
+          "description": "The headless-CMS content model for the article: structured JSON in the repo plus the typed loader that derives the table of contents and FAQ schema, keeps internal/external/anchor links first-class, and supports figure/image blocks promoted into the Article JSON-LD graph as ImageObject nodes.",
+          "businessFeature": "Article Content Model",
+          "category": "data",
+          "filePaths": [
+            "src/lib/article.ts",
+            "src/data/article.json",
+            "public/clanek/prehled-druhu.svg",
+            "public/clanek/skladovani.svg"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Campaign Intelligence",
+      "domain": "feature",
+      "type": null,
+      "color": "#EC4899",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Campaign Console UI",
+          "description": "Client-side console for the Google Ads campaign portfolio: a sortable, filterable campaign table with a rule-based triage layer (attention banner, per-row severity badges, needs-attention filter, sort-by-priority), a by-type spend/ROAS breakdown, per-campaign and portfolio AI evaluation report cards with a score timeline, and a hook that syncs data and runs evaluations with per-row busy state.",
+          "businessFeature": "Campaign Console",
+          "category": "ui",
+          "filePaths": [
+            "src/app/kampane/page.tsx",
+            "src/components/campaigns/CampaignsClient.tsx",
+            "src/components/campaigns/CampaignTable.tsx",
+            "src/components/campaigns/TriageBanner.tsx",
+            "src/components/campaigns/ReportView.tsx",
+            "src/components/campaigns/ScoreTimeline.tsx",
+            "src/components/campaigns/TypeBreakdown.tsx",
+            "src/components/campaigns/useCampaigns.ts",
+            "tests/kampane-triage.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/campaigns",
+            "/api/campaigns/analyze"
+          ]
+        },
+        {
+          "name": "Campaign Sync & Evaluation API",
+          "description": "Server routes that sync Google Ads campaigns from the connector into SQLite (GET state / POST sync) and run a single-campaign or whole-portfolio AI evaluation, persisting each report so it matches the data on screen.",
+          "businessFeature": "Campaign Sync & Evaluation",
+          "category": "api",
+          "filePaths": [
+            "src/app/api/campaigns/route.ts",
+            "src/app/api/campaigns/analyze/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/campaigns",
+            "/api/campaigns/analyze"
+          ]
+        },
+        {
+          "name": "Google Ads Connector & SQLite Store",
+          "description": "The data layer for campaigns: a Google Ads connector with a deterministic sample provider (and a ready seam for live credentials), plus a node:sqlite store that persists synced campaigns and AI reports to a local file with no native build step.",
+          "businessFeature": "Campaign Data Layer",
+          "category": "data",
+          "filePaths": [
+            "src/lib/campaigns/connector.ts",
+            "src/lib/campaigns/sample.ts",
+            "src/lib/campaigns/store.ts",
+            "src/lib/db.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Campaign Model & AI Prompts",
+          "description": "Framework-free campaign domain model (types, derived metrics, aggregation, by-type grouping, agreed PNO/ROAS targets), a pure rule-based triage/severity helper that flags rule-breaching campaigns and ranks where attention is due, and the prompt builders that turn synced numbers into grounded per-campaign and portfolio evaluation prompts.",
+          "businessFeature": "Campaign Domain & Prompts",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/campaigns/types.ts",
+            "src/lib/campaigns/triage.ts",
+            "src/lib/campaigns/report-input.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Shared Foundations",
+      "domain": "shared",
+      "type": null,
+      "color": "#6366F1",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Design System, Icons & Charts",
+          "description": "Reusable visual primitives shared across every page: layout/typography building blocks (Container, Eyebrow, Pill), the SVG icon set, the dependency-free Sparkline, global Tailwind styles, the favicon, and a living /design-system showcase generated from the @theme token names so it never drifts, with a Playwright visual-regression baseline.",
+          "businessFeature": "Design System",
+          "category": "ui",
+          "filePaths": [
+            "src/components/ui.tsx",
+            "src/components/icons.tsx",
+            "src/components/charts/Sparkline.tsx",
+            "src/app/globals.css",
+            "src/app/icon.svg",
+            "src/app/design-system/page.tsx",
+            "src/lib/design-tokens.ts",
+            "tests/design-system.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Czech Formatting Helpers",
+          "description": "Centralised Czech-locale formatting helpers (currency, percent, signed deltas, multiples, dates, relative time, collapsed date ranges, and screen-reader-safe compact/aria pairs) so every page and every AI prompt renders numbers identically.",
+          "businessFeature": "Formatting",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/format.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Build & Tooling Config",
+          "description": "Project build and tooling configuration: dependencies and npm scripts (including the composite check gate), TypeScript/Next.js/ESLint/PostCSS-Tailwind setup, the Playwright config, the quality gate (Husky pre-commit, lint-staged, GitHub Actions CI mirroring npm run check), and the repo README + env example.",
+          "businessFeature": "Build & Tooling",
+          "category": "config",
+          "filePaths": [
+            "package.json",
+            "tsconfig.json",
+            "next.config.ts",
+            "eslint.config.mjs",
+            "postcss.config.mjs",
+            "lint-staged.config.mjs",
+            "playwright.config.ts",
+            ".husky/pre-commit",
+            ".github/workflows/ci.yml",
+            ".gitattributes",
+            "README.md",
+            ".env.example"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    }
+  ],
+  "ungrouped": [],
+  "relationships": [
+    {
+      "source": "Site Shell & Landing",
+      "target": "Shared Foundations",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Performance Dashboard",
+      "target": "Shared Foundations",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "AI Marketing Assistant",
+      "target": "Shared Foundations",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Content Article",
+      "target": "Shared Foundations",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Campaign Intelligence",
+      "target": "Shared Foundations",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Performance Dashboard",
+      "target": "AI Marketing Assistant",
+      "type": "triggers",
+      "description": ""
+    },
+    {
+      "source": "AI Marketing Assistant",
+      "target": "Campaign Intelligence",
+      "type": "uses",
+      "description": ""
+    }
+  ],
+  "index": [
+    "Site Shell & Landing › Home, App Shell & Transitions [ui] — 4 files",
+    "Site Shell & Landing › Header & Footer Navigation [ui] — 5 files",
+    "Performance Dashboard › Dashboard Workspace & KPIs [ui] — 5 files",
+    "Performance Dashboard › Trend Chart & Channel Breakdown [ui] — 3 files",
+    "Performance Dashboard › Metrics Analytics Engine [lib] — 3 files",
+    "Performance Dashboard › Performance Dataset & Seed [data] — 2 files",
+    "AI Marketing Assistant › LLM Wrapper Test Gate [test] — 8 files",
+    "AI Marketing Assistant › AI Assistant Workspace [ui] — 5 files",
+    "AI Marketing Assistant › AI Tool Forms (Ads, Brief, Analysis) [ui] — 4 files",
+    "AI Marketing Assistant › AI Generation Tools & API [api] — 4 files",
+    "AI Marketing Assistant › LLM Provider Wrapper [lib] — 4 files",
+    "Content Article › Article Reading Experience [ui] — 9 files",
+    "Content Article › Headless Article Content [data] — 4 files",
+    "Campaign Intelligence › Campaign Console UI [ui] — 9 files",
+    "Campaign Intelligence › Campaign Sync & Evaluation API [api] — 2 files",
+    "Campaign Intelligence › Google Ads Connector & SQLite Store [data] — 4 files",
+    "Campaign Intelligence › Campaign Model & AI Prompts [lib] — 3 files",
+    "Shared Foundations › Design System, Icons & Charts [ui] — 8 files",
+    "Shared Foundations › Czech Formatting Helpers [lib] — 1 files",
+    "Shared Foundations › Build & Tooling Config [config] — 12 files"
+  ],
+  "summary": {
+    "totalGroups": 6,
+    "totalContexts": 20,
+    "totalFiles": 99,
+    "categories": {
+      "ui": 9,
+      "lib": 4,
+      "data": 3,
+      "test": 1,
+      "api": 2,
+      "config": 1
+    },
+    "domains": {
+      "feature": 5,
+      "shared": 1
+    }
+  },
+  "audit": {
+    "ok": true,
+    "tier": "medium",
+    "warnings": 0
+  },
+  "instructions": "Context map for systedo-case. Each group is a business domain (domain field); each context is a feature with its files (filePaths) + a technical category. Read this to learn which files belong to which feature BEFORE editing. When you change a context's files, update them here (or run Vibeman's refresh) to keep this fresh.",
+  "generatedAt": "2026-06-15T18:31:41.223Z",
+  "revision": "7dc2dc09d795"
+}

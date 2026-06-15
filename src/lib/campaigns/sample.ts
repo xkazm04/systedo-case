@@ -1,0 +1,93 @@
+/** Deterministic sample campaigns for the Ads connector's keyless mode.
+ *
+ *  Same philosophy as `scripts/generate-data.mjs`: a seeded PRNG makes the output
+ *  reproducible, and the per-campaign profiles are tuned so the advertising-channel
+ *  types tell a believable story for the e-shop Mionelo (ořechy, semínka,
+ *  superpotraviny) — brand Search is hyper-efficient, Performance Max carries the
+ *  volume, while Video / Demand Gen prospecting runs below the target ROAS. That
+ *  spread is what makes the per-type comparison and the AI evaluation interesting.
+ *
+ *  Metrics scale with the requested period, with small deterministic jitter, so a
+ *  re-sync of the same period is stable but different periods differ realistically.
+ */
+import {
+  CAMPAIGN_PERIOD_DAYS,
+  type Campaign,
+  type CampaignPeriod,
+  type CampaignStatus,
+  type CampaignType,
+} from "./types";
+
+// --- seeded PRNG (mulberry32), matching the seed script -----------------------
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// FNV-1a string hash → numeric seed (keeps each period reproducible-but-distinct)
+function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+interface Spec {
+  id: string;
+  name: string;
+  type: CampaignType;
+  status: CampaignStatus;
+  /** impressions per day */
+  impr: number;
+  /** click-through rate */
+  ctr: number;
+  /** average cost per click, CZK */
+  cpc: number;
+  /** conversion rate on clicks */
+  convRate: number;
+  /** average order value, CZK (→ conversion value) */
+  aov: number;
+}
+
+// Daily base rates per campaign. Distinct profiles per type drive the spread.
+const SPECS: Spec[] = [
+  { id: "1001", name: "Search · Brand — Mionelo", type: "search", status: "enabled", impr: 900, ctr: 0.14, cpc: 4.5, convRate: 0.09, aov: 980 },
+  { id: "1002", name: "Search · Ořechy a semínka", type: "search", status: "enabled", impr: 5200, ctr: 0.06, cpc: 9.5, convRate: 0.035, aov: 890 },
+  { id: "1003", name: "Performance Max · Celý sortiment", type: "performance_max", status: "enabled", impr: 42000, ctr: 0.012, cpc: 6.0, convRate: 0.03, aov: 1020 },
+  { id: "1004", name: "Shopping · Bestsellery", type: "shopping", status: "enabled", impr: 28000, ctr: 0.009, cpc: 5.0, convRate: 0.028, aov: 760 },
+  { id: "1005", name: "Display · Remarketing", type: "display", status: "enabled", impr: 120000, ctr: 0.006, cpc: 2.2, convRate: 0.007, aov: 850 },
+  { id: "1006", name: "Demand Gen · Akvizice", type: "demand_gen", status: "enabled", impr: 95000, ctr: 0.008, cpc: 3.2, convRate: 0.006, aov: 900 },
+  { id: "1007", name: "Video · YouTube povědomí", type: "video", status: "paused", impr: 210000, ctr: 0.004, cpc: 1.1, convRate: 0.002, aov: 820 },
+];
+
+export function sampleCampaigns(period: CampaignPeriod): Campaign[] {
+  const days = CAMPAIGN_PERIOD_DAYS[period];
+  const rnd = mulberry32(hashStr(`mionelo:${period}`));
+  const j = (scale = 0.05) => 1 + (rnd() * 2 - 1) * scale;
+
+  return SPECS.map((s) => {
+    const impressions = Math.round(s.impr * days * j());
+    const clicks = Math.round(impressions * s.ctr * j());
+    const cost = Math.round(clicks * s.cpc * j());
+    const conversions = Math.max(0, Math.round(clicks * s.convRate * j()));
+    const conversionValue = Math.round(conversions * s.aov * j());
+    return {
+      id: s.id,
+      name: s.name,
+      type: s.type,
+      status: s.status,
+      impressions,
+      clicks,
+      cost,
+      conversions,
+      conversionValue,
+    };
+  });
+}

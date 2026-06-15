@@ -45,6 +45,18 @@ export interface StatBlock {
   type: "stat";
   items: { value: string; label: string }[];
 }
+/** A first-class image, rendered via next/image with a styled caption and
+ *  auto-promoted into the Article JSON-LD graph as an ImageObject. `src` is a
+ *  site-relative path (e.g. /clanek/foo.svg); width/height are the intrinsic
+ *  dimensions used to reserve layout space and avoid CLS. */
+export interface FigureBlock {
+  type: "figure";
+  src: string;
+  alt: string;
+  caption?: string;
+  width?: number;
+  height?: number;
+}
 
 export type Block =
   | HeadingBlock
@@ -53,7 +65,8 @@ export type Block =
   | CalloutBlock
   | QuoteBlock
   | CtaBlock
-  | StatBlock;
+  | StatBlock
+  | FigureBlock;
 
 export interface FaqItem {
   q: string;
@@ -89,4 +102,10 @@ export function tableOfContents(a: Article): { id: string; text: string }[] {
   return a.blocks
     .filter((b): b is HeadingBlock => b.type === "h2")
     .map((b) => ({ id: b.id, text: b.text }));
+}
+
+/** Figure blocks in document order — used to promote images into the Article
+ *  JSON-LD graph (ImageObject nodes + the Article `image` array). */
+export function figureBlocks(a: Article): FigureBlock[] {
+  return a.blocks.filter((b): b is FigureBlock => b.type === "figure");
 }

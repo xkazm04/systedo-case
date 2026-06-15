@@ -8,9 +8,15 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm run lint && npm run build",
     "seed": "node scripts/generate-data.mjs",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:llm": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./test-llm/setup.mjs --test test-llm/real.test.mjs",
+    "test:llm:coverage": "node --test test-llm/coverage.test.mjs",
+    "llm:gate": "node scripts/llm-gate.mjs",
+    "llm:list": "node scripts/llm-gate.mjs --list",
+    "prepare": "husky"
   },
   "dependencies": {
     "@google/genai": "^2.8.0",
@@ -21,11 +27,13 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.13.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

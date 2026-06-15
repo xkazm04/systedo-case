@@ -79,7 +79,10 @@ export interface PeriodResult {
   previous: Totals;
   /** relative change per metric (fraction); previous-window baseline */
   delta: Record<MetricKey, number>;
+  /** daily points of the current window (for the trend chart) */
   points: DailyPoint[];
+  /** daily points of the equal-length comparison window, for the overlay */
+  comparePoints: DailyPoint[];
 }
 
 /** Slice the last `days` as the current window and the preceding `days` as the
@@ -106,7 +109,114 @@ export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult 
     cr: rel(c.cr, p.cr),
     roas: rel(c.roas, p.roas),
   };
-  return { current: c, previous: p, delta, points: current };
+  return { current: c, previous: p, delta, points: current, comparePoints: previous };
+}
+
+// --- monthly goal pacing & forecast -----------------------------------------
+
+export interface MonthlyPacing {
+  /** ISO first-of-month for the current month ("2026-05-01"), for labels */
+  monthStart: string;
+  /** total calendar days in the month */
+  daysInMonth: number;
+  /** calendar days elapsed = day-of-month of the latest data point */
+  daysElapsed: number;
+  /** daysInMonth − daysElapsed */
+  daysRemaining: number;
+  /** the whole month is represented in the data (no days left to project) */
+  complete: boolean;
+  /** monthly revenue goal (CZK) */
+  goal: number;
+  /** month-to-date actual revenue */
+  mtd: number;
+  /** goal prorated to today on a flat daily pace (where we "should" be) */
+  proratedTarget: number;
+  /** (mtd − proratedTarget) / proratedTarget — how far ahead/behind pace */
+  pace: number;
+  /** mtd ≥ proratedTarget */
+  onPace: boolean;
+  /** seasonality-weighted month-end revenue projection */
+  projection: number;
+  /** projection / goal */
+  attainment: number;
+  /** projection ≥ goal */
+  willHitGoal: boolean;
+}
+
+/** Average revenue per weekday (Sun..Sat) over a trailing window of whole weeks,
+ *  normalised so the mean weekday weight is 1. Falls back to flat weights when
+ *  there is too little data. This captures the day-of-week seasonality baked
+ *  into the series so remaining days can be weighted by their weekday mix. */
+function weekdayWeights(daily: DailyPoint[]): number[] {
+  const window = Math.min(daily.length, 84); // up to 12 whole weeks
+  const recent = daily.slice(daily.length - window);
+  const sum = new Array(7).fill(0);
+  const count = new Array(7).fill(0);
+  for (const p of recent) {
+    const dow = new Date(`${p.date}T00:00:00Z`).getUTCDay();
+    sum[dow] += p.revenue;
+    count[dow] += 1;
+  }
+  const avg = sum.map((s, i) => (count[i] > 0 ? s / count[i] : 0));
+  const present = avg.filter((_, i) => count[i] > 0);
+  const mean = present.length > 0 ? present.reduce((a, b) => a + b, 0) / present.length : 0;
+  if (!(mean > 0)) return new Array(7).fill(1);
+  return avg.map((a, i) => (count[i] > 0 && a > 0 ? a / mean : 1));
+}
+
+/**
+ * Monthly revenue goal pacing and a seasonality-aware month-end forecast,
+ * anchored on the most recent day in the series (the dashboard's "today").
+ *
+ * The projection scales the month-to-date actual by the ratio of the whole
+ * month's expected weekday weight to the elapsed days' weight, so the remaining
+ * days are weighted by their day-of-week shape rather than a flat linear
+ * run-rate. When the month is already complete the ratio is 1, so the
+ * projection equals the actual.
+ */
+export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing | null {
+  if (daily.length === 0) return null;
+
+  const last = daily[daily.length - 1];
+  const ym = last.date.slice(0, 7); // YYYY-MM
+  const [year, month] = ym.split("-").map(Number); // month is 1-based
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const daysElapsed = Number(last.date.slice(8, 10)); // day-of-month of latest point
+  const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
+
+  const mtd = daily
+    .filter((p) => p.date.slice(0, 7) === ym)
+    .reduce((a, p) => a + p.revenue, 0);
+
+  const proratedTarget = goal * (daysElapsed / daysInMonth);
+
+  // Weight every calendar day of the month by its weekday, then scale the MTD
+  // actual by full-month-weight / elapsed-weight to forecast the remainder.
+  const weights = weekdayWeights(daily);
+  let weightElapsed = 0;
+  let weightMonth = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const w = weights[new Date(Date.UTC(year, month - 1, d)).getUTCDay()];
+    weightMonth += w;
+    if (d <= daysElapsed) weightElapsed += w;
+  }
+  const projection = weightElapsed > 0 ? (mtd * weightMonth) / weightElapsed : mtd;
+
+  return {
+    monthStart: `${ym}-01`,
+    daysInMonth,
+    daysElapsed,
+    daysRemaining,
+    complete: daysRemaining === 0,
+    goal,
+    mtd,
+    proratedTarget,
+    pace: proratedTarget > 0 ? (mtd - proratedTarget) / proratedTarget : 0,
+    onPace: mtd >= proratedTarget,
+    projection,
+    attainment: goal > 0 ? projection / goal : 0,
+    willHitGoal: projection >= goal,
+  };
 }
 
 // --- chart buckets ----------------------------------------------------------

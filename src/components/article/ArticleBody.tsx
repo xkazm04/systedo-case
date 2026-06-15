@@ -1,5 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { External } from "@/components/icons";
+import HeadingAnchor from "@/components/article/HeadingAnchor";
 import type { Block, Inline } from "@/lib/article";
 
 /** Renders a single inline node: plain text, internal/external/anchor link, or bold. */
@@ -42,7 +44,7 @@ function Inlines({ content }: { content: Inline[] }) {
 const CALLOUT_STYLES = {
   tip: { box: "border-brand-200 bg-brand-50", title: "text-brand-800" },
   info: { box: "border-navy-200 bg-navy-50", title: "text-navy-700" },
-  warn: { box: "border-coral-400/40 bg-[#fff4ee]", title: "text-coral-600" },
+  warn: { box: "border-coral-400/40 bg-coral-soft", title: "text-coral-600" },
 } as const;
 
 export default function ArticleBody({ blocks }: { blocks: Block[] }) {
@@ -51,25 +53,9 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
       {blocks.map((block, i) => {
         switch (block.type) {
           case "h2":
-            return (
-              <h2
-                key={i}
-                id={block.id}
-                className="scroll-mt-24 pt-6 text-2xl font-semibold tracking-tight text-navy-800"
-              >
-                {block.text}
-              </h2>
-            );
+            return <HeadingAnchor key={i} level="h2" id={block.id} text={block.text} />;
           case "h3":
-            return (
-              <h3
-                key={i}
-                id={block.id}
-                className="scroll-mt-24 pt-2 text-lg font-semibold text-navy-800"
-              >
-                {block.text}
-              </h3>
-            );
+            return <HeadingAnchor key={i} level="h3" id={block.id} text={block.text} />;
           case "p":
             return (
               <p key={i}>
@@ -94,7 +80,7 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
               <ol key={i} className="space-y-2.5">
                 {block.items.map((item, j) => (
                   <li key={j} className="flex gap-3">
-                    <span className="tnum mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-800 text-xs font-semibold text-white">
+                    <span className="tnum mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-xs font-semibold text-white">
                       {j + 1}
                     </span>
                     <span className="pt-0.5">
@@ -138,13 +124,39 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
                 ))}
               </div>
             );
+          case "figure": {
+            // SVGs are served as-is (the raster optimizer rejects them and they
+            // need no resizing); raster sources still flow through next/image's
+            // optimizer. Either way the image is lazy-loaded and the intrinsic
+            // width/height reserve space to avoid layout shift.
+            const isSvg = block.src.endsWith(".svg");
+            return (
+              <figure key={i}>
+                <Image
+                  src={block.src}
+                  alt={block.alt}
+                  width={block.width ?? 1600}
+                  height={block.height ?? 900}
+                  loading="lazy"
+                  sizes="(min-width: 768px) 42rem, 100vw"
+                  unoptimized={isSvg}
+                  className="h-auto w-full rounded-card border border-line bg-surface"
+                />
+                {block.caption && (
+                  <figcaption className="mt-3 text-center text-sm leading-relaxed text-muted">
+                    {block.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
+          }
           case "cta":
             return (
               <div
                 key={i}
-                className="flex flex-col items-start gap-4 rounded-card bg-navy-800 p-6 text-white sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col items-start gap-4 rounded-card bg-onyx p-6 text-white sm:flex-row sm:items-center sm:justify-between"
               >
-                <p className="text-[0.95rem] font-medium text-navy-100">{block.text}</p>
+                <p className="text-[0.95rem] font-medium text-onyx-ink">{block.text}</p>
                 <a
                   href={block.href}
                   target={block.kind === "external" ? "_blank" : undefined}

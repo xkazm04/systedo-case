@@ -41,6 +41,11 @@
   --color-navy-800: #0b1b2b;
   --color-navy-900: #081521;
 
+  /* brand accent — the teal used for accent TEXT (eyebrows, inline links,
+     icon glyphs on tinted chips). Split out from the ramp so dark mode can make
+     accent text light without disturbing the saturated brand-700 button hover. */
+  --color-brand-accent: #11807c;
+
   /* coral — accent / attention */
   --color-coral-400: #ff8a5c;
   --color-coral-500: #fb7141;
@@ -49,6 +54,26 @@
   /* semantic */
   --color-positive: #128f6f;
   --color-negative: #d4503e;
+
+  /* soft semantic tints — the pill / badge / callout backgrounds. Tokenised
+     (were hard-coded hex) so they flip to dark tints in dark mode. */
+  --color-positive-soft: #e7f4ef;
+  --color-negative-soft: #fbeae7;
+  --color-coral-soft: #fff0e9;
+
+  /* SERP preview — mimics Google's own link colours; Google themes these too,
+     so they adapt to the dark variant in dark mode. */
+  --color-serp-link: #1a4ba0;
+  --color-serp-url: #3a7d3a;
+
+  /* onyx — deliberately dark navy surfaces (footer, CTA blocks, code panels,
+     numbered avatars, logo tiles). STABLE: identical in light and dark, so a
+     dark brand surface stays a dark brand surface instead of inverting. */
+  --color-onyx: #0d1f31;
+  --color-onyx-soft: #13293f;
+  --color-onyx-line: #28415a;
+  --color-onyx-ink: #eaf1f8;
+  --color-onyx-muted: #b3c3d3;
 
   --radius-card: 1rem;
   --radius-pill: 999px;
@@ -101,6 +126,132 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
+   Dark theme — a parallel token set layered over the same @theme variables, so
+   every `bg-*` / `text-*` utility adapts for free. Two triggers:
+     • html[data-theme="dark"]            → explicit user choice (localStorage)
+     • prefers-color-scheme: dark         → system preference, unless the user
+                                            has explicitly forced light
+   The onyx-*, navy-900 (CTA-on-teal text) and coral tokens are intentionally
+   NOT overridden — they read correctly on dark as-is.
+--------------------------------------------------------------------------- */
+html[data-theme="dark"] {
+  /* canvas + surfaces */
+  --color-canvas: #0a0f16;
+  --color-surface: #121a24;
+  --color-ink: #e7eef5;
+  --color-muted: #92a3b3;
+  --color-line: #232f3c;
+
+  /* brand — tints darken, accents/text lighten, buttons stay saturated */
+  --color-brand-50: #0c2b29;
+  --color-brand-100: #0f3a36;
+  --color-brand-200: #155049;
+  --color-brand-500: #1ec8c0;
+  --color-brand-700: #11807c;
+  --color-brand-800: #a9f0e8;
+  --color-brand-900: #d2faf5;
+  --color-brand-accent: #5fe3da;
+
+  /* navy — high steps become light (text), low steps stay dark (chips/borders) */
+  --color-navy-50: #18222e;
+  --color-navy-100: #1d2835;
+  --color-navy-200: #2b3a49;
+  --color-navy-300: #455a6e;
+  --color-navy-400: #647889;
+  --color-navy-500: #8597a9;
+  --color-navy-600: #a6b6c6;
+  --color-navy-700: #c2cfdb;
+  --color-navy-800: #e7eef5;
+
+  /* semantic — lift greens/reds for contrast, darken the soft tints */
+  --color-positive: #34d39e;
+  --color-negative: #f1745f;
+  --color-positive-soft: #11271f;
+  --color-negative-soft: #2e1714;
+  --color-coral-soft: #321a10;
+
+  /* SERP — Google's own dark-mode link colours */
+  --color-serp-link: #8ab4f8;
+  --color-serp-url: #81c995;
+
+  /* deepen elevation so cards read against the dark canvas */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    --color-canvas: #0a0f16;
+    --color-surface: #121a24;
+    --color-ink: #e7eef5;
+    --color-muted: #92a3b3;
+    --color-line: #232f3c;
+
+    --color-brand-50: #0c2b29;
+    --color-brand-100: #0f3a36;
+    --color-brand-200: #155049;
+    --color-brand-500: #1ec8c0;
+    --color-brand-700: #11807c;
+    --color-brand-800: #a9f0e8;
+    --color-brand-900: #d2faf5;
+    --color-brand-accent: #5fe3da;
+
+    --color-navy-50: #18222e;
+    --color-navy-100: #1d2835;
+    --color-navy-200: #2b3a49;
+    --color-navy-300: #455a6e;
+    --color-navy-400: #647889;
+    --color-navy-500: #8597a9;
+    --color-navy-600: #a6b6c6;
+    --color-navy-700: #c2cfdb;
+    --color-navy-800: #e7eef5;
+
+    --color-positive: #34d39e;
+    --color-negative: #f1745f;
+    --color-positive-soft: #11271f;
+    --color-negative-soft: #2e1714;
+    --color-coral-soft: #321a10;
+
+    --color-serp-link: #8ab4f8;
+    --color-serp-url: #81c995;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  html:not([data-theme="light"]) .bg-dotgrid {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+
+  html:not([data-theme="light"]) .theme-toggle-sun {
+    display: none;
+  }
+  html:not([data-theme="light"]) .theme-toggle-moon {
+    display: block;
+  }
+}
+
+/* lighten the dot grid so it reads on the dark canvas */
+html[data-theme="dark"] .bg-dotgrid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* Theme-toggle icon: show the glyph for the *current* theme, driven purely by
+   CSS so the correct icon paints before hydration (no flash, no mismatch). */
+.theme-toggle-sun {
+  display: block;
+}
+.theme-toggle-moon {
+  display: none;
+}
+html[data-theme="dark"] .theme-toggle-sun {
+  display: none;
+}
+html[data-theme="dark"] .theme-toggle-moon {
+  display: block;
+}
+
+/* ---------------------------------------------------------------------------
    Small reusable component classes
 --------------------------------------------------------------------------- */
 @layer components {
@@ -124,7 +275,7 @@ body {
 
   /* prose links inside the article: brand colour with a soft underline */
   .link-inline {
-    color: var(--color-brand-700);
+    color: var(--color-brand-accent);
     font-weight: 500;
     text-decoration: underline;
     text-decoration-color: var(--color-brand-200);

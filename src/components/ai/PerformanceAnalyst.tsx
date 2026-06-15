@@ -85,7 +85,7 @@ export default function PerformanceAnalyst() {
 
         <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">
           Nástroj interpretuje stejná (ilustrativní) data klienta Mionelo, jaká vidíš v{" "}
-          <Link href="/dashboard" className="font-medium text-brand-700 hover:text-brand-800">
+          <Link href="/dashboard" className="font-medium text-brand-accent hover:text-brand-800">
             dashboardu
           </Link>
           . Model dostává jen reálná čísla a nesmí si žádná vymýšlet.
@@ -116,7 +116,7 @@ export default function PerformanceAnalyst() {
             {/* headline + summary */}
             <div className="rounded-card border border-navy-200 bg-navy-50 p-5">
               <div className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-navy-800 text-brand-400">
+                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400">
                   <Target width={18} height={18} />
                 </span>
                 <div>
@@ -132,7 +132,7 @@ export default function PerformanceAnalyst() {
                   <ul className="space-y-2.5">
                     {r.wins.map((w, i) => (
                       <li key={i} className="flex gap-2.5 text-sm text-navy-700">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#e7f4ef] text-positive">
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-positive-soft text-positive">
                           <Check width={12} height={12} />
                         </span>
                         <span className="leading-snug">{w}</span>
@@ -147,7 +147,7 @@ export default function PerformanceAnalyst() {
                   <ul className="space-y-2.5">
                     {r.risks.map((w, i) => (
                       <li key={i} className="flex gap-2.5 text-sm text-navy-700">
-                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#fff0e9] text-coral-600">
+                        <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-coral-soft text-coral-600">
                           <TrendDown width={12} height={12} />
                         </span>
                         <span className="leading-snug">{w}</span>

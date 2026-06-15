@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-label="Tři skupiny: ořechy, semínka a sušené plody">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f4f7f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg)"/>
+
+  <!-- eyebrow + title -->
+  <rect x="64" y="60" width="186" height="34" rx="17" fill="#ecfdfb" stroke="#a6f1ea"/>
+  <text x="84" y="83" font-family="ui-sans-serif, system-ui, sans-serif" font-size="17" font-weight="600" letter-spacing="1.5" fill="#11807c">MALÝ PŘEHLED</text>
+  <text x="64" y="146" font-family="ui-sans-serif, system-ui, sans-serif" font-size="40" font-weight="700" fill="#0b1b2b">Co se na co hodí</text>
+
+  <!-- three cards -->
+  <g font-family="ui-sans-serif, system-ui, sans-serif">
+    <!-- Card 1: Ořechy -->
+    <g>
+      <rect x="64" y="196" width="320" height="372" rx="24" fill="#ffffff" stroke="#e4eaef" stroke-width="2"/>
+      <circle cx="224" cy="306" r="68" fill="#ecfdfb" stroke="#d2faf5" stroke-width="2"/>
+      <ellipse cx="208" cy="298" rx="28" ry="34" fill="#9c6b3f"/>
+      <ellipse cx="244" cy="316" rx="24" ry="29" fill="#b9824f"/>
+      <ellipse cx="200" cy="288" rx="9" ry="12" fill="#c79468" opacity="0.8"/>
+      <text x="224" y="438" text-anchor="middle" font-size="26" font-weight="700" fill="#0b1b2b">Ořechy</text>
+      <text x="224" y="476" text-anchor="middle" font-size="18" fill="#56697a">Vlašské, mandle, kešu,</text>
+      <text x="224" y="502" text-anchor="middle" font-size="18" fill="#56697a">lískové, para</text>
+      <text x="224" y="540" text-anchor="middle" font-size="16" font-weight="600" fill="#11807c">tuky &amp; omega-3</text>
+    </g>
+    <!-- Card 2: Semínka -->
+    <g>
+      <rect x="440" y="196" width="320" height="372" rx="24" fill="#ffffff" stroke="#e4eaef" stroke-width="2"/>
+      <circle cx="600" cy="306" r="68" fill="#ecfdfb" stroke="#d2faf5" stroke-width="2"/>
+      <ellipse cx="582" cy="296" rx="10" ry="18" fill="#8a9a5b" transform="rotate(-24 582 296)"/>
+      <ellipse cx="612" cy="300" rx="10" ry="18" fill="#a7b377" transform="rotate(18 612 300)"/>
+      <ellipse cx="596" cy="324" rx="10" ry="18" fill="#c9b07a" transform="rotate(-8 596 324)"/>
+      <ellipse cx="624" cy="326" rx="9" ry="15" fill="#8a9a5b" transform="rotate(30 624 326)"/>
+      <text x="600" y="438" text-anchor="middle" font-size="26" font-weight="700" fill="#0b1b2b">Semínka</text>
+      <text x="600" y="476" text-anchor="middle" font-size="18" fill="#56697a">Chia, lněná, dýňová,</text>
+      <text x="600" y="502" text-anchor="middle" font-size="18" fill="#56697a">slunečnicová, sezam</text>
+      <text x="600" y="540" text-anchor="middle" font-size="16" font-weight="600" fill="#11807c">vláknina &amp; minerály</text>
+    </g>
+    <!-- Card 3: Sušené plody -->
+    <g>
+      <rect x="816" y="196" width="320" height="372" rx="24" fill="#ffffff" stroke="#e4eaef" stroke-width="2"/>
+      <circle cx="976" cy="306" r="68" fill="#ecfdfb" stroke="#d2faf5" stroke-width="2"/>
+      <circle cx="958" cy="298" r="22" fill="#fb7141"/>
+      <circle cx="992" cy="312" r="19" fill="#ff8a5c"/>
+      <circle cx="966" cy="330" r="14" fill="#d98aa0"/>
+      <text x="976" y="438" text-anchor="middle" font-size="26" font-weight="700" fill="#0b1b2b">Sušené plody</text>
+      <text x="976" y="476" text-anchor="middle" font-size="18" fill="#56697a">Datle, fíky, meruňky,</text>
+      <text x="976" y="502" text-anchor="middle" font-size="18" fill="#56697a">lyofilizované ovoce</text>
+      <text x="976" y="540" text-anchor="middle" font-size="16" font-weight="600" fill="#11807c">přírodní sladkost</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "hash": "ac26b48da3eccf4836ae68c765ade718b44460af2e78985cfe50dd3bf2b26bfd",
+  "passed": true,
+  "provenAt": "2026-06-15T19:13:14.816Z",
+  "tools": [
+    "ads",
+    "brief",
+    "analysis",
+    "campaign-eval"
+  ]
+}

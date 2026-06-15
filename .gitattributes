@@ -1,0 +1,2 @@
+# Keep Husky shell hooks LF-terminated so the pre-commit gate runs on every OS.
+.husky/** text eol=lf

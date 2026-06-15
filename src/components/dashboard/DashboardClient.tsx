@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import KpiCard from "@/components/dashboard/KpiCard";
+import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
 import { Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
@@ -11,6 +12,7 @@ import {
   evaluatePeriod,
   HEADLINE_METRICS,
   METRICS,
+  monthlyPacing,
   PERIODS,
   TREND_METRICS,
 } from "@/lib/metrics";
@@ -88,10 +90,15 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[1];
   const goalPno = data.goals.pno;
 
+  // Current-month goal pacing + forecast (independent of the period selector).
+  const pacing = monthlyPacing(data.daily, data.goals.monthlyRevenue);
+
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
   const result = evaluatePeriod(data.daily, period.days);
   const buckets = bucketize(result.points, period.granularity);
+  // Bucketize the comparison window too so the chart can overlay it (index-aligned).
+  const compareBuckets = bucketize(result.comparePoints, period.granularity);
   const c = result.current;
   const channels = channelRows(data.channels, c);
 
@@ -153,6 +160,9 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         ))}
       </div>
 
+      {/* monthly revenue goal pacing + month-end forecast */}
+      {pacing && <GoalPacing pacing={pacing} />}
+
       {/* trend chart */}
       <div className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -170,7 +180,12 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           />
         </div>
         <div className="mt-4">
-          <TrendChart data={buckets} metric={trendMetric} granularity={period.granularity} />
+          <TrendChart
+            data={buckets}
+            compare={compareBuckets}
+            metric={trendMetric}
+            granularity={period.granularity}
+          />
         </div>
       </div>
 
@@ -228,9 +243,9 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                   <span
                     className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${
                       ins.tone === "good"
-                        ? "bg-[#e7f4ef] text-positive"
+                        ? "bg-positive-soft text-positive"
                         : ins.tone === "warn"
-                          ? "bg-[#fff0e9] text-coral-600"
+                          ? "bg-coral-soft text-coral-600"
                           : "bg-navy-50 text-navy-500"
                     }`}
                   >

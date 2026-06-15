@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675" role="img" aria-label="Tři pravidla skladování: chlad, tma a sucho">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f4f7f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#bg2)"/>
+
+  <!-- eyebrow + title -->
+  <rect x="64" y="60" width="172" height="34" rx="17" fill="#ecfdfb" stroke="#a6f1ea"/>
+  <text x="84" y="83" font-family="ui-sans-serif, system-ui, sans-serif" font-size="17" font-weight="600" letter-spacing="1.5" fill="#11807c">SKLADOVÁNÍ</text>
+  <text x="64" y="146" font-family="ui-sans-serif, system-ui, sans-serif" font-size="40" font-weight="700" fill="#0b1b2b">Tři pravidla pro čerstvost</text>
+
+  <!-- connecting line behind the badges -->
+  <line x1="300" y1="360" x2="900" y2="360" stroke="#d2faf5" stroke-width="4" stroke-dasharray="2 14" stroke-linecap="round"/>
+
+  <g font-family="ui-sans-serif, system-ui, sans-serif">
+    <!-- Chlad -->
+    <g>
+      <circle cx="300" cy="360" r="92" fill="#ffffff" stroke="#a6f1ea" stroke-width="3"/>
+      <circle cx="300" cy="360" r="68" fill="#ecfdfb"/>
+      <g stroke="#14b8b1" stroke-width="6" stroke-linecap="round">
+        <line x1="300" y1="324" x2="300" y2="396"/>
+        <line x1="269" y1="342" x2="331" y2="378"/>
+        <line x1="269" y1="378" x2="331" y2="342"/>
+        <path d="M300 324 l-12 14 M300 324 l12 14" fill="none"/>
+        <path d="M300 396 l-12 -14 M300 396 l12 -14" fill="none"/>
+      </g>
+      <text x="300" y="506" text-anchor="middle" font-size="28" font-weight="700" fill="#0b1b2b">Chlad</text>
+      <text x="300" y="540" text-anchor="middle" font-size="18" fill="#56697a">Spíž, lednice, mrazák —</text>
+      <text x="300" y="565" text-anchor="middle" font-size="18" fill="#56697a">tuky pak nežluknou</text>
+    </g>
+
+    <!-- Tma -->
+    <g>
+      <circle cx="600" cy="360" r="92" fill="#ffffff" stroke="#a6f1ea" stroke-width="3"/>
+      <circle cx="600" cy="360" r="68" fill="#ecfdfb"/>
+      <path d="M624 326 a44 44 0 1 0 0 68 a34 34 0 1 1 0 -68 z" fill="#14b8b1"/>
+      <text x="600" y="506" text-anchor="middle" font-size="28" font-weight="700" fill="#0b1b2b">Tma</text>
+      <text x="600" y="540" text-anchor="middle" font-size="18" fill="#56697a">Pryč z parapetu —</text>
+      <text x="600" y="565" text-anchor="middle" font-size="18" fill="#56697a">světlo kvalitě škodí</text>
+    </g>
+
+    <!-- Sucho -->
+    <g>
+      <circle cx="900" cy="360" r="92" fill="#ffffff" stroke="#a6f1ea" stroke-width="3"/>
+      <circle cx="900" cy="360" r="68" fill="#ecfdfb"/>
+      <path d="M900 322 C924 352 936 372 936 388 a36 36 0 0 1 -72 0 c0 -16 12 -36 36 -66 z" fill="#14b8b1"/>
+      <line x1="864" y1="332" x2="936" y2="404" stroke="#fb7141" stroke-width="7" stroke-linecap="round"/>
+      <text x="900" y="506" text-anchor="middle" font-size="28" font-weight="700" fill="#0b1b2b">Sucho</text>
+      <text x="900" y="540" text-anchor="middle" font-size="18" fill="#56697a">Vzduchotěsná dóza —</text>
+      <text x="900" y="565" text-anchor="middle" font-size="18" fill="#56697a">papír čerstvost neudrží</text>
+    </g>
+  </g>
+</svg>
