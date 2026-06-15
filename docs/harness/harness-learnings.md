@@ -55,7 +55,9 @@ A Czech marketing case-study app (Next.js 16 + React 19 + Tailwind 4, TypeScript
   (7-wave plan). **Done: Wave 5 (API hardening), Wave 1 (analytics core), Wave 1b
   (analytics UI surfacing), Wave 2 (steering — budget moves), Wave 3 (persistence —
   campaign_snapshots + eval dedupe + change strip), Wave 4 (content — data-story
-  article at /clanek/vykon from the snapshot).** Open: Waves 6 (locale), 7 (pipeline/SEO).
+  article at /clanek/vykon), Wave 7 (pipeline/SEO — /mapa+sitemap, drift fix, CI
+  badges/dependabot).** Open: **only Wave 6 (multi-market locale)** + the
+  package-extraction moonshots.
 - Content-theme leftovers (see `FIXES-WAVE-4.md`): the AI-generated-Article-from-topic
   moonshot (hard: Block union as an LLM schema), the `/clanek/[slug]` collection, and
   the trend-chart "Vysvětlit vývoj" AI narration are all open.
