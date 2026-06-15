@@ -1,5 +1,11 @@
 # Systedo · Case study — pozice AI Vibecoder
 
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
+![Quality gate](https://img.shields.io/badge/check-typecheck%20%C2%B7%20lint%20%C2%B7%20build-2ea44f)
+
 Krátký web, kde **každý úkol ze zadání žije na samostatné stránce**. Celá studie je
 záměrně postavená kolem jednoho fiktivního klienta — e-shopu **Mionelo** (ořechy,
 semínka a superpotraviny) — aby působila jako reálná zakázka agentury, ne jako tři

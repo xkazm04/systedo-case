@@ -25,3 +25,9 @@ jobs:
 
       - name: Run check (typecheck && lint && build)
         run: npm run check
+
+      # Static LLM-wrapper gate: verifies every call site is tagged + test-registered
+      # and that provider access stays confined to the chokepoint. Key-free and fast
+      # (the real-model run stays local, gated by the Husky pre-commit hook).
+      - name: LLM chokepoint coverage
+        run: npm run test:llm:coverage
