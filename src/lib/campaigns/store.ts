@@ -3,6 +3,7 @@
  *  page reload / server restart — the point of running in local-dev mode.
  *
  *  Raw metrics only are stored; ratios are always re-derived in `types.ts`. */
+import { createHash } from "node:crypto";
 import { getDb } from "../db";
 import type { AiResponse } from "../ai-types";
 import type {
@@ -164,20 +165,63 @@ function toReport(r: ReportRowDb): CampaignReport {
   };
 }
 
+/** Deterministic fingerprint of the exact inputs an evaluation depends on —
+ *  scope, target, period and the in-scope campaigns' raw metric tuples. Identical
+ *  inputs ⇒ identical hash, so a repeat evaluation can be served from cache instead
+ *  of re-spending an LLM call and polluting the score timeline with a dup point. */
+export function hashEvalInputs(
+  scope: EvalScope,
+  campaignId: string | null,
+  period: CampaignPeriod,
+  campaigns: Campaign[]
+): string {
+  const inScope =
+    scope === "campaign"
+      ? campaigns.filter((c) => c.id === campaignId)
+      : [...campaigns].sort((a, b) => a.id.localeCompare(b.id));
+  const tuples = inScope.map(
+    (c) =>
+      `${c.id}:${c.status}:${c.impressions}:${c.clicks}:${c.cost}:${c.conversions}:${c.conversionValue}`
+  );
+  return createHash("sha1")
+    .update(`${scope}|${campaignId ?? ""}|${period}|${tuples.join(";")}`)
+    .digest("hex");
+}
+
+/** The newest stored report whose inputs match `inputHash` for this scope+period,
+ *  or null. Lets the analyze route short-circuit an unchanged re-evaluation. */
+export function findCachedReport(
+  scope: EvalScope,
+  campaignId: string | null,
+  period: CampaignPeriod,
+  inputHash: string
+): CampaignReport | null {
+  const row = getDb()
+    .prepare(
+      `SELECT * FROM reports
+       WHERE scope = ? AND IFNULL(campaign_id, '') = ? AND period = ? AND input_hash = ?
+       ORDER BY id DESC LIMIT 1`
+    )
+    .get(scope, campaignId ?? "", period, inputHash) as unknown as ReportRowDb | undefined;
+  return row ? toReport(row) : null;
+}
+
 /** Persist an evaluation and return it in the wire shape the client expects. */
 export function saveReport(args: {
   scope: EvalScope;
   campaignId: string | null;
   period: CampaignPeriod;
   response: AiResponse<CampaignReportResult>;
+  /** fingerprint of the inputs (from hashEvalInputs) for cache dedupe */
+  inputHash?: string;
 }): CampaignReport {
-  const { scope, campaignId, period, response } = args;
+  const { scope, campaignId, period, response, inputHash } = args;
   const createdAt = new Date().toISOString();
   getDb()
     .prepare(
       `INSERT INTO reports
-         (scope, campaign_id, period, model, demo, payload, prompt, took_ms, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (scope, campaign_id, period, model, demo, payload, prompt, took_ms, created_at, input_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       scope,
@@ -188,7 +232,8 @@ export function saveReport(args: {
       JSON.stringify(response.result),
       response.meta.prompt,
       response.meta.tookMs,
-      createdAt
+      createdAt,
+      inputHash ?? null
     );
   return {
     scope,

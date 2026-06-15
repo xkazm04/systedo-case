@@ -45,7 +45,8 @@ const SCHEMA = `
     payload     TEXT NOT NULL,
     prompt      TEXT NOT NULL,
     took_ms     INTEGER NOT NULL,
-    created_at  TEXT NOT NULL
+    created_at  TEXT NOT NULL,
+    input_hash  TEXT
   );
 
   CREATE INDEX IF NOT EXISTS idx_reports_lookup
@@ -81,6 +82,16 @@ export function getDb(): DatabaseSync {
   const db = new DatabaseSync(join(dir, "systedo.db"));
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec(SCHEMA);
+
+  // Additive migrations for databases created before a column existed — the
+  // CREATE TABLE IF NOT EXISTS above won't add a column to an existing table.
+  for (const stmt of ["ALTER TABLE reports ADD COLUMN input_hash TEXT"]) {
+    try {
+      db.exec(stmt);
+    } catch {
+      /* column already exists — node:sqlite throws, which is fine */
+    }
+  }
 
   g.__systedoDb = db;
   return db;

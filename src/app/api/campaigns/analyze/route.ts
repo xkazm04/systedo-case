@@ -4,9 +4,11 @@
 import { generateCampaignEvaluation } from "@/lib/gemini";
 import { validateEvaluationRequest } from "@/lib/ai-types";
 import {
+  findCachedReport,
   getCampaign,
   getReportHistory,
   getSyncMeta,
+  hashEvalInputs,
   listCampaigns,
   saveReport,
 } from "@/lib/campaigns/store";
@@ -70,6 +72,19 @@ export async function POST(request: Request) {
       if (!target) return Response.json({ error: "Kampaň nebyla nalezena." }, { status: 404 });
     }
 
+    // Skip the paid LLM call when an identical-input evaluation already exists
+    // (same campaigns, same period). `?force=1` bypasses for a deliberate re-run.
+    const reportCampaignId = scope === "campaign" ? campaignId : null;
+    const inputHash = hashEvalInputs(scope, reportCampaignId, meta.period, campaigns);
+    const force = new URL(request.url).searchParams.get("force") === "1";
+    if (!force) {
+      const cached = findCachedReport(scope, reportCampaignId, meta.period, inputHash);
+      if (cached) {
+        const history = getReportHistory(scope, reportCampaignId);
+        return Response.json({ report: cached, history, cached: true });
+      }
+    }
+
     try {
       const response = await generateCampaignEvaluation({
         scope,
@@ -79,9 +94,10 @@ export async function POST(request: Request) {
       });
       const report = saveReport({
         scope,
-        campaignId: scope === "campaign" ? campaignId : null,
+        campaignId: reportCampaignId,
         period: meta.period,
         response,
+        inputHash,
       });
       // Return the refreshed history alongside the report so the trend timeline
       // updates without a full reload.
