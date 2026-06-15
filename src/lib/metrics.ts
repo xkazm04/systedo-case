@@ -36,6 +36,9 @@ const EMPTY: Pick<Totals, RawMetric> = { visits: 0, cost: 0, conversions: 0, rev
 
 const safe = (num: number, den: number): number => (den > 0 ? num / den : 0);
 
+/** Relative change (fraction), guarding a zero/absent baseline. */
+const rel = (cur: number, prev: number): number => (prev > 0 ? (cur - prev) / prev : 0);
+
 /** Sum the raw additive metrics and derive the ratios. */
 export function totalsOf(points: DailyPoint[]): Totals {
   const sum = points.reduce(
@@ -138,7 +141,6 @@ export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult 
   const c = totalsOf(current);
   const p = totalsOf(previous);
 
-  const rel = (cur: number, prev: number): number => (prev > 0 ? (cur - prev) / prev : 0);
   const delta: Record<MetricKey, number> = {
     visits: rel(c.visits, p.visits),
     cost: rel(c.cost, p.cost),
@@ -311,6 +313,9 @@ export interface ChannelRow extends Totals {
   color: string;
   /** share of total revenue, for the breakdown bar */
   revenueShare: number;
+  /** period-over-period relative change per metric — present only when the row
+   *  was built by `channelRowsCompared` */
+  delta?: Record<MetricKey, number>;
 }
 
 /** Project the channel mix onto the totals of the selected period. Because the
@@ -337,6 +342,31 @@ export function channelRows(channels: ChannelShare[], totals: Totals): ChannelRo
       };
     })
     .sort((a, b) => b.revenue - a.revenue);
+}
+
+/** Channel rows for the current period, each carrying its period-over-period
+ *  `delta` against the equal-length previous window — turns the channel table
+ *  from a static snapshot into a movement view ("Sklik obrat +18 %"). */
+export function channelRowsCompared(
+  channels: ChannelShare[],
+  current: Totals,
+  previous: Totals
+): ChannelRow[] {
+  const prevByChannel = new Map(channelRows(channels, previous).map((r) => [r.channel, r]));
+  return channelRows(channels, current).map((row) => {
+    const prev = prevByChannel.get(row.channel);
+    const delta: Record<MetricKey, number> = {
+      visits: rel(row.visits, prev?.visits ?? 0),
+      cost: rel(row.cost, prev?.cost ?? 0),
+      conversions: rel(row.conversions, prev?.conversions ?? 0),
+      revenue: rel(row.revenue, prev?.revenue ?? 0),
+      pno: rel(row.pno, prev?.pno ?? 0),
+      aov: rel(row.aov, prev?.aov ?? 0),
+      cr: rel(row.cr, prev?.cr ?? 0),
+      roas: rel(row.roas, prev?.roas ?? 0),
+    };
+    return { ...row, delta };
+  });
 }
 
 // --- anomaly detection ------------------------------------------------------
