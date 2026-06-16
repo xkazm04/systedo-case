@@ -1,36 +1,77 @@
-/** Per-user Google Ads connection — which customer (account) the user chose to
- *  sync, stored in Firestore (`adsConnections/{userId}`). Server-only. */
+/** Per-user Google Ads connections — the accounts the user connected and which
+ *  one is active. Stored in Firestore (`adsConnections/{userId}`):
+ *  `{ accounts: ConnectedAccount[], activeCustomerId }`. An agency connects many
+ *  accounts (MCC) and switches between them. Server-only. */
 import { firestore } from "@/lib/firebase";
 
-export interface AdsConnection {
-  /** selected Google Ads customer id (digits only) */
+export interface ConnectedAccount {
   customerId: string;
-  /** display name at selection time */
+  customerName: string;
+  connectedAt: string;
+}
+
+/** The active connection in the shape the connector / tenant resolver expect. */
+export interface AdsConnection {
+  customerId: string;
   customerName: string;
   connectedAt: string;
 }
 
 const COLLECTION = "adsConnections";
 
-export async function getAdsConnection(userId: string): Promise<AdsConnection | null> {
-  const doc = await firestore.collection(COLLECTION).doc(userId).get();
-  return doc.exists ? (doc.data() as AdsConnection) : null;
+interface ConnectionsDoc {
+  accounts?: ConnectedAccount[];
+  activeCustomerId?: string;
 }
 
-export async function setAdsConnection(
+function docRef(userId: string) {
+  return firestore.collection(COLLECTION).doc(userId);
+}
+
+async function read(userId: string): Promise<ConnectionsDoc> {
+  const doc = await docRef(userId).get();
+  return (doc.data() as ConnectionsDoc) ?? {};
+}
+
+/** All connected accounts for the user + which is active. */
+export async function listConnectedAccounts(
+  userId: string
+): Promise<{ accounts: ConnectedAccount[]; activeCustomerId: string | null }> {
+  const data = await read(userId);
+  return { accounts: data.accounts ?? [], activeCustomerId: data.activeCustomerId ?? null };
+}
+
+/** The active account (or first connected), in the AdsConnection shape — the
+ *  one the connector syncs and the tenant is keyed on. */
+export async function getAdsConnection(userId: string): Promise<AdsConnection | null> {
+  const { accounts, activeCustomerId } = await listConnectedAccounts(userId);
+  if (accounts.length === 0) return null;
+  const active = accounts.find((a) => a.customerId === activeCustomerId) ?? accounts[0]!;
+  return { customerId: active.customerId, customerName: active.customerName, connectedAt: active.connectedAt };
+}
+
+/** Connect an account (idempotent) and make it active. */
+export async function addAccount(
   userId: string,
   customerId: string,
   customerName: string
-): Promise<AdsConnection> {
-  const connection: AdsConnection = {
-    customerId,
-    customerName,
-    connectedAt: new Date().toISOString(),
-  };
-  await firestore.collection(COLLECTION).doc(userId).set(connection);
-  return connection;
+): Promise<void> {
+  const data = await read(userId);
+  const accounts = (data.accounts ?? []).filter((a) => a.customerId !== customerId);
+  accounts.push({ customerId, customerName, connectedAt: new Date().toISOString() });
+  await docRef(userId).set({ accounts, activeCustomerId: customerId }, { merge: true });
 }
 
-export async function clearAdsConnection(userId: string): Promise<void> {
-  await firestore.collection(COLLECTION).doc(userId).delete();
+/** Switch which connected account is active. */
+export async function setActiveAccount(userId: string, customerId: string): Promise<void> {
+  await docRef(userId).set({ activeCustomerId: customerId }, { merge: true });
+}
+
+/** Disconnect one account (re-points active to another, or clears it). */
+export async function removeAccount(userId: string, customerId: string): Promise<void> {
+  const data = await read(userId);
+  const accounts = (data.accounts ?? []).filter((a) => a.customerId !== customerId);
+  const activeCustomerId =
+    data.activeCustomerId === customerId ? accounts[0]?.customerId ?? null : data.activeCustomerId ?? null;
+  await docRef(userId).set({ accounts, activeCustomerId }, { merge: true });
 }
