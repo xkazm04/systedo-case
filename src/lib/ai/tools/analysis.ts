@@ -151,6 +151,7 @@ export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<Analy
   const snapshot = buildSnapshot(req.period);
   return generateStructured({
     // llm-tool: analysis
+    id: "analysis",
     prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot)),
     system: ANALYSIS_SYSTEM,
     schema: ANALYSIS_SCHEMA,

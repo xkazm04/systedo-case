@@ -1,0 +1,10 @@
+{
+  "id": "ads",
+  "label": "PPC inzeráty",
+  "promptHash": "7adb38014803307d",
+  "schemaKeys": [
+    "descriptions",
+    "headlines",
+    "rationale"
+  ]
+}

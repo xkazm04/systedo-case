@@ -116,6 +116,7 @@ function demoAds(req: AdRequest): AdResult {
 export function generateAds(req: AdRequest): Promise<AiResponse<AdResult>> {
   return generateStructured({
     // llm-tool: ads
+    id: "ads",
     prompt: buildAdPrompt(req),
     system: AD_SYSTEM,
     schema: AD_SCHEMA,

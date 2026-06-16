@@ -175,6 +175,7 @@ function demoBrief(req: BriefRequest): BriefResult {
 export function generateBrief(req: BriefRequest): Promise<AiResponse<BriefResult>> {
   return generateStructured({
     // llm-tool: brief
+    id: "brief",
     prompt: buildBriefPrompt(req),
     system: BRIEF_SYSTEM,
     schema: BRIEF_SCHEMA,
