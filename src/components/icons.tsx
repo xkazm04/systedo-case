@@ -244,6 +244,16 @@ export function Link(props: IconProps) {
   );
 }
 
+export function Download(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 4v11" />
+      <path d="M7.5 10.5L12 15l4.5-4.5" />
+      <path d="M5 19h14" />
+    </svg>
+  );
+}
+
 export function Sun(props: IconProps) {
   return (
     <svg {...base} {...props}>

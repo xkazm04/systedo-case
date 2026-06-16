@@ -7,7 +7,8 @@ import KpiCard from "@/components/dashboard/KpiCard";
 import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
-import { Bolt, Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
+import { Bolt, Bulb, Download, Target, TrendDown, TrendUp } from "@/components/icons";
+import { downloadText, toCsv } from "@/lib/export";
 import {
   anomalyImpact,
   bucketize,
@@ -136,6 +137,31 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   const pnoOverGoal = c.pno > goalPno;
   const gaugeMax = Math.max(c.pno, goalPno) * 1.6;
 
+  // Export the channel breakdown for the selected period as a CSV deliverable —
+  // money/counts as raw integers, ratios as decimals, the PoP move formatted.
+  const exportChannelsCsv = () => {
+    const headers = ["Kanál", "Náklady (Kč)", "Konverze", "Obrat (Kč)", "PNO", "ROAS", "Změna obratu"];
+    const rows: (string | number)[][] = channels.map((r) => [
+      r.channel,
+      Math.round(r.cost),
+      Math.round(r.conversions),
+      Math.round(r.revenue),
+      r.pno > 0 ? r.pno.toFixed(4) : "",
+      r.roas > 0 ? r.roas.toFixed(2) : "",
+      r.delta ? fmtSignedPct(r.delta.revenue) : "",
+    ]);
+    rows.push([
+      "Celkem",
+      Math.round(c.cost),
+      Math.round(c.conversions),
+      Math.round(c.revenue),
+      c.pno.toFixed(4),
+      c.roas.toFixed(2),
+      fmtSignedPct(result.delta.revenue),
+    ]);
+    downloadText(`systedo-kanaly-${period.key}.csv`, toCsv(headers, rows));
+  };
+
   return (
     <div className="space-y-6">
       {/* period selector */}
@@ -214,9 +240,20 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       {/* channels + side rail */}
       <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-navy-800">Výkon podle kanálů</h2>
-            <span className="text-xs text-muted">{period.label}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted">{period.label}</span>
+              <button
+                type="button"
+                onClick={exportChannelsCsv}
+                title="Stáhnout rozpad podle kanálů jako CSV"
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+              >
+                <Download width={14} height={14} />
+                CSV
+              </button>
+            </div>
           </div>
           <ChannelTable
             rows={channels}

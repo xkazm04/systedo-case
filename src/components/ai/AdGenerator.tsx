@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bolt, Check, Close, Gauge, Sparkles } from "@/components/icons";
+import { Bolt, Check, Close, Download, Gauge, Sparkles } from "@/components/icons";
+import { downloadText, toCsv } from "@/lib/export";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
@@ -187,6 +188,22 @@ export default function AdGenerator() {
 
   const r = data?.result;
   const strength = useMemo(() => (r ? computeAdStrength(r) : null), [r]);
+
+  // Export every generated asset (with its character count) as a CSV the user can
+  // paste straight into Google Ads / Sklik or a sheet — beyond copy-to-clipboard.
+  const exportAdsCsv = () => {
+    if (!r) return;
+    const rows: (string | number)[][] = [];
+    r.headlines.forEach((h) => rows.push(["Nadpis", h, h.length]));
+    r.descriptions.forEach((d) => rows.push(["Popisek", d, d.length]));
+    r.callouts.forEach((c) => rows.push(["Odznak", c, c.length]));
+    if (r.longHeadline) rows.push(["Dlouhý nadpis", r.longHeadline, r.longHeadline.length]);
+    r.keywords.forEach((k) => rows.push(["Klíčové slovo", k, k.length]));
+    downloadText(
+      `systedo-inzeraty-${slugify(form.product) || "kampan"}.csv`,
+      toCsv(["Typ", "Text", "Počet znaků"], rows)
+    );
+  };
   const copyAllText = r
     ? [
         "NADPISY:",
@@ -322,6 +339,18 @@ export default function AdGenerator() {
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
             <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={exportAdsCsv}
+                title="Stáhnout všechny texty jako CSV"
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+              >
+                <Download width={14} height={14} />
+                Stáhnout CSV
+              </button>
+            </div>
 
             <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
               <RsaPreview

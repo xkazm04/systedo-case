@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Bolt, Document } from "@/components/icons";
+import { Bolt, Document, Download } from "@/components/icons";
+import { downloadText } from "@/lib/export";
 import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPES,
@@ -101,6 +102,33 @@ export default function ContentBriefGenerator() {
         `INTERNÍ ODKAZY: ${r.internalLinks.join(", ")}`,
       ].join("\n")
     : "";
+
+  // Export the brief as a ready-to-edit Markdown document — the natural handoff
+  // format for a writer, beyond a flat clipboard blob.
+  const exportBriefMarkdown = () => {
+    if (!r) return;
+    const md = [
+      `# ${r.h1 || r.titleTag}`,
+      "",
+      `**Title tag:** ${r.titleTag}`,
+      `**Meta description:** ${r.metaDescription}`,
+      `**URL slug:** ${r.slug}`,
+      "",
+      "## Osnova",
+      ...r.outline.map((s) =>
+        [`### ${s.heading}`, ...s.points.map((p) => `- ${p}`), ""].join("\n")
+      ),
+      "## Časté dotazy (FAQ)",
+      ...r.faq.map((f) => `**${f.question}**\n\n${f.answer}\n`),
+      "## Klíčová slova",
+      r.keywords.map((k) => `- ${k}`).join("\n"),
+      "",
+      "## Návrhy interních odkazů",
+      r.internalLinks.map((l) => `- ${l}`).join("\n"),
+      ...(r.rationale ? ["", "---", `_${r.rationale}_`] : []),
+    ].join("\n");
+    downloadText(`systedo-brief-${r.slug || "obsah"}.md`, md, "text/markdown;charset=utf-8");
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
@@ -207,6 +235,18 @@ export default function ContentBriefGenerator() {
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
             <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={exportBriefMarkdown}
+                title="Stáhnout brief jako Markdown"
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+              >
+                <Download width={14} height={14} />
+                Stáhnout .md
+              </button>
+            </div>
 
             <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} />
 
