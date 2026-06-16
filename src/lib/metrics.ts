@@ -500,6 +500,42 @@ export function detectAnomalies(
   );
 }
 
+/** Aggregate money effect of the flagged days, in CZK. */
+export interface AnomalyImpact {
+  /** Σ(observed − expected) over revenue anomalies (negative = revenue lost) */
+  revenue: number;
+  /** Σ(observed − expected) over cost anomalies (positive = overspend) */
+  cost: number;
+  /** combined effect = revenue − cost, so lost revenue and wasted spend both
+   *  push the figure negative (a clean "this cost us ~X Kč" headline) */
+  net: number;
+  /** count of days carrying a monetary effect (revenue or cost anomalies) */
+  count: number;
+}
+
+/**
+ * Quantify the anomalies the detector already found into a single Kč figure.
+ * Each revenue/cost anomaly carries `observed − expected`, so the deviation is
+ * already computed per day — this just sums it. PNO goal-breaches are derived
+ * from their underlying cost/revenue anomalies, so they are intentionally not
+ * added again (no double-counting). Turns "3 upozornění" into "dopad ≈ −85 tis. Kč".
+ */
+export function anomalyImpact(anomalies: Anomaly[]): AnomalyImpact {
+  let revenue = 0;
+  let cost = 0;
+  let count = 0;
+  for (const a of anomalies) {
+    if (a.metric === "revenue") {
+      revenue += a.observed - a.expected;
+      count += 1;
+    } else if (a.metric === "cost") {
+      cost += a.observed - a.expected;
+      count += 1;
+    }
+  }
+  return { revenue, cost, net: revenue - cost, count };
+}
+
 // --- metric metadata --------------------------------------------------------
 
 export interface MetricMeta {
@@ -575,7 +611,7 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     goodDirection: "up",
     format: fmtCZK,
     formatCompact: fmtCZKCompact,
-    plottable: false,
+    plottable: true,
   },
   cr: {
     key: "cr",
@@ -585,7 +621,7 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     goodDirection: "up",
     format: (v) => fmtPct(v, 2),
     formatCompact: (v) => fmtPct(v, 1),
-    plottable: false,
+    plottable: true,
   },
   roas: {
     key: "roas",
@@ -595,7 +631,7 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     goodDirection: "up",
     format: (v) => fmtMultiple(v),
     formatCompact: (v) => fmtMultiple(v),
-    plottable: false,
+    plottable: true,
   },
 };
 
@@ -608,8 +644,24 @@ export const HEADLINE_METRICS: MetricKey[] = [
   "pno",
 ];
 
-/** Metrics offered as toggles on the main trend chart. */
-export const TREND_METRICS: MetricKey[] = ["revenue", "cost", "visits", "conversions", "pno"];
+/** Metrics offered as toggles on the main trend chart. The derived ratios
+ *  (ROAS / AOV / CR) are plotted per-day from `dailyValue`, so a flat run-rate
+ *  never hides a worsening efficiency trend behind a rising revenue line. */
+export const TREND_METRICS: MetricKey[] = [
+  "revenue",
+  "cost",
+  "visits",
+  "conversions",
+  "pno",
+  "roas",
+  "aov",
+  "cr",
+];
+
+/** Metrics whose natural baseline is not zero (ratios / efficiency). The trend
+ *  chart zooms the y-axis to the data range for these instead of anchoring at 0,
+ *  so movement in a 3.8×→4.2× ROAS or a 1.8 %→2.1 % CR is actually visible. */
+export const RATIO_METRICS: ReadonlySet<MetricKey> = new Set(["pno", "aov", "cr", "roas"]);
 
 // --- canonical snapshot contract --------------------------------------------
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Anomaly, Bucket } from "@/lib/metrics";
-import { METRICS } from "@/lib/metrics";
+import { METRICS, RATIO_METRICS } from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
 import { fmtDateShort, fmtMonth, fmtPct, fmtSignedPct } from "@/lib/format";
 
@@ -107,8 +107,11 @@ export default function TrendChart({
   const domainValues = hasCompare ? values.concat(cmpValues) : values;
   const dataMax = Math.max(...domainValues, 0);
   const dataMin = Math.min(...domainValues);
-  const yMin = metric === "pno" ? Math.max(0, dataMin * 0.85) : 0;
-  const yMax = (metric === "pno" ? dataMax * 1.1 : dataMax * 1.08) || 1;
+  // Ratio/efficiency metrics (PNO, ROAS, AOV, CR) don't naturally start at zero,
+  // so zoom the axis to the data range — otherwise a 3.8×→4.2× ROAS move reads flat.
+  const isRatio = RATIO_METRICS.has(metric);
+  const yMin = isRatio ? Math.max(0, dataMin * 0.85) : 0;
+  const yMax = (isRatio ? dataMax * 1.1 : dataMax * 1.08) || 1;
 
   const x = useCallback(
     (i: number) => PAD.l + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW),

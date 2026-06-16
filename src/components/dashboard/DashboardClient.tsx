@@ -9,6 +9,7 @@ import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
 import { Bolt, Bulb, Target, TrendDown, TrendUp } from "@/components/icons";
 import {
+  anomalyImpact,
   bucketize,
   channelRowsCompared,
   detectAnomalies,
@@ -22,7 +23,7 @@ import {
   type ChannelRow,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
-import { fmtCZK, fmtDateShort, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { fmtCZK, fmtCZKCompact, fmtDateShort, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 
 function Segmented<T extends string>({
   options,
@@ -101,6 +102,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // Flagged days across the whole series (chart markers + the alerts feed).
   const anomalies = detectAnomalies(data.daily, data.goals);
   const topAnomalies = [...anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
+  // Money effect of the flagged days, so "3 upozornění" reads as "≈ −85 tis. Kč".
+  const impact = anomalyImpact(anomalies);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
@@ -220,6 +223,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             totals={c}
             goalPno={goalPno}
             revenueDelta={result.delta.revenue}
+            revenueSignificance={result.significance.revenue}
           />
         </div>
 
@@ -265,6 +269,20 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                   {anomalies.length}
                 </span>
               </div>
+              {impact.count > 0 && Math.abs(impact.net) >= 1 && (
+                <p className="mt-1.5 text-xs text-muted">
+                  Odhadovaný dopad těchto událostí:{" "}
+                  <span
+                    className={`tnum font-semibold ${
+                      impact.net < 0 ? "text-coral-600" : "text-positive"
+                    }`}
+                    title="Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním"
+                  >
+                    {impact.net < 0 ? "−" : "+"}
+                    {fmtCZKCompact(Math.abs(impact.net))}
+                  </span>
+                </p>
+              )}
               <ul className="mt-3 space-y-3">
                 {topAnomalies.map((a, i) => {
                   const ins = anomalyLine(a);

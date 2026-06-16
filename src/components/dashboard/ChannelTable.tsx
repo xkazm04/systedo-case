@@ -1,4 +1,4 @@
-import type { ChannelRow, Totals } from "@/lib/metrics";
+import type { ChannelRow, Significance, Totals } from "@/lib/metrics";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
 
@@ -16,12 +16,18 @@ export default function ChannelTable({
   totals,
   goalPno,
   revenueDelta,
+  revenueSignificance,
 }: {
   rows: ChannelRow[];
   totals: Totals;
   goalPno: number;
   /** period-over-period revenue change for the Celkem footer row */
   revenueDelta?: number;
+  /** confidence that the revenue change is real rather than daily noise. Each
+   *  channel projects the totals by a constant share, so a channel's revenue
+   *  delta and its significance are identical to the aggregate revenue figure —
+   *  one value drives every row badge and the footer. */
+  revenueSignificance?: Significance;
 }) {
   const maxShare = Math.max(...rows.map((r) => r.revenueShare), 0.0001);
 
@@ -78,7 +84,12 @@ export default function ChannelTable({
                 <td className="px-5 py-3 text-right">
                   {r.delta ? (
                     <span className="inline-flex justify-end">
-                      <DeltaBadge delta={r.delta.revenue} goodDirection="up" size="xs" />
+                      <DeltaBadge
+                        delta={r.delta.revenue}
+                        goodDirection="up"
+                        size="xs"
+                        significance={revenueSignificance}
+                      />
                     </span>
                   ) : (
                     <span className="text-muted">—</span>
@@ -98,7 +109,12 @@ export default function ChannelTable({
               <td className="px-5 py-3 text-right">
                 {revenueDelta !== undefined ? (
                   <span className="inline-flex justify-end">
-                    <DeltaBadge delta={revenueDelta} goodDirection="up" size="xs" />
+                    <DeltaBadge
+                      delta={revenueDelta}
+                      goodDirection="up"
+                      size="xs"
+                      significance={revenueSignificance}
+                    />
                   </span>
                 ) : (
                   <span className="text-muted">—</span>
