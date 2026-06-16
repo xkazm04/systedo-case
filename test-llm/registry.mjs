@@ -129,4 +129,31 @@ export const LLM_TOOLS = [
       return Array.isArray(r.recommendations) && isStr(r.recommendations[0]?.title);
     },
   },
+  {
+    id: "social",
+    label: "Příspěvky na sociální sítě",
+    system:
+      "Jsi český social media copywriter pro e-shop s ořechy a semínky. Přizpůsob styl platformě, piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Napiš příspěvky na sociální sítě na téma nová sezónní směs ořechů pro platformy instagram a facebook. Vrať pole posts, kde každý objekt má pole platform (instagram nebo facebook) a pole content.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        posts: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              platform: { type: Type.STRING },
+              content: { type: Type.STRING },
+            },
+            required: ["platform", "content"],
+          },
+        },
+      },
+      required: ["posts"],
+    },
+    validate: (r) =>
+      r && Array.isArray(r.posts) && r.posts.length >= 1 && isStr(r.posts[0]?.platform) && isStr(r.posts[0]?.content),
+  },
 ];

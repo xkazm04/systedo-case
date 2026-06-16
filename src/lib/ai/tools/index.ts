@@ -16,3 +16,4 @@ export { generateAds } from "./ads";
 export { generateBrief } from "./brief";
 export { generateAnalysis } from "./analysis";
 export { generateCampaignEvaluation } from "./campaign-eval";
+export { generateSocialPosts } from "./social";

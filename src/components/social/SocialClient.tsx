@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { Bolt, Check, Clock, Close, Info, Refresh, Share } from "@/components/icons";
+import { Bolt, Check, Clock, Close, Info, Refresh, Share, Sparkles } from "@/components/icons";
 import { fmtDateTime, fmtRelative } from "@/lib/format";
 import {
   PLATFORM_LIMITS,
@@ -151,7 +151,9 @@ function Composer() {
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [draftPlatforms, setDraftPlatforms] = useState<Set<SocialPlatform>>(new Set(["instagram", "facebook"]));
   const [drafts, setDrafts] = useState<{ platform: SocialPlatform; content: string }[]>([]);
-  const [drafting, setDrafting] = useState(false);
+  const [drafting, setDrafting] = useState<false | "template" | "ai">(false);
+  const [draftSource, setDraftSource] = useState<string | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
 
   const [platform, setPlatform] = useState<SocialPlatform>("instagram");
   const [content, setContent] = useState("");
@@ -167,22 +169,25 @@ function Composer() {
       return next;
     });
 
-  const suggest = async () => {
+  const suggest = async (ai: boolean) => {
     if (topic.trim().length < 2 || draftPlatforms.size === 0) return;
-    setDrafting(true);
-    setError(null);
+    setDrafting(ai ? "ai" : "template");
+    setDraftError(null);
     try {
       const res = await fetch("/api/social/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), tone, platforms: [...draftPlatforms] }),
+        body: JSON.stringify({ topic: topic.trim(), tone, platforms: [...draftPlatforms], ai }),
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Návrh se nezdařil.");
+        setDraftError(json?.error ?? "Návrh se nezdařil.");
         return;
       }
       setDrafts(json.drafts ?? []);
+      setDraftSource(json.source ?? null);
+    } catch {
+      setDraftError("Nepodařilo se spojit se serverem.");
     } finally {
       setDrafting(false);
     }
@@ -267,18 +272,44 @@ function Composer() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={suggest}
-        disabled={drafting || topic.trim().length < 2 || draftPlatforms.size === 0}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-pill border border-line px-5 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
-      >
-        <Bolt width={16} height={16} />
-        {drafting ? "Navrhuji…" : "Navrhnout varianty"}
-      </button>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => suggest(false)}
+          disabled={Boolean(drafting) || topic.trim().length < 2 || draftPlatforms.size === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-pill border border-line px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+        >
+          <Bolt width={15} height={15} />
+          {drafting === "template" ? "Navrhuji…" : "Šablona"}
+        </button>
+        <button
+          type="button"
+          onClick={() => suggest(true)}
+          disabled={Boolean(drafting) || topic.trim().length < 2 || draftPlatforms.size === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+        >
+          <Sparkles width={15} height={15} />
+          {drafting === "ai" ? "AI píše…" : "Navrhnout s AI"}
+        </button>
+      </div>
+
+      {draftError && <p className="text-sm text-negative">{draftError}</p>}
 
       {drafts.length > 0 && (
         <div className="space-y-2">
+          {draftSource && (
+            <span
+              className={`pill ${
+                draftSource === "ai"
+                  ? "bg-positive-soft text-positive"
+                  : draftSource === "demo"
+                    ? "bg-coral-soft text-coral-600"
+                    : "bg-navy-50 text-muted"
+              }`}
+            >
+              {draftSource === "ai" ? "AI návrh" : draftSource === "demo" ? "Ukázkový režim" : "Šablona"}
+            </span>
+          )}
           {drafts.map((d) => (
             <div key={d.platform} className="rounded-lg border border-line p-3">
               <div className="flex items-center justify-between">

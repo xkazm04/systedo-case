@@ -67,3 +67,14 @@ export interface SocialMessage {
   status: "open" | "replied";
   reply?: string;
 }
+
+/** One drafted caption (template or AI) for a platform. */
+export interface SocialDraftPost {
+  platform: SocialPlatform;
+  content: string;
+}
+
+/** Result of the social drafting tool — one post per requested platform. */
+export interface SocialDraftResult {
+  posts: SocialDraftPost[];
+}
