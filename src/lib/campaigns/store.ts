@@ -1,12 +1,17 @@
-/** SQLite-backed store for the campaigns feature (server-only). Persists the
- *  synced Google Ads campaigns and the AI evaluation reports so they survive a
- *  page reload / server restart — the point of running in local-dev mode.
+/** Per-tenant campaign store on Firestore (server-only). Each tenant
+ *  (`tenants/{tenant}`) holds its own synced campaigns, AI reports and snapshots,
+ *  so the multi-user cloud isolates every user's data and runs on a persistence
+ *  layer that works on serverless / multi-instance. `tenant` is resolved per
+ *  request (see connector.resolveTenant): a per-user+account id for live data,
+ *  `u_{userId}` for a signed-in user's sample copy, or `sample` for anonymous.
  *
- *  Raw metrics only are stored; ratios are always re-derived in `types.ts`. */
+ *  Per-tenant collections are small, so reads fetch the whole collection and
+ *  filter in code — this keeps queries single-field (auto-indexed), with no
+ *  composite indexes to provision. */
 import { createHash } from "node:crypto";
-import { getDb } from "../db";
-import type { AiResponse } from "../ai-types";
+import { firestore } from "@/lib/firebase";
 import type {
+  AiResponse,
   CampaignReport,
   CampaignReportResult,
   EvalScope,
@@ -25,95 +30,48 @@ export interface SyncMeta {
   syncedAt: string;
 }
 
-// --- row shapes returned by node:sqlite (column → value) --------------------
-
-interface CampaignRowDb {
-  id: string;
-  name: string;
-  type: string;
-  status: string;
-  impressions: number;
-  clicks: number;
-  cost: number;
-  conversions: number;
-  conversion_value: number;
-}
-
-interface ReportRowDb {
-  scope: string;
-  campaign_id: string | null;
-  period: string;
-  model: string;
-  demo: number;
-  payload: string;
-  prompt: string;
-  took_ms: number;
-  created_at: string;
+function tenantDoc(tenant: string) {
+  return firestore.collection("tenants").doc(tenant);
 }
 
 // --- campaigns --------------------------------------------------------------
 
-/** Replace the whole campaign set with a freshly-synced one and record the sync
- *  metadata, in a single transaction. Campaign ids are stable across periods, so
- *  any saved reports keyed by campaign id stay valid. */
-export function upsertCampaigns(
+/** Replace the tenant's campaign set with a freshly-synced one, append a snapshot
+ *  of it, and record the sync metadata — all in one atomic batch. */
+export async function upsertCampaigns(
+  tenant: string,
   campaigns: Campaign[],
   meta: { source: string; period: CampaignPeriod }
-): void {
-  const db = getDb();
+): Promise<void> {
+  const t = tenantDoc(tenant);
   const syncedAt = new Date().toISOString();
-  db.exec("BEGIN");
-  try {
-    db.exec("DELETE FROM campaigns");
-    const insert = db.prepare(
-      `INSERT INTO campaigns
-         (id, name, type, status, impressions, clicks, cost, conversions, conversion_value, position)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    );
-    campaigns.forEach((c, i) =>
-      insert.run(
-        c.id,
-        c.name,
-        c.type,
-        c.status,
-        c.impressions,
-        c.clicks,
-        c.cost,
-        c.conversions,
-        c.conversionValue,
-        i
-      )
-    );
-    // Append-only history: snapshot this synced set so the destructive replace
-    // above no longer discards the prior state (powers change diffing + trends).
-    const snap = db.prepare(
-      `INSERT INTO campaign_snapshots
-         (synced_at, campaign_id, status, cost, conversions, conversion_value)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    );
-    for (const c of campaigns) {
-      snap.run(syncedAt, c.id, c.status, c.cost, c.conversions, c.conversionValue);
-    }
-    db.prepare(
-      `INSERT INTO sync_meta (id, source, period, synced_at)
-       VALUES (1, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET
-         source = excluded.source,
-         period = excluded.period,
-         synced_at = excluded.synced_at`
-    ).run(meta.source, meta.period, syncedAt);
-    db.exec("COMMIT");
-  } catch (err) {
-    db.exec("ROLLBACK");
-    throw err;
-  }
+  const batch = firestore.batch();
+
+  // Clear current campaigns, then write the new set with a stable position.
+  const existing = await t.collection("campaigns").get();
+  existing.forEach((d) => batch.delete(d.ref));
+  campaigns.forEach((c, i) => batch.set(t.collection("campaigns").doc(c.id), { ...c, position: i }));
+
+  // Append-only snapshot of this sync (one doc per sync) for change diffing.
+  batch.set(t.collection("snapshots").doc(syncedAt), {
+    syncedAt,
+    campaigns: campaigns.map((c) => ({
+      campaignId: c.id,
+      status: c.status,
+      cost: c.cost,
+      conversions: c.conversions,
+      conversionValue: c.conversionValue,
+    })),
+  });
+
+  // Sync metadata on the tenant root doc.
+  batch.set(t, { source: meta.source, period: meta.period, syncedAt }, { merge: true });
+
+  await batch.commit();
 }
 
-export function listCampaigns(): Campaign[] {
-  const rows = getDb()
-    .prepare("SELECT * FROM campaigns ORDER BY position ASC")
-    .all() as unknown as CampaignRowDb[];
-  return rows.map((r) => ({
+function toCampaign(r: FirebaseFirestore.DocumentData): Campaign {
+  return {
     id: r.id,
     name: r.name,
     type: r.type as Campaign["type"],
@@ -122,58 +80,114 @@ export function listCampaigns(): Campaign[] {
     clicks: Number(r.clicks),
     cost: Number(r.cost),
     conversions: Number(r.conversions),
-    conversionValue: Number(r.conversion_value),
-  }));
-}
-
-export function getCampaign(id: string): Campaign | null {
-  const row = getDb()
-    .prepare("SELECT * FROM campaigns WHERE id = ?")
-    .get(id) as unknown as CampaignRowDb | undefined;
-  if (!row) return null;
-  return {
-    id: row.id,
-    name: row.name,
-    type: row.type as Campaign["type"],
-    status: row.status as Campaign["status"],
-    impressions: Number(row.impressions),
-    clicks: Number(row.clicks),
-    cost: Number(row.cost),
-    conversions: Number(row.conversions),
-    conversionValue: Number(row.conversion_value),
+    conversionValue: Number(r.conversionValue),
   };
 }
 
-export function getSyncMeta(): SyncMeta | null {
-  const row = getDb()
-    .prepare("SELECT source, period, synced_at FROM sync_meta WHERE id = 1")
-    .get() as unknown as { source: string; period: string; synced_at: string } | undefined;
-  if (!row) return null;
-  return { source: row.source, period: row.period as CampaignPeriod, syncedAt: row.synced_at };
+export async function listCampaigns(tenant: string): Promise<Campaign[]> {
+  const snap = await tenantDoc(tenant).collection("campaigns").orderBy("position", "asc").get();
+  return snap.docs.map((d) => toCampaign(d.data()));
+}
+
+export async function getCampaign(tenant: string, id: string): Promise<Campaign | null> {
+  const doc = await tenantDoc(tenant).collection("campaigns").doc(id).get();
+  return doc.exists ? toCampaign(doc.data()!) : null;
+}
+
+export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
+  const doc = await tenantDoc(tenant).get();
+  const r = doc.data();
+  if (!r?.syncedAt) return null;
+  return { source: r.source, period: r.period as CampaignPeriod, syncedAt: r.syncedAt };
 }
 
 // --- reports ----------------------------------------------------------------
 
-function toReport(r: ReportRowDb): CampaignReport {
+interface ReportDoc {
+  scope: string;
+  campaign_id: string | null;
+  period: string;
+  model: string;
+  demo: boolean;
+  payload: CampaignReportResult;
+  prompt: string;
+  took_ms: number;
+  created_at: string;
+  input_hash?: string | null;
+}
+
+function toReport(r: ReportDoc): CampaignReport {
   return {
     scope: r.scope as EvalScope,
     campaignId: r.campaign_id,
     period: r.period,
-    result: JSON.parse(r.payload) as CampaignReportResult,
-    meta: {
-      model: r.model,
-      demo: Boolean(r.demo),
-      prompt: r.prompt,
-      tookMs: Number(r.took_ms),
-    },
+    result: r.payload,
+    meta: { model: r.model, demo: Boolean(r.demo), prompt: r.prompt, tookMs: Number(r.took_ms) },
     createdAt: r.created_at,
   };
 }
 
-/** Deterministic fingerprint of the exact inputs an evaluation depends on —
- *  scope, target, period and the in-scope campaigns' raw metric tuples. Identical
- *  inputs ⇒ identical hash, so a repeat evaluation can be served from cache instead
- *  of re-spending an LLM call and polluting the score timeline with a dup point. */
+function toHistoryPoint(r: ReportDoc): ReportHistoryPoint {
+  return {
+    score: r.payload.score,
+    verdict: r.payload.verdict,
+    period: r.period,
+    demo: Boolean(r.demo),
+    createdAt: r.created_at,
+  };
+}
+
+/** All of a tenant's reports, oldest → newest. */
+async function allReports(tenant: string): Promise<ReportDoc[]> {
+  const snap = await tenantDoc(tenant).collection("reports").orderBy("created_at", "asc").get();
+  return snap.docs.map((d) => d.data() as ReportDoc);
+}
+
+const reportKey = (r: ReportDoc): string =>
+  r.scope === "overall" ? "overall" : r.campaign_id ?? "overall";
+
+export async function saveReport(
+  tenant: string,
+  args: {
+    scope: EvalScope;
+    campaignId: string | null;
+    period: CampaignPeriod;
+    response: AiResponse<CampaignReportResult>;
+    inputHash?: string;
+  }
+): Promise<CampaignReport> {
+  const { scope, campaignId, period, response, inputHash } = args;
+  const createdAt = new Date().toISOString();
+  const doc: ReportDoc = {
+    scope,
+    campaign_id: campaignId,
+    period,
+    model: response.meta.model,
+    demo: response.meta.demo,
+    payload: response.result,
+    prompt: response.meta.prompt,
+    took_ms: response.meta.tookMs,
+    created_at: createdAt,
+    input_hash: inputHash ?? null,
+  };
+  await tenantDoc(tenant).collection("reports").add(doc);
+  return { scope, campaignId, period, result: response.result, meta: response.meta, createdAt };
+}
+
+/** Latest report per (scope, campaign) for a period. */
+export async function getReportsForPeriod(
+  tenant: string,
+  period: CampaignPeriod
+): Promise<Record<string, CampaignReport>> {
+  const out: Record<string, CampaignReport> = {};
+  // asc order → last write for a key wins = the latest report.
+  for (const r of await allReports(tenant)) {
+    if (r.period === period) out[reportKey(r)] = toReport(r);
+  }
+  return out;
+}
+
+/** Deterministic fingerprint of the exact inputs an evaluation depends on. */
 export function hashEvalInputs(
   scope: EvalScope,
   campaignId: string | null,
@@ -193,178 +207,74 @@ export function hashEvalInputs(
     .digest("hex");
 }
 
-/** The newest stored report whose inputs match `inputHash` for this scope+period,
- *  or null. Lets the analyze route short-circuit an unchanged re-evaluation. */
-export function findCachedReport(
+/** The newest stored report matching the input fingerprint, or null. */
+export async function findCachedReport(
+  tenant: string,
   scope: EvalScope,
   campaignId: string | null,
   period: CampaignPeriod,
   inputHash: string
-): CampaignReport | null {
-  const row = getDb()
-    .prepare(
-      `SELECT * FROM reports
-       WHERE scope = ? AND IFNULL(campaign_id, '') = ? AND period = ? AND input_hash = ?
-       ORDER BY id DESC LIMIT 1`
-    )
-    .get(scope, campaignId ?? "", period, inputHash) as unknown as ReportRowDb | undefined;
-  return row ? toReport(row) : null;
+): Promise<CampaignReport | null> {
+  const matches = (await allReports(tenant)).filter(
+    (r) =>
+      r.scope === scope &&
+      (r.campaign_id ?? "") === (campaignId ?? "") &&
+      r.period === period &&
+      r.input_hash === inputHash
+  );
+  return matches.length ? toReport(matches[matches.length - 1]!) : null;
 }
 
-/** Persist an evaluation and return it in the wire shape the client expects. */
-export function saveReport(args: {
-  scope: EvalScope;
-  campaignId: string | null;
-  period: CampaignPeriod;
-  response: AiResponse<CampaignReportResult>;
-  /** fingerprint of the inputs (from hashEvalInputs) for cache dedupe */
-  inputHash?: string;
-}): CampaignReport {
-  const { scope, campaignId, period, response, inputHash } = args;
-  const createdAt = new Date().toISOString();
-  getDb()
-    .prepare(
-      `INSERT INTO reports
-         (scope, campaign_id, period, model, demo, payload, prompt, took_ms, created_at, input_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .run(
-      scope,
-      campaignId,
-      period,
-      response.meta.model,
-      response.meta.demo ? 1 : 0,
-      JSON.stringify(response.result),
-      response.meta.prompt,
-      response.meta.tookMs,
-      createdAt,
-      inputHash ?? null
-    );
-  return {
-    scope,
-    campaignId,
-    period,
-    result: response.result,
-    meta: response.meta,
-    createdAt,
-  };
-}
-
-/** Latest report per (scope, campaign) for a period, keyed by campaign id —
- *  or "overall" for the portfolio report. */
-export function getReportsForPeriod(period: CampaignPeriod): Record<string, CampaignReport> {
-  const rows = getDb()
-    .prepare(
-      `SELECT * FROM reports
-       WHERE id IN (
-         SELECT MAX(id) FROM reports
-         WHERE period = ?
-         GROUP BY scope, IFNULL(campaign_id, '')
-       )`
-    )
-    .all(period) as unknown as ReportRowDb[];
-
-  const out: Record<string, CampaignReport> = {};
-  for (const r of rows) {
-    const report = toReport(r);
-    out[report.scope === "overall" ? "overall" : report.campaignId ?? "overall"] = report;
-  }
-  return out;
-}
-
-// --- report history (score-over-time timeline) ------------------------------
-
-interface HistoryRowDb {
-  period: string;
-  demo: number;
-  payload: string;
-  created_at: string;
-}
-
-function toHistoryPoint(r: HistoryRowDb): ReportHistoryPoint {
-  const result = JSON.parse(r.payload) as CampaignReportResult;
-  return {
-    score: result.score,
-    verdict: result.verdict,
-    period: r.period,
-    demo: Boolean(r.demo),
-    createdAt: r.created_at,
-  };
-}
-
-/** Full chronological score history for one scope+campaign (oldest → newest),
- *  spanning every period — the data behind a report's trend sparkline. Unlike
- *  getReportsForPeriod this keeps every evaluation, not just the latest. */
-export function getReportHistory(
+export async function getReportHistory(
+  tenant: string,
   scope: EvalScope,
   campaignId: string | null
-): ReportHistoryPoint[] {
-  const rows = getDb()
-    .prepare(
-      `SELECT period, demo, payload, created_at FROM reports
-       WHERE scope = ? AND IFNULL(campaign_id, '') = ?
-       ORDER BY id ASC`
-    )
-    .all(scope, campaignId ?? "") as unknown as HistoryRowDb[];
-  return rows.map(toHistoryPoint);
+): Promise<ReportHistoryPoint[]> {
+  return (await allReports(tenant))
+    .filter((r) => r.scope === scope && (r.campaign_id ?? "") === (campaignId ?? ""))
+    .map(toHistoryPoint);
 }
 
-/** Every score history in a single pass, keyed like getReportsForPeriod
- *  ("overall" or a campaign id) so the page can render a trend next to each
- *  report without an N+1 of per-key queries. */
-export function getReportHistories(): Record<string, ReportHistoryPoint[]> {
-  const rows = getDb()
-    .prepare(
-      `SELECT scope, campaign_id, period, demo, payload, created_at FROM reports
-       ORDER BY id ASC`
-    )
-    .all() as unknown as (HistoryRowDb & { scope: string; campaign_id: string | null })[];
-
+export async function getReportHistories(
+  tenant: string
+): Promise<Record<string, ReportHistoryPoint[]>> {
   const out: Record<string, ReportHistoryPoint[]> = {};
-  for (const r of rows) {
-    const key = r.scope === "overall" ? "overall" : r.campaign_id ?? "overall";
-    if (!out[key]) out[key] = [];
-    out[key].push(toHistoryPoint(r));
+  for (const r of await allReports(tenant)) {
+    (out[reportKey(r)] ??= []).push(toHistoryPoint(r));
   }
   return out;
 }
 
 // --- sync-over-sync change diff ---------------------------------------------
 
-interface SnapshotRowDb {
-  campaign_id: string;
+interface SnapshotEntry {
+  campaignId: string;
   status: string;
   cost: number;
   conversions: number;
-  conversion_value: number;
+  conversion_value?: number;
+  conversionValue?: number;
 }
 
-/** Diff the two most recent snapshot batches into a "what changed since the last
- *  sync" summary (added / removed / changed campaigns + per-metric deltas). Returns
- *  null until at least two syncs exist. Names resolve from the current campaign set
- *  (a removed campaign falls back to its id). */
-export function getLatestChanges(): ChangesSummary | null {
-  const db = getDb();
-  const times = db
-    .prepare("SELECT DISTINCT synced_at FROM campaign_snapshots ORDER BY synced_at DESC LIMIT 2")
-    .all() as unknown as { synced_at: string }[];
-  if (times.length < 2) return null;
+export async function getLatestChanges(tenant: string): Promise<ChangesSummary | null> {
+  const snap = await tenantDoc(tenant)
+    .collection("snapshots")
+    .orderBy("syncedAt", "desc")
+    .limit(2)
+    .get();
+  if (snap.size < 2) return null;
 
-  const current = times[0].synced_at;
-  const since = times[1].synced_at;
+  const docs = snap.docs.map((d) => d.data());
+  const current = docs[0]!.syncedAt as string;
+  const since = docs[1]!.syncedAt as string;
 
-  const loadBatch = (t: string): Map<string, SnapshotRowDb> => {
-    const rows = db
-      .prepare(
-        "SELECT campaign_id, status, cost, conversions, conversion_value FROM campaign_snapshots WHERE synced_at = ?"
-      )
-      .all(t) as unknown as SnapshotRowDb[];
-    return new Map(rows.map((r) => [r.campaign_id, r]));
-  };
-  const curMap = loadBatch(current);
-  const prevMap = loadBatch(since);
-  const names = new Map(listCampaigns().map((c) => [c.id, c.name]));
+  const toMap = (entries: SnapshotEntry[]) =>
+    new Map(entries.map((e) => [e.campaignId, e]));
+  const curMap = toMap((docs[0]!.campaigns ?? []) as SnapshotEntry[]);
+  const prevMap = toMap((docs[1]!.campaigns ?? []) as SnapshotEntry[]);
+  const names = new Map((await listCampaigns(tenant)).map((c) => [c.id, c.name]));
 
+  const valueOf = (e: SnapshotEntry) => e.conversionValue ?? e.conversion_value ?? 0;
   const roas = (cost: number, value: number) => (cost > 0 ? value / cost : 0);
   const rel = (a: number, b: number) => (b > 0 ? (a - b) / b : a > 0 ? 1 : 0);
 
@@ -381,29 +291,28 @@ export function getLatestChanges(): ChangesSummary | null {
       items.push({
         campaignId: id, name, kind: "added",
         costBefore: 0, costAfter: c.cost, costDelta: 1, valueDelta: 1,
-        roasBefore: 0, roasAfter: roas(c.cost, c.conversion_value),
+        roasBefore: 0, roasAfter: roas(c.cost, valueOf(c)),
       });
       continue;
     }
     const costDelta = rel(c.cost, p.cost);
-    const valueDelta = rel(c.conversion_value, p.conversion_value);
+    const valueDelta = rel(valueOf(c), valueOf(p));
     if (Math.abs(costDelta) >= 0.05 || Math.abs(valueDelta) >= 0.05 || c.status !== p.status) {
       changed++;
       items.push({
         campaignId: id, name, kind: "changed",
         costBefore: p.cost, costAfter: c.cost, costDelta, valueDelta,
-        roasBefore: roas(p.cost, p.conversion_value), roasAfter: roas(c.cost, c.conversion_value),
+        roasBefore: roas(p.cost, valueOf(p)), roasAfter: roas(c.cost, valueOf(c)),
       });
     }
   }
-
   for (const [id, p] of prevMap) {
     if (curMap.has(id)) continue;
     removed++;
     items.push({
       campaignId: id, name: names.get(id) ?? id, kind: "removed",
       costBefore: p.cost, costAfter: 0, costDelta: -1, valueDelta: -1,
-      roasBefore: roas(p.cost, p.conversion_value), roasAfter: 0,
+      roasBefore: roas(p.cost, valueOf(p)), roasAfter: 0,
     });
   }
 

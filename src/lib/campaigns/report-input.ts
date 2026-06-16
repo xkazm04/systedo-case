@@ -15,6 +15,19 @@ import {
   type CampaignRow,
 } from "./types";
 import { CAMPAIGN_PERIOD_LABELS } from "./types";
+import { triage } from "./triage";
+import { recommendBudgetMoves } from "./budget-moves";
+
+/** Render one campaign's deterministic triage as prompt lines, so the model
+ *  reasons over the same rule-based diagnosis the UI badges show — instead of
+ *  re-inventing one that can contradict the screen. */
+function triageLines(c: CampaignRow): string[] {
+  const t = triage(c);
+  if (t.reasons.length === 0) return ["- Bez porušení pravidel triáže (plní cíle)."];
+  return t.reasons.map(
+    (r) => `- [${r.severity === "critical" ? "KRITICKÉ" : "sledovat"}] ${r.label}: ${r.detail}`
+  );
+}
 
 const CLIENT_LINE = "Klient: Mionelo (mionelo.cz) — e-shop s ořechy, semínky a superpotravinami";
 
@@ -71,7 +84,10 @@ export function buildCampaignPrompt(target: Campaign, all: Campaign[], period: C
     `- Celé portfolio: náklady ${fmtCZK(portfolio.cost)}, hodnota konverzí ${fmtCZK(portfolio.conversionValue)}, ROAS ${fmtMultiple(portfolio.roas)}, PNO ${fmtPct(portfolio.pno)}.`,
     `- Typ ${CAMPAIGN_TYPE_LABELS[target.type]} celkem (${typeTotal.count} kampaní): náklady ${fmtCZK(typeTotal.cost)}, ROAS ${fmtMultiple(typeTotal.roas)}, PNO ${fmtPct(typeTotal.pno)}.`,
     "",
-    "Na základě těchto čísel vrať: skóre 0–100 (zdraví kampaně vůči cíli a portfoliu), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 2–4 konkrétní doporučené kroky s prioritou. Vycházej VÝHRADNĚ z uvedených čísel.",
+    "DETERMINISTICKÁ TRIÁŽ (pravidlová diagnóza zobrazená u kampaně — tvé hodnocení s ní musí být v souladu):",
+    ...triageLines(t),
+    "",
+    "Na základě těchto čísel vrať: skóre 0–100 (zdraví kampaně vůči cíli a portfoliu), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 2–4 konkrétní doporučené kroky s prioritou. Skóre i verdikt musí odpovídat triáži výše — kampaň s kritickým nálezem nemůže dostat skóre zdraví nad 50. Vycházej VÝHRADNĚ z uvedených čísel.",
   ].join("\n");
 }
 
@@ -81,6 +97,10 @@ export function buildOverallPrompt(all: Campaign[], period: CampaignPeriod): str
   const portfolio = aggregate(all);
   const types = groupByType(all);
   const rows = [...all].map(withMetrics).sort((a, b) => b.cost - a.cost);
+  // Deterministic layer the model must agree with: rule-based triage + the
+  // quantified budget-reallocation the BudgetMoves card already shows on screen.
+  const flagged = rows.map((c) => ({ c, t: triage(c) })).filter((x) => x.t.severity !== "ok");
+  const rec = recommendBudgetMoves(rows);
 
   return [
     "Vyhodnoť celé portfolio reklamních kampaní klienta z Google Ads jako PPC stratég.",
@@ -100,6 +120,27 @@ export function buildOverallPrompt(all: Campaign[], period: CampaignPeriod): str
     "JEDNOTLIVÉ KAMPANĚ (seřazené podle nákladů):",
     ...rows.map((c) => `- „${c.name}“: ${metricsLine(c)}`),
     "",
-    "Na základě těchto čísel vrať: skóre 0–100 (celkové zdraví portfolia vůči cíli), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 3–5 konkrétních doporučených kroků s prioritou (kde přidat rozpočet, co optimalizovat, co utlumit). Odkazuj se na konkrétní kampaně a typy. Vycházej VÝHRADNĚ z uvedených čísel.",
+    "DETERMINISTICKÁ TRIÁŽ (pravidlové nálezy, které UI u kampaní zobrazuje — respektuj je):",
+    ...(flagged.length > 0
+      ? flagged.map(
+          ({ c, t }) =>
+            `- „${c.name}“: ${t.reasons
+              .map((r) => `[${r.severity === "critical" ? "KRITICKÉ" : "sledovat"}] ${r.label}`)
+              .join("; ")}`
+        )
+      : ["- Žádná kampaň neporušuje pravidla triáže."]),
+    "",
+    "DOPORUČENÉ PŘESUNY ROZPOČTU (deterministický model — použij je jako základ, neodporuj jim):",
+    ...(rec.moves.length > 0
+      ? [
+          ...rec.moves.map(
+            (m) =>
+              `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad +${fmtCZK(m.estValueGain)} hodnoty konverzí.`
+          ),
+          `- Souhrnný odhad po přesunech: ROAS ${fmtMultiple(rec.simulation.before.roas)} → ${fmtMultiple(rec.simulation.after.roas)}, PNO ${fmtPct(rec.simulation.before.pno)} → ${fmtPct(rec.simulation.after.pno)}.`,
+        ]
+      : ["- Model nenašel jednoznačné přesuny (žádný jasný dárce/příjemce vůči cíli)."]),
+    "",
+    "Na základě těchto čísel vrať: skóre 0–100 (celkové zdraví portfolia vůči cíli), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 3–5 konkrétních doporučených kroků s prioritou (kde přidat rozpočet, co optimalizovat, co utlumit). Doporučení musí vycházet z triáže a navržených přesunů výše a nesmí jim odporovat. Odkazuj se na konkrétní kampaně a typy. Vycházej VÝHRADNĚ z uvedených čísel.",
   ].join("\n");
 }

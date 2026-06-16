@@ -1,7 +1,9 @@
 /** Campaigns API: list the synced state (GET) and sync from the Ads connector
- *  into SQLite (POST). Node runtime + dynamic because it talks to node:sqlite. */
+ *  (POST), per-tenant in Firestore. Each signed-in user reads/writes their own
+ *  tenant; anonymous visitors share a `sample` tenant. Node runtime. */
+import type { Session } from "next-auth";
 import { auth } from "@/auth";
-import { getConnectorForUser } from "@/lib/campaigns/connector";
+import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
 import {
   getLatestChanges,
   getReportHistories,
@@ -23,23 +25,28 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Everything the page needs in one payload: campaigns, sync metadata, the
- *  latest stored reports for the synced period, and the full score history per
- *  scope/campaign (across periods) that drives the trend timelines. */
-function loadState() {
-  const meta = getSyncMeta();
+function userIdOf(session: Session | null): string | null {
+  return (session?.user as { id?: string } | undefined)?.id ?? null;
+}
+
+/** Everything the page needs in one payload: campaigns, sync metadata, the latest
+ *  stored reports for the synced period, the per-scope score history, and the
+ *  sync-over-sync change diff — all scoped to the tenant. */
+async function loadState(tenant: string) {
+  const meta = await getSyncMeta(tenant);
   return {
-    campaigns: listCampaigns(),
+    campaigns: await listCampaigns(tenant),
     meta,
-    reports: meta ? getReportsForPeriod(meta.period) : {},
-    histories: getReportHistories(),
-    changes: getLatestChanges(),
+    reports: meta ? await getReportsForPeriod(tenant, meta.period) : {},
+    histories: await getReportHistories(tenant),
+    changes: await getLatestChanges(tenant),
   };
 }
 
-export function GET() {
+export async function GET() {
   try {
-    return Response.json(loadState());
+    const tenant = await resolveTenant(userIdOf(await auth()));
+    return Response.json(await loadState(tenant));
   } catch (err) {
     console.error("[campaigns] loadState failed:", err);
     return Response.json({ error: "Nepodařilo se načíst stav kampaní." }, { status: 500 });
@@ -47,8 +54,8 @@ export function GET() {
 }
 
 export async function POST(request: Request) {
-  // Throttle syncs per IP — this hits the connector (and, once live credentials
-  // are wired, the Google Ads API) so it shouldn't be hammerable by anyone.
+  // Throttle syncs per IP — this hits the connector (and, for live accounts, the
+  // Google Ads API) so it shouldn't be hammerable.
   if (tooLarge(request)) {
     return payloadTooLarge("Požadavek je příliš velký.");
   }
@@ -69,11 +76,10 @@ export async function POST(request: Request) {
   const raw = (body as { period?: unknown } | null)?.period;
   const period: CampaignPeriod = isCampaignPeriod(raw) ? raw : "30d";
 
-  // Live Google Ads for a signed-in user who has selected an account (and a
-  // developer token is configured); the deterministic sample provider otherwise.
-  const session = await auth();
-  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
-  const connector = await getConnectorForUser(userId);
+  // Live Google Ads for a connected user, sample data otherwise — always into the
+  // user's own tenant.
+  const { connector, tenant } = await resolveCampaignContext(userIdOf(await auth()));
+
   let campaigns;
   try {
     campaigns = await connector.fetchCampaigns(period);
@@ -85,6 +91,6 @@ export async function POST(request: Request) {
     );
   }
 
-  upsertCampaigns(campaigns, { source: connector.source, period });
-  return Response.json(loadState());
+  await upsertCampaigns(tenant, campaigns, { source: connector.source, period });
+  return Response.json(await loadState(tenant));
 }

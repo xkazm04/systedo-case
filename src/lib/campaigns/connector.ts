@@ -6,7 +6,7 @@
  *     selected an account AND a developer token is configured. It calls the Ads
  *     REST API (GAQL) on the user's behalf via their OAuth token.
  *
- *  Server-only. `getConnectorForUser()` picks the provider per request.
+ *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
 import { sampleCampaigns } from "./sample";
 import { getAdsConnection } from "./connection";
@@ -42,20 +42,31 @@ function googleAdsProvider(accessToken: string, customerId: string): AdsConnecto
   };
 }
 
-/** Live Google Ads when the user is signed in, has selected an account, and the
- *  developer token is configured; otherwise the deterministic sample provider. */
-export async function getConnectorForUser(userId: string | null): Promise<AdsConnector> {
-  if (userId && adsConfigured()) {
-    const connection = await getAdsConnection(userId);
-    if (connection) {
-      const token = await getUserAccessToken(userId);
-      if (token) return googleAdsProvider(token, connection.customerId);
-    }
-  }
-  return sampleProvider();
+/** The Firestore tenant a user's campaign data lives under. Based on the selected
+ *  account (not token availability) so the read and sync paths always agree:
+ *  per-account for a connected user, per-user for a signed-in user without a
+ *  selection, and a shared `sample` tenant for anonymous visitors. */
+export async function resolveTenant(userId: string | null): Promise<string> {
+  if (!userId) return "sample";
+  const connection = await getAdsConnection(userId);
+  return connection ? `u_${userId}_${connection.customerId}` : `u_${userId}`;
 }
 
-/** Sample connector for anonymous / non-user contexts. */
-export function getConnector(): AdsConnector {
-  return sampleProvider();
+/** Resolve both the connector and the tenant for a request in one pass: live
+ *  Google Ads when the user is signed in, has selected an account, the developer
+ *  token is configured, and a valid OAuth token exists; the deterministic sample
+ *  provider otherwise — but always writing to the user's own tenant. */
+export async function resolveCampaignContext(
+  userId: string | null
+): Promise<{ connector: AdsConnector; tenant: string }> {
+  if (!userId) return { connector: sampleProvider(), tenant: "sample" };
+
+  const connection = await getAdsConnection(userId);
+  const tenant = connection ? `u_${userId}_${connection.customerId}` : `u_${userId}`;
+
+  if (connection && adsConfigured()) {
+    const token = await getUserAccessToken(userId);
+    if (token) return { connector: googleAdsProvider(token, connection.customerId), tenant };
+  }
+  return { connector: sampleProvider(), tenant };
 }

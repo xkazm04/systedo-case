@@ -1,8 +1,10 @@
 /** Evaluate a single campaign or the whole portfolio with the LLM, persist the
  *  report to SQLite and return it. The period is taken from the synced metadata
  *  so a stored report always matches the data currently on screen. */
+import { auth } from "@/auth";
 import { generateCampaignEvaluation } from "@/lib/gemini";
 import { validateEvaluationRequest } from "@/lib/ai-types";
+import { resolveTenant } from "@/lib/campaigns/connector";
 import {
   findCachedReport,
   getCampaign,
@@ -54,8 +56,12 @@ export async function POST(request: Request) {
     const parsed = validateEvaluationRequest(body);
     if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
 
-    const meta = getSyncMeta();
-    const campaigns = listCampaigns();
+    const session = await auth();
+    const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+    const tenant = await resolveTenant(userId);
+
+    const meta = await getSyncMeta(tenant);
+    const campaigns = await listCampaigns(tenant);
     if (!meta || campaigns.length === 0) {
       return Response.json(
         { error: "Nejdřív synchronizujte kampaně z Google Ads." },
@@ -68,7 +74,7 @@ export async function POST(request: Request) {
 
     let target: Campaign | null = null;
     if (scope === "campaign") {
-      target = campaignId ? getCampaign(campaignId) : null;
+      target = campaignId ? await getCampaign(tenant, campaignId) : null;
       if (!target) return Response.json({ error: "Kampaň nebyla nalezena." }, { status: 404 });
     }
 
@@ -78,9 +84,9 @@ export async function POST(request: Request) {
     const inputHash = hashEvalInputs(scope, reportCampaignId, meta.period, campaigns);
     const force = new URL(request.url).searchParams.get("force") === "1";
     if (!force) {
-      const cached = findCachedReport(scope, reportCampaignId, meta.period, inputHash);
+      const cached = await findCachedReport(tenant, scope, reportCampaignId, meta.period, inputHash);
       if (cached) {
-        const history = getReportHistory(scope, reportCampaignId);
+        const history = await getReportHistory(tenant, scope, reportCampaignId);
         return Response.json({ report: cached, history, cached: true });
       }
     }
@@ -92,7 +98,7 @@ export async function POST(request: Request) {
         campaigns,
         period: meta.period,
       });
-      const report = saveReport({
+      const report = await saveReport(tenant, {
         scope,
         campaignId: reportCampaignId,
         period: meta.period,
@@ -101,7 +107,7 @@ export async function POST(request: Request) {
       });
       // Return the refreshed history alongside the report so the trend timeline
       // updates without a full reload.
-      const history = getReportHistory(scope, scope === "campaign" ? campaignId : null);
+      const history = await getReportHistory(tenant, scope, scope === "campaign" ? campaignId : null);
       return Response.json({ report, history });
     } catch (err) {
       console.error("[campaigns] evaluation failed:", err);

@@ -7,6 +7,7 @@ import {
   CAMPAIGN_PERIOD_LABELS,
   TARGET_PNO,
   aggregate,
+  type CampaignChange,
   type CampaignPeriod,
 } from "@/lib/campaigns/types";
 import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
@@ -50,6 +51,11 @@ export default function CampaignsClient() {
   };
 
   const hasData = Boolean(meta) && campaigns.length > 0;
+  // Index the sync-over-sync diff by campaign id so the table's triage can flag
+  // ROAS craters / spend spikes vs the prior sync (empty until ≥2 syncs exist).
+  const changesById: Record<string, CampaignChange> = Object.fromEntries(
+    (changes?.items ?? []).filter((i) => i.kind === "changed").map((i) => [i.campaignId, i] as const)
+  );
   const overall = reports["overall"];
   const overallBusy = Boolean(analyzing["overall"]);
   const overallErr = analyzeErrors["overall"];
@@ -73,9 +79,9 @@ export default function CampaignsClient() {
         </span>
         <h2 className="mt-5 text-lg font-semibold text-navy-800">Zatím žádná data z Google Ads</h2>
         <p className="mt-2 max-w-md text-sm text-muted">
-          Připojte se ke Google Ads a načtěte kampaně. Bez přístupových údajů se použijí
-          realistická ukázková data, abyste si prošli celý tok — porovnání podle typu i AI
-          vyhodnocení s uložením do SQLite.
+          Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická
+          ukázková data, abyste si prošli celý tok — porovnání podle typu i AI vyhodnocení,
+          uložené per uživatele do Firestore.
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {CAMPAIGN_PERIODS.map((p) => (
@@ -245,6 +251,7 @@ export default function CampaignsClient() {
           analyzing={analyzing}
           analyzeErrors={analyzeErrors}
           cached={cached}
+          changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
         />
       </section>

@@ -10,6 +10,7 @@ import {
   CAMPAIGN_TYPES,
   withMetrics,
   type Campaign,
+  type CampaignChange,
   type CampaignStatus,
   type CampaignType,
 } from "@/lib/campaigns/types";
@@ -144,6 +145,7 @@ export default function CampaignTable({
   analyzing,
   analyzeErrors,
   cached,
+  changesById,
   onAnalyze,
 }: {
   campaigns: Campaign[];
@@ -153,6 +155,9 @@ export default function CampaignTable({
   analyzeErrors: Record<string, string>;
   /** per-campaign-id: was the last evaluation served from cache (no new call) */
   cached: Record<string, boolean>;
+  /** per-campaign-id diff vs the prior sync, so triage can flag ROAS craters /
+   *  spend spikes the current-snapshot rules can't see. Empty until ≥2 syncs. */
+  changesById: Record<string, CampaignChange>;
   onAnalyze: (campaignId: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -194,7 +199,7 @@ export default function CampaignTable({
   // Derive once, then filter + sort. The helpers are pure and Next's React
   // Compiler memoizes the component, so we compute the view directly.
   const all = campaigns.map(withMetrics);
-  const summary = summarize(all); // portfolio-wide — independent of the active filters
+  const summary = summarize(all, changesById); // portfolio-wide — independent of the active filters
   const q = query.trim().toLowerCase();
   const filtersActive =
     q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
@@ -202,7 +207,7 @@ export default function CampaignTable({
   // Each row carries its triage result so the badge, the filter and the sort all
   // read the same classification.
   const view = all
-    .map((c) => ({ c, t: triage(c) }))
+    .map((c) => ({ c, t: triage(c, changesById[c.id]) }))
     .filter(({ c, t }) => {
       if (typeFilter !== "all" && c.type !== typeFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;

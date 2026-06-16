@@ -4,8 +4,8 @@
  *  badges and the summary banner. The thresholds reuse the same agreed target
  *  constants that colour the ROAS / PNO cells, so the badge, the cell colour and
  *  the banner can never disagree. */
-import { fmtCZK, fmtMultiple, fmtPct } from "../format";
-import { TARGET_PNO, TARGET_ROAS, type CampaignRow } from "./types";
+import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "../format";
+import { TARGET_PNO, TARGET_ROAS, type CampaignChange, type CampaignRow } from "./types";
 
 // --- thresholds (single source of truth for "below target" colouring) --------
 
@@ -118,14 +118,64 @@ const RULES: Rule[] = [
   },
 ];
 
-/** Classify one campaign against every rule. */
-export function triage(c: CampaignRow): TriageResult {
+// --- change-aware rules (sync-over-sync) -------------------------------------
+// These need the diff against the prior sync, so they only fire when a
+// CampaignChange is supplied. They catch movement a single-snapshot rule can't:
+// a campaign can sit above target yet be cratering toward it.
+
+interface ChangeRule {
+  id: string;
+  severity: "critical" | "warning";
+  label: string;
+  test: (c: CampaignRow, ch: CampaignChange) => boolean;
+  detail: (c: CampaignRow, ch: CampaignChange) => string;
+}
+
+const CHANGE_RULES: ChangeRule[] = [
+  {
+    id: "roas_crater",
+    severity: "critical",
+    label: "Propad ROAS proti minulé synchronizaci",
+    // A real collapse: was meaningfully healthy, lost >40% of its ROAS, and has
+    // now fallen below target. Guards against tiny-base noise via the before band.
+    test: (_c, ch) =>
+      ch.kind === "changed" &&
+      ch.roasBefore >= TARGET_ROAS * ROAS_CRITICAL_RATIO &&
+      ch.roasAfter > 0 &&
+      ch.roasAfter < ch.roasBefore * 0.6 &&
+      ch.roasAfter < TARGET_ROAS,
+    detail: (_c, ch) =>
+      `ROAS spadl z ${fmtMultiple(ch.roasBefore)} na ${fmtMultiple(ch.roasAfter)} od minulé synchronizace.`,
+  },
+  {
+    id: "spend_spike",
+    severity: "warning",
+    label: "Skok nákladů bez návratnosti",
+    // Cost jumped ≥50% while conversion value lagged well behind — efficiency is
+    // being diluted even if the absolute ROAS still looks acceptable.
+    test: (_c, ch) => ch.kind === "changed" && ch.costDelta >= 0.5 && ch.valueDelta < ch.costDelta * 0.5,
+    detail: (_c, ch) =>
+      `Náklady ${fmtSignedPct(ch.costDelta)} proti minulé synchronizaci, hodnota konverzí jen ${fmtSignedPct(ch.valueDelta)}.`,
+  },
+];
+
+/** Classify one campaign against every rule. When a `change` (the diff against
+ *  the prior sync) is supplied, the sync-over-sync rules also run, so a ROAS
+ *  crater or an unbacked spend spike earns a badge a snapshot rule would miss. */
+export function triage(c: CampaignRow, change?: CampaignChange): TriageResult {
   const reasons: TriageReason[] = RULES.filter((r) => r.test(c)).map((r) => ({
     id: r.id,
     severity: r.severity,
     label: r.label,
     detail: r.detail(c),
   }));
+  if (change) {
+    for (const r of CHANGE_RULES) {
+      if (r.test(c, change)) {
+        reasons.push({ id: r.id, severity: r.severity, label: r.label, detail: r.detail(c, change) });
+      }
+    }
+  }
   reasons.sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
   const severity: Severity = reasons.some((r) => r.severity === "critical")
     ? "critical"
@@ -153,10 +203,13 @@ export interface TriageSummary {
   total: number;
 }
 
-export function summarize(rows: CampaignRow[]): TriageSummary {
+export function summarize(
+  rows: CampaignRow[],
+  changesById?: Record<string, CampaignChange>
+): TriageSummary {
   const s: TriageSummary = { critical: 0, warning: 0, attention: 0, ok: 0, total: rows.length };
   for (const r of rows) {
-    const sev = triage(r).severity;
+    const sev = triage(r, changesById?.[r.id]).severity;
     if (sev === "critical") s.critical++;
     else if (sev === "warning") s.warning++;
     else s.ok++;

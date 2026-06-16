@@ -441,6 +441,25 @@ function normalizeAnalysisResult(parsed: unknown): AnalysisResult {
   };
 }
 
+/** Flag analysis output missing the actionable parts (empty wins/risks/actions
+ *  or no verdict), so the wrapper re-prompts instead of rendering a hollow card
+ *  that the normalizer would have silently passed through. */
+function validateAnalysis(parsed: unknown): string[] {
+  const o = parsed as Record<string, unknown> | null;
+  if (!o || typeof o !== "object") return [];
+  const v: string[] = [];
+  if (!txt(o.headline)) v.push("Chybí jednovětý verdikt (headline).");
+  if (cleanList(o.wins, 6).length === 0) v.push("Chybí body „co se daří“ (wins).");
+  if (cleanList(o.risks, 6).length === 0) v.push("Chybí rizika (risks).");
+  const actions = Array.isArray(o.actions)
+    ? o.actions.filter(
+        (x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)
+      ).length
+    : 0;
+  if (actions === 0) v.push("Chybí konkrétní doporučené kroky (actions).");
+  return v;
+}
+
 function demoAnalysis(s: Snapshot): AnalysisResult {
   const c = s.current;
   const pnoUnder = c.pno <= s.goalPno;
@@ -504,6 +523,7 @@ export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<Analy
     schema: ANALYSIS_SCHEMA,
     temperature: 0.7,
     normalize: normalizeAnalysisResult,
+    validate: validateAnalysis,
     demo: () => demoAnalysis(snapshot),
   });
 }
@@ -572,6 +592,28 @@ function normalizeReport(parsed: unknown): CampaignReportResult {
     weaknesses: cleanList(o.weaknesses, 6),
     recommendations,
   };
+}
+
+/** Flag evaluation output that's out of range or missing the decision-bearing
+ *  parts (score 0–100, a verdict, a summary, at least one recommendation), so the
+ *  wrapper re-prompts before the normalizer clamps an out-of-range score to 0. */
+function validateReport(parsed: unknown): string[] {
+  const o = parsed as Record<string, unknown> | null;
+  if (!o || typeof o !== "object") return [];
+  const v: string[] = [];
+  const raw = typeof o.score === "number" ? o.score : Number(o.score);
+  if (!Number.isFinite(raw) || raw < 0 || raw > 100) {
+    v.push(`Skóre musí být číslo 0–100 (dostal jsem „${String(o.score)}“).`);
+  }
+  if (!txt(o.verdict)) v.push("Chybí jednovětý verdikt.");
+  if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
+  const recs = Array.isArray(o.recommendations)
+    ? o.recommendations.filter(
+        (x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)
+      ).length
+    : 0;
+  if (recs === 0) v.push("Chybí doporučené kroky (recommendations).");
+  return v;
 }
 
 /** Map ROAS to a 0–100 health score relative to the target — shared by the demo
@@ -695,6 +737,7 @@ export function generateCampaignEvaluation(args: {
     schema: EVAL_SCHEMA,
     temperature: 0.6,
     normalize: normalizeReport,
+    validate: validateReport,
     demo: () =>
       single ? demoCampaignReport(args.target!, args.campaigns) : demoOverallReport(args.campaigns),
   });
