@@ -4,6 +4,7 @@
 import { auth } from "@/auth";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
+import { getPatternLines } from "@/lib/patterns/store";
 import { consume } from "@/lib/usage";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
@@ -106,12 +107,16 @@ export async function POST(request: Request) {
       }
     }
 
+    // Ground the portfolio eval in the account's own winning patterns.
+    const patternLines = scope === "overall" ? await getPatternLines(tenant) : undefined;
+
     try {
       const response = await generateCampaignEvaluation({
         scope,
         target,
         campaigns,
         period: meta.period,
+        patternLines,
       });
       const report = await saveReport(tenant, {
         scope,

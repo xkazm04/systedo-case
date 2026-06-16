@@ -92,8 +92,14 @@ export function buildCampaignPrompt(target: Campaign, all: Campaign[], period: C
 }
 
 /** Prompt for the portfolio-level evaluation — totals, per-type breakdown and
- *  every campaign, so the model can recommend where to shift budget. */
-export function buildOverallPrompt(all: Campaign[], period: CampaignPeriod): string {
+ *  every campaign, so the model can recommend where to shift budget. Optionally
+ *  grounded in the account's own winning patterns (the patterns library), so the
+ *  model reasons from proven lessons, not generic advice. */
+export function buildOverallPrompt(
+  all: Campaign[],
+  period: CampaignPeriod,
+  patternLines: string[] = []
+): string {
   const portfolio = aggregate(all);
   const types = groupByType(all);
   const rows = [...all].map(withMetrics).sort((a, b) => b.cost - a.cost);
@@ -140,6 +146,14 @@ export function buildOverallPrompt(all: Campaign[], period: CampaignPeriod): str
           `- Souhrnný odhad po přesunech: ROAS ${fmtMultiple(rec.simulation.before.roas)} → ${fmtMultiple(rec.simulation.after.roas)}, PNO ${fmtPct(rec.simulation.before.pno)} → ${fmtPct(rec.simulation.after.pno)}.`,
         ]
       : ["- Model nenašel jednoznačné přesuny (žádný jasný dárce/příjemce vůči cíli)."]),
+    "",
+    ...(patternLines.length > 0
+      ? [
+          "",
+          "OSVĚDČENÉ VZORY Z TOHOTO ÚČTU (knihovna vzorů — využij je, pokud dávají v kontextu smysl):",
+          ...patternLines,
+        ]
+      : []),
     "",
     "Na základě těchto čísel vrať: skóre 0–100 (celkové zdraví portfolia vůči cíli), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 3–5 konkrétních doporučených kroků s prioritou (kde přidat rozpočet, co optimalizovat, co utlumit). Doporučení musí vycházet z triáže a navržených přesunů výše a nesmí jim odporovat. Odkazuj se na konkrétní kampaně a typy. Vycházej VÝHRADNĚ z uvedených čísel.",
   ].join("\n");

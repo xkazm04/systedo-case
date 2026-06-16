@@ -71,6 +71,14 @@ export default function Footer() {
               Ceník
             </Link>
             <span aria-hidden className="text-onyx-line">·</span>
+            <Link href="/socialni" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
+              Sociální sítě
+            </Link>
+            <span aria-hidden className="text-onyx-line">·</span>
+            <Link href="/knihovna" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
+              Knihovna vzorů
+            </Link>
+            <span aria-hidden className="text-onyx-line">·</span>
             <Link href="/mapa" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
               Mapa
             </Link>

@@ -220,13 +220,15 @@ export function generateCampaignEvaluation(args: {
   target: Campaign | null;
   campaigns: Campaign[];
   period: CampaignPeriod;
+  /** account's winning-pattern lines, to ground the portfolio prompt */
+  patternLines?: string[];
 }): Promise<AiResponse<CampaignReportResult>> {
   const single = args.scope === "campaign" && args.target;
   return generateStructured({
     // llm-tool: campaign-eval
     prompt: single
       ? buildCampaignPrompt(args.target!, args.campaigns, args.period)
-      : buildOverallPrompt(args.campaigns, args.period),
+      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? []),
     system: EVAL_SYSTEM,
     schema: EVAL_SCHEMA,
     temperature: 0.6,
