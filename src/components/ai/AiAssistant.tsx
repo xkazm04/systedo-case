@@ -6,6 +6,7 @@ import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/
 import type { AiMode } from "@/lib/ai-types";
 import AdGenerator from "./AdGenerator";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
+import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
 import PerformanceAnalyst from "./PerformanceAnalyst";
 import CreativeStudio from "./CreativeStudio";
@@ -33,6 +34,8 @@ export default function AiAssistant() {
   // brief tool re-apply the seed even if the same selection is sent twice.
   const [briefSeed, setBriefSeed] = useState<BriefSeed | null>(null);
   const [briefNonce, setBriefNonce] = useState(0);
+  // Bumped when a keyword list is saved, so the saved-lists panel reloads.
+  const [savedNonce, setSavedNonce] = useState(0);
 
   const handleCreateBrief = (seed: BriefSeed) => {
     setBriefSeed(seed);
@@ -91,7 +94,11 @@ export default function AiAssistant() {
           <AdGenerator />
         </div>
         <div data-testid="tool-keywords" className={tab === "keywords" ? "animate-fade-up" : "hidden"}>
-          <KeywordResearch onCreateBrief={handleCreateBrief} />
+          <KeywordResearch
+            onCreateBrief={handleCreateBrief}
+            onSaved={() => setSavedNonce((n) => n + 1)}
+          />
+          <SavedKeywordLists refreshKey={savedNonce} />
         </div>
         <div data-testid="tool-brief" className={tab === "brief" ? "animate-fade-up" : "hidden"}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}

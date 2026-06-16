@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, Bolt, Gauge, Search } from "@/components/icons";
+import { useSession } from "next-auth/react";
+import { ArrowRight, Bolt, Check, Gauge, Search } from "@/components/icons";
 import { fmtCZK, fmtInt } from "@/lib/format";
 import type { BriefKeyword } from "@/lib/ai-types";
 import {
@@ -32,7 +33,14 @@ const COMP_COLOR: Record<string, string> = {
  *  competition / CPC (Google Ads Keyword Planner when connected, deterministic
  *  sample otherwise), ranks them by opportunity, and hands the selection to the
  *  brief tool — grounding content planning in actual demand. */
-export default function KeywordResearch({ onCreateBrief }: { onCreateBrief: (seed: BriefSeed) => void }) {
+export default function KeywordResearch({
+  onCreateBrief,
+  onSaved,
+}: {
+  onCreateBrief: (seed: BriefSeed) => void;
+  onSaved?: () => void;
+}) {
+  const { status: authStatus } = useSession();
   const [seed, setSeed] = useState("");
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -40,6 +48,7 @@ export default function KeywordResearch({ onCreateBrief }: { onCreateBrief: (see
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<IntentFilter>("all");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   const canSubmit = seed.trim().length >= 2 && status !== "loading";
 
@@ -50,6 +59,7 @@ export default function KeywordResearch({ onCreateBrief }: { onCreateBrief: (see
     setError(null);
     setSelected(new Set());
     setFilter("all");
+    setSaveState("idle");
     try {
       const res = await fetch("/api/keywords", {
         method: "POST",
@@ -98,6 +108,36 @@ export default function KeywordResearch({ onCreateBrief }: { onCreateBrief: (see
         competition: i.competition,
       })),
     });
+  };
+
+  /** Persist the current research as a named list. Selected keywords are tagged
+   *  "core", the rest "watch" — ready for negative tagging in the saved panel. */
+  const saveList = async () => {
+    if (!result || saveState === "saving") return;
+    setSaveState("saving");
+    try {
+      const keywords = result.ideas.map((i) => ({
+        keyword: i.keyword,
+        intent: i.intent,
+        opportunity: i.opportunity,
+        avgMonthlySearches: i.avgMonthlySearches,
+        competition: i.competition,
+        tag: selected.has(i.keyword) ? "core" : "watch",
+      }));
+      const res = await fetch("/api/keywords/lists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: result.seed, seed: result.seed, source: result.source, keywords }),
+      });
+      if (!res.ok) {
+        setSaveState("idle");
+        return;
+      }
+      setSaveState("saved");
+      onSaved?.();
+    } catch {
+      setSaveState("idle");
+    }
   };
 
   const intentsPresent = result ? result.groups.map((g) => g.intent) : [];
@@ -195,9 +235,27 @@ export default function KeywordResearch({ onCreateBrief }: { onCreateBrief: (see
                   {result.source === "google-ads" ? "Google Ads · živá data" : "Ukázková data"}
                 </span>
               </div>
-              {selected.size > 0 && (
-                <span className="text-xs text-muted">{selected.size} vybráno</span>
-              )}
+              <div className="flex items-center gap-3">
+                {selected.size > 0 && (
+                  <span className="text-xs text-muted">{selected.size} vybráno</span>
+                )}
+                {authStatus === "authenticated" && (
+                  <button
+                    type="button"
+                    onClick={saveList}
+                    disabled={saveState !== "idle"}
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
+                  >
+                    {saveState === "saved" ? (
+                      <>
+                        <Check width={13} height={13} /> Uloženo
+                      </>
+                    ) : (
+                      <>{saveState === "saving" ? "Ukládám…" : "Uložit seznam"}</>
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* intent filter */}

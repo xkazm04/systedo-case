@@ -53,6 +53,54 @@ export interface KeywordResult {
   groups: KeywordGroup[];
 }
 
+// --- saved lists (pure model; persistence lives in store.ts) ------------------
+
+/** How a saved keyword is bucketed by the user. */
+export type KeywordTag = "core" | "negative" | "watch";
+
+export const KEYWORD_TAG_LABELS: Record<KeywordTag, string> = {
+  core: "Klíčové",
+  negative: "Vylučovací",
+  watch: "Sledované",
+};
+
+/** A keyword frozen into a saved list (metrics snapshotted at save time). */
+export interface SavedKeyword {
+  keyword: string;
+  intent: KeywordIntent;
+  opportunity: number;
+  avgMonthlySearches: number;
+  competition: Competition;
+  tag: KeywordTag;
+}
+
+export interface KeywordListInput {
+  name: string;
+  seed: string;
+  source: KeywordResult["source"];
+  keywords: SavedKeyword[];
+}
+
+export interface KeywordList extends KeywordListInput {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Distinct negative keywords across all lists — the block you'd push to Ads as
+ *  negatives to cut wasted spend. Pure; case-insensitive de-dupe, sorted (cs). */
+export function aggregateNegatives(lists: KeywordList[]): string[] {
+  const seen = new Map<string, string>();
+  for (const list of lists) {
+    for (const k of list.keywords) {
+      if (k.tag !== "negative") continue;
+      const key = k.keyword.trim().toLowerCase();
+      if (key && !seen.has(key)) seen.set(key, k.keyword.trim());
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, "cs"));
+}
+
 // --- intent classification (deterministic, Czech-aware) ----------------------
 
 const TRANSACTIONAL = [
