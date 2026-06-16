@@ -2,7 +2,7 @@
  *  Leonardo produces N candidates, Gemini vision scores each, the best wins. Falls
  *  back to deterministic SVG placeholders when LEONARDO_API_KEY is absent, so the
  *  tool works straight from the repo. Server-only. */
-import { cleanupGeneration, generateCandidates, leonardoConfigured } from "@/lib/leonardo/client";
+import { generateCandidates, leonardoConfigured } from "@/lib/leonardo/client";
 import { rateImage } from "@/lib/leonardo/rate";
 import {
   IMAGE_FORMAT_PRESETS,
@@ -18,6 +18,7 @@ export interface StudioImage {
   score: number | null;
   defects: string;
   winner: boolean;
+  leonardoImageId?: string;
 }
 
 export interface StudioResult {
@@ -38,6 +39,8 @@ export interface StudioRequest {
   /** style prior learned from creative→revenue attribution, prepended to bias
    *  generation toward the best-earning look */
   prior?: string;
+  /** Leonardo init-image ids to guide generation (reference images) */
+  imagePromptIds?: string[];
 }
 
 function clampCount(n: number): number {
@@ -59,6 +62,7 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     height: preset.height,
     style: req.style,
     count,
+    imagePromptIds: req.imagePromptIds,
   });
 
   // Score every candidate in parallel, then rank by score (desc).
@@ -73,14 +77,16 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
         score: rating.score,
         defects: rating.defects,
         winner: false,
+        leonardoImageId: c.leonardoImageId,
       };
     })
   );
   images.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   if (images[0]) images[0].winner = true;
 
-  // Don't let cleanup latency block the response.
-  void cleanupGeneration(generationId);
+  // NOTE: the Leonardo generation is intentionally left in the cloud (not cleaned
+  // up) so a follow-up background-removal can reference the image by id.
+  void generationId;
 
   return { prompt: req.prompt, style: req.style, format: req.format, source: "leonardo", images };
 }

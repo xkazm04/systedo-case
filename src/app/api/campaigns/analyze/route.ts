@@ -16,7 +16,7 @@ import {
   listCampaigns,
   saveReport,
 } from "@/lib/campaigns/store";
-import type { Campaign } from "@/lib/campaigns/types";
+import { aggregate, withMetrics, type Campaign } from "@/lib/campaigns/types";
 import {
   RATE_RULES,
   acquireSlot,
@@ -107,8 +107,23 @@ export async function POST(request: Request) {
       }
     }
 
-    // Ground the portfolio eval in the account's own winning patterns.
-    const patternLines = scope === "overall" ? await getPatternLines(tenant) : undefined;
+    // Ground the portfolio eval in the account's own winning patterns, ranked by
+    // semantic relevance to the current portfolio situation (RAG).
+    let patternLines: string[] | undefined;
+    if (scope === "overall") {
+      const totals = aggregate(campaigns);
+      const rows = campaigns.map(withMetrics);
+      const best = [...rows].sort((a, b) => b.roas - a.roas)[0];
+      const worst = [...rows].filter((c) => c.cost > 0).sort((a, b) => a.roas - b.roas)[0];
+      const query = [
+        `Portfolio ROAS ${totals.roas.toFixed(1)}, PNO ${(totals.pno * 100).toFixed(0)} %.`,
+        best ? `Nejlepší kampaň ${best.name} (${best.type}).` : "",
+        worst ? `Nejslabší kampaň ${worst.name} (${worst.type}).` : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      patternLines = await getPatternLines(tenant, query);
+    }
 
     try {
       const response = await generateCampaignEvaluation({

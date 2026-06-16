@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     if (!isImageFormat(body.format)) return Response.json({ error: "Neplatný formát." }, { status: 422 });
     const count = Math.max(1, Math.min(MAX_IMAGE_CANDIDATES, Number(body.count) || 1));
     const avoid = str(body.avoid) || undefined;
+    const referenceImageId = str(body.referenceImageId) || undefined;
 
     const uid = await userId();
 
@@ -97,7 +98,15 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await generateImageSet({ prompt, style: body.style, format: body.format, count, avoid, prior });
+    const result = await generateImageSet({
+      prompt,
+      style: body.style,
+      format: body.format,
+      count,
+      avoid,
+      prior,
+      imagePromptIds: referenceImageId ? [referenceImageId] : undefined,
+    });
 
     // Persist the winner to the tenant's library (signed-in + real generation).
     let savedId: string | undefined;
@@ -127,6 +136,7 @@ export async function POST(request: Request) {
       score: i.score,
       defects: i.defects,
       winner: i.winner,
+      leonardoImageId: i.leonardoImageId || undefined,
     }));
     const payload: ImageGenResult = {
       prompt: result.prompt,

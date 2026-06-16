@@ -34,12 +34,30 @@ function extOf(mime: string): string {
   return mime.includes("svg") ? "svg" : mime.includes("jpeg") ? "jpg" : "png";
 }
 
+type NobgEntry =
+  | { status: "loading" }
+  | { status: "done"; dataUrl: string }
+  | { status: "error"; error: string };
+
+/** Light checkerboard so a transparent (background-removed) PNG reads as cut-out. */
+const CHECKER: React.CSSProperties = {
+  backgroundImage:
+    "linear-gradient(45deg,#e4eaef 25%,transparent 25%),linear-gradient(-45deg,#e4eaef 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e4eaef 75%),linear-gradient(-45deg,transparent 75%,#e4eaef 75%)",
+  backgroundSize: "16px 16px",
+  backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
+};
+
 export default function CreativeStudio() {
   const { status: authStatus } = useSession();
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<ImageStyle>("dynamic");
   const [format, setFormat] = useState<ImageFormat>("square");
   const [count, setCount] = useState(2);
+  // Reference image (image-to-image guidance via Leonardo imagePrompts).
+  const [referenceImageId, setReferenceImageId] = useState<string | null>(null);
+  const [refPreview, setRefPreview] = useState<string | null>(null);
+  const [refStatus, setRefStatus] = useState<"idle" | "uploading" | "ready" | "error">("idle");
+  const [refError, setRefError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ImageGenResult | null>(null);
@@ -47,6 +65,72 @@ export default function CreativeStudio() {
 
   const [library, setLibrary] = useState<CreativeSummary[]>([]);
   const [delBusy, setDelBusy] = useState<string | null>(null);
+  // Background-removal results, keyed by Leonardo image id.
+  const [nobg, setNobg] = useState<Record<string, NobgEntry>>({});
+
+  const removeBg = async (img: GeneratedImage) => {
+    const id = img.leonardoImageId;
+    if (!id) return;
+    setNobg((m) => ({ ...m, [id]: { status: "loading" } }));
+    try {
+      const res = await fetch("/api/images/nobg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageId: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setNobg((m) => ({ ...m, [id]: { status: "error", error: json?.error ?? "Nepodařilo se." } }));
+        return;
+      }
+      setNobg((m) => ({ ...m, [id]: { status: "done", dataUrl: json.dataUrl } }));
+    } catch {
+      setNobg((m) => ({ ...m, [id]: { status: "error", error: "Chyba spojení." } }));
+    }
+  };
+
+  // "More like this": re-upload the chosen candidate as a reference image and
+  // regenerate guided by it (reuses the upload-ref + imagePrompts flow).
+  const makeVariations = async (img: GeneratedImage) => {
+    if (!result) return;
+    setStatus("loading");
+    setError(null);
+    try {
+      const blob = await (await fetch(img.dataUrl)).blob();
+      const fd = new FormData();
+      fd.append("file", new File([blob], "variant.png", { type: blob.type || "image/png" }));
+      const up = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
+      const upJson = await up.json();
+      if (!up.ok) {
+        setError(upJson?.error ?? "Příprava reference selhala.");
+        setStatus("error");
+        return;
+      }
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: result.prompt,
+          style: result.style,
+          format: result.format,
+          count,
+          referenceImageId: upJson.referenceImageId,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json?.error ?? "Generování variant selhalo.");
+        setStatus("error");
+        return;
+      }
+      setResult(json as ImageGenResult);
+      setStatus("done");
+      if (authStatus === "authenticated") void loadLibrary();
+    } catch {
+      setError("Nepodařilo se spojit se serverem.");
+      setStatus("error");
+    }
+  };
 
   const loadLibrary = useCallback(async () => {
     try {
@@ -60,11 +144,44 @@ export default function CreativeStudio() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (authStatus === "authenticated") void loadLibrary();
   }, [authStatus, loadLibrary]);
 
-  const canSubmit = prompt.trim().length >= 2 && status !== "loading";
+  const canSubmit = prompt.trim().length >= 2 && status !== "loading" && refStatus !== "uploading";
+
+  const onRefSelect = async (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRefPreview(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+    setRefStatus("uploading");
+    setRefError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        setRefStatus("error");
+        setRefError(json?.error ?? "Nahrání selhalo.");
+        setReferenceImageId(null);
+        return;
+      }
+      setReferenceImageId(json.referenceImageId);
+      setRefStatus("ready");
+    } catch {
+      setRefStatus("error");
+      setRefError("Chyba spojení.");
+      setReferenceImageId(null);
+    }
+  };
+
+  const clearRef = () => {
+    setReferenceImageId(null);
+    setRefPreview(null);
+    setRefStatus("idle");
+    setRefError(null);
+  };
 
   const generate = async (avoid?: string) => {
     setStatus("loading");
@@ -73,7 +190,14 @@ export default function CreativeStudio() {
       const res = await fetch("/api/images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), style, format, count, avoid }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style,
+          format,
+          count,
+          avoid,
+          referenceImageId: refStatus === "ready" ? referenceImageId : undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -191,6 +315,37 @@ export default function CreativeStudio() {
             </div>
           </Field>
 
+          <Field label="Referenční obrázek (volitelné)">
+            {refPreview ? (
+              <div className="flex items-center gap-3 rounded-lg border border-line p-2.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={refPreview} alt="Referenční obrázek" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                <span className="min-w-0 flex-1 text-xs">
+                  {refStatus === "uploading" && <span className="text-muted">Nahrávám…</span>}
+                  {refStatus === "ready" && <span className="text-positive">Připraveno — ovlivní styl</span>}
+                  {refStatus === "error" && <span className="text-negative">{refError}</span>}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearRef}
+                  className="shrink-0 text-xs font-medium text-muted hover:text-coral-600"
+                >
+                  Odebrat
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted transition-colors hover:border-brand-300 hover:text-brand-accent">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => onRefSelect(e.target.files?.[0] ?? null)}
+                />
+                Nahrát obrázek pro vedení stylu
+              </label>
+            )}
+          </Field>
+
           <button
             type="submit"
             disabled={!canSubmit}
@@ -254,7 +409,15 @@ export default function CreativeStudio() {
 
               <div className="grid grid-cols-2 gap-3">
                 {result.images.map((img, i) => (
-                  <Candidate key={i} img={img} index={i} aspect={preset.aspect} />
+                  <Candidate
+                    key={i}
+                    img={img}
+                    index={i}
+                    aspect={preset.aspect}
+                    nobgState={img.leonardoImageId ? nobg[img.leonardoImageId] : undefined}
+                    onRemoveBg={removeBg}
+                    onVariations={makeVariations}
+                  />
                 ))}
               </div>
             </div>
@@ -316,13 +479,37 @@ export default function CreativeStudio() {
   );
 }
 
-function Candidate({ img, index, aspect }: { img: GeneratedImage; index: number; aspect: string }) {
-  const download = () => downloadDataUrl(`systedo-vizual-${index + 1}.${extOf(img.mime)}`, img.dataUrl);
+function Candidate({
+  img,
+  index,
+  aspect,
+  nobgState,
+  onRemoveBg,
+  onVariations,
+}: {
+  img: GeneratedImage;
+  index: number;
+  aspect: string;
+  nobgState?: NobgEntry;
+  onRemoveBg: (img: GeneratedImage) => void;
+  onVariations: (img: GeneratedImage) => void;
+}) {
+  const cutout = nobgState?.status === "done" ? nobgState.dataUrl : null;
+  const display = cutout ?? img.dataUrl;
+  const download = () =>
+    downloadDataUrl(
+      `systedo-vizual-${index + 1}${cutout ? "-bez-pozadi" : ""}.${cutout ? "png" : extOf(img.mime)}`,
+      display
+    );
   return (
     <div className={`card overflow-hidden ${img.winner ? "ring-2 ring-brand-400" : ""}`}>
-      <div className="relative">
+      <div className="relative" style={cutout ? CHECKER : undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img.dataUrl} alt={`Kandidát ${index + 1}`} className={`w-full object-cover ${aspect}`} />
+        <img
+          src={display}
+          alt={`Kandidát ${index + 1}`}
+          className={`w-full ${cutout ? "object-contain" : "object-cover"} ${aspect}`}
+        />
         {img.winner && (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">
             <Check width={11} height={11} />
@@ -332,20 +519,48 @@ function Candidate({ img, index, aspect }: { img: GeneratedImage; index: number;
         {img.score !== null && (
           <span className={`pill absolute right-2 top-2 ${scoreTone(img.score)}`}>{img.score}/10</span>
         )}
+        {cutout && (
+          <span className="pill absolute bottom-2 left-2 bg-positive-soft text-positive">Bez pozadí</span>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 p-2.5">
         <span className="truncate text-[11px] text-muted" title={img.defects}>
           {img.defects && img.defects !== "none" ? img.defects : "bez závad"}
         </span>
-        <button
-          type="button"
-          onClick={download}
-          aria-label="Stáhnout"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"
-        >
-          <Download width={14} height={14} />
-        </button>
+        <span className="flex shrink-0 items-center gap-1">
+          {img.leonardoImageId && (
+            <button
+              type="button"
+              onClick={() => onVariations(img)}
+              title="Vytvořit varianty podle tohoto návrhu"
+              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+            >
+              Varianty
+            </button>
+          )}
+          {img.leonardoImageId && !cutout && (
+            <button
+              type="button"
+              onClick={() => onRemoveBg(img)}
+              disabled={nobgState?.status === "loading"}
+              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+            >
+              {nobgState?.status === "loading" ? "Odebírám…" : "Bez pozadí"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={download}
+            aria-label="Stáhnout"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"
+          >
+            <Download width={14} height={14} />
+          </button>
+        </span>
       </div>
+      {nobgState?.status === "error" && (
+        <p className="px-2.5 pb-2 text-[11px] text-negative">{nobgState.error}</p>
+      )}
     </div>
   );
 }

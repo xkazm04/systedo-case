@@ -5,7 +5,8 @@
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { extractPatterns } from "./extract";
-import { isPatternCategory, type Pattern, type PatternCategory } from "./types";
+import { cosine, embedTexts } from "./embeddings";
+import { isPatternCategory, type Pattern, type PatternCategory, type RankedPattern } from "./types";
 
 function patternsCol(tenant: string) {
   return firestore.collection("tenants").doc(tenant).collection("patterns");
@@ -54,9 +55,61 @@ export async function getLibrary(
   return { auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())), saved };
 }
 
-/** Compact pattern lines to ground the AI evaluation in proven wins. Saved
- *  patterns first (the user's curation), then the strongest auto-derived ones. */
-export async function getPatternLines(tenant: string, limit = 6): Promise<string[]> {
+/** Semantic search over the tenant's library (saved + auto): ranks patterns by
+ *  cosine similarity to the query. Falls back to substring matching when
+ *  embeddings are unavailable (`semantic: false`). */
+export async function searchPatterns(
+  tenant: string,
+  query: string
+): Promise<{ results: RankedPattern[]; semantic: boolean }> {
   const { auto, saved } = await getLibrary(tenant);
-  return [...saved, ...auto].slice(0, limit).map((p) => `- ${p.title}: ${p.insight}`);
+  const all = [...saved, ...auto];
+  if (all.length === 0) return { results: [], semantic: false };
+
+  const texts = all.map((p) => `${p.title}. ${p.insight} ${p.evidence}`.trim());
+  const vecs = await embedTexts([query, ...texts]);
+  if (vecs) {
+    const [q, ...patternVecs] = vecs;
+    const results = all
+      .map((p, i) => ({ ...p, relevance: cosine(q!, patternVecs[i]!) }))
+      .sort((a, b) => b.relevance - a.relevance);
+    return { results, semantic: true };
+  }
+
+  // Fallback: case-insensitive substring match.
+  const ql = query.toLowerCase();
+  const results = all
+    .map((p) => ({
+      ...p,
+      relevance: `${p.title} ${p.insight} ${p.evidence}`.toLowerCase().includes(ql) ? 1 : 0,
+    }))
+    .filter((p) => p.relevance > 0);
+  return { results, semantic: false };
+}
+
+/** Compact pattern lines to ground the AI evaluation in proven wins.
+ *
+ *  With a `query` (the current portfolio situation) and embeddings available, the
+ *  patterns are ranked by *semantic relevance* to that situation (RAG) — so the
+ *  model sees the lessons that actually apply now. Falls back to deterministic
+ *  order (saved first, then auto) when no query / embeddings are unavailable. */
+export async function getPatternLines(tenant: string, query?: string, limit = 6): Promise<string[]> {
+  const { auto, saved } = await getLibrary(tenant);
+  const all = [...saved, ...auto];
+  if (all.length === 0) return [];
+  const line = (p: Pattern) => `- ${p.title}: ${p.insight}`;
+
+  if (query && all.length > 1) {
+    const texts = all.map((p) => `${p.title}. ${p.insight} ${p.evidence}`.trim());
+    const vecs = await embedTexts([query, ...texts]);
+    if (vecs) {
+      const [q, ...patternVecs] = vecs;
+      return all
+        .map((p, i) => ({ p, score: cosine(q!, patternVecs[i]!) }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map((x) => line(x.p));
+    }
+  }
+  return all.slice(0, limit).map(line);
 }

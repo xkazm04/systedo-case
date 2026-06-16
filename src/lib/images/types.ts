@@ -52,6 +52,8 @@ export interface GeneratedImage {
   defects: string;
   /** the highest-scored candidate */
   winner: boolean;
+  /** Leonardo cloud image id — present for live results, enables background removal */
+  leonardoImageId?: string;
 }
 
 export interface ImageGenResult {

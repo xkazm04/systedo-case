@@ -36,3 +36,9 @@ export interface Pattern {
 export function isPatternCategory(v: unknown): v is PatternCategory {
   return typeof v === "string" && (PATTERN_CATEGORIES as readonly string[]).includes(v);
 }
+
+/** A pattern with a search relevance score (0–1) — semantic cosine, or 1 for a
+ *  substring fallback hit. */
+export interface RankedPattern extends Pattern {
+  relevance: number;
+}
