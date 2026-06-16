@@ -188,7 +188,7 @@ export default function CampaignsClient() {
       <TypeBreakdown campaigns={campaigns} />
 
       {/* deterministic budget-reallocation recommendations */}
-      <BudgetMoves campaigns={campaigns} />
+      <BudgetMoves campaigns={campaigns} onApplied={() => sync(period)} />
 
       {/* portfolio AI evaluation */}
       <section className="card p-5 sm:p-6">

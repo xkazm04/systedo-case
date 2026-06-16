@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { ArrowRight, Bolt, Check } from "@/components/icons";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { withMetrics, type Campaign } from "@/lib/campaigns/types";
@@ -5,11 +8,48 @@ import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 
 /** Deterministic "what to do now" panel: pairs under-target spenders with
  *  over-performers and shows the projected portfolio lift. No AI, instant — the
- *  bridge from the triage diagnosis to a quantified action. */
-export default function BudgetMoves({ campaigns }: { campaigns: Campaign[] }) {
+ *  bridge from the triage diagnosis to a quantified action. Each move can also be
+ *  acted on: pause the underperforming source in Google Ads (live accounts only,
+ *  human-confirmed, audited via /api/campaigns/apply). */
+export default function BudgetMoves({
+  campaigns,
+  onApplied,
+}: {
+  campaigns: Campaign[];
+  onApplied?: () => void;
+}) {
   const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics));
   const { before, after } = simulation;
   const valueGain = after.conversionValue - before.conversionValue;
+
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string | null>(null);
+
+  const pause = async (campaignId: string, campaignName: string) => {
+    setBusy(campaignId);
+    setError(null);
+    try {
+      const res = await fetch("/api/campaigns/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pause", campaignId, campaignName }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.ok) {
+        setError(json?.error ?? "Pozastavení se nezdařilo.");
+        return;
+      }
+      setApplied((s) => new Set(s).add(campaignId));
+      onApplied?.();
+    } catch {
+      setError("Nepodařilo se spojit se serverem.");
+    } finally {
+      setBusy(null);
+      setConfirming(null);
+    }
+  };
 
   return (
     <section className="card p-5 sm:p-6">
@@ -48,14 +88,52 @@ export default function BudgetMoves({ campaigns }: { campaigns: Campaign[] }) {
                     <span className="tnum text-positive">ROAS {fmtMultiple(m.toRoas)}</span>
                   </span>
                 </div>
-                <p className="mt-1.5 text-xs text-muted">
-                  Odhadovaný přínos:{" "}
-                  <span className="tnum font-semibold text-positive">+{fmtCZK(m.estValueGain)}</span>{" "}
-                  hodnoty konverzí.
-                </p>
+                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs text-muted">
+                    Odhadovaný přínos:{" "}
+                    <span className="tnum font-semibold text-positive">+{fmtCZK(m.estValueGain)}</span>{" "}
+                    hodnoty konverzí.
+                  </p>
+                  {applied.has(m.fromId) ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-positive">
+                      <Check width={13} height={13} />
+                      Zdroj pozastaven
+                    </span>
+                  ) : confirming === m.fromId ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs">
+                      <span className="text-muted">Pozastavit „{m.fromName}“?</span>
+                      <button
+                        type="button"
+                        onClick={() => pause(m.fromId, m.fromName)}
+                        disabled={busy === m.fromId}
+                        className="rounded-pill bg-coral-500 px-2.5 py-1 font-semibold text-white hover:bg-coral-600 disabled:opacity-50"
+                      >
+                        {busy === m.fromId ? "Pozastavuji…" : "Potvrdit"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(null)}
+                        className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
+                      >
+                        Zrušit
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(m.fromId)}
+                      title="Pozastavit podvýkonnou kampaň v Google Ads (živý účet)"
+                      className="rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
+                    >
+                      Pozastavit zdroj
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
+
+          {error && <p className="mt-3 text-sm text-negative">{error}</p>}
 
           {/* projected portfolio impact */}
           <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-card border border-line bg-line sm:grid-cols-4">

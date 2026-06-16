@@ -105,6 +105,32 @@ export async function getAccountName(accessToken: string, customerId: string): P
   }
 }
 
+/** Pause a campaign (sets status PAUSED) via the campaigns:mutate endpoint. */
+export async function pauseCampaign(
+  accessToken: string,
+  customerId: string,
+  campaignId: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/customers/${customerId}/campaigns:mutate`, {
+    method: "POST",
+    headers: headers(accessToken),
+    body: JSON.stringify({
+      operations: [
+        {
+          update: {
+            resourceName: `customers/${customerId}/campaigns/${campaignId}`,
+            status: "PAUSED",
+          },
+          updateMask: "status",
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Google Ads pauseCampaign ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+}
+
 const CHANNEL_TYPE: Record<string, CampaignType> = {
   SEARCH: "search",
   PERFORMANCE_MAX: "performance_max",
