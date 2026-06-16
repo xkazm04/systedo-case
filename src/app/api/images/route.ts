@@ -115,6 +115,7 @@ export async function POST(request: Request) {
       score: i.score,
       defects: i.defects,
       winner: i.winner,
+      leonardoImageId: i.leonardoImageId || undefined,
     }));
     const payload: ImageGenResult = {
       prompt: result.prompt,

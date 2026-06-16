@@ -34,6 +34,19 @@ function extOf(mime: string): string {
   return mime.includes("svg") ? "svg" : mime.includes("jpeg") ? "jpg" : "png";
 }
 
+type NobgEntry =
+  | { status: "loading" }
+  | { status: "done"; dataUrl: string }
+  | { status: "error"; error: string };
+
+/** Light checkerboard so a transparent (background-removed) PNG reads as cut-out. */
+const CHECKER: React.CSSProperties = {
+  backgroundImage:
+    "linear-gradient(45deg,#e4eaef 25%,transparent 25%),linear-gradient(-45deg,#e4eaef 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e4eaef 75%),linear-gradient(-45deg,transparent 75%,#e4eaef 75%)",
+  backgroundSize: "16px 16px",
+  backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
+};
+
 export default function CreativeStudio() {
   const { status: authStatus } = useSession();
   const [prompt, setPrompt] = useState("");
@@ -47,6 +60,29 @@ export default function CreativeStudio() {
 
   const [library, setLibrary] = useState<CreativeSummary[]>([]);
   const [delBusy, setDelBusy] = useState<string | null>(null);
+  // Background-removal results, keyed by Leonardo image id.
+  const [nobg, setNobg] = useState<Record<string, NobgEntry>>({});
+
+  const removeBg = async (img: GeneratedImage) => {
+    const id = img.leonardoImageId;
+    if (!id) return;
+    setNobg((m) => ({ ...m, [id]: { status: "loading" } }));
+    try {
+      const res = await fetch("/api/images/nobg", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageId: id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setNobg((m) => ({ ...m, [id]: { status: "error", error: json?.error ?? "Nepodařilo se." } }));
+        return;
+      }
+      setNobg((m) => ({ ...m, [id]: { status: "done", dataUrl: json.dataUrl } }));
+    } catch {
+      setNobg((m) => ({ ...m, [id]: { status: "error", error: "Chyba spojení." } }));
+    }
+  };
 
   const loadLibrary = useCallback(async () => {
     try {
@@ -254,7 +290,14 @@ export default function CreativeStudio() {
 
               <div className="grid grid-cols-2 gap-3">
                 {result.images.map((img, i) => (
-                  <Candidate key={i} img={img} index={i} aspect={preset.aspect} />
+                  <Candidate
+                    key={i}
+                    img={img}
+                    index={i}
+                    aspect={preset.aspect}
+                    nobgState={img.leonardoImageId ? nobg[img.leonardoImageId] : undefined}
+                    onRemoveBg={removeBg}
+                  />
                 ))}
               </div>
             </div>
@@ -316,13 +359,35 @@ export default function CreativeStudio() {
   );
 }
 
-function Candidate({ img, index, aspect }: { img: GeneratedImage; index: number; aspect: string }) {
-  const download = () => downloadDataUrl(`systedo-vizual-${index + 1}.${extOf(img.mime)}`, img.dataUrl);
+function Candidate({
+  img,
+  index,
+  aspect,
+  nobgState,
+  onRemoveBg,
+}: {
+  img: GeneratedImage;
+  index: number;
+  aspect: string;
+  nobgState?: NobgEntry;
+  onRemoveBg: (img: GeneratedImage) => void;
+}) {
+  const cutout = nobgState?.status === "done" ? nobgState.dataUrl : null;
+  const display = cutout ?? img.dataUrl;
+  const download = () =>
+    downloadDataUrl(
+      `systedo-vizual-${index + 1}${cutout ? "-bez-pozadi" : ""}.${cutout ? "png" : extOf(img.mime)}`,
+      display
+    );
   return (
     <div className={`card overflow-hidden ${img.winner ? "ring-2 ring-brand-400" : ""}`}>
-      <div className="relative">
+      <div className="relative" style={cutout ? CHECKER : undefined}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={img.dataUrl} alt={`Kandidát ${index + 1}`} className={`w-full object-cover ${aspect}`} />
+        <img
+          src={display}
+          alt={`Kandidát ${index + 1}`}
+          className={`w-full ${cutout ? "object-contain" : "object-cover"} ${aspect}`}
+        />
         {img.winner && (
           <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">
             <Check width={11} height={11} />
@@ -332,20 +397,38 @@ function Candidate({ img, index, aspect }: { img: GeneratedImage; index: number;
         {img.score !== null && (
           <span className={`pill absolute right-2 top-2 ${scoreTone(img.score)}`}>{img.score}/10</span>
         )}
+        {cutout && (
+          <span className="pill absolute bottom-2 left-2 bg-positive-soft text-positive">Bez pozadí</span>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 p-2.5">
         <span className="truncate text-[11px] text-muted" title={img.defects}>
           {img.defects && img.defects !== "none" ? img.defects : "bez závad"}
         </span>
-        <button
-          type="button"
-          onClick={download}
-          aria-label="Stáhnout"
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"
-        >
-          <Download width={14} height={14} />
-        </button>
+        <span className="flex shrink-0 items-center gap-1">
+          {img.leonardoImageId && !cutout && (
+            <button
+              type="button"
+              onClick={() => onRemoveBg(img)}
+              disabled={nobgState?.status === "loading"}
+              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+            >
+              {nobgState?.status === "loading" ? "Odebírám…" : "Bez pozadí"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={download}
+            aria-label="Stáhnout"
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"
+          >
+            <Download width={14} height={14} />
+          </button>
+        </span>
       </div>
+      {nobgState?.status === "error" && (
+        <p className="px-2.5 pb-2 text-[11px] text-negative">{nobgState.error}</p>
+      )}
     </div>
   );
 }

@@ -63,6 +63,8 @@ async function pollGeneration(generationId: string): Promise<GenImage[]> {
 export interface LeonardoCandidate {
   buffer: Buffer;
   mime: string;
+  /** Leonardo cloud image id — needed for follow-up ops (e.g. background removal) */
+  leonardoImageId: string;
 }
 
 export interface LeonardoGeneration {
@@ -97,17 +99,45 @@ export async function generateCandidates(
     if (!img.url) continue;
     const res = await fetch(img.url);
     if (!res.ok) continue;
-    candidates.push({ buffer: Buffer.from(await res.arrayBuffer()), mime: "image/png" });
+    candidates.push({
+      buffer: Buffer.from(await res.arrayBuffer()),
+      mime: "image/png",
+      leonardoImageId: img.id ?? "",
+    });
   }
   if (candidates.length === 0) throw new Error("Leonardo produced no downloadable images");
   return { generationId, candidates };
 }
 
-/** Best-effort cloud cleanup so generations don't pile up on the account. */
+/** Best-effort cloud cleanup so generations don't pile up on the account. Not
+ *  called automatically while background-removal is supported (the cloud image
+ *  must persist so a follow-up nobg variation can reference it). */
 export async function cleanupGeneration(generationId: string): Promise<void> {
   try {
     await api("DELETE", `/generations/${generationId}`);
   } catch {
     /* non-critical */
   }
+}
+
+/** Remove the background of a generated image (Leonardo nobg variation), returning
+ *  the transparent PNG bytes. The image must still exist in the Leonardo cloud
+ *  (i.e. its generation wasn't cleaned up). */
+export async function removeBackground(imageId: string): Promise<{ buffer: Buffer; mime: string }> {
+  const submit = await api("POST", "/variations/nobg", { id: imageId, isVariation: false });
+  const jobId = (submit.sdNobgJob as { id?: string } | undefined)?.id;
+  if (!jobId) throw new Error("Leonardo nobg returned no job id");
+
+  for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {
+    const data = await api("GET", `/variations/${jobId}`);
+    const v = (data.generated_image_variation_generic as { status?: string; url?: string }[] | undefined)?.[0];
+    if (v?.status === "COMPLETE" && v.url) {
+      const res = await fetch(v.url);
+      if (!res.ok) throw new Error(`Leonardo nobg download ${res.status}`);
+      return { buffer: Buffer.from(await res.arrayBuffer()), mime: "image/png" };
+    }
+    if (v?.status === "FAILED") throw new Error("Leonardo nobg failed");
+    await sleep(POLL_INTERVAL_MS);
+  }
+  throw new Error("Leonardo nobg timed out");
 }

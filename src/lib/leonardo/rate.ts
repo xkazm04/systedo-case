@@ -3,8 +3,12 @@
  *  pick the best candidate and feed defects back into a refinement pass. Reuses
  *  GEMINI_API_KEY; degrades to a null score when unavailable. Server-only. */
 
+import { GEMINI_MODEL } from "@/lib/llm/models";
+
 const BASE = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta";
-const MODEL = process.env.GEMINI_VISION_MODEL ?? "gemini-2.5-flash";
+// Use the app's single Gemini model (gemini-3-flash-preview, multimodal) for the
+// vision scoring too; override only if a dedicated vision model is ever needed.
+const MODEL = process.env.GEMINI_VISION_MODEL ?? GEMINI_MODEL;
 
 export interface ImageRating {
   /** 1–10, or null when scoring is unavailable */
