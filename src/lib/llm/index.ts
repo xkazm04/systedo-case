@@ -15,6 +15,7 @@ import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
 import { CLAUDE_MODEL, GEMINI_MODEL } from "./models";
+import { promptFingerprint, recordLlmCall } from "./telemetry";
 
 export { APP_MODEL, CLAUDE_MODEL, GEMINI_MODEL } from "./models";
 
@@ -24,6 +25,9 @@ export function isDevEnvironment(): boolean {
 }
 
 export interface GenerateArgs<T> {
+  /** the llm-tool id (matches the `// llm-tool: <id>` tag), used to attribute
+   *  eval telemetry per tool. Optional so existing call sites stay valid. */
+  id?: string;
   prompt: string;
   system: string;
   /** JSON schema in @google/genai `Type` form (used natively by Gemini, embedded
@@ -125,6 +129,8 @@ function buildRepairNote(violations: string[]): string {
 export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiResponse<T>> {
   const start = Date.now();
   const dev = isDevEnvironment();
+  const promptHash = promptFingerprint(args.system, args.schema);
+  const toolId = args.id ?? "unknown";
 
   const ordered = dev ? [claudeProvider, geminiProvider] : [geminiProvider, claudeProvider];
   const providers = ordered.filter((p) => p.available());
@@ -181,6 +187,22 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         meta.estCostUsd = 0; // dev subscription — no metered cost
       }
 
+      // Persist eval telemetry (cost/latency/usage) that we'd otherwise discard.
+      await recordLlmCall({
+        toolId,
+        promptHash,
+        provider: provider.model,
+        model: provider.model,
+        demo: false,
+        tookMs: meta.tookMs,
+        attempts: totalAttempts,
+        repaired,
+        estCostUsd: meta.estCostUsd ?? 0,
+        inputTokens: usage?.inputTokens ?? 0,
+        outputTokens: usage?.outputTokens ?? 0,
+        at: new Date().toISOString(),
+      });
+
       return { result: args.normalize(parsed), meta };
     } catch (err) {
       console.error(`[llm] provider ${provider.model} failed:`, err);
@@ -190,14 +212,26 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   }
 
   // No provider available, or all failed — deterministic demo so the app stays usable.
-  return {
-    result: args.demo(),
-    meta: {
-      model: dev ? CLAUDE_MODEL : GEMINI_MODEL,
-      demo: true,
-      prompt: args.prompt,
-      tookMs: Date.now() - start,
-      fellBack: providers.length > 0,
-    },
+  const demoMeta: AiMeta = {
+    model: dev ? CLAUDE_MODEL : GEMINI_MODEL,
+    demo: true,
+    prompt: args.prompt,
+    tookMs: Date.now() - start,
+    fellBack: providers.length > 0,
   };
+  await recordLlmCall({
+    toolId,
+    promptHash,
+    provider: demoMeta.model,
+    model: demoMeta.model,
+    demo: true,
+    tookMs: demoMeta.tookMs,
+    attempts: 0,
+    repaired: false,
+    estCostUsd: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    at: new Date().toISOString(),
+  });
+  return { result: args.demo(), meta: demoMeta };
 }

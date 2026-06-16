@@ -1,0 +1,10 @@
+{
+  "id": "campaign-eval",
+  "label": "Vyhodnocení kampaně / portfolia",
+  "promptHash": "638744d64337a6fd",
+  "schemaKeys": [
+    "recommendations",
+    "score",
+    "verdict"
+  ]
+}

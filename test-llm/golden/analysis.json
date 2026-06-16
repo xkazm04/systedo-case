@@ -1,0 +1,10 @@
+{
+  "id": "analysis",
+  "label": "Analýza výkonu",
+  "promptHash": "dc528ca92e7cb9d0",
+  "schemaKeys": [
+    "actions",
+    "headline",
+    "summary"
+  ]
+}

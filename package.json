@@ -16,6 +16,7 @@
     "test:llm:coverage": "node --test test-llm/coverage.test.mjs",
     "llm:gate": "node scripts/llm-gate.mjs",
     "llm:list": "node scripts/llm-gate.mjs --list",
+    "llm:eval": "node scripts/llm-eval.mjs",
     "prepare": "husky"
   },
   "dependencies": {

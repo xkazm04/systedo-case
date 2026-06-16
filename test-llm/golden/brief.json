@@ -1,0 +1,10 @@
+{
+  "id": "brief",
+  "label": "SEO obsahový brief",
+  "promptHash": "eda325220c6605e2",
+  "schemaKeys": [
+    "metaDescription",
+    "outline",
+    "titleTag"
+  ]
+}

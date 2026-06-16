@@ -11,6 +11,7 @@ import {
   type AiResponse,
 } from "../../ai-types";
 import { generateStructured } from "../../llm";
+import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolations } from "./_shared";
 
 const AD_SYSTEM = `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
@@ -113,15 +114,25 @@ function demoAds(req: AdRequest): AdResult {
   };
 }
 
+/** The PPC-ads tool as a Skill SDK plugin — the reference migration that proves
+ *  the chokepoint can be driven by a self-contained, gate-covered skill module.
+ *  The contract (system + schema) is unchanged, so its fingerprint + golden hold. */
+export const adsSkill: Skill<AdRequest, AdResult> = {
+  id: "ads",
+  label: "PPC inzeráty",
+  category: "marketing",
+  system: AD_SYSTEM,
+  schema: AD_SCHEMA,
+  temperature: 1.0,
+  buildPrompt: buildAdPrompt,
+  normalize: normalizeAdResult,
+  validate: validateAds,
+  demo: demoAds,
+};
+
 export function generateAds(req: AdRequest): Promise<AiResponse<AdResult>> {
   return generateStructured({
     // llm-tool: ads
-    prompt: buildAdPrompt(req),
-    system: AD_SYSTEM,
-    schema: AD_SCHEMA,
-    temperature: 1.0,
-    normalize: normalizeAdResult,
-    validate: validateAds,
-    demo: () => demoAds(req),
+    ...skillToGenerateArgs(adsSkill, req),
   });
 }

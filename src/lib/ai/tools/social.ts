@@ -119,6 +119,7 @@ export function generateSocialPosts(req: {
 
   return generateStructured({
     // llm-tool: social
+    id: "social",
     prompt: buildSocialPrompt(req.topic, req.tone, requested),
     system: SOCIAL_SYSTEM,
     schema: SOCIAL_SCHEMA,

@@ -23,6 +23,8 @@ import PortfolioTrend from "./PortfolioTrend";
 import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
 import SharedReportsList from "./SharedReportsList";
+import MicrositeCard from "./MicrositeCard";
+import ControlPlane from "./ControlPlane";
 
 const SOURCE_LABELS: Record<string, string> = {
   sample: "Google Ads · ukázková data",
@@ -319,6 +321,12 @@ export default function CampaignsClient() {
 
       {/* white-label + scheduled client report settings */}
       <ReportSettings />
+
+      {/* public, SEO-indexable white-label client microsite */}
+      <MicrositeCard />
+
+      {/* governed budget control plane: simulate → approve → ledger → revert */}
+      <ControlPlane />
 
       {/* per-campaign table */}
       <section>

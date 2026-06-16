@@ -226,6 +226,7 @@ export function generateCampaignEvaluation(args: {
   const single = args.scope === "campaign" && args.target;
   return generateStructured({
     // llm-tool: campaign-eval
+    id: "campaign-eval",
     prompt: single
       ? buildCampaignPrompt(args.target!, args.campaigns, args.period)
       : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? []),
