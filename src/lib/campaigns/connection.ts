@@ -33,6 +33,15 @@ async function read(userId: string): Promise<ConnectionsDoc> {
   return (doc.data() as ConnectionsDoc) ?? {};
 }
 
+/** User ids with at least one connected Ads account — the set the scheduled
+ *  sync iterates. */
+export async function listConnectedUserIds(): Promise<string[]> {
+  const snap = await firestore.collection(COLLECTION).get();
+  return snap.docs
+    .filter((d) => ((d.data() as ConnectionsDoc).accounts?.length ?? 0) > 0)
+    .map((d) => d.id);
+}
+
 /** All connected accounts for the user + which is active. */
 export async function listConnectedAccounts(
   userId: string
