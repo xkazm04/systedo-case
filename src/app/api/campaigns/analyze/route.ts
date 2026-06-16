@@ -4,6 +4,7 @@
 import { auth } from "@/auth";
 import { generateCampaignEvaluation } from "@/lib/gemini";
 import { validateEvaluationRequest } from "@/lib/ai-types";
+import { consume } from "@/lib/usage";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
   findCachedReport,
@@ -88,6 +89,19 @@ export async function POST(request: Request) {
       if (cached) {
         const history = await getReportHistory(tenant, scope, reportCampaignId);
         return Response.json({ report: cached, history, cached: true });
+      }
+    }
+
+    // Per-user daily quota — only counts an actual (non-cached) LLM call.
+    if (userId) {
+      const quota = await consume(userId, "aiEval");
+      if (!quota.ok) {
+        return Response.json(
+          {
+            error: `Denní limit AI vyhodnocení vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán.`,
+          },
+          { status: 429 }
+        );
       }
     }
 

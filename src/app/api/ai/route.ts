@@ -1,9 +1,11 @@
+import { auth } from "@/auth";
 import { generateAds, generateAnalysis, generateBrief } from "@/lib/gemini";
 import {
   validateAdRequest,
   validateAnalysisRequest,
   validateBriefRequest,
 } from "@/lib/ai-types";
+import { consume } from "@/lib/usage";
 import {
   RATE_RULES,
   acquireSlot,
@@ -45,6 +47,22 @@ export async function POST(request: Request) {
     }
 
     mode = (body as { mode?: unknown })?.mode;
+
+    // Per-user daily AI quota (signed-in users); anonymous use is IP-rate-limited.
+    if (mode === "ads" || mode === "brief" || mode === "analysis") {
+      const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+      if (userId) {
+        const quota = await consume(userId, "aiEval");
+        if (!quota.ok) {
+          return Response.json(
+            {
+              error: `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán.`,
+            },
+            { status: 429 }
+          );
+        }
+      }
+    }
 
     switch (mode) {
       case "ads": {

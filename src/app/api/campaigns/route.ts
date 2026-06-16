@@ -13,6 +13,7 @@ import {
   upsertCampaigns,
 } from "@/lib/campaigns/store";
 import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
+import { consume } from "@/lib/usage";
 import {
   RATE_RULES,
   clientIp,
@@ -76,9 +77,24 @@ export async function POST(request: Request) {
   const raw = (body as { period?: unknown } | null)?.period;
   const period: CampaignPeriod = isCampaignPeriod(raw) ? raw : "30d";
 
+  const userId = userIdOf(await auth());
+
+  // Per-user daily sync quota (signed-in users).
+  if (userId) {
+    const quota = await consume(userId, "sync");
+    if (!quota.ok) {
+      return Response.json(
+        {
+          error: `Denní limit synchronizací vyčerpán (${quota.status.used.sync}/${quota.status.limits.sync}). Zkuste to zítra nebo přejděte na vyšší plán.`,
+        },
+        { status: 429 }
+      );
+    }
+  }
+
   // Live Google Ads for a connected user, sample data otherwise — always into the
   // user's own tenant.
-  const { connector, tenant } = await resolveCampaignContext(userIdOf(await auth()));
+  const { connector, tenant } = await resolveCampaignContext(userId);
 
   let campaigns;
   try {
