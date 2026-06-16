@@ -3,6 +3,8 @@
  *  the synced period. Kept framework-free (no React, no DB, no formatting) so it
  *  is shared by the connector, the SQLite store, the AI evaluation and the UI. */
 
+import { cpa, cpc, cr, ctr, pno, roas } from "@/lib/metrics/ratios";
+
 // --- advertising channel types ----------------------------------------------
 
 export const CAMPAIGN_TYPES = [
@@ -110,16 +112,14 @@ export interface CampaignMetrics {
 
 export type CampaignRow = Campaign & CampaignMetrics;
 
-const safe = (num: number, den: number): number => (den > 0 ? num / den : 0);
-
 export function deriveMetrics(c: Pick<Campaign, "impressions" | "clicks" | "cost" | "conversions" | "conversionValue">): CampaignMetrics {
   return {
-    ctr: safe(c.clicks, c.impressions),
-    cpc: safe(c.cost, c.clicks),
-    cpa: safe(c.cost, c.conversions),
-    roas: safe(c.conversionValue, c.cost),
-    pno: safe(c.cost, c.conversionValue),
-    convRate: safe(c.conversions, c.clicks),
+    ctr: ctr(c.clicks, c.impressions),
+    cpc: cpc(c.cost, c.clicks),
+    cpa: cpa(c.cost, c.conversions),
+    roas: roas(c.conversionValue, c.cost),
+    pno: pno(c.cost, c.conversionValue),
+    convRate: cr(c.conversions, c.clicks),
   };
 }
 
