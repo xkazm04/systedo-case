@@ -89,6 +89,49 @@ export default function CreativeStudio() {
     }
   };
 
+  // "More like this": re-upload the chosen candidate as a reference image and
+  // regenerate guided by it (reuses the upload-ref + imagePrompts flow).
+  const makeVariations = async (img: GeneratedImage) => {
+    if (!result) return;
+    setStatus("loading");
+    setError(null);
+    try {
+      const blob = await (await fetch(img.dataUrl)).blob();
+      const fd = new FormData();
+      fd.append("file", new File([blob], "variant.png", { type: blob.type || "image/png" }));
+      const up = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
+      const upJson = await up.json();
+      if (!up.ok) {
+        setError(upJson?.error ?? "Příprava reference selhala.");
+        setStatus("error");
+        return;
+      }
+      const res = await fetch("/api/images", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: result.prompt,
+          style: result.style,
+          format: result.format,
+          count,
+          referenceImageId: upJson.referenceImageId,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json?.error ?? "Generování variant selhalo.");
+        setStatus("error");
+        return;
+      }
+      setResult(json as ImageGenResult);
+      setStatus("done");
+      if (authStatus === "authenticated") void loadLibrary();
+    } catch {
+      setError("Nepodařilo se spojit se serverem.");
+      setStatus("error");
+    }
+  };
+
   const loadLibrary = useCallback(async () => {
     try {
       const res = await fetch("/api/images");
@@ -101,7 +144,6 @@ export default function CreativeStudio() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (authStatus === "authenticated") void loadLibrary();
   }, [authStatus, loadLibrary]);
 
@@ -374,6 +416,7 @@ export default function CreativeStudio() {
                     aspect={preset.aspect}
                     nobgState={img.leonardoImageId ? nobg[img.leonardoImageId] : undefined}
                     onRemoveBg={removeBg}
+                    onVariations={makeVariations}
                   />
                 ))}
               </div>
@@ -442,12 +485,14 @@ function Candidate({
   aspect,
   nobgState,
   onRemoveBg,
+  onVariations,
 }: {
   img: GeneratedImage;
   index: number;
   aspect: string;
   nobgState?: NobgEntry;
   onRemoveBg: (img: GeneratedImage) => void;
+  onVariations: (img: GeneratedImage) => void;
 }) {
   const cutout = nobgState?.status === "done" ? nobgState.dataUrl : null;
   const display = cutout ?? img.dataUrl;
@@ -483,6 +528,16 @@ function Candidate({
           {img.defects && img.defects !== "none" ? img.defects : "bez závad"}
         </span>
         <span className="flex shrink-0 items-center gap-1">
+          {img.leonardoImageId && (
+            <button
+              type="button"
+              onClick={() => onVariations(img)}
+              title="Vytvořit varianty podle tohoto návrhu"
+              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+            >
+              Varianty
+            </button>
+          )}
           {img.leonardoImageId && !cutout && (
             <button
               type="button"
