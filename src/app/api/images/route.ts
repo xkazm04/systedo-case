@@ -11,6 +11,7 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { consume } from "@/lib/usage";
 import { generateImageSet } from "@/lib/images/studio";
 import { deleteCreative, listCreatives, saveCreative } from "@/lib/images/store";
+import { getStylePrior } from "@/lib/images/attribution";
 import {
   MAX_IMAGE_CANDIDATES,
   isImageFormat,
@@ -71,6 +72,17 @@ export async function POST(request: Request) {
 
     const uid = await userId();
 
+    // Style prior from creative→revenue attribution: bias generation toward the
+    // look that historically earns (signed-in tenants with attribution data).
+    let prior: string | undefined;
+    if (uid) {
+      try {
+        prior = (await getStylePrior(await resolveTenant(uid))).hint || undefined;
+      } catch (err) {
+        console.error("[images] style prior lookup failed (non-fatal):", err);
+      }
+    }
+
     // Per-user daily image quota (signed-in users; anonymous is IP-limited only).
     if (uid) {
       const quota = await consume(uid, "image");
@@ -85,7 +97,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const result = await generateImageSet({ prompt, style: body.style, format: body.format, count, avoid });
+    const result = await generateImageSet({ prompt, style: body.style, format: body.format, count, avoid, prior });
 
     // Persist the winner to the tenant's library (signed-in + real generation).
     let savedId: string | undefined;

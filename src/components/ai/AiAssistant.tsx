@@ -11,6 +11,7 @@ import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
 import PerformanceAnalyst from "./PerformanceAnalyst";
 import CreativeStudio from "./CreativeStudio";
+import CreativeAttribution from "./CreativeAttribution";
 
 type TabId = AiMode | "keywords" | "creative";
 
@@ -113,6 +114,7 @@ export default function AiAssistant() {
         </div>
         <div data-testid="tool-creative" className={tab === "creative" ? "animate-fade-up" : "hidden"}>
           <CreativeStudio />
+          <CreativeAttribution />
         </div>
       </div>
     </div>

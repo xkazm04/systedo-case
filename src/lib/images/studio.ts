@@ -35,6 +35,9 @@ export interface StudioRequest {
   count: number;
   /** defects to avoid, fed from a previous winner for an iterate pass */
   avoid?: string;
+  /** style prior learned from creative→revenue attribution, prepended to bias
+   *  generation toward the best-earning look */
+  prior?: string;
 }
 
 function clampCount(n: number): number {
@@ -49,7 +52,8 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     return demoResult(req, count);
   }
 
-  const fullPrompt = req.avoid ? `${req.prompt}\n\nVyhni se: ${req.avoid}` : req.prompt;
+  const withPrior = req.prior ? `${req.prior}\n\n${req.prompt}` : req.prompt;
+  const fullPrompt = req.avoid ? `${withPrior}\n\nVyhni se: ${req.avoid}` : withPrior;
   const { generationId, candidates } = await generateCandidates(fullPrompt, {
     width: preset.width,
     height: preset.height,
