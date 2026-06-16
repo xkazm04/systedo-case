@@ -32,6 +32,9 @@ export function useCampaigns() {
   const [error, setError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState<Record<string, boolean>>({});
   const [analyzeErrors, setAnalyzeErrors] = useState<Record<string, string>>({});
+  /** per-key: was the last evaluation served from the input-hash cache (no new
+   *  paid model call) rather than freshly generated? */
+  const [cached, setCached] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
@@ -112,6 +115,7 @@ export function useCampaigns() {
             [key]: (json.history as ReportHistoryPoint[]) ?? s.histories[key] ?? [],
           },
         }));
+        setCached((cc) => ({ ...cc, [key]: Boolean(json.cached) }));
       } catch {
         setAnalyzeErrors((e) => ({ ...e, [key]: "Nepodařilo se spojit se serverem." }));
       } finally {
@@ -132,6 +136,7 @@ export function useCampaigns() {
     error,
     analyzing,
     analyzeErrors,
+    cached,
     sync,
     analyze,
   };

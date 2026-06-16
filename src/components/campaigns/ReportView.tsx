@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Target, TrendDown } from "@/components/icons";
+import { Check, Info, Target, TrendDown } from "@/components/icons";
 import { PromptDisclosure, ResultMeta } from "@/components/ai/primitives";
 import {
   EVAL_PRIORITY_LABELS,
@@ -25,10 +25,14 @@ const PRIORITY_TONE: Record<EvalPriority, string> = {
 export default function ReportView({
   report,
   history,
+  cached,
 }: {
   report: CampaignReport;
   /** every score this scope/campaign has earned, for the trend timeline */
   history?: ReportHistoryPoint[];
+  /** true when this evaluation was served from the input-hash cache (no new
+   *  model call), so the user understands why "Přehodnotit" returned instantly */
+  cached?: boolean;
 }) {
   const r = report.result;
   const tone = scoreTone(r.score);
@@ -48,6 +52,16 @@ export default function ReportView({
   return (
     <div className="space-y-5">
       <ResultMeta meta={report.meta} copyAllText={copyAllText} createdAt={report.createdAt} />
+
+      {cached && (
+        <p
+          className="flex items-center gap-1.5 rounded-lg bg-navy-50 px-3 py-2 text-xs text-muted"
+          title="Vstupy (kampaně i období) se nezměnily, proto se zobrazil uložený výsledek bez nového placeného volání modelu."
+        >
+          <Info width={13} height={13} className="shrink-0 text-brand-600" />
+          Z mezipaměti — beze změny vstupů, bez nového volání modelu.
+        </p>
+      )}
 
       {/* score + verdict */}
       <div className="flex items-start gap-4 rounded-card border border-navy-200 bg-navy-50 p-5">

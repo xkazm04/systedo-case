@@ -143,6 +143,7 @@ export default function CampaignTable({
   histories,
   analyzing,
   analyzeErrors,
+  cached,
   onAnalyze,
 }: {
   campaigns: Campaign[];
@@ -150,6 +151,8 @@ export default function CampaignTable({
   histories: Record<string, ReportHistoryPoint[]>;
   analyzing: Record<string, boolean>;
   analyzeErrors: Record<string, string>;
+  /** per-campaign-id: was the last evaluation served from cache (no new call) */
+  cached: Record<string, boolean>;
   onAnalyze: (campaignId: string) => void;
 }) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -469,7 +472,7 @@ export default function CampaignTable({
                                 {isAnalyzing ? "Analyzuji…" : "Přeanalyzovat"}
                               </button>
                             </div>
-                            <ReportView report={report} history={histories[c.id]} />
+                            <ReportView report={report} history={histories[c.id]} cached={cached[c.id]} />
                           </div>
                         ) : null}
                       </td>

@@ -35,6 +35,7 @@ export default function CampaignsClient() {
     error,
     analyzing,
     analyzeErrors,
+    cached,
     sync,
     analyze,
   } = useCampaigns();
@@ -226,7 +227,7 @@ export default function CampaignsClient() {
 
         {overall && (
           <div className="mt-5 animate-fade-up border-t border-line pt-5">
-            <ReportView report={overall} history={histories["overall"]} />
+            <ReportView report={overall} history={histories["overall"]} cached={cached["overall"]} />
           </div>
         )}
       </section>
@@ -243,6 +244,7 @@ export default function CampaignsClient() {
           histories={histories}
           analyzing={analyzing}
           analyzeErrors={analyzeErrors}
+          cached={cached}
           onAnalyze={(id) => analyze("campaign", id, period)}
         />
       </section>
