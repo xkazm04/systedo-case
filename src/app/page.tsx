@@ -12,7 +12,7 @@ import {
 } from "@/components/icons";
 import { performance } from "@/lib/data";
 import { bucketize, totalsOf } from "@/lib/metrics";
-import { fmtCZKCompact, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import { fmtCZKCompact, fmtDate, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import { NAV_ITEMS } from "@/lib/nav";
 
 const TASK_ICONS = {
@@ -46,6 +46,9 @@ export default function HomePage() {
   const year = totalsOf(trailingYear);
   const last30 = totalsOf(performance.daily.slice(-30));
   const monthlyRevenue = bucketize(trailingYear, "month").map((b) => b.revenue);
+  // Stamp the snapshot with the latest day actually in the dataset, so the static
+  // hero reads as "live to a date" instead of an undated, possibly-stale figure.
+  const lastDate = performance.daily.at(-1)?.date;
 
   const heroStats = [
     { label: "Roční obrat z marketingu", value: fmtCZKCompact(year.revenue) },
@@ -136,6 +139,16 @@ export default function HomePage() {
                 </div>
               ))}
             </dl>
+
+            {lastDate && (
+              <p className="mt-5 flex items-center gap-1.5 border-t border-line pt-3 text-[11px] text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />
+                Data aktuální k{" "}
+                <time dateTime={lastDate} className="font-medium text-navy-600">
+                  {fmtDate(lastDate)}
+                </time>
+              </p>
+            )}
           </div>
         </Container>
       </section>
