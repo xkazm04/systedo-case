@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Bulb, Check, Close, Sparkles } from "@/components/icons";
+import { Bulb, Check, Close, Search, Sparkles } from "@/components/icons";
 import {
   PATTERN_CATEGORIES,
   PATTERN_CATEGORY_LABELS,
   type Pattern,
   type PatternCategory,
+  type RankedPattern,
 } from "@/lib/patterns/types";
 
 type CategoryFilter = "all" | PatternCategory;
@@ -20,6 +21,11 @@ export default function PatternsLibrary() {
   const [filter, setFilter] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+
+  // Semantic search state. `results === null` = browse mode.
+  const [results, setResults] = useState<RankedPattern[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [semantic, setSemantic] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -39,20 +45,62 @@ export default function PatternsLibrary() {
     void load();
   }, [load]);
 
-  const match = useCallback(
-    (p: Pattern) => {
-      if (filter !== "all" && p.category !== filter) return false;
-      const q = query.trim().toLowerCase();
-      if (q && !`${p.title} ${p.insight} ${p.evidence}`.toLowerCase().includes(q)) return false;
-      return true;
-    },
-    [filter, query]
+  const byCategory = useCallback(
+    (p: Pattern) => filter === "all" || p.category === filter,
+    [filter]
   );
-
-  const visibleSaved = useMemo(() => saved.filter(match), [saved, match]);
-  const visibleAuto = useMemo(() => auto.filter(match), [auto, match]);
+  const visibleSaved = useMemo(() => saved.filter(byCategory), [saved, byCategory]);
+  const visibleAuto = useMemo(() => auto.filter(byCategory), [auto, byCategory]);
+  const displayedResults = useMemo(
+    () => (results ? results.filter(byCategory) : []),
+    [results, byCategory]
+  );
+  // Normalize relevance within the result set so the bar is meaningful (cosine
+  // scores cluster high); only used in semantic mode.
+  const relBounds = useMemo(() => {
+    if (!results || results.length === 0) return { min: 0, max: 1 };
+    const vals = results.map((r) => r.relevance);
+    return { min: Math.min(...vals), max: Math.max(...vals) };
+  }, [results]);
+  const norm = (r: number) =>
+    relBounds.max > relBounds.min ? (r - relBounds.min) / (relBounds.max - relBounds.min) : 1;
 
   const authed = authStatus === "authenticated";
+
+  const runSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults(null);
+      return;
+    }
+    setSearching(true);
+    try {
+      const res = await fetch("/api/patterns/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setResults([]);
+        setSemantic(false);
+        return;
+      }
+      setResults(json.results ?? []);
+      setSemantic(Boolean(json.semantic));
+    } catch {
+      setResults([]);
+      setSemantic(false);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setResults(null);
+  };
 
   const pin = async (p: Pattern) => {
     setBusy(p.id);
@@ -66,6 +114,7 @@ export default function PatternsLibrary() {
         const { pattern } = (await res.json()) as { pattern: Pattern };
         setSaved((s) => [pattern, ...s]);
         setAuto((a) => a.filter((x) => x.id !== p.id));
+        setResults((r) => (r ? r.filter((x) => x.id !== p.id) : r));
       }
     } finally {
       setBusy(null);
@@ -80,20 +129,30 @@ export default function PatternsLibrary() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
-      if (res.ok) setSaved((s) => s.filter((p) => p.id !== id));
+      if (res.ok) {
+        setSaved((s) => s.filter((p) => p.id !== id));
+        setResults((r) => (r ? r.filter((x) => x.id !== id) : r));
+      }
     } finally {
       setBusy(null);
     }
   };
 
+  const actionFor = (p: Pattern) =>
+    !authed
+      ? undefined
+      : p.source === "manual"
+        ? ({ label: "Odebrat", icon: "remove", busy: busy === p.id, onClick: () => remove(p.id) } as const)
+        : ({ label: "Uložit", icon: "save", busy: busy === p.id, onClick: () => pin(p) } as const);
+
   return (
     <div className="space-y-6">
       <p className="rounded-card border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800">
-        Vzory se odvozují z vašich vlastních výsledků. Uložené vzory navíc{" "}
-        <strong>ladí AI vyhodnocení portfolia</strong> — model pak vychází z toho, co u vás funguje.
+        Vzory se odvozují z vašich vlastních výsledků. Hledání je <strong>sémantické</strong> — najde
+        vzory podle významu, ne jen podle slov. Uložené vzory navíc ladí AI vyhodnocení portfolia.
       </p>
 
-      {/* filters */}
+      {/* filters + semantic search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
           {(["all", ...PATTERN_CATEGORIES] as CategoryFilter[]).map((c) => (
@@ -110,20 +169,64 @@ export default function PatternsLibrary() {
             </button>
           ))}
         </div>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Hledat ve vzorech…"
-          className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface sm:w-64"
-        />
+        <form onSubmit={runSearch} className="flex w-full gap-2 sm:w-auto">
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Hledat podle významu…"
+            className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface sm:w-64"
+          />
+          <button
+            type="submit"
+            disabled={searching || query.trim().length < 2}
+            aria-label="Hledat"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+          >
+            <Search width={16} height={16} />
+          </button>
+          {results !== null && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300"
+            >
+              Zpět
+            </button>
+          )}
+        </form>
       </div>
 
       {loading ? (
         <div className="card p-10 text-center text-sm text-muted">Načítám vzory…</div>
+      ) : results !== null ? (
+        <section>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-navy-800">
+              <Search width={16} height={16} className="text-brand-600" />
+              Výsledky hledání ({displayedResults.length})
+            </h2>
+            <span className={`pill ${semantic ? "bg-positive-soft text-positive" : "bg-navy-50 text-muted"}`}>
+              {searching ? "Hledám…" : semantic ? "Sémantické" : "Textové"}
+            </span>
+          </div>
+          {displayedResults.length === 0 ? (
+            <p className="text-sm text-muted">Nic neodpovídá dotazu.</p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {displayedResults.map((r) => (
+                <PatternCard
+                  key={r.id}
+                  p={r}
+                  relevance={semantic ? norm(r.relevance) : undefined}
+                  action={actionFor(r)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       ) : (
         <>
-          {/* saved library */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Check width={16} height={16} className="text-brand-600" />
@@ -138,21 +241,12 @@ export default function PatternsLibrary() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {visibleSaved.map((p) => (
-                  <PatternCard
-                    key={p.id}
-                    p={p}
-                    action={
-                      authed
-                        ? { label: "Odebrat", icon: "remove", busy: busy === p.id, onClick: () => remove(p.id) }
-                        : undefined
-                    }
-                  />
+                  <PatternCard key={p.id} p={p} action={actionFor(p)} />
                 ))}
               </div>
             )}
           </section>
 
-          {/* auto-detected */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Sparkles width={16} height={16} className="text-brand-600" />
@@ -167,15 +261,7 @@ export default function PatternsLibrary() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {visibleAuto.map((p) => (
-                  <PatternCard
-                    key={p.id}
-                    p={p}
-                    action={
-                      authed
-                        ? { label: "Uložit", icon: "save", busy: busy === p.id, onClick: () => pin(p) }
-                        : undefined
-                    }
-                  />
+                  <PatternCard key={p.id} p={p} action={actionFor(p)} />
                 ))}
               </div>
             )}
@@ -191,12 +277,25 @@ export default function PatternsLibrary() {
 function PatternCard({
   p,
   action,
+  relevance,
 }: {
   p: Pattern;
   action?: { label: string; icon: "save" | "remove"; busy: boolean; onClick: () => void };
+  relevance?: number;
 }) {
   return (
     <div className="card flex flex-col p-4">
+      {relevance !== undefined && (
+        <span className="mb-2.5 flex items-center gap-2" title="Relevance k dotazu">
+          <span className="h-1 flex-1 overflow-hidden rounded-full bg-navy-50" aria-hidden>
+            <span
+              className="block h-full rounded-full bg-brand-500"
+              style={{ width: `${Math.round(Math.max(0.08, relevance) * 100)}%` }}
+            />
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted">relevance</span>
+        </span>
+      )}
       <div className="flex items-start justify-between gap-2">
         <span className="pill bg-navy-50 text-muted">{PATTERN_CATEGORY_LABELS[p.category]}</span>
         {action && (

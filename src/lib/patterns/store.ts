@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { extractPatterns } from "./extract";
 import { cosine, embedTexts } from "./embeddings";
-import { isPatternCategory, type Pattern, type PatternCategory } from "./types";
+import { isPatternCategory, type Pattern, type PatternCategory, type RankedPattern } from "./types";
 
 function patternsCol(tenant: string) {
   return firestore.collection("tenants").doc(tenant).collection("patterns");
@@ -53,6 +53,38 @@ export async function getLibrary(
   const [auto, saved] = await Promise.all([extractPatterns(tenant), listSavedPatterns(tenant)]);
   const savedTitles = new Set(saved.map((p) => p.title.toLowerCase()));
   return { auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())), saved };
+}
+
+/** Semantic search over the tenant's library (saved + auto): ranks patterns by
+ *  cosine similarity to the query. Falls back to substring matching when
+ *  embeddings are unavailable (`semantic: false`). */
+export async function searchPatterns(
+  tenant: string,
+  query: string
+): Promise<{ results: RankedPattern[]; semantic: boolean }> {
+  const { auto, saved } = await getLibrary(tenant);
+  const all = [...saved, ...auto];
+  if (all.length === 0) return { results: [], semantic: false };
+
+  const texts = all.map((p) => `${p.title}. ${p.insight} ${p.evidence}`.trim());
+  const vecs = await embedTexts([query, ...texts]);
+  if (vecs) {
+    const [q, ...patternVecs] = vecs;
+    const results = all
+      .map((p, i) => ({ ...p, relevance: cosine(q!, patternVecs[i]!) }))
+      .sort((a, b) => b.relevance - a.relevance);
+    return { results, semantic: true };
+  }
+
+  // Fallback: case-insensitive substring match.
+  const ql = query.toLowerCase();
+  const results = all
+    .map((p) => ({
+      ...p,
+      relevance: `${p.title} ${p.insight} ${p.evidence}`.toLowerCase().includes(ql) ? 1 : 0,
+    }))
+    .filter((p) => p.relevance > 0);
+  return { results, semantic: false };
 }
 
 /** Compact pattern lines to ground the AI evaluation in proven wins.
