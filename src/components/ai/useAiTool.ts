@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AiResponse } from "@/lib/ai-types";
 
 type Status = "idle" | "loading" | "done" | "error";
+
+/** localStorage key for a tool's last result, so it survives a refresh / tab switch. */
+const resultKey = (mode: string) => `systedo.ai.result.${mode}`;
 
 /** Hard ceiling: if the model hasn't answered in time, abort and show a timeout.
  *  Sized for the dev provider (Claude Code CLI, incl. medium thinking + cold
@@ -21,6 +24,20 @@ export function useAiTool<T>(mode: string) {
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
+
+  // Restore the last result for this tool on mount, so a refresh or a switch to
+  // another tab and back doesn't throw away a generation the user paid for.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(resultKey(mode));
+      if (raw) {
+        setData(JSON.parse(raw) as AiResponse<T>);
+        setStatus("done");
+      }
+    } catch {
+      /* corrupt or unavailable storage — start fresh */
+    }
+  }, [mode]);
 
   async function run(payload: Record<string, unknown>) {
     setStatus("loading");
@@ -45,6 +62,11 @@ export function useAiTool<T>(mode: string) {
       }
       setData(json as AiResponse<T>);
       setStatus("done");
+      try {
+        window.localStorage.setItem(resultKey(mode), JSON.stringify(json));
+      } catch {
+        /* over quota / unavailable — keep the in-memory result, just don't persist */
+      }
     } catch {
       if (controller.signal.aborted) {
         setTimedOut(true);
@@ -62,6 +84,12 @@ export function useAiTool<T>(mode: string) {
     setStatus("idle");
     setError(null);
     setTimedOut(false);
+    setData(null);
+    try {
+      window.localStorage.removeItem(resultKey(mode));
+    } catch {
+      /* unavailable storage — nothing to clear */
+    }
   }
 
   return { status, data, error, timedOut, run, reset };
