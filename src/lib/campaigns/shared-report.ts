@@ -1,7 +1,10 @@
 /** Client-shareable report: snapshot the portfolio AI evaluation + campaigns into
  *  a read-only doc behind an unguessable token, so a user can hand a client a link.
- *  Server-only. */
+ *  Links carry a TTL (auto-expire), count views, and can be listed + revoked by the
+ *  tenant that created them — so a handed-out link is never an indefinite,
+ *  unrevocable data exposure. Server-only. */
 import { randomBytes } from "node:crypto";
+import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
 import type { CampaignReport, ReportHistoryPoint } from "../ai-types";
 import type { Campaign } from "./types";
@@ -12,13 +15,41 @@ import {
   listCampaigns,
 } from "./store";
 
+/** How long a freshly-created share link stays live. */
+export const SHARE_TTL_DAYS = 30;
+
 export interface SharedReport {
+  /** the tenant that owns the link (so only its creator can list/revoke it) */
+  tenant: string;
   accountName: string;
   period: string;
   createdAt: string;
+  /** ISO timestamp after which the link 404s */
+  expiresAt: string;
+  /** how many times the public page has been opened */
+  views: number;
   report: CampaignReport;
   history: ReportHistoryPoint[];
   campaigns: Campaign[];
+}
+
+/** Lightweight row for the "my shared links" management list (no heavy payload). */
+export interface SharedReportSummary {
+  token: string;
+  accountName: string;
+  period: string;
+  createdAt: string;
+  expiresAt: string;
+  views: number;
+  expired: boolean;
+}
+
+function collection() {
+  return firestore.collection("sharedReports");
+}
+
+function isExpired(expiresAt: string | undefined): boolean {
+  return Boolean(expiresAt) && new Date(expiresAt!).getTime() < Date.now();
 }
 
 /** Create a shareable snapshot of the tenant's current portfolio evaluation.
@@ -33,21 +64,67 @@ export async function createSharedReport(
   const report = (await getReportsForPeriod(tenant, meta.period))["overall"];
   if (!report) return null;
 
+  const now = Date.now();
   const shared: SharedReport = {
+    tenant,
     accountName,
     period: meta.period,
-    createdAt: new Date().toISOString(),
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + SHARE_TTL_DAYS * 86_400_000).toISOString(),
+    views: 0,
     report,
     history: await getReportHistory(tenant, "overall", null),
     campaigns: await listCampaigns(tenant),
   };
 
   const token = randomBytes(16).toString("hex");
-  await firestore.collection("sharedReports").doc(token).set(shared);
+  await collection().doc(token).set(shared);
   return token;
 }
 
+/** Fetch a shared report for the public page. Returns null when missing or expired,
+ *  and best-effort counts the view. */
 export async function getSharedReport(token: string): Promise<SharedReport | null> {
-  const doc = await firestore.collection("sharedReports").doc(token).get();
-  return doc.exists ? (doc.data() as SharedReport) : null;
+  const ref = collection().doc(token);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  const data = doc.data() as SharedReport;
+  if (isExpired(data.expiresAt)) return null;
+
+  // Count the open; never let a failed counter break the page.
+  try {
+    await ref.update({ views: FieldValue.increment(1) });
+  } catch {
+    /* non-critical */
+  }
+  return data;
+}
+
+/** All share links a tenant has created, newest first (expired ones flagged). */
+export async function listSharedReports(tenant: string): Promise<SharedReportSummary[]> {
+  const snap = await collection().where("tenant", "==", tenant).get();
+  return snap.docs
+    .map((d) => {
+      const r = d.data() as SharedReport;
+      return {
+        token: d.id,
+        accountName: r.accountName,
+        period: r.period,
+        createdAt: r.createdAt,
+        expiresAt: r.expiresAt,
+        views: r.views ?? 0,
+        expired: isExpired(r.expiresAt),
+      };
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Revoke (hard-delete) a link the tenant owns. Returns false if it's missing or
+ *  belongs to a different tenant. */
+export async function revokeSharedReport(tenant: string, token: string): Promise<boolean> {
+  const ref = collection().doc(token);
+  const doc = await ref.get();
+  if (!doc.exists || (doc.data() as SharedReport).tenant !== tenant) return false;
+  await ref.delete();
+  return true;
 }

@@ -5,7 +5,7 @@ import { Sparkles } from "@/components/icons";
 import ReportView from "@/components/campaigns/ReportView";
 import { getSharedReport } from "@/lib/campaigns/shared-report";
 import { aggregate, CAMPAIGN_PERIOD_LABELS, type CampaignPeriod } from "@/lib/campaigns/types";
-import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct } from "@/lib/format";
+import { fmtCZK, fmtDate, fmtDateTime, fmtMultiple, fmtPct } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 // Shared links are private; never index them (the root layout is noindex too).
@@ -64,6 +64,7 @@ export default async function SharedReportPage({
 
       <p className="mt-8 text-center text-xs text-muted">
         Vygenerováno v Systedo · {shared.campaigns.length} kampaní
+        {shared.expiresAt && <> · odkaz platí do {fmtDate(shared.expiresAt)}</>}
       </p>
     </Container>
   );

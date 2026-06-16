@@ -22,26 +22,32 @@ export default function BudgetMoves({
   const { before, after } = simulation;
   const valueGain = after.conversionValue - before.conversionValue;
 
+  // Confirm/busy are keyed per action ("shift:from:to" or "pause:from") so the two
+  // actions on a row don't share state; `done` records the success label per key.
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [applied, setApplied] = useState<Set<string>>(new Set());
+  const [done, setDone] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
 
-  const pause = async (campaignId: string, campaignName: string) => {
-    setBusy(campaignId);
+  const apply = async (
+    key: string,
+    payload: Record<string, unknown>,
+    successLabel: string
+  ) => {
+    setBusy(key);
     setError(null);
     try {
       const res = await fetch("/api/campaigns/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pause", campaignId, campaignName }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.ok) {
-        setError(json?.error ?? "Pozastavení se nezdařilo.");
+        setError(json?.error ?? "Akce se nezdařila.");
         return;
       }
-      setApplied((s) => new Set(s).add(campaignId));
+      setDone((d) => ({ ...d, [key]: successLabel }));
       onApplied?.();
     } catch {
       setError("Nepodařilo se spojit se serverem.");
@@ -94,40 +100,102 @@ export default function BudgetMoves({
                     <span className="tnum font-semibold text-positive">+{fmtCZK(m.estValueGain)}</span>{" "}
                     hodnoty konverzí.
                   </p>
-                  {applied.has(m.fromId) ? (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-positive">
-                      <Check width={13} height={13} />
-                      Zdroj pozastaven
-                    </span>
-                  ) : confirming === m.fromId ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs">
-                      <span className="text-muted">Pozastavit „{m.fromName}“?</span>
-                      <button
-                        type="button"
-                        onClick={() => pause(m.fromId, m.fromName)}
-                        disabled={busy === m.fromId}
-                        className="rounded-pill bg-coral-500 px-2.5 py-1 font-semibold text-white hover:bg-coral-600 disabled:opacity-50"
-                      >
-                        {busy === m.fromId ? "Pozastavuji…" : "Potvrdit"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirming(null)}
-                        className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
-                      >
-                        Zrušit
-                      </button>
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirming(m.fromId)}
-                      title="Pozastavit podvýkonnou kampaň v Google Ads (živý účet)"
-                      className="rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
-                    >
-                      Pozastavit zdroj
-                    </button>
-                  )}
+                  {(() => {
+                    const shiftKey = `shift:${m.fromId}:${m.toId}`;
+                    const pauseKey = `pause:${m.fromId}`;
+                    const resolved = done[shiftKey] ?? done[pauseKey];
+                    if (resolved) {
+                      return (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-positive">
+                          <Check width={13} height={13} />
+                          {resolved}
+                        </span>
+                      );
+                    }
+                    if (confirming === shiftKey) {
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <span className="text-muted">Přesunout {fmtCZK(m.amount)} v Google Ads?</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              apply(
+                                shiftKey,
+                                {
+                                  action: "budget_shift",
+                                  fromId: m.fromId,
+                                  fromName: m.fromName,
+                                  toId: m.toId,
+                                  toName: m.toName,
+                                  amount: m.amount,
+                                },
+                                "Přesun aplikován"
+                              )
+                            }
+                            disabled={busy === shiftKey}
+                            className="rounded-pill bg-brand-600 px-2.5 py-1 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                          >
+                            {busy === shiftKey ? "Aplikuji…" : "Potvrdit"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirming(null)}
+                            className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
+                          >
+                            Zrušit
+                          </button>
+                        </span>
+                      );
+                    }
+                    if (confirming === pauseKey) {
+                      return (
+                        <span className="inline-flex items-center gap-1.5 text-xs">
+                          <span className="text-muted">Pozastavit „{m.fromName}“?</span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              apply(
+                                pauseKey,
+                                { action: "pause", campaignId: m.fromId, campaignName: m.fromName },
+                                "Zdroj pozastaven"
+                              )
+                            }
+                            disabled={busy === pauseKey}
+                            className="rounded-pill bg-coral-500 px-2.5 py-1 font-semibold text-white hover:bg-coral-600 disabled:opacity-50"
+                          >
+                            {busy === pauseKey ? "Pozastavuji…" : "Potvrdit"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirming(null)}
+                            className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
+                          >
+                            Zrušit
+                          </button>
+                        </span>
+                      );
+                    }
+                    return (
+                      <span className="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(shiftKey)}
+                          title="Přesunout rozpočet mezi kampaněmi v Google Ads (živý účet)"
+                          className="rounded-pill bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+                        >
+                          Aplikovat přesun
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(pauseKey)}
+                          title="Pozastavit podvýkonnou kampaň v Google Ads (živý účet)"
+                          className="rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
+                        >
+                          Pozastavit zdroj
+                        </button>
+                      </span>
+                    );
+                  })()}
                 </div>
               </li>
             ))}
@@ -168,7 +236,8 @@ export default function BudgetMoves({
           </div>
           <p className="mt-2 text-[11px] text-muted">
             Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří
-            další synchronizace.
+            další synchronizace. „Aplikovat přesun“ upraví denní rozpočty přímo v Google Ads
+            (jen u připojeného živého účtu, s potvrzením a auditem).
           </p>
         </>
       )}

@@ -98,7 +98,8 @@ export async function POST(request: Request) {
       if (!quota.ok) {
         return Response.json(
           {
-            error: `Denní limit AI vyhodnocení vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán.`,
+            error: `Denní limit AI vyhodnocení vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+            upgradeUrl: "/cena",
           },
           { status: 429 }
         );

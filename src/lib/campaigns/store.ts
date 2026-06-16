@@ -22,6 +22,7 @@ import type {
   CampaignChange,
   CampaignPeriod,
   ChangesSummary,
+  DailyPoint,
 } from "./types";
 
 export interface SyncMeta {
@@ -99,6 +100,28 @@ export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
   const r = doc.data();
   if (!r?.syncedAt) return null;
   return { source: r.source, period: r.period as CampaignPeriod, syncedAt: r.syncedAt };
+}
+
+// --- daily series (trend chart) ---------------------------------------------
+
+/** Replace the tenant's stored daily series with a freshly-synced one. Held in a
+ *  single doc (the series is a small bounded array) keyed `series/latest`. */
+export async function saveSeries(
+  tenant: string,
+  series: DailyPoint[],
+  meta: { period: CampaignPeriod }
+): Promise<void> {
+  await tenantDoc(tenant)
+    .collection("series")
+    .doc("latest")
+    .set({ period: meta.period, series, syncedAt: new Date().toISOString() });
+}
+
+/** The tenant's latest daily series (oldest → newest), or [] if none synced. */
+export async function getSeries(tenant: string): Promise<DailyPoint[]> {
+  const doc = await tenantDoc(tenant).collection("series").doc("latest").get();
+  const data = doc.data();
+  return Array.isArray(data?.series) ? (data!.series as DailyPoint[]) : [];
 }
 
 // --- reports ----------------------------------------------------------------

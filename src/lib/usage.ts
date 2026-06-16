@@ -5,31 +5,13 @@
  *
  *  Stored at `usage/{userId}` = { plan, days: { 'YYYY-MM-DD': { aiEval, sync } } }.
  *  Monetization (upgrading the `plan` field, e.g. via Stripe) is a thin layer on
- *  top — not included here. */
+ *  top — not included here. The plan catalogue + usage shapes live in the pure
+ *  `plans.ts` so the UI can import them without firebase-admin. */
 import { firestore } from "@/lib/firebase";
+import { PLANS, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
 
-export type Plan = "free" | "pro";
-export type UsageKind = "aiEval" | "sync";
-
-export interface PlanLimits {
-  /** AI evaluations (campaign / assistant) per UTC day */
-  aiEval: number;
-  /** Google Ads syncs per UTC day */
-  sync: number;
-}
-
-export const PLANS: Record<Plan, PlanLimits> = {
-  free: { aiEval: 25, sync: 50 },
-  pro: { aiEval: 1000, sync: 1000 },
-};
-
-export interface UsageStatus {
-  plan: Plan;
-  limits: PlanLimits;
-  used: Record<UsageKind, number>;
-  /** UTC day the counters apply to */
-  day: string;
-}
+export { PLANS };
+export type { Plan, UsageKind, UsageStatus, PlanLimits } from "@/lib/plans";
 
 interface UsageDoc {
   plan?: Plan;

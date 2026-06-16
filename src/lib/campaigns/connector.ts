@@ -8,11 +8,15 @@
  *
  *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
-import { sampleCampaigns } from "./sample";
+import { sampleCampaigns, sampleSeries } from "./sample";
 import { getAdsConnection } from "./connection";
-import { adsConfigured, fetchCampaigns as adsFetchCampaigns } from "@/lib/google/ads";
+import {
+  adsConfigured,
+  fetchCampaigns as adsFetchCampaigns,
+  fetchDailySeries as adsFetchDailySeries,
+} from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
-import type { Campaign, CampaignPeriod } from "./types";
+import type { Campaign, CampaignPeriod, DailyPoint } from "./types";
 
 export interface AdsConnector {
   /** stable id persisted alongside the data, surfaced in the UI */
@@ -20,6 +24,8 @@ export interface AdsConnector {
   /** human label for the source */
   label: string;
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
+  /** per-day portfolio totals for the trend chart */
+  fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
 }
 
 function sampleProvider(): AdsConnector {
@@ -28,6 +34,9 @@ function sampleProvider(): AdsConnector {
     label: "Google Ads · ukázková data",
     async fetchCampaigns(period) {
       return sampleCampaigns(period);
+    },
+    async fetchSeries(period) {
+      return sampleSeries(period);
     },
   };
 }
@@ -38,6 +47,9 @@ function googleAdsProvider(accessToken: string, customerId: string): AdsConnecto
     label: "Google Ads · živá data",
     async fetchCampaigns(period) {
       return adsFetchCampaigns(accessToken, customerId, period);
+    },
+    async fetchSeries(period) {
+      return adsFetchDailySeries(accessToken, customerId, period);
     },
   };
 }

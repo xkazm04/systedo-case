@@ -1,14 +1,75 @@
-/** Turn a fresh sync into an alert: notify the user about campaigns that have
- *  *newly* become critical (don't re-alert ones already flagged). The "already
- *  alerted" set lives on the tenant doc, so a recovered-then-relapsed campaign
- *  re-alerts. Server-only. */
+/** Turn a fresh sync into alerts across channels — email, an outbound webhook,
+ *  and a persisted in-app inbox — for campaigns that have *newly* become critical
+ *  (don't re-alert ones already flagged). The "already alerted" set lives on the
+ *  tenant doc, so a recovered-then-relapsed campaign re-alerts. The same path runs
+ *  on the hourly cron and on a manual sync, so the inbox always reflects reality.
+ *  Server-only. */
 import { firestore } from "@/lib/firebase";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, sendWebhook } from "@/lib/email";
 import { withMetrics, type Campaign } from "./types";
 import { triage } from "./triage";
 
-/** Evaluate the just-synced campaigns and alert on new criticals. Returns how
- *  many new criticals were found. */
+export type AlertType = "critical" | "digest";
+
+export interface AlertItem {
+  campaignId: string;
+  name: string;
+  reason: string;
+}
+
+export interface AlertDoc {
+  type: AlertType;
+  title: string;
+  /** short plain-text body for the inbox row + webhook */
+  body: string;
+  items: AlertItem[];
+  createdAt: string;
+  read: boolean;
+}
+
+export interface AlertRecord extends AlertDoc {
+  id: string;
+}
+
+function alertsCol(tenant: string) {
+  return firestore.collection("tenants").doc(tenant).collection("alerts");
+}
+
+/** Persist one alert to the tenant's in-app inbox (always, even when no email/
+ *  webhook is configured — so there's a durable record either way). */
+export async function recordAlert(
+  tenant: string,
+  alert: { type: AlertType; title: string; body: string; items: AlertItem[] }
+): Promise<void> {
+  await alertsCol(tenant).add({ ...alert, createdAt: new Date().toISOString(), read: false });
+}
+
+/** Newest alerts for a tenant's inbox. */
+export async function listAlerts(tenant: string, limit = 20): Promise<AlertRecord[]> {
+  const snap = await alertsCol(tenant).orderBy("createdAt", "desc").limit(limit).get();
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as AlertDoc) }));
+}
+
+/** Mark one alert (by id) or all unread alerts as read. */
+export async function markAlertsRead(tenant: string, id?: string): Promise<void> {
+  if (id) {
+    await alertsCol(tenant).doc(id).set({ read: true }, { merge: true });
+    return;
+  }
+  const snap = await alertsCol(tenant).where("read", "==", false).get();
+  const batch = firestore.batch();
+  snap.forEach((d) => batch.set(d.ref, { read: true }, { merge: true }));
+  await batch.commit();
+}
+
+/** The signed-in user's email, for outbound notifications. */
+export async function getUserEmail(userId: string): Promise<string | null> {
+  const data = (await firestore.collection("users").doc(userId).get()).data();
+  return (data?.email as string | undefined) ?? null;
+}
+
+/** Evaluate the just-synced campaigns and alert on new criticals across all
+ *  channels. Returns how many new criticals were found. */
 export async function evaluateAndAlert(
   tenant: string,
   userId: string,
@@ -27,27 +88,39 @@ export async function evaluateAndAlert(
 
   if (fresh.length === 0) return 0;
 
-  const email = (await firestore.collection("users").doc(userId).get()).data()?.email as
-    | string
-    | undefined;
+  const items: AlertItem[] = fresh.map((c) => ({
+    campaignId: c.id,
+    name: c.name,
+    reason: triage(c).primary?.detail ?? "Vyžaduje pozornost.",
+  }));
+  const title = `${fresh.length} nových kritických kampaní`;
+  const body = items.map((i) => `${i.name} — ${i.reason}`).join(" · ");
+
+  // In-app inbox first — the durable record that never depends on a 3rd party.
+  await recordAlert(tenant, { type: "critical", title, body, items });
+
+  // Outbound webhook (Slack/Teams/…), best-effort.
+  await sendWebhook(`Systedo: ${title}\n${body}`);
+
+  // Email, best-effort (needs the user's address).
+  const email = await getUserEmail(userId);
   if (!email) {
     console.log(`[alert] tenant ${tenant}: ${fresh.length} new criticals, no user email`);
     return fresh.length;
   }
 
-  const items = fresh
-    .map((c) => {
-      const reason = triage(c).primary?.detail ?? "Vyžaduje pozornost.";
-      return `<li style="margin:6px 0"><strong>${escapeHtml(c.name)}</strong> — ${escapeHtml(reason)}</li>`;
-    })
+  const li = items
+    .map(
+      (i) =>
+        `<li style="margin:6px 0"><strong>${escapeHtml(i.name)}</strong> — ${escapeHtml(i.reason)}</li>`
+    )
     .join("");
-
   const html =
     `<p>Při poslední synchronizaci se objevily nové kritické kampaně:</p>` +
-    `<ul>${items}</ul>` +
+    `<ul>${li}</ul>` +
     `<p>Otevřete přehled v Systedo pro detail, doporučené přesuny rozpočtu a AI vyhodnocení.</p>`;
 
-  await sendEmail(email, `Systedo: ${fresh.length} nových kritických kampaní`, html);
+  await sendEmail(email, `Systedo: ${title}`, html);
   return fresh.length;
 }
 

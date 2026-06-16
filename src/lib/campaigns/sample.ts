@@ -16,6 +16,7 @@ import {
   type CampaignPeriod,
   type CampaignStatus,
   type CampaignType,
+  type DailyPoint,
 } from "./types";
 
 // --- seeded PRNG (mulberry32), matching the seed script -----------------------
@@ -90,4 +91,42 @@ export function sampleCampaigns(period: CampaignPeriod): Campaign[] {
       conversionValue,
     };
   });
+}
+
+/** Per-day portfolio totals over the period — the date series the live connector
+ *  produces from `segments.date`, mirrored here so the trend chart works out of
+ *  the box. Sums all campaign specs per day with a weekend dip + small daily
+ *  jitter, seeded per (period, date) so a re-sync is stable. */
+export function sampleSeries(period: CampaignPeriod): DailyPoint[] {
+  const days = CAMPAIGN_PERIOD_DAYS[period];
+  // Anchor on a fixed "today" boundary (UTC midnight) so points land on dates.
+  const todayMs = Math.floor(Date.now() / 86_400_000) * 86_400_000;
+
+  // Daily base totals across all specs (one day's worth, no period scaling).
+  let baseCost = 0;
+  let baseConv = 0;
+  let baseValue = 0;
+  for (const s of SPECS) {
+    const clicks = s.impr * s.ctr;
+    baseCost += clicks * s.cpc;
+    baseConv += clicks * s.convRate;
+    baseValue += clicks * s.convRate * s.aov;
+  }
+
+  const out: DailyPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(todayMs - i * 86_400_000);
+    const date = d.toISOString().slice(0, 10);
+    const rnd = mulberry32(hashStr(`mionelo-series:${period}:${date}`));
+    const j = (scale = 0.1) => 1 + (rnd() * 2 - 1) * scale;
+    const dow = d.getUTCDay();
+    const weekend = dow === 0 || dow === 6 ? 0.82 : 1;
+    out.push({
+      date,
+      cost: Math.round(baseCost * weekend * j()),
+      conversions: Math.max(0, Math.round(baseConv * weekend * j())),
+      conversionValue: Math.round(baseValue * weekend * j()),
+    });
+  }
+  return out;
 }

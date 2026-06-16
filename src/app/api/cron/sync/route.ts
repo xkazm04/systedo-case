@@ -6,9 +6,9 @@
  *  is set). Schedule lives in vercel.json. */
 import { listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
-import { getSyncMeta, upsertCampaigns } from "@/lib/campaigns/store";
+import { getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
-import type { CampaignPeriod } from "@/lib/campaigns/types";
+import type { CampaignPeriod, DailyPoint } from "@/lib/campaigns/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,6 +37,15 @@ export async function GET(request: Request) {
 
       const campaigns = await connector.fetchCampaigns(period);
       await upsertCampaigns(tenant, campaigns, { source: connector.source, period });
+
+      // Best-effort daily series (never fail the sync over a series hiccup).
+      let series: DailyPoint[] = [];
+      try {
+        series = await connector.fetchSeries(period);
+      } catch (err) {
+        console.error(`[cron] series sync failed for ${userId}:`, err);
+      }
+      await saveSeries(tenant, series, { period });
 
       const alerted = await evaluateAndAlert(tenant, userId, campaigns);
       results.push({ userId, ok: true, alerted });

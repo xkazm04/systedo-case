@@ -8,10 +8,14 @@ import {
   getLatestChanges,
   getReportHistories,
   getReportsForPeriod,
+  getSeries,
   getSyncMeta,
   listCampaigns,
+  saveSeries,
   upsertCampaigns,
 } from "@/lib/campaigns/store";
+import { evaluateAndAlert } from "@/lib/campaigns/alerts";
+import type { DailyPoint } from "@/lib/campaigns/types";
 import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
 import { consume } from "@/lib/usage";
 import {
@@ -41,6 +45,7 @@ async function loadState(tenant: string) {
     reports: meta ? await getReportsForPeriod(tenant, meta.period) : {},
     histories: await getReportHistories(tenant),
     changes: await getLatestChanges(tenant),
+    series: await getSeries(tenant),
   };
 }
 
@@ -85,7 +90,8 @@ export async function POST(request: Request) {
     if (!quota.ok) {
       return Response.json(
         {
-          error: `Denní limit synchronizací vyčerpán (${quota.status.used.sync}/${quota.status.limits.sync}). Zkuste to zítra nebo přejděte na vyšší plán.`,
+          error: `Denní limit synchronizací vyčerpán (${quota.status.used.sync}/${quota.status.limits.sync}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+          upgradeUrl: "/cena",
         },
         { status: 429 }
       );
@@ -108,5 +114,26 @@ export async function POST(request: Request) {
   }
 
   await upsertCampaigns(tenant, campaigns, { source: connector.source, period });
+
+  // Daily trend series — best-effort: a failed series (e.g. live GAQL hiccup)
+  // must not fail the whole sync, which already succeeded above.
+  let series: DailyPoint[] = [];
+  try {
+    series = await connector.fetchSeries(period);
+  } catch (err) {
+    console.error("[campaigns] series sync failed:", err);
+  }
+  await saveSeries(tenant, series, { period });
+
+  // Alert on newly-critical campaigns (in-app inbox + best-effort email/webhook,
+  // deduped) so a manual sync surfaces problems just like the scheduled cron does.
+  if (userId) {
+    try {
+      await evaluateAndAlert(tenant, userId, campaigns);
+    } catch (err) {
+      console.error("[campaigns] alert evaluation failed:", err);
+    }
+  }
+
   return Response.json(await loadState(tenant));
 }

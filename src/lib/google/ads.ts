@@ -11,6 +11,7 @@ import {
   type CampaignPeriod,
   type CampaignStatus,
   type CampaignType,
+  type DailyPoint,
 } from "@/lib/campaigns/types";
 
 const API_VERSION = "v18";
@@ -65,7 +66,12 @@ interface SearchRow {
     status?: string;
     advertisingChannelType?: string;
   };
+  campaignBudget?: {
+    resourceName?: string;
+    amountMicros?: string | number;
+  };
   customer?: { descriptiveName?: string; id?: string };
+  segments?: { date?: string };
   metrics?: {
     impressions?: string | number;
     clicks?: string | number;
@@ -129,6 +135,101 @@ export async function pauseCampaign(
   if (!res.ok) {
     throw new Error(`Google Ads pauseCampaign ${res.status}: ${await res.text().catch(() => "")}`);
   }
+}
+
+export interface CampaignBudgetInfo {
+  campaignId: string;
+  /** the CampaignBudget resource to mutate (campaigns can share one) */
+  budgetResourceName: string;
+  /** current daily budget, in micros of the account currency */
+  amountMicros: number;
+}
+
+/** Current daily budget (resource name + micros) for specific campaigns — what
+ *  `applyBudgetShift` reads before re-pointing money between two campaigns. */
+export async function fetchCampaignBudgets(
+  accessToken: string,
+  customerId: string,
+  campaignIds: string[]
+): Promise<Map<string, CampaignBudgetInfo>> {
+  const ids = campaignIds.map((id) => id.replace(/\D/g, "")).filter(Boolean);
+  if (ids.length === 0) return new Map();
+  const rows = await searchStream(
+    accessToken,
+    customerId,
+    `SELECT campaign.id, campaign_budget.resource_name, campaign_budget.amount_micros
+     FROM campaign WHERE campaign.id IN (${ids.map((id) => `'${id}'`).join(", ")})`
+  );
+  const out = new Map<string, CampaignBudgetInfo>();
+  for (const r of rows) {
+    const campaignId = r.campaign?.id ? String(r.campaign.id) : null;
+    const budgetResourceName = r.campaignBudget?.resourceName;
+    if (!campaignId || !budgetResourceName) continue;
+    out.set(campaignId, {
+      campaignId,
+      budgetResourceName,
+      amountMicros: num(r.campaignBudget?.amountMicros),
+    });
+  }
+  return out;
+}
+
+/** Set a campaign budget's daily amount (micros) via the campaignBudgets:mutate
+ *  endpoint. The caller computes the new amount; this just writes it. */
+export async function setCampaignBudgetMicros(
+  accessToken: string,
+  customerId: string,
+  budgetResourceName: string,
+  amountMicros: number
+): Promise<void> {
+  const res = await fetch(`${BASE}/customers/${customerId}/campaignBudgets:mutate`, {
+    method: "POST",
+    headers: headers(accessToken),
+    body: JSON.stringify({
+      operations: [
+        {
+          update: { resourceName: budgetResourceName, amountMicros: String(Math.round(amountMicros)) },
+          updateMask: "amount_micros",
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Google Ads setCampaignBudget ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+}
+
+/** Portfolio daily series for the period — date-segmented metrics summed across
+ *  all campaigns. Powers the live trend chart (the per-campaign fetch is
+ *  date-aggregated and so can't). */
+export async function fetchDailySeries(
+  accessToken: string,
+  customerId: string,
+  period: CampaignPeriod
+): Promise<DailyPoint[]> {
+  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
+  const query = `
+    SELECT
+      segments.date,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.conversions_value
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+  `;
+  const rows = await searchStream(accessToken, customerId, query);
+
+  const byDate = new Map<string, DailyPoint>();
+  for (const r of rows) {
+    const date = r.segments?.date;
+    if (!date) continue;
+    const p = byDate.get(date) ?? { date, cost: 0, conversions: 0, conversionValue: 0 };
+    p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
+    p.conversions += num(r.metrics?.conversions);
+    p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+    byDate.set(date, p);
+  }
+  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 const CHANNEL_TYPE: Record<string, CampaignType> = {

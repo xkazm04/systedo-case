@@ -93,6 +93,19 @@ export interface Campaign {
   conversionValue: number;
 }
 
+/** One day of portfolio totals — the date-segmented series behind the trend
+ *  chart. Summed across campaigns at the source (the per-campaign sync is
+ *  date-aggregated and so can't produce a series). */
+export interface DailyPoint {
+  /** YYYY-MM-DD */
+  date: string;
+  /** media spend, CZK */
+  cost: number;
+  conversions: number;
+  /** value of conversions, CZK */
+  conversionValue: number;
+}
+
 /** Ratios derived from the raw metrics — never stored, always recomputed so the
  *  table, the by-type breakdown and the totals can never drift apart. */
 export interface CampaignMetrics {

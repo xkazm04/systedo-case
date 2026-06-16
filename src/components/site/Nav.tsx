@@ -7,6 +7,7 @@ import { NAV_ITEMS } from "@/lib/nav";
 import { Close, External, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import AuthButton from "@/components/auth/AuthButton";
+import UsageMeter from "@/components/usage/UsageMeter";
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -64,6 +65,7 @@ export default function Nav() {
             systedo.cz
             <External width={15} height={15} />
           </a>
+          <UsageMeter />
           <AuthButton />
           <ThemeToggle />
           <button

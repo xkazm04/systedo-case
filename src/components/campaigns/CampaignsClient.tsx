@@ -16,8 +16,11 @@ import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
 import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
+import AlertsInbox from "./AlertsInbox";
 import CampaignTable from "./CampaignTable";
+import PortfolioTrend from "./PortfolioTrend";
 import ReportView from "./ReportView";
+import SharedReportsList from "./SharedReportsList";
 
 const SOURCE_LABELS: Record<string, string> = {
   sample: "Google Ads · ukázková data",
@@ -31,6 +34,7 @@ export default function CampaignsClient() {
     reports,
     histories,
     changes,
+    series,
     loading,
     syncing,
     error,
@@ -45,14 +49,21 @@ export default function CampaignsClient() {
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
   const period: CampaignPeriod = selected ?? meta?.period ?? "30d";
 
+  // Bumped after each sync so the alert inbox reloads (a sync can mint new alerts).
+  const [alertRefresh, setAlertRefresh] = useState(0);
+  const refreshAlerts = () => setAlertRefresh((n) => n + 1);
+  const syncAndRefresh = (p: CampaignPeriod) => void sync(p).then(refreshAlerts);
+
   const changePeriod = (p: CampaignPeriod) => {
     setSelected(p);
-    sync(p);
+    syncAndRefresh(p);
   };
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [shareErr, setShareErr] = useState<string | null>(null);
+  // Bumped after a successful create so the share-management list reloads.
+  const [shareRefresh, setShareRefresh] = useState(0);
 
   const share = async () => {
     setSharing(true);
@@ -65,6 +76,7 @@ export default function CampaignsClient() {
         return;
       }
       setShareUrl(json.url);
+      setShareRefresh((n) => n + 1);
     } catch {
       setShareErr("Nepodařilo se spojit se serverem.");
     } finally {
@@ -173,15 +185,18 @@ export default function CampaignsClient() {
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => sync(period)}
-          disabled={syncing}
-          className="inline-flex items-center justify-center gap-2 rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <Refresh width={16} height={16} className={syncing ? "animate-spin" : ""} />
-          {syncing ? "Synchronizuji…" : "Synchronizovat"}
-        </button>
+        <div className="flex items-center gap-2">
+          <AlertsInbox refreshKey={alertRefresh} />
+          <button
+            type="button"
+            onClick={() => syncAndRefresh(period)}
+            disabled={syncing}
+            className="inline-flex items-center justify-center gap-2 rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Refresh width={16} height={16} className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Synchronizuji…" : "Synchronizovat"}
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -203,6 +218,9 @@ export default function CampaignsClient() {
           </div>
         ))}
       </div>
+
+      {/* daily portfolio trend (from the date-segmented series) */}
+      {series.length >= 2 && <PortfolioTrend series={series} />}
 
       {/* what changed since the previous sync */}
       {changes && changes.items.length > 0 && <ChangeStrip changes={changes} />}
@@ -279,6 +297,8 @@ export default function CampaignsClient() {
             </button>
           </div>
         )}
+
+        {overall && <SharedReportsList refreshSignal={shareRefresh} />}
 
         {overallBusy && !overall && (
           <div className="mt-5 flex items-center gap-3 text-sm text-muted">

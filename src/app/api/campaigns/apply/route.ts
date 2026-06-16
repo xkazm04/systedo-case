@@ -1,17 +1,29 @@
-/** Apply a recommendation to Google Ads (human-triggered). Currently supports
- *  pausing a campaign. Requires a signed-in user with a connected live account;
- *  the mutation is audited server-side. */
+/** Apply a recommendation to Google Ads (human-triggered). Supports pausing a
+ *  campaign and applying a recommended budget shift between two campaigns.
+ *  Requires a signed-in user with a connected live account; the mutation is
+ *  audited server-side. */
 import { auth } from "@/auth";
-import { applyPause } from "@/lib/campaigns/mutations";
+import { applyBudgetShift, applyPause } from "@/lib/campaigns/mutations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
 export async function POST(request: Request) {
   const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { action?: unknown; campaignId?: unknown; campaignName?: unknown };
+  let body: {
+    action?: unknown;
+    campaignId?: unknown;
+    campaignName?: unknown;
+    fromId?: unknown;
+    fromName?: unknown;
+    toId?: unknown;
+    toName?: unknown;
+    amount?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -19,14 +31,32 @@ export async function POST(request: Request) {
   }
 
   const action = body.action ?? "pause";
-  const campaignId = typeof body.campaignId === "string" ? body.campaignId : "";
-  if (!campaignId) return Response.json({ error: "Chybí ID kampaně." }, { status: 422 });
-  const campaignName = typeof body.campaignName === "string" ? body.campaignName : campaignId;
 
-  if (action !== "pause") {
-    return Response.json({ error: "Nepodporovaná akce." }, { status: 400 });
+  if (action === "pause") {
+    const campaignId = str(body.campaignId);
+    if (!campaignId) return Response.json({ error: "Chybí ID kampaně." }, { status: 422 });
+    const campaignName = str(body.campaignName) || campaignId;
+    const result = await applyPause(userId, campaignId, campaignName);
+    return Response.json(result, { status: result.ok ? 200 : 400 });
   }
 
-  const result = await applyPause(userId, campaignId, campaignName);
-  return Response.json(result, { status: result.ok ? 200 : 400 });
+  if (action === "budget_shift") {
+    const fromId = str(body.fromId);
+    const toId = str(body.toId);
+    const amount = Number(body.amount);
+    if (!fromId || !toId) return Response.json({ error: "Chybí ID kampaní." }, { status: 422 });
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return Response.json({ error: "Neplatná částka přesunu." }, { status: 422 });
+    }
+    const result = await applyBudgetShift(userId, {
+      fromId,
+      fromName: str(body.fromName) || fromId,
+      toId,
+      toName: str(body.toName) || toId,
+      amount,
+    });
+    return Response.json(result, { status: result.ok ? 200 : 400 });
+  }
+
+  return Response.json({ error: "Nepodporovaná akce." }, { status: 400 });
 }

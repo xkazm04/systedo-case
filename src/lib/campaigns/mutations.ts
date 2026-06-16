@@ -4,12 +4,53 @@
  *  Server-only. */
 import { firestore } from "@/lib/firebase";
 import { getAdsConnection } from "./connection";
+import { getSyncMeta } from "./store";
+import { CAMPAIGN_PERIOD_DAYS } from "./types";
 import { getUserAccessToken } from "@/lib/google/token";
-import { adsConfigured, pauseCampaign } from "@/lib/google/ads";
+import {
+  adsConfigured,
+  fetchCampaignBudgets,
+  pauseCampaign,
+  setCampaignBudgetMicros,
+} from "@/lib/google/ads";
 
 export interface MutationResult {
   ok: boolean;
   error?: string;
+}
+
+/** The shape `applyBudgetShift` needs from a recommended `BudgetMove`. */
+export interface BudgetShiftInput {
+  fromId: string;
+  fromName: string;
+  toId: string;
+  toName: string;
+  /** total CZK to reallocate over the synced period (a `BudgetMove.amount`) */
+  amount: number;
+}
+
+interface AdsActor {
+  connection: { customerId: string };
+  token: string;
+}
+
+/** Shared guard for every live mutation: configured + connected + authorized.
+ *  Returns the actor, or a ready-to-return error result. */
+async function resolveActor(
+  userId: string
+): Promise<{ actor: AdsActor } | { error: MutationResult }> {
+  if (!adsConfigured()) {
+    return { error: { ok: false, error: "Živé úpravy vyžadují Google Ads developer token." } };
+  }
+  const connection = await getAdsConnection(userId);
+  if (!connection) {
+    return { error: { ok: false, error: "Nejdřív připojte živý Google Ads účet." } };
+  }
+  const token = await getUserAccessToken(userId);
+  if (!token) {
+    return { error: { ok: false, error: "Chybí Google autorizace (přihlaste se znovu)." } };
+  }
+  return { actor: { connection: { customerId: connection.customerId }, token } };
 }
 
 /** Pause a campaign in the user's active (live) Google Ads account, and audit it.
@@ -20,17 +61,9 @@ export async function applyPause(
   campaignId: string,
   campaignName: string
 ): Promise<MutationResult> {
-  if (!adsConfigured()) {
-    return { ok: false, error: "Živé úpravy vyžadují Google Ads developer token." };
-  }
-  const connection = await getAdsConnection(userId);
-  if (!connection) {
-    return { ok: false, error: "Nejdřív připojte živý Google Ads účet." };
-  }
-  const token = await getUserAccessToken(userId);
-  if (!token) {
-    return { ok: false, error: "Chybí Google autorizace (přihlaste se znovu)." };
-  }
+  const resolved = await resolveActor(userId);
+  if ("error" in resolved) return resolved.error;
+  const { connection, token } = resolved.actor;
 
   const tenant = `u_${userId}_${connection.customerId}`;
   try {
@@ -46,6 +79,67 @@ export async function applyPause(
     return { ok: true };
   } catch (err) {
     console.error("[mutations] pause failed:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
+  }
+}
+
+/** Apply a recommended budget reallocation: lower the donor's daily budget and
+ *  raise the recipient's by the same micros, then audit both. The recommendation's
+ *  `amount` is a period total, so it's converted to a daily delta via the synced
+ *  period length. The donor is floored at a small daily budget so it keeps
+ *  serving, and the actual (floored) reduction is what's moved to the recipient. */
+export async function applyBudgetShift(
+  userId: string,
+  move: BudgetShiftInput
+): Promise<MutationResult> {
+  const resolved = await resolveActor(userId);
+  if ("error" in resolved) return resolved.error;
+  const { connection, token } = resolved.actor;
+  const customerId = connection.customerId;
+  const tenant = `u_${userId}_${customerId}`;
+
+  const meta = await getSyncMeta(tenant);
+  const days = meta ? CAMPAIGN_PERIOD_DAYS[meta.period] : 30;
+  const dailyMicros = Math.round((move.amount / days) * 1_000_000);
+  if (dailyMicros <= 0) return { ok: false, error: "Přesun je příliš malý na úpravu rozpočtu." };
+
+  try {
+    const budgets = await fetchCampaignBudgets(token, customerId, [move.fromId, move.toId]);
+    const from = budgets.get(move.fromId);
+    const to = budgets.get(move.toId);
+    if (!from || !to) {
+      return { ok: false, error: "Nepodařilo se načíst rozpočty kampaní." };
+    }
+    if (from.budgetResourceName === to.budgetResourceName) {
+      return { ok: false, error: "Kampaně sdílejí jeden rozpočet — přesun nelze provést." };
+    }
+
+    // Keep the donor serving with a small floor; move only what we actually took.
+    const MIN_DAILY_MICROS = 10_000_000; // 10 CZK/day
+    const fromNew = Math.max(MIN_DAILY_MICROS, from.amountMicros - dailyMicros);
+    const movedMicros = from.amountMicros - fromNew;
+    if (movedMicros <= 0) {
+      return { ok: false, error: "Zdrojová kampaň už má minimální rozpočet." };
+    }
+    const toNew = to.amountMicros + movedMicros;
+
+    await setCampaignBudgetMicros(token, customerId, from.budgetResourceName, fromNew);
+    await setCampaignBudgetMicros(token, customerId, to.budgetResourceName, toNew);
+
+    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+      action: "budget_shift",
+      fromId: move.fromId,
+      fromName: move.fromName,
+      toId: move.toId,
+      toName: move.toName,
+      dailyMovedMicros: movedMicros,
+      customerId,
+      userId,
+      at: new Date().toISOString(),
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[mutations] budget shift failed:", err);
     return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
   }
 }
