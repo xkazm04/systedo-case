@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bolt, Gauge, Info, Layers, Refresh, Sparkles } from "@/components/icons";
+import { Bolt, Gauge, Info, Layers, Refresh, Share, Sparkles } from "@/components/icons";
 import {
   CAMPAIGN_PERIODS,
   CAMPAIGN_PERIOD_LABELS,
@@ -48,6 +48,28 @@ export default function CampaignsClient() {
   const changePeriod = (p: CampaignPeriod) => {
     setSelected(p);
     sync(p);
+  };
+
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [shareErr, setShareErr] = useState<string | null>(null);
+
+  const share = async () => {
+    setSharing(true);
+    setShareErr(null);
+    try {
+      const res = await fetch("/api/campaigns/share", { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setShareErr(json?.error ?? "Sdílení se nezdařilo.");
+        return;
+      }
+      setShareUrl(json.url);
+    } catch {
+      setShareErr("Nepodařilo se spojit se serverem.");
+    } finally {
+      setSharing(false);
+    }
   };
 
   const hasData = Boolean(meta) && campaigns.length > 0;
@@ -202,27 +224,61 @@ export default function CampaignsClient() {
               AI projde všechny kampaně i typy a navrhne, kam přesunout rozpočet a co optimalizovat.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => analyze("overall", null, period)}
-            disabled={overallBusy}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {overallBusy ? (
-              <>
-                <Gauge width={16} height={16} className="animate-pulse" />
-                Vyhodnocuji…
-              </>
-            ) : (
-              <>
-                <Bolt width={16} height={16} />
-                {overall ? "Přehodnotit portfolio" : "Vyhodnotit portfolio"}
-              </>
+          <div className="flex shrink-0 items-center gap-2">
+            {overall && (
+              <button
+                type="button"
+                onClick={share}
+                disabled={sharing}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+              >
+                <Share width={15} height={15} />
+                {sharing ? "Vytvářím…" : "Sdílet report"}
+              </button>
             )}
-          </button>
+            <button
+              type="button"
+              onClick={() => analyze("overall", null, period)}
+              disabled={overallBusy}
+              className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {overallBusy ? (
+                <>
+                  <Gauge width={16} height={16} className="animate-pulse" />
+                  Vyhodnocuji…
+                </>
+              ) : (
+                <>
+                  <Bolt width={16} height={16} />
+                  {overall ? "Přehodnotit portfolio" : "Vyhodnotit portfolio"}
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
         {overallErr && <p className="mt-4 text-sm text-negative">{overallErr}</p>}
+        {shareErr && <p className="mt-3 text-sm text-negative">{shareErr}</p>}
+        {shareUrl && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card bg-brand-50 px-4 py-3 text-sm">
+            <span className="font-medium text-brand-800">Odkaz pro klienta:</span>
+            <a
+              href={shareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="link-inline tnum break-all"
+            >
+              {shareUrl}
+            </a>
+            <button
+              type="button"
+              onClick={() => void navigator.clipboard?.writeText(shareUrl)}
+              className="ml-auto shrink-0 rounded-pill border border-line bg-surface px-3 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300"
+            >
+              Kopírovat
+            </button>
+          </div>
+        )}
 
         {overallBusy && !overall && (
           <div className="mt-5 flex items-center gap-3 text-sm text-muted">
