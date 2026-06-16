@@ -65,43 +65,60 @@ const RELATIVE_DIVISIONS: [limit: number, unit: Intl.RelativeTimeFormatUnit][] =
 export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Formatters {
   const { intlLocale, currency } = LOCALES[locale];
 
+  // Em-dash placeholder for non-finite numbers / unparseable dates, so one
+  // malformed LLM-sourced or user-entered field renders "—" instead of
+  // "NaN Kč" / "Invalid Date" leaking into the UI and AI prompts.
+  const DASH = "—";
+
   const fmtInt = (n: number): string =>
-    new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 0 }).format(Math.round(n));
+    Number.isFinite(n)
+      ? new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 0 }).format(Math.round(n))
+      : DASH;
 
   const fmtDecimal = (n: number, digits = 1): string =>
-    new Intl.NumberFormat(intlLocale, {
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(n);
+    Number.isFinite(n)
+      ? new Intl.NumberFormat(intlLocale, {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        }).format(n)
+      : DASH;
 
   const fmtCZK = (n: number): string =>
-    new Intl.NumberFormat(intlLocale, {
-      style: "currency",
-      currency,
-      maximumFractionDigits: 0,
-    }).format(n);
+    Number.isFinite(n)
+      ? new Intl.NumberFormat(intlLocale, {
+          style: "currency",
+          currency,
+          maximumFractionDigits: 0,
+        }).format(n)
+      : DASH;
 
   const fmtCZKCompact = (n: number): string =>
-    new Intl.NumberFormat(intlLocale, {
-      style: "currency",
-      currency,
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(n);
+    Number.isFinite(n)
+      ? new Intl.NumberFormat(intlLocale, {
+          style: "currency",
+          currency,
+          notation: "compact",
+          maximumFractionDigits: 1,
+        }).format(n)
+      : DASH;
 
   const fmtCompact = (n: number): string =>
-    new Intl.NumberFormat(intlLocale, {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }).format(n);
+    Number.isFinite(n)
+      ? new Intl.NumberFormat(intlLocale, {
+          notation: "compact",
+          maximumFractionDigits: 1,
+        }).format(n)
+      : DASH;
 
   /** Accepts a fraction (0.165) and renders a percent ("16,5 %"). */
   const fmtPct = (fraction: number, digits = 1): string =>
-    new Intl.NumberFormat(intlLocale, {
-      style: "percent",
-      minimumFractionDigits: digits,
-      maximumFractionDigits: digits,
-    }).format(fraction);
+    Number.isFinite(fraction)
+      ? new Intl.NumberFormat(intlLocale, {
+          style: "percent",
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        }).format(fraction)
+      : DASH;
 
   /** Signed percent for deltas ("+12,4 %", "−3,1 %"). Uses a true minus sign. */
   const fmtSignedPct = (fraction: number, digits = 1): string => {
@@ -116,42 +133,59 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     return `${sign}${fmtInt(Math.abs(r))}`;
   };
 
-  const fmtMultiple = (n: number, digits = 1): string => `${fmtDecimal(n, digits)}×`;
+  const fmtMultiple = (n: number, digits = 1): string =>
+    Number.isFinite(n) ? `${fmtDecimal(n, digits)}×` : DASH;
 
-  const fmtDate = (iso: string): string =>
-    new Intl.DateTimeFormat(intlLocale, {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    }).format(new Date(`${iso}T00:00:00`));
+  /** Parse an ISO date or timestamp, returning null for an unparseable value. */
+  const parseDate = (iso: string): Date | null => {
+    const d = new Date(iso.includes("T") ? iso : `${iso}T00:00:00`);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
 
-  const fmtDateShort = (iso: string): string =>
-    new Intl.DateTimeFormat(intlLocale, { day: "numeric", month: "numeric" }).format(
-      new Date(`${iso}T00:00:00`)
-    );
+  const fmtDate = (iso: string): string => {
+    const d = parseDate(iso);
+    return d
+      ? new Intl.DateTimeFormat(intlLocale, { day: "numeric", month: "long", year: "numeric" }).format(d)
+      : DASH;
+  };
 
-  const fmtMonth = (iso: string): string =>
-    new Intl.DateTimeFormat(intlLocale, { month: "short", year: "2-digit" }).format(
-      new Date(`${iso}T00:00:00`)
-    );
+  const fmtDateShort = (iso: string): string => {
+    const d = parseDate(iso);
+    return d
+      ? new Intl.DateTimeFormat(intlLocale, { day: "numeric", month: "numeric" }).format(d)
+      : DASH;
+  };
+
+  const fmtMonth = (iso: string): string => {
+    const d = parseDate(iso);
+    return d
+      ? new Intl.DateTimeFormat(intlLocale, { month: "short", year: "2-digit" }).format(d)
+      : DASH;
+  };
 
   /** Full month name + year, nominative ("květen 2026"). For period headings
    *  where the genitive `fmtDate` ("31. května 2026") would read wrong. */
-  const fmtMonthLong = (iso: string): string =>
-    new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(
-      new Date(`${iso}T00:00:00`)
-    );
+  const fmtMonthLong = (iso: string): string => {
+    const d = parseDate(iso);
+    return d
+      ? new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(d)
+      : DASH;
+  };
 
   /** Absolute date + time ("15. června 2026, 14:15"). Pairs with `fmtRelative`
    *  as the precise value behind a relative label (tooltip / aria-label). */
-  const fmtDateTime = (iso: string): string =>
-    new Intl.DateTimeFormat(intlLocale, {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(iso));
+  const fmtDateTime = (iso: string): string => {
+    const d = parseDate(iso);
+    return d
+      ? new Intl.DateTimeFormat(intlLocale, {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(d)
+      : DASH;
+  };
 
   const RANGE_PARTS = new Intl.DateTimeFormat(intlLocale, {
     day: "numeric",
@@ -171,8 +205,11 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   /** Collapses a date range into a compact period label, sharing the month and
    *  year where possible ("1.–31. května 2026", "28. dubna – 4. května 2026"). */
   const fmtRange = (fromIso: string, toIso: string): string => {
-    const a = rangeParts(new Date(`${fromIso}T00:00:00`));
-    const b = rangeParts(new Date(`${toIso}T00:00:00`));
+    const da = parseDate(fromIso);
+    const db = parseDate(toIso);
+    if (!da || !db) return DASH;
+    const a = rangeParts(da);
+    const b = rangeParts(db);
     if (a.year === b.year && a.month === b.month) {
       return a.day === b.day
         ? `${b.day}. ${b.month} ${b.year}`
@@ -189,7 +226,8 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   /** Relative time ("před 3 dny", "včera", "za 2 týdny"). Accepts a full ISO
    *  timestamp or a date-only string, compared against `now` (injectable). */
   const fmtRelative = (iso: string, now: Date = new Date()): string => {
-    const then = new Date(iso.includes("T") ? iso : `${iso}T00:00:00`);
+    const then = parseDate(iso);
+    if (!then) return DASH;
     let value = (then.getTime() - now.getTime()) / 1000;
     for (const [limit, unit] of RELATIVE_DIVISIONS) {
       if (Math.abs(value) < limit) return RELATIVE.format(Math.round(value), unit);
