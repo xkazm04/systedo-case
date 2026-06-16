@@ -45,9 +45,9 @@ export default function AiAssistantPage() {
               AI marketingový asistent
             </h1>
             <p className="mt-2 max-w-2xl text-muted">
-              Nástroje z každodenní práce agentury v jednom rozhraní — generování PPC inzerátů,
-              výzkum klíčových slov, SEO obsahový brief a analýza výkonu klienta. Výzkum předává
-              klíčová slova rovnou do briefu a pohání to vše{" "}
+              Nástroje z každodenní práce agentury v jednom rozhraní — PPC inzeráty, výzkum
+              klíčových slov, SEO brief, analýza výkonu a generování vizuálů (Leonardo + hodnocení
+              Geminim). Výzkum předává klíčová slova rovnou do briefu a textové nástroje pohání{" "}
               <strong className="text-navy-700">LLM wrapper</strong> (Claude Sonnet v devu, Gemini
               v produkci).
             </p>

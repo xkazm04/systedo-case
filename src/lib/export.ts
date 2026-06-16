@@ -35,3 +35,15 @@ export function downloadText(
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+/** Trigger a browser download of a data: URL (e.g. a generated image). Browser-
+ *  only; a no-op without DOM. */
+export function downloadDataUrl(filename: string, dataUrl: string): void {
+  if (typeof document === "undefined") return;
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}

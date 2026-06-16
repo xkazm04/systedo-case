@@ -171,6 +171,16 @@ export function Clock(props: IconProps) {
   );
 }
 
+export function Image(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9.5" r="1.6" />
+      <path d="M21 16l-5-5L5 20" />
+    </svg>
+  );
+}
+
 export function Bell(props: IconProps) {
   return (
     <svg {...base} {...props}>

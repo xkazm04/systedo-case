@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import type { ComponentType, SVGProps } from "react";
-import { Bolt, Document, Gauge, Search } from "@/components/icons";
+import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
 import type { AiMode } from "@/lib/ai-types";
 import AdGenerator from "./AdGenerator";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
 import ContentBriefGenerator from "./ContentBriefGenerator";
 import PerformanceAnalyst from "./PerformanceAnalyst";
+import CreativeStudio from "./CreativeStudio";
 
-type TabId = AiMode | "keywords";
+type TabId = AiMode | "keywords" | "creative";
 
 interface Tab {
   id: TabId;
@@ -23,6 +24,7 @@ const TABS: Tab[] = [
   { id: "keywords", label: "Klíčová slova", service: "SEO & výzkum", icon: Search },
   { id: "brief", label: "Obsahový brief", service: "Tvorba obsahu", icon: Document },
   { id: "analysis", label: "Analýza dat", service: "Analýzy a strategie", icon: Gauge },
+  { id: "creative", label: "Vizuály", service: "Kreativa & obrázky", icon: ImageIcon },
 ];
 
 export default function AiAssistant() {
@@ -43,7 +45,7 @@ export default function AiAssistant() {
       <div
         role="tablist"
         aria-label="Nástroje AI asistenta"
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5"
       >
         {TABS.map((t) => {
           const active = t.id === tab;
@@ -97,6 +99,9 @@ export default function AiAssistant() {
         </div>
         <div data-testid="tool-analysis" className={tab === "analysis" ? "animate-fade-up" : "hidden"}>
           <PerformanceAnalyst />
+        </div>
+        <div data-testid="tool-creative" className={tab === "creative" ? "animate-fade-up" : "hidden"}>
+          <CreativeStudio />
         </div>
       </div>
     </div>

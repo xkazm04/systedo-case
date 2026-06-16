@@ -5,18 +5,20 @@
  *  in `usage.ts` and re-exports these for back-compat. */
 
 export type Plan = "free" | "pro";
-export type UsageKind = "aiEval" | "sync";
+export type UsageKind = "aiEval" | "sync" | "image";
 
 export interface PlanLimits {
   /** AI evaluations (campaign / assistant) per UTC day */
   aiEval: number;
   /** Google Ads syncs per UTC day */
   sync: number;
+  /** Creative Studio image generations per UTC day */
+  image: number;
 }
 
 export const PLANS: Record<Plan, PlanLimits> = {
-  free: { aiEval: 25, sync: 50 },
-  pro: { aiEval: 1000, sync: 1000 },
+  free: { aiEval: 25, sync: 50, image: 5 },
+  pro: { aiEval: 1000, sync: 1000, image: 100 },
 };
 
 export interface UsageStatus {
@@ -49,6 +51,7 @@ export const PLAN_INFO: PlanInfo[] = [
     features: [
       `${PLANS.free.aiEval} AI vyhodnocení denně`,
       `${PLANS.free.sync} synchronizací Google Ads denně`,
+      `${PLANS.free.image} generování vizuálů denně`,
       "Připojení vlastního Google Ads účtu",
       "Doporučené přesuny rozpočtu (bez AI)",
       "Sdílené reporty pro klienty",
@@ -62,6 +65,7 @@ export const PLAN_INFO: PlanInfo[] = [
     features: [
       `${PLANS.pro.aiEval} AI vyhodnocení denně`,
       `${PLANS.pro.sync} synchronizací denně`,
+      `${PLANS.pro.image} generování vizuálů denně`,
       "Automatická hodinová synchronizace + e-mail alerty",
       "Týdenní souhrnný report",
       "Prioritní zpracování",

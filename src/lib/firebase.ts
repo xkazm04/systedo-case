@@ -17,6 +17,7 @@ import {
   type Credential,
 } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 
 function resolveCredential(): Credential {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -36,3 +37,12 @@ function init(): App {
 
 export const firebaseApp = init();
 export const firestore: Firestore = getFirestore(firebaseApp);
+
+/** The default Storage bucket for the Creative Studio asset library. Configurable
+ *  via FIREBASE_STORAGE_BUCKET; defaults to `<project>.appspot.com`. */
+export function storageBucket() {
+  const name =
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    `${process.env.GOOGLE_CLOUD_PROJECT ?? ""}.appspot.com`;
+  return getStorage(firebaseApp).bucket(name);
+}

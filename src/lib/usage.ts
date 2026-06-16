@@ -28,7 +28,7 @@ function statusFrom(data: UsageDoc, day: string): UsageStatus {
   return {
     plan,
     limits: PLANS[plan],
-    used: { aiEval: d.aiEval ?? 0, sync: d.sync ?? 0 },
+    used: { aiEval: d.aiEval ?? 0, sync: d.sync ?? 0, image: d.image ?? 0 },
     day,
   };
 }
