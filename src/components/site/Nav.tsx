@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { NAV_ITEMS } from "@/lib/nav";
+import { localizedNavItems } from "@/lib/nav";
 import { Close, External, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
+import LocaleSwitcher from "@/components/site/LocaleSwitcher";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import AuthButton from "@/components/auth/AuthButton";
 import UsageMeter from "@/components/usage/UsageMeter";
 
@@ -15,6 +17,8 @@ function isActive(pathname: string, href: string): boolean {
 
 export default function Nav() {
   const pathname = usePathname();
+  const { locale, messages } = useLocale();
+  const navItems = localizedNavItems(locale);
   const [open, setOpen] = useState(false);
 
   return (
@@ -29,13 +33,13 @@ export default function Nav() {
               Systedo
             </span>
             <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
-              Case study
+              {messages.nav.caseStudy}
             </span>
           </span>
         </Link>
 
         <div className="hidden items-center gap-1 md:flex">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(pathname, item.href);
             return (
               <Link
@@ -67,11 +71,12 @@ export default function Nav() {
           </a>
           <UsageMeter />
           <AuthButton />
+          <LocaleSwitcher />
           <ThemeToggle />
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Zavřít menu" : "Otevřít menu"}
+            aria-label={open ? messages.nav.closeMenu : messages.nav.openMenu}
             aria-expanded={open}
             className="grid h-10 w-10 place-items-center rounded-lg text-navy-700 hover:bg-navy-50 md:hidden"
           >
@@ -83,7 +88,7 @@ export default function Nav() {
       {open && (
         <div className="animate-drop border-t border-line bg-surface md:hidden">
           <div className="mx-auto max-w-6xl px-4 py-3">
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <Link
@@ -96,7 +101,9 @@ export default function Nav() {
                 >
                   {item.label}
                   {item.task > 0 && (
-                    <span className="text-xs font-semibold text-muted">Úkol {item.task}</span>
+                    <span className="text-xs font-semibold text-muted">
+                      {messages.nav.task} {item.task}
+                    </span>
                   )}
                 </Link>
               );

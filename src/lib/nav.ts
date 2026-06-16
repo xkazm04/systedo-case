@@ -1,5 +1,8 @@
 /** Single source of truth for the primary navigation, shared by the header,
  *  footer and the home page so links never drift out of sync. */
+import type { SupportedLocale } from "@/lib/format";
+import { getMessages } from "@/lib/i18n/messages";
+
 export interface NavItem {
   href: string;
   label: string;
@@ -47,6 +50,18 @@ export const NAV_ITEMS: NavItem[] = [
     task: 4,
   },
 ];
+
+/** Nav items localized for the given locale. cs returns the source items
+ *  unchanged (zero risk); other locales overlay label + blurb from the message
+ *  dictionary, keeping href/task intact. */
+export function localizedNavItems(locale: SupportedLocale): NavItem[] {
+  if (locale === "cs") return NAV_ITEMS;
+  const items = getMessages(locale).nav.items;
+  return NAV_ITEMS.map((item) => {
+    const copy = items[item.href];
+    return copy ? { ...item, label: copy.label, blurb: copy.blurb } : item;
+  });
+}
 
 /** Label of a nav item by its href, so breadcrumbs reuse the same wording as
  *  the header/footer instead of hard-coding strings that can drift. */

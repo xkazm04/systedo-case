@@ -4,6 +4,8 @@ import "./globals.css";
 import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
 import Providers from "@/components/auth/Providers";
+import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -44,10 +46,11 @@ export const viewport: Viewport = {
  *  "follow the system", which the prefers-color-scheme CSS handles on its own. */
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getServerLocale();
   return (
     <html
-      lang="cs"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
       suppressHydrationWarning
     >
@@ -55,6 +58,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="flex min-h-full flex-col">
+        <LocaleProvider initialLocale={locale}>
         <Providers>
           <a
             href="#obsah"
@@ -68,6 +72,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </main>
           <Footer />
         </Providers>
+        </LocaleProvider>
       </body>
     </html>
   );
