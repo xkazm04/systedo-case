@@ -8,6 +8,7 @@ import { listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
 import { getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
+import { evaluateAnomalyAlerts } from "@/lib/campaigns/anomaly-alerts";
 import type { CampaignPeriod, DailyPoint } from "@/lib/campaigns/types";
 
 export const runtime = "nodejs";
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   }
 
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; ok: boolean; alerted?: number; error?: string }[] = [];
+  const results: { userId: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
 
   for (const userId of userIds) {
     try {
@@ -48,12 +49,27 @@ export async function GET(request: Request) {
       await saveSeries(tenant, series, { period });
 
       const alerted = await evaluateAndAlert(tenant, userId, campaigns);
-      results.push({ userId, ok: true, alerted });
+
+      // Surface dashboard anomalies through the same inbox/email/webhook pipeline.
+      // Best-effort: a series/detection hiccup must never fail the sync.
+      let anomalies = 0;
+      try {
+        anomalies = await evaluateAnomalyAlerts(tenant, userId, series);
+      } catch (err) {
+        console.error(`[cron] anomaly alerting failed for ${userId}:`, err);
+      }
+
+      results.push({ userId, ok: true, alerted, anomalies });
     } catch (err) {
       console.error(`[cron] sync failed for ${userId}:`, err);
       results.push({ userId, ok: false, error: err instanceof Error ? err.message : String(err) });
     }
   }
 
-  return Response.json({ synced: results.length, alerted: results.reduce((n, r) => n + (r.alerted ?? 0), 0), results });
+  return Response.json({
+    synced: results.length,
+    alerted: results.reduce((n, r) => n + (r.alerted ?? 0), 0),
+    anomalies: results.reduce((n, r) => n + (r.anomalies ?? 0), 0),
+    results,
+  });
 }
