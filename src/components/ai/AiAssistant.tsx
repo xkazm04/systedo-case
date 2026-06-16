@@ -5,6 +5,7 @@ import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
 import type { AiMode } from "@/lib/ai-types";
 import AdGenerator from "./AdGenerator";
+import AdExperiments from "./AdExperiments";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
 import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
@@ -36,6 +37,8 @@ export default function AiAssistant() {
   const [briefNonce, setBriefNonce] = useState(0);
   // Bumped when a keyword list is saved, so the saved-lists panel reloads.
   const [savedNonce, setSavedNonce] = useState(0);
+  // Bumped when an A/B variant is saved, so the experiments panel reloads.
+  const [experimentNonce, setExperimentNonce] = useState(0);
 
   const handleCreateBrief = (seed: BriefSeed) => {
     setBriefSeed(seed);
@@ -91,7 +94,8 @@ export default function AiAssistant() {
           active one re-runs its fade because the class flips from hidden. */}
       <div className="mt-6">
         <div data-testid="tool-ads" className={tab === "ads" ? "animate-fade-up" : "hidden"}>
-          <AdGenerator />
+          <AdGenerator onVariantSaved={() => setExperimentNonce((n) => n + 1)} />
+          <AdExperiments refreshKey={experimentNonce} />
         </div>
         <div data-testid="tool-keywords" className={tab === "keywords" ? "animate-fade-up" : "hidden"}>
           <KeywordResearch

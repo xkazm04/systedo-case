@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Bolt, Check, Close, Download, Gauge, Sparkles } from "@/components/icons";
+import { useSession } from "next-auth/react";
+import { Bolt, Check, Close, Download, Gauge, Layers, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
 import {
   AD_LIMITS,
@@ -168,9 +169,13 @@ const EXAMPLE: AdRequest = {
 
 const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "google", tone: "vecny" };
 
-export default function AdGenerator() {
+export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () => void } = {}) {
+  const { status: authStatus } = useSession();
   const [form, setForm] = useState<AdRequest>(EMPTY);
   const { status, data, error, timedOut, run, reset } = useAiTool<AdResult>("ads");
+  const [abName, setAbName] = useState("");
+  const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
+  const [abOpen, setAbOpen] = useState(false);
 
   const set = <K extends keyof AdRequest>(key: K, value: AdRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -188,6 +193,29 @@ export default function AdGenerator() {
 
   const r = data?.result;
   const strength = useMemo(() => (r ? computeAdStrength(r) : null), [r]);
+
+  // Save the current ad as a variant of an A/B test (same name → same test).
+  const saveVariant = async () => {
+    if (!r || !strength || abState === "saving") return;
+    const name = abName.trim() || form.product.trim() || "A/B test";
+    setAbState("saving");
+    try {
+      const res = await fetch("/api/experiments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, ad: r, strength: strength.score }),
+      });
+      if (!res.ok) {
+        setAbState("idle");
+        return;
+      }
+      setAbState("saved");
+      setAbOpen(false);
+      onVariantSaved?.();
+    } catch {
+      setAbState("idle");
+    }
+  };
 
   // Export every generated asset (with its character count) as a CSV the user can
   // paste straight into Google Ads / Sklik or a sheet — beyond copy-to-clipboard.
@@ -340,7 +368,48 @@ export default function AdGenerator() {
           <div className="animate-fade-up space-y-5">
             <ResultMeta meta={data.meta} copyAllText={copyAllText} />
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {authStatus === "authenticated" && (
+                <>
+                  {abOpen ? (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        value={abName}
+                        onChange={(e) => setAbName(e.target.value)}
+                        placeholder={form.product || "Název A/B testu"}
+                        aria-label="Název A/B testu"
+                        className="w-44 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs text-navy-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveVariant}
+                        disabled={abState === "saving"}
+                        className="inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                      >
+                        {abState === "saving" ? "Ukládám…" : "Uložit variantu"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setAbOpen(true)}
+                      title="Uložit jako variantu A/B testu pro porovnání"
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+                    >
+                      {abState === "saved" ? (
+                        <>
+                          <Check width={14} height={14} /> Přidáno do A/B testu
+                        </>
+                      ) : (
+                        <>
+                          <Layers width={14} height={14} /> Přidat do A/B testu
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
+              )}
               <button
                 type="button"
                 onClick={exportAdsCsv}
