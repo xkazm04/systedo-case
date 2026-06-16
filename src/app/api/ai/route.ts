@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
-import { generateAds, generateAnalysis, generateBrief } from "@/lib/gemini";
+import { generateAds, generateAnalysis, generateBrief } from "@/lib/ai/tools";
 import {
   validateAdRequest,
   validateAnalysisRequest,
   validateBriefRequest,
-} from "@/lib/ai-types";
+} from "@/lib/ai/validation";
 import { consume } from "@/lib/usage";
 import {
   RATE_RULES,

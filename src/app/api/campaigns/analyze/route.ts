@@ -2,8 +2,8 @@
  *  report to SQLite and return it. The period is taken from the synced metadata
  *  so a stored report always matches the data currently on screen. */
 import { auth } from "@/auth";
-import { generateCampaignEvaluation } from "@/lib/gemini";
-import { validateEvaluationRequest } from "@/lib/ai-types";
+import { generateCampaignEvaluation } from "@/lib/ai/tools";
+import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { consume } from "@/lib/usage";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
