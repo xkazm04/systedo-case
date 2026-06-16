@@ -27,15 +27,22 @@ export function useAiTool<T>(mode: string) {
 
   // Restore the last result for this tool on mount, so a refresh or a switch to
   // another tab and back doesn't throw away a generation the user paid for.
+  // Hydrating from localStorage after mount is a valid external-store sync; doing
+  // it in an effect (rather than a lazy useState initializer) is what keeps the
+  // server render and the first client render identical, so the set-state-in-effect
+  // rule is suppressed deliberately for the two restore calls below.
   useEffect(() => {
+    let restored: AiResponse<T> | null = null;
     try {
       const raw = window.localStorage.getItem(resultKey(mode));
-      if (raw) {
-        setData(JSON.parse(raw) as AiResponse<T>);
-        setStatus("done");
-      }
+      if (raw) restored = JSON.parse(raw) as AiResponse<T>;
     } catch {
       /* corrupt or unavailable storage — start fresh */
+    }
+    if (restored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setData(restored);
+      setStatus("done");
     }
   }, [mode]);
 
