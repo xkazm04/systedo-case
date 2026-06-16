@@ -178,3 +178,11 @@ export function Bolt(props: IconProps) {
     </svg>
   );
 }
+
+export function ChevronDown(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}

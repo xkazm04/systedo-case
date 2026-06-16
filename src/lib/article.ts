@@ -66,7 +66,13 @@ export interface Article {
     perex: string;
     author: string;
     role: string;
+    /** Optional E-E-A-T byline fields — kept optional so the model stays headless. */
+    authorCredential?: string;
+    authorBio?: string;
+    authorUrl?: string;
     dateISO: string;
+    /** Last meaningful update; powers the freshness stamp + Article.dateModified. */
+    dateModifiedISO?: string;
     readingMinutes: number;
     category: string;
     tags: string[];

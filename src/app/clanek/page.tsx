@@ -4,7 +4,8 @@ import { Container, Eyebrow, Pill } from "@/components/ui";
 import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
 import ReadingProgress from "@/components/article/ReadingProgress";
-import { ArrowRight, Document } from "@/components/icons";
+import AuthorBio from "@/components/article/AuthorBio";
+import { ArrowRight, Clock } from "@/components/icons";
 import { article, inlineToText, tableOfContents } from "@/lib/article";
 import { fmtDate } from "@/lib/format";
 
@@ -16,6 +17,16 @@ export const metadata: Metadata = {
   openGraph: { title: meta.title, description: meta.perex, type: "article" },
 };
 
+// Author modelled as a Person (name / role / bio) for E-E-A-T credibility,
+// with optional fields included only when present.
+const author: Record<string, string> = {
+  "@type": "Person",
+  name: meta.author,
+  jobTitle: meta.role,
+};
+if (meta.authorBio) author.description = meta.authorBio;
+if (meta.authorUrl) author.url = meta.authorUrl;
+
 // Structured data: Article + FAQPage, so the page is rich-result ready.
 const jsonLd = {
   "@context": "https://schema.org",
@@ -24,8 +35,9 @@ const jsonLd = {
       "@type": "Article",
       headline: meta.title,
       description: meta.perex,
-      author: { "@type": "Organization", name: meta.author },
+      author,
       datePublished: meta.dateISO,
+      dateModified: meta.dateModifiedISO ?? meta.dateISO,
       articleSection: meta.category,
       keywords: meta.tags.join(", "),
     },
@@ -58,7 +70,20 @@ export default function ArticlePage() {
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Pill tone="brand">{meta.category}</Pill>
             <span>·</span>
-            <span>{fmtDate(meta.dateISO)}</span>
+            <time dateTime={meta.dateISO}>{fmtDate(meta.dateISO)}</time>
+            {meta.dateModifiedISO && meta.dateModifiedISO !== meta.dateISO && (
+              <>
+                <span>·</span>
+                <time
+                  dateTime={meta.dateModifiedISO}
+                  className="inline-flex items-center gap-1 text-brand-700"
+                  title={`Aktualizováno ${fmtDate(meta.dateModifiedISO)}`}
+                >
+                  <Clock width={13} height={13} aria-hidden />
+                  Aktualizováno {fmtDate(meta.dateModifiedISO)}
+                </time>
+              </>
+            )}
             <span>·</span>
             <span>{meta.readingMinutes} min čtení</span>
           </div>
@@ -66,15 +91,13 @@ export default function ArticlePage() {
             {meta.title}
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-muted">{meta.perex}</p>
-          <div className="mt-6 flex items-center gap-3 border-t border-line pt-6">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-navy-800 text-brand-400">
-              <Document width={18} height={18} />
-            </span>
-            <div className="text-sm">
-              <p className="font-semibold text-navy-800">{meta.author}</p>
-              <p className="text-muted">{meta.role}</p>
-            </div>
-          </div>
+          <AuthorBio
+            name={meta.author}
+            role={meta.role}
+            credential={meta.authorCredential}
+            bio={meta.authorBio}
+            url={meta.authorUrl}
+          />
         </Container>
       </section>
 
