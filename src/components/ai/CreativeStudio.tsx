@@ -53,6 +53,11 @@ export default function CreativeStudio() {
   const [style, setStyle] = useState<ImageStyle>("dynamic");
   const [format, setFormat] = useState<ImageFormat>("square");
   const [count, setCount] = useState(2);
+  // Reference image (image-to-image guidance via Leonardo imagePrompts).
+  const [referenceImageId, setReferenceImageId] = useState<string | null>(null);
+  const [refPreview, setRefPreview] = useState<string | null>(null);
+  const [refStatus, setRefStatus] = useState<"idle" | "uploading" | "ready" | "error">("idle");
+  const [refError, setRefError] = useState<string | null>(null);
 
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ImageGenResult | null>(null);
@@ -100,7 +105,41 @@ export default function CreativeStudio() {
     if (authStatus === "authenticated") void loadLibrary();
   }, [authStatus, loadLibrary]);
 
-  const canSubmit = prompt.trim().length >= 2 && status !== "loading";
+  const canSubmit = prompt.trim().length >= 2 && status !== "loading" && refStatus !== "uploading";
+
+  const onRefSelect = async (file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setRefPreview(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+    setRefStatus("uploading");
+    setRefError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
+      const json = await res.json();
+      if (!res.ok) {
+        setRefStatus("error");
+        setRefError(json?.error ?? "Nahrání selhalo.");
+        setReferenceImageId(null);
+        return;
+      }
+      setReferenceImageId(json.referenceImageId);
+      setRefStatus("ready");
+    } catch {
+      setRefStatus("error");
+      setRefError("Chyba spojení.");
+      setReferenceImageId(null);
+    }
+  };
+
+  const clearRef = () => {
+    setReferenceImageId(null);
+    setRefPreview(null);
+    setRefStatus("idle");
+    setRefError(null);
+  };
 
   const generate = async (avoid?: string) => {
     setStatus("loading");
@@ -109,7 +148,14 @@ export default function CreativeStudio() {
       const res = await fetch("/api/images", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: prompt.trim(), style, format, count, avoid }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style,
+          format,
+          count,
+          avoid,
+          referenceImageId: refStatus === "ready" ? referenceImageId : undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -225,6 +271,37 @@ export default function CreativeStudio() {
                 </button>
               ))}
             </div>
+          </Field>
+
+          <Field label="Referenční obrázek (volitelné)">
+            {refPreview ? (
+              <div className="flex items-center gap-3 rounded-lg border border-line p-2.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={refPreview} alt="Referenční obrázek" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                <span className="min-w-0 flex-1 text-xs">
+                  {refStatus === "uploading" && <span className="text-muted">Nahrávám…</span>}
+                  {refStatus === "ready" && <span className="text-positive">Připraveno — ovlivní styl</span>}
+                  {refStatus === "error" && <span className="text-negative">{refError}</span>}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearRef}
+                  className="shrink-0 text-xs font-medium text-muted hover:text-coral-600"
+                >
+                  Odebrat
+                </button>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted transition-colors hover:border-brand-300 hover:text-brand-accent">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => onRefSelect(e.target.files?.[0] ?? null)}
+                />
+                Nahrát obrázek pro vedení stylu
+              </label>
+            )}
           </Field>
 
           <button

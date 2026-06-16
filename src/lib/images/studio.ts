@@ -36,6 +36,8 @@ export interface StudioRequest {
   count: number;
   /** defects to avoid, fed from a previous winner for an iterate pass */
   avoid?: string;
+  /** Leonardo init-image ids to guide generation (reference images) */
+  imagePromptIds?: string[];
 }
 
 function clampCount(n: number): number {
@@ -56,6 +58,7 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     height: preset.height,
     style: req.style,
     count,
+    imagePromptIds: req.imagePromptIds,
   });
 
   // Score every candidate in parallel, then rank by score (desc).
