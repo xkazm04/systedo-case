@@ -28,13 +28,42 @@ export default function TaskPager({ current }: { current: string }) {
       className="mt-16 border-t border-line pt-10"
     >
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-        Pokračujte případovou studií
+        {next ? "Pokračujte případovou studií" : "Dokončili jste případovou studii"}
       </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {prev && <PagerLink item={prev} direction="prev" />}
-        {next && <PagerLink item={next} direction="next" />}
+        {next ? <PagerLink item={next} direction="next" /> : <ClosingCta />}
       </div>
     </nav>
+  );
+}
+
+/** Closing card shown on the last page instead of a dead-end empty slot: a short
+ *  recap + a clear next step (back to the overview), so the highest-leverage
+ *  conversion moment of a hiring-pitch case study doesn't just fizzle out. */
+function ClosingCta() {
+  return (
+    <Link
+      href="/"
+      className="card group flex flex-col items-end gap-2 border-brand-200 bg-brand-50 p-5 text-right transition-all hover:-translate-y-0.5 hover:shadow-pop sm:col-start-2"
+    >
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
+        Konec · děkuji za pozornost
+        <ArrowRight
+          width={14}
+          height={14}
+          className="transition-transform group-hover:translate-x-1"
+          aria-hidden
+        />
+      </span>
+      <span className="text-base font-semibold text-navy-800 transition-colors group-hover:text-brand-accent">
+        Zpět na přehled
+      </span>
+      <span className="text-sm leading-relaxed text-muted">
+        Prošli jste celou případovou studii — od výkonnostního dashboardu přes obsah a AI nástroje
+        až po správu kampaní.
+      </span>
+    </Link>
   );
 }
 
