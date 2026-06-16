@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Bolt, Document, Download } from "@/components/icons";
+import { Bolt, Document, Download, Search } from "@/components/icons";
 import { downloadText } from "@/lib/export";
 import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPES,
   SEO_LIMITS,
+  type BriefKeyword,
   type BriefRequest,
   type BriefResult,
   type ContentType,
 } from "@/lib/ai-types";
+import type { BriefSeed } from "./KeywordResearch";
 import { useAiTool } from "./useAiTool";
 import {
   CharCount,
@@ -69,8 +71,14 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
   );
 }
 
-export default function ContentBriefGenerator() {
-  const [form, setForm] = useState<BriefRequest>(EMPTY);
+export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | null } = {}) {
+  // Seed (from the keyword tool) is applied via lazy init; the parent re-mounts
+  // this component with a new `key` per handoff, so a fresh seed prefills the form
+  // and carries its real keyword data into the next generation — no effect needed.
+  const [form, setForm] = useState<BriefRequest>(() =>
+    seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY
+  );
+  const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
   const { status, data, error, timedOut, run, reset } = useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
@@ -84,7 +92,7 @@ export default function ContentBriefGenerator() {
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (canSubmit) run({ ...form });
+    if (canSubmit) run({ ...form, keywords: grounding.length ? grounding : undefined });
   }
 
   const r = data?.result;
@@ -137,12 +145,22 @@ export default function ContentBriefGenerator() {
           <h2 className="text-base font-semibold text-navy-800">Zadání obsahu</h2>
           <button
             type="button"
-            onClick={() => setForm(EXAMPLE)}
+            onClick={() => {
+              setForm(EXAMPLE);
+              setGrounding([]);
+            }}
             className="text-xs font-semibold text-brand-accent hover:text-brand-800"
           >
             Vyplnit ukázku
           </button>
         </div>
+
+        {grounding.length > 0 && (
+          <p className="flex items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-800">
+            <Search width={13} height={13} className="shrink-0" />
+            Podloženo {grounding.length} klíčovými slovy z výzkumu
+          </p>
+        )}
 
         <Field label="Téma" htmlFor="topic">
           <input

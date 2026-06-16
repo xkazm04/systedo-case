@@ -11,6 +11,7 @@ import {
   type AdRequest,
   type AnalysisPeriod,
   type AnalysisRequest,
+  type BriefKeyword,
   type BriefRequest,
   type ContentType,
   type EvalScope,
@@ -75,7 +76,27 @@ export function validateBriefRequest(input: unknown): Valid<BriefRequest> {
   if (!CONTENT_TYPES.includes(contentType)) {
     return { valid: false, error: "Neplatný typ obsahu." };
   }
-  return { valid: true, value: { topic, primaryKeyword, audience, contentType } };
+  return { valid: true, value: { topic, primaryKeyword, audience, contentType, keywords: parseKeywords(o.keywords) } };
+}
+
+/** Sanitize optional grounding keywords carried over from the keyword tool —
+ *  cap the count and coerce each field, dropping anything malformed. */
+function parseKeywords(v: unknown): BriefKeyword[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: BriefKeyword[] = [];
+  for (const item of v.slice(0, 12)) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const keyword = str(o.keyword);
+    if (!keyword) continue;
+    const volume = Number(o.volume);
+    out.push({
+      keyword: keyword.slice(0, 120),
+      volume: Number.isFinite(volume) ? volume : 0,
+      competition: str(o.competition).slice(0, 20),
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 export function validateAnalysisRequest(input: unknown): Valid<AnalysisRequest> {

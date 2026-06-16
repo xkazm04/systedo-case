@@ -109,11 +109,21 @@ export const SEO_LIMITS = {
   metaDescription: 155,
 } as const;
 
+/** Real keyword metrics (from the Keyword Planner tool) used to ground the brief
+ *  in actual demand instead of model invention. Optional. */
+export interface BriefKeyword {
+  keyword: string;
+  volume: number;
+  competition: string;
+}
+
 export interface BriefRequest {
   topic: string;
   primaryKeyword: string;
   audience: string;
   contentType: ContentType;
+  /** optional real keyword data carried over from the keyword-research tool */
+  keywords?: BriefKeyword[];
 }
 
 export interface BriefResult {

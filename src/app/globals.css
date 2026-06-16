@@ -350,3 +350,28 @@ html[data-theme="dark"] .theme-toggle-moon {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Print — used by the client report ("Tisk / uložit PDF"). Strip the app chrome
+   so only the report content prints, and flatten cards for a clean page.
+--------------------------------------------------------------------------- */
+@media print {
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  /* don't let interactive entrance animations hide content in the PDF */
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-drop {
+    animation: none !important;
+  }
+}

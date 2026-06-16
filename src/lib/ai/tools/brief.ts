@@ -24,6 +24,17 @@ Pravidla:
 - Drž se zadaného JSON schématu.`;
 
 function buildBriefPrompt(req: BriefRequest): string {
+  const kw = (req.keywords ?? []).slice(0, 12);
+  const keywordBlock = kw.length
+    ? [
+        "",
+        "Reálná data z Keyword Planneru (měsíční hledanost a konkurence) — vycházej z nich:",
+        ...kw.map(
+          (k) => `- ${k.keyword}: ${k.volume}/měs, konkurence ${k.competition}`
+        ),
+        "Upřednostni v osnově a klíčových slovech témata s vysokou hledaností a nižší konkurencí.",
+      ]
+    : [];
   return [
     "Připrav SEO obsahový brief pro tuto stránku.",
     "",
@@ -31,6 +42,7 @@ function buildBriefPrompt(req: BriefRequest): string {
     `Téma: ${req.topic}`,
     `Hlavní klíčové slovo: ${req.primaryKeyword}`,
     `Cílová skupina: ${req.audience}`,
+    ...keywordBlock,
     "",
     "Vygeneruj:",
     `- title tag (max ${SEO_LIMITS.titleTag} znaků),`,

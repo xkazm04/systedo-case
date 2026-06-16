@@ -7,13 +7,15 @@ import { randomBytes } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
 import type { CampaignReport, ReportHistoryPoint } from "../ai-types";
-import type { Campaign } from "./types";
+import type { Campaign, DailyPoint } from "./types";
 import {
   getReportHistory,
   getReportsForPeriod,
+  getSeries,
   getSyncMeta,
   listCampaigns,
 } from "./store";
+import { getReportConfig } from "./report-config";
 
 /** How long a freshly-created share link stays live. */
 export const SHARE_TTL_DAYS = 30;
@@ -28,9 +30,14 @@ export interface SharedReport {
   expiresAt: string;
   /** how many times the public page has been opened */
   views: number;
+  /** white-label branding captured at creation (optional) */
+  brandName?: string;
+  accentColor?: string;
   report: CampaignReport;
   history: ReportHistoryPoint[];
   campaigns: Campaign[];
+  /** daily portfolio series for the report trend chart */
+  series: DailyPoint[];
 }
 
 /** Lightweight row for the "my shared links" management list (no heavy payload). */
@@ -64,6 +71,7 @@ export async function createSharedReport(
   const report = (await getReportsForPeriod(tenant, meta.period))["overall"];
   if (!report) return null;
 
+  const config = await getReportConfig(tenant);
   const now = Date.now();
   const shared: SharedReport = {
     tenant,
@@ -72,9 +80,12 @@ export async function createSharedReport(
     createdAt: new Date(now).toISOString(),
     expiresAt: new Date(now + SHARE_TTL_DAYS * 86_400_000).toISOString(),
     views: 0,
+    brandName: config.brandName || undefined,
+    accentColor: config.accentColor || undefined,
     report,
     history: await getReportHistory(tenant, "overall", null),
     campaigns: await listCampaigns(tenant),
+    series: await getSeries(tenant),
   };
 
   const token = randomBytes(16).toString("hex");

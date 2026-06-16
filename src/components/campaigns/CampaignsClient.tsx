@@ -19,6 +19,7 @@ import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
 import CampaignTable from "./CampaignTable";
 import PortfolioTrend from "./PortfolioTrend";
+import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
 import SharedReportsList from "./SharedReportsList";
 
@@ -313,6 +314,9 @@ export default function CampaignsClient() {
           </div>
         )}
       </section>
+
+      {/* white-label + scheduled client report settings */}
+      <ReportSettings />
 
       {/* per-campaign table */}
       <section>
