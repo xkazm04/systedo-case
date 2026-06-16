@@ -68,26 +68,28 @@ sync, and the connector queries it with your OAuth token.
 - The Ads connector reads the signed-in user's token + selected customer to call
   the Google Ads API; without a developer token it falls back to sample data.
 
-## What's already multi-tenant
+## Fully multi-tenant (per-user, on Firestore)
 
-- **Auth + tokens** — per user, in Firestore (Auth.js Firestore adapter).
-- **Selected Ads account** — per user (`adsConnections/{userId}`).
-- **Live sync** — the connector fetches each user's own selected account.
+- **Auth + tokens** — Auth.js Firestore adapter.
+- **Connected Ads accounts** — `adsConnections/{userId}` (multiple accounts + active).
+- **Campaign / report / snapshot cache** — `tenants/{tenant}/…` (per user+account;
+  SQLite is gone for campaign data — only the IP rate-limiter still uses it).
+- **Usage / plans** — `usage/{userId}` daily quotas (free 25 AI / 50 syncs, pro
+  higher), enforced in the AI + sync + analyze routes; `GET /api/usage`.
 
-## Remaining production step: per-user campaign persistence
+## Cloud features (env-gated where they need a service)
 
-The synced campaigns / AI reports / snapshots **cache** still lives in local
-**SQLite** (`src/lib/db.ts`, `src/lib/campaigns/store.ts`). That's fine for a
-single local instance, but for a multi-user cloud it must move to **per-user
-Firestore** (e.g. `tenants/{userId}/campaigns`, `…/reports`, `…/snapshots`) —
-both because SQLite-on-disk doesn't work on serverless / multi-instance, and to
-isolate each user's data. The connector, the account picker and the token/refresh
-plumbing are already per-user, so this is a focused store-layer swap (best done
-once a live developer token lets us verify the live sync end-to-end).
+- **Scheduled sync + alerting** — `/api/cron/sync` (hourly via `vercel.json`,
+  `CRON_SECRET`-guarded) re-syncs every connected user and emails them on newly
+  critical campaigns. Email via **Resend** (`RESEND_API_KEY`); logs without it.
+- **Apply recommendations** — pause a campaign in Google Ads from the budget-move
+  panel (human-confirmed, audited to `tenants/{tenant}/mutations`); live accounts only.
+- **Shareable client report** — "Sdílet report" → a read-only `/report/{token}` link.
 
 ## Production env
 
 - `FIREBASE_SERVICE_ACCOUNT` = the full service-account key JSON (instead of the
   local `.data/firebase-sa.json` file).
 - `AUTH_SECRET`, `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`,
-  `GOOGLE_ADS_DEVELOPER_TOKEN`, and the production OAuth redirect URI.
+  `GOOGLE_ADS_DEVELOPER_TOKEN`, the production OAuth redirect URI.
+- `CRON_SECRET` (scheduled sync), `RESEND_API_KEY` + `ALERT_FROM_EMAIL` (alert email).
