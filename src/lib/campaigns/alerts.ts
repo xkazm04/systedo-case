@@ -8,6 +8,7 @@ import { firestore } from "@/lib/firebase";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { withMetrics, type Campaign } from "./types";
 import { triage } from "./triage";
+import { recordActivity } from "./activity";
 
 export type AlertType = "critical" | "digest";
 
@@ -98,6 +99,12 @@ export async function evaluateAndAlert(
 
   // In-app inbox first — the durable record that never depends on a 3rd party.
   await recordAlert(tenant, { type: "critical", title, body, items });
+  await recordActivity(tenant, {
+    kind: "alert",
+    title,
+    detail: body,
+    actor: "Automatická synchronizace",
+  });
 
   // Outbound webhook (Slack/Teams/…), best-effort.
   await sendWebhook(`Systedo: ${title}\n${body}`);

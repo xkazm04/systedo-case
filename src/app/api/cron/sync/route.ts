@@ -9,6 +9,7 @@ import { resolveCampaignContext } from "@/lib/campaigns/connector";
 import { getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
 import { evaluateAnomalyAlerts } from "@/lib/campaigns/anomaly-alerts";
+import { recordActivity } from "@/lib/campaigns/activity";
 import type { CampaignPeriod, DailyPoint } from "@/lib/campaigns/types";
 
 export const runtime = "nodejs";
@@ -58,6 +59,16 @@ export async function GET(request: Request) {
       } catch (err) {
         console.error(`[cron] anomaly alerting failed for ${userId}:`, err);
       }
+
+      await recordActivity(tenant, {
+        kind: "sync",
+        title: `Synchronizace · ${campaigns.length} kampaní`,
+        detail:
+          alerted + anomalies > 0
+            ? `Načteno z Google Ads. ${alerted} nových kritických kampaní, ${anomalies} anomálií.`
+            : "Načteno z Google Ads. Bez nových upozornění.",
+        actor: "Automatická synchronizace",
+      });
 
       results.push({ userId, ok: true, alerted, anomalies });
     } catch (err) {

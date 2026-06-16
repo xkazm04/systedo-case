@@ -5,7 +5,9 @@
 import { firestore } from "@/lib/firebase";
 import { getAdsConnection } from "./connection";
 import { getSyncMeta } from "./store";
+import { recordActivity } from "./activity";
 import { CAMPAIGN_PERIOD_DAYS } from "./types";
+import { fmtCZK } from "@/lib/format";
 import { getUserAccessToken } from "@/lib/google/token";
 import {
   adsConfigured,
@@ -76,6 +78,12 @@ export async function applyPause(
       userId,
       at: new Date().toISOString(),
     });
+    await recordActivity(tenant, {
+      kind: "pause",
+      title: `Pozastavena kampaň ${campaignName}`,
+      detail: "Kampaň byla pozastavena v Google Ads.",
+      actor: "Vy",
+    });
     return { ok: true };
   } catch (err) {
     console.error("[mutations] pause failed:", err);
@@ -136,6 +144,12 @@ export async function applyBudgetShift(
       customerId,
       userId,
       at: new Date().toISOString(),
+    });
+    await recordActivity(tenant, {
+      kind: "budget_shift",
+      title: `Přesun rozpočtu ${move.fromName} → ${move.toName}`,
+      detail: `Denní rozpočet snížen o ${fmtCZK(movedMicros / 1_000_000)} a přesunut na výkonnější kampaň.`,
+      actor: "Vy",
     });
     return { ok: true };
   } catch (err) {

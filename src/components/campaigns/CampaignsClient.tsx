@@ -17,6 +17,7 @@ import BudgetMoves from "./BudgetMoves";
 import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
+import ActivityFeed from "./ActivityFeed";
 import CampaignTable from "./CampaignTable";
 import PortfolioTrend from "./PortfolioTrend";
 import ReportSettings from "./ReportSettings";
@@ -187,6 +188,7 @@ export default function CampaignsClient() {
         </div>
 
         <div className="flex items-center gap-2">
+          <ActivityFeed refreshKey={alertRefresh} />
           <AlertsInbox refreshKey={alertRefresh} />
           <button
             type="button"

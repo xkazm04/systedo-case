@@ -11,6 +11,7 @@ import { fmtCZKCompact, fmtDate } from "@/lib/format";
 import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
+import { recordActivity } from "./activity";
 
 /** Default PNO target when a tenant carries no explicit goal (matches the
  *  case-study client's 0.15). Anomaly goal-breaches are measured against this. */
@@ -108,6 +109,12 @@ export async function evaluateAnomalyAlerts(
 
   // Durable in-app record first, then best-effort outbound channels.
   await recordAlert(tenant, { type: "critical", title, body, items });
+  await recordActivity(tenant, {
+    kind: "alert",
+    title,
+    detail: body,
+    actor: "Automatická synchronizace",
+  });
   await sendWebhook(`Systedo: ${title}\n${body}`);
 
   const email = await getUserEmail(userId);
