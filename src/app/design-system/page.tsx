@@ -151,10 +151,10 @@ function Swatch({ token, big = false }: { token: ColorToken; big?: boolean }) {
         className={`flex ${big ? "h-20" : "h-16"} items-end rounded-xl border border-line/60 p-2`}
         style={{ background: `var(${token.cssVar})`, color: readableInkOn(token.value) }}
       >
-        <span className="tnum text-[11px] font-medium opacity-90">{token.step ?? token.name}</span>
+        <span className="tnum text-[13px] font-medium opacity-90">{token.step ?? token.name}</span>
       </div>
-      <p className="mt-1.5 truncate text-[11px] font-medium text-navy-700">{token.name}</p>
-      <p className="tnum truncate text-[11px] uppercase text-muted">{token.value}</p>
+      <p className="mt-1.5 truncate text-[13px] font-medium text-navy-700">{token.name}</p>
+      <p className="tnum truncate text-[13px] uppercase text-muted">{token.value}</p>
     </div>
   );
 }
@@ -318,7 +318,7 @@ export default function DesignSystemPage() {
             {PILL_TONE_NAMES.map((tone) => (
               <div key={tone} className="flex flex-col items-center gap-1.5">
                 <Pill tone={tone}>{tone}</Pill>
-                <span className="tnum text-[11px] text-muted">tone=&quot;{tone}&quot;</span>
+                <span className="tnum text-[13px] text-muted">tone=&quot;{tone}&quot;</span>
               </div>
             ))}
           </div>
@@ -339,7 +339,7 @@ export default function DesignSystemPage() {
                 className="card flex flex-col items-center gap-2 px-2 py-4 text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-600"
               >
                 <Icon width={24} height={24} />
-                <span className="tnum truncate text-[11px] text-muted">{name}</span>
+                <span className="tnum truncate text-[13px] text-muted">{name}</span>
               </div>
             ))}
           </div>
@@ -358,7 +358,7 @@ export default function DesignSystemPage() {
               <div key={v.label} className="card flex flex-col gap-3 p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-navy-800">{v.label}</span>
-                  <span className="tnum text-[11px] text-muted">{v.note}</span>
+                  <span className="tnum text-[13px] text-muted">{v.note}</span>
                 </div>
                 <div className="flex min-h-[72px] items-center justify-center rounded-xl bg-canvas p-3">
                   <Sparkline {...v.props} />
@@ -396,7 +396,7 @@ export default function DesignSystemPage() {
                 />
                 <div className="text-center">
                   <p className="text-sm font-semibold text-navy-800">radius-{t.name}</p>
-                  <p className="tnum text-[11px] text-muted">{t.value}</p>
+                  <p className="tnum text-[13px] text-muted">{t.value}</p>
                 </div>
               </div>
             ))}
@@ -408,7 +408,7 @@ export default function DesignSystemPage() {
                 />
                 <div className="text-center">
                   <p className="text-sm font-semibold text-navy-800">shadow-{t.name}</p>
-                  <p className="tnum text-[11px] text-muted">elevace</p>
+                  <p className="tnum text-[13px] text-muted">elevace</p>
                 </div>
               </div>
             ))}

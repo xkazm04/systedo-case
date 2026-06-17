@@ -28,8 +28,8 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
               <Logo width={20} height={20} />
             </span>
             <span className="flex flex-col leading-none">
-              <span className="text-[15px] font-semibold tracking-tight text-navy-800">Systedo</span>
-              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+              <span className="text-[17px] font-semibold tracking-tight text-navy-800">Systedo</span>
+              <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted">
                 Pracovní prostor
               </span>
             </span>

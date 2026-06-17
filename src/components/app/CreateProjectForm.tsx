@@ -106,7 +106,7 @@ export default function CreateProjectForm({
 
       {/* module preview for the chosen type */}
       <div className="rounded-card border border-line bg-canvas px-4 py-3.5">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted">
           {`Moduly pro „${PROJECT_TYPE_META[type].label}"`}
         </p>
         <div className="mt-2.5 flex flex-wrap gap-1.5">

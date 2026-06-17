@@ -55,7 +55,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
         <ProjectGlyph project={project} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-navy-800">{project.name}</span>
-          <span className="block truncate text-[11px] font-medium uppercase tracking-wide text-muted">
+          <span className="block truncate text-[13px] font-medium uppercase tracking-wide text-muted">
             {PROJECT_TYPE_META[project.type].label}
           </span>
         </span>
@@ -87,7 +87,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
                   <ProjectGlyph project={p} size={28} />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-navy-800">{p.name}</span>
-                    <span className="block truncate text-[11px] text-muted">
+                    <span className="block truncate text-[13px] text-muted">
                       {PROJECT_TYPE_META[p.type].label}
                     </span>
                   </span>

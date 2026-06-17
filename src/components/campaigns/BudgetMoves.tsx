@@ -234,7 +234,7 @@ export default function BudgetMoves({
               </p>
             </div>
           </div>
-          <p className="mt-2 text-[11px] text-muted">
+          <p className="mt-2 text-[13px] text-muted">
             Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří
             další synchronizace. „Aplikovat přesun“ upraví denní rozpočty přímo v Google Ads
             (jen u připojeného živého účtu, s potvrzením a auditem).

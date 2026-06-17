@@ -344,7 +344,7 @@ function IdeaRow({
           </span>
         </span>
         <span className="w-16 shrink-0 text-right">
-          <span className="text-[11px] text-muted">Příležitost</span>
+          <span className="text-[13px] text-muted">Příležitost</span>
           <span className="mt-0.5 flex items-center justify-end gap-1.5">
             <span className="h-1.5 w-8 overflow-hidden rounded-full bg-navy-50" aria-hidden>
               <span

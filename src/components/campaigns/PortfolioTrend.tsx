@@ -81,7 +81,7 @@ export default function PortfolioTrend({ series }: { series: DailyPoint[] }) {
         formatValue={m.fmt}
       />
 
-      <p className="mt-2 flex items-center justify-between text-[11px] text-muted">
+      <p className="mt-2 flex items-center justify-between text-[13px] text-muted">
         <span>{fmtDate(series[0]!.date)}</span>
         <span>{fmtDate(series[series.length - 1]!.date)}</span>
       </p>

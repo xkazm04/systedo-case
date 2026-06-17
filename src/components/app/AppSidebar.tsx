@@ -91,7 +91,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           return (
             <div key={section}>
               {SECTION_LABELS[section] && (
-                <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted/80">
+                <p className="px-3 pb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted/80">
                   {SECTION_LABELS[section]}
                 </p>
               )}

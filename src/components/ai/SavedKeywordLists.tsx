@@ -170,7 +170,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
                         type="button"
                         onClick={() => retag(list.id, k.keyword, t)}
                         aria-pressed={k.tag === t}
-                        className={`rounded-pill border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                        className={`rounded-pill border px-2.5 py-1 text-[13px] font-medium transition-colors ${
                           k.tag === t ? TAG_STYLE[t] : "border-line text-muted hover:border-navy-200"
                         }`}
                       >

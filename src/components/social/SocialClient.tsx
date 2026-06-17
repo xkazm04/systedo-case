@@ -558,7 +558,7 @@ function Inbox() {
                     className="w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
                   />
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[11px] text-muted">Návrh odpovědi — upravte a schvalte</span>
+                    <span className="text-[13px] text-muted">Návrh odpovědi — upravte a schvalte</span>
                     <button
                       type="button"
                       onClick={() => send(m)}

@@ -293,7 +293,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                 title={`Cíl ${fmtPct(goalPno, 0)}`}
               />
             </div>
-            <p className="mt-2 text-[11px] text-muted">Svislá značka = cílová hodnota PNO.</p>
+            <p className="mt-2 text-[13px] text-muted">Svislá značka = cílová hodnota PNO.</p>
           </div>
 
           {/* anomaly alerts feed */}
@@ -302,7 +302,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
                 <Bolt width={17} height={17} className="text-coral-600" />
                 Upozornění
-                <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[11px]">
+                <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[13px]">
                   {anomalies.length}
                 </span>
               </div>

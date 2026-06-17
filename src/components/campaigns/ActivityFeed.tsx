@@ -85,7 +85,7 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-navy-800">{a.title}</p>
                         <p className="mt-0.5 text-xs text-muted">{a.detail}</p>
-                        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+                        <div className="mt-1 flex items-center gap-1.5 text-[13px] text-muted">
                           <time dateTime={a.at} title={fmtDateTime(a.at)}>
                             {fmtRelative(a.at)}
                           </time>

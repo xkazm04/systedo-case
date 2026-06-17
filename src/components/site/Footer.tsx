@@ -20,7 +20,7 @@ export default async function Footer() {
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx-soft text-brand-400">
               <Logo width={20} height={20} />
             </span>
-            <span className="text-[15px] font-semibold tracking-tight text-white">Systedo</span>
+            <span className="text-[17px] font-semibold tracking-tight text-white">Systedo</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-onyx-muted">
             {introBefore}

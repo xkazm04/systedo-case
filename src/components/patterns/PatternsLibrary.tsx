@@ -293,7 +293,7 @@ function PatternCard({
               style={{ width: `${Math.round(Math.max(0.08, relevance) * 100)}%` }}
             />
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted">relevance</span>
+          <span className="text-[12px] font-medium uppercase tracking-wide text-muted">relevance</span>
         </span>
       )}
       <div className="flex items-start justify-between gap-2">

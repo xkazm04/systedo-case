@@ -17,7 +17,7 @@ export default function DeltaBadge({
   size?: "sm" | "xs";
   significance?: Significance;
 }) {
-  const sizeCls = size === "xs" ? "!px-2 !py-1 text-[11px]" : "";
+  const sizeCls = size === "xs" ? "!px-2 !py-1 text-[13px]" : "";
   const iconSize = size === "xs" ? 12 : 14;
 
   if (!Number.isFinite(delta) || Math.abs(delta) < 0.0005) {

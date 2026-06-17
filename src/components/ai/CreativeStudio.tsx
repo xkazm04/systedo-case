@@ -445,7 +445,7 @@ export default function CreativeStudio() {
                 <div className="p-3">
                   <p className="line-clamp-2 text-xs text-navy-700">{c.prompt}</p>
                   <div className="mt-2 flex items-center justify-between gap-2">
-                    <span className="text-[11px] text-muted">
+                    <span className="text-[13px] text-muted">
                       {c.score !== null && <span className={`pill ${scoreTone(c.score)} mr-1`}>{c.score}/10</span>}
                       {c.createdAt && <time dateTime={c.createdAt}>{fmtRelative(c.createdAt)}</time>}
                     </span>
@@ -511,7 +511,7 @@ function Candidate({
           className={`w-full ${cutout ? "object-contain" : "object-cover"} ${aspect}`}
         />
         {img.winner && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-2 py-0.5 text-[13px] font-semibold text-white">
             <Check width={11} height={11} />
             Nejlepší
           </span>
@@ -524,7 +524,7 @@ function Candidate({
         )}
       </div>
       <div className="flex items-center justify-between gap-2 p-2.5">
-        <span className="truncate text-[11px] text-muted" title={img.defects}>
+        <span className="truncate text-[13px] text-muted" title={img.defects}>
           {img.defects && img.defects !== "none" ? img.defects : "bez závad"}
         </span>
         <span className="flex shrink-0 items-center gap-1">
@@ -533,7 +533,7 @@ function Candidate({
               type="button"
               onClick={() => onVariations(img)}
               title="Vytvořit varianty podle tohoto návrhu"
-              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+              className="rounded-pill border border-line px-2.5 py-1 text-[13px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
             >
               Varianty
             </button>
@@ -543,7 +543,7 @@ function Candidate({
               type="button"
               onClick={() => onRemoveBg(img)}
               disabled={nobgState?.status === "loading"}
-              className="rounded-pill border border-line px-2.5 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+              className="rounded-pill border border-line px-2.5 py-1 text-[13px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
             >
               {nobgState?.status === "loading" ? "Odebírám…" : "Bez pozadí"}
             </button>
@@ -559,7 +559,7 @@ function Candidate({
         </span>
       </div>
       {nobgState?.status === "error" && (
-        <p className="px-2.5 pb-2 text-[11px] text-negative">{nobgState.error}</p>
+        <p className="px-2.5 pb-2 text-[13px] text-negative">{nobgState.error}</p>
       )}
     </div>
   );

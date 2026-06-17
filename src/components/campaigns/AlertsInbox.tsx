@@ -61,7 +61,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
         <Bell width={16} height={16} />
         Upozornění
         {unread > 0 && (
-          <span className="tnum grid h-5 min-w-5 place-items-center rounded-full bg-coral-500 px-1 text-[11px] font-bold text-white">
+          <span className="tnum grid h-5 min-w-5 place-items-center rounded-full bg-coral-500 px-1 text-[13px] font-bold text-white">
             {unread}
           </span>
         )}
@@ -103,7 +103,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
                     )}
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
-                  <time dateTime={a.createdAt} className="mt-1 block text-[11px] text-muted">
+                  <time dateTime={a.createdAt} className="mt-1 block text-[13px] text-muted">
                     {fmtRelative(a.createdAt)}
                   </time>
                 </li>

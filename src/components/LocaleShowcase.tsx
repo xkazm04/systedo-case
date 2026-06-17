@@ -70,7 +70,7 @@ export default function LocaleShowcase() {
               <tr key={r.code}>
                 <td className="px-5 py-3 text-navy-700">{r.label}</td>
                 <td className="px-3 py-3">
-                  <code className="rounded bg-navy-50 px-1.5 py-0.5 text-[12px] text-navy-700">
+                  <code className="rounded bg-navy-50 px-1.5 py-0.5 text-[14px] text-navy-700">
                     {r.code}
                   </code>
                 </td>
@@ -81,7 +81,7 @@ export default function LocaleShowcase() {
         </table>
       </div>
 
-      <p className="text-[11px] leading-relaxed text-muted">
+      <p className="text-[13px] leading-relaxed text-muted">
         Stejná čísla přes jeden chokepoint{" "}
         <code className="rounded bg-navy-50 px-1 py-0.5 text-navy-700">createFormatters(locale)</code>{" "}
         — přidání trhu je jediná položka v <code className="rounded bg-navy-50 px-1 py-0.5 text-navy-700">LOCALES</code>.

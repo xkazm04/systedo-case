@@ -137,7 +137,7 @@ function RsaPreview({
       <div className="mt-3">
         <div className="flex items-center gap-2">
           <span
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-[11px] font-semibold text-white"
+            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-[13px] font-semibold text-white"
             aria-hidden
           >
             M

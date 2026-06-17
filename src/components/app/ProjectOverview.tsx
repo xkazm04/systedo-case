@@ -118,7 +118,7 @@ export default function ProjectOverview({ project }: { project: Project }) {
             {fmtCZKCompact(last30.revenue)}
           </p>
           {lastDate && (
-            <p className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+            <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />
               Data k <time dateTime={lastDate}>{fmtDate(lastDate)}</time>
             </p>

@@ -208,7 +208,7 @@ export default function TrendChart({
             <text
               x={PAD.l}
               y={y(v) - 4}
-              className="tnum fill-muted text-[10px]"
+              className="tnum fill-muted text-[12px]"
               style={{ fontSize: 10 }}
             >
               {meta.formatCompact(v)}
@@ -278,7 +278,7 @@ export default function TrendChart({
             x={x(i)}
             y={H - 8}
             textAnchor={i === 0 ? "start" : i === n - 1 ? "end" : "middle"}
-            className="fill-muted text-[10px]"
+            className="fill-muted text-[12px]"
             style={{ fontSize: 10 }}
           >
             {fmtX(d.date)}
@@ -328,7 +328,7 @@ export default function TrendChart({
 
       {/* legend — only when the comparison overlay is present */}
       {hasCompare && (
-        <div className="mt-2 flex items-center justify-center gap-4 text-[11px] text-muted">
+        <div className="mt-2 flex items-center justify-center gap-4 text-[13px] text-muted">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-[3px] w-4 rounded-full" style={{ background: color }} />
             Aktuální období
@@ -358,7 +358,7 @@ export default function TrendChart({
           </p>
           {activeAnomaly && (
             <p
-              className={`mt-1 text-[11px] font-medium ${
+              className={`mt-1 text-[13px] font-medium ${
                 anomalyFavourable(activeAnomaly, meta.goodDirection)
                   ? "text-positive"
                   : "text-coral-600"
@@ -368,7 +368,7 @@ export default function TrendChart({
             </p>
           )}
           {cmpVal !== undefined && (
-            <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[11px]">
+            <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[13px]">
               <span className="text-muted">
                 Předchozí{" "}
                 <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal)}</span>
@@ -386,7 +386,7 @@ export default function TrendChart({
           )}
           <dl className="mt-2 space-y-1 border-t border-line pt-2">
             {READOUT.filter((m) => m !== metric).map((m) => (
-              <div key={m} className="flex items-center justify-between gap-2 text-[11px]">
+              <div key={m} className="flex items-center justify-between gap-2 text-[13px]">
                 <dt className="text-muted">{METRICS[m].short}</dt>
                 <dd className="tnum font-medium text-navy-700">
                   {METRICS[m].formatCompact(tipBucket[m])}

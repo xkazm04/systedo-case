@@ -31,7 +31,7 @@ export default function AuthButton() {
         )}
         <button
           type="button"
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: "/" })}
           className="rounded-pill border border-line px-3 py-1.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
           title={email ?? undefined}
         >

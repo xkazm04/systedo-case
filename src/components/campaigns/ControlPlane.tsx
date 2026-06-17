@@ -189,7 +189,7 @@ export default function ControlPlane() {
 function SimCell({ label, before, after }: { label: string; before: string; after: string }) {
   return (
     <div className="rounded-lg bg-surface px-2 py-2">
-      <p className="text-[11px] text-muted">{label}</p>
+      <p className="text-[13px] text-muted">{label}</p>
       <p className="mt-0.5 text-xs text-muted">
         <span className="tnum">{before}</span>
         <span className="mx-1">→</span>

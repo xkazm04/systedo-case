@@ -141,7 +141,7 @@ export default function HomePage() {
             </dl>
 
             {lastDate && (
-              <p className="mt-5 flex items-center gap-1.5 border-t border-line pt-3 text-[11px] text-muted">
+              <p className="mt-5 flex items-center gap-1.5 border-t border-line pt-3 text-[13px] text-muted">
                 <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />
                 Data aktuální k{" "}
                 <time dateTime={lastDate} className="font-medium text-navy-600">
@@ -264,7 +264,7 @@ export default function HomePage() {
               souboru <code className="rounded bg-navy-50 px-1.5 py-0.5 text-navy-700">README.md</code>.
             </p>
           </div>
-          <pre className="overflow-x-auto rounded-card bg-onyx p-5 font-mono text-[13px] leading-relaxed text-onyx-ink">
+          <pre className="overflow-x-auto rounded-card bg-onyx p-5 font-mono text-[15px] leading-relaxed text-onyx-ink">
             <code>
               <span className="text-navy-400"># instalace a běh</span>
               {"\n"}npm install

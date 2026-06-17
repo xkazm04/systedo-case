@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { localizedNavItems } from "@/lib/nav";
-import { ArrowRight, Close, External, Logo, Menu } from "@/components/icons";
+import { ArrowRight, Close, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -32,10 +32,10 @@ export default function Nav() {
             <Logo width={20} height={20} />
           </span>
           <span className="flex flex-col leading-none">
-            <span className="text-[15px] font-semibold tracking-tight text-navy-800">
+            <span className="text-[17px] font-semibold tracking-tight text-navy-800">
               Systedo
             </span>
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted">
+            <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted">
               {messages.nav.caseStudy}
             </span>
           </span>
@@ -72,15 +72,6 @@ export default function Nav() {
               <ArrowRight width={15} height={15} />
             </Link>
           )}
-          <a
-            href="https://www.systedo.cz/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden items-center gap-1.5 rounded-pill border border-line px-3.5 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent sm:inline-flex"
-          >
-            systedo.cz
-            <External width={15} height={15} />
-          </a>
           <UsageMeter />
           <AuthButton />
           <LocaleSwitcher />
@@ -104,7 +95,7 @@ export default function Nav() {
               <Link
                 href="/app"
                 onClick={() => setOpen(false)}
-                className="mb-1 flex items-center justify-between rounded-lg bg-brand-600 px-3 py-3 text-[15px] font-semibold text-white"
+                className="mb-1 flex items-center justify-between rounded-lg bg-brand-600 px-3 py-3 text-[17px] font-semibold text-white"
               >
                 {messages.nav.openApp}
                 <ArrowRight width={17} height={17} />
@@ -117,7 +108,7 @@ export default function Nav() {
                   key={item.href}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center justify-between rounded-lg px-3 py-3 text-[15px] font-medium ${
+                  className={`flex items-center justify-between rounded-lg px-3 py-3 text-[17px] font-medium ${
                     active ? "bg-brand-50 text-brand-800" : "text-navy-700 hover:bg-navy-50"
                   }`}
                 >

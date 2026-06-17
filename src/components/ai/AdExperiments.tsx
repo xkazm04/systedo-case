@@ -147,7 +147,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
 
                     {/* measured performance */}
                     {v.metrics && (
-                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted">
+                      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted">
                         <span>CTR <span className="tnum text-navy-700">{fmtPct(variantCtr(v.metrics))}</span></span>
                         <span>CR <span className="tnum text-navy-700">{fmtPct(variantCr(v.metrics))}</span></span>
                         <span>CPA <span className="tnum text-navy-700">{fmtCZK(variantCpa(v.metrics))}</span></span>
@@ -157,12 +157,12 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
 
                     {/* metrics entry */}
                     <details className="mt-2">
-                      <summary className="cursor-pointer text-[11px] font-medium text-brand-accent">
+                      <summary className="cursor-pointer text-[13px] font-medium text-brand-accent">
                         {v.metrics ? "Upravit výkon" : "Zadat výkon"}
                       </summary>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {METRIC_FIELDS.map((f) => (
-                          <label key={f.key} className="text-[11px] text-muted">
+                          <label key={f.key} className="text-[13px] text-muted">
                             {f.label}
                             <input
                               type="number"
@@ -177,13 +177,13 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                       <button
                         type="button"
                         onClick={() => saveMetrics(exp.id, v.id)}
-                        className="mt-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-brand-700"
+                        className="mt-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-brand-700"
                       >
                         Uložit výkon
                       </button>
                     </details>
 
-                    <p className="mt-2 text-[11px] tabular-nums text-muted">
+                    <p className="mt-2 text-[13px] tabular-nums text-muted">
                       <span className="tnum">{fmtInt(m.impressions)}</span> imprese
                     </p>
                   </div>

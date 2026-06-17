@@ -37,7 +37,7 @@ export default function AppTopbar() {
         >
           <Menu />
         </button>
-        <h1 className="truncate text-[15px] font-semibold tracking-tight text-navy-800">{title}</h1>
+        <h1 className="truncate text-[17px] font-semibold tracking-tight text-navy-800">{title}</h1>
       </div>
 
       <div className="flex items-center gap-2">

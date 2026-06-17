@@ -130,7 +130,7 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
               />
             </div>
           )}
-          <p className="mt-2 text-[11px] text-muted">
+          <p className="mt-2 text-[13px] text-muted">
             Plná barva = obrat zatím{complete ? "" : ", světlá = výhled"}; svislá značka ={" "}
             cíl{complete ? "" : ", tenká = dnešní plán"}
             {complete ? "" : "; tenká čára = pravděpodobné rozpětí (P10–P90)"}.
@@ -176,7 +176,7 @@ function Stat({
     <div className="lg:py-2.5 lg:first:pt-0 lg:last:pb-0">
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={`tnum mt-1 text-lg font-semibold ${tone}`}>{value}</dd>
-      {sub && <dd className="mt-0.5 text-[11px] text-muted">{sub}</dd>}
+      {sub && <dd className="mt-0.5 text-[13px] text-muted">{sub}</dd>}
     </div>
   );
 }
