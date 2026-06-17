@@ -2,6 +2,7 @@
  *  Server component. */
 import { Pill } from "@/components/ui";
 import { Document } from "@/components/icons";
+import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
@@ -86,6 +87,8 @@ export default function DistributionModule({
           </table>
         </div>
       </div>
+
+      <NextSteps steps={[{ to: "socialni", label: "Naplánovat publikaci", hint: "Vydat varianty v centru sociálních sítí" }]} />
     </div>
   );
 }

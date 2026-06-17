@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Bulb } from "@/components/icons";
 import { Pill } from "@/components/ui";
+import NextSteps from "@/components/app/NextSteps";
 import type { ChannelRow } from "@/lib/metrics";
 import { computeProfit } from "@/lib/profit/compute";
 import type { ChannelMargin } from "@/lib/profit/types";
@@ -186,6 +187,8 @@ export default function ProfitModule({
           <span>Marže upravte v tabulce — vše se přepočítá živě.</span>
         </div>
       </div>
+
+      <NextSteps steps={[{ to: "kampane", label: "Přesunout rozpočet", hint: "Omezit ztrátové kanály v Kampaních" }]} />
     </div>
   );
 }

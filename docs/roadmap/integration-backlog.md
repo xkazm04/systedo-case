@@ -93,7 +93,7 @@ model + a command-center Overview), and explicit **cross-module flows** — then
 - **B3. Overview = command center**: a prioritized "Needs attention" feed aggregating all modules,
   each row linking to the module + a suggested action.
 
-### Phase C — Cross-module flows (wire the loops)
+### Phase C — Cross-module flows (wire the loops) ☑ shipped
 - C1. Profit → Budget moves → Control plane (cut loss-making channels).
 - C2. Stock/Season → budget pacing + low-stock pause.
 - C3. Keywords → Content → Distribution → Social (one pipeline, with traffic feeding back).

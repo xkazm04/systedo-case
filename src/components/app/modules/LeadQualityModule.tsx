@@ -1,6 +1,7 @@
 /** Kvalita leadů — cost-per-qualified-lead view for a lead-gen project. Server. */
 import { Pill, type PillTone } from "@/components/ui";
 import { Bulb } from "@/components/icons";
+import NextSteps from "@/components/app/NextSteps";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import { summarize, withMetrics } from "@/lib/lead-quality/compute";
 import type { LeadSource } from "@/lib/lead-quality/sample";
@@ -92,6 +93,8 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
           → uzavřený + hodnota).
         </div>
       </div>
+
+      <NextSteps steps={[{ to: "kampane", label: "Optimalizovat bidding", hint: "Cílit na kvalifikované leady, ne na počet" }]} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
  *  component (static render). */
 import { Pill, type PillTone } from "@/components/ui";
 import { Calendar } from "@/components/icons";
+import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtMultiple } from "@/lib/format";
 import type { SeasonMonth, StockRow, StockStatus } from "@/lib/inventory/compute";
 
@@ -121,6 +122,8 @@ export default function InventorySeasonModule({
           </table>
         </div>
       </div>
+
+      <NextSteps steps={[{ to: "kampane", label: "Upravit rozpočet", hint: "Pozastavit reklamu u docházejících SKU" }]} />
     </div>
   );
 }

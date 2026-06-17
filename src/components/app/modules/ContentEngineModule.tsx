@@ -1,5 +1,6 @@
 /** Obsahový engine — topic clusters + content-decay refresh. Server component. */
 import { Pill } from "@/components/ui";
+import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtPct, fmtSignedPct } from "@/lib/format";
 import { clusterStats, decayingPosts } from "@/lib/content-engine/compute";
 import type { DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
@@ -88,6 +89,13 @@ export default function ContentEngineModule({
           klastru.
         </div>
       </div>
+
+      <NextSteps
+        steps={[
+          { to: "obsah", label: "Vytvořit / obnovit obsah", hint: "AI brief pro plánované a upadající články" },
+          { to: "distribuce", label: "Distribuovat", hint: "Rozšířit hotový obsah na kanály" },
+        ]}
+      />
     </div>
   );
 }
