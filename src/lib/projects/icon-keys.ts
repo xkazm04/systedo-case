@@ -20,4 +20,7 @@ export type IconKey =
   | "folder"
   | "profit"
   | "catalog"
-  | "season";
+  | "season"
+  | "ltv"
+  | "experiment"
+  | "compare";

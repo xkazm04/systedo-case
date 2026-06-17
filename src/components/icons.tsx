@@ -452,3 +452,32 @@ export function Calendar(props: IconProps) {
     </svg>
   );
 }
+
+/** LTV / retention — pulse line. */
+export function Pulse(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 12h4l2.5-7 4 14 2.5-7H21" />
+    </svg>
+  );
+}
+
+/** Experiment — beaker. */
+export function Beaker(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3" />
+      <path d="M7.2 15h9.6" />
+    </svg>
+  );
+}
+
+/** Comparison — opposing swap arrows. */
+export function Compare(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 8h13l-3.5-3.5" />
+      <path d="M20 16H7l3.5 3.5" />
+    </svg>
+  );
+}

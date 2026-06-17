@@ -5,11 +5,13 @@ import { createElement, type SVGProps } from "react";
 import type { IconKey } from "@/lib/projects/icon-keys";
 import {
   AppWindow,
+  Beaker,
   Bookmark,
   Box,
   Calendar,
   Cog,
   Coins,
+  Compare,
   Document,
   Edit,
   Folder,
@@ -19,6 +21,7 @@ import {
   Megaphone,
   Palette,
   Plus,
+  Pulse,
   Search,
   Store,
   Users,
@@ -45,6 +48,9 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   profit: Coins,
   catalog: Box,
   season: Calendar,
+  ltv: Pulse,
+  experiment: Beaker,
+  compare: Compare,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)

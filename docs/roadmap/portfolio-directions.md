@@ -36,9 +36,9 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 
 | Module | key | section | gist |
 |---|---|---|---|
-| **CAC → LTV** ☐ | `ltv` | insights | Cohort activation/retention; optimize payback, not signups. |
-| **LP experimenty** ☐ | `experimenty-lp` | studio | Auto-generate + A/B test landing pages/microsites per keyword cluster. |
-| **Srovnání & SEO** ☐ | `srovnani-seo` | growth | Programmatic "alternative / vs / pricing" high-intent content. |
+| **CAC → LTV** ☑ | `ltv` | insights | Cohort activation/retention; optimize payback, not signups. |
+| **LP experimenty** ☑ | `experimenty-lp` | studio | Auto-generate + A/B test landing pages/microsites per keyword cluster. |
+| **Srovnání & SEO** ☑ | `srovnani-seo` | growth | Programmatic "alternative / vs / pricing" high-intent content. |
 
 - **CAC→LTV** — sample acquisition **cohorts** (signups → activated → retained → revenue); compute
   **CAC, payback period, LTV:CAC, blended vs paid**. Seam: product-analytics events (Segment/PostHog).
@@ -83,7 +83,7 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 ## Phase plan
 
 - **Phase 1 — E-shop trio** (`zisk`, `produktova-kreativa`, `sklad-sezonnost`) ☑ shipped
-- **Phase 2 — App/SaaS trio** (`ltv`, `experimenty-lp`, `srovnani-seo`)
+- **Phase 2 — App/SaaS trio** (`ltv`, `experimenty-lp`, `srovnani-seo`) ☑ shipped
 - **Phase 3 — Lead-gen trio** (`kvalita-leadu`, `rychla-reakce`, `lokalni`)
 - **Phase 4 — Content trio** (`obsahovy-engine`, `distribuce`, `publikum`)
 
