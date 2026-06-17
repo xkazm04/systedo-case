@@ -8,6 +8,7 @@ import Providers from "@/components/auth/Providers";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { SITE_URL } from "@/lib/site";
+import { auth, DEV_AUTH } from "@/auth";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -49,6 +50,9 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t===
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getServerLocale();
+  // Only seed the session server-side in dev-auth mode; in production the client
+  // provider fetches it as usual, so public pages keep doing no auth lookup.
+  const session = DEV_AUTH ? await auth() : undefined;
   return (
     <html
       lang={locale}
@@ -60,7 +64,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       </head>
       <body className="flex min-h-full flex-col">
         <LocaleProvider initialLocale={locale}>
-        <Providers>
+        <Providers session={session} devAuth={DEV_AUTH}>
           <a
             href="#obsah"
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-onyx focus:px-4 focus:py-2 focus:text-sm focus:text-onyx-ink"
