@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "@/components/icons";
+import { Pill } from "@/components/ui";
 import { ModuleIcon } from "@/components/app/icon-map";
 import { useProject } from "@/lib/projects/context";
+import { projectDataSource } from "@/lib/project-data/source";
 import {
   PROJECT_TYPES,
   PROJECT_TYPE_META,
@@ -73,8 +75,22 @@ export default function ProjectSettings() {
     }
   }
 
+  const ds = projectDataSource(project);
+
   return (
     <div className="max-w-2xl space-y-8">
+      <div className="card flex items-center justify-between gap-3 p-5">
+        <div>
+          <p className="text-sm font-semibold text-navy-800">Zdroj dat</p>
+          <p className="mt-0.5 text-xs text-muted">
+            {ds.live
+              ? "Projekt používá živá data z Google Ads."
+              : "Připojte Google Ads účet v modulu Kampaně pro živá data."}
+          </p>
+        </div>
+        <Pill tone={ds.live ? "positive" : "neutral"}>{ds.label}</Pill>
+      </div>
+
       <form onSubmit={save} className="card space-y-6 p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">

@@ -107,12 +107,12 @@ Implementing the real providers behind each seam — Merchant Center → CRM →
 analytics → ESP → GBP, each with sample fallback — needs the external systems/credentials and is the
 remaining follow-up; the architecture makes each a localized drop-in.
 
-### Phase E — Hardening
-- Onboarding wizard that connects data sources per type.
-- Settings → per-module connection management.
-- Tests for the 12 modules + e2e of the flows.
-- i18n (en) for the new modules (cs-only today).
-- Per-project usage metering.
+### Phase E — Hardening ◐ partly shipped
+- ☑ Unit tests for the new compute/insight logic (`npm run test:unit`, via the shared resolve hook).
+- ☑ Settings → data-source awareness (živá vs ukázková).
+- ☐ Onboarding wizard that connects data sources per type (gated on Phase D connectors).
+- ☐ i18n (en) for the new modules — deferred (cs-first product; large surface).
+- ☐ Per-project usage metering.
 
 ---
 

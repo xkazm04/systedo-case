@@ -12,6 +12,7 @@
     "seed": "node scripts/generate-data.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:unit": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./test-llm/setup.mjs --test \"test-unit/**/*.test.mjs\"",
     "test:llm": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./test-llm/setup.mjs --test test-llm/real.test.mjs",
     "test:llm:coverage": "node --test test-llm/coverage.test.mjs",
     "llm:gate": "node scripts/llm-gate.mjs",
