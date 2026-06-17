@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { localizedNavItems } from "@/lib/nav";
-import { Close, External, Logo, Menu } from "@/components/icons";
+import { ArrowRight, Close, External, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -18,8 +19,10 @@ function isActive(pathname: string, href: string): boolean {
 export default function Nav() {
   const pathname = usePathname();
   const { locale, messages } = useLocale();
+  const { status } = useSession();
   const navItems = localizedNavItems(locale);
   const [open, setOpen] = useState(false);
+  const authed = status === "authenticated";
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">
@@ -60,6 +63,15 @@ export default function Nav() {
         </div>
 
         <div className="flex items-center gap-2">
+          {authed && (
+            <Link
+              href="/app"
+              className="hidden items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 sm:inline-flex"
+            >
+              {messages.nav.openApp}
+              <ArrowRight width={15} height={15} />
+            </Link>
+          )}
           <a
             href="https://www.systedo.cz/"
             target="_blank"
@@ -88,6 +100,16 @@ export default function Nav() {
       {open && (
         <div className="animate-drop border-t border-line bg-surface md:hidden">
           <div className="mx-auto max-w-6xl px-4 py-3">
+            {authed && (
+              <Link
+                href="/app"
+                onClick={() => setOpen(false)}
+                className="mb-1 flex items-center justify-between rounded-lg bg-brand-600 px-3 py-3 text-[15px] font-semibold text-white"
+              >
+                {messages.nav.openApp}
+                <ArrowRight width={17} height={17} />
+              </Link>
+            )}
             {navItems.map((item) => {
               const active = isActive(pathname, item.href);
               return (

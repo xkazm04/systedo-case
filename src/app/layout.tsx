@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
+import ChromeGate from "@/components/site/ChromeGate";
 import Providers from "@/components/auth/Providers";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -66,11 +67,15 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           >
             Přejít na obsah
           </a>
-          <Nav />
+          <ChromeGate>
+            <Nav />
+          </ChromeGate>
           <main id="obsah" className="flex-1">
             {children}
           </main>
-          <Footer />
+          <ChromeGate>
+            <Footer />
+          </ChromeGate>
         </Providers>
         </LocaleProvider>
       </body>

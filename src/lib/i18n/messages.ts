@@ -18,6 +18,8 @@ interface NavCopy {
 export interface Messages {
   nav: {
     caseStudy: string;
+    /** CTA in the header that opens the authed product workspace */
+    openApp: string;
     openMenu: string;
     closeMenu: string;
     /** short "Task N" prefix in the mobile menu */
@@ -52,6 +54,7 @@ export interface Messages {
 const cs: Messages = {
   nav: {
     caseStudy: "Case study",
+    openApp: "Otevřít aplikaci",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
     task: "Úkol",
@@ -101,6 +104,7 @@ const cs: Messages = {
 const en: Messages = {
   nav: {
     caseStudy: "Case study",
+    openApp: "Open app",
     openMenu: "Open menu",
     closeMenu: "Close menu",
     task: "Task",

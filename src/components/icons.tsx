@@ -289,3 +289,133 @@ export function Moon(props: IconProps) {
     </svg>
   );
 }
+
+/* --------------------------------------------------------------------------
+   App-shell icons — sidebar modules, project types and shell controls.
+-------------------------------------------------------------------------- */
+
+/** Overview / dashboard home. */
+export function Grid(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
+/** Campaigns. */
+export function Megaphone(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 9v6h3l9 4V5L7 9z" />
+      <path d="M18 9.5a3 3 0 0 1 0 5" />
+    </svg>
+  );
+}
+
+/** Content / SEO. */
+export function Edit(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20h4L18 10l-4-4L4 16z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
+/** Social — people. */
+export function Users(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 19a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.2a3.2 3.2 0 0 1 0 5.6" />
+      <path d="M17 13.6a5.5 5.5 0 0 1 3.5 5.4" />
+    </svg>
+  );
+}
+
+/** Creative Studio — palette. */
+export function Palette(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3a9 9 0 0 0 0 18c1.7 0 2-1.2 1.2-2.2-.8-1-.5-2.4 1-2.8H17a4 4 0 0 0 4-4c0-5-4-7-9-7z" />
+      <circle cx="7.5" cy="11" r="1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="7.5" r="1" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="7.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Patterns library — bookmark. */
+export function Bookmark(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M6 4h12v17l-6-4-6 4z" />
+    </svg>
+  );
+}
+
+/** Settings — gear. */
+export function Cog(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.1 5.1l2.1 2.1M16.8 16.8l2.1 2.1M5.1 18.9l2.1-2.1M16.8 7.2l2.1-2.1" />
+    </svg>
+  );
+}
+
+/** Add / new. */
+export function Plus(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+/** Project / folder. */
+export function Folder(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
+/** Project type — e-shop storefront. */
+export function Store(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4.5 10h15v9a1 1 0 0 1-1 1h-13a1 1 0 0 1-1-1z" />
+      <path d="M3.5 10l1.4-5h14.2l1.4 5" />
+      <path d="M4 10a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0" />
+      <path d="M10 20v-5h4v5" />
+    </svg>
+  );
+}
+
+/** Project type — app window. */
+export function AppWindow(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <path d="M3.5 9h17" />
+      <path d="M6.6 6.7h.01M9 6.7h.01" />
+    </svg>
+  );
+}
+
+/** Project type — lead-gen inbox. */
+export function Inbox(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 13l2.4-7h11.2L20 13" />
+      <path d="M4 13v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5h-5a3 3 0 0 1-6 0z" />
+    </svg>
+  );
+}
