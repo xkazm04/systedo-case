@@ -6,6 +6,7 @@ import type { IconKey } from "@/lib/projects/icon-keys";
 import {
   AppWindow,
   Beaker,
+  Bolt,
   Bookmark,
   Box,
   Calendar,
@@ -15,11 +16,13 @@ import {
   Document,
   Edit,
   Folder,
+  Funnel,
   Gauge,
   Grid,
   Inbox,
   Megaphone,
   Palette,
+  Pin,
   Plus,
   Pulse,
   Search,
@@ -51,6 +54,9 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   ltv: Pulse,
   experiment: Beaker,
   compare: Compare,
+  quality: Funnel,
+  speed: Bolt,
+  local: Pin,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)

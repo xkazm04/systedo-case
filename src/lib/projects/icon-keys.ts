@@ -23,4 +23,7 @@ export type IconKey =
   | "season"
   | "ltv"
   | "experiment"
-  | "compare";
+  | "compare"
+  | "quality"
+  | "speed"
+  | "local";

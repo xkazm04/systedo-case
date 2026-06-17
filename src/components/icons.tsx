@@ -481,3 +481,22 @@ export function Compare(props: IconProps) {
     </svg>
   );
 }
+
+/** Lead quality — funnel. */
+export function Funnel(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 5h17l-6.5 8v6l-4-2v-4z" />
+    </svg>
+  );
+}
+
+/** Local — map pin. */
+export function Pin(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 21s6.5-5.6 6.5-11A6.5 6.5 0 0 0 5.5 10c0 5.4 6.5 11 6.5 11z" />
+      <circle cx="12" cy="10" r="2.4" />
+    </svg>
+  );
+}

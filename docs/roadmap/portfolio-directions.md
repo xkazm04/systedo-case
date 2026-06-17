@@ -51,9 +51,9 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 
 | Module | key | section | gist |
 |---|---|---|---|
-| **Kvalita leadů** ☐ | `kvalita-leadu` | insights | CRM outcome feedback → optimize for *qualified* leads. |
-| **Rychlá reakce** ☐ | `rychla-reakce` | studio | Instant AI-drafted reply + qualification + routing. |
-| **Lokální dominance** ☐ | `lokalni` | growth | Service×area landing pages + local SEO + reviews + call tracking. |
+| **Kvalita leadů** ☑ | `kvalita-leadu` | insights | CRM outcome feedback → optimize for *qualified* leads. |
+| **Rychlá reakce** ☑ | `rychla-reakce` | studio | Instant AI-drafted reply + qualification + routing. |
+| **Lokální dominance** ☑ | `lokalni` | growth | Service×area landing pages + local SEO + reviews + call tracking. |
 
 - **Kvalita leadů** — sample **leads** with CRM outcomes (new → qualified → won, value); score lead
   quality, surface **cost-per-qualified-lead** by source, feed back to bidding. Seam: CRM webhook.
@@ -84,7 +84,7 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 
 - **Phase 1 — E-shop trio** (`zisk`, `produktova-kreativa`, `sklad-sezonnost`) ☑ shipped
 - **Phase 2 — App/SaaS trio** (`ltv`, `experimenty-lp`, `srovnani-seo`) ☑ shipped
-- **Phase 3 — Lead-gen trio** (`kvalita-leadu`, `rychla-reakce`, `lokalni`)
+- **Phase 3 — Lead-gen trio** (`kvalita-leadu`, `rychla-reakce`, `lokalni`) ☑ shipped
 - **Phase 4 — Content trio** (`obsahovy-engine`, `distribuce`, `publikum`)
 
 Each phase: add icons + registry entries, build the three modules (lib + sample + compute + client +
