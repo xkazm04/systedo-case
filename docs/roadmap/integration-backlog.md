@@ -101,9 +101,11 @@ model + a command-center Overview), and explicit **cross-module flows** — then
 - C5. LTV → max-CAC target; LP winner → live landing page.
 - C6. Patterns learning layer feeding AI evaluations.
 
-### Phase D — Live connectors
-Implement real providers behind each seam, by type (Merchant Center → CRM → Search Console →
-analytics → ESP → GBP), each with sample fallback.
+### Phase D — Live connectors ◐ seam shipped (live API wiring is credential-gated)
+The data-source seam (`projectDataSource`) + honest live/sample labeling on the Overview are in.
+Implementing the real providers behind each seam — Merchant Center → CRM → Search Console →
+analytics → ESP → GBP, each with sample fallback — needs the external systems/credentials and is the
+remaining follow-up; the architecture makes each a localized drop-in.
 
 ### Phase E — Hardening
 - Onboarding wizard that connects data sources per type.

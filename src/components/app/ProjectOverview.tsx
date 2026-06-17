@@ -9,6 +9,7 @@ import { Pill } from "@/components/ui";
 import { ArrowRight, Bulb } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import type { PerformanceData } from "@/lib/types";
+import { projectDataSource } from "@/lib/project-data/source";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
 import { fmtCZKCompact, fmtDate, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import {
@@ -71,6 +72,7 @@ export default function ProjectOverview({
   recommendations: Recommendation[];
 }) {
   const meta = PROJECT_TYPE_META[project.type];
+  const ds = projectDataSource(project);
   const last30 = totalsOf(data.daily.slice(-30));
   const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
   const lastDate = data.daily.at(-1)?.date;
@@ -102,7 +104,7 @@ export default function ProjectOverview({
         </div>
         <div className="flex items-center gap-2">
           <Pill tone="brand">{meta.primaryGoal}</Pill>
-          <Pill tone="neutral">Ilustrativní data</Pill>
+          <Pill tone={ds.live ? "positive" : "neutral"}>{ds.label}</Pill>
         </div>
       </div>
 
