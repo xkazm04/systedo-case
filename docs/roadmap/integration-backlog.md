@@ -87,7 +87,7 @@ model + a command-center Overview), and explicit **cross-module flows** — then
 - **A3. Migrate Dashboard + Profit** to read the project's synced campaign data instead of static
   `performance.json` — so e-shop modules reflect one reality.
 
-### Phase B — Connective tissue (biggest "one product" win)
+### Phase B — Connective tissue (biggest "one product" win) ☑ shipped
 - **B1. `Recommendation`/`Insight` model** + per-module producers.
 - **B2. Generalize alerts + activity** to project scope.
 - **B3. Overview = command center**: a prioritized "Needs attention" feed aggregating all modules,

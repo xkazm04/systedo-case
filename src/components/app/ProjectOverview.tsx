@@ -18,6 +18,14 @@ import {
   type KpiMetric,
 } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import type { Recommendation, Severity } from "@/lib/insights/types";
+
+const SEVERITY_DOT: Record<Severity, string> = {
+  critical: "bg-negative",
+  warning: "bg-coral-500",
+  opportunity: "bg-positive",
+  info: "bg-navy-300",
+};
 
 function kpiValue(t: Totals, metric: KpiMetric): number {
   switch (metric) {
@@ -56,9 +64,11 @@ function fmtKpi(v: number, format: KpiFormat): string {
 export default function ProjectOverview({
   project,
   data,
+  recommendations,
 }: {
   project: Project;
   data: PerformanceData;
+  recommendations: Recommendation[];
 }) {
   const meta = PROJECT_TYPE_META[project.type];
   const last30 = totalsOf(data.daily.slice(-30));
@@ -131,6 +141,43 @@ export default function ProjectOverview({
           )}
         </div>
         <Sparkline values={monthlyRevenue} width={220} height={56} autoColor dot describe formatValue={fmtCZKCompact} />
+      </div>
+
+      {/* needs attention — cross-module command center */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">Vyžaduje pozornost</h3>
+          {recommendations.length > 0 && <Pill tone="neutral">{recommendations.length}</Pill>}
+        </div>
+        {recommendations.length === 0 ? (
+          <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-4 text-sm text-muted">
+            <span className="h-2 w-2 rounded-full bg-positive" aria-hidden />
+            Vše vypadá v pořádku — žádná upozornění napříč moduly.
+          </div>
+        ) : (
+          <div className="mt-3 card divide-y divide-line overflow-hidden">
+            {recommendations.map((r) => (
+              <Link
+                key={r.id}
+                href={`/app/${project.id}/${r.module}`}
+                className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-navy-50"
+              >
+                <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[r.severity]}`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-navy-800">{r.title}</span>
+                    {r.metric && <span className="tnum shrink-0 text-xs font-medium text-muted">{r.metric}</span>}
+                  </span>
+                  <span className="mt-0.5 block text-sm leading-relaxed text-muted">{r.detail}</span>
+                  <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-accent">
+                    {r.moduleLabel}
+                    <ArrowRight width={13} height={13} />
+                  </span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* quick access to modules */}
