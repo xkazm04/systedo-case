@@ -8,7 +8,7 @@ import Sparkline from "@/components/charts/Sparkline";
 import { Pill } from "@/components/ui";
 import { ArrowRight, Bulb } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
-import { performance } from "@/lib/data";
+import type { PerformanceData } from "@/lib/types";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
 import { fmtCZKCompact, fmtDate, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import {
@@ -53,11 +53,17 @@ function fmtKpi(v: number, format: KpiFormat): string {
   }
 }
 
-export default function ProjectOverview({ project }: { project: Project }) {
+export default function ProjectOverview({
+  project,
+  data,
+}: {
+  project: Project;
+  data: PerformanceData;
+}) {
   const meta = PROJECT_TYPE_META[project.type];
-  const last30 = totalsOf(performance.daily.slice(-30));
-  const monthlyRevenue = bucketize(performance.daily.slice(-365), "month").map((b) => b.revenue);
-  const lastDate = performance.daily.at(-1)?.date;
+  const last30 = totalsOf(data.daily.slice(-30));
+  const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
+  const lastDate = data.daily.at(-1)?.date;
   const kpis = KPI_PRESETS[project.type];
 
   // Quick access: every module except the overview itself and system (settings).

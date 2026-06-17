@@ -79,7 +79,7 @@ model + a command-center Overview), and explicit **cross-module flows** — then
 
 ## Prioritized phases
 
-### Phase A — Data spine (prerequisite for everything)
+### Phase A — Data spine (prerequisite for everything) ☑ shipped
 - **A1. Per-project tenant** (`proj_{id}`): thread a tenant override through `connector.ts` + the
   data routes so all modules scope to the active project (lifts the v1 boundary).
 - **A2. `ProjectData` loader**: resolve the project's sources once per request (live or sample),
