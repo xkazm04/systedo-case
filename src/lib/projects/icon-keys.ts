@@ -17,4 +17,7 @@ export type IconKey =
   | "app"
   | "leads"
   | "plus"
-  | "folder";
+  | "folder"
+  | "profit"
+  | "catalog"
+  | "season";

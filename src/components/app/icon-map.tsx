@@ -6,7 +6,10 @@ import type { IconKey } from "@/lib/projects/icon-keys";
 import {
   AppWindow,
   Bookmark,
+  Box,
+  Calendar,
   Cog,
+  Coins,
   Document,
   Edit,
   Folder,
@@ -39,6 +42,9 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   leads: Inbox,
   plus: Plus,
   folder: Folder,
+  profit: Coins,
+  catalog: Box,
+  season: Calendar,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)

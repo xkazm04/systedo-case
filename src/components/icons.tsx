@@ -419,3 +419,36 @@ export function Inbox(props: IconProps) {
     </svg>
   );
 }
+
+/** Profit — stacked coins. */
+export function Coins(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <ellipse cx="8" cy="6.5" rx="4.5" ry="2.3" />
+      <path d="M3.5 6.5v3.5c0 1.3 2 2.3 4.5 2.3s4.5-1 4.5-2.3V6.5" />
+      <ellipse cx="16" cy="13.5" rx="4.5" ry="2.3" />
+      <path d="M11.5 13.5V17c0 1.3 2 2.3 4.5 2.3s4.5-1 4.5-2.3v-3.5" />
+    </svg>
+  );
+}
+
+/** Catalog / product — box. */
+export function Box(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+      <path d="M4 7.5l8 4.5 8-4.5" />
+      <path d="M12 12v9" />
+    </svg>
+  );
+}
+
+/** Seasonality / schedule — calendar. */
+export function Calendar(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+    </svg>
+  );
+}
