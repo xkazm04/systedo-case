@@ -20,7 +20,9 @@ import {
   Gauge,
   Grid,
   Inbox,
+  Broadcast,
   Megaphone,
+  Network,
   Palette,
   Pin,
   Plus,
@@ -57,6 +59,9 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   quality: Funnel,
   speed: Bolt,
   local: Pin,
+  clusters: Network,
+  distribute: Broadcast,
+  audience: Users,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)

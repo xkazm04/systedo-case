@@ -500,3 +500,26 @@ export function Pin(props: IconProps) {
     </svg>
   );
 }
+
+/** Topic clusters — pillar + supporting nodes. */
+export function Network(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="2.4" />
+      <circle cx="12" cy="4.2" r="1.8" />
+      <circle cx="5" cy="18" r="1.8" />
+      <circle cx="19" cy="18" r="1.8" />
+      <path d="M12 9.6V6M10.3 13.4 6.4 16.4M13.7 13.4l3.9 3" />
+    </svg>
+  );
+}
+
+/** Distribution — broadcast waves. */
+export function Broadcast(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="2" />
+      <path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 15.5a5 5 0 0 0 0-7M6 6a9 9 0 0 0 0 12M18 18a9 9 0 0 0 0-12" />
+    </svg>
+  );
+}

@@ -66,9 +66,9 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 
 | Module | key | section | gist |
 |---|---|---|---|
-| **Obsahový engine** ☐ | `obsahovy-engine` | growth | Topic-cluster planning + content-decay refresh. |
-| **Distribuce** ☐ | `distribuce` | studio | One article → social/short-form/microsite, scheduled, attributed. |
-| **Publikum & výnos** ☐ | `publikum` | insights | Traffic → subscribers → segments → RPM/sponsorship revenue. |
+| **Obsahový engine** ☑ | `obsahovy-engine` | growth | Topic-cluster planning + content-decay refresh. |
+| **Distribuce** ☑ | `distribuce` | studio | One article → social/short-form/microsite, scheduled, attributed. |
+| **Publikum & výnos** ☑ | `publikum` | insights | Traffic → subscribers → segments → RPM/sponsorship revenue. |
 
 - **Obsahový engine** — keyword → **topic clusters** (pillar + supporting) with internal-link map;
   detect **decaying** posts and queue refreshes (keywords + brief + article + patterns). Seam: CMS +
@@ -85,7 +85,7 @@ Status legend: ☐ planned · ◐ in progress · ☑ shipped
 - **Phase 1 — E-shop trio** (`zisk`, `produktova-kreativa`, `sklad-sezonnost`) ☑ shipped
 - **Phase 2 — App/SaaS trio** (`ltv`, `experimenty-lp`, `srovnani-seo`) ☑ shipped
 - **Phase 3 — Lead-gen trio** (`kvalita-leadu`, `rychla-reakce`, `lokalni`) ☑ shipped
-- **Phase 4 — Content trio** (`obsahovy-engine`, `distribuce`, `publikum`)
+- **Phase 4 — Content trio** (`obsahovy-engine`, `distribuce`, `publikum`) ☑ shipped
 
 Each phase: add icons + registry entries, build the three modules (lib + sample + compute + client +
 page), wire into the type's sidebar, then typecheck/lint and commit. Modules degrade to demo data and
