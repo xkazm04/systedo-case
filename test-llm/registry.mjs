@@ -173,4 +173,36 @@ export const LLM_TOOLS = [
     },
     validate: (r) => r && isStr(r.reply) && isStrArr(r.questions, 1),
   },
+  {
+    id: "repurpose",
+    label: "Přepracování článku do kanálů",
+    system:
+      "Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty na míru pro jednotlivé distribuční kanály. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Přepracuj zdrojový článek do variant pro kanály LinkedIn a Instagram. Název článku: „Skladování ořechů: jak je udržet čerstvé“. Tón: Přátelský a lidský. Vrať pole variants, kde každý objekt má pole channel (LinkedIn nebo Instagram) a pole text (text varianty pro daný kanál).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        variants: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              channel: { type: Type.STRING },
+              text: { type: Type.STRING },
+            },
+            required: ["channel", "text"],
+          },
+        },
+      },
+      required: ["variants"],
+    },
+    // Lenient: at least one variant, with a non-empty channel + non-empty text.
+    validate: (r) =>
+      r &&
+      Array.isArray(r.variants) &&
+      r.variants.length >= 1 &&
+      isStr(r.variants[0]?.channel) &&
+      isStr(r.variants[0]?.text),
+  },
 ];

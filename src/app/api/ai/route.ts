@@ -1,10 +1,17 @@
 import { auth } from "@/auth";
-import { generateAds, generateAnalysis, generateBrief, generateLeadReply } from "@/lib/ai/tools";
+import {
+  generateAds,
+  generateAnalysis,
+  generateBrief,
+  generateLeadReply,
+  generateRepurpose,
+} from "@/lib/ai/tools";
 import {
   validateAdRequest,
   validateAnalysisRequest,
   validateBriefRequest,
   validateLeadReplyRequest,
+  validateRepurposeRequest,
 } from "@/lib/ai/validation";
 import { consume } from "@/lib/usage";
 import {
@@ -50,7 +57,13 @@ export async function POST(request: Request) {
     mode = (body as { mode?: unknown })?.mode;
 
     // Per-user daily AI quota (signed-in users); anonymous use is IP-rate-limited.
-    if (mode === "ads" || mode === "brief" || mode === "analysis" || mode === "lead-reply") {
+    if (
+      mode === "ads" ||
+      mode === "brief" ||
+      mode === "analysis" ||
+      mode === "lead-reply" ||
+      mode === "repurpose"
+    ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
         const quota = await consume(userId, "aiEval");
@@ -86,6 +99,11 @@ export async function POST(request: Request) {
         const parsed = validateLeadReplyRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLeadReply(parsed.value));
+      }
+      case "repurpose": {
+        const parsed = validateRepurposeRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateRepurpose(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

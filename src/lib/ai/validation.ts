@@ -20,8 +20,10 @@ import {
   type LeadReplyChannel,
   type LeadReplyRequest,
   type Platform,
+  type RepurposeRequest,
   type Tone,
 } from "../ai-types";
+import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -135,6 +137,47 @@ export function validateLeadReplyRequest(input: unknown): Valid<LeadReplyRequest
   return {
     valid: true,
     value: name ? { message, channel, projectType, name: name.slice(0, 120) } : { message, channel, projectType },
+  };
+}
+
+export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const title = str(o.title);
+  const url = str(o.url);
+  const body = str(o.body);
+  const tone = o.tone as Tone;
+
+  if (title.length < 2 || title.length > 300) {
+    return { valid: false, error: "Vyplňte název článku (2–300 znaků)." };
+  }
+  try {
+    // Validate the URL is parseable; void marks the result intentionally unused.
+    void new URL(url);
+  } catch {
+    return { valid: false, error: "Neplatná adresa zdrojového článku." };
+  }
+  if (!TONES.includes(tone)) {
+    return { valid: false, error: "Neplatný tón komunikace." };
+  }
+  // Filter the requested channels to the known set; require at least one.
+  const known = new Set<string>(REPURPOSE_CHANNELS);
+  const channels = Array.isArray(o.channels)
+    ? o.channels.filter((c): c is string => typeof c === "string" && known.has(c))
+    : [];
+  if (channels.length === 0) {
+    return { valid: false, error: "Zadejte alespoň jeden platný kanál." };
+  }
+  if (body.length > 6000) {
+    return { valid: false, error: "Text článku je příliš dlouhý (max 6000 znaků)." };
+  }
+  return {
+    valid: true,
+    value: body
+      ? { title, url, tone, channels, body: body.slice(0, 6000) }
+      : { title, url, tone, channels },
   };
 }
 

@@ -18,3 +18,4 @@ export { generateAnalysis } from "./analysis";
 export { generateCampaignEvaluation } from "./campaign-eval";
 export { generateSocialPosts } from "./social";
 export { generateLeadReply } from "./lead-reply";
+export { generateRepurpose } from "./repurpose";

@@ -7,8 +7,8 @@
 
 import type { CampaignPeriod } from "./campaigns/types";
 
-export type AiMode = "ads" | "brief" | "analysis" | "lead-reply";
-export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply"];
+export type AiMode = "ads" | "brief" | "analysis" | "lead-reply" | "repurpose";
+export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply", "repurpose"];
 
 export interface AiMeta {
   model: string;
@@ -269,3 +269,33 @@ export interface LeadReplyResult {
 }
 
 export type LeadReplyResponse = AiResponse<LeadReplyResult>;
+
+// ===========================================================================
+// Tool 6 — content repurposing (Distribuce: one article → channel-native variants)
+// ===========================================================================
+
+export interface RepurposeRequest {
+  /** the source article title */
+  title: string;
+  /** the source article URL (the variants link back to it, UTM-stamped client-side) */
+  url: string;
+  /** optional article body / excerpt to ground the variants in the real content */
+  body?: string;
+  /** channel labels to write a variant for (e.g. „LinkedIn", „Instagram") */
+  channels: string[];
+  /** tone of voice, shared with the other tools */
+  tone: Tone;
+}
+
+/** One channel-native variant: the channel label and its ready-to-ship text. */
+export interface RepurposeVariant {
+  channel: string;
+  text: string;
+}
+
+export interface RepurposeResult {
+  /** one variant per requested channel */
+  variants: RepurposeVariant[];
+}
+
+export type RepurposeResponse = AiResponse<RepurposeResult>;

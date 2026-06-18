@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
-import { Calendar, Check, Copy, Document, Link } from "@/components/icons";
+import { Calendar, Check, Copy, Document, Info, Link, Refresh, Sparkles } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { repurpose } from "@/lib/distribution/generate";
@@ -16,6 +16,11 @@ import { channelToPlatform } from "@/lib/distribution/handoff";
 import { channelUtmSource } from "@/lib/distribution/utm";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
+import { useAiTool } from "@/components/ai/useAiTool";
+import type { RepurposeResult, Tone } from "@/lib/ai-types";
+
+/** Tone used for the AI repurposing — friendly/human matches the demo content. */
+const REPURPOSE_TONE: Tone = "pratelsky";
 
 export default function DistributionModule({
   source,
@@ -47,7 +52,14 @@ export default function DistributionModule({
       {/* repurposed variants */}
       <div className="grid gap-4 sm:grid-cols-2">
         {variants.map((v) => (
-          <VariantCard key={v.channel} channel={v.channel} initialText={v.text} max={v.max} link={v.link} />
+          <VariantCard
+            key={v.channel}
+            channel={v.channel}
+            initialText={v.text}
+            max={v.max}
+            link={v.link}
+            source={source}
+          />
         ))}
       </div>
 
@@ -108,11 +120,13 @@ function VariantCard({
   initialText,
   max,
   link,
+  source,
 }: {
   channel: string;
   initialText: string;
   max: number;
   link: string;
+  source: SourceArticle;
 }) {
   const project = useProject();
   const router = useRouter();
@@ -123,6 +137,24 @@ function VariantCard({
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
   const linkTimer = useRef<number | undefined>(undefined);
+
+  // AI repurposing for this single channel (repurpose tool, via /api/ai). The
+  // deterministic variant is the initial value + fallback; on success we swap in
+  // the model's channel-native text, which still flows through the UTM link,
+  // length counter, copy and push-to-social affordances below.
+  const ai = useAiTool<RepurposeResult>("repurpose");
+  /** The AI text already applied to the editor — applied once per arrival during
+   *  render (avoids a set-state-in-effect cascade); manual edits then stick. */
+  const [appliedAiText, setAppliedAiText] = useState<string | null>(null);
+  const aiText =
+    ai.status === "done"
+      ? ai.data?.result.variants.find((v) => v.channel === channel)?.text ?? null
+      : null;
+  if (aiText && aiText !== appliedAiText) {
+    setAppliedAiText(aiText);
+    setText(aiText);
+  }
+  const usingAi = Boolean(aiText) && text === aiText;
 
   const platform = channelToPlatform(channel);
   const over = text.length > max;
@@ -174,6 +206,18 @@ function VariantCard({
   // Trim the text down to the channel's soft budget.
   const trim = () => setText((t) => t.slice(0, max));
 
+  // Ask the model for a fresh, channel-native variant of this article.
+  const regenerate = () => {
+    if (ai.status === "loading") return;
+    setAppliedAiText(null);
+    ai.run({
+      title: source.title,
+      url: source.url,
+      channels: [channel],
+      tone: REPURPOSE_TONE,
+    });
+  };
+
   const schedule = async () => {
     if (!platform || sending || text.trim().length < 2) return;
     setSending(true);
@@ -203,12 +247,44 @@ function VariantCard({
 
   return (
     <div className="card flex flex-col p-5">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-navy-800">{channel}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-navy-800">{channel}</span>
+          {usingAi ? (
+            <Pill tone="positive">
+              <Sparkles width={12} height={12} />
+              AI
+            </Pill>
+          ) : null}
+        </span>
         <span className={`tnum text-xs ${over ? "text-negative" : "text-muted"}`}>
           {text.length}/{max}
         </span>
       </div>
+
+      <button
+        type="button"
+        onClick={regenerate}
+        disabled={ai.status === "loading"}
+        className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+      >
+        {ai.status === "loading" ? (
+          <>
+            <Sparkles width={13} height={13} className="animate-pulse" />
+            Generuji…
+          </>
+        ) : usingAi ? (
+          <>
+            <Refresh width={13} height={13} />
+            Vygenerovat znovu
+          </>
+        ) : (
+          <>
+            <Sparkles width={13} height={13} />
+            Přegenerovat AI variantu
+          </>
+        )}
+      </button>
 
       <textarea
         value={text}
@@ -229,6 +305,37 @@ function VariantCard({
           Zkrátit na {max} znaků
         </button>
       )}
+
+      {/* AI generation status — loading / error / demo (keyless) mode. The text
+          itself (AI or deterministic) flows through the affordances below. */}
+      {ai.status === "loading" ? (
+        <p className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
+          <Sparkles width={14} height={14} className="shrink-0 animate-pulse" />
+          Generuji variantu na míru kanálu… mezitím vidíte deterministický návrh.
+        </p>
+      ) : null}
+      {ai.status === "error" ? (
+        <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
+          <span className="text-negative">
+            {ai.timedOut
+              ? "Model neodpověděl včas — ponecháváme deterministický návrh."
+              : `Generování selhalo${ai.error ? `: ${ai.error}` : "."} Ponecháváme deterministický návrh.`}
+          </span>
+          <button
+            type="button"
+            onClick={regenerate}
+            className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
+          >
+            Zkusit znovu
+          </button>
+        </div>
+      ) : null}
+      {usingAi && ai.data?.meta.demo ? (
+        <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
+          <Info width={14} height={14} className="shrink-0" />
+          Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+        </p>
+      ) : null}
 
       {/* The exact UTM-stamped link shipped in this variant — visible + copyable
           so attribution is verifiable, not implied. */}
