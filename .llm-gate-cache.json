@@ -1,7 +1,7 @@
 {
-  "hash": "6253105f1c7cc0f3e36cc3df9e1782bbd6e8d92b316c05c0cf2df0c099fd0690",
+  "hash": "006d3d4482eba1c88ab6228fde1e136da91506fcb08b52ff73da8b2d503f99a1",
   "passed": true,
-  "provenAt": "2026-06-18T21:45:58.490Z",
+  "provenAt": "2026-06-18T22:06:54.948Z",
   "tools": [
     "ads",
     "brief",
@@ -10,6 +10,7 @@
     "social",
     "lead-reply",
     "repurpose",
-    "local-review-reply"
+    "local-review-reply",
+    "article-draft"
   ]
 }

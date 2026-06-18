@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import {
   generateAds,
   generateAnalysis,
+  generateArticleDraft,
   generateBrief,
   generateLeadReply,
   generateLocalReviewReply,
@@ -10,6 +11,7 @@ import {
 import {
   validateAdRequest,
   validateAnalysisRequest,
+  validateArticleDraftRequest,
   validateBriefRequest,
   validateLeadReplyRequest,
   validateLocalReviewReplyRequest,
@@ -65,7 +67,8 @@ export async function POST(request: Request) {
       mode === "analysis" ||
       mode === "lead-reply" ||
       mode === "repurpose" ||
-      mode === "local-review-reply"
+      mode === "local-review-reply" ||
+      mode === "article-draft"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -112,6 +115,11 @@ export async function POST(request: Request) {
         const parsed = validateLocalReviewReplyRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLocalReviewReply(parsed.value));
+      }
+      case "article-draft": {
+        const parsed = validateArticleDraftRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateArticleDraft(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

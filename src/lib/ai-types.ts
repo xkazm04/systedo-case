@@ -6,9 +6,25 @@
  */
 
 import type { CampaignPeriod } from "./campaigns/types";
+import type { Block, FaqItem } from "./article";
 
-export type AiMode = "ads" | "brief" | "analysis" | "lead-reply" | "repurpose" | "local-review-reply";
-export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply", "repurpose", "local-review-reply"];
+export type AiMode =
+  | "ads"
+  | "brief"
+  | "analysis"
+  | "lead-reply"
+  | "repurpose"
+  | "local-review-reply"
+  | "article-draft";
+export const AI_MODES: AiMode[] = [
+  "ads",
+  "brief",
+  "analysis",
+  "lead-reply",
+  "repurpose",
+  "local-review-reply",
+  "article-draft",
+];
 
 export interface AiMeta {
   model: string;
@@ -323,3 +339,44 @@ export interface LocalReviewReplyResult {
 }
 
 export type LocalReviewReplyResponse = AiResponse<LocalReviewReplyResult>;
+
+// ===========================================================================
+// Tool 8 — article draft (Obsah & SEO: rozepíše hotový brief do plnohodnotného
+// konceptu článku jako typovaný Block[] + FAQ, který se vykreslí stejným
+// rendererem jako publikovaný článek na /clanek)
+// ===========================================================================
+
+/** The approved brief carried into the draft step — a subset of BriefResult that
+ *  grounds the article, plus the optional content type for tone/structure. */
+export interface ArticleDraftRequest {
+  /** SEO title tag — also the working article title */
+  titleTag: string;
+  /** meta description — seeds the perex / lead paragraph */
+  metaDescription: string;
+  /** H1 heading — the article's display title */
+  h1: string;
+  /** URL slug, carried through for export filenames */
+  slug: string;
+  /** the approved H2 outline (heading + bullet points) the article follows */
+  outline: { heading: string; points: string[] }[];
+  /** the approved FAQ (question + answer) re-rendered as the article's FAQ */
+  faq: { question: string; answer: string }[];
+  /** related keywords to weave in naturally (no stuffing) */
+  keywords: string[];
+  /** target audience, when known, to set the tone */
+  audience?: string;
+  /** content type (blog / category / product), when known */
+  contentType?: ContentType;
+}
+
+/** A near-publishable article draft in the app's headless content model — the
+ *  exact shape ArticleBody renders. blocks is the typed body, faq the FAQ list. */
+export interface ArticleDraftResult {
+  /** the article body as the typed Block union (paragraphs, H2/H3, lists,
+   *  callout, CTA) — renders through the same ArticleBody as /clanek */
+  blocks: Block[];
+  /** the FAQ, as the renderer's FaqItem shape (question + inline answer) */
+  faq: FaqItem[];
+}
+
+export type ArticleDraftResponse = AiResponse<ArticleDraftResult>;

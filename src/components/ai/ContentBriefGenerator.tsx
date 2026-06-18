@@ -13,6 +13,7 @@ import {
   type ContentType,
 } from "@/lib/ai-types";
 import type { BriefSeed } from "./KeywordResearch";
+import ArticleDraftPanel from "./ArticleDraftPanel";
 import {
   SERP_MAX_PX,
   SERP_META_PX,
@@ -456,6 +457,11 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
                 <p className="mt-1.5 text-sm leading-relaxed text-navy-700">{r.rationale}</p>
               </div>
             )}
+
+            {/* Brief → article draft: turn the finished skeleton into a near-
+                publishable draft as the app's typed Block[] + FAQ, rendered with
+                the same ArticleBody as /clanek and exportable as .md / JSON. */}
+            <ArticleDraftPanel brief={r} />
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

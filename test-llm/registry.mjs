@@ -222,4 +222,58 @@ export const LLM_TOOLS = [
     // Lenient: a single non-empty Czech reply string.
     validate: (r) => r && isStr(r.reply),
   },
+  {
+    id: "article-draft",
+    label: "Rozepsání briefu do článku",
+    system:
+      "Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku jako sekvenci typovaných bloků. Piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Rozepiš tento brief do STRUČNÉHO konceptu článku (krátké odstavce, max ~10 bloků). Titulek: „Skladování ořechů: jak je udržet čerstvé“. Meta description: „Praktický návod, jak skladovat ořechy a semínka, aby vydržely déle čerstvé.“ Osnova: ## Proč na skladování záleží (- žluknutí, - vlhkost); ## Jak ořechy skladovat (- chlad a tma, - vzduchotěsné nádoby). Vrať pole blocks, kde každý blok je objekt s polem type (jedno z: p, h2, h3, ul, ol, callout, cta) a podle typu poli text, items (pole řetězců), variant, title nebo cta. Vrať také pole faq (objekty question + answer). Vrať POUZE jeden JSON objekt.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        blocks: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              type: { type: Type.STRING },
+              text: { type: Type.STRING },
+              items: { type: Type.ARRAY, items: { type: Type.STRING } },
+              variant: { type: Type.STRING },
+              title: { type: Type.STRING },
+              cta: { type: Type.STRING },
+            },
+            required: ["type"],
+          },
+        },
+        faq: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              question: { type: Type.STRING },
+              answer: { type: Type.STRING },
+            },
+            required: ["question", "answer"],
+          },
+        },
+      },
+      required: ["blocks", "faq"],
+    },
+    // Lenient/structural: a non-empty blocks array whose entries each carry a
+    // recognised block `type` (and the field that type needs), so the output
+    // maps cleanly onto the app's typed Block union.
+    validate: (r) => {
+      if (!r || !Array.isArray(r.blocks) || r.blocks.length === 0) return false;
+      const KINDS = new Set(["p", "h2", "h3", "ul", "ol", "callout", "cta"]);
+      return r.blocks.every((b) => {
+        if (!b || typeof b !== "object") return false;
+        const t = typeof b.type === "string" ? b.type.toLowerCase() : "";
+        if (!KINDS.has(t)) return false;
+        if (t === "ul" || t === "ol") return isStrArr(b.items, 1);
+        return isStr(b.text);
+      });
+    },
+  },
 ];

@@ -20,3 +20,4 @@ export { generateSocialPosts } from "./social";
 export { generateLeadReply } from "./lead-reply";
 export { generateRepurpose } from "./repurpose";
 export { generateLocalReviewReply } from "./local-review-reply";
+export { generateArticleDraft } from "./article-draft";

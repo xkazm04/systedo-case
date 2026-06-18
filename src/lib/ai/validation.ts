@@ -12,6 +12,7 @@ import {
   type AdRequest,
   type AnalysisPeriod,
   type AnalysisRequest,
+  type ArticleDraftRequest,
   type BriefKeyword,
   type BriefRequest,
   type ContentType,
@@ -207,6 +208,76 @@ export function validateLocalReviewReplyRequest(input: unknown): Valid<LocalRevi
       ? { reviewText, rating, area, businessType: businessType.slice(0, 120) }
       : { reviewText, rating, area },
   };
+}
+
+/** Sanitize the approved outline carried into the draft step — cap section and
+ *  point counts, coerce each field, drop anything malformed. */
+function parseOutline(v: unknown): { heading: string; points: string[] }[] {
+  if (!Array.isArray(v)) return [];
+  const out: { heading: string; points: string[] }[] = [];
+  for (const item of v.slice(0, 12)) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const heading = str(o.heading);
+    if (!heading) continue;
+    const points = Array.isArray(o.points)
+      ? o.points.filter((p): p is string => typeof p === "string").map((p) => p.trim()).filter(Boolean).slice(0, 12)
+      : [];
+    out.push({ heading: heading.slice(0, 200), points });
+  }
+  return out;
+}
+
+/** Sanitize the approved FAQ carried into the draft step. */
+function parseFaq(v: unknown): { question: string; answer: string }[] {
+  if (!Array.isArray(v)) return [];
+  const out: { question: string; answer: string }[] = [];
+  for (const item of v.slice(0, 12)) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const question = str(o.question);
+    if (!question) continue;
+    out.push({ question: question.slice(0, 300), answer: str(o.answer).slice(0, 1200) });
+  }
+  return out;
+}
+
+export function validateArticleDraftRequest(input: unknown): Valid<ArticleDraftRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const titleTag = str(o.titleTag);
+  const metaDescription = str(o.metaDescription);
+  const h1 = str(o.h1);
+  const slug = str(o.slug);
+  const outline = parseOutline(o.outline);
+  const faq = parseFaq(o.faq);
+  const keywords = Array.isArray(o.keywords)
+    ? o.keywords.filter((k): k is string => typeof k === "string").map((k) => k.trim()).filter(Boolean).slice(0, 16)
+    : [];
+  const audience = str(o.audience);
+  const contentType = o.contentType as ContentType;
+
+  // A draft needs a working title and at least some structure to expand.
+  if (!titleTag && !h1) {
+    return { valid: false, error: "Chybí titulek nebo title tag briefu." };
+  }
+  if (outline.length === 0) {
+    return { valid: false, error: "Brief nemá žádnou osnovu k rozepsání." };
+  }
+  const value: ArticleDraftRequest = {
+    titleTag: titleTag.slice(0, 200),
+    metaDescription: metaDescription.slice(0, 400),
+    h1: h1.slice(0, 200),
+    slug: slug.slice(0, 200),
+    outline,
+    faq,
+    keywords,
+  };
+  if (audience) value.audience = audience.slice(0, 300);
+  if (CONTENT_TYPES.includes(contentType)) value.contentType = contentType;
+  return { valid: true, value };
 }
 
 export function validateEvaluationRequest(input: unknown): Valid<EvaluationRequest> {
