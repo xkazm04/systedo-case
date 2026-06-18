@@ -1,11 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
-import { Check, Sparkles } from "@/components/icons";
+import { Bolt, Check, Info, Refresh, Sparkles } from "@/components/icons";
 import { fmtCZK } from "@/lib/format";
 import type { Product } from "@/lib/catalog/sample";
-import { buildAssetGroup, type Asset } from "@/lib/catalog/generate";
+import {
+  buildAssetGroup,
+  type Asset,
+  type AssetGroup,
+  RSA_HEADLINE_MAX,
+  RSA_DESCRIPTION_MAX,
+  PMAX_LONG_HEADLINE_MAX,
+} from "@/lib/catalog/generate";
+import { useAiTool } from "@/components/ai/useAiTool";
+import { AD_LIMITS, type AdResult } from "@/lib/ai-types";
 
 function AssetChip({ a }: { a: Asset }) {
   const over = a.len > a.max;
@@ -32,10 +41,60 @@ function AssetSection({ title, assets }: { title: string; assets: Asset[] }) {
   );
 }
 
+/** Wrap a plain string in the {text,len,max} Asset shape so AI output renders
+ *  through the same AssetSection/AssetChip layout (with the char-count badge). */
+const toAsset = (text: string, max: number): Asset => ({ text, len: text.length, max });
+
+/** Fold a flat AdResult from the `ads` AI tool into the AssetGroup shape the UI
+ *  already renders, mapping each list to the matching Google Ads limit. */
+function adResultToGroup(r: AdResult, product: Product): AssetGroup {
+  return {
+    sku: product.sku,
+    finalUrl: `https://mionelo.cz/p/${product.sku.toLowerCase()}`,
+    headlines: r.headlines.map((h) => toAsset(h, AD_LIMITS.headline)),
+    longHeadlines: r.longHeadline ? [toAsset(r.longHeadline, AD_LIMITS.longHeadline)] : [],
+    descriptions: r.descriptions.map((d) => toAsset(d, AD_LIMITS.description)),
+  };
+}
+
 export default function CatalogModule({ products }: { products: Product[] }) {
   const [sku, setSku] = useState(products[0]?.sku ?? "");
   const product = products.find((p) => p.sku === sku) ?? products[0];
-  const group = useMemo(() => (product ? buildAssetGroup(product) : null), [product]);
+
+  // Deterministic, offline-always asset group — the floor that renders on a clean
+  // checkout and serves as the loading / error / not-yet-generated fallback.
+  const deterministic = useMemo(() => (product ? buildAssetGroup(product) : null), [product]);
+
+  // AI ad-copy generator (existing `ads` tool, via /api/ai). Additive: we only
+  // swap the deterministic group for the model output once it arrives.
+  const { status, data, error, timedOut, run, reset } = useAiTool<AdResult>("ads");
+  // The SKU the current AI result belongs to. The hook persists results by mode
+  // only, so we pin them to a SKU and ignore output meant for another product.
+  const [aiSku, setAiSku] = useState<string | null>(null);
+
+  // Switching products discards a previous SKU's AI output so the user never sees
+  // copy generated for a different item; the deterministic group renders instead.
+  useEffect(() => {
+    if (aiSku && aiSku !== sku) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sku]);
+
+  function generate() {
+    if (!product || status === "loading") return;
+    setAiSku(product.sku);
+    run({
+      product: product.title,
+      benefits: product.usps.join(", "),
+      audience: "Rodiče a budoucí rodiče hledající kvalitní dětské vybavení",
+      platform: "google",
+      tone: "pratelsky",
+    });
+  }
+
+  // Use the model output only when it exists, finished, and belongs to this SKU.
+  const aiResult = status === "done" && aiSku === sku ? data?.result ?? null : null;
+  const group = aiResult && product ? adResultToGroup(aiResult, product) : deterministic;
+  const usingAi = Boolean(aiResult);
 
   if (!product || !group) return null;
 
@@ -91,11 +150,66 @@ export default function CatalogModule({ products }: { products: Product[] }) {
               </p>
             </div>
           </div>
-          <Pill tone="brand">
-            <Sparkles width={13} height={13} />
-            PMax / RSA
-          </Pill>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Pill tone={usingAi ? "positive" : "brand"}>
+              <Sparkles width={13} height={13} />
+              {usingAi ? "AI texty" : "PMax / RSA"}
+            </Pill>
+            <button
+              type="button"
+              onClick={generate}
+              disabled={status === "loading"}
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+            >
+              {status === "loading" ? (
+                <>
+                  <Sparkles width={14} height={14} className="animate-pulse" />
+                  Generuji…
+                </>
+              ) : usingAi ? (
+                <>
+                  <Refresh width={14} height={14} />
+                  Generovat znovu
+                </>
+              ) : (
+                <>
+                  <Bolt width={14} height={14} />
+                  Generovat AI texty
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* generation status — loading / error / demo (keyless) mode */}
+        {status === "loading" && aiSku === sku && (
+          <p className="mt-4 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
+            <Sparkles width={14} height={14} className="animate-pulse shrink-0" />
+            Generuji on-brand texty modelem… mezitím vidíte sestavený návrh z feedu.
+          </p>
+        )}
+        {status === "error" && aiSku === sku && (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
+            <span className="text-negative">
+              {timedOut
+                ? "Model neodpověděl včas — zobrazujeme sestavený návrh z feedu."
+                : `Generování selhalo${error ? `: ${error}` : "."} Zobrazujeme návrh z feedu.`}
+            </span>
+            <button
+              type="button"
+              onClick={generate}
+              className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
+            >
+              Zkusit znovu
+            </button>
+          </div>
+        )}
+        {usingAi && data?.meta.demo && (
+          <p className="mt-4 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
+            <Info width={14} height={14} className="shrink-0" />
+            Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+          </p>
+        )}
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <AssetSection title={`Headliny (${group.headlines.length})`} assets={group.headlines} />
@@ -105,9 +219,43 @@ export default function CatalogModule({ products }: { products: Product[] }) {
           </div>
         </div>
 
+        {/* AI-only extras: callouts, keywords and the model's rationale */}
+        {usingAi && aiResult && (aiResult.callouts.length > 0 || aiResult.keywords.length > 0) && (
+          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+            {aiResult.callouts.length > 0 && (
+              <AssetSection
+                title={`Odznaky (${aiResult.callouts.length})`}
+                assets={aiResult.callouts.map((c) => toAsset(c, AD_LIMITS.callout))}
+              />
+            )}
+            {aiResult.keywords.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Klíčová slova ({aiResult.keywords.length})
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {aiResult.keywords.map((k, i) => (
+                    <span key={i} className="rounded-pill bg-navy-50 px-3 py-1.5 text-sm text-navy-700">
+                      {k}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {usingAi && aiResult?.rationale && (
+          <div className="mt-5 rounded-card border border-brand-200 bg-brand-50 p-4">
+            <p className="text-xs font-semibold text-brand-800">Proč právě takhle</p>
+            <p className="mt-1 text-sm leading-relaxed text-navy-700">{aiResult.rationale}</p>
+          </div>
+        )}
+
         <p className="mt-5 border-t border-line pt-4 text-xs text-muted">
-          Sestaveno z feedu podle limitů Google Ads (headline 30, popisek 90 znaků). Pro on-brand texty
-          napojte AI generátor (/api/ai) a Creative Studio na vizuály.
+          {usingAi
+            ? `On-brand texty vygenerované AI (mode „ads" přes /api/ai), s kontrolou limitů Google Ads (headline ${RSA_HEADLINE_MAX}, popisek ${RSA_DESCRIPTION_MAX}, dlouhý headline ${PMAX_LONG_HEADLINE_MAX} znaků).`
+            : `Sestaveno z feedu podle limitů Google Ads (headline ${RSA_HEADLINE_MAX}, popisek ${RSA_DESCRIPTION_MAX} znaků). Klikněte na „Generovat AI texty" pro on-brand verzi přes /api/ai.`}
         </p>
       </div>
     </div>
