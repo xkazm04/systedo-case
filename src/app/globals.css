@@ -101,6 +101,10 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 6rem;
   -webkit-text-size-adjust: 100%;
+
+  /* Ambient "adamant facet" pattern colour — faint dark lines on the light
+     canvas; the dark-theme blocks below flip it to faint light lines. */
+  --pattern-line: rgba(11, 27, 43, 0.03);
 }
 
 body {
@@ -133,6 +137,27 @@ body {
   background-size: 22px 22px;
 }
 
+/* Themed "adamant facet" pattern — two faint crossing diagonals form a crystal
+   lattice, echoing the faceted brand mark. Applied site-wide via <main> so the
+   product pages share one subtle, theme-adaptive texture behind their content. */
+.bg-facets {
+  background-image:
+    repeating-linear-gradient(
+      60deg,
+      var(--pattern-line) 0,
+      var(--pattern-line) 1px,
+      transparent 1px,
+      transparent 30px
+    ),
+    repeating-linear-gradient(
+      -60deg,
+      var(--pattern-line) 0,
+      var(--pattern-line) 1px,
+      transparent 1px,
+      transparent 30px
+    );
+}
+
 /* ---------------------------------------------------------------------------
    Dark theme — a parallel token set layered over the same @theme variables, so
    every `bg-*` / `text-*` utility adapts for free. Two triggers:
@@ -149,6 +174,7 @@ html[data-theme="dark"] {
   --color-ink: #e7eef5;
   --color-muted: #92a3b3;
   --color-line: #232f3c;
+  --pattern-line: rgba(168, 220, 255, 0.045);
 
   /* brand — tints darken, accents/text lighten, buttons stay saturated */
   --color-brand-50: #0c2b29;

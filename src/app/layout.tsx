@@ -74,7 +74,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <ChromeGate>
             <Nav />
           </ChromeGate>
-          <main id="obsah" className="flex-1">
+          <main id="obsah" className="flex-1 bg-facets">
             {children}
           </main>
           <ChromeGate>

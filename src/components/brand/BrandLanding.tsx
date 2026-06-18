@@ -1,291 +1,183 @@
-"use client";
-
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Container, Eyebrow, Pill } from "@/components/ui";
-import { ArrowRight, Sparkles } from "@/components/icons";
+import { Container, Eyebrow } from "@/components/ui";
+import { ArrowRight, Gauge, Sparkles, Target } from "@/components/icons";
 
 /* ---------------------------------------------------------------------------
-   Adamant — brand prototype
-   Three visual directions for the same product, each a logo-mark + key-visual
-   pair generated for the rebrand. The tab switcher (and the comparison cards
-   below) flip the featured direction so the combinations can be judged in a
-   real hero context before we commit to one and build the full landing.
+   Adamant — homepage (Monolith direction)
+   The chosen brand direction: an unbreakable obsidian monument. The hero uses
+   the wide monolith key visual as a full-bleed background decoration, faded so
+   the headline stays legible. Below, the real product surfaces. The site-wide
+   subtle facet pattern lives on <main> (see globals.css .bg-facets).
 --------------------------------------------------------------------------- */
-
-type Variant = {
-  id: string;
-  name: string;
-  index: string;
-  logo: string;
-  illu: string;
-  /** Two-part headline — second part is accented. Playful on the name. */
-  tagline: [string, string];
-  sub: string;
-  /** One-liner shown on the comparison card. */
-  concept: string;
-  /** Ambient glow colour behind the hero for this direction. */
-  glow: string;
-};
-
-const VARIANTS: Variant[] = [
-  {
-    id: "crystalline",
-    name: "Crystalline",
-    index: "01",
-    logo: "/brand/logo-crystalline.png",
-    illu: "/brand/illu-crystalline.png",
-    tagline: ["Be adamant", "about your ads."],
-    sub: "Adamant refines scattered ad spend into something rare and brilliant — one faceted, AI-cut view of every campaign, channel and koruna.",
-    concept: "A rare, faceted gem — every campaign cut clear by AI.",
-    glow: "#2dd4ce",
-  },
-  {
-    id: "monolith",
-    name: "Monolith",
-    index: "02",
-    logo: "/brand/logo-monolith.png",
-    illu: "/brand/illu-monolith.png",
-    tagline: ["Stand adamant.", "Ads that never crack."],
-    sub: "Performance you can stand on. Adamant forges your advertising into one unbreakable monument — watched, defended and optimised by AI around the clock.",
-    concept: "An unbreakable monument — performance that won't crack.",
-    glow: "#22b8cf",
-  },
-  {
-    id: "aurora",
-    name: "Aurora",
-    index: "03",
-    logo: "/brand/logo-aurora.png",
-    illu: "/brand/illu-aurora.png",
-    tagline: ["Adamant about", "every signal."],
-    sub: "A living AI core at the centre of your ads. Adamant senses every impression, click and conversion, then turns the noise into a guided, brilliant glow.",
-    concept: "A living AI core — every ad signal turned to light.",
-    glow: "#5b8dff",
-  },
-];
 
 const CHANNELS = ["Google Ads", "Sklik", "Meta", "TikTok"];
 
-export default function BrandLanding() {
-  const [active, setActive] = useState(0);
-  const v = VARIANTS[active];
+const FEATURES = [
+  {
+    href: "/dashboard",
+    icon: Gauge,
+    title: "Performance dashboard",
+    blurb:
+      "Every channel, cost and conversion in one faceted view — period deltas, goal pacing and auto-generated insights.",
+  },
+  {
+    href: "/kampane",
+    icon: Target,
+    title: "Campaign intelligence",
+    blurb:
+      "Triage what needs attention, defend your ROAS targets and grade every campaign with grounded AI evaluations.",
+  },
+  {
+    href: "/ai-asistent",
+    icon: Sparkles,
+    title: "AI ad studio",
+    blurb:
+      "Generate PPC ads, SEO briefs and analysis grounded in your real numbers — with Google Ads & Sklik limit checks.",
+  },
+];
 
+export default function BrandLanding() {
   return (
     <>
-      {/* ----------------------------------------------------------- Hero stage */}
-      <section className="relative overflow-hidden border-b border-line bg-surface">
-        <div className="absolute inset-0 bg-dotgrid opacity-70" aria-hidden />
-        <div
-          className="pointer-events-none absolute -right-32 -top-28 h-[30rem] w-[30rem] rounded-full opacity-30 blur-3xl transition-colors duration-700"
-          style={{ backgroundColor: v.glow }}
-          aria-hidden
-        />
+      {/* ------------------------------------------------------------- Hero */}
+      <section className="relative isolate overflow-hidden border-b border-onyx-line bg-onyx text-onyx-ink">
+        {/* monolith key visual — background decoration */}
+        <div className="absolute inset-0 -z-10" aria-hidden>
+          <Image
+            src="/brand/hero-monolith.png"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-[right_center]"
+          />
+          {/* keep the headline side dark + readable, fade the edges into the page */}
+          <div className="absolute inset-0 bg-gradient-to-r from-onyx via-onyx/85 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-onyx via-onyx/10 to-onyx/30" />
+        </div>
 
-        <Container className="relative py-12 lg:py-16">
-          {/* prototype label + tab switcher */}
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <Eyebrow>Brand prototype · three directions</Eyebrow>
-            <div
-              role="tablist"
-              aria-label="Brand direction"
-              className="inline-flex rounded-pill border border-line bg-canvas p-1"
-            >
-              {VARIANTS.map((variant, i) => {
-                const selected = i === active;
-                return (
-                  <button
-                    key={variant.id}
-                    role="tab"
-                    type="button"
-                    aria-selected={selected}
-                    onClick={() => setActive(i)}
-                    className={`rounded-pill px-4 py-2 text-sm font-semibold transition-colors ${
-                      selected
-                        ? "bg-brand-600 text-white shadow-card"
-                        : "text-muted hover:text-navy-700"
-                    }`}
-                  >
-                    {variant.name}
-                  </button>
-                );
-              })}
+        <Container className="relative py-20 lg:py-28">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-3">
+              <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-2xl ring-1 ring-onyx-line">
+                <Image
+                  src="/brand/logo-monolith.png"
+                  alt="Adamant logo"
+                  width={44}
+                  height={44}
+                  className="h-full w-full scale-[1.08] object-cover"
+                />
+              </span>
+              <div className="leading-none">
+                <p className="text-xl font-semibold tracking-tight text-white">Adamant</p>
+                <p className="mt-1 text-[12px] font-medium uppercase tracking-[0.18em] text-onyx-muted">
+                  AI ad intelligence
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* featured direction — re-keyed so it eases in on switch */}
-          <div
-            key={v.id}
-            className="animate-fade-up mt-10 grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]"
-          >
-            {/* left — identity + message */}
-            <div>
-              <div className="flex items-center gap-3">
-                <span className="relative grid h-12 w-12 place-items-center overflow-hidden rounded-2xl ring-1 ring-line">
-                  <Image
-                    src={v.logo}
-                    alt={`Adamant — ${v.name} logo mark`}
-                    width={48}
-                    height={48}
-                    className="h-full w-full scale-[1.08] object-cover"
-                  />
+            <span className="mt-7 inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/60 px-3 py-1.5 text-xs font-semibold text-brand-300">
+              <Sparkles width={13} height={13} />A rare breed in adtech
+            </span>
+
+            <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Stand adamant.
+              <br />
+              <span className="text-brand-300">Ads that never crack.</span>
+            </h1>
+
+            <p className="mt-5 max-w-lg text-lg leading-relaxed text-onyx-muted">
+              Performance you can stand on. Adamant forges your advertising into one unbreakable
+              monument — watched, defended and optimised by AI around the clock.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 shadow-card transition-[background-color,transform] hover:bg-brand-400 active:scale-[0.99]"
+              >
+                Start free
+                <ArrowRight width={17} height={17} />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/40 px-5 py-3 text-sm font-semibold text-onyx-ink transition-colors hover:border-brand-400 hover:text-brand-200"
+              >
+                See it work
+              </Link>
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center gap-2 text-sm text-onyx-muted">
+              <span className="font-medium">Works across</span>
+              {CHANNELS.map((c) => (
+                <span
+                  key={c}
+                  className="rounded-pill border border-onyx-line bg-onyx-soft/40 px-2.5 py-1 text-xs font-medium text-onyx-ink"
+                >
+                  {c}
                 </span>
-                <div className="leading-none">
-                  <p className="text-2xl font-semibold tracking-tight text-navy-800">Adamant</p>
-                  <p className="mt-1 text-[13px] font-medium uppercase tracking-[0.16em] text-muted">
-                    AI ad intelligence
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <Pill tone="brand">
-                  <Sparkles width={13} height={13} />A rare breed in adtech
-                </Pill>
-              </div>
-
-              <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight text-navy-800 sm:text-5xl">
-                {v.tagline[0]}
-                <br />
-                <span className="text-brand-accent">{v.tagline[1]}</span>
-              </h1>
-
-              <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">{v.sub}</p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link
-                  href="/app"
-                  className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99]"
-                >
-                  Start free
-                  <ArrowRight width={17} height={17} />
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className="inline-flex items-center gap-2 rounded-pill border border-line bg-surface px-5 py-3 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
-                >
-                  See it work
-                </Link>
-              </div>
-
-              <div className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-muted">
-                <span className="font-medium">Works across</span>
-                {CHANNELS.map((c) => (
-                  <span
-                    key={c}
-                    className="rounded-pill border border-line bg-canvas px-2.5 py-1 text-xs font-medium text-navy-700"
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* right — key visual showcase */}
-            <div className="relative">
-              <div className="overflow-hidden rounded-card border border-onyx-line bg-onyx shadow-pop">
-                <div className="relative aspect-[1280/768]">
-                  <Image
-                    src={v.illu}
-                    alt={`Adamant — ${v.name} key visual`}
-                    fill
-                    priority
-                    sizes="(min-width: 1024px) 52vw, 100vw"
-                    className="object-cover"
-                  />
-                  <div
-                    className="pointer-events-none absolute inset-0 bg-gradient-to-t from-onyx/50 via-transparent to-transparent"
-                    aria-hidden
-                  />
-                </div>
-              </div>
-              <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-pill bg-onyx/80 px-3 py-1.5 text-xs font-medium text-onyx-ink backdrop-blur">
-                Key visual · {v.name}
-              </span>
-              <span className="absolute right-3 top-3 rounded-pill bg-onyx/80 px-3 py-1.5 text-xs font-semibold text-onyx-ink backdrop-blur">
-                {v.index} / 03
-              </span>
+              ))}
             </div>
           </div>
         </Container>
       </section>
 
-      {/* ------------------------------------------------------- Compare strip */}
-      <Container className="py-14 sm:py-16">
+      {/* --------------------------------------------------------- Product */}
+      <Container className="py-16 sm:py-20">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <Eyebrow>Compare directions</Eyebrow>
+            <Eyebrow>The workspace</Eyebrow>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
-              Three ways to wear the name
+              Everything you need to be adamant
             </h2>
           </div>
-          <p className="max-w-sm text-sm text-muted">
-            Same product, three identities. Tap a card to preview its logo and key visual in the
-            hero above.
+          <p className="max-w-md text-sm text-muted">
+            Three surfaces, one source of truth. Measure performance, defend your campaigns and
+            create the ads — all grounded in the same data.
           </p>
         </div>
 
-        <div className="mt-8 grid gap-5 sm:grid-cols-3">
-          {VARIANTS.map((variant, i) => {
-            const selected = i === active;
+        <div className="mt-10 grid gap-5 sm:grid-cols-3">
+          {FEATURES.map((f) => {
+            const Icon = f.icon;
             return (
-              <button
-                key={variant.id}
-                type="button"
-                onClick={() => setActive(i)}
-                aria-pressed={selected}
-                className={`card group flex flex-col items-start p-5 text-left transition-all hover:-translate-y-0.5 hover:shadow-pop ${
-                  selected ? "ring-2 ring-brand-500" : ""
-                }`}
+              <Link
+                key={f.href}
+                href={f.href}
+                className="card group flex flex-col p-6 transition-all hover:-translate-y-1 hover:shadow-pop active:translate-y-0 active:scale-[0.99]"
               >
-                <span className="relative h-16 w-16 overflow-hidden rounded-2xl ring-1 ring-line">
-                  <Image
-                    src={variant.logo}
-                    alt={`Adamant — ${variant.name} logo mark`}
-                    width={64}
-                    height={64}
-                    className="h-full w-full scale-[1.08] object-cover"
+                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                  <Icon width={22} height={22} />
+                </span>
+                <h3 className="mt-5 text-lg font-semibold text-navy-800">{f.title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{f.blurb}</p>
+                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent">
+                  Open
+                  <ArrowRight
+                    width={16}
+                    height={16}
+                    className="transition-transform group-hover:translate-x-1"
                   />
                 </span>
-                <h3 className="mt-4 text-lg font-semibold text-navy-800">{variant.name}</h3>
-                <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted">{variant.concept}</p>
-                <span
-                  className={`mt-4 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] ${
-                    selected ? "text-brand-accent" : "text-muted"
-                  }`}
-                >
-                  {selected ? "Previewing" : "Preview"}
-                  {!selected && (
-                    <ArrowRight
-                      width={14}
-                      height={14}
-                      className="transition-transform group-hover:translate-x-0.5"
-                    />
-                  )}
-                </span>
-              </button>
+              </Link>
             );
           })}
         </div>
       </Container>
 
-      {/* --------------------------------------------------------- Next step */}
-      <section className="border-t border-line bg-onyx">
-        <Container className="py-12">
+      {/* ------------------------------------------------------- Closing CTA */}
+      <section className="border-t border-onyx-line bg-onyx">
+        <Container className="py-14">
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-300">
-                Next step
-              </span>
-              <h2 className="mt-2 max-w-xl text-xl font-semibold leading-snug text-white">
-                Pick a direction — we&apos;ll build the full Adamant landing page around it.
-              </h2>
-            </div>
+            <h2 className="max-w-xl text-2xl font-semibold leading-snug tracking-tight text-white">
+              Be adamant about your ads.
+            </h2>
             <Link
-              href="/dashboard"
+              href="/app"
               className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
             >
-              See the product
+              Start free
               <ArrowRight width={17} height={17} />
             </Link>
           </div>

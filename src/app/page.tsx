@@ -1,8 +1,8 @@
 import BrandLanding from "@/components/brand/BrandLanding";
 
-/** Home — Adamant brand prototype. Three logo + key-visual directions, switchable
- *  by the tab switcher (and the comparison cards). The full product landing is
- *  built on top of whichever direction we pick. */
+/** Home — Adamant product landing, Monolith brand direction. Hero uses the wide
+ *  monolith key visual as a background decoration; below are the real product
+ *  surfaces. Site-wide subtle facet pattern lives on <main> (globals.css). */
 export default function HomePage() {
   return <BrandLanding />;
 }
