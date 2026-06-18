@@ -12,7 +12,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   await requireProjectModule(projectId, "srovnani-seo");
   return (
     <ModulePage moduleKey="srovnani-seo">
-      <CompareSeoModule queries={SAMPLE_QUERIES} projectId={projectId} />
+      <CompareSeoModule queries={SAMPLE_QUERIES} />
     </ModulePage>
   );
 }
