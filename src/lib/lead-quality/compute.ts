@@ -60,3 +60,103 @@ export function summarize(sources: LeadSource[]): LeadQualitySummary {
     junkCount: rows.filter((r) => r.junk).length,
   };
 }
+
+/** One stage of the lead → close funnel: its absolute count, the conversion %
+ *  from the *previous* stage (1 for the first stage), and the absolute drop-off
+ *  lost since the previous stage. */
+export interface FunnelStage {
+  key: "leads" | "qualified" | "opportunities" | "won";
+  label: string;
+  count: number;
+  /** count / previous count; 1 for the first (entry) stage */
+  conversion: number;
+  /** previous count − count; 0 for the first stage */
+  dropOff: number;
+}
+
+export interface SourceFunnel {
+  source: string;
+  campaign?: string;
+  stages: FunnelStage[];
+  /** end-to-end leads → won */
+  overallConversion: number;
+}
+
+const STAGE_LABELS = {
+  leads: "Lead",
+  qualified: "SQL",
+  opportunities: "Příležitost",
+  won: "Uzavřeno",
+} as const;
+
+/** Build the Lead → SQL → (Opportunity) → Won funnel for one source with
+ *  per-step conversion and absolute drop-off. The opportunity stage is skipped
+ *  when `opportunities` is absent, so a source without it degrades to the
+ *  three-stage funnel without regression. */
+export function sourceFunnel(s: LeadSource): SourceFunnel {
+  const ordered: Array<{ key: FunnelStage["key"]; count: number }> = [
+    { key: "leads", count: s.leads },
+    { key: "qualified", count: s.qualified },
+  ];
+  if (typeof s.opportunities === "number") {
+    ordered.push({ key: "opportunities", count: s.opportunities });
+  }
+  ordered.push({ key: "won", count: s.won });
+
+  const stages: FunnelStage[] = ordered.map((stage, i) => {
+    const prev = i > 0 ? ordered[i - 1].count : stage.count;
+    return {
+      key: stage.key,
+      label: STAGE_LABELS[stage.key],
+      count: stage.count,
+      conversion: i === 0 ? 1 : prev > 0 ? stage.count / prev : 0,
+      dropOff: i === 0 ? 0 : Math.max(0, prev - stage.count),
+    };
+  });
+
+  return {
+    source: s.source,
+    campaign: s.campaign,
+    stages,
+    overallConversion: s.leads > 0 ? s.won / s.leads : 0,
+  };
+}
+
+/** Funnels for every source, in input order. */
+export function funnelBySource(sources: LeadSource[]): SourceFunnel[] {
+  return sources.map(sourceFunnel);
+}
+
+/** Average days-in-stage. Each leg (qualify / close) is included only when its
+ *  source field is present; `total` is the sum of the available legs, or null
+ *  when no velocity data exists at all (→ hide the velocity view). */
+export interface Velocity {
+  daysToQualify: number | null;
+  daysToClose: number | null;
+  /** daysToQualify + daysToClose over the available legs; null if neither known */
+  total: number | null;
+}
+
+const mean = (xs: number[]): number | null =>
+  xs.length > 0 ? xs.reduce((a, x) => a + x, 0) / xs.length : null;
+
+/** Blended average velocity across sources, weighting each source equally.
+ *  Sources missing a leg are simply excluded from that leg's average — so a
+ *  dataset with no velocity fields yields all-null (caller hides the view). */
+export function avgVelocity(sources: LeadSource[]): Velocity {
+  const toQualify = sources
+    .map((s) => s.daysToQualify)
+    .filter((d): d is number => typeof d === "number");
+  const toClose = sources
+    .map((s) => s.daysToClose)
+    .filter((d): d is number => typeof d === "number");
+
+  const daysToQualify = mean(toQualify);
+  const daysToClose = mean(toClose);
+  const total =
+    daysToQualify === null && daysToClose === null
+      ? null
+      : (daysToQualify ?? 0) + (daysToClose ?? 0);
+
+  return { daysToQualify, daysToClose, total };
+}
