@@ -31,6 +31,12 @@ export interface CohortMetrics extends Cohort {
   paidCac: number;
   /** per-channel economics when the cohort has a breakdown, else empty */
   channelMetrics: ChannelMetrics[];
+  /** retention survival curve M0…M(horizon-1): observed months followed by the
+   *  geometrically extrapolated tail (so the UI can draw the decay shape) */
+  survival: number[];
+  /** count of leading `survival` entries backed by observed retention data; the
+   *  remainder is modeled (extrapolated) and should read as visually distinct */
+  observedMonths: number;
 }
 
 export interface LtvSummary {
@@ -108,7 +114,61 @@ export function withMetrics(c: Cohort): CohortMetrics {
     paybackMonth,
     paidCac,
     channelMetrics,
+    survival,
+    observedMonths: Math.min(c.retention.length, LTV_HORIZON),
   };
+}
+
+/** A survival curve laid out as an SVG sparkline: each point is mapped into a
+ *  [0,width] × [0,height] box (y inverted so 100 % retention sits at the top).
+ *  The curve is split at `observedMonths` into the data-backed `observed`
+ *  segment and the modeled `extrapolated` tail, which share one boundary point
+ *  so the polylines join seamlessly. Pure — no DOM. */
+export interface SparklinePoint {
+  x: number;
+  y: number;
+}
+export interface SurvivalSparkline {
+  observed: SparklinePoint[];
+  extrapolated: SparklinePoint[];
+}
+
+/** Build sparkline geometry from a survival curve. Retention is a fraction in
+ *  [0,1]; the y-axis is fixed to that range (not auto-scaled) so curves are
+ *  comparable across cohorts. A single-point curve yields one observed point and
+ *  no extrapolated segment. `width`/`height` are the SVG view box in px. */
+export function survivalSparkline(
+  survival: number[],
+  observedMonths: number,
+  width: number,
+  height: number
+): SurvivalSparkline {
+  const n = survival.length;
+  if (n === 0) return { observed: [], extrapolated: [] };
+  const obs = Math.max(0, Math.min(observedMonths, n));
+  const step = n > 1 ? width / (n - 1) : 0;
+  const points: SparklinePoint[] = survival.map((s, i) => ({
+    x: i * step,
+    // clamp the fraction to [0,1] then invert: 1 → y=0 (top), 0 → y=height
+    y: height * (1 - Math.min(1, Math.max(0, s))),
+  }));
+  // The extrapolated polyline reuses the last observed point as its first vertex
+  // so the two segments connect without a visual gap.
+  const splitAt = Math.max(0, obs - 1);
+  return {
+    observed: points.slice(0, obs),
+    extrapolated: obs < n ? points.slice(splitAt) : [],
+  };
+}
+
+/** Serialize sparkline points into an SVG `points` attribute ("x,y x,y …").
+ *  Coordinates are rounded to 2 decimals to keep the markup compact. */
+export function sparklinePoints(points: SparklinePoint[]): string {
+  return points.map((p) => `${round2(p.x)},${round2(p.y)}`).join(" ");
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 /** Direction of the cohort trend, derived from whether LTV:CAC is rising from the

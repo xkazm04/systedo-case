@@ -3,7 +3,7 @@ import { Bulb, TrendUp, TrendDown } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
-import { cohortTrend } from "@/lib/ltv/compute";
+import { cohortTrend, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
 
@@ -80,6 +80,54 @@ function blendChannels(rows: CohortMetrics[]): BlendedChannel[] {
 
 function channelColor(channel: string): string {
   return LTV_CHANNEL_COLORS[channel] ?? FALLBACK_CHANNEL_COLOR;
+}
+
+const SPARK_W = 96;
+const SPARK_H = 28;
+
+/** Inline SVG retention sparkline for one cohort (vlastní SVG graf): the observed
+ *  months render as a solid line, the extrapolated tail as a lighter dashed line,
+ *  so the modeled part of the decay reads as an estimate, not measured data. */
+function SurvivalSpark({ row }: { row: CohortMetrics }) {
+  const { observed, extrapolated } = survivalSparkline(row.survival, row.observedMonths, SPARK_W, SPARK_H);
+  if (observed.length === 0) return <span className="text-muted">—</span>;
+  const lastObserved = observed[observed.length - 1]!;
+  const lastMonth = row.survival.length;
+  const lastPct = fmtPct(row.survival[row.survival.length - 1] ?? 0);
+  return (
+    <svg
+      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+      width={SPARK_W}
+      height={SPARK_H}
+      className="overflow-visible"
+      role="img"
+      aria-label={`Retenční křivka kohorty ${row.month}: ${row.observedMonths} pozorovaných měsíců, do M${lastMonth - 1} modelováno na ${lastPct}`}
+    >
+      {extrapolated.length >= 2 && (
+        <polyline
+          points={sparklinePoints(extrapolated)}
+          fill="none"
+          stroke="var(--color-brand-accent)"
+          strokeWidth={1.5}
+          strokeOpacity={0.45}
+          strokeDasharray="2 2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+      {observed.length >= 2 && (
+        <polyline
+          points={sparklinePoints(observed)}
+          fill="none"
+          stroke="var(--color-brand-accent)"
+          strokeWidth={1.75}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+      <circle cx={lastObserved.x} cy={lastObserved.y} r={1.75} fill="var(--color-brand-accent)" />
+    </svg>
+  );
 }
 
 export default function LtvModule({
@@ -163,6 +211,7 @@ export default function LtvModule({
                 <th className="px-4 py-3 text-right font-medium">Registrace</th>
                 <th className="px-4 py-3 text-right font-medium">CAC</th>
                 <th className="px-4 py-3 text-right font-medium">M3 retence</th>
+                <th className="px-4 py-3 text-center font-medium">Retenční křivka</th>
                 <th className="px-4 py-3 text-right font-medium">LTV</th>
                 <th className="px-4 py-3 text-right font-medium">LTV:CAC</th>
                 <th className="px-4 py-3 text-right font-medium">Návratnost</th>
@@ -175,6 +224,11 @@ export default function LtvModule({
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(r.signups)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZK(r.cac)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(r.m3)}</td>
+                  <td className="px-4 py-3">
+                    <span className="flex justify-center">
+                      <SurvivalSpark row={r} />
+                    </span>
+                  </td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZK(r.ltv)}</td>
                   <td className={`tnum px-4 py-3 text-right font-semibold ${ratioTone(r.ltvCac)}`}>
                     {fmtMultiple(r.ltvCac)}
@@ -187,9 +241,32 @@ export default function LtvModule({
             </tbody>
           </table>
         </div>
-        <div className="border-t border-line px-5 py-3 text-xs text-muted">
-          LTV počítáno na {12} měsíců s extrapolací retenční křivky. Seam: napojit události z product
-          analytics (Segment / PostHog / Stripe).
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line px-5 py-3 text-xs text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 18 8" width={18} height={8} aria-hidden="true">
+              <line x1={0} y1={4} x2={18} y2={4} stroke="var(--color-brand-accent)" strokeWidth={1.75} />
+            </svg>
+            pozorováno
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <svg viewBox="0 0 18 8" width={18} height={8} aria-hidden="true">
+              <line
+                x1={0}
+                y1={4}
+                x2={18}
+                y2={4}
+                stroke="var(--color-brand-accent)"
+                strokeWidth={1.75}
+                strokeOpacity={0.45}
+                strokeDasharray="2 2"
+              />
+            </svg>
+            modelováno
+          </span>
+          <span>
+            LTV počítáno na {12} měsíců s extrapolací retenční křivky. Seam: napojit události z product
+            analytics (Segment / PostHog / Stripe).
+          </span>
         </div>
       </div>
 
