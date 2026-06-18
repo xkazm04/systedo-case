@@ -16,11 +16,14 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   const season = monthlySeasonality(data.daily);
   const lastDate = data.daily.at(-1)?.date;
-  const currentMonth = lastDate ? new Date(`${lastDate}T00:00:00Z`).getUTCMonth() : 0;
+  // Reference "now" derived server-side from the dataset's last day, so the
+  // projected stockout dates are deterministic (no Date.now() in the client render).
+  const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
+  const currentMonth = now.getUTCMonth();
 
   return (
     <ModulePage moduleKey="sklad-sezonnost">
-      <InventorySeasonModule season={season} currentMonth={currentMonth} stock={stockRows(SAMPLE_PRODUCTS)} />
+      <InventorySeasonModule season={season} currentMonth={currentMonth} stock={stockRows(SAMPLE_PRODUCTS, now)} />
     </ModulePage>
   );
 }

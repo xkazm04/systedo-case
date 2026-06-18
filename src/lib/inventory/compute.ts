@@ -37,13 +37,41 @@ export interface StockRow {
   daysOfCover: number;
   status: StockStatus;
   action: string;
+  /** projected stockout horizon in whole days (= rounded daysOfCover; Infinity = never) */
+  stockoutDays: number;
+  /** projected stockout date as ISO (YYYY-MM-DD), or null when cover is infinite */
+  stockoutAt: string | null;
+  /** trending toward stockout (< AT_RISK_DAYS) but not yet a hard pause — early warning */
+  atRisk: boolean;
 }
 
 const DAYS_PAUSE = 7;
 const DAYS_LOW = 21;
+/** Days-of-cover below which a SKU is flagged "at risk soon" (early warning). */
+export const AT_RISK_DAYS = 14;
 
-/** Per-product days-of-cover + a budget action, worst cover first. */
-export function stockRows(products: Product[]): StockRow[] {
+/** Projected stockout from a point-in-time days-of-cover and a reference date.
+ *  Pure & deterministic: the caller supplies `now` (server-derived) so the same
+ *  inputs always yield the same projected date — no `Date.now()` at call time. */
+export function projectStockout(
+  daysOfCover: number,
+  now: Date
+): { stockoutDays: number; stockoutAt: string | null; atRisk: boolean } {
+  if (!Number.isFinite(daysOfCover)) {
+    return { stockoutDays: Infinity, stockoutAt: null, atRisk: false };
+  }
+  const stockoutDays = Math.round(daysOfCover);
+  const at = new Date(now.getTime());
+  at.setUTCDate(at.getUTCDate() + stockoutDays);
+  const stockoutAt = at.toISOString().slice(0, 10);
+  const atRisk = daysOfCover >= DAYS_PAUSE && daysOfCover < AT_RISK_DAYS;
+  return { stockoutDays, stockoutAt, atRisk };
+}
+
+/** Per-product days-of-cover + a budget action, worst cover first. `now` is the
+ *  reference date for the projected stockout (defaults to the current instant —
+ *  always pass a server-derived date from a client render to stay deterministic). */
+export function stockRows(products: Product[], now: Date = new Date()): StockRow[] {
   return products
     .map((product) => {
       const daysOfCover = product.dailyVelocity > 0 ? product.stock / product.dailyVelocity : Infinity;
@@ -54,7 +82,8 @@ export function stockRows(products: Product[]): StockRow[] {
           : status === "low"
             ? "Snížit rozpočet — nízká zásoba"
             : "Jet naplno — zásoba v pořádku";
-      return { product, daysOfCover, status, action };
+      const { stockoutDays, stockoutAt, atRisk } = projectStockout(daysOfCover, now);
+      return { product, daysOfCover, status, action, stockoutDays, stockoutAt, atRisk };
     })
     .sort((a, b) => a.daysOfCover - b.daysOfCover);
 }

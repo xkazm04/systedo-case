@@ -3,7 +3,7 @@
 import { Pill, type PillTone } from "@/components/ui";
 import { Calendar } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtInt, fmtMultiple } from "@/lib/format";
+import { fmtDateShort, fmtInt, fmtMultiple } from "@/lib/format";
 import type { SeasonMonth, StockRow, StockStatus } from "@/lib/inventory/compute";
 
 const STATUS_META: Record<StockStatus, { tone: PillTone; label: string }> = {
@@ -34,6 +34,7 @@ export default function InventorySeasonModule({
         : `Nadcházející měsíc (${next.label}) je sezónně průměrný — index ${fmtMultiple(next.index)}.`;
 
   const pauseCount = stock.filter((s) => s.status === "pause").length;
+  const atRiskCount = stock.filter((s) => s.atRisk).length;
 
   return (
     <div className="space-y-6">
@@ -77,11 +78,14 @@ export default function InventorySeasonModule({
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h3 className="text-base font-semibold text-navy-800">Skladová dostupnost & rozpočet</h3>
-          {pauseCount > 0 ? (
-            <Pill tone="negative">{pauseCount} k pozastavení</Pill>
-          ) : (
-            <Pill tone="positive">Zásoby v pořádku</Pill>
-          )}
+          <div className="flex items-center gap-2">
+            {atRiskCount > 0 && <Pill tone="coral">{atRiskCount} brzy dojde</Pill>}
+            {pauseCount > 0 ? (
+              <Pill tone="negative">{pauseCount} k pozastavení</Pill>
+            ) : (
+              atRiskCount === 0 && <Pill tone="positive">Zásoby v pořádku</Pill>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -91,12 +95,13 @@ export default function InventorySeasonModule({
                 <th className="px-4 py-3 text-right font-medium">Sklad</th>
                 <th className="px-4 py-3 text-right font-medium">Prodej/den</th>
                 <th className="px-4 py-3 text-right font-medium">Dní zásoby</th>
+                <th className="px-4 py-3 font-medium">Vyprodáno za</th>
                 <th className="px-4 py-3 font-medium">Stav</th>
                 <th className="px-5 py-3 font-medium">Doporučení</th>
               </tr>
             </thead>
             <tbody>
-              {stock.map(({ product, daysOfCover, status, action }) => {
+              {stock.map(({ product, daysOfCover, status, action, stockoutAt, atRisk }) => {
                 const meta = STATUS_META[status];
                 return (
                   <tr key={product.sku} className="border-b border-line/70 last:border-0">
@@ -110,6 +115,15 @@ export default function InventorySeasonModule({
                     <td className="tnum px-4 py-3 text-right text-navy-700">{product.dailyVelocity.toFixed(1)}</td>
                     <td className="tnum px-4 py-3 text-right font-medium text-navy-800">
                       {Number.isFinite(daysOfCover) ? `${Math.round(daysOfCover)} dní` : "—"}
+                    </td>
+                    <td className="tnum px-4 py-3">
+                      {stockoutAt ? (
+                        <span className={atRisk ? "font-medium text-coral-600" : "text-navy-700"}>
+                          {fmtDateShort(stockoutAt)}
+                        </span>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <Pill tone={meta.tone}>{meta.label}</Pill>

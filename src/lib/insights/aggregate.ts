@@ -10,7 +10,7 @@ import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import { computeProfit } from "@/lib/profit/compute";
 import { defaultMargins } from "@/lib/profit/sample";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
-import { monthlySeasonality, stockRows } from "@/lib/inventory/compute";
+import { AT_RISK_DAYS, monthlySeasonality, stockRows } from "@/lib/inventory/compute";
 import { SAMPLE_SOURCES } from "@/lib/lead-quality/sample";
 import { withMetrics as leadMetrics } from "@/lib/lead-quality/compute";
 import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
@@ -46,17 +46,28 @@ function eshopRecs(project: Project): Recommendation[] {
       fmtCZK(r.netProfit)));
   }
 
+  // Reference "now" derived from the dataset's last day → deterministic projected dates.
+  const lastDate = data.daily.at(-1)?.date;
+  const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
+  const stock = stockRows(SAMPLE_PRODUCTS, now);
+
   // Stock → items about to run out
-  for (const s of stockRows(SAMPLE_PRODUCTS).filter((s) => s.status === "pause")) {
+  for (const s of stock.filter((s) => s.status === "pause")) {
     out.push(rec("sklad-sezonnost", "warning", `${s.product.title} brzy dojde`,
       `Zásoba na ${Math.round(s.daysOfCover)} dní — zvažte pozastavení reklamy na tento produkt.`,
       `${Math.round(s.daysOfCover)} dní`));
   }
 
+  // Stock → early warning: SKUs trending toward stockout (< 14 dní), not yet a hard pauza.
+  for (const s of stock.filter((s) => s.atRisk)) {
+    out.push(rec("sklad-sezonnost", "opportunity", `${s.product.title} se blíží vyprodání`,
+      `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní) — doplňte sklad včas, než bude nutné pozastavit reklamu.`,
+      `${Math.round(s.daysOfCover)} dní`));
+  }
+
   // Seasonality → upcoming peak
   const season = monthlySeasonality(data.daily);
-  const lastDate = data.daily.at(-1)?.date;
-  const cur = lastDate ? new Date(`${lastDate}T00:00:00Z`).getUTCMonth() : 0;
+  const cur = now.getUTCMonth();
   const next = season[(cur + 1) % 12]!;
   if (next.index >= 1.15) {
     out.push(rec("sklad-sezonnost", "opportunity", `${next.label} bývá sezónní špička`,
