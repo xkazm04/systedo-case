@@ -2,6 +2,7 @@
 import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
 import DecayTable from "@/components/app/modules/DecayTable";
+import ClusterBuilder from "@/components/app/modules/ClusterBuilder";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { clusterStats, decayingPosts } from "@/lib/content-engine/compute";
 import type { DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
@@ -65,6 +66,8 @@ export default function ContentEngineModule({
           znovu prolinkujte do klastru.
         </div>
       </div>
+
+      <ClusterBuilder />
 
       <NextSteps
         steps={[
