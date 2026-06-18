@@ -7,8 +7,8 @@
 
 import type { CampaignPeriod } from "./campaigns/types";
 
-export type AiMode = "ads" | "brief" | "analysis" | "lead-reply" | "repurpose";
-export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply", "repurpose"];
+export type AiMode = "ads" | "brief" | "analysis" | "lead-reply" | "repurpose" | "local-review-reply";
+export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply", "repurpose", "local-review-reply"];
 
 export interface AiMeta {
   model: string;
@@ -299,3 +299,27 @@ export interface RepurposeResult {
 }
 
 export type RepurposeResponse = AiResponse<RepurposeResult>;
+
+// ===========================================================================
+// Tool 7 — local review reply (Lokální dominance: draft a public reply to a
+// Google Business review — warm thanks for high ratings, empathetic
+// de-escalation + an offline contact offer for low ratings)
+// ===========================================================================
+
+export interface LocalReviewReplyRequest {
+  /** the public review text we're replying to */
+  reviewText: string;
+  /** the star rating left by the reviewer (1–5) — drives the tone */
+  rating: number;
+  /** the locality the review belongs to, for a place-aware reply */
+  area: string;
+  /** optional business type, to keep the reply on-brand */
+  businessType?: string;
+}
+
+export interface LocalReviewReplyResult {
+  /** the full, ready-to-publish public reply to the review */
+  reply: string;
+}
+
+export type LocalReviewReplyResponse = AiResponse<LocalReviewReplyResult>;

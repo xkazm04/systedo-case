@@ -1,7 +1,7 @@
 {
-  "hash": "c5a116eb5b59073135765b170f9824b9292f2547b428aa4bab279d20ace81074",
+  "hash": "6253105f1c7cc0f3e36cc3df9e1782bbd6e8d92b316c05c0cf2df0c099fd0690",
   "passed": true,
-  "provenAt": "2026-06-18T21:35:58.686Z",
+  "provenAt": "2026-06-18T21:45:58.490Z",
   "tools": [
     "ads",
     "brief",
@@ -9,6 +9,7 @@
     "campaign-eval",
     "social",
     "lead-reply",
-    "repurpose"
+    "repurpose",
+    "local-review-reply"
   ]
 }

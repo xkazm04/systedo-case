@@ -4,7 +4,8 @@ import type { PillTone } from "@/components/ui";
 import { Pin } from "@/components/icons";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { gaps, localSummary, matrix } from "@/lib/local/compute";
-import type { LocalTarget, ReviewProfile } from "@/lib/local/sample";
+import type { LocalTarget, RecentReview, ReviewProfile } from "@/lib/local/sample";
+import LocalReviews from "@/components/app/modules/LocalReviews";
 
 const star = (r: number) => `${r.toFixed(1).replace(".", ",")} ★`;
 
@@ -20,9 +21,11 @@ function rankCell(t: LocalTarget | undefined): { tone: PillTone; label: string }
 export default function LocalModule({
   targets,
   reviews,
+  recentReviews,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
+  recentReviews: RecentReview[];
 }) {
   const s = localSummary(targets, reviews);
   const gapRows = gaps(targets);
@@ -155,6 +158,8 @@ export default function LocalModule({
           ))}
         </div>
       </div>
+
+      <LocalReviews reviews={recentReviews} businessType="montáž a servis klimatizací a elektroinstalací" />
     </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   type EvaluationRequest,
   type LeadReplyChannel,
   type LeadReplyRequest,
+  type LocalReviewReplyRequest,
   type Platform,
   type RepurposeRequest,
   type Tone,
@@ -178,6 +179,33 @@ export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest
     value: body
       ? { title, url, tone, channels, body: body.slice(0, 6000) }
       : { title, url, tone, channels },
+  };
+}
+
+export function validateLocalReviewReplyRequest(input: unknown): Valid<LocalReviewReplyRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const reviewText = str(o.reviewText);
+  const area = str(o.area);
+  const businessType = str(o.businessType);
+  const rating = Math.round(Number(o.rating));
+
+  if (reviewText.length < 2 || reviewText.length > 1500) {
+    return { valid: false, error: "Zadejte text recenze (2–1500 znaků)." };
+  }
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+    return { valid: false, error: "Hodnocení musí být v rozsahu 1–5 hvězd." };
+  }
+  if (area.length < 1 || area.length > 120) {
+    return { valid: false, error: "Vyplňte lokalitu (1–120 znaků)." };
+  }
+  return {
+    valid: true,
+    value: businessType
+      ? { reviewText, rating, area, businessType: businessType.slice(0, 120) }
+      : { reviewText, rating, area },
   };
 }
 

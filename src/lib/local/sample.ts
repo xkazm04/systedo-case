@@ -19,6 +19,16 @@ export interface ReviewProfile {
   rating: number;
 }
 
+/** A single illustrative public review — the unit a reply is drafted for. */
+export interface RecentReview {
+  id: string;
+  area: string;
+  author: string;
+  /** star rating 1–5 */
+  rating: number;
+  text: string;
+}
+
 export const SAMPLE_TARGETS: LocalTarget[] = [
   { area: "Praha", service: "Montáž klimatizací", monthlyVolume: 880, hasPage: true, rank: 4 },
   { area: "Praha", service: "Servis a revize", monthlyVolume: 540, hasPage: true, rank: 7 },
@@ -36,4 +46,37 @@ export const SAMPLE_REVIEWS: ReviewProfile[] = [
   { area: "Brno", reviews: 74, rating: 4.7 },
   { area: "Ostrava", reviews: 31, rating: 4.5 },
   { area: "Plzeň", reviews: 19, rating: 4.9 },
+];
+
+/** A few illustrative public reviews spanning high and low ratings — the seam for
+ *  a reviews API (Google Business Profile). Each can be answered with an AI draft. */
+export const SAMPLE_RECENT_REVIEWS: RecentReview[] = [
+  {
+    id: "rev-praha-1",
+    area: "Praha",
+    author: "Jana K.",
+    rating: 5,
+    text: "Rychlá montáž klimatizace, technici dorazili na čas a vše po sobě uklidili. Můžu jen doporučit.",
+  },
+  {
+    id: "rev-brno-1",
+    area: "Brno",
+    author: "Petr M.",
+    rating: 4,
+    text: "Spokojenost, jen objednací termín byl o něco delší, než jsem čekal. Práce ale odvedená dobře.",
+  },
+  {
+    id: "rev-ostrava-1",
+    area: "Ostrava",
+    author: "Lukáš V.",
+    rating: 2,
+    text: "Technik přijel o dvě hodiny později a nezavolal předem. Samotná oprava nakonec dopadla v pořádku, ale komunikace vázla.",
+  },
+  {
+    id: "rev-plzen-1",
+    area: "Plzeň",
+    author: "Markéta S.",
+    rating: 1,
+    text: "Domluvený termín servisu nikdo nedodržel a na telefonu se nikdo neozval. Velké zklamání.",
+  },
 ];

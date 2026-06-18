@@ -4,6 +4,7 @@ import {
   generateAnalysis,
   generateBrief,
   generateLeadReply,
+  generateLocalReviewReply,
   generateRepurpose,
 } from "@/lib/ai/tools";
 import {
@@ -11,6 +12,7 @@ import {
   validateAnalysisRequest,
   validateBriefRequest,
   validateLeadReplyRequest,
+  validateLocalReviewReplyRequest,
   validateRepurposeRequest,
 } from "@/lib/ai/validation";
 import { consume } from "@/lib/usage";
@@ -62,7 +64,8 @@ export async function POST(request: Request) {
       mode === "brief" ||
       mode === "analysis" ||
       mode === "lead-reply" ||
-      mode === "repurpose"
+      mode === "repurpose" ||
+      mode === "local-review-reply"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -104,6 +107,11 @@ export async function POST(request: Request) {
         const parsed = validateRepurposeRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateRepurpose(parsed.value));
+      }
+      case "local-review-reply": {
+        const parsed = validateLocalReviewReplyRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateLocalReviewReply(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

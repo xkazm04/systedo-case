@@ -38,6 +38,7 @@ const HASHED_FILES = [
   "src/lib/ai/tools/campaign-eval.ts",
   "src/lib/ai/tools/lead-reply.ts",
   "src/lib/ai/tools/repurpose.ts",
+  "src/lib/ai/tools/local-review-reply.ts",
   "src/app/api/ai/route.ts",
   "src/app/api/campaigns/analyze/route.ts",
   "test-llm/registry.mjs",

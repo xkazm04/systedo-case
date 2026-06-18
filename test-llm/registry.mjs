@@ -205,4 +205,21 @@ export const LLM_TOOLS = [
       isStr(r.variants[0]?.channel) &&
       isStr(r.variants[0]?.text),
   },
+  {
+    id: "local-review-reply",
+    label: "Odpověď na recenzi",
+    system:
+      "Jsi český správce reputace lokální firmy. Píšeš veřejné odpovědi na recenze v Google firemním profilu — vřele děkuješ za dobrá hodnocení a s pochopením reaguješ na kritiku. Piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Napiš veřejnou odpověď na recenzi v Google firemním profilu. Lokalita: Ostrava. Typ podnikání: montáž a servis klimatizací. Hodnocení: 2 z 5 hvězd. Text recenze: „Technik přijel o dvě hodiny později a nezavolal předem. Oprava nakonec dopadla v pořádku, ale komunikace vázla.“ Jde o kritickou recenzi — uznej zkušenost zákazníka, omluv se a nabídni vyřešení mimo veřejné vlákno. Vrať pole reply (celá veřejná odpověď k publikaci).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        reply: { type: Type.STRING },
+      },
+      required: ["reply"],
+    },
+    // Lenient: a single non-empty Czech reply string.
+    validate: (r) => r && isStr(r.reply),
+  },
 ];
