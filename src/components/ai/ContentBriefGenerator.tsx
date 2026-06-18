@@ -13,6 +13,15 @@ import {
   type ContentType,
 } from "@/lib/ai-types";
 import type { BriefSeed } from "./KeywordResearch";
+import {
+  SERP_MAX_PX,
+  SERP_META_PX,
+  SERP_TITLE_PX,
+  scoreBrief,
+  truncateToPixels,
+  type ChipLevel,
+  type ScoreChip,
+} from "@/lib/content/seo-score";
 import { useAiTool } from "./useAiTool";
 import {
   CharCount,
@@ -37,19 +46,112 @@ const EXAMPLE: BriefRequest = {
 
 const EMPTY: BriefRequest = { topic: "", primaryKeyword: "", audience: "", contentType: "blog" };
 
-/** Google-style search result preview from the generated title/meta/slug. */
+type SerpDevice = "desktop" | "mobile";
+
+/** Google-style search result preview from the generated title/meta/slug.
+ *  Unlike the old character-count mock, this truncates by ESTIMATED PIXEL WIDTH
+ *  (the way Google actually clips a result), with a desktop/mobile toggle that
+ *  swaps the width budget. */
 function SerpPreview({ title, meta, slug }: { title: string; meta: string; slug: string }) {
+  const [device, setDevice] = useState<SerpDevice>("desktop");
+  const titleText = title || "Title tag";
+  const metaText = meta || "Meta description se zobrazí tady.";
+
+  const titleMaxPx = device === "desktop" ? SERP_MAX_PX.desktopTitle : SERP_MAX_PX.mobileTitle;
+  // Meta gets ~2 lines; approximate its budget as twice the title column width.
+  const metaMaxPx = titleMaxPx * 2;
+
+  const t = truncateToPixels(titleText, titleMaxPx, SERP_TITLE_PX);
+  const m = truncateToPixels(metaText, metaMaxPx, SERP_META_PX);
+
   return (
     <div className="rounded-card border border-line bg-surface p-5">
-      <p className="text-xs text-muted">Náhled ve vyhledávání</p>
-      <div className="mt-2">
-        <p className="truncate text-xs text-serp-url">
-          mionelo.cz › blog › {slug || "url-slug"}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">Náhled ve vyhledávání</p>
+        <div className="inline-flex rounded-pill border border-line p-0.5 text-xs font-medium">
+          {(["desktop", "mobile"] as SerpDevice[]).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDevice(d)}
+              aria-pressed={device === d}
+              className={`rounded-pill px-3 py-1 transition-colors ${
+                device === d ? "bg-onyx text-white" : "text-muted hover:text-navy-700"
+              }`}
+            >
+              {d === "desktop" ? "Počítač" : "Mobil"}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-2" style={{ maxWidth: device === "mobile" ? "22rem" : undefined }}>
+        <p className="truncate text-xs text-serp-url">mionelo.cz › blog › {slug || "url-slug"}</p>
+        <p className="mt-0.5 text-lg leading-snug text-serp-link">{t.text}</p>
+        <p className="mt-1 text-sm text-navy-600">{m.text}</p>
+      </div>
+      {(t.truncated || m.truncated) && (
+        <p className="mt-2.5 text-xs text-coral-600">
+          {t.truncated && m.truncated
+            ? "Title i meta budou ve výsledcích zkráceny."
+            : t.truncated
+              ? "Title bude ve výsledcích zkrácen — i v limitu znaků jej Google ořízne."
+              : "Meta popisek bude ve výsledcích zkrácen."}
         </p>
-        <p className="mt-0.5 text-lg leading-snug text-serp-link">{title || "Title tag"}</p>
-        <p className="mt-1 line-clamp-2 text-sm text-navy-600">
-          {meta || "Meta description se zobrazí tady."}
-        </p>
+      )}
+    </div>
+  );
+}
+
+const CHIP_TONE: Record<ChipLevel, string> = {
+  ok: "border-positive/30 bg-positive-soft",
+  warn: "border-coral-500/30 bg-coral-soft",
+  bad: "border-negative/40 bg-negative-soft",
+};
+
+const CHIP_DOT: Record<ChipLevel, string> = {
+  ok: "bg-positive",
+  warn: "bg-coral-500",
+  bad: "bg-negative",
+};
+
+function ScoreRow({ chip }: { chip: ScoreChip }) {
+  return (
+    <div className={`rounded-lg border px-3 py-2 ${CHIP_TONE[chip.level]}`}>
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${CHIP_DOT[chip.level]}`} aria-hidden />
+        <span className="text-xs font-semibold text-navy-800">{chip.label}</span>
+      </div>
+      <p className="mt-0.5 pl-4 text-xs text-navy-600">{chip.hint}</p>
+    </div>
+  );
+}
+
+/** Compact green/amber/red SEO scorecard over the generated brief. */
+function Scorecard({ brief, primaryKeyword }: { brief: BriefResult; primaryKeyword: string }) {
+  const score = scoreBrief(brief, primaryKeyword);
+  const tone: ChipLevel = score.overall >= 80 ? "ok" : score.overall >= 55 ? "warn" : "bad";
+  const sections: { title: string; chips: ScoreChip[] }[] = [
+    { title: "Čitelnost", chips: score.readability },
+    { title: "Pokrytí klíčovým slovem", chips: score.keywordCoverage },
+    { title: "Důvěryhodnost (E-E-A-T)", chips: score.eeat },
+  ];
+  return (
+    <div className="rounded-card border border-line bg-surface p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">SEO skóre</p>
+        <span className={`tnum pill ${CHIP_TONE[tone]} text-navy-800`}>{score.overall}/100</span>
+      </div>
+      <div className="mt-3 space-y-3">
+        {sections.map((s) => (
+          <div key={s.title}>
+            <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">{s.title}</p>
+            <div className="space-y-1.5">
+              {s.chips.map((c) => (
+                <ScoreRow key={c.id} chip={c} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -266,7 +368,10 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
               </button>
             </div>
 
-            <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} />
+            <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+              <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} />
+              <Scorecard brief={r} primaryKeyword={form.primaryKeyword} />
+            </div>
 
             <Group title="SEO metadata">
               <div className="space-y-2">
