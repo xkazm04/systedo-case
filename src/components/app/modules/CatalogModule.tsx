@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
-import { Bolt, Check, Info, Refresh, Sparkles } from "@/components/icons";
+import { Bolt, Check, Copy, Download, Info, Refresh, Sparkles } from "@/components/icons";
 import { fmtCZK } from "@/lib/format";
 import type { Product } from "@/lib/catalog/sample";
 import {
@@ -13,6 +13,12 @@ import {
   RSA_DESCRIPTION_MAX,
   PMAX_LONG_HEADLINE_MAX,
 } from "@/lib/catalog/generate";
+import {
+  assetGroupCsv,
+  assetGroupPlainText,
+  type AssetGroupExportMeta,
+} from "@/lib/catalog/export";
+import { downloadText } from "@/lib/export";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { AD_LIMITS, type AdResult } from "@/lib/ai-types";
 
@@ -44,6 +50,43 @@ function AssetSection({ title, assets }: { title: string; assets: Asset[] }) {
 /** Wrap a plain string in the {text,len,max} Asset shape so AI output renders
  *  through the same AssetSection/AssetChip layout (with the char-count badge). */
 const toAsset = (text: string, max: number): Asset => ({ text, len: text.length, max });
+
+/** Header actions to get the assembled asset group out of the screen: copy every
+ *  asset as plain text, or download a Google Ads Editor-style CSV. Operates on
+ *  whichever group is currently shown (AI result if present, else deterministic). */
+function ExportActions({ group, meta }: { group: AssetGroup; meta: AssetGroupExportMeta }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(assetGroupPlainText(group, meta));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1300);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  function exportCsv() {
+    downloadText(`asset-group-${group.sku.toLowerCase()}.csv`, assetGroupCsv(group, meta));
+  }
+
+  const btn =
+    "inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button type="button" onClick={copyAll} className={btn} aria-label="Kopírovat vše">
+        {copied ? <Check width={14} height={14} className="text-positive" /> : <Copy width={14} height={14} />}
+        {copied ? "Zkopírováno" : "Kopírovat vše"}
+      </button>
+      <button type="button" onClick={exportCsv} className={btn} aria-label="Exportovat CSV">
+        <Download width={14} height={14} />
+        Exportovat CSV
+      </button>
+    </div>
+  );
+}
 
 /** Fold a flat AdResult from the `ads` AI tool into the AssetGroup shape the UI
  *  already renders, mapping each list to the matching Google Ads limit. */
@@ -97,6 +140,13 @@ export default function CatalogModule({ products }: { products: Product[] }) {
   const usingAi = Boolean(aiResult);
 
   if (!product || !group) return null;
+
+  // Names mirror how the asset group lands in Google Ads Editor (campaign per
+  // category, asset group per product) so the export drops straight in.
+  const exportMeta: AssetGroupExportMeta = {
+    campaign: `${product.category} – PMax`,
+    assetGroupName: product.title,
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
@@ -178,6 +228,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
                 </>
               )}
             </button>
+            <ExportActions group={group} meta={exportMeta} />
           </div>
         </div>
 
