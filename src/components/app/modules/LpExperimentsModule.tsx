@@ -1,12 +1,18 @@
 /** LP experimenty — landing-page A/B results per keyword cluster. Server component. */
 import { Pill } from "@/components/ui";
-import { Check } from "@/components/icons";
+import { Check, ArrowRight } from "@/components/icons";
 import { fmtInt, fmtPct, fmtSignedPct } from "@/lib/format";
 import { evaluate } from "@/lib/lp-exp/compute";
 import type { LpExperiment } from "@/lib/lp-exp/sample";
+import NextSteps from "@/components/app/NextSteps";
 
 export default function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
   const results = experiments.map(evaluate);
+  // A resolved experiment = the gated verdict from the trust-gate wave: a winner
+  // that is statistically significant (a `done` test, or a `running` one that has
+  // cleared both the confidence threshold and the sample-size gate). Only those
+  // earn a ship-the-winner handoff — a leading-but-unproven arm routes nowhere.
+  const shipped = results.filter((r) => r.significant && r.winner);
 
   return (
     <div className="space-y-4">
@@ -62,9 +68,19 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
             <div className="mt-4 space-y-2.5">
               {r.variants.map((v) => (
                 <div key={v.label} className="flex items-center gap-3">
-                  <span className="flex w-44 shrink-0 items-center gap-1.5 text-sm font-medium text-navy-800">
-                    {v.isWinner && !collecting && <Check width={14} height={14} className="text-positive" />}
-                    {v.label}
+                  <span className="flex w-44 shrink-0 flex-col gap-0.5 text-sm font-medium text-navy-800">
+                    <span className="flex items-center gap-1.5">
+                      {v.isWinner && !collecting && <Check width={14} height={14} className="text-positive" />}
+                      {v.label}
+                    </span>
+                    {v.isWinner && !collecting && v.url && (
+                      <a
+                        href={v.url}
+                        className="truncate text-xs font-normal text-brand-accent hover:underline"
+                      >
+                        {v.url}
+                      </a>
+                    )}
                   </span>
                   <span className="h-6 flex-1 overflow-hidden rounded-md bg-canvas">
                     <span
@@ -89,6 +105,37 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
           </div>
         );
       })}
+      {shipped.length > 0 && (
+        <div className="card border-positive/40 bg-positive/5 p-5">
+          <div className="mb-4 flex items-start gap-2">
+            <ArrowRight width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
+            <p className="text-sm text-navy-800">
+              Máte {shipped.length === 1 ? "průkazného vítěze" : `${shipped.length} průkazné vítěze`} (
+              {shipped.map((r) => r.cluster).join(", ")}). Posuňte je do navazujících modulů.
+            </p>
+          </div>
+          <NextSteps
+            steps={[
+              {
+                to: "obsah",
+                label: "Aktualizovat vítěznou kopii",
+                hint: "Přenést vítěznou variantu do briefu a článků",
+              },
+              {
+                to: "srovnani-seo",
+                label: "Rozšířit vítězný klastr",
+                hint: "Postavit další high-intent stránky na vítězném klastru",
+              },
+              {
+                to: "kampane",
+                label: "Poslat provoz na novou LP",
+                hint: "Nasměrovat rozpočet kampaní na vítěznou landing page",
+              },
+            ]}
+          />
+        </div>
+      )}
+
       <p className="px-1 text-xs text-muted">
         Varianty lze generovat z klastrů klíčových slov (modul Srovnání &amp; SEO + Obsah). Seam: reálné
         rozdělení návštěvnosti a analytika.

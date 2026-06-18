@@ -6,6 +6,8 @@ export interface Variant {
   label: string;
   visitors: number;
   signups: number;
+  /** optional live URL of this variant's landing page (display-only seam) */
+  url?: string;
 }
 
 export interface LpExperiment {
@@ -24,7 +26,7 @@ export const SAMPLE_EXPERIMENTS: LpExperiment[] = [
     status: "done",
     variants: [
       { label: "A · Kontrola", visitors: 4200, signups: 176 },
-      { label: "B · Důraz na šablony", visitors: 4180, signups: 231 },
+      { label: "B · Důraz na šablony", visitors: 4180, signups: 231, url: "/lp/projektove-rizeni-sablony" },
     ],
   },
   {
