@@ -1,14 +1,29 @@
 /** CAC → LTV — cohort economics for an app/SaaS project. Server component. */
-import { Bulb } from "@/components/icons";
+import { Bulb, TrendUp, TrendDown } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
-import type { CohortMetrics, LtvSummary } from "@/lib/ltv/compute";
+import LtvReportButton from "@/components/app/modules/LtvReportButton";
+import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { cohortTrend } from "@/lib/ltv/compute";
+import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
 
 function ratioTone(r: number): string {
   if (r >= 3) return "text-positive";
   if (r >= 1) return "text-navy-800";
   return "text-negative";
+}
+
+/** Visual treatment for a trend direction: tone + Czech label + icon. */
+const TREND_META: Record<TrendDirection, { label: string; tone: string; Icon: typeof TrendUp }> = {
+  improving: { label: "zlepšuje se", tone: "text-positive", Icon: TrendUp },
+  worsening: { label: "zhoršuje se", tone: "text-negative", Icon: TrendDown },
+  flat: { label: "beze změny", tone: "text-muted", Icon: TrendUp },
+};
+
+/** Render an absolute delta as a signed percent of its base ("+12,4 %"), falling
+ *  back to "—" when the base is zero (no meaningful relative change). */
+function fmtSignedPctSafe(delta: number, base: number): string {
+  return base !== 0 ? fmtSignedPct(delta / base) : "—";
 }
 
 /** Blended per-channel economics across all cohorts that carry a breakdown:
@@ -77,6 +92,8 @@ export default function LtvModule({
   const healthy = summary.avgLtvCac >= 3;
   const channels = blendChannels(rows);
   const maxRatio = Math.max(...channels.map((x) => x.ltvCac), 1);
+  const trend = cohortTrend(rows);
+  const TrendIcon = trend ? TREND_META[trend.direction].Icon : null;
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -115,6 +132,29 @@ export default function LtvModule({
       </div>
 
       <div className="card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-navy-800">Kohorty měsíc po měsíci</p>
+            {trend && (
+              <p className="mt-0.5 text-xs text-muted">
+                {trend.fromMonth} → {trend.toMonth}: CAC {fmtSignedPctSafe(trend.cacDelta, rows[0]!.cac)},
+                LTV {fmtSignedPctSafe(trend.ltvDelta, rows[0]!.ltv)}, LTV:CAC{" "}
+                {trend.ltvCacDeltaPct != null ? fmtSignedPct(trend.ltvCacDeltaPct) : "—"}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2.5">
+            {trend && TrendIcon && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-xs font-medium ${TREND_META[trend.direction].tone}`}
+              >
+                <TrendIcon width={14} height={14} className="shrink-0" />
+                Trend: {TREND_META[trend.direction].label}
+              </span>
+            )}
+            <LtvReportButton rows={rows} />
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -225,8 +265,8 @@ export default function LtvModule({
         steps={[
           {
             to: "kampane",
-            label: "Přesunout rozpočet",
-            hint: "Přidat do kanálů s nejlepší LTV:CAC, omezit drahé na registraci",
+            label: "Přesunout rozpočet do kanálů s rychlou návratností",
+            hint: "Přidat do kanálů s nejlepší LTV:CAC a nejkratší dobou návratnosti",
           },
         ]}
       />

@@ -111,6 +111,78 @@ export function withMetrics(c: Cohort): CohortMetrics {
   };
 }
 
+/** Direction of the cohort trend, derived from whether LTV:CAC is rising from the
+ *  oldest to the newest cohort. `flat` covers the single-cohort / no-change case. */
+export type TrendDirection = "improving" | "worsening" | "flat";
+
+/** Newest-vs-oldest cohort movement: absolute deltas for CAC and LTV, the relative
+ *  change in LTV:CAC, and an overall direction. `rows` is taken in chronological
+ *  order (oldest first); the trend compares the last row against the first. Pure. */
+export interface CohortTrend {
+  /** the oldest (first) and newest (last) cohort month labels */
+  fromMonth: string;
+  toMonth: string;
+  /** newest − oldest CAC (CZK); positive means CAC went up */
+  cacDelta: number;
+  /** newest − oldest LTV (CZK); positive means LTV went up */
+  ltvDelta: number;
+  /** newest − oldest LTV:CAC ratio (absolute, e.g. +0.4×) */
+  ltvCacDelta: number;
+  /** relative change of LTV:CAC as a fraction (+0.12 = +12 %), null if oldest is 0 */
+  ltvCacDeltaPct: number | null;
+  /** rising LTV:CAC → improving, falling → worsening, unchanged/single → flat */
+  direction: TrendDirection;
+}
+
+/** Compare the newest cohort against the oldest. Returns null when there are
+ *  fewer than two cohorts (no trend to draw). */
+export function cohortTrend(rows: CohortMetrics[]): CohortTrend | null {
+  if (rows.length < 2) return null;
+  const oldest = rows[0]!;
+  const newest = rows[rows.length - 1]!;
+  const ltvCacDelta = newest.ltvCac - oldest.ltvCac;
+  const direction: TrendDirection =
+    ltvCacDelta > 0 ? "improving" : ltvCacDelta < 0 ? "worsening" : "flat";
+  return {
+    fromMonth: oldest.month,
+    toMonth: newest.month,
+    cacDelta: newest.cac - oldest.cac,
+    ltvDelta: newest.ltv - oldest.ltv,
+    ltvCacDelta,
+    ltvCacDeltaPct: oldest.ltvCac > 0 ? ltvCacDelta / oldest.ltvCac : null,
+    direction,
+  };
+}
+
+/** A single field escaped for RFC-4180 CSV: wrap in double quotes and double any
+ *  embedded quote whenever the value contains a quote, comma, or newline. */
+export function csvCell(value: string | number): string {
+  const s = String(value);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** Build a CSV of the cohort table (header + one row per cohort) with the raw
+ *  numeric values, so a deck/sheet can reformat them. CRLF line endings per
+ *  RFC-4180; every cell escaped. Pure — no DOM, safe to unit-test. */
+export function buildCohortCsv(rows: CohortMetrics[]): string {
+  const header = ["Kohorta", "Registrace", "CAC", "M3 retence", "LTV", "LTV:CAC", "Návratnost (měs.)"];
+  const lines = [header.map(csvCell).join(",")];
+  for (const r of rows) {
+    lines.push(
+      [
+        csvCell(r.month),
+        csvCell(r.signups),
+        csvCell(Math.round(r.cac)),
+        csvCell(r.m3),
+        csvCell(Math.round(r.ltv)),
+        csvCell(Number(r.ltvCac.toFixed(2))),
+        csvCell(r.paybackMonth ?? ""),
+      ].join(",")
+    );
+  }
+  return lines.join("\r\n");
+}
+
 export function ltvSummary(cohorts: Cohort[]): LtvSummary {
   const rows = cohorts.map(withMetrics);
   const signups = rows.reduce((a, r) => a + r.signups, 0);
