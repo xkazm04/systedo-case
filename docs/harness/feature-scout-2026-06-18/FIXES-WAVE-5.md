@@ -1,9 +1,11 @@
 # Feature Scout Fix Wave 5 — "AI-assist" (the gated wave)
 
-> 5 commits, 5 findings closed; **5 new LLM tools added and proven against real Claude**.
+> 7 findings closed; **6 new LLM tools added and proven against real Claude**.
 > Baseline preserved: tsc 0 → 0 · `next build` pass → pass · unit tests 72/72 ·
-> eslint 0 · **`llm:gate` real-Claude suite 5 → 10 tools, all green**.
-> (Extended from the initial 3-tool batch with `article-draft` and `cohort-diagnosis`.)
+> eslint 0 · **`llm:gate` real-Claude suite 5 → 11 tools, all green**.
+> (Extended from the initial 3-tool batch with `article-draft`, `cohort-diagnosis`,
+> `keyword-clusters`, and a client-side REUSE of `keyword-clusters` for content-engine
+> #2 — one tool, two findings, the second with no gate run.)
 > Branch: `vibeman/feature-scout-ai-assist` (off `master` after Waves 1–4 merged).
 > The user's pre-existing uncommitted work was folded in only where correct
 > (`.llm-gate-cache.json`, which is a committed, generated cache).
@@ -32,6 +34,8 @@ deliberately and safely.
 | 3 | `0e2a040` | local | local.md #2 | `local-review-reply` | `lib/ai/tools/local-review-reply.ts` (new) + `LocalReviews.tsx` (new client child) + lib/local/sample.ts + ai-types/validation/route/index/registry/llm-gate + `LocalModule.tsx` + page |
 | 4 | `b922b4b` | content | content.md #1 | `article-draft` | `lib/ai/tools/article-draft.ts` (new) + `ArticleDraftPanel.tsx` (new client child) + ai-types/validation/route/index/registry/llm-gate + `ContentBriefGenerator.tsx` |
 | 5 | `47ea1e1` | ltv | ltv.md #4 | `cohort-diagnosis` | `lib/ai/tools/cohort-diagnosis.ts` (new) + `LtvDiagnosisPanel.tsx` (new client child) + ai-types/validation/route/index/registry/llm-gate + `LtvModule.tsx` |
+| 6 | `495feda` | keywords | keywords.md #1 | `keyword-clusters` | `lib/ai/tools/keyword-clusters.ts` (new, generic) + ai-types/validation/route/index/registry/llm-gate + `KeywordResearch.tsx` |
+| 7 | `d7e722a` | content-engine | content-engine.md #2 | *(reuses `keyword-clusters`)* | `ClusterBuilder.tsx` (new client child) + `ContentEngineModule.tsx` — **no server LLM change → gate cache-skipped** |
 
 ## What was fixed
 
@@ -63,4 +67,6 @@ Each tool follows the repo convention exactly: a tagged `generateStructured(...,
 
 ## What remains (more AI-assist, per INDEX)
 
-Still deferred (each a new tool, same method): content-engine #2 (cluster map from a keyword list), lp-experiments #3 (variant/hypothesis generator), lead-quality #4 (junk-source diagnosis), compare-seo #5 (comparison-page generator), keywords #1 (intent clustering). Plus the non-AI depth/admin backlog (profit SKU margins/trend, competitor tracking, project-settings Theme G).
+Still deferred (each a new tool, same method): lp-experiments #3 (variant/hypothesis generator), lead-quality #4 (junk-source diagnosis), compare-seo #5 (comparison-page generator). Plus the non-AI depth/admin backlog (profit SKU margins/trend, competitor tracking, project-settings Theme G).
+
+**Note on flakiness:** the `article-draft` real-Claude test showed one model-output-variance failure on a later run (passed on re-run, no code change). If it recurs, loosen that registry assertion further (it is the most structurally demanding tool).
