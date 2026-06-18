@@ -1,7 +1,8 @@
 /** Obsahový engine — topic clusters + content-decay refresh. Server component. */
 import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtInt, fmtPct, fmtSignedPct } from "@/lib/format";
+import DecayTable from "@/components/app/modules/DecayTable";
+import { fmtInt, fmtPct } from "@/lib/format";
 import { clusterStats, decayingPosts } from "@/lib/content-engine/compute";
 import type { DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 
@@ -58,35 +59,10 @@ export default function ContentEngineModule({
           <h3 className="text-base font-semibold text-navy-800">Upadající obsah k obnově</h3>
           <Pill tone="coral">{decaying.length} k obnově</Pill>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Článek</th>
-                <th className="px-4 py-3 text-right font-medium">Publikováno</th>
-                <th className="px-4 py-3 text-right font-medium">Návštěvnost YoY</th>
-                <th className="px-4 py-3 font-medium">Priorita</th>
-              </tr>
-            </thead>
-            <tbody>
-              {decaying.map((p) => (
-                <tr key={p.title} className="border-b border-line/70 last:border-0">
-                  <td className="px-5 py-3 font-medium text-navy-800">{p.title}</td>
-                  <td className="tnum px-4 py-3 text-right text-muted">před {p.monthsAgo} měs.</td>
-                  <td className="tnum px-4 py-3 text-right font-semibold text-negative">{fmtSignedPct(p.trafficChangePct)}</td>
-                  <td className="px-4 py-3">
-                    <Pill tone={p.trafficChangePct <= -0.3 ? "negative" : "coral"}>
-                      {p.trafficChangePct <= -0.3 ? "Vysoká" : "Střední"}
-                    </Pill>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DecayTable decaying={decaying} />
         <div className="border-t border-line px-5 py-3 text-xs text-muted">
-          Plánované články generujte přes Obsah (AI brief); upadající obnovte a znovu prolinkujte do
-          klastru.
+          Plánované články generujte přes Obsah (AI brief); upadající obnovte tlačítkem „Obnovit“ a
+          znovu prolinkujte do klastru.
         </div>
       </div>
 
