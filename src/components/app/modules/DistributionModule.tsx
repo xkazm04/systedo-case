@@ -7,12 +7,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
-import { Calendar, Check, Copy, Document } from "@/components/icons";
+import { Calendar, Check, Copy, Document, Link } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
 import { channelToPlatform } from "@/lib/distribution/handoff";
+import { channelUtmSource } from "@/lib/distribution/utm";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
 
@@ -46,14 +47,19 @@ export default function DistributionModule({
       {/* repurposed variants */}
       <div className="grid gap-4 sm:grid-cols-2">
         {variants.map((v) => (
-          <VariantCard key={v.channel} channel={v.channel} initialText={v.text} max={v.max} />
+          <VariantCard key={v.channel} channel={v.channel} initialText={v.text} max={v.max} link={v.link} />
         ))}
       </div>
 
       {/* attribution */}
       <div className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h3 className="text-base font-semibold text-navy-800">Atribuce podle kanálu</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-navy-800">Atribuce podle kanálu</h3>
+            <p className="mt-0.5 text-xs text-muted">
+              Ukázková data — řádky odpovídají <code className="font-mono text-[0.7rem] text-navy-700">utm_source</code> z odkazů výše.
+            </p>
+          </div>
           <Pill tone="positive">Nejvíc prokliků: {best.channel}</Pill>
         </div>
         <div className="overflow-x-auto">
@@ -61,6 +67,7 @@ export default function DistributionModule({
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-5 py-3 font-medium">Kanál</th>
+                <th className="px-4 py-3 font-medium">utm_source</th>
                 <th className="px-4 py-3 text-right font-medium">Dosah</th>
                 <th className="px-4 py-3 text-right font-medium">Prokliky</th>
                 <th className="px-4 py-3 text-right font-medium">CTR</th>
@@ -71,6 +78,9 @@ export default function DistributionModule({
               {attribution.map((c) => (
                 <tr key={c.channel} className="border-b border-line/70 last:border-0">
                   <td className="px-5 py-3 font-medium text-navy-800">{c.channel}</td>
+                  <td className="px-4 py-3">
+                    <code className="font-mono text-xs text-navy-600">{channelUtmSource(c.channel)}</code>
+                  </td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.reach)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.clicks)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(c.reach > 0 ? c.clicks / c.reach : 0)}</td>
@@ -93,28 +103,47 @@ export default function DistributionModule({
 
 /** One repurposed variant: copy, inline-edit with a live counter + trim, and a
  *  per-platform handoff that pre-fills the social center. */
-function VariantCard({ channel, initialText, max }: { channel: string; initialText: string; max: number }) {
+function VariantCard({
+  channel,
+  initialText,
+  max,
+  link,
+}: {
+  channel: string;
+  initialText: string;
+  max: number;
+  link: string;
+}) {
   const project = useProject();
   const router = useRouter();
   const [text, setText] = useState(initialText);
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
+  const linkTimer = useRef<number | undefined>(undefined);
 
   const platform = channelToPlatform(channel);
   const over = text.length > max;
 
-  // Clear any pending "copied" timer on unmount.
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // Clear any pending "copied" timers on unmount.
+  useEffect(
+    () => () => {
+      window.clearTimeout(timer.current);
+      window.clearTimeout(linkTimer.current);
+    },
+    []
+  );
 
-  const copy = async () => {
+  // Copy arbitrary text to the clipboard, with a textarea fallback for browsers
+  // lacking the async clipboard API.
+  const copyToClipboard = async (value: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(value);
     } catch {
-      // Fallback for browsers without the async clipboard API.
       const ta = document.createElement("textarea");
-      ta.value = text;
+      ta.value = value;
       ta.style.position = "fixed";
       ta.style.opacity = "0";
       document.body.appendChild(ta);
@@ -126,9 +155,20 @@ function VariantCard({ channel, initialText, max }: { channel: string; initialTe
       }
       document.body.removeChild(ta);
     }
+  };
+
+  const copy = async () => {
+    await copyToClipboard(text);
     setCopied(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setCopied(false), 2200);
+  };
+
+  const copyLink = async () => {
+    await copyToClipboard(link);
+    setLinkCopied(true);
+    window.clearTimeout(linkTimer.current);
+    linkTimer.current = window.setTimeout(() => setLinkCopied(false), 2200);
   };
 
   // Trim the text down to the channel's soft budget.
@@ -189,6 +229,28 @@ function VariantCard({ channel, initialText, max }: { channel: string; initialTe
           Zkrátit na {max} znaků
         </button>
       )}
+
+      {/* The exact UTM-stamped link shipped in this variant — visible + copyable
+          so attribution is verifiable, not implied. */}
+      <div className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-2">
+        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">Odkaz s UTM</span>
+        <code className="flex-1 truncate font-mono text-[0.7rem] text-navy-600" title={link}>
+          {link.replace("https://", "")}
+        </code>
+        <button
+          type="button"
+          onClick={copyLink}
+          aria-label={`Kopírovat odkaz s UTM pro ${channel}`}
+          className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-line bg-surface px-2 py-1 text-[0.7rem] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+        >
+          {linkCopied ? (
+            <Check width={12} height={12} className="text-positive" />
+          ) : (
+            <Link width={12} height={12} />
+          )}
+          <span>{linkCopied ? "Hotovo" : "Odkaz"}</span>
+        </button>
+      </div>
 
       {error && <p className="mt-2 text-xs text-negative">{error}</p>}
 
