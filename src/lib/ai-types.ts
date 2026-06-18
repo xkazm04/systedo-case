@@ -7,8 +7,8 @@
 
 import type { CampaignPeriod } from "./campaigns/types";
 
-export type AiMode = "ads" | "brief" | "analysis";
-export const AI_MODES: AiMode[] = ["ads", "brief", "analysis"];
+export type AiMode = "ads" | "brief" | "analysis" | "lead-reply";
+export const AI_MODES: AiMode[] = ["ads", "brief", "analysis", "lead-reply"];
 
 export interface AiMeta {
   model: string;
@@ -240,3 +240,32 @@ export interface EvaluationRequest {
   campaignId?: string;
   period: CampaignPeriod;
 }
+
+// ===========================================================================
+// Tool 5 — speed-to-lead reply (on-brand AI reply for the Rychlá reakce inbox)
+// ===========================================================================
+
+/** Inbound channel a lead arrived through — mirrors LeadChannel in
+ *  lib/speed-lead/sample without importing client-adjacent sample data. */
+export const LEAD_CHANNELS = ["form", "call", "email", "chat"] as const;
+export type LeadReplyChannel = (typeof LEAD_CHANNELS)[number];
+
+export interface LeadReplyRequest {
+  /** the lead's inbound message we're replying to */
+  message: string;
+  /** channel the lead came in through (tailors phrasing — e.g. callback vs e-mail) */
+  channel: LeadReplyChannel;
+  /** the project / service type, used to keep the reply on-brand */
+  projectType: string;
+  /** optional lead name, for a personal greeting */
+  name?: string;
+}
+
+export interface LeadReplyResult {
+  /** the full, ready-to-send reply (greeting + acknowledgement + sign-off) */
+  reply: string;
+  /** 2–3 qualification questions to move the lead forward */
+  questions: string[];
+}
+
+export type LeadReplyResponse = AiResponse<LeadReplyResult>;

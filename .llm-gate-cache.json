@@ -1,11 +1,13 @@
 {
-  "hash": "6a6fd700f7a4cb15fed930a369958bbcdee6863e88571f004c176b124156cb09",
+  "hash": "169df65f9e3c1ad2da459bbbab754e6e7ba5c102723eba0e9feede11c6bd2dec",
   "passed": true,
-  "provenAt": "2026-06-15T20:41:34.822Z",
+  "provenAt": "2026-06-18T21:24:51.073Z",
   "tools": [
     "ads",
     "brief",
     "analysis",
-    "campaign-eval"
+    "campaign-eval",
+    "social",
+    "lead-reply"
   ]
 }

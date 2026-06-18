@@ -3,11 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
-import { Bell, Bolt, Check, Clock } from "@/components/icons";
+import { Bell, Bolt, Check, Clock, Copy, Info, Refresh, Sparkles } from "@/components/icons";
 import { CHANNEL_LABELS, type InboundLead } from "@/lib/speed-lead/sample";
 import { draftReply, SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
 import { computeResponseAnalytics, type LeadOutcome } from "@/lib/speed-lead/analytics";
+import { useAiTool } from "@/components/ai/useAiTool";
+import type { LeadReplyResult } from "@/lib/ai-types";
 import { fmtPct } from "@/lib/format";
+
+/** Map a lead's channel + message to a short project-type hint, so the AI reply
+ *  stays on-brand without a separate field. Best-effort keyword match over the
+ *  message; falls back to a generic label. */
+function projectTypeFor(lead: InboundLead): string {
+  const m = lead.message.toLowerCase();
+  if (m.includes("klimatiz")) return "montáž klimatizace";
+  if (m.includes("elektroinstal") || m.includes("rozvod")) return "elektroinstalace a rozvody";
+  if (m.includes("servis") || m.includes("smlouv")) return "pravidelný servis";
+  if (m.includes("rekonstr")) return "rekonstrukce";
+  return "poptávaná služba";
+}
 
 const SLA_TARGET_SEC = SLA_TARGET_MIN * 60;
 /** ≤ this many seconds left → pre-breach warning state. */
@@ -71,6 +85,64 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
 
   const selected = leads.find((l) => l.id === selectedId) ?? leads[0];
   const draft = useMemo(() => (selected ? draftReply(selected) : null), [selected]);
+
+  // AI reply generator (lead-reply tool, via /api/ai). The deterministic draft is
+  // the initial value and the fallback; on success we swap in the model's reply.
+  const { status, data, error, timedOut, run, reset } = useAiTool<LeadReplyResult>("lead-reply");
+  /** The lead id the current AI result belongs to — results persist by mode only,
+   *  so we pin them to a lead and ignore output meant for a different one. */
+  const [aiLeadId, setAiLeadId] = useState<string | null>(null);
+  /** The reply currently shown in the textarea. Seeded from the deterministic
+   *  draft, overwritten by the user's edits or an accepted AI reply. */
+  const [replyText, setReplyText] = useState(() => (selected ? draftReply(selected) : null)?.reply ?? "");
+  const [copied, setCopied] = useState(false);
+  /** Which lead the editor is currently seeded for. When the selection changes we
+   *  re-seed the textarea during render (React's "adjust state on prop change"
+   *  pattern) rather than in an effect — no cascading render, no stale frame. */
+  const [seededLeadId, setSeededLeadId] = useState(selectedId);
+
+  if (selected && seededLeadId !== selectedId) {
+    setSeededLeadId(selectedId);
+    setReplyText(draftReply(selected).reply);
+    setCopied(false);
+    if (aiLeadId && aiLeadId !== selectedId) reset();
+  }
+
+  // Accept the model output only when it finished and belongs to this lead.
+  const aiReply = status === "done" && aiLeadId === selectedId ? data?.result ?? null : null;
+  /** Push a freshly arrived AI reply into the editor exactly once, during render
+   *  (avoids a set-state-in-effect cascade). Keyed on the reply text so re-runs
+   *  with new copy re-apply, but the user's later manual edits stick. */
+  const [appliedReply, setAppliedReply] = useState<string | null>(null);
+  if (aiReply?.reply && aiReply.reply !== appliedReply) {
+    setAppliedReply(aiReply.reply);
+    setReplyText(aiReply.reply);
+  }
+
+  function generateReply() {
+    if (!selected || status === "loading") return;
+    setAiLeadId(selected.id);
+    run({
+      message: selected.message,
+      channel: selected.channel,
+      projectType: projectTypeFor(selected),
+      name: selected.name,
+    });
+  }
+
+  async function copyReply() {
+    try {
+      await navigator.clipboard.writeText(replyText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1300);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  const usingAi = Boolean(aiReply);
+  /** The questions to display — the AI's when present, else the deterministic set. */
+  const questions = aiReply?.questions?.length ? aiReply.questions : draft?.questions ?? [];
 
   /** Live SLA per lead; responded leads are settled and never overdue. */
   const slaById = useMemo(() => {
@@ -256,19 +328,94 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
           </div>
 
           <div className="mt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Návrh odpovědi</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Návrh odpovědi</p>
+                {usingAi ? (
+                  <Pill tone="positive">
+                    <Sparkles width={12} height={12} />
+                    AI odpověď
+                  </Pill>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={generateReply}
+                  disabled={status === "loading"}
+                  className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+                >
+                  {status === "loading" && aiLeadId === selectedId ? (
+                    <>
+                      <Sparkles width={13} height={13} className="animate-pulse" />
+                      Generuji…
+                    </>
+                  ) : usingAi ? (
+                    <>
+                      <Refresh width={13} height={13} />
+                      Vygenerovat znovu
+                    </>
+                  ) : (
+                    <>
+                      <Bolt width={13} height={13} />
+                      Vygenerovat AI odpověď
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={copyReply}
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                  aria-label="Kopírovat odpověď"
+                >
+                  {copied ? <Check width={13} height={13} className="text-positive" /> : <Copy width={13} height={13} />}
+                  {copied ? "Zkopírováno" : "Kopírovat"}
+                </button>
+              </div>
+            </div>
+
             <textarea
-              key={selected.id}
-              defaultValue={draft.reply}
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
               rows={7}
               className="mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
+
+            {/* generation status — loading / error / demo (keyless) mode */}
+            {status === "loading" && aiLeadId === selectedId ? (
+              <p className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
+                <Sparkles width={14} height={14} className="shrink-0 animate-pulse" />
+                Generuji on-brand odpověď modelem… mezitím vidíte deterministický návrh.
+              </p>
+            ) : null}
+            {status === "error" && aiLeadId === selectedId ? (
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
+                <span className="text-negative">
+                  {timedOut
+                    ? "Model neodpověděl včas — ponecháváme deterministický návrh."
+                    : `Generování selhalo${error ? `: ${error}` : "."} Ponecháváme deterministický návrh.`}
+                </span>
+                <button
+                  type="button"
+                  onClick={generateReply}
+                  className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
+                >
+                  Zkusit znovu
+                </button>
+              </div>
+            ) : null}
+            {usingAi && data?.meta.demo ? (
+              <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
+                <Info width={14} height={14} className="shrink-0" />
+                Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">Kvalifikační otázky</p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              {draft.questions.map((q) => (
+              {questions.map((q) => (
                 <span key={q} className="rounded-pill bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800">
                   {q}
                 </span>

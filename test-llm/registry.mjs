@@ -156,4 +156,21 @@ export const LLM_TOOLS = [
     validate: (r) =>
       r && Array.isArray(r.posts) && r.posts.length >= 1 && isStr(r.posts[0]?.platform) && isStr(r.posts[0]?.content),
   },
+  {
+    id: "lead-reply",
+    label: "Rychlá reakce na poptávku",
+    system:
+      "Jsi český obchodník specializovaný na rychlou reakci na poptávky. Piš česky, lidsky a profesionálně a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Napiš první on-brand odpověď na poptávku. Kanál: Formulář. Typ zakázky: revize elektroinstalace. Zpráva od leadu: „Dobrý den, potřebovali bychom revizi elektroinstalace v kanceláři (cca 200 m²). Kdy máte volno?“ Vrať pole reply (celá odpověď k odeslání) a pole questions (2–3 kvalifikační otázky).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        reply: { type: Type.STRING },
+        questions: { type: Type.ARRAY, items: { type: Type.STRING } },
+      },
+      required: ["reply", "questions"],
+    },
+    validate: (r) => r && isStr(r.reply) && isStrArr(r.questions, 1),
+  },
 ];

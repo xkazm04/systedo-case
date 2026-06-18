@@ -6,6 +6,7 @@ import {
   ANALYSIS_PERIODS,
   CONTENT_TYPES,
   EVAL_SCOPES,
+  LEAD_CHANNELS,
   PLATFORMS,
   TONES,
   type AdRequest,
@@ -16,6 +17,8 @@ import {
   type ContentType,
   type EvalScope,
   type EvaluationRequest,
+  type LeadReplyChannel,
+  type LeadReplyRequest,
   type Platform,
   type Tone,
 } from "../ai-types";
@@ -108,6 +111,31 @@ export function validateAnalysisRequest(input: unknown): Valid<AnalysisRequest> 
     return { valid: false, error: "Neplatné období analýzy." };
   }
   return { valid: true, value: { period } };
+}
+
+export function validateLeadReplyRequest(input: unknown): Valid<LeadReplyRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const message = str(o.message);
+  const projectType = str(o.projectType);
+  const channel = o.channel as LeadReplyChannel;
+  const name = str(o.name);
+
+  if (message.length < 2 || message.length > 1200) {
+    return { valid: false, error: "Zadejte zprávu od leadu (2–1200 znaků)." };
+  }
+  if (!LEAD_CHANNELS.includes(channel)) {
+    return { valid: false, error: "Neplatný kanál poptávky." };
+  }
+  if (projectType.length < 2 || projectType.length > 200) {
+    return { valid: false, error: "Vyplňte typ zakázky (2–200 znaků)." };
+  }
+  return {
+    valid: true,
+    value: name ? { message, channel, projectType, name: name.slice(0, 120) } : { message, channel, projectType },
+  };
 }
 
 export function validateEvaluationRequest(input: unknown): Valid<EvaluationRequest> {
