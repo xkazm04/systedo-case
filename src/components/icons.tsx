@@ -15,14 +15,14 @@ const base = {
   strokeLinejoin: "round" as const,
 };
 
-/** Systedo-style mark: an upward "step" suggesting growth. */
+/** Adamant mark: a faceted letter "A" — the brand initial as a crystal cut,
+ *  with a centre light-seam echoing the adamant (unbreakable gem) theme. */
 export function Logo(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      <path d="M4 19V11" />
-      <path d="M10 19V7" />
-      <path d="M16 19V13" />
-      <path d="M4 7l6-3 10 4" />
+      <path d="M5 20 12 4l7 16" />
+      <path d="M8.4 14h7.2" />
+      <path d="M12 8.5v5.5" />
     </svg>
   );
 }

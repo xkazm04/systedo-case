@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { localizedNavItems } from "@/lib/nav";
 import { STACK_FACTS } from "@/lib/site";
-import { External, Logo } from "@/components/icons";
+import { Logo } from "@/components/icons";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getMessages } from "@/lib/i18n/messages";
 
@@ -20,25 +20,12 @@ export default async function Footer() {
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx-soft text-brand-400">
               <Logo width={20} height={20} />
             </span>
-            <span className="text-[17px] font-semibold tracking-tight text-white">Systedo</span>
+            <span className="text-[17px] font-semibold tracking-tight text-white">Adamant</span>
           </div>
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-onyx-muted">
             {introBefore}
             <strong className="text-white">{t.role}</strong>
             {introAfter}
-          </p>
-          <p className="mt-4 text-sm text-onyx-muted">
-            {t.inspiredBy}{" "}
-            <a
-              href="https://www.systedo.cz/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 font-medium text-brand-300 hover:text-brand-200"
-            >
-              systedo.cz
-              <External width={13} height={13} />
-            </a>{" "}
-            — {t.grow}
           </p>
         </div>
 

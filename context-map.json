@@ -14,14 +14,21 @@
       "contexts": [
         {
           "name": "Home, App Shell & Transitions",
-          "description": "The landing rozcestník that introduces the case study, justifies the Next.js stack and links to every task page, plus the global HTML shell and the per-navigation fade transition wrapping every route.",
+          "description": "The Adamant brand landing: a homepage prototype that previews three logo + key-visual directions (Crystalline, Monolith, Aurora) via a tab switcher, plus the global HTML shell and the per-navigation fade transition wrapping every route. Brand assets live in public/brand.",
           "businessFeature": "Home & App Shell",
           "category": "ui",
           "filePaths": [
             "src/app/page.tsx",
+            "src/components/brand/BrandLanding.tsx",
             "src/app/layout.tsx",
             "src/app/template.tsx",
-            "src/lib/site.ts"
+            "src/lib/site.ts",
+            "public/brand/logo-crystalline.png",
+            "public/brand/logo-monolith.png",
+            "public/brand/logo-aurora.png",
+            "public/brand/illu-crystalline.png",
+            "public/brand/illu-monolith.png",
+            "public/brand/illu-aurora.png"
           ],
           "target": null,
           "apiRoutes": []
@@ -417,7 +424,7 @@
     }
   ],
   "index": [
-    "Site Shell & Landing › Home, App Shell & Transitions [ui] — 4 files",
+    "Site Shell & Landing › Home, App Shell & Transitions [ui] — 11 files",
     "Site Shell & Landing › Header & Footer Navigation [ui] — 5 files",
     "Performance Dashboard › Dashboard Workspace & KPIs [ui] — 5 files",
     "Performance Dashboard › Trend Chart & Channel Breakdown [ui] — 3 files",
@@ -441,7 +448,7 @@
   "summary": {
     "totalGroups": 6,
     "totalContexts": 20,
-    "totalFiles": 99,
+    "totalFiles": 106,
     "categories": {
       "ui": 9,
       "lib": 4,

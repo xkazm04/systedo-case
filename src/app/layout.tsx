@@ -9,29 +9,29 @@ import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { SITE_URL } from "@/lib/site";
 import { auth, DEV_AUTH } from "@/auth";
+import { DevInspector } from "./_dev-inspector/DevInspector";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const SITE = "Systedo · Case study";
+const SITE = "Adamant";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Systedo · Case study — AI Vibecoder",
+    default: "Adamant — AI ad intelligence",
     template: `%s · ${SITE}`,
   },
   description:
-    "Případová studie pro pozici AI Vibecoder: výkonnostní dashboard, článek pro web a AI generátor PPC inzerátů postavený na Gemini.",
+    "Adamant is the AI workspace for advertising — a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.",
   applicationName: SITE,
-  authors: [{ name: "AI Vibecoder kandidát" }],
-  keywords: ["Systedo", "marketing", "dashboard", "PNO", "PPC", "Gemini", "Next.js"],
+  authors: [{ name: "Adamant" }],
+  keywords: ["Adamant", "advertising", "ads", "PPC", "marketing", "dashboard", "AI", "adtech"],
   openGraph: {
-    title: "Systedo · Case study — AI Vibecoder",
+    title: "Adamant — AI ad intelligence",
     description:
-      "Výkonnostní dashboard, článek pro mionelo.cz a AI generátor PPC inzerátů na Gemini.",
+      "The AI workspace for advertising. A rare breed in adtech — be adamant about your ads.",
     type: "website",
-    locale: "cs_CZ",
   },
   robots: { index: false, follow: false },
 };
@@ -82,6 +82,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           </ChromeGate>
         </Providers>
         </LocaleProvider>
+        {process.env.NODE_ENV === "development" && <DevInspector />}
       </body>
     </html>
   );
