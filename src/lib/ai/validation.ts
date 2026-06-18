@@ -15,6 +15,8 @@ import {
   type ArticleDraftRequest,
   type BriefKeyword,
   type BriefRequest,
+  type CohortDiagnosisCohort,
+  type CohortDiagnosisRequest,
   type ContentType,
   type EvalScope,
   type EvaluationRequest,
@@ -277,6 +279,59 @@ export function validateArticleDraftRequest(input: unknown): Valid<ArticleDraftR
   };
   if (audience) value.audience = audience.slice(0, 300);
   if (CONTENT_TYPES.includes(contentType)) value.contentType = contentType;
+  return { valid: true, value };
+}
+
+/** Finite-number coercion: any non-finite value (NaN / Infinity / non-number)
+ *  collapses to 0 so the model only ever sees clean figures. */
+const fin = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+const TREND_DIRECTIONS = new Set(["improving", "worsening", "flat"]);
+
+/** Sanitize one supplied cohort row into the diagnosis projection, or null to
+ *  drop it. A row needs a non-empty month label to be addressable as worstCohort. */
+function parseDiagnosisCohort(v: unknown): CohortDiagnosisCohort | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const month = str(o.month).slice(0, 60);
+  if (!month) return null;
+  const paybackMonth = o.paybackMonth == null ? null : fin(o.paybackMonth);
+  return {
+    month,
+    cac: fin(o.cac),
+    ltv: fin(o.ltv),
+    ltvCac: fin(o.ltvCac),
+    paybackMonth: paybackMonth != null && paybackMonth > 0 ? paybackMonth : null,
+    m3: fin(o.m3),
+    signups: fin(o.signups),
+  };
+}
+
+export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiagnosisRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const cohorts = Array.isArray(o.cohorts)
+    ? o.cohorts
+        .slice(0, 60)
+        .map(parseDiagnosisCohort)
+        .filter((c): c is CohortDiagnosisCohort => c !== null)
+    : [];
+  if (cohorts.length === 0) {
+    return { valid: false, error: "Chybí data kohort k diagnostice." };
+  }
+  const value: CohortDiagnosisRequest = {
+    cohorts,
+    blendedCac: fin(o.blendedCac),
+    avgLtvCac: fin(o.avgLtvCac),
+    avgPayback: o.avgPayback == null ? null : fin(o.avgPayback),
+  };
+  const trend = str(o.trend);
+  if (TREND_DIRECTIONS.has(trend)) value.trend = trend as CohortDiagnosisRequest["trend"];
   return { valid: true, value };
 }
 

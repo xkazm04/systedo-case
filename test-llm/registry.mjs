@@ -276,4 +276,29 @@ export const LLM_TOOLS = [
       });
     },
   },
+  {
+    id: "cohort-diagnosis",
+    label: "Diagnostika kohort (CAC → LTV)",
+    system:
+      "Jsi český analytik jednotkové ekonomiky (CAC, LTV, návratnost). Děláš stručnou diagnostiku akvizičních kohort. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Reálná data kohort (od nejstarší): 2025-01: CAC 1 200 Kč, LTV 5 400 Kč, LTV:CAC 4,5×, návratnost 4 měs., M3 retence 62 %, 180 registrací. 2025-02: CAC 1 600 Kč, LTV 3 800 Kč, LTV:CAC 2,4×, návratnost 7 měs., M3 retence 48 %, 210 registrací. 2025-03: CAC 2 100 Kč, LTV 2 200 Kč, LTV:CAC 1,0×, návratnost > horizont (nevrací se), M3 retence 31 %, 240 registrací. Souhrn: blended CAC 1 650 Kč, průměrné LTV:CAC 2,6×. Povolené názvy kohort pro „worstCohort“: 2025-01, 2025-02, 2025-03. Urči nejproblematičtější kohortu a jednu nejúčinnější páku. Vrať pole summary (krátký odstavec), worstCohort (přesný název kohorty z dat) a recommendation (jedno konkrétní doporučení).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        worstCohort: { type: Type.STRING },
+        recommendation: { type: Type.STRING },
+        risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+      },
+      required: ["summary", "worstCohort", "recommendation"],
+    },
+    // Lenient: non-empty summary + recommendation, and worstCohort must be one of
+    // the cohort labels supplied in the prompt (the model can't invent a cohort).
+    validate: (r) => {
+      if (!r || !isStr(r.summary) || !isStr(r.recommendation) || !isStr(r.worstCohort)) return false;
+      const LABELS = new Set(["2025-01", "2025-02", "2025-03"]);
+      return LABELS.has(r.worstCohort.trim());
+    },
+  },
 ];

@@ -1,7 +1,7 @@
 {
-  "hash": "006d3d4482eba1c88ab6228fde1e136da91506fcb08b52ff73da8b2d503f99a1",
+  "hash": "cc33c5883a01969c663934ee74c599604c1423f797ca8a9d05ded2d1fc0a9fa8",
   "passed": true,
-  "provenAt": "2026-06-18T22:06:54.948Z",
+  "provenAt": "2026-06-18T22:19:34.063Z",
   "tools": [
     "ads",
     "brief",
@@ -11,6 +11,7 @@
     "lead-reply",
     "repurpose",
     "local-review-reply",
-    "article-draft"
+    "article-draft",
+    "cohort-diagnosis"
   ]
 }

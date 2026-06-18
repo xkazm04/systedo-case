@@ -15,7 +15,8 @@ export type AiMode =
   | "lead-reply"
   | "repurpose"
   | "local-review-reply"
-  | "article-draft";
+  | "article-draft"
+  | "cohort-diagnosis";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -24,6 +25,7 @@ export const AI_MODES: AiMode[] = [
   "repurpose",
   "local-review-reply",
   "article-draft",
+  "cohort-diagnosis",
 ];
 
 export interface AiMeta {
@@ -380,3 +382,61 @@ export interface ArticleDraftResult {
 }
 
 export type ArticleDraftResponse = AiResponse<ArticleDraftResult>;
+
+// ===========================================================================
+// Tool 9 — cohort diagnosis (CAC → LTV: an AI read of the computed cohort
+// economics — names the problem cohort and the single lever to pull first.
+// Grounded strictly in the numbers the module already computed; the model
+// invents no figures.)
+// ===========================================================================
+
+/** One cohort's economics, flattened to the few numbers the diagnosis needs.
+ *  A serializable projection of CohortMetrics (lib/ltv/compute) so the client
+ *  never ships the full curve/channel graph to the model. */
+export interface CohortDiagnosisCohort {
+  /** the cohort month label (e.g. „2025-01") — also the worstCohort identifier */
+  month: string;
+  /** acquisition cost per signup (CZK) */
+  cac: number;
+  /** lifetime value per user (CZK) */
+  ltv: number;
+  /** LTV : CAC ratio */
+  ltvCac: number;
+  /** 1-based payback month, or null when not recovered within the horizon */
+  paybackMonth: number | null;
+  /** M3 retention as a fraction (0–1) */
+  m3: number;
+  /** signups in the cohort */
+  signups: number;
+}
+
+/** Blended portfolio summary + optional trend direction handed to the model. */
+export interface CohortDiagnosisRequest {
+  /** the per-cohort rows, chronological (oldest first) — REAL numbers only */
+  cohorts: CohortDiagnosisCohort[];
+  /** blended CAC across all cohorts (CZK) */
+  blendedCac: number;
+  /** average LTV : CAC across cohorts */
+  avgLtvCac: number;
+  /** average payback month across cohorts, or null */
+  avgPayback: number | null;
+  /** the cohort trend direction, when there are ≥ 2 cohorts */
+  trend?: TrendDirection;
+}
+
+/** The trend direction shape, mirrored from lib/ltv/compute so the client+server
+ *  contract stays free of server (compute) imports. */
+export type TrendDirection = "improving" | "worsening" | "flat";
+
+export interface CohortDiagnosisResult {
+  /** one short paragraph reading the unit economics */
+  summary: string;
+  /** the month label of the weakest cohort (must be one of the supplied labels) */
+  worstCohort: string;
+  /** the single most impactful lever to pull first, as a concrete action */
+  recommendation: string;
+  /** optional 1–3 risks to watch */
+  risks?: string[];
+}
+
+export type CohortDiagnosisResponse = AiResponse<CohortDiagnosisResult>;

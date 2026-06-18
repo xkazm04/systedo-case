@@ -21,3 +21,4 @@ export { generateLeadReply } from "./lead-reply";
 export { generateRepurpose } from "./repurpose";
 export { generateLocalReviewReply } from "./local-review-reply";
 export { generateArticleDraft } from "./article-draft";
+export { generateCohortDiagnosis } from "./cohort-diagnosis";

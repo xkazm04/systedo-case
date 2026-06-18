@@ -2,6 +2,7 @@
 import { Bulb, TrendUp, TrendDown } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
+import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 import { cohortTrend, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
@@ -178,6 +179,8 @@ export default function LtvModule({
             : "LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu."}
         </p>
       </div>
+
+      <LtvDiagnosisPanel rows={rows} summary={summary} />
 
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">

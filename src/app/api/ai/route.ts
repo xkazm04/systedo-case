@@ -4,6 +4,7 @@ import {
   generateAnalysis,
   generateArticleDraft,
   generateBrief,
+  generateCohortDiagnosis,
   generateLeadReply,
   generateLocalReviewReply,
   generateRepurpose,
@@ -13,6 +14,7 @@ import {
   validateAnalysisRequest,
   validateArticleDraftRequest,
   validateBriefRequest,
+  validateCohortDiagnosisRequest,
   validateLeadReplyRequest,
   validateLocalReviewReplyRequest,
   validateRepurposeRequest,
@@ -68,7 +70,8 @@ export async function POST(request: Request) {
       mode === "lead-reply" ||
       mode === "repurpose" ||
       mode === "local-review-reply" ||
-      mode === "article-draft"
+      mode === "article-draft" ||
+      mode === "cohort-diagnosis"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -120,6 +123,11 @@ export async function POST(request: Request) {
         const parsed = validateArticleDraftRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateArticleDraft(parsed.value));
+      }
+      case "cohort-diagnosis": {
+        const parsed = validateCohortDiagnosisRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateCohortDiagnosis(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });
