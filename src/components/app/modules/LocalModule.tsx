@@ -1,11 +1,21 @@
 /** Lokální dominance — service×area coverage gaps + review reputation. Server. */
 import { Pill } from "@/components/ui";
+import type { PillTone } from "@/components/ui";
 import { Pin } from "@/components/icons";
 import { fmtInt, fmtPct } from "@/lib/format";
-import { gaps, localSummary } from "@/lib/local/compute";
+import { gaps, localSummary, matrix } from "@/lib/local/compute";
 import type { LocalTarget, ReviewProfile } from "@/lib/local/sample";
 
 const star = (r: number) => `${r.toFixed(1).replace(".", ",")} ★`;
+
+/** Map a local SERP rank to a Pill tone + label, matching the module's color language.
+ *  1–3 = positive, 4–10 = warning (negative-soft), 11+ = coral, no page = neutral. */
+function rankCell(t: LocalTarget | undefined): { tone: PillTone; label: string } {
+  if (!t || !t.hasPage || t.rank === null) return { tone: "neutral", label: "chybí" };
+  if (t.rank <= 3) return { tone: "positive", label: `#${t.rank}` };
+  if (t.rank <= 10) return { tone: "negative", label: `#${t.rank}` };
+  return { tone: "coral", label: `#${t.rank}` };
+}
 
 export default function LocalModule({
   targets,
@@ -16,14 +26,20 @@ export default function LocalModule({
 }) {
   const s = localSummary(targets, reviews);
   const gapRows = gaps(targets);
+  const m = matrix(targets);
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Pokrytí</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtPct(s.coverage)}</p>
           <p className="mt-1 text-xs text-muted">{s.withPage} z {s.total} kombinací</p>
+        </div>
+        <div className="card p-5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Slabé pozice</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-coral-600">{fmtInt(s.coveredButWeak)}</p>
+          <p className="mt-1 text-xs text-muted">stránka mimo TOP 10</p>
         </div>
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Objem v mezerách</p>
@@ -37,6 +53,53 @@ export default function LocalModule({
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Hodnocení</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-positive">{star(s.avgRating)}</p>
+        </div>
+      </div>
+
+      <div className="card overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
+            <Pin width={18} height={18} className="text-brand-accent" />
+            Pozice podle služby a lokality
+          </h3>
+          <div className="flex items-center gap-2">
+            <Pill tone="positive">TOP 3</Pill>
+            <Pill tone="negative">4–10</Pill>
+            <Pill tone="coral">11+</Pill>
+            <Pill tone="neutral">chybí</Pill>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                <th className="px-5 py-3 font-medium">Služba</th>
+                {m.areas.map((area) => (
+                  <th key={area} className="px-4 py-3 text-center font-medium">{area}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {m.services.map((service) => (
+                <tr key={service} className="border-b border-line/70 last:border-0">
+                  <td className="px-5 py-3 font-medium text-navy-800">{service}</td>
+                  {m.areas.map((area) => {
+                    const target = m.cell.get(`${service}|${area}`);
+                    const { tone, label } = rankCell(target);
+                    return (
+                      <td key={area} className="px-4 py-3 text-center">
+                        {target ? <Pill tone={tone}>{label}</Pill> : <span className="text-muted">—</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="border-t border-line px-5 py-3 text-xs text-muted">
+          Pozice ve výsledcích lokálního vyhledávání. Cíl: posunout slabé pozice (11+) a chybějící
+          kombinace do TOP 3. Seam: rank tracker.
         </div>
       </div>
 
