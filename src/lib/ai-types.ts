@@ -7,6 +7,7 @@
 
 import type { CampaignPeriod } from "./campaigns/types";
 import type { Block, FaqItem } from "./article";
+import type { KeywordIntent } from "./keywords/types";
 
 export type AiMode =
   | "ads"
@@ -16,7 +17,8 @@ export type AiMode =
   | "repurpose"
   | "local-review-reply"
   | "article-draft"
-  | "cohort-diagnosis";
+  | "cohort-diagnosis"
+  | "keyword-clusters";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -26,6 +28,7 @@ export const AI_MODES: AiMode[] = [
   "local-review-reply",
   "article-draft",
   "cohort-diagnosis",
+  "keyword-clusters",
 ];
 
 export interface AiMeta {
@@ -440,3 +443,50 @@ export interface CohortDiagnosisResult {
 }
 
 export type CohortDiagnosisResponse = AiResponse<CohortDiagnosisResult>;
+
+// ===========================================================================
+// Tool 10 — keyword intent-clustering (Klíčová slova: regroup a flat keyword
+// list into topic clusters, each a pillar keyword + supporting keywords —
+// ready-made content structure. Generic, so the content-engine module can reuse
+// it. Grounded strictly in the supplied keywords; the model invents none.)
+// ===========================================================================
+
+/** One supplied keyword fed into clustering — keyword plus optional real metrics
+ *  carried over from the keyword-research tool (volume / classified intent). */
+export interface KeywordClusterInput {
+  /** the keyword phrase (the only required field) */
+  keyword: string;
+  /** average monthly searches, when known — drives pillar pick + totalVolume */
+  volume?: number;
+  /** the search intent, when classified (informational | transactional | brand) */
+  intent?: string;
+}
+
+export interface KeywordClustersRequest {
+  /** the keywords to regroup — REAL input set; the model must not invent more */
+  keywords: KeywordClusterInput[];
+  /** optional overarching topic, to steer the grouping */
+  topic?: string;
+}
+
+/** One topic cluster: a single pillar keyword + its supporting keywords, with the
+ *  summed monthly volume of every keyword in the cluster. */
+export interface KeywordCluster {
+  /** short topic name for the cluster */
+  topic: string;
+  /** the dominant search intent, when the model assigned one */
+  intent?: KeywordIntent;
+  /** the one pillar keyword (the page to build first) — always from the input */
+  pillar: string;
+  /** the supporting keywords (the subpages) — all from the input set */
+  supporting: string[];
+  /** summed monthly searches across pillar + supporting (from supplied volumes) */
+  totalVolume?: number;
+}
+
+export interface KeywordClustersResult {
+  /** the topic clusters, largest (by total volume) first */
+  clusters: KeywordCluster[];
+}
+
+export type KeywordClustersResponse = AiResponse<KeywordClustersResult>;

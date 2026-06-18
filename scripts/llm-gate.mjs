@@ -41,6 +41,7 @@ const HASHED_FILES = [
   "src/lib/ai/tools/local-review-reply.ts",
   "src/lib/ai/tools/article-draft.ts",
   "src/lib/ai/tools/cohort-diagnosis.ts",
+  "src/lib/ai/tools/keyword-clusters.ts",
   "src/app/api/ai/route.ts",
   "src/app/api/campaigns/analyze/route.ts",
   "test-llm/registry.mjs",

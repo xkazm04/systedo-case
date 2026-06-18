@@ -20,6 +20,8 @@ import {
   type ContentType,
   type EvalScope,
   type EvaluationRequest,
+  type KeywordClusterInput,
+  type KeywordClustersRequest,
   type LeadReplyChannel,
   type LeadReplyRequest,
   type LocalReviewReplyRequest,
@@ -355,4 +357,47 @@ export function validateEvaluationRequest(input: unknown): Valid<EvaluationReque
     return { valid: true, value: { scope, campaignId, period: o.period } };
   }
   return { valid: true, value: { scope, period: o.period } };
+}
+
+const CLUSTER_INTENTS = new Set(["informational", "transactional", "brand"]);
+
+/** Sanitize one supplied keyword into the clustering input, or null to drop it.
+ *  A row needs a non-empty keyword; volume/intent are optional and coerced. */
+function parseClusterKeyword(v: unknown): KeywordClusterInput | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const keyword = str(o.keyword).slice(0, 120);
+  if (!keyword) return null;
+  const out: KeywordClusterInput = { keyword };
+  const volume = Number(o.volume);
+  if (Number.isFinite(volume) && volume > 0) out.volume = volume;
+  const intent = str(o.intent).toLowerCase();
+  if (CLUSTER_INTENTS.has(intent)) out.intent = intent;
+  return out;
+}
+
+export function validateKeywordClustersRequest(input: unknown): Valid<KeywordClustersRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  // De-dupe by canonical keyword and cap the count so the prompt stays bounded.
+  const seen = new Set<string>();
+  const keywords: KeywordClusterInput[] = [];
+  const rawList = Array.isArray(o.keywords) ? o.keywords.slice(0, 60) : [];
+  for (const item of rawList) {
+    const parsed = parseClusterKeyword(item);
+    if (!parsed) continue;
+    const key = parsed.keyword.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    keywords.push(parsed);
+  }
+  if (keywords.length < 2) {
+    return { valid: false, error: "Zadejte alespoň 2 klíčová slova k seskupení." };
+  }
+  const value: KeywordClustersRequest = { keywords };
+  const topic = str(o.topic);
+  if (topic) value.topic = topic.slice(0, 200);
+  return { valid: true, value };
 }

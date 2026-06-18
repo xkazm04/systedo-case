@@ -5,6 +5,7 @@ import {
   generateArticleDraft,
   generateBrief,
   generateCohortDiagnosis,
+  generateKeywordClusters,
   generateLeadReply,
   generateLocalReviewReply,
   generateRepurpose,
@@ -15,6 +16,7 @@ import {
   validateArticleDraftRequest,
   validateBriefRequest,
   validateCohortDiagnosisRequest,
+  validateKeywordClustersRequest,
   validateLeadReplyRequest,
   validateLocalReviewReplyRequest,
   validateRepurposeRequest,
@@ -71,7 +73,8 @@ export async function POST(request: Request) {
       mode === "repurpose" ||
       mode === "local-review-reply" ||
       mode === "article-draft" ||
-      mode === "cohort-diagnosis"
+      mode === "cohort-diagnosis" ||
+      mode === "keyword-clusters"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -128,6 +131,11 @@ export async function POST(request: Request) {
         const parsed = validateCohortDiagnosisRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateCohortDiagnosis(parsed.value));
+      }
+      case "keyword-clusters": {
+        const parsed = validateKeywordClustersRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateKeywordClusters(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

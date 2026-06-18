@@ -301,4 +301,55 @@ export const LLM_TOOLS = [
       return LABELS.has(r.worstCohort.trim());
     },
   },
+  {
+    id: "keyword-clusters",
+    label: "Seskupení klíčových slov do klastrů",
+    system:
+      "Jsi český SEO stratég. Z plochého seznamu klíčových slov skládáš tematické klastry (pilíř + podpůrná slova). Pracuj jen s předanými slovy, žádné si nevymýšlej, a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Seskup tato klíčová slova do tematických klastrů (pilíř + podpůrná slova). Hlavní téma: ořechy. Klíčová slova (hledanost za měsíc): vlašské ořechy (2400/měs), vlašské ořechy cena (900/měs), vlašské ořechy zdraví (600/měs), mandle (1800/měs), mandle cena (700/měs), mandle pražené (400/měs). Vrať pole clusters, kde každý klastr je objekt s polem topic (název tématu), pillar (jedno hlavní slovo z předaného seznamu) a supporting (pole zbývajících slov klastru ze seznamu). Použij POUZE slova z uvedeného seznamu, doslova.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        clusters: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              topic: { type: Type.STRING },
+              intent: { type: Type.STRING },
+              pillar: { type: Type.STRING },
+              supporting: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ["topic", "pillar", "supporting"],
+          },
+        },
+      },
+      required: ["clusters"],
+    },
+    // Lenient: at least one cluster, each with a topic and a pillar that is one of
+    // the keywords supplied in the prompt (the model can't invent a keyword).
+    validate: (r) => {
+      if (!r || !Array.isArray(r.clusters) || r.clusters.length === 0) return false;
+      const INPUT = new Set(
+        [
+          "vlašské ořechy",
+          "vlašské ořechy cena",
+          "vlašské ořechy zdraví",
+          "mandle",
+          "mandle cena",
+          "mandle pražené",
+        ].map((k) => k.toLowerCase())
+      );
+      return r.clusters.every(
+        (c) =>
+          c &&
+          typeof c === "object" &&
+          isStr(c.topic) &&
+          isStr(c.pillar) &&
+          INPUT.has(c.pillar.trim().toLowerCase()) &&
+          Array.isArray(c.supporting)
+      );
+    },
+  },
 ];

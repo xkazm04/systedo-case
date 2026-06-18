@@ -1,7 +1,7 @@
 {
-  "hash": "cc33c5883a01969c663934ee74c599604c1423f797ca8a9d05ded2d1fc0a9fa8",
+  "hash": "cc0dadf09c256169477b5a9fdc4848665548b163cca7bac0ee2265b2cf8ef293",
   "passed": true,
-  "provenAt": "2026-06-18T22:19:34.063Z",
+  "provenAt": "2026-06-18T22:38:58.806Z",
   "tools": [
     "ads",
     "brief",
@@ -12,6 +12,7 @@
     "repurpose",
     "local-review-reply",
     "article-draft",
-    "cohort-diagnosis"
+    "cohort-diagnosis",
+    "keyword-clusters"
   ]
 }

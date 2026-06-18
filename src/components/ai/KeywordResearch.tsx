@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Bolt, Check, Gauge, Search } from "@/components/icons";
+import { ArrowRight, Bolt, Check, Gauge, Network, Search } from "@/components/icons";
 import { fmtCZK, fmtInt } from "@/lib/format";
-import type { BriefKeyword } from "@/lib/ai-types";
+import type {
+  BriefKeyword,
+  KeywordCluster,
+  KeywordClustersResult,
+} from "@/lib/ai-types";
 import {
   COMPETITION_LABELS,
   KEYWORD_INTENT_LABELS,
@@ -12,7 +16,16 @@ import {
   type KeywordIntent,
   type KeywordResult,
 } from "@/lib/keywords/types";
-import { Field, ToolEmpty, ToolError, inputClass } from "./primitives";
+import { useAiTool } from "./useAiTool";
+import {
+  Field,
+  LoadingTimer,
+  ResultMeta,
+  TimeoutState,
+  ToolEmpty,
+  ToolError,
+  inputClass,
+} from "./primitives";
 
 type Status = "idle" | "loading" | "done" | "error";
 type IntentFilter = "all" | KeywordIntent;
@@ -50,6 +63,9 @@ export default function KeywordResearch({
   const [filter, setFilter] = useState<IntentFilter>("all");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
+  // AI clustering of the current research into pillar + supporting topic clusters.
+  const clusters = useAiTool<KeywordClustersResult>("keyword-clusters");
+
   const canSubmit = seed.trim().length >= 2 && status !== "loading";
 
   async function run(e: React.FormEvent) {
@@ -60,6 +76,7 @@ export default function KeywordResearch({
     setSelected(new Set());
     setFilter("all");
     setSaveState("idle");
+    clusters.reset();
     try {
       const res = await fetch("/api/keywords", {
         method: "POST",
@@ -107,6 +124,49 @@ export default function KeywordResearch({
         volume: i.avgMonthlySearches,
         competition: i.competition,
       })),
+    });
+  };
+
+  /** Send the current research (selected keywords, or the full set) to the AI
+   *  clustering tool. Carries volume + classified intent so the model groups by
+   *  real demand and intent rather than the bare phrases. */
+  const runClusters = () => {
+    if (!result) return;
+    const picks = selected.size > 0 ? result.ideas.filter((i) => selected.has(i.keyword)) : result.ideas;
+    clusters.run({
+      topic: result.seed,
+      keywords: picks.map((i) => ({
+        keyword: i.keyword,
+        volume: i.avgMonthlySearches,
+        intent: i.intent,
+      })),
+    });
+  };
+
+  // Lookup from the current research, so a cluster's keywords carry their real
+  // volume + competition into the brief handoff (the cluster payload omits them).
+  const ideaByKeyword = useMemo(() => {
+    const map = new Map<string, KeywordIdea>();
+    if (result) for (const i of result.ideas) map.set(i.keyword, i);
+    return map;
+  }, [result]);
+
+  /** Reuse the existing brief handoff for a single cluster pillar: the cluster
+   *  topic becomes the brief topic, the pillar the primary keyword, and the
+   *  supporting keywords the grounding set. */
+  const briefFromCluster = (cluster: KeywordCluster) => {
+    const toBriefKeyword = (keyword: string): BriefKeyword => {
+      const idea = ideaByKeyword.get(keyword);
+      return {
+        keyword,
+        volume: idea?.avgMonthlySearches ?? 0,
+        competition: idea?.competition ?? "",
+      };
+    };
+    onCreateBrief({
+      topic: cluster.topic || result?.seed || cluster.pillar,
+      primaryKeyword: cluster.pillar,
+      keywords: [cluster.pillar, ...cluster.supporting].map(toBriefKeyword),
     });
   };
 
@@ -239,6 +299,20 @@ export default function KeywordResearch({
                 {selected.size > 0 && (
                   <span className="text-xs text-muted">{selected.size} vybráno</span>
                 )}
+                <button
+                  type="button"
+                  onClick={runClusters}
+                  disabled={clusters.status === "loading"}
+                  title={
+                    selected.size > 0
+                      ? "Seskupit vybraná slova do tematických klastrů"
+                      : "Seskupit všechna slova do tematických klastrů"
+                  }
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
+                >
+                  <Network width={13} height={13} />
+                  {clusters.status === "loading" ? "Seskupuji…" : "Seskupit do klastrů"}
+                </button>
                 {authStatus === "authenticated" && (
                   <button
                     type="button"
@@ -257,6 +331,41 @@ export default function KeywordResearch({
                 )}
               </div>
             </div>
+
+            {/* AI clustering output — pillar + supporting topic clusters over the
+                current research, each with a one-click brief handoff. */}
+            {clusters.status === "loading" && <LoadingTimer />}
+            {clusters.status === "error" &&
+              (clusters.timedOut ? (
+                <TimeoutState onRetry={runClusters} />
+              ) : (
+                <ToolError message={clusters.error ?? ""} onRetry={runClusters} />
+              ))}
+            {clusters.status === "done" && clusters.data && (
+              <div className="animate-fade-up space-y-3 rounded-card border border-line bg-canvas/60 p-4">
+                <div className="flex items-center gap-2">
+                  <Network width={16} height={16} className="text-brand-accent" />
+                  <h3 className="text-sm font-semibold text-navy-800">
+                    Tematické klastry ({clusters.data.result.clusters.length})
+                  </h3>
+                </div>
+                <ResultMeta meta={clusters.data.meta} />
+                <p className="text-xs leading-relaxed text-muted">
+                  Každý klastr je připravená struktura obsahu: jedna pilířová stránka a k ní podpůrné
+                  podstránky. Tlačítkem „Vytvořit brief“ pošlete pilíř i podpůrná slova rovnou do
+                  obsahového briefu.
+                </p>
+                <ul className="grid gap-3 sm:grid-cols-2">
+                  {clusters.data.result.clusters.map((cluster, i) => (
+                    <ClusterCard
+                      key={`${cluster.pillar}-${i}`}
+                      cluster={cluster}
+                      onCreateBrief={() => briefFromCluster(cluster)}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* intent filter */}
             <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
@@ -356,6 +465,60 @@ function IdeaRow({
           </span>
         </span>
       </label>
+    </li>
+  );
+}
+
+/** One topic cluster: the pillar keyword (the page to build first), its
+ *  supporting keywords (the subpages), the summed monthly volume, and a one-click
+ *  handoff that seeds the content brief from this cluster. */
+function ClusterCard({
+  cluster,
+  onCreateBrief,
+}: {
+  cluster: KeywordCluster;
+  onCreateBrief: () => void;
+}) {
+  return (
+    <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate text-sm font-semibold text-navy-800">{cluster.topic}</span>
+          {cluster.intent && (
+            <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[cluster.intent]}</span>
+          )}
+          {typeof cluster.totalVolume === "number" && cluster.totalVolume > 0 && (
+            <span className="pill bg-brand-50 text-brand-700 tnum">
+              {fmtInt(cluster.totalVolume)}/měs
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">Pilíř</p>
+        <p className="mt-0.5 text-sm font-medium text-navy-800">{cluster.pillar}</p>
+        {cluster.supporting.length > 0 && (
+          <>
+            <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">
+              Podpůrná slova ({cluster.supporting.length})
+            </p>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {cluster.supporting.map((kw) => (
+                <span key={kw} className="pill bg-navy-50 text-navy-700">
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onCreateBrief}
+        className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-pill border border-line px-3 py-2 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+      >
+        <Bolt width={13} height={13} />
+        Vytvořit brief
+        <ArrowRight width={13} height={13} />
+      </button>
     </li>
   );
 }
