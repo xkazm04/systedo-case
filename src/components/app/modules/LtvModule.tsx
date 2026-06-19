@@ -1,4 +1,6 @@
-/** CAC → LTV — cohort economics for an app/SaaS project. Server component. */
+/** CAC → LTV — cohort economics. Project-type-aware framing: e-shop projects read
+ *  customer / repeat-purchase wording, app/SaaS projects read signup / retention
+ *  wording (the cohort math is identical). Server component. */
 import { Bulb, TrendUp, TrendDown } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
@@ -137,12 +139,40 @@ export default function LtvModule({
   rows,
   summary,
   cohorts,
+  eshop = false,
 }: {
   rows: CohortMetrics[];
   summary: LtvSummary;
   /** raw cohorts for the interactive horizon/churn projection (feature #3) */
   cohorts: Cohort[];
+  /** e-shop project → customer / repeat-purchase framing instead of signup / retention */
+  eshop?: boolean;
 }) {
+  // Project-type-aware labels: an e-shop owner reads "customers / repeat purchases /
+  // order value", not "signups / retention / ARPU" — same math, correct framing.
+  const L = eshop
+    ? {
+        unit: "Zákazníci",
+        unitLower: "zákazníků",
+        unitSingular: "zákazníka",
+        m3: "M3 opakování",
+        curve: "Křivka opakování",
+        curveLower: "křivky opakování",
+        improve: "opakované nákupy / hodnotu objednávky",
+        scaleOn: "počet objednávek",
+        seam: "Seam: napojit objednávky a zákazníky z e-shopu / CRM (Shoptet, Shopify, GA4 e-commerce).",
+      }
+    : {
+        unit: "Registrace",
+        unitLower: "registrací",
+        unitSingular: "registraci",
+        m3: "M3 retence",
+        curve: "Retenční křivka",
+        curveLower: "retenční křivky",
+        improve: "retenci / ARPU",
+        scaleOn: "počet registrací",
+        seam: "Seam: napojit události z product analytics (Segment / PostHog / Stripe).",
+      };
   const healthy = summary.avgLtvCac >= 3;
   const channels = blendChannels(rows);
   const maxRatio = Math.max(...channels.map((x) => x.ltvCac), 1);
@@ -159,7 +189,7 @@ export default function LtvModule({
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">Placené CAC</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtCZK(summary.paidCac)}</p>
-          <p className="mt-1 text-xs text-muted">{fmtInt(summary.paidSignups)} placených registrací</p>
+          <p className="mt-1 text-xs text-muted">{fmtInt(summary.paidSignups)} placených {L.unitLower}</p>
         </div>
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">LTV : CAC</p>
@@ -180,8 +210,8 @@ export default function LtvModule({
         <Bulb width={18} height={18} className={`mt-0.5 shrink-0 ${healthy ? "text-positive" : "text-coral-600"}`} />
         <p className="text-sm leading-relaxed text-navy-700">
           {healthy
-            ? "Jednotková ekonomika je zdravá (LTV:CAC ≥ 3). Akvizici lze škálovat — optimalizujte na dobu návratnosti, ne na počet registrací."
-            : "LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu."}
+            ? `Jednotková ekonomika je zdravá (LTV:CAC ≥ 3). Akvizici lze škálovat — optimalizujte na dobu návratnosti, ne na ${L.scaleOn}.`
+            : `LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete ${L.improve} nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu.`}
         </p>
       </div>
 
@@ -218,10 +248,10 @@ export default function LtvModule({
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                 <th className="px-5 py-3 font-medium">Kohorta</th>
-                <th className="px-4 py-3 text-right font-medium">Registrace</th>
+                <th className="px-4 py-3 text-right font-medium">{L.unit}</th>
                 <th className="px-4 py-3 text-right font-medium">CAC</th>
-                <th className="px-4 py-3 text-right font-medium">M3 retence</th>
-                <th className="px-4 py-3 text-center font-medium">Retenční křivka</th>
+                <th className="px-4 py-3 text-right font-medium">{L.m3}</th>
+                <th className="px-4 py-3 text-center font-medium">{L.curve}</th>
                 <th className="px-4 py-3 text-right font-medium">LTV</th>
                 <th className="px-4 py-3 text-right font-medium">LTV:CAC</th>
                 <th className="px-4 py-3 text-right font-medium">Návratnost</th>
@@ -274,8 +304,7 @@ export default function LtvModule({
             modelováno
           </span>
           <span>
-            LTV počítáno na {12} měsíců s extrapolací retenční křivky. Seam: napojit události z product
-            analytics (Segment / PostHog / Stripe).
+            LTV počítáno na {12} měsíců s extrapolací {L.curveLower}. {L.seam}
           </span>
         </div>
       </div>
@@ -293,7 +322,7 @@ export default function LtvModule({
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
                   <th className="px-5 py-3 font-medium">Kanál</th>
-                  <th className="px-4 py-3 text-right font-medium">Registrace</th>
+                  <th className="px-4 py-3 text-right font-medium">{L.unit}</th>
                   <th className="px-4 py-3 text-right font-medium">CAC</th>
                   <th className="px-4 py-3 text-right font-medium">Návratnost</th>
                   <th className="px-4 py-3 text-right font-medium">LTV:CAC</th>
@@ -342,7 +371,7 @@ export default function LtvModule({
             </table>
           </div>
           <div className="border-t border-line px-5 py-3 text-xs text-muted">
-            CAC je vlastní útrata kanálu na registraci; organické / přímé kanály mají nulové akviziční
+            CAC je vlastní útrata kanálu na {L.unitSingular}; organické / přímé kanály mají nulové akviziční
             náklady, proto se nezapočítávají do placené CAC.
           </div>
         </div>

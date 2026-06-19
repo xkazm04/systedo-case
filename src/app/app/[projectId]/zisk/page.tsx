@@ -2,6 +2,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ProfitModule from "@/components/app/modules/ProfitModule";
+import SampleDataNote from "@/components/app/SampleDataNote";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
@@ -54,6 +55,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   return (
     <ModulePage moduleKey="zisk">
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
       <ProfitModule
         projectId={projectId}
         rowsByPeriod={rowsByPeriod}
