@@ -5,6 +5,7 @@ import {
   generateArticleDraft,
   generateBrief,
   generateCohortDiagnosis,
+  generateComparisonOutline,
   generateKeywordClusters,
   generateLeadReply,
   generateLocalReviewReply,
@@ -16,6 +17,7 @@ import {
   validateArticleDraftRequest,
   validateBriefRequest,
   validateCohortDiagnosisRequest,
+  validateComparisonOutlineRequest,
   validateKeywordClustersRequest,
   validateLeadReplyRequest,
   validateLocalReviewReplyRequest,
@@ -74,7 +76,8 @@ export async function POST(request: Request) {
       mode === "local-review-reply" ||
       mode === "article-draft" ||
       mode === "cohort-diagnosis" ||
-      mode === "keyword-clusters"
+      mode === "keyword-clusters" ||
+      mode === "comparison-outline"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -136,6 +139,11 @@ export async function POST(request: Request) {
         const parsed = validateKeywordClustersRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateKeywordClusters(parsed.value));
+      }
+      case "comparison-outline": {
+        const parsed = validateComparisonOutlineRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateComparisonOutline(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

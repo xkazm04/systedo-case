@@ -2,12 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, ChevronDown } from "@/components/icons";
+import { ArrowRight, ChevronDown, Sparkles } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
 import { fmtInt } from "@/lib/format";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
+import { useAiTool } from "@/components/ai/useAiTool";
+import { ResultMeta } from "@/components/ai/primitives";
+import type { ComparisonOutlineResult } from "@/lib/ai-types";
 import {
   DEFAULT_SCORE_WEIGHTS,
   INTENT_LABELS,
@@ -78,6 +81,209 @@ function briefTopic(r: ScoredQuery): string {
     case "review":
       return `${r.query} — recenze`;
   }
+}
+
+/** The generated comparison-page scaffold, rendered inline under its row: H1,
+ *  sections with bullet points, the comparison criteria as chips, the verdict and
+ *  the FAQ — plus a „Předat do briefu" handoff that folds the scaffold into the
+ *  existing brief-seed flow. */
+function ScaffoldPanel({
+  result,
+  demo,
+  tookMs,
+  model,
+  onHandoff,
+}: {
+  result: ComparisonOutlineResult;
+  demo: boolean;
+  tookMs: number;
+  model: string;
+  onHandoff: () => void;
+}) {
+  return (
+    <div className="space-y-4 rounded-lg border border-line bg-canvas p-4">
+      <ResultMeta meta={{ model, demo, prompt: "", tookMs }} />
+
+      <div>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">Návrh H1</p>
+        <h3 className="mt-1 text-base font-semibold text-navy-800">{result.h1}</h3>
+      </div>
+
+      {result.comparisonCriteria.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted">
+            Srovnávací kritéria
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {result.comparisonCriteria.map((c, i) => (
+              <Pill key={`${c}-${i}`} tone="navy">
+                {c}
+              </Pill>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {result.sections.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Osnova sekcí</p>
+          {result.sections.map((s, i) => (
+            <div key={`${s.heading}-${i}`} className="rounded-lg border border-line bg-surface p-3">
+              <p className="text-sm font-semibold text-navy-800">{s.heading}</p>
+              {s.points.length > 0 && (
+                <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-navy-700">
+                  {s.points.map((p, j) => (
+                    <li key={j}>{p}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {result.verdict && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-brand-700">Verdikt</p>
+          <p className="mt-1 text-sm text-navy-800">{result.verdict}</p>
+        </div>
+      )}
+
+      {result.faq.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Časté dotazy</p>
+          {result.faq.map((f, i) => (
+            <div key={`${f.q}-${i}`} className="rounded-lg border border-line bg-surface p-3">
+              <p className="text-sm font-medium text-navy-800">{f.q}</p>
+              <p className="mt-1 text-sm text-navy-700">{f.a}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <button
+          type="button"
+          onClick={onHandoff}
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
+        >
+          Předat do briefu
+          <ArrowRight className="h-4 w-4" />
+        </button>
+        <span className="text-xs text-muted">
+          Z kostry vznikne brief v Obsahu (téma, hlavní klíčové slovo a kritéria jako klíčová slova).
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** One scored query row plus its own AI lifecycle: a „Vygenerovat srovnání"
+ *  action that calls the comparison-outline tool and renders the scaffold inline.
+ *  Each row owns its hook so generating one query doesn't disturb the others. */
+function QueryRow({
+  r,
+  onCreate,
+  onCreateFromOutline,
+}: {
+  r: ScoredQuery;
+  onCreate: (r: ScoredQuery) => void;
+  onCreateFromOutline: (r: ScoredQuery, result: ComparisonOutlineResult) => void;
+}) {
+  const meta = OPP_META[r.opportunity];
+  const { status, data, error, timedOut, run, reset } = useAiTool<ComparisonOutlineResult>(
+    `comparison-outline:${r.query}`,
+  );
+  const [open, setOpen] = useState(false);
+
+  function onGenerate() {
+    setOpen(true);
+    void run({ mode: "comparison-outline", query: r.query, intent: r.intent, volume: r.volume });
+  }
+
+  return (
+    <>
+      <tr className="border-b border-line/70">
+        <td className="px-5 py-3 font-medium text-navy-800">{r.query}</td>
+        <td className="px-4 py-3">
+          <Pill tone="brand">{INTENT_LABELS[r.intent]}</Pill>
+        </td>
+        <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(r.volume)}</td>
+        <td className="tnum px-4 py-3 text-right text-navy-700">{r.difficulty}</td>
+        <td className="tnum px-4 py-3 text-right text-muted">{r.rank ?? "—"}</td>
+        <td className="px-4 py-3">
+          <Pill tone={meta.tone}>{meta.label}</Pill>
+        </td>
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={status === "loading"}
+              className="inline-flex items-center gap-1 rounded-pill border border-brand-300 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
+              title="Vygenerovat kostru srovnávací stránky pro tento dotaz"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {status === "loading"
+                ? "Generuji…"
+                : status === "done" || status === "error"
+                  ? "Znovu"
+                  : "Vygenerovat srovnání"}
+            </button>
+            <button
+              type="button"
+              onClick={() => onCreate(r)}
+              className="inline-flex items-center gap-1 rounded-pill border border-line px-3 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50"
+              title="Předat tento dotaz do AI briefu v Obsahu"
+            >
+              Vytvořit obsah
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </td>
+      </tr>
+
+      {open && (status === "loading" || status === "error" || data) && (
+        <tr className="border-b border-line/70">
+          <td colSpan={7} className="px-5 pb-4">
+            {status === "loading" && (
+              <p className="rounded-lg border border-line bg-canvas px-4 py-3 text-sm text-muted">
+                Generuji kostru srovnávací stránky pro „{r.query}“…
+              </p>
+            )}
+            {status === "error" && (
+              <div className="rounded-lg border border-negative/30 bg-negative-soft px-4 py-3 text-sm">
+                <p className="font-medium text-negative">
+                  {timedOut ? "Vypršel časový limit" : "Generování selhalo"}
+                </p>
+                <p className="mt-0.5 text-muted">{error ?? "Zkuste to prosím znovu."}</p>
+                <button
+                  type="button"
+                  onClick={onGenerate}
+                  className="mt-2 rounded-pill border border-line px-3 py-1 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-50"
+                >
+                  Zkusit znovu
+                </button>
+              </div>
+            )}
+            {status === "done" && data && (
+              <ScaffoldPanel
+                result={data.result}
+                demo={data.meta.demo}
+                tookMs={data.meta.tookMs}
+                model={data.meta.model}
+                onHandoff={() => {
+                  onCreateFromOutline(r, data.result);
+                  reset();
+                  setOpen(false);
+                }}
+              />
+            )}
+          </td>
+        </tr>
+      )}
+    </>
+  );
 }
 
 function SummaryCards({ rows, high }: { rows: ScoredQuery[]; high: number }) {
@@ -254,18 +460,37 @@ export default function CompareSeoTable({
   const rows = useMemo(() => scoreQueries(queries, weights), [queries, weights]);
   const highCount = useMemo(() => rows.filter((r) => r.opportunity === "high").length, [rows]);
 
-  function onCreate(r: ScoredQuery) {
-    const seed: BriefSeed = {
-      topic: briefTopic(r),
-      primaryKeyword: r.query,
-      keywords: [{ keyword: r.query, volume: r.volume, competition: INTENT_LABELS[r.intent] }],
-    };
+  /** Write a brief seed for the chosen query to session storage and route to
+   *  Obsah, where the brief tool reads the seed on mount and pre-fills the draft. */
+  function seedAndRoute(seed: BriefSeed) {
     try {
       sessionStorage.setItem(briefSeedKey(project.id), JSON.stringify(seed));
     } catch {
       /* non-critical — the brief tool still opens, just unseeded */
     }
     router.push(`/app/${project.id}/obsah`);
+  }
+
+  function onCreate(r: ScoredQuery) {
+    seedAndRoute({
+      topic: briefTopic(r),
+      primaryKeyword: r.query,
+      keywords: [{ keyword: r.query, volume: r.volume, competition: INTENT_LABELS[r.intent] }],
+    });
+  }
+
+  /** Fold a generated comparison scaffold into the existing brief-seed handoff:
+   *  topic = the generated H1, primaryKeyword = the query, keywords = the
+   *  comparison criteria (plus the query itself, grounded with its volume). */
+  function onCreateFromOutline(r: ScoredQuery, result: ComparisonOutlineResult) {
+    seedAndRoute({
+      topic: result.h1 || briefTopic(r),
+      primaryKeyword: r.query,
+      keywords: [
+        { keyword: r.query, volume: r.volume, competition: INTENT_LABELS[r.intent] },
+        ...result.comparisonCriteria.map((c) => ({ keyword: c, volume: 0, competition: "" })),
+      ],
+    });
   }
 
   return (
@@ -293,34 +518,14 @@ export default function CompareSeoTable({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => {
-                const meta = OPP_META[r.opportunity];
-                return (
-                  <tr key={r.query} className="border-b border-line/70 last:border-0">
-                    <td className="px-5 py-3 font-medium text-navy-800">{r.query}</td>
-                    <td className="px-4 py-3">
-                      <Pill tone="brand">{INTENT_LABELS[r.intent]}</Pill>
-                    </td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(r.volume)}</td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{r.difficulty}</td>
-                    <td className="tnum px-4 py-3 text-right text-muted">{r.rank ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <Pill tone={meta.tone}>{meta.label}</Pill>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => onCreate(r)}
-                        className="inline-flex items-center gap-1 rounded-pill border border-line px-3 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-50"
-                        title="Předat tento dotaz do AI briefu v Obsahu"
-                      >
-                        Vytvořit obsah
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {rows.map((r) => (
+                <QueryRow
+                  key={r.query}
+                  r={r}
+                  onCreate={onCreate}
+                  onCreateFromOutline={onCreateFromOutline}
+                />
+              ))}
             </tbody>
           </table>
         </div>

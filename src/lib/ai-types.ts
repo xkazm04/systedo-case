@@ -18,7 +18,8 @@ export type AiMode =
   | "local-review-reply"
   | "article-draft"
   | "cohort-diagnosis"
-  | "keyword-clusters";
+  | "keyword-clusters"
+  | "comparison-outline";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -29,6 +30,7 @@ export const AI_MODES: AiMode[] = [
   "article-draft",
   "cohort-diagnosis",
   "keyword-clusters",
+  "comparison-outline",
 ];
 
 export interface AiMeta {
@@ -490,3 +492,54 @@ export interface KeywordClustersResult {
 }
 
 export type KeywordClustersResponse = AiResponse<KeywordClustersResult>;
+
+// ===========================================================================
+// Tool 11 — comparison-page outline (Srovnání & SEO: from a chosen high-intent
+// comparison query + its intent, generate a publish-ready comparison-page
+// scaffold — H1, ordered sections, comparison criteria, verdict and FAQ. NOT a
+// generic brief. Scoped to the query + intent (there is no competitor dataset),
+// so the model keeps entity names generic / placeholder.)
+// ===========================================================================
+
+/** The comparison-query intent, mirrored from lib/seo-compare/sample so the
+ *  client+server contract stays free of the sample-data import. */
+export type CompareOutlineIntent = "alternative" | "vs" | "pricing" | "review";
+
+/** Czech labels for the intents, surfaced in the prompt and the UI. */
+export const COMPARE_INTENT_LABELS: Record<CompareOutlineIntent, string> = {
+  alternative: "Alternativa",
+  vs: "Srovnání",
+  pricing: "Cena",
+  review: "Recenze",
+};
+
+export interface ComparisonOutlineRequest {
+  /** the chosen high-intent comparison query — also the page's primary keyword */
+  query: string;
+  /** the query's intent, which drives the page framing */
+  intent: CompareOutlineIntent;
+  /** monthly search volume, when known — surfaced in the prompt for context */
+  volume?: number;
+}
+
+/** One section of the comparison page: an H2 heading + the bullet points it covers. */
+export interface ComparisonOutlineSection {
+  heading: string;
+  points: string[];
+}
+
+/** A publish-ready comparison-page scaffold (not a generic brief). */
+export interface ComparisonOutlineResult {
+  /** the page's H1 / display title */
+  h1: string;
+  /** the ordered sections (heading + points) */
+  sections: ComparisonOutlineSection[];
+  /** the criteria the solutions are compared against (chips in the UI) */
+  comparisonCriteria: string[];
+  /** a one-to-two sentence summarising verdict / recommendation */
+  verdict: string;
+  /** the FAQ (question + answer) for the page */
+  faq: { q: string; a: string }[];
+}
+
+export type ComparisonOutlineResponse = AiResponse<ComparisonOutlineResult>;

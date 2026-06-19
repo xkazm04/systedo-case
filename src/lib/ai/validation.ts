@@ -17,6 +17,8 @@ import {
   type BriefRequest,
   type CohortDiagnosisCohort,
   type CohortDiagnosisRequest,
+  type CompareOutlineIntent,
+  type ComparisonOutlineRequest,
   type ContentType,
   type EvalScope,
   type EvaluationRequest,
@@ -334,6 +336,33 @@ export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiag
   };
   const trend = str(o.trend);
   if (TREND_DIRECTIONS.has(trend)) value.trend = trend as CohortDiagnosisRequest["trend"];
+  return { valid: true, value };
+}
+
+const COMPARE_OUTLINE_INTENTS = new Set<CompareOutlineIntent>([
+  "alternative",
+  "vs",
+  "pricing",
+  "review",
+]);
+
+export function validateComparisonOutlineRequest(input: unknown): Valid<ComparisonOutlineRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const query = str(o.query);
+  const intent = str(o.intent) as CompareOutlineIntent;
+
+  if (query.length < 2 || query.length > 200) {
+    return { valid: false, error: "Vyplňte cílový dotaz (2–200 znaků)." };
+  }
+  if (!COMPARE_OUTLINE_INTENTS.has(intent)) {
+    return { valid: false, error: "Neplatný záměr dotazu." };
+  }
+  const value: ComparisonOutlineRequest = { query: query.slice(0, 200), intent };
+  const volume = Number(o.volume);
+  if (Number.isFinite(volume) && volume > 0) value.volume = volume;
   return { valid: true, value };
 }
 

@@ -352,4 +352,52 @@ export const LLM_TOOLS = [
       );
     },
   },
+  {
+    id: "comparison-outline",
+    label: "Kostra srovnávací stránky",
+    system:
+      "Jsi český SEO obsahový stratég pro srovnávací stránky s vysokým nákupním záměrem (X vs Y, alternativy, ceník, recenze). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci, ne obecný brief. Nemáš konkrétní data o konkurentech — drž obsah obecný a doplnitelný. Piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Připrav kostru srovnávací stránky pro cílový dotaz „monday.com vs trello“. Záměr dotazu: Srovnání (vs). Měsíční hledanost: 880. Vrať h1 (nadpis stránky), sections (4–7 sekcí, každá objekt heading + points jako pole odrážek), comparisonCriteria (4–8 kritérií pro porovnání), verdict (1–2 věty shrnujícího doporučení) a faq (3–5 dotazů, každý objekt q + a). Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem. Vrať POUZE jeden JSON objekt.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        h1: { type: Type.STRING },
+        sections: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              heading: { type: Type.STRING },
+              points: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ["heading", "points"],
+          },
+        },
+        comparisonCriteria: { type: Type.ARRAY, items: { type: Type.STRING } },
+        verdict: { type: Type.STRING },
+        faq: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              q: { type: Type.STRING },
+              a: { type: Type.STRING },
+            },
+            required: ["q", "a"],
+          },
+        },
+      },
+      required: ["h1", "sections", "comparisonCriteria", "verdict", "faq"],
+    },
+    // Lenient/structural: a non-empty h1, at least one section (with a heading),
+    // and at least one FAQ entry (with a question + answer).
+    validate: (r) => {
+      if (!r || !isStr(r.h1)) return false;
+      if (!Array.isArray(r.sections) || r.sections.length === 0) return false;
+      if (!isStr(r.sections[0]?.heading)) return false;
+      if (!Array.isArray(r.faq) || r.faq.length === 0) return false;
+      return isStr(r.faq[0]?.q) && isStr(r.faq[0]?.a);
+    },
+  },
 ];

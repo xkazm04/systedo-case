@@ -23,3 +23,4 @@ export { generateLocalReviewReply } from "./local-review-reply";
 export { generateArticleDraft } from "./article-draft";
 export { generateCohortDiagnosis } from "./cohort-diagnosis";
 export { generateKeywordClusters } from "./keyword-clusters";
+export { generateComparisonOutline } from "./comparison-outline";
