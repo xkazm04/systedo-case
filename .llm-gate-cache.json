@@ -1,7 +1,7 @@
 {
-  "hash": "9820c724aeb41da43ba838865d1da6d489b2ca097f6e7edf64284e60e61e51a3",
+  "hash": "8e721bddb86d309216e512758f6354ddb8a163e87f69e6b9697047c4845c05e9",
   "passed": true,
-  "provenAt": "2026-06-19T08:02:58.257Z",
+  "provenAt": "2026-06-19T08:21:17.736Z",
   "tools": [
     "ads",
     "brief",
@@ -15,6 +15,7 @@
     "cohort-diagnosis",
     "keyword-clusters",
     "comparison-outline",
-    "lp-variant-ideas"
+    "lp-variant-ideas",
+    "lead-source-diagnosis"
   ]
 }

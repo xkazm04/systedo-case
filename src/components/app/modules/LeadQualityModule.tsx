@@ -6,6 +6,13 @@ import NextSteps from "@/components/app/NextSteps";
 import { fmtCZK, fmtDecimal, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import { avgVelocity, funnelBySource, summarize, withMetrics } from "@/lib/lead-quality/compute";
 import type { LeadSource } from "@/lib/lead-quality/sample";
+import LeadSourceDiagnosisPanel, {
+  type LeadSourceSeed,
+} from "@/components/app/modules/LeadSourceDiagnosisPanel";
+
+/** Win rate below which a source that otherwise qualifies still under-performs
+ *  (qualified leads that rarely close → a fit / targeting problem). */
+const WEAK_WIN_RATE = 0.15;
 
 function scoreTone(score: number): PillTone {
   if (score >= 60) return "positive";
@@ -27,6 +34,31 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
   const funnels = funnelBySource(sources);
   const velocity = avgVelocity(sources);
   const campaigns = sources.filter((src) => src.campaign);
+
+  // Under-performing sources the AI diagnosis can read: junk (cheap but low
+  // quality) or sources that qualify yet rarely close. Projected down to the real
+  // numbers the model needs — no compute / sample data ships to the client. If
+  // none stand out, offer the weakest source by quality score so the action is
+  // always available.
+  const underperforming = rows.filter((r) => r.junk || r.winRate < WEAK_WIN_RATE);
+  const diagnosisRows = underperforming.length > 0 ? underperforming : rows.slice(-1);
+  const diagnosisSeeds: LeadSourceSeed[] = diagnosisRows.map((r) => {
+    const seed: LeadSourceSeed = {
+      source: r.source,
+      leads: r.leads,
+      qualified: r.qualified,
+      won: r.won,
+      qualRate: r.qualRate,
+      winRate: r.winRate,
+      junk: r.junk,
+    };
+    if (r.spend > 0) {
+      seed.spend = r.spend;
+      seed.cpql = r.cpl;
+      seed.costPerQualified = r.cpql;
+    }
+    return seed;
+  });
 
   return (
     <div className="space-y-6">
@@ -209,6 +241,8 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
           </div>
         </div>
       )}
+
+      {diagnosisSeeds.length > 0 && <LeadSourceDiagnosisPanel seeds={diagnosisSeeds} />}
 
       <NextSteps steps={[{ to: "kampane", label: "Optimalizovat bidding", hint: "Cílit na kvalifikované leady, ne na počet" }]} />
     </div>

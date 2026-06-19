@@ -26,6 +26,7 @@ import {
   type KeywordClustersRequest,
   type LeadReplyChannel,
   type LeadReplyRequest,
+  type LeadSourceDiagnosisRequest,
   type LocalReviewReplyRequest,
   type LpVariantIdeasRequest,
   type Platform,
@@ -337,6 +338,49 @@ export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiag
   };
   const trend = str(o.trend);
   if (TREND_DIRECTIONS.has(trend)) value.trend = trend as CohortDiagnosisRequest["trend"];
+  return { valid: true, value };
+}
+
+export function validateLeadSourceDiagnosisRequest(
+  input: unknown
+): Valid<LeadSourceDiagnosisRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const source = str(o.source).slice(0, 120);
+  if (!source) {
+    return { valid: false, error: "Chybí název zdroje k diagnostice." };
+  }
+  const leads = Math.max(0, Math.round(fin(o.leads)));
+  if (leads <= 0) {
+    return { valid: false, error: "Zdroj nemá žádné leady k diagnostice." };
+  }
+  const qualified = Math.max(0, Math.round(fin(o.qualified)));
+  const won = Math.max(0, Math.round(fin(o.won)));
+  // Recompute the rates from the supplied counts so the model can't be fed a
+  // qualRate / winRate that contradicts the leads / qualified / won it also sees.
+  const qualRate = leads > 0 ? qualified / leads : 0;
+  const winRate = qualified > 0 ? won / qualified : 0;
+
+  const value: LeadSourceDiagnosisRequest = {
+    source,
+    leads,
+    qualified,
+    won,
+    qualRate,
+    winRate,
+  };
+  const spend = fin(o.spend);
+  if (spend > 0) {
+    value.spend = spend;
+    // CPL / CPQL are only meaningful with spend; derive from counts when omitted.
+    const cpql = o.cpql == null ? (leads > 0 ? spend / leads : 0) : fin(o.cpql);
+    if (cpql > 0) value.cpql = cpql;
+    const costPerQualified =
+      o.costPerQualified == null ? (qualified > 0 ? spend / qualified : 0) : fin(o.costPerQualified);
+    if (costPerQualified > 0) value.costPerQualified = costPerQualified;
+  }
   return { valid: true, value };
 }
 

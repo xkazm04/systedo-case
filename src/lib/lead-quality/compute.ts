@@ -17,7 +17,10 @@ export interface SourceMetrics extends LeadSource {
   junk: boolean;
 }
 
-const JUNK_QUAL_RATE = 0.35;
+/** Qualification rate below which a *paid* source is flagged "junk" (cheap leads,
+ *  poor quality). Exported so the UI's "under-performing source" picker keys off
+ *  the same single threshold instead of duplicating the literal. */
+export const JUNK_QUAL_RATE = 0.35;
 
 export function withMetrics(s: LeadSource): SourceMetrics {
   const cpl = s.leads > 0 ? s.spend / s.leads : 0;

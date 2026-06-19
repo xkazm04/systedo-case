@@ -442,4 +442,28 @@ export const LLM_TOOLS = [
       isStr(r.variants[0]?.label) &&
       isStr(r.variants[0]?.hypothesis),
   },
+  {
+    id: "lead-source-diagnosis",
+    label: "Diagnostika zdroje leadů",
+    system:
+      "Jsi český analytik kvality leadů. Diagnostikuješ JEDEN podvýkonný zdroj leadů. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Reálná data jednoho zdroje leadů. Zdroj: Meta lead formuláře. Leadů celkem: 540. Z toho kvalifikovaných (SQL): 130 (míra kvalifikace 24,1 %). Z toho uzavřených (won): 14 (win rate 10,8 %). Náklady (spend): 96 000 Kč. CPL (cena za lead): 178 Kč. CPQL (cena za kvalifikovaný lead): 738 Kč. Povolené hodnoty pole „likelyCause“: spam, mis-targeting, pricing, volume, ok. Urči nejpravděpodobnější příčinu, proč zdroj podvýkonný, a jednu konkrétní akci. Vrať summary (krátký odstavec), likelyCause (jedna z povolených hodnot) a recommendation (jedno konkrétní doporučení).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        likelyCause: { type: Type.STRING },
+        recommendation: { type: Type.STRING },
+        severity: { type: Type.STRING },
+      },
+      required: ["summary", "likelyCause", "recommendation"],
+    },
+    // Lenient: non-empty summary + recommendation, plus a non-empty likelyCause
+    // string. likelyCause is COERCED to a known cause in production (unknowns map
+    // to a default, never a hard fail), so we only assert it is present — not that
+    // it is one specific label, which would flake under model variance.
+    validate: (r) =>
+      r && isStr(r.summary) && isStr(r.recommendation) && isStr(r.likelyCause),
+  },
 ];

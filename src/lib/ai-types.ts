@@ -20,7 +20,8 @@ export type AiMode =
   | "cohort-diagnosis"
   | "keyword-clusters"
   | "comparison-outline"
-  | "lp-variant-ideas";
+  | "lp-variant-ideas"
+  | "lead-source-diagnosis";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -33,6 +34,7 @@ export const AI_MODES: AiMode[] = [
   "keyword-clusters",
   "comparison-outline",
   "lp-variant-ideas",
+  "lead-source-diagnosis",
 ];
 
 export interface AiMeta {
@@ -586,3 +588,67 @@ export interface LpVariantIdeasResult {
 }
 
 export type LpVariantIdeasResponse = AiResponse<LpVariantIdeasResult>;
+
+// ===========================================================================
+// Tool 13 — lead-source diagnosis (Kvalita leadů: an AI root-cause read of a
+// single under-performing / junk lead source. Today „junk" is a single
+// hard-coded qualification-rate threshold with no reason; this names WHY the
+// source under-performs — spam vs mis-targeting vs pricing/fit — and the one
+// concrete action to take. Grounded strictly in the source's real metrics; the
+// model invents no figures.)
+// ===========================================================================
+
+/** The likely root cause the diagnosis settles on. A constrained set so the UI
+ *  can tone / label it consistently; the model's free text lands in summary. */
+export const LEAD_SOURCE_CAUSES = ["spam", "mis-targeting", "pricing", "volume", "ok"] as const;
+export type LeadSourceCause = (typeof LEAD_SOURCE_CAUSES)[number];
+
+/** Czech labels for the causes — surfaced in the prompt and the UI pill. */
+export const LEAD_SOURCE_CAUSE_LABELS: Record<LeadSourceCause, string> = {
+  spam: "Spam / nekvalitní leady",
+  "mis-targeting": "Špatné cílení (fit)",
+  pricing: "Cena / rozpočet",
+  volume: "Nízký objem dat",
+  ok: "Bez zásadního problému",
+};
+
+/** The severity the diagnosis assigns — drives the pill tone in the UI. */
+export const LEAD_SOURCE_SEVERITIES = ["high", "medium", "low"] as const;
+export type LeadSourceSeverity = (typeof LEAD_SOURCE_SEVERITIES)[number];
+
+/** One source's real metrics, flattened to what the diagnosis needs. A
+ *  serializable projection of SourceMetrics (lib/lead-quality/compute) so the
+ *  client never ships the full source graph to the model. REAL numbers only. */
+export interface LeadSourceDiagnosisRequest {
+  /** the source label (e.g. „Meta lead formuláře") — also the diagnosis subject */
+  source: string;
+  /** total leads from the source */
+  leads: number;
+  /** of those, how many qualified (SQL) */
+  qualified: number;
+  /** of the qualified, how many closed-won */
+  won: number;
+  /** qualification rate as a fraction (0–1) = qualified / leads */
+  qualRate: number;
+  /** win rate as a fraction (0–1) = won / qualified */
+  winRate: number;
+  /** cost per lead (CZK), when the source has spend */
+  cpql?: number;
+  /** ad spend (CZK); absent / 0 for unpaid sources */
+  spend?: number;
+  /** cost per qualified lead (CZK), when the source has spend */
+  costPerQualified?: number;
+}
+
+export interface LeadSourceDiagnosisResult {
+  /** one short paragraph reading why the source under-performs */
+  summary: string;
+  /** the constrained root cause (one of LEAD_SOURCE_CAUSES) */
+  likelyCause: LeadSourceCause;
+  /** the single most concrete recommended action */
+  recommendation: string;
+  /** optional severity of the problem */
+  severity?: LeadSourceSeverity;
+}
+
+export type LeadSourceDiagnosisResponse = AiResponse<LeadSourceDiagnosisResult>;

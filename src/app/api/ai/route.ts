@@ -8,6 +8,7 @@ import {
   generateComparisonOutline,
   generateKeywordClusters,
   generateLeadReply,
+  generateLeadSourceDiagnosis,
   generateLocalReviewReply,
   generateLpVariantIdeas,
   generateRepurpose,
@@ -21,6 +22,7 @@ import {
   validateComparisonOutlineRequest,
   validateKeywordClustersRequest,
   validateLeadReplyRequest,
+  validateLeadSourceDiagnosisRequest,
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
@@ -80,7 +82,8 @@ export async function POST(request: Request) {
       mode === "cohort-diagnosis" ||
       mode === "keyword-clusters" ||
       mode === "comparison-outline" ||
-      mode === "lp-variant-ideas"
+      mode === "lp-variant-ideas" ||
+      mode === "lead-source-diagnosis"
     ) {
       const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
       if (userId) {
@@ -152,6 +155,11 @@ export async function POST(request: Request) {
         const parsed = validateLpVariantIdeasRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLpVariantIdeas(parsed.value));
+      }
+      case "lead-source-diagnosis": {
+        const parsed = validateLeadSourceDiagnosisRequest(body);
+        if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+        return Response.json(await generateLeadSourceDiagnosis(parsed.value));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });
