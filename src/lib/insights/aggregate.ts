@@ -10,7 +10,7 @@ import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import { computeProfit } from "@/lib/profit/compute";
 import { defaultMargins } from "@/lib/profit/sample";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
-import { AT_RISK_DAYS, monthlySeasonality, stockRows } from "@/lib/inventory/compute";
+import { AT_RISK_DAYS, budgetChangeSet, monthlySeasonality, stockRows } from "@/lib/inventory/compute";
 import { SAMPLE_SOURCES } from "@/lib/lead-quality/sample";
 import { withMetrics as leadMetrics } from "@/lib/lead-quality/compute";
 import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
@@ -63,6 +63,23 @@ function eshopRecs(project: Project): Recommendation[] {
     out.push(rec("sklad-sezonnost", "opportunity", `${s.product.title} se blíží vyprodání`,
       `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní) — doplňte sklad včas, než bude nutné pozastavit reklamu.`,
       `${Math.round(s.daysOfCover)} dní`));
+  }
+
+  // Stock → paused SKU with a scheduled restock inside the horizon (resuming).
+  for (const s of stock.filter((s) => s.status === "resuming")) {
+    out.push(rec("sklad-sezonnost", "info", `${s.product.title} se brzy obnoví`,
+      `Sklad dojde, ale doskladnění je naplánováno${s.resumeAt ? ` na ${s.resumeAt}` : ""} — reklamu zatím pozastavte a po doplnění obnovte.`,
+      s.resumeAt ?? undefined));
+  }
+
+  // Stock → propose reallocating budget from constrained SKU to fast movers in the
+  // same category (top proposed move only, to keep the command center concise).
+  const topMove = budgetChangeSet(stock).moves[0];
+  if (topMove) {
+    out.push(rec("sklad-sezonnost", "opportunity",
+      `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
+      `${topMove.fromTitle} je omezené zásobou — přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
+      fmtCZK(topMove.amountCzk)));
   }
 
   // Seasonality → upcoming peak

@@ -4,16 +4,29 @@
  *  pre-filled for the matching platform — no retyping. */
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
-import { Calendar, Check, Copy, Document, Info, Link, Refresh, Sparkles } from "@/components/icons";
+import { Bulb, Calendar, Check, Copy, Document, Download, Info, Link, Refresh, Sparkles } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import { fmtInt, fmtPct } from "@/lib/format";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
 import { channelToPlatform } from "@/lib/distribution/handoff";
-import { channelUtmSource } from "@/lib/distribution/utm";
+import { campaignSlug, channelUtmSource } from "@/lib/distribution/utm";
+import {
+  checkSubject,
+  NEWSLETTER_SUBJECT_MAX,
+  newsletterHtml,
+  newsletterPlainText,
+  splitNewsletter,
+} from "@/lib/distribution/newsletter";
+import {
+  ctrSparkPoints,
+  rollupLearnings,
+  sparkPointsAttr,
+  type DimensionLeader,
+} from "@/lib/distribution/learnings";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
 import { useAiTool } from "@/components/ai/useAiTool";
@@ -105,6 +118,9 @@ export default function DistributionModule({
           </table>
         </div>
       </div>
+
+      {/* per-variant performance learnings */}
+      <LearningsPanel attribution={attribution} variants={variants} />
 
       <NextSteps steps={[{ to: "socialni", label: "Naplánovat publikaci", hint: "Vydat varianty v centru sociálních sítí" }]} />
     </div>
@@ -359,6 +375,13 @@ function VariantCard({
         </button>
       </div>
 
+      {/* Newsletter gets a dedicated handoff: the generated „Předmět:" line is
+          split into a real subject + body, validated separately, and exported as
+          a paste-ready HTML email or copied with the UTM'd CTA. */}
+      {channel === "Newsletter" ? (
+        <NewsletterHandoff text={text} ctaUrl={link} source={source} />
+      ) : null}
+
       {error && <p className="mt-2 text-xs text-negative">{error}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -386,6 +409,235 @@ function VariantCard({
             {sending ? "Předávám…" : `Naplánovat na ${SOCIAL_PLATFORM_LABELS[platform]}`}
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// --- newsletter handoff ------------------------------------------------------
+
+/** Newsletter channel handoff: split the variant into a subject + body, validate
+ *  the subject length on its own budget, then copy a paste-ready newsletter
+ *  (subject + body + UTM'd CTA) or download a self-contained HTML email. The
+ *  subject + body stay derived from the (possibly AI-edited) variant text — no
+ *  separate state to drift, so the AI repurpose action keeps driving this. */
+function NewsletterHandoff({
+  text,
+  ctaUrl,
+  source,
+}: {
+  text: string;
+  ctaUrl: string;
+  source: SourceArticle;
+}) {
+  const [copied, setCopied] = useState(false);
+  const copyTimer = useRef<number | undefined>(undefined);
+
+  const { subject, body } = splitNewsletter(text);
+  const subjectCheck = checkSubject(subject);
+
+  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
+
+  const copyNewsletter = async () => {
+    const plain = newsletterPlainText({ subject, body, ctaUrl });
+    try {
+      await navigator.clipboard.writeText(plain);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = plain;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand("copy");
+      } catch {
+        /* clipboard unavailable — nothing more we can do */
+      }
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    window.clearTimeout(copyTimer.current);
+    copyTimer.current = window.setTimeout(() => setCopied(false), 2200);
+  };
+
+  const downloadHtml = () => {
+    const html = newsletterHtml({ subject, body, ctaUrl });
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `newsletter-${campaignSlug(source) || "clanek"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(href);
+  };
+
+  const subjectHint =
+    subjectCheck.status === "empty"
+      ? "Doplňte předmět – první řádek by měl začínat „Předmět:“."
+      : subjectCheck.status === "tooLong"
+        ? `Předmět je delší než ${subjectCheck.max} znaků – v doručené poště se může oříznout.`
+        : null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-line bg-canvas px-3 py-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">Předání do newsletteru</span>
+        <span
+          className={`tnum text-[0.7rem] ${
+            subjectCheck.status === "ok" ? "text-muted" : "text-negative"
+          }`}
+        >
+          Předmět {subjectCheck.length}/{NEWSLETTER_SUBJECT_MAX}
+        </span>
+      </div>
+
+      <p className="mt-1.5 truncate text-sm font-medium text-navy-800" title={subject || undefined}>
+        {subject || <span className="italic text-muted">Bez předmětu</span>}
+      </p>
+
+      {subjectHint ? (
+        <p className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-negative">
+          <Info width={12} height={12} className="shrink-0" />
+          {subjectHint}
+        </p>
+      ) : null}
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={copyNewsletter}
+          disabled={!subjectCheck.valid || body.trim().length < 2}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {copied ? <Check width={14} height={14} className="text-positive" /> : <Copy width={14} height={14} />}
+          <span>{copied ? "Zkopírováno" : "Kopírovat pro newsletter"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={downloadHtml}
+          disabled={!subjectCheck.valid || body.trim().length < 2}
+          className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Download width={14} height={14} />
+          <span>Stáhnout HTML</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- performance learnings ---------------------------------------------------
+
+const SPARK_W = 120;
+const SPARK_H = 28;
+
+/** Hand-rolled CTR sparkline: a polyline over the per-channel CTRs scaled to the
+ *  series max, with a dot on the peak. Inline <svg>, no chart lib. */
+function CtrSparkline({ ctrs, labels }: { ctrs: number[]; labels: string[] }) {
+  const points = ctrSparkPoints(ctrs, SPARK_W, SPARK_H);
+  if (points.length < 2) return null;
+  const peakIndex = ctrs.reduce((best, v, i) => (v > ctrs[best]! ? i : best), 0);
+  const peak = points[peakIndex]!;
+  return (
+    <svg
+      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+      width={SPARK_W}
+      height={SPARK_H}
+      className="overflow-visible"
+      role="img"
+      aria-label={`CTR podle kanálu: ${labels
+        .map((l, i) => `${l} ${fmtPct(ctrs[i] ?? 0)}`)
+        .join(", ")}. Nejvyšší: ${labels[peakIndex]}.`}
+    >
+      <polyline
+        points={sparkPointsAttr(points)}
+        fill="none"
+        stroke="var(--color-brand-accent)"
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={peak.x} cy={peak.y} r={2.4} fill="var(--color-brand-accent)" />
+    </svg>
+  );
+}
+
+/** "Poznatky" — a descriptive rollup over the attribution sample: the best
+ *  channel / format / length by reach-weighted CTR, plus a per-channel CTR
+ *  sparkline. Start descriptive (no new backend) — the seam is real per-variant
+ *  click analytics replacing the sample. */
+function LearningsPanel({
+  attribution,
+  variants,
+}: {
+  attribution: ChannelPerf[];
+  variants: { channel: string; text: string }[];
+}) {
+  const learnings = useMemo(() => {
+    const lengthByChannel = new Map(variants.map((v) => [v.channel, v.text.length] as const));
+    return rollupLearnings(attribution, (channel) => lengthByChannel.get(channel) ?? 0);
+  }, [attribution, variants]);
+
+  if (learnings.rows.length === 0) return null;
+
+  const leaders: { label: string; leader: DimensionLeader | null }[] = [
+    { label: "Nejlepší kanál", leader: learnings.bestChannel },
+    { label: "Nejlepší formát", leader: learnings.bestFormat },
+    { label: "Nejlepší délka", leader: learnings.bestLength },
+  ];
+
+  return (
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-accent">
+            <Bulb width={16} height={16} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-navy-800">Poznatky</h3>
+            <p className="mt-0.5 text-xs text-muted">
+              Co podle ukázkového vzorku nejvíc korelovalo s prokliky (CTR).
+            </p>
+          </div>
+        </div>
+        <Pill tone="positive">Průměrné CTR {fmtPct(learnings.overallCtr)}</Pill>
+      </div>
+
+      <div className="grid gap-px bg-line sm:grid-cols-3">
+        {leaders.map(({ label, leader }) => (
+          <div key={label} className="bg-surface px-5 py-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+            {leader ? (
+              <>
+                <p className="mt-1 text-sm font-semibold text-navy-800">{leader.value}</p>
+                <p className="tnum mt-0.5 text-xs text-muted">
+                  CTR {fmtPct(leader.ctr)} · {leader.variants}{" "}
+                  {leader.variants === 1 ? "varianta" : leader.variants < 5 ? "varianty" : "variant"}
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-muted">—</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">CTR podle kanálu</p>
+          <p className="mt-1 text-sm text-navy-700">
+            Nejlepší varianta:{" "}
+            <span className="font-semibold text-navy-800">{learnings.bestVariant?.channel}</span>{" "}
+            <span className="tnum text-muted">({fmtPct(learnings.bestVariant?.ctr ?? 0)})</span>
+          </p>
+        </div>
+        <CtrSparkline
+          ctrs={learnings.rows.map((r) => r.ctr)}
+          labels={learnings.rows.map((r) => r.channel)}
+        />
       </div>
     </div>
   );

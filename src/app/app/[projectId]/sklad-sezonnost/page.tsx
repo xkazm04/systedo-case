@@ -4,10 +4,13 @@ import ModulePage from "@/components/app/ModulePage";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
-import { monthlySeasonality, stockRows } from "@/lib/inventory/compute";
+import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/** Notional baseline monthly ad budget (CZK) the seasonal plan scales. */
+const BASELINE_MONTHLY_BUDGET = 120_000;
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -21,9 +24,27 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
   const currentMonth = now.getUTCMonth();
 
+  const stock = stockRows(SAMPLE_PRODUCTS, now);
+
+  // Aggregate days-of-cover (median of finite covers) caps upcoming budget months.
+  const covers = stock.map((s) => s.daysOfCover).filter((d) => Number.isFinite(d)).sort((a, b) => a - b);
+  const aggregateDaysOfCover = covers.length > 0 ? covers[Math.floor(covers.length / 2)]! : Infinity;
+
+  const budgetPlan = seasonalBudgetPlan(BASELINE_MONTHLY_BUDGET, season, {
+    daysOfCover: aggregateDaysOfCover,
+    currentMonth,
+  });
+  const changeSet = budgetChangeSet(stock);
+
   return (
     <ModulePage moduleKey="sklad-sezonnost">
-      <InventorySeasonModule season={season} currentMonth={currentMonth} stock={stockRows(SAMPLE_PRODUCTS, now)} />
+      <InventorySeasonModule
+        season={season}
+        currentMonth={currentMonth}
+        stock={stock}
+        budgetPlan={budgetPlan}
+        changeSet={changeSet}
+      />
     </ModulePage>
   );
 }

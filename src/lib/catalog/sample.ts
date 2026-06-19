@@ -17,6 +17,12 @@ export interface Product {
   emoji: string;
   /** selling points used to ground generated creative */
   usps: string[];
+  /** illustrative gross-margin fraction (0–1); when omitted, derived by category */
+  margin?: number;
+  /** scheduled restock date (ISO YYYY-MM-DD) for a paused SKU, if any */
+  restockDate?: string;
+  /** units arriving on `restockDate` */
+  incomingQty?: number;
 }
 
 export const SAMPLE_PRODUCTS: Product[] = [
@@ -59,6 +65,9 @@ export const SAMPLE_PRODUCTS: Product[] = [
     dailyVelocity: 0.9,
     emoji: "🛏️",
     usps: ["Skládací", "Taška v balení", "Moskytiéra"],
+    // Paused (≈4 dní cover) but a restock lands within the horizon → "resuming".
+    restockDate: "2026-06-20",
+    incomingQty: 60,
   },
   {
     sku: "MIO-ESEN",

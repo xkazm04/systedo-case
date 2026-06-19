@@ -1,7 +1,7 @@
 /** Lead-quality math: cost per lead vs cost per *qualified* lead, qualification
  *  and win rates, ROI, and a composite quality score. Flags "junk" sources that
  *  are cheap per lead but low quality. Pure. */
-import type { LeadSource } from "./sample";
+import type { LeadSource, PeriodCounts } from "./sample";
 
 export interface SourceMetrics extends LeadSource {
   cpl: number;
@@ -162,4 +162,123 @@ export function avgVelocity(sources: LeadSource[]): Velocity {
       : (daysToQualify ?? 0) + (daysToClose ?? 0);
 
   return { daysToQualify, daysToClose, total };
+}
+
+/** ── Period-over-period drift watch (CPQL / qualification / win rate) ──────────
+ *  A single static snapshot hides whether a source is getting *worse*. Given a
+ *  source's current and prior-period counts we compute the relative change in
+ *  CPQL, qualification rate and win rate, then raise threshold alerts (e.g. CPQL
+ *  rose >25 % or blew past its target). Pure — same input → same output. */
+
+/** Relative-change threshold (fraction) above which a CPQL *rise* is alert-worthy. */
+export const CPQL_ALERT_RISE = 0.25;
+/** Default CPQL target (CZK / qualified lead) a paid source should stay under. */
+export const CPQL_TARGET_CZK = 900;
+
+/** Relative change `(curr − prev) / prev`. Null when there's no usable baseline
+ *  (prev ≤ 0) so the caller can render "—" instead of a divide-by-zero ∞/NaN. */
+function relDelta(curr: number, prev: number): number | null {
+  return prev > 0 ? (curr - prev) / prev : null;
+}
+
+const cpqlOf = (c: PeriodCounts): number => (c.qualified > 0 ? c.spend / c.qualified : 0);
+const qualRateOf = (c: PeriodCounts): number => (c.leads > 0 ? c.qualified / c.leads : 0);
+const winRateOf = (c: PeriodCounts): number => (c.won > 0 && c.qualified > 0 ? c.won / c.qualified : 0);
+
+export interface SourceTrend {
+  source: string;
+  /** the source is paid (spend > 0) in the current period → CPQL is meaningful */
+  paid: boolean;
+  cpqlNow: number;
+  cpqlPrev: number;
+  /** relative change in CPQL; null when no baseline or unpaid (rise = worse) */
+  cpqlDelta: number | null;
+  /** relative change in qualification rate; null when no baseline (rise = better) */
+  qualRateDelta: number | null;
+  /** relative change in win rate; null when no baseline (rise = better) */
+  winRateDelta: number | null;
+}
+
+/** Build the period-over-period trend for one source. Returns null when the
+ *  source has no prior-period data (the row simply shows no trend). */
+export function sourceTrend(s: LeadSource): SourceTrend | null {
+  if (!s.prior) return null;
+  const curr: PeriodCounts = { leads: s.leads, qualified: s.qualified, won: s.won, spend: s.spend };
+  const prev = s.prior;
+  const paid = s.spend > 0;
+  const cpqlNow = cpqlOf(curr);
+  const cpqlPrev = cpqlOf(prev);
+  return {
+    source: s.source,
+    paid,
+    cpqlNow,
+    cpqlPrev,
+    // CPQL drift only makes sense while the source is actually being paid for.
+    cpqlDelta: paid ? relDelta(cpqlNow, cpqlPrev) : null,
+    qualRateDelta: relDelta(qualRateOf(curr), qualRateOf(prev)),
+    winRateDelta: relDelta(winRateOf(curr), winRateOf(prev)),
+  };
+}
+
+/** Trends for every source carrying prior-period data, in input order. */
+export function trendBySource(sources: LeadSource[]): SourceTrend[] {
+  return sources.map(sourceTrend).filter((t): t is SourceTrend => t !== null);
+}
+
+export type AlertKind = "cpql-rise" | "cpql-target";
+export type AlertSeverity = "warning" | "critical";
+
+export interface LeadQualityAlert {
+  source: string;
+  kind: AlertKind;
+  severity: AlertSeverity;
+  /** Czech, ready-to-render alert sentence */
+  message: string;
+}
+
+/** Options for the drift alerts; both default to the module constants so callers
+ *  may override the target/rise per project without re-implementing the rule. */
+export interface AlertOptions {
+  /** relative CPQL rise that trips a "drift" warning (default {@link CPQL_ALERT_RISE}) */
+  riseThreshold?: number;
+  /** absolute CPQL target the source should stay under (default {@link CPQL_TARGET_CZK}) */
+  targetCzk?: number;
+}
+
+/** Format a fraction as a whole-percent string for alert copy ("26 %"). Kept
+ *  local so the pure layer has no formatter dependency. */
+const pctText = (fraction: number): string => `${Math.round(Math.abs(fraction) * 100)} %`;
+const czkText = (n: number): string => `${Math.round(n).toLocaleString("cs-CZ")} Kč`;
+
+/** Threshold alerts for one source's trend: a CPQL rise beyond the threshold
+ *  ("vzrostlo o >25 %") and/or CPQL over target ("překračuje cíl"). A paid
+ *  source whose CPQL is flat and on-target yields no alerts. */
+export function sourceAlerts(t: SourceTrend, opts: AlertOptions = {}): LeadQualityAlert[] {
+  const riseThreshold = opts.riseThreshold ?? CPQL_ALERT_RISE;
+  const targetCzk = opts.targetCzk ?? CPQL_TARGET_CZK;
+  const alerts: LeadQualityAlert[] = [];
+  if (!t.paid) return alerts; // CPQL undefined for unpaid sources → nothing to alert
+
+  if (t.cpqlDelta !== null && t.cpqlDelta > riseThreshold) {
+    alerts.push({
+      source: t.source,
+      kind: "cpql-rise",
+      severity: "warning",
+      message: `CPQL zdroje „${t.source}” vzrostlo o ${pctText(t.cpqlDelta)} oproti minulému období.`,
+    });
+  }
+  if (t.cpqlNow > targetCzk) {
+    alerts.push({
+      source: t.source,
+      kind: "cpql-target",
+      severity: "critical",
+      message: `CPQL zdroje „${t.source}” (${czkText(t.cpqlNow)}) překračuje cíl ${czkText(targetCzk)}.`,
+    });
+  }
+  return alerts;
+}
+
+/** Every drift alert across all sources that carry a trend, in source order. */
+export function periodAlerts(sources: LeadSource[], opts: AlertOptions = {}): LeadQualityAlert[] {
+  return trendBySource(sources).flatMap((t) => sourceAlerts(t, opts));
 }

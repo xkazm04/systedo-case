@@ -1,10 +1,18 @@
 /** Kvalita leadů — cost-per-qualified-lead view + lead → close funnel by source
  *  and campaign (stage conversion, drop-off, velocity). Server. */
 import { Pill, type PillTone } from "@/components/ui";
-import { Bulb, Funnel, Clock } from "@/components/icons";
+import { Bulb, Funnel, Clock, Bell } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtCZK, fmtDecimal, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
-import { avgVelocity, funnelBySource, summarize, withMetrics } from "@/lib/lead-quality/compute";
+import { fmtCZK, fmtDecimal, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import {
+  avgVelocity,
+  funnelBySource,
+  periodAlerts,
+  summarize,
+  trendBySource,
+  withMetrics,
+  type LeadQualityAlert,
+} from "@/lib/lead-quality/compute";
 import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel, {
   type LeadSourceSeed,
@@ -28,12 +36,30 @@ function stepTone(conversion: number, isEntry: boolean): PillTone {
   return "negative";
 }
 
+/** Tone for a period-over-period delta. `goodWhenUp` flips the polarity: a rising
+ *  qualification / win rate is good (green), a rising CPQL is bad (red). A flat or
+ *  missing delta reads neutral. The dead-band keeps tiny wiggles from flashing red. */
+function deltaTone(delta: number | null, goodWhenUp: boolean): PillTone {
+  if (delta === null || Math.abs(delta) < 0.005) return "neutral";
+  const improving = goodWhenUp ? delta > 0 : delta < 0;
+  return improving ? "positive" : "negative";
+}
+
+const alertTone: Record<LeadQualityAlert["severity"], PillTone> = {
+  warning: "coral",
+  critical: "negative",
+};
+
 export default function LeadQualityModule({ sources }: { sources: LeadSource[] }) {
   const rows = sources.map(withMetrics).sort((a, b) => b.qualityScore - a.qualityScore);
   const s = summarize(sources);
   const funnels = funnelBySource(sources);
   const velocity = avgVelocity(sources);
   const campaigns = sources.filter((src) => src.campaign);
+  // Period-over-period drift watch: per-source deltas + threshold alerts. Both
+  // empty when no source carries prior-period data → the whole section hides.
+  const trends = trendBySource(sources);
+  const alerts = periodAlerts(sources);
 
   // Under-performing sources the AI diagnosis can read: junk (cheap but low
   // quality) or sources that qualify yet rarely close. Projected down to the real
@@ -192,9 +218,82 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
 
         <div className="border-t border-line px-5 py-3 text-xs text-muted">
           Konverze = podíl předané dál z předchozí fáze; drop-off = počet ztracený mezi fázemi. Fáze
-          „Příležitost“ se zobrazí jen tam, kde data existují.
+          „Příležitost” se zobrazí jen tam, kde data existují.
         </div>
       </div>
+
+      {/* Period-over-period drift watch — CPQL / kvalifikace / win rate vs minulé
+          období, plus prahová upozornění. Hidden entirely without prior data. */}
+      {trends.length > 0 && (
+        <div className="card overflow-hidden">
+          <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
+            <Bell width={18} height={18} className="shrink-0 text-brand-accent" />
+            <h3 className="text-sm font-semibold text-navy-800">Trend a upozornění</h3>
+            <span className="ml-auto text-xs text-muted">vs. minulé období</span>
+          </div>
+
+          {alerts.length > 0 && (
+            <ul className="divide-y divide-line/70 border-b border-line">
+              {alerts.map((a) => (
+                <li key={`${a.source}-${a.kind}`} className="flex items-start gap-3 px-5 py-3">
+                  <Pill tone={alertTone[a.severity]}>{a.severity === "critical" ? "cíl" : "drift"}</Pill>
+                  <p className="text-sm leading-relaxed text-navy-700">{a.message}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                  <th className="px-5 py-3 font-medium">Zdroj</th>
+                  <th className="px-4 py-3 text-right font-medium">CPQL</th>
+                  <th className="px-4 py-3 font-medium">Δ CPQL</th>
+                  <th className="px-4 py-3 font-medium">Δ kvalifikace</th>
+                  <th className="px-4 py-3 font-medium">Δ win rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trends.map((t) => (
+                  <tr key={t.source} className="border-b border-line/70 last:border-0">
+                    <td className="px-5 py-3 font-medium text-navy-800">{t.source}</td>
+                    <td className="tnum px-4 py-3 text-right font-medium text-navy-800">
+                      {t.paid ? fmtCZK(t.cpqlNow) : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {t.cpqlDelta !== null ? (
+                        <Pill tone={deltaTone(t.cpqlDelta, false)}>{fmtSignedPct(t.cpqlDelta)}</Pill>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {t.qualRateDelta !== null ? (
+                        <Pill tone={deltaTone(t.qualRateDelta, true)}>{fmtSignedPct(t.qualRateDelta)}</Pill>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {t.winRateDelta !== null ? (
+                        <Pill tone={deltaTone(t.winRateDelta, true)}>{fmtSignedPct(t.winRateDelta)}</Pill>
+                      ) : (
+                        <span className="text-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="border-t border-line px-5 py-3 text-xs text-muted">
+            Δ = relativní změna oproti minulému období. Upozornění: růst CPQL o více než 25 % nebo
+            překročení cíle. Zelená = zlepšení, červená = zhoršení.
+          </div>
+        </div>
+      )}
 
       {/* Campaign drill-down — only when campaign data exists. */}
       {campaigns.length > 0 && (

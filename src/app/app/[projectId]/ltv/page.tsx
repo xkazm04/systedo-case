@@ -13,7 +13,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   await requireProjectModule(projectId, "ltv");
   return (
     <ModulePage moduleKey="ltv">
-      <LtvModule rows={SAMPLE_COHORTS.map(withMetrics)} summary={ltvSummary(SAMPLE_COHORTS)} />
+      <LtvModule
+        rows={SAMPLE_COHORTS.map((c) => withMetrics(c))}
+        summary={ltvSummary(SAMPLE_COHORTS)}
+        cohorts={SAMPLE_COHORTS}
+      />
     </ModulePage>
   );
 }

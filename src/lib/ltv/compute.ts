@@ -6,6 +6,17 @@ import { isPaidChannel } from "./sample";
 
 export const LTV_HORIZON = 12;
 
+/** Horizons the projection control offers (months). The first is the default. */
+export const LTV_HORIZONS = [12, 24, 36] as const;
+export type LtvHorizon = (typeof LTV_HORIZONS)[number];
+
+/** Band the month-over-month survival ratio is clamped to when extrapolating the
+ *  retention tail. The low/high bounds drive the projection's confidence band:
+ *  a slower-decay (high) curve is the optimistic LTV, a faster-decay (low) curve
+ *  the pessimistic one. The expected curve uses the cohort's own observed ratio. */
+export const TAIL_RATIO_MIN = 0.8;
+export const TAIL_RATIO_MAX = 0.98;
+
 /** Per-channel acquisition economics within a cohort. CAC is that channel's own
  *  spend per signup; payback / LTV:CAC reuse the cohort-level LTV-per-user. */
 export interface ChannelMetrics extends CohortChannel {
@@ -50,18 +61,36 @@ export interface LtvSummary {
   avgPayback: number | null;
 }
 
+/** The month-over-month survival ratio a cohort's retention is extrapolated with:
+ *  the last observed step, clamped into [TAIL_RATIO_MIN, TAIL_RATIO_MAX], or 0.9
+ *  when there is too little data to derive one. Exported so the projection band
+ *  can recompute the same expected ratio the default curve uses. Pure. */
+export function tailRatio(retention: number[]): number {
+  const n = retention.length;
+  if (n < 2) return 0.9;
+  return Math.min(TAIL_RATIO_MAX, Math.max(TAIL_RATIO_MIN, retention[n - 1]! / retention[n - 2]!));
+}
+
 /** Retention curve extended to `horizon` months by continuing the last observed
- *  month-over-month survival ratio (clamped to a sane band). */
-function survivalCurve(retention: number[], horizon: number): number[] {
+ *  month-over-month survival ratio. By default the ratio is the cohort's own
+ *  (clamped) decay; pass an explicit `ratioOverride` to model a slower/faster
+ *  tail (the confidence band uses the clamp bounds). Exported & pure so the
+ *  interactive projection and the unit tests can reuse it. */
+export function survivalCurve(retention: number[], horizon: number, ratioOverride?: number): number[] {
   const out = retention.slice(0, horizon);
   const n = retention.length;
-  const ratio = n >= 2 ? Math.min(0.98, Math.max(0.8, retention[n - 1]! / retention[n - 2]!)) : 0.9;
+  const ratio = ratioOverride ?? tailRatio(retention);
   let last = retention[n - 1]!;
   for (let m = n; m < horizon; m++) {
     last *= ratio;
     out.push(last);
   }
   return out;
+}
+
+/** Sum a survival curve into LTV per user (Σ survivalₘ × ARPU). Pure. */
+function ltvOf(survival: number[], arpu: number): number {
+  return survival.reduce((a, s) => a + s * arpu, 0);
 }
 
 /** First 1-based month where cumulative revenue/user (from the survival curve)
@@ -76,10 +105,10 @@ function paybackOf(survival: number[], arpu: number, cac: number): number | null
   return null;
 }
 
-export function withMetrics(c: Cohort): CohortMetrics {
+export function withMetrics(c: Cohort, horizon: number = LTV_HORIZON): CohortMetrics {
   const cac = c.signups > 0 ? c.spend / c.signups : 0;
-  const survival = survivalCurve(c.retention, LTV_HORIZON);
-  const ltv = survival.reduce((a, s) => a + s * c.arpu, 0);
+  const survival = survivalCurve(c.retention, horizon);
+  const ltv = ltvOf(survival, c.arpu);
   const paybackMonth = paybackOf(survival, c.arpu, cac);
 
   // Per-channel economics: each channel's own spend/signups CAC, but the cohort's
@@ -115,7 +144,66 @@ export function withMetrics(c: Cohort): CohortMetrics {
     paidCac,
     channelMetrics,
     survival,
-    observedMonths: Math.min(c.retention.length, LTV_HORIZON),
+    observedMonths: Math.min(c.retention.length, horizon),
+  };
+}
+
+/** A blended LTV projection over a chosen horizon with an explicit confidence
+ *  band. `expected` continues each cohort's own (clamped) retention decay;
+ *  `low`/`high` continue the slowest/fastest sane decay (the clamp bounds), so
+ *  the spread makes the tail assumption's uncertainty visible. All three are
+ *  signup-weighted blends of the per-cohort LTV-per-user; the matching LTV:CAC
+ *  divides each by the (fixed) blended paid CAC. Pure — safe to unit-test. */
+export interface LtvProjection {
+  horizon: number;
+  /** signup-weighted LTV per user under the low/expected/high tail assumption */
+  low: number;
+  expected: number;
+  high: number;
+  /** LTV:CAC for each band point against the blended paid CAC (0 when CAC is 0) */
+  ltvCacLow: number;
+  ltvCacExpected: number;
+  ltvCacHigh: number;
+  /** the blended paid CAC the band divides by (horizon-independent) */
+  paidCac: number;
+}
+
+/** Signup-weighted LTV per user across cohorts for a given per-cohort tail ratio.
+ *  `ratioFor` maps a cohort's observed retention to the ratio to extrapolate with
+ *  (the band passes a constant; the expected case passes each cohort's own). */
+function blendedLtv(cohorts: Cohort[], horizon: number, ratioFor: (retention: number[]) => number): number {
+  let value = 0;
+  let signups = 0;
+  for (const c of cohorts) {
+    const survival = survivalCurve(c.retention, horizon, ratioFor(c.retention));
+    value += ltvOf(survival, c.arpu) * c.signups;
+    signups += c.signups;
+  }
+  return signups > 0 ? value / signups : 0;
+}
+
+/** Signup-weighted blended LTV per user when every cohort's tail decays at the
+ *  same fixed monthly survival `ratio` (the observed prefix is kept). Lets the
+ *  interactive churn slider drive the "expected" line with one assumption. Pure. */
+export function blendedLtvAtRatio(cohorts: Cohort[], horizon: number, ratio: number): number {
+  return blendedLtv(cohorts, horizon, () => ratio);
+}
+
+export function ltvProjection(cohorts: Cohort[], horizon: number = LTV_HORIZON): LtvProjection {
+  const expected = blendedLtv(cohorts, horizon, tailRatio);
+  const low = blendedLtv(cohorts, horizon, () => TAIL_RATIO_MIN);
+  const high = blendedLtv(cohorts, horizon, () => TAIL_RATIO_MAX);
+  const paidCac = ltvSummary(cohorts).paidCac;
+  const ratio = (ltv: number) => (paidCac > 0 ? ltv / paidCac : 0);
+  return {
+    horizon,
+    low,
+    expected,
+    high,
+    ltvCacLow: ratio(low),
+    ltvCacExpected: ratio(expected),
+    ltvCacHigh: ratio(high),
+    paidCac,
   };
 }
 
@@ -244,7 +332,8 @@ export function buildCohortCsv(rows: CohortMetrics[]): string {
 }
 
 export function ltvSummary(cohorts: Cohort[]): LtvSummary {
-  const rows = cohorts.map(withMetrics);
+  // Arrow wrapper so `.map`'s index isn't passed as `withMetrics`' horizon arg.
+  const rows = cohorts.map((c) => withMetrics(c));
   const signups = rows.reduce((a, r) => a + r.signups, 0);
   const spend = rows.reduce((a, r) => a + r.spend, 0);
   const paybacks = rows.map((r) => r.paybackMonth).filter((p): p is number => p != null);

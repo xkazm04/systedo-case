@@ -3,8 +3,10 @@ import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
 import DecayTable from "@/components/app/modules/DecayTable";
 import ClusterBuilder from "@/components/app/modules/ClusterBuilder";
+import ClusterNextStep from "@/components/app/modules/ClusterNextStep";
+import ClusterLinkMap from "@/components/app/modules/ClusterLinkMap";
 import { fmtInt, fmtPct } from "@/lib/format";
-import { clusterStats, decayingPosts } from "@/lib/content-engine/compute";
+import { rankedClusterStats, decayingPosts } from "@/lib/content-engine/compute";
 import type { DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 
 export default function ContentEngineModule({
@@ -14,7 +16,8 @@ export default function ContentEngineModule({
   clusters: TopicCluster[];
   decay: DecayingPost[];
 }) {
-  const stats = clusters.map(clusterStats);
+  // least-complete cluster first — that is where the next article matters most
+  const stats = rankedClusterStats(clusters);
   const decaying = decayingPosts(decay);
 
   return (
@@ -22,16 +25,22 @@ export default function ContentEngineModule({
       <div className="grid gap-4 lg:grid-cols-2">
         {stats.map((c) => (
           <div key={c.topic} className="card p-5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h3 className="text-base font-semibold text-navy-800">{c.topic}</h3>
-              <span className="tnum text-xs text-muted">{fmtInt(c.volume)} obj./měs.</span>
+              <div className="flex items-center gap-2">
+                {!c.hasPillar && <Pill tone="coral">Chybí pilíř</Pill>}
+                <span className="tnum text-xs text-muted">{fmtInt(c.volume)} obj./měs.</span>
+              </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-navy-50">
-                <span className="block h-full rounded-full bg-brand-500" style={{ width: `${Math.round(c.coverage * 100)}%` }} />
+                <span
+                  className="block h-full rounded-full bg-brand-500"
+                  style={{ width: `${Math.round(c.completeness * 100)}%` }}
+                />
               </span>
               <span className="tnum text-xs font-medium text-muted">
-                {c.published}/{c.total} · {fmtPct(c.coverage)}
+                {c.published}/{c.total} · {fmtPct(c.completeness)}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -51,6 +60,10 @@ export default function ContentEngineModule({
                 </span>
               ))}
             </div>
+
+            <ClusterLinkMap graph={c.graph} />
+
+            {c.nextGap && <ClusterNextStep topic={c.topic} nextGap={c.nextGap} />}
           </div>
         ))}
       </div>

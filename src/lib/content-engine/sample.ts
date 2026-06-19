@@ -5,6 +5,10 @@ export interface ClusterArticle {
   title: string;
   type: "pillar" | "supporting";
   status: "published" | "planned";
+  /** Whether this supporting article links to its cluster pillar. Undefined on the
+   *  pillar itself; on a supporting article `false`/undefined = a missing internal
+   *  link (silent link debt). Real-integration seam: a crawler / link audit. */
+  linksToPillar?: boolean;
 }
 
 export interface TopicCluster {
@@ -27,8 +31,8 @@ export const SAMPLE_CLUSTERS: TopicCluster[] = [
     volume: 4200,
     articles: [
       { title: "Spánek miminka: kompletní průvodce", type: "pillar", status: "published" },
-      { title: "Jak uspat novorozence", type: "supporting", status: "published" },
-      { title: "Bílý šum a spánek", type: "supporting", status: "published" },
+      { title: "Jak uspat novorozence", type: "supporting", status: "published", linksToPillar: true },
+      { title: "Bílý šum a spánek", type: "supporting", status: "published", linksToPillar: false },
       { title: "Spánkový regres po měsících", type: "supporting", status: "planned" },
     ],
   },
@@ -37,7 +41,7 @@ export const SAMPLE_CLUSTERS: TopicCluster[] = [
     volume: 3100,
     articles: [
       { title: "Kojení od A do Z", type: "pillar", status: "published" },
-      { title: "Časté problémy při kojení", type: "supporting", status: "published" },
+      { title: "Časté problémy při kojení", type: "supporting", status: "published", linksToPillar: true },
       { title: "Kojení a strava matky", type: "supporting", status: "planned" },
     ],
   },
@@ -46,7 +50,7 @@ export const SAMPLE_CLUSTERS: TopicCluster[] = [
     volume: 2600,
     articles: [
       { title: "Příkrmy: kdy a jak začít", type: "pillar", status: "planned" },
-      { title: "BLW metoda krok za krokem", type: "supporting", status: "published" },
+      { title: "BLW metoda krok za krokem", type: "supporting", status: "published", linksToPillar: false },
     ],
   },
 ];

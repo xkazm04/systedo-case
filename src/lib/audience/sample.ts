@@ -21,6 +21,21 @@ export interface RevenueStream {
   amount: number;
 }
 
+/** Optional audience-growth targets for the goal tracker. */
+export interface AudienceGoals {
+  /** target total subscribers */
+  subscriberTarget: number;
+  /** target monthly revenue (CZK) */
+  monthlyRevenueTarget: number;
+}
+
+/** One month of a trailing history series (oldest → newest). */
+export interface MonthlyPoint {
+  /** ISO month, first of the month (e.g. "2026-01-01") */
+  month: string;
+  value: number;
+}
+
 /** Where new subscribers came from over the trailing window. */
 export interface SubscriberSource {
   /** acquisition channel label (cs) */
@@ -61,3 +76,43 @@ export const SAMPLE_SUBSCRIBER_SOURCES: SubscriberSource[] = [
   { source: "Placená reklama", newSubs: 240, costPerSub: 95, retention30: 0.41 },
   { source: "Partnerské weby", newSubs: 130, costPerSub: 22, retention30: 0.63 },
 ];
+
+/** Trailing-12-month total-subscriber history (oldest → newest), ending at the
+ *  current `SAMPLE_FUNNEL.subscribers` (18 600). Seam: ESP list-size snapshots. */
+export const SAMPLE_SUBSCRIBER_HISTORY: MonthlyPoint[] = [
+  { month: "2025-07-01", value: 14_100 },
+  { month: "2025-08-01", value: 14_650 },
+  { month: "2025-09-01", value: 15_280 },
+  { month: "2025-10-01", value: 15_820 },
+  { month: "2025-11-01", value: 16_310 },
+  { month: "2025-12-01", value: 16_740 },
+  { month: "2026-01-01", value: 17_120 },
+  { month: "2026-02-01", value: 17_460 },
+  { month: "2026-03-01", value: 17_810 },
+  { month: "2026-04-01", value: 18_090 },
+  { month: "2026-05-01", value: 18_360 },
+  { month: "2026-06-01", value: 18_600 },
+];
+
+/** Trailing-12-month blended RPM history (CZK revenue per 1000 active subs),
+ *  oldest → newest. Seam: ad/sponsorship revenue ÷ active list size per month. */
+export const SAMPLE_RPM_HISTORY: MonthlyPoint[] = [
+  { month: "2025-07-01", value: 12.9 },
+  { month: "2025-08-01", value: 13.4 },
+  { month: "2025-09-01", value: 13.2 },
+  { month: "2025-10-01", value: 13.8 },
+  { month: "2025-11-01", value: 14.6 },
+  { month: "2025-12-01", value: 15.1 },
+  { month: "2026-01-01", value: 14.7 },
+  { month: "2026-02-01", value: 15.3 },
+  { month: "2026-03-01", value: 15.9 },
+  { month: "2026-04-01", value: 16.2 },
+  { month: "2026-05-01", value: 16.8 },
+  { month: "2026-06-01", value: 17.3 },
+];
+
+/** Illustrative audience-growth goals for the goal tracker. */
+export const SAMPLE_GOALS: AudienceGoals = {
+  subscriberTarget: 25_000,
+  monthlyRevenueTarget: 260_000,
+};

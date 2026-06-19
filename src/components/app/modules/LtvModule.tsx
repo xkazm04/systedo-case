@@ -3,9 +3,11 @@ import { Bulb, TrendUp, TrendDown } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
+import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 import { cohortTrend, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
+import type { Cohort } from "@/lib/ltv/sample";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
 
 function ratioTone(r: number): string {
@@ -134,9 +136,12 @@ function SurvivalSpark({ row }: { row: CohortMetrics }) {
 export default function LtvModule({
   rows,
   summary,
+  cohorts,
 }: {
   rows: CohortMetrics[];
   summary: LtvSummary;
+  /** raw cohorts for the interactive horizon/churn projection (feature #3) */
+  cohorts: Cohort[];
 }) {
   const healthy = summary.avgLtvCac >= 3;
   const channels = blendChannels(rows);
@@ -181,6 +186,8 @@ export default function LtvModule({
       </div>
 
       <LtvDiagnosisPanel rows={rows} summary={summary} />
+
+      <LtvProjectionPanel cohorts={cohorts} paidCac={summary.paidCac} />
 
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">

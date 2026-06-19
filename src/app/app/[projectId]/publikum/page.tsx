@@ -2,7 +2,15 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import AudienceModule from "@/components/app/modules/AudienceModule";
-import { SAMPLE_FUNNEL, SAMPLE_REVENUE, SAMPLE_SEGMENTS, SAMPLE_SUBSCRIBER_SOURCES } from "@/lib/audience/sample";
+import {
+  SAMPLE_FUNNEL,
+  SAMPLE_GOALS,
+  SAMPLE_REVENUE,
+  SAMPLE_RPM_HISTORY,
+  SAMPLE_SEGMENTS,
+  SAMPLE_SUBSCRIBER_HISTORY,
+  SAMPLE_SUBSCRIBER_SOURCES,
+} from "@/lib/audience/sample";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +25,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         segments={SAMPLE_SEGMENTS}
         revenue={SAMPLE_REVENUE}
         subscriberSources={SAMPLE_SUBSCRIBER_SOURCES}
+        subscriberHistory={SAMPLE_SUBSCRIBER_HISTORY}
+        rpmHistory={SAMPLE_RPM_HISTORY}
+        goals={SAMPLE_GOALS}
       />
     </ModulePage>
   );

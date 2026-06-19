@@ -3,11 +3,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
-import { Bell, Bolt, Check, Clock, Copy, Info, Refresh, Sparkles } from "@/components/icons";
+import { Bell, Bolt, Bookmark, Calendar, Check, Clock, Coins, Copy, Info, Layers, Refresh, Sparkles } from "@/components/icons";
 import { CHANNEL_LABELS, type InboundLead } from "@/lib/speed-lead/sample";
 import { draftReply, SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
 import { computeResponseAnalytics, type LeadOutcome } from "@/lib/speed-lead/analytics";
+import {
+  answeredCount,
+  EMPTY_QUALIFICATION,
+  qualificationScore,
+  scoreLabel,
+  scoreTone,
+  type Budget,
+  type Disposition,
+  type Qualification,
+  type Scope,
+  type Timeline,
+} from "@/lib/speed-lead/qualification";
+import {
+  coerceSnippets,
+  DEFAULT_SNIPPETS,
+  expandSnippet,
+  snippetVarsFor,
+  type Snippet,
+} from "@/lib/speed-lead/snippets";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { useProject } from "@/lib/projects/context";
 import type { LeadReplyResult } from "@/lib/ai-types";
 import { fmtPct } from "@/lib/format";
 
@@ -47,6 +67,48 @@ function fmtDuration(totalSec: number): string {
   return `${rounded.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} min`;
 }
 
+/** Per-project localStorage key for the editable snippet library. */
+const snippetsKey = (projectId: string) => `app:speed-lead-snippets:${projectId}`;
+
+/** Lazy initializer: read the per-project saved snippets once, guarding SSR and
+ *  falling back to the built-in defaults on missing / corrupt storage. */
+function loadSnippets(projectId: string): Snippet[] {
+  if (typeof window === "undefined") return DEFAULT_SNIPPETS;
+  try {
+    const raw = window.localStorage.getItem(snippetsKey(projectId));
+    if (!raw) return DEFAULT_SNIPPETS;
+    return coerceSnippets(JSON.parse(raw));
+  } catch {
+    /* corrupt or unavailable storage — fall back to the defaults */
+    return DEFAULT_SNIPPETS;
+  }
+}
+
+/** Option lists for the inline qualification selects (value + Czech label). */
+const TIMELINE_OPTIONS: { value: Timeline; label: string }[] = [
+  { value: "unknown", label: "—" },
+  { value: "asap", label: "Co nejdříve" },
+  { value: "weeks", label: "Do několika týdnů" },
+  { value: "exploring", label: "Jen zjišťuje" },
+];
+const BUDGET_OPTIONS: { value: Budget; label: string }[] = [
+  { value: "unknown", label: "—" },
+  { value: "confirmed", label: "Potvrzený" },
+  { value: "flexible", label: "Flexibilní" },
+  { value: "tight", label: "Omezený" },
+];
+const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
+  { value: "unknown", label: "—" },
+  { value: "large", label: "Velký" },
+  { value: "medium", label: "Střední" },
+  { value: "small", label: "Malý" },
+];
+const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
+  { value: "hot", label: "Horký" },
+  { value: "warm", label: "Vlažný" },
+  { value: "cold", label: "Studený" },
+];
+
 type SlaPhase = "ontrack" | "warning" | "breached";
 
 interface SlaState {
@@ -64,10 +126,30 @@ function slaState(lead: InboundLead, nowMs: number, arrivalMs: number): SlaState
 }
 
 export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
+  const project = useProject();
   const [selectedId, setSelectedId] = useState(leads[0]?.id ?? "");
   /** id → measured response time (seconds from arrival) once "Odeslat" fires. */
   const [respondedAt, setRespondedAt] = useState<Map<string, number>>(new Map());
+  /** id → captured BANT qualification; leads not yet touched fall back to EMPTY. */
+  const [qualById, setQualById] = useState<Map<string, Qualification>>(new Map());
+  /** Editable snippet library, read once per project from localStorage via a lazy
+   *  initializer (SSR-guarded inside loadSnippets) — never read during a re-render
+   *  or in an effect, matching the project's per-project persistence pattern. */
+  const [snippets] = useState<Snippet[]>(() => loadSnippets(project.id));
   const [now, setNow] = useState(() => Date.now());
+
+  /** Seed the per-project key if it was empty so the library is editable per
+   *  workspace. Writing to external storage in an effect is the supported use;
+   *  the in-memory snippets came from the lazy initializer above. */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem(snippetsKey(project.id)) == null) {
+        window.localStorage.setItem(snippetsKey(project.id), JSON.stringify(snippets));
+      }
+    } catch {
+      /* storage unavailable — in-memory defaults still work */
+    }
+  }, [project.id, snippets]);
 
   /** Pin each lead's arrival once at mount (lazy state initializer) so countdowns
    *  are stable across ticks — refs/Date.now must not be read during render. */
@@ -138,6 +220,35 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
     } catch {
       /* clipboard unavailable */
     }
+  }
+
+  /** The selected lead's captured qualification (or a fresh empty one). */
+  const qual = (selected && qualById.get(selected.id)) ?? EMPTY_QUALIFICATION;
+  const qualScore = qualificationScore(qual);
+  const qualAnswered = answeredCount(qual);
+
+  /** Patch one field of the selected lead's qualification, keyed by lead id. */
+  function setQualField<K extends keyof Qualification>(key: K, value: Qualification[K]) {
+    if (!selected) return;
+    setQualById((m) => {
+      const next = new Map(m);
+      const current = next.get(selected.id) ?? EMPTY_QUALIFICATION;
+      next.set(selected.id, { ...current, [key]: value });
+      return next;
+    });
+  }
+
+  /** Insert a snippet, expanding its {jméno} / {kanál} placeholders from the
+   *  selected lead. Replaces an untouched draft, otherwise appends below it. */
+  function insertSnippet(snippet: Snippet) {
+    if (!selected) return;
+    const expanded = expandSnippet(snippet.body, snippetVarsFor(selected));
+    setReplyText((prev) => {
+      const base = prev.trim();
+      const isDraft = base === draftReply(selected).reply.trim();
+      return base.length === 0 || isDraft ? expanded : `${prev.trimEnd()}\n\n${expanded}`;
+    });
+    setCopied(false);
   }
 
   const usingAi = Boolean(aiReply);
@@ -381,6 +492,27 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               className="mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
 
+            {/* snippet library — named templates with {jméno} / {kanál} filled
+                from the selected lead; inserting replaces an untouched draft. */}
+            {snippets.length > 0 ? (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  <Bookmark width={12} height={12} />
+                  Šablony
+                </span>
+                {snippets.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => insertSnippet(s)}
+                    className="inline-flex items-center gap-1 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             {/* generation status — loading / error / demo (keyless) mode */}
             {status === "loading" && aiLeadId === selectedId ? (
               <p className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
@@ -412,15 +544,98 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
             ) : null}
           </div>
 
-          <div className="mt-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">Kvalifikační otázky</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {questions.map((q) => (
-                <span key={q} className="rounded-pill bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-800">
-                  {q}
-                </span>
-              ))}
+          {/* Structured qualification capture (BANT-style) — the rep qualifies
+              while replying; a lightweight score travels downstream. */}
+          <div className="mt-4 rounded-card border border-line bg-canvas p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Kvalifikace leadu</p>
+              <div className="flex items-center gap-2">
+                <Pill tone={scoreTone(qualScore)}>
+                  Skóre {qualScore} — {scoreLabel(qualScore)}
+                </Pill>
+                <span className="text-[11px] text-muted">{qualAnswered}/3 polí</span>
+              </div>
             </div>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
+                  <Calendar width={12} height={12} className="text-brand-accent" />
+                  Termín
+                </span>
+                <select
+                  value={qual.timeline}
+                  onChange={(e) => setQualField("timeline", e.target.value as Timeline)}
+                  className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                >
+                  {TIMELINE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
+                  <Coins width={12} height={12} className="text-brand-accent" />
+                  Rozpočet
+                </span>
+                <select
+                  value={qual.budget}
+                  onChange={(e) => setQualField("budget", e.target.value as Budget)}
+                  className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                >
+                  {BUDGET_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
+                  <Layers width={12} height={12} className="text-brand-accent" />
+                  Rozsah
+                </span>
+                <select
+                  value={qual.scope}
+                  onChange={(e) => setQualField("scope", e.target.value as Scope)}
+                  className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                >
+                  {SCOPE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-medium text-navy-700">Hodnocení:</span>
+              <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
+                {DISPOSITION_OPTIONS.map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setQualField("disposition", o.value)}
+                    className={`rounded-pill px-2.5 py-1 text-xs font-medium transition-colors ${
+                      qual.disposition === o.value
+                        ? "bg-brand-600 text-white"
+                        : "text-navy-700 hover:bg-brand-50"
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {questions.length > 0 ? (
+              <p className="mt-3 text-[11px] text-muted">
+                Doptat se: {questions.join(" · ")}
+              </p>
+            ) : null}
           </div>
 
           <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
