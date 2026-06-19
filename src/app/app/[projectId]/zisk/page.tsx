@@ -4,17 +4,29 @@ import ModulePage from "@/components/app/ModulePage";
 import ProfitModule from "@/components/app/modules/ProfitModule";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
-import { defaultMargins } from "@/lib/profit/sample";
+import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
+import { profitTrend } from "@/lib/profit/trend";
+import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
+/** Trend granularity per period: short windows read better weekly, the year monthly. */
+const TREND_GRANULARITY: Record<string, TrendGranularity> = {
+  "30": "week",
+  "90": "week",
+  "365": "month",
+};
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "zisk");
   const data = getProjectDataset(project);
+  const margins = defaultMargins(data.channels);
+  // Anchor "now" to the latest day in the series — derived server-side so the
+  // client never reaches for Date.now() during render (react-compiler safe).
+  const anchorIso = data.daily.length > 0 ? data.daily[data.daily.length - 1]!.date : undefined;
 
   // Precompute the channel mix per period on the server; the client only re-applies
   // the (live-editable) margin model on top — no recompute of the underlying mix.
@@ -25,9 +37,31 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     ])
   );
 
+  // Server-bucket the daily series into a profit/POAS trend per period, applying
+  // the default margin model. The client re-drives it when margins are edited.
+  const trendByPeriod = Object.fromEntries(
+    Object.entries(PERIOD_DAYS).map(([key, days]) => [
+      key,
+      profitTrend(
+        data.daily.slice(-days),
+        data.channels,
+        margins,
+        TREND_GRANULARITY[key] ?? "week",
+        anchorIso
+      ),
+    ])
+  ) as Record<string, ProfitTrendPoint[]>;
+
   return (
     <ModulePage moduleKey="zisk">
-      <ProfitModule rowsByPeriod={rowsByPeriod} defaults={defaultMargins(data.channels)} />
+      <ProfitModule
+        projectId={projectId}
+        rowsByPeriod={rowsByPeriod}
+        trendByPeriod={trendByPeriod}
+        channels={data.channels}
+        products={SAMPLE_PRODUCTS}
+        defaults={margins}
+      />
     </ModulePage>
   );
 }

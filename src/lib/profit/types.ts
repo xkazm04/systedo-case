@@ -41,6 +41,125 @@ export interface ProfitSummary {
   unprofitableCount: number;
 }
 
+// --- #3 Profit & POAS trend over time ---------------------------------------
+
+/** One bucketed window of the daily series, with the margin model already
+ *  applied so the trend line plots net profit and POAS over time. */
+export interface ProfitTrendPoint {
+  /** ISO date of the bucket start (YYYY-MM-DD) */
+  date: string;
+  /** human label for the bucket ("2026-05", "t. 21") */
+  label: string;
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  netProfit: number;
+  /** grossProfit / cost (POAS) for the window */
+  poas: number;
+}
+
+export type TrendGranularity = "week" | "month";
+
+// --- #5 Overhead allocation -------------------------------------------------
+
+/** Režijní náklady model: a monthly fixed overhead spread across channels by
+ *  revenue share, plus a per-order fulfilment cost charged on each conversion.
+ *  Turns gross-margin POAS into a true contribution-margin POAS. */
+export interface OverheadOptions {
+  /** whether the overhead adjustment is applied at all */
+  enabled: boolean;
+  /** fixed monthly overhead in Kč (rent, salaries, tooling) */
+  monthlyOverhead: number;
+  /** variable fulfilment cost per order/conversion in Kč */
+  perOrderCost: number;
+  /** number of whole months the analysed window spans, so the monthly overhead
+   *  is scaled to the period before being allocated */
+  months: number;
+}
+
+/** A ProfitRow with overhead allocated on top — the contribution-margin view. */
+export interface OverheadRow extends ProfitRow {
+  /** number of orders/conversions attributed to the channel */
+  conversions: number;
+  /** share of the monthly overhead allocated to this channel (by revenue) */
+  allocatedOverhead: number;
+  /** perOrderCost × conversions */
+  fulfilmentCost: number;
+  /** grossProfit − allocatedOverhead − fulfilmentCost */
+  contributionProfit: number;
+  /** contributionProfit / cost — the overhead-adjusted POAS */
+  contributionPoas: number;
+  /** the ROAS at which the channel breaks even once overhead is loaded in */
+  adjustedBreakEvenRoas: number;
+}
+
+export interface OverheadSummary {
+  totalOverhead: number;
+  totalFulfilment: number;
+  contributionProfit: number;
+  /** contributionProfit / cost across the portfolio */
+  contributionPoas: number;
+  /** channels unprofitable once overhead is loaded in */
+  unprofitableCount: number;
+}
+
+// --- #4 Margin scenarios ----------------------------------------------------
+
+/** A named, saved set of per-channel margins the user can reload and compare. */
+export interface MarginScenario {
+  id: string;
+  name: string;
+  margins: ChannelMargin[];
+  /** epoch millis the scenario was saved (for ordering; injected, never read in render) */
+  savedAt: number;
+}
+
+// --- #2 Product / category margin breakdown ---------------------------------
+
+/** A product category in the dataset: its share of revenue and its cost of
+ *  goods (as a fraction of revenue) → a per-category gross margin. */
+export interface ProductCategory {
+  category: string;
+  color: string;
+  /** fraction of total revenue this category represents (0..1) */
+  revenueShare: number;
+  /** cost of goods as a fraction of category revenue (0..1) */
+  cogsPct: number;
+}
+
+/** A product/category-level profit row. Mirrors ProfitRow's profit fields but is
+ *  keyed by `category` and derives its margin from cost of goods rather than a
+ *  user-set channel margin. Ad cost is allocated by revenue share. */
+export interface ProductRow {
+  category: string;
+  color: string;
+  revenue: number;
+  /** ad cost allocated to the category by revenue share */
+  cost: number;
+  revenueShare: number;
+  /** 1 − cogsPct */
+  marginPct: number;
+  /** revenue × margin */
+  grossProfit: number;
+  /** grossProfit − allocated ad cost */
+  netProfit: number;
+  /** grossProfit / allocated ad cost */
+  poas: number;
+  breakEvenRoas: number;
+  roas: number;
+  profitable: boolean;
+}
+
+export interface ProductSummary {
+  revenue: number;
+  cost: number;
+  grossProfit: number;
+  netProfit: number;
+  poas: number;
+  blendedMargin: number;
+  unprofitableCount: number;
+}
+
 /** Strategy for the budget-reallocation simulator.
  *  - `max-profit`: greedily push budget to the highest marginal-profit channels.
  *  - `hold-revenue`: protect total revenue — only drain a channel into a more
