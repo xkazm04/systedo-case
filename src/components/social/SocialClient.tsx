@@ -17,6 +17,7 @@ import {
   type SocialPost,
   type Tone,
 } from "@/lib/social/types";
+import WeekPlanner from "./WeekPlanner";
 
 interface InboxMessage {
   id: string;
@@ -41,6 +42,7 @@ export default function SocialClient() {
   return (
     <div className="space-y-8">
       <AccountsBar />
+      <WeekPlanner />
       <div className="grid gap-6 lg:grid-cols-[420px_1fr] lg:items-start">
         <Composer />
         <PostsList />
