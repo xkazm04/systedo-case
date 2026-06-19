@@ -56,6 +56,21 @@ what to do next is failure.">
 ## Pet peeves / friction triggers
 - <what makes them bounce or distrust the product>
 
+## Motivation — why use the app at all (time-saved)
+<How long this job takes the traditional, LLM-less way, and the time the app
+must save. e.g. "Roughing this brief by hand ~45 min; the tool has to land a
+usable draft in a few minutes or it's not worth the wait." If the app is slower
+or barely faster, that's a finding — they wouldn't adopt it.>
+
+## Senior-quality bar (reliability floor)
+<The output must be at least as good as this Character would produce as a SENIOR
+in their role. e.g. "A senior PPC lead's campaign read; generic 'improve
+targeting' advice fails." Output a senior would reject fails even if it 'worked'.>
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] <explicit pass/fail check derived from JTBD + the two bars above>
+- [ ] <…>
+
 ## Emotional baseline
 <patience, skepticism, vocabulary — how they react to friction>
 ```

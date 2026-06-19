@@ -27,5 +27,18 @@ Tomáš manages this brand's paid search/shopping among several accounts. He rea
 - A "needs attention" claim he can't trace to a rule or a number.
 - Anything that makes him leave the tool to do the real triage in a spreadsheet.
 
+## Motivation — why use the app at all (time-saved)
+Triaging a portfolio by hand (export, eyeball, rank, write the eval) is ~20–30 min per account, every day. The tool has to surface worst-first + a grounded evaluation in **~2 minutes** or he stays in his spreadsheet. Caveat he watches for: a 100s+ AI eval *per campaign* quietly destroys this — he won't wait ten minutes to evaluate six flagged campaigns.
+
+## Senior-quality bar (reliability floor)
+The AI evaluation must read like a **senior PPC strategist's**: cite the campaign's real numbers, respect the triage rules, and give specific actions he'd actually take. Generic "improve your targeting" fails; anything he'd be embarrassed to forward to the client fails.
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] Portfolio shows worst-first (or one obvious click to it); every flag traces to a rule + a number.
+- [ ] AI eval cites the campaign's actual numbers and respects the "critical ≤ 50" guardrail.
+- [ ] Recommendations are specific + senior-grade (he'd act on them / forward them unedited).
+- [ ] He never has to leave for a spreadsheet to do the real triage.
+- [ ] Per-campaign eval latency stays low enough to triage the whole flagged set in one sitting.
+
 ## Emotional baseline
 Fast, skeptical, allergic to fluff. Trusts numbers and rules; distrusts confident vagueness. Will test whether a flag is real before believing the tool.

@@ -32,5 +32,17 @@ Marek runs a growing e-shop and is shopping for something to make his ad spend w
 - Dead ends — interest with no obvious next step.
 - Suspecting it's a demo/portfolio rather than a product he could actually buy.
 
+## Motivation — why use the app at all (time-saved)
+Marek's "time-saved" is one level up: he's judging whether the tool would save **his team** time and produce senior-grade work — entirely from the marketing surfaces. The *evaluation itself* must be fast: he gives the site ~2–3 minutes before bouncing. If he can't assess what / proof / price / next-step in that window, the tool loses a prospect before it ever proves anything.
+
+## Senior-quality bar (reliability floor)
+The proof and demo have to convince him the tool's output would meet a **senior practitioner's** standard — the case-study numbers, the example article, the live demo must look like senior-grade work, not a toy. Hollow claims or an obviously-thin demo fail his bar.
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] Within ~2–3 min he can state what it is, who it's for, that it works, what it costs, and the next step.
+- [ ] Pricing is transparent (visible tiers, no contact-wall).
+- [ ] There's credible, quantified proof — or a live demo — that the output is senior-grade.
+- [ ] The primary CTA gives a frictionless look, not a login wall.
+
 ## Emotional baseline
 Skeptical, impatient with fluff, finance-minded. Rewards specificity, proof and a clear price; bounces on vagueness or a contact-wall. Decides fast whether something is worth a second look.

@@ -26,5 +26,17 @@ Eva turns search demand into content that ranks and converts. She wants the tool
 - No preview of how it renders or ranks.
 - A brief that doesn't connect to an actual publishable artifact (dead-ends at "here's some text").
 
+## Motivation — why use the app at all (time-saved)
+Researching + writing a brief by hand is ~45–60 min; a publishable first draft another ~60–90 min. The tool has to collapse that to a few minutes of waiting. So a ~130s draft generation is fine **only if** the output is genuinely publishable — if she'd still need a full rewrite, she'd have been faster writing it herself, and the wait counts against it.
+
+## Senior-quality bar (reliability floor)
+The brief + draft must be at least as good as a **senior SEO content strategist's**: brand-specific, factually right, properly structured, with the keyword actually placed where it should be. Interchangeable boilerplate she'd rewrite from scratch fails; a draft she couldn't publish with light edits fails.
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] Brief is brand-specific (not interchangeable), with a SERP preview and the keyword in title/meta/intro.
+- [ ] The loop closes: brief → publishable draft without leaving the tool.
+- [ ] The draft is publishable with light edits — a senior wouldn't rewrite it from scratch.
+- [ ] Total wait (including generation latency) still beats doing it by hand.
+
 ## Emotional baseline
 Craft-proud and quality-sensitive. Patient with a tool that respects her standards; quickly dismissive of one that outputs fluff.

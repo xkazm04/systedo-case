@@ -27,5 +27,17 @@ Petra owns the marketing number for an e-commerce brand. She doesn't run the ads
 - Having to do mental math to know if she's ahead or behind goal.
 - Anything that looks precise but doesn't add up.
 
+## Motivation — why use the app at all (time-saved)
+Pulling the month's numbers herself (Google Ads + GA + a spreadsheet, reconciling channels) is ~30–45 min and still wouldn't give her a pacing forecast. The dashboard has to deliver "ahead/behind this month + a defensible talking point" in **under 2 minutes** — otherwise she'll just ask the agency (slower) and the tool wasn't worth opening.
+
+## Senior-quality bar (reliability floor)
+The auto-insights must read like a **senior performance analyst's** take — name the real driver, not restate the number. A generic "revenue went up" line she'd never dare repeat in a leadership meeting fails, even if it's technically true.
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] Headline KPIs + goal-pacing answer "ahead/behind *this* month" in <2 min without leaving the page.
+- [ ] Channel breakdown reconciles to the headline totals (she can trust the screen).
+- [ ] ≥1 auto-insight is a senior-grade "so what" she'd repeat verbatim in the meeting.
+- [ ] The whole read is faster than asking the agency or rebuilding it herself.
+
 ## Emotional baseline
 Time-pressured and slightly defensive (she'll be asked to justify the spend). Rewards clarity instantly; abandons a screen that makes her work to extract the point.
