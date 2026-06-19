@@ -109,6 +109,20 @@ const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
   { value: "cold", label: "Studený" },
 ];
 
+/** Compact Czech summary of the captured BANT fields, skipping unanswered ones —
+ *  fed to the AI reply so it doesn't re-ask what the rep already qualified and can
+ *  match its tone to the lead's disposition. */
+function describeQualification(q: Qualification): string {
+  const label = (opts: { value: string; label: string }[], v: string) =>
+    opts.find((o) => o.value === v)?.label ?? v;
+  const parts: string[] = [];
+  if (q.timeline && q.timeline !== "unknown") parts.push(`termín: ${label(TIMELINE_OPTIONS, q.timeline)}`);
+  if (q.budget && q.budget !== "unknown") parts.push(`rozpočet: ${label(BUDGET_OPTIONS, q.budget)}`);
+  if (q.scope && q.scope !== "unknown") parts.push(`rozsah: ${label(SCOPE_OPTIONS, q.scope)}`);
+  if (q.disposition) parts.push(`hodnocení: ${label(DISPOSITION_OPTIONS, q.disposition)}`);
+  return parts.join(", ");
+}
+
 type SlaPhase = "ontrack" | "warning" | "breached";
 
 interface SlaState {
@@ -204,11 +218,13 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
   function generateReply() {
     if (!selected || status === "loading") return;
     setAiLeadId(selected.id);
+    const qualification = describeQualification(qualById.get(selected.id) ?? EMPTY_QUALIFICATION);
     run({
       message: selected.message,
       channel: selected.channel,
       projectType: projectTypeFor(selected),
       name: selected.name,
+      ...(qualification ? { qualification } : {}),
     });
   }
 

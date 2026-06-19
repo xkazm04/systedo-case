@@ -83,6 +83,19 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
       seed.cpql = r.cpl;
       seed.costPerQualified = r.cpql;
     }
+    // Peer sources (best-first by quality score, excluding self) so the diagnosis
+    // can name a concrete better destination for budget instead of "move it".
+    const peers = rows
+      .filter((p) => p.source !== r.source)
+      .sort((a, b) => b.qualityScore - a.qualityScore)
+      .slice(0, 3)
+      .map((p) => ({
+        source: p.source,
+        qualRate: p.qualRate,
+        winRate: p.winRate,
+        ...(p.spend > 0 ? { costPerQualified: p.cpql } : {}),
+      }));
+    if (peers.length > 0) seed.peers = peers;
     return seed;
   });
 

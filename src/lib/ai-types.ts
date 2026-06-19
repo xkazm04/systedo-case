@@ -286,6 +286,9 @@ export interface LeadReplyRequest {
   projectType: string;
   /** optional lead name, for a personal greeting */
   name?: string;
+  /** captured BANT qualification (Czech summary of the known fields) so the reply
+   *  doesn't re-ask what's already known and matches the lead's disposition */
+  qualification?: string;
 }
 
 export interface LeadReplyResult {
@@ -648,6 +651,19 @@ export interface LeadSourceDiagnosisRequest {
   /** ad spend (CZK); absent / 0 for unpaid sources */
   spend?: number;
   /** cost per qualified lead (CZK), when the source has spend */
+  costPerQualified?: number;
+  /** other sources' compact metrics, best-first — lets the diagnosis name a
+   *  concrete better source to move budget to instead of a generic "move it" */
+  peers?: LeadSourcePeer[];
+}
+
+/** A peer source's compact metrics, for comparison inside the diagnosis (so it can
+ *  name a concrete better destination for budget). */
+export interface LeadSourcePeer {
+  source: string;
+  qualRate: number;
+  winRate: number;
+  /** cost per qualified lead (CZK), when the peer has spend */
   costPerQualified?: number;
 }
 
