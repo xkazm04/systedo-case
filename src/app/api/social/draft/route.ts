@@ -64,7 +64,7 @@ function parse(body: { topic?: unknown; tone?: unknown; platforms?: unknown }):
 export async function POST(request: Request) {
   if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
 
-  let body: { topic?: unknown; tone?: unknown; platforms?: unknown; ai?: unknown };
+  let body: { topic?: unknown; tone?: unknown; platforms?: unknown; ai?: unknown; brand?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -107,7 +107,8 @@ export async function POST(request: Request) {
       }
     }
 
-    const response = await generateSocialPosts({ topic, tone, platforms, grounding: perfGrounding() });
+    const brand = str(body.brand) || undefined;
+    const response = await generateSocialPosts({ topic, tone, platforms, grounding: perfGrounding(), brand });
     return Response.json({
       drafts: response.result.posts,
       source: response.meta.demo ? "demo" : "ai",

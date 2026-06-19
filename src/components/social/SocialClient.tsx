@@ -154,6 +154,25 @@ function Composer() {
   const [drafting, setDrafting] = useState<false | "template" | "ai">(false);
   const [draftSource, setDraftSource] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+  // Brand voice (what they sell + how they talk) — de-hardcodes the assistant from a
+  // single brand; persisted locally so it sticks, and fed to the AI draft as `brand`.
+  const [brand, setBrand] = useState("");
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("app:social-brand");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setBrand(saved);
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("app:social-brand", brand);
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, [brand]);
 
   const [platform, setPlatform] = useState<SocialPlatform>("instagram");
   const [content, setContent] = useState("");
@@ -177,7 +196,13 @@ function Composer() {
       const res = await fetch("/api/social/draft", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), tone, platforms: [...draftPlatforms], ai }),
+        body: JSON.stringify({
+          topic: topic.trim(),
+          tone,
+          platforms: [...draftPlatforms],
+          ai,
+          brand: brand.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -253,6 +278,17 @@ function Composer() {
           </select>
         </label>
       </div>
+
+      <label className="block">
+        <span className="mb-1.5 block text-sm font-medium text-navy-700">Hlas značky (volitelné)</span>
+        <input
+          value={brand}
+          onChange={(e) => setBrand(e.target.value)}
+          placeholder="Co prodáváte + jak mluvíte — např. Mionelo: ořechy a superpotraviny, přátelsky a autenticky"
+          className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+        />
+        <span className="mt-1 block text-xs text-muted">AI píše v hlase vaší značky, ne genericky.</span>
+      </label>
 
       <div>
         <span className="mb-1.5 block text-sm font-medium text-navy-700">Platformy pro návrh</span>

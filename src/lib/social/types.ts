@@ -5,13 +5,14 @@ import { TONES, TONE_LABELS, type Tone } from "@/lib/ai-types";
 export { TONES, TONE_LABELS };
 export type { Tone };
 
-export const SOCIAL_PLATFORMS = ["facebook", "instagram", "linkedin"] as const;
+export const SOCIAL_PLATFORMS = ["facebook", "instagram", "linkedin", "tiktok"] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 
 export const SOCIAL_PLATFORM_LABELS: Record<SocialPlatform, string> = {
   facebook: "Facebook",
   instagram: "Instagram",
   linkedin: "LinkedIn",
+  tiktok: "TikTok",
 };
 
 /** Practical caption character limits per platform. */
@@ -19,6 +20,7 @@ export const PLATFORM_LIMITS: Record<SocialPlatform, number> = {
   facebook: 2200,
   instagram: 2200,
   linkedin: 3000,
+  tiktok: 2200,
 };
 
 export function isSocialPlatform(v: unknown): v is SocialPlatform {

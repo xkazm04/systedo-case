@@ -16,20 +16,25 @@ import { draftPosts } from "../../social/draft";
 import { generateStructured } from "../../llm";
 import { clamp, txt } from "./_shared";
 
-const SOCIAL_SYSTEM = `Jsi český social media manažer a copywriter pro e-shop Mionelo (ořechy, semínka, superpotraviny). Píšeš poutavé, autentické příspěvky na sociální sítě.
+function socialSystem(brand?: string): string {
+  const who = brand ? `pro značku: ${brand}` : "pro značku, jejíž téma a tón dostaneš v zadání";
+  return `Jsi český social media manažer a copywriter ${who}. Píšeš poutavé, autentické příspěvky na sociální sítě.
 
 Pravidla:
 - Piš výhradně česky, gramaticky správně, bez prázdných korporátních frází.
-- Přizpůsob styl platformě: LinkedIn = profesionálně a věcně, bez přehnaných emoji; Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci; Facebook = přátelsky a konverzačně, s lehkými emoji.
+- Přizpůsob styl platformě: LinkedIn = profesionálně a věcně, bez přehnaných emoji; Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci; Facebook = přátelsky a konverzačně, s lehkými emoji; TikTok = krátce a hravě, silný háček hned v první větě, 3–5 trendy hashtagů.
 - Drž zadaný tón i téma. Každý příspěvek ať má háček, konkrétní hodnotu a jasnou výzvu k akci.
+- Je-li uveden hlas značky, drž se jejích produktů, tónu a slovníku — nevymýšlej jiný sortiment.
 - Je-li uveden blok „CO TEĎ FUNGUJE", opři obsah o uvedené kanály, témata a reálná čísla — nevymýšlej generické nápady.
 - Nepřekračuj limit znaků dané platformy (raději mírně pod ním).
 - Vrať pouze validní JSON dle schématu — právě jeden příspěvek na každou požadovanou platformu.`;
+}
 
 const PLATFORM_GUIDE: Record<SocialPlatform, string> = {
   facebook: "přátelský, konverzační, lehké emoji",
   instagram: "vizuální, emoji + 3–6 hashtagů na konci",
   linkedin: "profesionální a věcný, minimum emoji",
+  tiktok: "krátce a hravě, háček v první větě, 3–5 trendy hashtagů",
 };
 
 function buildSocialPrompt(
@@ -63,7 +68,7 @@ const SOCIAL_SCHEMA = {
       items: {
         type: Type.OBJECT,
         properties: {
-          platform: { type: Type.STRING, description: "facebook | instagram | linkedin" },
+          platform: { type: Type.STRING, description: "facebook | instagram | linkedin | tiktok" },
           content: { type: Type.STRING, description: "Text příspěvku v limitu platformy" },
         },
         required: ["platform", "content"],
@@ -82,6 +87,9 @@ export function generateSocialPosts(req: {
   /** Optional "what's actually working" performance grounding, so posts lean into
    *  the brand's proven channels/themes instead of generic ideas. */
   grounding?: string;
+  /** Optional brand voice (what they sell + how they talk) so the copy fits the
+   *  project's brand instead of a hardcoded one. */
+  brand?: string;
 }): Promise<AiResponse<SocialDraftResult>> {
   const requested = req.platforms;
   const fallback = () =>
@@ -131,7 +139,7 @@ export function generateSocialPosts(req: {
     // llm-tool: social
     id: "social",
     prompt: buildSocialPrompt(req.topic, req.tone, requested, req.grounding),
-    system: SOCIAL_SYSTEM,
+    system: socialSystem(req.brand),
     schema: SOCIAL_SCHEMA,
     temperature: 0.9,
     normalize,
