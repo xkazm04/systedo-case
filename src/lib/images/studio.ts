@@ -42,8 +42,12 @@ export interface StudioRequest {
   /** style prior learned from creative→revenue attribution, prepended to bias
    *  generation toward the best-earning look */
   prior?: string;
-  /** Leonardo init-image ids to guide generation (reference images) */
+  /** Leonardo image ids to guide generation (reference images, STYLE mode) */
   imagePromptIds?: string[];
+  /** a single reference used as the img2img init image (faithful PRODUCT mode) */
+  initImageId?: string;
+  /** product-fidelity 0.1–0.9 for init-image mode (higher = closer to the product) */
+  fidelity?: number;
 }
 
 function clampCount(n: number): number {
@@ -69,6 +73,8 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     style: req.style,
     count,
     imagePromptIds: req.imagePromptIds,
+    initImageId: req.initImageId,
+    initStrength: req.fidelity,
   });
 
   // Score every candidate in parallel, then rank by score (desc). The brand kit is

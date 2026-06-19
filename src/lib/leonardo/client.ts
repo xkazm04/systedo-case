@@ -7,6 +7,9 @@ import type { ImageStyle } from "@/lib/images/types";
 
 const BASE = "https://cloud.leonardo.ai/api/rest/v1";
 const LUCID_ORIGIN_MODEL = "7b592283-e8a7-4c5a-9ba6-d18c31f258b9";
+// SDXL model that supports image-to-image (init_image_id + init_strength) — used
+// for the faithful-product reference mode, which Lucid Origin can't do.
+const INIT_CAPABLE_MODEL = "5c232a9e-9061-4777-980a-ddc8e65647c6"; // Leonardo Vision XL
 
 const STYLE_UUIDS: Record<ImageStyle, string> = {
   bokeh: "9fdc5e8c-4d13-49b4-9ce6-5a74cbb19177",
@@ -104,22 +107,41 @@ export async function generateCandidates(
     contrast?: number;
     count: number;
     imagePromptIds?: string[];
+    /** when set, generate image-to-image FROM this init image (faithful product
+     *  rendering) on an init-capable SDXL model, instead of style-only imagePrompts */
+    initImageId?: string;
+    /** init-image strength 0.1–0.9; higher = output stays closer to the product */
+    initStrength?: number;
   }
 ): Promise<LeonardoGeneration> {
-  const body = {
-    prompt,
-    modelId: LUCID_ORIGIN_MODEL,
-    width: opts.width,
-    height: opts.height,
-    num_images: opts.count,
-    contrast: opts.contrast ?? 3.5,
-    alchemy: false,
-    ultra: false,
-    styleUUID: STYLE_UUIDS[opts.style],
-    // Lucid Origin (Kino 2.1) supports reference images via imagePrompts (not
-    // init_image_id / controlnets).
-    ...(opts.imagePromptIds?.length ? { imagePrompts: opts.imagePromptIds } : {}),
-  };
+  // Faithful-product (image-to-image) path: Lucid Origin can't take an init image,
+  // so product mode routes through an SDXL model that supports init_image_id +
+  // init_strength. Style mode stays on Lucid Origin with imagePrompts.
+  const body = opts.initImageId
+    ? {
+        prompt,
+        modelId: INIT_CAPABLE_MODEL,
+        width: opts.width,
+        height: opts.height,
+        num_images: opts.count,
+        guidance_scale: 7,
+        init_image_id: opts.initImageId,
+        init_strength: Math.max(0.1, Math.min(0.9, opts.initStrength ?? 0.5)),
+      }
+    : {
+        prompt,
+        modelId: LUCID_ORIGIN_MODEL,
+        width: opts.width,
+        height: opts.height,
+        num_images: opts.count,
+        contrast: opts.contrast ?? 3.5,
+        alchemy: false,
+        ultra: false,
+        styleUUID: STYLE_UUIDS[opts.style],
+        // Lucid Origin (Kino 2.1) supports reference images via imagePrompts (not
+        // init_image_id / controlnets).
+        ...(opts.imagePromptIds?.length ? { imagePrompts: opts.imagePromptIds } : {}),
+      };
 
   const submit = await api("POST", "/generations", body);
   const generationId = (submit.sdGenerationJob as { generationId?: string } | undefined)?.generationId;

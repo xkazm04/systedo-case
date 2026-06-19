@@ -71,6 +71,8 @@ export async function POST(request: Request) {
     const avoid = str(body.avoid) || undefined;
     const brand = str(body.brand) || undefined;
     const referenceImageId = str(body.referenceImageId) || undefined;
+    const productMode = str(body.referenceMode) === "product";
+    const fidelityRaw = Number(body.fidelity);
 
     const uid = await userId();
 
@@ -107,7 +109,11 @@ export async function POST(request: Request) {
       avoid,
       brand,
       prior,
-      imagePromptIds: referenceImageId ? [referenceImageId] : undefined,
+      // PRODUCT mode → the reference is the img2img init image (faithful render);
+      // STYLE mode → it's an imagePrompt (influence only).
+      imagePromptIds: referenceImageId && !productMode ? [referenceImageId] : undefined,
+      initImageId: referenceImageId && productMode ? referenceImageId : undefined,
+      fidelity: Number.isFinite(fidelityRaw) ? fidelityRaw : undefined,
     });
 
     // Persist the winner to the tenant's library (signed-in + real generation).

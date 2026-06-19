@@ -61,6 +61,10 @@ export default function CreativeStudio() {
   const [refPreview, setRefPreview] = useState<string | null>(null);
   const [refStatus, setRefStatus] = useState<"idle" | "uploading" | "ready" | "error">("idle");
   const [refError, setRefError] = useState<string | null>(null);
+  // Reference mode: "style" (imagePrompts — influence) vs "product" (img2img init —
+  // faithful product compositing). Fidelity drives the init strength in product mode.
+  const [refMode, setRefMode] = useState<"style" | "product">("style");
+  const [fidelity, setFidelity] = useState(0.55);
 
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ImageGenResult | null>(null);
@@ -119,6 +123,8 @@ export default function CreativeStudio() {
           count,
           brand: brand.trim() || undefined,
           referenceImageId: upJson.referenceImageId,
+          referenceMode: refMode,
+          fidelity,
         }),
       });
       const json = await res.json();
@@ -205,6 +211,7 @@ export default function CreativeStudio() {
     setRefPreview(null);
     setRefStatus("idle");
     setRefError(null);
+    setRefMode("style");
   };
 
   const generate = async (avoid?: string) => {
@@ -222,6 +229,8 @@ export default function CreativeStudio() {
           avoid,
           brand: brand.trim() || undefined,
           referenceImageId: refStatus === "ready" ? referenceImageId : undefined,
+          referenceMode: refMode,
+          fidelity,
         }),
       });
       const json = await res.json();
@@ -356,21 +365,68 @@ export default function CreativeStudio() {
 
           <Field label="Referenční obrázek (volitelné)">
             {refPreview ? (
-              <div className="flex items-center gap-3 rounded-lg border border-line p-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={refPreview} alt="Referenční obrázek" className="h-12 w-12 shrink-0 rounded-md object-cover" />
-                <span className="min-w-0 flex-1 text-xs">
-                  {refStatus === "uploading" && <span className="text-muted">Nahrávám…</span>}
-                  {refStatus === "ready" && <span className="text-positive">Připraveno — ovlivní styl</span>}
-                  {refStatus === "error" && <span className="text-negative">{refError}</span>}
-                </span>
-                <button
-                  type="button"
-                  onClick={clearRef}
-                  className="shrink-0 text-xs font-medium text-muted hover:text-coral-600"
-                >
-                  Odebrat
-                </button>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 rounded-lg border border-line p-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={refPreview} alt="Referenční obrázek" className="h-12 w-12 shrink-0 rounded-md object-cover" />
+                  <span className="min-w-0 flex-1 text-xs">
+                    {refStatus === "uploading" && <span className="text-muted">Nahrávám…</span>}
+                    {refStatus === "ready" && (
+                      <span className="text-positive">
+                        {refMode === "product" ? "Připraveno — zachová produkt" : "Připraveno — ovlivní styl"}
+                      </span>
+                    )}
+                    {refStatus === "error" && <span className="text-negative">{refError}</span>}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearRef}
+                    className="shrink-0 text-xs font-medium text-muted hover:text-coral-600"
+                  >
+                    Odebrat
+                  </button>
+                </div>
+                {refStatus === "ready" && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["style", "product"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setRefMode(m)}
+                          className={`rounded-lg border px-2 py-1.5 text-center text-xs font-medium transition-colors ${
+                            refMode === m
+                              ? "border-brand-400 bg-brand-50 text-brand-800"
+                              : "border-line text-muted hover:border-navy-200"
+                          }`}
+                        >
+                          {m === "style" ? "Ovlivnit styl" : "Zachovat produkt"}
+                        </button>
+                      ))}
+                    </div>
+                    {refMode === "product" && (
+                      <label className="block">
+                        <span className="mb-1 flex items-center justify-between text-xs text-navy-700">
+                          <span>Věrnost produktu</span>
+                          <span className="tnum text-muted">{Math.round(fidelity * 100)} %</span>
+                        </span>
+                        <input
+                          type="range"
+                          min={0.3}
+                          max={0.85}
+                          step={0.05}
+                          value={fidelity}
+                          onChange={(e) => setFidelity(Number(e.target.value))}
+                          className="h-1.5 w-full cursor-pointer accent-brand-600"
+                          aria-label="Věrnost produktu"
+                        />
+                        <span className="mt-0.5 block text-[11px] text-muted">
+                          Vyšší = generovaný vizuál věrněji zachová nahraný produkt.
+                        </span>
+                      </label>
+                    )}
+                  </>
+                )}
               </div>
             ) : (
               <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted transition-colors hover:border-brand-300 hover:text-brand-accent">
@@ -380,7 +436,7 @@ export default function CreativeStudio() {
                   className="hidden"
                   onChange={(e) => onRefSelect(e.target.files?.[0] ?? null)}
                 />
-                Nahrát obrázek pro vedení stylu
+                Nahrát produkt nebo referenci
               </label>
             )}
           </Field>
