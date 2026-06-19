@@ -434,6 +434,8 @@ export interface CohortDiagnosisRequest {
   avgPayback: number | null;
   /** the cohort trend direction, when there are ≥ 2 cohorts */
   trend?: TrendDirection;
+  /** e-shop project → customer / repeat-purchase framing instead of signups / ARPU */
+  eshop?: boolean;
 }
 
 /** The trend direction shape, mirrored from lib/ltv/compute so the client+server

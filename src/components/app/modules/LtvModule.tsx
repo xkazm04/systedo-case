@@ -215,7 +215,7 @@ export default function LtvModule({
         </p>
       </div>
 
-      <LtvDiagnosisPanel rows={rows} summary={summary} />
+      <LtvDiagnosisPanel rows={rows} summary={summary} eshop={eshop} />
 
       <LtvProjectionPanel cohorts={cohorts} paidCac={summary.paidCac} />
 

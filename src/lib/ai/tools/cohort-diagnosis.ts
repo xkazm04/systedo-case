@@ -18,16 +18,21 @@ import { fmtCZK, fmtMultiple, fmtPct } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
 
-const COHORT_DIAGNOSIS_SYSTEM = `Jsi zkušený český analytik jednotkové ekonomiky (CAC, LTV, návratnost) pro produktové a SaaS firmy. Děláš stručnou diagnostiku akvizičních kohort pro zakladatele.
+function cohortDiagnosisSystem(eshop: boolean): string {
+  const domain = eshop ? "e-shopy a opakované nákupy" : "produktové a SaaS firmy";
+  const lever = eshop ? "zvýšit opakované nákupy / hodnotu objednávky" : "zvýšit retenci/ARPU";
+  const retention = eshop ? "M3 opakování" : "M3 retence";
+  return `Jsi zkušený český analytik jednotkové ekonomiky (CAC, LTV, návratnost) pro ${domain}. Děláš stručnou diagnostiku akvizičních kohort pro zakladatele.
 
 Pravidla:
 - Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky, kohorty ani hodnoty, které v datech nejsou.
 - Urči JEDNU nejproblematičtější kohortu (nejnižší poměr LTV:CAC, případně nejdelší / chybějící návratnost) a pojmenuj ji přesně tak, jak je označená v datech.
-- Doporuč JEDEN nejúčinnější páku, kterou má smysl řešit jako první (snížit CAC, zvýšit retenci/ARPU, nebo přealokovat rozpočet) — konkrétně a akčně, ne obecně.
-- Odkazuj se na konkrétní čísla z dat (CAC, LTV, LTV:CAC, návratnost, M3 retence).
+- Doporuč JEDEN nejúčinnější páku, kterou má smysl řešit jako první (snížit CAC, ${lever}, nebo přealokovat rozpočet) — konkrétně a akčně, ne obecně.
+- Odkazuj se na konkrétní čísla z dat (CAC, LTV, LTV:CAC, návratnost, ${retention}).
 - Cíl je LTV:CAC ≥ 3 a co nejkratší návratnost. Pod 1 je akvizice ztrátová.
 - Piš česky, věcně, bez vaty a marketingových frází.
 - Drž se zadaného JSON schématu.`;
+}
 
 const TREND_LABEL: Record<TrendDirection, string> = {
   improving: "zlepšuje se (LTV:CAC roste od nejstarší k nejnovější kohortě)",
@@ -35,7 +40,7 @@ const TREND_LABEL: Record<TrendDirection, string> = {
   flat: "beze změny",
 };
 
-function cohortLine(c: CohortDiagnosisCohort): string {
+function cohortLine(c: CohortDiagnosisCohort, eshop: boolean): string {
   const payback = c.paybackMonth != null ? `${c.paybackMonth} měs.` : "> horizont (nevrací se)";
   return [
     `- ${c.month}:`,
@@ -43,15 +48,17 @@ function cohortLine(c: CohortDiagnosisCohort): string {
     `LTV ${fmtCZK(c.ltv)},`,
     `LTV:CAC ${fmtMultiple(c.ltvCac)},`,
     `návratnost ${payback},`,
-    `M3 retence ${fmtPct(c.m3)},`,
-    `registrací ${c.signups}`,
+    `${eshop ? "M3 opakování" : "M3 retence"} ${fmtPct(c.m3)},`,
+    `${eshop ? "zákazníků" : "registrací"} ${c.signups}`,
   ].join(" ");
 }
 
 function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
+  const eshop = req.eshop ?? false;
+  const retention = eshop ? "M3 opakování" : "M3 retence";
   const labels = req.cohorts.map((c) => c.month).join(", ");
   return [
-    "Níže jsou reálná, již spočítaná data akvizičních kohort (CAC, LTV, LTV:CAC, návratnost, M3 retence).",
+    `Níže jsou reálná, již spočítaná data akvizičních kohort (CAC, LTV, LTV:CAC, návratnost, ${retention}).`,
     "Zanalyzuj jednotkovou ekonomiku a připrav krátkou diagnostiku.",
     "",
     "SOUHRN PORTFOLIA:",
@@ -61,7 +68,7 @@ function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
     req.trend ? `Trend kohort: ${TREND_LABEL[req.trend]}.` : "",
     "",
     "KOHORTY (od nejstarší po nejnovější):",
-    ...req.cohorts.map(cohortLine),
+    ...req.cohorts.map((c) => cohortLine(c, eshop)),
     "",
     `Povolené názvy kohort pro pole „worstCohort": ${labels}.`,
     "",
@@ -202,7 +209,7 @@ export function generateCohortDiagnosis(
     // llm-tool: cohort-diagnosis
     id: "cohort-diagnosis",
     prompt: buildCohortDiagnosisPrompt(req),
-    system: COHORT_DIAGNOSIS_SYSTEM,
+    system: cohortDiagnosisSystem(req.eshop ?? false),
     schema: COHORT_DIAGNOSIS_SCHEMA,
     temperature: 0.6,
     normalize: (parsed) => normalizeCohortDiagnosis(parsed, req),
