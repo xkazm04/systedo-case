@@ -595,6 +595,12 @@ export default function CompareSeoTable({
                 <th className="px-4 py-3 text-right font-medium">Obtížnost</th>
                 <th className="px-4 py-3 text-right font-medium">Pozice</th>
                 <th className="px-4 py-3 font-medium">Příležitost</th>
+                <th
+                  className="px-4 py-3 text-right font-medium"
+                  title="Odhadované konverze/měs, pokud dotaz získáte — z reálné konverzní míry organického kanálu × hledanost × záměr"
+                >
+                  Akvizice
+                </th>
                 <th className="px-4 py-3 text-right font-medium">Akce</th>
               </tr>
             </thead>
@@ -615,7 +621,9 @@ export default function CompareSeoTable({
         </div>
         <div className="border-t border-line px-5 py-3 text-xs text-muted">
           Skóre = objem × váha záměru × prostor v SERP ÷ obtížnost. Bílá místa (kde zatím
-          nerankujete) mají přednost. Váhy a prahy upravíte v panelu „Ladění skóre“.
+          nerankujete) mají přednost. Váhy a prahy upravíte v panelu „Ladění skóre“. Sloupec{" "}
+          <strong>Akvizice</strong> = odhad konverzí/měs z reálné konverzní míry organického kanálu
+          (CR × hledanost × záměr), aby žebříček odrážel očekávané výsledky, ne jen hledanost.
         </div>
       </div>
     </div>
