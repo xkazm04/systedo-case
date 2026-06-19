@@ -571,6 +571,11 @@ export interface LpVariantIdeasRequest {
   controlLabel?: string;
   /** optional short description of the control angle, so challengers differ from it */
   controlDescription?: string;
+  /** labels of variant angles already tested that did NOT beat the control — so the
+   *  model doesn't re-propose a disproven angle */
+  losers?: string[];
+  /** the control's conversion rate (0–1) — the bar a challenger must clear */
+  controlCvr?: number;
 }
 
 /** One AI-drafted challenger concept: a testable angle for a landing-page variant.

@@ -11,14 +11,22 @@ import LpVariantIdeasPanel, {
 
 export default function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
   const results = experiments.map(evaluate);
-  // Lightweight projection handed to the AI panel: just the topic seed (cluster),
-  // status and the control label — no compute / sample internals ship to the client.
-  const seeds: LpVariantSeed[] = experiments.map((exp) => ({
-    id: exp.id,
-    cluster: exp.cluster,
-    status: exp.status,
-    controlLabel: exp.variants[0]?.label ?? "Kontrola",
-  }));
+  // Lightweight projection handed to the AI panel: the topic seed (cluster), status,
+  // the control label + CVR, and the angles already tested that LOST to control — so
+  // the AI doesn't re-propose a disproven hypothesis (it builds challengers that beat
+  // the known control CVR and avoid the losing arms).
+  const seeds: LpVariantSeed[] = results.map((r) => {
+    const control = r.variants.find((v) => v.isControl) ?? r.variants[0];
+    const losers = r.variants.filter((v) => !v.isControl && v.uplift < 0).map((v) => v.label);
+    return {
+      id: r.id,
+      cluster: r.cluster,
+      status: r.status,
+      controlLabel: control?.label ?? "Kontrola",
+      controlCvr: control?.cvr,
+      losers: losers.length > 0 ? losers : undefined,
+    };
+  });
   // A resolved experiment = the gated verdict from the trust-gate wave: a winner
   // that is statistically significant (a `done` test, or a `running` one that has
   // cleared both the confidence threshold and the sample-size gate). Only those
