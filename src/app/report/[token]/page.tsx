@@ -33,12 +33,14 @@ export default async function SharedReportPage({
   const periodLabel =
     CAMPAIGN_PERIOD_LABELS[shared.period as CampaignPeriod] ?? shared.period;
   const accent = shared.accentColor || "var(--color-brand-600)";
-  const brand = shared.brandName || "Systedo";
-  const kpis = [
+  const brand = shared.brandName || "Adamant";
+  // Gloss the jargon — a client report is read by non-marketers, so ROAS/PNO get
+  // a one-line plain-Czech explanation (Náklady/Hodnota konverzí are already plain).
+  const kpis: { label: string; value: string; hint?: string }[] = [
     { label: "Náklady", value: fmtCZK(totals.cost) },
     { label: "Hodnota konverzí", value: fmtCZK(totals.conversionValue) },
-    { label: "ROAS", value: fmtMultiple(totals.roas) },
-    { label: "PNO", value: fmtPct(totals.pno) },
+    { label: "ROAS", value: fmtMultiple(totals.roas), hint: "návratnost výdajů na reklamu" },
+    { label: "PNO", value: fmtPct(totals.pno), hint: "podíl nákladů na obratu" },
   ];
 
   const moves = recommendBudgetMoves(shared.campaigns.map(withMetrics)).moves.slice(0, 3);
@@ -67,6 +69,7 @@ export default async function SharedReportPage({
             <div key={k.label} className="card p-4">
               <p className="text-xs text-muted">{k.label}</p>
               <p className="tnum mt-1 text-xl font-semibold text-navy-800">{k.value}</p>
+              {k.hint && <p className="mt-0.5 text-[11px] leading-tight text-muted">{k.hint}</p>}
             </div>
           ))}
         </div>

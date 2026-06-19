@@ -2,6 +2,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import AudienceModule from "@/components/app/modules/AudienceModule";
+import SampleDataNote from "@/components/app/SampleDataNote";
 import {
   SAMPLE_FUNNEL,
   SAMPLE_GOALS,
@@ -20,6 +21,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   await requireProjectModule(projectId, "publikum");
   return (
     <ModulePage moduleKey="publikum">
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
       <AudienceModule
         funnel={SAMPLE_FUNNEL}
         segments={SAMPLE_SEGMENTS}

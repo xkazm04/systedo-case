@@ -36,6 +36,7 @@ The premise: instead of asserting that features are technically correct, we put 
 name: <First role-tag>
 role: <real-world job title>
 maps_to: <context-map domains/surfaces this Character lives in>
+surface_binding: <the app variant / project-type + the gating-resolved route/module set this Character can actually reach — test only these; never attribute a finding to them by topic alone>
 tech_level: <novice | comfortable | power-user>
 promotion: discovery
 references:
@@ -44,6 +45,15 @@ references:
 
 ## Who they are
 <1–3 sentences: company, seniority, what pressure they're under.>
+
+## Background / lived experience
+<The texture that makes feedback authentic: their history in the role, the tools
+they've used and been burned by, who they answer to, what's personally at stake,
+what a real day looks like. Richer background → more dimensions in their feedback.>
+
+## Voice
+<How they actually talk — register, idioms, what they'd say out loud — so their
+first-person Character feedback sounds like THEM, not a report.>
 
 ## Jobs to be done
 - <the job they "hire" the app for, in their words>
@@ -55,6 +65,21 @@ what to do next is failure.">
 
 ## Pet peeves / friction triggers
 - <what makes them bounce or distrust the product>
+
+## Motivation — why use the app at all (time-saved)
+<How long this job takes the traditional, LLM-less way, and the time the app
+must save. e.g. "Roughing this brief by hand ~45 min; the tool has to land a
+usable draft in a few minutes or it's not worth the wait." If the app is slower
+or barely faster, that's a finding — they wouldn't adopt it.>
+
+## Senior-quality bar (reliability floor)
+<The output must be at least as good as this Character would produce as a SENIOR
+in their role. e.g. "A senior PPC lead's campaign read; generic 'improve
+targeting' advice fails." Output a senior would reject fails even if it 'worked'.>
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] <explicit pass/fail check derived from JTBD + the two bars above>
+- [ ] <…>
 
 ## Emotional baseline
 <patience, skepticism, vocabulary — how they react to friction>

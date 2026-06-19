@@ -53,6 +53,9 @@ export default function CreativeStudio() {
   const [style, setStyle] = useState<ImageStyle>("dynamic");
   const [format, setFormat] = useState<ImageFormat>("square");
   const [count, setCount] = useState(2);
+  // Brand kit — palette/style/tonality fed into generation AND the vision scoring,
+  // so the winner is judged on brand-fit, not just generic quality. Persisted locally.
+  const [brand, setBrand] = useState("");
   // Reference image (image-to-image guidance via Leonardo imagePrompts).
   const [referenceImageId, setReferenceImageId] = useState<string | null>(null);
   const [refPreview, setRefPreview] = useState<string | null>(null);
@@ -114,6 +117,7 @@ export default function CreativeStudio() {
           style: result.style,
           format: result.format,
           count,
+          brand: brand.trim() || undefined,
           referenceImageId: upJson.referenceImageId,
         }),
       });
@@ -146,6 +150,26 @@ export default function CreativeStudio() {
   useEffect(() => {
     if (authStatus === "authenticated") void loadLibrary();
   }, [authStatus, loadLibrary]);
+
+  // Load + persist the brand kit (effect, not lazy init, to avoid SSR hydration mismatch).
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("app:creative-brand");
+      // localStorage restore is a valid external-store sync; doing it in an effect
+      // keeps the server + first client render identical.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (saved) setBrand(saved);
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, []);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("app:creative-brand", brand);
+    } catch {
+      /* storage unavailable — non-fatal */
+    }
+  }, [brand]);
 
   const canSubmit = prompt.trim().length >= 2 && status !== "loading" && refStatus !== "uploading";
 
@@ -196,6 +220,7 @@ export default function CreativeStudio() {
           format,
           count,
           avoid,
+          brand: brand.trim() || undefined,
           referenceImageId: refStatus === "ready" ? referenceImageId : undefined,
         }),
       });
@@ -313,6 +338,20 @@ export default function CreativeStudio() {
                 </button>
               ))}
             </div>
+          </Field>
+
+          <Field label="Brand kit — barvy, styl, tonalita (volitelné)" htmlFor="cs-brand">
+            <textarea
+              id="cs-brand"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              rows={2}
+              placeholder="např. teplé zemité tóny, minimalisticky, přírodní světlo, žádná stocková klišé"
+              className={`${inputClass} resize-y`}
+            />
+            <p className="mt-1 text-xs text-muted">
+              Drží generování i hodnocení v rámci značky — vítěz se vybírá i podle souladu se značkou.
+            </p>
           </Field>
 
           <Field label="Referenční obrázek (volitelné)">

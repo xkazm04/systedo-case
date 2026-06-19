@@ -15,7 +15,7 @@ A "no" at any step is a finding. A "no" at step 2 where the control *does* exist
 
 Visibility of system status · match to the real world (and the Character's vocabulary/locale — here, Czech) · user control & freedom · consistency · error prevention · recognition over recall · flexibility · minimalist, actionable info · good error messages · help when stuck. **Trust** is first-class for this product: do the numbers reconcile, is the AI output grounded, would the Character act on it?
 
-## 3. The five acceptance dimensions (the verdict)
+## 3. The seven acceptance dimensions (the verdict)
 
 Score each journey on:
 
@@ -26,8 +26,12 @@ Score each journey on:
 | **Clarity** | Did they understand what they saw and what to do next? |
 | **Trust** | Would they believe and act on it (numbers, AI output)? |
 | **Missing pieces** | What did they expect to exist, by domain norm, that wasn't there? |
+| **Time-saved** | Does the app meaningfully beat the Character's traditional, LLM-less way of doing this? If it's slower or barely faster, they won't adopt it — that's a finding. |
+| **Senior-quality** | Is the app's AI/automation output at least as good as this Character would produce *as a senior in their role*? Output a senior would reject fails, even if it "worked". |
 
-"By domain norm" is the key guard against arbitrary verdicts — the bar comes from the Character's `references:` (real-world expectations), not from the reviewer's taste.
+"By domain norm" is the key guard against arbitrary verdicts — the bar comes from the Character's `references:` (real-world expectations) and their declared **Motivation (time-saved)** + **Senior-quality bar**, not from the reviewer's taste. Judge against the Character's *scored acceptance criteria* identically each run (the consistency harness).
+
+The last two dimensions apply at **both** certification levels: at **L1** against the *designed* experience (would this flow/prompt plausibly save time and produce senior-grade output?), at **L2** against the *actual* live output (did it).
 
 ## 4. Finding types
 

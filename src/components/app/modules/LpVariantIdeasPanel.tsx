@@ -30,6 +30,10 @@ export interface LpVariantSeed {
   status: "running" | "done";
   /** the control variant's label (first variant) — pitched against */
   controlLabel: string;
+  /** the control's conversion rate (0–1) — the bar challengers must beat */
+  controlCvr?: number;
+  /** labels of arms already tested that LOST to control — don't re-propose them */
+  losers?: string[];
   /** any additional keyword-ish phrases to ground the concepts */
   keywords?: string[];
 }
@@ -42,6 +46,8 @@ function buildRequest(seed: LpVariantSeed): LpVariantIdeasRequest {
     controlDescription: `Kontrolní varianta „${seed.controlLabel}“ landing page pro klastr „${seed.cluster}“.`,
   };
   if (seed.keywords && seed.keywords.length > 0) req.keywords = seed.keywords;
+  if (typeof seed.controlCvr === "number") req.controlCvr = seed.controlCvr;
+  if (seed.losers && seed.losers.length > 0) req.losers = seed.losers;
   return req;
 }
 

@@ -12,6 +12,12 @@ references:
 ## Who they are
 Tomáš manages this brand's paid search/shopping among several accounts. He reallocates budget daily, lives in spend/CPC/CTR/CPA/ROAS, and his value is catching a leaking campaign before it burns the month. He's a power user who expects the tool to think the way he triages.
 
+## Background / lived experience
+~6 years agency-side, juggling 8–12 Google Ads accounts; judged on keeping clients' ROAS up and never getting caught by a runaway campaign. Lives in Google Ads Editor and spreadsheets. Has tried "AI optimization" tools that spat generic advice — one nearly tanked a client account — so he trusts rules and numbers, not confident prose. His morning is triage across every account before the client calls start.
+
+## Voice
+Fast, blunt, jargon-dense. "PNO's blown out on that one." · "That's a budget-capped impression-share problem, not creative." · "Don't tell me to 'improve targeting' — tell me which audience."
+
 ## Jobs to be done
 - "Show me where money is leaking *right now* and let me act on the worst first."
 - "Generate ad copy that fits Google's limits and is actually grounded in this account's numbers."
@@ -26,6 +32,19 @@ Tomáš manages this brand's paid search/shopping among several accounts. He rea
 - AI that gives generic "improve your targeting" advice ungrounded in the account.
 - A "needs attention" claim he can't trace to a rule or a number.
 - Anything that makes him leave the tool to do the real triage in a spreadsheet.
+
+## Motivation — why use the app at all (time-saved)
+Triaging a portfolio by hand (export, eyeball, rank, write the eval) is ~20–30 min per account, every day. The tool has to surface worst-first + a grounded evaluation in **~2 minutes** or he stays in his spreadsheet. Caveat he watches for: a 100s+ AI eval *per campaign* quietly destroys this — he won't wait ten minutes to evaluate six flagged campaigns.
+
+## Senior-quality bar (reliability floor)
+The AI evaluation must read like a **senior PPC strategist's**: cite the campaign's real numbers, respect the triage rules, and give specific actions he'd actually take. Generic "improve your targeting" fails; anything he'd be embarrassed to forward to the client fails.
+
+## Scored acceptance criteria (judged identically every run)
+- [ ] Portfolio shows worst-first (or one obvious click to it); every flag traces to a rule + a number.
+- [ ] AI eval cites the campaign's actual numbers and respects the "critical ≤ 50" guardrail.
+- [ ] Recommendations are specific + senior-grade (he'd act on them / forward them unedited).
+- [ ] He never has to leave for a spreadsheet to do the real triage.
+- [ ] Per-campaign eval latency stays low enough to triage the whole flagged set in one sitting.
 
 ## Emotional baseline
 Fast, skeptical, allergic to fluff. Trusts numbers and rules; distrusts confident vagueness. Will test whether a flag is real before believing the tool.

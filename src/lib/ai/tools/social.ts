@@ -22,6 +22,7 @@ Pravidla:
 - Piš výhradně česky, gramaticky správně, bez prázdných korporátních frází.
 - Přizpůsob styl platformě: LinkedIn = profesionálně a věcně, bez přehnaných emoji; Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci; Facebook = přátelsky a konverzačně, s lehkými emoji.
 - Drž zadaný tón i téma. Každý příspěvek ať má háček, konkrétní hodnotu a jasnou výzvu k akci.
+- Je-li uveden blok „CO TEĎ FUNGUJE", opři obsah o uvedené kanály, témata a reálná čísla — nevymýšlej generické nápady.
 - Nepřekračuj limit znaků dané platformy (raději mírně pod ním).
 - Vrať pouze validní JSON dle schématu — právě jeden příspěvek na každou požadovanou platformu.`;
 
@@ -31,12 +32,18 @@ const PLATFORM_GUIDE: Record<SocialPlatform, string> = {
   linkedin: "profesionální a věcný, minimum emoji",
 };
 
-function buildSocialPrompt(topic: string, tone: Tone, platforms: SocialPlatform[]): string {
+function buildSocialPrompt(
+  topic: string,
+  tone: Tone,
+  platforms: SocialPlatform[],
+  grounding?: string
+): string {
   return [
     "Napiš příspěvky na sociální sítě pro tyto platformy.",
     "",
     `Téma: ${topic}`,
     `Tón: ${TONE_LABELS[tone]}`,
+    ...(grounding ? ["", "CO TEĎ FUNGUJE (opři se o to, ne o generické nápady):", grounding] : []),
     "",
     "Platformy (styl | limit znaků):",
     ...platforms.map(
@@ -72,6 +79,9 @@ export function generateSocialPosts(req: {
   topic: string;
   tone: Tone;
   platforms: SocialPlatform[];
+  /** Optional "what's actually working" performance grounding, so posts lean into
+   *  the brand's proven channels/themes instead of generic ideas. */
+  grounding?: string;
 }): Promise<AiResponse<SocialDraftResult>> {
   const requested = req.platforms;
   const fallback = () =>
@@ -120,7 +130,7 @@ export function generateSocialPosts(req: {
   return generateStructured({
     // llm-tool: social
     id: "social",
-    prompt: buildSocialPrompt(req.topic, req.tone, requested),
+    prompt: buildSocialPrompt(req.topic, req.tone, requested, req.grounding),
     system: SOCIAL_SYSTEM,
     schema: SOCIAL_SCHEMA,
     temperature: 0.9,

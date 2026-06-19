@@ -38,7 +38,11 @@ function toDiagnosisCohort(r: CohortMetrics): CohortDiagnosisCohort {
 }
 
 /** Build the request from props at click time (never during render). */
-function buildRequest(rows: CohortMetrics[], summary: LtvSummary): CohortDiagnosisRequest {
+function buildRequest(
+  rows: CohortMetrics[],
+  summary: LtvSummary,
+  eshop: boolean
+): CohortDiagnosisRequest {
   const trend: TrendDirection | undefined = cohortTrend(rows)?.direction;
   const req: CohortDiagnosisRequest = {
     cohorts: rows.map(toDiagnosisCohort),
@@ -47,15 +51,19 @@ function buildRequest(rows: CohortMetrics[], summary: LtvSummary): CohortDiagnos
     avgPayback: summary.avgPayback,
   };
   if (trend) req.trend = trend;
+  if (eshop) req.eshop = true;
   return req;
 }
 
 export default function LtvDiagnosisPanel({
   rows,
   summary,
+  eshop = false,
 }: {
   rows: CohortMetrics[];
   summary: LtvSummary;
+  /** e-shop project → customer / repeat-purchase framing in the AI diagnosis */
+  eshop?: boolean;
 }) {
   const { status, data, error, timedOut, run, reset } =
     useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
@@ -79,7 +87,7 @@ export default function LtvDiagnosisPanel({
           onClick={() =>
             status !== "loading" &&
             rows.length > 0 &&
-            run(buildRequest(rows, summary) as unknown as Record<string, unknown>)
+            run(buildRequest(rows, summary, eshop) as unknown as Record<string, unknown>)
           }
           disabled={status === "loading" || rows.length === 0}
           className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"

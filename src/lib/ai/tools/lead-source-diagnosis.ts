@@ -34,6 +34,7 @@ Pravidla:
   - „volume" = příliš málo dat na spolehlivý závěr (velmi málo leadů) → sbírat víc dat.
   - „ok" = zdroj nemá zásadní problém.
 - Doporuč JEDNU nejúčinnější, konkrétní akci (např. přitvrdit kvalifikaci formuláře a vyloučit boty; přecílit publikum; přesunout rozpočet ke kvalitnějším zdrojům; sbírat víc dat) — akčně, ne obecně.
+- Jsou-li v datech uvedeny i ostatní zdroje pro srovnání a doporučuješ přesun rozpočtu, jmenuj KONKRÉTNÍ lepší zdroj podle jeho čísel — ne obecně „ke kvalitnějším zdrojům".
 - Odkazuj se na konkrétní čísla z dat (míra kvalifikace, win rate, CPL, CPQL, počet leadů).
 - Volitelně vrať „severity" (high | medium | low) podle závažnosti.
 - Piš česky, věcně, bez vaty a marketingových frází.
@@ -63,12 +64,25 @@ function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string
   } else {
     lines.push("- Neplacený zdroj (bez nákladů) — cenu/CPQL neřeš.");
   }
+  const peers = (req.peers ?? []).filter((p) => p.source !== req.source);
+  if (peers.length > 0) {
+    lines.push("", "PRO SROVNÁNÍ — ostatní zdroje (kam lze případně přesunout rozpočet):");
+    for (const p of peers) {
+      const cpq = p.costPerQualified != null ? `, CPQL ${fmtCZK(p.costPerQualified)}` : "";
+      lines.push(`- ${p.source}: kvalifikace ${fmtPct(p.qualRate)}, win rate ${fmtPct(p.winRate)}${cpq}`);
+    }
+  }
   lines.push(
     "",
     `Povolené hodnoty pole „likelyCause": ${CAUSE_PROMPT_LINE}.`,
     "",
     'Vrať: „summary" (krátký odstavec proč zdroj podvýkonný), „likelyCause" (jedna z povolených hodnot), „recommendation" (jedna nejúčinnější konkrétní akce) a volitelně „severity" (high | medium | low). Vycházej pouze z uvedených čísel.'
   );
+  if (peers.length > 0) {
+    lines.push(
+      "Pokud doporučuješ přesun rozpočtu, jmenuj konkrétní lepší zdroj z výše uvedených podle čísel (vyšší kvalifikace / win rate, nižší CPQL)."
+    );
+  }
   return lines.join("\n");
 }
 

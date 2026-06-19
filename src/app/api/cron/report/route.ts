@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       }
 
       const url = canonical(`/report/${token}`);
-      const brand = config.brandName || "Systedo";
+      const brand = config.brandName || "Adamant";
       const title = `Pravidelný report výkonu — ${accountName}`;
 
       const recipients = config.recipients.length

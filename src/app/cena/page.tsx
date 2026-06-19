@@ -6,9 +6,9 @@ import { PLAN_INFO } from "@/lib/plans";
 import { fmtCZK } from "@/lib/format";
 
 export const metadata: Metadata = {
-  title: "Ceník — Systedo",
+  title: "Ceník — Adamant",
   description:
-    "Plány Systedo: zdarma pro vyzkoušení, Pro pro denní práci s více Google Ads účty, automatickou synchronizaci a týdenní reporty.",
+    "Plány Adamant: zdarma pro vyzkoušení, Pro pro denní práci s více Google Ads účty, automatickou synchronizaci a týdenní reporty.",
 };
 
 export default function PricingPage() {
@@ -65,7 +65,7 @@ export default function PricingPage() {
               </Link>
             ) : (
               <a
-                href="mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Systedo%20Pro"
+                href="mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Pro"
                 className="mt-7 inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99]"
               >
                 Mám zájem o Pro

@@ -19,23 +19,30 @@ Pravidla:
 - Přizpůsob tón kanálu, kterým poptávka přišla (telefonát = nabídni zpětné zavolání; e-mail/formulář/chat = napiš písemnou odpověď).
 - Neslibuj konkrétní ceny, termíny ani slevy, které nebyly zadané.
 - Polož 2–3 kvalifikační otázky, které pomohou připravit přesnou nabídku (rozsah, termín, rozpočet apod.) — vrať je v poli „questions" zvlášť, neopakuj je celé v textu odpovědi.
+- Pokud už máš část kvalifikace (BANT) k dispozici, neptej se na ni znovu — doptej se jen na chybějící údaje a tón odpovědi přizpůsob (horký lead = pružně a konkrétně, studený = informativně, bez tlaku).
 - Vrať pouze validní JSON dle schématu.`;
 
 function buildLeadReplyPrompt(req: LeadReplyRequest): string {
   const name = txt(req.name);
   const channelLabel = CHANNEL_LABELS[req.channel] ?? req.channel;
+  const qualification = txt(req.qualification);
   return [
     "Napiš první on-brand odpověď na tuto příchozí poptávku.",
     "",
     name ? `Jméno leadu: ${name}` : "Jméno leadu: neznámé (oslov obecně, zdvořile)",
     `Kanál poptávky: ${channelLabel}`,
     `Typ zakázky / služby: ${req.projectType}`,
+    qualification ? `Už víme o leadovi (kvalifikace): ${qualification}` : "",
     "",
     "Zpráva od leadu:",
     req.message,
     "",
-    'Vrať objekt s polem „reply" (celá odpověď připravená k odeslání) a polem „questions" (2–3 kvalifikační otázky).',
-  ].join("\n");
+    qualification
+      ? 'Vrať objekt s polem „reply" (celá odpověď připravená k odeslání) a polem „questions" — doptej se POUZE na to, co ještě nevíme (na známá pole se neptej znovu) a tón přizpůsob známé kvalifikaci.'
+      : 'Vrať objekt s polem „reply" (celá odpověď připravená k odeslání) a polem „questions" (2–3 kvalifikační otázky).',
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
 const LEAD_REPLY_SCHEMA = {

@@ -30,12 +30,19 @@ Recipe:
 ```
 npm run seed:local
 npm run dev:local        # = DEV_AUTH=true LOCAL_DB=true next dev
-# entry points: /app  (project hub),  /app/demo-eshop  (eshop workspace),  /app/demo-leadgen
+# entry points: /app (hub), /app/demo-eshop, /app/demo-leadgen, /app/demo-app, /app/demo-content
 ```
-Seeded `projectId`s for journeys: **`demo-eshop`** (type eshop → full campaigns/creative/content sidebar) and **`demo-leadgen`** (type leadgen → CPL-focused).
+**Fixture preflight (run before L2 — a Character whose surface has no fixture is untestable, not passing).** The seed creates one project of **every** project type, because module availability is gated by project type (`src/lib/projects/modules.ts` → each module's `availableFor`). Character → reachable surfaces by type:
+- **`demo-eshop`** (eshop): zisk, sklad-sezonnost, produktova-kreativa, **ltv** (e-shop-framed), socialni, kreativa + shared → **Robert, Sofie, Dan**.
+- **`demo-leadgen`** (leadgen): kvalita-leadu, rychla-reakce, lokalni + shared → **Hana**.
+- **`demo-app`** (app): srovnani-seo, experimenty-lp, ltv, socialni + shared → **Tobias**.
+- **`demo-content`** (content): obsahovy-engine, distribuce, publikum, kreativa + shared → **Eva**.
+- shared / ALL: prehled, vykon, klicova-slova, obsah, knihovna, reporty, nastaveni → **Petra, Tomáš, Lucia**.
+
+> **Client-facing surfaces need a generated token.** Lucia's white-label microsite (`/report/<token>`) is unreachable without first creating a shared report (Kampaně → "Sdílet report") and capturing its token — create one in the preflight, or that journey can't be driven live.
 
 > Caveat: this makes the **project hub + authed shell** work offline. Individual module data stores (campaigns/social/keywords/etc.) may still expect Firestore in the cloud path — verify per module when a journey first touches one; widening offline coverage to those stores is a tracked follow-up, not done here.
 
 ## Driver mechanism
 - Prefer an interactive browser MCP (chrome-devtools / playwright) if connected.
-- Else: small per-run Playwright driver scripts under `runs/<id>/driver/` — navigate, `page.screenshot(...)`, `page.accessibility.snapshot(...)`, iterate action-by-action. Mirror the existing test setup (port, selectors, `reuseExistingServer`).
+- Else the bundled drivers: **`driver/drive.mjs`** (navigate → screenshot + ARIA + text + one click) for static surfaces, **`driver/drive-ai.mjs`** (fill → generate → poll until the model result settles, optional grounding assertion) for AI surfaces. From repo root: `MSYS_NO_PATHCONV=1 BASE_URL=http://localhost:3100 SHOT_DIR=uat/runs/<id>/shots node uat/driver/drive.mjs /route shot [click]`. Use `locator.ariaSnapshot()` — `page.accessibility.snapshot()` was removed in Playwright ≥1.50; don't block on `networkidle` (HMR socket never idles).

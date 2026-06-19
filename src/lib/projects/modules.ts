@@ -138,8 +138,10 @@ export const MODULES: ModuleDef[] = [
     label: "CAC → LTV",
     icon: "ltv",
     section: "insights",
-    availableFor: ["app"],
-    blurb: "Kohorty: CAC, doba návratnosti a poměr LTV:CAC, ne jen registrace.",
+    // E-shops care about repeat-purchase / CAC-payback economics too — the module
+    // is project-type-aware (customer / repeat-purchase framing for eshop).
+    availableFor: ["app", "eshop"],
+    blurb: "Kohorty: CAC, doba návratnosti a poměr LTV:CAC napříč akvizičními kohortami.",
   },
   {
     key: "experimenty-lp",

@@ -16,6 +16,7 @@ import {
   type LeadSourceCause,
   type LeadSourceDiagnosisRequest,
   type LeadSourceDiagnosisResult,
+  type LeadSourcePeer,
   type LeadSourceSeverity,
 } from "@/lib/ai-types";
 import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
@@ -43,6 +44,8 @@ export interface LeadSourceSeed {
   costPerQualified?: number;
   /** flagged as junk by the module's threshold (drives the badge) */
   junk: boolean;
+  /** other sources' compact metrics (best-first) for budget-shift comparison */
+  peers?: LeadSourcePeer[];
 }
 
 /** Build the request from the picked seed at click time (never during render). */
@@ -58,6 +61,7 @@ function buildRequest(seed: LeadSourceSeed): LeadSourceDiagnosisRequest {
   if (seed.spend != null && seed.spend > 0) req.spend = seed.spend;
   if (seed.cpql != null) req.cpql = seed.cpql;
   if (seed.costPerQualified != null) req.costPerQualified = seed.costPerQualified;
+  if (seed.peers && seed.peers.length > 0) req.peers = seed.peers;
   return req;
 }
 

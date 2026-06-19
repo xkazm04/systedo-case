@@ -1,0 +1,83 @@
+{
+  "run": "2026-06-19-discovery",
+  "driver": "playwright/chromium against dev server :3100 (fresh after a Turbopack-cache crash)",
+  "scope": "Marek (prospective buyer) × evaluate-whether-to-adopt on public marketing surfaces (/, /cena, /clanek)",
+  "journeys": [
+    {
+      "character": "Marek (prospective buyer)",
+      "journey": "evaluate-whether-to-adopt",
+      "surface": "/ , /cena , /clanek",
+      "status": "Evaluated — would not proceed yet",
+      "evidence": ["shots/buyer-home.png", "shots/buyer-cena.png", "shots/buyer-clanek.png", "shots/buyer-home.text.txt", "shots/buyer-cena.text.txt"],
+      "findings": [
+        {
+          "id": "MB1-no-social-proof",
+          "type": "missing-feature",
+          "severity": "major",
+          "title": "No proof / social proof anywhere on the marketing path — no results, testimonials, logos, or quantified outcomes",
+          "expected": "A skeptical buyer needs credible evidence it works (the #2 driver after pricing): quantified results ('cut PNO by X'), customer logos, testimonials, or third-party ratings.",
+          "got": "Homepage is hero → 3 feature cards → CTA, with only a 'Works across' integration-logo row. No customer proof of any kind; pricing has none either.",
+          "evidence": ["src/components/brand/BrandLanding.tsx (no testimonial/results/logo section)", "shots/buyer-home.png"],
+          "code_check": "confirmed-absent — BrandLanding.tsx renders Hero, FEATURES (3 cards), closing CTA only. No proof component exists to have missed. (A live demo DOES exist via 'See it work' → /dashboard, but that's a demo, not social proof.)",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Add a proof band on the homepage/pricing: a quantified result or two from the case-study data (e.g. PNO/ROAS improvement), and reframe the live dashboard as 'see it on real numbers'."
+        },
+        {
+          "id": "MB2-hero-vague-vs-cards",
+          "type": "quality-gap",
+          "severity": "minor",
+          "title": "The hero is brand-metaphor ('forges your advertising into one unbreakable monument'); the concrete value lives only in the cards below",
+          "expected": "Within seconds, a fast-skimming buyer knows what it does and for whom.",
+          "got": "Headline + subhead are poetry; the real 'what' (AI watches/triages/writes ads across Google Ads/Sklik/Meta/TikTok) is in the 3 cards. It also never states the audience (e-shop vs agency).",
+          "evidence": ["shots/buyer-home.text.txt:20-51"],
+          "code_check": "confirmed — BrandLanding.tsx hero copy is metaphor; FEATURES carry the specifics. No audience line.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Lead with one concrete sentence (what + for whom) above the metaphor, or fold a specific into the subhead."
+        },
+        {
+          "id": "MB3-brand-inconsistency",
+          "type": "trust",
+          "severity": "minor",
+          "title": "'Systedo' still appears where the product is branded 'Adamant' (pricing page title + footer)",
+          "expected": "Consistent product name — naming wobble erodes the 'real, polished product' impression for a trust-sensitive buyer.",
+          "got": "Page title 'Ceník — Systedo · Adamant' and footer '© 2026 — případová studie, nikoli oficiální web Systedo', while the site is branded Adamant throughout.",
+          "evidence": ["shots/buyer-cena.text.txt:65", "browser title 'Ceník — Systedo · Adamant'"],
+          "code_check": "not-done (render-confirmed) — same family as the authed-shell 'Systedo' leftover seen in Tomáš's run; the rebrand is incomplete in several metadata/footer spots.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Sweep remaining 'Systedo' strings (titles, footer, metadata) to 'Adamant' (or keep one intentional 'by Systedo' attribution, consistently)."
+        },
+        {
+          "id": "MB4-start-free-to-auth-wall",
+          "type": "broken-flow",
+          "severity": "minor",
+          "title": "The primary CTA 'Start free' routes to /app (an auth wall in prod), not to the genuinely-free public exploration",
+          "expected": "The loudest button gives a frictionless first look (buyers want to look before logging in).",
+          "got": "'Start free' → /app (Google OAuth in prod; there's no free-account concept). The frictionless path ('See it work' → /dashboard, and the public dashboard/kampane/ai-asistent) is the secondary, quieter CTA.",
+          "evidence": ["src/components/brand/BrandLanding.tsx:97 (href=/app)", "BrandLanding.tsx:104 (See it work → /dashboard)"],
+          "code_check": "confirmed — Start free → /app (auth-gated except under DEV_AUTH); See it work → /dashboard (public).",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Point 'Start free' at the genuinely-free public exploration (or a real signup), and keep /app for 'Open the app'. Otherwise the biggest CTA dead-ends a prospect at a login."
+        },
+        {
+          "id": "MB5-article-proof-unleveraged",
+          "type": "quality-gap",
+          "severity": "polish",
+          "title": "/clanek is a strong example of the tool's output but isn't positioned as proof",
+          "expected": "Show, don't tell — surface the generated article as evidence of the content capability.",
+          "got": "A genuinely good full article sits under a plain 'Článek' nav item, never framed as 'see what the AI writes'.",
+          "evidence": ["shots/buyer-clanek.png (real article)"],
+          "code_check": "n-a",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Link to /clanek from the AI-ad-studio card / a proof band as 'an article this tool drafted'."
+        }
+      ],
+      "passed": [
+        "PRICING IS TRANSPARENT — Free + Pro (490 Kč/měsíc) with clear feature lists and a recommended tier, no 'contact us' wall. This clears the single biggest buyer demand (research: 49% name missing pricing the #1 thing to fix).",
+        "The 3 feature cards translate the offering into concrete surfaces (dashboard / campaign intelligence / AI ad studio) with channel coverage (Google Ads, Sklik, Meta, TikTok).",
+        "A real, frictionless 'see it work' path exists (the public dashboard/kampane/ai-asistent on live-ish numbers) — a genuine try-before-buy.",
+        "Honest about being a case study (Stripe not wired, sample data) rather than faking a checkout."
+      ],
+      "scope_note": "These surfaces openly disclaim they are a portfolio case study (no Stripe, illustrative data), so a literal *purchase* can't complete — that is the artifact's nature, not a defect. The findings above are the ones that would matter even if it were a real product (proof, clarity, brand consistency, CTA routing)."
+    }
+  ]
+}

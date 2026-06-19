@@ -2,6 +2,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
+import SampleDataNote from "@/components/app/SampleDataNote";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
@@ -38,6 +39,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   return (
     <ModulePage moduleKey="sklad-sezonnost">
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
       <InventorySeasonModule
         season={season}
         currentMonth={currentMonth}

@@ -6,6 +6,8 @@
 import { auth } from "@/auth";
 import { generateSocialPosts } from "@/lib/ai/tools";
 import { consume } from "@/lib/usage";
+import { buildSnapshot } from "@/lib/snapshot";
+import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
 import { TONES, isSocialPlatform, type SocialPlatform, type Tone } from "@/lib/social/types";
 import {
@@ -23,6 +25,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+/** Compact "what's actually working" grounding from the dashboard data, so AI
+ *  social posts lean into the brand's proven channels + trend instead of generic
+ *  ideas (the tool previously got only topic/tone/platforms — no performance signal). */
+function perfGrounding(): string {
+  const snap = buildSnapshot("90d");
+  const top = [...snap.channels]
+    .filter((c) => c.roas > 0)
+    .sort((a, b) => b.roas - a.roas)
+    .slice(0, 2);
+  return [
+    `Klient ${snap.client.name} (${snap.client.segment}); obrat meziobdobně ${fmtSignedPct(snap.delta.revenue)}.`,
+    top.length
+      ? `Nejsilnější kanály podle ROAS: ${top.map((c) => `${c.channel} ${fmtMultiple(c.roas)}`).join(", ")}.`
+      : "",
+    "Drž se osvědčených témat a produktů značky.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
 
 function parse(body: { topic?: unknown; tone?: unknown; platforms?: unknown }):
   | { ok: true; topic: string; tone: Tone; platforms: SocialPlatform[] }
@@ -85,7 +107,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const response = await generateSocialPosts({ topic, tone, platforms });
+    const response = await generateSocialPosts({ topic, tone, platforms, grounding: perfGrounding() });
     return Response.json({
       drafts: response.result.posts,
       source: response.meta.demo ? "demo" : "ai",

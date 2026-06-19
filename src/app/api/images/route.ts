@@ -69,6 +69,7 @@ export async function POST(request: Request) {
     if (!isImageFormat(body.format)) return Response.json({ error: "Neplatný formát." }, { status: 422 });
     const count = Math.max(1, Math.min(MAX_IMAGE_CANDIDATES, Number(body.count) || 1));
     const avoid = str(body.avoid) || undefined;
+    const brand = str(body.brand) || undefined;
     const referenceImageId = str(body.referenceImageId) || undefined;
 
     const uid = await userId();
@@ -104,6 +105,7 @@ export async function POST(request: Request) {
       format: body.format,
       count,
       avoid,
+      brand,
       prior,
       imagePromptIds: referenceImageId ? [referenceImageId] : undefined,
     });

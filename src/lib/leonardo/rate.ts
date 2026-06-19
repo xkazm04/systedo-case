@@ -22,15 +22,20 @@ export interface ImageRating {
 export async function rateImage(
   base64: string,
   mime: string,
-  intendedPrompt: string
+  intendedPrompt: string,
+  brand?: string
 ): Promise<ImageRating> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { score: null, defects: "bez GEMINI_API_KEY" };
 
+  const brandClause = brand
+    ? `soulad se značkou (barvy/styl/tonalita: "${brand.slice(0, 200)}"), `
+    : "";
   const instruction =
     `Ohodnoť tento obrázek 1–10 za vizuální kvalitu, soulad se zadáním, ` +
-    `čistotu a absenci typických AI artefaktů / zmršeného textu. ` +
+    `${brandClause}čistotu a absenci typických AI artefaktů / zmršeného textu. ` +
     `Obrázek má odpovídat zadání: "${intendedPrompt.slice(0, 240)}". ` +
+    (brand ? `Obrázky mimo styl značky výrazně sniž v hodnocení. ` : "") +
     `Odpověz POUZE tímto JSON (bez markdown): {"score": <celé číslo 1-10>, "defects": "<jednou větou nebo 'none'>"}`;
 
   try {

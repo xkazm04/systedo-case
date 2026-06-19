@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container, Eyebrow } from "@/components/ui";
 import { ArrowRight, Gauge, Sparkles, Target } from "@/components/icons";
+import { buildSnapshot } from "@/lib/snapshot";
+import { fmtMultiple, fmtPct, fmtSignedPct, fmtCZKCompact } from "@/lib/format";
 
 /* ---------------------------------------------------------------------------
    Adamant — homepage (Monolith direction)
@@ -38,6 +40,18 @@ const FEATURES = [
 ];
 
 export default function BrandLanding() {
+  // Quantified case-study results for the proof band — the exact numbers the
+  // dashboard renders (illustrative data), so the homepage shows outcomes, not
+  // just claims. Honest framing: it's the case-study account, not a customer
+  // testimonial (there are no real customers to quote).
+  const snap = buildSnapshot("90d");
+  const proof = [
+    { value: fmtMultiple(snap.current.roas), label: "ROAS portfolia" },
+    { value: fmtPct(snap.current.pno), label: `PNO · cíl ${fmtPct(snap.goalPno, 0)}` },
+    { value: fmtCZKCompact(snap.current.revenue), label: "obrat připsaný marketingu" },
+    { value: fmtSignedPct(snap.delta.revenue), label: "obrat vs. předchozí období" },
+  ];
+
   return (
     <>
       {/* ------------------------------------------------------------- Hero */}
@@ -88,23 +102,25 @@ export default function BrandLanding() {
             </h1>
 
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-onyx-muted">
-              Performance you can stand on. Adamant forges your advertising into one unbreakable
-              monument — watched, defended and optimised by AI around the clock.
+              AI ad intelligence for e-shops and agencies — measure performance, triage campaigns
+              and generate the ads, all grounded in your own Google Ads, Sklik, Meta and TikTok data.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
+              {/* Primary = the frictionless, no-login look (a prospect wants to see it
+                  before signing in); "Start free" → the app is the secondary action. */}
               <Link
-                href="/app"
+                href="/dashboard"
                 className="inline-flex items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 shadow-card transition-[background-color,transform] hover:bg-brand-400 active:scale-[0.99]"
               >
-                Start free
+                See it work
                 <ArrowRight width={17} height={17} />
               </Link>
               <Link
-                href="/dashboard"
+                href="/app"
                 className="inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/40 px-5 py-3 text-sm font-semibold text-onyx-ink transition-colors hover:border-brand-400 hover:text-brand-200"
               >
-                See it work
+                Start free
               </Link>
             </div>
 
@@ -166,6 +182,36 @@ export default function BrandLanding() {
         </div>
       </Container>
 
+      {/* ----------------------------------------------------------- Proof */}
+      <section className="border-y border-line bg-brand-50/40">
+        <Container className="py-12">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-accent">
+                Proof
+              </p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
+                On the case-study account, last 90 days
+              </h2>
+            </div>
+            <p className="max-w-md text-sm text-muted">
+              The same numbers the dashboard renders for {snap.client.name} ({snap.client.domain}) —
+              outcomes, not claims. Illustrative case-study data.
+            </p>
+          </div>
+          <dl className="mt-9 grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {proof.map((p) => (
+              <div key={p.label}>
+                <dt className="tnum text-3xl font-semibold tracking-tight text-brand-accent sm:text-4xl">
+                  {p.value}
+                </dt>
+                <dd className="mt-1.5 text-sm text-muted">{p.label}</dd>
+              </div>
+            ))}
+          </dl>
+        </Container>
+      </section>
+
       {/* ------------------------------------------------------- Closing CTA */}
       <section className="border-t border-onyx-line bg-onyx">
         <Container className="py-14">
@@ -174,10 +220,10 @@ export default function BrandLanding() {
               Be adamant about your ads.
             </h2>
             <Link
-              href="/app"
+              href="/dashboard"
               className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
             >
-              Start free
+              See it work
               <ArrowRight width={17} height={17} />
             </Link>
           </div>

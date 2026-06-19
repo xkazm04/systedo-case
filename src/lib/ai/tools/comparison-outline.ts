@@ -6,9 +6,10 @@
  *  head-to-head; „alternative" an alternatives roundup + migration angle;
  *  „pricing" a pricing breakdown; „review" a verdict-first review).
  *
- *  Scope: the query + intent only — there is no competitor dataset, so the model
- *  is told to keep entity names generic / placeholder rather than invent specific
- *  competitor facts. Runs through the provider-switching LLM wrapper (../../llm).
+ *  Scope: query + intent, plus an OPTIONAL user-supplied competitor name + their
+ *  own positioning — when given, the page grounds in those real entities; without
+ *  them the model keeps names generic rather than invent competitor facts. Runs
+ *  through the provider-switching LLM wrapper (../../llm).
  *  A deterministic demo() builds an intent-templated scaffold so a clean checkout
  *  works keyless. Server-only. */
 import { Type } from "@google/genai";
@@ -36,10 +37,11 @@ Pravidla:
 - Vrať „comparisonCriteria" — 4–8 kritérií, podle kterých se řešení porovnávají (např. cena, funkce, podpora, integrace, náročnost nasazení). Krátká, konkrétní.
 - Vrať „verdict" — 1–2 věty se shrnujícím doporučením / závěrem stránky.
 - Vrať „faq" — 3–5 častých dotazů (q) a stručných odpovědí (a) navázaných na téma a záměr.
-- NEMÁŠ k dispozici data o konkrétních konkurentech. Nevymýšlej si konkrétní fakta, ceny ani názvy konkrétních produktů — pokud je potřeba, mluv obecně („daný nástroj", „alternativní řešení") nebo použij zástupné označení. Obsah musí být použitelný jako kostra, kterou redaktor doplní reálnými daty.
+- Jsou-li uvedeny KONKURENT a/nebo VAŠE POZICE, ber je jako reálná data: jmenuj konkurenta a opři srovnání, kritéria i verdikt o uvedené odlišnosti. Nejsou-li uvedeny, nevymýšlej si konkrétní fakta, ceny ani názvy produktů — mluv obecně („daný nástroj", „alternativní řešení") a obsah ať je kostra k doplnění redaktorem.
 - Vrať POUZE jeden validní JSON objekt dle schématu — žádný text okolo, žádné markdown bloky, žádné komentáře.`;
 
 function buildComparisonOutlinePrompt(req: ComparisonOutlineRequest): string {
+  const grounded = Boolean(req.competitor || req.positioning);
   return [
     "Připrav kostru srovnávací stránky pro tento cílový dotaz.",
     "",
@@ -47,6 +49,10 @@ function buildComparisonOutlinePrompt(req: ComparisonOutlineRequest): string {
     `Záměr dotazu: ${COMPARE_INTENT_LABELS[req.intent]} (${req.intent})`,
     typeof req.volume === "number" && req.volume > 0
       ? `Měsíční hledanost: ${req.volume}`
+      : "",
+    req.competitor ? `Konkurent / srovnávané řešení: ${req.competitor}` : "",
+    req.positioning
+      ? `Vaše pozice a odlišnosti (REÁLNÁ data — opři se o ně): ${req.positioning}`
       : "",
     "",
     "Sestav kostru přizpůsobenou záměru (viz pravidla):",
@@ -56,7 +62,9 @@ function buildComparisonOutlinePrompt(req: ComparisonOutlineRequest): string {
     "- verdict: shrnující doporučení (1–2 věty),",
     "- faq: 3–5 dotazů { q, a }.",
     "",
-    "Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem.",
+    grounded
+      ? "Použij uvedeného konkurenta a vaši pozici jako reálná data — jmenuj je a opři o ně srovnání, kritéria i verdikt."
+      : "Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem.",
   ]
     .filter((line) => line !== "")
     .join("\n");

@@ -8,7 +8,7 @@ import { totalsOf } from "@/lib/metrics";
 import { fmtCZKCompact, fmtMultiple, fmtPct } from "@/lib/format";
 
 export const alt =
-  "Systedo — marketingová case study: výkonnostní dashboard, AI asistent a správa kampaní";
+  "Adamant — marketingová case study: výkonnostní dashboard, AI asistent a správa kampaní";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

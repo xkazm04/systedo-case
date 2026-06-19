@@ -286,6 +286,9 @@ export interface LeadReplyRequest {
   projectType: string;
   /** optional lead name, for a personal greeting */
   name?: string;
+  /** captured BANT qualification (Czech summary of the known fields) so the reply
+   *  doesn't re-ask what's already known and matches the lead's disposition */
+  qualification?: string;
 }
 
 export interface LeadReplyResult {
@@ -431,6 +434,8 @@ export interface CohortDiagnosisRequest {
   avgPayback: number | null;
   /** the cohort trend direction, when there are ≥ 2 cohorts */
   trend?: TrendDirection;
+  /** e-shop project → customer / repeat-purchase framing instead of signups / ARPU */
+  eshop?: boolean;
 }
 
 /** The trend direction shape, mirrored from lib/ltv/compute so the client+server
@@ -524,6 +529,12 @@ export interface ComparisonOutlineRequest {
   intent: CompareOutlineIntent;
   /** monthly search volume, when known — surfaced in the prompt for context */
   volume?: number;
+  /** the competitor / alternative being compared against — when named, the page
+   *  uses it for real instead of a generic placeholder */
+  competitor?: string;
+  /** the user's own positioning / differentiators — real grounding for "your side"
+   *  of the comparison, so the page isn't a blank placeholder skeleton */
+  positioning?: string;
 }
 
 /** One section of the comparison page: an H2 heading + the bullet points it covers. */
@@ -565,6 +576,11 @@ export interface LpVariantIdeasRequest {
   controlLabel?: string;
   /** optional short description of the control angle, so challengers differ from it */
   controlDescription?: string;
+  /** labels of variant angles already tested that did NOT beat the control — so the
+   *  model doesn't re-propose a disproven angle */
+  losers?: string[];
+  /** the control's conversion rate (0–1) — the bar a challenger must clear */
+  controlCvr?: number;
 }
 
 /** One AI-drafted challenger concept: a testable angle for a landing-page variant.
@@ -637,6 +653,19 @@ export interface LeadSourceDiagnosisRequest {
   /** ad spend (CZK); absent / 0 for unpaid sources */
   spend?: number;
   /** cost per qualified lead (CZK), when the source has spend */
+  costPerQualified?: number;
+  /** other sources' compact metrics, best-first — lets the diagnosis name a
+   *  concrete better source to move budget to instead of a generic "move it" */
+  peers?: LeadSourcePeer[];
+}
+
+/** A peer source's compact metrics, for comparison inside the diagnosis (so it can
+ *  name a concrete better destination for budget). */
+export interface LeadSourcePeer {
+  source: string;
+  qualRate: number;
+  winRate: number;
+  /** cost per qualified lead (CZK), when the peer has spend */
   costPerQualified?: number;
 }
 

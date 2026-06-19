@@ -27,6 +27,7 @@ const LP_VARIANT_IDEAS_SYSTEM = `Jsi český CRO specialista (optimalizace konve
 Pravidla:
 - Navrhni 2–3 OD SEBE ODLIŠNÉ koncepty variant — každý ať testuje jinou hypotézu (jiný úhel, jiný hlavní benefit, jiná struktura nabídky), ne jen přeformulování téhož.
 - Každá varianta se musí lišit od kontrolní varianty — nenabízej znovu to, co už dělá kontrola.
+- Jsou-li uvedeny už OTESTOVANÉ A NEÚSPĚŠNÉ úhly, nenavrhuj je znovu — jsou vyvrácené. Cílem je překonat uvedený konverzní poměr kontroly.
 - Pro KAŽDOU variantu vrať: „label“ (krátký výstižný název konceptu), „hypothesis“ (testovatelná hypotéza — proč by mohla porazit kontrolu), „headline“ (konkrétní návrh hlavního nadpisu stránky), „primaryCTA“ (text hlavního tlačítka, krátký a akční) a „rationale“ (jednou větou proč koncept dává smysl vzhledem k tématu a klíčovým slovům).
 - Vycházej z předaného tématu a klíčových slov. NEVYMÝŠLEJ si žádná čísla — žádné konverzní poměry, návštěvnost ani statistiky; ty vzejdou z reálného testu, ne od tebe.
 - Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných marketingových frází.
@@ -34,6 +35,7 @@ Pravidla:
 
 function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest): string {
   const keywords = (req.keywords ?? []).filter((k) => k.trim().length > 0);
+  const losers = (req.losers ?? []).filter((l) => l.trim().length > 0);
   return [
     "Navrhni konkurenční varianty (challengery) landing page pro tento A/B test.",
     "",
@@ -41,8 +43,14 @@ function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest): string {
     keywords.length > 0 ? `Klíčová slova / fráze: ${keywords.join(", ")}` : "",
     req.controlLabel ? `Stávající kontrolní varianta: ${req.controlLabel}` : "",
     req.controlDescription ? `Úhel kontroly: ${req.controlDescription}` : "",
+    typeof req.controlCvr === "number" && req.controlCvr > 0
+      ? `Konverzní poměr kontroly k překonání: ${(req.controlCvr * 100).toFixed(1)} %`
+      : "",
+    losers.length > 0
+      ? `Už otestováno a NEPORAZILO kontrolu (tyto úhly NENAVRHUJ znovu, jsou vyvrácené): ${losers.join(", ")}`
+      : "",
     "",
-    "Vrať pole „variants“ se 2–3 odlišnými koncepty. Každý koncept je objekt { label, hypothesis, headline, primaryCTA, rationale }. Každá varianta ať testuje jinou hypotézu a liší se od kontroly. Nevymýšlej žádná čísla.",
+    "Vrať pole „variants“ se 2–3 odlišnými koncepty. Každý koncept je objekt { label, hypothesis, headline, primaryCTA, rationale }. Každá varianta ať testuje jinou hypotézu, liší se od kontroly a nepoužívá už vyvrácený úhel. Nevymýšlej žádná čísla.",
   ]
     .filter((line) => line !== "")
     .join("\n");
