@@ -7,6 +7,7 @@
  *  weights are given it falls back to DEFAULT_SCORE_WEIGHTS, so the static
  *  default ranking — and the unit test pinned to it — stays unchanged. */
 import type { CompareIntent, CompareQuery } from "./sample";
+import type { SavedKeyword } from "../keywords/types";
 
 export const INTENT_LABELS: Record<CompareIntent, string> = {
   alternative: "Alternativa",
@@ -118,4 +119,46 @@ export function acquisitionFor(q: CompareQuery, seo: SeoChannel | null): QueryAc
   if (!seo || seo.cr <= 0) return null;
   const estConversions = q.volume * seo.cr * INTENT_CONVERSION_FACTOR[q.intent];
   return { channel: seo.channel, cr: seo.cr, estConversions, estRevenue: estConversions * seo.aov };
+}
+
+// --- feed the engine from real saved keyword lists (vs the static SAMPLE_QUERIES) ---
+
+/** Map a keyword's text to a comparison intent, or null when it isn't a comparison /
+ *  alternative / pricing / review query — those don't belong in this engine. */
+const COMPARE_PATTERNS: { intent: CompareIntent; re: RegExp }[] = [
+  { intent: "vs", re: /\bvs\.?\b|\bversus\b|srovnán|porovnán/i },
+  { intent: "pricing", re: /cena|cen[yíou]\b|ceník|kolik stoj|za kolik|tarif|předplatn/i },
+  { intent: "review", re: /recenz|review|hodnocen|zkušenost/i },
+  { intent: "alternative", re: /alternativ|nejlep|místo /i },
+];
+
+export function compareIntentOf(keyword: string): CompareIntent | null {
+  for (const { intent, re } of COMPARE_PATTERNS) if (re.test(keyword)) return intent;
+  return null;
+}
+
+const COMPETITION_DIFFICULTY: Record<SavedKeyword["competition"], number> = {
+  low: 25,
+  medium: 50,
+  high: 75,
+};
+
+/** Build comparison-engine queries from a saved keyword list — keep only the
+ *  comparison-intent keywords, mapping volume + (coarse) difficulty from the saved
+ *  metrics. Empty when the list has no comparison queries (caller falls back). */
+export function deriveCompareQueries(keywords: SavedKeyword[]): CompareQuery[] {
+  const out: CompareQuery[] = [];
+  for (const k of keywords) {
+    if (k.tag === "negative") continue;
+    const intent = compareIntentOf(k.keyword);
+    if (!intent) continue;
+    out.push({
+      query: k.keyword,
+      intent,
+      volume: k.avgMonthlySearches,
+      difficulty: COMPETITION_DIFFICULTY[k.competition] ?? 50,
+      rank: null,
+    });
+  }
+  return out;
 }

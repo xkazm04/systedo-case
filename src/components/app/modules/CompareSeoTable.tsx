@@ -14,6 +14,7 @@ import type { ComparisonOutlineResult } from "@/lib/ai-types";
 import {
   acquisitionFor,
   DEFAULT_SCORE_WEIGHTS,
+  deriveCompareQueries,
   INTENT_LABELS,
   scoreQueries,
   type Opportunity,
@@ -22,6 +23,7 @@ import {
   type SeoChannel,
 } from "@/lib/seo-compare/compute";
 import type { CompareIntent, CompareQuery } from "@/lib/seo-compare/sample";
+import type { KeywordList } from "@/lib/keywords/types";
 
 const OPP_META: Record<Opportunity, { tone: PillTone; label: string }> = {
   high: { tone: "positive", label: "Vysoká" },
@@ -499,6 +501,26 @@ export default function CompareSeoTable({
   const [competitor, setCompetitor] = useState("");
   const [positioning, setPositioning] = useState("");
 
+  // Real-data seam: the user's saved keyword lists, so the engine can run on their
+  // actual research instead of the static sample. Empty in the local/keyless demo
+  // (lists live in the tenant store) → the engine falls back to the sample queries.
+  const [lists, setLists] = useState<KeywordList[]>([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/keywords/lists")
+      .then((r) => (r.ok ? r.json() : { lists: [] }))
+      .then((d) => {
+        if (!cancelled) setLists(Array.isArray(d?.lists) ? d.lists : []);
+      })
+      .catch(() => {
+        /* non-fatal — stay on the sample queries */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Persist the tuned weights so the panel reopens the way the user left it.
   useEffect(() => {
     try {
@@ -508,7 +530,15 @@ export default function CompareSeoTable({
     }
   }, [project.id, weights]);
 
-  const rows = useMemo(() => scoreQueries(queries, weights), [queries, weights]);
+  const selectedList = lists.find((l) => l.id === selectedListId);
+  const derived = useMemo(
+    () => (selectedList ? deriveCompareQueries(selectedList.keywords) : []),
+    [selectedList],
+  );
+  // Score real saved-keyword queries when a list with comparison queries is picked,
+  // else the passed sample.
+  const sourceQueries = selectedList && derived.length > 0 ? derived : queries;
+  const rows = useMemo(() => scoreQueries(sourceQueries, weights), [sourceQueries, weights]);
   const highCount = useMemo(() => rows.filter((r) => r.opportunity === "high").length, [rows]);
 
   /** Write a brief seed for the chosen query to session storage and route to
@@ -547,6 +577,32 @@ export default function CompareSeoTable({
   return (
     <div className="space-y-6">
       <SummaryCards rows={rows} high={highCount} seoChannel={seoChannel} />
+
+      <div className="card flex flex-wrap items-center gap-3 p-4">
+        <span className="shrink-0 text-sm font-medium text-navy-800">Zdroj dotazů</span>
+        <select
+          value={selectedListId}
+          onChange={(e) => setSelectedListId(e.target.value)}
+          aria-label="Zdroj dotazů"
+          className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400"
+        >
+          <option value="">Ukázkové dotazy</option>
+          {lists.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs text-muted">
+          {lists.length === 0
+            ? "Uložte seznam v modulu Klíčová slova a vyberte ho zde — engine pak běží na vašich reálných dotazech."
+            : selectedList
+              ? derived.length > 0
+                ? `${derived.length} srovnávacích dotazů z „${selectedList.name}“`
+                : `„${selectedList.name}“ nemá srovnávací dotazy — zobrazuji ukázku`
+              : "Vyberte uložený seznam klíčových slov pro reálné dotazy."}
+        </span>
+      </div>
 
       <div className="card p-5">
         <p className="text-sm font-semibold text-navy-800">Ukotvení srovnání (volitelné, ale doporučené)</p>
