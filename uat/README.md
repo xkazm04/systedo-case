@@ -36,6 +36,7 @@ The premise: instead of asserting that features are technically correct, we put 
 name: <First role-tag>
 role: <real-world job title>
 maps_to: <context-map domains/surfaces this Character lives in>
+surface_binding: <the app variant / project-type + the gating-resolved route/module set this Character can actually reach — test only these; never attribute a finding to them by topic alone>
 tech_level: <novice | comfortable | power-user>
 promotion: discovery
 references:
