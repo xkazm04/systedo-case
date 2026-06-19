@@ -46,6 +46,7 @@ TypeScript + Tailwind v4**, protože jediný framework čistě pokryje tři odli
 ```bash
 npm install
 npm run dev          # http://localhost:3000
+npm run dev:inspect  # dev server + DevInspector (stiskni ; a poté i)
 ```
 
 Data dashboardu i obsah článku jsou už v repozitáři, takže web běží **bez jakékoli
@@ -57,6 +58,23 @@ npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
 npm run seed         # přegeneruje src/data/performance.json
 ```
+
+### DevInspector — klikni na komponentu, zkopíruj cestu ke zdroji
+
+Vývojový overlay pro získání cesty `src/.../File.tsx:line` ke komponentě a její vložení
+přímo do AI CLI (Claude Code apod.). Ve výchozím stavu vypnutý; v produkčním buildu nikdy není.
+
+```bash
+npm run dev:inspect   # dev server se značkováním zdrojových pozic
+```
+
+V aplikaci stiskni **`;`** (klávesový režim) a poté **`i`** (Inspect) pro aktivaci. Najetím
+myší se prvek zvýrazní a u kurzoru se zobrazí štítek `File.tsx:line`; **pravým tlačítkem**
+zkopíruješ cestu k místu použití, **Alt+pravým tlačítkem** nejvnitřnější prvek, kliknutím na
+řádek v HUD libovolný nadřazený soubor, **Esc** ukončí. Běžné `npm run dev` funguje také, ale
+HUD bude hlásit vypnuté mapování, dokud nespustíš `npm run dev:inspect`. Bránou hlídaný
+Turbopack loader (`scripts/dev-inspector/`) značkuje host JSX atributem `data-loc` jen když je
+`DEV_INSPECT=1`; overlay (`src/app/_dev-inspector/`) jej čte za běhu. V produkci nejsou ani jedno.
 
 ---
 

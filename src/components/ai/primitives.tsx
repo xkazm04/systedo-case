@@ -245,7 +245,7 @@ export function ToolError({ message, onRetry }: { message: string; onRetry: () =
 
 /** Animated loading indicator: a ring that fills toward the ~15s target the
  *  model usually needs. Results render the instant the response arrives (the
- *  ring is purely visual); past 15s it keeps spinning until the 30s hard limit. */
+ *  ring is purely visual); past the target it keeps spinning until the hard limit. */
 export function LoadingTimer() {
   const [elapsed, setElapsed] = useState(0); // seconds
 
@@ -298,7 +298,7 @@ export function LoadingTimer() {
   );
 }
 
-/** Timeout illustration shown when the model doesn't answer within 30s. */
+/** Timeout illustration shown when the model doesn't answer within the limit. */
 export function TimeoutState({ onRetry }: { onRetry: () => void }) {
   return (
     <div

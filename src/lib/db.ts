@@ -77,6 +77,33 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_snapshots_time
     ON campaign_snapshots (synced_at, campaign_id);
+
+  -- LOCAL_DB mode only: the authed product's users + projects, normally in
+  -- Firestore, persisted locally so /app works fully offline (see local-mode.ts,
+  -- projects/store.local.ts, users/local.ts). Untouched when LOCAL_DB is off.
+  CREATE TABLE IF NOT EXISTS users (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    email      TEXT,
+    image      TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS projects (
+    id              TEXT PRIMARY KEY,
+    user_id         TEXT NOT NULL,
+    name            TEXT NOT NULL,
+    type            TEXT NOT NULL,
+    accent_color    TEXT NOT NULL,
+    domain          TEXT,
+    tenant          TEXT,
+    ads_customer_id TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_projects_user
+    ON projects (user_id, created_at);
 `;
 
 /** Marker identifying the current schema definition; when it changes, the schema

@@ -1,0 +1,77 @@
+{
+  "run": "2026-06-19-discovery",
+  "driver": "playwright/chromium against dev server :3100 (DEV_AUTH + LOCAL_DB)",
+  "scope": "Tomáš × react-to-flagged-campaign on the authed module /app/demo-eshop/kampane (incl. one live AI evaluation)",
+  "journeys": [
+    {
+      "character": "Tomáš (PPC specialist)",
+      "journey": "react-to-flagged-campaign",
+      "surface": "/app/demo-eshop/kampane",
+      "status": "Completed-with-friction",
+      "evidence": [
+        "shots/app-eshop-kampane-after.png",
+        "shots/kampane-sorted.png",
+        "shots/kampane-analyzed.png",
+        "shots/kampane-analyzed.text.txt"
+      ],
+      "findings": [
+        {
+          "id": "FT1-sort-default-not-worst-first",
+          "type": "quality-gap",
+          "severity": "minor",
+          "title": "Triage table defaults to cost-descending, not worst-first — criticals sit below warnings until you click 'Seřadit podle priority'",
+          "expected": "Tomáš's #1 need is to act on the worst campaigns first; the list should open worst-first.",
+          "got": "Default order is spend-descending, so the first Kritické (Demand Gen) is at row 3, below two 'Sledovat' warnings. Worst-first requires a manual sort click.",
+          "evidence": ["shots/app-eshop-kampane-after.text.txt:255-301"],
+          "code_check": "confirmed — triage.ts:191 `triageWeight` (severity*1e12 + cost) is documented as 'the order in which a PPC manager should spend their attention', but the table doesn't use it as the default sort. Domain logic and default UI disagree.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Default the table to triage weight (criticals above warnings, then by spend) so worst-first needs no click; keep the manual sort as an override."
+        },
+        {
+          "id": "FT2-flag-reason-not-inline",
+          "type": "confusion",
+          "severity": "minor",
+          "title": "The 'why flagged' reason is hover-only — the row shows the severity badge but not the rule behind it",
+          "expected": "A power user trust-but-verifies; he wants the reason (paused-but-spending / ROAS <60% of target) visible without hovering each badge.",
+          "got": "Row shows 'Kritické'/'Sledovat' only; the grounded reason lives in the badge tooltip.",
+          "evidence": ["shots/kampane-sorted.png"],
+          "code_check": "confirmed — triage.ts TriageReason.detail is described as 'for the badge tooltip'; the reason exists and is grounded, just not surfaced inline.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Surface the primary triage reason inline (a short reason chip under the badge, or a 'why' column) for the flagged rows."
+        },
+        {
+          "id": "FT3-ai-eval-latency",
+          "type": "quality-gap",
+          "severity": "major",
+          "title": "A single per-campaign AI evaluation took ~104s — too slow to triage several criticals in a sitting",
+          "expected": "Quick enough to evaluate the handful of flagged campaigns in one pass.",
+          "got": "POST /api/campaigns/analyze returned 200 after ~104s (model) / 107s wall (cold Claude CLI spawn). It completed and rendered with a live elapsed timer — no timeout here — but ×6 flagged campaigns is impractical.",
+          "evidence": ["shots/kampane-analyzed.text.txt:266-267 (Vygenerováno modelem · 103.6 s)"],
+          "code_check": "n-a — inherent model-spawn cost in dev (Claude CLI). Mitigations already exist: results are cached by input hash (instant re-analyze) and 'Vyhodnotit portfolio' does a single whole-portfolio pass.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Set expectation for the first call (it shows a timer — good) and lean on the portfolio eval / cache for breadth; consider streaming partial output. NOT a timeout bug — it completed."
+        },
+        {
+          "id": "FT4-sync-timestamp-drift",
+          "type": "trust",
+          "severity": "minor",
+          "title": "Sync freshness label jumped to 'před 8 hodinami' ~2–3 min after a sync that first showed 'před 23 sekundami'",
+          "expected": "An accurate 'synced N minutes ago' so the freshness can be trusted.",
+          "got": "Same sync (no re-sync between captures) read '23 sekundami' then '8 hodinami' — an ~8h relative-time discrepancy that reads as stale.",
+          "evidence": ["shots/app-eshop-kampane.text.txt (před 23 sekundami)", "shots/kampane-analyzed.text.txt:43 (před 8 hodinami)"],
+          "code_check": "refuted — src/lib/format.ts:228 fmtRelative parses the full ISO (UTC-aware) and diffs against now as absolute instants; it is timezone-safe, so a formatter bug cannot turn 2 minutes into 8 hours. The two captures were in DIFFERENT driving sessions ~8 real hours apart (sync in the prior session, analyze in this one), so 'před 8 hodinami' is accurate, not stale.",
+          "verdict": "refuted",
+          "suggested_acceptance": "n/a — not a defect. (The roaming Character flagged it; the code + timeline cross-check refuted it.)"
+        }
+      ],
+      "passed": [
+        "Attention banner is immediate and accurate: '6 vyžaduje pozornost · 3 kritických' reconciles exactly with the triage rules (3 critical + 3 warning).",
+        "Flags map to recognizable rules (paused-but-spending; ROAS <60% of an 18% PNO target) — triage.ts is the single source of truth shared by badge, cell colour and banner, so they can't disagree.",
+        "Priority sort floats the three criticals worst-first (Demand Gen 65.7k > Display 49k > Video 28.9k).",
+        "AI evaluation is deeply grounded: score 20/100 respecting the 'critical ≤ 50' guardrail, cites real numbers (ROAS 1.8×=32% of target, PNO 56.6%, 17% spend/7.5% value, rank 6/7, CTR 0.78%, AOV 860 Kč), with prioritized concrete actions.",
+        "Transparency + trust: shows model (claude-sonnet), latency, cost ($0 subscription) and a 'show the exact prompt' panel; the prompt builder (report-input.ts) injects the deterministic triage so the model can't contradict the screen.",
+        "Deterministic budget-move card quantifies the fix (move 26 300 Kč Demand Gen→Brand, est +418 322 Kč) without an AI call."
+      ]
+    }
+  ]
+}

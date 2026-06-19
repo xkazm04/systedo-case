@@ -26,6 +26,9 @@ export const CLAUDE_CLI_MODEL = "sonnet";
  *  enough to reason over the structured task without blowing the request latency. */
 export const CLAUDE_THINKING_TOKENS = 4000;
 
-/** Hard ceiling for a single Claude CLI generation. */
-export const CLAUDE_TIMEOUT_MS = 90_000;
+/** Hard ceiling for a single Claude CLI generation. Sized for the heaviest tool
+ *  (the brief→article-draft, which emits a full structured article body and can
+ *  run ~2 min on a cold CLI spawn); lighter tools return well inside this. The
+ *  dev client ceiling in useAiTool tracks this value, so the two stay aligned. */
+export const CLAUDE_TIMEOUT_MS = 150_000;
 

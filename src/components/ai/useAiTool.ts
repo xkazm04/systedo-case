@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { AiResponse } from "@/lib/ai-types";
+import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 
 type Status = "idle" | "loading" | "done" | "error";
 
@@ -9,11 +10,19 @@ type Status = "idle" | "loading" | "done" | "error";
 const resultKey = (mode: string) => `systedo.ai.result.${mode}`;
 
 /** Hard ceiling: if the model hasn't answered in time, abort and show a timeout.
- *  Sized for the dev provider (Claude Code CLI, incl. medium thinking + cold
- *  start); Gemini in production answers well inside this. */
-export const AI_TIMEOUT_MS = 60_000;
-/** Visual target for the loading timer — the response usually arrives by here. */
-export const AI_TIMER_TARGET_MS = 18_000;
+ *  Environment-aware, because the two providers have very different latency:
+ *   - production (Gemini) answers in a few seconds → a tight 60s ceiling is plenty.
+ *   - development (Claude Code CLI: cold spawn + medium thinking) routinely needs
+ *     50–90s, so the client must wait at least as long as the server's per-call cap
+ *     (CLAUDE_TIMEOUT_MS) plus transfer margin. A flat 60s here aborted heavier
+ *     tools (content brief, article draft) at 60s even though the server returned a
+ *     real result — silently blocking the brief→article-draft loop. The dev ceiling
+ *     tracks CLAUDE_TIMEOUT_MS so bumping the server cap moves the client with it. */
+export const AI_TIMEOUT_MS =
+  process.env.NODE_ENV === "production" ? 60_000 : CLAUDE_TIMEOUT_MS + 30_000;
+/** Visual target for the loading timer — about when the response usually arrives.
+ *  Dev Claude is much slower than prod Gemini, so the timer paces differently. */
+export const AI_TIMER_TARGET_MS = process.env.NODE_ENV === "production" ? 18_000 : 50_000;
 /** The hard ceiling in whole seconds, for user-facing copy. */
 export const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
 

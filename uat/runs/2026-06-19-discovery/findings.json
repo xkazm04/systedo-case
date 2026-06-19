@@ -1,0 +1,70 @@
+{
+  "run": "2026-06-19-discovery",
+  "driver": "playwright/chromium against existing dev server :3012",
+  "scope": "pilot validation — 1 character × 1 journey (public surface, no model calls)",
+  "journeys": [
+    {
+      "character": "Petra (marketing manager)",
+      "journey": "prove-roi-this-month",
+      "surface": "/dashboard",
+      "status": "Completed-with-friction",
+      "evidence": ["shots/dashboard-initial.png", "shots/dashboard-initial.text.txt", "shots/dashboard-initial.a11y.yaml"],
+      "findings": [
+        {
+          "id": "F1-temporal-mismatch",
+          "type": "quality-gap",
+          "severity": "major",
+          "title": "The 'are we on track to goal' card answers about a CLOSED past month, not 'this month'",
+          "expected": "Petra opens it mid-month (today 19 Jun) for a leadership check-in to see current-month pacing toward the revenue goal.",
+          "got": "The goal-pacing card shows May 2026 marked 'měsíc dokončen / Hotovo / měsíc uzavřen' at 185% of goal, with data 'k 31. května 2026' — a finalized prior month, ~3 weeks stale vs today, with no current-month pacing and only a small 'Data k 31. května' cue.",
+          "evidence": ["shots/dashboard-initial.text.txt:69-88", "shots/dashboard-initial.png"],
+          "code_check": "present-but-not-exercised — GoalPacing has a seasonality-aware month-end forecast (context-map: Dashboard Workspace & KPIs), but the demo dataset ends on a clean month boundary so the card always shows a completed month; the forecast path is never hit. Gap is data-recency/framing, not a missing feature.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "When viewed mid-month, the card shows current-month-to-date vs goal with the seasonality forecast, and a prominent 'as of <date>' staleness cue when data lags today."
+        },
+        {
+          "id": "F2-channel-change-noninformative",
+          "type": "trust",
+          "severity": "major",
+          "title": "Per-channel 'ZMĚNA OBRATU' is identical (+8,9 %) for every channel — the column carries no channel-specific signal",
+          "expected": "Petra's job here is 'which channel is driving or dragging?' — she reads the change column to find the mover.",
+          "got": "Every channel row AND the total show exactly +8,9 %. A power user (Tomáš) would instantly distrust a column where all rows move identically.",
+          "evidence": ["shots/dashboard-initial.text.txt:118-169"],
+          "code_check": "confirmed-by-design — ChannelTable.tsx:26-30 states each channel projects the totals by a constant share, so every channel's revenue delta equals the aggregate. The column is non-informative by construction, not a render bug.",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Either vary channel shares over time in the seed so per-channel deltas genuinely differ, or remove/relabel the column so it does not imply channel-specific movement."
+        },
+        {
+          "id": "F3-alerts-noise",
+          "type": "quality-gap",
+          "severity": "minor",
+          "title": "'Upozornění 175' — a 175-item anomaly list with dates outside the selected window and no prioritization",
+          "expected": "Actionable, prioritized exceptions (Petra's bar: signal, not noise).",
+          "got": "175 alerts; listed events dated '1. 1.' and '1. 9.' fall outside the selected 90-day window (≈1 Mar–31 May); no worst-first ordering visible.",
+          "evidence": ["shots/dashboard-initial.text.txt:178-188"],
+          "code_check": "not-done",
+          "verdict": "uncertain",
+          "suggested_acceptance": "Verify the anomaly source respects the selected period and surfaces a small, ranked set; confirm date formatting."
+        },
+        {
+          "id": "F4-pno-wording",
+          "type": "confusion",
+          "severity": "polish",
+          "title": "PNO 'Cíl 15 % splněn' vs insight 'PNO 13,9 % je pod cílem 15 %' may read as contradictory to a non-expert",
+          "expected": "Unambiguous good/bad signal.",
+          "got": "Both are correct (lower PNO is better, so 13,9 % < 15 % = good), but 'pod cílem' sounds negative next to 'splněn' for a reader who doesn't know PNO's good-direction.",
+          "evidence": ["shots/dashboard-initial.text.txt:62-68", "shots/dashboard-initial.text.txt:189-193"],
+          "code_check": "n-a",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Phrase PNO consistently with an explicit good-direction cue (e.g. 'pod cílem = lepší')."
+        }
+      ],
+      "passed": [
+        "Headline KPIs are a focused, deltaed set (~5 cards with period-over-period %) — meets the 5–10 actionable-KPI bar.",
+        "Deltas have an explicit baseline ('srovnání s předchozím stejně dlouhým obdobím') — clears her 'up vs WHAT?' pet peeve.",
+        "Channel breakdown reconciles to the headline totals (Náklady/Obrat/PNO/ROAS all tie) — clears her trust bar on levels.",
+        "Auto-insights ('Co stojí za pozornost') give 'so what' takeaways she could repeat in a meeting."
+      ]
+    }
+  ]
+}

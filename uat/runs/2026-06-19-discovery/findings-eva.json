@@ -1,0 +1,54 @@
+{
+  "run": "2026-06-19-discovery",
+  "driver": "playwright/chromium against dev server :3100 (DEV_AUTH + LOCAL_DB); 2 attempts (warm retry)",
+  "scope": "Eva × brief-to-publishable-draft on public /ai-asistent (Obsahový brief). Real Claude-CLI model calls.",
+  "journeys": [
+    {
+      "character": "Eva (content/SEO strategist)",
+      "journey": "brief-to-publishable-draft",
+      "surface": "/ai-asistent (tab: Obsahový brief)",
+      "status": "Completed (after EV1 fix — see EV1-fix.md)",
+      "evidence": [
+        "shots/eva-brief-form.png",
+        "shots/eva-brief-result.png",
+        "shots/eva-brief-result.text.txt",
+        "shots/eva-draft-result.png"
+      ],
+      "findings": [
+        {
+          "id": "EV1-ai-tools-hit-60s-ceiling",
+          "type": "broken-flow",
+          "severity": "major",
+          "title": "The brief→article-draft loop doesn't close in dev — generations race a 60s client ceiling; the draft step times out, the brief is flaky at the boundary",
+          "expected": "Eva goes topic → brief → publishable draft in one continuous loop.",
+          "got": "Brief: attempt 1 timed out at 60s; attempt 2 completed at ~48s (flaky boundary). Article-draft ('Rozepsat článek'): timed out at 60s — she never reaches the publishable draft. UI shows 'Model neodpověděl do 60 sekund. Zkusit znovu.'",
+          "evidence": ["shots/eva-draft-result.png", "server log: POST /api/ai 200 in 60s / 47s / 60s"],
+          "code_check": "confirmed — useAiTool.ts:14 AI_TIMEOUT_MS=60_000 hard-aborts via AbortController at 60s; server returned 200 at exactly 60s (right at the ceiling). INCONSISTENCY: the /app campaigns analyze route has no equivalent client abort (Tomáš's eval ran 104s to success), so the same class of slow model call is killed on /ai-asistent but tolerated on /app.",
+          "verdict": "confirmed",
+          "scope_note": "Root cause is the DEV provider latency (Claude CLI cold spawn, ~47–104s). Prod uses gemini-3-flash-preview, which is likely faster and may not hit this — but on this dev deployment a real user cannot complete the loop, and the per-surface inconsistency is a code issue regardless of provider.",
+          "suggested_acceptance": "Align the client ceiling to realistic provider latency (raise it and/or stream partial output) instead of a hard 60s abort, and make the timeout policy consistent across surfaces (assistant vs. campaigns analyze). Heavier generations (article-draft) need more headroom than the brief.",
+          "resolution": "FIXED (see EV1-fix.md). useAiTool.AI_TIMEOUT_MS is now env-aware (prod 60s; dev = CLAUDE_TIMEOUT_MS+30s) and CLAUDE_TIMEOUT_MS raised 90s->150s for the heavy draft. Live re-drive: brief done ~50-74s, article-draft done ~126s — loop closes. Prod ceiling unchanged."
+        },
+        {
+          "id": "EV2-brief-keyword-gap",
+          "type": "quality-gap",
+          "severity": "minor",
+          "title": "The generated brief fails two of its own scorecard checks (keyword missing in meta + intro)",
+          "expected": "A brief that satisfies the very SEO rules the tool then grades it against.",
+          "got": "Scorecard flags 'Klíčové slovo chybí v meta popisku' and 'chybí v první sekci osnovy' — the generator produced a brief its own checker marks down. (The transparency is a plus; the self-inconsistency is the gap.)",
+          "evidence": ["shots/eva-brief-result.text.txt:77-83"],
+          "code_check": "n-a",
+          "verdict": "confirmed",
+          "suggested_acceptance": "Feed the scorecard rules into the generation prompt (or a self-check pass) so the brief satisfies its own keyword-coverage checks before it's shown."
+        }
+      ],
+      "passed": [
+        "When the brief loads, quality is high and BRAND-SPECIFIC (Mionelo = nuts/seeds e-shop): outline covers oxidation/žluknutí, containers, temperature, shelf-life by type, freezing, mistakes, spoilage — not generic boilerplate. Clears Eva's #1 quality bar.",
+        "SERP preview is present and realistic (desktop/mobile toggle, real slug/title/meta) — she can judge before committing.",
+        "Scorecard is honest: SEO score 75/100 with readability, keyword-coverage and E-E-A-T checks, including gaps (rare for an AI tool to mark down its own output).",
+        "Title/meta respect SEO limits (title 46/60, meta 129/155); 7-section outline, 4 FAQ, 8 keywords, 4 on-brand internal-link suggestions.",
+        "Transparency + export: shows model (claude-sonnet) + latency + $0 cost, a 'show the prompt' panel, and .md export — so even a brief-only outcome is usable."
+      ]
+    }
+  ]
+}
