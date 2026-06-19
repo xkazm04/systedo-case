@@ -524,6 +524,12 @@ export interface ComparisonOutlineRequest {
   intent: CompareOutlineIntent;
   /** monthly search volume, when known — surfaced in the prompt for context */
   volume?: number;
+  /** the competitor / alternative being compared against — when named, the page
+   *  uses it for real instead of a generic placeholder */
+  competitor?: string;
+  /** the user's own positioning / differentiators — real grounding for "your side"
+   *  of the comparison, so the page isn't a blank placeholder skeleton */
+  positioning?: string;
 }
 
 /** One section of the comparison page: an H2 heading + the bullet points it covers. */

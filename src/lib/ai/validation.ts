@@ -408,6 +408,10 @@ export function validateComparisonOutlineRequest(input: unknown): Valid<Comparis
   const value: ComparisonOutlineRequest = { query: query.slice(0, 200), intent };
   const volume = Number(o.volume);
   if (Number.isFinite(volume) && volume > 0) value.volume = volume;
+  const competitor = str(o.competitor);
+  if (competitor) value.competitor = competitor.slice(0, 120);
+  const positioning = str(o.positioning);
+  if (positioning) value.positioning = positioning.slice(0, 600);
   return { valid: true, value };
 }
 

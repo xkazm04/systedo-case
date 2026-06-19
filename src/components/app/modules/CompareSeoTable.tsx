@@ -183,10 +183,14 @@ function ScaffoldPanel({
  *  Each row owns its hook so generating one query doesn't disturb the others. */
 function QueryRow({
   r,
+  competitor,
+  positioning,
   onCreate,
   onCreateFromOutline,
 }: {
   r: ScoredQuery;
+  competitor: string;
+  positioning: string;
   onCreate: (r: ScoredQuery) => void;
   onCreateFromOutline: (r: ScoredQuery, result: ComparisonOutlineResult) => void;
 }) {
@@ -198,7 +202,14 @@ function QueryRow({
 
   function onGenerate() {
     setOpen(true);
-    void run({ mode: "comparison-outline", query: r.query, intent: r.intent, volume: r.volume });
+    void run({
+      mode: "comparison-outline",
+      query: r.query,
+      intent: r.intent,
+      volume: r.volume,
+      ...(competitor ? { competitor } : {}),
+      ...(positioning ? { positioning } : {}),
+    });
   }
 
   return (
@@ -448,6 +459,11 @@ export default function CompareSeoTable({
   // Lazy init from per-project localStorage (SSR-guarded); falls back to default.
   const [weights, setWeights] = useState<ScoreWeights>(() => loadWeights(project.id));
 
+  // Optional real grounding for the comparison pages (so they don't render a blank
+  // placeholder skeleton): the competitor + the user's own positioning, filled once.
+  const [competitor, setCompetitor] = useState("");
+  const [positioning, setPositioning] = useState("");
+
   // Persist the tuned weights so the panel reopens the way the user left it.
   useEffect(() => {
     try {
@@ -497,6 +513,36 @@ export default function CompareSeoTable({
     <div className="space-y-6">
       <SummaryCards rows={rows} high={highCount} />
 
+      <div className="card p-5">
+        <p className="text-sm font-semibold text-navy-800">Ukotvení srovnání (volitelné, ale doporučené)</p>
+        <p className="mt-1 text-xs text-muted">
+          Bez nich vznikne jen obecná kostra. Vyplňte konkurenta a čím se lišíte — stránka pak
+          srovnává reálně, ne přes zástupné fráze.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-navy-700">Konkurent / srovnávané řešení</span>
+            <input
+              type="text"
+              value={competitor}
+              onChange={(e) => setCompetitor(e.target.value)}
+              placeholder="např. Konkurent X"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-navy-700">Vaše pozice / čím se lišíte</span>
+            <input
+              type="text"
+              value={positioning}
+              onChange={(e) => setPositioning(e.target.value)}
+              placeholder="např. levnější, česká podpora, napojení na Sklik"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+        </div>
+      </div>
+
       <TuningPanel
         weights={weights}
         setWeights={setWeights}
@@ -522,6 +568,8 @@ export default function CompareSeoTable({
                 <QueryRow
                   key={r.query}
                   r={r}
+                  competitor={competitor}
+                  positioning={positioning}
                   onCreate={onCreate}
                   onCreateFromOutline={onCreateFromOutline}
                 />
