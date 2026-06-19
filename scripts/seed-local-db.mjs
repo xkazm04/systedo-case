@@ -46,6 +46,8 @@ db.prepare(
 const projects = [
   { id: "demo-eshop", name: "Mionelo (demo)", type: "eshop", accent: "#14b8b1", domain: "mionelo.cz", order: 2 },
   { id: "demo-leadgen", name: "Služby (demo)", type: "leadgen", accent: "#fb7141", domain: null, order: 1 },
+  { id: "demo-app", name: "SaaS nástroj (demo)", type: "app", accent: "#6366f1", domain: null, order: 3 },
+  { id: "demo-content", name: "Magazín (demo)", type: "content", accent: "#f59e0b", domain: null, order: 4 },
 ];
 
 const upsert = db.prepare(
