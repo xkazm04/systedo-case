@@ -134,6 +134,61 @@ function DeltaPill({ value }: { value: number }) {
   );
 }
 
+// --- real-numbers override (#ROB-02) ----------------------------------------
+
+const realKey = (projectId: string) => `systedo.profit.real.${projectId}`;
+
+interface RealOverride {
+  revenue: number;
+  spend: number;
+}
+
+/** Per-period real revenue/spend the user entered, keyed by project, from
+ *  localStorage (SSR-guarded). Malformed entries degrade to "no override". */
+function loadReal(projectId: string): Record<string, RealOverride> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(realKey(projectId));
+    const o = raw ? JSON.parse(raw) : null;
+    if (!o || typeof o !== "object") return {};
+    const out: Record<string, RealOverride> = {};
+    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+      if (v && typeof v === "object") {
+        const r = Number((v as Record<string, unknown>).revenue);
+        const s = Number((v as Record<string, unknown>).spend);
+        out[k] = {
+          revenue: Number.isFinite(r) && r > 0 ? r : 0,
+          spend: Number.isFinite(s) && s > 0 ? s : 0,
+        };
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/** Scale a channel row to a user-entered real revenue/spend — keeps the channel
+ *  mix and (by scaling conversions/visits with revenue) the AOV/CR, recomputing the
+ *  ratios so the whole profit view reflects the user's books, not just margin. */
+function scaleRow(r: ChannelRow, revScale: number, costScale: number): ChannelRow {
+  const revenue = r.revenue * revScale;
+  const cost = r.cost * costScale;
+  const conversions = r.conversions * revScale;
+  const visits = r.visits * revScale;
+  return {
+    ...r,
+    revenue,
+    cost,
+    conversions,
+    visits,
+    pno: revenue > 0 ? cost / revenue : 0,
+    aov: conversions > 0 ? revenue / conversions : 0,
+    cr: visits > 0 ? conversions / visits : 0,
+    roas: cost > 0 ? revenue / cost : 0,
+  };
+}
+
 export default function ProfitModule({
   projectId,
   rowsByPeriod,
@@ -153,9 +208,32 @@ export default function ProfitModule({
   const [period, setPeriod] = useState(periods.includes("90") ? "90" : periods[0]!);
   const [margins, setMargins] = useState<ChannelMargin[]>(defaults);
   const [view, setView] = useState<ViewMode>("channels");
+  // Real-numbers override (#ROB-02): per-period actual revenue + ad spend, so the
+  // whole view reflects the user's books, not just the margin lens.
+  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>(() => loadReal(projectId));
 
   const periodRows = useMemo(() => rowsByPeriod[period] ?? [], [rowsByPeriod, period]);
-  const { rows, summary } = useMemo(() => computeProfit(periodRows, margins), [periodRows, margins]);
+
+  // Apply the override (when set for this period): scale the channel rows to the
+  // user's entered revenue/spend, preserving the mix.
+  const real = realByPeriod[period];
+  const baseTotals = useMemo(
+    () =>
+      periodRows.reduce(
+        (a, r) => ({ revenue: a.revenue + r.revenue, cost: a.cost + r.cost }),
+        { revenue: 0, cost: 0 }
+      ),
+    [periodRows]
+  );
+  const revScale = real && real.revenue > 0 && baseTotals.revenue > 0 ? real.revenue / baseTotals.revenue : 1;
+  const costScale = real && real.spend > 0 && baseTotals.cost > 0 ? real.spend / baseTotals.cost : 1;
+  const overridden = revScale !== 1 || costScale !== 1;
+  const effectiveRows = useMemo(
+    () => (overridden ? periodRows.map((r) => scaleRow(r, revScale, costScale)) : periodRows),
+    [periodRows, revScale, costScale, overridden]
+  );
+
+  const { rows, summary } = useMemo(() => computeProfit(effectiveRows, margins), [effectiveRows, margins]);
 
   // #3 trend: re-drive the server-bucketed series with the live margin model.
   const trend = useMemo(
@@ -174,8 +252,8 @@ export default function ProfitModule({
   });
   const months = useMemo(() => Math.max(1, (rowsByPeriod[period]?.length ?? 0) > 0 ? Number(period) / 30 : 1), [rowsByPeriod, period]);
   const overheadResult = useMemo(
-    () => applyOverhead(periodRows, margins, { ...overhead, months }),
-    [periodRows, margins, overhead, months]
+    () => applyOverhead(effectiveRows, margins, { ...overhead, months }),
+    [effectiveRows, margins, overhead, months]
   );
 
   // #2 product view.
@@ -208,9 +286,32 @@ export default function ProfitModule({
     }
   }, [projectId, scenarios]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(realKey(projectId), JSON.stringify(realByPeriod));
+    } catch {
+      /* storage unavailable — keep the in-memory override */
+    }
+  }, [projectId, realByPeriod]);
+
   function setMargin(channel: string, pct: number) {
     const clamped = Math.max(0, Math.min(100, pct)) / 100;
     setMargins((ms) => ms.map((m) => (m.channel === channel ? { ...m, marginPct: clamped } : m)));
+  }
+
+  function setReal(field: "revenue" | "spend", value: number) {
+    setRealByPeriod((prev) => {
+      const current = prev[period] ?? { revenue: 0, spend: 0 };
+      return { ...prev, [period]: { ...current, [field]: Math.max(0, value) } };
+    });
+  }
+  function clearReal() {
+    setRealByPeriod((prev) => {
+      const next = { ...prev };
+      delete next[period];
+      return next;
+    });
   }
 
   function saveScenario(savedAt: number) {
@@ -241,7 +342,7 @@ export default function ProfitModule({
   const planHelps = plan.profitDelta > 0.5;
 
   const compareScenario = scenarios.find((s) => s.id === compareId) ?? null;
-  const compareSummary = compareScenario ? scenarioMetrics(periodRows, compareScenario.margins) : null;
+  const compareSummary = compareScenario ? scenarioMetrics(effectiveRows, compareScenario.margins) : null;
   const granularityLabel = period === "365" ? "po měsících" : "po týdnech";
 
   return (
@@ -292,6 +393,56 @@ export default function ProfitModule({
             </button>
           )}
         </div>
+      </div>
+
+      {/* real-numbers override (#ROB-02): enter your actual revenue + ad spend so
+          the whole view reflects YOUR books, not just the margin lens. */}
+      <div className="card p-5">
+        <p className="text-sm font-semibold text-navy-800">Vaše reálná čísla (za zvolené období)</p>
+        <p className="mt-1 text-xs text-muted">
+          Zadejte skutečný obrat a útratu za reklamu za {PERIOD_LABELS[period] ?? period} — tabulka,
+          souhrn i přerozdělení se přepočítají na vaši realitu (kanálový mix zůstává). Ne jen marže.
+        </p>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-navy-700">Obrat (Kč)</span>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={real?.revenue ? Math.round(real.revenue) : ""}
+              onChange={(e) => setReal("revenue", Number(e.target.value))}
+              placeholder={String(Math.round(baseTotals.revenue))}
+              className="w-44 rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-medium text-navy-700">Útrata za reklamu (Kč)</span>
+            <input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={real?.spend ? Math.round(real.spend) : ""}
+              onChange={(e) => setReal("spend", Number(e.target.value))}
+              placeholder={String(Math.round(baseTotals.cost))}
+              className="w-44 rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400"
+            />
+          </label>
+          {overridden && (
+            <button
+              type="button"
+              onClick={clearReal}
+              className="rounded-pill border border-line px-3 py-2 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-50"
+            >
+              Zpět na ukázku
+            </button>
+          )}
+        </div>
+        {overridden && (
+          <p className="mt-2 text-xs text-positive">
+            Přepočítáno na vaše čísla. (Graf vývoje níže ukazuje tvar v čase.)
+          </p>
+        )}
       </div>
 
       {/* summary band with period-over-period delta pills (#3) */}
