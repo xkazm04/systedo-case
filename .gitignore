@@ -27,7 +27,8 @@
 .DS_Store
 *.pem
 
-# debug
+# debug / logs (logs are the only thing we abstract away here)
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -50,5 +51,9 @@ next-env.d.ts
 /blob-report
 /playwright/.cache
 
-# claude code tooling (logs, worktrees, local settings)
-/.claude
+# claude code tooling — keep the REUSABLE assets committed so they travel to other
+# devices: skills/ (incl. the /uat engine), commands/, agents/, CLAUDE.md, shared
+# settings.json. Ignore only the transient / device-local parts.
+/.claude/logs/
+/.claude/worktrees/
+/.claude/settings.local.json
