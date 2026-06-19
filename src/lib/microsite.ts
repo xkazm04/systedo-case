@@ -5,11 +5,13 @@
  *  request and can be revalidated daily by cron. White-label brand tokens make it
  *  the agency's always-current, search-findable proof of results.
  *
- *  Data source for this slice is the case-study performance dataset; wiring a
- *  live tenant's synced series into the same snapshot is the documented next step.
- *  Server-only (Firestore registry + performance import). */
+ *  Data is the case-study series SCALED PER CLIENT (by slug), so each client's
+ *  microsite reads as its own reality instead of identical demo numbers for every
+ *  tenant. A tenant with a connected Ads source can replace the scaled base with
+ *  its synced series — the snapshot shape is unchanged. Server-only (Firestore
+ *  registry). */
 import { firestore } from "@/lib/firebase";
-import { performance } from "@/lib/data";
+import { scaledDataset, seedScale } from "@/lib/project-data/dataset";
 import { buildMetricsSnapshot, type MetricsSnapshot } from "@/lib/metrics";
 import { snapshotToArticle } from "@/lib/snapshot-to-article";
 import type { Article } from "@/lib/article";
@@ -128,8 +130,11 @@ export function buildMicrositeView(config: MicrositeConfig): {
   snapshot: MetricsSnapshot;
   asOf: string;
 } {
-  const asOf = performance.daily.at(-1)?.date ?? new Date().toISOString().slice(0, 10);
-  const snapshot = buildMetricsSnapshot(performance, {
+  // Per-client data: scale the base case-study series deterministically by the
+  // microsite's slug, so each client's microsite reads as ITS OWN reality.
+  const data = scaledDataset(seedScale(config.slug), { name: config.clientName });
+  const asOf = data.daily.at(-1)?.date ?? new Date().toISOString().slice(0, 10);
+  const snapshot = buildMetricsSnapshot(data, {
     key: `${config.periodDays}d`,
     label: periodLabel(config.periodDays),
     days: config.periodDays,
