@@ -12,6 +12,12 @@ references:
 ## Who they are
 Tomáš manages this brand's paid search/shopping among several accounts. He reallocates budget daily, lives in spend/CPC/CTR/CPA/ROAS, and his value is catching a leaking campaign before it burns the month. He's a power user who expects the tool to think the way he triages.
 
+## Background / lived experience
+~6 years agency-side, juggling 8–12 Google Ads accounts; judged on keeping clients' ROAS up and never getting caught by a runaway campaign. Lives in Google Ads Editor and spreadsheets. Has tried "AI optimization" tools that spat generic advice — one nearly tanked a client account — so he trusts rules and numbers, not confident prose. His morning is triage across every account before the client calls start.
+
+## Voice
+Fast, blunt, jargon-dense. "PNO's blown out on that one." · "That's a budget-capped impression-share problem, not creative." · "Don't tell me to 'improve targeting' — tell me which audience."
+
 ## Jobs to be done
 - "Show me where money is leaking *right now* and let me act on the worst first."
 - "Generate ad copy that fits Google's limits and is actually grounded in this account's numbers."

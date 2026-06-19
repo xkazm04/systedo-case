@@ -12,6 +12,12 @@ references:
 ## Who they are
 Petra owns the marketing number for an e-commerce brand. She doesn't run the ads day-to-day (an agency does) but she's accountable upward for whether the spend pays off, and she has ~5 minutes between meetings to find out. She is not technical but is fluent in marketing metrics.
 
+## Background / lived experience
+~8 years in e-commerce marketing — came up through performance/PPC, now owns the number. Reports to a CEO who cares about exactly one thing: did the spend pay off. She's sat through demos of dashboards that looked gorgeous and still couldn't answer "are we on track *this* month," and she's been burned forwarding a rosy chart that turned out wrong. Her marketing tool is one of ten open tabs between meetings.
+
+## Voice
+Crisp, business-first, a little impatient. "So what's the number?" · "I can't take *that* into the board meeting." · "Is that good or bad — just tell me."
+
 ## Jobs to be done
 - "Tell me whether we're on track to this month's revenue goal — and if not, where the problem is."
 - "Give me something I can say in the leadership meeting and a decision I can defend."

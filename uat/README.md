@@ -45,6 +45,15 @@ references:
 ## Who they are
 <1–3 sentences: company, seniority, what pressure they're under.>
 
+## Background / lived experience
+<The texture that makes feedback authentic: their history in the role, the tools
+they've used and been burned by, who they answer to, what's personally at stake,
+what a real day looks like. Richer background → more dimensions in their feedback.>
+
+## Voice
+<How they actually talk — register, idioms, what they'd say out loud — so their
+first-person Character feedback sounds like THEM, not a report.>
+
 ## Jobs to be done
 - <the job they "hire" the app for, in their words>
 

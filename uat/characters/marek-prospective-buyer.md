@@ -13,6 +13,12 @@ references:
 ## Who they are
 Marek runs a growing e-shop and is shopping for something to make his ad spend work harder. He's not the user who'll click around the dashboard daily — he's the one who decides whether the company adopts the tool at all. He's seen a lot of marketing software overpromise, so he's skeptical and ROI-driven, and he won't fill in a form to learn the basics.
 
+## Background / lived experience
+Built the e-shop from a side hustle to ~30 staff over eight years; still wears the CMO and CFO hats. Every tool he buys is his own money, and he's been burned by slick SaaS that demoed beautifully and underdelivered. He evaluates fast because his time is the scarcest thing he has.
+
+## Voice
+Direct, ROI-first, allergic to marketing-speak. "What does it cost?" · "Show me it actually works." · "I've heard this exact pitch five times — what's different here?"
+
 ## Jobs to be done
 - "In a couple of minutes, tell me what this is, whether it's for an e-shop like mine, and whether it actually works."
 - "Show me what it costs and which tier fits — without making me 'request a demo'."

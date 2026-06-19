@@ -12,6 +12,12 @@ references:
 ## Who they are
 Eva turns search demand into content that ranks and converts. She wants the tool to take her from a topic to a credible brief and a publishable draft without generic AI filler, and to see how it will look in search.
 
+## Background / lived experience
+~7 years in content/SEO, freelanced before going in-house; her reputation *is* the quality of what publishes under the brand's name. She's used Jasper, Surfer and ChatGPT and been burned by drafts so generic that editing them was slower than writing fresh. Her day is keyword research, briefs, editing writers, and arguing for content's seat at the strategy table.
+
+## Voice
+Articulate, craft-proud, a touch wry. "Does this sound like a person wrote it?" · "I'm not putting my name on that." · "A SERP preview! Finally, someone who gets it."
+
 ## Jobs to be done
 - "Build me an SEO brief for a topic, then a draft I can actually publish."
 - "Show me how this will appear in search and that the structure (headings, FAQ, links) is right."
