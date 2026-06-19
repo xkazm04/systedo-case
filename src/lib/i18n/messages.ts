@@ -86,7 +86,7 @@ const cs: Messages = {
     grow: "„Pojďme růst společně.“",
     pages: "Stránky",
     about: "O projektu",
-    copyright: "© {year} — případová studie, nikoli oficiální web Systedo.",
+    copyright: "© {year} — případová studie, nikoli oficiální web Adamant.",
     links: {
       pricing: "Ceník",
       social: "Sociální sítě",
@@ -136,7 +136,7 @@ const en: Messages = {
     grow: "“Let’s grow together.”",
     pages: "Pages",
     about: "About",
-    copyright: "© {year} — a case study, not the official Systedo site.",
+    copyright: "© {year} — a case study, not the official Adamant site.",
     links: {
       pricing: "Pricing",
       social: "Social",

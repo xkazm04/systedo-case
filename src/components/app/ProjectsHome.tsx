@@ -23,12 +23,12 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
       {/* slim top strip */}
       <div className="border-b border-line bg-surface/85 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="Systedo — domů">
+          <Link href="/" className="group flex items-center gap-2.5" aria-label="Adamant — domů">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-400">
               <Logo width={20} height={20} />
             </span>
             <span className="flex flex-col leading-none">
-              <span className="text-[17px] font-semibold tracking-tight text-navy-800">Systedo</span>
+              <span className="text-[17px] font-semibold tracking-tight text-navy-800">Adamant</span>
               <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted">
                 Pracovní prostor
               </span>
