@@ -34,6 +34,9 @@ export interface StudioRequest {
   style: ImageStyle;
   format: ImageFormat;
   count: number;
+  /** brand kit (palette, visual style, tonality) — grounds BOTH generation and the
+   *  vision scoring, so the winner reflects brand-fit, not just generic quality */
+  brand?: string;
   /** defects to avoid, fed from a previous winner for an iterate pass */
   avoid?: string;
   /** style prior learned from creative→revenue attribution, prepended to bias
@@ -55,8 +58,11 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     return demoResult(req, count);
   }
 
-  const withPrior = req.prior ? `${req.prior}\n\n${req.prompt}` : req.prompt;
-  const fullPrompt = req.avoid ? `${withPrior}\n\nVyhni se: ${req.avoid}` : withPrior;
+  const brandBlock = req.brand
+    ? `Drž se značky (barvy, vizuální styl, tonalita): ${req.brand}`
+    : "";
+  const base = [brandBlock, req.prior, req.prompt].filter(Boolean).join("\n\n");
+  const fullPrompt = req.avoid ? `${base}\n\nVyhni se: ${req.avoid}` : base;
   const { generationId, candidates } = await generateCandidates(fullPrompt, {
     width: preset.width,
     height: preset.height,
@@ -65,11 +71,13 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     imagePromptIds: req.imagePromptIds,
   });
 
-  // Score every candidate in parallel, then rank by score (desc).
+  // Score every candidate in parallel, then rank by score (desc). The brand kit is
+  // passed to the scorer too, so the winner is the best brand-fit, not just the
+  // prettiest generic image.
   const images: StudioImage[] = await Promise.all(
     candidates.map(async (c) => {
       const b64 = c.buffer.toString("base64");
-      const rating = await rateImage(b64, c.mime, req.prompt);
+      const rating = await rateImage(b64, c.mime, req.prompt, req.brand);
       return {
         buffer: c.buffer,
         mime: c.mime,
