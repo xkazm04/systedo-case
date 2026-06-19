@@ -16,7 +16,8 @@ const BRIEF_SYSTEM = `Jsi český SEO a obsahový stratég v marketingové agent
 
 Pravidla:
 - Piš výhradně česky, s diakritikou a gramaticky správně.
-- Title tag max ${SEO_LIMITS.titleTag} znaků, meta description max ${SEO_LIMITS.metaDescription} znaků (raději mírně pod limitem). Obojí ať obsahuje hlavní klíčové slovo přirozeně.
+- Title tag max ${SEO_LIMITS.titleTag} znaků, meta description max ${SEO_LIMITS.metaDescription} znaků (raději mírně pod limitem).
+- Hlavní klíčové slovo (přesně v zadaném znění) musí přirozeně zaznít na třech místech: v title tagu, v meta description a v nadpisu PRVNÍ H2 sekce osnovy. Stačí jednou na každém místě — žádný keyword stuffing.
 - slug: malá písmena bez diakritiky, slova spojená pomlčkou, krátký a výstižný.
 - Osnova (outline) ať má logickou strukturu H2 sekcí s konkrétními odrážkami, co v sekci zaznít.
 - FAQ ať jsou reálné dotazy, které uživatelé hledají.
@@ -45,10 +46,10 @@ function buildBriefPrompt(req: BriefRequest): string {
     ...keywordBlock,
     "",
     "Vygeneruj:",
-    `- title tag (max ${SEO_LIMITS.titleTag} znaků),`,
-    `- meta description (max ${SEO_LIMITS.metaDescription} znaků),`,
+    `- title tag (max ${SEO_LIMITS.titleTag} znaků) obsahující hlavní klíčové slovo,`,
+    `- meta description (max ${SEO_LIMITS.metaDescription} znaků) obsahující hlavní klíčové slovo,`,
     "- H1 nadpis a URL slug,",
-    "- osnovu 5–7 sekcí (H2) s odrážkami,",
+    "- osnovu 5–7 sekcí (H2) s odrážkami; nadpis první sekce ať obsahuje hlavní klíčové slovo,",
     "- 4 časté dotazy s odpověďmi (FAQ),",
     "- 8 souvisejících klíčových slov,",
     "- 4 návrhy kotevního textu pro interní odkazy,",

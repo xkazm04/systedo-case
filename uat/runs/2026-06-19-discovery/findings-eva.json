@@ -39,7 +39,8 @@
           "evidence": ["shots/eva-brief-result.text.txt:77-83"],
           "code_check": "n-a",
           "verdict": "confirmed",
-          "suggested_acceptance": "Feed the scorecard rules into the generation prompt (or a self-check pass) so the brief satisfies its own keyword-coverage checks before it's shown."
+          "suggested_acceptance": "Feed the scorecard rules into the generation prompt (or a self-check pass) so the brief satisfies its own keyword-coverage checks before it's shown.",
+          "resolution": "FIXED. brief.ts now explicitly requires the primary keyword in the title, meta description AND the first H2 heading (the exact three scoreBrief checks). Prompt-only — no added latency. Live re-drive: all three keyword-coverage chips now report 'je v...' (was 'chybí v meta popisku' + 'chybí v první sekci osnovy')."
         }
       ],
       "passed": [
