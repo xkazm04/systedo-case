@@ -88,7 +88,7 @@ export default function ReportSettings() {
             type="text"
             value={cfg.brandName}
             onChange={(e) => set("brandName", e.target.value)}
-            placeholder="Systedo"
+            placeholder="Adamant"
             className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
           />
         </label>
