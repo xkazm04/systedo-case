@@ -1,6 +1,6 @@
 # Pilot run summary — 2026-06-19 discovery
 
-First full pilot of the simulated-UAT standard: 3 Characters × 1 journey each, driven against the real app (`:3100`, `DEV_AUTH` + `LOCAL_DB`), hybrid browser + code cross-check + adversarial verify.
+First full pilot of the simulated-UAT standard: 4 Characters × 1 journey each (3 internal users + 1 prospective buyer), driven against the real app (`:3100`, `DEV_AUTH` + `LOCAL_DB`), hybrid browser + code cross-check + adversarial verify.
 
 ## Scorecard
 
@@ -9,6 +9,7 @@ First full pilot of the simulated-UAT standard: 3 Characters × 1 journey each, 
 | Petra (marketing manager) | prove-roi-this-month | /dashboard | Completed-with-friction | F1 closed-month pacing, F2 channel ΔRevenue identical | — |
 | Tomáš (PPC specialist) | react-to-flagged-campaign | /app/demo-eshop/kampane | Completed-with-friction | FT1 sort-default, FT2 hover-only reason, FT3 latency | FT4 timestamp (false alarm) |
 | Eva (content/SEO strategist) | brief-to-publishable-draft | /ai-asistent | Blocked → **Completed (EV1 + EV2 fixed)** | EV1 60s ceiling *(fixed)*, EV2 keyword gap *(fixed)* | — |
+| Marek (prospective buyer) | evaluate-whether-to-adopt | / · /cena · /clanek | **Evaluated — would not proceed** | MB1 no proof *(major)*, MB2 vague hero, MB3 Systedo/Adamant, MB4 CTA→auth, MB5 unused proof | — |
 
 Per-journey detail: `report.md` (Petra), `report-tomas.md`, `report-eva.md`, with `findings*.json` + first-person journals.
 
