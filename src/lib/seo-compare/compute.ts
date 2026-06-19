@@ -69,3 +69,53 @@ export function scoreQueries(
   }
   return scored.sort((a, b) => b.score - a.score);
 }
+
+// --- Acquisition tie: ground each SEO opportunity in real conversion economics ---
+
+/** Relative conversion propensity per intent vs the site's baseline CR: bottom-
+ *  funnel intents (pricing/alternative) convert nearer the site rate, research
+ *  intents (vs/review) lower. A coarse, clearly-labeled estimate — there is no
+ *  query-level attribution, so we anchor to the real channel CR and tilt by stage. */
+const INTENT_CONVERSION_FACTOR: Record<CompareIntent, number> = {
+  pricing: 1.0,
+  alternative: 0.85,
+  vs: 0.7,
+  review: 0.6,
+};
+
+/** The acquisition channel comparison/SEO content earns traffic into, with that
+ *  channel's REAL economics from the project's performance data. */
+export interface SeoChannel {
+  channel: string;
+  /** real conversion rate of that channel (0..1) */
+  cr: number;
+  /** average order value of that channel (CZK) */
+  aov: number;
+}
+
+/** Pick the organic/SEO channel from the project's channel rows (SEO content earns
+ *  organic/direct traffic), falling back to the top channel. Null when no usable CR. */
+export function seoChannelFrom(
+  rows: { channel: string; cr: number; aov: number }[],
+): SeoChannel | null {
+  const organic = rows.find((r) => /organ|přím|seo/i.test(r.channel));
+  const pick = organic ?? rows[0];
+  return pick && pick.cr > 0 ? { channel: pick.channel, cr: pick.cr, aov: pick.aov } : null;
+}
+
+/** What winning a query is worth, tied to real economics — so ranking reflects
+ *  expected RESULTS (conversions/revenue), not just search volume. */
+export interface QueryAcquisition {
+  channel: string;
+  cr: number;
+  /** estimated monthly conversions: volume × channel CR × buying-stage factor */
+  estConversions: number;
+  /** estimated monthly revenue: estConversions × channel AOV (0 when no AOV) */
+  estRevenue: number;
+}
+
+export function acquisitionFor(q: CompareQuery, seo: SeoChannel | null): QueryAcquisition | null {
+  if (!seo || seo.cr <= 0) return null;
+  const estConversions = q.volume * seo.cr * INTENT_CONVERSION_FACTOR[q.intent];
+  return { channel: seo.channel, cr: seo.cr, estConversions, estRevenue: estConversions * seo.aov };
+}

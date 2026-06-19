@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronDown, Sparkles } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
-import { fmtInt } from "@/lib/format";
+import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
@@ -12,12 +12,14 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { ResultMeta } from "@/components/ai/primitives";
 import type { ComparisonOutlineResult } from "@/lib/ai-types";
 import {
+  acquisitionFor,
   DEFAULT_SCORE_WEIGHTS,
   INTENT_LABELS,
   scoreQueries,
   type Opportunity,
   type ScoredQuery,
   type ScoreWeights,
+  type SeoChannel,
 } from "@/lib/seo-compare/compute";
 import type { CompareIntent, CompareQuery } from "@/lib/seo-compare/sample";
 
@@ -185,16 +187,19 @@ function QueryRow({
   r,
   competitor,
   positioning,
+  seoChannel,
   onCreate,
   onCreateFromOutline,
 }: {
   r: ScoredQuery;
   competitor: string;
   positioning: string;
+  seoChannel: SeoChannel | null;
   onCreate: (r: ScoredQuery) => void;
   onCreateFromOutline: (r: ScoredQuery, result: ComparisonOutlineResult) => void;
 }) {
   const meta = OPP_META[r.opportunity];
+  const acq = acquisitionFor(r, seoChannel);
   const { status, data, error, timedOut, run, reset } = useAiTool<ComparisonOutlineResult>(
     `comparison-outline:${r.query}`,
   );
@@ -224,6 +229,20 @@ function QueryRow({
         <td className="tnum px-4 py-3 text-right text-muted">{r.rank ?? "—"}</td>
         <td className="px-4 py-3">
           <Pill tone={meta.tone}>{meta.label}</Pill>
+        </td>
+        <td className="px-4 py-3 text-right">
+          {acq ? (
+            <span
+              className="tnum font-medium text-navy-800"
+              title={`Odhad dle kanálu ${acq.channel}: CR ${fmtPct(acq.cr)} × hledanost × záměr${
+                acq.estRevenue > 0 ? ` ≈ ${fmtCZK(acq.estRevenue)}/měs` : ""
+              }`}
+            >
+              ~{fmtInt(acq.estConversions)}
+            </span>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
         </td>
         <td className="px-4 py-3">
           <div className="flex items-center justify-end gap-2">
@@ -256,7 +275,7 @@ function QueryRow({
 
       {open && (status === "loading" || status === "error" || data) && (
         <tr className="border-b border-line/70">
-          <td colSpan={7} className="px-5 pb-4">
+          <td colSpan={8} className="px-5 pb-4">
             {status === "loading" && (
               <p className="rounded-lg border border-line bg-canvas px-4 py-3 text-sm text-muted">
                 Generuji kostru srovnávací stránky pro „{r.query}“…
@@ -297,8 +316,17 @@ function QueryRow({
   );
 }
 
-function SummaryCards({ rows, high }: { rows: ScoredQuery[]; high: number }) {
+function SummaryCards({
+  rows,
+  high,
+  seoChannel,
+}: {
+  rows: ScoredQuery[];
+  high: number;
+  seoChannel: SeoChannel | null;
+}) {
   const totalVolume = rows.reduce((a, r) => a + r.volume, 0);
+  const totalConv = rows.reduce((a, r) => a + (acquisitionFor(r, seoChannel)?.estConversions ?? 0), 0);
   return (
     <div className="grid gap-4 sm:grid-cols-3">
       <div className="card p-5">
@@ -310,10 +338,15 @@ function SummaryCards({ rows, high }: { rows: ScoredQuery[]; high: number }) {
         <p className="text-xs font-medium uppercase tracking-wide text-muted">Měsíční objem</p>
         <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtInt(totalVolume)}</p>
       </div>
-      <div className="card flex flex-col justify-center p-5">
-        <p className="text-sm font-semibold text-navy-800">Vytvořit srovnávací obsah</p>
+      <div className="card p-5">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted">Potenciál konverzí/měs</p>
+        <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
+          {seoChannel ? `~${fmtInt(totalConv)}` : "—"}
+        </p>
         <p className="mt-1 text-xs text-muted">
-          Vyberte dotaz v tabulce a předejte ho s objemem a záměrem do AI briefu.
+          {seoChannel
+            ? `odhad dle kanálu ${seoChannel.channel} (CR ${fmtPct(seoChannel.cr)})`
+            : "napojte výkonová data"}
         </p>
       </div>
     </div>
@@ -449,9 +482,11 @@ function TuningPanel({
 export default function CompareSeoTable({
   queries,
   defaultWeights = DEFAULT_SCORE_WEIGHTS,
+  seoChannel,
 }: {
   queries: CompareQuery[];
   defaultWeights?: ScoreWeights;
+  seoChannel: SeoChannel | null;
 }) {
   const project = useProject();
   const router = useRouter();
@@ -511,7 +546,7 @@ export default function CompareSeoTable({
 
   return (
     <div className="space-y-6">
-      <SummaryCards rows={rows} high={highCount} />
+      <SummaryCards rows={rows} high={highCount} seoChannel={seoChannel} />
 
       <div className="card p-5">
         <p className="text-sm font-semibold text-navy-800">Ukotvení srovnání (volitelné, ale doporučené)</p>
@@ -570,6 +605,7 @@ export default function CompareSeoTable({
                   r={r}
                   competitor={competitor}
                   positioning={positioning}
+                  seoChannel={seoChannel}
                   onCreate={onCreate}
                   onCreateFromOutline={onCreateFromOutline}
                 />
