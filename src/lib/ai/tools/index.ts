@@ -24,3 +24,4 @@ export { generateArticleDraft } from "./article-draft";
 export { generateCohortDiagnosis } from "./cohort-diagnosis";
 export { generateKeywordClusters } from "./keyword-clusters";
 export { generateComparisonOutline } from "./comparison-outline";
+export { generateLpVariantIdeas } from "./lp-variant-ideas";

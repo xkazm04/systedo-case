@@ -5,9 +5,20 @@ import { fmtInt, fmtPct, fmtSignedPct } from "@/lib/format";
 import { evaluate } from "@/lib/lp-exp/compute";
 import type { LpExperiment } from "@/lib/lp-exp/sample";
 import NextSteps from "@/components/app/NextSteps";
+import LpVariantIdeasPanel, {
+  type LpVariantSeed,
+} from "@/components/app/modules/LpVariantIdeasPanel";
 
 export default function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
   const results = experiments.map(evaluate);
+  // Lightweight projection handed to the AI panel: just the topic seed (cluster),
+  // status and the control label — no compute / sample internals ship to the client.
+  const seeds: LpVariantSeed[] = experiments.map((exp) => ({
+    id: exp.id,
+    cluster: exp.cluster,
+    status: exp.status,
+    controlLabel: exp.variants[0]?.label ?? "Kontrola",
+  }));
   // A resolved experiment = the gated verdict from the trust-gate wave: a winner
   // that is statistically significant (a `done` test, or a `running` one that has
   // cleared both the confidence threshold and the sample-size gate). Only those
@@ -136,9 +147,11 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
         </div>
       )}
 
+      {seeds.length > 0 && <LpVariantIdeasPanel seeds={seeds} />}
+
       <p className="px-1 text-xs text-muted">
-        Varianty lze generovat z klastrů klíčových slov (modul Srovnání &amp; SEO + Obsah). Seam: reálné
-        rozdělení návštěvnosti a analytika.
+        Varianty lze generovat z klastrů klíčových slov (modul Srovnání &amp; SEO + Obsah) nebo přímo
+        tlačítkem „Navrhnout varianty“ výše. Seam: reálné rozdělení návštěvnosti a analytika.
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 {
-  "hash": "3fdf0bf682c11397c4fbaeaa5b7d49a3f97afc74a76790a516e6f3161d1c22c1",
+  "hash": "9c50f1e4ce05031997b8562263d421e3156d08536989cd3af968c37c300b411b",
   "passed": true,
-  "provenAt": "2026-06-19T07:34:51.663Z",
+  "provenAt": "2026-06-19T07:47:13.177Z",
   "tools": [
     "ads",
     "brief",
@@ -14,6 +14,7 @@
     "article-draft",
     "cohort-diagnosis",
     "keyword-clusters",
-    "comparison-outline"
+    "comparison-outline",
+    "lp-variant-ideas"
   ]
 }

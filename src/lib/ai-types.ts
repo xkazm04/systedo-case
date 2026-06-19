@@ -19,7 +19,8 @@ export type AiMode =
   | "article-draft"
   | "cohort-diagnosis"
   | "keyword-clusters"
-  | "comparison-outline";
+  | "comparison-outline"
+  | "lp-variant-ideas";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -31,6 +32,7 @@ export const AI_MODES: AiMode[] = [
   "cohort-diagnosis",
   "keyword-clusters",
   "comparison-outline",
+  "lp-variant-ideas",
 ];
 
 export interface AiMeta {
@@ -543,3 +545,44 @@ export interface ComparisonOutlineResult {
 }
 
 export type ComparisonOutlineResponse = AiResponse<ComparisonOutlineResult>;
+
+// ===========================================================================
+// Tool 12 — LP variant ideas (LP experimenty: from a topic / keyword context
+// generate 2–3 distinct CHALLENGER landing-page variant concepts to test
+// against the control. Turns the module's hand-authored variants into
+// AI-drafted hypotheses. Scoped to the supplied topic + keywords; the model
+// invents no metrics — only concept copy a marketer then ships into a test.)
+// ===========================================================================
+
+export interface LpVariantIdeasRequest {
+  /** the topic / cluster the landing page targets — the seed for the concepts */
+  topic: string;
+  /** optional keywords / phrases that further ground the concepts */
+  keywords?: string[];
+  /** optional label of the control variant the challengers are pitched against */
+  controlLabel?: string;
+  /** optional short description of the control angle, so challengers differ from it */
+  controlDescription?: string;
+}
+
+/** One AI-drafted challenger concept: a testable angle for a landing-page variant.
+ *  All copy only — no traffic / conversion numbers (those come from the real test). */
+export interface LpVariantIdea {
+  /** short variant label (e.g. „Důraz na šablony“) */
+  label: string;
+  /** the hypothesis this variant tests (why it might beat the control) */
+  hypothesis: string;
+  /** a concrete headline draft for the variant */
+  headline: string;
+  /** the primary call-to-action button copy */
+  primaryCTA: string;
+  /** one-line rationale tying the concept to the topic / keywords */
+  rationale: string;
+}
+
+export interface LpVariantIdeasResult {
+  /** 2–3 distinct challenger concepts to test against the control */
+  variants: LpVariantIdea[];
+}
+
+export type LpVariantIdeasResponse = AiResponse<LpVariantIdeasResult>;

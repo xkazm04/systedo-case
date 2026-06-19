@@ -27,6 +27,7 @@ import {
   type LeadReplyChannel,
   type LeadReplyRequest,
   type LocalReviewReplyRequest,
+  type LpVariantIdeasRequest,
   type Platform,
   type RepurposeRequest,
   type Tone,
@@ -363,6 +364,36 @@ export function validateComparisonOutlineRequest(input: unknown): Valid<Comparis
   const value: ComparisonOutlineRequest = { query: query.slice(0, 200), intent };
   const volume = Number(o.volume);
   if (Number.isFinite(volume) && volume > 0) value.volume = volume;
+  return { valid: true, value };
+}
+
+export function validateLpVariantIdeasRequest(input: unknown): Valid<LpVariantIdeasRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: "Chybí data požadavku." };
+  }
+  const o = input as Record<string, unknown>;
+  const topic = str(o.topic);
+  if (topic.length < 2 || topic.length > 200) {
+    return { valid: false, error: "Vyplňte téma / klastr landing page (2–200 znaků)." };
+  }
+  // De-dupe + cap the optional grounding keywords so the prompt stays bounded.
+  const seen = new Set<string>();
+  const keywords: string[] = [];
+  const rawKw = Array.isArray(o.keywords) ? o.keywords.slice(0, 20) : [];
+  for (const item of rawKw) {
+    const kw = str(item).slice(0, 120);
+    if (!kw) continue;
+    const key = kw.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    keywords.push(kw);
+  }
+  const value: LpVariantIdeasRequest = { topic: topic.slice(0, 200) };
+  if (keywords.length > 0) value.keywords = keywords;
+  const controlLabel = str(o.controlLabel);
+  if (controlLabel) value.controlLabel = controlLabel.slice(0, 120);
+  const controlDescription = str(o.controlDescription);
+  if (controlDescription) value.controlDescription = controlDescription.slice(0, 400);
   return { valid: true, value };
 }
 

@@ -406,4 +406,40 @@ export const LLM_TOOLS = [
       return isStr(r.faq[0]?.q) && isStr(r.faq[0]?.a);
     },
   },
+  {
+    id: "lp-variant-ideas",
+    label: "Návrh variant landing page",
+    system:
+      "Jsi český CRO specialista a copywriter pro landing pages. Z tématu a klíčových slov navrhuješ konkurenční varianty (challengery) pro A/B test proti kontrolní variantě. Každá varianta testuje jinou hypotézu a liší se od kontroly. Nevymýšlej žádná čísla. Piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Navrhni konkurenční varianty (challengery) landing page pro A/B test. Téma / klastr: projektové řízení nástroj. Klíčová slova: projektové řízení, řízení projektů software, nástroj na úkoly. Stávající kontrolní varianta: A · Kontrola (obecný popis produktu). Vrať pole variants se 2–3 odlišnými koncepty, kde každý koncept je objekt s polem label (název konceptu), hypothesis (testovatelná hypotéza), headline (návrh hlavního nadpisu), primaryCTA (text hlavního tlačítka) a rationale (jednou větou proč koncept dává smysl). Každá varianta ať testuje jinou hypotézu a liší se od kontroly. Nevymýšlej žádná čísla. Vrať POUZE jeden JSON objekt.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        variants: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              label: { type: Type.STRING },
+              hypothesis: { type: Type.STRING },
+              headline: { type: Type.STRING },
+              primaryCTA: { type: Type.STRING },
+              rationale: { type: Type.STRING },
+            },
+            required: ["label", "hypothesis", "headline", "primaryCTA", "rationale"],
+          },
+        },
+      },
+      required: ["variants"],
+    },
+    // Lenient: at least one challenger concept, with a non-empty label + a
+    // non-empty hypothesis (the two fields the production normalize requires).
+    validate: (r) =>
+      r &&
+      Array.isArray(r.variants) &&
+      r.variants.length >= 1 &&
+      isStr(r.variants[0]?.label) &&
+      isStr(r.variants[0]?.hypothesis),
+  },
 ];
