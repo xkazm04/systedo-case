@@ -1,9 +1,9 @@
 "use client";
 
-/** Client-only „AI diagnóza zdroje" panel co-located with the server-rendered
+/** Client-only "AI diagnóza zdroje" panel co-located with the server-rendered
  *  LeadQualityModule. Receives a lightweight projection of the under-performing
  *  (junk / weak) sources — REAL computed metrics only — lets the user pick one and
- *  asks the shared /api/ai „lead-source-diagnosis" tool WHY it under-performs
+ *  asks the shared /api/ai "lead-source-diagnosis" tool WHY it under-performs
  *  (spam vs mis-targeting vs pricing/fit) plus the one concrete action. The
  *  request is built lazily on click (no work during render) so the parent stays a
  *  pure server component. Renders summary / likelyCause / recommendation with the
@@ -19,7 +19,7 @@ import {
   type LeadSourcePeer,
   type LeadSourceSeverity,
 } from "@/lib/ai-types";
-import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
@@ -28,6 +28,41 @@ import {
   TimeoutState,
   ToolError,
 } from "@/components/ai/primitives";
+
+const T = {
+  cs: {
+    panelTitle: "AI diagnóza zdroje",
+    panelDesc: "Model dostane jen spočítaná čísla zdroje a pojmenuje příčinu, proč podvýkonný (spam, špatné cílení, nebo cena), i konkrétní akci. Nevymýšlí žádné hodnoty.",
+    selectAriaLabel: "Vyberte zdroj k diagnostice",
+    diagBtn: "AI diagnóza",
+    runningBtn: "Analyzuji…",
+    idleHint: "Vyberte podvýkonný zdroj a klikněte na „AI diagnóza“ — model přečte jeho čísla a určí, proč nevýkonný a kde začít. Funguje i bez API klíče v ukázkovém režimu.",
+    diagMeta: "Diagnóza zdroje „{source}“ · míra kvalifikace {qualRate} · win rate {winRate}{cpql} · {leads} leadů.",
+    cpqlPart: " · CPQL {value}",
+    likelyCauseLabel: "Pravděpodobná příčina:",
+    recommendedAction: "Doporučená akce",
+    dataDisclaimer: "Diagnóza vychází jen z předaných čísel zdroje — model žádná data nedoplňuje.",
+    severityHigh: "Vysoká závažnost",
+    severityMedium: "Střední závažnost",
+    severityLow: "Nízká závažnost",
+  },
+  en: {
+    panelTitle: "AI source diagnosis",
+    panelDesc: "The model receives only the computed source numbers and names the cause of under-performance (spam, mis-targeting, or pricing) plus the one concrete action. It invents no values.",
+    selectAriaLabel: "Select source to diagnose",
+    diagBtn: "AI diagnosis",
+    runningBtn: "Analysing…",
+    idleHint: "Select an under-performing source and click \“AI diagnosis\” — the model will read its numbers and determine why it under-performs and where to start. Works without an API key in demo mode.",
+    diagMeta: "Diagnosis for source \“{source}\” · qualification rate {qualRate} · win rate {winRate}{cpql} · {leads} leads.",
+    cpqlPart: " · CPQL {value}",
+    likelyCauseLabel: "Likely cause:",
+    recommendedAction: "Recommended action",
+    dataDisclaimer: "Diagnosis is based solely on the numbers provided — the model adds no data.",
+    severityHigh: "High severity",
+    severityMedium: "Medium severity",
+    severityLow: "Low severity",
+  },
+} as const;
 
 /** The few real numbers the panel needs per source — a projection built by the
  *  parent server component, so no compute / sample data ships with the client. */
@@ -73,12 +108,6 @@ const CAUSE_TONE: Record<LeadSourceCause, PillTone> = {
   ok: "positive",
 };
 
-const SEVERITY_LABEL: Record<LeadSourceSeverity, string> = {
-  high: "Vysoká závažnost",
-  medium: "Střední závažnost",
-  low: "Nízká závažnost",
-};
-
 const SEVERITY_TONE: Record<LeadSourceSeverity, PillTone> = {
   high: "negative",
   medium: "coral",
@@ -86,6 +115,8 @@ const SEVERITY_TONE: Record<LeadSourceSeverity, PillTone> = {
 };
 
 export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceSeed[] }) {
+  const fmt = useFormatters();
+  const t = useT(T);
   const { status, data, error, timedOut, run, reset } =
     useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
   const [selectedSource, setSelectedSource] = useState(seeds[0]?.source ?? "");
@@ -98,11 +129,10 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Sparkles width={16} height={16} className="shrink-0 text-brand-accent" />
-            AI diagnóza zdroje
+            {t("panelTitle")}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Model dostane jen spočítaná čísla zdroje a pojmenuje příčinu, proč podvýkonný (spam,
-            špatné cílení, nebo cena), i konkrétní akci. Nevymýšlí žádné hodnoty.
+            {t("panelDesc")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -111,7 +141,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
               value={selectedSource}
               onChange={(e) => setSelectedSource(e.target.value)}
               disabled={status === "loading"}
-              aria-label="Vyberte zdroj k diagnostice"
+              aria-label={t("selectAriaLabel")}
               className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {seeds.map((s) => (
@@ -132,7 +162,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
             className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
           >
             <Sparkles width={15} height={15} className={status === "loading" ? "animate-pulse" : ""} />
-            {status === "loading" ? "Analyzuji…" : "AI diagnóza"}
+            {status === "loading" ? t("runningBtn") : t("diagBtn")}
           </button>
         </div>
       </div>
@@ -140,8 +170,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
       <div className="p-5">
         {status === "idle" && (
           <p className="text-sm leading-relaxed text-muted">
-            Vyberte podvýkonný zdroj a klikněte na „AI diagnóza“ — model přečte jeho čísla a určí,
-            proč nevýkonný a kde začít. Funguje i bez API klíče v ukázkovém režimu.
+            {t("idleHint")}
           </p>
         )}
 
@@ -160,13 +189,15 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
 
             {selected && (
               <p className="text-xs text-muted">
-                Diagnóza zdroje{" "}
-                <span className="font-medium text-navy-700">„{selected.source}“</span> · míra
-                kvalifikace {fmtPct(selected.qualRate)} · win rate {fmtPct(selected.winRate)}
-                {selected.costPerQualified != null
-                  ? ` · CPQL ${fmtCZK(selected.costPerQualified)}`
-                  : ""}{" "}
-                · {fmtInt(selected.leads)} leadů.
+                {t("diagMeta", {
+                  source: selected.source,
+                  qualRate: fmt.fmtPct(selected.qualRate),
+                  winRate: fmt.fmtPct(selected.winRate),
+                  cpql: selected.costPerQualified != null
+                    ? t("cpqlPart", { value: fmt.fmtCZK(selected.costPerQualified) })
+                    : "",
+                  leads: fmt.fmtInt(selected.leads),
+                })}
               </p>
             )}
 
@@ -177,12 +208,14 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
                 </span>
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-navy-700">Pravděpodobná příčina:</span>
+                    <span className="text-sm font-medium text-navy-700">{t("likelyCauseLabel")}</span>
                     <Pill tone={CAUSE_TONE[r.likelyCause]}>
                       {LEAD_SOURCE_CAUSE_LABELS[r.likelyCause]}
                     </Pill>
                     {r.severity && (
-                      <Pill tone={SEVERITY_TONE[r.severity]}>{SEVERITY_LABEL[r.severity]}</Pill>
+                      <Pill tone={SEVERITY_TONE[r.severity]}>
+                        {r.severity === "high" ? t("severityHigh") : r.severity === "medium" ? t("severityMedium") : t("severityLow")}
+                      </Pill>
                     )}
                   </p>
                   <p className="mt-2 text-sm leading-relaxed text-navy-700">{r.summary}</p>
@@ -194,7 +227,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
               <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                  Doporučená akce
+                  {t("recommendedAction")}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
               </div>
@@ -203,7 +236,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
             <div className="flex items-start gap-2 text-xs text-muted">
               <Target width={14} height={14} className="mt-0.5 shrink-0 text-brand-600" />
               <span className="leading-relaxed">
-                Diagnóza vychází jen z předaných čísel zdroje — model žádná data nedoplňuje.
+                {t("dataDisclaimer")}
               </span>
             </div>
 

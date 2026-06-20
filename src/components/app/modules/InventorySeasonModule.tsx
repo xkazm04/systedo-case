@@ -4,7 +4,7 @@
 import { Pill, type PillTone } from "@/components/ui";
 import { Calendar, Coins, Refresh } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtCZK, fmtDateShort, fmtInt, fmtMultiple, fmtPct, fmtSignedInt } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import type {
   BudgetChangeSet,
   SeasonalBudgetPlan,
@@ -13,12 +13,106 @@ import type {
   StockStatus,
 } from "@/lib/inventory/compute";
 
-const STATUS_META: Record<StockStatus, { tone: PillTone; label: string }> = {
-  ok: { tone: "positive", label: "OK" },
-  low: { tone: "coral", label: "Nízká" },
-  pause: { tone: "negative", label: "Pauza" },
-  resuming: { tone: "brand", label: "Obnovení" },
-};
+const T = {
+  cs: {
+    statusOk: "OK",
+    statusLow: "Nízká",
+    statusPause: "Pauza",
+    statusResuming: "Obnovení",
+    seasonTitle: "Sezónnost obratu",
+    peak: "Špička: {label}",
+    leadAbove: "Nadcházející měsíc ({month}) bývá nad průměrem — index {idx}. Připravte vyšší rozpočet a zásoby.",
+    leadBelow: "Nadcházející měsíc ({month}) bývá pod průměrem — index {idx}. Držte rozpočet a šetřete na špičku.",
+    leadAvg: "Nadcházející měsíc ({month}) je sezónně průměrný — index {idx}.",
+    budgetPlanTitle: "Plán rozpočtu podle sezóny",
+    budgetBase: "Základ {amount}/měs",
+    colMonth: "Měsíc",
+    colIndex: "Index",
+    colPlannedBudget: "Plán rozpočtu",
+    colDeltaFlat: "Δ vs. rovnoměrně",
+    colNote: "Pozn.",
+    currentSuffix: " (nyní)",
+    peakBadge: "Špička",
+    cappedBadge: "Zastropováno zásobou",
+    totalYear: "Celkem za rok",
+    stockTitle: "Skladová dostupnost & rozpočet",
+    resuming: "{n} k obnovení",
+    atRisk: "{n} brzy dojde",
+    pause: "{n} k pozastavení",
+    stockOk: "Zásoby v pořádku",
+    colProduct: "Produkt",
+    colStock: "Sklad",
+    colDailySales: "Prodej/den",
+    colDaysOfCover: "Dní zásoby",
+    colMargin: "Marže",
+    colStockoutAt: "Vyprodáno za",
+    colResumeAt: "Naplánované obnovení",
+    colStatus: "Stav",
+    colAction: "Doporučení",
+    stockUnits: "{n} ks",
+    daysOfCover: "{n} dní",
+    valueAtRisk: "Marží vážená hodnota v riziku (omezené SKU)",
+    budgetShiftTitle: "Navrhnout přesun rozpočtu",
+    shiftTotal: "Přesun {amount}",
+    noShift: "Žádný přesun není potřeba — všechny SKU mohou jet naplno.",
+    colFrom: "Z (omezené SKU)",
+    colTo: "Do (rychloobrátkové SKU)",
+    colCategory: "Kategorie",
+    colShift: "Přesun",
+    shiftNote: "Pouze návrh — částky vycházejí z odhadu výdajů na SKU a neprovádějí žádnou změnu rozpočtu.",
+    nextStep: "Upravit rozpočet",
+    nextStepHint: "Pozastavit reklamu u docházejících SKU",
+  },
+  en: {
+    statusOk: "OK",
+    statusLow: "Low",
+    statusPause: "Paused",
+    statusResuming: "Resuming",
+    seasonTitle: "Revenue seasonality",
+    peak: "Peak: {label}",
+    leadAbove: "Next month ({month}) is typically above average — index {idx}. Prepare a higher budget and stock.",
+    leadBelow: "Next month ({month}) is typically below average — index {idx}. Hold budget and save for the peak.",
+    leadAvg: "Next month ({month}) is seasonally average — index {idx}.",
+    budgetPlanTitle: "Seasonal budget plan",
+    budgetBase: "Base {amount}/mo",
+    colMonth: "Month",
+    colIndex: "Index",
+    colPlannedBudget: "Planned budget",
+    colDeltaFlat: "Δ vs. flat",
+    colNote: "Note",
+    currentSuffix: " (now)",
+    peakBadge: "Peak",
+    cappedBadge: "Capped by stock",
+    totalYear: "Full-year total",
+    stockTitle: "Stock availability & budget",
+    resuming: "{n} resuming",
+    atRisk: "{n} running low",
+    pause: "{n} to pause",
+    stockOk: "Stock OK",
+    colProduct: "Product",
+    colStock: "Stock",
+    colDailySales: "Sales/day",
+    colDaysOfCover: "Days cover",
+    colMargin: "Margin",
+    colStockoutAt: "Stockout by",
+    colResumeAt: "Planned restock",
+    colStatus: "Status",
+    colAction: "Recommendation",
+    stockUnits: "{n} units",
+    daysOfCover: "{n} days",
+    valueAtRisk: "Margin-weighted value at risk (constrained SKUs)",
+    budgetShiftTitle: "Propose budget shift",
+    shiftTotal: "Shift {amount}",
+    noShift: "No shift needed — all SKUs can run at full budget.",
+    colFrom: "From (constrained SKU)",
+    colTo: "To (fast-moving SKU)",
+    colCategory: "Category",
+    colShift: "Shift",
+    shiftNote: "Proposal only — amounts are based on estimated per-SKU spend and make no actual budget change.",
+    nextStep: "Adjust budget",
+    nextStepHint: "Pause ads for low-stock SKUs",
+  },
+} as const;
 
 /** Tailwind text colour for the margin-at-risk cue: thin cover + healthy margin
  *  = most profit at stake, so it reads hottest. */
@@ -28,7 +122,7 @@ function marginRiskClass(row: StockRow): string {
   return "text-navy-700";
 }
 
-export default function InventorySeasonModule({
+export default async function InventorySeasonModule({
   season,
   currentMonth,
   stock,
@@ -41,6 +135,16 @@ export default function InventorySeasonModule({
   budgetPlan: SeasonalBudgetPlan;
   changeSet: BudgetChangeSet;
 }) {
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
+  const STATUS_META: Record<StockStatus, { tone: PillTone; label: string }> = {
+    ok: { tone: "positive", label: t("statusOk") },
+    low: { tone: "coral", label: t("statusLow") },
+    pause: { tone: "negative", label: t("statusPause") },
+    resuming: { tone: "brand", label: t("statusResuming") },
+  };
+
   const maxIndex = Math.max(...season.map((s) => s.index), 1);
   const nextIndex = (currentMonth + 1) % 12;
   const next = season[nextIndex]!;
@@ -48,10 +152,10 @@ export default function InventorySeasonModule({
 
   const lead =
     next.index >= 1.1
-      ? `Nadcházející měsíc (${next.label}) bývá nad průměrem — index ${fmtMultiple(next.index)}. Připravte vyšší rozpočet a zásoby.`
+      ? t("leadAbove", { month: next.label, idx: fmt.fmtMultiple(next.index) })
       : next.index <= 0.9
-        ? `Nadcházející měsíc (${next.label}) bývá pod průměrem — index ${fmtMultiple(next.index)}. Držte rozpočet a šetřete na špičku.`
-        : `Nadcházející měsíc (${next.label}) je sezónně průměrný — index ${fmtMultiple(next.index)}.`;
+        ? t("leadBelow", { month: next.label, idx: fmt.fmtMultiple(next.index) })
+        : t("leadAvg", { month: next.label, idx: fmt.fmtMultiple(next.index) });
 
   const pauseCount = stock.filter((s) => s.status === "pause").length;
   const atRiskCount = stock.filter((s) => s.atRisk).length;
@@ -68,9 +172,9 @@ export default function InventorySeasonModule({
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Calendar width={18} height={18} className="text-brand-accent" />
-            Sezónnost obratu
+            {t("seasonTitle")}
           </h3>
-          <Pill tone="neutral">Špička: {peak.label}</Pill>
+          <Pill tone="neutral">{t("peak", { label: peak.label })}</Pill>
         </div>
 
         <div className="mt-5 flex items-end gap-1.5" style={{ height: 120 }}>
@@ -81,9 +185,9 @@ export default function InventorySeasonModule({
             const bg = isCurrent ? "bg-brand-600" : isNext ? "bg-brand-400" : "bg-brand-100";
             return (
               <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
-                <span className="tnum text-[11px] text-muted">{fmtMultiple(m.index)}</span>
+                <span className="tnum text-[11px] text-muted">{fmt.fmtMultiple(m.index)}</span>
                 <div className="flex w-full items-end" style={{ height: 104 }}>
-                  <div className={`w-full rounded-t ${bg}`} style={{ height: h }} title={`${m.label}: ${fmtMultiple(m.index)}`} />
+                  <div className={`w-full rounded-t ${bg}`} style={{ height: h }} title={`${m.label}: ${fmt.fmtMultiple(m.index)}`} />
                 </div>
                 <span className={`text-[11px] ${isCurrent ? "font-semibold text-navy-800" : "text-muted"}`}>
                   {m.label}
@@ -99,24 +203,24 @@ export default function InventorySeasonModule({
         </div>
       </div>
 
-      {/* #3 seasonality-scaled budget plan */}
+      {/* seasonality-scaled budget plan */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Coins width={18} height={18} className="text-brand-accent" />
-            Plán rozpočtu podle sezóny
+            {t("budgetPlanTitle")}
           </h3>
-          <Pill tone="neutral">Základ {fmtCZK(budgetPlan.flatBudget)}/měs</Pill>
+          <Pill tone="neutral">{t("budgetBase", { amount: fmt.fmtCZK(budgetPlan.flatBudget) })}</Pill>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Měsíc</th>
-                <th className="px-4 py-3 text-right font-medium">Index</th>
-                <th className="px-4 py-3 text-right font-medium">Plán rozpočtu</th>
-                <th className="px-4 py-3 text-right font-medium">Δ vs. rovnoměrně</th>
-                <th className="px-5 py-3 font-medium">Pozn.</th>
+                <th className="px-5 py-3 font-medium">{t("colMonth")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colIndex")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colPlannedBudget")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colDeltaFlat")}</th>
+                <th className="px-5 py-3 font-medium">{t("colNote")}</th>
               </tr>
             </thead>
             <tbody>
@@ -130,22 +234,22 @@ export default function InventorySeasonModule({
                     <td className="px-5 py-3">
                       <span className={`font-medium ${isCurrent ? "text-navy-900" : "text-navy-800"}`}>
                         {r.label}
-                        {isCurrent ? " (nyní)" : ""}
+                        {isCurrent ? t("currentSuffix") : ""}
                       </span>
                     </td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmtMultiple(r.index)}</td>
-                    <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmtCZK(r.plannedBudget)}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtMultiple(r.index)}</td>
+                    <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtCZK(r.plannedBudget)}</td>
                     <td
                       className={`tnum px-4 py-3 text-right ${
                         r.deltaVsFlat > 0 ? "text-positive" : r.deltaVsFlat < 0 ? "text-coral-600" : "text-muted"
                       }`}
                     >
-                      {r.deltaVsFlat === 0 ? "—" : fmtSignedInt(r.deltaVsFlat)}
+                      {r.deltaVsFlat === 0 ? "—" : fmt.fmtSignedInt(r.deltaVsFlat)}
                     </td>
                     <td className="px-5 py-3 text-muted">
                       <span className="flex flex-wrap items-center gap-1.5">
-                        {r.isPeak && <Pill tone="brand">Špička</Pill>}
-                        {r.capped && <Pill tone="coral">Zastropováno zásobou</Pill>}
+                        {r.isPeak && <Pill tone="brand">{t("peakBadge")}</Pill>}
+                        {r.capped && <Pill tone="coral">{t("cappedBadge")}</Pill>}
                       </span>
                     </td>
                   </tr>
@@ -154,11 +258,11 @@ export default function InventorySeasonModule({
             </tbody>
             <tfoot>
               <tr className="border-t border-line text-sm font-semibold text-navy-800">
-                <td className="px-5 py-3">Celkem za rok</td>
+                <td className="px-5 py-3">{t("totalYear")}</td>
                 <td className="px-4 py-3" />
-                <td className="tnum px-4 py-3 text-right">{fmtCZK(budgetPlan.totalPlanned)}</td>
+                <td className="tnum px-4 py-3 text-right">{fmt.fmtCZK(budgetPlan.totalPlanned)}</td>
                 <td className="tnum px-4 py-3 text-right text-muted">
-                  {fmtSignedInt(budgetPlan.totalPlanned - budgetPlan.totalFlat)}
+                  {fmt.fmtSignedInt(budgetPlan.totalPlanned - budgetPlan.totalFlat)}
                 </td>
                 <td className="px-5 py-3" />
               </tr>
@@ -167,17 +271,17 @@ export default function InventorySeasonModule({
         </div>
       </div>
 
-      {/* stock pacing — #5 margin column + value-at-risk, #2 resuming badge */}
+      {/* stock pacing */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h3 className="text-base font-semibold text-navy-800">Skladová dostupnost &amp; rozpočet</h3>
+          <h3 className="text-base font-semibold text-navy-800">{t("stockTitle")}</h3>
           <div className="flex items-center gap-2">
-            {resumingCount > 0 && <Pill tone="brand">{resumingCount} k obnovení</Pill>}
-            {atRiskCount > 0 && <Pill tone="coral">{atRiskCount} brzy dojde</Pill>}
+            {resumingCount > 0 && <Pill tone="brand">{t("resuming", { n: resumingCount })}</Pill>}
+            {atRiskCount > 0 && <Pill tone="coral">{t("atRisk", { n: atRiskCount })}</Pill>}
             {pauseCount > 0 ? (
-              <Pill tone="negative">{pauseCount} k pozastavení</Pill>
+              <Pill tone="negative">{t("pause", { n: pauseCount })}</Pill>
             ) : (
-              atRiskCount === 0 && resumingCount === 0 && <Pill tone="positive">Zásoby v pořádku</Pill>
+              atRiskCount === 0 && resumingCount === 0 && <Pill tone="positive">{t("stockOk")}</Pill>
             )}
           </div>
         </div>
@@ -185,15 +289,15 @@ export default function InventorySeasonModule({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Produkt</th>
-                <th className="px-4 py-3 text-right font-medium">Sklad</th>
-                <th className="px-4 py-3 text-right font-medium">Prodej/den</th>
-                <th className="px-4 py-3 text-right font-medium">Dní zásoby</th>
-                <th className="px-4 py-3 text-right font-medium">Marže</th>
-                <th className="px-4 py-3 font-medium">Vyprodáno za</th>
-                <th className="px-4 py-3 font-medium">Naplánované obnovení</th>
-                <th className="px-4 py-3 font-medium">Stav</th>
-                <th className="px-5 py-3 font-medium">Doporučení</th>
+                <th className="px-5 py-3 font-medium">{t("colProduct")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colStock")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colDailySales")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colDaysOfCover")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colMargin")}</th>
+                <th className="px-4 py-3 font-medium">{t("colStockoutAt")}</th>
+                <th className="px-4 py-3 font-medium">{t("colResumeAt")}</th>
+                <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+                <th className="px-5 py-3 font-medium">{t("colAction")}</th>
               </tr>
             </thead>
             <tbody>
@@ -208,16 +312,16 @@ export default function InventorySeasonModule({
                         <span className="truncate">{product.title}</span>
                       </span>
                     </td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(product.stock)} ks</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{t("stockUnits", { n: fmt.fmtInt(product.stock) })}</td>
                     <td className="tnum px-4 py-3 text-right text-navy-700">{product.dailyVelocity.toFixed(1)}</td>
                     <td className={`tnum px-4 py-3 text-right font-medium ${marginRiskClass(row)}`}>
-                      {Number.isFinite(daysOfCover) ? `${Math.round(daysOfCover)} dní` : "—"}
+                      {Number.isFinite(daysOfCover) ? t("daysOfCover", { n: Math.round(daysOfCover) }) : "—"}
                     </td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(margin)}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(margin)}</td>
                     <td className="tnum px-4 py-3">
                       {stockoutAt ? (
                         <span className={atRisk ? "font-medium text-coral-600" : "text-navy-700"}>
-                          {fmtDateShort(stockoutAt)}
+                          {fmt.fmtDateShort(stockoutAt)}
                         </span>
                       ) : (
                         <span className="text-muted">—</span>
@@ -227,7 +331,7 @@ export default function InventorySeasonModule({
                       {resumeAt ? (
                         <span className="flex items-center gap-1.5 font-medium text-brand-700">
                           <Refresh width={14} height={14} aria-hidden />
-                          {fmtDateShort(resumeAt)}
+                          {fmt.fmtDateShort(resumeAt)}
                         </span>
                       ) : (
                         <span className="text-muted">—</span>
@@ -244,10 +348,10 @@ export default function InventorySeasonModule({
             <tfoot>
               <tr className="border-t border-line text-sm font-semibold text-navy-800">
                 <td className="px-5 py-3" colSpan={6}>
-                  Marží vážená hodnota v riziku (omezené SKU)
+                  {t("valueAtRisk")}
                 </td>
                 <td className="tnum px-4 py-3 text-right text-coral-600" colSpan={3}>
-                  {fmtCZK(valueAtRisk)}
+                  {fmt.fmtCZK(valueAtRisk)}
                 </td>
               </tr>
             </tfoot>
@@ -255,28 +359,30 @@ export default function InventorySeasonModule({
         </div>
       </div>
 
-      {/* #1 per-SKU budget change-set proposal */}
+      {/* per-SKU budget change-set proposal */}
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Refresh width={18} height={18} className="text-brand-accent" />
-            Navrhnout přesun rozpočtu
+            {t("budgetShiftTitle")}
           </h3>
-          {changeSet.moves.length > 0 && <Pill tone="brand">Přesun {fmtCZK(changeSet.totalShifted)}</Pill>}
+          {changeSet.moves.length > 0 && (
+            <Pill tone="brand">{t("shiftTotal", { amount: fmt.fmtCZK(changeSet.totalShifted) })}</Pill>
+          )}
         </div>
         {changeSet.moves.length === 0 ? (
           <p className="px-5 py-6 text-sm text-muted">
-            Žádný přesun není potřeba — všechny SKU mohou jet naplno.
+            {t("noShift")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Z (omezené SKU)</th>
-                  <th className="px-4 py-3 font-medium">Do (rychloobrátkové SKU)</th>
-                  <th className="px-4 py-3 font-medium">Kategorie</th>
-                  <th className="px-5 py-3 text-right font-medium">Přesun</th>
+                  <th className="px-5 py-3 font-medium">{t("colFrom")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colTo")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colCategory")}</th>
+                  <th className="px-5 py-3 text-right font-medium">{t("colShift")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -285,7 +391,7 @@ export default function InventorySeasonModule({
                     <td className="px-5 py-3 text-navy-700">{m.fromTitle}</td>
                     <td className="px-4 py-3 font-medium text-navy-800">{m.toTitle}</td>
                     <td className="px-4 py-3 text-muted">{m.category}</td>
-                    <td className="tnum px-5 py-3 text-right font-medium text-positive">+{fmtCZK(m.amountCzk)}</td>
+                    <td className="tnum px-5 py-3 text-right font-medium text-positive">+{fmt.fmtCZK(m.amountCzk)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -293,11 +399,11 @@ export default function InventorySeasonModule({
           </div>
         )}
         <p className="border-t border-line px-5 py-3 text-xs text-muted">
-          Pouze návrh — částky vycházejí z odhadu výdajů na SKU a neprovádějí žádnou změnu rozpočtu.
+          {t("shiftNote")}
         </p>
       </div>
 
-      <NextSteps steps={[{ to: "kampane", label: "Upravit rozpočet", hint: "Pozastavit reklamu u docházejících SKU" }]} />
+      <NextSteps steps={[{ to: "kampane", label: t("nextStep"), hint: t("nextStepHint") }]} />
     </div>
   );
 }

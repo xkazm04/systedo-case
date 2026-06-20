@@ -6,6 +6,48 @@ import { Bolt, Check, Copy, Info, Refresh, Sparkles } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import type { RecentReview } from "@/lib/local/sample";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    latestReviews: "Nejnovější recenze",
+    aiDraftBadge: "AI návrh odpovědi",
+    generating: "Generuji…",
+    suggestAgain: "Navrhnout znovu",
+    suggest: "Navrhnout odpověď",
+    generatingStatus: "Připravuji veřejnou odpověď modelem…",
+    timedOut: "Model neodpověděl včas — zkuste to prosím znovu.",
+    generationFailed: "Generování selhalo",
+    retryBtn: "Zkusit znovu",
+    draftLabel: "Návrh odpovědi",
+    demoMode: "Ukázkový režim",
+    aiReply: "AI odpověď",
+    copyAriaLabel: "Kopírovat odpověď",
+    copy: "Kopírovat",
+    copied: "Zkopírováno",
+    demoModeDetail: "Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.",
+    footerNote: "Odpovídejte na recenze veřejně — vřelé poděkování buduje důvěru, vstřícná reakce na kritiku snižuje její dopad. Seam: reviews API (Google Business Profile).",
+  },
+  en: {
+    latestReviews: "Latest reviews",
+    aiDraftBadge: "AI reply draft",
+    generating: "Generating…",
+    suggestAgain: "Suggest again",
+    suggest: "Suggest reply",
+    generatingStatus: "Preparing a public reply with the model…",
+    timedOut: "Model timed out — please try again.",
+    generationFailed: "Generation failed",
+    retryBtn: "Retry",
+    draftLabel: "Reply draft",
+    demoMode: "Demo mode",
+    aiReply: "AI reply",
+    copyAriaLabel: "Copy reply",
+    copy: "Copy",
+    copied: "Copied",
+    demoModeDetail: "Demo mode (no API key) — connect an LLM to generate with the model.",
+    footerNote: "Reply to reviews publicly — a warm thank-you builds trust, and an empathetic response to criticism reduces its impact. Seam: reviews API (Google Business Profile).",
+  },
+} as const;
 
 const star = (r: number) => `${r.toFixed(1).replace(".", ",")} ★`;
 
@@ -27,6 +69,8 @@ export default function LocalReviews({
   reviews: RecentReview[];
   businessType?: string;
 }) {
+  const t = useT(T);
+
   // Results persist by mode only, so we pin the current AI result to a review id
   // and ignore output meant for a different one.
   const { status, data, error, timedOut, run, reset } = useAiTool<LocalReviewReplyResult>("local-review-reply");
@@ -79,9 +123,9 @@ export default function LocalReviews({
       <div className="flex items-center justify-between border-b border-line px-5 py-4">
         <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
           <Sparkles width={18} height={18} className="text-brand-accent" />
-          Nejnovější recenze
+          {t("latestReviews")}
         </h3>
-        <Pill tone="brand">AI návrh odpovědi</Pill>
+        <Pill tone="brand">{t("aiDraftBadge")}</Pill>
       </div>
 
       <ul className="divide-y divide-line">
@@ -110,17 +154,17 @@ export default function LocalReviews({
                   {loadingThis ? (
                     <>
                       <Sparkles width={13} height={13} className="animate-pulse" />
-                      Generuji…
+                      {t("generating")}
                     </>
                   ) : hasDraft ? (
                     <>
                       <Refresh width={13} height={13} />
-                      Navrhnout znovu
+                      {t("suggestAgain")}
                     </>
                   ) : (
                     <>
                       <Bolt width={13} height={13} />
-                      Navrhnout odpověď
+                      {t("suggest")}
                     </>
                   )}
                 </button>
@@ -129,7 +173,7 @@ export default function LocalReviews({
               {loadingThis ? (
                 <p className="mt-3 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
                   <Sparkles width={14} height={14} className="shrink-0 animate-pulse" />
-                  Připravuji veřejnou odpověď modelem…
+                  {t("generatingStatus")}
                 </p>
               ) : null}
 
@@ -137,15 +181,15 @@ export default function LocalReviews({
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
                   <span className="text-negative">
                     {timedOut
-                      ? "Model neodpověděl včas — zkuste to prosím znovu."
-                      : `Generování selhalo${error ? `: ${error}` : "."}`}
+                      ? t("timedOut")
+                      : `${t("generationFailed")}${error ? `: ${error}` : "."}`}
                   </span>
                   <button
                     type="button"
                     onClick={() => suggest(r)}
                     className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
                   >
-                    Zkusit znovu
+                    {t("retryBtn")}
                   </button>
                 </div>
               ) : null}
@@ -154,16 +198,16 @@ export default function LocalReviews({
                 <div className="mt-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">Návrh odpovědi</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("draftLabel")}</p>
                       {activeId === r.id && isDemo ? (
                         <Pill tone="coral">
                           <Info width={12} height={12} />
-                          Ukázkový režim
+                          {t("demoMode")}
                         </Pill>
                       ) : (
                         <Pill tone="positive">
                           <Sparkles width={12} height={12} />
-                          AI odpověď
+                          {t("aiReply")}
                         </Pill>
                       )}
                     </div>
@@ -171,14 +215,14 @@ export default function LocalReviews({
                       type="button"
                       onClick={() => copyDraft(r.id)}
                       className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
-                      aria-label="Kopírovat odpověď"
+                      aria-label={t("copyAriaLabel")}
                     >
                       {copiedId === r.id ? (
                         <Check width={13} height={13} className="text-positive" />
                       ) : (
                         <Copy width={13} height={13} />
                       )}
-                      {copiedId === r.id ? "Zkopírováno" : "Kopírovat"}
+                      {copiedId === r.id ? t("copied") : t("copy")}
                     </button>
                   </div>
                   <textarea
@@ -193,7 +237,7 @@ export default function LocalReviews({
                   {activeId === r.id && isDemo ? (
                     <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
                       <Info width={14} height={14} className="shrink-0" />
-                      Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+                      {t("demoModeDetail")}
                     </p>
                   ) : null}
                 </div>
@@ -204,8 +248,7 @@ export default function LocalReviews({
       </ul>
 
       <div className="border-t border-line px-5 py-3 text-xs text-muted">
-        Odpovídejte na recenze veřejně — vřelé poděkování buduje důvěru, vstřícná reakce na kritiku
-        snižuje její dopad. Seam: reviews API (Google Business Profile).
+        {t("footerNote")}
       </div>
     </div>
   );

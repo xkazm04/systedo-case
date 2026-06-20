@@ -7,12 +7,25 @@ import ContentBriefGenerator from "@/components/ai/ContentBriefGenerator";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    articleTitle: "Publikovaný článek",
+    articleDesc: "Ukázka výsledné stránky — struktura, prolinkování, FAQ a strukturovaná data.",
+  },
+  en: {
+    articleTitle: "Published article",
+    articleDesc: "Preview of the result page — structure, internal links, FAQ and structured data.",
+  },
+} as const;
 
 /** Content module = the AI content-brief tool, seeded from the keyword module
- *  when the user arrived via "Vytvořit brief", plus a pointer to the published
+ *  when the user arrived via "Create brief", plus a pointer to the published
  *  article surface so the loop (brief → published article) is visible. */
 export default function ContentModule() {
   const project = useProject();
+  const t = useT(T);
   const [seed, setSeed] = useState<BriefSeed | null>(null);
 
   useEffect(() => {
@@ -44,10 +57,8 @@ export default function ContentModule() {
           <Document width={22} height={22} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold text-navy-800">Publikovaný článek</span>
-          <span className="block text-sm text-muted">
-            Ukázka výsledné stránky — struktura, prolinkování, FAQ a strukturovaná data.
-          </span>
+          <span className="block text-sm font-semibold text-navy-800">{t("articleTitle")}</span>
+          <span className="block text-sm text-muted">{t("articleDesc")}</span>
         </span>
         <ArrowRight
           width={18}

@@ -10,6 +10,46 @@ import {
   PROJECT_TYPE_META,
   type ProjectType,
 } from "@/lib/projects/types";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    typeLabel: "Typ projektu",
+    typeHint: "Určuje, které moduly se objeví v levém menu a jaké metriky uvidíte v přehledu.",
+    modulesFor: "Moduly pro",
+    projectName: "Název projektu",
+    namePlaceholder: "např. Mionelo",
+    website: "Web",
+    websiteOptional: "(nepovinné)",
+    websitePlaceholder: "mionelo.cz",
+    brandColor: "Barva značky",
+    colorLabel: "Barva",
+    errorEmpty: "Zadejte název projektu.",
+    errorCreate: "Nepodařilo se vytvořit projekt.",
+    errorGeneric: "Něco se pokazilo.",
+    submitting: "Zakládám…",
+    submit: "Vytvořit projekt",
+    cancel: "Zrušit",
+  },
+  en: {
+    typeLabel: "Project type",
+    typeHint: "Determines which modules appear in the left menu and which metrics you see in the overview.",
+    modulesFor: "Modules for",
+    projectName: "Project name",
+    namePlaceholder: "e.g. Mionelo",
+    website: "Website",
+    websiteOptional: "(optional)",
+    websitePlaceholder: "mionelo.com",
+    brandColor: "Brand color",
+    colorLabel: "Color",
+    errorEmpty: "Enter a project name.",
+    errorCreate: "Failed to create project.",
+    errorGeneric: "Something went wrong.",
+    submitting: "Creating…",
+    submit: "Create project",
+    cancel: "Cancel",
+  },
+} as const;
 
 /** Accent presets a project can be branded with (brand-ramp + a few extras). */
 const ACCENTS = ["#14b8b1", "#0e9c97", "#6366f1", "#8b5cf6", "#fb7141", "#d4503e"];
@@ -24,6 +64,7 @@ export default function CreateProjectForm({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+  const t = useT(T);
   const [type, setType] = useState<ProjectType>("eshop");
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
@@ -39,7 +80,7 @@ export default function CreateProjectForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Zadejte název projektu.");
+      setError(t("errorEmpty"));
       return;
     }
     setSubmitting(true);
@@ -51,10 +92,10 @@ export default function CreateProjectForm({
         body: JSON.stringify({ name, type, accentColor: accent, domain: domain.trim() || undefined }),
       });
       const json = (await res.json()) as { project?: { id: string }; error?: string };
-      if (!res.ok || !json.project) throw new Error(json.error ?? "Nepodařilo se vytvořit projekt.");
+      if (!res.ok || !json.project) throw new Error(json.error ?? t("errorCreate"));
       router.push(`/app/${json.project.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Něco se pokazilo.");
+      setError(err instanceof Error ? err.message : t("errorGeneric"));
       setSubmitting(false);
     }
   }
@@ -65,19 +106,19 @@ export default function CreateProjectForm({
     <form onSubmit={submit} className="space-y-8">
       {/* type picker */}
       <fieldset>
-        <legend className="text-sm font-semibold text-navy-800">Typ projektu</legend>
+        <legend className="text-sm font-semibold text-navy-800">{t("typeLabel")}</legend>
         <p className="mt-1 text-sm text-muted">
-          Určuje, které moduly se objeví v levém menu a jaké metriky uvidíte v přehledu.
+          {t("typeHint")}
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {PROJECT_TYPES.map((t) => {
-            const meta = PROJECT_TYPE_META[t];
-            const selected = t === type;
+          {PROJECT_TYPES.map((pt) => {
+            const meta = PROJECT_TYPE_META[pt];
+            const selected = pt === type;
             return (
               <button
-                key={t}
+                key={pt}
                 type="button"
-                onClick={() => pickType(t)}
+                onClick={() => pickType(pt)}
                 aria-pressed={selected}
                 className={`relative flex items-start gap-3 rounded-card border p-4 text-left transition-all ${
                   selected
@@ -107,7 +148,7 @@ export default function CreateProjectForm({
       {/* module preview for the chosen type */}
       <div className="rounded-card border border-line bg-canvas px-4 py-3.5">
         <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted">
-          {`Moduly pro „${PROJECT_TYPE_META[type].label}"`}
+          {`${t("modulesFor")} „${PROJECT_TYPE_META[type].label}“`}
         </p>
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {previewModules.map((m) => (
@@ -125,23 +166,23 @@ export default function CreateProjectForm({
       {/* name + domain */}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="text-sm font-medium text-navy-800">Název projektu</span>
+          <span className="text-sm font-medium text-navy-800">{t("projectName")}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="např. Mionelo"
+            placeholder={t("namePlaceholder")}
             className={`mt-1.5 ${inputClass}`}
             autoFocus
           />
         </label>
         <label className="block">
           <span className="text-sm font-medium text-navy-800">
-            Web <span className="font-normal text-muted">(nepovinné)</span>
+            {t("website")} <span className="font-normal text-muted">{t("websiteOptional")}</span>
           </span>
           <input
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
-            placeholder="mionelo.cz"
+            placeholder={t("websitePlaceholder")}
             className={`mt-1.5 ${inputClass}`}
           />
         </label>
@@ -149,13 +190,13 @@ export default function CreateProjectForm({
 
       {/* accent */}
       <div>
-        <span className="text-sm font-medium text-navy-800">Barva značky</span>
+        <span className="text-sm font-medium text-navy-800">{t("brandColor")}</span>
         <div className="mt-2 flex items-center gap-2">
           {ACCENTS.map((c) => (
             <button
               key={c}
               type="button"
-              aria-label={`Barva ${c}`}
+              aria-label={`${t("colorLabel")} ${c}`}
               aria-pressed={accent === c}
               onClick={() => setAccent(c)}
               className={`h-8 w-8 rounded-full transition-transform hover:scale-110 ${
@@ -179,7 +220,7 @@ export default function CreateProjectForm({
           disabled={submitting}
           className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
-          {submitting ? "Zakládám…" : "Vytvořit projekt"}
+          {submitting ? t("submitting") : t("submit")}
           {!submitting && <ArrowRight width={16} height={16} />}
         </button>
         {onCancel && (
@@ -188,7 +229,7 @@ export default function CreateProjectForm({
             onClick={onCancel}
             className="rounded-pill px-4 py-3 text-sm font-medium text-muted transition-colors hover:text-navy-700"
           >
-            Zrušit
+            {t("cancel")}
           </button>
         )}
       </div>

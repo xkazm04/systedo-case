@@ -4,7 +4,34 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Anomaly, Bucket } from "@/lib/metrics";
 import { METRICS, RATIO_METRICS } from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
-import { fmtDateShort, fmtMonth, fmtPct, fmtSignedPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    ariaWithCompare: "Vývoj metriky {label} v čase se srovnáním s předchozím obdobím",
+    ariaNoCompare: "Vývoj metriky {label} v čase",
+    anomalySpike: "Prudký nárůst {pct} nad očekávání",
+    anomalyDrop: "Propad {pct} pod očekávání",
+    anomalyOutage: "Výpadek — hodnota u nuly oproti očekávání",
+    anomalyGoalBreach: "Překročení cílového PNO ({pno})",
+    legendCurrent: "Aktuální období",
+    legendPrevious: "Předchozí období",
+    tooltipPrevious: "Předchozí",
+    noChange: "beze změny",
+  },
+  en: {
+    ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
+    ariaNoCompare: "Trend of metric {label} over time",
+    anomalySpike: "Sharp spike {pct} above expected",
+    anomalyDrop: "Drop {pct} below expected",
+    anomalyOutage: "Outage — value near zero vs expected",
+    anomalyGoalBreach: "PNO target breached ({pno})",
+    legendCurrent: "Current period",
+    legendPrevious: "Previous period",
+    tooltipPrevious: "Previous",
+    noChange: "no change",
+  },
+} as const;
 
 const COLORS: Record<MetricKey, string> = {
   revenue: "var(--color-brand-500)",
@@ -20,27 +47,6 @@ const COLORS: Record<MetricKey, string> = {
 const H = 300;
 const PAD = { t: 18, r: 14, b: 30, l: 14 };
 const READOUT: MetricKey[] = ["revenue", "cost", "conversions", "visits", "pno"];
-
-/** Czech, one-line reason for an anomaly marker's tooltip. */
-function anomalyReason(a: Anomaly): string {
-  const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
-  switch (a.kind) {
-    case "spike":
-      return `Prudký nárůst ${fmtSignedPct(devPct)} nad očekávání`;
-    case "drop":
-      return `Propad ${fmtSignedPct(devPct)} pod očekávání`;
-    case "outage":
-      return "Výpadek — hodnota u nuly oproti očekávání";
-    case "goal-breach":
-      return `Překročení cílového PNO (${fmtPct(a.observed)})`;
-  }
-}
-
-/** A favourable anomaly = movement in the metric's good direction. */
-function anomalyFavourable(a: Anomaly, good: "up" | "down"): boolean {
-  if (a.kind === "outage" || a.kind === "goal-breach") return false;
-  return a.kind === "spike" ? good === "up" : good === "down";
-}
 
 export default function TrendChart({
   data,
@@ -58,6 +64,9 @@ export default function TrendChart({
    *  and a visible bucket are drawn as markers */
   anomalies?: Anomaly[];
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(760);
   const [hover, setHover] = useState<number | null>(null);
@@ -145,7 +154,8 @@ export default function TrendChart({
     .map((d, i) => ({ i, d }))
     .filter(({ i }) => i % labelStep === 0 || i === n - 1);
 
-  const fmtX = (iso: string) => (granularity === "month" ? fmtMonth(iso) : fmtDateShort(iso));
+  const fmtX = (iso: string) =>
+    granularity === "month" ? fmt.fmtMonth(iso) : fmt.fmtDateShort(iso);
 
   const onMove = (e: React.PointerEvent<SVGRectElement>) => {
     // the overlay rect's own left edge already sits at x = PAD.l, so px is
@@ -173,6 +183,27 @@ export default function TrendChart({
 
   const gradId = `grad-${metric}`;
 
+  /** Locale-bound reason string for an anomaly marker's tooltip. */
+  function anomalyReason(a: Anomaly): string {
+    const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
+    switch (a.kind) {
+      case "spike":
+        return t("anomalySpike", { pct: fmt.fmtSignedPct(devPct) });
+      case "drop":
+        return t("anomalyDrop", { pct: fmt.fmtSignedPct(devPct) });
+      case "outage":
+        return t("anomalyOutage");
+      case "goal-breach":
+        return t("anomalyGoalBreach", { pno: fmt.fmtPct(a.observed) });
+    }
+  }
+
+  /** A favourable anomaly = movement in the metric's good direction. */
+  function anomalyFavourable(a: Anomaly, good: "up" | "down"): boolean {
+    if (a.kind === "outage" || a.kind === "goal-breach") return false;
+    return a.kind === "spike" ? good === "up" : good === "down";
+  }
+
   return (
     <div ref={wrapRef} className="relative w-full select-none">
       <svg
@@ -182,8 +213,8 @@ export default function TrendChart({
         role="img"
         aria-label={
           hasCompare
-            ? `Vývoj metriky ${meta.label} v čase se srovnáním s předchozím obdobím`
-            : `Vývoj metriky ${meta.label} v čase`
+            ? t("ariaWithCompare", { label: meta.label })
+            : t("ariaNoCompare", { label: meta.label })
         }
       >
         <defs>
@@ -331,14 +362,14 @@ export default function TrendChart({
         <div className="mt-2 flex items-center justify-center gap-4 text-[13px] text-muted">
           <span className="flex items-center gap-1.5">
             <span className="inline-block h-[3px] w-4 rounded-full" style={{ background: color }} />
-            Aktuální období
+            {t("legendCurrent")}
           </span>
           <span className="flex items-center gap-1.5">
             <span
               className="inline-block w-4 border-t-2 border-dotted"
               style={{ borderColor: color, opacity: 0.55 }}
             />
-            Předchozí období
+            {t("legendPrevious")}
           </span>
         </div>
       )}
@@ -351,7 +382,7 @@ export default function TrendChart({
           style={{ left: tipLeft }}
         >
           <p className="text-xs font-semibold text-navy-700">
-            {granularity === "month" ? fmtMonth(tipBucket.date) : fmtDateShort(tipBucket.date)}
+            {granularity === "month" ? fmt.fmtMonth(tipBucket.date) : fmt.fmtDateShort(tipBucket.date)}
           </p>
           <p className="tnum mt-1 text-lg font-semibold" style={{ color }}>
             {meta.format(tipBucket[metric])}
@@ -370,17 +401,17 @@ export default function TrendChart({
           {cmpVal !== undefined && (
             <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[13px]">
               <span className="text-muted">
-                Předchozí{" "}
+                {t("tooltipPrevious")}{" "}
                 <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal)}</span>
               </span>
               {cmpDelta !== undefined && Math.abs(cmpDelta) >= 0.0005 ? (
                 <span
                   className={`tnum font-semibold ${cmpImproving ? "text-positive" : "text-negative"}`}
                 >
-                  {fmtSignedPct(cmpDelta)}
+                  {fmt.fmtSignedPct(cmpDelta)}
                 </span>
               ) : (
-                <span className="text-muted">beze změny</span>
+                <span className="text-muted">{t("noChange")}</span>
               )}
             </div>
           )}

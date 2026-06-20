@@ -6,11 +6,116 @@ import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
 import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { cohortTrend, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import type { Cohort } from "@/lib/ltv/sample";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
+
+const T = {
+  cs: {
+    blendedCac: "Blended CAC",
+    blendedCacSub: "vč. organické / přímé",
+    paidCac: "Placené CAC",
+    paidCacSub: "{count} placených {unit}",
+    ltvCac: "LTV : CAC",
+    ltvCacTarget: "cíl ≥ 3,0×",
+    payback: "Návratnost",
+    healthyInsight: "Jednotková ekonomika je zdravá (LTV:CAC ≥ 3). Akvizici lze škálovat — optimalizujte na dobu návratnosti, ne na {scaleOn}.",
+    unhealthyInsight: "LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete {improve} nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu.",
+    cohortTableTitle: "Kohorty měsíc po měsíci",
+    trendSub: "{from} → {to}: CAC {cacDelta}, LTV {ltvDelta}, LTV:CAC {ltvCacDelta}",
+    trendLabel: "Trend:",
+    improving: "zlepšuje se",
+    worsening: "zhoršuje se",
+    flat: "beze změny",
+    colCohort: "Kohorta",
+    colPayback: "Návratnost",
+    paybackMonths: "{n} měs.",
+    paybackOver: "> 12 měs.",
+    legendObserved: "pozorováno",
+    legendModelled: "modelováno",
+    ltvNote: "LTV počítáno na {months} měsíců s extrapolací {curve}. {seam}",
+    channelTableTitle: "CAC a návratnost podle akvizičního kanálu",
+    channelTableDesc: "Placené i organické kanály z kohort s rozpadem. LTV:CAC sdílí hodnotu zákazníka kohorty.",
+    freeTag: "zdarma",
+    channelFooter: "CAC je vlastní útrata kanálu na {unitSingular}; organické / přímé kanály mají nulové akviziční náklady, proto se nezapočítávají do placené CAC.",
+    nextStepLabel: "Přesunout rozpočet do kanálů s rychlou návratností",
+    nextStepHint: "Přidat do kanálů s nejlepší LTV:CAC a nejkratší dobou návratnosti",
+    sparklineAriaLabel: "Retenční křivka kohorty {month}: {observed} pozorovaných měsíců, do M{last} modelováno na {pct}",
+    // project-type labels — eshop
+    eshopUnit: "Zákazníci",
+    eshopUnitLower: "zákazníků",
+    eshopUnitSingular: "zákazníka",
+    eshopM3: "M3 opakování",
+    eshopCurve: "Křivka opakování",
+    eshopCurveLower: "křivky opakování",
+    eshopImprove: "opakované nákupy / hodnotu objednávky",
+    eshopScaleOn: "počet objednávek",
+    eshopSeam: "Seam: napojit objednávky a zákazníky z e-shopu / CRM (Shoptet, Shopify, GA4 e-commerce).",
+    // project-type labels — saas/app
+    saasUnit: "Registrace",
+    saasUnitLower: "registrací",
+    saasUnitSingular: "registraci",
+    saasM3: "M3 retence",
+    saasCurve: "Retenční křivka",
+    saasCurveLower: "retenční křivky",
+    saasImprove: "retenci / ARPU",
+    saasScaleOn: "počet registrací",
+    saasSeam: "Seam: napojit události z product analytics (Segment / PostHog / Stripe).",
+  },
+  en: {
+    blendedCac: "Blended CAC",
+    blendedCacSub: "incl. organic / direct",
+    paidCac: "Paid CAC",
+    paidCacSub: "{count} paid {unit}",
+    ltvCac: "LTV : CAC",
+    ltvCacTarget: "target ≥ 3.0×",
+    payback: "Payback",
+    healthyInsight: "Unit economics are healthy (LTV:CAC ≥ 3). Acquisition can scale — optimise for payback period, not {scaleOn}.",
+    unhealthyInsight: "LTV:CAC is below the 3× target. Before adding budget, improve {improve} or lower CAC — otherwise faster acquisition deepens the loss.",
+    cohortTableTitle: "Cohorts month by month",
+    trendSub: "{from} → {to}: CAC {cacDelta}, LTV {ltvDelta}, LTV:CAC {ltvCacDelta}",
+    trendLabel: "Trend:",
+    improving: "improving",
+    worsening: "worsening",
+    flat: "flat",
+    colCohort: "Cohort",
+    colPayback: "Payback",
+    paybackMonths: "{n} mo.",
+    paybackOver: "> 12 mo.",
+    legendObserved: "observed",
+    legendModelled: "modelled",
+    ltvNote: "LTV calculated over {months} months with {curve} extrapolation. {seam}",
+    channelTableTitle: "CAC and payback by acquisition channel",
+    channelTableDesc: "Paid and organic channels from cohorts with breakdown. LTV:CAC shares the cohort's customer value.",
+    freeTag: "free",
+    channelFooter: "CAC is the channel's own spend per {unitSingular}; organic / direct channels have zero acquisition cost and are excluded from paid CAC.",
+    nextStepLabel: "Shift budget to channels with fast payback",
+    nextStepHint: "Increase spend in channels with the best LTV:CAC and shortest payback",
+    sparklineAriaLabel: "Retention curve for cohort {month}: {observed} observed months, modelled to M{last} at {pct}",
+    // project-type labels — eshop
+    eshopUnit: "Customers",
+    eshopUnitLower: "customers",
+    eshopUnitSingular: "customer",
+    eshopM3: "M3 repeat",
+    eshopCurve: "Repeat curve",
+    eshopCurveLower: "repeat curve",
+    eshopImprove: "repeat purchases / order value",
+    eshopScaleOn: "order count",
+    eshopSeam: "Seam: connect orders and customers from e-shop / CRM (Shoptet, Shopify, GA4 e-commerce).",
+    // project-type labels — saas/app
+    saasUnit: "Sign-ups",
+    saasUnitLower: "sign-ups",
+    saasUnitSingular: "sign-up",
+    saasM3: "M3 retention",
+    saasCurve: "Retention curve",
+    saasCurveLower: "retention curve",
+    saasImprove: "retention / ARPU",
+    saasScaleOn: "sign-up count",
+    saasSeam: "Seam: connect events from product analytics (Segment / PostHog / Stripe).",
+  },
+} as const;
 
 function ratioTone(r: number): string {
   if (r >= 3) return "text-positive";
@@ -18,16 +123,9 @@ function ratioTone(r: number): string {
   return "text-negative";
 }
 
-/** Visual treatment for a trend direction: tone + Czech label + icon. */
-const TREND_META: Record<TrendDirection, { label: string; tone: string; Icon: typeof TrendUp }> = {
-  improving: { label: "zlepšuje se", tone: "text-positive", Icon: TrendUp },
-  worsening: { label: "zhoršuje se", tone: "text-negative", Icon: TrendDown },
-  flat: { label: "beze změny", tone: "text-muted", Icon: TrendUp },
-};
-
-/** Render an absolute delta as a signed percent of its base ("+12,4 %"), falling
+/** Render an absolute delta as a signed percent of its base ("+12.4 %"), falling
  *  back to "—" when the base is zero (no meaningful relative change). */
-function fmtSignedPctSafe(delta: number, base: number): string {
+function fmtSignedPctSafe(fmtSignedPct: (v: number) => string, delta: number, base: number): string {
   return base !== 0 ? fmtSignedPct(delta / base) : "—";
 }
 
@@ -90,15 +188,13 @@ function channelColor(channel: string): string {
 const SPARK_W = 96;
 const SPARK_H = 28;
 
-/** Inline SVG retention sparkline for one cohort (vlastní SVG graf): the observed
+/** Inline SVG retention sparkline for one cohort: the observed
  *  months render as a solid line, the extrapolated tail as a lighter dashed line,
  *  so the modeled part of the decay reads as an estimate, not measured data. */
-function SurvivalSpark({ row }: { row: CohortMetrics }) {
+function SurvivalSpark({ row, ariaLabel }: { row: CohortMetrics; ariaLabel: string }) {
   const { observed, extrapolated } = survivalSparkline(row.survival, row.observedMonths, SPARK_W, SPARK_H);
   if (observed.length === 0) return <span className="text-muted">—</span>;
   const lastObserved = observed[observed.length - 1]!;
-  const lastMonth = row.survival.length;
-  const lastPct = fmtPct(row.survival[row.survival.length - 1] ?? 0);
   return (
     <svg
       viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
@@ -106,7 +202,7 @@ function SurvivalSpark({ row }: { row: CohortMetrics }) {
       height={SPARK_H}
       className="overflow-visible"
       role="img"
-      aria-label={`Retenční křivka kohorty ${row.month}: ${row.observedMonths} pozorovaných měsíců, do M${lastMonth - 1} modelováno na ${lastPct}`}
+      aria-label={ariaLabel}
     >
       {extrapolated.length >= 2 && (
         <polyline
@@ -135,7 +231,7 @@ function SurvivalSpark({ row }: { row: CohortMetrics }) {
   );
 }
 
-export default function LtvModule({
+export default async function LtvModule({
   rows,
   summary,
   cohorts,
@@ -148,60 +244,70 @@ export default function LtvModule({
   /** e-shop project → customer / repeat-purchase framing instead of signup / retention */
   eshop?: boolean;
 }) {
-  // Project-type-aware labels: an e-shop owner reads "customers / repeat purchases /
-  // order value", not "signups / retention / ARPU" — same math, correct framing.
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
+  // Project-type-aware labels.
   const L = eshop
     ? {
-        unit: "Zákazníci",
-        unitLower: "zákazníků",
-        unitSingular: "zákazníka",
-        m3: "M3 opakování",
-        curve: "Křivka opakování",
-        curveLower: "křivky opakování",
-        improve: "opakované nákupy / hodnotu objednávky",
-        scaleOn: "počet objednávek",
-        seam: "Seam: napojit objednávky a zákazníky z e-shopu / CRM (Shoptet, Shopify, GA4 e-commerce).",
+        unit: t("eshopUnit"),
+        unitLower: t("eshopUnitLower"),
+        unitSingular: t("eshopUnitSingular"),
+        m3: t("eshopM3"),
+        curve: t("eshopCurve"),
+        curveLower: t("eshopCurveLower"),
+        improve: t("eshopImprove"),
+        scaleOn: t("eshopScaleOn"),
+        seam: t("eshopSeam"),
       }
     : {
-        unit: "Registrace",
-        unitLower: "registrací",
-        unitSingular: "registraci",
-        m3: "M3 retence",
-        curve: "Retenční křivka",
-        curveLower: "retenční křivky",
-        improve: "retenci / ARPU",
-        scaleOn: "počet registrací",
-        seam: "Seam: napojit události z product analytics (Segment / PostHog / Stripe).",
+        unit: t("saasUnit"),
+        unitLower: t("saasUnitLower"),
+        unitSingular: t("saasUnitSingular"),
+        m3: t("saasM3"),
+        curve: t("saasCurve"),
+        curveLower: t("saasCurveLower"),
+        improve: t("saasImprove"),
+        scaleOn: t("saasScaleOn"),
+        seam: t("saasSeam"),
       };
+
+  const TREND_META: Record<TrendDirection, { label: string; tone: string; Icon: typeof TrendUp }> = {
+    improving: { label: t("improving"), tone: "text-positive", Icon: TrendUp },
+    worsening: { label: t("worsening"), tone: "text-negative", Icon: TrendDown },
+    flat: { label: t("flat"), tone: "text-muted", Icon: TrendUp },
+  };
+
   const healthy = summary.avgLtvCac >= 3;
   const channels = blendChannels(rows);
   const maxRatio = Math.max(...channels.map((x) => x.ltvCac), 1);
   const trend = cohortTrend(rows);
   const TrendIcon = trend ? TREND_META[trend.direction].Icon : null;
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Blended CAC</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtCZK(summary.blendedCac)}</p>
-          <p className="mt-1 text-xs text-muted">vč. organické / přímé</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("blendedCac")}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmt.fmtCZK(summary.blendedCac)}</p>
+          <p className="mt-1 text-xs text-muted">{t("blendedCacSub")}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Placené CAC</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtCZK(summary.paidCac)}</p>
-          <p className="mt-1 text-xs text-muted">{fmtInt(summary.paidSignups)} placených {L.unitLower}</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("paidCac")}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmt.fmtCZK(summary.paidCac)}</p>
+          <p className="mt-1 text-xs text-muted">{t("paidCacSub", { count: fmt.fmtInt(summary.paidSignups), unit: L.unitLower })}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">LTV : CAC</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("ltvCac")}</p>
           <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${ratioTone(summary.avgLtvCac)}`}>
-            {fmtMultiple(summary.avgLtvCac)}
+            {fmt.fmtMultiple(summary.avgLtvCac)}
           </p>
-          <p className="mt-1 text-xs text-muted">cíl ≥ 3,0×</p>
+          <p className="mt-1 text-xs text-muted">{t("ltvCacTarget")}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Návratnost</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("payback")}</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {summary.avgPayback != null ? `${summary.avgPayback.toFixed(1)} měs.` : "—"}
+            {summary.avgPayback != null ? t("paybackMonths", { n: summary.avgPayback.toFixed(1) }) : "—"}
           </p>
         </div>
       </div>
@@ -210,8 +316,8 @@ export default function LtvModule({
         <Bulb width={18} height={18} className={`mt-0.5 shrink-0 ${healthy ? "text-positive" : "text-coral-600"}`} />
         <p className="text-sm leading-relaxed text-navy-700">
           {healthy
-            ? `Jednotková ekonomika je zdravá (LTV:CAC ≥ 3). Akvizici lze škálovat — optimalizujte na dobu návratnosti, ne na ${L.scaleOn}.`
-            : `LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete ${L.improve} nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu.`}
+            ? t("healthyInsight", { scaleOn: L.scaleOn })
+            : t("unhealthyInsight", { improve: L.improve })}
         </p>
       </div>
 
@@ -222,12 +328,16 @@ export default function LtvModule({
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-navy-800">Kohorty měsíc po měsíci</p>
+            <p className="text-sm font-semibold text-navy-800">{t("cohortTableTitle")}</p>
             {trend && (
               <p className="mt-0.5 text-xs text-muted">
-                {trend.fromMonth} → {trend.toMonth}: CAC {fmtSignedPctSafe(trend.cacDelta, rows[0]!.cac)},
-                LTV {fmtSignedPctSafe(trend.ltvDelta, rows[0]!.ltv)}, LTV:CAC{" "}
-                {trend.ltvCacDeltaPct != null ? fmtSignedPct(trend.ltvCacDeltaPct) : "—"}
+                {t("trendSub", {
+                  from: trend.fromMonth,
+                  to: trend.toMonth,
+                  cacDelta: fmtSignedPctSafe(fmt.fmtSignedPct, trend.cacDelta, rows[0]!.cac),
+                  ltvDelta: fmtSignedPctSafe(fmt.fmtSignedPct, trend.ltvDelta, rows[0]!.ltv),
+                  ltvCacDelta: trend.ltvCacDeltaPct != null ? fmt.fmtSignedPct(trend.ltvCacDeltaPct) : "—",
+                })}
               </p>
             )}
           </div>
@@ -237,7 +347,7 @@ export default function LtvModule({
                 className={`inline-flex items-center gap-1.5 rounded-full bg-canvas px-2.5 py-1 text-xs font-medium ${TREND_META[trend.direction].tone}`}
               >
                 <TrendIcon width={14} height={14} className="shrink-0" />
-                Trend: {TREND_META[trend.direction].label}
+                {t("trendLabel")} {TREND_META[trend.direction].label}
               </span>
             )}
             <LtvReportButton rows={rows} />
@@ -247,37 +357,51 @@ export default function LtvModule({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Kohorta</th>
+                <th className="px-5 py-3 font-medium">{t("colCohort")}</th>
                 <th className="px-4 py-3 text-right font-medium">{L.unit}</th>
                 <th className="px-4 py-3 text-right font-medium">CAC</th>
                 <th className="px-4 py-3 text-right font-medium">{L.m3}</th>
                 <th className="px-4 py-3 text-center font-medium">{L.curve}</th>
                 <th className="px-4 py-3 text-right font-medium">LTV</th>
                 <th className="px-4 py-3 text-right font-medium">LTV:CAC</th>
-                <th className="px-4 py-3 text-right font-medium">Návratnost</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colPayback")}</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.month} className="border-b border-line/70 last:border-0">
-                  <td className="px-5 py-3 font-medium text-navy-800">{r.month}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(r.signups)}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZK(r.cac)}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(r.m3)}</td>
-                  <td className="px-4 py-3">
-                    <span className="flex justify-center">
-                      <SurvivalSpark row={r} />
-                    </span>
-                  </td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZK(r.ltv)}</td>
-                  <td className={`tnum px-4 py-3 text-right font-semibold ${ratioTone(r.ltvCac)}`}>
-                    {fmtMultiple(r.ltvCac)}
-                  </td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">
-                    {r.paybackMonth != null ? `${r.paybackMonth} měs.` : "> 12 měs."}
-                  </td>
-                </tr>
-              ))}
+              {rows.map((r) => {
+                const lastMonth = r.survival.length;
+                const lastPct = fmt.fmtPct(r.survival[r.survival.length - 1] ?? 0);
+                return (
+                  <tr key={r.month} className="border-b border-line/70 last:border-0">
+                    <td className="px-5 py-3 font-medium text-navy-800">{r.month}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(r.signups)}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZK(r.cac)}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.m3)}</td>
+                    <td className="px-4 py-3">
+                      <span className="flex justify-center">
+                        <SurvivalSpark
+                          row={r}
+                          ariaLabel={t("sparklineAriaLabel", {
+                            month: r.month,
+                            observed: r.observedMonths,
+                            last: lastMonth - 1,
+                            pct: lastPct,
+                          })}
+                        />
+                      </span>
+                    </td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZK(r.ltv)}</td>
+                    <td className={`tnum px-4 py-3 text-right font-semibold ${ratioTone(r.ltvCac)}`}>
+                      {fmt.fmtMultiple(r.ltvCac)}
+                    </td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">
+                      {r.paybackMonth != null
+                        ? t("paybackMonths", { n: r.paybackMonth })
+                        : t("paybackOver")}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -286,7 +410,7 @@ export default function LtvModule({
             <svg viewBox="0 0 18 8" width={18} height={8} aria-hidden="true">
               <line x1={0} y1={4} x2={18} y2={4} stroke="var(--color-brand-accent)" strokeWidth={1.75} />
             </svg>
-            pozorováno
+            {t("legendObserved")}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <svg viewBox="0 0 18 8" width={18} height={8} aria-hidden="true">
@@ -301,10 +425,10 @@ export default function LtvModule({
                 strokeDasharray="2 2"
               />
             </svg>
-            modelováno
+            {t("legendModelled")}
           </span>
           <span>
-            LTV počítáno na {12} měsíců s extrapolací {L.curveLower}. {L.seam}
+            {t("ltvNote", { months: 12, curve: L.curveLower, seam: L.seam })}
           </span>
         </div>
       </div>
@@ -312,19 +436,19 @@ export default function LtvModule({
       {channels.length > 0 && (
         <div className="card overflow-hidden">
           <div className="border-b border-line px-5 py-3.5">
-            <p className="text-sm font-semibold text-navy-800">CAC a návratnost podle akvizičního kanálu</p>
+            <p className="text-sm font-semibold text-navy-800">{t("channelTableTitle")}</p>
             <p className="mt-0.5 text-xs text-muted">
-              Placené i organické kanály z kohort s rozpadem. LTV:CAC sdílí hodnotu zákazníka kohorty.
+              {t("channelTableDesc")}
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Kanál</th>
+                  <th className="px-5 py-3 font-medium">{t("colCohort")}</th>
                   <th className="px-4 py-3 text-right font-medium">{L.unit}</th>
                   <th className="px-4 py-3 text-right font-medium">CAC</th>
-                  <th className="px-4 py-3 text-right font-medium">Návratnost</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colPayback")}</th>
                   <th className="px-4 py-3 text-right font-medium">LTV:CAC</th>
                 </tr>
               </thead>
@@ -340,17 +464,19 @@ export default function LtvModule({
                           {c.channel}
                           {!c.paid && (
                             <span className="rounded-full bg-canvas px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">
-                              zdarma
+                              {t("freeTag")}
                             </span>
                           )}
                         </span>
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.signups)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.signups)}</td>
                       <td className="tnum px-4 py-3 text-right text-navy-700">
-                        {c.paid ? fmtCZK(c.cac) : "—"}
+                        {c.paid ? fmt.fmtCZK(c.cac) : "—"}
                       </td>
                       <td className="tnum px-4 py-3 text-right text-navy-700">
-                        {c.paybackMonth != null ? `${c.paybackMonth.toFixed(1)} měs.` : "> 12 měs."}
+                        {c.paybackMonth != null
+                          ? t("paybackMonths", { n: c.paybackMonth.toFixed(1) })
+                          : t("paybackOver")}
                       </td>
                       <td className="px-4 py-3">
                         <span className="flex items-center justify-end gap-2">
@@ -361,7 +487,7 @@ export default function LtvModule({
                             />
                           </span>
                           <span className={`tnum font-semibold ${ratioTone(c.ltvCac)}`}>
-                            {c.ltvCac > 0 ? fmtMultiple(c.ltvCac) : "—"}
+                            {c.ltvCac > 0 ? fmt.fmtMultiple(c.ltvCac) : "—"}
                           </span>
                         </span>
                       </td>
@@ -371,8 +497,7 @@ export default function LtvModule({
             </table>
           </div>
           <div className="border-t border-line px-5 py-3 text-xs text-muted">
-            CAC je vlastní útrata kanálu na {L.unitSingular}; organické / přímé kanály mají nulové akviziční
-            náklady, proto se nezapočítávají do placené CAC.
+            {t("channelFooter", { unitSingular: L.unitSingular })}
           </div>
         </div>
       )}
@@ -381,8 +506,8 @@ export default function LtvModule({
         steps={[
           {
             to: "kampane",
-            label: "Přesunout rozpočet do kanálů s rychlou návratností",
-            hint: "Přidat do kanálů s nejlepší LTV:CAC a nejkratší dobou návratnosti",
+            label: t("nextStepLabel"),
+            hint: t("nextStepHint"),
           },
         ]}
       />

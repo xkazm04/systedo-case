@@ -19,7 +19,44 @@ import {
   TAIL_RATIO_MIN,
   type LtvHorizon,
 } from "@/lib/ltv/compute";
-import { fmtCZK, fmtMultiple, fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    panelTitle: "Projekce LTV s horizontem a pásmem nejistoty",
+    panelDesc: "Horizont i předpoklad odlivu přepočítají LTV i LTV:CAC živě. Pásmo „nízká … vysoká“ plyne z mezí extrapolace retenční křivky.",
+    horizonBtn: "{h} měs.",
+    expectedLtv: "Očekávané LTV ({h} měs.)",
+    bandLabel: "pásmo {low} … {high}",
+    bandLow: "nízká",
+    bandExpected: "očekávaná",
+    bandHigh: "vysoká",
+    ltvCacLabel: "LTV : CAC ({h} měs.)",
+    ltvCacBand: "pásmo {low} … {high} · cíl ≥ 3,0×",
+    cacNote: "Placené CAC {cac} se s horizontem nemění — projekce posouvá pouze hodnotu zákazníka.",
+    churnLabel: "Měsíční odliv (po pozorování)",
+    churnAriaLabel: "Předpoklad měsíčního odlivu pro extrapolaci retence",
+    churnAuto: "Auto",
+    churnNote: "Nižší odliv = pomalejší pokles retence = vyšší LTV. „Auto“ drží vlastní pozorovaný pokles každé kohorty (mez {min} … {max}).",
+  },
+  en: {
+    panelTitle: "LTV projection with horizon and uncertainty band",
+    panelDesc: "Adjusting the horizon or churn assumption recalculates LTV and LTV:CAC live. The low…high band comes from the retention curve extrapolation bounds.",
+    horizonBtn: "{h} mo.",
+    expectedLtv: "Expected LTV ({h} mo.)",
+    bandLabel: "band {low} … {high}",
+    bandLow: "low",
+    bandExpected: "expected",
+    bandHigh: "high",
+    ltvCacLabel: "LTV : CAC ({h} mo.)",
+    ltvCacBand: "band {low} … {high} · target ≥ 3.0×",
+    cacNote: "Paid CAC {cac} does not change with the horizon — the projection only shifts customer value.",
+    churnLabel: "Monthly churn (post-observation)",
+    churnAriaLabel: "Monthly churn assumption for retention extrapolation",
+    churnAuto: "Auto",
+    churnNote: "Lower churn = slower retention decay = higher LTV. \“Auto\” uses each cohort's own observed decay (bounds {min} … {max}).",
+  },
+} as const;
 
 function ratioTone(r: number): string {
   if (r >= 3) return "text-positive";
@@ -38,6 +75,9 @@ export default function LtvProjectionPanel({
   /** blended paid CAC the band divides by; horizon-independent, server-computed */
   paidCac: number;
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const [horizon, setHorizon] = useState<LtvHorizon>(LTV_HORIZON as LtvHorizon);
   // null = "use each cohort's own observed decay" (the default expected curve);
   // a number overrides every cohort's tail with one churn assumption.
@@ -71,11 +111,10 @@ export default function LtvProjectionPanel({
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Gauge width={16} height={16} className="shrink-0 text-brand-accent" />
-            Projekce LTV s horizontem a pásmem nejistoty
+            {t("panelTitle")}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Horizont i předpoklad odlivu přepočítají LTV i LTV:CAC živě. Pásmo „nízká … vysoká“ plyne
-            z mezí extrapolace retenční křivky.
+            {t("panelDesc")}
           </p>
         </div>
         <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
@@ -89,7 +128,7 @@ export default function LtvProjectionPanel({
               }`}
               aria-pressed={horizon === h}
             >
-              {h} měs.
+              {t("horizonBtn", { h })}
             </button>
           ))}
         </div>
@@ -99,13 +138,13 @@ export default function LtvProjectionPanel({
         {/* expected projection + band */}
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted">
-            Očekávané LTV ({horizon} měs.)
+            {t("expectedLtv", { h: horizon })}
           </p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmtCZK(expectedLtv)}
+            {fmt.fmtCZK(expectedLtv)}
           </p>
           <p className="mt-1 text-xs text-muted">
-            pásmo {fmtCZK(base.low)} … {fmtCZK(base.high)}
+            {t("bandLabel", { low: fmt.fmtCZK(base.low), high: fmt.fmtCZK(base.high) })}
           </p>
 
           {/* low / expected / high band bar */}
@@ -128,25 +167,24 @@ export default function LtvProjectionPanel({
               />
             </div>
             <div className="mt-1 flex justify-between text-[11px] text-muted">
-              <span>nízká</span>
-              <span>očekávaná</span>
-              <span>vysoká</span>
+              <span>{t("bandLow")}</span>
+              <span>{t("bandExpected")}</span>
+              <span>{t("bandHigh")}</span>
             </div>
           </div>
         </div>
 
         {/* LTV:CAC band */}
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">LTV : CAC ({horizon} měs.)</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("ltvCacLabel", { h: horizon })}</p>
           <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${ratioTone(expectedRatio)}`}>
-            {fmtMultiple(expectedRatio)}
+            {fmt.fmtMultiple(expectedRatio)}
           </p>
           <p className="mt-1 text-xs text-muted">
-            pásmo {fmtMultiple(base.ltvCacLow)} … {fmtMultiple(base.ltvCacHigh)} · cíl ≥ 3,0×
+            {t("ltvCacBand", { low: fmt.fmtMultiple(base.ltvCacLow), high: fmt.fmtMultiple(base.ltvCacHigh) })}
           </p>
           <p className="mt-3 text-xs text-muted">
-            Placené CAC {fmtCZK(paidCac)} se s horizontem nemění — projekce posouvá pouze hodnotu
-            zákazníka.
+            {t("cacNote", { cac: fmt.fmtCZK(paidCac) })}
           </p>
         </div>
       </div>
@@ -154,7 +192,7 @@ export default function LtvProjectionPanel({
       {/* churn-assumption slider */}
       <div className="border-t border-line px-5 py-4">
         <label htmlFor="ltv-churn" className="flex flex-wrap items-center gap-3 text-sm">
-          <span className="w-40 shrink-0 text-navy-700">Měsíční odliv (po pozorování)</span>
+          <span className="w-40 shrink-0 text-navy-700">{t("churnLabel")}</span>
           <input
             id="ltv-churn"
             type="range"
@@ -164,22 +202,21 @@ export default function LtvProjectionPanel({
             value={churnPct}
             onChange={(e) => setRatioOverride(1 - Number(e.target.value))}
             className="h-1.5 min-w-40 flex-1 cursor-pointer accent-brand-600"
-            aria-label="Předpoklad měsíčního odlivu pro extrapolaci retence"
+            aria-label={t("churnAriaLabel")}
           />
-          <span className="tnum w-16 shrink-0 text-right text-navy-800">{fmtPct(churnPct)}</span>
+          <span className="tnum w-16 shrink-0 text-right text-navy-800">{fmt.fmtPct(churnPct)}</span>
           {ratioOverride != null && (
             <button
               type="button"
               onClick={() => setRatioOverride(null)}
               className="text-xs font-medium text-muted transition-colors hover:text-navy-700"
             >
-              Auto
+              {t("churnAuto")}
             </button>
           )}
         </label>
         <p className="mt-2 text-xs text-muted">
-          Nižší odliv = pomalejší pokles retence = vyšší LTV. „Auto“ drží vlastní pozorovaný pokles
-          každé kohorty (mez {fmtPct(1 - TAIL_RATIO_MAX)} … {fmtPct(1 - TAIL_RATIO_MIN)}).
+          {t("churnNote", { min: fmt.fmtPct(1 - TAIL_RATIO_MAX), max: fmt.fmtPct(1 - TAIL_RATIO_MIN) })}
         </p>
       </div>
     </div>

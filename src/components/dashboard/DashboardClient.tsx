@@ -24,7 +24,101 @@ import {
   type ChannelRow,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
-import { fmtCZK, fmtCZKCompact, fmtDateShort, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+import type { Formatters } from "@/lib/format";
+
+const T = {
+  cs: {
+    periodLabel: "Období:",
+    periodLast: "posledních {n}",
+    periodCompare: "· srovnání s předchozím stejně dlouhým obdobím",
+    dataReport: "Datový report",
+    trendHeading: "Vývoj v čase",
+    channelsHeading: "Výkon podle kanálů",
+    downloadTitle: "Stáhnout rozpad podle kanálů jako CSV",
+    periodSelector: "Výběr období",
+    chartMetricSelector: "Metrika grafu",
+    pnoVsGoal: "PNO vs. cíl",
+    goalLabel: "Cíl {pct} (celý web)",
+    overGoal: "o {delta} nad cílem",
+    onGoal: "v cíli",
+    goalMarker: "Cíl {pct}",
+    goalMarkerNote: "Svislá značka = cílová hodnota PNO.",
+    alerts: "Upozornění",
+    alertsImpact: "Odhadovaný dopad těchto událostí:",
+    alertsImpactTitle: "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním",
+    insights: "Co stojí za pozornost",
+    csvChannel: "Kanál",
+    csvCost: "Náklady (Kč)",
+    csvConversions: "Konverze",
+    csvRevenue: "Obrat (Kč)",
+    csvPno: "PNO",
+    csvRoas: "ROAS",
+    csvRevenueDelta: "Změna obratu",
+    csvTotal: "Celkem",
+    footnoteConvRate: "Konv. poměr {pct}",
+    footnoteAov: "AOV {val}",
+    footnoteRoas: "ROAS {val}",
+    pnoGoalMet: "splněn",
+    pnoGoalExceeded: "překročen",
+    pnoGoalFmt: "Cíl {pct} {status}",
+    insightRevenueUp: "Obrat vzrostl o {delta} oproti předchozímu období.",
+    insightRevenueDown: "Obrat klesl o {delta} oproti předchozímu období.",
+    insightPnoBelow: "Celkové PNO {pno} je pod cílem {goal}.",
+    insightPnoAbove: "Celkové PNO {pno} je nad cílem {goal}.",
+    insightBestRoas: "Nejefektivnější kanál je {channel} s ROAS {roas}.",
+    insightWorstPno: "{channel} má nejvyšší PNO {pno} — prostor pro optimalizaci nabídek.",
+    anomalySpike: "{metric} — nárůst {pct} nad očekávání",
+    anomalyDrop: "{metric} — propad {pct} pod očekávání",
+    anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
+    anomalyGoalBreach: "Překročení cílového PNO ({pno})",
+  },
+  en: {
+    periodLabel: "Period:",
+    periodLast: "last {n}",
+    periodCompare: "· compared with the previous period of equal length",
+    dataReport: "Data report",
+    trendHeading: "Trend over time",
+    channelsHeading: "Performance by channel",
+    downloadTitle: "Download channel breakdown as CSV",
+    periodSelector: "Period selector",
+    chartMetricSelector: "Chart metric",
+    pnoVsGoal: "Cost ratio vs. goal",
+    goalLabel: "Target {pct} (entire site)",
+    overGoal: "{delta} above target",
+    onGoal: "on target",
+    goalMarker: "Target {pct}",
+    goalMarkerNote: "Vertical marker = PNO target.",
+    alerts: "Alerts",
+    alertsImpact: "Estimated impact of these events:",
+    alertsImpactTitle: "Sum of revenue and cost deviations from expected on flagged days",
+    insights: "Worth noting",
+    csvChannel: "Channel",
+    csvCost: "Cost (CZK)",
+    csvConversions: "Conversions",
+    csvRevenue: "Revenue (CZK)",
+    csvPno: "PNO",
+    csvRoas: "ROAS",
+    csvRevenueDelta: "Revenue change",
+    csvTotal: "Total",
+    footnoteConvRate: "Conv. rate {pct}",
+    footnoteAov: "AOV {val}",
+    footnoteRoas: "ROAS {val}",
+    pnoGoalMet: "met",
+    pnoGoalExceeded: "exceeded",
+    pnoGoalFmt: "Target {pct} {status}",
+    insightRevenueUp: "Revenue grew by {delta} vs the previous period.",
+    insightRevenueDown: "Revenue fell by {delta} vs the previous period.",
+    insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
+    insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
+    insightBestRoas: "Most efficient channel is {channel} with ROAS {roas}.",
+    insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
+    anomalySpike: "{metric} — spike {pct} above expected",
+    anomalyDrop: "{metric} — drop {pct} below expected",
+    anomalyOutage: "{metric} — outage (value near zero)",
+    anomalyGoalBreach: "PNO target breached ({pno})",
+  },
+} as const;
 
 function Segmented<T extends string>({
   options,
@@ -91,6 +185,9 @@ function Segmented<T extends string>({
 }
 
 export default function DashboardClient({ data }: { data: PerformanceData }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const [periodKey, setPeriodKey] = useState("90d");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
 
@@ -103,7 +200,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // Flagged days across the whole series (chart markers + the alerts feed).
   const anomalies = detectAnomalies(data.daily, data.goals);
   const topAnomalies = [...anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
-  // Money effect of the flagged days, so "3 upozornění" reads as "≈ −85 tis. Kč".
+  // Money effect of the flagged days, so "3 alerts" reads as "≈ −85 tis. Kč".
   const impact = anomalyImpact(anomalies);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
@@ -117,13 +214,16 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
 
   // contextual secondary stat under each KPI
   const footnotes: Record<MetricKey, React.ReactNode> = {
-    visits: <>Konv. poměr {fmtPct(c.cr, 2)}</>,
-    cost: <>ROAS {fmtMultiple(c.roas)}</>,
-    conversions: <>AOV {fmtCZK(c.aov)}</>,
-    revenue: <>AOV {fmtCZK(c.aov)}</>,
+    visits: <>{t("footnoteConvRate", { pct: fmt.fmtPct(c.cr, 2) })}</>,
+    cost: <>{t("footnoteRoas", { val: fmt.fmtMultiple(c.roas) })}</>,
+    conversions: <>{t("footnoteAov", { val: fmt.fmtCZK(c.aov) })}</>,
+    revenue: <>{t("footnoteAov", { val: fmt.fmtCZK(c.aov) })}</>,
     pno: (
       <span className={c.pno <= goalPno ? "text-positive" : "text-coral-600"}>
-        Cíl {fmtPct(goalPno, 0)} {c.pno <= goalPno ? "splněn" : "překročen"}
+        {t("pnoGoalFmt", {
+          pct: fmt.fmtPct(goalPno, 0),
+          status: c.pno <= goalPno ? t("pnoGoalMet") : t("pnoGoalExceeded"),
+        })}
       </span>
     ),
     aov: null,
@@ -132,7 +232,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   };
 
   // auto-generated insights
-  const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno);
+  const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno, fmt, t);
 
   const pnoOverGoal = c.pno > goalPno;
   const gaugeMax = Math.max(c.pno, goalPno) * 1.6;
@@ -140,7 +240,15 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // Export the channel breakdown for the selected period as a CSV deliverable —
   // money/counts as raw integers, ratios as decimals, the PoP move formatted.
   const exportChannelsCsv = () => {
-    const headers = ["Kanál", "Náklady (Kč)", "Konverze", "Obrat (Kč)", "PNO", "ROAS", "Změna obratu"];
+    const headers = [
+      t("csvChannel"),
+      t("csvCost"),
+      t("csvConversions"),
+      t("csvRevenue"),
+      t("csvPno"),
+      t("csvRoas"),
+      t("csvRevenueDelta"),
+    ];
     const rows: (string | number)[][] = channels.map((r) => [
       r.channel,
       Math.round(r.cost),
@@ -148,16 +256,16 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       Math.round(r.revenue),
       r.pno > 0 ? r.pno.toFixed(4) : "",
       r.roas > 0 ? r.roas.toFixed(2) : "",
-      r.delta ? fmtSignedPct(r.delta.revenue) : "",
+      r.delta ? fmt.fmtSignedPct(r.delta.revenue) : "",
     ]);
     rows.push([
-      "Celkem",
+      t("csvTotal"),
       Math.round(c.cost),
       Math.round(c.conversions),
       Math.round(c.revenue),
       c.pno.toFixed(4),
       c.roas.toFixed(2),
-      fmtSignedPct(result.delta.revenue),
+      fmt.fmtSignedPct(result.delta.revenue),
     ]);
     downloadText(`systedo-kanaly-${period.key}.csv`, toCsv(headers, rows));
   };
@@ -168,18 +276,19 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <p className="text-sm text-muted">
-            Období: <span className="font-medium text-navy-700">posledních {period.label}</span>
-            <span className="text-muted"> · srovnání s předchozím stejně dlouhým obdobím</span>
+            {t("periodLabel")}{" "}
+            <span className="font-medium text-navy-700">{t("periodLast", { n: period.label })}</span>
+            <span className="text-muted"> {t("periodCompare")}</span>
           </p>
           <Link
             href="/clanek/vykon"
             className="inline-flex items-center gap-1 text-sm font-medium text-brand-accent hover:underline"
           >
-            Datový report <ArrowRight width={14} height={14} />
+            {t("dataReport")} <ArrowRight width={14} height={14} />
           </Link>
         </div>
         <Segmented
-          ariaLabel="Výběr období"
+          ariaLabel={t("periodSelector")}
           options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
           value={periodKey}
           onChange={setPeriodKey}
@@ -214,13 +323,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       <div className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-navy-800">Vývoj v čase</h2>
+            <h2 className="text-base font-semibold text-navy-800">{t("trendHeading")}</h2>
             <p className="mt-0.5 text-sm text-muted">
               {METRICS[trendMetric].description}
             </p>
           </div>
           <Segmented
-            ariaLabel="Metrika grafu"
+            ariaLabel={t("chartMetricSelector")}
             options={TREND_METRICS.map((m) => ({ value: m, label: METRICS[m].short }))}
             value={trendMetric}
             onChange={setTrendMetric}
@@ -241,13 +350,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-navy-800">Výkon podle kanálů</h2>
+            <h2 className="text-base font-semibold text-navy-800">{t("channelsHeading")}</h2>
             <div className="flex items-center gap-3">
               <span className="text-xs text-muted">{period.label}</span>
               <button
                 type="button"
                 onClick={exportChannelsCsv}
-                title="Stáhnout rozpad podle kanálů jako CSV"
+                title={t("downloadTitle")}
                 className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
               >
                 <Download width={14} height={14} />
@@ -269,17 +378,17 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <div className="card p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Target width={17} height={17} className="text-brand-600" />
-              PNO vs. cíl
+              {t("pnoVsGoal")}
             </div>
             <p className="tnum mt-3 text-3xl font-semibold tracking-tight text-navy-800">
-              {fmtPct(c.pno)}
+              {fmt.fmtPct(c.pno)}
             </p>
             <p className="mt-1 text-sm text-muted">
-              Cíl {fmtPct(goalPno, 0)} (celý web) ·{" "}
+              {t("goalLabel", { pct: fmt.fmtPct(goalPno, 0) })} ·{" "}
               <span className={pnoOverGoal ? "text-coral-600" : "text-positive"}>
                 {pnoOverGoal
-                  ? `o ${fmtSignedPct(c.pno - goalPno, 1).replace("+", "")} nad cílem`
-                  : "v cíli"}
+                  ? t("overGoal", { delta: fmt.fmtSignedPct(c.pno - goalPno, 1).replace("+", "") })
+                  : t("onGoal")}
               </span>
             </p>
             <div className="relative mt-4 h-2.5 rounded-full bg-navy-50">
@@ -290,10 +399,10 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               <div
                 className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-navy-700"
                 style={{ left: `${(goalPno / gaugeMax) * 100}%` }}
-                title={`Cíl ${fmtPct(goalPno, 0)}`}
+                title={t("goalMarker", { pct: fmt.fmtPct(goalPno, 0) })}
               />
             </div>
-            <p className="mt-2 text-[13px] text-muted">Svislá značka = cílová hodnota PNO.</p>
+            <p className="mt-2 text-[13px] text-muted">{t("goalMarkerNote")}</p>
           </div>
 
           {/* anomaly alerts feed */}
@@ -301,28 +410,28 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             <div className="card p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
                 <Bolt width={17} height={17} className="text-coral-600" />
-                Upozornění
+                {t("alerts")}
                 <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[13px]">
                   {anomalies.length}
                 </span>
               </div>
               {impact.count > 0 && Math.abs(impact.net) >= 1 && (
                 <p className="mt-1.5 text-xs text-muted">
-                  Odhadovaný dopad těchto událostí:{" "}
+                  {t("alertsImpact")}{" "}
                   <span
                     className={`tnum font-semibold ${
                       impact.net < 0 ? "text-coral-600" : "text-positive"
                     }`}
-                    title="Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním"
+                    title={t("alertsImpactTitle")}
                   >
                     {impact.net < 0 ? "−" : "+"}
-                    {fmtCZKCompact(Math.abs(impact.net))}
+                    {fmt.fmtCZKCompact(Math.abs(impact.net))}
                   </span>
                 </p>
               )}
               <ul className="mt-3 space-y-3">
                 {topAnomalies.map((a, i) => {
-                  const ins = anomalyLine(a);
+                  const ins = anomalyLine(a, fmt, t);
                   return (
                     <li key={i} className="flex gap-2.5 text-sm">
                       <span
@@ -339,7 +448,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                         )}
                       </span>
                       <span className="leading-snug text-navy-700">
-                        <span className="tnum font-medium text-navy-800">{fmtDateShort(a.date)}</span>{" "}
+                        <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span>{" "}
                         — {ins.text}
                       </span>
                     </li>
@@ -353,7 +462,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <div className="card p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Bulb width={17} height={17} className="text-brand-600" />
-              Co stojí za pozornost
+              {t("insights")}
             </div>
             <ul className="mt-3 space-y-3">
               {insights.map((ins, i) => (
@@ -391,11 +500,15 @@ interface Insight {
   tone: "good" | "warn" | "info";
 }
 
+type TFn = (key: keyof typeof T.cs, vars?: Record<string, string | number>) => string;
+
 function buildInsights(
   channels: ChannelRow[],
   revenueDelta: number,
   pno: number,
-  goalPno: number
+  goalPno: number,
+  fmt: Formatters,
+  t: TFn
 ): Insight[] {
   const out: Insight[] = [];
   const paid = channels.filter((ch) => ch.cost > 0);
@@ -405,8 +518,9 @@ function buildInsights(
       tone: revenueDelta > 0 ? "good" : "warn",
       text: (
         <>
-          Obrat {revenueDelta > 0 ? "vzrostl" : "klesl"} o{" "}
-          <strong>{fmtSignedPct(revenueDelta).replace("+", "")}</strong> oproti předchozímu období.
+          {revenueDelta > 0
+            ? t("insightRevenueUp", { delta: fmt.fmtSignedPct(revenueDelta).replace("+", "") })
+            : t("insightRevenueDown", { delta: fmt.fmtSignedPct(revenueDelta).replace("-", "") })}
         </>
       ),
     });
@@ -416,8 +530,9 @@ function buildInsights(
     tone: pno <= goalPno ? "good" : "warn",
     text: (
       <>
-        Celkové PNO <strong>{fmtPct(pno)}</strong> je{" "}
-        {pno <= goalPno ? "pod cílem" : "nad cílem"} {fmtPct(goalPno, 0)}.
+        {pno <= goalPno
+          ? t("insightPnoBelow", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })
+          : t("insightPnoAbove", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })}
       </>
     ),
   });
@@ -428,8 +543,7 @@ function buildInsights(
       tone: "good",
       text: (
         <>
-          Nejefektivnější kanál je <strong>{bestRoas.channel}</strong> s ROAS{" "}
-          {fmtMultiple(bestRoas.roas)}.
+          {t("insightBestRoas", { channel: bestRoas.channel, roas: fmt.fmtMultiple(bestRoas.roas) })}
         </>
       ),
     });
@@ -441,8 +555,7 @@ function buildInsights(
       tone: "warn",
       text: (
         <>
-          <strong>{worstPno.channel}</strong> má nejvyšší PNO {fmtPct(worstPno.pno)} — prostor pro
-          optimalizaci nabídek.
+          {t("insightWorstPno", { channel: worstPno.channel, pno: fmt.fmtPct(worstPno.pno) })}
         </>
       ),
     });
@@ -453,7 +566,11 @@ function buildInsights(
 
 // --- anomaly feed line ------------------------------------------------------
 
-function anomalyLine(a: Anomaly): { tone: "good" | "warn"; text: string } {
+function anomalyLine(
+  a: Anomaly,
+  fmt: Formatters,
+  t: TFn
+): { tone: "good" | "warn"; text: string } {
   const m = METRICS[a.metric].short;
   const good = METRICS[a.metric].goodDirection;
   const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
@@ -466,16 +583,16 @@ function anomalyLine(a: Anomaly): { tone: "good" | "warn"; text: string } {
   let text: string;
   switch (a.kind) {
     case "spike":
-      text = `${m} — nárůst ${fmtSignedPct(devPct)} nad očekávání`;
+      text = t("anomalySpike", { metric: m, pct: fmt.fmtSignedPct(devPct) });
       break;
     case "drop":
-      text = `${m} — propad ${fmtSignedPct(devPct)} pod očekávání`;
+      text = t("anomalyDrop", { metric: m, pct: fmt.fmtSignedPct(devPct) });
       break;
     case "outage":
-      text = `${m} — výpadek (hodnota u nuly)`;
+      text = t("anomalyOutage", { metric: m });
       break;
     case "goal-breach":
-      text = `Překročení cílového PNO (${fmtPct(a.observed)})`;
+      text = t("anomalyGoalBreach", { pno: fmt.fmtPct(a.observed) });
       break;
   }
   return { tone: favourable ? "good" : "warn", text };

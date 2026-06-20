@@ -10,6 +10,32 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 import AuthButton from "@/components/auth/AuthButton";
 import { modulesFor } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    homeLabel: "Adamant — domů",
+    workspace: "Pracovní prostor",
+    headingFirst: "Založte první projekt",
+    headingNew: "Nový projekt",
+    headingList: "Vaše projekty",
+    bodyForm: "Projekt je pracovní prostor pro jednoho klienta nebo značku. Jeho typ určí, které moduly a metriky uvidíte.",
+    bodyList: "Vyberte projekt, nebo založte nový. Každý si poskládá vlastní moduly podle svého typu.",
+    newProject: "Nový projekt",
+    modules: "modulů",
+  },
+  en: {
+    homeLabel: "Adamant — home",
+    workspace: "Workspace",
+    headingFirst: "Create your first project",
+    headingNew: "New project",
+    headingList: "Your projects",
+    bodyForm: "A project is a workspace for a single client or brand. Its type determines which modules and metrics you see.",
+    bodyList: "Select a project, or create a new one. Each assembles its own modules based on its type.",
+    newProject: "New project",
+    modules: "modules",
+  },
+} as const;
 
 /** The /app landing: the user's project hub, or a first-run onboarding when they
  *  have none. Stands alone (no sidebar) — the shell only wraps a chosen project. */
@@ -17,20 +43,21 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
   const [creating, setCreating] = useState(false);
   const empty = projects.length === 0;
   const showForm = empty || creating;
+  const t = useT(T);
 
   return (
     <div className="min-h-screen bg-canvas">
       {/* slim top strip */}
       <div className="border-b border-line bg-surface/85 backdrop-blur-md">
         <Container className="flex h-16 items-center justify-between">
-          <Link href="/" className="group flex items-center gap-2.5" aria-label="Adamant — domů">
+          <Link href="/" className="group flex items-center gap-2.5" aria-label={t("homeLabel")}>
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-400">
               <Logo width={20} height={20} />
             </span>
             <span className="flex flex-col leading-none">
               <span className="text-[17px] font-semibold tracking-tight text-navy-800">Adamant</span>
               <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted">
-                Pracovní prostor
+                {t("workspace")}
               </span>
             </span>
           </Link>
@@ -45,12 +72,10 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
         <div className="mx-auto max-w-3xl">
           <header className="mb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-navy-800 sm:text-4xl">
-              {showForm ? (empty ? "Založte první projekt" : "Nový projekt") : "Vaše projekty"}
+              {showForm ? (empty ? t("headingFirst") : t("headingNew")) : t("headingList")}
             </h1>
             <p className="mt-2 max-w-xl text-muted">
-              {showForm
-                ? "Projekt je pracovní prostor pro jednoho klienta nebo značku. Jeho typ určí, které moduly a metriky uvidíte."
-                : "Vyberte projekt, nebo založte nový. Každý si poskládá vlastní moduly podle svého typu."}
+              {showForm ? t("bodyForm") : t("bodyList")}
             </p>
           </header>
 
@@ -71,7 +96,7 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
                 <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
                   <Plus width={20} height={20} />
                 </span>
-                <span className="text-sm font-semibold">Nový projekt</span>
+                <span className="text-sm font-semibold">{t("newProject")}</span>
               </button>
             </div>
           )}
@@ -84,6 +109,7 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
 function ProjectCard({ project }: { project: Project }) {
   const meta = PROJECT_TYPE_META[project.type];
   const moduleCount = modulesFor(project.type).filter((m) => m.section !== "system").length;
+  const t = useT(T);
   return (
     <Link
       href={`/app/${project.id}`}
@@ -107,7 +133,7 @@ function ProjectCard({ project }: { project: Project }) {
         {meta.label}
         {project.domain ? ` · ${project.domain}` : ""}
       </p>
-      <p className="mt-3 text-xs font-medium text-muted">{moduleCount} modulů</p>
+      <p className="mt-3 text-xs font-medium text-muted">{moduleCount} {t("modules")}</p>
     </Link>
   );
 }

@@ -19,13 +19,230 @@ import type {
   ProfitTrendPoint,
   ReallocStrategy,
 } from "@/lib/profit/types";
-import { fmtCZK, fmtCZKCompact, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 
-const PERIOD_LABELS: Record<string, string> = {
-  "30": "30 dní",
-  "90": "90 dní",
-  "365": "12 měsíců",
-};
+const T = {
+  cs: {
+    days30: "30 dní",
+    days90: "90 dní",
+    months12: "12 měsíců",
+    byChannels: "Podle kanálů",
+    byProducts: "Podle produktů",
+    resetMargins: "Obnovit výchozí marže",
+    realNumbersTitle: "Vaše reálná čísla (za zvolené období)",
+    realNumbersDesc: "Zadejte skutečný obrat a útratu za reklamu za {period} — tabulka, souhrn i přerozdělení se přepočítají na vaši realitu (kanálový mix zůstává). Ne jen marže.",
+    revenue: "Obrat",
+    adSpend: "Útrata za reklamu",
+    backToDemo: "Zpět na ukázku",
+    recalculated: "Přepočítáno na vaše čísla. (Graf vývoje níže ukazuje tvar v čase.)",
+    netAdProfit: "Čistý zisk z reklamy",
+    grossProfitSub: "hrubý zisk {gross} − náklady {cost}",
+    poasSub: "zisk na korunu reklamy · ROAS {roas}",
+    blendedMargin: "Blended marže",
+    weightedByRevenue: "vážená obratem",
+    unprofitableChannels: "Ztrátové kanály",
+    unprofitableAfterMargin: "prodělávají po marži",
+    trendTitle: "Vývoj zisku a POAS v čase",
+    netProfit: "Čistý zisk",
+    poas: "POAS",
+    lastPeriod: "poslední {granularity} {value}",
+    unprofitableWarning_one: "kanál vypadá podle ROAS dobře, ale po započtení marže prodělává — jeho ROAS je pod bodem zvratu (1 / marže). Zvažte přesun rozpočtu do ziskových kanálů.",
+    unprofitableWarning_other: "kanály/ů vypadají podle ROAS dobře, ale po započtení marže prodělávají — jejich ROAS je pod bodem zvratu (1 / marže). Zvažte přesun rozpočtu do ziskových kanálů.",
+    colChannel: "Kanál",
+    colRevenue: "Obrat",
+    colCost: "Náklady",
+    colRoas: "ROAS",
+    colMargin: "Marže",
+    colBreakeven: "Bod zvratu",
+    colPoas: "POAS",
+    colNetProfit: "Čistý zisk",
+    marginAriaLabel: "Marže {channel}",
+    legendProfitable: "Ziskový",
+    legendProfitableDesc: "ROAS ≥ bod zvratu",
+    legendUnprofitable: "Ztrátový",
+    legendUnprofitableDesc: "ROAS pod bodem zvratu (1 / marže)",
+    legendEditHint: "Marže upravte v tabulce — vše se přepočítá živě.",
+    overheadTitle: "Zahrnout režijní náklady",
+    overheadDesc: "Rozpočítá fixní režii podle obratu a odečte fulfillment na objednávku → skutečný příspěvkový POAS.",
+    overheadInclude: "Zahrnout",
+    overheadFixedMonthly: "Fixní režie / měsíc",
+    overheadMonthsMult: "× {months} měsíce období",
+    overheadPerOrder: "Náklad / objednávku",
+    overheadFulfillmentHint: "fulfillment, balné, doprava",
+    contributionPoas: "Příspěvkový POAS",
+    rawPoas: "surový POAS {value}",
+    colRawPoas: "Surový POAS",
+    colOverhead: "Režie",
+    colFulfillment: "Fulfillment",
+    colContributionPoas: "Příspěvkový POAS",
+    colAdjBreakeven: "Upravený bod zvratu",
+    colContribution: "Příspěvek",
+    overheadFooter: "Režie {overhead} + fulfillment {fulfillment} rozpočítáno · ztrátových po režii",
+    scenariosTitle: "Scénáře marží",
+    scenariosDesc: "Uložte si sadu marží pod názvem a porovnejte dva scénáře vedle sebe.",
+    scenarioName: "Název scénáře",
+    scenarioPlaceholder: "např. Konzervativní marže",
+    saveMargins: "Uložit aktuální marže",
+    loadScenario: "Načíst scénář",
+    loadScenarioSelect: "Vyberte…",
+    compareWith: "Porovnat s",
+    compareNone: "Žádný",
+    scenarioDefaultName: "Scénář {n}",
+    deleteScenario: "Smazat scénář {name}",
+    colMetric: "Metrika",
+    colCurrentMargin: "Aktuální marže",
+    colDiff: "Rozdíl",
+    rowNetProfit: "Čistý zisk",
+    rowUnprofitableChannels: "Ztrátové kanály",
+    whatIfTitle: "Co kdyby: přerozdělení rozpočtu",
+    whatIfDesc: "Drží ROAS každého kanálu a přesouvá rozpočet do nejziskovějších kanálů.",
+    maxProfit: "Maximalizovat zisk",
+    holdRevenue: "Udržet obrat",
+    totalBudget: "Celkový rozpočet",
+    currentBudgetBtn: "Aktuální",
+    currentCostHint: "výchozí = dnešní náklady {cost}",
+    projectedNetProfit: "Projektovaný čistý zisk",
+    todayValue: "dnes {value}",
+    profitChange: "Změna zisku",
+    revenueSub: "obrat {projected} vs {current}",
+    colToday: "Dnes",
+    colProposal: "Návrh",
+    colChange: "Změna",
+    colProfitPerUnit: "Zisk / Kč",
+    colProjProfit: "Projekt. zisk",
+    reallocationFooter: "Rozděleno {allocated} z {total} · strop 3× dnešní útraty kanálu.",
+    liveHint: "Změna marže nebo rozpočtu se promítne živě.",
+    categoryWorstAlert: "Kategorie {category} má nejnižší POAS {poas} — při marži {margin} a podílu {share} obratu prodělává. Zvažte vyšší prodejní cenu nebo přesun reklamního rozpočtu jinam.",
+    netProfitProducts: "Čistý zisk (produkty)",
+    marginVsCogs: "marže z prodejní ceny vs cena zboží",
+    poasProducts: "POAS (produkty)",
+    blendedMarginSub: "blended marže {value}",
+    unprofitableCategories: "Ztrátové kategorie",
+    belowBreakeven: "POAS pod bodem zvratu",
+    colCategory: "Kategorie",
+    colRevenueShare: "Podíl obratu",
+    colProductMargin: "Marže",
+    productTableFooter: "Marže = 1 − cena zboží (COGS). Reklamní náklady rozpočítány podle podílu na obratu.",
+    nextStepLabel: "Přesunout rozpočet",
+    nextStepHintHelps: "Přerozdělení slibuje +{profit} zisku",
+    nextStepHintOther: "Omezit ztrátové kanály v Kampaních",
+    byWeeks: "po týdnech",
+    byMonths: "po měsících",
+    week: "týden",
+    month: "měsíc",
+    currencyUnit: "Kč",
+  },
+  en: {
+    days30: "30 days",
+    days90: "90 days",
+    months12: "12 months",
+    byChannels: "By channel",
+    byProducts: "By product",
+    resetMargins: "Reset margins",
+    realNumbersTitle: "Your actual numbers (for selected period)",
+    realNumbersDesc: "Enter your real revenue and ad spend for {period} — the table, summary and reallocation will recalculate against your books (channel mix is preserved). Not just margin.",
+    revenue: "Revenue",
+    adSpend: "Ad spend",
+    backToDemo: "Back to demo",
+    recalculated: "Recalculated against your numbers. (The trend chart below shows the shape over time.)",
+    netAdProfit: "Net ad profit",
+    grossProfitSub: "gross profit {gross} − cost {cost}",
+    poasSub: "profit per ad currency · ROAS {roas}",
+    blendedMargin: "Blended margin",
+    weightedByRevenue: "revenue-weighted",
+    unprofitableChannels: "Unprofitable channels",
+    unprofitableAfterMargin: "losing money after margin",
+    trendTitle: "Profit and POAS trend over time",
+    netProfit: "Net profit",
+    poas: "POAS",
+    lastPeriod: "last {granularity} {value}",
+    unprofitableWarning_one: "channel looks fine on ROAS but loses money after margin — its ROAS is below break-even (1 / margin). Consider shifting budget to profitable channels.",
+    unprofitableWarning_other: "channels look fine on ROAS but lose money after margin — their ROAS is below break-even (1 / margin). Consider shifting budget to profitable channels.",
+    colChannel: "Channel",
+    colRevenue: "Revenue",
+    colCost: "Cost",
+    colRoas: "ROAS",
+    colMargin: "Margin",
+    colBreakeven: "Break-even",
+    colPoas: "POAS",
+    colNetProfit: "Net profit",
+    marginAriaLabel: "Margin {channel}",
+    legendProfitable: "Profitable",
+    legendProfitableDesc: "ROAS ≥ break-even",
+    legendUnprofitable: "Unprofitable",
+    legendUnprofitableDesc: "ROAS below break-even (1 / margin)",
+    legendEditHint: "Edit margins in the table — everything recalculates live.",
+    overheadTitle: "Include overhead costs",
+    overheadDesc: "Allocates fixed overhead by revenue share and deducts fulfilment per order → true contribution POAS.",
+    overheadInclude: "Include",
+    overheadFixedMonthly: "Fixed overhead / month",
+    overheadMonthsMult: "× {months} months in period",
+    overheadPerOrder: "Cost / order",
+    overheadFulfillmentHint: "fulfilment, packaging, shipping",
+    contributionPoas: "Contribution POAS",
+    rawPoas: "raw POAS {value}",
+    colRawPoas: "Raw POAS",
+    colOverhead: "Overhead",
+    colFulfillment: "Fulfilment",
+    colContributionPoas: "Contribution POAS",
+    colAdjBreakeven: "Adjusted break-even",
+    colContribution: "Contribution",
+    overheadFooter: "Overhead {overhead} + fulfilment {fulfillment} allocated · unprofitable after overhead",
+    scenariosTitle: "Margin scenarios",
+    scenariosDesc: "Save a margin set under a name and compare two scenarios side by side.",
+    scenarioName: "Scenario name",
+    scenarioPlaceholder: "e.g. Conservative margins",
+    saveMargins: "Save current margins",
+    loadScenario: "Load scenario",
+    loadScenarioSelect: "Select…",
+    compareWith: "Compare with",
+    compareNone: "None",
+    scenarioDefaultName: "Scenario {n}",
+    deleteScenario: "Delete scenario {name}",
+    colMetric: "Metric",
+    colCurrentMargin: "Current margins",
+    colDiff: "Difference",
+    rowNetProfit: "Net profit",
+    rowUnprofitableChannels: "Unprofitable channels",
+    whatIfTitle: "What if: budget reallocation",
+    whatIfDesc: "Holds each channel's ROAS and shifts budget to the most profitable channels.",
+    maxProfit: "Maximise profit",
+    holdRevenue: "Hold revenue",
+    totalBudget: "Total budget",
+    currentBudgetBtn: "Current",
+    currentCostHint: "default = today's cost {cost}",
+    projectedNetProfit: "Projected net profit",
+    todayValue: "today {value}",
+    profitChange: "Profit change",
+    revenueSub: "revenue {projected} vs {current}",
+    colToday: "Today",
+    colProposal: "Proposed",
+    colChange: "Change",
+    colProfitPerUnit: "Profit / unit",
+    colProjProfit: "Proj. profit",
+    reallocationFooter: "Allocated {allocated} of {total} · capped at 3× today's channel spend.",
+    liveHint: "Margin or budget changes apply live.",
+    categoryWorstAlert: "Category {category} has the lowest POAS {poas} — at margin {margin} and revenue share {share} it is losing money. Consider a higher selling price or shifting ad budget elsewhere.",
+    netProfitProducts: "Net profit (products)",
+    marginVsCogs: "margin from selling price vs cost of goods",
+    poasProducts: "POAS (products)",
+    blendedMarginSub: "blended margin {value}",
+    unprofitableCategories: "Unprofitable categories",
+    belowBreakeven: "POAS below break-even",
+    colCategory: "Category",
+    colRevenueShare: "Revenue share",
+    colProductMargin: "Margin",
+    productTableFooter: "Margin = 1 − cost of goods (COGS). Ad cost allocated by revenue share.",
+    nextStepLabel: "Shift budget",
+    nextStepHintHelps: "Reallocation projects +{profit} profit",
+    nextStepHintOther: "Reduce unprofitable channels in Campaigns",
+    byWeeks: "by week",
+    byMonths: "by month",
+    week: "week",
+    month: "month",
+    currencyUnit: "CZK",
+  },
+} as const;
 
 type ViewMode = "channels" | "products";
 
@@ -120,7 +337,7 @@ function Sparkline({
 }
 
 /** A small +/− delta pill reused on the summary cards. */
-function DeltaPill({ value }: { value: number }) {
+function DeltaPill({ value, fmtSignedPct }: { value: number; fmtSignedPct: (v: number) => string }) {
   if (!Number.isFinite(value) || Math.abs(value) < 0.0005) {
     return <span className="text-xs font-medium text-muted">→ 0 %</span>;
   }
@@ -204,6 +421,15 @@ export default function ProfitModule({
   products: ProductCategory[];
   defaults: ChannelMargin[];
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
+  const PERIOD_LABELS: Record<string, string> = {
+    "30": t("days30"),
+    "90": t("days90"),
+    "365": t("months12"),
+  };
+
   const periods = Object.keys(rowsByPeriod);
   const [period, setPeriod] = useState(periods.includes("90") ? "90" : periods[0]!);
   const [margins, setMargins] = useState<ChannelMargin[]>(defaults);
@@ -315,7 +541,7 @@ export default function ProfitModule({
   }
 
   function saveScenario(savedAt: number) {
-    const name = scenarioName.trim() || `Scénář ${scenarios.length + 1}`;
+    const name = scenarioName.trim() || t("scenarioDefaultName", { n: scenarios.length + 1 });
     const id = `sc-${savedAt.toString(36)}`;
     setScenarios((list) => [...list, { id, name, margins: margins.map((m) => ({ ...m })), savedAt }]);
     setScenarioName("");
@@ -343,7 +569,8 @@ export default function ProfitModule({
 
   const compareScenario = scenarios.find((s) => s.id === compareId) ?? null;
   const compareSummary = compareScenario ? scenarioMetrics(effectiveRows, compareScenario.margins) : null;
-  const granularityLabel = period === "365" ? "po měsících" : "po týdnech";
+  const granularityLabel = period === "365" ? t("byMonths") : t("byWeeks");
+  const granularityUnit = period === "365" ? t("month") : t("week");
 
   return (
     <div className="space-y-6">
@@ -367,8 +594,8 @@ export default function ProfitModule({
           <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
             {(
               [
-                ["channels", "Podle kanálů"],
-                ["products", "Podle produktů"],
+                ["channels", t("byChannels")],
+                ["products", t("byProducts")],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -389,7 +616,7 @@ export default function ProfitModule({
               onClick={() => setMargins(defaults)}
               className="text-sm font-medium text-muted transition-colors hover:text-navy-700"
             >
-              Obnovit výchozí marže
+              {t("resetMargins")}
             </button>
           )}
         </div>
@@ -398,14 +625,13 @@ export default function ProfitModule({
       {/* real-numbers override (#ROB-02): enter your actual revenue + ad spend so
           the whole view reflects YOUR books, not just the margin lens. */}
       <div className="card p-5">
-        <p className="text-sm font-semibold text-navy-800">Vaše reálná čísla (za zvolené období)</p>
+        <p className="text-sm font-semibold text-navy-800">{t("realNumbersTitle")}</p>
         <p className="mt-1 text-xs text-muted">
-          Zadejte skutečný obrat a útratu za reklamu za {PERIOD_LABELS[period] ?? period} — tabulka,
-          souhrn i přerozdělení se přepočítají na vaši realitu (kanálový mix zůstává). Ne jen marže.
+          {t("realNumbersDesc", { period: PERIOD_LABELS[period] ?? period })}
         </p>
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-navy-700">Obrat (Kč)</span>
+            <span className="mb-1 block text-xs font-medium text-navy-700">{t("revenue")}</span>
             <input
               type="number"
               min={0}
@@ -417,7 +643,7 @@ export default function ProfitModule({
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-navy-700">Útrata za reklamu (Kč)</span>
+            <span className="mb-1 block text-xs font-medium text-navy-700">{t("adSpend")}</span>
             <input
               type="number"
               min={0}
@@ -434,13 +660,13 @@ export default function ProfitModule({
               onClick={clearReal}
               className="rounded-pill border border-line px-3 py-2 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-50"
             >
-              Zpět na ukázku
+              {t("backToDemo")}
             </button>
           )}
         </div>
         {overridden && (
           <p className="mt-2 text-xs text-positive">
-            Přepočítáno na vaše čísla. (Graf vývoje níže ukazuje tvar v čase.)
+            {t("recalculated")}
           </p>
         )}
       </div>
@@ -449,37 +675,37 @@ export default function ProfitModule({
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">Čistý zisk z reklamy</p>
-            <DeltaPill value={netDelta} />
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("netAdProfit")}</p>
+            <DeltaPill value={netDelta} fmtSignedPct={fmt.fmtSignedPct} />
           </div>
           <p
             className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
               summary.netProfit >= 0 ? "text-navy-800" : "text-negative"
             }`}
           >
-            {fmtCZK(summary.netProfit)}
+            {fmt.fmtCZK(summary.netProfit)}
           </p>
-          <p className="mt-1 text-xs text-muted">hrubý zisk {fmtCZKCompact(summary.grossProfit)} − náklady {fmtCZKCompact(summary.cost)}</p>
+          <p className="mt-1 text-xs text-muted">{t("grossProfitSub", { gross: fmt.fmtCZKCompact(summary.grossProfit), cost: fmt.fmtCZKCompact(summary.cost) })}</p>
         </div>
         <div className="card p-5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">POAS</p>
-            <DeltaPill value={poasDelta} />
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</p>
+            <DeltaPill value={poasDelta} fmtSignedPct={fmt.fmtSignedPct} />
           </div>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmtMultiple(summary.poas)}
+            {fmt.fmtMultiple(summary.poas)}
           </p>
-          <p className="mt-1 text-xs text-muted">zisk na korunu reklamy · ROAS {fmtMultiple(summary.roas)}</p>
+          <p className="mt-1 text-xs text-muted">{t("poasSub", { roas: fmt.fmtMultiple(summary.roas) })}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Blended marže</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("blendedMargin")}</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmtPct(summary.blendedMargin)}
+            {fmt.fmtPct(summary.blendedMargin)}
           </p>
-          <p className="mt-1 text-xs text-muted">vážená obratem</p>
+          <p className="mt-1 text-xs text-muted">{t("weightedByRevenue")}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Ztrátové kanály</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("unprofitableChannels")}</p>
           <p
             className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
               summary.unprofitableCount > 0 ? "text-negative" : "text-positive"
@@ -487,7 +713,7 @@ export default function ProfitModule({
           >
             {summary.unprofitableCount}
           </p>
-          <p className="mt-1 text-xs text-muted">prodělávají po marži</p>
+          <p className="mt-1 text-xs text-muted">{t("unprofitableAfterMargin")}</p>
         </div>
       </div>
 
@@ -495,40 +721,40 @@ export default function ProfitModule({
       {trend.length >= 2 && (
         <div className="card p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-navy-800">Vývoj zisku a POAS v čase</p>
-            <p className="text-xs text-muted">{granularityLabel} · {trend.length} období</p>
+            <p className="text-sm font-semibold text-navy-800">{t("trendTitle")}</p>
+            <p className="text-xs text-muted">{granularityLabel} · {trend.length}</p>
           </div>
           <div className="mt-3 grid gap-5 sm:grid-cols-2">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">Čistý zisk</span>
-                <DeltaPill value={netDelta} />
+                <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("netProfit")}</span>
+                <DeltaPill value={netDelta} fmtSignedPct={fmt.fmtSignedPct} />
               </div>
               <div className="mt-1.5">
                 <Sparkline
                   values={trend.map((t) => t.netProfit)}
                   color="#1f8f88"
-                  ariaLabel={`Vývoj čistého zisku, ${trend.length} období, poslední ${fmtCZK(trend[trend.length - 1]!.netProfit)}`}
+                  ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZK(trend[trend.length - 1]!.netProfit) })}
                 />
               </div>
               <p className="mt-1 text-xs text-muted">
-                poslední {granularityLabel.replace("po ", "")} {fmtCZKCompact(trend[trend.length - 1]!.netProfit)}
+                {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZKCompact(trend[trend.length - 1]!.netProfit) })}
               </p>
             </div>
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">POAS</span>
-                <DeltaPill value={poasDelta} />
+                <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</span>
+                <DeltaPill value={poasDelta} fmtSignedPct={fmt.fmtSignedPct} />
               </div>
               <div className="mt-1.5">
                 <Sparkline
                   values={trend.map((t) => t.poas)}
                   color="#15324b"
-                  ariaLabel={`Vývoj POAS, ${trend.length} období, poslední ${fmtMultiple(trend[trend.length - 1]!.poas)}`}
+                  ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
                 />
               </div>
               <p className="mt-1 text-xs text-muted">
-                poslední {granularityLabel.replace("po ", "")} {fmtMultiple(trend[trend.length - 1]!.poas)}
+                {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
               </p>
             </div>
           </div>
@@ -542,9 +768,9 @@ export default function ProfitModule({
               <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-negative" />
               <p className="text-sm leading-relaxed text-navy-700">
                 <strong>{summary.unprofitableCount}</strong>{" "}
-                {summary.unprofitableCount === 1 ? "kanál vypadá" : "kanály/ů vypadá"} podle ROAS dobře, ale
-                po započtení marže <strong>prodělává</strong> — jejich ROAS je pod bodem zvratu (1 / marže).
-                Zvažte přesun rozpočtu do ziskových kanálů.
+                {summary.unprofitableCount === 1
+                  ? t("unprofitableWarning_one")
+                  : t("unprofitableWarning_other")}
               </p>
             </div>
           )}
@@ -555,14 +781,14 @@ export default function ProfitModule({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">Kanál</th>
-                    <th className="px-4 py-3 text-right font-medium">Obrat</th>
-                    <th className="px-4 py-3 text-right font-medium">Náklady</th>
-                    <th className="px-4 py-3 text-right font-medium">ROAS</th>
-                    <th className="px-4 py-3 text-right font-medium">Marže</th>
-                    <th className="px-4 py-3 text-right font-medium">Bod zvratu</th>
-                    <th className="px-4 py-3 text-right font-medium">POAS</th>
-                    <th className="px-4 py-3 text-right font-medium">Čistý zisk</th>
+                    <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colRevenue")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colCost")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colRoas")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colMargin")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colBreakeven")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colPoas")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colNetProfit")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -574,9 +800,9 @@ export default function ProfitModule({
                           {r.channel}
                         </span>
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.revenue)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.cost)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtMultiple(r.roas)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.revenue)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.cost)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtMultiple(r.roas)}</td>
                       <td className="px-4 py-3 text-right">
                         <span className="inline-flex items-center gap-0.5">
                           <input
@@ -585,20 +811,20 @@ export default function ProfitModule({
                             max={100}
                             value={Math.round(r.marginPct * 100)}
                             onChange={(e) => setMargin(r.channel, Number(e.target.value))}
-                            aria-label={`Marže ${r.channel}`}
+                            aria-label={t("marginAriaLabel", { channel: r.channel })}
                             className="tnum w-14 rounded-lg border border-line bg-surface px-2 py-1 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                           />
                           <span className="text-muted">%</span>
                         </span>
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmtMultiple(r.breakEvenRoas)}</td>
-                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmtMultiple(r.poas)}</td>
+                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.breakEvenRoas)}</td>
+                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtMultiple(r.poas)}</td>
                       <td
                         className={`tnum px-4 py-3 text-right font-semibold ${
                           r.netProfit >= 0 ? "text-positive" : "text-negative"
                         }`}
                       >
-                        {fmtCZK(r.netProfit)}
+                        {fmt.fmtCZK(r.netProfit)}
                       </td>
                     </tr>
                   ))}
@@ -607,12 +833,12 @@ export default function ProfitModule({
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
               <span className="flex items-center gap-1.5">
-                <Pill tone="positive">Ziskový</Pill> ROAS ≥ bod zvratu
+                <Pill tone="positive">{t("legendProfitable")}</Pill> {t("legendProfitableDesc")}
               </span>
               <span className="flex items-center gap-1.5">
-                <Pill tone="negative">Ztrátový</Pill> ROAS pod bodem zvratu (1 / marže)
+                <Pill tone="negative">{t("legendUnprofitable")}</Pill> {t("legendUnprofitableDesc")}
               </span>
-              <span>Marže upravte v tabulce — vše se přepočítá živě.</span>
+              <span>{t("legendEditHint")}</span>
             </div>
           </div>
 
@@ -620,9 +846,9 @@ export default function ProfitModule({
           <div className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-navy-800">Zahrnout režijní náklady</p>
+                <p className="text-sm font-semibold text-navy-800">{t("overheadTitle")}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  Rozpočítá fixní režii podle obratu a odečte fulfillment na objednávku → skutečný příspěvkový POAS.
+                  {t("overheadDesc")}
                 </p>
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-navy-700">
@@ -632,7 +858,7 @@ export default function ProfitModule({
                   onChange={(e) => setOverhead((o) => ({ ...o, enabled: e.target.checked }))}
                   className="h-4 w-4 rounded border-line text-brand-600 focus:ring-2 focus:ring-brand-200"
                 />
-                Zahrnout
+                {t("overheadInclude")}
               </label>
             </div>
 
@@ -641,7 +867,7 @@ export default function ProfitModule({
                 <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
                   <div>
                     <label htmlFor="ovh-monthly" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                      Fixní režie / měsíc
+                      {t("overheadFixedMonthly")}
                     </label>
                     <div className="mt-1.5 inline-flex items-center gap-1.5">
                       <input
@@ -653,13 +879,13 @@ export default function ProfitModule({
                         onChange={(e) => setOverhead((o) => ({ ...o, monthlyOverhead: Math.max(0, Number(e.target.value)) }))}
                         className="tnum w-36 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       />
-                      <span className="text-sm text-muted">Kč</span>
+                      <span className="text-sm text-muted">{t("currencyUnit")}</span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">× {fmtMultiple(months)} měsíce období</p>
+                    <p className="mt-1 text-xs text-muted">{t("overheadMonthsMult", { months: fmt.fmtMultiple(months) })}</p>
                   </div>
                   <div>
                     <label htmlFor="ovh-order" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                      Náklad / objednávku
+                      {t("overheadPerOrder")}
                     </label>
                     <div className="mt-1.5 inline-flex items-center gap-1.5">
                       <input
@@ -671,20 +897,20 @@ export default function ProfitModule({
                         onChange={(e) => setOverhead((o) => ({ ...o, perOrderCost: Math.max(0, Number(e.target.value)) }))}
                         className="tnum w-28 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                       />
-                      <span className="text-sm text-muted">Kč</span>
+                      <span className="text-sm text-muted">{t("currencyUnit")}</span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">fulfillment, balné, doprava</p>
+                    <p className="mt-1 text-xs text-muted">{t("overheadFulfillmentHint")}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Příspěvkový POAS</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("contributionPoas")}</p>
                     <p
                       className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
                         overheadResult.summary.contributionPoas >= 1 ? "text-navy-800" : "text-negative"
                       }`}
                     >
-                      {fmtMultiple(overheadResult.summary.contributionPoas)}
+                      {fmt.fmtMultiple(overheadResult.summary.contributionPoas)}
                     </p>
-                    <p className="mt-1 text-xs text-muted">surový POAS {fmtMultiple(summary.poas)}</p>
+                    <p className="mt-1 text-xs text-muted">{t("rawPoas", { value: fmt.fmtMultiple(summary.poas) })}</p>
                   </div>
                 </div>
 
@@ -692,13 +918,13 @@ export default function ProfitModule({
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                        <th className="px-4 py-3 font-medium">Kanál</th>
-                        <th className="px-4 py-3 text-right font-medium">Surový POAS</th>
-                        <th className="px-4 py-3 text-right font-medium">Režie</th>
-                        <th className="px-4 py-3 text-right font-medium">Fulfillment</th>
-                        <th className="px-4 py-3 text-right font-medium">Příspěvkový POAS</th>
-                        <th className="px-4 py-3 text-right font-medium">Upravený bod zvratu</th>
-                        <th className="px-4 py-3 text-right font-medium">Příspěvek</th>
+                        <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colRawPoas")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colOverhead")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colFulfillment")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colContributionPoas")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colAdjBreakeven")}</th>
+                        <th className="px-4 py-3 text-right font-medium">{t("colContribution")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -710,23 +936,23 @@ export default function ProfitModule({
                               {r.channel}
                             </span>
                           </td>
-                          <td className="tnum px-4 py-3 text-right text-muted">{fmtMultiple(r.poas)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.allocatedOverhead)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.fulfilmentCost)}</td>
+                          <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.poas)}</td>
+                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.allocatedOverhead)}</td>
+                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.fulfilmentCost)}</td>
                           <td
                             className={`tnum px-4 py-3 text-right font-medium ${
                               r.contributionPoas >= 1 ? "text-navy-800" : "text-negative"
                             }`}
                           >
-                            {fmtMultiple(r.contributionPoas)}
+                            {fmt.fmtMultiple(r.contributionPoas)}
                           </td>
-                          <td className="tnum px-4 py-3 text-right text-muted">{fmtMultiple(r.adjustedBreakEvenRoas)}</td>
+                          <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.adjustedBreakEvenRoas)}</td>
                           <td
                             className={`tnum px-4 py-3 text-right font-semibold ${
                               r.contributionProfit >= 0 ? "text-positive" : "text-negative"
                             }`}
                           >
-                            {fmtCZK(r.contributionProfit)}
+                            {fmt.fmtCZK(r.contributionProfit)}
                           </td>
                         </tr>
                       ))}
@@ -735,8 +961,10 @@ export default function ProfitModule({
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
                   <span>
-                    Režie {fmtCZKCompact(overheadResult.summary.totalOverhead)} + fulfillment{" "}
-                    {fmtCZKCompact(overheadResult.summary.totalFulfilment)} rozpočítáno · ztrátových po režii{" "}
+                    {t("overheadFooter", {
+                      overhead: fmt.fmtCZKCompact(overheadResult.summary.totalOverhead),
+                      fulfillment: fmt.fmtCZKCompact(overheadResult.summary.totalFulfilment),
+                    })}{" "}
                     <strong className={overheadResult.summary.unprofitableCount > 0 ? "text-negative" : "text-positive"}>
                       {overheadResult.summary.unprofitableCount}
                     </strong>
@@ -750,9 +978,9 @@ export default function ProfitModule({
           <div className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-navy-800">Scénáře marží</p>
+                <p className="text-sm font-semibold text-navy-800">{t("scenariosTitle")}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  Uložte si sadu marží pod názvem a porovnejte dva scénáře vedle sebe.
+                  {t("scenariosDesc")}
                 </p>
               </div>
             </div>
@@ -760,14 +988,14 @@ export default function ProfitModule({
             <div className="flex flex-wrap items-end gap-3 px-5 py-4">
               <div>
                 <label htmlFor="sc-name" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                  Název scénáře
+                  {t("scenarioName")}
                 </label>
                 <input
                   id="sc-name"
                   type="text"
                   value={scenarioName}
                   onChange={(e) => setScenarioName(e.target.value)}
-                  placeholder="např. Konzervativní marže"
+                  placeholder={t("scenarioPlaceholder")}
                   className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                 />
               </div>
@@ -776,12 +1004,12 @@ export default function ProfitModule({
                 onClick={() => saveScenario(Date.now())}
                 className="rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
               >
-                Uložit aktuální marže
+                {t("saveMargins")}
               </button>
               {scenarios.length > 0 && (
                 <div>
                   <label htmlFor="sc-load" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                    Načíst scénář
+                    {t("loadScenario")}
                   </label>
                   <select
                     id="sc-load"
@@ -792,7 +1020,7 @@ export default function ProfitModule({
                     }}
                     className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                   >
-                    <option value="">Vyberte…</option>
+                    <option value="">{t("loadScenarioSelect")}</option>
                     {scenarios.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -804,7 +1032,7 @@ export default function ProfitModule({
               {scenarios.length > 0 && (
                 <div>
                   <label htmlFor="sc-compare" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                    Porovnat s
+                    {t("compareWith")}
                   </label>
                   <select
                     id="sc-compare"
@@ -812,7 +1040,7 @@ export default function ProfitModule({
                     onChange={(e) => setCompareId(e.target.value)}
                     className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                   >
-                    <option value="">Žádný</option>
+                    <option value="">{t("compareNone")}</option>
                     {scenarios.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -828,32 +1056,32 @@ export default function ProfitModule({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                      <th className="px-4 py-3 font-medium">Metrika</th>
-                      <th className="px-4 py-3 text-right font-medium">Aktuální marže</th>
+                      <th className="px-4 py-3 font-medium">{t("colMetric")}</th>
+                      <th className="px-4 py-3 text-right font-medium">{t("colCurrentMargin")}</th>
                       <th className="px-4 py-3 text-right font-medium">{compareScenario.name}</th>
-                      <th className="px-4 py-3 text-right font-medium">Rozdíl</th>
+                      <th className="px-4 py-3 text-right font-medium">{t("colDiff")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(
                       [
-                        ["Čistý zisk", summary.netProfit, compareSummary.netProfit, "czk"],
-                        ["POAS", summary.poas, compareSummary.poas, "mult"],
-                        ["Ztrátové kanály", summary.unprofitableCount, compareSummary.unprofitableCount, "count"],
+                        [t("rowNetProfit"), summary.netProfit, compareSummary.netProfit, "czk"],
+                        [t("poas"), summary.poas, compareSummary.poas, "mult"],
+                        [t("rowUnprofitableChannels"), summary.unprofitableCount, compareSummary.unprofitableCount, "count"],
                       ] as const
                     ).map(([label, a, b, kind]) => {
                       const diff = a - b;
-                      const fmt = (v: number) =>
-                        kind === "czk" ? fmtCZK(v) : kind === "mult" ? fmtMultiple(v) : String(v);
+                      const fmtVal = (v: number) =>
+                        kind === "czk" ? fmt.fmtCZK(v) : kind === "mult" ? fmt.fmtMultiple(v) : String(v);
                       const good = kind === "count" ? diff <= 0 : diff >= 0;
                       return (
                         <tr key={label} className="border-b border-line/70 last:border-0">
                           <td className="px-4 py-3 font-medium text-navy-800">{label}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt(a)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt(b)}</td>
+                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtVal(a)}</td>
+                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtVal(b)}</td>
                           <td className={`tnum px-4 py-3 text-right font-semibold ${good ? "text-positive" : "text-negative"}`}>
                             {diff > 0 ? "+" : diff < 0 ? "−" : ""}
-                            {fmt(Math.abs(diff))}
+                            {fmtVal(Math.abs(diff))}
                           </td>
                         </tr>
                       );
@@ -871,7 +1099,7 @@ export default function ProfitModule({
                     <button
                       type="button"
                       onClick={() => deleteScenario(s.id)}
-                      aria-label={`Smazat scénář ${s.name}`}
+                      aria-label={t("deleteScenario", { name: s.name })}
                       className="text-muted transition-colors hover:text-negative"
                     >
                       ×
@@ -882,20 +1110,20 @@ export default function ProfitModule({
             )}
           </div>
 
-          {/* "Co kdyby" — budget-reallocation simulator */}
+          {/* "What if" — budget-reallocation simulator */}
           <div className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-navy-800">Co kdyby: přerozdělení rozpočtu</p>
+                <p className="text-sm font-semibold text-navy-800">{t("whatIfTitle")}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  Drží ROAS každého kanálu a přesouvá rozpočet do nejziskovějších kanálů.
+                  {t("whatIfDesc")}
                 </p>
               </div>
               <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
                 {(
                   [
-                    ["max-profit", "Maximalizovat zisk"],
-                    ["hold-revenue", "Udržet obrat"],
+                    ["max-profit", t("maxProfit")],
+                    ["hold-revenue", t("holdRevenue")],
                   ] as const
                 ).map(([value, label]) => (
                   <button
@@ -915,7 +1143,7 @@ export default function ProfitModule({
             <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
               <div>
                 <label htmlFor="realloc-budget" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                  Celkový rozpočet
+                  {t("totalBudget")}
                 </label>
                 <div className="mt-1.5 inline-flex items-center gap-1.5">
                   <input
@@ -927,44 +1155,44 @@ export default function ProfitModule({
                     onChange={(e) => setBudgetOverride(Math.max(0, Number(e.target.value)))}
                     className="tnum w-36 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                   />
-                  <span className="text-sm text-muted">Kč</span>
+                  <span className="text-sm text-muted">{t("currencyUnit")}</span>
                   {budgetOverride !== null && budgetOverride !== Math.round(summary.cost) && (
                     <button
                       type="button"
                       onClick={() => setBudgetOverride(null)}
                       className="ml-1 text-xs font-medium text-muted transition-colors hover:text-navy-700"
                     >
-                      Aktuální
+                      {t("currentBudgetBtn")}
                     </button>
                   )}
                 </div>
-                <p className="mt-1 text-xs text-muted">výchozí = dnešní náklady {fmtCZKCompact(summary.cost)}</p>
+                <p className="mt-1 text-xs text-muted">{t("currentCostHint", { cost: fmt.fmtCZKCompact(summary.cost) })}</p>
               </div>
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Projektovaný čistý zisk</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("projectedNetProfit")}</p>
                 <p
                   className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
                     plan.projectedNetProfit >= 0 ? "text-navy-800" : "text-negative"
                   }`}
                 >
-                  {fmtCZK(plan.projectedNetProfit)}
+                  {fmt.fmtCZK(plan.projectedNetProfit)}
                 </p>
-                <p className="mt-1 text-xs text-muted">dnes {fmtCZKCompact(plan.currentNetProfit)}</p>
+                <p className="mt-1 text-xs text-muted">{t("todayValue", { value: fmt.fmtCZKCompact(plan.currentNetProfit) })}</p>
               </div>
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">Změna zisku</p>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("profitChange")}</p>
                 <p
                   className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
                     plan.profitDelta >= 0 ? "text-positive" : "text-negative"
                   }`}
                 >
                   {plan.profitDelta >= 0 ? "+" : "−"}
-                  {fmtCZK(Math.abs(plan.profitDelta))}
+                  {fmt.fmtCZK(Math.abs(plan.profitDelta))}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  obrat {fmtCZKCompact(plan.projectedRevenue)} vs {fmtCZKCompact(plan.currentRevenue)}
+                  {t("revenueSub", { projected: fmt.fmtCZKCompact(plan.projectedRevenue), current: fmt.fmtCZKCompact(plan.currentRevenue) })}
                 </p>
               </div>
             </div>
@@ -973,12 +1201,12 @@ export default function ProfitModule({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">Kanál</th>
-                    <th className="px-4 py-3 text-right font-medium">Dnes</th>
-                    <th className="px-4 py-3 text-right font-medium">Návrh</th>
-                    <th className="px-4 py-3 text-right font-medium">Změna</th>
-                    <th className="px-4 py-3 text-right font-medium">Zisk / Kč</th>
-                    <th className="px-4 py-3 text-right font-medium">Projekt. zisk</th>
+                    <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colToday")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colProposal")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colChange")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colProfitPerUnit")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colProjProfit")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -990,23 +1218,23 @@ export default function ProfitModule({
                           {r.channel}
                         </span>
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.currentSpend)}</td>
-                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmtCZKCompact(r.suggestedSpend)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.currentSpend)}</td>
+                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtCZKCompact(r.suggestedSpend)}</td>
                       <td
                         className={`tnum px-4 py-3 text-right font-medium ${
                           r.spendDelta > 0 ? "text-positive" : r.spendDelta < 0 ? "text-negative" : "text-muted"
                         }`}
                       >
                         {r.spendDelta > 0 ? "+" : r.spendDelta < 0 ? "−" : ""}
-                        {fmtCZKCompact(Math.abs(r.spendDelta))}
+                        {fmt.fmtCZKCompact(Math.abs(r.spendDelta))}
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmtMultiple(r.roas * r.marginPct)}</td>
+                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.roas * r.marginPct)}</td>
                       <td
                         className={`tnum px-4 py-3 text-right font-semibold ${
                           r.projectedNetProfit >= 0 ? "text-positive" : "text-negative"
                         }`}
                       >
-                        {fmtCZK(r.projectedNetProfit)}
+                        {fmt.fmtCZK(r.projectedNetProfit)}
                       </td>
                     </tr>
                   ))}
@@ -1015,10 +1243,9 @@ export default function ProfitModule({
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
               <span>
-                Rozděleno {fmtCZKCompact(plan.allocatedSpend)} z {fmtCZKCompact(plan.totalBudget)} · strop 3× dnešní útraty
-                kanálu.
+                {t("reallocationFooter", { allocated: fmt.fmtCZKCompact(plan.allocatedSpend), total: fmt.fmtCZKCompact(plan.totalBudget) })}
               </span>
-              <span>Změna marže nebo rozpočtu se promítne živě.</span>
+              <span>{t("liveHint")}</span>
             </div>
           </div>
         </>
@@ -1031,35 +1258,37 @@ export default function ProfitModule({
             <div className="flex items-start gap-3 rounded-card border border-negative/30 bg-negative-soft px-4 py-3.5">
               <Layers width={18} height={18} className="mt-0.5 shrink-0 text-negative" />
               <p className="text-sm leading-relaxed text-navy-700">
-                Kategorie <strong>{worstCategory.category}</strong> má nejnižší POAS{" "}
-                <strong>{fmtMultiple(worstCategory.poas)}</strong> — při marži {fmtPct(worstCategory.marginPct)} a
-                podílu {fmtPct(worstCategory.revenueShare)} obratu prodělává. Zvažte vyšší prodejní cenu nebo
-                přesun reklamního rozpočtu jinam.
+                {t("categoryWorstAlert", {
+                  category: worstCategory.category,
+                  poas: fmt.fmtMultiple(worstCategory.poas),
+                  margin: fmt.fmtPct(worstCategory.marginPct),
+                  share: fmt.fmtPct(worstCategory.revenueShare),
+                })}
               </p>
             </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Čistý zisk (produkty)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("netProfitProducts")}</p>
               <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${productResult.summary.netProfit >= 0 ? "text-navy-800" : "text-negative"}`}>
-                {fmtCZK(productResult.summary.netProfit)}
+                {fmt.fmtCZK(productResult.summary.netProfit)}
               </p>
-              <p className="mt-1 text-xs text-muted">marže z prodejní ceny vs cena zboží</p>
+              <p className="mt-1 text-xs text-muted">{t("marginVsCogs")}</p>
             </div>
             <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">POAS (produkty)</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("poasProducts")}</p>
               <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-                {fmtMultiple(productResult.summary.poas)}
+                {fmt.fmtMultiple(productResult.summary.poas)}
               </p>
-              <p className="mt-1 text-xs text-muted">blended marže {fmtPct(productResult.summary.blendedMargin)}</p>
+              <p className="mt-1 text-xs text-muted">{t("blendedMarginSub", { value: fmt.fmtPct(productResult.summary.blendedMargin) })}</p>
             </div>
             <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">Ztrátové kategorie</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("unprofitableCategories")}</p>
               <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${productResult.summary.unprofitableCount > 0 ? "text-negative" : "text-positive"}`}>
                 {productResult.summary.unprofitableCount}
               </p>
-              <p className="mt-1 text-xs text-muted">POAS pod bodem zvratu</p>
+              <p className="mt-1 text-xs text-muted">{t("belowBreakeven")}</p>
             </div>
           </div>
 
@@ -1068,13 +1297,13 @@ export default function ProfitModule({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">Kategorie</th>
-                    <th className="px-4 py-3 text-right font-medium">Podíl obratu</th>
-                    <th className="px-4 py-3 text-right font-medium">Obrat</th>
-                    <th className="px-4 py-3 text-right font-medium">Náklady</th>
-                    <th className="px-4 py-3 text-right font-medium">Marže</th>
-                    <th className="px-4 py-3 text-right font-medium">POAS</th>
-                    <th className="px-4 py-3 text-right font-medium">Čistý zisk</th>
+                    <th className="px-4 py-3 font-medium">{t("colCategory")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colRevenueShare")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colRevenue")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colCost")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colProductMargin")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colPoas")}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t("colNetProfit")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1086,15 +1315,15 @@ export default function ProfitModule({
                           {r.category}
                         </span>
                       </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmtPct(r.revenueShare)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.revenue)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtCZKCompact(r.cost)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(r.marginPct)}</td>
+                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtPct(r.revenueShare)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.revenue)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.cost)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.marginPct)}</td>
                       <td className={`tnum px-4 py-3 text-right font-medium ${r.poas >= 1 ? "text-navy-800" : "text-negative"}`}>
-                        {fmtMultiple(r.poas)}
+                        {fmt.fmtMultiple(r.poas)}
                       </td>
                       <td className={`tnum px-4 py-3 text-right font-semibold ${r.netProfit >= 0 ? "text-positive" : "text-negative"}`}>
-                        {fmtCZK(r.netProfit)}
+                        {fmt.fmtCZK(r.netProfit)}
                       </td>
                     </tr>
                   ))}
@@ -1102,7 +1331,7 @@ export default function ProfitModule({
               </table>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
-              <span>Marže = 1 − cena zboží (COGS). Reklamní náklady rozpočítány podle podílu na obratu.</span>
+              <span>{t("productTableFooter")}</span>
             </div>
           </div>
         </>
@@ -1112,10 +1341,10 @@ export default function ProfitModule({
         steps={[
           {
             to: "kampane",
-            label: "Přesunout rozpočet",
+            label: t("nextStepLabel"),
             hint: planHelps
-              ? `Přerozdělení slibuje +${fmtCZK(plan.profitDelta)} zisku`
-              : "Omezit ztrátové kanály v Kampaních",
+              ? t("nextStepHintHelps", { profit: fmt.fmtCZK(plan.profitDelta) })
+              : t("nextStepHintOther"),
           },
         ]}
       />

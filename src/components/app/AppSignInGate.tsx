@@ -3,11 +3,30 @@
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Logo } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    heading: "Otevřít pracovní prostor",
+    body: "Přihlaste se přes Google a založte projekt — e-shop, aplikaci, generování leadů nebo obsahový web. Každý projekt si poskládá vlastní moduly podle svého typu.",
+    signIn: "Přihlásit přes Google",
+    footer: "Marketingové stránky case study zůstávají veřejné —",
+    backToWeb: "zpět na web",
+  },
+  en: {
+    heading: "Open workspace",
+    body: "Sign in with Google and create a project — e-shop, app, lead generation, or content site. Each project assembles its own modules based on its type.",
+    signIn: "Sign in with Google",
+    footer: "The case study marketing pages remain public —",
+    backToWeb: "back to website",
+  },
+} as const;
 
 /** Shown when an anonymous visitor lands on /app. The product is per-user, so we
  *  ask for Google sign-in (the same provider the campaign connector needs for the
  *  Ads scope) before opening the workspace. */
 export default function AppSignInGate() {
+  const t = useT(T);
   return (
     <div className="grid min-h-[78vh] place-items-center bg-dotgrid px-4">
       <div className="card w-full max-w-md p-8 text-center sm:p-10">
@@ -15,11 +34,10 @@ export default function AppSignInGate() {
           <Logo width={26} height={26} />
         </span>
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-navy-800">
-          Otevřít pracovní prostor
+          {t("heading")}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          Přihlaste se přes Google a založte projekt — e-shop, aplikaci, generování leadů nebo
-          obsahový web. Každý projekt si poskládá vlastní moduly podle svého typu.
+          {t("body")}
         </p>
         <button
           type="button"
@@ -27,12 +45,12 @@ export default function AppSignInGate() {
           className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
         >
           <GoogleGlyph />
-          Přihlásit přes Google
+          {t("signIn")}
         </button>
         <p className="mt-5 text-xs text-muted">
-          Marketingové stránky case study zůstávají veřejné —{" "}
+          {t("footer")}{" "}
           <Link href="/" className="link-inline">
-            zpět na web
+            {t("backToWeb")}
           </Link>
           .
         </p>

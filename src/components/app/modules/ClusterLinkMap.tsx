@@ -3,21 +3,44 @@
  *  is coloured coral so silent internal-link debt is visible at a glance.
  *  Presentational + pure — safe in the server component. */
 import type { ClusterLinkGraph } from "@/lib/content-engine/compute";
+import { getT } from "@/lib/i18n/server";
 
-export default function ClusterLinkMap({ graph }: { graph: ClusterLinkGraph }) {
+const T = {
+  cs: {
+    internalLinks: "Prolinkování",
+    missing: "{n} chybí",
+    linked: "propojeno",
+    missingPillar: "Chybí pilíř",
+    notPublished: "nepubl.",
+    noPillar: "chybí pilíř",
+    noLink: "bez odkazu",
+  },
+  en: {
+    internalLinks: "Internal links",
+    missing: "{n} missing",
+    linked: "linked",
+    missingPillar: "Missing pillar",
+    notPublished: "unpubl.",
+    noPillar: "no pillar",
+    noLink: "no link",
+  },
+} as const;
+
+export default async function ClusterLinkMap({ graph }: { graph: ClusterLinkGraph }) {
+  const t = await getT(T);
   const { pillar, links, missingLinks } = graph;
   const pillarPublished = pillar?.status === "published";
 
   return (
     <div className="mt-3 rounded-lg border border-line bg-canvas/60 p-3">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted">Prolinkování</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("internalLinks")}</span>
         {missingLinks > 0 ? (
           <span className="pill bg-coral-soft text-coral-600 tnum">
-            {missingLinks} chybí
+            {t("missing", { n: missingLinks })}
           </span>
         ) : (
-          <span className="pill bg-positive-soft text-positive">propojeno</span>
+          <span className="pill bg-positive-soft text-positive">{t("linked")}</span>
         )}
       </div>
 
@@ -27,7 +50,7 @@ export default function ClusterLinkMap({ graph }: { graph: ClusterLinkGraph }) {
             pillar ? "bg-brand-600 text-white" : "border border-dashed border-coral-400/50 text-coral-600"
           }`}
         >
-          {pillar ? pillar.title : "Chybí pilíř"}
+          {pillar ? pillar.title : t("missingPillar")}
         </span>
 
         {links.length > 0 && (
@@ -49,7 +72,7 @@ export default function ClusterLinkMap({ graph }: { graph: ClusterLinkGraph }) {
                   <span className="min-w-0 truncate">{l.from}</span>
                   {!ok && (
                     <span className="ml-auto shrink-0 font-medium">
-                      {!l.published ? "nepubl." : !pillarPublished ? "chybí pilíř" : "bez odkazu"}
+                      {!l.published ? t("notPublished") : !pillarPublished ? t("noPillar") : t("noLink")}
                     </span>
                   )}
                 </li>

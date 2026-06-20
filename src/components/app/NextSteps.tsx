@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
 import { useProject } from "@/lib/projects/context";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: { nextSteps: "Další kroky" },
+  en: { nextSteps: "Next steps" },
+} as const;
 
 export interface NextStep {
   /** target module key under /app/[projectId]/ */
@@ -17,10 +23,11 @@ export interface NextStep {
  *  context, so it drops into any module (client or server) without a prop. */
 export default function NextSteps({ steps }: { steps: NextStep[] }) {
   const project = useProject();
+  const t = useT(T);
   if (steps.length === 0) return null;
   return (
     <div>
-      <p className="px-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">Další kroky</p>
+      <p className="px-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">{t("nextSteps")}</p>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {steps.map((s) => (
           <Link

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
 import { Bolt, Check, Copy, Download, Info, Refresh, Sparkles } from "@/components/icons";
-import { fmtCZK } from "@/lib/format";
 import type { Product } from "@/lib/catalog/sample";
 import {
   buildAssetGroup,
@@ -21,6 +20,68 @@ import {
 import { downloadText } from "@/lib/export";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { AD_LIMITS, type AdResult } from "@/lib/ai-types";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    productFeedLabel: "Produktový feed · {n}",
+    lowStock: "{n} ks",
+    assetGroupSuffix: "Asset group · {sku} ·",
+    aiTexts: "AI texty",
+    pmaxRsa: "PMax / RSA",
+    generating: "Generuji…",
+    regenerate: "Generovat znovu",
+    generateAi: "Generovat AI texty",
+    copyAll: "Kopírovat vše",
+    copyAllAriaLabel: "Kopírovat vše",
+    exportCsv: "Exportovat CSV",
+    exportCsvAriaLabel: "Exportovat CSV",
+    copied: "Zkopírováno",
+    generatingStatus: "Generuji on-brand texty modelem… mezitím vidíte sestavený návrh z feedu.",
+    timedOut: "Model neodpověděl včas — zobrazujeme sestavený návrh z feedu.",
+    generationFailed: "Generování selhalo",
+    generationFailedSuffix: "Zobrazujeme návrh z feedu.",
+    retryBtn: "Zkusit znovu",
+    demoMode: "Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.",
+    headlinesTitle: "Headliny ({n})",
+    longHeadlinesTitle: "Dlouhé headliny ({n})",
+    descriptionsTitle: "Popisky ({n})",
+    calloutsTitle: "Odznaky ({n})",
+    keywordsTitle: "Klíčová slova ({n})",
+    rationaleTitle: "Proč právě takhle",
+    footerAi: "On-brand texty vygenerované AI (mode „ads“ přes /api/ai), s kontrolou limitů Google Ads (headline {hl}, popisek {desc}, dlouhý headline {lhl} znaků).",
+    footerDet: "Sestaveno z feedu podle limitů Google Ads (headline {hl}, popisek {desc} znaků). Klikněte na „Generovat AI texty“ pro on-brand verzi přes /api/ai.",
+  },
+  en: {
+    productFeedLabel: "Product feed · {n}",
+    lowStock: "{n} units",
+    assetGroupSuffix: "Asset group · {sku} ·",
+    aiTexts: "AI copy",
+    pmaxRsa: "PMax / RSA",
+    generating: "Generating…",
+    regenerate: "Regenerate",
+    generateAi: "Generate AI copy",
+    copyAll: "Copy all",
+    copyAllAriaLabel: "Copy all",
+    exportCsv: "Export CSV",
+    exportCsvAriaLabel: "Export CSV",
+    copied: "Copied",
+    generatingStatus: "Generating on-brand copy with model… showing the feed-assembled draft in the meantime.",
+    timedOut: "Model timed out — showing the feed-assembled draft.",
+    generationFailed: "Generation failed",
+    generationFailedSuffix: "Showing the feed draft.",
+    retryBtn: "Retry",
+    demoMode: "Demo mode (no API key) — connect an LLM to generate with the model.",
+    headlinesTitle: "Headlines ({n})",
+    longHeadlinesTitle: "Long headlines ({n})",
+    descriptionsTitle: "Descriptions ({n})",
+    calloutsTitle: "Callouts ({n})",
+    keywordsTitle: "Keywords ({n})",
+    rationaleTitle: "Why this approach",
+    footerAi: "AI-generated on-brand copy (\“ads\” mode via /api/ai), validated against Google Ads limits (headline {hl}, description {desc}, long headline {lhl} chars).",
+    footerDet: "Assembled from feed per Google Ads limits (headline {hl}, description {desc} chars). Click \“Generate AI copy\” for an on-brand version via /api/ai.",
+  },
+} as const;
 
 function AssetChip({ a }: { a: Asset }) {
   const over = a.len > a.max;
@@ -51,43 +112,6 @@ function AssetSection({ title, assets }: { title: string; assets: Asset[] }) {
  *  through the same AssetSection/AssetChip layout (with the char-count badge). */
 const toAsset = (text: string, max: number): Asset => ({ text, len: text.length, max });
 
-/** Header actions to get the assembled asset group out of the screen: copy every
- *  asset as plain text, or download a Google Ads Editor-style CSV. Operates on
- *  whichever group is currently shown (AI result if present, else deterministic). */
-function ExportActions({ group, meta }: { group: AssetGroup; meta: AssetGroupExportMeta }) {
-  const [copied, setCopied] = useState(false);
-
-  async function copyAll() {
-    try {
-      await navigator.clipboard.writeText(assetGroupPlainText(group, meta));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1300);
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
-  function exportCsv() {
-    downloadText(`asset-group-${group.sku.toLowerCase()}.csv`, assetGroupCsv(group, meta));
-  }
-
-  const btn =
-    "inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50";
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <button type="button" onClick={copyAll} className={btn} aria-label="Kopírovat vše">
-        {copied ? <Check width={14} height={14} className="text-positive" /> : <Copy width={14} height={14} />}
-        {copied ? "Zkopírováno" : "Kopírovat vše"}
-      </button>
-      <button type="button" onClick={exportCsv} className={btn} aria-label="Exportovat CSV">
-        <Download width={14} height={14} />
-        Exportovat CSV
-      </button>
-    </div>
-  );
-}
-
 /** Fold a flat AdResult from the `ads` AI tool into the AssetGroup shape the UI
  *  already renders, mapping each list to the matching Google Ads limit. */
 function adResultToGroup(r: AdResult, product: Product): AssetGroup {
@@ -100,7 +124,55 @@ function adResultToGroup(r: AdResult, product: Product): AssetGroup {
   };
 }
 
+/** Header actions to get the assembled asset group out of the screen: copy every
+ *  asset as plain text, or download a Google Ads Editor RSA CSV. Module-scope (not
+ *  defined during render) — the translator is passed in. */
+function ExportActions({
+  group: g,
+  meta,
+  t,
+}: {
+  group: AssetGroup;
+  meta: AssetGroupExportMeta;
+  t: (key: keyof typeof T.cs) => string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyAll() {
+    try {
+      await navigator.clipboard.writeText(assetGroupPlainText(g, meta));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1300);
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  function exportCsv() {
+    downloadText(`asset-group-${g.sku.toLowerCase()}.csv`, assetGroupCsv(g, meta));
+  }
+
+  const btn =
+    "inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button type="button" onClick={copyAll} className={btn} aria-label={t("copyAllAriaLabel")}>
+        {copied ? <Check width={14} height={14} className="text-positive" /> : <Copy width={14} height={14} />}
+        {copied ? t("copied") : t("copyAll")}
+      </button>
+      <button type="button" onClick={exportCsv} className={btn} aria-label={t("exportCsvAriaLabel")}>
+        <Download width={14} height={14} />
+        {t("exportCsv")}
+      </button>
+    </div>
+  );
+}
+
 export default function CatalogModule({ products }: { products: Product[] }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const [sku, setSku] = useState(products[0]?.sku ?? "");
   const product = products.find((p) => p.sku === sku) ?? products[0];
 
@@ -153,7 +225,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
       {/* product feed */}
       <div className="space-y-2">
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
-          Produktový feed · {products.length}
+          {t("productFeedLabel", { n: products.length })}
         </p>
         {products.map((p) => {
           const active = p.sku === sku;
@@ -173,10 +245,10 @@ export default function CatalogModule({ products }: { products: Product[] }) {
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-medium text-navy-800">{p.title}</span>
                 <span className="block text-xs text-muted">
-                  {p.category} · {fmtCZK(p.price)}
+                  {p.category} · {fmt.fmtCZK(p.price)}
                 </span>
               </span>
-              {low && <Pill tone="coral">{p.stock} ks</Pill>}
+              {low && <Pill tone="coral">{t("lowStock", { n: p.stock })}</Pill>}
               {active && <Check width={16} height={16} className="shrink-0 text-brand-accent" />}
             </button>
           );
@@ -193,7 +265,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
             <div>
               <h3 className="text-base font-semibold text-navy-800">{product.title}</h3>
               <p className="text-sm text-muted">
-                Asset group · {product.sku} ·{" "}
+                {t("assetGroupSuffix", { sku: product.sku })}{" "}
                 <a href={group.finalUrl} className="link-inline" target="_blank" rel="noopener noreferrer">
                   {group.finalUrl.replace("https://", "")}
                 </a>
@@ -203,7 +275,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
           <div className="flex shrink-0 flex-col items-end gap-2">
             <Pill tone={usingAi ? "positive" : "brand"}>
               <Sparkles width={13} height={13} />
-              {usingAi ? "AI texty" : "PMax / RSA"}
+              {usingAi ? t("aiTexts") : t("pmaxRsa")}
             </Pill>
             <button
               type="button"
@@ -214,21 +286,21 @@ export default function CatalogModule({ products }: { products: Product[] }) {
               {status === "loading" ? (
                 <>
                   <Sparkles width={14} height={14} className="animate-pulse" />
-                  Generuji…
+                  {t("generating")}
                 </>
               ) : usingAi ? (
                 <>
                   <Refresh width={14} height={14} />
-                  Generovat znovu
+                  {t("regenerate")}
                 </>
               ) : (
                 <>
                   <Bolt width={14} height={14} />
-                  Generovat AI texty
+                  {t("generateAi")}
                 </>
               )}
             </button>
-            <ExportActions group={group} meta={exportMeta} />
+            <ExportActions group={group} meta={exportMeta} t={t} />
           </div>
         </div>
 
@@ -236,37 +308,37 @@ export default function CatalogModule({ products }: { products: Product[] }) {
         {status === "loading" && aiSku === sku && (
           <p className="mt-4 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
             <Sparkles width={14} height={14} className="animate-pulse shrink-0" />
-            Generuji on-brand texty modelem… mezitím vidíte sestavený návrh z feedu.
+            {t("generatingStatus")}
           </p>
         )}
         {status === "error" && aiSku === sku && (
           <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
             <span className="text-negative">
               {timedOut
-                ? "Model neodpověděl včas — zobrazujeme sestavený návrh z feedu."
-                : `Generování selhalo${error ? `: ${error}` : "."} Zobrazujeme návrh z feedu.`}
+                ? t("timedOut")
+                : `${t("generationFailed")}${error ? `: ${error}` : "."} ${t("generationFailedSuffix")}`}
             </span>
             <button
               type="button"
               onClick={generate}
               className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
             >
-              Zkusit znovu
+              {t("retryBtn")}
             </button>
           </div>
         )}
         {usingAi && data?.meta.demo && (
           <p className="mt-4 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
             <Info width={14} height={14} className="shrink-0" />
-            Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+            {t("demoMode")}
           </p>
         )}
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <AssetSection title={`Headliny (${group.headlines.length})`} assets={group.headlines} />
+          <AssetSection title={t("headlinesTitle", { n: group.headlines.length })} assets={group.headlines} />
           <div className="space-y-5">
-            <AssetSection title={`Dlouhé headliny (${group.longHeadlines.length})`} assets={group.longHeadlines} />
-            <AssetSection title={`Popisky (${group.descriptions.length})`} assets={group.descriptions} />
+            <AssetSection title={t("longHeadlinesTitle", { n: group.longHeadlines.length })} assets={group.longHeadlines} />
+            <AssetSection title={t("descriptionsTitle", { n: group.descriptions.length })} assets={group.descriptions} />
           </div>
         </div>
 
@@ -275,14 +347,14 @@ export default function CatalogModule({ products }: { products: Product[] }) {
           <div className="mt-5 grid gap-5 sm:grid-cols-2">
             {aiResult.callouts.length > 0 && (
               <AssetSection
-                title={`Odznaky (${aiResult.callouts.length})`}
+                title={t("calloutsTitle", { n: aiResult.callouts.length })}
                 assets={aiResult.callouts.map((c) => toAsset(c, AD_LIMITS.callout))}
               />
             )}
             {aiResult.keywords.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  Klíčová slova ({aiResult.keywords.length})
+                  {t("keywordsTitle", { n: aiResult.keywords.length })}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {aiResult.keywords.map((k, i) => (
@@ -298,15 +370,15 @@ export default function CatalogModule({ products }: { products: Product[] }) {
 
         {usingAi && aiResult?.rationale && (
           <div className="mt-5 rounded-card border border-brand-200 bg-brand-50 p-4">
-            <p className="text-xs font-semibold text-brand-800">Proč právě takhle</p>
+            <p className="text-xs font-semibold text-brand-800">{t("rationaleTitle")}</p>
             <p className="mt-1 text-sm leading-relaxed text-navy-700">{aiResult.rationale}</p>
           </div>
         )}
 
         <p className="mt-5 border-t border-line pt-4 text-xs text-muted">
           {usingAi
-            ? `On-brand texty vygenerované AI (mode „ads" přes /api/ai), s kontrolou limitů Google Ads (headline ${RSA_HEADLINE_MAX}, popisek ${RSA_DESCRIPTION_MAX}, dlouhý headline ${PMAX_LONG_HEADLINE_MAX} znaků).`
-            : `Sestaveno z feedu podle limitů Google Ads (headline ${RSA_HEADLINE_MAX}, popisek ${RSA_DESCRIPTION_MAX} znaků). Klikněte na „Generovat AI texty" pro on-brand verzi přes /api/ai.`}
+            ? t("footerAi", { hl: RSA_HEADLINE_MAX, desc: RSA_DESCRIPTION_MAX, lhl: PMAX_LONG_HEADLINE_MAX })
+            : t("footerDet", { hl: RSA_HEADLINE_MAX, desc: RSA_DESCRIPTION_MAX })}
         </p>
       </div>
     </div>

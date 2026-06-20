@@ -23,6 +23,30 @@ import {
   TimeoutState,
   ToolError,
 } from "@/components/ai/primitives";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    panelTitle: "AI rozbor kohort",
+    panelDesc: "Model dostane jen spočítaná čísla kohort a pojmenuje problémovou kohortu i páku, kterou řešit jako první. Nevymýšlí žádné hodnoty.",
+    runBtn: "Spustit rozbor",
+    runningBtn: "Analyzuji…",
+    idleHint: "Klikněte na „Spustit rozbor“ a model přečte jednotkovou ekonomiku kohort výše — doporučí, kde začít. Funguje i bez API klíče v ukázkovém režimu.",
+    worstCohortLabel: "Problémová kohorta:",
+    fixFirstLabel: "Řešit jako první",
+    risksTitle: "Na co si dát pozor",
+  },
+  en: {
+    panelTitle: "AI cohort analysis",
+    panelDesc: "The model receives only the computed cohort numbers and names the problem cohort and the first lever to pull. It invents no values.",
+    runBtn: "Run analysis",
+    runningBtn: "Analysing…",
+    idleHint: "Click \“Run analysis\” and the model will read the unit economics above — it will recommend where to start. Works without an API key in demo mode.",
+    worstCohortLabel: "Problem cohort:",
+    fixFirstLabel: "Fix first",
+    risksTitle: "Watch out for",
+  },
+} as const;
 
 /** Project a computed cohort row down to the few real numbers the model needs. */
 function toDiagnosisCohort(r: CohortMetrics): CohortDiagnosisCohort {
@@ -65,6 +89,7 @@ export default function LtvDiagnosisPanel({
   /** e-shop project → customer / repeat-purchase framing in the AI diagnosis */
   eshop?: boolean;
 }) {
+  const t = useT(T);
   const { status, data, error, timedOut, run, reset } =
     useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
   const r = data?.result;
@@ -75,11 +100,10 @@ export default function LtvDiagnosisPanel({
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
             <Sparkles width={16} height={16} className="shrink-0 text-brand-accent" />
-            AI rozbor kohort
+            {t("panelTitle")}
           </p>
           <p className="mt-0.5 text-xs text-muted">
-            Model dostane jen spočítaná čísla kohort a pojmenuje problémovou kohortu i páku, kterou
-            řešit jako první. Nevymýšlí žádné hodnoty.
+            {t("panelDesc")}
           </p>
         </div>
         <button
@@ -93,15 +117,14 @@ export default function LtvDiagnosisPanel({
           className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           <Sparkles width={15} height={15} className={status === "loading" ? "animate-pulse" : ""} />
-          {status === "loading" ? "Analyzuji…" : "Spustit rozbor"}
+          {status === "loading" ? t("runningBtn") : t("runBtn")}
         </button>
       </div>
 
       <div className="p-5">
         {status === "idle" && (
           <p className="text-sm leading-relaxed text-muted">
-            Klikněte na „Spustit rozbor“ a model přečte jednotkovou ekonomiku kohort výše —
-            doporučí, kde začít. Funguje i bez API klíče v ukázkovém režimu.
+            {t("idleHint")}
           </p>
         )}
 
@@ -125,7 +148,7 @@ export default function LtvDiagnosisPanel({
                 </span>
                 <div className="min-w-0">
                   <p className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-navy-700">Problémová kohorta:</span>
+                    <span className="text-sm font-medium text-navy-700">{t("worstCohortLabel")}</span>
                     <span className="pill bg-coral-soft text-coral-600">
                       <TrendDown width={13} height={13} />
                       {r.worstCohort}
@@ -140,7 +163,7 @@ export default function LtvDiagnosisPanel({
               <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                  Řešit jako první
+                  {t("fixFirstLabel")}
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
               </div>
@@ -148,7 +171,7 @@ export default function LtvDiagnosisPanel({
 
             {r.risks && r.risks.length > 0 && (
               <div>
-                <p className="mb-2.5 text-sm font-semibold text-navy-800">Na co si dát pozor</p>
+                <p className="mb-2.5 text-sm font-semibold text-navy-800">{t("risksTitle")}</p>
                 <ul className="space-y-2.5">
                   {r.risks.map((risk, i) => (
                     <li key={i} className="flex gap-2.5 text-sm text-navy-700">

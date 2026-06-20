@@ -29,7 +29,142 @@ import {
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useProject } from "@/lib/projects/context";
 import type { LeadReplyResult } from "@/lib/ai-types";
-import { fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    medianResponse: "Medián reakce",
+    withinSla: "V SLA",
+    slaGoal: "cíl do {min} min",
+    avgByChannel: "Průměr dle kanálu",
+    noData: "zatím bez dat",
+    sentCount: "z {n} odeslaných",
+    noSent: "zatím bez odeslání",
+    judged: "{n} z {total} hodnoceno",
+    leadsOverSla_one: "lead po SLA",
+    leadsOverSla_few: "leady po SLA",
+    leadsOverSla_many: "leadů po SLA",
+    overSlaUrgent: "— vyžadují okamžitou reakci.",
+    escalate: "Eskalovat",
+    responseGoal: "Cíl reakce",
+    allInSla: "Vše v SLA",
+    done: "Vyřízeno",
+    overSla: "Po SLA",
+    newLead: "Nový",
+    breachedBy: "po SLA o {n} min",
+    remaining: "zbývá {time}",
+    draftReply: "Návrh odpovědi",
+    aiReply: "AI odpověď",
+    generating: "Generuji…",
+    regenerate: "Vygenerovat znovu",
+    generateAi: "Vygenerovat AI odpověď",
+    copy: "Kopírovat",
+    copyAriaLabel: "Kopírovat odpověď",
+    copied: "Zkopírováno",
+    templates: "Šablony",
+    generatingStatus: "Generuji on-brand odpověď modelem… mezitím vidíte deterministický návrh.",
+    timedOut: "Model neodpověděl včas — ponecháváme deterministický návrh.",
+    generationFailed: "Generování selhalo",
+    generationFailedSuffix: "Ponecháváme deterministický návrh.",
+    retryBtn: "Zkusit znovu",
+    demoMode: "Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.",
+    leadQualification: "Kvalifikace leadu",
+    score: "Skóre {n}",
+    fieldsAnswered: "{n}/3 polí",
+    timeline: "Termín",
+    budget: "Rozpočet",
+    scope: "Rozsah",
+    rating: "Hodnocení:",
+    askAbout: "Doptat se:",
+    sendReply: "Odeslat odpověď",
+    sent: "Odesláno",
+    sendDisclaimer: "Odeslání se v ukázce simuluje.",
+    nextStepLeadQuality: "Posoudit kvalitu leadů podle zdroje",
+    nextStepLeadQualityHint: "Které zdroje plní pipeline a které jen formuláře",
+    nextStepOptimize: "Optimalizovat zdroje s pomalou reakcí",
+    nextStepOptimizeHint: "Přesunout rozpočet ke kanálům, kde reagujete v SLA",
+    agoMin: "před {n} min",
+    agoH: "před {n} h",
+    timelineAsap: "Co nejdříve",
+    timelineWeeks: "Do několika týdnů",
+    timelineExploring: "Jen zjišťuje",
+    budgetConfirmed: "Potvrzený",
+    budgetFlexible: "Flexibilní",
+    budgetTight: "Omezený",
+    scopeLarge: "Velký",
+    scopeMedium: "Střední",
+    scopeSmall: "Malý",
+    dispositionHot: "Horký",
+    dispositionWarm: "Vlažný",
+    dispositionCold: "Studený",
+  },
+  en: {
+    medianResponse: "Median response",
+    withinSla: "Within SLA",
+    slaGoal: "target < {min} min",
+    avgByChannel: "Avg by channel",
+    noData: "no data yet",
+    sentCount: "of {n} sent",
+    noSent: "none sent yet",
+    judged: "{n} of {total} judged",
+    leadsOverSla_one: "lead past SLA",
+    leadsOverSla_few: "leads past SLA",
+    leadsOverSla_many: "leads past SLA",
+    overSlaUrgent: "— require immediate action.",
+    escalate: "Escalate",
+    responseGoal: "Response target",
+    allInSla: "All within SLA",
+    done: "Done",
+    overSla: "Past SLA",
+    newLead: "New",
+    breachedBy: "past SLA by {n} min",
+    remaining: "{time} left",
+    draftReply: "Draft reply",
+    aiReply: "AI reply",
+    generating: "Generating…",
+    regenerate: "Regenerate",
+    generateAi: "Generate AI reply",
+    copy: "Copy",
+    copyAriaLabel: "Copy reply",
+    copied: "Copied",
+    templates: "Templates",
+    generatingStatus: "Generating on-brand reply with model… showing deterministic draft in the meantime.",
+    timedOut: "Model timed out — keeping the deterministic draft.",
+    generationFailed: "Generation failed",
+    generationFailedSuffix: "Keeping the deterministic draft.",
+    retryBtn: "Retry",
+    demoMode: "Demo mode (no API key) — connect an LLM to generate with the model.",
+    leadQualification: "Lead qualification",
+    score: "Score {n}",
+    fieldsAnswered: "{n}/3 fields",
+    timeline: "Timeline",
+    budget: "Budget",
+    scope: "Scope",
+    rating: "Rating:",
+    askAbout: "Ask about:",
+    sendReply: "Send reply",
+    sent: "Sent",
+    sendDisclaimer: "Sending is simulated in this demo.",
+    nextStepLeadQuality: "Assess lead quality by source",
+    nextStepLeadQualityHint: "Which sources fill the pipeline vs. just fill forms",
+    nextStepOptimize: "Optimise slow-response sources",
+    nextStepOptimizeHint: "Shift budget to channels where you respond within SLA",
+    agoMin: "{n} min ago",
+    agoH: "{n} h ago",
+    timelineAsap: "As soon as possible",
+    timelineWeeks: "Within a few weeks",
+    timelineExploring: "Just exploring",
+    budgetConfirmed: "Confirmed",
+    budgetFlexible: "Flexible",
+    budgetTight: "Tight",
+    scopeLarge: "Large",
+    scopeMedium: "Medium",
+    scopeSmall: "Small",
+    dispositionHot: "Hot",
+    dispositionWarm: "Warm",
+    dispositionCold: "Cold",
+  },
+} as const;
 
 /** Map a lead's channel + message to a short project-type hint, so the AI reply
  *  stays on-brand without a separate field. Best-effort keyword match over the
@@ -47,9 +182,10 @@ const SLA_TARGET_SEC = SLA_TARGET_MIN * 60;
 /** ≤ this many seconds left → pre-breach warning state. */
 const WARNING_THRESHOLD_SEC = 60;
 
-function ago(min: number): string {
-  if (min < 60) return `před ${min} min`;
-  return `před ${Math.round(min / 60)} h`;
+/** Formats "X min ago" / "X h ago" — caller must pass the `t` translator. */
+function ago(min: number, t: (key: "agoMin" | "agoH", vars: Record<string, number>) => string): string {
+  if (min < 60) return t("agoMin", { n: min });
+  return t("agoH", { n: Math.round(min / 60) });
 }
 
 /** Format remaining seconds as m:ss (e.g. 3:07). */
@@ -84,26 +220,27 @@ function loadSnippets(projectId: string): Snippet[] {
   }
 }
 
-/** Option lists for the inline qualification selects (value + Czech label). */
-const TIMELINE_OPTIONS: { value: Timeline; label: string }[] = [
+/** Static Czech-only option lists used exclusively in the AI prompt helper
+ *  describeQualification — not rendered to the user. */
+const TIMELINE_OPTIONS_CS: { value: Timeline; label: string }[] = [
   { value: "unknown", label: "—" },
   { value: "asap", label: "Co nejdříve" },
   { value: "weeks", label: "Do několika týdnů" },
   { value: "exploring", label: "Jen zjišťuje" },
 ];
-const BUDGET_OPTIONS: { value: Budget; label: string }[] = [
+const BUDGET_OPTIONS_CS: { value: Budget; label: string }[] = [
   { value: "unknown", label: "—" },
   { value: "confirmed", label: "Potvrzený" },
   { value: "flexible", label: "Flexibilní" },
   { value: "tight", label: "Omezený" },
 ];
-const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
+const SCOPE_OPTIONS_CS: { value: Scope; label: string }[] = [
   { value: "unknown", label: "—" },
   { value: "large", label: "Velký" },
   { value: "medium", label: "Střední" },
   { value: "small", label: "Malý" },
 ];
-const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
+const DISPOSITION_OPTIONS_CS: { value: Disposition; label: string }[] = [
   { value: "hot", label: "Horký" },
   { value: "warm", label: "Vlažný" },
   { value: "cold", label: "Studený" },
@@ -116,10 +253,10 @@ function describeQualification(q: Qualification): string {
   const label = (opts: { value: string; label: string }[], v: string) =>
     opts.find((o) => o.value === v)?.label ?? v;
   const parts: string[] = [];
-  if (q.timeline && q.timeline !== "unknown") parts.push(`termín: ${label(TIMELINE_OPTIONS, q.timeline)}`);
-  if (q.budget && q.budget !== "unknown") parts.push(`rozpočet: ${label(BUDGET_OPTIONS, q.budget)}`);
-  if (q.scope && q.scope !== "unknown") parts.push(`rozsah: ${label(SCOPE_OPTIONS, q.scope)}`);
-  if (q.disposition) parts.push(`hodnocení: ${label(DISPOSITION_OPTIONS, q.disposition)}`);
+  if (q.timeline && q.timeline !== "unknown") parts.push(`termín: ${label(TIMELINE_OPTIONS_CS, q.timeline)}`);
+  if (q.budget && q.budget !== "unknown") parts.push(`rozpočet: ${label(BUDGET_OPTIONS_CS, q.budget)}`);
+  if (q.scope && q.scope !== "unknown") parts.push(`rozsah: ${label(SCOPE_OPTIONS_CS, q.scope)}`);
+  if (q.disposition) parts.push(`hodnocení: ${label(DISPOSITION_OPTIONS_CS, q.disposition)}`);
   return parts.join(", ");
 }
 
@@ -141,8 +278,36 @@ function slaState(lead: InboundLead, nowMs: number, arrivalMs: number): SlaState
 
 export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
   const project = useProject();
+  const fmt = useFormatters();
+  const t = useT(T);
+
+  /** Locale-aware option lists for the inline qualification selects. */
+  const TIMELINE_OPTIONS: { value: Timeline; label: string }[] = [
+    { value: "unknown", label: "—" },
+    { value: "asap", label: t("timelineAsap") },
+    { value: "weeks", label: t("timelineWeeks") },
+    { value: "exploring", label: t("timelineExploring") },
+  ];
+  const BUDGET_OPTIONS: { value: Budget; label: string }[] = [
+    { value: "unknown", label: "—" },
+    { value: "confirmed", label: t("budgetConfirmed") },
+    { value: "flexible", label: t("budgetFlexible") },
+    { value: "tight", label: t("budgetTight") },
+  ];
+  const SCOPE_OPTIONS: { value: Scope; label: string }[] = [
+    { value: "unknown", label: "—" },
+    { value: "large", label: t("scopeLarge") },
+    { value: "medium", label: t("scopeMedium") },
+    { value: "small", label: t("scopeSmall") },
+  ];
+  const DISPOSITION_OPTIONS: { value: Disposition; label: string }[] = [
+    { value: "hot", label: t("dispositionHot") },
+    { value: "warm", label: t("dispositionWarm") },
+    { value: "cold", label: t("dispositionCold") },
+  ];
+
   const [selectedId, setSelectedId] = useState(leads[0]?.id ?? "");
-  /** id → measured response time (seconds from arrival) once "Odeslat" fires. */
+  /** id → measured response time (seconds from arrival) once "Send" fires. */
   const [respondedAt, setRespondedAt] = useState<Map<string, number>>(new Map());
   /** id → captured BANT qualification; leads not yet touched fall back to EMPTY. */
   const [qualById, setQualById] = useState<Map<string, Qualification>>(new Map());
@@ -314,36 +479,46 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
 
   if (!selected || !draft) return null;
 
+  /** Czech plural for overdue count: 1 = lead, 2–4 = leady, 5+ = leadů */
+  const overdueLabel =
+    overdueCount === 1
+      ? t("leadsOverSla_one")
+      : overdueCount < 5
+        ? t("leadsOverSla_few")
+        : t("leadsOverSla_many");
+
   return (
     <div className="space-y-4">
       {/* Response-time analytics band — derived from this session's responses
           plus the live SLA state of still-open leads. */}
       <div className="flex flex-wrap items-stretch gap-3 rounded-card border border-line bg-surface px-4 py-3">
         <div className="min-w-[120px]">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Medián reakce</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("medianResponse")}</p>
           <p className="tnum mt-0.5 text-lg font-semibold text-navy-800">
             {analytics.medianResponseSec != null ? fmtDuration(analytics.medianResponseSec) : "—"}
           </p>
           <p className="text-[11px] text-muted">
-            {analytics.answered > 0 ? `z ${analytics.answered} odeslaných` : "zatím bez odeslání"}
+            {analytics.answered > 0
+              ? t("sentCount", { n: analytics.answered })
+              : t("noSent")}
           </p>
         </div>
         <div className="min-w-[120px] border-l border-line pl-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">V SLA</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("withinSla")}</p>
           <div className="mt-0.5 flex items-center gap-2">
             <p className="tnum text-lg font-semibold text-navy-800">
-              {analytics.withinSlaRate != null ? fmtPct(analytics.withinSlaRate, 0) : "—"}
+              {analytics.withinSlaRate != null ? fmt.fmtPct(analytics.withinSlaRate, 0) : "—"}
             </p>
             {analytics.withinSlaRate != null ? (
               <Pill tone={analytics.withinSlaRate >= 0.8 ? "positive" : analytics.withinSlaRate >= 0.5 ? "coral" : "negative"}>
-                cíl do {SLA_TARGET_MIN} min
+                {t("slaGoal", { min: SLA_TARGET_MIN })}
               </Pill>
             ) : null}
           </div>
-          <p className="text-[11px] text-muted">{analytics.judged} z {leads.length} hodnoceno</p>
+          <p className="text-[11px] text-muted">{t("judged", { n: analytics.judged, total: leads.length })}</p>
         </div>
         <div className="min-w-[160px] flex-1 border-l border-line pl-3">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">Průměr dle kanálu</p>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("avgByChannel")}</p>
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
             {analytics.byChannel.length > 0 ? (
               analytics.byChannel.map((c) => (
@@ -355,7 +530,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                 </span>
               ))
             ) : (
-              <span className="text-xs text-muted">zatím bez dat</span>
+              <span className="text-xs text-muted">{t("noData")}</span>
             )}
           </div>
         </div>
@@ -365,25 +540,25 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
         <div className="flex flex-wrap items-center gap-3 rounded-card border border-negative/40 bg-negative-soft px-4 py-3 text-sm">
           <Bell width={16} height={16} className="shrink-0 text-negative" />
           <span className="font-semibold text-negative">
-            {overdueCount} {overdueCount === 1 ? "lead" : overdueCount < 5 ? "leady" : "leadů"} po SLA
+            {overdueCount} {overdueLabel}
           </span>
-          <span className="text-navy-700">— vyžadují okamžitou reakci.</span>
+          <span className="text-navy-700">{t("overSlaUrgent")}</span>
           <button
             type="button"
             onClick={focusFirstBreached}
             className="ml-auto inline-flex items-center gap-2 rounded-pill bg-negative px-4 py-1.5 text-sm font-semibold text-white transition-colors hover:opacity-90"
           >
             <Bolt width={14} height={14} />
-            Eskalovat
+            {t("escalate")}
           </button>
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-card border border-line bg-canvas px-4 py-3 text-sm">
           <Clock width={16} height={16} className="text-brand-accent" />
           <span className="text-navy-700">
-            Cíl reakce <strong>do {SLA_TARGET_MIN} min</strong>.
+            {t("responseGoal")} <strong>{t("slaGoal", { min: SLA_TARGET_MIN })}</strong>.
           </span>
-          <Pill tone="positive">Vše v SLA</Pill>
+          <Pill tone="positive">{t("allInSla")}</Pill>
         </div>
       )}
 
@@ -416,18 +591,18 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                   {done ? (
                     <Pill tone="positive">
                       <Check width={12} height={12} />
-                      Vyřízeno
+                      {t("done")}
                     </Pill>
                   ) : overdue ? (
-                    <Pill tone="negative">Po SLA</Pill>
+                    <Pill tone="negative">{t("overSla")}</Pill>
                   ) : (
-                    <Pill tone="brand">Nový</Pill>
+                    <Pill tone="brand">{t("newLead")}</Pill>
                   )}
                 </div>
                 <p className="mt-1 line-clamp-2 text-xs text-muted">{l.message}</p>
                 <div className="mt-1.5 flex items-center justify-between gap-2">
                   <p className="text-[11px] text-muted">
-                    {CHANNEL_LABELS[l.channel]} · {ago(l.minutesAgo)}
+                    {CHANNEL_LABELS[l.channel]} · {ago(l.minutesAgo, t)}
                   </p>
                   {!done && sla ? (
                     <span
@@ -435,7 +610,9 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                         phase === "breached" ? "text-negative" : phase === "warning" ? "text-coral-600" : "text-muted"
                       }`}
                     >
-                      {phase === "breached" ? `po SLA o ${Math.ceil(-sla.remaining / 60)} min` : `zbývá ${mmss(sla.remaining)}`}
+                      {phase === "breached"
+                        ? t("breachedBy", { n: Math.ceil(-sla.remaining / 60) })
+                        : t("remaining", { time: mmss(sla.remaining) })}
                     </span>
                   ) : null}
                 </div>
@@ -449,7 +626,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
           <div className="border-b border-line pb-3">
             <h3 className="text-base font-semibold text-navy-800">{selected.name}</h3>
             <p className="mt-1 text-sm text-muted">
-              {CHANNEL_LABELS[selected.channel]} · {ago(selected.minutesAgo)}
+              {CHANNEL_LABELS[selected.channel]} · {ago(selected.minutesAgo, t)}
             </p>
             <p className="mt-2 rounded-lg bg-canvas px-3 py-2 text-sm text-navy-700">{selected.message}</p>
           </div>
@@ -457,11 +634,11 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
           <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Návrh odpovědi</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("draftReply")}</p>
                 {usingAi ? (
                   <Pill tone="positive">
                     <Sparkles width={12} height={12} />
-                    AI odpověď
+                    {t("aiReply")}
                   </Pill>
                 ) : null}
               </div>
@@ -475,17 +652,17 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                   {status === "loading" && aiLeadId === selectedId ? (
                     <>
                       <Sparkles width={13} height={13} className="animate-pulse" />
-                      Generuji…
+                      {t("generating")}
                     </>
                   ) : usingAi ? (
                     <>
                       <Refresh width={13} height={13} />
-                      Vygenerovat znovu
+                      {t("regenerate")}
                     </>
                   ) : (
                     <>
                       <Bolt width={13} height={13} />
-                      Vygenerovat AI odpověď
+                      {t("generateAi")}
                     </>
                   )}
                 </button>
@@ -493,10 +670,10 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                   type="button"
                   onClick={copyReply}
                   className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
-                  aria-label="Kopírovat odpověď"
+                  aria-label={t("copyAriaLabel")}
                 >
                   {copied ? <Check width={13} height={13} className="text-positive" /> : <Copy width={13} height={13} />}
-                  {copied ? "Zkopírováno" : "Kopírovat"}
+                  {copied ? t("copied") : t("copy")}
                 </button>
               </div>
             </div>
@@ -514,7 +691,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
                   <Bookmark width={12} height={12} />
-                  Šablony
+                  {t("templates")}
                 </span>
                 {snippets.map((s) => (
                   <button
@@ -533,29 +710,29 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
             {status === "loading" && aiLeadId === selectedId ? (
               <p className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
                 <Sparkles width={14} height={14} className="shrink-0 animate-pulse" />
-                Generuji on-brand odpověď modelem… mezitím vidíte deterministický návrh.
+                {t("generatingStatus")}
               </p>
             ) : null}
             {status === "error" && aiLeadId === selectedId ? (
               <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
                 <span className="text-negative">
                   {timedOut
-                    ? "Model neodpověděl včas — ponecháváme deterministický návrh."
-                    : `Generování selhalo${error ? `: ${error}` : "."} Ponecháváme deterministický návrh.`}
+                    ? t("timedOut")
+                    : `${t("generationFailed")}${error ? `: ${error}` : "."} ${t("generationFailedSuffix")}`}
                 </span>
                 <button
                   type="button"
                   onClick={generateReply}
                   className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
                 >
-                  Zkusit znovu
+                  {t("retryBtn")}
                 </button>
               </div>
             ) : null}
             {usingAi && data?.meta.demo ? (
               <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
                 <Info width={14} height={14} className="shrink-0" />
-                Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+                {t("demoMode")}
               </p>
             ) : null}
           </div>
@@ -564,12 +741,12 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               while replying; a lightweight score travels downstream. */}
           <div className="mt-4 rounded-card border border-line bg-canvas p-3.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Kvalifikace leadu</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("leadQualification")}</p>
               <div className="flex items-center gap-2">
                 <Pill tone={scoreTone(qualScore)}>
-                  Skóre {qualScore} — {scoreLabel(qualScore)}
+                  {t("score", { n: qualScore })} — {scoreLabel(qualScore)}
                 </Pill>
-                <span className="text-[11px] text-muted">{qualAnswered}/3 polí</span>
+                <span className="text-[11px] text-muted">{t("fieldsAnswered", { n: qualAnswered })}</span>
               </div>
             </div>
 
@@ -577,7 +754,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               <label className="block">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
                   <Calendar width={12} height={12} className="text-brand-accent" />
-                  Termín
+                  {t("timeline")}
                 </span>
                 <select
                   value={qual.timeline}
@@ -594,7 +771,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               <label className="block">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
                   <Coins width={12} height={12} className="text-brand-accent" />
-                  Rozpočet
+                  {t("budget")}
                 </span>
                 <select
                   value={qual.budget}
@@ -611,7 +788,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               <label className="block">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-navy-700">
                   <Layers width={12} height={12} className="text-brand-accent" />
-                  Rozsah
+                  {t("scope")}
                 </span>
                 <select
                   value={qual.scope}
@@ -628,7 +805,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium text-navy-700">Hodnocení:</span>
+              <span className="text-[11px] font-medium text-navy-700">{t("rating")}</span>
               <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
                 {DISPOSITION_OPTIONS.map((o) => (
                   <button
@@ -649,7 +826,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
 
             {questions.length > 0 ? (
               <p className="mt-3 text-[11px] text-muted">
-                Doptat se: {questions.join(" · ")}
+                {t("askAbout")} {questions.join(" · ")}
               </p>
             ) : null}
           </div>
@@ -669,17 +846,17 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
               className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
             >
               <Bolt width={15} height={15} />
-              {respondedAt.has(selected.id) ? "Odesláno" : "Odeslat odpověď"}
+              {respondedAt.has(selected.id) ? t("sent") : t("sendReply")}
             </button>
-            <span className="text-xs text-muted">Odeslání se v ukázce simuluje.</span>
+            <span className="text-xs text-muted">{t("sendDisclaimer")}</span>
           </div>
         </div>
       </div>
 
       <NextSteps
         steps={[
-          { to: "kvalita-leadu", label: "Posoudit kvalitu leadů podle zdroje", hint: "Které zdroje plní pipeline a které jen formuláře" },
-          { to: "kampane", label: "Optimalizovat zdroje s pomalou reakcí", hint: "Přesunout rozpočet ke kanálům, kde reagujete v SLA" },
+          { to: "kvalita-leadu", label: t("nextStepLeadQuality"), hint: t("nextStepLeadQualityHint") },
+          { to: "kampane", label: t("nextStepOptimize"), hint: t("nextStepOptimizeHint") },
         ]}
       />
     </div>

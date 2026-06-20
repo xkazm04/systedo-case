@@ -16,6 +16,18 @@ import {
   type ModuleSection,
 } from "@/lib/projects/modules";
 import type { Project } from "@/lib/projects/types";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    backToWeb: "Zpět na web",
+    closeMenu: "Zavřít menu",
+  },
+  en: {
+    backToWeb: "Back to website",
+    closeMenu: "Close menu",
+  },
+} as const;
 
 /** Href for a module within a project ("" key = the overview/home). */
 function moduleHref(projectId: string, key: string): string {
@@ -72,6 +84,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const project = useProject();
   const pathname = usePathname();
   const modules = modulesFor(project.type);
+  const t = useT(T);
 
   // System section (settings) is pinned to the bottom; everything else scrolls.
   const topSections = SECTION_ORDER.filter((s) => s !== "system");
@@ -126,7 +139,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-navy-50 hover:text-navy-700"
         >
           <External width={18} height={18} className="text-muted" />
-          <span>Zpět na web</span>
+          <span>{t("backToWeb")}</span>
         </Link>
       </div>
     </div>
@@ -136,6 +149,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
 export default function AppSidebar() {
   const { mobileOpen, setMobileOpen } = useShell();
   const pathname = usePathname();
+  const t = useT(T);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
@@ -154,7 +168,7 @@ export default function AppSidebar() {
         <div className="md:hidden">
           <button
             type="button"
-            aria-label="Zavřít menu"
+            aria-label={t("closeMenu")}
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-onyx/40 backdrop-blur-sm"
           />

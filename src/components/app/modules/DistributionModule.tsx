@@ -1,4 +1,4 @@
-/** Distribuce — one article repurposed across channels + per-channel attribution.
+/** Distribution — one article repurposed across channels + per-channel attribution.
  *  Each variant is editable: copy to clipboard, tweak inline (with a live
  *  length/limit counter + over-budget trim), and hand off to the social center
  *  pre-filled for the matching platform — no retyping. */
@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { Bulb, Calendar, Check, Copy, Document, Download, Info, Link, Refresh, Sparkles } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtInt, fmtPct } from "@/lib/format";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
 import { channelToPlatform } from "@/lib/distribution/handoff";
@@ -31,9 +30,128 @@ import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
 import { useAiTool } from "@/components/ai/useAiTool";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
+import { useFormatters, useT } from "@/lib/i18n/client";
 
 /** Tone used for the AI repurposing — friendly/human matches the demo content. */
 const REPURPOSE_TONE: Tone = "pratelsky";
+
+const T = {
+  cs: {
+    sourceArticle: "Zdrojový článek",
+    attributionTitle: "Atribuce podle kanálu",
+    attributionDescPre: "Ukázková data — řádky odpovídají ",
+    attributionDescPost: " z odkazů výše.",
+    bestClicks: "Nejvíc prokliků: {n}",
+    colChannel: "Kanál",
+    colReach: "Dosah",
+    colClicks: "Prokliky",
+    colShare: "Podíl",
+    nextStepLabel: "Naplánovat publikaci",
+    nextStepHint: "Vydat varianty v centru sociálních sítí",
+    // VariantCard
+    aiPill: "AI",
+    generateBtn: "Generuji…",
+    regenerateBtn: "Vygenerovat znovu",
+    rephraseBtn: "Přegenerovat AI variantu",
+    variantAriaLabel: "Text varianty pro {channel}",
+    trimBtn: "Zkrátit na {max} znaků",
+    generatingMsg: "Generuji variantu na míru kanálu… mezitím vidíte deterministický návrh.",
+    timedOut: "Model neodpověděl včas — ponecháváme deterministický návrh.",
+    errorMsg: "Generování selhalo{detail}. Ponecháváme deterministický návrh.",
+    retryBtn: "Zkusit znovu",
+    demoMode: "Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.",
+    utmLabel: "Odkaz s UTM",
+    copyLinkAriaLabel: "Kopírovat odkaz s UTM pro {channel}",
+    linkCopied: "Hotovo",
+    linkBtn: "Odkaz",
+    copied: "Zkopírováno",
+    copyBtn: "Kopírovat",
+    scheduleBtn: "Naplánovat na {platform}",
+    schedulingBtn: "Předávám…",
+    scheduleError: "Předání do sociálních sítí se nezdařilo.",
+    connectError: "Nepodařilo se spojit se serverem.",
+    // NewsletterHandoff
+    newsletterHandoff: "Předání do newsletteru",
+    subjectLabel: "Předmět {n}/{max}",
+    noSubject: "Bez předmětu",
+    subjectEmpty: "Doplňte předmět – první řádek by měl začínat „Předmět:“.",
+    subjectTooLong: "Předmět je delší než {max} znaků – v doručené poště se může oříznout.",
+    copyNewsletter: "Kopírovat pro newsletter",
+    downloadHtml: "Stáhnout HTML",
+    // LearningsPanel
+    learningsTitle: "Poznatky",
+    learningsDesc: "Co podle ukázkového vzorku nejvíc korelovalo s prokliky (CTR).",
+    avgCtr: "Průměrné CTR {n}",
+    bestChannel: "Nejlepší kanál",
+    bestFormat: "Nejlepší formát",
+    bestLength: "Nejlepší délka",
+    variantSingular: "varianta",
+    variantFew: "varianty",
+    variantMany: "variant",
+    ctrByChannel: "CTR podle kanálu",
+    bestVariantLabel: "Nejlepší varianta:",
+    sparkAriaLabel: "CTR podle kanálu: {items}. Nejvyšší: {peak}.",
+  },
+  en: {
+    sourceArticle: "Source article",
+    attributionTitle: "Attribution by channel",
+    attributionDescPre: "Sample data — rows correspond to ",
+    attributionDescPost: " from the links above.",
+    bestClicks: "Most clicks: {n}",
+    colChannel: "Channel",
+    colReach: "Reach",
+    colClicks: "Clicks",
+    colShare: "Share",
+    nextStepLabel: "Schedule publication",
+    nextStepHint: "Publish variants in the social center",
+    // VariantCard
+    aiPill: "AI",
+    generateBtn: "Generating…",
+    regenerateBtn: "Regenerate",
+    rephraseBtn: "Generate AI variant",
+    variantAriaLabel: "Variant text for {channel}",
+    trimBtn: "Trim to {max} characters",
+    generatingMsg: "Generating a channel-native variant… you see the deterministic draft in the meantime.",
+    timedOut: "Model did not respond in time — keeping the deterministic draft.",
+    errorMsg: "Generation failed{detail}. Keeping the deterministic draft.",
+    retryBtn: "Retry",
+    demoMode: "Demo mode (no API key) — connect an LLM for model-generated variants.",
+    utmLabel: "UTM link",
+    copyLinkAriaLabel: "Copy UTM link for {channel}",
+    linkCopied: "Copied",
+    linkBtn: "Link",
+    copied: "Copied",
+    copyBtn: "Copy",
+    scheduleBtn: "Schedule on {platform}",
+    schedulingBtn: "Sending…",
+    scheduleError: "Failed to hand off to social networks.",
+    connectError: "Could not reach the server.",
+    // NewsletterHandoff
+    newsletterHandoff: "Newsletter handoff",
+    subjectLabel: "Subject {n}/{max}",
+    noSubject: "No subject",
+    subjectEmpty: 'Add a subject — the first line should start with "Subject:".',
+    subjectTooLong: "Subject is longer than {max} characters — it may be clipped in the inbox.",
+    copyNewsletter: "Copy for newsletter",
+    downloadHtml: "Download HTML",
+    // LearningsPanel
+    learningsTitle: "Insights",
+    learningsDesc: "What correlated most with clicks (CTR) in the sample data.",
+    avgCtr: "Average CTR {n}",
+    bestChannel: "Best channel",
+    bestFormat: "Best format",
+    bestLength: "Best length",
+    variantSingular: "variant",
+    variantFew: "variants",
+    variantMany: "variants",
+    ctrByChannel: "CTR by channel",
+    bestVariantLabel: "Best variant:",
+    sparkAriaLabel: "CTR by channel: {items}. Peak: {peak}.",
+  },
+} as const;
+
+type TKey = keyof typeof T.en;
+type TFn = (key: TKey, vars?: Record<string, string | number>) => string;
 
 export default function DistributionModule({
   source,
@@ -42,6 +160,8 @@ export default function DistributionModule({
   source: SourceArticle;
   attribution: ChannelPerf[];
 }) {
+  const t = useT(T);
+  const fmt = useFormatters();
   const variants = repurpose(source);
   const totalClicks = attribution.reduce((a, c) => a + c.clicks, 0);
   const best = attribution.reduce((a, b) => (b.clicks > a.clicks ? b : a), attribution[0]!);
@@ -54,7 +174,7 @@ export default function DistributionModule({
           <Document width={22} height={22} />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Zdrojový článek</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("sourceArticle")}</p>
           <p className="truncate text-base font-semibold text-navy-800">{source.title}</p>
           <a href={source.url} target="_blank" rel="noopener noreferrer" className="link-inline text-sm">
             {source.url.replace("https://", "")}
@@ -72,6 +192,7 @@ export default function DistributionModule({
             max={v.max}
             link={v.link}
             source={source}
+            t={t}
           />
         ))}
       </div>
@@ -80,23 +201,25 @@ export default function DistributionModule({
       <div className="card overflow-hidden">
         <div className="flex items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-navy-800">Atribuce podle kanálu</h3>
+            <h3 className="text-base font-semibold text-navy-800">{t("attributionTitle")}</h3>
             <p className="mt-0.5 text-xs text-muted">
-              Ukázková data — řádky odpovídají <code className="font-mono text-[0.7rem] text-navy-700">utm_source</code> z odkazů výše.
+              {t("attributionDescPre")}
+              <code className="font-mono text-[0.7rem] text-navy-700">utm_source</code>
+              {t("attributionDescPost")}
             </p>
           </div>
-          <Pill tone="positive">Nejvíc prokliků: {best.channel}</Pill>
+          <Pill tone="positive">{t("bestClicks", { n: best.channel })}</Pill>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Kanál</th>
+                <th className="px-5 py-3 font-medium">{t("colChannel")}</th>
                 <th className="px-4 py-3 font-medium">utm_source</th>
-                <th className="px-4 py-3 text-right font-medium">Dosah</th>
-                <th className="px-4 py-3 text-right font-medium">Prokliky</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colReach")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colClicks")}</th>
                 <th className="px-4 py-3 text-right font-medium">CTR</th>
-                <th className="px-4 py-3 text-right font-medium">Podíl</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colShare")}</th>
               </tr>
             </thead>
             <tbody>
@@ -106,11 +229,11 @@ export default function DistributionModule({
                   <td className="px-4 py-3">
                     <code className="font-mono text-xs text-navy-600">{channelUtmSource(c.channel)}</code>
                   </td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.reach)}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.clicks)}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(c.reach > 0 ? c.clicks / c.reach : 0)}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.reach)}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.clicks)}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(c.reach > 0 ? c.clicks / c.reach : 0)}</td>
                   <td className="tnum px-4 py-3 text-right font-medium text-navy-800">
-                    {fmtPct(totalClicks > 0 ? c.clicks / totalClicks : 0)}
+                    {fmt.fmtPct(totalClicks > 0 ? c.clicks / totalClicks : 0)}
                   </td>
                 </tr>
               ))}
@@ -120,9 +243,9 @@ export default function DistributionModule({
       </div>
 
       {/* per-variant performance learnings */}
-      <LearningsPanel attribution={attribution} variants={variants} />
+      <LearningsPanel attribution={attribution} variants={variants} t={t} fmt={fmt} />
 
-      <NextSteps steps={[{ to: "socialni", label: "Naplánovat publikaci", hint: "Vydat varianty v centru sociálních sítí" }]} />
+      <NextSteps steps={[{ to: "socialni", label: t("nextStepLabel"), hint: t("nextStepHint") }]} />
     </div>
   );
 }
@@ -137,12 +260,14 @@ function VariantCard({
   max,
   link,
   source,
+  t,
 }: {
   channel: string;
   initialText: string;
   max: number;
   link: string;
   source: SourceArticle;
+  t: TFn;
 }) {
   const project = useProject();
   const router = useRouter();
@@ -250,12 +375,12 @@ function VariantCard({
       });
       if (!res.ok) {
         const json = (await res.json().catch(() => null)) as { error?: string } | null;
-        setError(json?.error ?? "Předání do sociálních sítí se nezdařilo.");
+        setError(json?.error ?? t("scheduleError"));
         return;
       }
       router.push(`/app/${project.id}/socialni`);
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      setError(t("connectError"));
     } finally {
       setSending(false);
     }
@@ -269,7 +394,7 @@ function VariantCard({
           {usingAi ? (
             <Pill tone="positive">
               <Sparkles width={12} height={12} />
-              AI
+              {t("aiPill")}
             </Pill>
           ) : null}
         </span>
@@ -287,17 +412,17 @@ function VariantCard({
         {ai.status === "loading" ? (
           <>
             <Sparkles width={13} height={13} className="animate-pulse" />
-            Generuji…
+            {t("generateBtn")}
           </>
         ) : usingAi ? (
           <>
             <Refresh width={13} height={13} />
-            Vygenerovat znovu
+            {t("regenerateBtn")}
           </>
         ) : (
           <>
             <Sparkles width={13} height={13} />
-            Přegenerovat AI variantu
+            {t("rephraseBtn")}
           </>
         )}
       </button>
@@ -306,7 +431,7 @@ function VariantCard({
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={5}
-        aria-label={`Text varianty pro ${channel}`}
+        aria-label={t("variantAriaLabel", { channel })}
         className={`mt-3 w-full flex-1 resize-y rounded-lg border bg-canvas px-3 py-2.5 text-sm leading-relaxed text-navy-700 outline-none transition focus:bg-surface ${
           over ? "border-negative focus:border-negative" : "border-line focus:border-brand-400"
         }`}
@@ -318,7 +443,7 @@ function VariantCard({
           onClick={trim}
           className="mt-2 self-start text-xs font-semibold text-negative hover:underline"
         >
-          Zkrátit na {max} znaků
+          {t("trimBtn", { max })}
         </button>
       )}
 
@@ -327,43 +452,43 @@ function VariantCard({
       {ai.status === "loading" ? (
         <p className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
           <Sparkles width={14} height={14} className="shrink-0 animate-pulse" />
-          Generuji variantu na míru kanálu… mezitím vidíte deterministický návrh.
+          {t("generatingMsg")}
         </p>
       ) : null}
       {ai.status === "error" ? (
         <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-negative/30 bg-negative-soft px-3 py-2 text-xs">
           <span className="text-negative">
             {ai.timedOut
-              ? "Model neodpověděl včas — ponecháváme deterministický návrh."
-              : `Generování selhalo${ai.error ? `: ${ai.error}` : "."} Ponecháváme deterministický návrh.`}
+              ? t("timedOut")
+              : t("errorMsg", { detail: ai.error ? `: ${ai.error}` : "" })}
           </span>
           <button
             type="button"
             onClick={regenerate}
             className="shrink-0 rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 hover:border-brand-300"
           >
-            Zkusit znovu
+            {t("retryBtn")}
           </button>
         </div>
       ) : null}
       {usingAi && ai.data?.meta.demo ? (
         <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
           <Info width={14} height={14} className="shrink-0" />
-          Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.
+          {t("demoMode")}
         </p>
       ) : null}
 
       {/* The exact UTM-stamped link shipped in this variant — visible + copyable
           so attribution is verifiable, not implied. */}
       <div className="mt-3 flex items-center gap-2 rounded-lg border border-line bg-canvas px-2.5 py-2">
-        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">Odkaz s UTM</span>
+        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">{t("utmLabel")}</span>
         <code className="flex-1 truncate font-mono text-[0.7rem] text-navy-600" title={link}>
           {link.replace("https://", "")}
         </code>
         <button
           type="button"
           onClick={copyLink}
-          aria-label={`Kopírovat odkaz s UTM pro ${channel}`}
+          aria-label={t("copyLinkAriaLabel", { channel })}
           className="inline-flex shrink-0 items-center gap-1 rounded-pill border border-line bg-surface px-2 py-1 text-[0.7rem] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
         >
           {linkCopied ? (
@@ -371,15 +496,15 @@ function VariantCard({
           ) : (
             <Link width={12} height={12} />
           )}
-          <span>{linkCopied ? "Hotovo" : "Odkaz"}</span>
+          <span>{linkCopied ? t("linkCopied") : t("linkBtn")}</span>
         </button>
       </div>
 
-      {/* Newsletter gets a dedicated handoff: the generated „Předmět:" line is
+      {/* Newsletter gets a dedicated handoff: the generated "Subject:" line is
           split into a real subject + body, validated separately, and exported as
           a paste-ready HTML email or copied with the UTM'd CTA. */}
       {channel === "Newsletter" ? (
-        <NewsletterHandoff text={text} ctaUrl={link} source={source} />
+        <NewsletterHandoff text={text} ctaUrl={link} source={source} t={t} />
       ) : null}
 
       {error && <p className="mt-2 text-xs text-negative">{error}</p>}
@@ -395,7 +520,7 @@ function VariantCard({
           ) : (
             <Copy width={14} height={14} />
           )}
-          <span>{copied ? "Zkopírováno" : "Kopírovat"}</span>
+          <span>{copied ? t("copied") : t("copyBtn")}</span>
         </button>
 
         {platform && (
@@ -406,7 +531,7 @@ function VariantCard({
             className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Calendar width={14} height={14} />
-            {sending ? "Předávám…" : `Naplánovat na ${SOCIAL_PLATFORM_LABELS[platform]}`}
+            {sending ? t("schedulingBtn") : t("scheduleBtn", { platform: SOCIAL_PLATFORM_LABELS[platform] })}
           </button>
         )}
       </div>
@@ -425,10 +550,12 @@ function NewsletterHandoff({
   text,
   ctaUrl,
   source,
+  t,
 }: {
   text: string;
   ctaUrl: string;
   source: SourceArticle;
+  t: TFn;
 }) {
   const [copied, setCopied] = useState(false);
   const copyTimer = useRef<number | undefined>(undefined);
@@ -476,26 +603,26 @@ function NewsletterHandoff({
 
   const subjectHint =
     subjectCheck.status === "empty"
-      ? "Doplňte předmět – první řádek by měl začínat „Předmět:“."
+      ? t("subjectEmpty")
       : subjectCheck.status === "tooLong"
-        ? `Předmět je delší než ${subjectCheck.max} znaků – v doručené poště se může oříznout.`
+        ? t("subjectTooLong", { max: subjectCheck.max })
         : null;
 
   return (
     <div className="mt-3 rounded-lg border border-line bg-canvas px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">Předání do newsletteru</span>
+        <span className="text-[0.65rem] font-semibold uppercase tracking-wide text-muted">{t("newsletterHandoff")}</span>
         <span
           className={`tnum text-[0.7rem] ${
             subjectCheck.status === "ok" ? "text-muted" : "text-negative"
           }`}
         >
-          Předmět {subjectCheck.length}/{NEWSLETTER_SUBJECT_MAX}
+          {t("subjectLabel", { n: subjectCheck.length, max: NEWSLETTER_SUBJECT_MAX })}
         </span>
       </div>
 
       <p className="mt-1.5 truncate text-sm font-medium text-navy-800" title={subject || undefined}>
-        {subject || <span className="italic text-muted">Bez předmětu</span>}
+        {subject || <span className="italic text-muted">{t("noSubject")}</span>}
       </p>
 
       {subjectHint ? (
@@ -513,7 +640,7 @@ function NewsletterHandoff({
           className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {copied ? <Check width={14} height={14} className="text-positive" /> : <Copy width={14} height={14} />}
-          <span>{copied ? "Zkopírováno" : "Kopírovat pro newsletter"}</span>
+          <span>{copied ? t("copied") : t("copyNewsletter")}</span>
         </button>
         <button
           type="button"
@@ -522,7 +649,7 @@ function NewsletterHandoff({
           className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Download width={14} height={14} />
-          <span>Stáhnout HTML</span>
+          <span>{t("downloadHtml")}</span>
         </button>
       </div>
     </div>
@@ -536,11 +663,12 @@ const SPARK_H = 28;
 
 /** Hand-rolled CTR sparkline: a polyline over the per-channel CTRs scaled to the
  *  series max, with a dot on the peak. Inline <svg>, no chart lib. */
-function CtrSparkline({ ctrs, labels }: { ctrs: number[]; labels: string[] }) {
+function CtrSparkline({ ctrs, labels, t, fmt }: { ctrs: number[]; labels: string[]; t: TFn; fmt: ReturnType<typeof useFormatters> }) {
   const points = ctrSparkPoints(ctrs, SPARK_W, SPARK_H);
   if (points.length < 2) return null;
   const peakIndex = ctrs.reduce((best, v, i) => (v > ctrs[best]! ? i : best), 0);
   const peak = points[peakIndex]!;
+  const items = labels.map((l, i) => `${l} ${fmt.fmtPct(ctrs[i] ?? 0)}`).join(", ");
   return (
     <svg
       viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
@@ -548,9 +676,7 @@ function CtrSparkline({ ctrs, labels }: { ctrs: number[]; labels: string[] }) {
       height={SPARK_H}
       className="overflow-visible"
       role="img"
-      aria-label={`CTR podle kanálu: ${labels
-        .map((l, i) => `${l} ${fmtPct(ctrs[i] ?? 0)}`)
-        .join(", ")}. Nejvyšší: ${labels[peakIndex]}.`}
+      aria-label={t("sparkAriaLabel", { items, peak: labels[peakIndex] ?? "" })}
     >
       <polyline
         points={sparkPointsAttr(points)}
@@ -565,16 +691,20 @@ function CtrSparkline({ ctrs, labels }: { ctrs: number[]; labels: string[] }) {
   );
 }
 
-/** "Poznatky" — a descriptive rollup over the attribution sample: the best
+/** "Insights" — a descriptive rollup over the attribution sample: the best
  *  channel / format / length by reach-weighted CTR, plus a per-channel CTR
  *  sparkline. Start descriptive (no new backend) — the seam is real per-variant
  *  click analytics replacing the sample. */
 function LearningsPanel({
   attribution,
   variants,
+  t,
+  fmt,
 }: {
   attribution: ChannelPerf[];
   variants: { channel: string; text: string }[];
+  t: TFn;
+  fmt: ReturnType<typeof useFormatters>;
 }) {
   const learnings = useMemo(() => {
     const lengthByChannel = new Map(variants.map((v) => [v.channel, v.text.length] as const));
@@ -584,9 +714,9 @@ function LearningsPanel({
   if (learnings.rows.length === 0) return null;
 
   const leaders: { label: string; leader: DimensionLeader | null }[] = [
-    { label: "Nejlepší kanál", leader: learnings.bestChannel },
-    { label: "Nejlepší formát", leader: learnings.bestFormat },
-    { label: "Nejlepší délka", leader: learnings.bestLength },
+    { label: t("bestChannel"), leader: learnings.bestChannel },
+    { label: t("bestFormat"), leader: learnings.bestFormat },
+    { label: t("bestLength"), leader: learnings.bestLength },
   ];
 
   return (
@@ -597,13 +727,11 @@ function LearningsPanel({
             <Bulb width={16} height={16} />
           </span>
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-navy-800">Poznatky</h3>
-            <p className="mt-0.5 text-xs text-muted">
-              Co podle ukázkového vzorku nejvíc korelovalo s prokliky (CTR).
-            </p>
+            <h3 className="text-base font-semibold text-navy-800">{t("learningsTitle")}</h3>
+            <p className="mt-0.5 text-xs text-muted">{t("learningsDesc")}</p>
           </div>
         </div>
-        <Pill tone="positive">Průměrné CTR {fmtPct(learnings.overallCtr)}</Pill>
+        <Pill tone="positive">{t("avgCtr", { n: fmt.fmtPct(learnings.overallCtr) })}</Pill>
       </div>
 
       <div className="grid gap-px bg-line sm:grid-cols-3">
@@ -614,8 +742,12 @@ function LearningsPanel({
               <>
                 <p className="mt-1 text-sm font-semibold text-navy-800">{leader.value}</p>
                 <p className="tnum mt-0.5 text-xs text-muted">
-                  CTR {fmtPct(leader.ctr)} · {leader.variants}{" "}
-                  {leader.variants === 1 ? "varianta" : leader.variants < 5 ? "varianty" : "variant"}
+                  CTR {fmt.fmtPct(leader.ctr)} · {leader.variants}{" "}
+                  {leader.variants === 1
+                    ? t("variantSingular")
+                    : leader.variants < 5
+                      ? t("variantFew")
+                      : t("variantMany")}
                 </p>
               </>
             ) : (
@@ -627,16 +759,18 @@ function LearningsPanel({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4">
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">CTR podle kanálu</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("ctrByChannel")}</p>
           <p className="mt-1 text-sm text-navy-700">
-            Nejlepší varianta:{" "}
+            {t("bestVariantLabel")}{" "}
             <span className="font-semibold text-navy-800">{learnings.bestVariant?.channel}</span>{" "}
-            <span className="tnum text-muted">({fmtPct(learnings.bestVariant?.ctr ?? 0)})</span>
+            <span className="tnum text-muted">({fmt.fmtPct(learnings.bestVariant?.ctr ?? 0)})</span>
           </p>
         </div>
         <CtrSparkline
           ctrs={learnings.rows.map((r) => r.ctr)}
           labels={learnings.rows.map((r) => r.channel)}
+          t={t}
+          fmt={fmt}
         />
       </div>
     </div>

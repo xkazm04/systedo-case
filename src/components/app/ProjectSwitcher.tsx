@@ -6,6 +6,12 @@ import { Check, ChevronDown, Plus } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import { useProject, useProjects } from "@/lib/projects/context";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: { newProject: "Nový projekt" },
+  en: { newProject: "New project" },
+} as const;
 
 /** Small square brand tile showing the project's type icon in its accent colour. */
 function ProjectGlyph({ project, size = 34 }: { project: Project; size?: number }) {
@@ -28,6 +34,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
   const projects = useProjects();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useT(T);
 
   useEffect(() => {
     if (!open) return;
@@ -103,7 +110,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
             className="flex items-center gap-2.5 border-t border-line px-3 py-2.5 text-sm font-medium text-brand-accent transition-colors hover:bg-brand-50"
           >
             <Plus width={16} height={16} />
-            Nový projekt
+            {t("newProject")}
           </Link>
         </div>
       )}

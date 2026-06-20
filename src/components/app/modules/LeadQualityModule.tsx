@@ -1,9 +1,9 @@
-/** Kvalita leadů — cost-per-qualified-lead view + lead → close funnel by source
+/** Lead quality — cost-per-qualified-lead view + lead → close funnel by source
  *  and campaign (stage conversion, drop-off, velocity). Server. */
 import { Pill, type PillTone } from "@/components/ui";
 import { Bulb, Funnel, Clock, Bell } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
-import { fmtCZK, fmtDecimal, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import {
   avgVelocity,
   funnelBySource,
@@ -17,6 +17,95 @@ import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel, {
   type LeadSourceSeed,
 } from "@/components/app/modules/LeadSourceDiagnosisPanel";
+
+const T = {
+  cs: {
+    leads: "Leady",
+    leadsQualifiedSub: "z toho {qualified} kvalifikovaných",
+    cpl: "CPL",
+    cplSub: "cena za lead",
+    cpql: "CPQL",
+    cpqlSub: "cena za kvalifikovaný lead",
+    junkSources: "Junk zdroje",
+    junkSourcesSub: "levné, ale nekvalitní",
+    junkAlertPre: "Některé zdroje mají nízké CPL, ale po kvalifikaci jsou drahé (vysoké CPQL). Optimalizujte bidding na",
+    junkAlertBold: "kvalifikované leady a tržby",
+    junkAlertPost: ", ne na počet formulářů.",
+    colSource: "Zdroj",
+    colLeads: "Leady",
+    colCpl: "CPL",
+    colQualRate: "Kvalifik.",
+    colCpql: "CPQL",
+    colWinRate: "Win rate",
+    colRoi: "ROI",
+    colQuality: "Kvalita",
+    tableFooter: "Skóre kvality = 60 % míra kvalifikace + 40 % win rate. Seam: napojit CRM (lead → kvalifikovaný → uzavřený + hodnota).",
+    funnelTitle: "Trychtýř lead → uzavřeno",
+    funnelVelocity: "ø {days} dní do uzavření",
+    funnelOverallConversion: "celkem {pct} lead → uzavřeno",
+    funnelEntry: "vstup",
+    funnelFooter: "Konverze = podíl předané dál z předchozí fáze; drop-off = počet ztracený mezi fázemi. Fáze „Příležitost“ se zobrazí jen tam, kde data existují.",
+    trendTitle: "Trend a upozornění",
+    trendVsPrev: "vs. minulé období",
+    alertSeverityCritical: "cíl",
+    alertSeverityWarning: "drift",
+    colCpqlDelta: "Δ CPQL",
+    colQualRateDelta: "Δ kvalifikace",
+    colWinRateDelta: "Δ win rate",
+    trendFooter: "Δ = relativní změna oproti minulému období. Upozornění: růst CPQL o více než 25 % nebo překročení cíle. Zelená = zlepšení, červená = zhoršení.",
+    colCampaign: "Kampaň",
+    colSql: "SQL",
+    colClosed: "Uzavřeno",
+    colLeadToClosed: "Lead → uzavřeno",
+    colAvgDays: "ø dní",
+    campaignFooter: "Drill-down podle kampaně — rychlost (ø dní) se skryje tam, kde chybí data o době ve fázi.",
+    nextStepLabel: "Optimalizovat bidding",
+    nextStepHint: "Cílit na kvalifikované leady, ne na počet",
+  },
+  en: {
+    leads: "Leads",
+    leadsQualifiedSub: "of which {qualified} qualified",
+    cpl: "CPL",
+    cplSub: "cost per lead",
+    cpql: "CPQL",
+    cpqlSub: "cost per qualified lead",
+    junkSources: "Junk sources",
+    junkSourcesSub: "cheap but low quality",
+    junkAlertPre: "Some sources have low CPL but are expensive after qualification (high CPQL). Optimise bidding for",
+    junkAlertBold: "qualified leads and revenue",
+    junkAlertPost: ", not form count.",
+    colSource: "Source",
+    colLeads: "Leads",
+    colCpl: "CPL",
+    colQualRate: "Qual. rate",
+    colCpql: "CPQL",
+    colWinRate: "Win rate",
+    colRoi: "ROI",
+    colQuality: "Quality",
+    tableFooter: "Quality score = 60% qualification rate + 40% win rate. Seam: connect CRM (lead → qualified → closed + value).",
+    funnelTitle: "Lead → close funnel",
+    funnelVelocity: "avg. {days} days to close",
+    funnelOverallConversion: "{pct} overall lead → close",
+    funnelEntry: "entry",
+    funnelFooter: "Conversion = share passed to the next stage from the previous; drop-off = count lost between stages. The \“Opportunity\” stage appears only where data exists.",
+    trendTitle: "Trend and alerts",
+    trendVsPrev: "vs. previous period",
+    alertSeverityCritical: "target",
+    alertSeverityWarning: "drift",
+    colCpqlDelta: "Δ CPQL",
+    colQualRateDelta: "Δ qual. rate",
+    colWinRateDelta: "Δ win rate",
+    trendFooter: "Δ = relative change vs. previous period. Alerts: CPQL growth above 25% or target breach. Green = improvement, red = deterioration.",
+    colCampaign: "Campaign",
+    colSql: "SQL",
+    colClosed: "Closed",
+    colLeadToClosed: "Lead → close",
+    colAvgDays: "avg. days",
+    campaignFooter: "Campaign drill-down — velocity (avg. days) is hidden where stage-time data is missing.",
+    nextStepLabel: "Optimise bidding",
+    nextStepHint: "Target qualified leads, not form count",
+  },
+} as const;
 
 /** Win rate below which a source that otherwise qualifies still under-performs
  *  (qualified leads that rarely close → a fit / targeting problem). */
@@ -50,7 +139,10 @@ const alertTone: Record<LeadQualityAlert["severity"], PillTone> = {
   critical: "negative",
 };
 
-export default function LeadQualityModule({ sources }: { sources: LeadSource[] }) {
+export default async function LeadQualityModule({ sources }: { sources: LeadSource[] }) {
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
   const rows = sources.map(withMetrics).sort((a, b) => b.qualityScore - a.qualityScore);
   const s = summarize(sources);
   const funnels = funnelBySource(sources);
@@ -99,30 +191,35 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
     return seed;
   });
 
+  const alertSeverityLabel: Record<LeadQualityAlert["severity"], string> = {
+    critical: t("alertSeverityCritical"),
+    warning: t("alertSeverityWarning"),
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Leady</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtInt(s.leads)}</p>
-          <p className="mt-1 text-xs text-muted">z toho {fmtInt(s.qualified)} kvalifikovaných</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("leads")}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmt.fmtInt(s.leads)}</p>
+          <p className="mt-1 text-xs text-muted">{t("leadsQualifiedSub", { qualified: fmt.fmtInt(s.qualified) })}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">CPL</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmtCZK(s.blendedCpl)}</p>
-          <p className="mt-1 text-xs text-muted">cena za lead</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("cpl")}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">{fmt.fmtCZK(s.blendedCpl)}</p>
+          <p className="mt-1 text-xs text-muted">{t("cplSub")}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">CPQL</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-brand-accent">{fmtCZK(s.blendedCpql)}</p>
-          <p className="mt-1 text-xs text-muted">cena za kvalifikovaný lead</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("cpql")}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-brand-accent">{fmt.fmtCZK(s.blendedCpql)}</p>
+          <p className="mt-1 text-xs text-muted">{t("cpqlSub")}</p>
         </div>
         <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">Junk zdroje</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("junkSources")}</p>
           <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${s.junkCount > 0 ? "text-negative" : "text-positive"}`}>
             {s.junkCount}
           </p>
-          <p className="mt-1 text-xs text-muted">levné, ale nekvalitní</p>
+          <p className="mt-1 text-xs text-muted">{t("junkSourcesSub")}</p>
         </div>
       </div>
 
@@ -130,8 +227,7 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
         <div className="flex items-start gap-3 rounded-card border border-coral-400/30 bg-coral-soft px-4 py-3.5">
           <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-coral-600" />
           <p className="text-sm leading-relaxed text-navy-700">
-            Některé zdroje mají nízké CPL, ale po kvalifikaci jsou drahé (vysoké CPQL). Optimalizujte
-            bidding na <strong>kvalifikované leady a tržby</strong>, ne na počet formulářů.
+            {t("junkAlertPre")} <strong>{t("junkAlertBold")}</strong>{t("junkAlertPost")}
           </p>
         </div>
       )}
@@ -141,27 +237,27 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                <th className="px-5 py-3 font-medium">Zdroj</th>
-                <th className="px-4 py-3 text-right font-medium">Leady</th>
-                <th className="px-4 py-3 text-right font-medium">CPL</th>
-                <th className="px-4 py-3 text-right font-medium">Kvalifik.</th>
-                <th className="px-4 py-3 text-right font-medium">CPQL</th>
-                <th className="px-4 py-3 text-right font-medium">Win rate</th>
-                <th className="px-4 py-3 text-right font-medium">ROI</th>
-                <th className="px-4 py-3 font-medium">Kvalita</th>
+                <th className="px-5 py-3 font-medium">{t("colSource")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colLeads")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colCpl")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colQualRate")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colCpql")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colWinRate")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("colRoi")}</th>
+                <th className="px-4 py-3 font-medium">{t("colQuality")}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.source} className={`border-b border-line/70 last:border-0 ${r.junk ? "bg-coral-soft/40" : ""}`}>
                   <td className="px-5 py-3 font-medium text-navy-800">{r.source}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(r.leads)}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{r.spend > 0 ? fmtCZK(r.cpl) : "—"}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(r.qualRate)}</td>
-                  <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{r.spend > 0 ? fmtCZK(r.cpql) : "—"}</td>
-                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmtPct(r.winRate)}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(r.leads)}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{r.spend > 0 ? fmt.fmtCZK(r.cpl) : "—"}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.qualRate)}</td>
+                  <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{r.spend > 0 ? fmt.fmtCZK(r.cpql) : "—"}</td>
+                  <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.winRate)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">
-                    {Number.isFinite(r.roi) ? fmtMultiple(r.roi) : "∞"}
+                    {Number.isFinite(r.roi) ? fmt.fmtMultiple(r.roi) : "∞"}
                   </td>
                   <td className="px-4 py-3">
                     <Pill tone={scoreTone(r.qualityScore)}>{r.qualityScore}</Pill>
@@ -172,8 +268,7 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
           </table>
         </div>
         <div className="border-t border-line px-5 py-3 text-xs text-muted">
-          Skóre kvality = 60 % míra kvalifikace + 40 % win rate. Seam: napojit CRM (lead → kvalifikovaný
-          → uzavřený + hodnota).
+          {t("tableFooter")}
         </div>
       </div>
 
@@ -181,11 +276,11 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
       <div className="card overflow-hidden">
         <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
           <Funnel width={18} height={18} className="shrink-0 text-brand-accent" />
-          <h3 className="text-sm font-semibold text-navy-800">Trychtýř lead → uzavřeno</h3>
+          <h3 className="text-sm font-semibold text-navy-800">{t("funnelTitle")}</h3>
           {velocity.total !== null && (
             <span className="ml-auto inline-flex items-center gap-1.5 text-xs text-muted">
               <Clock width={14} height={14} className="shrink-0" />
-              ø {fmtDecimal(velocity.total, 0)} dní do uzavření
+              {t("funnelVelocity", { days: fmt.fmtDecimal(velocity.total, 0) })}
             </span>
           )}
         </div>
@@ -198,7 +293,7 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
                 <div className="mb-2 flex items-baseline justify-between gap-3">
                   <p className="text-sm font-medium text-navy-800">{f.source}</p>
                   <p className="tnum text-xs text-muted">
-                    celkem {fmtPct(f.overallConversion)} lead → uzavřeno
+                    {t("funnelOverallConversion", { pct: fmt.fmtPct(f.overallConversion) })}
                   </p>
                 </div>
                 <div className="flex flex-wrap items-stretch gap-2">
@@ -209,14 +304,14 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
                         <div className="rounded-card border border-line bg-navy-50/40 px-3 py-2">
                           <div className="flex items-baseline justify-between gap-2">
                             <span className="text-xs font-medium uppercase tracking-wide text-muted">{stage.label}</span>
-                            <span className="tnum text-sm font-semibold text-navy-800">{fmtInt(stage.count)}</span>
+                            <span className="tnum text-sm font-semibold text-navy-800">{fmt.fmtInt(stage.count)}</span>
                           </div>
                           <div className="mt-1.5 flex items-center justify-between gap-2">
                             <Pill tone={stepTone(stage.conversion, i === 0)}>
-                              {i === 0 ? "vstup" : fmtPct(stage.conversion)}
+                              {i === 0 ? t("funnelEntry") : fmt.fmtPct(stage.conversion)}
                             </Pill>
                             {i > 0 && stage.dropOff > 0 && (
-                              <span className="tnum text-xs text-negative">−{fmtInt(stage.dropOff)}</span>
+                              <span className="tnum text-xs text-negative">−{fmt.fmtInt(stage.dropOff)}</span>
                             )}
                           </div>
                         </div>
@@ -230,26 +325,25 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
         </div>
 
         <div className="border-t border-line px-5 py-3 text-xs text-muted">
-          Konverze = podíl předané dál z předchozí fáze; drop-off = počet ztracený mezi fázemi. Fáze
-          „Příležitost” se zobrazí jen tam, kde data existují.
+          {t("funnelFooter")}
         </div>
       </div>
 
-      {/* Period-over-period drift watch — CPQL / kvalifikace / win rate vs minulé
-          období, plus prahová upozornění. Hidden entirely without prior data. */}
+      {/* Period-over-period drift watch — CPQL / qualification / win rate vs previous
+          period, plus threshold alerts. Hidden entirely without prior data. */}
       {trends.length > 0 && (
         <div className="card overflow-hidden">
           <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
             <Bell width={18} height={18} className="shrink-0 text-brand-accent" />
-            <h3 className="text-sm font-semibold text-navy-800">Trend a upozornění</h3>
-            <span className="ml-auto text-xs text-muted">vs. minulé období</span>
+            <h3 className="text-sm font-semibold text-navy-800">{t("trendTitle")}</h3>
+            <span className="ml-auto text-xs text-muted">{t("trendVsPrev")}</span>
           </div>
 
           {alerts.length > 0 && (
             <ul className="divide-y divide-line/70 border-b border-line">
               {alerts.map((a) => (
                 <li key={`${a.source}-${a.kind}`} className="flex items-start gap-3 px-5 py-3">
-                  <Pill tone={alertTone[a.severity]}>{a.severity === "critical" ? "cíl" : "drift"}</Pill>
+                  <Pill tone={alertTone[a.severity]}>{alertSeverityLabel[a.severity]}</Pill>
                   <p className="text-sm leading-relaxed text-navy-700">{a.message}</p>
                 </li>
               ))}
@@ -260,37 +354,37 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Zdroj</th>
-                  <th className="px-4 py-3 text-right font-medium">CPQL</th>
-                  <th className="px-4 py-3 font-medium">Δ CPQL</th>
-                  <th className="px-4 py-3 font-medium">Δ kvalifikace</th>
-                  <th className="px-4 py-3 font-medium">Δ win rate</th>
+                  <th className="px-5 py-3 font-medium">{t("colSource")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("cpql")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colCpqlDelta")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colQualRateDelta")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colWinRateDelta")}</th>
                 </tr>
               </thead>
               <tbody>
-                {trends.map((t) => (
-                  <tr key={t.source} className="border-b border-line/70 last:border-0">
-                    <td className="px-5 py-3 font-medium text-navy-800">{t.source}</td>
+                {trends.map((tr) => (
+                  <tr key={tr.source} className="border-b border-line/70 last:border-0">
+                    <td className="px-5 py-3 font-medium text-navy-800">{tr.source}</td>
                     <td className="tnum px-4 py-3 text-right font-medium text-navy-800">
-                      {t.paid ? fmtCZK(t.cpqlNow) : "—"}
+                      {tr.paid ? fmt.fmtCZK(tr.cpqlNow) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      {t.cpqlDelta !== null ? (
-                        <Pill tone={deltaTone(t.cpqlDelta, false)}>{fmtSignedPct(t.cpqlDelta)}</Pill>
+                      {tr.cpqlDelta !== null ? (
+                        <Pill tone={deltaTone(tr.cpqlDelta, false)}>{fmt.fmtSignedPct(tr.cpqlDelta)}</Pill>
                       ) : (
                         <span className="text-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {t.qualRateDelta !== null ? (
-                        <Pill tone={deltaTone(t.qualRateDelta, true)}>{fmtSignedPct(t.qualRateDelta)}</Pill>
+                      {tr.qualRateDelta !== null ? (
+                        <Pill tone={deltaTone(tr.qualRateDelta, true)}>{fmt.fmtSignedPct(tr.qualRateDelta)}</Pill>
                       ) : (
                         <span className="text-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {t.winRateDelta !== null ? (
-                        <Pill tone={deltaTone(t.winRateDelta, true)}>{fmtSignedPct(t.winRateDelta)}</Pill>
+                      {tr.winRateDelta !== null ? (
+                        <Pill tone={deltaTone(tr.winRateDelta, true)}>{fmt.fmtSignedPct(tr.winRateDelta)}</Pill>
                       ) : (
                         <span className="text-muted">—</span>
                       )}
@@ -302,8 +396,7 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
           </div>
 
           <div className="border-t border-line px-5 py-3 text-xs text-muted">
-            Δ = relativní změna oproti minulému období. Upozornění: růst CPQL o více než 25 % nebo
-            překročení cíle. Zelená = zlepšení, červená = zhoršení.
+            {t("trendFooter")}
           </div>
         </div>
       )}
@@ -315,13 +408,13 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">Kampaň</th>
-                  <th className="px-4 py-3 font-medium">Zdroj</th>
-                  <th className="px-4 py-3 text-right font-medium">Leady</th>
-                  <th className="px-4 py-3 text-right font-medium">SQL</th>
-                  <th className="px-4 py-3 text-right font-medium">Uzavřeno</th>
-                  <th className="px-4 py-3 text-right font-medium">Lead → uzavřeno</th>
-                  <th className="px-4 py-3 text-right font-medium">ø dní</th>
+                  <th className="px-5 py-3 font-medium">{t("colCampaign")}</th>
+                  <th className="px-4 py-3 font-medium">{t("colSource")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colLeads")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colSql")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colClosed")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colLeadToClosed")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("colAvgDays")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -335,12 +428,12 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
                     <tr key={`${c.source}-${c.campaign}`} className="border-b border-line/70 last:border-0">
                       <td className="px-5 py-3 font-medium text-navy-800">{c.campaign}</td>
                       <td className="px-4 py-3 text-navy-700">{c.source}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.leads)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.qualified)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmtInt(c.won)}</td>
-                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmtPct(conv)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.leads)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.qualified)}</td>
+                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(c.won)}</td>
+                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtPct(conv)}</td>
                       <td className="tnum px-4 py-3 text-right text-navy-700">
-                        {days !== null ? fmtDecimal(days, 0) : "—"}
+                        {days !== null ? fmt.fmtDecimal(days, 0) : "—"}
                       </td>
                     </tr>
                   );
@@ -349,14 +442,14 @@ export default function LeadQualityModule({ sources }: { sources: LeadSource[] }
             </table>
           </div>
           <div className="border-t border-line px-5 py-3 text-xs text-muted">
-            Drill-down podle kampaně — rychlost (ø dní) se skryje tam, kde chybí data o době ve fázi.
+            {t("campaignFooter")}
           </div>
         </div>
       )}
 
       {diagnosisSeeds.length > 0 && <LeadSourceDiagnosisPanel seeds={diagnosisSeeds} />}
 
-      <NextSteps steps={[{ to: "kampane", label: "Optimalizovat bidding", hint: "Cílit na kvalifikované leady, ne na počet" }]} />
+      <NextSteps steps={[{ to: "kampane", label: t("nextStepLabel"), hint: t("nextStepHint") }]} />
     </div>
   );
 }

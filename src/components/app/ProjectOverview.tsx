@@ -11,7 +11,7 @@ import { ModuleIcon } from "@/components/app/icon-map";
 import type { PerformanceData } from "@/lib/types";
 import { projectDataSource } from "@/lib/project-data/source";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
-import { fmtCZKCompact, fmtDate, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import type { Formatters } from "@/lib/format";
 import {
   KPI_PRESETS,
   modulesFor,
@@ -20,6 +20,28 @@ import {
 } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
 import type { Recommendation, Severity } from "@/lib/insights/types";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: {
+    revenue30: "Obrat za posledních 30 dní",
+    dataAsOf: "Data k",
+    needsAttention: "Vyžaduje pozornost",
+    allGood: "Vše vypadá v pořádku — žádná upozornění napříč moduly.",
+    priority: "Priorita",
+    modules: "Moduly",
+    open: "Otevřít",
+  },
+  en: {
+    revenue30: "Revenue — last 30 days",
+    dataAsOf: "Data as of",
+    needsAttention: "Needs attention",
+    allGood: "Everything looks good — no alerts across modules.",
+    priority: "Priority",
+    modules: "Modules",
+    open: "Open",
+  },
+} as const;
 
 const SEVERITY_DOT: Record<Severity, string> = {
   critical: "bg-negative",
@@ -49,20 +71,20 @@ function kpiValue(t: Totals, metric: KpiMetric): number {
   }
 }
 
-function fmtKpi(v: number, format: KpiFormat): string {
+function fmtKpi(v: number, format: KpiFormat, fmt: Formatters): string {
   switch (format) {
     case "czk":
-      return fmtCZKCompact(v);
+      return fmt.fmtCZKCompact(v);
     case "multiple":
-      return fmtMultiple(v);
+      return fmt.fmtMultiple(v);
     case "pct":
-      return fmtPct(v);
+      return fmt.fmtPct(v);
     case "int":
-      return fmtInt(v);
+      return fmt.fmtInt(v);
   }
 }
 
-export default function ProjectOverview({
+export default async function ProjectOverview({
   project,
   data,
   recommendations,
@@ -71,6 +93,9 @@ export default function ProjectOverview({
   data: PerformanceData;
   recommendations: Recommendation[];
 }) {
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
   const meta = PROJECT_TYPE_META[project.type];
   const ds = projectDataSource(project);
   const last30 = totalsOf(data.daily.slice(-30));
@@ -122,7 +147,7 @@ export default function ProjectOverview({
           <div key={kpi.label} className="card p-5">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">{kpi.label}</p>
             <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-              {fmtKpi(kpiValue(last30, kpi.metric), kpi.format)}
+              {fmtKpi(kpiValue(last30, kpi.metric), kpi.format, fmt)}
             </p>
           </div>
         ))}
@@ -131,30 +156,30 @@ export default function ProjectOverview({
       {/* trend strip */}
       <div className="mt-4 card flex flex-col gap-4 p-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-muted">Obrat za posledních 30 dní</p>
+          <p className="text-sm text-muted">{t("revenue30")}</p>
           <p className="tnum mt-1 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmtCZKCompact(last30.revenue)}
+            {fmt.fmtCZKCompact(last30.revenue)}
           </p>
           {lastDate && (
             <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted">
               <span className="h-1.5 w-1.5 rounded-full bg-positive" aria-hidden />
-              Data k <time dateTime={lastDate}>{fmtDate(lastDate)}</time>
+              {t("dataAsOf")} <time dateTime={lastDate}>{fmt.fmtDate(lastDate)}</time>
             </p>
           )}
         </div>
-        <Sparkline values={monthlyRevenue} width={220} height={56} autoColor dot describe formatValue={fmtCZKCompact} />
+        <Sparkline values={monthlyRevenue} width={220} height={56} autoColor dot describe formatValue={fmt.fmtCZKCompact} />
       </div>
 
       {/* needs attention — cross-module command center */}
       <div className="mt-8">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">Vyžaduje pozornost</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted">{t("needsAttention")}</h3>
           {recommendations.length > 0 && <Pill tone="neutral">{recommendations.length}</Pill>}
         </div>
         {recommendations.length === 0 ? (
           <div className="mt-3 flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-4 text-sm text-muted">
             <span className="h-2 w-2 rounded-full bg-positive" aria-hidden />
-            Vše vypadá v pořádku — žádná upozornění napříč moduly.
+            {t("allGood")}
           </div>
         ) : (
           <div className="mt-3 card divide-y divide-line overflow-hidden">
@@ -170,7 +195,7 @@ export default function ProjectOverview({
                     <span className="flex items-center gap-2">
                       {i < 3 && (
                         <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-accent">
-                          Priorita {i + 1}
+                          {t("priority")} {i + 1}
                         </span>
                       )}
                       <span className="text-sm font-semibold text-navy-800">{r.title}</span>
@@ -190,7 +215,7 @@ export default function ProjectOverview({
       </div>
 
       {/* quick access to modules */}
-      <h3 className="mt-10 text-sm font-semibold uppercase tracking-[0.12em] text-muted">Moduly</h3>
+      <h3 className="mt-10 text-sm font-semibold uppercase tracking-[0.12em] text-muted">{t("modules")}</h3>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {quick.map((m) => (
             <Link
@@ -204,7 +229,7 @@ export default function ProjectOverview({
               <h4 className="mt-4 text-base font-semibold text-navy-800">{m.label}</h4>
               <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{m.blurb}</p>
               <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent">
-                Otevřít
+                {t("open")}
                 <ArrowRight width={15} height={15} className="transition-transform group-hover:translate-x-1" />
               </span>
             </Link>

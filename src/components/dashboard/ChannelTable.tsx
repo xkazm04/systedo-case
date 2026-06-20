@@ -1,6 +1,31 @@
+"use client";
+
 import type { ChannelRow, Significance, Totals } from "@/lib/metrics";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
+
+const T = {
+  cs: {
+    colChannel: "Kanál",
+    colCost: "Náklady",
+    colConversions: "Konverze",
+    colRevenue: "Obrat",
+    colPno: "PNO",
+    colRoas: "ROAS",
+    colRevenueDelta: "Změna obratu",
+    rowTotal: "Celkem",
+  },
+  en: {
+    colChannel: "Channel",
+    colCost: "Cost",
+    colConversions: "Conversions",
+    colRevenue: "Revenue",
+    colPno: "PNO",
+    colRoas: "ROAS",
+    colRevenueDelta: "Revenue change",
+    rowTotal: "Total",
+  },
+} as const;
 
 /** Colour PNO relative to the agreed goal: efficient = green, on plan = neutral,
  *  over budget = coral. Organic (cost 0) is treated as fully efficient. */
@@ -21,7 +46,7 @@ export default function ChannelTable({
   rows: ChannelRow[];
   totals: Totals;
   goalPno: number;
-  /** period-over-period revenue change for the Celkem footer row */
+  /** period-over-period revenue change for the Total footer row */
   revenueDelta?: number;
   /** confidence that the revenue change is real rather than daily noise. Each
    *  channel projects the totals by a constant share, so a channel's revenue
@@ -29,6 +54,9 @@ export default function ChannelTable({
    *  one value drives every row badge and the footer. */
   revenueSignificance?: Significance;
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const maxShare = Math.max(...rows.map((r) => r.revenueShare), 0.0001);
 
   return (
@@ -37,13 +65,13 @@ export default function ChannelTable({
         <table className="w-full min-w-[720px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-5 py-3 font-semibold">Kanál</th>
-              <th className="px-3 py-3 text-right font-semibold">Náklady</th>
-              <th className="px-3 py-3 text-right font-semibold">Konverze</th>
-              <th className="px-5 py-3 text-right font-semibold">Obrat</th>
-              <th className="px-3 py-3 text-right font-semibold">PNO</th>
-              <th className="px-3 py-3 text-right font-semibold">ROAS</th>
-              <th className="px-5 py-3 text-right font-semibold">Změna obratu</th>
+              <th className="px-5 py-3 font-semibold">{t("colChannel")}</th>
+              <th className="px-3 py-3 text-right font-semibold">{t("colCost")}</th>
+              <th className="px-3 py-3 text-right font-semibold">{t("colConversions")}</th>
+              <th className="px-5 py-3 text-right font-semibold">{t("colRevenue")}</th>
+              <th className="px-3 py-3 text-right font-semibold">{t("colPno")}</th>
+              <th className="px-3 py-3 text-right font-semibold">{t("colRoas")}</th>
+              <th className="px-5 py-3 text-right font-semibold">{t("colRevenueDelta")}</th>
             </tr>
           </thead>
           <tbody>
@@ -59,11 +87,11 @@ export default function ChannelTable({
                     <span className="font-medium text-navy-800">{r.channel}</span>
                   </div>
                 </td>
-                <td className="tnum px-3 py-3 text-right text-navy-700">{fmtCZK(r.cost)}</td>
-                <td className="tnum px-3 py-3 text-right text-navy-700">{fmtInt(r.conversions)}</td>
+                <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(r.cost)}</td>
+                <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtInt(r.conversions)}</td>
                 <td className="px-5 py-3">
                   <div className="flex flex-col items-end gap-1">
-                    <span className="tnum font-medium text-navy-800">{fmtCZK(r.revenue)}</span>
+                    <span className="tnum font-medium text-navy-800">{fmt.fmtCZK(r.revenue)}</span>
                     <span className="h-1.5 w-24 overflow-hidden rounded-full bg-navy-50">
                       <span
                         className="block h-full rounded-full"
@@ -76,10 +104,10 @@ export default function ChannelTable({
                   </div>
                 </td>
                 <td className={`tnum px-3 py-3 text-right font-medium ${pnoTone(r.pno, goalPno)}`}>
-                  {r.pno > 0 ? fmtPct(r.pno) : "—"}
+                  {r.pno > 0 ? fmt.fmtPct(r.pno) : "—"}
                 </td>
                 <td className="tnum px-3 py-3 text-right text-navy-700">
-                  {r.roas > 0 ? fmtMultiple(r.roas) : "—"}
+                  {r.roas > 0 ? fmt.fmtMultiple(r.roas) : "—"}
                 </td>
                 <td className="px-5 py-3 text-right">
                   {r.delta ? (
@@ -100,12 +128,12 @@ export default function ChannelTable({
           </tbody>
           <tfoot>
             <tr className="border-t-2 border-line bg-canvas/50 font-semibold text-navy-800">
-              <td className="px-5 py-3">Celkem</td>
-              <td className="tnum px-3 py-3 text-right">{fmtCZK(totals.cost)}</td>
-              <td className="tnum px-3 py-3 text-right">{fmtInt(totals.conversions)}</td>
-              <td className="tnum px-5 py-3 text-right">{fmtCZK(totals.revenue)}</td>
-              <td className="tnum px-3 py-3 text-right">{fmtPct(totals.pno)}</td>
-              <td className="tnum px-3 py-3 text-right">{fmtMultiple(totals.roas)}</td>
+              <td className="px-5 py-3">{t("rowTotal")}</td>
+              <td className="tnum px-3 py-3 text-right">{fmt.fmtCZK(totals.cost)}</td>
+              <td className="tnum px-3 py-3 text-right">{fmt.fmtInt(totals.conversions)}</td>
+              <td className="tnum px-5 py-3 text-right">{fmt.fmtCZK(totals.revenue)}</td>
+              <td className="tnum px-3 py-3 text-right">{fmt.fmtPct(totals.pno)}</td>
+              <td className="tnum px-3 py-3 text-right">{fmt.fmtMultiple(totals.roas)}</td>
               <td className="px-5 py-3 text-right">
                 {revenueDelta !== undefined ? (
                   <span className="inline-flex justify-end">

@@ -1,18 +1,78 @@
+"use client";
+
 import { Gauge } from "@/components/icons";
 import type { MonthlyPacing } from "@/lib/metrics";
-import {
-  fmtCZK,
-  fmtCZKCompact,
-  fmtMonthLong,
-  fmtPct,
-  fmtSignedPct,
-} from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    heading: "Měsíční cíl obratu",
+    monthComplete: "měsíc dokončen",
+    dayProgress: "{elapsed}/{total} dní · zbývá {remaining}",
+    pctOfGoal: "{pct} cíle",
+    chanceLabel: "· {pct} šance na splnění",
+    finalRevenue: "Finální obrat",
+    forecast: "Výhled na konec měsíce",
+    goalSuffix: "· cíl {amount}",
+    overGoal: "o {pct} nad cílem",
+    belowGoal: "{pct} pod cílem",
+    gaugeNote: "Plná barva = obrat zatím{forecastPart}; svislá značka = cíl{planPart}{ciPart}.",
+    gaugeForecastPart: ", světlá = výhled",
+    gaugePlanPart: ", tenká = dnešní plán",
+    gaugeCiPart: "; tenká čára = pravděpodobné rozpětí (P10–P90)",
+    statMtdLabel: "Zatím tento měsíc",
+    statMtdSub: "{pct} cíle",
+    statPaceLabel: "Tempo vs. plán",
+    statPaceAhead: "před plánem",
+    statPaceBehind: "za plánem",
+    statDaysLabel: "Zbývá dní",
+    statDoneLabel: "Stav",
+    statDoneValue: "Hotovo",
+    statDoneSub: "měsíc uzavřen",
+    statDaysSub: "z {total} dní",
+    planTitle: "Dnešní plán {amount}",
+    goalTitle: "Cíl {amount}",
+    ciBandTitle: "Pravděpodobné rozpětí konce měsíce {low} – {high}",
+  },
+  en: {
+    heading: "Monthly revenue target",
+    monthComplete: "month complete",
+    dayProgress: "{elapsed}/{total} days · {remaining} remaining",
+    pctOfGoal: "{pct} of target",
+    chanceLabel: "· {pct} chance of hitting target",
+    finalRevenue: "Final revenue",
+    forecast: "Month-end forecast",
+    goalSuffix: "· target {amount}",
+    overGoal: "{pct} above target",
+    belowGoal: "{pct} below target",
+    gaugeNote: "Solid = revenue to date{forecastPart}; vertical marker = target{planPart}{ciPart}.",
+    gaugeForecastPart: ", light = forecast",
+    gaugePlanPart: ", thin = today's plan",
+    gaugeCiPart: "; thin line = probable range (P10–P90)",
+    statMtdLabel: "Month to date",
+    statMtdSub: "{pct} of target",
+    statPaceLabel: "Pace vs. plan",
+    statPaceAhead: "ahead of plan",
+    statPaceBehind: "behind plan",
+    statDaysLabel: "Days remaining",
+    statDoneLabel: "Status",
+    statDoneValue: "Done",
+    statDoneSub: "month closed",
+    statDaysSub: "of {total} days",
+    planTitle: "Today's plan {amount}",
+    goalTitle: "Target {amount}",
+    ciBandTitle: "Probable month-end range {low} – {high}",
+  },
+} as const;
 
 /** Monthly revenue goal pacing + a seasonality-aware month-end forecast.
  *  Mirrors the PNO-vs-goal gauge: a horizontal bar with a goal marker,
  *  colour-coded ahead/behind. The bar shows actual month-to-date (solid) plus
  *  the forecast remainder (lighter), with ticks for the goal and "today's plan". */
 export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const {
     monthStart,
     daysInMonth,
@@ -40,19 +100,25 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
   const goalTone = willHitGoal ? "text-positive" : "text-coral-600";
   const paceTone = onPace ? "text-positive" : "text-coral-600";
 
+  const gaugeNote = t("gaugeNote", {
+    forecastPart: complete ? "" : t("gaugeForecastPart"),
+    planPart: complete ? "" : t("gaugePlanPart"),
+    ciPart: complete ? "" : t("gaugeCiPart"),
+  });
+
   return (
     <div className="card animate-fade-up p-5 sm:p-6">
       {/* header */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
           <Gauge width={17} height={17} className="text-brand-600" />
-          Měsíční cíl obratu
+          {t("heading")}
         </div>
         <span className="text-xs text-muted">
-          {fmtMonthLong(monthStart)} ·{" "}
+          {fmt.fmtMonthLong(monthStart)} ·{" "}
           {complete
-            ? "měsíc dokončen"
-            : `${daysElapsed}/${daysInMonth} dní · zbývá ${daysRemaining}`}
+            ? t("monthComplete")
+            : t("dayProgress", { elapsed: daysElapsed, total: daysInMonth, remaining: daysRemaining })}
         </span>
       </div>
 
@@ -61,24 +127,24 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
         <div>
           <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
             <p className="tnum text-3xl font-semibold tracking-tight text-navy-800">
-              {fmtCZK(projection)}
+              {fmt.fmtCZK(projection)}
             </p>
             <span className={`text-sm font-semibold ${goalTone}`}>
-              {fmtPct(attainment, 0)} cíle
+              {t("pctOfGoal", { pct: fmt.fmtPct(attainment, 0) })}
             </span>
             {!complete && (
               <span className="text-sm text-muted">
-                · {fmtPct(goalProbability, 0)} šance na splnění
+                {t("chanceLabel", { pct: fmt.fmtPct(goalProbability, 0) })}
               </span>
             )}
           </div>
           <p className="mt-1 text-sm text-muted">
-            {complete ? "Finální obrat" : "Výhled na konec měsíce"} · cíl{" "}
-            {fmtCZKCompact(goal)} ·{" "}
+            {complete ? t("finalRevenue") : t("forecast")}{" "}
+            {t("goalSuffix", { amount: fmt.fmtCZKCompact(goal) })} ·{" "}
             <span className={goalTone}>
               {overUnder >= 0
-                ? `o ${fmtSignedPct(overUnder, 0).replace("+", "")} nad cílem`
-                : `${fmtPct(Math.abs(overUnder), 0)} pod cílem`}
+                ? t("overGoal", { pct: fmt.fmtSignedPct(overUnder, 0).replace("+", "") })
+                : t("belowGoal", { pct: fmt.fmtPct(Math.abs(overUnder), 0) })}
             </span>
           </p>
 
@@ -102,20 +168,23 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
               <div
                 className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-navy-300"
                 style={{ left: pct(proratedTarget) }}
-                title={`Dnešní plán ${fmtCZK(proratedTarget)}`}
+                title={t("planTitle", { amount: fmt.fmtCZK(proratedTarget) })}
               />
             )}
             <div
               className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-navy-700"
               style={{ left: pct(goal) }}
-              title={`Cíl ${fmtCZK(goal)}`}
+              title={t("goalTitle", { amount: fmt.fmtCZK(goal) })}
             />
           </div>
           {/* forecast confidence interval (P10–P90) on the same axis as the bar */}
           {!complete && projectionHigh > projectionLow && (
             <div
               className="relative mt-2 h-3"
-              title={`Pravděpodobné rozpětí konce měsíce ${fmtCZK(projectionLow)} – ${fmtCZK(projectionHigh)}`}
+              title={t("ciBandTitle", {
+                low: fmt.fmtCZK(projectionLow),
+                high: fmt.fmtCZK(projectionHigh),
+              })}
             >
               <div
                 className="absolute top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-navy-200"
@@ -130,30 +199,26 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
               />
             </div>
           )}
-          <p className="mt-2 text-[13px] text-muted">
-            Plná barva = obrat zatím{complete ? "" : ", světlá = výhled"}; svislá značka ={" "}
-            cíl{complete ? "" : ", tenká = dnešní plán"}
-            {complete ? "" : "; tenká čára = pravděpodobné rozpětí (P10–P90)"}.
-          </p>
+          <p className="mt-2 text-[13px] text-muted">{gaugeNote}</p>
         </div>
 
         {/* stat tiles */}
         <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-0 lg:divide-y lg:divide-line">
           <Stat
-            label="Zatím tento měsíc"
-            value={fmtCZK(mtd)}
-            sub={`${fmtPct(goal > 0 ? mtd / goal : 0, 0)} cíle`}
+            label={t("statMtdLabel")}
+            value={fmt.fmtCZK(mtd)}
+            sub={t("statMtdSub", { pct: fmt.fmtPct(goal > 0 ? mtd / goal : 0, 0) })}
           />
           <Stat
-            label="Tempo vs. plán"
-            value={fmtSignedPct(pace, 0)}
-            sub={onPace ? "před plánem" : "za plánem"}
+            label={t("statPaceLabel")}
+            value={fmt.fmtSignedPct(pace, 0)}
+            sub={onPace ? t("statPaceAhead") : t("statPaceBehind")}
             tone={paceTone}
           />
           <Stat
-            label={complete ? "Stav" : "Zbývá dní"}
-            value={complete ? "Hotovo" : String(daysRemaining)}
-            sub={complete ? "měsíc uzavřen" : `z ${daysInMonth} dní`}
+            label={complete ? t("statDoneLabel") : t("statDaysLabel")}
+            value={complete ? t("statDoneValue") : String(daysRemaining)}
+            sub={complete ? t("statDoneSub") : t("statDaysSub", { total: daysInMonth })}
           />
         </dl>
       </div>

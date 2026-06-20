@@ -12,6 +12,56 @@ import {
   PROJECT_TYPE_META,
   type ProjectType,
 } from "@/lib/projects/types";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    dataSourceTitle: "Zdroj dat",
+    dataSourceLive: "Projekt používá živá data z Google Ads.",
+    dataSourceDemo: "Připojte Google Ads účet v modulu Kampaně pro živá data.",
+    projectName: "Název projektu",
+    website: "Web",
+    websiteOptional: "(nepovinné)",
+    projectType: "Typ projektu",
+    projectTypeHint: "Změna typu upraví moduly v levém menu i metriky v přehledu.",
+    brandColor: "Barva značky",
+    colorAria: "Barva {color}",
+    saveBtn: "Uložit změny",
+    savingBtn: "Ukládám…",
+    savedLabel: "Uloženo",
+    errorRequired: "Zadejte název projektu.",
+    errorSaveFailed: "Uložení se nezdařilo.",
+    errorGeneric: "Něco se pokazilo.",
+    dangerTitle: "Smazat projekt",
+    dangerHint: "Odebere projekt z vašeho pracovního prostoru. Tuto akci nelze vrátit zpět.",
+    confirmDelete: "Opravdu smazat „{name}“",
+    cancelBtn: "Zrušit",
+    deleteBtn: "Smazat projekt",
+  },
+  en: {
+    dataSourceTitle: "Data source",
+    dataSourceLive: "This project uses live data from Google Ads.",
+    dataSourceDemo: "Connect a Google Ads account in the Campaigns module for live data.",
+    projectName: "Project name",
+    website: "Website",
+    websiteOptional: "(optional)",
+    projectType: "Project type",
+    projectTypeHint: "Changing the type updates the sidebar modules and the overview metrics.",
+    brandColor: "Brand color",
+    colorAria: "Color {color}",
+    saveBtn: "Save changes",
+    savingBtn: "Saving…",
+    savedLabel: "Saved",
+    errorRequired: "Please enter a project name.",
+    errorSaveFailed: "Save failed.",
+    errorGeneric: "Something went wrong.",
+    dangerTitle: "Delete project",
+    dangerHint: "Removes the project from your workspace. This action cannot be undone.",
+    confirmDelete: "Really delete “{name}”",
+    cancelBtn: "Cancel",
+    deleteBtn: "Delete project",
+  },
+} as const;
 
 const ACCENTS = ["#14b8b1", "#0e9c97", "#6366f1", "#8b5cf6", "#fb7141", "#d4503e"];
 
@@ -19,6 +69,7 @@ const inputClass =
   "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-muted/70 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
 export default function ProjectSettings() {
+  const t = useT(T);
   const project = useProject();
   const router = useRouter();
   const [name, setName] = useState(project.name);
@@ -39,7 +90,7 @@ export default function ProjectSettings() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError("Zadejte název projektu.");
+      setError(t("errorRequired"));
       return;
     }
     setSaving(true);
@@ -53,12 +104,12 @@ export default function ProjectSettings() {
       });
       if (!res.ok) {
         const json = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(json.error ?? "Uložení se nezdařilo.");
+        throw new Error(json.error ?? t("errorSaveFailed"));
       }
       setSaved(true);
       router.refresh(); // re-render the shell (sidebar/switcher) with the new values
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Něco se pokazilo.");
+      setError(err instanceof Error ? err.message : t("errorGeneric"));
     } finally {
       setSaving(false);
     }
@@ -81,11 +132,9 @@ export default function ProjectSettings() {
     <div className="max-w-2xl space-y-8">
       <div className="card flex items-center justify-between gap-3 p-5">
         <div>
-          <p className="text-sm font-semibold text-navy-800">Zdroj dat</p>
+          <p className="text-sm font-semibold text-navy-800">{t("dataSourceTitle")}</p>
           <p className="mt-0.5 text-xs text-muted">
-            {ds.live
-              ? "Projekt používá živá data z Google Ads."
-              : "Připojte Google Ads účet v modulu Kampaně pro živá data."}
+            {ds.live ? t("dataSourceLive") : t("dataSourceDemo")}
           </p>
         </div>
         <Pill tone={ds.live ? "positive" : "neutral"}>{ds.label}</Pill>
@@ -94,12 +143,12 @@ export default function ProjectSettings() {
       <form onSubmit={save} className="card space-y-6 p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-sm font-medium text-navy-800">Název projektu</span>
+            <span className="text-sm font-medium text-navy-800">{t("projectName")}</span>
             <input value={name} onChange={(e) => setName(e.target.value)} className={`mt-1.5 ${inputClass}`} />
           </label>
           <label className="block">
             <span className="text-sm font-medium text-navy-800">
-              Web <span className="font-normal text-muted">(nepovinné)</span>
+              {t("website")} <span className="font-normal text-muted">{t("websiteOptional")}</span>
             </span>
             <input
               value={domain}
@@ -111,17 +160,17 @@ export default function ProjectSettings() {
         </div>
 
         <div>
-          <span className="text-sm font-medium text-navy-800">Typ projektu</span>
-          <p className="mt-0.5 text-xs text-muted">Změna typu upraví moduly v levém menu i metriky v přehledu.</p>
+          <span className="text-sm font-medium text-navy-800">{t("projectType")}</span>
+          <p className="mt-0.5 text-xs text-muted">{t("projectTypeHint")}</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {PROJECT_TYPES.map((t) => {
-              const meta = PROJECT_TYPE_META[t];
-              const selected = t === type;
+            {PROJECT_TYPES.map((pt) => {
+              const meta = PROJECT_TYPE_META[pt];
+              const selected = pt === type;
               return (
                 <button
-                  key={t}
+                  key={pt}
                   type="button"
-                  onClick={() => setType(t)}
+                  onClick={() => setType(pt)}
                   aria-pressed={selected}
                   className={`flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-all ${
                     selected ? "border-brand-400 bg-brand-50/60 ring-2 ring-brand-200" : "border-line hover:border-brand-300"
@@ -142,13 +191,13 @@ export default function ProjectSettings() {
         </div>
 
         <div>
-          <span className="text-sm font-medium text-navy-800">Barva značky</span>
+          <span className="text-sm font-medium text-navy-800">{t("brandColor")}</span>
           <div className="mt-2 flex items-center gap-2">
             {ACCENTS.map((c) => (
               <button
                 key={c}
                 type="button"
-                aria-label={`Barva ${c}`}
+                aria-label={t("colorAria", { color: c })}
                 aria-pressed={accent === c}
                 onClick={() => setAccent(c)}
                 className="h-8 w-8 rounded-full transition-transform hover:scale-110"
@@ -170,11 +219,11 @@ export default function ProjectSettings() {
             disabled={saving || !dirty}
             className="rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
           >
-            {saving ? "Ukládám…" : "Uložit změny"}
+            {saving ? t("savingBtn") : t("saveBtn")}
           </button>
           {saved && !dirty && (
             <span className="inline-flex items-center gap-1.5 text-sm font-medium text-positive">
-              <Check width={15} height={15} /> Uloženo
+              <Check width={15} height={15} /> {t("savedLabel")}
             </span>
           )}
         </div>
@@ -182,10 +231,8 @@ export default function ProjectSettings() {
 
       {/* danger zone */}
       <div className="card border-negative/30 p-6">
-        <h3 className="text-sm font-semibold text-navy-800">Smazat projekt</h3>
-        <p className="mt-1 text-sm text-muted">
-          Odebere projekt z vašeho pracovního prostoru. Tuto akci nelze vrátit zpět.
-        </p>
+        <h3 className="text-sm font-semibold text-navy-800">{t("dangerTitle")}</h3>
+        <p className="mt-1 text-sm text-muted">{t("dangerHint")}</p>
         {confirmDelete ? (
           <div className="mt-4 flex items-center gap-3">
             <button
@@ -194,14 +241,14 @@ export default function ProjectSettings() {
               disabled={saving}
               className="rounded-pill bg-negative px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              {`Opravdu smazat „${project.name}"`}
+              {t("confirmDelete", { name: project.name })}
             </button>
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
               className="text-sm font-medium text-muted hover:text-navy-700"
             >
-              Zrušit
+              {t("cancelBtn")}
             </button>
           </div>
         ) : (
@@ -210,7 +257,7 @@ export default function ProjectSettings() {
             onClick={() => setConfirmDelete(true)}
             className="mt-4 rounded-pill border border-negative/40 px-4 py-2 text-sm font-semibold text-negative transition-colors hover:bg-negative-soft"
           >
-            Smazat projekt
+            {t("deleteBtn")}
           </button>
         )}
       </div>

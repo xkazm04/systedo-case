@@ -9,6 +9,12 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AuthButton from "@/components/auth/AuthButton";
 import UsageMeter from "@/components/usage/UsageMeter";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: { openMenu: "Otevřít menu" },
+  en: { openMenu: "Open menu" },
+} as const;
 
 /** The active module's label for the current route, so the topbar names the page
  *  the same way the sidebar does (single source of truth = the module registry). */
@@ -25,6 +31,7 @@ function useActiveModuleLabel(): string {
 export default function AppTopbar() {
   const { setMobileOpen } = useShell();
   const title = useActiveModuleLabel();
+  const t = useT(T);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-line bg-surface/85 px-4 backdrop-blur-md sm:px-6">
@@ -32,7 +39,7 @@ export default function AppTopbar() {
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
-          aria-label="Otevřít menu"
+          aria-label={t("openMenu")}
           className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-navy-700 hover:bg-navy-50 md:hidden"
         >
           <Menu />

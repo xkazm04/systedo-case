@@ -1,6 +1,27 @@
+"use client";
+
 import { TrendDown, TrendUp } from "@/components/icons";
-import { fmtSignedPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import type { Significance } from "@/lib/metrics";
+
+const T = {
+  cs: {
+    noChange: "beze změny",
+    noiseTitle: "Změna v rámci běžného kolísání — statisticky nevýznamná",
+    improvingTitle: "Zlepšení oproti předchozímu období",
+    worseningTitle: "Zhoršení oproti předchozímu období",
+    weakSignal: " · slabý signál",
+    strongSignal: " · významné",
+  },
+  en: {
+    noChange: "no change",
+    noiseTitle: "Change within normal variance — not statistically significant",
+    improvingTitle: "Improvement vs previous period",
+    worseningTitle: "Deterioration vs previous period",
+    weakSignal: " · weak signal",
+    strongSignal: " · significant",
+  },
+} as const;
 
 /** Coloured change indicator. Knows that for some metrics (cost, PNO) a *drop*
  *  is the good outcome, so the colour reflects "better/worse", not "up/down".
@@ -17,11 +38,14 @@ export default function DeltaBadge({
   size?: "sm" | "xs";
   significance?: Significance;
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const sizeCls = size === "xs" ? "!px-2 !py-1 text-[13px]" : "";
   const iconSize = size === "xs" ? 12 : 14;
 
   if (!Number.isFinite(delta) || Math.abs(delta) < 0.0005) {
-    return <span className={`pill bg-navy-50 text-muted ${sizeCls}`}>beze změny</span>;
+    return <span className={`pill bg-navy-50 text-muted ${sizeCls}`}>{t("noChange")}</span>;
   }
 
   const Icon = delta > 0 ? TrendUp : TrendDown;
@@ -31,26 +55,30 @@ export default function DeltaBadge({
     return (
       <span
         className={`pill bg-navy-50 text-muted ${sizeCls}`}
-        title="Změna v rámci běžného kolísání — statisticky nevýznamná"
+        title={t("noiseTitle")}
       >
         <Icon width={iconSize} height={iconSize} />
-        <span className="tnum">{fmtSignedPct(delta)}</span>
+        <span className="tnum">{fmt.fmtSignedPct(delta)}</span>
       </span>
     );
   }
 
   const improving = goodDirection === "up" ? delta > 0 : delta < 0;
   const tone = improving ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative";
+  const sigSuffix =
+    significance === "weak"
+      ? t("weakSignal")
+      : significance === "strong"
+        ? t("strongSignal")
+        : "";
 
   return (
     <span
       className={`pill ${tone} ${sizeCls}`}
-      title={`${improving ? "Zlepšení" : "Zhoršení"} oproti předchozímu období${
-        significance === "weak" ? " · slabý signál" : significance === "strong" ? " · významné" : ""
-      }`}
+      title={`${improving ? t("improvingTitle") : t("worseningTitle")}${sigSuffix}`}
     >
       <Icon width={iconSize} height={iconSize} />
-      <span className="tnum">{fmtSignedPct(delta)}</span>
+      <span className="tnum">{fmt.fmtSignedPct(delta)}</span>
     </span>
   );
 }

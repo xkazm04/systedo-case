@@ -1,7 +1,7 @@
 /** LP experimenty — landing-page A/B results per keyword cluster. Server component. */
 import { Pill } from "@/components/ui";
 import { Check, ArrowRight } from "@/components/icons";
-import { fmtInt, fmtPct, fmtSignedPct } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { evaluate } from "@/lib/lp-exp/compute";
 import type { LpExperiment } from "@/lib/lp-exp/sample";
 import NextSteps from "@/components/app/NextSteps";
@@ -9,7 +9,57 @@ import LpVariantIdeasPanel, {
   type LpVariantSeed,
 } from "@/components/app/modules/LpVariantIdeasPanel";
 
-export default function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
+const T = {
+  cs: {
+    lpExperiment: "Landing page experiment · {n} varianty",
+    adjustedFor: "upraveno pro {n} varianty",
+    statusDone: "Ukončeno",
+    statusRunning: "Běží",
+    collecting: "Sbírá data — {pct} %",
+    winner: "Vítěz ({conf} jistota)",
+    leading: "Vede, zatím neprůkazné",
+    noDiff: "Bez rozdílu",
+    needVisitors: "Potřeba ~{n} návštěvníků/varianta než vyhlásíme vítěze",
+    adjustedThreshold: "(práh upraven pro {n} varianty)",
+    shippedOne: "Máte průkazného vítěze",
+    shippedMany: "Máte {n} průkazné vítěze",
+    shippedHint: "Posuňte je do navazujících modulů.",
+    nextUpdateCopy: "Aktualizovat vítěznou kopii",
+    nextUpdateCopyHint: "Přenést vítěznou variantu do briefu a článků",
+    nextExpandCluster: "Rozšířit vítězný klastr",
+    nextExpandClusterHint: "Postavit další high-intent stránky na vítězném klastru",
+    nextSendTraffic: "Poslat provoz na novou LP",
+    nextSendTrafficHint: "Nasměrovat rozpočet kampaní na vítěznou landing page",
+    footerHint: "Varianty lze generovat z klastrů klíčových slov (modul Srovnání & SEO + Obsah) nebo přímo tlačítkem „Navrhnout varianty“ výše. Seam: reálné rozdělení návštěvnosti a analytika.",
+  },
+  en: {
+    lpExperiment: "Landing page experiment · {n} variants",
+    adjustedFor: "adjusted for {n} variants",
+    statusDone: "Completed",
+    statusRunning: "Running",
+    collecting: "Collecting data — {pct}%",
+    winner: "Winner ({conf} confidence)",
+    leading: "Leading, not yet conclusive",
+    noDiff: "No difference",
+    needVisitors: "~{n} visitors/variant needed before declaring a winner",
+    adjustedThreshold: "(threshold adjusted for {n} variants)",
+    shippedOne: "You have a statistically significant winner",
+    shippedMany: "You have {n} statistically significant winners",
+    shippedHint: "Move them to the follow-up modules.",
+    nextUpdateCopy: "Update the winning copy",
+    nextUpdateCopyHint: "Carry the winning variant into a brief and articles",
+    nextExpandCluster: "Expand the winning cluster",
+    nextExpandClusterHint: "Build more high-intent pages on the winning cluster",
+    nextSendTraffic: "Send traffic to the new LP",
+    nextSendTrafficHint: "Direct campaign budget to the winning landing page",
+    footerHint: "Variants can be generated from keyword clusters (Compare & SEO + Content module) or directly via “Suggest variants” above. Seam: real traffic split and analytics.",
+  },
+} as const;
+
+export default async function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
   const results = experiments.map(evaluate);
   // Lightweight projection handed to the AI panel: the topic seed (cluster), status,
   // the control label + CVR, and the angles already tested that LOST to control — so
@@ -47,24 +97,24 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
               <div>
                 <h3 className="text-base font-semibold text-navy-800">{r.cluster}</h3>
                 <p className="text-xs text-muted">
-                  Landing page experiment · {r.variants.length} varianty
+                  {t("lpExperiment", { n: r.variants.length })}
                   {r.comparisons > 1 && (
-                    <> · upraveno pro {r.variants.length} varianty</>
+                    <> · {t("adjustedFor", { n: r.variants.length })}</>
                   )}
                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Pill tone={r.status === "done" ? "neutral" : "brand"}>
-                  {r.status === "done" ? "Ukončeno" : "Běží"}
+                  {r.status === "done" ? t("statusDone") : t("statusRunning")}
                 </Pill>
                 {collecting ? (
-                  <Pill tone="navy">Sbírá data — {progressPct} %</Pill>
+                  <Pill tone="navy">{t("collecting", { pct: progressPct })}</Pill>
                 ) : r.winner ? (
                   <Pill tone={r.significant ? "positive" : "coral"}>
-                    {r.significant ? `Vítěz (${fmtPct(r.confidence)} jistota)` : "Vede, zatím neprůkazné"}
+                    {r.significant ? t("winner", { conf: fmt.fmtPct(r.confidence) }) : t("leading")}
                   </Pill>
                 ) : (
-                  <Pill tone="neutral">Bez rozdílu</Pill>
+                  <Pill tone="neutral">{t("noDiff")}</Pill>
                 )}
               </div>
             </div>
@@ -78,8 +128,8 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
                   />
                 </span>
                 <p className="mt-1.5 text-xs text-muted">
-                  Potřeba ~{fmtInt(r.requiredPerArm)} návštěvníků/varianta než vyhlásíme vítěze
-                  {r.comparisons > 1 && <> (práh upraven pro {r.variants.length} varianty)</>}.
+                  {t("needVisitors", { n: fmt.fmtInt(r.requiredPerArm) })}
+                  {r.comparisons > 1 && <> {t("adjustedThreshold", { n: r.variants.length })}</>}.
                 </p>
               </div>
             )}
@@ -107,16 +157,16 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
                       style={{ width: `${Math.round((v.cvr / maxCvr) * 100)}%` }}
                     />
                   </span>
-                  <span className="tnum w-16 shrink-0 text-right text-sm font-semibold text-navy-800">{fmtPct(v.cvr)}</span>
+                  <span className="tnum w-16 shrink-0 text-right text-sm font-semibold text-navy-800">{fmt.fmtPct(v.cvr)}</span>
                   <span className="tnum hidden w-28 shrink-0 text-right text-xs text-muted sm:block">
-                    {fmtInt(v.signups)} / {fmtInt(v.visitors)}
+                    {fmt.fmtInt(v.signups)} / {fmt.fmtInt(v.visitors)}
                   </span>
                   <span
                     className={`tnum w-16 shrink-0 text-right text-xs font-medium ${
                       v.isControl ? "text-muted" : v.uplift >= 0 ? "text-positive" : "text-negative"
                     }`}
                   >
-                    {v.isControl ? "—" : fmtSignedPct(v.uplift)}
+                    {v.isControl ? "—" : fmt.fmtSignedPct(v.uplift)}
                   </span>
                 </div>
               ))}
@@ -129,26 +179,26 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
           <div className="mb-4 flex items-start gap-2">
             <ArrowRight width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
             <p className="text-sm text-navy-800">
-              Máte {shipped.length === 1 ? "průkazného vítěze" : `${shipped.length} průkazné vítěze`} (
-              {shipped.map((r) => r.cluster).join(", ")}). Posuňte je do navazujících modulů.
+              {shipped.length === 1 ? t("shippedOne") : t("shippedMany", { n: shipped.length })} (
+              {shipped.map((r) => r.cluster).join(", ")}). {t("shippedHint")}
             </p>
           </div>
           <NextSteps
             steps={[
               {
                 to: "obsah",
-                label: "Aktualizovat vítěznou kopii",
-                hint: "Přenést vítěznou variantu do briefu a článků",
+                label: t("nextUpdateCopy"),
+                hint: t("nextUpdateCopyHint"),
               },
               {
                 to: "srovnani-seo",
-                label: "Rozšířit vítězný klastr",
-                hint: "Postavit další high-intent stránky na vítězném klastru",
+                label: t("nextExpandCluster"),
+                hint: t("nextExpandClusterHint"),
               },
               {
                 to: "kampane",
-                label: "Poslat provoz na novou LP",
-                hint: "Nasměrovat rozpočet kampaní na vítěznou landing page",
+                label: t("nextSendTraffic"),
+                hint: t("nextSendTrafficHint"),
               },
             ]}
           />
@@ -157,10 +207,7 @@ export default function LpExperimentsModule({ experiments }: { experiments: LpEx
 
       {seeds.length > 0 && <LpVariantIdeasPanel seeds={seeds} />}
 
-      <p className="px-1 text-xs text-muted">
-        Varianty lze generovat z klastrů klíčových slov (modul Srovnání &amp; SEO + Obsah) nebo přímo
-        tlačítkem „Navrhnout varianty“ výše. Seam: reálné rozdělení návštěvnosti a analytika.
-      </p>
+      <p className="px-1 text-xs text-muted">{t("footerHint")}</p>
     </div>
   );
 }
