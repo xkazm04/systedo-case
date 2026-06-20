@@ -4,6 +4,7 @@
  *  is shared by the connector, the SQLite store, the AI evaluation and the UI. */
 
 import { cpa, cpc, cr, ctr, pno, roas } from "@/lib/metrics/ratios";
+import { PAID_PORTFOLIO_TARGET_PNO, PAID_PORTFOLIO_TARGET_ROAS } from "@/lib/targets";
 
 // --- advertising channel types ----------------------------------------------
 
@@ -68,12 +69,14 @@ export function isCampaignPeriod(v: unknown): v is CampaignPeriod {
 
 // --- target (agreed with the client) ----------------------------------------
 
-/** Target cost share of revenue (PNO) for the paid portfolio. A touch looser
- *  than the blended dashboard goal (15 %) because the campaign mix includes
- *  prospecting. Used to colour ROAS / PNO and to score campaigns. */
-export const TARGET_PNO = 0.18;
+/** Target cost share of revenue (PNO) for the *paid* portfolio — looser than the
+ *  blended dashboard goal (15 %) because the campaign mix includes prospecting.
+ *  Both targets are defined together in `@/lib/targets` (single source of truth);
+ *  surfaces must label the scope so 18 % (paid) vs 15 % (blended) never reads as a
+ *  contradiction. Used to colour ROAS / PNO and to score campaigns. */
+export const TARGET_PNO = PAID_PORTFOLIO_TARGET_PNO;
 /** Equivalent target ROAS (≈ 5.6×). */
-export const TARGET_ROAS = 1 / TARGET_PNO;
+export const TARGET_ROAS = PAID_PORTFOLIO_TARGET_ROAS;
 
 // --- the model ---------------------------------------------------------------
 

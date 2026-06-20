@@ -154,7 +154,7 @@ export default function CampaignsClient() {
     { label: "Náklady", value: fmtCZK(totals.cost) },
     { label: "Hodnota konverzí", value: fmtCZK(totals.conversionValue) },
     { label: "ROAS", value: fmtMultiple(totals.roas) },
-    { label: "PNO", value: fmtPct(totals.pno), hint: `cíl ${fmtPct(TARGET_PNO, 0)}` },
+    { label: "PNO", value: fmtPct(totals.pno), hint: `cíl ${fmtPct(TARGET_PNO, 0)} · placené portfolio` },
   ];
 
   return (

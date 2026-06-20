@@ -1,20 +1,13 @@
-/** Illustrative default gross margins per channel. Price-comparison & shopping
- *  channels skew lower (discount-driven, fee-heavy); organic/direct higher (no
- *  acquisition discount). Real-integration seam: replace with COGS/margin pulled
- *  from Merchant Center / the ERP per product or category. */
+/** Channel gross margins now live in the shared single-source-of-truth module
+ *  (`@/lib/margins`) so profit and inventory stop defining margin independently.
+ *  Re-exported here for the existing profit call sites. */
 import type { ChannelMargin, ProductCategory } from "./types";
+import { CHANNEL_FALLBACK_MARGIN, DEFAULT_CHANNEL_MARGINS } from "@/lib/margins";
 
-export const DEFAULT_CHANNEL_MARGINS: Record<string, number> = {
-  "Google Ads (Search + PMax)": 0.42,
-  "Google Nákupy": 0.36,
-  "Sklik (Seznam)": 0.44,
-  Heureka: 0.3,
-  "Zboží.cz": 0.3,
-  "Meta (FB / IG)": 0.4,
-  "Organic & přímá": 0.58,
-};
+export { DEFAULT_CHANNEL_MARGINS };
 
-export const FALLBACK_MARGIN = 0.45;
+/** Fallback gross margin for an unknown channel (shared definition). */
+export const FALLBACK_MARGIN = CHANNEL_FALLBACK_MARGIN;
 
 /** Default margins for a given set of channels (falls back for unknown names). */
 export function defaultMargins(channels: { channel: string }[]): ChannelMargin[] {

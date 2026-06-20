@@ -275,7 +275,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               {fmtPct(c.pno)}
             </p>
             <p className="mt-1 text-sm text-muted">
-              Cíl {fmtPct(goalPno, 0)} ·{" "}
+              Cíl {fmtPct(goalPno, 0)} (celý web) ·{" "}
               <span className={pnoOverGoal ? "text-coral-600" : "text-positive"}>
                 {pnoOverGoal
                   ? `o ${fmtSignedPct(c.pno - goalPno, 1).replace("+", "")} nad cílem`

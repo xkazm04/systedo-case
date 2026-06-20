@@ -4,6 +4,7 @@
  *  the inventory feed, budget actions via the Ads control-plane (mutations). */
 import type { DailyPoint } from "@/lib/types";
 import type { Product } from "@/lib/catalog/sample";
+import { CATEGORY_FALLBACK_MARGIN, CATEGORY_MARGINS } from "@/lib/margins";
 
 const MONTHS_CS = ["Led", "Úno", "Bře", "Dub", "Kvě", "Čvn", "Čvc", "Srp", "Zář", "Říj", "Lis", "Pro"];
 
@@ -62,26 +63,14 @@ export const AT_RISK_DAYS = 14;
 /** Horizon (days) within which a scheduled restock turns a `pause` into `resuming`. */
 export const RESTOCK_HORIZON_DAYS = 45;
 
-/** Illustrative gross-margin fractions by product category (mirrors the profit
- *  module's margin idea without importing it — keeps inventory self-contained).
- *  Real-integration seam: source per-SKU margin from the merchant/cost feed. */
-const CATEGORY_MARGIN: Record<string, number> = {
-  Kočárky: 0.22,
-  Autosedačky: 0.28,
-  Židličky: 0.34,
-  Postýlky: 0.3,
-  Chůvičky: 0.42,
-  Nosítka: 0.48,
-};
-/** Fallback margin for categories not in the table above. */
-const DEFAULT_MARGIN = 0.3;
-
-/** Gross-margin fraction for a product — its own `margin` if set, else by category. */
+/** Gross-margin fraction for a product — its own `margin` if set, else by
+ *  category. Category margins now come from the shared single-source-of-truth
+ *  module (`@/lib/margins`); inventory no longer re-implements them. */
 export function marginOf(product: Product): number {
   if (typeof product.margin === "number" && Number.isFinite(product.margin)) {
     return product.margin;
   }
-  return CATEGORY_MARGIN[product.category] ?? DEFAULT_MARGIN;
+  return CATEGORY_MARGINS[product.category] ?? CATEGORY_FALLBACK_MARGIN;
 }
 
 /** Projected stockout from a point-in-time days-of-cover and a reference date.
