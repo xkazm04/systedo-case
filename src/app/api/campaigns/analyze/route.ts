@@ -7,6 +7,7 @@ import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
 import { consume } from "@/lib/usage";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { getServerLocale } from "@/lib/i18n/locale";
 import {
   findCachedReport,
   getCampaign,
@@ -134,6 +135,7 @@ export async function POST(request: Request) {
         campaigns,
         period: meta.period,
         patternLines,
+        locale: await getServerLocale(),
       });
       const report = await saveReport(tenant, {
         scope,

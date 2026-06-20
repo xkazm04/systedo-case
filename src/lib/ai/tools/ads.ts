@@ -11,6 +11,7 @@ import {
   type AiResponse,
 } from "../../ai-types";
 import { generateStructured } from "../../llm";
+import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolations } from "./_shared";
 
@@ -130,9 +131,10 @@ export const adsSkill: Skill<AdRequest, AdResult> = {
   demo: demoAds,
 };
 
-export function generateAds(req: AdRequest): Promise<AiResponse<AdResult>> {
+export function generateAds(req: AdRequest, locale?: SupportedLocale): Promise<AiResponse<AdResult>> {
   return generateStructured({
     // llm-tool: ads
     ...skillToGenerateArgs(adsSkill, req),
+    locale,
   });
 }

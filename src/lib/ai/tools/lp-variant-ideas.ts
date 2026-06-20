@@ -19,6 +19,7 @@ import type {
   LpVariantIdeasRequest,
   LpVariantIdeasResult,
 } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, clamp } from "./_shared";
 
@@ -161,7 +162,8 @@ function demoLpVariantIdeas(req: LpVariantIdeasRequest): LpVariantIdeasResult {
 }
 
 export function generateLpVariantIdeas(
-  req: LpVariantIdeasRequest
+  req: LpVariantIdeasRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<LpVariantIdeasResult>> {
   return generateStructured({
     // llm-tool: lp-variant-ideas
@@ -173,5 +175,6 @@ export function generateLpVariantIdeas(
     normalize: (parsed) => normalizeLpVariantIdeas(parsed, req),
     validate: validateLpVariantIdeas,
     demo: () => demoLpVariantIdeas(req),
+    locale,
   });
 }

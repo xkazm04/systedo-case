@@ -28,6 +28,7 @@ import {
   validateRepurposeRequest,
 } from "@/lib/ai/validation";
 import { consume } from "@/lib/usage";
+import { getServerLocale } from "@/lib/i18n/locale";
 import {
   RATE_RULES,
   acquireSlot,
@@ -69,6 +70,9 @@ export async function POST(request: Request) {
     }
 
     mode = (body as { mode?: unknown })?.mode;
+    // Output language follows the user's chosen locale, so AI content matches the
+    // UI language instead of always being Czech.
+    const locale = await getServerLocale();
 
     // Per-user daily AI quota (signed-in users); anonymous use is IP-rate-limited.
     if (
@@ -104,62 +108,62 @@ export async function POST(request: Request) {
       case "ads": {
         const parsed = validateAdRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateAds(parsed.value));
+        return Response.json(await generateAds(parsed.value, locale));
       }
       case "brief": {
         const parsed = validateBriefRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateBrief(parsed.value));
+        return Response.json(await generateBrief(parsed.value, locale));
       }
       case "analysis": {
         const parsed = validateAnalysisRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateAnalysis(parsed.value));
+        return Response.json(await generateAnalysis(parsed.value, locale));
       }
       case "lead-reply": {
         const parsed = validateLeadReplyRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateLeadReply(parsed.value));
+        return Response.json(await generateLeadReply(parsed.value, locale));
       }
       case "repurpose": {
         const parsed = validateRepurposeRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateRepurpose(parsed.value));
+        return Response.json(await generateRepurpose(parsed.value, locale));
       }
       case "local-review-reply": {
         const parsed = validateLocalReviewReplyRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateLocalReviewReply(parsed.value));
+        return Response.json(await generateLocalReviewReply(parsed.value, locale));
       }
       case "article-draft": {
         const parsed = validateArticleDraftRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateArticleDraft(parsed.value));
+        return Response.json(await generateArticleDraft(parsed.value, locale));
       }
       case "cohort-diagnosis": {
         const parsed = validateCohortDiagnosisRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateCohortDiagnosis(parsed.value));
+        return Response.json(await generateCohortDiagnosis(parsed.value, locale));
       }
       case "keyword-clusters": {
         const parsed = validateKeywordClustersRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateKeywordClusters(parsed.value));
+        return Response.json(await generateKeywordClusters(parsed.value, locale));
       }
       case "comparison-outline": {
         const parsed = validateComparisonOutlineRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateComparisonOutline(parsed.value));
+        return Response.json(await generateComparisonOutline(parsed.value, locale));
       }
       case "lp-variant-ideas": {
         const parsed = validateLpVariantIdeasRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateLpVariantIdeas(parsed.value));
+        return Response.json(await generateLpVariantIdeas(parsed.value, locale));
       }
       case "lead-source-diagnosis": {
         const parsed = validateLeadSourceDiagnosisRequest(body);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
-        return Response.json(await generateLeadSourceDiagnosis(parsed.value));
+        return Response.json(await generateLeadSourceDiagnosis(parsed.value, locale));
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });

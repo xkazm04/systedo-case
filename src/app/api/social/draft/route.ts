@@ -6,6 +6,7 @@
 import { auth } from "@/auth";
 import { generateSocialPosts } from "@/lib/ai/tools";
 import { consume } from "@/lib/usage";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { buildSnapshot } from "@/lib/snapshot";
 import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
@@ -108,7 +109,14 @@ export async function POST(request: Request) {
     }
 
     const brand = str(body.brand) || undefined;
-    const response = await generateSocialPosts({ topic, tone, platforms, grounding: perfGrounding(), brand });
+    const response = await generateSocialPosts({
+      topic,
+      tone,
+      platforms,
+      grounding: perfGrounding(),
+      brand,
+      locale: await getServerLocale(),
+    });
     return Response.json({
       drafts: response.result.posts,
       source: response.meta.demo ? "demo" : "ai",

@@ -7,6 +7,7 @@ import { Type } from "@google/genai";
 import type { AiResponse, LeadReplyRequest, LeadReplyResult } from "../../ai-types";
 import { CHANNEL_LABELS } from "../../speed-lead/sample";
 import { draftReply } from "../../speed-lead/draft";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { cleanList, txt } from "./_shared";
 
@@ -62,7 +63,7 @@ const LEAD_REPLY_SCHEMA = {
   propertyOrdering: ["reply", "questions"],
 };
 
-export function generateLeadReply(req: LeadReplyRequest): Promise<AiResponse<LeadReplyResult>> {
+export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocale): Promise<AiResponse<LeadReplyResult>> {
   // The deterministic draft is reused both as the keyless demo and as the floor
   // for any field the model leaves empty.
   const fallback = (): LeadReplyResult => {
@@ -96,5 +97,6 @@ export function generateLeadReply(req: LeadReplyRequest): Promise<AiResponse<Lea
     temperature: 0.7,
     normalize,
     demo: fallback,
+    locale,
   });
 }

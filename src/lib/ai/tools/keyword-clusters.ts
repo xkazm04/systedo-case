@@ -19,6 +19,7 @@ import type {
   KeywordClustersResult,
   KeywordClusterInput,
 } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
 
@@ -232,7 +233,8 @@ function validateKeywordClusters(parsed: unknown, req: KeywordClustersRequest): 
 }
 
 export function generateKeywordClusters(
-  req: KeywordClustersRequest
+  req: KeywordClustersRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<KeywordClustersResult>> {
   return generateStructured({
     // llm-tool: keyword-clusters
@@ -244,5 +246,6 @@ export function generateKeywordClusters(
     normalize: (parsed) => normalizeKeywordClusters(parsed, req),
     validate: (parsed) => validateKeywordClusters(parsed, req),
     demo: () => demoKeywordClusters(req),
+    locale,
   });
 }

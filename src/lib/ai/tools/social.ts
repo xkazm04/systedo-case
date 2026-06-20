@@ -4,6 +4,7 @@
  *  platform the model skips). Server-only. */
 import { Type } from "@google/genai";
 import type { AiResponse } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import {
   PLATFORM_LIMITS,
   SOCIAL_PLATFORM_LABELS,
@@ -90,6 +91,8 @@ export function generateSocialPosts(req: {
   /** Optional brand voice (what they sell + how they talk) so the copy fits the
    *  project's brand instead of a hardcoded one. */
   brand?: string;
+  /** output language (defaults to Czech) */
+  locale?: SupportedLocale;
 }): Promise<AiResponse<SocialDraftResult>> {
   const requested = req.platforms;
   const fallback = () =>
@@ -144,6 +147,7 @@ export function generateSocialPosts(req: {
     temperature: 0.9,
     normalize,
     validate,
+    locale: req.locale,
     demo: () => ({ posts: fallback() }),
   });
 }

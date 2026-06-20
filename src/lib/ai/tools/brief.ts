@@ -9,6 +9,7 @@ import {
   type BriefRequest,
   type BriefResult,
 } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, clamp, cap, slugify } from "./_shared";
 
@@ -173,7 +174,7 @@ function demoBrief(req: BriefRequest): BriefResult {
   };
 }
 
-export function generateBrief(req: BriefRequest): Promise<AiResponse<BriefResult>> {
+export function generateBrief(req: BriefRequest, locale?: SupportedLocale): Promise<AiResponse<BriefResult>> {
   return generateStructured({
     // llm-tool: brief
     id: "brief",
@@ -184,5 +185,6 @@ export function generateBrief(req: BriefRequest): Promise<AiResponse<BriefResult
     normalize: normalizeBriefResult,
     validate: validateBrief,
     demo: () => demoBrief(req),
+    locale,
   });
 }

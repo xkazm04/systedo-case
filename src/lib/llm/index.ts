@@ -11,6 +11,7 @@
  *  clean checkout. Server-only.
  */
 import type { AiMeta, AiResponse } from "../ai-types";
+import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
@@ -44,6 +45,24 @@ export interface GenerateArgs<T> {
    *  wrapper re-prompts the model once to self-correct before `normalize()`'s
    *  clamping guarantees a valid final result. */
   validate?: (parsed: unknown) => string[];
+  /** Output language for the generated content. Defaults to Czech (cs). For other
+   *  locales a language-override line is appended to the *prompt* (not the system
+   *  prompt) so the model writes in that language — the fingerprint (system +
+   *  schema) is unchanged, so the LLM golden/coverage gate is unaffected. */
+  locale?: SupportedLocale;
+}
+
+/** Append an authoritative language directive for non-default locales so the AI
+ *  output follows the user's chosen locale, overriding the Czech system prompt.
+ *  For `cs` (the default) the prompt is returned unchanged. */
+function withLanguage(prompt: string, locale?: SupportedLocale): string {
+  if (!locale || locale === "cs") return prompt;
+  const lang = locale === "en" ? "English" : locale;
+  return (
+    `${prompt}\n\n--- LANGUAGE OVERRIDE ---\n` +
+    `Write the ENTIRE response — every field and every string value — in ${lang}. ` +
+    `This instruction overrides any earlier instruction to write in Czech.`
+  );
 }
 
 interface ProviderCall {
@@ -135,9 +154,12 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   const ordered = dev ? [claudeProvider, geminiProvider] : [geminiProvider, claudeProvider];
   const providers = ordered.filter((p) => p.available());
 
+  // The locale override goes on the PROMPT, never the system prompt, so the
+  // fingerprint (system + schema) — and the golden/coverage gate — is unchanged.
+  const effectivePrompt = withLanguage(args.prompt, args.locale);
   const baseCall: ProviderCall = {
     system: args.system,
-    prompt: args.prompt,
+    prompt: effectivePrompt,
     schema: args.schema,
     temperature: args.temperature,
   };
@@ -157,7 +179,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         try {
           const second = await runWithRetry(
             provider,
-            { ...baseCall, prompt: args.prompt + buildRepairNote(violations) },
+            { ...baseCall, prompt: effectivePrompt + buildRepairNote(violations) },
             1
           );
           parsed = second.parsed;
@@ -172,7 +194,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       const meta: AiMeta = {
         model: provider.model,
         demo: false,
-        prompt: args.prompt,
+        prompt: effectivePrompt,
         tookMs: Date.now() - start,
         provider: provider.model,
         attempts: totalAttempts,
@@ -215,7 +237,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   const demoMeta: AiMeta = {
     model: dev ? CLAUDE_MODEL : GEMINI_MODEL,
     demo: true,
-    prompt: args.prompt,
+    prompt: effectivePrompt,
     tookMs: Date.now() - start,
     fellBack: providers.length > 0,
   };

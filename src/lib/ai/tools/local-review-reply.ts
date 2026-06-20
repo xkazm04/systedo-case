@@ -10,6 +10,7 @@ import type {
   LocalReviewReplyRequest,
   LocalReviewReplyResult,
 } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
 
@@ -76,7 +77,8 @@ function cannedReply(req: LocalReviewReplyRequest): string {
 }
 
 export function generateLocalReviewReply(
-  req: LocalReviewReplyRequest
+  req: LocalReviewReplyRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<LocalReviewReplyResult>> {
   const fallback = (): LocalReviewReplyResult => ({ reply: cannedReply(req) });
 
@@ -95,5 +97,6 @@ export function generateLocalReviewReply(
     temperature: 0.7,
     normalize,
     demo: fallback,
+    locale,
   });
 }

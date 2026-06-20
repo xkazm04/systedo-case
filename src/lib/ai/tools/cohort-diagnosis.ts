@@ -14,7 +14,7 @@ import type {
   CohortDiagnosisResult,
   TrendDirection,
 } from "../../ai-types";
-import { fmtCZK, fmtMultiple, fmtPct } from "../../format";
+import { fmtCZK, fmtMultiple, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
 
@@ -203,7 +203,8 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
 }
 
 export function generateCohortDiagnosis(
-  req: CohortDiagnosisRequest
+  req: CohortDiagnosisRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<CohortDiagnosisResult>> {
   return generateStructured({
     // llm-tool: cohort-diagnosis
@@ -215,5 +216,6 @@ export function generateCohortDiagnosis(
     normalize: (parsed) => normalizeCohortDiagnosis(parsed, req),
     validate: (parsed) => validateCohortDiagnosis(parsed, req),
     demo: () => demoCohortDiagnosis(req),
+    locale,
   });
 }

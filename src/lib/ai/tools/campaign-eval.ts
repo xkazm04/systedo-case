@@ -4,6 +4,7 @@
  *  overall-portfolio scope. Runs through the provider-switching LLM wrapper
  *  (../../llm). Server-only. */
 import { Type } from "@google/genai";
+import type { SupportedLocale } from "@/lib/format";
 import {
   type AiResponse,
   type CampaignReportResult,
@@ -222,6 +223,8 @@ export function generateCampaignEvaluation(args: {
   period: CampaignPeriod;
   /** account's winning-pattern lines, to ground the portfolio prompt */
   patternLines?: string[];
+  /** output language (defaults to Czech) */
+  locale?: SupportedLocale;
 }): Promise<AiResponse<CampaignReportResult>> {
   const single = args.scope === "campaign" && args.target;
   return generateStructured({
@@ -235,6 +238,7 @@ export function generateCampaignEvaluation(args: {
     temperature: 0.6,
     normalize: normalizeReport,
     validate: validateReport,
+    locale: args.locale,
     demo: () =>
       single ? demoCampaignReport(args.target!, args.campaigns) : demoOverallReport(args.campaigns),
   });

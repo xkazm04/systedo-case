@@ -19,6 +19,7 @@ import type {
 } from "../../ai-types";
 import { CONTENT_TYPE_LABELS } from "../../ai-types";
 import type { Block, CalloutBlock, FaqItem } from "../../article";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, slugify } from "./_shared";
 
@@ -245,7 +246,8 @@ function validateArticleDraft(parsed: unknown): string[] {
 }
 
 export function generateArticleDraft(
-  req: ArticleDraftRequest
+  req: ArticleDraftRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<ArticleDraftResult>> {
   const fallback = (): ArticleDraftResult => demoArticleDraft(req);
 
@@ -273,5 +275,6 @@ export function generateArticleDraft(
     normalize,
     validate: validateArticleDraft,
     demo: fallback,
+    locale,
   });
 }

@@ -9,6 +9,7 @@ import { Type } from "@google/genai";
 import type { AiResponse, RepurposeRequest, RepurposeResult } from "../../ai-types";
 import { TONE_LABELS } from "../../ai-types";
 import { CHANNEL_LIMITS, REPURPOSE_CHANNELS, repurpose } from "../../distribution/generate";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { clamp, txt } from "./_shared";
 
@@ -68,7 +69,7 @@ const REPURPOSE_SCHEMA = {
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
 
-export function generateRepurpose(req: RepurposeRequest): Promise<AiResponse<RepurposeResult>> {
+export function generateRepurpose(req: RepurposeRequest, locale?: SupportedLocale): Promise<AiResponse<RepurposeResult>> {
   // Requested channels, restricted to the known set (order preserved); default
   // to all channels if none survive the filter.
   const known = new Set<string>(REPURPOSE_CHANNELS);
@@ -140,5 +141,6 @@ export function generateRepurpose(req: RepurposeRequest): Promise<AiResponse<Rep
     normalize,
     validate,
     demo: fallback,
+    locale,
   });
 }

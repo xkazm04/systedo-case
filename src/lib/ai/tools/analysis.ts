@@ -9,7 +9,7 @@ import {
   type AnalysisResult,
 } from "../../ai-types";
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapshot";
-import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "../../format";
+import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
 
@@ -147,7 +147,7 @@ function demoAnalysis(s: Snapshot): AnalysisResult {
   };
 }
 
-export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<AnalysisResult>> {
+export function generateAnalysis(req: AnalysisRequest, locale?: SupportedLocale): Promise<AiResponse<AnalysisResult>> {
   const snapshot = buildSnapshot(req.period);
   return generateStructured({
     // llm-tool: analysis
@@ -159,5 +159,6 @@ export function generateAnalysis(req: AnalysisRequest): Promise<AiResponse<Analy
     normalize: normalizeAnalysisResult,
     validate: validateAnalysis,
     demo: () => demoAnalysis(snapshot),
+    locale,
   });
 }

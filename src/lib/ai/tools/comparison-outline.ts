@@ -20,6 +20,7 @@ import type {
   ComparisonOutlineSection,
 } from "../../ai-types";
 import { COMPARE_INTENT_LABELS } from "../../ai-types";
+import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
 
@@ -243,7 +244,8 @@ function validateComparisonOutline(parsed: unknown): string[] {
 }
 
 export function generateComparisonOutline(
-  req: ComparisonOutlineRequest
+  req: ComparisonOutlineRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<ComparisonOutlineResult>> {
   const fallback = (): ComparisonOutlineResult => demoComparisonOutline(req);
 
@@ -276,5 +278,6 @@ export function generateComparisonOutline(
     normalize,
     validate: validateComparisonOutline,
     demo: fallback,
+    locale,
   });
 }

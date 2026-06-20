@@ -19,7 +19,7 @@ import {
   type LeadSourceDiagnosisResult,
   type LeadSourceSeverity,
 } from "../../ai-types";
-import { fmtCZK, fmtInt, fmtPct } from "../../format";
+import { fmtCZK, fmtInt, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
 
@@ -227,7 +227,8 @@ export function demoLeadSourceDiagnosis(
 }
 
 export function generateLeadSourceDiagnosis(
-  req: LeadSourceDiagnosisRequest
+  req: LeadSourceDiagnosisRequest,
+  locale?: SupportedLocale
 ): Promise<AiResponse<LeadSourceDiagnosisResult>> {
   return generateStructured({
     // llm-tool: lead-source-diagnosis
@@ -239,5 +240,6 @@ export function generateLeadSourceDiagnosis(
     normalize: (parsed) => normalizeLeadSourceDiagnosis(parsed, req),
     validate: (parsed) => validateLeadSourceDiagnosis(parsed),
     demo: () => demoLeadSourceDiagnosis(req),
+    locale,
   });
 }
