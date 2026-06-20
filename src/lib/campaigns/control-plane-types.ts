@@ -5,7 +5,9 @@
  *  real ad spend safely. */
 import type { BudgetMove, SimulationResult } from "./simulate";
 
-/** Guardrails applied to a change-set (advisory: surfaced before approval). */
+/** Guardrails applied to a change-set. Enforced at approval: a change-set that
+ *  breaches a guardrail cannot be applied without an explicit human override
+ *  (see {@link GuardrailError}). Surfaced before approval too. */
 export interface ControlPolicy {
   /** max CZK a single move may shift over the synced period */
   maxMoveAmountCzk: number;
@@ -14,6 +16,26 @@ export interface ControlPolicy {
 }
 
 export const DEFAULT_POLICY: ControlPolicy = { maxMoveAmountCzk: 50_000, maxMoves: 3 };
+
+/** Thrown when a change-set with guardrail violations is approved without an
+ *  explicit override — this is what makes the guardrails blocking, not merely
+ *  advisory. The route turns it into a 422 carrying the violations. */
+export class GuardrailError extends Error {
+  readonly violations: string[];
+  constructor(violations: string[]) {
+    super("Změnový balíček porušuje pojistky a vyžaduje výslovný souhlas.");
+    this.name = "GuardrailError";
+    this.violations = violations;
+  }
+}
+
+/** Snapshot of a campaign budget's value *before* a change-set was applied, so a
+ *  revert can restore the EXACT prior micros rather than an approximate inverse
+ *  shift (which re-reads current budgets and re-floors the donor). */
+export interface BudgetSnapshot {
+  budgetResourceName: string;
+  prevMicros: number;
+}
 
 export type ChangeSetStatus = "pending" | "applied" | "reverted";
 
@@ -38,9 +60,14 @@ export interface ChangeSet {
   revertedAt: string | null;
   /** per-move apply results once approved */
   results: MoveResult[] | null;
+  /** prior budget values captured at approval, for an exact revert (live only) */
+  budgetSnapshots?: BudgetSnapshot[];
+  /** true if applied despite guardrail violations via an explicit override */
+  overridden?: boolean;
 }
 
-/** Advisory guardrail check — returns human-readable breaches, never throws. */
+/** Guardrail check — returns human-readable breaches, never throws. Enforced by
+ *  the approval lifecycle (a non-empty result blocks apply unless overridden). */
 export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[] {
   const v: string[] = [];
   if (moves.length > policy.maxMoves) {

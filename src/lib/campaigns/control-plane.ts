@@ -10,13 +10,15 @@ import { listCampaigns } from "./store";
 import { withMetrics } from "./types";
 import { recommendBudgetMoves } from "./budget-moves";
 import { simulateBudgetShift } from "./simulate";
-import { applyBudgetShift } from "./mutations";
+import { applyBudgetShift, restoreBudgets } from "./mutations";
 import { recordActivity } from "./activity";
 import { fmtCZK } from "@/lib/format";
 import {
   checkPolicy,
   inverseMoves,
   DEFAULT_POLICY,
+  GuardrailError,
+  type BudgetSnapshot,
   type ChangeSet,
   type ControlPolicy,
   type MoveResult,
@@ -73,16 +75,27 @@ async function getChangeSet(tenant: string, id: string): Promise<ChangeSet | nul
 /** Approve a pending change-set: apply every move through the audited mutation
  *  path (best-effort per move), record the outcome, and log the governance event.
  *  On a sample/non-live tenant the live mutation returns a clear error per move,
- *  but the approval + ledger entry are still recorded. */
+ *  but the approval + ledger entry are still recorded.
+ *
+ *  Guardrails are ENFORCED here: if the change-set has violations and the caller
+ *  did not pass `override: true`, it throws {@link GuardrailError} and nothing is
+ *  applied. On a successful apply we capture each touched budget's prior value so
+ *  a later revert can restore it exactly. */
 export async function approveChangeSet(
   tenant: string,
   userId: string,
-  id: string
+  id: string,
+  opts: { override?: boolean } = {}
 ): Promise<ChangeSet | null> {
   const cs = await getChangeSet(tenant, id);
   if (!cs || cs.status !== "pending") return cs;
 
+  if (cs.violations.length > 0 && !opts.override) {
+    throw new GuardrailError(cs.violations);
+  }
+
   const results: MoveResult[] = [];
+  const budgetSnapshots: BudgetSnapshot[] = [];
   for (const m of cs.moves) {
     const r = await applyBudgetShift(userId, {
       fromId: m.fromId,
@@ -92,19 +105,24 @@ export async function approveChangeSet(
       amount: m.amount,
     });
     results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
+    if (r.ok && r.snapshots) budgetSnapshots.push(...r.snapshots);
   }
 
   const updated: Partial<ChangeSet> = {
     status: "applied",
     approvedAt: new Date().toISOString(),
     results,
+    budgetSnapshots,
+    overridden: cs.violations.length > 0,
   };
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
 
   const okCount = results.filter((r) => r.ok).length;
   await recordActivity(tenant, {
     kind: "budget_shift",
-    title: `Schválen změnový balíček (${cs.moves.length} přesunů)`,
+    title: `Schválen změnový balíček (${cs.moves.length} přesunů)${
+      updated.overridden ? " — přes pojistky" : ""
+    }`,
     detail: `Aplikováno ${okCount}/${cs.moves.length}. Projektovaný dopad ${fmtCZK(
       cs.simulation.after.conversionValue - cs.simulation.before.conversionValue
     )} hodnoty konverzí.`,
@@ -114,8 +132,11 @@ export async function approveChangeSet(
   return { ...cs, ...updated } as ChangeSet;
 }
 
-/** Revert an applied change-set by applying the inverse moves, restoring prior
- *  budgets. Records the reversal in the activity ledger. */
+/** Revert an applied change-set. Preferred path: restore each touched budget to
+ *  the EXACT prior micros captured at approval (`budgetSnapshots`). Legacy
+ *  fallback (change-sets approved before snapshots existed): apply the inverse
+ *  moves, which is only an *approximate* restore — and the ledger says so, rather
+ *  than overclaiming an exact restoration. */
 export async function revertChangeSet(
   tenant: string,
   userId: string,
@@ -124,16 +145,29 @@ export async function revertChangeSet(
   const cs = await getChangeSet(tenant, id);
   if (!cs || cs.status !== "applied") return cs;
 
-  const results: MoveResult[] = [];
-  for (const m of inverseMoves(cs.moves)) {
-    const r = await applyBudgetShift(userId, {
-      fromId: m.fromId,
-      fromName: m.fromName,
-      toId: m.toId,
-      toName: m.toName,
-      amount: m.amount,
-    });
-    results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
+  const hasSnapshots = (cs.budgetSnapshots?.length ?? 0) > 0;
+  let results: MoveResult[];
+  let detail: string;
+
+  if (hasSnapshots) {
+    const r = await restoreBudgets(userId, cs.budgetSnapshots!);
+    results = cs.moves.map((m) => ({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error }));
+    detail = r.ok
+      ? "Rozpočty obnoveny na přesné hodnoty před aplikací (ze snímku)."
+      : `Obnovení selhalo: ${r.error ?? "neznámá chyba"}.`;
+  } else {
+    results = [];
+    for (const m of inverseMoves(cs.moves)) {
+      const r = await applyBudgetShift(userId, {
+        fromId: m.fromId,
+        fromName: m.fromName,
+        toId: m.toId,
+        toName: m.toName,
+        amount: m.amount,
+      });
+      results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
+    }
+    detail = "Přesuny vráceny inverzně (přibližná obnova — bez snímku původních rozpočtů).";
   }
 
   const updated: Partial<ChangeSet> = { status: "reverted", revertedAt: new Date().toISOString(), results };
@@ -142,7 +176,7 @@ export async function revertChangeSet(
   await recordActivity(tenant, {
     kind: "budget_shift",
     title: `Vrácen změnový balíček (${cs.moves.length} přesunů)`,
-    detail: "Rozpočty obnoveny do stavu před aplikací.",
+    detail,
     actor: "Vy",
   });
 

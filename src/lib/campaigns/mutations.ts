@@ -15,10 +15,13 @@ import {
   pauseCampaign,
   setCampaignBudgetMicros,
 } from "@/lib/google/ads";
+import type { BudgetSnapshot } from "./control-plane-types";
 
 export interface MutationResult {
   ok: boolean;
   error?: string;
+  /** prior budget values touched by this mutation, for an exact revert. */
+  snapshots?: BudgetSnapshot[];
 }
 
 /** The shape `applyBudgetShift` needs from a recommended `BudgetMove`. */
@@ -151,9 +154,55 @@ export async function applyBudgetShift(
       detail: `Denní rozpočet snížen o ${fmtCZK(movedMicros / 1_000_000)} a přesunut na výkonnější kampaň.`,
       actor: "Vy",
     });
-    return { ok: true };
+    // Capture the budgets' prior values so a revert can restore them exactly.
+    return {
+      ok: true,
+      snapshots: [
+        { budgetResourceName: from.budgetResourceName, prevMicros: from.amountMicros },
+        { budgetResourceName: to.budgetResourceName, prevMicros: to.amountMicros },
+      ],
+    };
   } catch (err) {
     console.error("[mutations] budget shift failed:", err);
     return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
+  }
+}
+
+/** Restore campaign budgets to exact prior micros from a change-set's snapshots
+ *  — the precise inverse of a `budget_shift` apply (no re-flooring drift). When a
+ *  budget appears in several snapshots, the earliest (prior-most) value wins.
+ *  Audited like any other mutation. Live-account only. */
+export async function restoreBudgets(
+  userId: string,
+  snapshots: BudgetSnapshot[]
+): Promise<MutationResult> {
+  const resolved = await resolveActor(userId);
+  if ("error" in resolved) return resolved.error;
+  const { connection, token } = resolved.actor;
+  const customerId = connection.customerId;
+  const tenant = `u_${userId}_${customerId}`;
+
+  // De-dupe by budget, keeping the first (prior-most) snapshot for each.
+  const byBudget = new Map<string, number>();
+  for (const s of snapshots) {
+    if (!byBudget.has(s.budgetResourceName)) byBudget.set(s.budgetResourceName, s.prevMicros);
+  }
+  if (byBudget.size === 0) return { ok: false, error: "Chybí snímek původních rozpočtů." };
+
+  try {
+    for (const [resourceName, micros] of byBudget) {
+      await setCampaignBudgetMicros(token, customerId, resourceName, micros);
+    }
+    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+      action: "budget_restore",
+      budgets: [...byBudget.keys()],
+      customerId,
+      userId,
+      at: new Date().toISOString(),
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[mutations] budget restore failed:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Obnovení se nezdařilo." };
   }
 }

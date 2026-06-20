@@ -14,6 +14,7 @@ import {
   approveChangeSet,
   revertChangeSet,
 } from "@/lib/campaigns/control-plane";
+import { GuardrailError } from "@/lib/campaigns/control-plane-types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { action?: unknown; id?: unknown };
+  let body: { action?: unknown; id?: unknown; override?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
   }
   const action = body.action;
   const id = typeof body.id === "string" ? body.id : "";
+  const override = body.override === true;
   const tenant = await resolveTenant(userId);
 
   if (action === "create") {
@@ -53,9 +55,19 @@ export async function POST(request: Request) {
 
   if (action === "approve") {
     if (!id) return Response.json({ error: "Chybí ID balíčku." }, { status: 422 });
-    const changeSet = await approveChangeSet(tenant, userId, id);
-    if (!changeSet) return Response.json({ error: "Balíček nenalezen." }, { status: 404 });
-    return Response.json({ changeSet });
+    try {
+      const changeSet = await approveChangeSet(tenant, userId, id, { override });
+      if (!changeSet) return Response.json({ error: "Balíček nenalezen." }, { status: 404 });
+      return Response.json({ changeSet });
+    } catch (err) {
+      if (err instanceof GuardrailError) {
+        return Response.json(
+          { error: err.message, violations: err.violations, requiresOverride: true },
+          { status: 422 }
+        );
+      }
+      throw err;
+    }
   }
 
   if (action === "revert") {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { ArrowRight, Bolt, Check } from "@/components/icons";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { withMetrics, type Campaign } from "@/lib/campaigns/types";
@@ -18,6 +19,8 @@ export default function BudgetMoves({
   campaigns: Campaign[];
   onApplied?: () => void;
 }) {
+  const { status } = useSession();
+  const authed = status === "authenticated";
   const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics));
   const { before, after } = simulation;
   const valueGain = after.conversionValue - before.conversionValue;
@@ -101,6 +104,16 @@ export default function BudgetMoves({
                     hodnoty konverzí.
                   </p>
                   {(() => {
+                    // Actions touch a live Google Ads account — only offered to a
+                    // signed-in user (the server also 401s), so anonymous/sample
+                    // visitors don't see apply/pause buttons that can't work.
+                    if (!authed) {
+                      return (
+                        <span className="text-xs text-muted">
+                          Přihlaste se a připojte Google Ads účet pro aplikaci.
+                        </span>
+                      );
+                    }
                     const shiftKey = `shift:${m.fromId}:${m.toId}`;
                     const pauseKey = `pause:${m.fromId}`;
                     const resolved = done[shiftKey] ?? done[pauseKey];
@@ -236,8 +249,10 @@ export default function BudgetMoves({
           </div>
           <p className="mt-2 text-[13px] text-muted">
             Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří
-            další synchronizace. „Aplikovat přesun“ upraví denní rozpočty přímo v Google Ads
-            (jen u připojeného živého účtu, s potvrzením a auditem).
+            další synchronizace. „Aplikovat přesun“ je <strong>okamžitá jednotlivá úprava</strong>{" "}
+            denních rozpočtů v Google Ads (živý účet, s potvrzením a auditem) — bez automatického
+            vrácení. Pro dávku přesunů se simulací, schválením a vrácením použijte{" "}
+            <strong>Řízení rozpočtů (control plane)</strong> níže.
           </p>
         </>
       )}

@@ -46,14 +46,14 @@ export default function ControlPlane() {
     if (status === "authenticated") void load();
   }, [status, load]);
 
-  const act = async (action: "create" | "approve" | "revert", id?: string) => {
+  const act = async (action: "create" | "approve" | "revert", id?: string, override?: boolean) => {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/campaigns/control-plane", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id }),
+        body: JSON.stringify({ action, id, override }),
       });
       const json = await res.json();
       if (!res.ok) setError(json?.error ?? "Akce se nezdařila.");
@@ -136,17 +136,29 @@ export default function ControlPlane() {
             </ul>
           )}
 
-          <button
-            type="button"
-            onClick={() => (confirmId === pending.id ? act("approve", pending.id) : setConfirmId(pending.id))}
-            disabled={busy}
-            className={`mt-3 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 ${
-              confirmId === pending.id ? "bg-negative hover:bg-negative/90" : "bg-brand-600 hover:bg-brand-700"
-            }`}
-          >
-            <Check width={15} height={15} />
-            {confirmId === pending.id ? "Potvrdit a aplikovat na účet" : "Schválit a aplikovat"}
-          </button>
+          {(() => {
+            const breached = pending.violations.length > 0;
+            const confirming = confirmId === pending.id;
+            return (
+              <button
+                type="button"
+                onClick={() => (confirming ? act("approve", pending.id, breached) : setConfirmId(pending.id))}
+                disabled={busy}
+                className={`mt-3 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 ${
+                  confirming || breached ? "bg-negative hover:bg-negative/90" : "bg-brand-600 hover:bg-brand-700"
+                }`}
+              >
+                <Check width={15} height={15} />
+                {confirming
+                  ? breached
+                    ? "Potvrdit i přes pojistky"
+                    : "Potvrdit a aplikovat na účet"
+                  : breached
+                    ? "Schválit přes pojistky"
+                    : "Schválit a aplikovat"}
+              </button>
+            );
+          })()}
         </div>
       )}
 
