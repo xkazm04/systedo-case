@@ -1,11 +1,24 @@
 "use client";
 
 import { signIn, signOut, useSession } from "next-auth/react";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    signOut: "Odhlásit",
+    signInGoogle: "Přihlásit přes Google",
+  },
+  en: {
+    signOut: "Sign out",
+    signInGoogle: "Sign in with Google",
+  },
+} as const;
 
 /** Google sign-in / sign-out control for the header. Shows the user's avatar +
- *  name when signed in, a "Přihlásit přes Google" button otherwise. */
+ *  name when signed in, a sign-in button otherwise. */
 export default function AuthButton() {
   const { data: session, status } = useSession();
+  const t = useT(T);
 
   if (status === "loading") {
     return <span className="h-8 w-20 animate-pulse rounded-pill bg-navy-50" aria-hidden />;
@@ -35,7 +48,7 @@ export default function AuthButton() {
           className="rounded-pill border border-line px-3 py-1.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
           title={email ?? undefined}
         >
-          Odhlásit
+          {t("signOut")}
         </button>
       </div>
     );
@@ -48,7 +61,7 @@ export default function AuthButton() {
       className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
     >
       <GoogleGlyph />
-      Přihlásit přes Google
+      {t("signInGoogle")}
     </button>
   );
 }

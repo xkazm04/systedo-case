@@ -9,8 +9,9 @@ import CreateProjectForm from "@/components/app/CreateProjectForm";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import AuthButton from "@/components/auth/AuthButton";
 import { modulesFor } from "@/lib/projects/modules";
-import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { PROJECT_TYPE_META, projectTypeMeta, type Project } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -107,7 +108,9 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
 }
 
 function ProjectCard({ project }: { project: Project }) {
-  const meta = PROJECT_TYPE_META[project.type];
+  const rawMeta = PROJECT_TYPE_META[project.type];
+  const { locale } = useLocale();
+  const meta = projectTypeMeta(project.type, locale);
   const moduleCount = modulesFor(project.type).filter((m) => m.section !== "system").length;
   const t = useT(T);
   return (
@@ -120,7 +123,7 @@ function ProjectCard({ project }: { project: Project }) {
           className="grid h-11 w-11 place-items-center rounded-xl text-white"
           style={{ backgroundColor: project.accentColor }}
         >
-          <ModuleIcon icon={meta.icon} width={22} height={22} />
+          <ModuleIcon icon={rawMeta.icon} width={22} height={22} />
         </span>
         <ArrowRight
           width={18}

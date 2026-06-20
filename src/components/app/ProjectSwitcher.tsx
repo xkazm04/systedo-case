@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Plus } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import { useProject, useProjects } from "@/lib/projects/context";
-import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { PROJECT_TYPE_META, projectTypeMeta, type Project } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: { newProject: "Nový projekt" },
@@ -35,6 +36,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const t = useT(T);
+  const { locale } = useLocale();
 
   useEffect(() => {
     if (!open) return;
@@ -63,7 +65,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold text-navy-800">{project.name}</span>
           <span className="block truncate text-[13px] font-medium uppercase tracking-wide text-muted">
-            {PROJECT_TYPE_META[project.type].label}
+            {projectTypeMeta(project.type, locale).label}
           </span>
         </span>
         <ChevronDown
@@ -95,7 +97,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-navy-800">{p.name}</span>
                     <span className="block truncate text-[13px] text-muted">
-                      {PROJECT_TYPE_META[p.type].label}
+                      {projectTypeMeta(p.type, locale).label}
                     </span>
                   </span>
                   {active && <Check width={15} height={15} className="shrink-0 text-brand-accent" />}

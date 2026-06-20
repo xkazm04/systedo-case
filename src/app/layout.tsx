@@ -10,6 +10,7 @@ import { getServerLocale } from "@/lib/i18n/locale";
 import { SITE_URL } from "@/lib/site";
 import { auth, DEV_AUTH } from "@/auth";
 import { DevInspector } from "./_dev-inspector/DevInspector";
+import { getT } from "@/lib/i18n/server";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -48,8 +49,14 @@ export const viewport: Viewport = {
  *  "follow the system", which the prefers-color-scheme CSS handles on its own. */
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
+const SKIP_T = {
+  cs: { skip: "Přejít na obsah" },
+  en: { skip: "Skip to content" },
+} as const;
+
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getServerLocale();
+  const tSkip = await getT(SKIP_T);
   // Only seed the session server-side in dev-auth mode; in production the client
   // provider fetches it as usual, so public pages keep doing no auth lookup.
   const session = DEV_AUTH ? await auth() : undefined;
@@ -69,7 +76,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             href="#obsah"
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-onyx focus:px-4 focus:py-2 focus:text-sm focus:text-onyx-ink"
           >
-            Přejít na obsah
+            {tSkip("skip")}
           </a>
           <ChromeGate>
             <Nav />

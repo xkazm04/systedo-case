@@ -15,12 +15,16 @@ import type { Formatters } from "@/lib/format";
 import {
   KPI_PRESETS,
   modulesFor,
+  moduleLabel,
+  moduleBlurb,
+  kpiLabel,
   type KpiFormat,
   type KpiMetric,
 } from "@/lib/projects/modules";
-import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { projectTypeMeta, PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
 import type { Recommendation, Severity } from "@/lib/insights/types";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
   cs: {
@@ -95,8 +99,10 @@ export default async function ProjectOverview({
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
+  const locale = await getServerLocale();
 
-  const meta = PROJECT_TYPE_META[project.type];
+  const meta = projectTypeMeta(project.type, locale);
+  const typeIcon = PROJECT_TYPE_META[project.type].icon;
   const ds = projectDataSource(project);
   const last30 = totalsOf(data.daily.slice(-30));
   const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
@@ -115,7 +121,7 @@ export default async function ProjectOverview({
             className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white"
             style={{ backgroundColor: project.accentColor }}
           >
-            <ModuleIcon icon={meta.icon} width={24} height={24} />
+            <ModuleIcon icon={typeIcon} width={24} height={24} />
           </span>
           <div>
             <h2 className="text-2xl font-semibold tracking-tight text-navy-800 sm:text-[28px]">
@@ -144,8 +150,8 @@ export default async function ProjectOverview({
       {/* KPI band */}
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="card p-5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">{kpi.label}</p>
+          <div key={kpi.metric} className="card p-5">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">{kpiLabel(kpi, locale)}</p>
             <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
               {fmtKpi(kpiValue(last30, kpi.metric), kpi.format, fmt)}
             </p>
@@ -226,8 +232,8 @@ export default async function ProjectOverview({
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
                 <ModuleIcon icon={m.icon} width={22} height={22} />
               </span>
-              <h4 className="mt-4 text-base font-semibold text-navy-800">{m.label}</h4>
-              <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{m.blurb}</p>
+              <h4 className="mt-4 text-base font-semibold text-navy-800">{moduleLabel(m, locale)}</h4>
+              <p className="mt-1 flex-1 text-sm leading-relaxed text-muted">{moduleBlurb(m, locale)}</p>
               <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent">
                 {t("open")}
                 <ArrowRight width={15} height={15} className="transition-transform group-hover:translate-x-1" />

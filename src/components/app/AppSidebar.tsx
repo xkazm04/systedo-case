@@ -10,13 +10,15 @@ import { useShell } from "@/components/app/shell-context";
 import { useProject } from "@/lib/projects/context";
 import {
   modulesFor,
-  SECTION_LABELS,
+  moduleLabel,
+  sectionLabel,
   SECTION_ORDER,
   type ModuleDef,
   type ModuleSection,
 } from "@/lib/projects/modules";
 import type { Project } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -43,11 +45,13 @@ function NavLink({
   project,
   module,
   pathname,
+  locale,
   onNavigate,
 }: {
   project: Project;
   module: ModuleDef;
   pathname: string;
+  locale: import("@/lib/format").SupportedLocale;
   onNavigate?: () => void;
 }) {
   const base = `/app/${project.id}`;
@@ -73,7 +77,7 @@ function NavLink({
         height={18}
         className={active ? "text-brand-accent" : "text-muted group-hover:text-navy-600"}
       />
-      <span className="truncate">{module.label}</span>
+      <span className="truncate">{moduleLabel(module, locale)}</span>
     </Link>
   );
 }
@@ -85,6 +89,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const modules = modulesFor(project.type);
   const t = useT(T);
+  const { locale } = useLocale();
 
   // System section (settings) is pinned to the bottom; everything else scrolls.
   const topSections = SECTION_ORDER.filter((s) => s !== "system");
@@ -101,11 +106,12 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         {topSections.map((section) => {
           const items = bySection(section);
           if (items.length === 0) return null;
+          const heading = sectionLabel(section, locale);
           return (
             <div key={section}>
-              {SECTION_LABELS[section] && (
+              {heading && (
                 <p className="px-3 pb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted/80">
-                  {SECTION_LABELS[section]}
+                  {heading}
                 </p>
               )}
               <div className="space-y-0.5">
@@ -115,6 +121,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
                     project={project}
                     module={m}
                     pathname={pathname}
+                    locale={locale}
                     onNavigate={onNavigate}
                   />
                 ))}
@@ -131,6 +138,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
             project={project}
             module={m}
             pathname={pathname}
+            locale={locale}
             onNavigate={onNavigate}
           />
         ))}
