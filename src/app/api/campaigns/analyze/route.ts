@@ -60,7 +60,9 @@ export async function POST(request: Request) {
 
     const session = await auth();
     const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
-    const tenant = await resolveTenant(userId);
+    const rawProjectId = (body as { projectId?: unknown } | null)?.projectId;
+    const projectId = typeof rawProjectId === "string" ? rawProjectId : undefined;
+    const tenant = await resolveTenant(userId, projectId);
 
     const meta = await getSyncMeta(tenant);
     const campaigns = await listCampaigns(tenant);

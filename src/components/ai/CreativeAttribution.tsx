@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Sparkles, Close, Bulb } from "@/components/icons";
 import { fmtCZK, fmtInt, fmtMultiple } from "@/lib/format";
 import { IMAGE_STYLES, IMAGE_STYLE_LABELS, type ImageStyle } from "@/lib/images/types";
@@ -21,6 +22,8 @@ const METRIC_FIELDS: { key: keyof CreativeMetrics; label: string }[] = [
  *  a style prior that biases the next generation. Anonymous → hidden. */
 export default function CreativeAttribution() {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [links, setLinks] = useState<CreativeLink[]>([]);
   const [leaderboard, setLeaderboard] = useState<StyleStat[]>([]);
   const [prior, setPrior] = useState<StylePrior>({ style: null, hint: "" });
@@ -32,7 +35,9 @@ export default function CreativeAttribution() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/images/attribution");
+      const res = await fetch(
+        pid ? `/api/images/attribution?projectId=${encodeURIComponent(pid)}` : "/api/images/attribution"
+      );
       if (!res.ok) return;
       const json = (await res.json()) as {
         links?: CreativeLink[];
@@ -47,7 +52,7 @@ export default function CreativeAttribution() {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -60,7 +65,7 @@ export default function CreativeAttribution() {
       await fetch("/api/images/attribution", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ style, campaignName, metrics, prompt: "" }),
+        body: JSON.stringify({ style, campaignName, metrics, prompt: "", projectId: pid }),
       });
       setMetrics(EMPTY_METRICS);
       setCampaignName("");
@@ -78,7 +83,7 @@ export default function CreativeAttribution() {
       await fetch("/api/images/attribution", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkId }),
+        body: JSON.stringify({ linkId, projectId: pid }),
       });
       await load();
     } catch {

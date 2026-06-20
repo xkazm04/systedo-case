@@ -9,11 +9,12 @@ import { listActivity } from "@/lib/campaigns/activity";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
   if (!userId) return Response.json({ activity: [] });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const activity = await listActivity(tenant);
   return Response.json({ activity });
 }

@@ -33,7 +33,9 @@ export default async function SharedReportPage({
   const periodLabel =
     CAMPAIGN_PERIOD_LABELS[shared.period as CampaignPeriod] ?? shared.period;
   const accent = shared.accentColor || "var(--color-brand-600)";
-  const brand = shared.brandName || "Adamant";
+  // Never fall back to the vendor name on a client-facing report — use the brand
+  // captured at share time (white-label or project), else the client account name.
+  const brand = shared.brandName || shared.accountName || "Report";
   // Gloss the jargon — a client report is read by non-marketers, so ROAS/PNO get
   // a one-line plain-Czech explanation (Náklady/Hodnota konverzí are already plain).
   const kpis: { label: string; value: string; hint?: string }[] = [

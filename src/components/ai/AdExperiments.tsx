@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Check, Bolt } from "@/components/icons";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
 import {
@@ -24,13 +25,18 @@ const EMPTY_METRICS: AdVariantMetrics = { impressions: 0, clicks: 0, conversions
  *  Reloads when `refreshKey` changes. */
 export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [draft, setDraft] = useState<MetricsDraft>({});
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/experiments");
+      const url = pid
+        ? `/api/experiments?projectId=${encodeURIComponent(pid)}`
+        : "/api/experiments";
+      const res = await fetch(url);
       if (!res.ok) return;
       const json = (await res.json()) as { experiments?: Experiment[] };
       setExperiments(json.experiments ?? []);
@@ -39,7 +45,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -52,7 +58,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
       await fetch("/api/experiments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ experimentId, variantId, metrics }),
+        body: JSON.stringify({ experimentId, variantId, metrics, projectId: pid }),
       });
       await load();
     } catch {
@@ -66,7 +72,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
       await fetch("/api/experiments", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ experimentId }),
+        body: JSON.stringify({ experimentId, projectId: pid }),
       });
       await load();
     } catch {

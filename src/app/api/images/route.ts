@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     const referenceImageId = str(body.referenceImageId) || undefined;
     const productMode = str(body.referenceMode) === "product";
     const fidelityRaw = Number(body.fidelity);
+    const projectId = str(body.projectId) || undefined;
 
     const uid = await userId();
 
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
     let prior: string | undefined;
     if (uid) {
       try {
-        prior = (await getStylePrior(await resolveTenant(uid))).hint || undefined;
+        prior = (await getStylePrior(await resolveTenant(uid, projectId))).hint || undefined;
       } catch (err) {
         console.error("[images] style prior lookup failed (non-fatal):", err);
       }
@@ -122,7 +123,7 @@ export async function POST(request: Request) {
       const winner = result.images.find((i) => i.winner) ?? result.images[0];
       if (winner) {
         try {
-          savedId = await saveCreative(await resolveTenant(uid), {
+          savedId = await saveCreative(await resolveTenant(uid, projectId), {
             buffer: winner.buffer,
             mime: winner.mime,
             prompt: result.prompt,
@@ -166,10 +167,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const uid = await userId();
   if (!uid) return Response.json({ creatives: [] });
-  const creatives = await listCreatives(await resolveTenant(uid));
+  const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
+  const creatives = await listCreatives(await resolveTenant(uid, projectId));
   return Response.json({ creatives });
 }
 
@@ -177,12 +179,15 @@ export async function DELETE(request: Request) {
   const uid = await userId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   let id = "";
+  let projectId: string | undefined;
   try {
-    id = str(((await request.json()) as { id?: unknown }).id);
+    const body = (await request.json()) as { id?: unknown; projectId?: unknown };
+    id = str(body.id);
+    projectId = str(body.projectId) || undefined;
   } catch {
     /* fall through */
   }
   if (!id) return Response.json({ error: "Chybí ID." }, { status: 422 });
-  const ok = await deleteCreative(await resolveTenant(uid), id);
+  const ok = await deleteCreative(await resolveTenant(uid, projectId), id);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Bulb, Check, Close, Search, Sparkles } from "@/components/icons";
 import {
   PATTERN_CATEGORIES,
@@ -15,6 +16,8 @@ type CategoryFilter = "all" | PatternCategory;
 
 export default function PatternsLibrary() {
   const { status: authStatus } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [auto, setAuto] = useState<Pattern[]>([]);
   const [saved, setSaved] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +32,8 @@ export default function PatternsLibrary() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/patterns");
+      const qs = pid ? `?projectId=${encodeURIComponent(pid)}` : "";
+      const res = await fetch(`/api/patterns${qs}`);
       const json = (await res.json()) as { auto?: Pattern[]; saved?: Pattern[] };
       setAuto(json.auto ?? []);
       setSaved(json.saved ?? []);
@@ -38,7 +42,7 @@ export default function PatternsLibrary() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -79,7 +83,7 @@ export default function PatternsLibrary() {
       const res = await fetch("/api/patterns/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q }),
+        body: JSON.stringify(pid ? { query: q, projectId: pid } : { query: q }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -108,7 +112,7 @@ export default function PatternsLibrary() {
       const res = await fetch("/api/patterns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: p.title, category: p.category, insight: p.insight, evidence: p.evidence }),
+        body: JSON.stringify({ title: p.title, category: p.category, insight: p.insight, evidence: p.evidence, projectId: pid }),
       });
       if (res.ok) {
         const { pattern } = (await res.json()) as { pattern: Pattern };
@@ -127,7 +131,7 @@ export default function PatternsLibrary() {
       const res = await fetch("/api/patterns", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, projectId: pid }),
       });
       if (res.ok) {
         setSaved((s) => s.filter((p) => p.id !== id));
@@ -267,7 +271,7 @@ export default function PatternsLibrary() {
             )}
           </section>
 
-          {authed && <ManualAdd onAdded={(p) => setSaved((s) => [p, ...s])} />}
+          {authed && <ManualAdd pid={pid} onAdded={(p) => setSaved((s) => [p, ...s])} />}
         </>
       )}
     </div>
@@ -326,7 +330,7 @@ function PatternCard({
   );
 }
 
-function ManualAdd({ onAdded }: { onAdded: (p: Pattern) => void }) {
+function ManualAdd({ pid, onAdded }: { pid?: string; onAdded: (p: Pattern) => void }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<PatternCategory>("structure");
   const [insight, setInsight] = useState("");
@@ -343,7 +347,7 @@ function ManualAdd({ onAdded }: { onAdded: (p: Pattern) => void }) {
       const res = await fetch("/api/patterns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, category, insight, evidence }),
+        body: JSON.stringify({ title, category, insight, evidence, projectId: pid }),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {

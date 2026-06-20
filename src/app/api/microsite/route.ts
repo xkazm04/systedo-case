@@ -21,10 +21,11 @@ async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ microsite: null });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   return Response.json({ microsite: await getMicrositeForTenant(tenant) });
 }
 
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     brandName?: unknown;
     accentColor?: unknown;
     periodDays?: unknown;
+    projectId?: unknown;
   };
   try {
     body = await request.json();
@@ -50,7 +52,8 @@ export async function POST(request: Request) {
   const slug = slugify(clientName);
   if (!slug) return Response.json({ error: "Z názvu nelze vytvořit URL." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
 
   // Don't let one tenant hijack another's public slug.
   const existing = await getMicrosite(slug);
@@ -71,10 +74,11 @@ export async function POST(request: Request) {
   return Response.json({ microsite });
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   await disableMicrosite(tenant);
   return Response.json({ ok: true });
 }

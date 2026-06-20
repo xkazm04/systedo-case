@@ -6,6 +6,7 @@
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
 import { listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { listProjects } from "@/lib/projects/store";
 import { getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { aggregate, withMetrics } from "@/lib/campaigns/types";
@@ -36,15 +37,18 @@ export async function GET(request: Request) {
   }
 
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; ok: boolean; sent?: boolean; error?: string }[] = [];
+  const results: { userId: string; projectId?: string; ok: boolean; sent?: boolean; error?: string }[] = [];
 
   for (const userId of userIds) {
+    const projects = await listProjects(userId);
+    const targets = projects.length ? projects : [null];
+    for (const project of targets) {
     try {
-      const tenant = await resolveTenant(userId);
+      const tenant = await resolveTenant(userId, project?.id);
       const meta = await getSyncMeta(tenant);
       const campaigns = await listCampaigns(tenant);
       if (!meta || campaigns.length === 0) {
-        results.push({ userId, ok: true, sent: false });
+        results.push({ userId, projectId: project?.id, ok: true, sent: false });
         continue;
       }
 
@@ -72,7 +76,7 @@ export async function GET(request: Request) {
         `${criticals} kritických · ${moves.length} doporučených přesunů`;
 
       await recordAlert(tenant, { type: "digest", title, body, items });
-      await sendWebhook(`Systedo — ${title}: ${body}`);
+      await sendWebhook(`Adamant — ${title}: ${body}`);
 
       const email = await getUserEmail(userId);
       if (email) {
@@ -92,14 +96,15 @@ export async function GET(request: Request) {
           `<table style="border-collapse:collapse;margin-top:8px"><tr>${kpiHtml}</tr></table>` +
           `<p style="margin-top:12px">${criticals} kampaní vyžaduje pozornost.</p>` +
           movesHtml +
-          `<p style="margin-top:16px">Otevřete přehled v Systedo pro detail a AI vyhodnocení.</p>`;
-        await sendEmail(email, `Systedo: ${title}`, html);
+          `<p style="margin-top:16px">Otevřete přehled v Adamant pro detail a AI vyhodnocení.</p>`;
+        await sendEmail(email, `Adamant: ${title}`, html);
       }
 
-      results.push({ userId, ok: true, sent: true });
+      results.push({ userId, projectId: project?.id, ok: true, sent: true });
     } catch (err) {
-      console.error(`[cron] digest failed for ${userId}:`, err);
-      results.push({ userId, ok: false, error: err instanceof Error ? err.message : String(err) });
+      console.error(`[cron] digest failed for ${userId}/${project?.id}:`, err);
+      results.push({ userId, projectId: project?.id, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
     }
   }
 

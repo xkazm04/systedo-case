@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Check, Close, Copy, Link as LinkIcon } from "@/components/icons";
 import { fmtDate } from "@/lib/format";
+import { useOptionalProject } from "@/lib/projects/context";
 
 interface ShareRow {
   token: string;
@@ -19,20 +20,22 @@ interface ShareRow {
  *  count, and revoke. Reloads when `refreshSignal` changes (bumped after a new
  *  link is created). Renders nothing until at least one link exists. */
 export default function SharedReportsList({ refreshSignal }: { refreshSignal: number }) {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [rows, setRows] = useState<ShareRow[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/campaigns/share");
+      const res = await fetch(pid ? `/api/campaigns/share?projectId=${encodeURIComponent(pid)}` : "/api/campaigns/share");
       if (!res.ok) return;
       const json = (await res.json()) as { reports?: ShareRow[] };
       setRows(json.reports ?? []);
     } catch {
       /* non-critical chrome */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // Reload the share list on mount and after a new link is created.
@@ -46,7 +49,7 @@ export default function SharedReportsList({ refreshSignal }: { refreshSignal: nu
       const res = await fetch("/api/campaigns/share", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, projectId: pid }),
       });
       if (res.ok) setRows((r) => (r ?? []).filter((x) => x.token !== token));
     } finally {

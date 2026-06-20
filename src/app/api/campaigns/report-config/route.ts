@@ -20,10 +20,11 @@ async function requireUserId(): Promise<string | null> {
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
-  return Response.json(await getReportConfig(await resolveTenant(userId)));
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  return Response.json(await getReportConfig(await resolveTenant(userId, projectId)));
 }
 
 export async function PUT(request: Request) {
@@ -56,7 +57,8 @@ export async function PUT(request: Request) {
     recipients,
     cadence,
   };
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
   await setReportConfig(tenant, patch);
   return Response.json({ ...(await getReportConfig(tenant)) });
 }

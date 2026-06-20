@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Clock, Refresh, Bolt, Bell, Document, Info, Download } from "@/components/icons";
 import { fmtRelative, fmtDateTime } from "@/lib/format";
 import { toCsv, downloadText } from "@/lib/export";
+import { useOptionalProject } from "@/lib/projects/context";
 import type { ActivityKind, ActivityRecord } from "@/lib/campaigns/activity";
 
 /** Clock + dropdown showing the tenant's activity timeline: applied budget moves,
@@ -13,19 +14,21 @@ import type { ActivityKind, ActivityRecord } from "@/lib/campaigns/activity";
  *  Renders nothing for anonymous visitors. */
 export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [items, setItems] = useState<ActivityRecord[]>([]);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/activity");
+      const res = await fetch(pid ? `/api/activity?projectId=${encodeURIComponent(pid)}` : "/api/activity");
       if (!res.ok) return;
       const json = (await res.json()) as { activity?: ActivityRecord[] };
       setItems(json.activity ?? []);
     } catch {
       /* non-critical chrome */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

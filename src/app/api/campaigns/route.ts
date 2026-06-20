@@ -4,6 +4,7 @@
 import type { Session } from "next-auth";
 import { auth } from "@/auth";
 import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
+import { getProject } from "@/lib/projects/store";
 import {
   getLatestChanges,
   getReportHistories,
@@ -49,9 +50,10 @@ async function loadState(tenant: string) {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const tenant = await resolveTenant(userIdOf(await auth()));
+    const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+    const tenant = await resolveTenant(userIdOf(await auth()), projectId);
     return Response.json(await loadState(tenant));
   } catch (err) {
     console.error("[campaigns] loadState failed:", err);
@@ -81,6 +83,8 @@ export async function POST(request: Request) {
   }
   const raw = (body as { period?: unknown } | null)?.period;
   const period: CampaignPeriod = isCampaignPeriod(raw) ? raw : "30d";
+  const rawProjectId = (body as { projectId?: unknown } | null)?.projectId;
+  const projectId = typeof rawProjectId === "string" ? rawProjectId : undefined;
 
   const userId = userIdOf(await auth());
 
@@ -98,9 +102,11 @@ export async function POST(request: Request) {
     }
   }
 
-  // Live Google Ads for a connected user, sample data otherwise — always into the
-  // user's own tenant.
-  const { connector, tenant } = await resolveCampaignContext(userId);
+  // Live Google Ads for a connected user, sample data otherwise — into the active
+  // project's tenant when one is supplied. Load the project's type so the sample
+  // provider can produce domain-appropriate data.
+  const project = userId && projectId ? await getProject(userId, projectId) : null;
+  const { connector, tenant } = await resolveCampaignContext(userId, projectId, project?.type);
 
   let campaigns;
   try {

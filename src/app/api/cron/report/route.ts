@@ -7,6 +7,7 @@
  *  Automatic delivery covers connected live accounts (the cron's user set). */
 import { getAdsConnection, listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { listProjects } from "@/lib/projects/store";
 import { createSharedReport } from "@/lib/campaigns/shared-report";
 import { getReportConfig, markReportSent, type ReportCadence } from "@/lib/campaigns/report-config";
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
@@ -38,27 +39,35 @@ export async function GET(request: Request) {
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; ok: boolean; sent?: boolean; reason?: string }[] = [];
+  const results: { userId: string; projectId?: string; ok: boolean; sent?: boolean; reason?: string }[] = [];
 
   for (const userId of userIds) {
+    const projects = await listProjects(userId);
+    const targets = projects.length ? projects : [null];
+    for (const project of targets) {
     try {
-      const tenant = await resolveTenant(userId);
+      const tenant = await resolveTenant(userId, project?.id);
       const config = await getReportConfig(tenant);
 
       if (!isDue(config.cadence, now) || config.lastSentDay === today) {
-        results.push({ userId, ok: true, sent: false, reason: "not-due" });
+        results.push({ userId, projectId: project?.id, ok: true, sent: false, reason: "not-due" });
         continue;
       }
 
-      const accountName = (await getAdsConnection(userId))?.customerName ?? "Ukázkový účet";
-      const token = await createSharedReport(tenant, accountName);
+      const accountName =
+        (await getAdsConnection(userId))?.customerName ?? project?.name ?? "Ukázkový účet";
+      // Client report brand defaults to the project (client) brand, not the vendor.
+      const token = await createSharedReport(tenant, accountName, {
+        name: project?.name,
+        accent: project?.accentColor,
+      });
       if (!token) {
-        results.push({ userId, ok: true, sent: false, reason: "no-evaluation" });
+        results.push({ userId, projectId: project?.id, ok: true, sent: false, reason: "no-evaluation" });
         continue;
       }
 
       const url = canonical(`/report/${token}`);
-      const brand = config.brandName || "Adamant";
+      const brand = config.brandName || project?.name || accountName;
       const title = `Pravidelný report výkonu — ${accountName}`;
 
       const recipients = config.recipients.length
@@ -82,10 +91,11 @@ export async function GET(request: Request) {
       });
       await markReportSent(tenant, today);
 
-      results.push({ userId, ok: true, sent: true });
+      results.push({ userId, projectId: project?.id, ok: true, sent: true });
     } catch (err) {
-      console.error(`[cron] report failed for ${userId}:`, err);
-      results.push({ userId, ok: false, reason: err instanceof Error ? err.message : String(err) });
+      console.error(`[cron] report failed for ${userId}/${project?.id}:`, err);
+      results.push({ userId, projectId: project?.id, ok: false, reason: err instanceof Error ? err.message : String(err) });
+    }
     }
   }
 

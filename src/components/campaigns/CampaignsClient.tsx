@@ -11,6 +11,7 @@ import {
   type CampaignPeriod,
 } from "@/lib/campaigns/types";
 import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
+import { useOptionalProject } from "@/lib/projects/context";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
@@ -32,6 +33,8 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 export default function CampaignsClient() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const {
     campaigns,
     meta,
@@ -73,7 +76,11 @@ export default function CampaignsClient() {
     setSharing(true);
     setShareErr(null);
     try {
-      const res = await fetch("/api/campaigns/share", { method: "POST" });
+      const res = await fetch("/api/campaigns/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: pid }),
+      });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setShareErr(json?.error ?? "Sdílení se nezdařilo.");

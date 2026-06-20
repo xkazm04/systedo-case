@@ -43,10 +43,11 @@ function toSavedKeyword(raw: unknown): SavedKeyword | null {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ lists: [], negatives: [] });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const lists = await listKeywordLists(tenant);
   return Response.json({ lists, negatives: aggregateNegatives(lists) });
 }
@@ -55,13 +56,14 @@ export async function POST(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Pro uložení seznamu se přihlaste." }, { status: 401 });
 
-  let body: { name?: unknown; seed?: unknown; source?: unknown; keywords?: unknown };
+  let body: { name?: unknown; seed?: unknown; source?: unknown; keywords?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Neplatný JSON." }, { status: 400 });
   }
 
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const seed = typeof body.seed === "string" ? body.seed.trim() : "";
   const name = (typeof body.name === "string" && body.name.trim()) || seed || "Bez názvu";
   const source = body.source === "google-ads" ? "google-ads" : "sample";
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Seznam neobsahuje žádná klíčová slova." }, { status: 422 });
   }
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   const list = await saveKeywordList(tenant, { name, seed, source, keywords });
   return Response.json({ list });
 }
@@ -81,12 +83,13 @@ export async function PATCH(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { id?: unknown; tags?: unknown };
+  let body: { id?: unknown; tags?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Neplatný JSON." }, { status: 400 });
   }
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const id = typeof body.id === "string" ? body.id : "";
   if (!id) return Response.json({ error: "Chybí ID seznamu." }, { status: 422 });
 
@@ -97,7 +100,7 @@ export async function PATCH(request: Request) {
     }
   }
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   await updateKeywordTags(tenant, id, tags);
   return Response.json({ ok: true });
 }
@@ -107,15 +110,17 @@ export async function DELETE(request: Request) {
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id = "";
+  let projectId: string | undefined;
   try {
-    const body = (await request.json()) as { id?: unknown };
+    const body = (await request.json()) as { id?: unknown; projectId?: unknown };
     if (typeof body.id === "string") id = body.id;
+    if (typeof body.projectId === "string") projectId = body.projectId;
   } catch {
     /* no body */
   }
   if (!id) return Response.json({ error: "Chybí ID seznamu." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   await deleteKeywordList(tenant, id);
   return Response.json({ ok: true });
 }

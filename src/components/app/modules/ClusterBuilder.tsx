@@ -27,6 +27,7 @@ import {
 export default function ClusterBuilder() {
   const { status: authStatus } = useSession();
   const project = useProject();
+  const pid = project.id;
   const router = useRouter();
   const clusters = useAiTool<KeywordClustersResult>("keyword-clusters");
 
@@ -36,7 +37,7 @@ export default function ClusterBuilder() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/keywords/lists");
+      const res = await fetch(`/api/keywords/lists${pid ? `?projectId=${pid}` : ""}`);
       if (!res.ok) return;
       const json = (await res.json()) as { lists?: KeywordList[] };
       const next = json.lists ?? [];
@@ -47,7 +48,7 @@ export default function ClusterBuilder() {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // Fetching the saved lists is an external-store sync; doing it in an effect

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Download } from "@/components/icons";
 import { fmtInt } from "@/lib/format";
 import { toCsv, downloadText } from "@/lib/export";
@@ -27,13 +28,15 @@ const TAG_STYLE: Record<KeywordTag, string> = {
  *  requires an account). Reloads when `refreshKey` changes. */
 export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }) {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [lists, setLists] = useState<KeywordList[]>([]);
   const [negatives, setNegatives] = useState<string[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/keywords/lists");
+      const res = await fetch(`/api/keywords/lists${pid ? `?projectId=${pid}` : ""}`);
       if (!res.ok) return;
       const json = (await res.json()) as { lists?: KeywordList[]; negatives?: string[] };
       setLists(json.lists ?? []);
@@ -43,7 +46,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -63,7 +66,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
       await fetch("/api/keywords/lists", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: listId, tags: { [keyword]: tag } }),
+        body: JSON.stringify({ id: listId, tags: { [keyword]: tag }, projectId: pid }),
       });
       await load();
     } catch {
@@ -77,7 +80,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
       await fetch("/api/keywords/lists", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: listId }),
+        body: JSON.stringify({ id: listId, projectId: pid }),
       });
       await load();
     } catch {

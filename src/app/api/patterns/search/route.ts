@@ -21,8 +21,11 @@ export async function POST(request: Request) {
   }
 
   let query = "";
+  let projectId: string | null = null;
   try {
-    query = str(((await request.json()) as { query?: unknown }).query);
+    const body = (await request.json()) as { query?: unknown; projectId?: unknown };
+    query = str(body.query);
+    projectId = str(body.projectId) || null;
   } catch {
     return Response.json({ error: "Neplatný JSON." }, { status: 400 });
   }
@@ -32,7 +35,7 @@ export async function POST(request: Request) {
 
   const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
   try {
-    const { results, semantic } = await searchPatterns(await resolveTenant(userId), query);
+    const { results, semantic } = await searchPatterns(await resolveTenant(userId, projectId), query);
     return Response.json({ results: results.slice(0, 12), semantic });
   } catch (err) {
     console.error("[patterns] search failed:", err);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useOptionalProject } from "@/lib/projects/context";
 import type { CampaignReport, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
 import type {
   Campaign,
@@ -40,6 +41,8 @@ const EMPTY: State = {
  *  the connector, and runs per-campaign / portfolio AI evaluations. Tracks busy
  *  state per key ("overall" or a campaign id) so each row spins independently. */
 export function useCampaigns() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [state, setState] = useState<State>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -52,7 +55,7 @@ export function useCampaigns() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/campaigns");
+      const res = await fetch(pid ? `/api/campaigns?projectId=${encodeURIComponent(pid)}` : "/api/campaigns");
       const json = (await res.json()) as State;
       if (!res.ok) throw new Error("load failed");
       setState({
@@ -68,7 +71,7 @@ export function useCampaigns() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     load();
@@ -81,7 +84,7 @@ export function useCampaigns() {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period }),
+        body: JSON.stringify({ period, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -101,7 +104,7 @@ export function useCampaigns() {
     } finally {
       setSyncing(false);
     }
-  }, []);
+  }, [pid]);
 
   const analyze = useCallback(
     async (scope: EvalScope, campaignId: string | null, period: CampaignPeriod) => {
@@ -116,7 +119,7 @@ export function useCampaigns() {
         const res = await fetch("/api/campaigns/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scope, campaignId, period }),
+          body: JSON.stringify({ scope, campaignId, period, projectId: pid }),
         });
         const json = await res.json();
         if (!res.ok) {
@@ -138,7 +141,7 @@ export function useCampaigns() {
         setAnalyzing((a) => ({ ...a, [key]: false }));
       }
     },
-    []
+    [pid]
   );
 
   return {

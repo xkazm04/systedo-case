@@ -491,6 +491,7 @@ export default function CompareSeoTable({
   seoChannel: SeoChannel | null;
 }) {
   const project = useProject();
+  const pid = project.id;
   const router = useRouter();
 
   // Lazy init from per-project localStorage (SSR-guarded); falls back to default.
@@ -508,7 +509,7 @@ export default function CompareSeoTable({
   const [selectedListId, setSelectedListId] = useState("");
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/keywords/lists")
+    fetch(`/api/keywords/lists${pid ? `?projectId=${pid}` : ""}`)
       .then((r) => (r.ok ? r.json() : { lists: [] }))
       .then((d) => {
         if (!cancelled) setLists(Array.isArray(d?.lists) ? d.lists : []);
@@ -519,7 +520,7 @@ export default function CompareSeoTable({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [pid]);
 
   // Persist the tuned weights so the panel reopens the way the user left it.
   useEffect(() => {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Bolt, Check, Clock, Close, Info, Refresh, Share, Sparkles } from "@/components/icons";
 import { fmtDateTime, fmtRelative } from "@/lib/format";
+import { useOptionalProject } from "@/lib/projects/context";
 import {
   PLATFORM_LIMITS,
   POST_STATUS_LABELS,
@@ -149,6 +150,8 @@ function AccountsBar() {
 // --- composer ----------------------------------------------------------------
 
 function Composer() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [draftPlatforms, setDraftPlatforms] = useState<Set<SocialPlatform>>(new Set(["instagram", "facebook"]));
@@ -233,7 +236,7 @@ function Composer() {
       const res = await fetch("/api/social/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, content, scheduledAt: scheduledAt || undefined }),
+        body: JSON.stringify({ platform, content, scheduledAt: scheduledAt || undefined, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -418,12 +421,15 @@ function Composer() {
 // --- posts list --------------------------------------------------------------
 
 function PostsList() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/social/posts");
+      const url = pid ? `/api/social/posts?projectId=${encodeURIComponent(pid)}` : "/api/social/posts";
+      const res = await fetch(url);
       const json = (await res.json()) as { posts?: SocialPost[] };
       setPosts(json.posts ?? []);
     } catch {
@@ -431,7 +437,7 @@ function PostsList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -445,7 +451,7 @@ function PostsList() {
     const res = await fetch("/api/social/posts", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id, projectId: pid }),
     });
     if (res.ok) setPosts((p) => p.filter((x) => x.id !== id));
   };
@@ -513,6 +519,8 @@ function PostsList() {
 // --- inbox -------------------------------------------------------------------
 
 function Inbox() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -520,7 +528,8 @@ function Inbox() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/social/messages");
+      const url = pid ? `/api/social/messages?projectId=${encodeURIComponent(pid)}` : "/api/social/messages";
+      const res = await fetch(url);
       const json = (await res.json()) as { messages?: InboxMessage[] };
       const list = json.messages ?? [];
       setMessages(list);
@@ -530,7 +539,7 @@ function Inbox() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -545,7 +554,7 @@ function Inbox() {
       const res = await fetch("/api/social/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: m.id, platform: m.platform, reply }),
+        body: JSON.stringify({ id: m.id, platform: m.platform, reply, projectId: pid }),
       });
       if (res.ok) {
         setMessages((list) => list.map((x) => (x.id === m.id ? { ...x, status: "replied", reply } : x)));

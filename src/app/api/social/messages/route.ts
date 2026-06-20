@@ -12,13 +12,14 @@ export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-async function tenantOf(): Promise<string> {
+async function tenantOf(projectId?: string | null): Promise<string> {
   const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-  return resolveTenant(uid);
+  return resolveTenant(uid, projectId);
 }
 
-export async function GET() {
-  const messages = await listMessages(await tenantOf());
+export async function GET(request: Request) {
+  const projectId = new URL(request.url).searchParams.get("projectId");
+  const messages = await listMessages(await tenantOf(projectId));
   // Attach a deterministic suggested reply for each open message.
   const withSuggestions = messages.map((m) => ({
     ...m,
@@ -28,7 +29,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  let body: { id?: unknown; reply?: unknown; platform?: unknown };
+  let body: { id?: unknown; reply?: unknown; platform?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
   const reply = str(body.reply);
   if (!id || !reply) return Response.json({ error: "Chybí zpráva nebo odpověď." }, { status: 422 });
 
-  const tenant = await tenantOf();
+  const tenant = await tenantOf(str(body.projectId) || null);
   if (isSocialPlatform(body.platform)) {
     await publishReply(body.platform, id, reply);
   }

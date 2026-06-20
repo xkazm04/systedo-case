@@ -42,10 +42,11 @@ function toAdResult(raw: unknown): AdResult | null {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ experiments: [] });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   return Response.json({ experiments: await listExperiments(tenant) });
 }
 
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Pro uložení varianty se přihlaste." }, { status: 401 });
 
-  let body: { name?: unknown; label?: unknown; ad?: unknown; strength?: unknown };
+  let body: { name?: unknown; label?: unknown; ad?: unknown; strength?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -64,7 +65,8 @@ export async function POST(request: Request) {
   const ad = toAdResult(body.ad);
   if (!ad) return Response.json({ error: "Chybí inzerát k uložení." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const experiment = await upsertExperimentVariant(tenant, name, {
     label: typeof body.label === "string" ? body.label : undefined,
     ad,
@@ -77,7 +79,7 @@ export async function PATCH(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { experimentId?: unknown; variantId?: unknown; metrics?: unknown };
+  let body: { experimentId?: unknown; variantId?: unknown; metrics?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -97,7 +99,8 @@ export async function PATCH(request: Request) {
     convValue: num(m.convValue),
   };
 
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const experiment = await updateVariantMetrics(tenant, experimentId, variantId, metrics);
   if (!experiment) return Response.json({ error: "Experiment nenalezen." }, { status: 404 });
   return Response.json({ experiment });
@@ -108,15 +111,17 @@ export async function DELETE(request: Request) {
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id = "";
+  let projectId: string | undefined;
   try {
-    const body = (await request.json()) as { experimentId?: unknown };
+    const body = (await request.json()) as { experimentId?: unknown; projectId?: unknown };
     if (typeof body.experimentId === "string") id = body.experimentId;
+    if (typeof body.projectId === "string") projectId = body.projectId;
   } catch {
     /* no body */
   }
   if (!id) return Response.json({ error: "Chybí ID experimentu." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   await deleteExperiment(tenant, id);
   return Response.json({ ok: true });
 }

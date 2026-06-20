@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Check } from "@/components/icons";
 import { fmtRelative } from "@/lib/format";
+import { useOptionalProject } from "@/lib/projects/context";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
 
 /** Bell + dropdown showing the tenant's alert inbox (newly-critical campaigns
@@ -11,13 +12,15 @@ import type { AlertRecord } from "@/lib/campaigns/alerts";
  *  Renders nothing for anonymous visitors. */
 export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/alerts");
+      const res = await fetch(pid ? `/api/alerts?projectId=${encodeURIComponent(pid)}` : "/api/alerts");
       if (!res.ok) return;
       const json = (await res.json()) as { alerts?: AlertRecord[]; unread?: number };
       setAlerts(json.alerts ?? []);
@@ -25,7 +28,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
     } catch {
       /* non-critical chrome */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // Reload alerts when auth resolves or a sync may have minted new ones.
@@ -38,7 +41,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
       await fetch("/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ projectId: pid }),
       });
       setAlerts((a) => a.map((x) => ({ ...x, read: true })));
       setUnread(0);

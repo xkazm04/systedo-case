@@ -12,11 +12,12 @@ async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ alerts: [], unread: 0 });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const alerts = await listAlerts(tenant);
   const unread = alerts.filter((a) => !a.read).length;
   return Response.json({ alerts, unread });
@@ -27,14 +28,16 @@ export async function POST(request: Request) {
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id: string | undefined;
+  let projectId: string | undefined;
   try {
-    const body = (await request.json()) as { id?: unknown };
+    const body = (await request.json()) as { id?: unknown; projectId?: unknown };
     if (typeof body.id === "string") id = body.id;
+    if (typeof body.projectId === "string") projectId = body.projectId;
   } catch {
     /* no body → mark all read */
   }
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   await markAlertsRead(tenant, id);
   return Response.json({ ok: true });
 }

@@ -3,6 +3,7 @@
  *  vercel.json. Publishing is simulated in demo mode (see lib/social/publish). */
 import { listConnectedSocialUserIds } from "@/lib/social/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { listProjects } from "@/lib/projects/store";
 import { listDueScheduled, updatePost } from "@/lib/social/store";
 import { publishPost } from "@/lib/social/publish";
 
@@ -25,25 +26,29 @@ export async function GET(request: Request) {
   let failed = 0;
 
   for (const userId of userIds) {
-    try {
-      const tenant = await resolveTenant(userId);
-      const due = await listDueScheduled(tenant, nowIso);
-      for (const post of due) {
-        const result = await publishPost(post.platform, post.content, post.id);
-        if (result.ok) {
-          await updatePost(tenant, post.id, {
-            status: "published",
-            publishedAt: new Date().toISOString(),
-            externalUrl: result.externalUrl,
-          });
-          published++;
-        } else {
-          await updatePost(tenant, post.id, { status: "failed", error: result.error });
-          failed++;
+    const projects = await listProjects(userId);
+    const targets = projects.length ? projects : [null];
+    for (const project of targets) {
+      try {
+        const tenant = await resolveTenant(userId, project?.id);
+        const due = await listDueScheduled(tenant, nowIso);
+        for (const post of due) {
+          const result = await publishPost(post.platform, post.content, post.id);
+          if (result.ok) {
+            await updatePost(tenant, post.id, {
+              status: "published",
+              publishedAt: new Date().toISOString(),
+              externalUrl: result.externalUrl,
+            });
+            published++;
+          } else {
+            await updatePost(tenant, post.id, { status: "failed", error: result.error });
+            failed++;
+          }
         }
+      } catch (err) {
+        console.error(`[cron] social publish failed for ${userId}/${project?.id}:`, err);
       }
-    } catch (err) {
-      console.error(`[cron] social publish failed for ${userId}:`, err);
     }
   }
 

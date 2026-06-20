@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { fmtCZK, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
+import { useOptionalProject } from "@/lib/projects/context";
 import { projectedValueGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
 
 const STATUS_LABEL: Record<ChangeSetStatus, string> = {
@@ -22,6 +23,8 @@ const STATUS_STYLE: Record<ChangeSetStatus, string> = {
  *  that makes touching real spend safe. Anonymous → hidden. */
 export default function ControlPlane() {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [sets, setSets] = useState<ChangeSet[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -30,7 +33,7 @@ export default function ControlPlane() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/campaigns/control-plane");
+      const res = await fetch(pid ? `/api/campaigns/control-plane?projectId=${encodeURIComponent(pid)}` : "/api/campaigns/control-plane");
       if (!res.ok) return;
       const json = (await res.json()) as { changeSets?: ChangeSet[] };
       setSets(json.changeSets ?? []);
@@ -39,7 +42,7 @@ export default function ControlPlane() {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -53,7 +56,7 @@ export default function ControlPlane() {
       const res = await fetch("/api/campaigns/control-plane", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id, override }),
+        body: JSON.stringify({ action, id, override, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) setError(json?.error ?? "Akce se nezdařila.");

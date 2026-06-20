@@ -60,10 +60,15 @@ function isExpired(expiresAt: string | undefined): boolean {
 }
 
 /** Create a shareable snapshot of the tenant's current portfolio evaluation.
- *  Returns the token, or null when there's no portfolio report yet. */
+ *  Returns the token, or null when there's no portfolio report yet.
+ *
+ *  `brandFallback` (the active project's name/accent) is used when no white-label
+ *  is configured, so a client-facing report carries the CLIENT's brand — never
+ *  the vendor name — by default. */
 export async function createSharedReport(
   tenant: string,
-  accountName: string
+  accountName: string,
+  brandFallback?: { name?: string; accent?: string }
 ): Promise<string | null> {
   const meta = await getSyncMeta(tenant);
   if (!meta) return null;
@@ -80,8 +85,8 @@ export async function createSharedReport(
     createdAt: new Date(now).toISOString(),
     expiresAt: new Date(now + SHARE_TTL_DAYS * 86_400_000).toISOString(),
     views: 0,
-    brandName: config.brandName || undefined,
-    accentColor: config.accentColor || undefined,
+    brandName: config.brandName || brandFallback?.name || undefined,
+    accentColor: config.accentColor || brandFallback?.accent || undefined,
     report,
     history: await getReportHistory(tenant, "overall", null),
     campaigns: await listCampaigns(tenant),

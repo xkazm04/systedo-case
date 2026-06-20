@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Image as ImageIcon } from "@/components/icons";
 import { downloadDataUrl } from "@/lib/export";
 import { fmtRelative } from "@/lib/format";
@@ -49,6 +50,10 @@ const CHECKER: React.CSSProperties = {
 
 export default function CreativeStudio() {
   const { status: authStatus } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
+  const fileUrl = (id: string) =>
+    pid ? `/api/images/file/${id}?projectId=${encodeURIComponent(pid)}` : `/api/images/file/${id}`;
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<ImageStyle>("dynamic");
   const [format, setFormat] = useState<ImageFormat>("square");
@@ -83,7 +88,7 @@ export default function CreativeStudio() {
       const res = await fetch("/api/images/nobg", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageId: id }),
+        body: JSON.stringify({ imageId: id, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -106,6 +111,7 @@ export default function CreativeStudio() {
       const blob = await (await fetch(img.dataUrl)).blob();
       const fd = new FormData();
       fd.append("file", new File([blob], "variant.png", { type: blob.type || "image/png" }));
+      if (pid) fd.append("projectId", pid);
       const up = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
       const upJson = await up.json();
       if (!up.ok) {
@@ -125,6 +131,7 @@ export default function CreativeStudio() {
           referenceImageId: upJson.referenceImageId,
           referenceMode: refMode,
           fidelity,
+          projectId: pid,
         }),
       });
       const json = await res.json();
@@ -144,14 +151,14 @@ export default function CreativeStudio() {
 
   const loadLibrary = useCallback(async () => {
     try {
-      const res = await fetch("/api/images");
+      const res = await fetch(pid ? `/api/images?projectId=${encodeURIComponent(pid)}` : "/api/images");
       if (!res.ok) return;
       const json = (await res.json()) as { creatives?: CreativeSummary[] };
       setLibrary(json.creatives ?? []);
     } catch {
       /* non-critical */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     if (authStatus === "authenticated") void loadLibrary();
@@ -189,6 +196,7 @@ export default function CreativeStudio() {
     try {
       const fd = new FormData();
       fd.append("file", file);
+      if (pid) fd.append("projectId", pid);
       const res = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
       const json = await res.json();
       if (!res.ok) {
@@ -231,6 +239,7 @@ export default function CreativeStudio() {
           referenceImageId: refStatus === "ready" ? referenceImageId : undefined,
           referenceMode: refMode,
           fidelity,
+          projectId: pid,
         }),
       });
       const json = await res.json();
@@ -262,7 +271,7 @@ export default function CreativeStudio() {
       const res = await fetch("/api/images", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, projectId: pid }),
       });
       if (res.ok) setLibrary((l) => l.filter((c) => c.id !== id));
     } finally {
@@ -532,7 +541,7 @@ export default function CreativeStudio() {
               <div key={c.id} className="card overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={`/api/images/file/${c.id}`}
+                  src={fileUrl(c.id)}
                   alt={c.prompt}
                   className="aspect-square w-full object-cover"
                   loading="lazy"
@@ -546,7 +555,7 @@ export default function CreativeStudio() {
                     </span>
                     <span className="flex shrink-0 items-center gap-1">
                       <a
-                        href={`/api/images/file/${c.id}`}
+                        href={fileUrl(c.id)}
                         download
                         aria-label="Stáhnout"
                         className="grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"

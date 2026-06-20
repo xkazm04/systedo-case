@@ -8,6 +8,7 @@
  *  draft + posts routes, then the calendar reflects them. */
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Sparkles } from "@/components/icons";
+import { useOptionalProject } from "@/lib/projects/context";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
@@ -62,6 +63,8 @@ function readSocialBrand(): string {
 }
 
 export default function WeekPlanner() {
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [week, setWeek] = useState<Day[]>([]);
 
@@ -77,13 +80,14 @@ export default function WeekPlanner() {
 
   const loadPosts = useCallback(async () => {
     try {
-      const res = await fetch("/api/social/posts");
+      const url = pid ? `/api/social/posts?projectId=${encodeURIComponent(pid)}` : "/api/social/posts";
+      const res = await fetch(url);
       const json = (await res.json()) as { posts?: SocialPost[] };
       setPosts(json.posts ?? []);
     } catch {
       /* non-critical */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -146,7 +150,7 @@ export default function WeekPlanner() {
           await fetch("/api/social/posts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform, content: post.content, scheduledAt: when.toISOString() }),
+            body: JSON.stringify({ platform, content: post.content, scheduledAt: when.toISOString(), projectId: pid }),
           });
         }
         setProgress({ done: i + 1, total: topicLines.length });

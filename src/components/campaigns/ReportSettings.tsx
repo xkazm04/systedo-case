@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Check, Document } from "@/components/icons";
+import { useOptionalProject } from "@/lib/projects/context";
 import {
   REPORT_CADENCES,
   REPORT_CADENCE_LABELS,
@@ -15,6 +16,8 @@ import {
  *  nothing for anonymous visitors. */
 export default function ReportSettings() {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [cfg, setCfg] = useState<ReportConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -22,13 +25,13 @@ export default function ReportSettings() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/campaigns/report-config");
+      const res = await fetch(pid ? `/api/campaigns/report-config?projectId=${encodeURIComponent(pid)}` : "/api/campaigns/report-config");
       if (!res.ok) return;
       setCfg((await res.json()) as ReportConfig);
     } catch {
       /* non-critical */
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -55,6 +58,7 @@ export default function ReportSettings() {
           accentColor: cfg.accentColor,
           recipients: cfg.recipients,
           cadence: cfg.cadence,
+          projectId: pid,
         }),
       });
       const json = await res.json().catch(() => ({}));

@@ -23,10 +23,11 @@ async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ changeSets: [] });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const tenant = await resolveTenant(userId, projectId);
   return Response.json({ changeSets: await listChangeSets(tenant) });
 }
 
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { action?: unknown; id?: unknown; override?: unknown };
+  let body: { action?: unknown; id?: unknown; override?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -43,7 +44,8 @@ export async function POST(request: Request) {
   const action = body.action;
   const id = typeof body.id === "string" ? body.id : "";
   const override = body.override === true;
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
 
   if (action === "create") {
     const changeSet = await createChangeSet(tenant);

@@ -6,6 +6,7 @@
  *  is set). Schedule lives in vercel.json. */
 import { listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
+import { listProjects } from "@/lib/projects/store";
 import { getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
 import { evaluateAnomalyAlerts } from "@/lib/campaigns/anomaly-alerts";
@@ -29,11 +30,19 @@ export async function GET(request: Request) {
   }
 
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
+  const results: { userId: string; projectId?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
 
+  // Per-project tenancy: sync each of the user's projects into its own tenant.
+  // (A connected account currently mirrors into every project of that user;
+  //  mapping a specific Ads account to a single project via adsCustomerId is a
+  //  follow-up — reads and writes are consistent per project either way.)
   for (const userId of userIds) {
+    const projects = await listProjects(userId);
+    // Fall back to the per-user tenant when a user has no projects yet.
+    const targets = projects.length ? projects : [null];
+    for (const project of targets) {
     try {
-      const { connector, tenant } = await resolveCampaignContext(userId);
+      const { connector, tenant } = await resolveCampaignContext(userId, project?.id, project?.type);
       const meta = await getSyncMeta(tenant);
       const period: CampaignPeriod = meta?.period ?? "30d";
 
@@ -70,10 +79,11 @@ export async function GET(request: Request) {
         actor: "Automatická synchronizace",
       });
 
-      results.push({ userId, ok: true, alerted, anomalies });
+      results.push({ userId, projectId: project?.id, ok: true, alerted, anomalies });
     } catch (err) {
-      console.error(`[cron] sync failed for ${userId}:`, err);
-      results.push({ userId, ok: false, error: err instanceof Error ? err.message : String(err) });
+      console.error(`[cron] sync failed for ${userId}/${project?.id}:`, err);
+      results.push({ userId, projectId: project?.id, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
     }
   }
 

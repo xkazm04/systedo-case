@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Layers, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
 import {
@@ -171,6 +172,8 @@ const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "g
 
 export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () => void } = {}) {
   const { status: authStatus } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [form, setForm] = useState<AdRequest>(EMPTY);
   const { status, data, error, timedOut, run, reset } = useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");
@@ -203,7 +206,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
       const res = await fetch("/api/experiments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, ad: r, strength: strength.score }),
+        body: JSON.stringify({ name, ad: r, strength: strength.score, projectId: pid }),
       });
       if (!res.ok) {
         setAbState("idle");

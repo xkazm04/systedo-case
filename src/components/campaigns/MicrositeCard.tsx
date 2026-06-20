@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { External, Check, Layers } from "@/components/icons";
+import { useOptionalProject } from "@/lib/projects/context";
 import type { MicrositeConfig } from "@/lib/microsite";
 
 const PERIODS = [
@@ -15,6 +16,8 @@ const PERIODS = [
  *  re-renders from the latest snapshot. Anonymous → hidden. */
 export default function MicrositeCard() {
   const { status } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [site, setSite] = useState<MicrositeConfig | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [clientName, setClientName] = useState("");
@@ -26,7 +29,7 @@ export default function MicrositeCard() {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/microsite");
+      const res = await fetch(pid ? `/api/microsite?projectId=${encodeURIComponent(pid)}` : "/api/microsite");
       if (!res.ok) return;
       const json = (await res.json()) as { microsite?: MicrositeConfig | null };
       setSite(json.microsite ?? null);
@@ -35,7 +38,7 @@ export default function MicrositeCard() {
     } finally {
       setLoaded(true);
     }
-  }, []);
+  }, [pid]);
 
   useEffect(() => {
     // Set after mount (not during render) so SSR ("") and first client paint
@@ -52,7 +55,7 @@ export default function MicrositeCard() {
       const res = await fetch("/api/microsite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientName, accentColor, periodDays }),
+        body: JSON.stringify({ clientName, accentColor, periodDays, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -70,7 +73,9 @@ export default function MicrositeCard() {
   const takeOffline = async () => {
     setBusy(true);
     try {
-      await fetch("/api/microsite", { method: "DELETE" });
+      await fetch(pid ? `/api/microsite?projectId=${encodeURIComponent(pid)}` : "/api/microsite", {
+        method: "DELETE",
+      });
       setSite(null);
     } catch {
       /* ignore */

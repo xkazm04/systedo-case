@@ -8,12 +8,13 @@ import { getCreativeFile } from "@/lib/images/store";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
   if (!uid) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;
-  const file = await getCreativeFile(await resolveTenant(uid), id);
+  const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
+  const file = await getCreativeFile(await resolveTenant(uid, projectId), id);
   if (!file) return new Response("Not found", { status: 404 });
 
   return new Response(new Uint8Array(file.buffer), {

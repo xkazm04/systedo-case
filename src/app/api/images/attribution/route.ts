@@ -40,10 +40,11 @@ function toMetrics(raw: unknown): CreativeMetrics | null {
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ links: [], leaderboard: [], prior: { style: null, hint: "" } });
-  const tenant = await resolveTenant(userId);
+  const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const links = await listCreativeLinks(tenant);
   const leaderboard = styleLeaderboard(links);
   return Response.json({ links, leaderboard, prior: deriveStylePrior(leaderboard) });
@@ -61,7 +62,8 @@ export async function POST(request: Request) {
   }
   if (!isImageStyle(body.style)) return Response.json({ error: "Neplatný styl." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
   const link = await recordCreativeLink(tenant, {
     style: body.style,
     format: typeof body.format === "string" ? body.format : "square",
@@ -78,7 +80,7 @@ export async function PATCH(request: Request) {
   const userId = await requireUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { linkId?: unknown; metrics?: unknown };
+  let body: { linkId?: unknown; metrics?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -88,7 +90,8 @@ export async function PATCH(request: Request) {
   const metrics = toMetrics(body.metrics);
   if (!linkId || !metrics) return Response.json({ error: "Chybí data." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
   await updateCreativeMetrics(tenant, linkId, metrics);
   return Response.json({ ok: true });
 }
@@ -98,15 +101,17 @@ export async function DELETE(request: Request) {
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let linkId = "";
+  let projectId: string | undefined;
   try {
-    const body = (await request.json()) as { linkId?: unknown };
+    const body = (await request.json()) as { linkId?: unknown; projectId?: unknown };
     if (typeof body.linkId === "string") linkId = body.linkId;
+    if (typeof body.projectId === "string") projectId = body.projectId;
   } catch {
     /* no body */
   }
   if (!linkId) return Response.json({ error: "Chybí ID." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId);
+  const tenant = await resolveTenant(userId, projectId);
   await deleteCreativeLink(tenant, linkId);
   return Response.json({ ok: true });
 }

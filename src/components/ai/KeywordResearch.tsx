@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useOptionalProject } from "@/lib/projects/context";
 import { ArrowRight, Bolt, Check, Gauge, Network, Search } from "@/components/icons";
 import { fmtCZK, fmtInt } from "@/lib/format";
 import type {
@@ -54,6 +55,8 @@ export default function KeywordResearch({
   onSaved?: () => void;
 }) {
   const { status: authStatus } = useSession();
+  const project = useOptionalProject();
+  const pid = project?.id;
   const [seed, setSeed] = useState("");
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
@@ -187,7 +190,7 @@ export default function KeywordResearch({
       const res = await fetch("/api/keywords/lists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: result.seed, seed: result.seed, source: result.source, keywords }),
+        body: JSON.stringify({ name: result.seed, seed: result.seed, source: result.source, keywords, projectId: pid }),
       });
       if (!res.ok) {
         setSaveState("idle");

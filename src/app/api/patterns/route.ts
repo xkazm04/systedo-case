@@ -16,8 +16,9 @@ async function userId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
 }
 
-export async function GET() {
-  const tenant = await resolveTenant(await userId());
+export async function GET(request: Request) {
+  const projectId = new URL(request.url).searchParams.get("projectId");
+  const tenant = await resolveTenant(await userId(), projectId);
   try {
     return Response.json(await getLibrary(tenant));
   } catch (err) {
@@ -41,7 +42,8 @@ export async function POST(request: Request) {
   if (title.length < 3) return Response.json({ error: "Zadejte název vzoru (min. 3 znaky)." }, { status: 422 });
   if (insight.length < 3) return Response.json({ error: "Zadejte popis vzoru." }, { status: 422 });
 
-  const pattern = await savePattern(await resolveTenant(uid), {
+  const projectId = str(body.projectId) || null;
+  const pattern = await savePattern(await resolveTenant(uid, projectId), {
     title,
     category: isPatternCategory(body.category) ? body.category : "structure",
     insight,
@@ -54,12 +56,15 @@ export async function DELETE(request: Request) {
   const uid = await userId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   let id = "";
+  let projectId: string | null = null;
   try {
-    id = str(((await request.json()) as { id?: unknown }).id);
+    const body = (await request.json()) as { id?: unknown; projectId?: unknown };
+    id = str(body.id);
+    projectId = str(body.projectId) || null;
   } catch {
     /* fall through */
   }
   if (!id) return Response.json({ error: "Chybí ID." }, { status: 422 });
-  const ok = await deletePattern(await resolveTenant(uid), id);
+  const ok = await deletePattern(await resolveTenant(uid, projectId), id);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }

@@ -12,17 +12,18 @@ export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-async function tenantOf(): Promise<string> {
+async function tenantOf(projectId?: string | null): Promise<string> {
   const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-  return resolveTenant(uid);
+  return resolveTenant(uid, projectId);
 }
 
-export async function GET() {
-  return Response.json({ posts: await listPosts(await tenantOf()) });
+export async function GET(request: Request) {
+  const projectId = new URL(request.url).searchParams.get("projectId");
+  return Response.json({ posts: await listPosts(await tenantOf(projectId)) });
 }
 
 export async function POST(request: Request) {
-  let body: { platform?: unknown; content?: unknown; scheduledAt?: unknown };
+  let body: { platform?: unknown; content?: unknown; scheduledAt?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const tenant = await tenantOf();
+  const tenant = await tenantOf(str(body.projectId) || null);
   const scheduledAt = str(body.scheduledAt);
   const future = scheduledAt && new Date(scheduledAt).getTime() > Date.now();
 
@@ -62,12 +63,15 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   let id = "";
+  let projectId: string | null = null;
   try {
-    id = str(((await request.json()) as { id?: unknown }).id);
+    const body = (await request.json()) as { id?: unknown; projectId?: unknown };
+    id = str(body.id);
+    projectId = str(body.projectId) || null;
   } catch {
     /* fall through */
   }
   if (!id) return Response.json({ error: "Chybí ID." }, { status: 422 });
-  const ok = await deletePost(await tenantOf(), id);
+  const ok = await deletePost(await tenantOf(projectId), id);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }
