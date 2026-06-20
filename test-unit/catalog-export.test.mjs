@@ -1,12 +1,9 @@
-/** Unit tests for the Google Ads asset-group CSV export: the fixed header row,
- *  one data row per asset (headlines + long headlines + descriptions), and
- *  RFC 4180 escaping of fields that contain a comma or a quote. */
+/** Unit tests for the Google Ads Editor Responsive Search Ad CSV export: the wide
+ *  Campaign / Ad group / Headline N / Description N / Final URL layout, one row
+ *  per ad, and RFC 4180 escaping of fields that contain a comma or a quote. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import {
-  assetGroupCsv,
-  ASSET_GROUP_CSV_HEADERS,
-} from "@/lib/catalog/export";
+import { assetGroupCsv } from "@/lib/catalog/export";
 
 /** Minimal AssetGroup-shaped fixture (only the fields the exporter reads). */
 const mk = (text) => ({ text, len: text.length, max: 30 });
@@ -21,22 +18,25 @@ const GROUP = {
 
 const META = { campaign: "Kočárky – PMax", assetGroupName: "Drift 3v1" };
 
-test("the first line is the fixed Google Ads header row", () => {
-  const lines = assetGroupCsv(GROUP, META).split("\r\n");
-  assert.equal(lines[0], "Campaign,Asset group,Asset type,Asset text,Final URL");
-  assert.equal(lines[0], ASSET_GROUP_CSV_HEADERS.join(","));
+test("the header row is the wide RSA layout with one column per asset", () => {
+  const [header] = assetGroupCsv(GROUP, META).split("\r\n");
+  assert.equal(
+    header,
+    "Campaign,Ad group,Headline 1,Headline 2,Description 1,Final URL"
+  );
 });
 
-test("there is exactly one data row per asset across all sections", () => {
+test("there is exactly one data row (one ad), not one row per asset", () => {
   const lines = assetGroupCsv(GROUP, META).split("\r\n");
-  const assetCount =
-    GROUP.headlines.length + GROUP.longHeadlines.length + GROUP.descriptions.length;
-  // header + one row per asset
-  assert.equal(lines.length, assetCount + 1);
-  // asset types appear in render order
-  assert.ok(lines[1].includes(",Headline,"));
-  assert.ok(lines[3].includes(",Long headline,"));
-  assert.ok(lines[4].includes(",Description,"));
+  assert.equal(lines.length, 2); // header + one ad row
+});
+
+test("the ad row carries campaign, ad group, headlines, description, final URL", () => {
+  const [, row] = assetGroupCsv(GROUP, META).split("\r\n");
+  assert.ok(row.startsWith("Kočárky – PMax,Drift 3v1,Kočárek 3v1,"));
+  // the description has a comma → RFC 4180-quoted
+  assert.ok(row.includes('"Skladem, expedice 24 h"'));
+  assert.ok(row.endsWith(",https://mionelo.cz/p/mio-drift3"));
 });
 
 test("a value with a comma and a quote is CSV-escaped (quoted, quotes doubled)", () => {
@@ -45,8 +45,7 @@ test("a value with a comma and a quote is CSV-escaped (quoted, quotes doubled)",
   assert.ok(csv.includes('"Sleva: ""akce"", dnes"'));
 });
 
-test("plain values are not needlessly quoted", () => {
-  const lines = assetGroupCsv(GROUP, META).split("\r\n");
-  // first headline has no comma/quote/newline → emitted raw
-  assert.ok(lines[1].includes(",Headline,Kočárek 3v1,"));
+test("long headlines (a PMax asset type) are excluded from the RSA CSV", () => {
+  const csv = assetGroupCsv(GROUP, META);
+  assert.ok(!csv.includes("s dopravou zdarma"));
 });

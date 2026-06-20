@@ -26,7 +26,35 @@ export interface AssetGroup {
   descriptions: Asset[];
 }
 
-const asset = (text: string, max: number): Asset => ({ text: text.slice(0, max), len: text.length, max });
+/** Truncate to `max` on a word boundary, adding an ellipsis only when actually
+ *  cut — so an asset is never silently chopped mid-word and never exceeds the
+ *  Google limit (Editor rejects over-limit assets at import). */
+function fit(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const slice = text.slice(0, max - 1); // leave room for the ellipsis
+  const lastSpace = slice.lastIndexOf(" ");
+  const base = lastSpace > max * 0.6 ? slice.slice(0, lastSpace) : slice;
+  return base.replace(/[\s.,;:–-]+$/, "") + "…";
+}
+
+/** Greedily join clauses with a space while the result stays within `max`,
+ *  dropping clauses that don't fit — produces a complete, within-limit sentence
+ *  (no mid-word cut), instead of authoring text that overflows and gets sliced. */
+function packClauses(clauses: string[], max: number): string {
+  let out = "";
+  for (const c of clauses) {
+    const next = out ? `${out} ${c}` : c;
+    if (next.length <= max) out = next;
+  }
+  return out || fit(clauses[0] ?? "", max);
+}
+
+/** `len` is the FITTED length, so it is always ≤ max — the live char-count badge
+ *  is honest (never shows a red over-limit count for copy we actually export). */
+const asset = (text: string, max: number): Asset => {
+  const t = fit(text, max);
+  return { text: t, len: t.length, max };
+};
 
 function clampList(texts: string[], max: number, limit: number): Asset[] {
   // de-dupe, keep those within the limit first, then fill, cap at `limit`
@@ -72,8 +100,14 @@ export function buildAssetGroup(p: Product): AssetGroup {
 
   const descriptions = clampList(
     [
-      `${p.title}. ${p.usps.slice(0, 2).join(", ")}. Doprava zdarma a vrácení do 30 dnů.`,
-      `${p.usps.join(", ")}. ${inStock ? "Skladem, odesíláme do 24 hodin." : "Naskladnění brzy."}`,
+      packClauses(
+        [`${p.title}.`, `${p.usps.slice(0, 2).join(", ")}.`, "Doprava zdarma, vrácení do 30 dnů."],
+        RSA_DESCRIPTION_MAX
+      ),
+      packClauses(
+        [`${p.usps.join(", ")}.`, inStock ? "Skladem, odesíláme do 24 hodin." : "Naskladnění brzy."],
+        RSA_DESCRIPTION_MAX
+      ),
     ],
     RSA_DESCRIPTION_MAX,
     2

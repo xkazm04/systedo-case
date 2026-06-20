@@ -12,50 +12,34 @@ export interface AssetGroupExportMeta {
   assetGroupName: string;
 }
 
-/** Google Ads Editor asset types we emit (one column value per asset row). */
-export type CsvAssetType = "Headline" | "Long headline" | "Description";
-
-/** The fixed CSV header row, in column order. */
-export const ASSET_GROUP_CSV_HEADERS = [
-  "Campaign",
-  "Asset group",
-  "Asset type",
-  "Asset text",
-  "Final URL",
-] as const;
-
 /** Quote a single CSV field iff it contains a comma, quote, CR or LF, doubling
  *  embedded quotes per RFC 4180. */
 function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-interface CsvRowInput {
-  type: CsvAssetType;
-  text: string;
-}
-
-/** Flatten an asset group into typed (type, text) rows in render order:
- *  headlines, then long headlines, then descriptions. */
-function assetRows(group: AssetGroup): CsvRowInput[] {
-  return [
-    ...group.headlines.map((a) => ({ type: "Headline" as const, text: a.text })),
-    ...group.longHeadlines.map((a) => ({ type: "Long headline" as const, text: a.text })),
-    ...group.descriptions.map((a) => ({ type: "Description" as const, text: a.text })),
-  ];
-}
-
-/** Build a Google Ads Editor-style CSV for an asset group: a header row plus one
- *  row per asset (`Campaign, Asset group, Asset type, Asset text, Final URL`).
- *  Comma-delimited with CRLF line ends; every field is RFC 4180-escaped. Pure. */
+/** Build a Google Ads Editor **Responsive Search Ad** CSV: the standard wide
+ *  layout `Campaign, Ad group, Headline 1..N, Description 1..M, Final URL`, one
+ *  row per ad, which imports directly into Google Ads Editor / the Ads bulk
+ *  uploader (Editor matches columns by header name, so a subset of the up-to-15
+ *  headline / up-to-4 description columns is accepted). Comma-delimited, CRLF,
+ *  RFC 4180-escaped. Pure.
+ *
+ *  Long headlines are a Performance Max asset type (not RSA) and are deliberately
+ *  excluded from this RSA CSV — they stay in the "copy all" plain text. Importing
+ *  a full PMax asset group is a separate Editor flow (known seam). */
 export function assetGroupCsv(group: AssetGroup, meta: AssetGroupExportMeta): string {
-  const header = ASSET_GROUP_CSV_HEADERS.join(",");
-  const lines = assetRows(group).map((row) =>
-    [meta.campaign, meta.assetGroupName, row.type, row.text, group.finalUrl]
-      .map(csvField)
-      .join(",")
-  );
-  return [header, ...lines].join("\r\n");
+  const headlineCols = group.headlines.map((_, i) => `Headline ${i + 1}`);
+  const descCols = group.descriptions.map((_, i) => `Description ${i + 1}`);
+  const headers = ["Campaign", "Ad group", ...headlineCols, ...descCols, "Final URL"];
+  const row = [
+    meta.campaign,
+    meta.assetGroupName,
+    ...group.headlines.map((a) => a.text),
+    ...group.descriptions.map((a) => a.text),
+    group.finalUrl,
+  ];
+  return [headers.map(csvField).join(","), row.map(csvField).join(",")].join("\r\n");
 }
 
 /** Build a plain-text dump of every asset, grouped by section, for "copy all".
