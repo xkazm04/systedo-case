@@ -24,9 +24,10 @@ Speed-to-lead: drafts an on-brand first reply + 2–3 qualification questions fo
 ## Code quality (wrapping · logging · caching)
 - Chokepoint; one tagged call. **schema + normalize + demo + `validate`** (C4 added the gate: non-empty reply + ≥2 questions → the wrapper self-repairs once instead of silently flooring to `draftReply`, so a hollow output is now observable, not a fake success).
 - **Caching:** NONE (`/api/ai`).
-- **Golden:** live probe only — **no golden snapshot file** (open — C6).
+- **Golden:** contract golden `test-llm/golden/lead-reply.json` (C6), enforced by `llm-eval --strict` in the gate + CI.
 - `temperature: 0.7`.
 ## Findings
 - ✅ code · **C4 resolved** — `validate` gate added (non-empty reply, ≥2 questions). [[2026-06-20-run]]
 - ✅ value · **V3 resolved** — `brand` (+ recovered `qualification`) now threaded so "on-brand"/BANT are grounded. [[2026-06-20-run]]
-- code · add `/api/ai` cache (C1 ported to most tools; lead-reply still uncached) + golden snapshot (C6). (open)
+- ✅ code · **C6 resolved** — contract golden added, eval enforced in gate + CI. [[2026-06-20-run]]
+- code · add `/api/ai` cache (C1 ported to most tools; lead-reply still uncached). (open)

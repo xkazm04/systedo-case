@@ -1,0 +1,8 @@
+{
+  "id": "local-review-reply",
+  "label": "Odpověď na recenzi",
+  "promptHash": "5d4a27724638835e",
+  "schemaKeys": [
+    "reply"
+  ]
+}

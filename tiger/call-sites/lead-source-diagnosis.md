@@ -24,8 +24,9 @@ Root-causes one under-performing lead source (spam vs mis-targeting vs pricing v
 ## Code quality (wrapping · logging · caching)
 - Chokepoint; one tagged call. schema + normalize + validate + self-repair: all present. `likelyCause`/`severity` **coerced to known sets**; deterministic `pickCause` floor mirrors the prompt rules.
 - **Caching:** NONE (`/api/ai`).
-- **Golden:** live probe only — **no golden snapshot file**, and the probe fixture omits peers, so the comparative path is untested.
+- **Golden:** contract golden `test-llm/golden/lead-source-diagnosis.json` (C6), enforced by `llm-eval --strict` in the gate + CI. The registry probe fixture now **includes a peers block** (C6), so the live real-Claude run exercises the comparative "name a concrete better peer" path V4 enabled.
 - `temperature: 0.6`.
 ## Findings
 - ✅ value · **V4 resolved** — `peers` now threaded through the validator so the budget-shift recommendation is grounded (4/5→5/5). [[2026-06-20-run]]
-- code · add golden snapshot incl. a peers fixture; add `/api/ai` cache. (open — C6)
+- ✅ code · **C6 resolved** — contract golden + peers probe fixture added, eval enforced in gate + CI. [[2026-06-20-run]]
+- code · add `/api/ai` cache. (open — C1 covered the deterministic-input tools)

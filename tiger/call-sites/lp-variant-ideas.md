@@ -38,7 +38,9 @@ Grounding **2/5** of the *commonly-reaching* signals, and a concrete bug caps it
 - **Prompt bloat:** none — bounded short fields; keywords de-duped + capped to 20 in `validation.ts:437`. `temperature: 0.8` (`lp-variant-ideas.ts:174`).
 - **Caching:** `/api/ai` does **NOT** input-hash-cache. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
-- **Golden coverage:** NO golden snapshot in `test-llm/golden/` — but IS in `test-llm/registry.mjs` (real-Claude probe; note the probe input also omits controlCvr/losers, so the dropped-grounding bug is invisible to the gate).
+- **Golden coverage:** contract golden `test-llm/golden/lp-variant-ideas.json` (C6), enforced by `llm-eval --strict` in the gate + CI. The registry probe fixture now also carries **control CVR + loser variants** (C6), so the live real-Claude run exercises the grounded path V1 restored — previously the probe omitted them and the dropped-grounding bug was invisible to the gate.
 
 ## Findings
-_(stub — to be impact-scored in [[2026-06-20-run]]. Headline: wire `controlCvr` + `losers` through `validateLpVariantIdeasRequest` → grounding 2/5 → 4/5.)_
+- ✅ value · **V1 resolved** — `controlCvr` + `losers` now threaded through `validateLpVariantIdeasRequest` → grounding 2/5 → ~4/5. [[2026-06-20-run]]
+- ✅ code · **C6 resolved** — contract golden + control/losers probe fixture added, eval enforced in gate + CI. [[2026-06-20-run]]
+- code · add `/api/ai` cache. (open)

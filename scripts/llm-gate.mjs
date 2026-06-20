@@ -97,6 +97,16 @@ if (violations.length) coverageOk = false;
 if (!coverageOk) fail("coverage check failed — every wrapper call site needs a tag + registered test.");
 console.log(`✓ coverage: ${callSites.length} call site(s), all tagged & registered; chokepoint clean.\n`);
 
+// --- 1b) Contract goldens (always; deterministic, no model) ------------------
+// Every tool's (system + schema) fingerprint must match its committed golden, so
+// a prompt/schema change is a visible diff a reviewer must accept (`llm:eval:update`)
+// rather than something the hash-cached real run would silently re-prove.
+const evalRes = spawnSync(process.execPath, ["scripts/llm-eval.mjs", "--strict"], { stdio: "inherit" });
+if (evalRes.status !== 0) {
+  fail("LLM contract goldens drifted — review the change, then run `npm run llm:eval:update` to accept.");
+}
+console.log("");
+
 // --- 2) Hash-gated real run -------------------------------------------------
 
 function hashFiles(files) {

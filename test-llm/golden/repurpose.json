@@ -1,0 +1,8 @@
+{
+  "id": "repurpose",
+  "label": "Přepracování článku do kanálů",
+  "promptHash": "dad276ed4e7d348f",
+  "schemaKeys": [
+    "variants"
+  ]
+}

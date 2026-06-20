@@ -1,0 +1,11 @@
+{
+  "id": "lead-source-diagnosis",
+  "label": "Diagnostika zdroje leadů",
+  "promptHash": "af50e0d39534719a",
+  "schemaKeys": [
+    "likelyCause",
+    "recommendation",
+    "severity",
+    "summary"
+  ]
+}

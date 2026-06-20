@@ -35,7 +35,7 @@ Grounding **3/3** — this is the model floor for grounding because the task is 
 - **Prompt bloat:** the input list is the legitimate payload (one line per keyword); not whole records. Note the schema's `intent` is documented but not in `required` (`keyword-clusters.ts:83`) — fine, it's optional and validated against `INTENTS`. `temperature: 0.5` (`keyword-clusters.ts:245`) — appropriately low for a deterministic-ish grouping task.
 - **Caching:** `/api/ai` does **NOT** input-hash-cache — re-clustering an unchanged keyword list recomputes. A pure-function-of-input tool like this is the *ideal* cache candidate. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
-- **Golden coverage:** NO golden snapshot in `test-llm/golden/` — but IS in `test-llm/registry.mjs` (real-Claude probe asserting every pillar is a supplied keyword).
+- **Golden coverage:** contract golden `test-llm/golden/keyword-clusters.json` (C6), enforced by `llm-eval --strict` in the gate + CI; also a real-Claude probe in `test-llm/registry.mjs` asserting every pillar is a supplied keyword.
 
 ## Findings
 _(stub — to be impact-scored in [[2026-06-20-run]])_

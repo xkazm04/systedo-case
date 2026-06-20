@@ -1,0 +1,11 @@
+{
+  "id": "cohort-diagnosis",
+  "label": "Diagnostika kohort (CAC → LTV)",
+  "promptHash": "ed9ea64506b272a1",
+  "schemaKeys": [
+    "recommendation",
+    "risks",
+    "summary",
+    "worstCohort"
+  ]
+}

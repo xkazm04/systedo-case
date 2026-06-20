@@ -24,9 +24,10 @@ Drafts a public Google-Business reply: warm thanks for 4–5★, empathetic de-e
 ## Code quality (wrapping · logging · caching)
 - Chokepoint; one tagged call. **schema + normalize + demo + `validate`** (C4 added the gate: non-empty reply → self-repair once instead of silently flooring to the rating-based `cannedReply`, so a hollow output is observable).
 - **Caching:** NONE (`/api/ai`).
-- **Golden:** live probe only — **no golden snapshot file** (open — C6).
+- **Golden:** contract golden `test-llm/golden/local-review-reply.json` (C6), enforced by `llm-eval --strict` in the gate + CI.
 - `temperature: 0.7`.
 ## Findings
 - ✅ code · **C4 resolved** — `validate` (non-empty reply) added. [[2026-06-20-run]]
 - ✅ value · **V3 resolved** — `businessName` threaded so the reply is branded, not generic. [[2026-06-20-run]]
-- code · add `/api/ai` cache + golden snapshot (C1/C6). (open)
+- ✅ code · **C6 resolved** — contract golden added, eval enforced in gate + CI. [[2026-06-20-run]]
+- code · add `/api/ai` cache (C1). (open)

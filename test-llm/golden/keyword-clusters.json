@@ -1,0 +1,8 @@
+{
+  "id": "keyword-clusters",
+  "label": "Seskupení klíčových slov do klastrů",
+  "promptHash": "04d0aad40bf6afd0",
+  "schemaKeys": [
+    "clusters"
+  ]
+}

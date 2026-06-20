@@ -31,3 +31,9 @@ jobs:
       # (the real-model run stays local, gated by the Husky pre-commit hook).
       - name: LLM chokepoint coverage
         run: npm run test:llm:coverage
+
+      # Contract goldens: every tool's (system + schema) fingerprint must match its
+      # committed snapshot, so a prompt/schema change shows up as a reviewable diff
+      # instead of silently passing. Deterministic and key-free (no model calls).
+      - name: LLM contract goldens
+        run: npm run llm:eval -- --strict

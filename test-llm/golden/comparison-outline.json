@@ -1,0 +1,12 @@
+{
+  "id": "comparison-outline",
+  "label": "Kostra srovnávací stránky",
+  "promptHash": "3ba3206b7d58b5f2",
+  "schemaKeys": [
+    "comparisonCriteria",
+    "faq",
+    "h1",
+    "sections",
+    "verdict"
+  ]
+}

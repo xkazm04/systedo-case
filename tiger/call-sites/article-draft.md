@@ -39,7 +39,7 @@ Grounding **6/7** — strongly grounded because it consumes the *output of [[bri
 - **Prompt bloat:** bounded — keywords sliced to 12, outline is the user's own (intended) content. `temperature: 0.8` (`article-draft.ts:274`).
 - **Caching:** `/api/ai` does **NOT** input-hash-cache — and this is the most expensive tool (~2 min), so a recompute of an identical brief is the costliest waste in the cluster. Strong candidate for a dedupe cache. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
-- **Golden coverage:** NO golden snapshot in `test-llm/golden/` (only ads/analysis/brief/campaign-eval/social have one) — but IS in `test-llm/registry.mjs` (real-Claude probe with a lenient ≥3-well-formed-blocks validator).
+- **Golden coverage:** contract golden `test-llm/golden/article-draft.json` (C6 — all 14 tools now have one), enforced by `llm-eval --strict` in the gate + CI; also a real-Claude probe in `test-llm/registry.mjs` with a lenient ≥3-well-formed-blocks validator.
 
 ## Findings
 _(stub — to be impact-scored in [[2026-06-20-run]])_

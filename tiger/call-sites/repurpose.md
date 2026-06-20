@@ -36,7 +36,7 @@ Grounding **3/4** — the source article itself (the thing being repurposed) rea
 - **Prompt bloat:** the **whole article body is passed verbatim** (`repurpose.ts:36`, `body` is untruncated) — the one tool here that can blow up the prompt on a long source article. A digest/excerpt cap would bound it; the request validator should enforce a body length limit. `temperature: 0.8` (`repurpose.ts:142`).
 - **Caching:** `/api/ai` does **NOT** input-hash-cache — re-repurposing the same article to the same channels recomputes. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
-- **Golden coverage:** NO golden snapshot in `test-llm/golden/` — but IS in `test-llm/registry.mjs` (real-Claude probe, lenient ≥1 channel variant).
+- **Golden coverage:** contract golden `test-llm/golden/repurpose.json` (C6), enforced by `llm-eval --strict` in the gate + CI; also a real-Claude probe in `test-llm/registry.mjs` (lenient ≥1 channel variant).
 
 ## Findings
 _(stub — to be impact-scored in [[2026-06-20-run]]. Note: unbounded article body in the prompt — cap/digest it.)_

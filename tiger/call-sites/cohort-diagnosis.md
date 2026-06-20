@@ -24,8 +24,8 @@ Unit-economics diagnosis: names the single worst acquisition cohort + the one le
 - Chokepoint; one tagged call. schema + normalize + validate + self-repair: all present, with **best-in-class constraint discipline** — `worstCohort` rejected unless a real label, deterministic lowest-LTV:CAC floor.
 - Data-driven demo (cohort-diagnosis.ts:154).
 - **Caching:** NONE (`/api/ai`).
-- **Golden:** live registry probe only — **no golden snapshot file**.
+- **Golden:** contract golden `test-llm/golden/cohort-diagnosis.json` (C6), enforced by `llm-eval --strict` in the gate + CI — drift on the constrained `worstCohort` contract is now caught; plus the live registry probe.
 - `temperature: 0.6`.
 ## Findings
-- code · add a golden snapshot (drift on the constrained worstCohort would be invisible today). (stub — [[2026-06-20-run]])
-- code · uncached `/api/ai`. (stub)
+- ✅ code · **C6 resolved** — contract golden added, eval enforced in gate + CI. [[2026-06-20-run]]
+- code · uncached `/api/ai`. (open — C1)

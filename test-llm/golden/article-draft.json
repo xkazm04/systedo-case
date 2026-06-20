@@ -1,0 +1,9 @@
+{
+  "id": "article-draft",
+  "label": "Rozepsání briefu do článku",
+  "promptHash": "890bdb879f1b9f6a",
+  "schemaKeys": [
+    "blocks",
+    "faq"
+  ]
+}

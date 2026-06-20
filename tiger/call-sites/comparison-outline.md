@@ -38,7 +38,7 @@ Grounding **4/6**: query + intent + volume always land, and competitor + positio
 - **Prompt bloat:** none — all bounded short fields. `temperature: 0.7` (`comparison-outline.ts:278`).
 - **Caching:** `/api/ai` does **NOT** input-hash-cache — identical query+intent recomputes. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
-- **Golden coverage:** NO golden snapshot in `test-llm/golden/` — but IS in `test-llm/registry.mjs` (real-Claude probe, structural validator on the generic path).
+- **Golden coverage:** contract golden `test-llm/golden/comparison-outline.json` (C6), enforced by `llm-eval --strict` in the gate + CI; also a real-Claude probe in `test-llm/registry.mjs` (structural validator on the generic path).
 
 ## Findings
 _(stub — to be impact-scored in [[2026-06-20-run]])_

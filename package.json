@@ -21,6 +21,7 @@
     "llm:gate": "node scripts/llm-gate.mjs",
     "llm:list": "node scripts/llm-gate.mjs --list",
     "llm:eval": "node scripts/llm-eval.mjs",
+    "llm:eval:update": "node scripts/llm-eval.mjs --update",
     "prepare": "husky"
   },
   "dependencies": {
