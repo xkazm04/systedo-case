@@ -88,6 +88,19 @@ export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocal
     };
   };
 
+  // Without this, an empty/garbage model reply was silently swapped for the canned
+  // draft with no signal — a hollow output read as success. Flag it so the wrapper
+  // self-repairs once before normalize's deterministic floor.
+  const validate = (parsed: unknown): string[] => {
+    const o = parsed as Record<string, unknown> | null;
+    const v: string[] = [];
+    if (!txt(o?.reply)) v.push("Pole „reply“ je prázdné — vrať celou odpověď připravenou k odeslání.");
+    if (cleanList(o?.questions, 4).length < 2) {
+      v.push("Vrať alespoň 2 kvalifikační otázky v poli „questions“.");
+    }
+    return v;
+  };
+
   return generateStructured({
     // llm-tool: lead-reply
     id: "lead-reply",
@@ -96,6 +109,7 @@ export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocal
     schema: LEAD_REPLY_SCHEMA,
     temperature: 0.7,
     normalize,
+    validate,
     demo: fallback,
     locale,
   });

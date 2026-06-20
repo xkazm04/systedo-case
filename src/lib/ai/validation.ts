@@ -449,6 +449,19 @@ export function validateLpVariantIdeasRequest(input: unknown, locale: SupportedL
   if (controlLabel) value.controlLabel = controlLabel.slice(0, 120);
   const controlDescription = str(o.controlDescription);
   if (controlDescription) value.controlDescription = controlDescription.slice(0, 400);
+  // The two strongest grounding signals the prompt builder reads — the disproven
+  // losing arms and the control CVR to beat — were previously dropped here, so the
+  // model never saw them (grounding 2/5). Thread them through (deduped/bounded).
+  const losers: string[] = [];
+  const rawLosers = Array.isArray(o.losers) ? o.losers.slice(0, 10) : [];
+  for (const item of rawLosers) {
+    const l = str(item).slice(0, 200);
+    if (l) losers.push(l);
+  }
+  if (losers.length > 0) value.losers = losers;
+  if (typeof o.controlCvr === "number" && Number.isFinite(o.controlCvr) && o.controlCvr > 0 && o.controlCvr <= 1) {
+    value.controlCvr = o.controlCvr;
+  }
   return { valid: true, value };
 }
 

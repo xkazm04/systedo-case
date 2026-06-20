@@ -88,6 +88,13 @@ export function generateLocalReviewReply(
     return { reply: reply || cannedReply(req) };
   };
 
+  // Flag an empty model reply so the wrapper self-repairs once instead of silently
+  // falling back to the canned rating-based text (which masked a failed generation).
+  const validate = (parsed: unknown): string[] => {
+    const o = parsed as Record<string, unknown> | null;
+    return txt(o?.reply) ? [] : ["Pole „reply“ je prázdné — vrať celou veřejnou odpověď na recenzi."];
+  };
+
   return generateStructured({
     // llm-tool: local-review-reply
     id: "local-review-reply",
@@ -96,6 +103,7 @@ export function generateLocalReviewReply(
     schema: LOCAL_REVIEW_REPLY_SCHEMA,
     temperature: 0.7,
     normalize,
+    validate,
     demo: fallback,
     locale,
   });

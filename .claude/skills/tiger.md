@@ -134,6 +134,8 @@ Plus a **value ledger** (grounding & time-saved rolled up; promised vs delivered
 - **Adversarial judging** for value + model verdicts; default to "not better" unless the output earns it.
 - **Honest ceilings:** name what still isn't grounded/optimized after a fix (e.g. "cheaper model holds for the generic path; the grounded path still needs Sonnet").
 - **Vault hygiene:** call-site `id`s are stable across runs; never duplicate a note — update it. Record the model/prompt **fingerprint** so `scan` can detect drift.
+- **Vault-write verification (learned 2026-06-20):** a discovery/scan subagent may be unable to write files in some harnesses and will return the note bodies inline instead. After any parallel scan, the orchestrator MUST `ls` the target dir, diff against the expected `id` set, and **backfill** any missing notes from the agents' returned content — don't trust "wrote N notes" without checking.
+- **Lens-3 recipe that works:** dispatching one subagent per matrix cell with the Agent tool's `model`/`effort` params, fed the tool's *real* system prompt + a fixed character input, returns clean schema JSON and a usable latency proxy (subagent wall-clock) — no external API keys needed. Judge the cells with a separate model, never the one under test.
 
 ## Using Tiger on a new app
 1. Drop `/tiger` into the repo (`.claude/skills/tiger.md`). 2. `/tiger init` → discovers call sites, writes `config.md` (discovery globs + how to invoke each model tier + fixtures), asks Character count, scaffolds the vault. 3. Resolve `config.md` open questions (esp. the model-invocation recipe for Lens 3). 4. `/tiger run` for a cheap broad pass; `/tiger run --live` for real generation + benchmark. 5. Work the backlog; re-`scan`/`run` to measure the delta in the vault.
