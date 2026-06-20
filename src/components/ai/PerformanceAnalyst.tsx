@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Bolt, Check, Gauge, Target, TrendDown } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
 import {
   ANALYSIS_PERIOD_LABELS,
   ANALYSIS_PERIODS,
@@ -20,7 +21,47 @@ import {
   ToolError,
 } from "./primitives";
 
+const T = {
+  cs: {
+    formHeading: "Analýza výkonu",
+    periodLabel: "Období",
+    submitAnalyzing: "Analyzuji…",
+    submitAnalyze: "Analyzovat data",
+    dataNote: "Nástroj interpretuje stejná (ilustrativní) data klienta Mionelo, jaká vidíš v",
+    dataNoteLink: "dashboardu",
+    dataNoteSuffix: ". Model dostává jen reálná čísla a nesmí si žádná vymýšlet.",
+    emptyTitle: "Analýza výkonu se zobrazí tady",
+    emptyBody: "Vyber období a nech Gemini sestavit shrnutí výkonu, co se daří, kde jsou rizika a jaké další kroky dávají smysl — to vše na základě reálných čísel z dashboardu.",
+    emptyHint: "Tip: vyber období a klikni na Analyzovat data.",
+    groupWins: "Co se daří",
+    groupRisks: "Na co si dát pozor",
+    groupActions: "Doporučené kroky",
+    copyWins: "\nCO SE DAŘÍ:",
+    copyRisks: "\nNA CO SI DÁT POZOR:",
+    copyActions: "\nDOPORUČENÉ KROKY:",
+  },
+  en: {
+    formHeading: "Performance analysis",
+    periodLabel: "Period",
+    submitAnalyzing: "Analyzing…",
+    submitAnalyze: "Analyze data",
+    dataNote: "The tool interprets the same (illustrative) Mionelo client data you see in the",
+    dataNoteLink: "dashboard",
+    dataNoteSuffix: ". The model only receives real numbers and must not invent any.",
+    emptyTitle: "Performance analysis will appear here",
+    emptyBody: "Select a period and let Gemini compile a performance summary, what is working, where the risks are, and what next steps make sense — all based on real numbers from the dashboard.",
+    emptyHint: "Tip: select a period and click Analyze data.",
+    groupWins: "What’s working",
+    groupRisks: "Watch out for",
+    groupActions: "Recommended actions",
+    copyWins: "\nWHAT'S WORKING:",
+    copyRisks: "\nWATCH OUT FOR:",
+    copyActions: "\nRECOMMENDED ACTIONS:",
+  },
+} as const;
+
 export default function PerformanceAnalyst() {
+  const t = useT(T);
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
   const { status, data, error, timedOut, run, reset } = useAiTool<AnalysisResult>("analysis");
 
@@ -30,11 +71,11 @@ export default function PerformanceAnalyst() {
         r.headline,
         "",
         r.summary,
-        "\nCO SE DAŘÍ:",
+        t("copyWins"),
         ...r.wins.map((w) => `+ ${w}`),
-        "\nNA CO SI DÁT POZOR:",
+        t("copyRisks"),
         ...r.risks.map((w) => `! ${w}`),
-        "\nDOPORUČENÉ KROKY:",
+        t("copyActions"),
         ...r.actions.map((a) => `→ ${a.title}: ${a.detail}`),
       ].join("\n")
     : "";
@@ -42,10 +83,10 @@ export default function PerformanceAnalyst() {
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
       <div className="card space-y-5 p-6 lg:sticky lg:top-24">
-        <h2 className="text-base font-semibold text-navy-800">Analýza výkonu</h2>
+        <h2 className="text-base font-semibold text-navy-800">{t("formHeading")}</h2>
 
         <div>
-          <p className="mb-1.5 text-sm font-medium text-navy-700">Období</p>
+          <p className="mb-1.5 text-sm font-medium text-navy-700">{t("periodLabel")}</p>
           <div className="grid grid-cols-3 gap-2">
             {ANALYSIS_PERIODS.map((p) => (
               <button
@@ -73,22 +114,22 @@ export default function PerformanceAnalyst() {
           {status === "loading" ? (
             <>
               <Gauge width={17} height={17} className="animate-pulse" />
-              Analyzuji…
+              {t("submitAnalyzing")}
             </>
           ) : (
             <>
               <Bolt width={17} height={17} />
-              Analyzovat data
+              {t("submitAnalyze")}
             </>
           )}
         </button>
 
         <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">
-          Nástroj interpretuje stejná (ilustrativní) data klienta Mionelo, jaká vidíš v{" "}
+          {t("dataNote")}{" "}
           <Link href="/dashboard" className="font-medium text-brand-accent hover:text-brand-800">
-            dashboardu
+            {t("dataNoteLink")}
           </Link>
-          . Model dostává jen reálná čísla a nesmí si žádná vymýšlet.
+          {t("dataNoteSuffix")}
         </p>
       </div>
 
@@ -96,9 +137,9 @@ export default function PerformanceAnalyst() {
         {status === "idle" && (
           <ToolEmpty
             icon={Gauge}
-            title="Analýza výkonu se zobrazí tady"
-            body="Vyber období a nech Gemini sestavit shrnutí výkonu, co se daří, kde jsou rizika a jaké další kroky dávají smysl — to vše na základě reálných čísel z dashboardu."
-            hint="Tip: vyber období a klikni na Analyzovat data."
+            title={t("emptyTitle")}
+            body={t("emptyBody")}
+            hint={t("emptyHint")}
           />
         )}
         {status === "loading" && <LoadingTimer />}
@@ -128,7 +169,7 @@ export default function PerformanceAnalyst() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               {r.wins.length > 0 && (
-                <Group title="Co se daří">
+                <Group title={t("groupWins")}>
                   <ul className="space-y-2.5">
                     {r.wins.map((w, i) => (
                       <li key={i} className="flex gap-2.5 text-sm text-navy-700">
@@ -143,7 +184,7 @@ export default function PerformanceAnalyst() {
               )}
 
               {r.risks.length > 0 && (
-                <Group title="Na co si dát pozor">
+                <Group title={t("groupRisks")}>
                   <ul className="space-y-2.5">
                     {r.risks.map((w, i) => (
                       <li key={i} className="flex gap-2.5 text-sm text-navy-700">
@@ -159,7 +200,7 @@ export default function PerformanceAnalyst() {
             </div>
 
             {r.actions.length > 0 && (
-              <Group title="Doporučené kroky" hint={`${r.actions.length}`}>
+              <Group title={t("groupActions")} hint={`${r.actions.length}`}>
                 <ol className="space-y-2.5">
                   {r.actions.map((a, i) => (
                     <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-4">

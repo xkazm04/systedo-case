@@ -1,27 +1,53 @@
 import { ArrowRight, Clock, TrendDown, TrendUp } from "@/components/icons";
 import type { ChangesSummary } from "@/lib/campaigns/types";
-import { fmtCZK, fmtMultiple, fmtRelative, fmtSignedPct } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 
-const KIND_LABEL = { added: "nová kampaň", removed: "odebraná", changed: "změněná" } as const;
+const T = {
+  cs: {
+    heading: "Co se změnilo od posledního načtení",
+    noChanges: "beze změn",
+    added: "{n} nových",
+    removed: "{n} odebraných",
+    changed: "{n} změněných",
+    sinceSuffix: "před {rel}",
+    kindAdded: "nová kampaň",
+    kindRemoved: "odebraná",
+    valueDeltaTitle: "Změna hodnoty konverzí vs. minulá synchronizace",
+  },
+  en: {
+    heading: "What changed since the last sync",
+    noChanges: "no changes",
+    added: "{n} new",
+    removed: "{n} removed",
+    changed: "{n} changed",
+    sinceSuffix: "{rel} ago",
+    kindAdded: "new campaign",
+    kindRemoved: "removed",
+    valueDeltaTitle: "Change in conversion value vs. previous sync",
+  },
+} as const;
 
 /** "What changed since the last sync" — diff of the two most recent snapshots.
  *  Gives the portfolio a time dimension the destructive sync used to throw away. */
-export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
+export default async function ChangeStrip({ changes }: { changes: ChangesSummary }) {
+  const fmt = await getServerFormatters();
+  const t = await getT(T);
+
   const { since, added, removed, changed, items } = changes;
   const parts: string[] = [];
-  if (added) parts.push(`${added} nových`);
-  if (removed) parts.push(`${removed} odebraných`);
-  if (changed) parts.push(`${changed} změněných`);
+  if (added) parts.push(t("added", { n: added }));
+  if (removed) parts.push(t("removed", { n: removed }));
+  if (changed) parts.push(t("changed", { n: changed }));
 
   return (
     <section className="card p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-navy-800">
           <Clock width={16} height={16} className="text-brand-600" />
-          Co se změnilo od posledního načtení
+          {t("heading")}
         </h2>
         <span className="text-xs text-muted">
-          {parts.length ? parts.join(" · ") : "beze změn"} · před {fmtRelative(since)}
+          {parts.length ? parts.join(" · ") : t("noChanges")} · {t("sinceSuffix", { rel: fmt.fmtRelative(since) })}
         </span>
       </div>
 
@@ -38,12 +64,12 @@ export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
                 <span className="inline-flex items-center gap-1 text-xs text-muted">
                   {it.kind === "changed" ? (
                     <>
-                      ROAS {fmtMultiple(it.roasBefore)}
+                      ROAS {fmt.fmtMultiple(it.roasBefore)}
                       <ArrowRight width={11} height={11} aria-hidden />
-                      {fmtMultiple(it.roasAfter)}
+                      {fmt.fmtMultiple(it.roasAfter)}
                     </>
                   ) : (
-                    KIND_LABEL[it.kind]
+                    t(it.kind === "added" ? "kindAdded" : "kindRemoved")
                   )}
                 </span>
               </span>
@@ -51,12 +77,12 @@ export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
                 className={`tnum inline-flex shrink-0 items-center gap-1 text-xs font-semibold ${
                   valueUp ? "text-positive" : "text-negative"
                 }`}
-                title="Změna hodnoty konverzí vs. minulá synchronizace"
+                title={t("valueDeltaTitle")}
               >
                 {valueUp ? <TrendUp width={13} height={13} /> : <TrendDown width={13} height={13} />}
                 {it.kind === "changed"
-                  ? fmtSignedPct(it.valueDelta)
-                  : fmtCZK(it.kind === "added" ? it.costAfter : it.costBefore)}
+                  ? fmt.fmtSignedPct(it.valueDelta)
+                  : fmt.fmtCZK(it.kind === "added" ? it.costAfter : it.costBefore)}
               </span>
             </li>
           );

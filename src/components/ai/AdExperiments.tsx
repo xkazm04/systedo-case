@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Check, Bolt } from "@/components/icons";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import {
   hasPerformanceBasis,
   variantCtr,
@@ -15,6 +15,43 @@ import {
   type Experiment,
 } from "@/lib/ai/experiment-types";
 
+const T = {
+  cs: {
+    sectionHeading: "A/B testy inzerátů",
+    winnerByPerformance: "vítěz dle výkonu (ROAS)",
+    winnerByStrength: "vítěz dle síly inzerátu",
+    variantsCount: "{n} variant ·",
+    winner: "Vítěz",
+    deleteAriaLabel: "Smazat A/B test {name}",
+    metricImpressions: "Imprese",
+    metricClicks: "Prokliky",
+    metricConversions: "Konverze",
+    metricCost: "Náklady (Kč)",
+    metricConvValue: "Hodnota (Kč)",
+    enterPerf: "Zadat výkon",
+    editPerf: "Upravit výkon",
+    savePerf: "Uložit výkon",
+    impressions: "{n} imprese",
+  },
+  en: {
+    sectionHeading: "Ad A/B tests",
+    winnerByPerformance: "winner by performance (ROAS)",
+    winnerByStrength: "winner by ad strength",
+    variantsCount: "{n} variants ·",
+    winner: "Winner",
+    deleteAriaLabel: "Delete A/B test {name}",
+    metricImpressions: "Impressions",
+    metricClicks: "Clicks",
+    metricConversions: "Conversions",
+    metricCost: "Cost (CZK)",
+    metricConvValue: "Value (CZK)",
+    enterPerf: "Enter performance",
+    editPerf: "Edit performance",
+    savePerf: "Save performance",
+    impressions: "{n} impressions",
+  },
+} as const;
+
 type MetricsDraft = Record<string, AdVariantMetrics>;
 
 const EMPTY_METRICS: AdVariantMetrics = { impressions: 0, clicks: 0, conversions: 0, cost: 0, convValue: 0 };
@@ -24,12 +61,22 @@ const EMPTY_METRICS: AdVariantMetrics = { impressions: 0, clicks: 0, conversions
  *  one-shot generator into a measurable optimization loop. Anonymous → hidden.
  *  Reloads when `refreshKey` changes. */
 export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
+  const t = useT(T);
+  const fmt = useFormatters();
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [draft, setDraft] = useState<MetricsDraft>({});
   const [loaded, setLoaded] = useState(false);
+
+  const metricFields: { key: keyof AdVariantMetrics; label: string }[] = [
+    { key: "impressions", label: t("metricImpressions") },
+    { key: "clicks", label: t("metricClicks") },
+    { key: "conversions", label: t("metricConversions") },
+    { key: "cost", label: t("metricCost") },
+    { key: "convValue", label: t("metricConvValue") },
+  ];
 
   const load = useCallback(async () => {
     try {
@@ -92,7 +139,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
     <div className="mt-8 space-y-4">
       <div className="flex items-center gap-2">
         <Layers width={16} height={16} className="text-brand-accent" />
-        <h3 className="text-base font-semibold text-navy-800">A/B testy inzerátů</h3>
+        <h3 className="text-base font-semibold text-navy-800">{t("sectionHeading")}</h3>
         <span className="pill bg-navy-50 text-muted">{experiments.length}</span>
       </div>
 
@@ -104,14 +151,14 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
               <div>
                 <p className="font-semibold text-navy-800">{exp.name}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  {exp.variants.length} variant ·{" "}
-                  {byPerformance ? "vítěz dle výkonu (ROAS)" : "vítěz dle síly inzerátu"}
+                  {t("variantsCount", { n: exp.variants.length })}{" "}
+                  {byPerformance ? t("winnerByPerformance") : t("winnerByStrength")}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => removeExperiment(exp.id)}
-                aria-label={`Smazat A/B test ${exp.name}`}
+                aria-label={t("deleteAriaLabel", { name: exp.name })}
                 className="shrink-0 rounded-full p-1 text-muted transition-colors hover:bg-negative-soft hover:text-negative"
               >
                 <Close width={15} height={15} />
@@ -133,7 +180,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                       <span className="font-medium text-navy-800">{v.label}</span>
                       {isWinner && (
                         <span className="pill inline-flex items-center gap-1 bg-positive-soft text-positive">
-                          <Check width={12} height={12} /> Vítěz
+                          <Check width={12} height={12} /> {t("winner")}
                         </span>
                       )}
                     </div>
@@ -154,20 +201,20 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                     {/* measured performance */}
                     {v.metrics && (
                       <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] text-muted">
-                        <span>CTR <span className="tnum text-navy-700">{fmtPct(variantCtr(v.metrics))}</span></span>
-                        <span>CR <span className="tnum text-navy-700">{fmtPct(variantCr(v.metrics))}</span></span>
-                        <span>CPA <span className="tnum text-navy-700">{fmtCZK(variantCpa(v.metrics))}</span></span>
-                        <span>ROAS <span className="tnum text-navy-700">{fmtMultiple(variantRoas(v.metrics))}</span></span>
+                        <span>CTR <span className="tnum text-navy-700">{fmt.fmtPct(variantCtr(v.metrics))}</span></span>
+                        <span>CR <span className="tnum text-navy-700">{fmt.fmtPct(variantCr(v.metrics))}</span></span>
+                        <span>CPA <span className="tnum text-navy-700">{fmt.fmtCZK(variantCpa(v.metrics))}</span></span>
+                        <span>ROAS <span className="tnum text-navy-700">{fmt.fmtMultiple(variantRoas(v.metrics))}</span></span>
                       </div>
                     )}
 
                     {/* metrics entry */}
                     <details className="mt-2">
                       <summary className="cursor-pointer text-[13px] font-medium text-brand-accent">
-                        {v.metrics ? "Upravit výkon" : "Zadat výkon"}
+                        {v.metrics ? t("editPerf") : t("enterPerf")}
                       </summary>
                       <div className="mt-2 grid grid-cols-2 gap-2">
-                        {METRIC_FIELDS.map((f) => (
+                        {metricFields.map((f) => (
                           <label key={f.key} className="text-[13px] text-muted">
                             {f.label}
                             <input
@@ -185,12 +232,12 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                         onClick={() => saveMetrics(exp.id, v.id)}
                         className="mt-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-brand-700"
                       >
-                        Uložit výkon
+                        {t("savePerf")}
                       </button>
                     </details>
 
                     <p className="mt-2 text-[13px] tabular-nums text-muted">
-                      <span className="tnum">{fmtInt(m.impressions)}</span> imprese
+                      {t("impressions", { n: fmt.fmtInt(m.impressions) })}
                     </p>
                   </div>
                 );
@@ -202,11 +249,3 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
     </div>
   );
 }
-
-const METRIC_FIELDS: { key: keyof AdVariantMetrics; label: string }[] = [
-  { key: "impressions", label: "Imprese" },
-  { key: "clicks", label: "Prokliky" },
-  { key: "conversions", label: "Konverze" },
-  { key: "cost", label: "Náklady (Kč)" },
-  { key: "convValue", label: "Hodnota (Kč)" },
-];

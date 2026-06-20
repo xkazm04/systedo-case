@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
 import type { AiMode } from "@/lib/ai-types";
+import { useT } from "@/lib/i18n/client";
 import AdGenerator from "./AdGenerator";
 import AdExperiments from "./AdExperiments";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
@@ -13,24 +14,54 @@ import PerformanceAnalyst from "./PerformanceAnalyst";
 import CreativeStudio from "./CreativeStudio";
 import CreativeAttribution from "./CreativeAttribution";
 
+const T = {
+  cs: {
+    tabAdsLabel: "PPC inzeráty",
+    tabAdsService: "Výkonnostní reklama",
+    tabKeywordsLabel: "Klíčová slova",
+    tabKeywordsService: "SEO & výzkum",
+    tabBriefLabel: "Obsahový brief",
+    tabBriefService: "Tvorba obsahu",
+    tabAnalysisLabel: "Analýza dat",
+    tabAnalysisService: "Analýzy a strategie",
+    tabCreativeLabel: "Vizuály",
+    tabCreativeService: "Kreativa & obrázky",
+    tablistAriaLabel: "Nástroje AI asistenta",
+  },
+  en: {
+    tabAdsLabel: "PPC Ads",
+    tabAdsService: "Performance advertising",
+    tabKeywordsLabel: "Keywords",
+    tabKeywordsService: "SEO & research",
+    tabBriefLabel: "Content brief",
+    tabBriefService: "Content creation",
+    tabAnalysisLabel: "Data analysis",
+    tabAnalysisService: "Analytics & strategy",
+    tabCreativeLabel: "Visuals",
+    tabCreativeService: "Creative & images",
+    tablistAriaLabel: "AI assistant tools",
+  },
+} as const;
+
 type TabId = AiMode | "keywords" | "creative";
 
 interface Tab {
   id: TabId;
-  label: string;
-  service: string;
+  labelKey: keyof typeof T.cs;
+  serviceKey: keyof typeof T.cs;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 }
 
 const TABS: Tab[] = [
-  { id: "ads", label: "PPC inzeráty", service: "Výkonnostní reklama", icon: Bolt },
-  { id: "keywords", label: "Klíčová slova", service: "SEO & výzkum", icon: Search },
-  { id: "brief", label: "Obsahový brief", service: "Tvorba obsahu", icon: Document },
-  { id: "analysis", label: "Analýza dat", service: "Analýzy a strategie", icon: Gauge },
-  { id: "creative", label: "Vizuály", service: "Kreativa & obrázky", icon: ImageIcon },
+  { id: "ads", labelKey: "tabAdsLabel", serviceKey: "tabAdsService", icon: Bolt },
+  { id: "keywords", labelKey: "tabKeywordsLabel", serviceKey: "tabKeywordsService", icon: Search },
+  { id: "brief", labelKey: "tabBriefLabel", serviceKey: "tabBriefService", icon: Document },
+  { id: "analysis", labelKey: "tabAnalysisLabel", serviceKey: "tabAnalysisService", icon: Gauge },
+  { id: "creative", labelKey: "tabCreativeLabel", serviceKey: "tabCreativeService", icon: ImageIcon },
 ];
 
 export default function AiAssistant() {
+  const t = useT(T);
   const [tab, setTab] = useState<TabId>("ads");
   // Cross-tool handoff: the keyword tool seeds the brief tool. The nonce lets the
   // brief tool re-apply the seed even if the same selection is sent twice.
@@ -51,18 +82,18 @@ export default function AiAssistant() {
     <div>
       <div
         role="tablist"
-        aria-label="Nástroje AI asistenta"
+        aria-label={t("tablistAriaLabel")}
         className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5"
       >
-        {TABS.map((t) => {
-          const active = t.id === tab;
-          const Icon = t.icon;
+        {TABS.map((tab_) => {
+          const active = tab_.id === tab;
+          const Icon = tab_.icon;
           return (
             <button
-              key={t.id}
+              key={tab_.id}
               role="tab"
               aria-selected={active}
-              onClick={() => setTab(t.id)}
+              onClick={() => setTab(tab_.id)}
               className={`group flex flex-col items-center gap-2 rounded-card border p-3 text-center transition-all sm:flex-row sm:items-center sm:gap-3 sm:p-4 sm:text-left ${
                 active
                   ? "border-brand-300 bg-brand-50 shadow-card"
@@ -82,9 +113,9 @@ export default function AiAssistant() {
                     active ? "text-brand-800" : "text-navy-800"
                   }`}
                 >
-                  {t.label}
+                  {t(tab_.labelKey)}
                 </span>
-                <span className="mt-0.5 hidden text-xs text-muted sm:block">{t.service}</span>
+                <span className="mt-0.5 hidden text-xs text-muted sm:block">{t(tab_.serviceKey)}</span>
               </span>
             </button>
           );

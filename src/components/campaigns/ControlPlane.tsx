@@ -3,15 +3,61 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bolt, Check, Refresh, Info } from "@/components/icons";
-import { fmtCZK, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { projectedValueGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
 
-const STATUS_LABEL: Record<ChangeSetStatus, string> = {
-  pending: "Čeká na schválení",
-  applied: "Aplikováno",
-  reverted: "Vráceno",
-};
+const T = {
+  cs: {
+    heading: "Řízení rozpočtů (control plane)",
+    propose: "Navrhnout změnový balíček",
+    subtitle:
+      "Dávka doporučených přesunů rozpočtu — nejdřív simulace dopadu, pak lidské schválení, vždy" +
+      " s možností vrácení. Bezpečný způsob, jak nechat software sahat na reálnou útratu.",
+    pendingHeading: "Návrh ke schválení",
+    statusPending: "Čeká na schválení",
+    statusApplied: "Aplikováno",
+    statusReverted: "Vráceno",
+    projectedGain: "Projektovaný přínos ≈",
+    convValue: "Hodnota",
+    linEst: "hodnoty konverzí (lineární odhad).",
+    confirmOverride: "Potvrdit i přes pojistky",
+    confirmApply: "Potvrdit a aplikovat na účet",
+    approveOverride: "Schválit přes pojistky",
+    approve: "Schválit a aplikovat",
+    ledgerHeading: "Historie balíčků",
+    moves: "{n} přesunů",
+    applied: "{ok}/{total} aplikováno",
+    revert: "Vrátit zpět",
+    errorFailed: "Akce se nezdařila.",
+    errorServer: "Nepodařilo se spojit se serverem.",
+  },
+  en: {
+    heading: "Budget management (control plane)",
+    propose: "Propose change package",
+    subtitle:
+      "A batch of recommended budget moves — impact simulation first, then human approval, always" +
+      " with a rollback option. The safe way to let software touch real spend.",
+    pendingHeading: "Proposal awaiting approval",
+    statusPending: "Pending approval",
+    statusApplied: "Applied",
+    statusReverted: "Reverted",
+    projectedGain: "Projected gain ≈",
+    convValue: "Value",
+    linEst: "conversion value (linear estimate).",
+    confirmOverride: "Confirm despite guardrails",
+    confirmApply: "Confirm and apply to account",
+    approveOverride: "Approve despite guardrails",
+    approve: "Approve and apply",
+    ledgerHeading: "Package history",
+    moves: "{n} moves",
+    applied: "{ok}/{total} applied",
+    revert: "Revert",
+    errorFailed: "Action failed.",
+    errorServer: "Could not reach the server.",
+  },
+} as const;
+
 const STATUS_STYLE: Record<ChangeSetStatus, string> = {
   pending: "bg-coral-soft text-coral-600",
   applied: "bg-positive-soft text-positive",
@@ -30,6 +76,14 @@ export default function ControlPlane() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const fmt = useFormatters();
+  const t = useT(T);
+
+  const STATUS_LABEL: Record<ChangeSetStatus, string> = {
+    pending: t("statusPending"),
+    applied: t("statusApplied"),
+    reverted: t("statusReverted"),
+  };
 
   const load = useCallback(async () => {
     try {
@@ -59,10 +113,10 @@ export default function ControlPlane() {
         body: JSON.stringify({ action, id, override, projectId: pid }),
       });
       const json = await res.json();
-      if (!res.ok) setError(json?.error ?? "Akce se nezdařila.");
+      if (!res.ok) setError(json?.error ?? t("errorFailed"));
       await load();
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      setError(t("errorServer"));
     } finally {
       setBusy(false);
       setConfirmId(null);
@@ -78,7 +132,7 @@ export default function ControlPlane() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Bolt width={16} height={16} className="text-brand-accent" />
-          <h2 className="text-base font-semibold text-navy-800">Řízení rozpočtů (control plane)</h2>
+          <h2 className="text-base font-semibold text-navy-800">{t("heading")}</h2>
         </div>
         <button
           type="button"
@@ -87,13 +141,10 @@ export default function ControlPlane() {
           className="inline-flex items-center gap-2 rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
         >
           <Refresh width={15} height={15} className={busy ? "animate-spin" : ""} />
-          Navrhnout změnový balíček
+          {t("propose")}
         </button>
       </div>
-      <p className="mt-1 text-sm text-muted">
-        Dávka doporučených přesunů rozpočtu — nejdřív simulace dopadu, pak lidské schválení, vždy
-        s možností vrácení. Bezpečný způsob, jak nechat software sahat na reálnou útratu.
-      </p>
+      <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
 
       {error && <p className="mt-3 text-sm text-negative">{error}</p>}
 
@@ -101,7 +152,7 @@ export default function ControlPlane() {
       {pending && (
         <div className="mt-4 rounded-card border border-coral-200 bg-coral-soft/30 p-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-navy-800">Návrh ke schválení</span>
+            <span className="text-sm font-semibold text-navy-800">{t("pendingHeading")}</span>
             <span className={`pill ${STATUS_STYLE.pending}`}>{STATUS_LABEL.pending}</span>
           </div>
 
@@ -112,7 +163,7 @@ export default function ControlPlane() {
                   {m.fromName} <span className="text-muted">→</span> {m.toName}
                 </span>
                 <span className="tnum text-muted">
-                  {fmtCZK(m.amount)} · +{fmtCZK(m.estValueGain)}
+                  {fmt.fmtCZK(m.amount)} · +{fmt.fmtCZK(m.estValueGain)}
                 </span>
               </li>
             ))}
@@ -120,12 +171,12 @@ export default function ControlPlane() {
 
           {/* simulated impact */}
           <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <SimCell label="ROAS" before={fmtMultiple(pending.simulation.before.roas)} after={fmtMultiple(pending.simulation.after.roas)} />
-            <SimCell label="PNO" before={fmtPct(pending.simulation.before.pno)} after={fmtPct(pending.simulation.after.pno)} />
-            <SimCell label="Hodnota" before={fmtCZK(pending.simulation.before.conversionValue)} after={fmtCZK(pending.simulation.after.conversionValue)} />
+            <SimCell label="ROAS" before={fmt.fmtMultiple(pending.simulation.before.roas)} after={fmt.fmtMultiple(pending.simulation.after.roas)} />
+            <SimCell label="COS" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
+            <SimCell label={t("convValue")} before={fmt.fmtCZK(pending.simulation.before.conversionValue)} after={fmt.fmtCZK(pending.simulation.after.conversionValue)} />
           </div>
           <p className="mt-2 text-xs text-muted">
-            Projektovaný přínos ≈ <strong className="text-navy-700">{fmtCZK(projectedValueGain(pending.simulation))}</strong> hodnoty konverzí (lineární odhad).
+            {t("projectedGain")} <strong className="text-navy-700">{fmt.fmtCZK(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
           </p>
 
           {pending.violations.length > 0 && (
@@ -154,11 +205,11 @@ export default function ControlPlane() {
                 <Check width={15} height={15} />
                 {confirming
                   ? breached
-                    ? "Potvrdit i přes pojistky"
-                    : "Potvrdit a aplikovat na účet"
+                    ? t("confirmOverride")
+                    : t("confirmApply")
                   : breached
-                    ? "Schválit přes pojistky"
-                    : "Schválit a aplikovat"}
+                    ? t("approveOverride")
+                    : t("approve")}
               </button>
             );
           })()}
@@ -168,19 +219,19 @@ export default function ControlPlane() {
       {/* ledger */}
       {sets.length > 0 && (
         <div className="mt-5">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Historie balíčků</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted">{t("ledgerHeading")}</h3>
           <ul className="mt-2 space-y-1.5">
             {sets.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
                 <span className="flex items-center gap-2">
                   <span className={`pill ${STATUS_STYLE[s.status]}`}>{STATUS_LABEL[s.status]}</span>
-                  <span className="text-navy-800">{s.moves.length} přesunů</span>
+                  <span className="text-navy-800">{t("moves", { n: s.moves.length })}</span>
                   {s.results && (
                     <span className="text-xs text-muted">
-                      {s.results.filter((r) => r.ok).length}/{s.results.length} aplikováno
+                      {t("applied", { ok: s.results.filter((r) => r.ok).length, total: s.results.length })}
                     </span>
                   )}
-                  <time className="text-xs text-muted">{fmtRelative(s.createdAt)}</time>
+                  <time className="text-xs text-muted">{fmt.fmtRelative(s.createdAt)}</time>
                 </span>
                 {s.status === "applied" && (
                   <button
@@ -189,7 +240,7 @@ export default function ControlPlane() {
                     disabled={busy}
                     className="text-xs font-medium text-brand-accent hover:underline disabled:opacity-60"
                   >
-                    Vrátit zpět
+                    {t("revert")}
                   </button>
                 )}
               </li>

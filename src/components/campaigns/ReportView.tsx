@@ -8,12 +8,50 @@ import {
   type EvalPriority,
   type ReportHistoryPoint,
 } from "@/lib/ai-types";
+import { useT } from "@/lib/i18n/client";
 import ScoreTimeline from "./ScoreTimeline";
 
-function scoreTone(score: number): { ring: string; text: string; label: string } {
-  if (score >= 70) return { ring: "border-positive/40 bg-positive-soft", text: "text-positive", label: "Zdravé" };
-  if (score >= 40) return { ring: "border-navy-200 bg-navy-50", text: "text-navy-700", label: "S rezervami" };
-  return { ring: "border-coral-400/40 bg-coral-soft", text: "text-coral-600", label: "Podvýkonné" };
+const T = {
+  cs: {
+    scoreHealthy: "Zdravé",
+    scoreReserves: "S rezervami",
+    scoreUnder: "Podvýkonné",
+    scoreTitle: "Skóre zdraví 0–100",
+    cachedNote: "Z mezipaměti — beze změny vstupů, bez nového volání modelu.",
+    cachedTitle:
+      "Vstupy (kampaně i období) se nezměnily, proto se zobrazil uložený výsledek bez nového placeného volání modelu.",
+    strengths: "Silné stránky",
+    weaknesses: "Slabiny a rizika",
+    recommendations: "Doporučené další kroky",
+    copyScore: "{verdict} (skóre {score}/100)",
+    copyStrengths: "SILNÉ STRÁNKY:",
+    copyWeaknesses: "SLABINY:",
+    copyRecommendations: "DOPORUČENÉ KROKY:",
+  },
+  en: {
+    scoreHealthy: "Healthy",
+    scoreReserves: "Room to improve",
+    scoreUnder: "Underperforming",
+    scoreTitle: "Health score 0–100",
+    cachedNote: "From cache — inputs unchanged, no new model call.",
+    cachedTitle:
+      "Inputs (campaigns and period) have not changed, so the saved result is shown without a new paid model call.",
+    strengths: "Strengths",
+    weaknesses: "Weaknesses & risks",
+    recommendations: "Recommended next steps",
+    copyScore: "{verdict} (score {score}/100)",
+    copyStrengths: "STRENGTHS:",
+    copyWeaknesses: "WEAKNESSES:",
+    copyRecommendations: "RECOMMENDED STEPS:",
+  },
+} as const;
+
+type TFn = ReturnType<typeof useT<keyof typeof T.cs>>;
+
+function scoreTone(score: number, t: TFn): { ring: string; text: string; label: string } {
+  if (score >= 70) return { ring: "border-positive/40 bg-positive-soft", text: "text-positive", label: t("scoreHealthy") };
+  if (score >= 40) return { ring: "border-navy-200 bg-navy-50", text: "text-navy-700", label: t("scoreReserves") };
+  return { ring: "border-coral-400/40 bg-coral-soft", text: "text-coral-600", label: t("scoreUnder") };
 }
 
 const PRIORITY_TONE: Record<EvalPriority, string> = {
@@ -31,21 +69,22 @@ export default function ReportView({
   /** every score this scope/campaign has earned, for the trend timeline */
   history?: ReportHistoryPoint[];
   /** true when this evaluation was served from the input-hash cache (no new
-   *  model call), so the user understands why "Přehodnotit" returned instantly */
+   *  model call), so the user understands why "Re-evaluate" returned instantly */
   cached?: boolean;
 }) {
+  const t = useT(T);
   const r = report.result;
-  const tone = scoreTone(r.score);
+  const tone = scoreTone(r.score, t);
 
   const copyAllText = [
-    `${r.verdict} (skóre ${r.score}/100)`,
+    t("copyScore", { verdict: r.verdict, score: r.score }),
     "",
     r.summary,
-    "\nSILNÉ STRÁNKY:",
+    `\n${t("copyStrengths")}`,
     ...r.strengths.map((s) => `+ ${s}`),
-    "\nSLABINY:",
+    `\n${t("copyWeaknesses")}`,
     ...r.weaknesses.map((s) => `! ${s}`),
-    "\nDOPORUČENÉ KROKY:",
+    `\n${t("copyRecommendations")}`,
     ...r.recommendations.map((a) => `→ [${EVAL_PRIORITY_LABELS[a.priority]}] ${a.title}: ${a.detail}`),
   ].join("\n");
 
@@ -56,10 +95,10 @@ export default function ReportView({
       {cached && (
         <p
           className="flex items-center gap-1.5 rounded-lg bg-navy-50 px-3 py-2 text-xs text-muted"
-          title="Vstupy (kampaně i období) se nezměnily, proto se zobrazil uložený výsledek bez nového placeného volání modelu."
+          title={t("cachedTitle")}
         >
           <Info width={13} height={13} className="shrink-0 text-brand-600" />
-          Z mezipaměti — beze změny vstupů, bez nového volání modelu.
+          {t("cachedNote")}
         </p>
       )}
 
@@ -67,7 +106,7 @@ export default function ReportView({
       <div className="flex items-start gap-4 rounded-card border border-navy-200 bg-navy-50 p-5">
         <div
           className={`grid h-16 w-16 shrink-0 place-items-center rounded-2xl border ${tone.ring}`}
-          title="Skóre zdraví 0–100"
+          title={t("scoreTitle")}
         >
           <span className={`tnum text-2xl font-bold ${tone.text}`}>{r.score}</span>
         </div>
@@ -90,7 +129,7 @@ export default function ReportView({
       <div className="grid gap-5 sm:grid-cols-2">
         {r.strengths.length > 0 && (
           <section>
-            <h4 className="mb-2.5 text-sm font-semibold text-navy-800">Silné stránky</h4>
+            <h4 className="mb-2.5 text-sm font-semibold text-navy-800">{t("strengths")}</h4>
             <ul className="space-y-2.5">
               {r.strengths.map((s, i) => (
                 <li key={i} className="flex gap-2.5 text-sm text-navy-700">
@@ -106,7 +145,7 @@ export default function ReportView({
 
         {r.weaknesses.length > 0 && (
           <section>
-            <h4 className="mb-2.5 text-sm font-semibold text-navy-800">Slabiny a rizika</h4>
+            <h4 className="mb-2.5 text-sm font-semibold text-navy-800">{t("weaknesses")}</h4>
             <ul className="space-y-2.5">
               {r.weaknesses.map((s, i) => (
                 <li key={i} className="flex gap-2.5 text-sm text-navy-700">
@@ -124,7 +163,7 @@ export default function ReportView({
       {r.recommendations.length > 0 && (
         <section>
           <div className="mb-2.5 flex items-baseline justify-between">
-            <h4 className="text-sm font-semibold text-navy-800">Doporučené další kroky</h4>
+            <h4 className="text-sm font-semibold text-navy-800">{t("recommendations")}</h4>
             <span className="text-xs text-muted">{r.recommendations.length}</span>
           </div>
           <ol className="space-y-2.5">

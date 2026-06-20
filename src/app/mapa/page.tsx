@@ -2,51 +2,93 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, Eyebrow } from "@/components/ui";
 import { ArrowRight } from "@/components/icons";
-import { NAV_ITEMS } from "@/lib/nav";
+import { localizedNavItems } from "@/lib/nav";
 import { canonical } from "@/lib/site";
+import { getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 /** Site-map / information-architecture page: the navigation model rendered as a
  *  presented deliverable. Header, footer, home rozcestník, breadcrumbs, sitemap
  *  and this page all read the one NAV_ITEMS source — so links never drift. */
 export const metadata: Metadata = {
-  title: "Mapa případové studie",
+  title: "Case-study sitemap",
   description:
-    "Informační architektura webu — všechny stránky studie v pořadí úkolů, odvozené z jednoho navigačního modelu.",
+    "Information architecture of the site — all study pages in task order, derived from a single navigation model.",
   alternates: { canonical: "/mapa" },
 };
 
-const journey = [...NAV_ITEMS].sort((a, b) => a.task - b.task);
-
-/** Supplementary pages outside the task journey, so every route is reachable
- *  from the map (not just the in-page links that surface them). */
-const META_PAGES: { href: string; label: string; blurb: string }[] = [
-  {
-    href: "/clanek/vykon",
-    label: "Datový report",
-    blurb: "Automaticky generovaný výkonnostní report — data z dashboardu publikovaná jako strukturovaný článek.",
+const T = {
+  cs: {
+    eyebrow: "Informační architektura",
+    heading: "Mapa případové studie",
+    subheadingBefore: "Celá studie je řízená jedním typovaným navigačním modelem (",
+    subheadingAfter:
+      ") — hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže odkazy nikdy nerozjedou.",
+    supplementary: "Doplňkové stránky",
   },
-  {
-    href: "/design-system",
-    label: "Design system",
-    blurb: "Živý přehled sdílených UI primitiv, barevných tokenů, ikon a lokalizace (cs/en).",
+  en: {
+    eyebrow: "Information architecture",
+    heading: "Case-study sitemap",
+    subheadingBefore: "The entire study is driven by a single typed navigation model (",
+    subheadingAfter:
+      ") — the header, footer, home hub, breadcrumbs, sitemap and this page all read the same source, so links never drift.",
+    supplementary: "Supplementary pages",
   },
-];
+} as const;
 
-// SiteNavigation structured data, derived from the same array as the page.
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  name: "Mapa případové studie Systedo",
-  itemListElement: journey.map((item, i) => ({
-    "@type": "SiteNavigationElement",
-    position: i + 1,
-    name: item.label,
-    description: item.blurb,
-    url: canonical(item.href),
-  })),
+interface MetaPage {
+  href: string;
+  label: string;
+  blurb: string;
+}
+
+const META_PAGES: Record<"cs" | "en", MetaPage[]> = {
+  cs: [
+    {
+      href: "/clanek/vykon",
+      label: "Datový report",
+      blurb: "Automaticky generovaný výkonnostní report — data z dashboardu publikovaná jako strukturovaný článek.",
+    },
+    {
+      href: "/design-system",
+      label: "Design system",
+      blurb: "Živý přehled sdílených UI primitiv, barevných tokenů, ikon a lokalizace (cs/en).",
+    },
+  ],
+  en: [
+    {
+      href: "/clanek/vykon",
+      label: "Data report",
+      blurb: "Auto-generated performance report — dashboard data published as a structured article.",
+    },
+    {
+      href: "/design-system",
+      label: "Design system",
+      blurb: "Live overview of shared UI primitives, colour tokens, icons and localisation (cs/en).",
+    },
+  ],
 };
 
-export default function MapaPage() {
+export default async function MapaPage() {
+  const t = await getT(T);
+  const locale = await getServerLocale();
+  const journey = [...localizedNavItems(locale)].sort((a, b) => a.task - b.task);
+  const metaPages = META_PAGES[locale] ?? META_PAGES.cs;
+
+  // SiteNavigation structured data — field values must stay canonical (schema.org).
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Mapa případové studie Systedo",
+    itemListElement: journey.map((item, i) => ({
+      "@type": "SiteNavigationElement",
+      position: i + 1,
+      name: item.label,
+      description: item.blurb,
+      url: canonical(item.href),
+    })),
+  };
+
   return (
     <>
       <script
@@ -54,14 +96,14 @@ export default function MapaPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Container className="max-w-3xl py-12 sm:py-16">
-        <Eyebrow>Informační architektura</Eyebrow>
+        <Eyebrow>{t("eyebrow")}</Eyebrow>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-navy-800 sm:text-[2.4rem]">
-          Mapa případové studie
+          {t("heading")}
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-muted">
-          Celá studie je řízená jedním typovaným navigačním modelem (<code>NAV_ITEMS</code>) —
-          hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný
-          zdroj, takže odkazy nikdy nerozjedou.
+          {t("subheadingBefore")}
+          <code>NAV_ITEMS</code>
+          {t("subheadingAfter")}
         </p>
 
         <ol className="mt-8 space-y-3">
@@ -92,10 +134,10 @@ export default function MapaPage() {
 
         {/* supplementary pages */}
         <h2 className="mt-12 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-          Doplňkové stránky
+          {t("supplementary")}
         </h2>
         <ul className="mt-4 space-y-3">
-          {META_PAGES.map((item) => (
+          {metaPages.map((item) => (
             <li key={item.href}>
               <Link
                 href={item.href}

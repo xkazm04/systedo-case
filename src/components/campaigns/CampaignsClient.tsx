@@ -10,8 +10,8 @@ import {
   type CampaignChange,
   type CampaignPeriod,
 } from "@/lib/campaigns/types";
-import { fmtCZK, fmtDateTime, fmtMultiple, fmtPct, fmtRelative } from "@/lib/format";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
@@ -27,14 +27,77 @@ import SharedReportsList from "./SharedReportsList";
 import MicrositeCard from "./MicrositeCard";
 import ControlPlane from "./ControlPlane";
 
-const SOURCE_LABELS: Record<string, string> = {
-  sample: "Google Ads · ukázková data",
-  "google-ads": "Google Ads · živá data",
+const T = {
+  cs: {
+    sourceSample: "Google Ads · ukázková data",
+    sourceLive: "Google Ads · živá data",
+    loading: "Načítám kampaně…",
+    emptyHeading: "Zatím žádná data z Google Ads",
+    emptyBody:
+      "Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická ukázková data, abyste si prošli celý tok — porovnání podle typu i AI vyhodnocení, uložené per uživatele do Firestore.",
+    syncButton: "Synchronizovat z Google Ads",
+    syncing: "Synchronizuji…",
+    syncShort: "Synchronizovat",
+    kpiCost: "Náklady",
+    kpiConvValue: "Hodnota konverzí",
+    kpiPnoHint: "cíl {target} · placené portfolio",
+    shareButton: "Sdílet report",
+    sharing: "Vytvářím…",
+    shareErr: "Sdílení se nezdařilo.",
+    shareConnErr: "Nepodařilo se spojit se serverem.",
+    shareLabel: "Odkaz pro klienta:",
+    shareCopy: "Kopírovat",
+    evalHeading: "Vyhodnocení celého portfolia",
+    evalBody:
+      "AI projde všechny kampaně i typy a navrhne, kam přesunout rozpočet a co optimalizovat.",
+    evaluating: "Vyhodnocuji…",
+    evaluate: "Vyhodnotit portfolio",
+    reevaluate: "Přehodnotit portfolio",
+    buildingReport: "Sestavuji hodnoticí report…",
+    campaignsHeading: "Kampaně",
+    campaignCount: "{n} kampaní · analýza po řádcích",
+  },
+  en: {
+    sourceSample: "Google Ads · sample data",
+    sourceLive: "Google Ads · live data",
+    loading: "Loading campaigns…",
+    emptyHeading: "No Google Ads data yet",
+    emptyBody:
+      "Connect to Google Ads to load campaigns. Without login, realistic sample data is used so you can walk through the full flow — type comparison and AI evaluation, stored per user in Firestore.",
+    syncButton: "Sync from Google Ads",
+    syncing: "Syncing…",
+    syncShort: "Sync",
+    kpiCost: "Cost",
+    kpiConvValue: "Conversion value",
+    kpiPnoHint: "target {target} · paid portfolio",
+    shareButton: "Share report",
+    sharing: "Creating…",
+    shareErr: "Sharing failed.",
+    shareConnErr: "Could not reach the server.",
+    shareLabel: "Client link:",
+    shareCopy: "Copy",
+    evalHeading: "Full portfolio evaluation",
+    evalBody:
+      "AI reviews all campaigns and types, then suggests where to move budget and what to optimise.",
+    evaluating: "Evaluating…",
+    evaluate: "Evaluate portfolio",
+    reevaluate: "Re-evaluate portfolio",
+    buildingReport: "Building evaluation report…",
+    campaignsHeading: "Campaigns",
+    campaignCount: "{n} campaigns · row-by-row analysis",
+  },
+} as const;
+
+const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive"> = {
+  sample: "sourceSample",
+  "google-ads": "sourceLive",
 };
 
 export default function CampaignsClient() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const fmt = useFormatters();
+  const t = useT(T);
   const {
     campaigns,
     meta,
@@ -83,13 +146,13 @@ export default function CampaignsClient() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setShareErr(json?.error ?? "Sdílení se nezdařilo.");
+        setShareErr(json?.error ?? t("shareErr"));
         return;
       }
       setShareUrl(json.url);
       setShareRefresh((n) => n + 1);
     } catch {
-      setShareErr("Nepodařilo se spojit se serverem.");
+      setShareErr(t("shareConnErr"));
     } finally {
       setSharing(false);
     }
@@ -110,7 +173,7 @@ export default function CampaignsClient() {
     return (
       <div className="card flex items-center justify-center gap-3 p-12 text-sm text-muted">
         <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
-        Načítám kampaně…
+        {t("loading")}
       </div>
     );
   }
@@ -122,12 +185,8 @@ export default function CampaignsClient() {
         <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-50 text-brand-600">
           <Layers width={28} height={28} />
         </span>
-        <h2 className="mt-5 text-lg font-semibold text-navy-800">Zatím žádná data z Google Ads</h2>
-        <p className="mt-2 max-w-md text-sm text-muted">
-          Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická
-          ukázková data, abyste si prošli celý tok — porovnání podle typu i AI vyhodnocení,
-          uložené per uživatele do Firestore.
-        </p>
+        <h2 className="mt-5 text-lg font-semibold text-navy-800">{t("emptyHeading")}</h2>
+        <p className="mt-2 max-w-md text-sm text-muted">{t("emptyBody")}</p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
           {CAMPAIGN_PERIODS.map((p) => (
             <button
@@ -149,7 +208,7 @@ export default function CampaignsClient() {
           className="mt-4 inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Refresh width={17} height={17} className={syncing ? "animate-spin" : ""} />
-          {syncing ? "Synchronizuji…" : "Synchronizovat z Google Ads"}
+          {syncing ? t("syncing") : t("syncButton")}
         </button>
         {error && <p className="mt-4 text-sm text-negative">{error}</p>}
       </div>
@@ -158,10 +217,10 @@ export default function CampaignsClient() {
 
   const totals = aggregate(campaigns);
   const kpis = [
-    { label: "Náklady", value: fmtCZK(totals.cost) },
-    { label: "Hodnota konverzí", value: fmtCZK(totals.conversionValue) },
-    { label: "ROAS", value: fmtMultiple(totals.roas) },
-    { label: "PNO", value: fmtPct(totals.pno), hint: `cíl ${fmtPct(TARGET_PNO, 0)} · placené portfolio` },
+    { label: t("kpiCost"), value: fmt.fmtCZK(totals.cost) },
+    { label: t("kpiConvValue"), value: fmt.fmtCZK(totals.conversionValue) },
+    { label: "ROAS", value: fmt.fmtMultiple(totals.roas) },
+    { label: "PNO", value: fmt.fmtPct(totals.pno), hint: t("kpiPnoHint", { target: fmt.fmtPct(TARGET_PNO, 0) }) },
   ];
 
   return (
@@ -188,9 +247,9 @@ export default function CampaignsClient() {
           {meta && (
             <span className="inline-flex items-center gap-1.5 text-xs text-muted">
               <Info width={13} height={13} />
-              {SOURCE_LABELS[meta.source] ?? meta.source} ·{" "}
-              <time dateTime={meta.syncedAt} title={fmtDateTime(meta.syncedAt)}>
-                {fmtRelative(meta.syncedAt)}
+              {t(SOURCE_KEY[meta.source] ?? "sourceSample")} ·{" "}
+              <time dateTime={meta.syncedAt} title={fmt.fmtDateTime(meta.syncedAt)}>
+                {fmt.fmtRelative(meta.syncedAt)}
               </time>
             </span>
           )}
@@ -206,7 +265,7 @@ export default function CampaignsClient() {
             className="inline-flex items-center justify-center gap-2 rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Refresh width={16} height={16} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Synchronizuji…" : "Synchronizovat"}
+            {syncing ? t("syncing") : t("syncShort")}
           </button>
         </div>
       </div>
@@ -248,11 +307,9 @@ export default function CampaignsClient() {
           <div>
             <h2 className="flex items-center gap-2 text-base font-semibold text-navy-800">
               <Sparkles width={18} height={18} className="text-brand-600" />
-              Vyhodnocení celého portfolia
+              {t("evalHeading")}
             </h2>
-            <p className="mt-1 text-sm text-muted">
-              AI projde všechny kampaně i typy a navrhne, kam přesunout rozpočet a co optimalizovat.
-            </p>
+            <p className="mt-1 text-sm text-muted">{t("evalBody")}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {overall && (
@@ -263,7 +320,7 @@ export default function CampaignsClient() {
                 className="inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
               >
                 <Share width={15} height={15} />
-                {sharing ? "Vytvářím…" : "Sdílet report"}
+                {sharing ? t("sharing") : t("shareButton")}
               </button>
             )}
             <button
@@ -275,12 +332,12 @@ export default function CampaignsClient() {
               {overallBusy ? (
                 <>
                   <Gauge width={16} height={16} className="animate-pulse" />
-                  Vyhodnocuji…
+                  {t("evaluating")}
                 </>
               ) : (
                 <>
                   <Bolt width={16} height={16} />
-                  {overall ? "Přehodnotit portfolio" : "Vyhodnotit portfolio"}
+                  {overall ? t("reevaluate") : t("evaluate")}
                 </>
               )}
             </button>
@@ -291,7 +348,7 @@ export default function CampaignsClient() {
         {shareErr && <p className="mt-3 text-sm text-negative">{shareErr}</p>}
         {shareUrl && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card bg-brand-50 px-4 py-3 text-sm">
-            <span className="font-medium text-brand-800">Odkaz pro klienta:</span>
+            <span className="font-medium text-brand-800">{t("shareLabel")}</span>
             <a
               href={shareUrl}
               target="_blank"
@@ -305,7 +362,7 @@ export default function CampaignsClient() {
               onClick={() => void navigator.clipboard?.writeText(shareUrl)}
               className="ml-auto shrink-0 rounded-pill border border-line bg-surface px-3 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300"
             >
-              Kopírovat
+              {t("shareCopy")}
             </button>
           </div>
         )}
@@ -315,7 +372,7 @@ export default function CampaignsClient() {
         {overallBusy && !overall && (
           <div className="mt-5 flex items-center gap-3 text-sm text-muted">
             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
-            Sestavuji hodnoticí report…
+            {t("buildingReport")}
           </div>
         )}
 
@@ -338,8 +395,8 @@ export default function CampaignsClient() {
       {/* per-campaign table */}
       <section>
         <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-navy-800">Kampaně</h2>
-          <span className="text-xs text-muted">{campaigns.length} kampaní · analýza po řádcích</span>
+          <h2 className="text-sm font-semibold text-navy-800">{t("campaignsHeading")}</h2>
+          <span className="text-xs text-muted">{t("campaignCount", { n: campaigns.length })}</span>
         </div>
         <CampaignTable
           campaigns={campaigns}

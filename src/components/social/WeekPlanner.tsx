@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
@@ -18,6 +20,41 @@ import {
   type SocialPost,
   type Tone,
 } from "@/lib/social/types";
+
+const T = {
+  cs: {
+    title: "Plán týdne",
+    subtitle: "Zadejte témata (jedno na řádek), AI z nich napíše příspěvky a rozloží je na následující dny.",
+    topicsLabel: "Témata (jedno na řádek)",
+    topicsPlaceholder: "Nová zimní směs ořechů\nTip: ořechy do ranní kaše\nPříběh značky — odkud vozíme kešu\nRecept: domácí müsli",
+    topicCount: "{n}/7 témat · vznikne {n} naplánovaný příspěvek",
+    topicCountPlural: "{n}/7 témat · vznikne {n} naplánovaných příspěvků",
+    topicCountZero: "0/7 témat · vznikne 0 naplánovaných příspěvků",
+    platformLabel: "Platforma",
+    toneLabel: "Tón",
+    timeLabel: "Čas",
+    planBtn: "Naplánovat týden",
+    generating: "Generuji… {done}/{total}",
+    genFailed: "Generování se nezdařilo.",
+    serverError: "Nepodařilo se spojit se serverem.",
+  },
+  en: {
+    title: "Week plan",
+    subtitle: "Enter topics (one per line) and AI will write posts and spread them across the coming days.",
+    topicsLabel: "Topics (one per line)",
+    topicsPlaceholder: "New winter nut blend\nTip: nuts in morning porridge\nBrand story — where we source cashews\nRecipe: homemade granola",
+    topicCount: "{n}/7 topics · will create {n} scheduled post",
+    topicCountPlural: "{n}/7 topics · will create {n} scheduled posts",
+    topicCountZero: "0/7 topics · will create 0 scheduled posts",
+    platformLabel: "Platform",
+    toneLabel: "Tone",
+    timeLabel: "Time",
+    planBtn: "Plan the week",
+    generating: "Generating… {done}/{total}",
+    genFailed: "Generation failed.",
+    serverError: "Could not reach the server.",
+  },
+} as const;
 
 interface Day {
   iso: string;
@@ -37,16 +74,17 @@ function localIso(d: Date): string {
 
 /** Build the next 7 days from today (computed in an effect, not render, to avoid an
  *  SSR/client hydration mismatch on the date). */
-function buildWeek(): Day[] {
+function buildWeek(locale: string): Day[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const intlLocale = locale === "en" ? "en-US" : "cs-CZ";
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const dow = d.getDay();
     return {
       iso: localIso(d),
-      label: d.toLocaleDateString("cs-CZ", { weekday: "short", day: "numeric", month: "numeric" }),
+      label: d.toLocaleDateString(intlLocale, { weekday: "short", day: "numeric", month: "numeric" }),
       weekend: dow === 0 || dow === 6,
     };
   });
@@ -65,6 +103,8 @@ function readSocialBrand(): string {
 export default function WeekPlanner() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const t = useT(T);
+  const { locale } = useLocale();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [week, setWeek] = useState<Day[]>([]);
 
@@ -91,12 +131,12 @@ export default function WeekPlanner() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWeek(buildWeek());
+    setWeek(buildWeek(locale));
     void loadPosts();
     const handler = () => void loadPosts();
     window.addEventListener("social:posts-changed", handler);
     return () => window.removeEventListener("social:posts-changed", handler);
-  }, [loadPosts]);
+  }, [loadPosts, locale]);
 
   // Scheduled posts grouped by their day (YYYY-MM-DD), for the calendar cells.
   const byDay = new Map<string, SocialPost[]>();
@@ -113,6 +153,12 @@ export default function WeekPlanner() {
     .map((s) => s.trim())
     .filter(Boolean)
     .slice(0, 7);
+
+  const topicCountLabel = (() => {
+    if (topicLines.length === 0) return t("topicCountZero");
+    if (topicLines.length === 1) return t("topicCount", { n: topicLines.length });
+    return t("topicCountPlural", { n: topicLines.length });
+  })();
 
   async function planWeek() {
     if (topicLines.length === 0 || running) return;
@@ -139,7 +185,7 @@ export default function WeekPlanner() {
         });
         const draftJson = await draftRes.json();
         if (!draftRes.ok) {
-          setError(draftJson?.error ?? "Generování se nezdařilo.");
+          setError(draftJson?.error ?? t("genFailed"));
           break;
         }
         const drafts: { platform: SocialPlatform; content: string }[] = draftJson.drafts ?? [];
@@ -155,7 +201,7 @@ export default function WeekPlanner() {
         }
         setProgress({ done: i + 1, total: topicLines.length });
       } catch {
-        setError("Nepodařilo se spojit se serverem.");
+        setError(t("serverError"));
         break;
       }
     }
@@ -169,34 +215,33 @@ export default function WeekPlanner() {
     <div className="card p-6">
       <div className="flex items-center gap-2">
         <Calendar width={18} height={18} className="shrink-0 text-brand-600" />
-        <h2 className="text-base font-semibold text-navy-800">Plán týdne</h2>
+        <h2 className="text-base font-semibold text-navy-800">{t("title")}</h2>
       </div>
       <p className="mt-1 text-sm text-muted">
-        Zadejte témata (jedno na řádek), AI z nich napíše příspěvky a rozloží je na následující dny.
+        {t("subtitle")}
       </p>
 
       {/* batch generator */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px]">
         <div>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-navy-700">Témata (jedno na řádek)</span>
+            <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("topicsLabel")}</span>
             <textarea
               value={topics}
               onChange={(e) => setTopics(e.target.value)}
               rows={4}
-              placeholder={"Nová zimní směs ořechů\nTip: ořechy do ranní kaše\nPříběh značky — odkud vozíme kešu\nRecept: domácí müsli"}
+              placeholder={t("topicsPlaceholder")}
               className="w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
             />
           </label>
           <p className="mt-1 text-xs text-muted">
-            {topicLines.length}/7 témat · vznikne {topicLines.length || "0"}{" "}
-            {topicLines.length === 1 ? "naplánovaný příspěvek" : "naplánovaných příspěvků"}
+            {topicCountLabel}
           </p>
         </div>
 
         <div className="space-y-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-navy-700">Platforma</span>
+            <span className="mb-1 block text-xs font-medium text-navy-700">{t("platformLabel")}</span>
             <select
               value={platform}
               onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
@@ -211,21 +256,21 @@ export default function WeekPlanner() {
           </label>
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-navy-700">Tón</span>
+              <span className="mb-1 block text-xs font-medium text-navy-700">{t("toneLabel")}</span>
               <select
                 value={tone}
                 onChange={(e) => setTone(e.target.value as Tone)}
                 className="w-full rounded-lg border border-line bg-canvas px-2 py-2 text-sm outline-none focus:border-brand-400"
               >
-                {TONES.map((t) => (
-                  <option key={t} value={t}>
-                    {TONE_LABELS[t]}
+                {TONES.map((tn) => (
+                  <option key={tn} value={tn}>
+                    {TONE_LABELS[tn]}
                   </option>
                 ))}
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-navy-700">Čas</span>
+              <span className="mb-1 block text-xs font-medium text-navy-700">{t("timeLabel")}</span>
               <input
                 type="number"
                 min={0}
@@ -243,7 +288,7 @@ export default function WeekPlanner() {
             className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles width={15} height={15} className={running ? "animate-pulse" : ""} />
-            {running && progress ? `Generuji… ${progress.done}/${progress.total}` : "Naplánovat týden"}
+            {running && progress ? t("generating", { done: progress.done, total: progress.total }) : t("planBtn")}
           </button>
           {error && <p className="text-xs text-negative">{error}</p>}
         </div>
@@ -270,10 +315,10 @@ export default function WeekPlanner() {
                         {p.scheduledAt && (
                           <span className="ml-auto inline-flex items-center gap-0.5 font-normal normal-case text-muted">
                             <Clock width={9} height={9} />
-                            {new Date(p.scheduledAt).toLocaleTimeString("cs-CZ", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                            {new Date(p.scheduledAt).toLocaleTimeString(
+                              locale === "en" ? "en-US" : "cs-CZ",
+                              { hour: "2-digit", minute: "2-digit" }
+                            )}
                           </span>
                         )}
                       </p>

@@ -3,14 +3,46 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { External, Check, Layers } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { MicrositeConfig } from "@/lib/microsite";
 
-const PERIODS = [
-  { days: 30, label: "30 dní" },
-  { days: 90, label: "90 dní" },
-  { days: 365, label: "12 měsíců" },
-];
+const T = {
+  cs: {
+    heading: "Klientský microsite",
+    subtitle:
+      "Veřejná, vyhledávači indexovatelná stránka s výkonem klienta na stálé adrese — vždy aktuální" +
+      " z posledního snapshotu, ve vašich barvách.",
+    clientNameLabel: "Název klienta",
+    accentLabel: "Akcent",
+    periodLabel: "Období",
+    publishing: "Publikuji…",
+    publish: "Publikovat microsite",
+    takeOffline: "Vypnout microsite",
+    period30: "30 dní",
+    period90: "90 dní",
+    period365: "12 měsíců",
+    errorPublish: "Publikování se nezdařilo.",
+    errorServer: "Nepodařilo se spojit se serverem.",
+  },
+  en: {
+    heading: "Client microsite",
+    subtitle:
+      "A public, search-indexable page showing client performance at a permanent URL — always" +
+      " up to date from the latest snapshot, in your brand colours.",
+    clientNameLabel: "Client name",
+    accentLabel: "Accent",
+    periodLabel: "Period",
+    publishing: "Publishing…",
+    publish: "Publish microsite",
+    takeOffline: "Take microsite offline",
+    period30: "30 days",
+    period90: "90 days",
+    period365: "12 months",
+    errorPublish: "Publishing failed.",
+    errorServer: "Could not reach the server.",
+  },
+} as const;
 
 /** Publish a white-label, SEO-indexable client microsite at /m/{slug} that
  *  re-renders from the latest snapshot. Anonymous → hidden. */
@@ -26,6 +58,13 @@ export default function MicrositeCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
+  const t = useT(T);
+
+  const PERIODS = [
+    { days: 30, label: t("period30") },
+    { days: 90, label: t("period90") },
+    { days: 365, label: t("period365") },
+  ];
 
   const load = useCallback(async () => {
     try {
@@ -59,12 +98,12 @@ export default function MicrositeCard() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Publikování se nezdařilo.");
+        setError(json?.error ?? t("errorPublish"));
         return;
       }
       setSite(json.microsite as MicrositeConfig);
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      setError(t("errorServer"));
     } finally {
       setBusy(false);
     }
@@ -92,12 +131,9 @@ export default function MicrositeCard() {
     <section className="card p-6">
       <div className="flex items-center gap-2">
         <Layers width={16} height={16} className="text-brand-accent" />
-        <h2 className="text-base font-semibold text-navy-800">Klientský microsite</h2>
+        <h2 className="text-base font-semibold text-navy-800">{t("heading")}</h2>
       </div>
-      <p className="mt-1 text-sm text-muted">
-        Veřejná, vyhledávači indexovatelná stránka s výkonem klienta na stálé adrese — vždy aktuální
-        z posledního snapshotu, ve vašich barvách.
-      </p>
+      <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
 
       {site ? (
         <div className="mt-4 space-y-3">
@@ -120,13 +156,13 @@ export default function MicrositeCard() {
             disabled={busy}
             className="text-xs font-medium text-negative hover:underline disabled:opacity-60"
           >
-            Vypnout microsite
+            {t("takeOffline")}
           </button>
         </div>
       ) : (
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
           <label className="text-xs font-medium text-muted">
-            Název klienta
+            {t("clientNameLabel")}
             <input
               type="text"
               value={clientName}
@@ -136,7 +172,7 @@ export default function MicrositeCard() {
             />
           </label>
           <label className="text-xs font-medium text-muted">
-            Akcent
+            {t("accentLabel")}
             <input
               type="color"
               value={accentColor}
@@ -145,7 +181,7 @@ export default function MicrositeCard() {
             />
           </label>
           <label className="text-xs font-medium text-muted">
-            Období
+            {t("periodLabel")}
             <select
               value={periodDays}
               onChange={(e) => setPeriodDays(Number(e.target.value))}
@@ -164,7 +200,7 @@ export default function MicrositeCard() {
             disabled={busy || clientName.trim().length < 2}
             className="rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 sm:col-span-3 sm:justify-self-start"
           >
-            {busy ? "Publikuji…" : "Publikovat microsite"}
+            {busy ? t("publishing") : t("publish")}
           </button>
         </div>
       )}

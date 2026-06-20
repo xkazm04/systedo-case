@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Bolt, Check, Clock, Close, Info, Refresh, Share, Sparkles } from "@/components/icons";
-import { fmtDateTime, fmtRelative } from "@/lib/format";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import {
   PLATFORM_LIMITS,
   POST_STATUS_LABELS,
@@ -19,6 +19,105 @@ import {
   type Tone,
 } from "@/lib/social/types";
 import WeekPlanner from "./WeekPlanner";
+
+const T = {
+  cs: {
+    signInPrompt: "Přihlaste se a připojte sociální účty. I bez přihlášení si vyzkoušíte návrh, plánování i schránku.",
+    signInBtn: "Přihlásit přes Google",
+    connectedAccounts: "Připojené účty",
+    demoMode: "Ukázkový režim (bez OAuth)",
+    newPost: "Nový příspěvek",
+    topic: "Téma",
+    topicPlaceholder: "Např. nová sezónní směs ořechů",
+    tone: "Tón",
+    brandVoice: "Hlas značky (volitelné)",
+    brandPlaceholder: "Co prodáváte + jak mluvíte — např. Mionelo: ořechy a superpotraviny, přátelsky a autenticky",
+    brandHint: "AI píše v hlase vaší značky, ne genericky.",
+    draftPlatforms: "Platformy pro návrh",
+    templateBtn: "Šablona",
+    drafting: "Navrhuji…",
+    aiBtn: "Navrhnout s AI",
+    aiWriting: "AI píše…",
+    aiDraft: "AI návrh",
+    demoSource: "Ukázkový režim",
+    templateSource: "Šablona",
+    useBtn: "Použít",
+    postToPublish: "Příspěvek k publikaci",
+    postPlaceholder: "Napište příspěvek nebo použijte návrh výše…",
+    scheduleLabel: "Naplánovat na (volitelné)",
+    saving: "Ukládám…",
+    schedule: "Naplánovat",
+    publishNow: "Zveřejnit teď",
+    posts: "Příspěvky",
+    refresh: "Obnovit",
+    loading: "Načítám…",
+    noPosts: "Zatím žádné příspěvky. Vytvořte první vlevo.",
+    deleteAriaLabel: "Delete",
+    scheduledAt: "scheduled for {dt}",
+    publishedAt: "published {rel}",
+    createdAt: "created {rel}",
+    link: "link",
+    inboxTitle: "Inbox — comments & messages",
+    pending: "{n} pending",
+    loadingInbox: "Loading inbox…",
+    comment: "comment",
+    replied: "Replied",
+    replyHint: "Suggested reply — edit and approve",
+    sending: "Sending…",
+    approveAndSend: "Approve & send",
+    draftFailed: "Draft failed.",
+    serverError: "Could not reach the server.",
+    saveFailed: "Save failed.",
+  },
+  en: {
+    signInPrompt: "Sign in to connect your social accounts. You can still preview drafts, scheduling, and the inbox without signing in.",
+    signInBtn: "Sign in with Google",
+    connectedAccounts: "Connected accounts",
+    demoMode: "Demo mode (no OAuth)",
+    newPost: "New post",
+    topic: "Topic",
+    topicPlaceholder: "e.g. new seasonal nut blend",
+    tone: "Tone",
+    brandVoice: "Brand voice (optional)",
+    brandPlaceholder: "What you sell + how you talk — e.g. Mionelo: nuts & superfoods, friendly and authentic",
+    brandHint: "AI writes in your brand voice, not generically.",
+    draftPlatforms: "Platforms to draft for",
+    templateBtn: "Template",
+    drafting: "Drafting…",
+    aiBtn: "Draft with AI",
+    aiWriting: "AI writing…",
+    aiDraft: "AI draft",
+    demoSource: "Demo mode",
+    templateSource: "Template",
+    useBtn: "Use",
+    postToPublish: "Post to publish",
+    postPlaceholder: "Write a post or use a draft above…",
+    scheduleLabel: "Schedule for (optional)",
+    saving: "Saving…",
+    schedule: "Schedule",
+    publishNow: "Publish now",
+    posts: "Posts",
+    refresh: "Refresh",
+    loading: "Loading…",
+    noPosts: "No posts yet. Create your first one on the left.",
+    deleteAriaLabel: "Delete",
+    scheduledAt: "scheduled for {dt}",
+    publishedAt: "published {rel}",
+    createdAt: "created {rel}",
+    link: "link",
+    inboxTitle: "Inbox — comments & messages",
+    pending: "{n} pending",
+    loadingInbox: "Loading inbox…",
+    comment: "comment",
+    replied: "Replied",
+    replyHint: "Suggested reply — edit and approve",
+    sending: "Sending…",
+    approveAndSend: "Approve & send",
+    draftFailed: "Draft failed.",
+    serverError: "Could not reach the server.",
+    saveFailed: "Save failed.",
+  },
+} as const;
 
 interface InboxMessage {
   id: string;
@@ -60,6 +159,7 @@ function AccountsBar() {
   const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const t = useT(T);
 
   const load = useCallback(async () => {
     try {
@@ -97,14 +197,14 @@ function AccountsBar() {
       <div className="card flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2.5 text-sm text-navy-700">
           <Share width={18} height={18} className="shrink-0 text-brand-600" />
-          Přihlaste se a připojte sociální účty. I bez přihlášení si vyzkoušíte návrh, plánování i schránku.
+          {t("signInPrompt")}
         </p>
         <button
           type="button"
           onClick={() => signIn("google")}
           className="shrink-0 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
         >
-          Přihlásit přes Google
+          {t("signInBtn")}
         </button>
       </div>
     );
@@ -115,12 +215,12 @@ function AccountsBar() {
       <div className="flex items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-navy-800">
           <Share width={17} height={17} className="text-brand-600" />
-          Připojené účty
+          {t("connectedAccounts")}
         </h2>
         {!configured && (
           <span className="inline-flex items-center gap-1.5 text-xs text-muted">
             <Info width={13} height={13} />
-            Ukázkový režim (bez OAuth)
+            {t("demoMode")}
           </span>
         )}
       </div>
@@ -152,6 +252,7 @@ function AccountsBar() {
 function Composer() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const t = useT(T);
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [draftPlatforms, setDraftPlatforms] = useState<Set<SocialPlatform>>(new Set(["instagram", "facebook"]));
@@ -211,13 +312,13 @@ function Composer() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setDraftError(json?.error ?? "Návrh se nezdařil.");
+        setDraftError(json?.error ?? t("draftFailed"));
         return;
       }
       setDrafts(json.drafts ?? []);
       setDraftSource(json.source ?? null);
     } catch {
-      setDraftError("Nepodařilo se spojit se serverem.");
+      setDraftError(t("serverError"));
     } finally {
       setDrafting(false);
     }
@@ -240,7 +341,7 @@ function Composer() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Uložení se nezdařilo.");
+        setError(json?.error ?? t("saveFailed"));
         return;
       }
       setContent("");
@@ -255,29 +356,29 @@ function Composer() {
 
   return (
     <div className="card space-y-5 p-6 lg:sticky lg:top-24">
-      <h2 className="text-base font-semibold text-navy-800">Nový příspěvek</h2>
+      <h2 className="text-base font-semibold text-navy-800">{t("newPost")}</h2>
 
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-navy-700">Téma</span>
+        <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("topic")}</span>
         <input
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          placeholder="Např. nová sezónní směs ořechů"
+          placeholder={t("topicPlaceholder")}
           className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
         />
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
         <label className="flex-1">
-          <span className="mb-1.5 block text-sm font-medium text-navy-700">Tón</span>
+          <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("tone")}</span>
           <select
             value={tone}
             onChange={(e) => setTone(e.target.value as Tone)}
             className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
           >
-            {TONES.map((t) => (
-              <option key={t} value={t}>
-                {TONE_LABELS[t]}
+            {TONES.map((tn) => (
+              <option key={tn} value={tn}>
+                {TONE_LABELS[tn]}
               </option>
             ))}
           </select>
@@ -285,18 +386,18 @@ function Composer() {
       </div>
 
       <label className="block">
-        <span className="mb-1.5 block text-sm font-medium text-navy-700">Hlas značky (volitelné)</span>
+        <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("brandVoice")}</span>
         <input
           value={brand}
           onChange={(e) => setBrand(e.target.value)}
-          placeholder="Co prodáváte + jak mluvíte — např. Mionelo: ořechy a superpotraviny, přátelsky a autenticky"
+          placeholder={t("brandPlaceholder")}
           className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
         />
-        <span className="mt-1 block text-xs text-muted">AI píše v hlase vaší značky, ne genericky.</span>
+        <span className="mt-1 block text-xs text-muted">{t("brandHint")}</span>
       </label>
 
       <div>
-        <span className="mb-1.5 block text-sm font-medium text-navy-700">Platformy pro návrh</span>
+        <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("draftPlatforms")}</span>
         <div className="flex flex-wrap gap-2">
           {SOCIAL_PLATFORMS.map((p) => (
             <button
@@ -321,7 +422,7 @@ function Composer() {
           className="inline-flex items-center justify-center gap-2 rounded-pill border border-line px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
         >
           <Bolt width={15} height={15} />
-          {drafting === "template" ? "Navrhuji…" : "Šablona"}
+          {drafting === "template" ? t("drafting") : t("templateBtn")}
         </button>
         <button
           type="button"
@@ -330,7 +431,7 @@ function Composer() {
           className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
         >
           <Sparkles width={15} height={15} />
-          {drafting === "ai" ? "AI píše…" : "Navrhnout s AI"}
+          {drafting === "ai" ? t("aiWriting") : t("aiBtn")}
         </button>
       </div>
 
@@ -348,7 +449,7 @@ function Composer() {
                     : "bg-navy-50 text-muted"
               }`}
             >
-              {draftSource === "ai" ? "AI návrh" : draftSource === "demo" ? "Ukázkový režim" : "Šablona"}
+              {draftSource === "ai" ? t("aiDraft") : draftSource === "demo" ? t("demoSource") : t("templateSource")}
             </span>
           )}
           {drafts.map((d) => (
@@ -356,7 +457,7 @@ function Composer() {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-navy-700">{SOCIAL_PLATFORM_LABELS[d.platform]}</span>
                 <button type="button" onClick={() => use(d)} className="text-xs font-semibold text-brand-accent hover:text-brand-800">
-                  Použít
+                  {t("useBtn")}
                 </button>
               </div>
               <p className="mt-1 whitespace-pre-line text-xs text-muted">{d.content}</p>
@@ -367,7 +468,7 @@ function Composer() {
 
       <div className="border-t border-line pt-5">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-navy-700">Příspěvek k publikaci</span>
+          <span className="text-sm font-medium text-navy-700">{t("postToPublish")}</span>
           <select
             value={platform}
             onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
@@ -384,7 +485,7 @@ function Composer() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={5}
-          placeholder="Napište příspěvek nebo použijte návrh výše…"
+          placeholder={t("postPlaceholder")}
           className="mt-2 w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
         />
         <div className="mt-1 flex items-center justify-between text-xs">
@@ -394,7 +495,7 @@ function Composer() {
         </div>
 
         <label className="mt-3 block">
-          <span className="mb-1.5 block text-sm font-medium text-navy-700">Naplánovat na (volitelné)</span>
+          <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("scheduleLabel")}</span>
           <input
             type="datetime-local"
             value={scheduledAt}
@@ -411,7 +512,7 @@ function Composer() {
           disabled={posting || content.trim().length < 2 || over}
           className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {posting ? "Ukládám…" : scheduledAt ? "Naplánovat" : "Zveřejnit teď"}
+          {posting ? t("saving") : scheduledAt ? t("schedule") : t("publishNow")}
         </button>
       </div>
     </div>
@@ -423,6 +524,8 @@ function Composer() {
 function PostsList() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const t = useT(T);
+  const fmt = useFormatters();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -459,22 +562,22 @@ function PostsList() {
   return (
     <div className="min-w-0 space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-navy-800">Příspěvky</h2>
+        <h2 className="text-sm font-semibold text-navy-800">{t("posts")}</h2>
         <button
           type="button"
           onClick={() => void load()}
           className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300"
         >
           <Refresh width={13} height={13} />
-          Obnovit
+          {t("refresh")}
         </button>
       </div>
 
       {loading ? (
-        <div className="card p-8 text-center text-sm text-muted">Načítám…</div>
+        <div className="card p-8 text-center text-sm text-muted">{t("loading")}</div>
       ) : posts.length === 0 ? (
         <div className="card p-8 text-center text-sm text-muted">
-          Zatím žádné příspěvky. Vytvořte první vlevo.
+          {t("noPosts")}
         </div>
       ) : (
         <ul className="space-y-2">
@@ -488,7 +591,7 @@ function PostsList() {
                 <button
                   type="button"
                   onClick={() => remove(post.id)}
-                  aria-label="Smazat"
+                  aria-label={t("deleteAriaLabel")}
                   className="grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-coral-600"
                 >
                   <Close width={14} height={14} />
@@ -498,13 +601,13 @@ function PostsList() {
               <p className="mt-2 flex items-center gap-1.5 text-xs text-muted">
                 <Clock width={12} height={12} />
                 {post.status === "scheduled" && post.scheduledAt
-                  ? `naplánováno na ${fmtDateTime(post.scheduledAt)}`
+                  ? t("scheduledAt", { dt: fmt.fmtDateTime(post.scheduledAt) })
                   : post.status === "published" && post.publishedAt
-                    ? `zveřejněno ${fmtRelative(post.publishedAt)}`
-                    : `vytvořeno ${fmtRelative(post.createdAt)}`}
+                    ? t("publishedAt", { rel: fmt.fmtRelative(post.publishedAt) })
+                    : t("createdAt", { rel: fmt.fmtRelative(post.createdAt) })}
                 {post.externalUrl && (
                   <a href={post.externalUrl} target="_blank" rel="noopener noreferrer" className="link-inline">
-                    odkaz
+                    {t("link")}
                   </a>
                 )}
               </p>
@@ -521,6 +624,7 @@ function PostsList() {
 function Inbox() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const t = useT(T);
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -569,12 +673,12 @@ function Inbox() {
   return (
     <section>
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-navy-800">Schránka — komentáře a zprávy</h2>
-        <span className="text-xs text-muted">{open.length} k vyřízení</span>
+        <h2 className="text-sm font-semibold text-navy-800">{t("inboxTitle")}</h2>
+        <span className="text-xs text-muted">{t("pending", { n: open.length })}</span>
       </div>
 
       {loading ? (
-        <div className="card p-8 text-center text-sm text-muted">Načítám schránku…</div>
+        <div className="card p-8 text-center text-sm text-muted">{t("loadingInbox")}</div>
       ) : (
         <ul className="grid gap-3 lg:grid-cols-2">
           {messages.map((m) => (
@@ -583,7 +687,7 @@ function Inbox() {
                 <span className="text-sm font-semibold text-navy-800">{m.author}</span>
                 <span className="flex items-center gap-1.5 text-xs text-muted">
                   <span className="pill bg-navy-50 text-muted">{SOCIAL_PLATFORM_LABELS[m.platform]}</span>
-                  {m.kind === "dm" ? "DM" : "komentář"}
+                  {m.kind === "dm" ? "DM" : t("comment")}
                 </span>
               </div>
               <p className="mt-2 text-sm text-navy-700">{m.text}</p>
@@ -592,7 +696,7 @@ function Inbox() {
                 <div className="mt-3 rounded-lg bg-positive-soft px-3 py-2 text-sm text-positive">
                   <span className="flex items-center gap-1.5 font-medium">
                     <Check width={14} height={14} />
-                    Odpovězeno
+                    {t("replied")}
                   </span>
                   <p className="mt-1 text-navy-700">{m.reply}</p>
                 </div>
@@ -605,7 +709,7 @@ function Inbox() {
                     className="w-full resize-y rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
                   />
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-[13px] text-muted">Návrh odpovědi — upravte a schvalte</span>
+                    <span className="text-[13px] text-muted">{t("replyHint")}</span>
                     <button
                       type="button"
                       onClick={() => send(m)}
@@ -613,7 +717,7 @@ function Inbox() {
                       className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                     >
                       <Share width={13} height={13} />
-                      {busy === m.id ? "Odesílám…" : "Schválit a odeslat"}
+                      {busy === m.id ? t("sending") : t("approveAndSend")}
                     </button>
                   </div>
                 </div>

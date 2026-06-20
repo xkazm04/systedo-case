@@ -3,9 +3,28 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bell, Check } from "@/components/icons";
-import { fmtRelative } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
+
+const T = {
+  cs: {
+    ariaLabel: "Upozornění",
+    ariaLabelUnread: "Upozornění ({n} nepřečtených)",
+    buttonLabel: "Upozornění",
+    heading: "Upozornění",
+    markRead: "Označit přečtené",
+    empty: "Žádná upozornění. Při synchronizaci vás upozorníme na nově kritické kampaně.",
+  },
+  en: {
+    ariaLabel: "Alerts",
+    ariaLabelUnread: "Alerts ({n} unread)",
+    buttonLabel: "Alerts",
+    heading: "Alerts",
+    markRead: "Mark all read",
+    empty: "No alerts. We'll notify you when newly critical campaigns are found during a sync.",
+  },
+} as const;
 
 /** Bell + dropdown showing the tenant's alert inbox (newly-critical campaigns
  *  surfaced by a sync, scheduled or manual). Reloads when `refreshKey` changes.
@@ -17,6 +36,8 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
+  const fmt = useFormatters();
+  const t = useT(T);
 
   const load = useCallback(async () => {
     try {
@@ -57,12 +78,12 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={`Upozornění${unread ? ` (${unread} nepřečtených)` : ""}`}
+        aria-label={unread ? t("ariaLabelUnread", { n: unread }) : t("ariaLabel")}
         aria-expanded={open}
         className="relative inline-flex items-center justify-center gap-2 rounded-pill border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
       >
         <Bell width={16} height={16} />
-        Upozornění
+        {t("buttonLabel")}
         {unread > 0 && (
           <span className="tnum grid h-5 min-w-5 place-items-center rounded-full bg-coral-500 px-1 text-[13px] font-bold text-white">
             {unread}
@@ -73,7 +94,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
       {open && (
         <div className="animate-drop absolute right-0 z-40 mt-2 w-80 max-w-[90vw] rounded-card border border-line bg-surface p-3 shadow-pop">
           <div className="flex items-center justify-between gap-2 px-1">
-            <h3 className="text-sm font-semibold text-navy-800">Upozornění</h3>
+            <h3 className="text-sm font-semibold text-navy-800">{t("heading")}</h3>
             {unread > 0 && (
               <button
                 type="button"
@@ -81,15 +102,13 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
                 className="inline-flex items-center gap-1 text-xs font-medium text-brand-accent hover:underline"
               >
                 <Check width={13} height={13} />
-                Označit přečtené
+                {t("markRead")}
               </button>
             )}
           </div>
 
           {alerts.length === 0 ? (
-            <p className="px-1 py-6 text-center text-sm text-muted">
-              Žádná upozornění. Při synchronizaci vás upozorníme na nově kritické kampaně.
-            </p>
+            <p className="px-1 py-6 text-center text-sm text-muted">{t("empty")}</p>
           ) : (
             <ul className="mt-2 max-h-80 space-y-1.5 overflow-y-auto">
               {alerts.map((a) => (
@@ -107,7 +126,7 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
                   </div>
                   <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
                   <time dateTime={a.createdAt} className="mt-1 block text-[13px] text-muted">
-                    {fmtRelative(a.createdAt)}
+                    {fmt.fmtRelative(a.createdAt)}
                   </time>
                 </li>
               ))}

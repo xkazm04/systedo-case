@@ -2,8 +2,29 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Close, Copy, Link as LinkIcon } from "@/components/icons";
-import { fmtDate } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
+
+const T = {
+  cs: {
+    heading: "Sdílené odkazy ({n})",
+    expired: "Vypršel",
+    validUntil: "platí do {date}",
+    views: "{n}× zobrazeno",
+    copied: "Zkopírováno",
+    copy: "Kopírovat",
+    revokeLabel: "Zrušit odkaz",
+  },
+  en: {
+    heading: "Shared links ({n})",
+    expired: "Expired",
+    validUntil: "valid until {date}",
+    views: "{n} views",
+    copied: "Copied",
+    copy: "Copy",
+    revokeLabel: "Revoke link",
+  },
+} as const;
 
 interface ShareRow {
   token: string;
@@ -25,6 +46,8 @@ export default function SharedReportsList({ refreshSignal }: { refreshSignal: nu
   const [rows, setRows] = useState<ShareRow[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const fmt = useFormatters();
+  const t = useT(T);
 
   const load = useCallback(async () => {
     try {
@@ -69,7 +92,7 @@ export default function SharedReportsList({ refreshSignal }: { refreshSignal: nu
     <div className="mt-4 rounded-card border border-line p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-navy-800">
         <LinkIcon width={15} height={15} className="text-brand-600" />
-        Sdílené odkazy ({rows.length})
+        {t("heading", { n: rows.length })}
       </h3>
       <ul className="mt-3 space-y-2">
         {rows.map((row) => (
@@ -88,11 +111,11 @@ export default function SharedReportsList({ refreshSignal }: { refreshSignal: nu
               </a>
               <span className="mt-0.5 block text-xs text-muted">
                 {row.expired ? (
-                  <span className="text-negative">Vypršel</span>
+                  <span className="text-negative">{t("expired")}</span>
                 ) : (
-                  <>platí do {fmtDate(row.expiresAt)}</>
+                  t("validUntil", { date: fmt.fmtDate(row.expiresAt) })
                 )}{" "}
-                · {row.views}× zobrazeno
+                · {t("views", { n: row.views })}
               </span>
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
@@ -103,13 +126,13 @@ export default function SharedReportsList({ refreshSignal }: { refreshSignal: nu
                 className="inline-flex items-center gap-1 rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-40"
               >
                 {copied === row.token ? <Check width={13} height={13} /> : <Copy width={13} height={13} />}
-                {copied === row.token ? "Zkopírováno" : "Kopírovat"}
+                {copied === row.token ? t("copied") : t("copy")}
               </button>
               <button
                 type="button"
                 onClick={() => revoke(row.token)}
                 disabled={busy === row.token}
-                aria-label="Zrušit odkaz"
+                aria-label={t("revokeLabel")}
                 className="grid h-7 w-7 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-coral-600 disabled:opacity-50"
               >
                 <Close width={14} height={14} />

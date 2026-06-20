@@ -9,12 +9,31 @@
 import { TrendDown, TrendUp } from "@/components/icons";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
 import { CAMPAIGN_PERIOD_LABELS, isCampaignPeriod } from "@/lib/campaigns/types";
-import { fmtDateTime, fmtRelative, fmtSignedInt } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    heading: "Vývoj skóre v čase",
+    deltaTip: "Změna oproti předchozímu vyhodnocení ({period}, {date})",
+    ariaLabel: "Vývoj skóre zdraví z {n} vyhodnocení, naposledy {score} ze 100",
+    footer: "{n} vyhodnocení",
+    footerScale: "skóre 0–100, čára 70 = zdravé",
+    footerLast: "poslední",
+  },
+  en: {
+    heading: "Score over time",
+    deltaTip: "Change vs. previous evaluation ({period}, {date})",
+    ariaLabel: "Health score trend across {n} evaluations, latest {score}/100",
+    footer: "{n} evaluations",
+    footerScale: "score 0–100, line at 70 = healthy",
+    footerLast: "latest",
+  },
+} as const;
 
 const W = 600;
 const H = 120;
 const PAD = { t: 12, r: 16, b: 12, l: 16 };
-const HEALTHY = 70; // ReportView treats a score ≥ 70 as "Zdravé"
+const HEALTHY = 70; // ReportView treats a score ≥ 70 as healthy
 
 const periodLabel = (p: string): string =>
   isCampaignPeriod(p) ? CAMPAIGN_PERIOD_LABELS[p] : p;
@@ -34,6 +53,9 @@ export default function ScoreTimeline({
   /** createdAt of the report this card shows — used to highlight its point */
   currentCreatedAt?: string;
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
   const n = history.length;
   // A single evaluation has no trend to show yet.
   if (n < 2) return null;
@@ -66,13 +88,11 @@ export default function ScoreTimeline({
   return (
     <section className="rounded-card border border-line bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold text-navy-800">Vývoj skóre v čase</h4>
+        <h4 className="text-sm font-semibold text-navy-800">{t("heading")}</h4>
         {delta != null && prev && (
           <span
             className={`pill ${tone.bg} ${tone.text}`}
-            title={`Změna oproti předchozímu vyhodnocení (${periodLabel(prev.period)}, ${fmtDateTime(
-              prev.createdAt
-            )})`}
+            title={t("deltaTip", { period: periodLabel(prev.period), date: fmt.fmtDateTime(prev.createdAt) })}
           >
             {delta > 0 ? (
               <TrendUp width={12} height={12} />
@@ -82,7 +102,7 @@ export default function ScoreTimeline({
             <span className="tnum">
               {prev.score} → {cur.score}
             </span>
-            <span className="tnum font-semibold">({fmtSignedInt(delta)})</span>
+            <span className="tnum font-semibold">({fmt.fmtSignedInt(delta)})</span>
           </span>
         )}
       </div>
@@ -91,7 +111,7 @@ export default function ScoreTimeline({
         viewBox={`0 0 ${W} ${H}`}
         className="mt-3 block h-auto w-full"
         role="img"
-        aria-label={`Vývoj skóre zdraví z ${n} vyhodnocení, naposledy ${cur.score} ze 100`}
+        aria-label={t("ariaLabel", { n, score: cur.score })}
       >
         {/* healthy reference line at 70 */}
         <line
@@ -124,19 +144,19 @@ export default function ScoreTimeline({
               stroke="var(--color-brand-600)"
               strokeWidth={2}
             >
-              <title>{`${p.score}/100 · ${periodLabel(p.period)} · ${fmtDateTime(p.createdAt)}`}</title>
+              <title>{`${p.score}/100 · ${periodLabel(p.period)} · ${fmt.fmtDateTime(p.createdAt)}`}</title>
             </circle>
           );
         })}
       </svg>
 
       <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-        <span>{n} vyhodnocení</span>
+        <span>{t("footer", { n })}</span>
         <span aria-hidden>·</span>
-        <span>skóre 0–100, čára 70 = zdravé</span>
+        <span>{t("footerScale")}</span>
         <span aria-hidden>·</span>
         <span>
-          poslední <time dateTime={cur.createdAt}>{fmtRelative(cur.createdAt)}</time>
+          {t("footerLast")} <time dateTime={cur.createdAt}>{fmt.fmtRelative(cur.createdAt)}</time>
         </span>
       </p>
     </section>

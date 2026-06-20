@@ -4,6 +4,7 @@ import { Container, Eyebrow } from "@/components/ui";
 import { ArrowRight, Gauge, Sparkles, Target } from "@/components/icons";
 import { buildSnapshot } from "@/lib/snapshot";
 import { fmtMultiple, fmtPct, fmtSignedPct, fmtCZKCompact } from "@/lib/format";
+import { getT } from "@/lib/i18n/server";
 
 /* ---------------------------------------------------------------------------
    Adamant — homepage (Monolith direction)
@@ -39,17 +40,34 @@ const FEATURES = [
   },
 ];
 
-export default function BrandLanding() {
+const T = {
+  cs: {
+    proofRoas: "ROAS portfolia",
+    proofPno: "PNO · cíl {goal}",
+    proofRevenue: "obrat připsaný marketingu",
+    proofRevenueDelta: "obrat vs. předchozí období",
+  },
+  en: {
+    proofRoas: "Portfolio ROAS",
+    proofPno: "PNO · target {goal}",
+    proofRevenue: "revenue attributed to marketing",
+    proofRevenueDelta: "revenue vs. prior period",
+  },
+} as const;
+
+export default async function BrandLanding() {
+  const t = await getT(T);
+
   // Quantified case-study results for the proof band — the exact numbers the
   // dashboard renders (illustrative data), so the homepage shows outcomes, not
   // just claims. Honest framing: it's the case-study account, not a customer
   // testimonial (there are no real customers to quote).
   const snap = buildSnapshot("90d");
   const proof = [
-    { value: fmtMultiple(snap.current.roas), label: "ROAS portfolia" },
-    { value: fmtPct(snap.current.pno), label: `PNO · cíl ${fmtPct(snap.goalPno, 0)}` },
-    { value: fmtCZKCompact(snap.current.revenue), label: "obrat připsaný marketingu" },
-    { value: fmtSignedPct(snap.delta.revenue), label: "obrat vs. předchozí období" },
+    { value: fmtMultiple(snap.current.roas), label: t("proofRoas") },
+    { value: fmtPct(snap.current.pno), label: t("proofPno", { goal: fmtPct(snap.goalPno, 0) }) },
+    { value: fmtCZKCompact(snap.current.revenue), label: t("proofRevenue") },
+    { value: fmtSignedPct(snap.delta.revenue), label: t("proofRevenueDelta") },
   ];
 
   return (

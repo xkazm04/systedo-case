@@ -4,20 +4,26 @@ import { useState } from "react";
 import Sparkline from "@/components/charts/Sparkline";
 import { TrendUp } from "@/components/icons";
 import type { DailyPoint } from "@/lib/campaigns/types";
-import { fmtCZKCompact, fmtDate, fmtMultiple } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    heading: "Vývoj výkonu v čase",
+    subheading: "Denní průběh portfolia za zvolené období · poslední den",
+    metaConvValue: "Hodnota konverzí",
+    metaCost: "Náklady",
+    metaRoas: "ROAS",
+  },
+  en: {
+    heading: "Performance trend over time",
+    subheading: "Daily portfolio for the selected period · last day",
+    metaConvValue: "Conversion value",
+    metaCost: "Cost",
+    metaRoas: "ROAS",
+  },
+} as const;
 
 type MetricKey = "conversionValue" | "cost" | "roas";
-
-const METRICS: {
-  key: MetricKey;
-  label: string;
-  good: "up" | "down";
-  fmt: (n: number) => string;
-}[] = [
-  { key: "conversionValue", label: "Hodnota konverzí", good: "up", fmt: fmtCZKCompact },
-  { key: "cost", label: "Náklady", good: "down", fmt: fmtCZKCompact },
-  { key: "roas", label: "ROAS", good: "up", fmt: fmtMultiple },
-];
 
 function valueOf(p: DailyPoint, key: MetricKey): number {
   if (key === "roas") return p.cost > 0 ? p.conversionValue / p.cost : 0;
@@ -28,8 +34,23 @@ function valueOf(p: DailyPoint, key: MetricKey): number {
  *  the date-segmented series. Switchable metric, dependency-free SVG sparkline.
  *  Renders nothing until at least two days exist. */
 export default function PortfolioTrend({ series }: { series: DailyPoint[] }) {
+  const fmt = useFormatters();
+  const t = useT(T);
   const [metric, setMetric] = useState<MetricKey>("conversionValue");
+
   if (series.length < 2) return null;
+
+  // Build metric definitions after hooks run so labels are locale-bound.
+  const METRICS: {
+    key: MetricKey;
+    label: string;
+    good: "up" | "down";
+    fmt: (n: number) => string;
+  }[] = [
+    { key: "conversionValue", label: t("metaConvValue"), good: "up", fmt: fmt.fmtCZKCompact },
+    { key: "cost", label: t("metaCost"), good: "down", fmt: fmt.fmtCZKCompact },
+    { key: "roas", label: "ROAS", good: "up", fmt: fmt.fmtMultiple },
+  ];
 
   const m = METRICS.find((x) => x.key === metric)!;
   const values = series.map((p) => valueOf(p, metric));
@@ -41,11 +62,10 @@ export default function PortfolioTrend({ series }: { series: DailyPoint[] }) {
         <div>
           <h2 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <TrendUp width={18} height={18} className="text-brand-600" />
-            Vývoj výkonu v čase
+            {t("heading")}
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Denní průběh portfolia za zvolené období · poslední den{" "}
-            <span className="tnum font-medium text-navy-700">{m.fmt(last)}</span>
+            {t("subheading")} <span className="tnum font-medium text-navy-700">{m.fmt(last)}</span>
           </p>
         </div>
         <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-pill border border-line bg-surface p-1">
@@ -82,8 +102,8 @@ export default function PortfolioTrend({ series }: { series: DailyPoint[] }) {
       />
 
       <p className="mt-2 flex items-center justify-between text-[13px] text-muted">
-        <span>{fmtDate(series[0]!.date)}</span>
-        <span>{fmtDate(series[series.length - 1]!.date)}</span>
+        <span>{fmt.fmtDate(series[0]!.date)}</span>
+        <span>{fmt.fmtDate(series[series.length - 1]!.date)}</span>
       </p>
     </section>
   );

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Download } from "@/components/icons";
-import { fmtInt } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { toCsv, downloadText } from "@/lib/export";
 import { CopyButton } from "./primitives";
 import {
@@ -13,6 +13,37 @@ import {
   type KeywordList,
   type KeywordTag,
 } from "@/lib/keywords/types";
+
+const T = {
+  cs: {
+    sectionHeading: "Uložené seznamy",
+    negativesHeading: "Vylučovací klíčová slova ({n})",
+    negativesBody: "Sjednocený seznam napříč seznamy — připravený k vložení do Google Ads jako vylučovací klíčová slova, aby se snížil zbytečný útrata.",
+    copyNegatives: "Kopírovat",
+    csvNegatives: "CSV",
+    csvFilename: "systedo-vylucovaci-slova.csv",
+    csvHeader: "Vylučovací klíčové slovo",
+    perMonth: "/měs",
+    sourceGoogleAds: "Google Ads",
+    sourceDemo: "ukázka",
+    sourceLabel: "{count} slov · zdroj {source}",
+    deleteListAriaLabel: "Smazat seznam {name}",
+  },
+  en: {
+    sectionHeading: "Saved lists",
+    negativesHeading: "Negative keywords ({n})",
+    negativesBody: "Unified list across all lists — ready to paste into Google Ads as negative keywords to cut wasted spend.",
+    copyNegatives: "Copy",
+    csvNegatives: "CSV",
+    csvFilename: "systedo-negative-keywords.csv",
+    csvHeader: "Negative keyword",
+    perMonth: "/mo",
+    sourceGoogleAds: "Google Ads",
+    sourceDemo: "sample",
+    sourceLabel: "{count} keywords · source {source}",
+    deleteListAriaLabel: "Delete list {name}",
+  },
+} as const;
 
 const TAG_ORDER: KeywordTag[] = ["core", "negative", "watch"];
 
@@ -27,6 +58,8 @@ const TAG_STYLE: Record<KeywordTag, string> = {
  *  into a returning workflow. Renders nothing for anonymous visitors (saving
  *  requires an account). Reloads when `refreshKey` changes. */
 export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }) {
+  const t = useT(T);
+  const fmt = useFormatters();
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -89,7 +122,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
   };
 
   const exportNegatives = () =>
-    downloadText("systedo-vylucovaci-slova.csv", toCsv(["Vylučovací klíčové slovo"], negatives.map((n) => [n])));
+    downloadText(t("csvFilename"), toCsv([t("csvHeader")], negatives.map((n) => [n])));
 
   if (status !== "authenticated" || (!lists.length && loaded)) return null;
   if (!loaded) return null;
@@ -98,7 +131,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
     <div className="mt-6 space-y-4">
       <div className="flex items-center gap-2">
         <Layers width={16} height={16} className="text-brand-accent" />
-        <h3 className="text-base font-semibold text-navy-800">Uložené seznamy</h3>
+        <h3 className="text-base font-semibold text-navy-800">{t("sectionHeading")}</h3>
         <span className="pill bg-navy-50 text-muted">{lists.length}</span>
       </div>
 
@@ -106,23 +139,22 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
         <div className="card border-negative/30 bg-negative-soft/40 p-4">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-negative">
-              Vylučovací klíčová slova ({negatives.length})
+              {t("negativesHeading", { n: negatives.length })}
             </p>
             <div className="flex items-center gap-2">
-              <CopyButton text={negatives.join("\n")} label="Kopírovat" />
+              <CopyButton text={negatives.join("\n")} label={t("copyNegatives")} />
               <button
                 type="button"
                 onClick={exportNegatives}
                 className="inline-flex items-center gap-1 text-xs font-medium text-negative hover:underline"
               >
                 <Download width={13} height={13} />
-                CSV
+                {t("csvNegatives")}
               </button>
             </div>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-muted">
-            Sjednocený seznam napříč seznamy — připravený k vložení do Google Ads jako vylučovací
-            klíčová slova, aby se snížil zbytečný útrata.
+            {t("negativesBody")}
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {negatives.map((n) => (
@@ -139,14 +171,16 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
               <div className="min-w-0">
                 <p className="truncate font-semibold text-navy-800">{list.name}</p>
                 <p className="mt-0.5 text-xs text-muted">
-                  {list.keywords.length} slov · zdroj{" "}
-                  {list.source === "google-ads" ? "Google Ads" : "ukázka"}
+                  {t("sourceLabel", {
+                    count: list.keywords.length,
+                    source: list.source === "google-ads" ? t("sourceGoogleAds") : t("sourceDemo"),
+                  })}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => remove(list.id)}
-                aria-label={`Smazat seznam ${list.name}`}
+                aria-label={t("deleteListAriaLabel", { name: list.name })}
                 className="shrink-0 rounded-full p-1 text-muted transition-colors hover:bg-negative-soft hover:text-negative"
               >
                 <Close width={15} height={15} />
@@ -162,22 +196,22 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
                   <span className="min-w-0">
                     <span className="truncate text-sm font-medium text-navy-800">{k.keyword}</span>
                     <span className="ml-2 text-xs text-muted">
-                      <span className="tnum">{fmtInt(k.avgMonthlySearches)}</span>/měs ·{" "}
+                      <span className="tnum">{fmt.fmtInt(k.avgMonthlySearches)}</span>{t("perMonth")} ·{" "}
                       {KEYWORD_INTENT_LABELS[k.intent]}
                     </span>
                   </span>
                   <span className="flex shrink-0 gap-1">
-                    {TAG_ORDER.map((t) => (
+                    {TAG_ORDER.map((tag) => (
                       <button
-                        key={t}
+                        key={tag}
                         type="button"
-                        onClick={() => retag(list.id, k.keyword, t)}
-                        aria-pressed={k.tag === t}
+                        onClick={() => retag(list.id, k.keyword, tag)}
+                        aria-pressed={k.tag === tag}
                         className={`rounded-pill border px-2.5 py-1 text-[13px] font-medium transition-colors ${
-                          k.tag === t ? TAG_STYLE[t] : "border-line text-muted hover:border-navy-200"
+                          k.tag === tag ? TAG_STYLE[tag] : "border-line text-muted hover:border-navy-200"
                         }`}
                       >
-                        {KEYWORD_TAG_LABELS[t]}
+                        {KEYWORD_TAG_LABELS[tag]}
                       </button>
                     ))}
                   </span>

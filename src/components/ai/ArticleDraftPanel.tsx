@@ -4,15 +4,55 @@ import { useState } from "react";
 import { Bolt, Document, Download } from "@/components/icons";
 import ArticleBody from "@/components/article/ArticleBody";
 import { downloadText } from "@/lib/export";
+import { useT } from "@/lib/i18n/client";
 import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/article";
 import type { ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import { useAiTool } from "./useAiTool";
 import { LoadingTimer, PromptDisclosure, ResultMeta, TimeoutState, ToolError } from "./primitives";
 
+const T = {
+  cs: {
+    panelHeading: "Rozepsat článek",
+    panelBody: "Z hotového briefu připravíme koncept článku — odstavce, nadpisy, seznamy, tip i závěrečnou výzvu — ve stejné struktuře jako publikovaný článek.",
+    regenerate: "Vygenerovat znovu",
+    generate: "Rozepsat článek",
+    previewTab: "Náhled",
+    jsonTab: "Article JSON",
+    downloadMdTitle: "Stáhnout koncept jako Markdown",
+    downloadMd: "Stáhnout .md",
+    downloadJsonTitle: "Stáhnout koncept jako Article JSON",
+    downloadJson: "Stáhnout .json",
+    faqHeading: "Časté dotazy",
+    articleAuthor: "Systedo · obsahový tým",
+    articleRole: "Koncept článku z AI briefu",
+    articleCategory: "Koncept",
+    mdFaqHeading: "## Časté dotazy (FAQ)",
+    calloutTip: "Tip",
+  },
+  en: {
+    panelHeading: "Expand to article",
+    panelBody: "From the finished brief we will prepare an article draft — paragraphs, headings, lists, a tip and a closing CTA — in the same structure as a published article.",
+    regenerate: "Regenerate",
+    generate: "Expand to article",
+    previewTab: "Preview",
+    jsonTab: "Article JSON",
+    downloadMdTitle: "Download draft as Markdown",
+    downloadMd: "Download .md",
+    downloadJsonTitle: "Download draft as Article JSON",
+    downloadJson: "Download .json",
+    faqHeading: "Frequently asked questions",
+    articleAuthor: "Systedo · content team",
+    articleRole: "Article draft from AI brief",
+    articleCategory: "Draft",
+    mdFaqHeading: "## Frequently asked questions (FAQ)",
+    calloutTip: "Tip",
+  },
+} as const;
+
 /** Serialize one Block into a Markdown fragment. Keeps the same subset the draft
  *  tool produces (p / h2 / h3 / ul / ol / callout / cta); links/bold inside an
  *  Inline[] collapse to plain text via inlineToText. */
-function blockToMarkdown(block: Block): string {
+function blockToMarkdown(block: Block, tipLabel: string): string {
   switch (block.type) {
     case "h2":
       return `## ${block.text}`;
@@ -25,7 +65,7 @@ function blockToMarkdown(block: Block): string {
     case "ol":
       return block.items.map((it, i) => `${i + 1}. ${inlineToText(it)}`).join("\n");
     case "callout":
-      return [`> **${block.title ?? "Tip"}**`, `> ${inlineToText(block.content)}`].join("\n");
+      return [`> **${block.title ?? tipLabel}**`, `> ${inlineToText(block.content)}`].join("\n");
     case "cta":
       return `> **${block.text}** — [${block.cta}](${block.href})`;
     case "quote":
@@ -40,15 +80,15 @@ function blockToMarkdown(block: Block): string {
 }
 
 /** Build the full draft Markdown document from the brief metadata + draft body. */
-function draftToMarkdown(brief: BriefResult, draft: ArticleDraftResult): string {
+function draftToMarkdown(brief: BriefResult, draft: ArticleDraftResult, tipLabel: string, faqHeading: string): string {
   const lines: string[] = [`# ${brief.h1 || brief.titleTag}`, ""];
   if (brief.metaDescription) lines.push(`_${brief.metaDescription}_`, "");
   for (const block of draft.blocks) {
-    const md = blockToMarkdown(block);
+    const md = blockToMarkdown(block, tipLabel);
     if (md) lines.push(md, "");
   }
   if (draft.faq.length > 0) {
-    lines.push("## Časté dotazy (FAQ)", "");
+    lines.push(faqHeading, "");
     for (const f of draft.faq) lines.push(`**${f.q}**`, "", inlineToText(f.a), "");
   }
   return lines.join("\n").trimEnd() + "\n";
@@ -56,16 +96,16 @@ function draftToMarkdown(brief: BriefResult, draft: ArticleDraftResult): string 
 
 /** Assemble a publish-ready Article (same shape as src/data/article.json) so the
  *  draft can be exported as the app's headless content JSON. */
-function draftToArticle(brief: BriefResult, draft: ArticleDraftResult): Article {
+function draftToArticle(brief: BriefResult, draft: ArticleDraftResult, author: string, role: string, category: string): Article {
   return {
     meta: {
       title: brief.h1 || brief.titleTag,
       perex: brief.metaDescription,
-      author: "Systedo · obsahový tým",
-      role: "Koncept článku z AI briefu",
+      author,
+      role,
       dateISO: new Date().toISOString().slice(0, 10),
       readingMinutes: Math.max(1, Math.round(draft.blocks.length / 3)),
-      category: "Koncept",
+      category,
       tags: brief.keywords.slice(0, 6),
     },
     blocks: draft.blocks,
@@ -74,12 +114,12 @@ function draftToArticle(brief: BriefResult, draft: ArticleDraftResult): Article 
 }
 
 /** Inline FAQ list, mirroring the /clanek FAQ accordion styling. */
-function DraftFaq({ faq }: { faq: FaqItem[] }) {
+function DraftFaq({ faq, heading }: { faq: FaqItem[]; heading: string }) {
   if (faq.length === 0) return null;
   return (
     <section className="mt-10" aria-labelledby="draft-faq-heading">
       <h2 id="draft-faq-heading" className="text-xl font-semibold tracking-tight text-navy-800">
-        Časté dotazy
+        {heading}
       </h2>
       <div className="mt-4 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
         {faq.map((f, i) => (
@@ -98,10 +138,11 @@ function DraftFaq({ faq }: { faq: FaqItem[] }) {
   );
 }
 
-/** "Rozepsat článek" — turns a finished brief into a near-publishable draft as the
+/** "Expand to article" — turns a finished brief into a near-publishable draft as the
  *  app's typed Block[] + FAQ, rendered through the same ArticleBody as /clanek and
  *  exportable as Markdown or article JSON. */
 export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
+  const t = useT(T);
   const { status, data, error, timedOut, run, reset } = useAiTool<ArticleDraftResult>("article-draft");
   const [preview, setPreview] = useState<"preview" | "json">("preview");
 
@@ -125,7 +166,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
     if (!draft) return;
     downloadText(
       `systedo-clanek-${slug}.md`,
-      draftToMarkdown(brief, draft),
+      draftToMarkdown(brief, draft, t("calloutTip"), t("mdFaqHeading")),
       "text/markdown;charset=utf-8"
     );
   };
@@ -134,7 +175,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
     if (!draft) return;
     downloadText(
       `systedo-clanek-${slug}.json`,
-      JSON.stringify(draftToArticle(brief, draft), null, 2),
+      JSON.stringify(draftToArticle(brief, draft, t("articleAuthor"), t("articleRole"), t("articleCategory")), null, 2),
       "application/json;charset=utf-8"
     );
   };
@@ -143,10 +184,9 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
     <div className="card space-y-5 p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-navy-800">Rozepsat článek</h3>
+          <h3 className="text-base font-semibold text-navy-800">{t("panelHeading")}</h3>
           <p className="mt-0.5 text-sm text-muted">
-            Z hotového briefu připravíme koncept článku — odstavce, nadpisy, seznamy, tip i závěrečnou
-            výzvu — ve stejné struktuře jako publikovaný článek.
+            {t("panelBody")}
           </p>
         </div>
         {status !== "loading" && (
@@ -158,12 +198,12 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
             {status === "done" ? (
               <>
                 <Document width={16} height={16} />
-                Vygenerovat znovu
+                {t("regenerate")}
               </>
             ) : (
               <>
                 <Bolt width={16} height={16} />
-                Rozepsat článek
+                {t("generate")}
               </>
             )}
           </button>
@@ -194,7 +234,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
                     preview === v ? "bg-onyx text-white" : "text-muted hover:text-navy-700"
                   }`}
                 >
-                  {v === "preview" ? "Náhled" : "Article JSON"}
+                  {v === "preview" ? t("previewTab") : t("jsonTab")}
                 </button>
               ))}
             </div>
@@ -202,20 +242,20 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
               <button
                 type="button"
                 onClick={exportMarkdown}
-                title="Stáhnout koncept jako Markdown"
+                title={t("downloadMdTitle")}
                 className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
               >
                 <Download width={14} height={14} />
-                Stáhnout .md
+                {t("downloadMd")}
               </button>
               <button
                 type="button"
                 onClick={exportJson}
-                title="Stáhnout koncept jako Article JSON"
+                title={t("downloadJsonTitle")}
                 className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
               >
                 <Download width={14} height={14} />
-                Stáhnout .json
+                {t("downloadJson")}
               </button>
             </div>
           </div>
@@ -231,11 +271,11 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
               <div className="mt-8">
                 <ArticleBody blocks={draft.blocks} />
               </div>
-              <DraftFaq faq={draft.faq} />
+              <DraftFaq faq={draft.faq} heading={t("faqHeading")} />
             </article>
           ) : (
             <pre className="max-h-[32rem] overflow-auto rounded-card border border-line bg-onyx px-5 py-4 font-mono text-xs leading-relaxed text-onyx-ink">
-              {JSON.stringify(draftToArticle(brief, draft), null, 2)}
+              {JSON.stringify(draftToArticle(brief, draft, t("articleAuthor"), t("articleRole"), t("articleCategory")), null, 2)}
             </pre>
           )}
 

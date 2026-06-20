@@ -25,9 +25,80 @@ import {
   type Severity,
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import ReportView from "./ReportView";
 import TriageBanner from "./TriageBanner";
+
+const T = {
+  cs: {
+    sortTitle: "Seřadit podle „{col}“",
+    searchPlaceholder: "Hledat kampaň…",
+    searchAriaLabel: "Hledat kampaň podle názvu",
+    filterTypeAriaLabel: "Filtrovat podle typu kampaně",
+    filterTypeAll: "Všechny typy",
+    filterStatusAriaLabel: "Filtrovat podle stavu kampaně",
+    filterStatusAll: "Všechny stavy",
+    attentionButton: "Vyžaduje pozornost",
+    attentionTitle: "Zobrazit jen kampaně, které porušují některé z pravidel triáže",
+    clearFilters: "Zrušit filtry",
+    countFiltered: "{shown} z {total}",
+    countAll: "{n} kampaní",
+    colAiReport: "AI report",
+    emptyNoMatch: "Žádná kampaň neodpovídá zadanému filtru.",
+    okLabel: "V pořádku",
+    okTitle: "Plní cíl",
+    analyzePriorityTitle: "Doporučeno vyhodnotit prioritně",
+    analyzing: "Analyzuji…",
+    analyze: "Analyzovat",
+    evaluatingCampaign: "Vyhodnocuji kampaň „{name}“…",
+    retryButton: "Zkusit znovu",
+    evalHeading: "AI vyhodnocení — {name}",
+    reanalyze: "Přeanalyzovat",
+    colPriority: "Priorita",
+    colCampaign: "Kampaň",
+    colCost: "Náklady",
+    colConversions: "Konverze",
+    colConvValue: "Hodnota konv.",
+    colRoas: "ROAS",
+    colPno: "PNO",
+    reportShow: "report",
+    reportHide: "skrýt",
+  },
+  en: {
+    sortTitle: "Sort by “{col}”",
+    searchPlaceholder: "Search campaign…",
+    searchAriaLabel: "Search campaign by name",
+    filterTypeAriaLabel: "Filter by campaign type",
+    filterTypeAll: "All types",
+    filterStatusAriaLabel: "Filter by campaign status",
+    filterStatusAll: "All statuses",
+    attentionButton: "Needs attention",
+    attentionTitle: "Show only campaigns that breach a triage rule",
+    clearFilters: "Clear filters",
+    countFiltered: "{shown} of {total}",
+    countAll: "{n} campaigns",
+    colAiReport: "AI report",
+    emptyNoMatch: "No campaign matches the active filter.",
+    okLabel: "On target",
+    okTitle: "Meeting goal",
+    analyzePriorityTitle: "Recommended to evaluate first",
+    analyzing: "Analysing…",
+    analyze: "Analyse",
+    evaluatingCampaign: "Evaluating campaign “{name}”…",
+    retryButton: "Retry",
+    evalHeading: "AI evaluation — {name}",
+    reanalyze: "Re-analyse",
+    colPriority: "Priority",
+    colCampaign: "Campaign",
+    colCost: "Cost",
+    colConversions: "Conversions",
+    colConvValue: "Conv. value",
+    colRoas: "ROAS",
+    colPno: "PNO",
+    reportShow: "report",
+    reportHide: "hide",
+  },
+} as const;
 
 /** Per-metric cell colour, driven by the shared triage thresholds so the ROAS /
  *  PNO cells, the row badge and the banner can never disagree. */
@@ -61,22 +132,11 @@ interface SortState {
   dir: SortDir;
 }
 
-/** Columns the user can sort by, in render order. The AI-report column is not
- *  sortable. `name` sorts text (Czech collation), `severity` by triage rank then
- *  spend; everything else is numeric. */
-const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
-  { key: "severity", label: "Priorita", align: "left" },
-  { key: "name", label: "Kampaň", align: "left" },
-  { key: "cost", label: "Náklady", align: "right" },
-  { key: "conversions", label: "Konverze", align: "right" },
-  { key: "conversionValue", label: "Hodnota konv.", align: "right" },
-  { key: "cpa", label: "CPA", align: "right" },
-  { key: "roas", label: "ROAS", align: "right" },
-  { key: "pno", label: "PNO", align: "right" },
-];
-const SORT_KEYS = SORT_COLUMNS.map((c) => c.key);
+/** SortKey array used for validation when restoring sort from localStorage. */
+const SORT_KEYS: SortKey[] = ["severity", "name", "cost", "conversions", "conversionValue", "cpa", "roas", "pno"];
 /** Sortable columns + the (unsortable) AI-report column — drives empty-state colspan. */
-const COLS = SORT_COLUMNS.length + 1;
+/** Sortable columns + the (unsortable) AI-report column — drives empty-state colspan. */
+const COLS = SORT_KEYS.length + 1;
 
 const SORT_STORAGE_KEY = "campaigns.table.sort";
 /** Persisted default: highest spend first — the lens a PPC manager reaches for. */
@@ -97,14 +157,18 @@ function loadSort(): SortState {
   return DEFAULT_SORT;
 }
 
+type TFnType = ReturnType<typeof useT<keyof typeof T.cs>>;
+
 function SortHeader({
   col,
   sort,
   onSort,
+  t,
 }: {
   col: { key: SortKey; label: string; align: "left" | "right" };
   sort: SortState;
   onSort: (key: SortKey) => void;
+  t: TFnType;
 }) {
   const active = sort.key === col.key;
   const right = col.align === "right";
@@ -116,7 +180,7 @@ function SortHeader({
       <button
         type="button"
         onClick={() => onSort(col.key)}
-        title={`Seřadit podle „${col.label}“`}
+        title={t("sortTitle", { col: col.label })}
         className={`group -my-1 inline-flex items-center gap-1 py-1 uppercase tracking-wide transition-colors hover:text-navy-700 ${
           right ? "flex-row-reverse" : ""
         } ${active ? "text-navy-700" : ""}`}
@@ -160,6 +224,21 @@ export default function CampaignTable({
   changesById: Record<string, CampaignChange>;
   onAnalyze: (campaignId: string) => void;
 }) {
+  const fmt = useFormatters();
+  const t = useT(T);
+
+  // Build translated column definitions after hooks run.
+  const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
+    { key: "severity", label: t("colPriority"), align: "left" },
+    { key: "name", label: t("colCampaign"), align: "left" },
+    { key: "cost", label: t("colCost"), align: "right" },
+    { key: "conversions", label: t("colConversions"), align: "right" },
+    { key: "conversionValue", label: t("colConvValue"), align: "right" },
+    { key: "cpa", label: "CPA", align: "right" },
+    { key: "roas", label: "ROAS", align: "right" },
+    { key: "pno", label: "PNO", align: "right" },
+  ];
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sort, setSort] = useState<SortState>(loadSort);
   const [query, setQuery] = useState("");
@@ -207,18 +286,18 @@ export default function CampaignTable({
   // Each row carries its triage result so the badge, the filter and the sort all
   // read the same classification.
   const view = all
-    .map((c) => ({ c, t: triage(c, changesById[c.id]) }))
-    .filter(({ c, t }) => {
+    .map((c) => ({ c, tr: triage(c, changesById[c.id]) }))
+    .filter(({ c, tr }) => {
       if (typeFilter !== "all" && c.type !== typeFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (attentionOnly && t.severity === "ok") return false;
+      if (attentionOnly && tr.severity === "ok") return false;
       if (q && !c.name.toLowerCase().includes(q)) return false;
       return true;
     });
   view.sort((a, b) => {
     let cmp: number;
     if (sort.key === "severity") {
-      cmp = SEVERITY_RANK[a.t.severity] - SEVERITY_RANK[b.t.severity];
+      cmp = SEVERITY_RANK[a.tr.severity] - SEVERITY_RANK[b.tr.severity];
       if (cmp === 0) cmp = a.c.cost - b.c.cost; // tie-break: bigger spend first
     } else if (sort.key === "name") {
       cmp = a.c.name.localeCompare(b.c.name, "cs");
@@ -248,8 +327,8 @@ export default function CampaignTable({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Hledat kampaň…"
-            aria-label="Hledat kampaň podle názvu"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchAriaLabel")}
             className="w-full rounded-lg border border-line bg-surface py-2 pl-9 pr-3 text-sm text-navy-800 transition-colors placeholder:text-muted hover:border-navy-200"
           />
         </div>
@@ -257,13 +336,13 @@ export default function CampaignTable({
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as CampaignType | "all")}
-          aria-label="Filtrovat podle typu kampaně"
+          aria-label={t("filterTypeAriaLabel")}
           className={FILTER_FIELD}
         >
-          <option value="all">Všechny typy</option>
-          {CAMPAIGN_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {CAMPAIGN_TYPE_LABELS[t]}
+          <option value="all">{t("filterTypeAll")}</option>
+          {CAMPAIGN_TYPES.map((tp) => (
+            <option key={tp} value={tp}>
+              {CAMPAIGN_TYPE_LABELS[tp]}
             </option>
           ))}
         </select>
@@ -271,10 +350,10 @@ export default function CampaignTable({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as CampaignStatus | "all")}
-          aria-label="Filtrovat podle stavu kampaně"
+          aria-label={t("filterStatusAriaLabel")}
           className={FILTER_FIELD}
         >
-          <option value="all">Všechny stavy</option>
+          <option value="all">{t("filterStatusAll")}</option>
           {CAMPAIGN_STATUSES.map((s) => (
             <option key={s} value={s}>
               {CAMPAIGN_STATUS_LABELS[s]}
@@ -286,7 +365,7 @@ export default function CampaignTable({
           type="button"
           onClick={() => setAttentionOnly((v) => !v)}
           aria-pressed={attentionOnly}
-          title="Zobrazit jen kampaně, které porušují některé z pravidel triáže"
+          title={t("attentionTitle")}
           className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
             attentionOnly
               ? "border-coral-400/50 bg-coral-soft text-coral-600"
@@ -294,7 +373,7 @@ export default function CampaignTable({
           }`}
         >
           <TrendDown width={15} height={15} />
-          Vyžaduje pozornost
+          {t("attentionButton")}
           <span
             className={`tnum rounded-full px-1.5 text-xs ${
               attentionOnly ? "bg-coral-600/15" : "bg-navy-50 text-muted"
@@ -311,11 +390,13 @@ export default function CampaignTable({
               onClick={resetFilters}
               className="text-xs font-medium text-brand-accent hover:underline"
             >
-              Zrušit filtry
+              {t("clearFilters")}
             </button>
           )}
           <span className="tnum whitespace-nowrap text-xs text-muted">
-            {filtersActive ? `${view.length} z ${all.length}` : `${all.length} kampaní`}
+            {filtersActive
+              ? t("countFiltered", { shown: view.length, total: all.length })
+              : t("countAll", { n: all.length })}
           </span>
         </div>
       </div>
@@ -325,47 +406,47 @@ export default function CampaignTable({
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               {SORT_COLUMNS.map((col) => (
-                <SortHeader key={col.key} col={col} sort={sort} onSort={onSort} />
+                <SortHeader key={col.key} col={col} sort={sort} onSort={onSort} t={t} />
               ))}
-              <th className="px-5 py-3 text-right font-semibold">AI report</th>
+              <th className="px-5 py-3 text-right font-semibold">{t("colAiReport")}</th>
             </tr>
           </thead>
           <tbody>
             {view.length === 0 && (
               <tr>
                 <td colSpan={COLS} className="px-5 py-12 text-center">
-                  <p className="text-sm text-muted">Žádná kampaň neodpovídá zadanému filtru.</p>
+                  <p className="text-sm text-muted">{t("emptyNoMatch")}</p>
                   <button
                     type="button"
                     onClick={resetFilters}
                     className="mt-2 text-sm font-medium text-brand-accent hover:underline"
                   >
-                    Zrušit filtry
+                    {t("clearFilters")}
                   </button>
                 </td>
               </tr>
             )}
-            {view.map(({ c, t }) => {
+            {view.map(({ c, tr: triageResult }) => {
               const report = reports[c.id];
               const isAnalyzing = Boolean(analyzing[c.id]);
               const err = analyzeErrors[c.id];
               const isOpen = Boolean(expanded[c.id]);
-              const needsAttention = t.severity !== "ok";
+              const needsAttention = triageResult.severity !== "ok";
               return (
                 <Fragment key={c.id}>
                   <tr className="border-b border-line/70 hover:bg-canvas/60">
                     <td className="px-5 py-3 align-top">
-                      {t.severity === "ok" ? (
-                        <span className="text-muted" title="Plní cíl" aria-label="V pořádku">
+                      {triageResult.severity === "ok" ? (
+                        <span className="text-muted" title={t("okTitle")} aria-label={t("okLabel")}>
                           —
                         </span>
                       ) : (
                         <span
-                          className={`pill ${SEVERITY_BADGE[t.severity]}`}
-                          title={t.reasons.map((r) => `${r.label}: ${r.detail}`).join("\n")}
+                          className={`pill ${SEVERITY_BADGE[triageResult.severity]}`}
+                          title={triageResult.reasons.map((r) => `${r.label}: ${r.detail}`).join("\n")}
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {SEVERITY_LABELS[t.severity]}
+                          {SEVERITY_LABELS[triageResult.severity]}
                         </span>
                       )}
                     </td>
@@ -389,17 +470,17 @@ export default function CampaignTable({
                         </span>
                       </div>
                     </td>
-                    <td className="tnum px-3 py-3 text-right text-navy-700">{fmtCZK(c.cost)}</td>
-                    <td className="tnum px-3 py-3 text-right text-navy-700">{fmtInt(c.conversions)}</td>
-                    <td className="tnum px-3 py-3 text-right font-medium text-navy-800">{fmtCZK(c.conversionValue)}</td>
+                    <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(c.cost)}</td>
+                    <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtInt(c.conversions)}</td>
+                    <td className="tnum px-3 py-3 text-right font-medium text-navy-800">{fmt.fmtCZK(c.conversionValue)}</td>
                     <td className="tnum px-3 py-3 text-right text-navy-700">
-                      {c.conversions > 0 ? fmtCZK(c.cpa) : "—"}
+                      {c.conversions > 0 ? fmt.fmtCZK(c.cpa) : "—"}
                     </td>
                     <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[roasMetricTone(c.roas)]}`}>
-                      {c.roas > 0 ? fmtMultiple(c.roas) : "—"}
+                      {c.roas > 0 ? fmt.fmtMultiple(c.roas) : "—"}
                     </td>
                     <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[pnoMetricTone(c.pno)]}`}>
-                      {c.pno > 0 ? fmtPct(c.pno) : "—"}
+                      {c.pno > 0 ? fmt.fmtPct(c.pno) : "—"}
                     </td>
                     <td className="px-5 py-3 text-right">
                       {report ? (
@@ -410,7 +491,7 @@ export default function CampaignTable({
                           aria-expanded={isOpen}
                         >
                           <span className="tnum font-semibold text-brand-accent">{report.result.score}</span>
-                          {isOpen ? "skrýt" : "report"}
+                          {isOpen ? t("reportHide") : t("reportShow")}
                           <ChevronDown
                             width={14}
                             height={14}
@@ -422,18 +503,18 @@ export default function CampaignTable({
                           type="button"
                           onClick={() => analyze(c.id)}
                           disabled={isAnalyzing}
-                          title={needsAttention ? "Doporučeno vyhodnotit prioritně" : undefined}
+                          title={needsAttention ? t("analyzePriorityTitle") : undefined}
                           className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isAnalyzing ? (
                             <>
                               <Gauge width={14} height={14} className="animate-pulse" />
-                              Analyzuji…
+                              {t("analyzing")}
                             </>
                           ) : (
                             <>
                               <Bolt width={14} height={14} />
-                              Analyzovat
+                              {t("analyze")}
                             </>
                           )}
                         </button>
@@ -447,7 +528,7 @@ export default function CampaignTable({
                         {isAnalyzing && !report ? (
                           <div className="flex items-center gap-3 text-sm text-muted">
                             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
-                            Vyhodnocuji kampaň „{c.name}“…
+                            {t("evaluatingCampaign", { name: c.name })}
                           </div>
                         ) : err ? (
                           <div className="flex flex-wrap items-center gap-3">
@@ -457,7 +538,7 @@ export default function CampaignTable({
                               onClick={() => analyze(c.id)}
                               className="rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 hover:border-brand-300"
                             >
-                              Zkusit znovu
+                              {t("retryButton")}
                             </button>
                           </div>
                         ) : report ? (
@@ -465,7 +546,7 @@ export default function CampaignTable({
                             <div className="mb-4 flex items-center justify-between gap-3">
                               <h3 className="flex items-center gap-2 text-sm font-semibold text-navy-800">
                                 <Sparkles width={16} height={16} className="text-brand-600" />
-                                AI vyhodnocení — {c.name}
+                                {t("evalHeading", { name: c.name })}
                               </h3>
                               <button
                                 type="button"
@@ -474,7 +555,7 @@ export default function CampaignTable({
                                 className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
                               >
                                 <Bolt width={13} height={13} />
-                                {isAnalyzing ? "Analyzuji…" : "Přeanalyzovat"}
+                                {isAnalyzing ? t("analyzing") : t("reanalyze")}
                               </button>
                             </div>
                             <ReportView report={report} history={histories[c.id]} cached={cached[c.id]} />

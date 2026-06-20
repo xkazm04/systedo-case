@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { ArrowRight, Bolt, Check, Gauge, Network, Search } from "@/components/icons";
-import { fmtCZK, fmtInt } from "@/lib/format";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import type {
   BriefKeyword,
   KeywordCluster,
@@ -27,6 +27,87 @@ import {
   ToolError,
   inputClass,
 } from "./primitives";
+
+const T = {
+  cs: {
+    formHeading: "Téma k prozkoumání",
+    fillExample: "Vyplnit ukázku",
+    fieldSeed: "Klíčové slovo / téma",
+    fieldUrl: "Cílová URL (volitelné)",
+    submitSearching: "Hledám…",
+    submitSearch: "Najít klíčová slova",
+    footerNote: "Reálná hledanost a konkurence z Google Ads Keyword Planneru u připojeného účtu; jinak realistická ukázková data. „Příležitost“ kombinuje vysokou hledanost s nízkou konkurencí.",
+    emptyTitle: "Výzkum klíčových slov se zobrazí tady",
+    emptyBody: "Zadejte téma. Nástroj najde související dotazy s hledaností, konkurencí a CPC, seřadí je podle příležitosti a předá výběr do obsahového briefu.",
+    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Najít klíčová slova.",
+    loadingLabel: "Sestavuji návrhy klíčových slov…",
+    errorDefault: "Něco se pokazilo.",
+    errorConnect: "Nepodařilo se spojit se serverem.",
+    resultsBadge: "{n} návrhů",
+    sourceLive: "Google Ads · živá data",
+    sourceDemo: "Ukázková data",
+    selectedCount: "{n} vybráno",
+    clusterButton: "Seskupit do klastrů",
+    clusteringButton: "Seskupuji…",
+    clusterTitleHoverSelected: "Seskupit vybraná slova do tematických klastrů",
+    clusterTitleHoverAll: "Seskupit všechna slova do tematických klastrů",
+    saveList: "Uložit seznam",
+    saving: "Ukládám…",
+    saved: "Uloženo",
+    clustersHeading: "Tematické klastry ({n})",
+    clustersIntro: "Každý klastr je připravená struktura obsahu: jedna pilířová stránka a k ní podpůrné podstránky. Tlačítkem „Vytvořit brief“ pošlete pilíř i podpůrná slova rovnou do obsahového briefu.",
+    filterAll: "Vše",
+    briefFromSelection: "Vytvořit brief z výběru ({n})",
+    briefFromTop: "Vytvořit brief z TOP slov",
+    perMonth: "/měs",
+    competition: "konkurence",
+    cpc: "CPC",
+    opportunity: "Příležitost",
+    clusterPillarLabel: "Pilíř",
+    clusterSupportingLabel: "Podpůrná slova ({n})",
+    clusterCreateBrief: "Vytvořit brief",
+    clusterVolumeHint: "{n}/měs",
+  },
+  en: {
+    formHeading: "Topic to research",
+    fillExample: "Fill example",
+    fieldSeed: "Keyword / topic",
+    fieldUrl: "Target URL (optional)",
+    submitSearching: "Searching…",
+    submitSearch: "Find keywords",
+    footerNote: "Real search volume and competition from Google Ads Keyword Planner when connected; otherwise realistic sample data. “Opportunity” combines high volume with low competition.",
+    emptyTitle: "Keyword research will appear here",
+    emptyBody: "Enter a topic. The tool finds related queries with search volume, competition and CPC, ranks them by opportunity and passes your selection to the content brief.",
+    emptyHint: "Tip: try “Fill example” and click Find keywords.",
+    loadingLabel: "Building keyword suggestions…",
+    errorDefault: "Something went wrong.",
+    errorConnect: "Could not connect to the server.",
+    resultsBadge: "{n} suggestions",
+    sourceLive: "Google Ads · live data",
+    sourceDemo: "Sample data",
+    selectedCount: "{n} selected",
+    clusterButton: "Cluster into topics",
+    clusteringButton: "Clustering…",
+    clusterTitleHoverSelected: "Cluster selected keywords into topic groups",
+    clusterTitleHoverAll: "Cluster all keywords into topic groups",
+    saveList: "Save list",
+    saving: "Saving…",
+    saved: "Saved",
+    clustersHeading: "Topic clusters ({n})",
+    clustersIntro: "Each cluster is a ready-made content structure: one pillar page with supporting sub-pages. Click “Create brief” to pass the pillar and supporting keywords straight to the content brief.",
+    filterAll: "All",
+    briefFromSelection: "Create brief from selection ({n})",
+    briefFromTop: "Create brief from TOP keywords",
+    perMonth: "/mo",
+    competition: "competition",
+    cpc: "CPC",
+    opportunity: "Opportunity",
+    clusterPillarLabel: "Pillar",
+    clusterSupportingLabel: "Supporting keywords ({n})",
+    clusterCreateBrief: "Create brief",
+    clusterVolumeHint: "{n}/mo",
+  },
+} as const;
 
 type Status = "idle" | "loading" | "done" | "error";
 type IntentFilter = "all" | KeywordIntent;
@@ -54,6 +135,8 @@ export default function KeywordResearch({
   onCreateBrief: (seed: BriefSeed) => void;
   onSaved?: () => void;
 }) {
+  const t = useT(T);
+  const fmt = useFormatters();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -88,14 +171,14 @@ export default function KeywordResearch({
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Něco se pokazilo.");
+        setError(json?.error ?? t("errorDefault"));
         setStatus("error");
         return;
       }
       setResult(json as KeywordResult);
       setStatus("done");
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      setError(t("errorConnect"));
       setStatus("error");
     }
   }
@@ -209,7 +292,7 @@ export default function KeywordResearch({
     <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
       <form onSubmit={run} className="card space-y-5 p-6 lg:sticky lg:top-24">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-navy-800">Téma k prozkoumání</h2>
+          <h2 className="text-base font-semibold text-navy-800">{t("formHeading")}</h2>
           <button
             type="button"
             onClick={() => {
@@ -218,11 +301,11 @@ export default function KeywordResearch({
             }}
             className="text-xs font-semibold text-brand-accent hover:text-brand-800"
           >
-            Vyplnit ukázku
+            {t("fillExample")}
           </button>
         </div>
 
-        <Field label="Klíčové slovo / téma" htmlFor="kw-seed">
+        <Field label={t("fieldSeed")} htmlFor="kw-seed">
           <input
             id="kw-seed"
             type="text"
@@ -233,7 +316,7 @@ export default function KeywordResearch({
           />
         </Field>
 
-        <Field label="Cílová URL (volitelné)" htmlFor="kw-url">
+        <Field label={t("fieldUrl")} htmlFor="kw-url">
           <input
             id="kw-url"
             type="text"
@@ -252,19 +335,18 @@ export default function KeywordResearch({
           {status === "loading" ? (
             <>
               <Gauge width={17} height={17} className="animate-pulse" />
-              Hledám…
+              {t("submitSearching")}
             </>
           ) : (
             <>
               <Search width={17} height={17} />
-              Najít klíčová slova
+              {t("submitSearch")}
             </>
           )}
         </button>
 
         <p className="text-xs leading-relaxed text-muted">
-          Reálná hledanost a konkurence z Google Ads Keyword Planneru u připojeného účtu; jinak
-          realistická ukázková data. „Příležitost“ kombinuje vysokou hledanost s nízkou konkurencí.
+          {t("footerNote")}
         </p>
       </form>
 
@@ -272,15 +354,15 @@ export default function KeywordResearch({
         {status === "idle" && (
           <ToolEmpty
             icon={Search}
-            title="Výzkum klíčových slov se zobrazí tady"
-            body="Zadejte téma. Nástroj najde související dotazy s hledaností, konkurencí a CPC, seřadí je podle příležitosti a předá výběr do obsahového briefu."
-            hint="Tip: zkuste „Vyplnit ukázku“ a klikněte na Najít klíčová slova."
+            title={t("emptyTitle")}
+            body={t("emptyBody")}
+            hint={t("emptyHint")}
           />
         )}
         {status === "loading" && (
           <div className="card flex animate-fade-in items-center justify-center gap-3 p-12 text-sm text-muted">
             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
-            Sestavuji návrhy klíčových slov…
+            {t("loadingLabel")}
           </div>
         )}
         {status === "error" && <ToolError message={error ?? ""} onRetry={() => setStatus("idle")} />}
@@ -289,18 +371,18 @@ export default function KeywordResearch({
           <div className="animate-fade-up space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="pill bg-navy-50 text-navy-700">{result.ideas.length} návrhů</span>
+                <span className="pill bg-navy-50 text-navy-700">{t("resultsBadge", { n: result.ideas.length })}</span>
                 <span
                   className={`pill ${
                     result.source === "google-ads" ? "bg-positive-soft text-positive" : "bg-coral-soft text-coral-600"
                   }`}
                 >
-                  {result.source === "google-ads" ? "Google Ads · živá data" : "Ukázková data"}
+                  {result.source === "google-ads" ? t("sourceLive") : t("sourceDemo")}
                 </span>
               </div>
               <div className="flex items-center gap-3">
                 {selected.size > 0 && (
-                  <span className="text-xs text-muted">{selected.size} vybráno</span>
+                  <span className="text-xs text-muted">{t("selectedCount", { n: selected.size })}</span>
                 )}
                 <button
                   type="button"
@@ -308,13 +390,13 @@ export default function KeywordResearch({
                   disabled={clusters.status === "loading"}
                   title={
                     selected.size > 0
-                      ? "Seskupit vybraná slova do tematických klastrů"
-                      : "Seskupit všechna slova do tematických klastrů"
+                      ? t("clusterTitleHoverSelected")
+                      : t("clusterTitleHoverAll")
                   }
                   className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
                 >
                   <Network width={13} height={13} />
-                  {clusters.status === "loading" ? "Seskupuji…" : "Seskupit do klastrů"}
+                  {clusters.status === "loading" ? t("clusteringButton") : t("clusterButton")}
                 </button>
                 {authStatus === "authenticated" && (
                   <button
@@ -325,10 +407,10 @@ export default function KeywordResearch({
                   >
                     {saveState === "saved" ? (
                       <>
-                        <Check width={13} height={13} /> Uloženo
+                        <Check width={13} height={13} /> {t("saved")}
                       </>
                     ) : (
-                      <>{saveState === "saving" ? "Ukládám…" : "Uložit seznam"}</>
+                      <>{saveState === "saving" ? t("saving") : t("saveList")}</>
                     )}
                   </button>
                 )}
@@ -349,14 +431,12 @@ export default function KeywordResearch({
                 <div className="flex items-center gap-2">
                   <Network width={16} height={16} className="text-brand-accent" />
                   <h3 className="text-sm font-semibold text-navy-800">
-                    Tematické klastry ({clusters.data.result.clusters.length})
+                    {t("clustersHeading", { n: clusters.data.result.clusters.length })}
                   </h3>
                 </div>
                 <ResultMeta meta={clusters.data.meta} />
                 <p className="text-xs leading-relaxed text-muted">
-                  Každý klastr je připravená struktura obsahu: jedna pilířová stránka a k ní podpůrné
-                  podstránky. Tlačítkem „Vytvořit brief“ pošlete pilíř i podpůrná slova rovnou do
-                  obsahového briefu.
+                  {t("clustersIntro")}
                 </p>
                 <ul className="grid gap-3 sm:grid-cols-2">
                   {clusters.data.result.clusters.map((cluster, i) => (
@@ -364,6 +444,8 @@ export default function KeywordResearch({
                       key={`${cluster.pillar}-${i}`}
                       cluster={cluster}
                       onCreateBrief={() => briefFromCluster(cluster)}
+                      t={t}
+                      fmt={fmt}
                     />
                   ))}
                 </ul>
@@ -384,7 +466,7 @@ export default function KeywordResearch({
                       : "border-line text-muted hover:border-navy-200"
                   }`}
                 >
-                  {f === "all" ? "Vše" : KEYWORD_INTENT_LABELS[f]}
+                  {f === "all" ? t("filterAll") : KEYWORD_INTENT_LABELS[f]}
                 </button>
               ))}
             </div>
@@ -396,6 +478,8 @@ export default function KeywordResearch({
                   idea={idea}
                   checked={selected.has(idea.keyword)}
                   onToggle={() => toggle(idea.keyword)}
+                  t={t}
+                  fmt={fmt}
                 />
               ))}
             </ul>
@@ -408,8 +492,8 @@ export default function KeywordResearch({
               >
                 <Bolt width={16} height={16} />
                 {selected.size > 0
-                  ? `Vytvořit brief z výběru (${selected.size})`
-                  : "Vytvořit brief z TOP slov"}
+                  ? t("briefFromSelection", { n: selected.size })
+                  : t("briefFromTop")}
                 <ArrowRight width={16} height={16} />
               </button>
             </div>
@@ -424,10 +508,14 @@ function IdeaRow({
   idea,
   checked,
   onToggle,
+  t,
+  fmt,
 }: {
   idea: KeywordIdea;
   checked: boolean;
   onToggle: () => void;
+  t: ReturnType<typeof useT<keyof typeof T.cs>>;
+  fmt: ReturnType<typeof useFormatters>;
 }) {
   return (
     <li>
@@ -448,15 +536,15 @@ function IdeaRow({
             <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[idea.intent]}</span>
           </span>
           <span className="mt-0.5 block text-xs text-muted">
-            <span className="tnum">{fmtInt(idea.avgMonthlySearches)}</span>/měs · konkurence{" "}
-            <span className={COMP_COLOR[idea.competition]}>{COMPETITION_LABELS[idea.competition]}</span> · CPC{" "}
+            <span className="tnum">{fmt.fmtInt(idea.avgMonthlySearches)}</span>{t("perMonth")} · {t("competition")}{" "}
+            <span className={COMP_COLOR[idea.competition]}>{COMPETITION_LABELS[idea.competition]}</span> · {t("cpc")}{" "}
             <span className="tnum">
-              {fmtCZK(idea.lowBidCzk)}–{fmtCZK(idea.highBidCzk)}
+              {fmt.fmtCZK(idea.lowBidCzk)}–{fmt.fmtCZK(idea.highBidCzk)}
             </span>
           </span>
         </span>
         <span className="w-16 shrink-0 text-right">
-          <span className="text-[13px] text-muted">Příležitost</span>
+          <span className="text-[13px] text-muted">{t("opportunity")}</span>
           <span className="mt-0.5 flex items-center justify-end gap-1.5">
             <span className="h-1.5 w-8 overflow-hidden rounded-full bg-navy-50" aria-hidden>
               <span
@@ -478,9 +566,13 @@ function IdeaRow({
 function ClusterCard({
   cluster,
   onCreateBrief,
+  t,
+  fmt,
 }: {
   cluster: KeywordCluster;
   onCreateBrief: () => void;
+  t: ReturnType<typeof useT<keyof typeof T.cs>>;
+  fmt: ReturnType<typeof useFormatters>;
 }) {
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
@@ -492,16 +584,16 @@ function ClusterCard({
           )}
           {typeof cluster.totalVolume === "number" && cluster.totalVolume > 0 && (
             <span className="pill bg-brand-50 text-brand-700 tnum">
-              {fmtInt(cluster.totalVolume)}/měs
+              {t("clusterVolumeHint", { n: fmt.fmtInt(cluster.totalVolume) })}
             </span>
           )}
         </div>
-        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">Pilíř</p>
+        <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">{t("clusterPillarLabel")}</p>
         <p className="mt-0.5 text-sm font-medium text-navy-800">{cluster.pillar}</p>
         {cluster.supporting.length > 0 && (
           <>
             <p className="mt-3 text-xs font-medium uppercase tracking-wide text-muted">
-              Podpůrná slova ({cluster.supporting.length})
+              {t("clusterSupportingLabel", { n: cluster.supporting.length })}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {cluster.supporting.map((kw) => (
@@ -519,7 +611,7 @@ function ClusterCard({
         className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-pill border border-line px-3 py-2 text-xs font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
       >
         <Bolt width={13} height={13} />
-        Vytvořit brief
+        {t("clusterCreateBrief")}
         <ArrowRight width={13} height={13} />
       </button>
     </li>
