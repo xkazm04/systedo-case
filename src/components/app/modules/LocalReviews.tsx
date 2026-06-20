@@ -65,9 +65,11 @@ function ratingTone(rating: number): "positive" | "coral" | "negative" {
 export default function LocalReviews({
   reviews,
   businessType,
+  businessName,
 }: {
   reviews: RecentReview[];
   businessType?: string;
+  businessName?: string;
 }) {
   const t = useT(T);
 
@@ -101,6 +103,7 @@ export default function LocalReviews({
       rating: review.rating,
       area: review.area,
       ...(businessType ? { businessType } : {}),
+      ...(businessName ? { businessName } : {}),
     });
   }
 

@@ -310,6 +310,9 @@ export interface LeadReplyRequest {
   /** captured BANT qualification (Czech summary of the known fields) so the reply
    *  doesn't re-ask what's already known and matches the lead's disposition */
   qualification?: string;
+  /** the business / brand name, so the reply signs off as the business and reads
+   *  on-brand instead of generic */
+  brand?: string;
 }
 
 export interface LeadReplyResult {
@@ -366,6 +369,9 @@ export interface LocalReviewReplyRequest {
   area: string;
   /** optional business type, to keep the reply on-brand */
   businessType?: string;
+  /** the business name, so the reply can reference / sign off as the business
+   *  instead of a generic "we" */
+  businessName?: string;
 }
 
 export interface LocalReviewReplyResult {

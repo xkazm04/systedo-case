@@ -29,6 +29,7 @@ Pravidla:
 function buildLocalReviewReplyPrompt(req: LocalReviewReplyRequest): string {
   const rating = clampRating(req.rating);
   const businessType = txt(req.businessType);
+  const businessName = txt(req.businessName);
   const tone =
     rating >= 4
       ? "Jde o pozitivní recenzi — napiš vřelé, konkrétní poděkování."
@@ -36,6 +37,7 @@ function buildLocalReviewReplyPrompt(req: LocalReviewReplyRequest): string {
   return [
     "Napiš veřejnou odpověď na tuto recenzi v Google firemním profilu.",
     "",
+    businessName ? `Název podniku: ${businessName} (mluv jeho jménem)` : "",
     `Lokalita: ${req.area}`,
     businessType ? `Typ podnikání: ${businessType}` : "Typ podnikání: lokální služby",
     `Hodnocení: ${rating} z 5 hvězd`,

@@ -27,9 +27,11 @@ function buildLeadReplyPrompt(req: LeadReplyRequest): string {
   const name = txt(req.name);
   const channelLabel = CHANNEL_LABELS[req.channel] ?? req.channel;
   const qualification = txt(req.qualification);
+  const brand = txt(req.brand);
   return [
     "Napiš první on-brand odpověď na tuto příchozí poptávku.",
     "",
+    brand ? `Naše firma / značka: ${brand} (mluv jejím jménem a takto se i podepiš)` : "",
     name ? `Jméno leadu: ${name}` : "Jméno leadu: neznámé (oslov obecně, zdvořile)",
     `Kanál poptávky: ${channelLabel}`,
     `Typ zakázky / služby: ${req.projectType}`,

@@ -17,7 +17,7 @@ characters: []
 ---
 
 ## What it does
-Generates a platform-tailored caption per requested network (Facebook, Instagram, LinkedIn, TikTok) from a topic + tone, with optional performance grounding and brand voice. Entry: the dedicated `/api/social/draft` route (`ai: true`) → [[social]]; also reachable via `/api/ai` mode `social`. Deterministic `draftPosts` templates are the demo/per-platform floor. Surfaced in `SocialClient.tsx`, `WeekPlanner.tsx`, `CreativeStudio.tsx`.
+Generates a platform-tailored caption per requested network (Facebook, Instagram, LinkedIn, TikTok) from a topic + tone, with performance grounding and brand voice. Entry: the dedicated `/api/social/draft` route (`ai: true`) → [[social]] — its **only** route. Deterministic `draftPosts` templates are the demo/per-platform floor. Surfaced in `src/components/social/SocialClient.tsx`, `WeekPlanner.tsx`, `CreativeStudio.tsx`.
 
 ## Prompt & grounding
 `socialSystem(brand)` (`social.ts:20`) is parameterised by brand — when a brand voice is supplied it tells the model to stick to that brand's products/tone/vocabulary; otherwise the brand is described as "given in the brief". `buildSocialPrompt` (`social.ts:41`) feeds: topic, tone, the per-platform style guide + char limit, and — crucially — an **optional `grounding` block** ("CO TEĎ FUNGUJE", `social.ts:52`) telling the model to lean on real channels/themes/numbers, not generic ideas.
@@ -29,7 +29,7 @@ REAL context this output *should* use:
 4. **"what's actually working" performance grounding** ✓ (optional `grounding`) — built from the real dashboard snapshot by `perfGrounding()` (`/api/social/draft` route `:33`): top ROAS channels + revenue delta for the actual client
 5. the brand's full product catalogue / past top-performing posts ✗ — only a compact digest, not the corpus
 
-Grounding **4/5** — the best-grounded text tool *when called through `/api/social/draft`*, because it feeds real per-client performance data and brand voice. **Caveat (cite `/api/ai` route `src/app/api/ai/route.ts:107`):** the `/api/ai` mode=social path does NOT pass `grounding` or `brand` — only the dedicated `/api/social/draft` route does. Via the generic `/api/ai` route this tool degrades to ~2/5 (topic + tone only). The grounded path is the one that matters and it is well wired.
+Grounding **4/5** — the best-grounded text tool, because it feeds real per-client performance data and brand voice. **V2 REFUTED (adversarial verify, 2026-06-20):** the baseline finding alleged an ungrounded `/api/ai mode=social` path that degrades to ~2/5. That path **does not exist** — `src/app/api/ai/route.ts` has **no `social` case** (modes: ads, brief, analysis, lead-reply, repurpose, local-review-reply, article-draft, cohort-diagnosis, keyword-clusters, comparison-outline, lp-variant-ideas, lead-source-diagnosis). The tool is reachable **only** through `/api/social/draft`, which always adds `perfGrounding()` server-side and forwards `brand` (`SocialClient.tsx:302,310`; WeekPlanner equivalently). There is no degraded path to fix; grounding stays 4/5 (ceiling is the missing full catalogue/post corpus, item 5).
 
 ## Code quality (wrapping · logging · caching)
 - **Wrapping:** clean, single tagged call `// llm-tool: social` (`social.ts:142`).
@@ -40,4 +40,5 @@ Grounding **4/5** — the best-grounded text tool *when called through `/api/soc
 - **Golden coverage:** YES — `test-llm/golden/social.json`; also in `test-llm/registry.mjs`. (Both the golden + probe exercise the un-grounded path — topic only — so the grounding/brand wiring is not gate-covered.)
 
 ## Findings
-_(stub — to be impact-scored in [[2026-06-20-run]]. Note: `/api/ai` mode=social omits grounding+brand; the grounded path is `/api/social/draft` only.)_
+- ❎ value · **V2 REFUTED** — no ungrounded `/api/ai mode=social` path exists; the only route (`/api/social/draft`) always passes grounding + brand. No code change. [[2026-06-20-run]]
+- code · the grounded path is gate-covered only on its un-grounded probe (golden + registry exercise topic-only); a grounded fixture would close that gap. (open)

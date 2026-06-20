@@ -27,6 +27,7 @@ import {
   type LeadReplyChannel,
   type LeadReplyRequest,
   type LeadSourceDiagnosisRequest,
+  type LeadSourcePeer,
   type LocalReviewReplyRequest,
   type LpVariantIdeasRequest,
   type Platform,
@@ -150,10 +151,15 @@ export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale
   if (projectType.length < 2 || projectType.length > 200) {
     return { valid: false, error: t(locale, "Vyplňte typ zakázky (2–200 znaků).", "Please fill in the project type (2–200 characters).") };
   }
-  return {
-    valid: true,
-    value: name ? { message, channel, projectType, name: name.slice(0, 120) } : { message, channel, projectType },
-  };
+  const value: LeadReplyRequest = { message: message.slice(0, 1200), channel, projectType: projectType.slice(0, 200) };
+  if (name) value.name = name.slice(0, 120);
+  // qualification (BANT) + brand were both read by the prompt but never copied
+  // here, so the reply was neither BANT-aware nor on-brand. Thread them through.
+  const qualification = str(o.qualification);
+  if (qualification) value.qualification = qualification.slice(0, 600);
+  const brand = str(o.brand);
+  if (brand) value.brand = brand.slice(0, 120);
+  return { valid: true, value };
 }
 
 export function validateRepurposeRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<RepurposeRequest> {
@@ -216,12 +222,11 @@ export function validateLocalReviewReplyRequest(input: unknown, locale: Supporte
   if (area.length < 1 || area.length > 120) {
     return { valid: false, error: t(locale, "Vyplňte lokalitu (1–120 znaků).", "Please fill in the location (1–120 characters).") };
   }
-  return {
-    valid: true,
-    value: businessType
-      ? { reviewText, rating, area, businessType: businessType.slice(0, 120) }
-      : { reviewText, rating, area },
-  };
+  const value: LocalReviewReplyRequest = { reviewText: reviewText.slice(0, 1500), rating, area: area.slice(0, 120) };
+  if (businessType) value.businessType = businessType.slice(0, 120);
+  const businessName = str(o.businessName);
+  if (businessName) value.businessName = businessName.slice(0, 120);
+  return { valid: true, value };
 }
 
 /** Sanitize the approved outline carried into the draft step — cap section and
@@ -387,6 +392,27 @@ export function validateLeadSourceDiagnosisRequest(
     const costPerQualified =
       o.costPerQualified == null ? (qualified > 0 ? spend / qualified : 0) : fin(o.costPerQualified);
     if (costPerQualified > 0) value.costPerQualified = costPerQualified;
+  }
+  // Peer sources for the budget-shift comparison were previously dropped here, so
+  // the prompt's "name a concrete better peer" instruction ran with no peer data
+  // (grounding 4/5 → 5/5 once threaded). Bounded + rate-clamped.
+  if (Array.isArray(o.peers)) {
+    const peers: LeadSourcePeer[] = [];
+    for (const item of o.peers.slice(0, 5)) {
+      if (typeof item !== "object" || item === null) continue;
+      const p = item as Record<string, unknown>;
+      const pSource = str(p.source).slice(0, 120);
+      if (!pSource) continue;
+      const peer: LeadSourcePeer = {
+        source: pSource,
+        qualRate: Math.max(0, Math.min(1, fin(p.qualRate))),
+        winRate: Math.max(0, Math.min(1, fin(p.winRate))),
+      };
+      const cpq = fin(p.costPerQualified);
+      if (cpq > 0) peer.costPerQualified = cpq;
+      peers.push(peer);
+    }
+    if (peers.length > 0) value.peers = peers;
   }
   return { valid: true, value };
 }

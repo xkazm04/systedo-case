@@ -389,6 +389,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
       channel: selected.channel,
       projectType: projectTypeFor(selected),
       name: selected.name,
+      brand: project.name,
       ...(qualification ? { qualification } : {}),
     });
   }

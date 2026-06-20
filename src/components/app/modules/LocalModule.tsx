@@ -81,10 +81,12 @@ export default async function LocalModule({
   targets,
   reviews,
   recentReviews,
+  businessName,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
   recentReviews: RecentReview[];
+  businessName?: string;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -219,7 +221,11 @@ export default async function LocalModule({
         </div>
       </div>
 
-      <LocalReviews reviews={recentReviews} businessType="montáž a servis klimatizací a elektroinstalací" />
+      <LocalReviews
+        reviews={recentReviews}
+        businessType="montáž a servis klimatizací a elektroinstalací"
+        businessName={businessName}
+      />
     </div>
   );
 }

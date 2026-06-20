@@ -9,10 +9,15 @@ export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  await requireProjectModule(projectId, "lokalni");
+  const project = await requireProjectModule(projectId, "lokalni");
   return (
     <ModulePage moduleKey="lokalni">
-      <LocalModule targets={SAMPLE_TARGETS} reviews={SAMPLE_REVIEWS} recentReviews={SAMPLE_RECENT_REVIEWS} />
+      <LocalModule
+        targets={SAMPLE_TARGETS}
+        reviews={SAMPLE_REVIEWS}
+        recentReviews={SAMPLE_RECENT_REVIEWS}
+        businessName={project.name}
+      />
     </ModulePage>
   );
 }
