@@ -41,6 +41,13 @@ export function useProject(): Project {
   return useProjectContext().project;
 }
 
+/** The active project, or null when rendered outside a ProjectProvider (e.g. the
+ *  public /kampane page). Lets a shared client thread its projectId into API
+ *  calls when inside the app shell, and fall back to the per-user tenant when not. */
+export function useOptionalProject(): Project | null {
+  return useContext(ProjectContext)?.project ?? null;
+}
+
 /** All of the user's projects (for the switcher). */
 export function useProjects(): Project[] {
   return useProjectContext().projects;

@@ -17,6 +17,7 @@ import {
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
 import type { Campaign, CampaignPeriod, DailyPoint } from "./types";
+import type { ProjectType } from "@/lib/projects/types";
 
 export interface AdsConnector {
   /** stable id persisted alongside the data, surfaced in the UI */
@@ -28,15 +29,15 @@ export interface AdsConnector {
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
 }
 
-function sampleProvider(): AdsConnector {
+function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnector {
   return {
     source: "sample",
     label: "Google Ads · ukázková data",
     async fetchCampaigns(period) {
-      return sampleCampaigns(period);
+      return sampleCampaigns(period, projectType, seedKey);
     },
     async fetchSeries(period) {
-      return sampleSeries(period);
+      return sampleSeries(period, projectType, seedKey);
     },
   };
 }
@@ -54,31 +55,41 @@ function googleAdsProvider(accessToken: string, customerId: string): AdsConnecto
   };
 }
 
-/** The Firestore tenant a user's campaign data lives under. Based on the selected
- *  account (not token availability) so the read and sync paths always agree:
- *  per-account for a connected user, per-user for a signed-in user without a
- *  selection, and a shared `sample` tenant for anonymous visitors. */
-export async function resolveTenant(userId: string | null): Promise<string> {
+/** The tenant a user's data lives under. Now **per-project**: callers that know
+ *  the active project pass its id, isolating campaign/social/patterns/report data
+ *  per project (`u_{userId}_proj_{projectId}`), with the connected-account id
+ *  appended for live data so read and sync paths agree. User isolation is always
+ *  preserved. When no project is supplied (public surfaces, legacy callers) it
+ *  falls back to the per-user key; anonymous visitors share the `sample` tenant. */
+export async function resolveTenant(
+  userId: string | null,
+  projectId?: string | null
+): Promise<string> {
   if (!userId) return "sample";
   const connection = await getAdsConnection(userId);
-  return connection ? `u_${userId}_${connection.customerId}` : `u_${userId}`;
+  const base = projectId ? `u_${userId}_proj_${projectId}` : `u_${userId}`;
+  return connection ? `${base}_${connection.customerId}` : base;
 }
 
 /** Resolve both the connector and the tenant for a request in one pass: live
  *  Google Ads when the user is signed in, has selected an account, the developer
  *  token is configured, and a valid OAuth token exists; the deterministic sample
- *  provider otherwise — but always writing to the user's own tenant. */
+ *  provider otherwise. The tenant is per-project when `projectId` is supplied.
+ *  `projectType` lets the sample provider produce domain-appropriate data. */
 export async function resolveCampaignContext(
-  userId: string | null
+  userId: string | null,
+  projectId?: string | null,
+  projectType?: ProjectType
 ): Promise<{ connector: AdsConnector; tenant: string }> {
-  if (!userId) return { connector: sampleProvider(), tenant: "sample" };
+  if (!userId) return { connector: sampleProvider(projectType, projectId ?? undefined), tenant: "sample" };
 
   const connection = await getAdsConnection(userId);
-  const tenant = connection ? `u_${userId}_${connection.customerId}` : `u_${userId}`;
+  const base = projectId ? `u_${userId}_proj_${projectId}` : `u_${userId}`;
+  const tenant = connection ? `${base}_${connection.customerId}` : base;
 
   if (connection && adsConfigured()) {
     const token = await getUserAccessToken(userId);
     if (token) return { connector: googleAdsProvider(token, connection.customerId), tenant };
   }
-  return { connector: sampleProvider(), tenant };
+  return { connector: sampleProvider(projectType, projectId ?? undefined), tenant };
 }
