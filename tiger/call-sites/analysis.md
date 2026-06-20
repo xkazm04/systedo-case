@@ -9,8 +9,8 @@ model: claude-sonnet / gemini-3-flash-preview
 schema: yes — ANALYSIS_SCHEMA, analysis.ts:37
 grounding: 5/5
 code_score: 4
-quality_score: "—"
-recommended_model: "—"
+quality_score: 5  # sonnet ships; haiku-direct 0/5 (inverted economics), per [[benchmark-2026-06-20-constrained]]
+recommended_model: "sonnet — KEEP (Haiku inverted PNO economics: recommended cutting the best channel; thinking only partly rescued)"
 status: assessed
 last_scanned: 2026-06-20
 characters: []

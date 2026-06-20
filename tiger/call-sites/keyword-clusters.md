@@ -9,8 +9,8 @@ model: claude-sonnet / gemini-3-flash-preview
 schema: yes — KEYWORD_CLUSTERS_SCHEMA, src/lib/ai/tools/keyword-clusters.ts:59
 grounding: 3/3
 code_score: 5
-quality_score: "—"
-recommended_model: "—"
+quality_score: 5  # haiku == sonnet, all ship-as-is, per [[benchmark-2026-06-20-constrained]]
+recommended_model: "haiku — DOWNGRADE-SAFE (pure set-regrouping, no arithmetic; ~2× faster, ~3× cheaper)"
 status: assessed
 last_scanned: 2026-06-20
 characters: []

@@ -9,8 +9,8 @@ model: claude-sonnet / gemini-3-flash-preview
 schema: yes — LEAD_SOURCE_DIAGNOSIS_SCHEMA, lead-source-diagnosis.ts:89
 grounding: 5/5
 code_score: 5
-quality_score: "—"
-recommended_model: "—"
+quality_score: 4  # sonnet ships; both haiku cells shipped a numeric error, per [[benchmark-2026-06-20-constrained]]
+recommended_model: "sonnet — KEEP (Haiku mis-stated a ratio / fabricated an SQL count; classification itself is ambiguous)"
 status: improved
 last_scanned: 2026-06-20
 characters: []

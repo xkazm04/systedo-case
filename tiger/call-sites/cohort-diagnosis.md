@@ -9,8 +9,8 @@ model: claude-sonnet / gemini-3-flash-preview
 schema: yes — COHORT_DIAGNOSIS_SCHEMA, cohort-diagnosis.ts:81
 grounding: 5/5
 code_score: 5
-quality_score: "—"
-recommended_model: "—"
+quality_score: 5  # sonnet ships; haiku 4/5 (sub-senior) or 2/5 (CJK corruption), per [[benchmark-2026-06-20-constrained]]
+recommended_model: "sonnet — KEEP (Haiku-direct sub-senior; Haiku-deliberate leaked CJK chars; thinking backfired)"
 status: assessed
 last_scanned: 2026-06-20
 characters: []
