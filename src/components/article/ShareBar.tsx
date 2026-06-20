@@ -3,6 +3,36 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Check, Link, Share } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    groupLabel: "Sdílet článek",
+    shareLabel: "Sdílet",
+    copyLabel: "Kopírovat odkaz na článek",
+    copied: "Zkopírováno",
+    copyBtn: "Odkaz",
+    shareOnFacebook: "Sdílet na Facebooku",
+    shareOnX: "Sdílet na X",
+    shareOnLinkedIn: "Sdílet na LinkedInu",
+    nativeShare: "Sdílet přes systém",
+    nativeShareTitle: "Sdílet…",
+    toast: "Odkaz zkopírován do schránky",
+  },
+  en: {
+    groupLabel: "Share article",
+    shareLabel: "Share",
+    copyLabel: "Copy link to article",
+    copied: "Copied",
+    copyBtn: "Link",
+    shareOnFacebook: "Share on Facebook",
+    shareOnX: "Share on X",
+    shareOnLinkedIn: "Share on LinkedIn",
+    nativeShare: "Share via system",
+    nativeShareTitle: "Share…",
+    toast: "Link copied to clipboard",
+  },
+} as const;
 
 /** Brand UTM tag so shares originating from the article are attributable in the
  *  dashboard's analytics story. Each channel keeps its own utm_source; the
@@ -59,21 +89,22 @@ function useCanNativeShare(): boolean {
   );
 }
 
-const SOCIALS: { label: string; source: string; icon: Glyph; href: (u: string) => string }[] = [
+type SocialKey = "shareOnFacebook" | "shareOnX" | "shareOnLinkedIn";
+const SOCIALS: { labelKey: SocialKey; source: string; icon: Glyph; href: (u: string) => string }[] = [
   {
-    label: "Sdílet na Facebooku",
+    labelKey: "shareOnFacebook",
     source: "facebook",
     icon: Facebook,
     href: (u) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(u)}`,
   },
   {
-    label: "Sdílet na X",
+    labelKey: "shareOnX",
     source: "twitter",
     icon: XLogo,
     href: (u) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(u)}`,
   },
   {
-    label: "Sdílet na LinkedInu",
+    labelKey: "shareOnLinkedIn",
     source: "linkedin",
     icon: LinkedIn,
     href: (u) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(u)}`,
@@ -85,6 +116,7 @@ const SOCIALS: { label: string; source: string; icon: Glyph; href: (u: string) =
  *  links; mobile additionally surfaces the native Web Share sheet. Every link is
  *  stamped with a brand UTM tag so the dashboard can attribute the reach. */
 export default function ShareBar({ url, title }: { url: string; title: string }) {
+  const t = useT(T);
   const [copied, setCopied] = useState(false);
   const canNativeShare = useCanNativeShare();
   const timer = useRef<number | undefined>(undefined);
@@ -129,15 +161,15 @@ export default function ShareBar({ url, title }: { url: string; title: string })
   };
 
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="Sdílet článek">
+    <div className="flex items-center gap-1.5" role="group" aria-label={t("groupLabel")}>
       <span className="mr-0.5 hidden text-xs font-semibold uppercase tracking-[0.12em] text-muted sm:inline">
-        Sdílet
+        {t("shareLabel")}
       </span>
 
       <button
         type="button"
         onClick={copyLink}
-        aria-label="Kopírovat odkaz na článek"
+        aria-label={t("copyLabel")}
         className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
       >
         {copied ? (
@@ -145,29 +177,32 @@ export default function ShareBar({ url, title }: { url: string; title: string })
         ) : (
           <Link width={14} height={14} />
         )}
-        <span>{copied ? "Zkopírováno" : "Odkaz"}</span>
+        <span>{copied ? t("copied") : t("copyBtn")}</span>
       </button>
 
-      {SOCIALS.map(({ label, source, icon: Icon, href }) => (
-        <a
-          key={source}
-          href={href(withUtm(url, source))}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={label}
-          title={label}
-          className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-navy-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-accent"
-        >
-          <Icon width={15} height={15} />
-        </a>
-      ))}
+      {SOCIALS.map(({ labelKey, source, icon: Icon, href }) => {
+        const label = t(labelKey);
+        return (
+          <a
+            key={source}
+            href={href(withUtm(url, source))}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            title={label}
+            className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-navy-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-accent"
+          >
+            <Icon width={15} height={15} />
+          </a>
+        );
+      })}
 
       {canNativeShare && (
         <button
           type="button"
           onClick={nativeShare}
-          aria-label="Sdílet přes systém"
-          title="Sdílet…"
+          aria-label={t("nativeShare")}
+          title={t("nativeShareTitle")}
           className="grid h-8 w-8 place-items-center rounded-full border border-line bg-surface text-navy-600 transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-accent"
         >
           <Share width={15} height={15} />
@@ -183,7 +218,7 @@ export default function ShareBar({ url, title }: { url: string; title: string })
         >
           <span className="animate-drop inline-flex items-center gap-2 rounded-pill bg-onyx px-4 py-2.5 text-sm font-medium text-white shadow-pop">
             <Check width={16} height={16} className="text-brand-400" />
-            Odkaz zkopírován do schránky
+            {t("toast")}
           </span>
         </div>
       )}

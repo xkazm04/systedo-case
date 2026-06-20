@@ -87,7 +87,7 @@ const T = {
     funnelVelocity: "avg. {days} days to close",
     funnelOverallConversion: "{pct} overall lead → close",
     funnelEntry: "entry",
-    funnelFooter: "Conversion = share passed to the next stage from the previous; drop-off = count lost between stages. The \“Opportunity\” stage appears only where data exists.",
+    funnelFooter: "Conversion = share passed to the next stage from the previous; drop-off = count lost between stages. The “Opportunity” stage appears only where data exists.",
     trendTitle: "Trend and alerts",
     trendVsPrev: "vs. previous period",
     alertSeverityCritical: "target",

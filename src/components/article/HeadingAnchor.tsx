@@ -3,6 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Link } from "@/components/icons";
 import { announceSection } from "./section-store";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    copyLinkAria: "Kopírovat odkaz na sekci: {text}",
+    copyLinkTitle: "Kopírovat odkaz na sekci",
+    copiedToast: "Odkaz na sekci zkopírován",
+  },
+  en: {
+    copyLinkAria: "Copy link to section: {text}",
+    copyLinkTitle: "Copy link to section",
+    copiedToast: "Section link copied",
+  },
+} as const;
 
 /** Padding/typography for each heading level, kept identical to the inline
  *  versions ArticleBody used to render so this island is a drop-in swap. The
@@ -32,6 +46,7 @@ export default function HeadingAnchor({
   id: string;
   text: string;
 }) {
+  const t = useT(T);
   const [copied, setCopied] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const Tag = level;
@@ -78,8 +93,8 @@ export default function HeadingAnchor({
       <button
         type="button"
         onClick={copyLink}
-        aria-label={`Kopírovat odkaz na sekci: ${text}`}
-        title="Kopírovat odkaz na sekci"
+        aria-label={t("copyLinkAria", { text })}
+        title={t("copyLinkTitle")}
         className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted opacity-0 transition-opacity hover:text-brand-accent focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 group-hover/anchor:opacity-100 [@media(hover:hover)]:inline-flex"
       >
         {copied ? (
@@ -99,7 +114,7 @@ export default function HeadingAnchor({
         >
           <span className="animate-drop inline-flex items-center gap-2 rounded-pill bg-onyx px-4 py-2.5 text-sm font-medium text-white shadow-pop">
             <Check width={16} height={16} className="text-brand-400" />
-            Odkaz na sekci zkopírován
+            {t("copiedToast")}
           </span>
         </div>
       )}

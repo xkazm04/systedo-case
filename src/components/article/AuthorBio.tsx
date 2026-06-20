@@ -1,4 +1,18 @@
 import { Document, Check, ChevronDown, External } from "@/components/icons";
+import { getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: {
+    aboutAuthor: "O autorovi",
+    hideBio: "Skrýt bio",
+    moreAboutAuthor: "Více o autorovi",
+  },
+  en: {
+    aboutAuthor: "About the author",
+    hideBio: "Hide bio",
+    moreAboutAuthor: "More about the author",
+  },
+} as const;
 
 interface AuthorBioProps {
   name: string;
@@ -15,7 +29,8 @@ interface AuthorBioProps {
  *  expandable bio — the credibility module you see on quality publishing sites.
  *  It mirrors the data behind the Person node in the page's Article JSON-LD and
  *  uses a native <details> so it stays server-rendered (same pattern as the FAQ). */
-export default function AuthorBio({ name, role, credential, bio, url }: AuthorBioProps) {
+export default async function AuthorBio({ name, role, credential, bio, url }: AuthorBioProps) {
+  const t = await getT(T);
   return (
     <div className="mt-6 border-t border-line pt-6">
       <div className="flex items-start gap-3">
@@ -37,8 +52,8 @@ export default function AuthorBio({ name, role, credential, bio, url }: AuthorBi
       {bio && (
         <details className="group mt-3 [&_summary::-webkit-details-marker]:hidden">
           <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-pill text-sm font-medium text-brand-700 transition-colors hover:text-brand-800">
-            <span className="group-open:hidden">O autorovi</span>
-            <span className="hidden group-open:inline">Skrýt bio</span>
+            <span className="group-open:hidden">{t("aboutAuthor")}</span>
+            <span className="hidden group-open:inline">{t("hideBio")}</span>
             <ChevronDown
               width={15}
               height={15}
@@ -54,7 +69,7 @@ export default function AuthorBio({ name, role, credential, bio, url }: AuthorBi
               rel="noopener noreferrer"
               className="link-inline mt-2 inline-flex items-center gap-1 text-sm"
             >
-              Více o autorovi
+              {t("moreAboutAuthor")}
               <External width={12} height={12} className="-translate-y-px" />
             </a>
           )}

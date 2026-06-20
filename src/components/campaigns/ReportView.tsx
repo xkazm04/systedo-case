@@ -3,12 +3,13 @@
 import { Check, Info, Target, TrendDown } from "@/components/icons";
 import { PromptDisclosure, ResultMeta } from "@/components/ai/primitives";
 import {
-  EVAL_PRIORITY_LABELS,
+  evalPriorityLabel,
   type CampaignReport,
   type EvalPriority,
   type ReportHistoryPoint,
 } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import ScoreTimeline from "./ScoreTimeline";
 
 const T = {
@@ -73,6 +74,7 @@ export default function ReportView({
   cached?: boolean;
 }) {
   const t = useT(T);
+  const { locale } = useLocale();
   const r = report.result;
   const tone = scoreTone(r.score, t);
 
@@ -85,7 +87,7 @@ export default function ReportView({
     `\n${t("copyWeaknesses")}`,
     ...r.weaknesses.map((s) => `! ${s}`),
     `\n${t("copyRecommendations")}`,
-    ...r.recommendations.map((a) => `→ [${EVAL_PRIORITY_LABELS[a.priority]}] ${a.title}: ${a.detail}`),
+    ...r.recommendations.map((a) => `→ [${evalPriorityLabel(a.priority, locale)}] ${a.title}: ${a.detail}`),
   ].join("\n");
 
   return (
@@ -176,7 +178,7 @@ export default function ReportView({
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-navy-800">{a.title}</p>
                     <span className={`pill ${PRIORITY_TONE[a.priority]}`}>
-                      {EVAL_PRIORITY_LABELS[a.priority]}
+                      {evalPriorityLabel(a.priority, locale)}
                     </span>
                   </div>
                   <p className="mt-0.5 text-sm leading-relaxed text-navy-600">{a.detail}</p>

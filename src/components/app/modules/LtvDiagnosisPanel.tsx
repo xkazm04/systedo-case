@@ -41,7 +41,7 @@ const T = {
     panelDesc: "The model receives only the computed cohort numbers and names the problem cohort and the first lever to pull. It invents no values.",
     runBtn: "Run analysis",
     runningBtn: "Analysing…",
-    idleHint: "Click \“Run analysis\” and the model will read the unit economics above — it will recommend where to start. Works without an API key in demo mode.",
+    idleHint: "Click “Run analysis” and the model will read the unit economics above — it will recommend where to start. Works without an API key in demo mode.",
     worstCohortLabel: "Problem cohort:",
     fixFirstLabel: "Fix first",
     risksTitle: "Watch out for",

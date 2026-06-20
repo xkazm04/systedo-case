@@ -8,9 +8,32 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui";
 import ArticleBody from "@/components/article/ArticleBody";
-import { fmtDate } from "@/lib/format";
 import { canonical } from "@/lib/site";
 import { getMicrosite, buildMicrositeView } from "@/lib/microsite";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: {
+    notFound: "Microsite nenalezena",
+    datasetName: "{client} — výkonnostní KPI ({period})",
+    datasetDesc: "Obrat, náklady, konverze a PNO za {period}.",
+    propRevenue: "Obrat",
+    propCost: "Náklady",
+    propConversions: "Konverze",
+    propPno: "PNO",
+    updatedAt: "aktualizováno {date}",
+  },
+  en: {
+    notFound: "Microsite not found",
+    datasetName: "{client} — performance KPIs ({period})",
+    datasetDesc: "Revenue, cost, conversions and cost ratio for {period}.",
+    propRevenue: "Revenue",
+    propCost: "Cost",
+    propConversions: "Conversions",
+    propPno: "Cost ratio",
+    updatedAt: "updated {date}",
+  },
+} as const;
 
 export const runtime = "nodejs";
 // Daily self-update target for the cron's revalidatePath.
@@ -23,7 +46,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const config = await getMicrosite(slug);
-  if (!config) return { title: "Microsite nenalezena", robots: { index: false, follow: false } };
+  const t = await getT(T);
+  if (!config) return { title: t("notFound"), robots: { index: false, follow: false } };
   const { article } = buildMicrositeView(config);
   const path = `/m/${slug}`;
   return {
@@ -40,6 +64,9 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
   const { slug } = await params;
   const config = await getMicrosite(slug);
   if (!config) notFound();
+
+  const t = await getT(T);
+  const fmt = await getServerFormatters();
 
   const { article, snapshot, asOf } = buildMicrositeView(config);
   const accent = config.accentColor || "var(--color-brand-600)";
@@ -59,15 +86,15 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
       },
       {
         "@type": "Dataset",
-        name: `${config.clientName} — výkonnostní KPI (${snapshot.period.label})`,
-        description: `Obrat, náklady, konverze a PNO za ${snapshot.period.label}.`,
+        name: t("datasetName", { client: config.clientName, period: snapshot.period.label }),
+        description: t("datasetDesc", { period: snapshot.period.label }),
         creator: { "@type": "Organization", name: config.brandName },
         dateModified: asOf,
         variableMeasured: [
-          { "@type": "PropertyValue", name: "Obrat", value: Math.round(snapshot.current.revenue) },
-          { "@type": "PropertyValue", name: "Náklady", value: Math.round(snapshot.current.cost) },
-          { "@type": "PropertyValue", name: "Konverze", value: Math.round(snapshot.current.conversions) },
-          { "@type": "PropertyValue", name: "PNO", value: Number(snapshot.current.pno.toFixed(4)) },
+          { "@type": "PropertyValue", name: t("propRevenue"), value: Math.round(snapshot.current.revenue) },
+          { "@type": "PropertyValue", name: t("propCost"), value: Math.round(snapshot.current.cost) },
+          { "@type": "PropertyValue", name: t("propConversions"), value: Math.round(snapshot.current.conversions) },
+          { "@type": "PropertyValue", name: t("propPno"), value: Number(snapshot.current.pno.toFixed(4)) },
         ],
       },
     ],
@@ -90,7 +117,7 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
           </h1>
           <p className="mt-3 max-w-2xl text-muted">{article.meta.perex}</p>
           <p className="mt-4 text-xs text-muted">
-            {config.clientName} · {config.segment} · aktualizováno {fmtDate(asOf)}
+            {config.clientName} · {config.segment} · {t("updatedAt", { date: fmt.fmtDate(asOf) })}
           </p>
         </header>
 

@@ -11,6 +11,26 @@ import { inlineToText, tableOfContents } from "@/lib/article";
 import { fmtDate } from "@/lib/format";
 import { canonical } from "@/lib/site";
 import { navLabel, type Crumb } from "@/lib/nav";
+import { getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: {
+    eyebrow: "Datový report · generováno z dashboardu",
+    readingTime: "{n} min čtení",
+    tocSidebar: "Obsah reportu",
+    faqHeading: "Časté dotazy",
+    breadcrumbHome: "Domů",
+    breadcrumbArticle: "Článek",
+  },
+  en: {
+    eyebrow: "Data report · generated from dashboard",
+    readingTime: "{n} min read",
+    tocSidebar: "Report contents",
+    faqHeading: "Frequently asked questions",
+    breadcrumbHome: "Home",
+    breadcrumbArticle: "Article",
+  },
+} as const;
 
 /** Auto-generated data-story report: the dashboard snapshot rendered through the
  *  same headless-article model + JSON-LD pipeline as the hand-authored article. */
@@ -25,13 +45,6 @@ const article = snapshotToArticle(
 );
 const { meta, blocks, faq } = article;
 
-const breadcrumbs: Crumb[] = [
-  { label: "Domů", href: "/" },
-  { label: navLabel("/clanek", "Článek"), href: "/clanek" },
-  { label: meta.category },
-  { label: meta.title },
-];
-
 export const metadata: Metadata = {
   title: meta.title,
   description: meta.perex,
@@ -39,40 +52,48 @@ export const metadata: Metadata = {
   openGraph: { title: meta.title, description: meta.perex, type: "article", url: reportUrl },
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Article",
-      headline: meta.title,
-      description: meta.perex,
-      author: { "@type": "Organization", name: meta.author },
-      datePublished: meta.dateISO,
-      articleSection: meta.category,
-      keywords: meta.tags.join(", "),
-    },
-    {
-      "@type": "BreadcrumbList",
-      itemListElement: breadcrumbs.map((crumb, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        name: crumb.label,
-        item: canonical(crumb.href ?? REPORT_PATH),
-      })),
-    },
-    {
-      "@type": "FAQPage",
-      mainEntity: faq.map((f) => ({
-        "@type": "Question",
-        name: f.q,
-        acceptedAnswer: { "@type": "Answer", text: inlineToText(f.a) },
-      })),
-    },
-  ],
-};
-
-export default function ReportPage() {
+export default async function ReportPage() {
+  const t = await getT(T);
   const toc = tableOfContents(article);
+
+  const breadcrumbs: Crumb[] = [
+    { label: t("breadcrumbHome"), href: "/" },
+    { label: navLabel("/clanek", t("breadcrumbArticle")), href: "/clanek" },
+    { label: meta.category },
+    { label: meta.title },
+  ];
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: meta.title,
+        description: meta.perex,
+        author: { "@type": "Organization", name: meta.author },
+        datePublished: meta.dateISO,
+        articleSection: meta.category,
+        keywords: meta.tags.join(", "),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: breadcrumbs.map((crumb, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: crumb.label,
+          item: canonical(crumb.href ?? REPORT_PATH),
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: faq.map((f) => ({
+          "@type": "Question",
+          name: f.q,
+          acceptedAnswer: { "@type": "Answer", text: inlineToText(f.a) },
+        })),
+      },
+    ],
+  };
 
   return (
     <>
@@ -86,14 +107,14 @@ export default function ReportPage() {
         <Container className="max-w-3xl py-12 sm:py-16">
           <Breadcrumbs items={breadcrumbs} />
           <div className="mt-6">
-            <Eyebrow>Datový report · generováno z dashboardu</Eyebrow>
+            <Eyebrow>{t("eyebrow")}</Eyebrow>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Pill tone="brand">{meta.category}</Pill>
             <span>·</span>
             <span>{fmtDate(meta.dateISO)}</span>
             <span>·</span>
-            <span>{meta.readingMinutes} min čtení</span>
+            <span>{t("readingTime", { n: meta.readingMinutes })}</span>
           </div>
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-navy-800 sm:text-[2.6rem] sm:leading-[1.12]">
             {meta.title}
@@ -116,7 +137,7 @@ export default function ReportPage() {
         <aside className="hidden lg:block">
           <div className="sticky top-24">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              Obsah reportu
+              {t("tocSidebar")}
             </p>
             <ArticleToc items={toc} />
           </div>
@@ -126,12 +147,12 @@ export default function ReportPage() {
           <ArticleBody blocks={blocks} />
 
           <div className="mt-10 flex flex-wrap gap-2 border-t border-line pt-6">
-            {meta.tags.map((t) => (
+            {meta.tags.map((tag) => (
               <span
-                key={t}
+                key={tag}
                 className="rounded-pill bg-navy-50 px-3 py-1.5 text-xs font-medium text-muted"
               >
-                #{t}
+                #{tag}
               </span>
             ))}
           </div>
@@ -139,7 +160,7 @@ export default function ReportPage() {
           {/* FAQ */}
           <section className="mt-12" aria-labelledby="faq-heading">
             <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight text-navy-800">
-              Časté dotazy
+              {t("faqHeading")}
             </h2>
             <div className="mt-5 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
               {faq.map((f, i) => (

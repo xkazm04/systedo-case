@@ -12,7 +12,7 @@ import { useState } from "react";
 import { Pill, type PillTone } from "@/components/ui";
 import { Bulb, Funnel, Sparkles, Target } from "@/components/icons";
 import {
-  LEAD_SOURCE_CAUSE_LABELS,
+  leadSourceCauseLabel,
   type LeadSourceCause,
   type LeadSourceDiagnosisRequest,
   type LeadSourceDiagnosisResult,
@@ -20,6 +20,7 @@ import {
   type LeadSourceSeverity,
 } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
@@ -52,8 +53,8 @@ const T = {
     selectAriaLabel: "Select source to diagnose",
     diagBtn: "AI diagnosis",
     runningBtn: "Analysing…",
-    idleHint: "Select an under-performing source and click \“AI diagnosis\” — the model will read its numbers and determine why it under-performs and where to start. Works without an API key in demo mode.",
-    diagMeta: "Diagnosis for source \“{source}\” · qualification rate {qualRate} · win rate {winRate}{cpql} · {leads} leads.",
+    idleHint: "Select an under-performing source and click “AI diagnosis” — the model will read its numbers and determine why it under-performs and where to start. Works without an API key in demo mode.",
+    diagMeta: "Diagnosis for source “{source}” · qualification rate {qualRate} · win rate {winRate}{cpql} · {leads} leads.",
     cpqlPart: " · CPQL {value}",
     likelyCauseLabel: "Likely cause:",
     recommendedAction: "Recommended action",
@@ -117,6 +118,7 @@ const SEVERITY_TONE: Record<LeadSourceSeverity, PillTone> = {
 export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceSeed[] }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
   const { status, data, error, timedOut, run, reset } =
     useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
   const [selectedSource, setSelectedSource] = useState(seeds[0]?.source ?? "");
@@ -210,7 +212,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
                   <p className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium text-navy-700">{t("likelyCauseLabel")}</span>
                     <Pill tone={CAUSE_TONE[r.likelyCause]}>
-                      {LEAD_SOURCE_CAUSE_LABELS[r.likelyCause]}
+                      {leadSourceCauseLabel(r.likelyCause, locale)}
                     </Pill>
                     {r.severity && (
                       <Pill tone={SEVERITY_TONE[r.severity]}>

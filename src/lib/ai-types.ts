@@ -8,6 +8,7 @@
 import type { CampaignPeriod } from "./campaigns/types";
 import type { Block, FaqItem } from "./article";
 import type { KeywordIntent } from "./keywords/types";
+import type { SupportedLocale } from "./format";
 
 export type AiMode =
   | "ads"
@@ -180,6 +181,16 @@ export const ANALYSIS_PERIOD_LABELS: Record<AnalysisPeriod, string> = {
   "12m": "12 měsíců",
 };
 
+export const ANALYSIS_PERIOD_LABELS_EN: Record<AnalysisPeriod, string> = {
+  "30d": "30 days",
+  "90d": "90 days",
+  "12m": "12 months",
+};
+
+export function analysisPeriodLabel(p: AnalysisPeriod, locale: SupportedLocale): string {
+  return (locale === "en" ? ANALYSIS_PERIOD_LABELS_EN : ANALYSIS_PERIOD_LABELS)[p];
+}
+
 export interface AnalysisRequest {
   period: AnalysisPeriod;
 }
@@ -209,6 +220,16 @@ export const EVAL_PRIORITY_LABELS: Record<EvalPriority, string> = {
   medium: "Střední priorita",
   low: "Nízká priorita",
 };
+
+export const EVAL_PRIORITY_LABELS_EN: Record<EvalPriority, string> = {
+  high: "High priority",
+  medium: "Medium priority",
+  low: "Low priority",
+};
+
+export function evalPriorityLabel(p: EvalPriority, locale: SupportedLocale): string {
+  return (locale === "en" ? EVAL_PRIORITY_LABELS_EN : EVAL_PRIORITY_LABELS)[p];
+}
 
 export interface EvalRecommendation {
   title: string;
@@ -627,6 +648,18 @@ export const LEAD_SOURCE_CAUSE_LABELS: Record<LeadSourceCause, string> = {
   volume: "Nízký objem dat",
   ok: "Bez zásadního problému",
 };
+
+export const LEAD_SOURCE_CAUSE_LABELS_EN: Record<LeadSourceCause, string> = {
+  spam: "Spam / low-quality leads",
+  "mis-targeting": "Poor targeting (fit)",
+  pricing: "Price / budget",
+  volume: "Low data volume",
+  ok: "No major issue",
+};
+
+export function leadSourceCauseLabel(c: LeadSourceCause, locale: SupportedLocale): string {
+  return (locale === "en" ? LEAD_SOURCE_CAUSE_LABELS_EN : LEAD_SOURCE_CAUSE_LABELS)[c];
+}
 
 /** The severity the diagnosis assigns — drives the pill tone in the UI. */
 export const LEAD_SOURCE_SEVERITIES = ["high", "medium", "low"] as const;

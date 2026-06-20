@@ -11,10 +11,48 @@ import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import {
   aggregate,
   withMetrics,
-  CAMPAIGN_PERIOD_LABELS,
+  campaignPeriodLabel,
   type CampaignPeriod,
 } from "@/lib/campaigns/types";
-import { fmtCZK, fmtDate, fmtDateTime, fmtMultiple, fmtPct } from "@/lib/format";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
+
+const T = {
+  cs: {
+    eyebrow: "sdílený report výkonu",
+    readOnly: "Pouze pro čtení",
+    subtitle: "Vyhodnocení portfolia · období {period} · vygenerováno {generated}",
+    kpiCost: "Náklady",
+    kpiConversionValue: "Hodnota konverzí",
+    kpiRoas: "ROAS",
+    kpiRoasHint: "návratnost výdajů na reklamu",
+    kpiPno: "PNO",
+    kpiPnoHint: "podíl nákladů na obratu",
+    aiSection: "AI vyhodnocení portfolia",
+    budgetSection: "Doporučené přesuny rozpočtu",
+    movePreamble: "Přesunout {amount}",
+    moveFrom: "z {name}",
+    footer: "Vygenerováno v {brand} · {count} kampaní",
+    footerExpiry: "· odkaz platí do {date}",
+  },
+  en: {
+    eyebrow: "shared performance report",
+    readOnly: "Read only",
+    subtitle: "Portfolio evaluation · period {period} · generated {generated}",
+    kpiCost: "Cost",
+    kpiConversionValue: "Conversion value",
+    kpiRoas: "ROAS",
+    kpiRoasHint: "return on ad spend",
+    kpiPno: "Cost ratio",
+    kpiPnoHint: "share of cost in revenue",
+    aiSection: "AI portfolio evaluation",
+    budgetSection: "Recommended budget moves",
+    movePreamble: "Move {amount}",
+    moveFrom: "from {name}",
+    footer: "Generated in {brand} · {count} campaigns",
+    footerExpiry: "· link valid until {date}",
+  },
+} as const;
 
 export const dynamic = "force-dynamic";
 // Shared links are private; never index them (the root layout is noindex too).
@@ -29,20 +67,26 @@ export default async function SharedReportPage({
   const shared = await getSharedReport(token);
   if (!shared) notFound();
 
+  const t = await getT(T);
+  const fmt = await getServerFormatters();
+  const locale = await getServerLocale();
+
   const totals = aggregate(shared.campaigns);
-  const periodLabel =
-    CAMPAIGN_PERIOD_LABELS[shared.period as CampaignPeriod] ?? shared.period;
+  const period = shared.period as CampaignPeriod;
+  const periodLabel = (period in { "7d": 1, "30d": 1, "90d": 1 })
+    ? campaignPeriodLabel(period, locale)
+    : shared.period;
   const accent = shared.accentColor || "var(--color-brand-600)";
   // Never fall back to the vendor name on a client-facing report — use the brand
   // captured at share time (white-label or project), else the client account name.
   const brand = shared.brandName || shared.accountName || "Report";
   // Gloss the jargon — a client report is read by non-marketers, so ROAS/PNO get
-  // a one-line plain-Czech explanation (Náklady/Hodnota konverzí are already plain).
+  // a one-line plain-language explanation (Cost/Conversion value are already plain).
   const kpis: { label: string; value: string; hint?: string }[] = [
-    { label: "Náklady", value: fmtCZK(totals.cost) },
-    { label: "Hodnota konverzí", value: fmtCZK(totals.conversionValue) },
-    { label: "ROAS", value: fmtMultiple(totals.roas), hint: "návratnost výdajů na reklamu" },
-    { label: "PNO", value: fmtPct(totals.pno), hint: "podíl nákladů na obratu" },
+    { label: t("kpiCost"), value: fmt.fmtCZK(totals.cost) },
+    { label: t("kpiConversionValue"), value: fmt.fmtCZK(totals.conversionValue) },
+    { label: t("kpiRoas"), value: fmt.fmtMultiple(totals.roas), hint: t("kpiRoasHint") },
+    { label: t("kpiPno"), value: fmt.fmtPct(totals.pno), hint: t("kpiPnoHint") },
   ];
 
   const moves = recommendBudgetMoves(shared.campaigns.map(withMetrics)).moves.slice(0, 3);
@@ -53,17 +97,17 @@ export default async function SharedReportPage({
       <div style={{ backgroundColor: accent }} className="h-1.5 w-full" aria-hidden />
       <Container className="max-w-3xl py-12 sm:py-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Eyebrow>{brand} · sdílený report výkonu</Eyebrow>
+          <Eyebrow>{brand} · {t("eyebrow")}</Eyebrow>
           <div className="flex items-center gap-2">
             <PrintButton />
-            <Pill tone="neutral">Pouze pro čtení</Pill>
+            <Pill tone="neutral">{t("readOnly")}</Pill>
           </div>
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-navy-800 sm:text-[2.4rem]">
           {shared.accountName}
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Vyhodnocení portfolia · období {periodLabel} · vygenerováno {fmtDateTime(shared.createdAt)}
+          {t("subtitle", { period: periodLabel, generated: fmt.fmtDateTime(shared.createdAt) })}
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -92,7 +136,7 @@ export default async function SharedReportPage({
         <section className="card mt-6 p-5 sm:p-6">
           <h2 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Sparkles width={18} height={18} className="text-brand-600" />
-            AI vyhodnocení portfolia
+            {t("aiSection")}
           </h2>
           <div className="mt-5 border-t border-line pt-5">
             <ReportView report={shared.report} history={shared.history} />
@@ -102,16 +146,16 @@ export default async function SharedReportPage({
         {/* recommended budget moves (read-only) */}
         {moves.length > 0 && (
           <section className="card mt-6 p-5 sm:p-6">
-            <h2 className="text-base font-semibold text-navy-800">Doporučené přesuny rozpočtu</h2>
+            <h2 className="text-base font-semibold text-navy-800">{t("budgetSection")}</h2>
             <ul className="mt-4 space-y-2.5">
               {moves.map((m, i) => (
                 <li key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-card border border-line p-3 text-sm">
-                  <span className="font-semibold text-navy-800">Přesunout {fmtCZK(m.amount)}</span>
-                  <span className="text-navy-700">z {m.fromName}</span>
+                  <span className="font-semibold text-navy-800">{t("movePreamble", { amount: fmt.fmtCZK(m.amount) })}</span>
+                  <span className="text-navy-700">{t("moveFrom", { name: m.fromName })}</span>
                   <ArrowRight width={14} height={14} className="text-muted" aria-hidden />
                   <span className="text-navy-700">{m.toName}</span>
                   <span className="tnum ml-auto font-semibold text-positive">
-                    +{fmtCZK(m.estValueGain)}
+                    +{fmt.fmtCZK(m.estValueGain)}
                   </span>
                 </li>
               ))}
@@ -120,8 +164,8 @@ export default async function SharedReportPage({
         )}
 
         <p className="mt-8 text-center text-xs text-muted">
-          Vygenerováno v {brand} · {shared.campaigns.length} kampaní
-          {shared.expiresAt && <> · odkaz platí do {fmtDate(shared.expiresAt)}</>}
+          {t("footer", { brand, count: shared.campaigns.length })}
+          {shared.expiresAt && <> {t("footerExpiry", { date: fmt.fmtDate(shared.expiresAt) })}</>}
         </p>
       </Container>
     </>

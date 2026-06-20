@@ -4,7 +4,7 @@
  *  badges and the summary banner. The thresholds reuse the same agreed target
  *  constants that colour the ROAS / PNO cells, so the badge, the cell colour and
  *  the banner can never disagree. */
-import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "../format";
+import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../format";
 import { TARGET_PNO, TARGET_ROAS, type CampaignChange, type CampaignRow } from "./types";
 
 // --- thresholds (single source of truth for "below target" colouring) --------
@@ -52,6 +52,16 @@ export const SEVERITY_LABELS: Record<Severity, string> = {
   ok: "V pořádku",
 };
 
+export const SEVERITY_LABELS_EN: Record<Severity, string> = {
+  critical: "Critical",
+  warning: "Watch",
+  ok: "On target",
+};
+
+export function severityLabel(s: Severity, locale: SupportedLocale): string {
+  return (locale === "en" ? SEVERITY_LABELS_EN : SEVERITY_LABELS)[s];
+}
+
 export interface TriageReason {
   /** stable rule id (for keys / tests) */
   id: string;
@@ -79,6 +89,7 @@ interface Rule {
   id: string;
   severity: "critical" | "warning";
   label: string;
+  labelEn: string;
   test: (c: CampaignRow) => boolean;
   detail: (c: CampaignRow) => string;
 }
@@ -90,6 +101,7 @@ const RULES: Rule[] = [
     id: "paused_spending",
     severity: "critical",
     label: "Pozastavená, ale utrácí",
+    labelEn: "Paused but spending",
     test: (c) => c.status === "paused" && c.cost > 0,
     detail: (c) => `Kampaň je pozastavená, přesto za období utratila ${fmtCZK(c.cost)}.`,
   },
@@ -97,6 +109,7 @@ const RULES: Rule[] = [
     id: "no_conversions",
     severity: "critical",
     label: "Utrácí bez konverzí",
+    labelEn: "Spending without conversions",
     test: (c) => c.cost > 0 && c.conversions === 0,
     detail: (c) => `Žádná konverze při nákladech ${fmtCZK(c.cost)} — rozpočet bez návratnosti.`,
   },
@@ -104,6 +117,7 @@ const RULES: Rule[] = [
     id: "roas_critical",
     severity: "critical",
     label: "ROAS hluboko pod cílem",
+    labelEn: "ROAS far below target",
     test: (c) => c.cost > 0 && c.roas > 0 && c.roas < TARGET_ROAS * ROAS_CRITICAL_RATIO,
     detail: (c) =>
       `ROAS ${fmtMultiple(c.roas)} je pod 60 % cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
@@ -112,6 +126,7 @@ const RULES: Rule[] = [
     id: "below_target",
     severity: "warning",
     label: "Pod cílem",
+    labelEn: "Below target",
     test: (c) =>
       c.cost > 0 && c.roas >= TARGET_ROAS * ROAS_CRITICAL_RATIO && c.roas < TARGET_ROAS,
     detail: (c) => `ROAS ${fmtMultiple(c.roas)} nedosahuje cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
@@ -127,6 +142,7 @@ interface ChangeRule {
   id: string;
   severity: "critical" | "warning";
   label: string;
+  labelEn: string;
   test: (c: CampaignRow, ch: CampaignChange) => boolean;
   detail: (c: CampaignRow, ch: CampaignChange) => string;
 }
@@ -136,6 +152,7 @@ const CHANGE_RULES: ChangeRule[] = [
     id: "roas_crater",
     severity: "critical",
     label: "Propad ROAS proti minulé synchronizaci",
+    labelEn: "ROAS crater vs. last sync",
     // A real collapse: was meaningfully healthy, lost >40% of its ROAS, and has
     // now fallen below target. Guards against tiny-base noise via the before band.
     test: (_c, ch) =>
@@ -151,6 +168,7 @@ const CHANGE_RULES: ChangeRule[] = [
     id: "spend_spike",
     severity: "warning",
     label: "Skok nákladů bez návratnosti",
+    labelEn: "Spend spike without return",
     // Cost jumped ≥50% while conversion value lagged well behind — efficiency is
     // being diluted even if the absolute ROAS still looks acceptable.
     test: (_c, ch) => ch.kind === "changed" && ch.costDelta >= 0.5 && ch.valueDelta < ch.costDelta * 0.5,
@@ -158,6 +176,18 @@ const CHANGE_RULES: ChangeRule[] = [
       `Náklady ${fmtSignedPct(ch.costDelta)} proti minulé synchronizaci, hodnota konverzí jen ${fmtSignedPct(ch.valueDelta)}.`,
   },
 ];
+
+/** English label lookup keyed by rule id — used by the locale resolver. */
+const RULE_LABEL_EN: Record<string, string> = Object.fromEntries(
+  [...RULES, ...CHANGE_RULES].map((r) => [r.id, r.labelEn])
+);
+
+/** Resolve a triage-reason label in the requested locale. Falls back to the
+ *  Czech `label` stored on the reason when no EN mapping exists. */
+export function triageReasonLabel(reason: TriageReason, locale: SupportedLocale): string {
+  if (locale === "en") return RULE_LABEL_EN[reason.id] ?? reason.label;
+  return reason.label;
+}
 
 /** Classify one campaign against every rule. When a `change` (the diff against
  *  the prior sync) is supplied, the sync-over-sync rules also run, so a ROAS

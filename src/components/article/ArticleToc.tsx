@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { subscribeSection } from "./section-store";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: { tocLabel: "Obsah článku" },
+  en: { tocLabel: "Table of contents" },
+} as const;
 
 interface TocItem {
   id: string;
@@ -14,6 +20,7 @@ interface TocItem {
  *  viewport, so the "active" section is the one near the top of the reading area
  *  — not whatever merely touches the bottom of the screen. */
 export default function ArticleToc({ items }: { items: TocItem[] }) {
+  const t = useT(T);
   const [active, setActive] = useState<string>(items[0]?.id ?? "");
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [indicator, setIndicator] = useState<{ top: number; height: number } | null>(null);
@@ -73,7 +80,7 @@ export default function ArticleToc({ items }: { items: TocItem[] }) {
   }, [active]);
 
   return (
-    <nav aria-label="Obsah článku" className="relative mt-4 border-l border-line">
+    <nav aria-label={t("tocLabel")} className="relative mt-4 border-l border-line">
       {indicator && (
         <span
           aria-hidden

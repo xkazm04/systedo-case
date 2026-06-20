@@ -1,13 +1,20 @@
 import Link from "next/link";
 import { ChevronRight } from "@/components/icons";
 import type { Crumb } from "@/lib/nav";
+import { getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: { breadcrumbNav: "Drobečková navigace" },
+  en: { breadcrumbNav: "Breadcrumb navigation" },
+} as const;
 
 /** Breadcrumb trail rendered as an ordered list for accessibility. The matching
  *  BreadcrumbList JSON-LD lives on the page so the visible trail and the
  *  structured data are built from the same `Crumb[]`. */
-export default function Breadcrumbs({ items }: { items: Crumb[] }) {
+export default async function Breadcrumbs({ items }: { items: Crumb[] }) {
+  const t = await getT(T);
   return (
-    <nav aria-label="Drobečková navigace">
+    <nav aria-label={t("breadcrumbNav")}>
       <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted">
         {items.map((crumb, i) => {
           const last = i === items.length - 1;

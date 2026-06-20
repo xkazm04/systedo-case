@@ -8,8 +8,9 @@
 
 import { TrendDown, TrendUp } from "@/components/icons";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
-import { CAMPAIGN_PERIOD_LABELS, isCampaignPeriod } from "@/lib/campaigns/types";
+import { campaignPeriodLabel, isCampaignPeriod } from "@/lib/campaigns/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -35,8 +36,7 @@ const H = 120;
 const PAD = { t: 12, r: 16, b: 12, l: 16 };
 const HEALTHY = 70; // ReportView treats a score ≥ 70 as healthy
 
-const periodLabel = (p: string): string =>
-  isCampaignPeriod(p) ? CAMPAIGN_PERIOD_LABELS[p] : p;
+// periodLabel is locale-aware and defined inside the component below.
 
 /** Colour tokens for a delta — green up, coral down, muted flat. */
 function deltaTone(delta: number): { text: string; bg: string } {
@@ -55,6 +55,9 @@ export default function ScoreTimeline({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
+  const periodLabel = (p: string): string =>
+    isCampaignPeriod(p) ? campaignPeriodLabel(p, locale) : p;
 
   const n = history.length;
   // A single evaluation has no trend to show yet.

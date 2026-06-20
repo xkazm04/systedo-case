@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bolt, Gauge, Info, Layers, Refresh, Share, Sparkles } from "@/components/icons";
 import {
   CAMPAIGN_PERIODS,
-  CAMPAIGN_PERIOD_LABELS,
+  campaignPeriodLabel,
   TARGET_PNO,
   aggregate,
   type CampaignChange,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
@@ -98,6 +99,7 @@ export default function CampaignsClient() {
   const pid = project?.id;
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
   const {
     campaigns,
     meta,
@@ -197,7 +199,7 @@ export default function CampaignsClient() {
                 period === p ? "border-brand-400 bg-brand-50 text-brand-800" : "border-line text-muted hover:border-navy-200"
               }`}
             >
-              {CAMPAIGN_PERIOD_LABELS[p]}
+              {campaignPeriodLabel(p, locale)}
             </button>
           ))}
         </div>
@@ -240,7 +242,7 @@ export default function CampaignsClient() {
                   period === p ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
                 }`}
               >
-                {CAMPAIGN_PERIOD_LABELS[p]}
+                {campaignPeriodLabel(p, locale)}
               </button>
             ))}
           </div>

@@ -3,6 +3,20 @@
 import { useEffect, useState } from "react";
 import type { AiResponse } from "@/lib/ai-types";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    errorGeneric: "Něco se pokazilo.",
+    errorTimeout: "Model neodpověděl do {n} sekund.",
+    errorNetwork: "Nepodařilo se spojit se serverem.",
+  },
+  en: {
+    errorGeneric: "Something went wrong.",
+    errorTimeout: "The model did not respond within {n} seconds.",
+    errorNetwork: "Could not reach the server.",
+  },
+} as const;
 
 type Status = "idle" | "loading" | "done" | "error";
 
@@ -29,6 +43,7 @@ export const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
 /** Shared request lifecycle for every AI tool: posts {mode, ...payload} to the
  *  single /api/ai endpoint, tracks status/data/error, and aborts after the ceiling. */
 export function useAiTool<T>(mode: string) {
+  const t = useT(T);
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +87,7 @@ export function useAiTool<T>(mode: string) {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Něco se pokazilo.");
+        setError(json?.error ?? t("errorGeneric"));
         setStatus("error");
         return;
       }
@@ -86,9 +101,9 @@ export function useAiTool<T>(mode: string) {
     } catch {
       if (controller.signal.aborted) {
         setTimedOut(true);
-        setError(`Model neodpověděl do ${AI_TIMEOUT_SECONDS} sekund.`);
+        setError(t("errorTimeout", { n: AI_TIMEOUT_SECONDS }));
       } else {
-        setError("Nepodařilo se spojit se serverem.");
+        setError(t("errorNetwork"));
       }
       setStatus("error");
     } finally {

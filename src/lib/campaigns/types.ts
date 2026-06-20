@@ -5,6 +5,7 @@
 
 import { cpa, cpc, cr, ctr, pno, roas } from "@/lib/metrics/ratios";
 import { PAID_PORTFOLIO_TARGET_PNO, PAID_PORTFOLIO_TARGET_ROAS } from "@/lib/targets";
+import type { SupportedLocale } from "@/lib/format";
 
 // --- advertising channel types ----------------------------------------------
 
@@ -46,6 +47,15 @@ export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
   paused: "Pozastavená",
 };
 
+export const CAMPAIGN_STATUS_LABELS_EN: Record<CampaignStatus, string> = {
+  enabled: "Active",
+  paused: "Paused",
+};
+
+export function campaignStatusLabel(s: CampaignStatus, locale: SupportedLocale): string {
+  return (locale === "en" ? CAMPAIGN_STATUS_LABELS_EN : CAMPAIGN_STATUS_LABELS)[s];
+}
+
 // --- periods ----------------------------------------------------------------
 
 export const CAMPAIGN_PERIODS = ["7d", "30d", "90d"] as const;
@@ -56,6 +66,16 @@ export const CAMPAIGN_PERIOD_LABELS: Record<CampaignPeriod, string> = {
   "30d": "30 dní",
   "90d": "90 dní",
 };
+
+export const CAMPAIGN_PERIOD_LABELS_EN: Record<CampaignPeriod, string> = {
+  "7d": "7 days",
+  "30d": "30 days",
+  "90d": "90 days",
+};
+
+export function campaignPeriodLabel(p: CampaignPeriod, locale: SupportedLocale): string {
+  return (locale === "en" ? CAMPAIGN_PERIOD_LABELS_EN : CAMPAIGN_PERIOD_LABELS)[p];
+}
 
 export const CAMPAIGN_PERIOD_DAYS: Record<CampaignPeriod, number> = {
   "7d": 7,

@@ -78,8 +78,8 @@ const T = {
     calloutsTitle: "Callouts ({n})",
     keywordsTitle: "Keywords ({n})",
     rationaleTitle: "Why this approach",
-    footerAi: "AI-generated on-brand copy (\“ads\” mode via /api/ai), validated against Google Ads limits (headline {hl}, description {desc}, long headline {lhl} chars).",
-    footerDet: "Assembled from feed per Google Ads limits (headline {hl}, description {desc} chars). Click \“Generate AI copy\” for an on-brand version via /api/ai.",
+    footerAi: "AI-generated on-brand copy (“ads” mode via /api/ai), validated against Google Ads limits (headline {hl}, description {desc}, long headline {lhl} chars).",
+    footerDet: "Assembled from feed per Google Ads limits (headline {hl}, description {desc} chars). Click “Generate AI copy” for an on-brand version via /api/ai.",
   },
 } as const;
 

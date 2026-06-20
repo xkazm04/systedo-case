@@ -4,8 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Bolt, Check, Gauge, Target, TrendDown } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
-  ANALYSIS_PERIOD_LABELS,
+  analysisPeriodLabel,
   ANALYSIS_PERIODS,
   type AnalysisPeriod,
   type AnalysisResult,
@@ -62,6 +63,7 @@ const T = {
 
 export default function PerformanceAnalyst() {
   const t = useT(T);
+  const { locale } = useLocale();
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
   const { status, data, error, timedOut, run, reset } = useAiTool<AnalysisResult>("analysis");
 
@@ -99,7 +101,7 @@ export default function PerformanceAnalyst() {
                     : "border-line text-muted hover:border-navy-200"
                 }`}
               >
-                {ANALYSIS_PERIOD_LABELS[p]}
+                {analysisPeriodLabel(p, locale)}
               </button>
             ))}
           </div>

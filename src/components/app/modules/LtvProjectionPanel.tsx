@@ -54,7 +54,7 @@ const T = {
     churnLabel: "Monthly churn (post-observation)",
     churnAriaLabel: "Monthly churn assumption for retention extrapolation",
     churnAuto: "Auto",
-    churnNote: "Lower churn = slower retention decay = higher LTV. \“Auto\” uses each cohort's own observed decay (bounds {min} … {max}).",
+    churnNote: "Lower churn = slower retention decay = higher LTV. “Auto” uses each cohort's own observed decay (bounds {min} … {max}).",
   },
 } as const;
 

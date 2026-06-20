@@ -1,6 +1,8 @@
+"use client";
+
 import { ArrowRight, Clock, TrendDown, TrendUp } from "@/components/icons";
 import type { ChangesSummary } from "@/lib/campaigns/types";
-import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
@@ -29,9 +31,9 @@ const T = {
 
 /** "What changed since the last sync" — diff of the two most recent snapshots.
  *  Gives the portfolio a time dimension the destructive sync used to throw away. */
-export default async function ChangeStrip({ changes }: { changes: ChangesSummary }) {
-  const fmt = await getServerFormatters();
-  const t = await getT(T);
+export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
+  const fmt = useFormatters();
+  const t = useT(T);
 
   const { since, added, removed, changed, items } = changes;
   const parts: string[] = [];

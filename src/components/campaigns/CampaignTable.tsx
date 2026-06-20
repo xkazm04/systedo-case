@@ -3,11 +3,11 @@
 import { Fragment, useEffect, useState } from "react";
 import { Bolt, ChevronDown, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
 import {
-  CAMPAIGN_STATUS_LABELS,
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_TYPE_LABELS,
   CAMPAIGN_TYPES,
+  campaignStatusLabel,
   withMetrics,
   type Campaign,
   type CampaignChange,
@@ -15,10 +15,11 @@ import {
   type CampaignType,
 } from "@/lib/campaigns/types";
 import {
-  SEVERITY_LABELS,
   SEVERITY_RANK,
   pnoMetricTone,
   roasMetricTone,
+  severityLabel,
+  triageReasonLabel,
   summarize,
   triage,
   type MetricTone,
@@ -26,6 +27,7 @@ import {
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import ReportView from "./ReportView";
 import TriageBanner from "./TriageBanner";
 
@@ -226,6 +228,7 @@ export default function CampaignTable({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
 
   // Build translated column definitions after hooks run.
   const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
@@ -356,7 +359,7 @@ export default function CampaignTable({
           <option value="all">{t("filterStatusAll")}</option>
           {CAMPAIGN_STATUSES.map((s) => (
             <option key={s} value={s}>
-              {CAMPAIGN_STATUS_LABELS[s]}
+              {campaignStatusLabel(s, locale)}
             </option>
           ))}
         </select>
@@ -443,10 +446,10 @@ export default function CampaignTable({
                       ) : (
                         <span
                           className={`pill ${SEVERITY_BADGE[triageResult.severity]}`}
-                          title={triageResult.reasons.map((r) => `${r.label}: ${r.detail}`).join("\n")}
+                          title={triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {SEVERITY_LABELS[triageResult.severity]}
+                          {severityLabel(triageResult.severity, locale)}
                         </span>
                       )}
                     </td>
@@ -466,7 +469,7 @@ export default function CampaignTable({
                             c.status === "enabled" ? "bg-positive-soft text-positive" : "bg-navy-50 text-muted"
                           }`}
                         >
-                          {CAMPAIGN_STATUS_LABELS[c.status]}
+                          {campaignStatusLabel(c.status, locale)}
                         </span>
                       </div>
                     </td>
