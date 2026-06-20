@@ -25,8 +25,8 @@ Dashboard performance-analysis card: dataset → client-facing PPC read (headlin
 - Single chokepoint [[llm-wrapper]]; one tagged call. Telemetry inherited.
 - schema + normalize (analysis.ts:59) + validate (analysis.ts:80, flags hollow output) + self-repair: all four present.
 - **Golden:** yes (`test-llm/golden/analysis.json`) + live probe.
-- **Caching:** NONE — `/api/ai` rate-limited + quota'd but no input-hash cache; identical period re-pays.
-- `temperature: 0.7` high for a strict numeric read.
+- **Caching:** input-hash response cache on `/api/ai` (C1, `response-cache.ts`) — identical (mode, locale, input) reuses the result without re-paying the model or spending quota.
+- `temperature: 0.4` (C7, was 0.7) — low for a strictly-grounded numeric read; consistent verdicts + better cache reuse.
 ## Findings
-- code/value · uncached `/api/ai` — add input-hash cache mirroring [[campaign-eval]]. (stub — [[2026-06-20-run]])
-- code · lower temp toward 0.4. (stub)
+- ✅ code/value · **C1 resolved** — `/api/ai` input-hash cache (mirrors [[campaign-eval]]). [[2026-06-20-run]]
+- ✅ code · **C7 resolved** — temperature 0.7 → 0.4. [[2026-06-20-run]]

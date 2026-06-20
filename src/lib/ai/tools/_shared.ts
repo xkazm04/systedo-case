@@ -16,6 +16,20 @@ export const cleanList = (v: unknown, max: number): string[] =>
 export const clamp = (s: string, n: number): string =>
   s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
 
+/** Bound a long source text before it goes into a prompt: keep the lead and the
+ *  closing — both carry the most signal for retelling/repurposing — and elide the
+ *  middle, so a long article can't blow up the prompt or token cost. No-op when the
+ *  text is already within `max`. */
+export const digest = (s: string, max = 6000): string => {
+  const t = s.trim();
+  if (t.length <= max) return t;
+  const marker = "\n\n[…]\n\n";
+  const keep = max - marker.length;
+  const head = Math.floor(keep * 0.7);
+  const tail = keep - head;
+  return `${t.slice(0, head).trimEnd()}${marker}${t.slice(t.length - tail).trimStart()}`;
+};
+
 /** Like cleanList, but also clamps each item to a max character length so the
  *  server never emits over-limit ad copy that Google Ads / Sklik would reject. */
 export const cleanClampedList = (v: unknown, maxCount: number, maxLen: number): string[] =>

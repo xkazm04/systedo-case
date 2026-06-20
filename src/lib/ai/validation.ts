@@ -36,6 +36,7 @@ import {
 } from "../ai-types";
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
+import { digest } from "./tools/_shared";
 import type { SupportedLocale } from "../format";
 
 /** Pick the right locale variant. Falls back to Czech for any unlisted locale. */
@@ -192,13 +193,17 @@ export function validateRepurposeRequest(input: unknown, locale: SupportedLocale
   if (channels.length === 0) {
     return { valid: false, error: t(locale, "Zadejte alespoň jeden platný kanál.", "Please specify at least one valid channel.") };
   }
-  if (body.length > 6000) {
-    return { valid: false, error: t(locale, "Text článku je příliš dlouhý (max 6000 znaků).", "Article body is too long (max 6000 characters).") };
+  // Accept long source articles — digest (lead + closing, middle elided) rather
+  // than reject, since repurposing a real article is the whole point. A generous
+  // ceiling still guards against pathological payloads.
+  if (body.length > 100_000) {
+    return { valid: false, error: t(locale, "Text článku je příliš dlouhý.", "Article body is too long.") };
   }
+  const digestedBody = digest(body);
   return {
     valid: true,
-    value: body
-      ? { title, url, tone, channels, body: body.slice(0, 6000) }
+    value: digestedBody
+      ? { title, url, tone, channels, body: digestedBody }
       : { title, url, tone, channels },
   };
 }

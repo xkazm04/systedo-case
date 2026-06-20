@@ -11,7 +11,7 @@ import { TONE_LABELS } from "../../ai-types";
 import { CHANNEL_LIMITS, REPURPOSE_CHANNELS, repurpose } from "../../distribution/generate";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
-import { clamp, txt } from "./_shared";
+import { clamp, digest, txt } from "./_shared";
 
 const REPURPOSE_SYSTEM = `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
 
@@ -28,7 +28,9 @@ Pravidla:
 - Vrať pouze validní JSON dle schématu — právě jednu variantu na každý požadovaný kanál.`;
 
 function buildRepurposePrompt(req: RepurposeRequest, channels: string[]): string {
-  const body = txt(req.body);
+  // Digest the source so a long article can't blow up the prompt (the validator
+  // already bounds the /api/ai path; this also protects any direct caller).
+  const body = digest(txt(req.body));
   return [
     "Přepracuj tento zdrojový článek do variant pro uvedené kanály.",
     "",

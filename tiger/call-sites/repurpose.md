@@ -33,10 +33,12 @@ Grounding **3/4** — the source article itself (the thing being repurposed) rea
 ## Code quality (wrapping · logging · caching)
 - **Wrapping:** clean, single tagged call `// llm-tool: repurpose` (`repurpose.ts:135`).
 - **Schema + normalize + validate + self-repair:** all four, all defined inline in `generateRepurpose`. Requested channels are restricted to the known `REPURPOSE_CHANNELS` set (order preserved, defaults to all). `normalize` (`repurpose.ts:94`) clamps each variant to its `channelLimit` and back-fills skipped channels from the deterministic templates; `validate` (`repurpose.ts:117`) flags any over-limit variant → one self-repair re-prompt.
-- **Prompt bloat:** the **whole article body is passed verbatim** (`repurpose.ts:36`, `body` is untruncated) — the one tool here that can blow up the prompt on a long source article. A digest/excerpt cap would bound it; the request validator should enforce a body length limit. `temperature: 0.8` (`repurpose.ts:142`).
-- **Caching:** `/api/ai` does **NOT** input-hash-cache — re-repurposing the same article to the same channels recomputes. Rate-limit/quota inherited.
+- **Prompt bloat:** fixed (C5). The body is now bounded by a shared `digest()` (`tools/_shared.ts`) — lead + closing excerpt, middle elided, ≤6000 chars — both in `buildRepurposePrompt` (point of use, protects any caller) and in `validateRepurposeRequest` (which now digests long bodies instead of hard-rejecting at 6000). `temperature: 0.8` (`repurpose.ts`).
+- **Caching:** input-hash response cache on `/api/ai` (C1) — re-repurposing the same article to the same channels reuses the result. Rate-limit/quota inherited.
 - **Telemetry:** inherited from [[llm-wrapper]].
 - **Golden coverage:** contract golden `test-llm/golden/repurpose.json` (C6), enforced by `llm-eval --strict` in the gate + CI; also a real-Claude probe in `test-llm/registry.mjs` (lenient ≥1 channel variant).
 
 ## Findings
-_(stub — to be impact-scored in [[2026-06-20-run]]. Note: unbounded article body in the prompt — cap/digest it.)_
+- ✅ code · **C5 resolved** — body digested (head+tail excerpt) at prompt + validator; validator accepts long articles instead of rejecting. Unit-tested. [[2026-06-20-run]]
+- ✅ code · **C1 resolved** — `/api/ai` input-hash cache. [[2026-06-20-run]]
+- value · brand-voice context still missing (grounding 3/4 ceiling). (open)

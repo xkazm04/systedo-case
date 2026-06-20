@@ -155,7 +155,9 @@ export function generateAnalysis(req: AnalysisRequest, locale?: SupportedLocale)
     prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot)),
     system: ANALYSIS_SYSTEM,
     schema: ANALYSIS_SCHEMA,
-    temperature: 0.7,
+    // Strictly-grounded numeric read (5/5): keep temperature low so the verdict
+    // stays consistent and faithful to the figures, not embellished.
+    temperature: 0.4,
     normalize: normalizeAnalysisResult,
     validate: validateAnalysis,
     demo: () => demoAnalysis(snapshot),
