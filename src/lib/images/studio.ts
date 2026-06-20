@@ -4,6 +4,12 @@
  *  tool works straight from the repo. Server-only. */
 import { generateCandidates, leonardoConfigured } from "@/lib/leonardo/client";
 import { rateImage } from "@/lib/leonardo/rate";
+import { recordLlmCall } from "@/lib/llm/telemetry";
+
+// Coarse per-image cost estimates so the priciest calls in the app stop being
+// invisible — refine once real Leonardo-credit / Gemini-vision rates are wired.
+const LEONARDO_USD_PER_IMAGE = 0.02;
+const VISION_USD_PER_IMAGE = 0.002;
 import {
   IMAGE_FORMAT_PRESETS,
   MAX_IMAGE_CANDIDATES,
@@ -67,6 +73,7 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     : "";
   const base = [brandBlock, req.prior, req.prompt].filter(Boolean).join("\n\n");
   const fullPrompt = req.avoid ? `${base}\n\nVyhni se: ${req.avoid}` : base;
+  const tGen = Date.now();
   const { generationId, candidates } = await generateCandidates(fullPrompt, {
     width: preset.width,
     height: preset.height,
@@ -76,10 +83,26 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     initImageId: req.initImageId,
     initStrength: req.fidelity,
   });
+  // Telemetry — the most expensive call in the app was previously unrecorded.
+  await recordLlmCall({
+    toolId: "creative-image-gen",
+    promptHash: "image-gen",
+    provider: "leonardo",
+    model: req.initImageId ? "leonardo-img2img" : "leonardo-txt2img",
+    demo: false,
+    tookMs: Date.now() - tGen,
+    attempts: 1,
+    repaired: false,
+    estCostUsd: candidates.length * LEONARDO_USD_PER_IMAGE,
+    inputTokens: 0,
+    outputTokens: 0,
+    at: new Date().toISOString(),
+  });
 
   // Score every candidate in parallel, then rank by score (desc). The brand kit is
   // passed to the scorer too, so the winner is the best brand-fit, not just the
   // prettiest generic image.
+  const tScore = Date.now();
   const images: StudioImage[] = await Promise.all(
     candidates.map(async (c) => {
       const b64 = c.buffer.toString("base64");
@@ -95,6 +118,21 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
       };
     })
   );
+  // Telemetry — N parallel Gemini-vision scoring calls, also previously unrecorded.
+  await recordLlmCall({
+    toolId: "creative-vision-score",
+    promptHash: "vision-score",
+    provider: "gemini",
+    model: "gemini-vision",
+    demo: false,
+    tookMs: Date.now() - tScore,
+    attempts: candidates.length,
+    repaired: false,
+    estCostUsd: candidates.length * VISION_USD_PER_IMAGE,
+    inputTokens: 0,
+    outputTokens: 0,
+    at: new Date().toISOString(),
+  });
   images.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   if (images[0]) images[0].winner = true;
 
