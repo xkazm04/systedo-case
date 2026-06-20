@@ -8,6 +8,7 @@ import {
   fmtMultiple,
   fmtPct,
 } from "../format";
+import type { SupportedLocale } from "../format";
 import type { MetricKey } from "../types";
 
 export interface MetricMeta {
@@ -15,6 +16,9 @@ export interface MetricMeta {
   label: string;
   short: string;
   description: string;
+  labelEn: string;
+  shortEn: string;
+  descriptionEn: string;
   /** which direction is "good" — used to colour deltas (PNO down = good) */
   goodDirection: "up" | "down";
   format: (v: number) => string;
@@ -24,12 +28,30 @@ export interface MetricMeta {
   plottable: boolean;
 }
 
+/** Return the localised label for a metric. Falls back to Czech when no locale is given. */
+export function metricLabel(m: MetricMeta, locale?: SupportedLocale): string {
+  return locale === "en" ? m.labelEn : m.label;
+}
+
+/** Return the localised short label for a metric. Falls back to Czech when no locale is given. */
+export function metricShort(m: MetricMeta, locale?: SupportedLocale): string {
+  return locale === "en" ? m.shortEn : m.short;
+}
+
+/** Return the localised description for a metric. Falls back to Czech when no locale is given. */
+export function metricDescription(m: MetricMeta, locale?: SupportedLocale): string {
+  return locale === "en" ? m.descriptionEn : m.description;
+}
+
 export const METRICS: Record<MetricKey, MetricMeta> = {
   visits: {
     key: "visits",
     label: "Návštěvy",
     short: "Návštěvy",
     description: "Počet návštěv napříč všemi kanály.",
+    labelEn: "Visits",
+    shortEn: "Visits",
+    descriptionEn: "Number of visits across all channels.",
     goodDirection: "up",
     format: fmtInt,
     formatCompact: (v) => fmtInt(v),
@@ -40,6 +62,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "Náklady",
     short: "Náklady",
     description: "Mediální výdaje na reklamu.",
+    labelEn: "Cost",
+    shortEn: "Cost",
+    descriptionEn: "Media spend on advertising.",
     goodDirection: "down",
     format: fmtCZK,
     formatCompact: fmtCZKCompact,
@@ -50,6 +75,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "Konverze",
     short: "Konverze",
     description: "Počet dokončených objednávek.",
+    labelEn: "Conversions",
+    shortEn: "Conversions",
+    descriptionEn: "Number of completed orders.",
     goodDirection: "up",
     format: fmtInt,
     formatCompact: (v) => fmtInt(v),
@@ -60,6 +88,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "Hodnota konverzí",
     short: "Obrat",
     description: "Obrat připsaný marketingu (hodnota konverzí).",
+    labelEn: "Conversion value",
+    shortEn: "Revenue",
+    descriptionEn: "Revenue attributed to marketing (conversion value).",
     goodDirection: "up",
     format: fmtCZK,
     formatCompact: fmtCZKCompact,
@@ -70,6 +101,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "PNO",
     short: "PNO",
     description: "Podíl nákladů na obratu = náklady / obrat.",
+    labelEn: "PNO",
+    shortEn: "PNO",
+    descriptionEn: "Cost-to-revenue ratio = cost / revenue.",
     goodDirection: "down",
     format: (v) => fmtPct(v),
     formatCompact: (v) => fmtPct(v),
@@ -80,6 +114,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "Prům. hodnota objednávky",
     short: "AOV",
     description: "Average order value = obrat / konverze.",
+    labelEn: "Avg. order value",
+    shortEn: "AOV",
+    descriptionEn: "Average order value = revenue / conversions.",
     goodDirection: "up",
     format: fmtCZK,
     formatCompact: fmtCZKCompact,
@@ -90,6 +127,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "Konverzní poměr",
     short: "CR",
     description: "Podíl návštěv, které skončily objednávkou.",
+    labelEn: "Conversion rate",
+    shortEn: "CR",
+    descriptionEn: "Share of visits that resulted in an order.",
     goodDirection: "up",
     format: (v) => fmtPct(v, 2),
     formatCompact: (v) => fmtPct(v, 1),
@@ -100,6 +140,9 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     label: "ROAS",
     short: "ROAS",
     description: "Návratnost výdajů = obrat / náklady.",
+    labelEn: "ROAS",
+    shortEn: "ROAS",
+    descriptionEn: "Return on ad spend = revenue / cost.",
     goodDirection: "up",
     format: (v) => fmtMultiple(v),
     formatCompact: (v) => fmtMultiple(v),

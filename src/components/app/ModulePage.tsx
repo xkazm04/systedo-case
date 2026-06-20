@@ -3,9 +3,10 @@
  *  page gutter. Keeps every module visually consistent without each page
  *  re-deriving its own header. Server component. */
 import type { ReactNode } from "react";
-import { MODULES } from "@/lib/projects/modules";
+import { MODULES, moduleLabel, moduleBlurb } from "@/lib/projects/modules";
+import { getServerLocale } from "@/lib/i18n/locale";
 
-export default function ModulePage({
+export default async function ModulePage({
   moduleKey,
   title,
   description,
@@ -20,9 +21,10 @@ export default function ModulePage({
   actions?: ReactNode;
   children: ReactNode;
 }) {
+  const locale = await getServerLocale();
   const def = moduleKey !== undefined ? MODULES.find((m) => m.key === moduleKey) : undefined;
-  const heading = title ?? def?.label ?? "";
-  const desc = description ?? def?.blurb ?? "";
+  const heading = title ?? (def ? moduleLabel(def, locale) : "");
+  const desc = description ?? (def ? moduleBlurb(def, locale) : "");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">

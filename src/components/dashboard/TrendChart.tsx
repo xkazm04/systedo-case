@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Anomaly, Bucket } from "@/lib/metrics";
-import { METRICS, RATIO_METRICS } from "@/lib/metrics";
+import { metricLabel, metricShort, METRICS, RATIO_METRICS } from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -66,6 +67,7 @@ export default function TrendChart({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
 
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(760);
@@ -213,8 +215,8 @@ export default function TrendChart({
         role="img"
         aria-label={
           hasCompare
-            ? t("ariaWithCompare", { label: meta.label })
-            : t("ariaNoCompare", { label: meta.label })
+            ? t("ariaWithCompare", { label: metricLabel(meta, locale) })
+            : t("ariaNoCompare", { label: metricLabel(meta, locale) })
         }
       >
         <defs>
@@ -418,7 +420,7 @@ export default function TrendChart({
           <dl className="mt-2 space-y-1 border-t border-line pt-2">
             {READOUT.filter((m) => m !== metric).map((m) => (
               <div key={m} className="flex items-center justify-between gap-2 text-[13px]">
-                <dt className="text-muted">{METRICS[m].short}</dt>
+                <dt className="text-muted">{metricShort(METRICS[m], locale)}</dt>
                 <dd className="tnum font-medium text-navy-700">
                   {METRICS[m].formatCompact(tipBucket[m])}
                 </dd>

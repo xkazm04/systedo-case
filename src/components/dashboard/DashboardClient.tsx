@@ -16,6 +16,8 @@ import {
   detectAnomalies,
   evaluatePeriod,
   HEADLINE_METRICS,
+  metricDescription,
+  metricShort,
   METRICS,
   monthlyPacing,
   PERIODS,
@@ -25,7 +27,8 @@ import {
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
-import type { Formatters } from "@/lib/format";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import type { Formatters, SupportedLocale } from "@/lib/format";
 
 const T = {
   cs: {
@@ -187,6 +190,7 @@ function Segmented<T extends string>({
 export default function DashboardClient({ data }: { data: PerformanceData }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
 
   const [periodKey, setPeriodKey] = useState("90d");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
@@ -305,6 +309,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <KpiCard
             key={m}
             meta={METRICS[m]}
+            locale={locale}
             value={c[m]}
             delta={result.delta[m]}
             significance={result.significance[m]}
@@ -325,12 +330,12 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <div>
             <h2 className="text-base font-semibold text-navy-800">{t("trendHeading")}</h2>
             <p className="mt-0.5 text-sm text-muted">
-              {METRICS[trendMetric].description}
+              {metricDescription(METRICS[trendMetric], locale)}
             </p>
           </div>
           <Segmented
             ariaLabel={t("chartMetricSelector")}
-            options={TREND_METRICS.map((m) => ({ value: m, label: METRICS[m].short }))}
+            options={TREND_METRICS.map((m) => ({ value: m, label: metricShort(METRICS[m], locale) }))}
             value={trendMetric}
             onChange={setTrendMetric}
           />
@@ -431,7 +436,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               )}
               <ul className="mt-3 space-y-3">
                 {topAnomalies.map((a, i) => {
-                  const ins = anomalyLine(a, fmt, t);
+                  const ins = anomalyLine(a, fmt, t, locale);
                   return (
                     <li key={i} className="flex gap-2.5 text-sm">
                       <span
@@ -569,9 +574,10 @@ function buildInsights(
 function anomalyLine(
   a: Anomaly,
   fmt: Formatters,
-  t: TFn
+  t: TFn,
+  locale?: SupportedLocale
 ): { tone: "good" | "warn"; text: string } {
-  const m = METRICS[a.metric].short;
+  const m = metricShort(METRICS[a.metric], locale);
   const good = METRICS[a.metric].goodDirection;
   const devPct = a.expected > 0 ? (a.observed - a.expected) / a.expected : 0;
   const favourable =

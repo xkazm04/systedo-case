@@ -6,6 +6,7 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Layers, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
@@ -17,9 +18,9 @@ import {
   type Tone,
 } from "@/lib/ai-types";
 import {
-  AD_STRENGTH_LABELS,
   AD_STRENGTH_ORDER,
   computeAdStrength,
+  getAdStrengthLabel,
   type AdStrength,
   type AdStrengthFactor,
   type AdStrengthRating,
@@ -166,10 +167,18 @@ function FactorIcon({ status }: { status: AdStrengthFactor["status"] }) {
 
 /** Google-Ads-style "Ad Strength" rating with a segmented meter and the factor
  *  checklist that tells the user what would push the set toward Excellent. */
-function AdStrengthMeter({ strength, t }: { strength: AdStrength; t: ReturnType<typeof useT<keyof typeof T.cs>> }) {
+function AdStrengthMeter({
+  strength,
+  locale,
+  t,
+}: {
+  strength: AdStrength;
+  locale: import("@/lib/format").SupportedLocale;
+  t: ReturnType<typeof useT<keyof typeof T.cs>>;
+}) {
   const filled = AD_STRENGTH_ORDER.indexOf(strength.rating) + 1;
   const style = RATING_STYLE[strength.rating];
-  const ratingLabel = AD_STRENGTH_LABELS[strength.rating];
+  const ratingLabel = getAdStrengthLabel(strength.rating, locale);
   return (
     <div data-testid="ad-strength" className="rounded-card border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-3">
@@ -286,6 +295,7 @@ const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "g
 
 export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () => void } = {}) {
   const t = useT(T);
+  const { locale } = useLocale();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -310,7 +320,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
   }
 
   const r = data?.result;
-  const strength = useMemo(() => (r ? computeAdStrength(r) : null), [r]);
+  const strength = useMemo(() => (r ? computeAdStrength(r, locale) : null), [r, locale]);
 
   // Save the current ad as a variant of an A/B test (same name → same test).
   const saveVariant = async () => {
@@ -548,7 +558,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
                 platform={form.platform}
                 t={t}
               />
-              {strength && <AdStrengthMeter strength={strength} t={t} />}
+              {strength && <AdStrengthMeter strength={strength} locale={locale} t={t} />}
             </div>
 
             <Group title={t("groupHeadlines")} hint={t("maxCharsHint", { n: AD_LIMITS.headline })}>

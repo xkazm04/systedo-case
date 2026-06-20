@@ -35,14 +35,20 @@ import {
 } from "../ai-types";
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
+import type { SupportedLocale } from "../format";
+
+/** Pick the right locale variant. Falls back to Czech for any unlisted locale. */
+function t(locale: SupportedLocale, cs: string, en: string): string {
+  return locale === "en" ? en : cs;
+}
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 type Valid<T> = { valid: true; value: T } | { valid: false; error: string };
 
-export function validateAdRequest(input: unknown): Valid<AdRequest> {
+export function validateAdRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<AdRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const product = str(o.product);
@@ -52,26 +58,26 @@ export function validateAdRequest(input: unknown): Valid<AdRequest> {
   const tone = o.tone as Tone;
 
   if (product.length < 2 || product.length > 200) {
-    return { valid: false, error: "Vyplňte název produktu nebo služby (2–200 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte název produktu nebo služby (2–200 znaků).", "Please fill in the product or service name (2–200 characters).") };
   }
   if (benefits.length < 2 || benefits.length > 600) {
-    return { valid: false, error: "Vyplňte hlavní výhody (2–600 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte hlavní výhody (2–600 znaků).", "Please fill in the main benefits (2–600 characters).") };
   }
   if (audience.length < 2 || audience.length > 300) {
-    return { valid: false, error: "Vyplňte cílovou skupinu (2–300 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte cílovou skupinu (2–300 znaků).", "Please fill in the target audience (2–300 characters).") };
   }
   if (!PLATFORMS.includes(platform)) {
-    return { valid: false, error: "Neplatná platforma." };
+    return { valid: false, error: t(locale, "Neplatná platforma.", "Invalid platform.") };
   }
   if (!TONES.includes(tone)) {
-    return { valid: false, error: "Neplatný tón komunikace." };
+    return { valid: false, error: t(locale, "Neplatný tón komunikace.", "Invalid communication tone.") };
   }
   return { valid: true, value: { product, benefits, audience, platform, tone } };
 }
 
-export function validateBriefRequest(input: unknown): Valid<BriefRequest> {
+export function validateBriefRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<BriefRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const topic = str(o.topic);
@@ -80,16 +86,16 @@ export function validateBriefRequest(input: unknown): Valid<BriefRequest> {
   const contentType = o.contentType as ContentType;
 
   if (topic.length < 2 || topic.length > 200) {
-    return { valid: false, error: "Vyplňte téma obsahu (2–200 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte téma obsahu (2–200 znaků).", "Please fill in the content topic (2–200 characters).") };
   }
   if (primaryKeyword.length < 2 || primaryKeyword.length > 120) {
-    return { valid: false, error: "Vyplňte hlavní klíčové slovo (2–120 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte hlavní klíčové slovo (2–120 znaků).", "Please fill in the primary keyword (2–120 characters).") };
   }
   if (audience.length < 2 || audience.length > 300) {
-    return { valid: false, error: "Vyplňte cílovou skupinu (2–300 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte cílovou skupinu (2–300 znaků).", "Please fill in the target audience (2–300 characters).") };
   }
   if (!CONTENT_TYPES.includes(contentType)) {
-    return { valid: false, error: "Neplatný typ obsahu." };
+    return { valid: false, error: t(locale, "Neplatný typ obsahu.", "Invalid content type.") };
   }
   return { valid: true, value: { topic, primaryKeyword, audience, contentType, keywords: parseKeywords(o.keywords) } };
 }
@@ -114,20 +120,20 @@ function parseKeywords(v: unknown): BriefKeyword[] | undefined {
   return out.length ? out : undefined;
 }
 
-export function validateAnalysisRequest(input: unknown): Valid<AnalysisRequest> {
+export function validateAnalysisRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<AnalysisRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const period = (input as Record<string, unknown>).period as AnalysisPeriod;
   if (!ANALYSIS_PERIODS.includes(period)) {
-    return { valid: false, error: "Neplatné období analýzy." };
+    return { valid: false, error: t(locale, "Neplatné období analýzy.", "Invalid analysis period.") };
   }
   return { valid: true, value: { period } };
 }
 
-export function validateLeadReplyRequest(input: unknown): Valid<LeadReplyRequest> {
+export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LeadReplyRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const message = str(o.message);
@@ -136,13 +142,13 @@ export function validateLeadReplyRequest(input: unknown): Valid<LeadReplyRequest
   const name = str(o.name);
 
   if (message.length < 2 || message.length > 1200) {
-    return { valid: false, error: "Zadejte zprávu od leadu (2–1200 znaků)." };
+    return { valid: false, error: t(locale, "Zadejte zprávu od leadu (2–1200 znaků).", "Please enter the lead’s message (2–1200 characters).") };
   }
   if (!LEAD_CHANNELS.includes(channel)) {
-    return { valid: false, error: "Neplatný kanál poptávky." };
+    return { valid: false, error: t(locale, "Neplatný kanál poptávky.", "Invalid enquiry channel.") };
   }
   if (projectType.length < 2 || projectType.length > 200) {
-    return { valid: false, error: "Vyplňte typ zakázky (2–200 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte typ zakázky (2–200 znaků).", "Please fill in the project type (2–200 characters).") };
   }
   return {
     valid: true,
@@ -150,9 +156,9 @@ export function validateLeadReplyRequest(input: unknown): Valid<LeadReplyRequest
   };
 }
 
-export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest> {
+export function validateRepurposeRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<RepurposeRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const title = str(o.title);
@@ -161,16 +167,16 @@ export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest
   const tone = o.tone as Tone;
 
   if (title.length < 2 || title.length > 300) {
-    return { valid: false, error: "Vyplňte název článku (2–300 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte název článku (2–300 znaků).", "Please fill in the article title (2–300 characters).") };
   }
   try {
     // Validate the URL is parseable; void marks the result intentionally unused.
     void new URL(url);
   } catch {
-    return { valid: false, error: "Neplatná adresa zdrojového článku." };
+    return { valid: false, error: t(locale, "Neplatná adresa zdrojového článku.", "Invalid source article URL.") };
   }
   if (!TONES.includes(tone)) {
-    return { valid: false, error: "Neplatný tón komunikace." };
+    return { valid: false, error: t(locale, "Neplatný tón komunikace.", "Invalid communication tone.") };
   }
   // Filter the requested channels to the known set; require at least one.
   const known = new Set<string>(REPURPOSE_CHANNELS);
@@ -178,10 +184,10 @@ export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest
     ? o.channels.filter((c): c is string => typeof c === "string" && known.has(c))
     : [];
   if (channels.length === 0) {
-    return { valid: false, error: "Zadejte alespoň jeden platný kanál." };
+    return { valid: false, error: t(locale, "Zadejte alespoň jeden platný kanál.", "Please specify at least one valid channel.") };
   }
   if (body.length > 6000) {
-    return { valid: false, error: "Text článku je příliš dlouhý (max 6000 znaků)." };
+    return { valid: false, error: t(locale, "Text článku je příliš dlouhý (max 6000 znaků).", "Article body is too long (max 6000 characters).") };
   }
   return {
     valid: true,
@@ -191,9 +197,9 @@ export function validateRepurposeRequest(input: unknown): Valid<RepurposeRequest
   };
 }
 
-export function validateLocalReviewReplyRequest(input: unknown): Valid<LocalReviewReplyRequest> {
+export function validateLocalReviewReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LocalReviewReplyRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const reviewText = str(o.reviewText);
@@ -202,13 +208,13 @@ export function validateLocalReviewReplyRequest(input: unknown): Valid<LocalRevi
   const rating = Math.round(Number(o.rating));
 
   if (reviewText.length < 2 || reviewText.length > 1500) {
-    return { valid: false, error: "Zadejte text recenze (2–1500 znaků)." };
+    return { valid: false, error: t(locale, "Zadejte text recenze (2–1500 znaků).", "Please enter the review text (2–1500 characters).") };
   }
   if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return { valid: false, error: "Hodnocení musí být v rozsahu 1–5 hvězd." };
+    return { valid: false, error: t(locale, "Hodnocení musí být v rozsahu 1–5 hvězd.", "Rating must be between 1 and 5 stars.") };
   }
   if (area.length < 1 || area.length > 120) {
-    return { valid: false, error: "Vyplňte lokalitu (1–120 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte lokalitu (1–120 znaků).", "Please fill in the location (1–120 characters).") };
   }
   return {
     valid: true,
@@ -250,9 +256,9 @@ function parseFaq(v: unknown): { question: string; answer: string }[] {
   return out;
 }
 
-export function validateArticleDraftRequest(input: unknown): Valid<ArticleDraftRequest> {
+export function validateArticleDraftRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<ArticleDraftRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const titleTag = str(o.titleTag);
@@ -269,10 +275,10 @@ export function validateArticleDraftRequest(input: unknown): Valid<ArticleDraftR
 
   // A draft needs a working title and at least some structure to expand.
   if (!titleTag && !h1) {
-    return { valid: false, error: "Chybí titulek nebo title tag briefu." };
+    return { valid: false, error: t(locale, "Chybí titulek nebo title tag briefu.", "The brief is missing a heading or title tag.") };
   }
   if (outline.length === 0) {
-    return { valid: false, error: "Brief nemá žádnou osnovu k rozepsání." };
+    return { valid: false, error: t(locale, "Brief nemá žádnou osnovu k rozepsání.", "The brief has no outline to expand.") };
   }
   const value: ArticleDraftRequest = {
     titleTag: titleTag.slice(0, 200),
@@ -316,9 +322,9 @@ function parseDiagnosisCohort(v: unknown): CohortDiagnosisCohort | null {
   };
 }
 
-export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiagnosisRequest> {
+export function validateCohortDiagnosisRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<CohortDiagnosisRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const cohorts = Array.isArray(o.cohorts)
@@ -328,7 +334,7 @@ export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiag
         .filter((c): c is CohortDiagnosisCohort => c !== null)
     : [];
   if (cohorts.length === 0) {
-    return { valid: false, error: "Chybí data kohort k diagnostice." };
+    return { valid: false, error: t(locale, "Chybí data kohort k diagnostice.", "Missing cohort data for diagnosis.") };
   }
   const value: CohortDiagnosisRequest = {
     cohorts,
@@ -342,19 +348,20 @@ export function validateCohortDiagnosisRequest(input: unknown): Valid<CohortDiag
 }
 
 export function validateLeadSourceDiagnosisRequest(
-  input: unknown
+  input: unknown,
+  locale: SupportedLocale = "cs"
 ): Valid<LeadSourceDiagnosisRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const source = str(o.source).slice(0, 120);
   if (!source) {
-    return { valid: false, error: "Chybí název zdroje k diagnostice." };
+    return { valid: false, error: t(locale, "Chybí název zdroje k diagnostice.", "Missing source name for diagnosis.") };
   }
   const leads = Math.max(0, Math.round(fin(o.leads)));
   if (leads <= 0) {
-    return { valid: false, error: "Zdroj nemá žádné leady k diagnostice." };
+    return { valid: false, error: t(locale, "Zdroj nemá žádné leady k diagnostice.", "The source has no leads to diagnose.") };
   }
   const qualified = Math.max(0, Math.round(fin(o.qualified)));
   const won = Math.max(0, Math.round(fin(o.won)));
@@ -391,19 +398,19 @@ const COMPARE_OUTLINE_INTENTS = new Set<CompareOutlineIntent>([
   "review",
 ]);
 
-export function validateComparisonOutlineRequest(input: unknown): Valid<ComparisonOutlineRequest> {
+export function validateComparisonOutlineRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<ComparisonOutlineRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const query = str(o.query);
   const intent = str(o.intent) as CompareOutlineIntent;
 
   if (query.length < 2 || query.length > 200) {
-    return { valid: false, error: "Vyplňte cílový dotaz (2–200 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte cílový dotaz (2–200 znaků).", "Please fill in the target query (2–200 characters).") };
   }
   if (!COMPARE_OUTLINE_INTENTS.has(intent)) {
-    return { valid: false, error: "Neplatný záměr dotazu." };
+    return { valid: false, error: t(locale, "Neplatný záměr dotazu.", "Invalid query intent.") };
   }
   const value: ComparisonOutlineRequest = { query: query.slice(0, 200), intent };
   const volume = Number(o.volume);
@@ -415,14 +422,14 @@ export function validateComparisonOutlineRequest(input: unknown): Valid<Comparis
   return { valid: true, value };
 }
 
-export function validateLpVariantIdeasRequest(input: unknown): Valid<LpVariantIdeasRequest> {
+export function validateLpVariantIdeasRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LpVariantIdeasRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const topic = str(o.topic);
   if (topic.length < 2 || topic.length > 200) {
-    return { valid: false, error: "Vyplňte téma / klastr landing page (2–200 znaků)." };
+    return { valid: false, error: t(locale, "Vyplňte téma / klastr landing page (2–200 znaků).", "Please fill in the landing page topic / cluster (2–200 characters).") };
   }
   // De-dupe + cap the optional grounding keywords so the prompt stays bounded.
   const seen = new Set<string>();
@@ -445,22 +452,22 @@ export function validateLpVariantIdeasRequest(input: unknown): Valid<LpVariantId
   return { valid: true, value };
 }
 
-export function validateEvaluationRequest(input: unknown): Valid<EvaluationRequest> {
+export function validateEvaluationRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<EvaluationRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   const scope = o.scope as EvalScope;
   if (!EVAL_SCOPES.includes(scope)) {
-    return { valid: false, error: "Neplatný rozsah vyhodnocení." };
+    return { valid: false, error: t(locale, "Neplatný rozsah vyhodnocení.", "Invalid evaluation scope.") };
   }
   if (!isCampaignPeriod(o.period)) {
-    return { valid: false, error: "Neplatné období." };
+    return { valid: false, error: t(locale, "Neplatné období.", "Invalid period.") };
   }
   if (scope === "campaign") {
     const campaignId = str(o.campaignId);
     if (!campaignId) {
-      return { valid: false, error: "Chybí ID kampaně." };
+      return { valid: false, error: t(locale, "Chybí ID kampaně.", "Missing campaign ID.") };
     }
     return { valid: true, value: { scope, campaignId, period: o.period } };
   }
@@ -484,9 +491,9 @@ function parseClusterKeyword(v: unknown): KeywordClusterInput | null {
   return out;
 }
 
-export function validateKeywordClustersRequest(input: unknown): Valid<KeywordClustersRequest> {
+export function validateKeywordClustersRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<KeywordClustersRequest> {
   if (typeof input !== "object" || input === null) {
-    return { valid: false, error: "Chybí data požadavku." };
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
   // De-dupe by canonical keyword and cap the count so the prompt stays bounded.
@@ -502,7 +509,7 @@ export function validateKeywordClustersRequest(input: unknown): Valid<KeywordClu
     keywords.push(parsed);
   }
   if (keywords.length < 2) {
-    return { valid: false, error: "Zadejte alespoň 2 klíčová slova k seskupení." };
+    return { valid: false, error: t(locale, "Zadejte alespoň 2 klíčová slova k seskupení.", "Please provide at least 2 keywords to cluster.") };
   }
   const value: KeywordClustersRequest = { keywords };
   const topic = str(o.topic);

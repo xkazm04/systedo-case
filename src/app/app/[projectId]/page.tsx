@@ -3,6 +3,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ProjectOverview from "@/components/app/ProjectOverview";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations } from "@/lib/insights/aggregate";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     <ProjectOverview
       project={project}
       data={getProjectDataset(project)}
-      recommendations={collectRecommendations(project)}
+      recommendations={collectRecommendations(project, await getServerLocale())}
     />
   );
 }

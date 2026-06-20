@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bolt, Document, Download, Search } from "@/components/icons";
 import { downloadText } from "@/lib/export";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPES,
@@ -241,13 +242,15 @@ function SerpPreview({
 function Scorecard({
   brief,
   primaryKeyword,
+  locale,
   t,
 }: {
   brief: BriefResult;
   primaryKeyword: string;
+  locale: import("@/lib/format").SupportedLocale;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
 }) {
-  const score = scoreBrief(brief, primaryKeyword);
+  const score = scoreBrief(brief, primaryKeyword, locale);
   const tone: ChipLevel = score.overall >= 80 ? "ok" : score.overall >= 55 ? "warn" : "bad";
   const sections: { title: string; chips: ScoreChip[] }[] = [
     { title: t("seoReadability"), chips: score.readability },
@@ -294,6 +297,7 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
 
 export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | null } = {}) {
   const t = useT(T);
+  const { locale } = useLocale();
   // Seed (from the keyword tool) is applied via lazy init; the parent re-mounts
   // this component with a new `key` per handoff, so a fresh seed prefills the form
   // and carries its real keyword data into the next generation — no effect needed.
@@ -490,7 +494,7 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
 
             <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
               <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} t={t} />
-              <Scorecard brief={r} primaryKeyword={form.primaryKeyword} t={t} />
+              <Scorecard brief={r} primaryKeyword={form.primaryKeyword} locale={locale} t={t} />
             </div>
 
             <Group title={t("groupSeoMeta")}>

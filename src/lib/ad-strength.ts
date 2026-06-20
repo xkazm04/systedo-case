@@ -7,6 +7,7 @@
  *  No network, no API: it only reads what the model already returned. */
 
 import type { AdResult } from "./ai-types";
+import type { SupportedLocale } from "@/lib/format";
 
 export type AdStrengthRating = "poor" | "average" | "good" | "excellent";
 
@@ -15,6 +16,13 @@ export const AD_STRENGTH_LABELS: Record<AdStrengthRating, string> = {
   average: "Průměrná",
   good: "Dobrá",
   excellent: "Výborná",
+};
+
+const AD_STRENGTH_LABELS_EN: Record<AdStrengthRating, string> = {
+  poor: "Weak",
+  average: "Average",
+  good: "Good",
+  excellent: "Excellent",
 };
 
 /** Weakest → strongest; also the fill order of the segmented meter. */
@@ -71,7 +79,7 @@ const lengthBucket = (len: number): 0 | 1 | 2 => (len <= 15 ? 0 : len <= 24 ? 1 
 const statusFromFraction = (fraction: number): AdStrengthFactor["status"] =>
   fraction >= 0.999 ? "pass" : fraction >= 0.4 ? "partial" : "fail";
 
-export function computeAdStrength(result: AdResult): AdStrength {
+export function computeAdStrength(result: AdResult, locale: SupportedLocale = "cs"): AdStrength {
   const headlines = result.headlines.filter((h) => h.trim().length > 0);
   const descriptions = result.descriptions.filter((d) => d.trim().length > 0);
   const callouts = result.callouts.filter((c) => c.trim().length > 0);
@@ -104,15 +112,22 @@ export function computeAdStrength(result: AdResult): AdStrength {
   const uniqueCallouts = distinctCount(callouts);
   const calloutFrac = clamp01(uniqueCallouts / CALLOUT_GOAL);
 
+  const en = locale === "en";
+
   const weighted: { weight: number; frac: number; factor: AdStrengthFactor }[] = [
     {
       weight: 22,
       frac: countFrac,
       factor: {
-        label: "Počet nadpisů",
+        label: en ? "Headline count" : "Počet nadpisů",
         status: n >= HEADLINE_GOAL ? "pass" : n >= HEADLINE_MIN ? "partial" : "fail",
-        detail:
-          n >= HEADLINE_GOAL
+        detail: en
+          ? n >= HEADLINE_GOAL
+            ? `${n} headlines — enough material to rotate combinations.`
+            : n >= HEADLINE_MIN
+              ? `${n} headlines. Add more (ideally ${HEADLINE_GOAL}+) for more combinations.`
+              : `Only ${n} headline${n === 1 ? "" : "s"}. Google recommends at least ${HEADLINE_MIN}.`
+          : n >= HEADLINE_GOAL
             ? `${n} nadpisů — dost materiálu pro rotaci kombinací.`
             : n >= HEADLINE_MIN
               ? `${n} nadpisů. Přidejte další (ideálně ${HEADLINE_GOAL}+) pro víc kombinací.`
@@ -123,10 +138,13 @@ export function computeAdStrength(result: AdResult): AdStrength {
       weight: 20,
       frac: distinctFrac,
       factor: {
-        label: "Unikátní nadpisy",
+        label: en ? "Unique headlines" : "Unikátní nadpisy",
         status: statusFromFraction(distinctFrac),
-        detail:
-          uniqueHeadlines === n
+        detail: en
+          ? uniqueHeadlines === n
+            ? `All ${n} headlines are distinct from each other.`
+            : `Only ${uniqueHeadlines} of ${n} headlines are unique — rewrite the duplicates.`
+          : uniqueHeadlines === n
             ? `Všech ${n} nadpisů je navzájem odlišných.`
             : `Jen ${uniqueHeadlines} z ${n} nadpisů je unikátních — přeformulujte duplicity.`,
       },
@@ -135,10 +153,13 @@ export function computeAdStrength(result: AdResult): AdStrength {
       weight: 15,
       frac: spreadFrac,
       factor: {
-        label: "Délková rozmanitost",
+        label: en ? "Length variety" : "Délková rozmanitost",
         status: buckets >= 3 ? "pass" : buckets === 2 ? "partial" : "fail",
-        detail:
-          buckets >= 3
+        detail: en
+          ? buckets >= 3
+            ? "Short and longer headlines — they compose well on mobile and desktop."
+            : "Headlines are similar in length. Add noticeably shorter and longer variants."
+          : buckets >= 3
             ? "Krátké i delší nadpisy — dobře se skládají na mobilu i desktopu."
             : "Nadpisy mají podobnou délku. Přidejte výrazně kratší i delší varianty.",
       },
@@ -147,10 +168,15 @@ export function computeAdStrength(result: AdResult): AdStrength {
       weight: 20,
       frac: coverageFrac,
       factor: {
-        label: "Klíčová slova v nadpisech",
+        label: en ? "Keywords in headlines" : "Klíčová slova v nadpisech",
         status: coverage >= KEYWORD_COVERAGE_GOAL ? "pass" : coverage > 0 ? "partial" : "fail",
-        detail:
-          coverage >= KEYWORD_COVERAGE_GOAL
+        detail: en
+          ? coverage >= KEYWORD_COVERAGE_GOAL
+            ? `Keywords appear in ${headlinesWithKeyword} of ${n} headlines.`
+            : coverage > 0
+              ? `Keywords appear in only ${headlinesWithKeyword} of ${n} headlines — include them in more.`
+              : "No headline contains a keyword. Include keywords in at least half of them."
+          : coverage >= KEYWORD_COVERAGE_GOAL
             ? `Klíčová slova zaznívají v ${headlinesWithKeyword} z ${n} nadpisů.`
             : coverage > 0
               ? `Klíčová slova jsou jen v ${headlinesWithKeyword} z ${n} nadpisů — zařaďte je do dalších.`
@@ -161,11 +187,14 @@ export function computeAdStrength(result: AdResult): AdStrength {
       weight: 13,
       frac: descFrac,
       factor: {
-        label: "Počet popisků",
+        label: en ? "Description count" : "Počet popisků",
         status:
           descriptions.length >= DESC_GOAL ? "pass" : descriptions.length >= DESC_MIN ? "partial" : "fail",
-        detail:
-          descriptions.length >= DESC_GOAL
+        detail: en
+          ? descriptions.length >= DESC_GOAL
+            ? `${descriptions.length} descriptions cover different arguments.`
+            : `${descriptions.length} description${descriptions.length === 1 ? "" : "s"}. Add more to reach ${DESC_GOAL} for full coverage.`
+          : descriptions.length >= DESC_GOAL
             ? `${descriptions.length} popisky pokrývají různé argumenty.`
             : `${descriptions.length} ${czPlural(descriptions.length, "popisek", "popisky", "popisků")}. Doplňte na ${DESC_GOAL} pro plné pokrytí.`,
       },
@@ -174,10 +203,13 @@ export function computeAdStrength(result: AdResult): AdStrength {
       weight: 10,
       frac: calloutFrac,
       factor: {
-        label: "Rozmanité odznaky",
+        label: en ? "Varied callouts" : "Rozmanité odznaky",
         status: uniqueCallouts >= CALLOUT_GOAL ? "pass" : uniqueCallouts >= 2 ? "partial" : "fail",
-        detail:
-          uniqueCallouts >= CALLOUT_GOAL
+        detail: en
+          ? uniqueCallouts >= CALLOUT_GOAL
+            ? `${uniqueCallouts} distinct callouts extend the ad.`
+            : `${uniqueCallouts} callout${uniqueCallouts === 1 ? "" : "s"}. Add more for a longer ad.`
+          : uniqueCallouts >= CALLOUT_GOAL
             ? `${uniqueCallouts} odlišných odznaků rozšiřuje inzerát.`
             : `${uniqueCallouts} ${czPlural(uniqueCallouts, "odznak", "odznaky", "odznaků")}. Přidejte další pro delší inzerát.`,
       },
@@ -189,4 +221,9 @@ export function computeAdStrength(result: AdResult): AdStrength {
     score >= 85 ? "excellent" : score >= 65 ? "good" : score >= 40 ? "average" : "poor";
 
   return { score, rating, factors: weighted.map((w) => w.factor) };
+}
+
+/** Return the localized label for a rating key. */
+export function getAdStrengthLabel(rating: AdStrengthRating, locale: SupportedLocale = "cs"): string {
+  return locale === "en" ? AD_STRENGTH_LABELS_EN[rating] : AD_STRENGTH_LABELS[rating];
 }

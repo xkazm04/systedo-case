@@ -106,62 +106,62 @@ export async function POST(request: Request) {
 
     switch (mode) {
       case "ads": {
-        const parsed = validateAdRequest(body);
+        const parsed = validateAdRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateAds(parsed.value, locale));
       }
       case "brief": {
-        const parsed = validateBriefRequest(body);
+        const parsed = validateBriefRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateBrief(parsed.value, locale));
       }
       case "analysis": {
-        const parsed = validateAnalysisRequest(body);
+        const parsed = validateAnalysisRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateAnalysis(parsed.value, locale));
       }
       case "lead-reply": {
-        const parsed = validateLeadReplyRequest(body);
+        const parsed = validateLeadReplyRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLeadReply(parsed.value, locale));
       }
       case "repurpose": {
-        const parsed = validateRepurposeRequest(body);
+        const parsed = validateRepurposeRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateRepurpose(parsed.value, locale));
       }
       case "local-review-reply": {
-        const parsed = validateLocalReviewReplyRequest(body);
+        const parsed = validateLocalReviewReplyRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLocalReviewReply(parsed.value, locale));
       }
       case "article-draft": {
-        const parsed = validateArticleDraftRequest(body);
+        const parsed = validateArticleDraftRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateArticleDraft(parsed.value, locale));
       }
       case "cohort-diagnosis": {
-        const parsed = validateCohortDiagnosisRequest(body);
+        const parsed = validateCohortDiagnosisRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateCohortDiagnosis(parsed.value, locale));
       }
       case "keyword-clusters": {
-        const parsed = validateKeywordClustersRequest(body);
+        const parsed = validateKeywordClustersRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateKeywordClusters(parsed.value, locale));
       }
       case "comparison-outline": {
-        const parsed = validateComparisonOutlineRequest(body);
+        const parsed = validateComparisonOutlineRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateComparisonOutline(parsed.value, locale));
       }
       case "lp-variant-ideas": {
-        const parsed = validateLpVariantIdeasRequest(body);
+        const parsed = validateLpVariantIdeasRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLpVariantIdeas(parsed.value, locale));
       }
       case "lead-source-diagnosis": {
-        const parsed = validateLeadSourceDiagnosisRequest(body);
+        const parsed = validateLeadSourceDiagnosisRequest(body, locale);
         if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
         return Response.json(await generateLeadSourceDiagnosis(parsed.value, locale));
       }

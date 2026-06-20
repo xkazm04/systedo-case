@@ -11,6 +11,7 @@
  */
 
 import type { BriefResult } from "@/lib/ai-types";
+import type { SupportedLocale } from "@/lib/format";
 
 // ===========================================================================
 // Pixel-width estimation
@@ -195,8 +196,13 @@ const META_MAX = 155;
  *  The primary keyword lives in the BriefRequest (not the result), so it is
  *  passed in separately; an empty/omitted keyword degrades the coverage chips
  *  to "warn" rather than failing them. */
-export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): BriefScore {
+export function scoreBrief(
+  brief: BriefResult,
+  primaryKeyword: string = "",
+  locale: SupportedLocale = "cs"
+): BriefScore {
   const kw = primaryKeyword.trim();
+  const en = locale === "en";
 
   // --- readability -------------------------------------------------------
   const avg = avgSentenceLength(brief);
@@ -208,9 +214,13 @@ export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): Bri
     {
       id: "sentence-length",
       level: avg === 0 ? "warn" : avg <= SENTENCE_OK ? "ok" : avg <= SENTENCE_WARN ? "warn" : "bad",
-      label: "Délka vět",
-      hint:
-        avg === 0
+      label: en ? "Sentence length" : "Délka vět",
+      hint: en
+        ? avg === 0
+          ? "Nothing to measure — no text to evaluate."
+          : `Average ${avg.toFixed(1)} words per sentence` +
+            (avg <= SENTENCE_OK ? " — easy to read." : avg <= SENTENCE_WARN ? " — consider shorter sentences." : " — sentences are too long.")
+        : avg === 0
           ? "Není co měřit — chybí text k vyhodnocení."
           : `Průměr ${avg.toFixed(1)} slov na větu` +
             (avg <= SENTENCE_OK ? " — dobře čitelné." : avg <= SENTENCE_WARN ? " — zvažte kratší věty." : " — věty jsou příliš dlouhé."),
@@ -218,9 +228,12 @@ export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): Bri
     {
       id: "long-paragraphs",
       level: longParas === 0 ? "ok" : longParas <= 2 ? "warn" : "bad",
-      label: "Dlouhé odstavce",
-      hint:
-        longParas === 0
+      label: en ? "Long paragraphs" : "Dlouhé odstavce",
+      hint: en
+        ? longParas === 0
+          ? "No excessively long outline points."
+          : `${longParas} outline point${longParas === 1 ? "" : "s"} longer than 40 words — split them up.`
+        : longParas === 0
           ? "Žádné přehnaně dlouhé body osnovy."
           : `${longParas} bodů osnovy je delších než 40 slov — rozdělte je.`,
     },
@@ -232,21 +245,34 @@ export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): Bri
   const firstPoint = brief.outline[0]?.heading ?? brief.outline[0]?.points[0] ?? "";
   const inFirst = !!kw && contains(firstPoint, kw);
 
-  const mk = (id: string, label: string, present: boolean, where: string): ScoreChip => ({
+  const mk = (
+    id: string,
+    labelCs: string,
+    labelEn: string,
+    present: boolean,
+    whereCs: string,
+    whereEn: string
+  ): ScoreChip => ({
     id,
-    label,
+    label: en ? labelEn : labelCs,
     level: !kw ? "warn" : present ? "ok" : "bad",
-    hint: !kw
-      ? "Není zadané hlavní klíčové slovo."
-      : present
-        ? `Klíčové slovo je ${where}.`
-        : `Klíčové slovo chybí ${where}.`,
+    hint: en
+      ? !kw
+        ? "No primary keyword provided."
+        : present
+          ? `Keyword is present ${whereEn}.`
+          : `Keyword is missing ${whereEn}.`
+      : !kw
+        ? "Není zadané hlavní klíčové slovo."
+        : present
+          ? `Klíčové slovo je ${whereCs}.`
+          : `Klíčové slovo chybí ${whereCs}.`,
   });
 
   const keywordCoverage: ScoreChip[] = [
-    mk("kw-title", "Klíčové slovo v title", inTitle, "v title tagu"),
-    mk("kw-meta", "Klíčové slovo v meta", inMeta, "v meta popisku"),
-    mk("kw-first", "Klíčové slovo v úvodu", inFirst, "v první sekci osnovy"),
+    mk("kw-title", "Klíčové slovo v title", "Keyword in title", inTitle, "v title tagu", "in the title tag"),
+    mk("kw-meta", "Klíčové slovo v meta", "Keyword in meta", inMeta, "v meta popisku", "in the meta description"),
+    mk("kw-first", "Klíčové slovo v úvodu", "Keyword in intro", inFirst, "v první sekci osnovy", "in the first outline section"),
   ];
 
   // --- E-E-A-T -----------------------------------------------------------
@@ -259,19 +285,30 @@ export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): Bri
     {
       id: "meta-length",
       level: metaInRange ? "ok" : metaLen > META_MAX ? "bad" : "warn",
-      label: "Délka meta popisku",
-      hint: metaInRange
-        ? `${metaLen} znaků — v ideálním rozsahu ${META_MIN}–${META_MAX}.`
-        : metaLen > META_MAX
-          ? `${metaLen} znaků — přes ${META_MAX}, Google jej zkrátí.`
-          : `${metaLen} znaků — krátké, doplňte do ${META_MIN}–${META_MAX}.`,
+      label: en ? "Meta description length" : "Délka meta popisku",
+      hint: en
+        ? metaInRange
+          ? `${metaLen} characters — within the ideal range of ${META_MIN}–${META_MAX}.`
+          : metaLen > META_MAX
+            ? `${metaLen} characters — over ${META_MAX}, Google will clip it.`
+            : `${metaLen} characters — too short, aim for ${META_MIN}–${META_MAX}.`
+        : metaInRange
+          ? `${metaLen} znaků — v ideálním rozsahu ${META_MIN}–${META_MAX}.`
+          : metaLen > META_MAX
+            ? `${metaLen} znaků — přes ${META_MAX}, Google jej zkrátí.`
+            : `${metaLen} znaků — krátké, doplňte do ${META_MIN}–${META_MAX}.`,
     },
     {
       id: "faq-depth",
       level: faqCount >= 2 ? "ok" : faqCount === 1 ? "warn" : "bad",
-      label: "FAQ sekce",
-      hint:
-        faqCount >= 2
+      label: en ? "FAQ section" : "FAQ sekce",
+      hint: en
+        ? faqCount >= 2
+          ? `${faqCount} questions — supports structured data and E-E-A-T.`
+          : faqCount === 1
+            ? "Only one question — add more for FAQ schema."
+            : "No FAQ — add at least 2 questions."
+        : faqCount >= 2
           ? `${faqCount} dotazů — podporuje strukturovaná data a E-E-A-T.`
           : faqCount === 1
             ? "Jen jeden dotaz — přidejte další pro FAQ schema."
@@ -280,9 +317,14 @@ export function scoreBrief(brief: BriefResult, primaryKeyword: string = ""): Bri
     {
       id: "keyword-set",
       level: kwCount >= 5 ? "ok" : kwCount >= 1 ? "warn" : "bad",
-      label: "Sada klíčových slov",
-      hint:
-        kwCount >= 5
+      label: en ? "Keyword set" : "Sada klíčových slov",
+      hint: en
+        ? kwCount >= 5
+          ? `${kwCount} keywords cover the topic.`
+          : kwCount >= 1
+            ? `Only ${kwCount} keyword${kwCount === 1 ? "" : "s"} — expand semantic coverage.`
+            : "No keywords to cover the topic."
+        : kwCount >= 5
           ? `${kwCount} klíčových slov pokrývá téma.`
           : kwCount >= 1
             ? `Jen ${kwCount} klíčových slov — rozšiřte sémantické pokrytí.`

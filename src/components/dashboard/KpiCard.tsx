@@ -1,11 +1,13 @@
 import Sparkline from "@/components/charts/Sparkline";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
-import type { MetricMeta, Significance } from "@/lib/metrics";
+import { metricDescription, metricLabel, type MetricMeta, type Significance } from "@/lib/metrics";
+import type { SupportedLocale } from "@/lib/format";
 
 /** One headline metric: current value, change vs the comparison window, a trend
  *  sparkline, and an optional contextual footnote (e.g. PNO vs. goal). */
 export default function KpiCard({
   meta,
+  locale,
   value,
   delta,
   significance,
@@ -15,6 +17,7 @@ export default function KpiCard({
   delayMs = 0,
 }: {
   meta: MetricMeta;
+  locale?: SupportedLocale;
   value: number;
   delta: number;
   significance?: Significance;
@@ -31,8 +34,8 @@ export default function KpiCard({
       style={delayMs ? { animationDelay: `${delayMs}ms` } : undefined}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium text-muted" title={meta.description}>
-          {meta.label}
+        <p className="text-sm font-medium text-muted" title={metricDescription(meta, locale)}>
+          {metricLabel(meta, locale)}
         </p>
         <DeltaBadge
           delta={delta}
