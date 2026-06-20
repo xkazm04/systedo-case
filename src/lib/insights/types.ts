@@ -19,4 +19,16 @@ export interface Recommendation {
   detail: string;
   /** optional headline metric for context */
   metric?: string;
+  /** estimated money at stake (CZK), when a producer can quantify it — drives the
+   *  impact ranking so a big leak outranks a small one of the same severity. */
+  impactCzk?: number;
+}
+
+/** Impact ranking: severity bucket first (a blocker beats an opportunity), then
+ *  money at stake within the bucket, so two same-severity items no longer tie —
+ *  the 200k Kč leak sorts above the 200 Kč one. Unknown impact sorts last. */
+export function byImpact(a: Recommendation, b: Recommendation): number {
+  const sev = SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity);
+  if (sev !== 0) return sev;
+  return (b.impactCzk ?? -1) - (a.impactCzk ?? -1);
 }

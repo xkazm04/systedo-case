@@ -158,7 +158,7 @@ export default function ProjectOverview({
           </div>
         ) : (
           <div className="mt-3 card divide-y divide-line overflow-hidden">
-            {recommendations.map((r) => (
+            {recommendations.map((r, i) => (
               <Link
                 key={r.id}
                 href={`/app/${project.id}/${r.module}`}
@@ -167,7 +167,14 @@ export default function ProjectOverview({
                 <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[r.severity]}`} aria-hidden />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold text-navy-800">{r.title}</span>
+                    <span className="flex items-center gap-2">
+                      {i < 3 && (
+                        <span className="shrink-0 rounded-pill bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-accent">
+                          Priorita {i + 1}
+                        </span>
+                      )}
+                      <span className="text-sm font-semibold text-navy-800">{r.title}</span>
+                    </span>
                     {r.metric && <span className="tnum shrink-0 text-xs font-medium text-muted">{r.metric}</span>}
                   </span>
                   <span className="mt-0.5 block text-sm leading-relaxed text-muted">{r.detail}</span>

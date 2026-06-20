@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { withMetrics, summarize } from "@/lib/lead-quality/compute";
 import { scoreQueries } from "@/lib/seo-compare/compute";
 import { evaluate } from "@/lib/lp-exp/compute";
+import { byImpact } from "@/lib/insights/types";
 
 test("lead-quality flags cheap-but-junk sources by qualification rate", () => {
   const junk = { source: "Meta", leads: 1000, qualified: 100, won: 5, spend: 50_000, revenue: 200_000 };
@@ -39,4 +40,17 @@ test("evaluate detects a significant landing-page winner", () => {
   assert.equal(r.winner.label, "B");
   assert.equal(r.significant, true);
   assert.ok(r.confidence > 0.9);
+});
+
+test("byImpact ranks severity first, then money at stake within a bucket", () => {
+  const mk = (severity, impactCzk, title) => ({ id: title, module: "m", moduleLabel: "M", severity, title, detail: "", impactCzk });
+  const recs = [
+    mk("warning", 200, "small warning"),
+    mk("critical", 200, "small critical"),
+    mk("warning", 200_000, "big warning"),
+    mk("critical", 200_000, "big critical"),
+  ];
+  const ranked = [...recs].sort(byImpact).map((r) => r.title);
+  // criticals lead; within each bucket the 200k item beats the 200 one (no tie)
+  assert.deepEqual(ranked, ["big critical", "small critical", "big warning", "small warning"]);
 });

@@ -25,12 +25,19 @@ import { SAMPLE_TARGETS } from "@/lib/local/sample";
 import { gaps } from "@/lib/local/compute";
 import { SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { decayingPosts } from "@/lib/content-engine/compute";
-import { SEVERITY_ORDER, type Recommendation, type Severity } from "./types";
+import { byImpact, type Recommendation, type Severity } from "./types";
 
 const moduleLabel = (key: string) => MODULES.find((m) => m.key === key)?.label ?? key;
 
-function rec(module: string, severity: Severity, title: string, detail: string, metric?: string): Recommendation {
-  return { id: `${module}:${title}`, module, moduleLabel: moduleLabel(module), severity, title, detail, metric };
+function rec(
+  module: string,
+  severity: Severity,
+  title: string,
+  detail: string,
+  metric?: string,
+  impactCzk?: number
+): Recommendation {
+  return { id: `${module}:${title}`, module, moduleLabel: moduleLabel(module), severity, title, detail, metric, impactCzk };
 }
 
 function eshopRecs(project: Project): Recommendation[] {
@@ -43,7 +50,7 @@ function eshopRecs(project: Project): Recommendation[] {
   for (const r of profit.filter((p) => !p.profitable)) {
     out.push(rec("zisk", "critical", `${r.channel} prodělává po marži`,
       `ROAS ${fmtMultiple(r.roas)} je pod bodem zvratu ${fmtMultiple(r.breakEvenRoas)}. Přesuňte rozpočet do ziskových kanálů.`,
-      fmtCZK(r.netProfit)));
+      fmtCZK(r.netProfit), Math.abs(r.netProfit)));
   }
 
   // Reference "now" derived from the dataset's last day → deterministic projected dates.
@@ -55,14 +62,14 @@ function eshopRecs(project: Project): Recommendation[] {
   for (const s of stock.filter((s) => s.status === "pause")) {
     out.push(rec("sklad-sezonnost", "warning", `${s.product.title} brzy dojde`,
       `Zásoba na ${Math.round(s.daysOfCover)} dní — zvažte pozastavení reklamy na tento produkt.`,
-      `${Math.round(s.daysOfCover)} dní`));
+      `${Math.round(s.daysOfCover)} dní`, s.coverValue));
   }
 
   // Stock → early warning: SKUs trending toward stockout (< 14 dní), not yet a hard pauza.
   for (const s of stock.filter((s) => s.atRisk)) {
     out.push(rec("sklad-sezonnost", "opportunity", `${s.product.title} se blíží vyprodání`,
       `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní) — doplňte sklad včas, než bude nutné pozastavit reklamu.`,
-      `${Math.round(s.daysOfCover)} dní`));
+      `${Math.round(s.daysOfCover)} dní`, s.coverValue));
   }
 
   // Stock → paused SKU with a scheduled restock inside the horizon (resuming).
@@ -79,7 +86,7 @@ function eshopRecs(project: Project): Recommendation[] {
     out.push(rec("sklad-sezonnost", "opportunity",
       `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
       `${topMove.fromTitle} je omezené zásobou — přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
-      fmtCZK(topMove.amountCzk)));
+      fmtCZK(topMove.amountCzk), topMove.amountCzk));
   }
 
   // Seasonality → upcoming peak
@@ -117,7 +124,8 @@ function leadgenRecs(): Recommendation[] {
   const out: Recommendation[] = [];
   for (const s of SAMPLE_SOURCES.map(leadMetrics).filter((s) => s.junk)) {
     out.push(rec("kvalita-leadu", "warning", `${s.source}: levné, ale nekvalitní leady`,
-      `Míra kvalifikace ${fmtPct(s.qualRate)}, CPQL ${fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`));
+      `Míra kvalifikace ${fmtPct(s.qualRate)}, CPQL ${fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
+      fmtCZK(s.spend), s.spend));
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
@@ -142,7 +150,8 @@ function contentRecs(): Recommendation[] {
   return out;
 }
 
-/** All recommendations for a project, most urgent first. */
+/** All recommendations for a project, ranked by impact (severity bucket, then
+ *  money at stake) so the highest-leverage items lead — see {@link byImpact}. */
 export function collectRecommendations(project: Project): Recommendation[] {
   const recs =
     project.type === "eshop"
@@ -152,5 +161,5 @@ export function collectRecommendations(project: Project): Recommendation[] {
         : project.type === "leadgen"
           ? leadgenRecs()
           : contentRecs();
-  return recs.sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity));
+  return recs.sort(byImpact);
 }
