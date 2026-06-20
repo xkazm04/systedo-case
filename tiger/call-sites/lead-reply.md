@@ -11,7 +11,7 @@ grounding: 4/5
 code_score: 3
 quality_score: 4.5  # sonnet, per [[benchmark-2026-06-20]]
 recommended_model: sonnet  # keep — Haiku degrades (generic, misses lead specifics); Opus no gain
-status: benchmarked
+status: improved
 last_scanned: 2026-06-20
 characters: ["[[hana-leadgen-cro]]"]
 ---

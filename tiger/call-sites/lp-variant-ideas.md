@@ -11,7 +11,7 @@ grounding: 2/5
 code_score: 4
 quality_score: "—"
 recommended_model: "—"
-status: assessed
+status: improved
 last_scanned: 2026-06-20
 characters: []
 ---
