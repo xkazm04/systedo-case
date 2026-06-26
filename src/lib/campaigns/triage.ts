@@ -10,11 +10,15 @@ import { TARGET_PNO, TARGET_ROAS, type CampaignChange, type CampaignRow } from "
 // --- thresholds (single source of truth for "below target" colouring) --------
 
 /** A campaign is bleeding budget when its ROAS falls below this share of the
- *  target (≈ PNO 1.67× the target). Matches the red ROAS-cell threshold. */
+ *  target. Matches the red ROAS-cell threshold. */
 export const ROAS_CRITICAL_RATIO = 0.6;
-/** …or equivalently when PNO climbs to this multiple of the target. Matches the
- *  red PNO-cell threshold. */
-export const PNO_CRITICAL_RATIO = 1.6;
+/** The *equivalent* PNO threshold, derived from ROAS_CRITICAL_RATIO. Because the
+ *  target ROAS is exactly 1/target PNO (see targets.ts), PNO ∝ 1/ROAS, so the
+ *  reciprocal (1/0.6 ≈ 1.667× the target) makes the red PNO-cell fire at exactly
+ *  the same campaign as the red ROAS-cell — they can never disagree. Was a
+ *  hand-typed 1.6, which is *not* the reciprocal and left a [1.6×, 1.667×) band
+ *  where the PNO cell went red but ROAS/triage stayed neutral. */
+export const PNO_CRITICAL_RATIO = 1 / ROAS_CRITICAL_RATIO;
 
 // --- per-metric cell tone (shared with the table cells) ----------------------
 
