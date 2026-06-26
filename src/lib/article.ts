@@ -7,7 +7,7 @@ import data from "@/data/article.json";
 
 export type Inline =
   | string
-  | { text: string; href: string; kind: "internal" | "external" | "anchor" }
+  | { text: string; href: string; kind: "internal" | "external" | "anchor"; campaign?: string }
   | { text: string; bold: true };
 
 export interface HeadingBlock {
@@ -40,6 +40,8 @@ export interface CtaBlock {
   href: string;
   kind: "internal" | "external";
   cta: string;
+  /** optional UTM campaign for an external CTA, so content→shop clicks are attributable */
+  campaign?: string;
 }
 export interface StatBlock {
   type: "stat";

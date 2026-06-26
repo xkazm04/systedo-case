@@ -4,6 +4,23 @@ import { External } from "@/components/icons";
 import HeadingAnchor from "@/components/article/HeadingAnchor";
 import type { Block, Inline } from "@/lib/article";
 
+/** Append content→shop attribution to an external link, so the funnel the article
+ *  narrates (dashboard / AI assistant → mionelo.cz) is actually measurable. Internal
+ *  and in-page anchor links are returned unchanged; a per-link `campaign` overrides
+ *  the default. */
+function utmHref(href: string, campaign?: string): string {
+  if (!/^https?:\/\//i.test(href)) return href;
+  try {
+    const url = new URL(href);
+    url.searchParams.set("utm_source", "clanek");
+    url.searchParams.set("utm_medium", "content");
+    url.searchParams.set("utm_campaign", campaign ?? "obsah");
+    return url.toString();
+  } catch {
+    return href;
+  }
+}
+
 /** Renders a single inline node: plain text, internal/external/anchor link, or bold. */
 function InlineNode({ node }: { node: Inline }) {
   if (typeof node === "string") return <>{node}</>;
@@ -24,7 +41,7 @@ function InlineNode({ node }: { node: Inline }) {
     );
   }
   return (
-    <a href={node.href} target="_blank" rel="noopener noreferrer" className="link-inline">
+    <a href={utmHref(node.href, node.campaign)} target="_blank" rel="noopener noreferrer" className="link-inline">
       {node.text}
       <External width={12} height={12} className="ml-0.5 inline-block -translate-y-px" />
     </a>
@@ -158,7 +175,7 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
               >
                 <p className="text-[0.95rem] font-medium text-onyx-ink">{block.text}</p>
                 <a
-                  href={block.href}
+                  href={block.kind === "external" ? utmHref(block.href, block.campaign) : block.href}
                   target={block.kind === "external" ? "_blank" : undefined}
                   rel={block.kind === "external" ? "noopener noreferrer" : undefined}
                   className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-500 px-5 py-2.5 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
