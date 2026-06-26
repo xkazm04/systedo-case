@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bolt, Check, Gauge, Target, TrendDown } from "@/components/icons";
+import { Bolt, Check, Download, Gauge, Target, TrendDown } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { downloadText } from "@/lib/export";
 import {
   analysisPeriodLabel,
   ANALYSIS_PERIODS,
@@ -40,6 +41,8 @@ const T = {
     copyWins: "\nCO SE DAŘÍ:",
     copyRisks: "\nNA CO SI DÁT POZOR:",
     copyActions: "\nDOPORUČENÉ KROKY:",
+    downloadAnalysis: "Stáhnout .md",
+    downloadAnalysisTitle: "Stáhnout analýzu jako Markdown",
   },
   en: {
     formHeading: "Performance analysis",
@@ -58,6 +61,8 @@ const T = {
     copyWins: "\nWHAT'S WORKING:",
     copyRisks: "\nWATCH OUT FOR:",
     copyActions: "\nRECOMMENDED ACTIONS:",
+    downloadAnalysis: "Download .md",
+    downloadAnalysisTitle: "Download analysis as Markdown",
   },
 } as const;
 
@@ -81,6 +86,29 @@ export default function PerformanceAnalyst() {
         ...r.actions.map((a) => `→ ${a.title}: ${a.detail}`),
       ].join("\n")
     : "";
+
+  // Export the analysis as a client-ready Markdown report — the artifact an agency
+  // hands a client, beyond the flat clipboard copy. Mirrors exportBriefMarkdown.
+  const exportAnalysisMarkdown = () => {
+    if (!r) return;
+    const md = [
+      `# ${r.headline}`,
+      "",
+      `_${analysisPeriodLabel(period, locale)}_`,
+      "",
+      r.summary,
+      "",
+      `## ${t("groupWins")}`,
+      ...r.wins.map((w) => `- ${w}`),
+      "",
+      `## ${t("groupRisks")}`,
+      ...r.risks.map((w) => `- ${w}`),
+      "",
+      `## ${t("groupActions")}`,
+      ...r.actions.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`),
+    ].join("\n");
+    downloadText(`systedo-analyza-${period}.md`, md, "text/markdown;charset=utf-8");
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
@@ -125,6 +153,18 @@ export default function PerformanceAnalyst() {
             </>
           )}
         </button>
+
+        {r && (
+          <button
+            type="button"
+            onClick={exportAnalysisMarkdown}
+            title={t("downloadAnalysisTitle")}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-pill border border-line px-4 py-2.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+          >
+            <Download width={16} height={16} />
+            {t("downloadAnalysis")}
+          </button>
+        )}
 
         <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">
           {t("dataNote")}{" "}
