@@ -42,8 +42,12 @@ export function channelRows(channels: ChannelShare[], totals: Totals): ChannelRo
 }
 
 /** Channel rows for the current period, each carrying its period-over-period
- *  `delta` against the equal-length previous window — turns the channel table
- *  from a static snapshot into a movement view ("Sklik obrat +18 %"). */
+ *  `delta` against the equal-length previous window.
+ *  NOTE: channels are projected as a constant share of the period totals, so
+ *  every channel's *revenue* `delta` algebraically equals the aggregate revenue
+ *  delta (the share cancels in `rel(total*share, prevTotal*share)`). The channel
+ *  table therefore renders the revenue delta once, on the Total row — showing it
+ *  per channel would print the same number on every row and read as fake data. */
 export function channelRowsCompared(
   channels: ChannelShare[],
   current: Totals,

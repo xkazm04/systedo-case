@@ -14,6 +14,7 @@ const T = {
     colRoas: "ROAS",
     colRevenueDelta: "Změna obratu",
     rowTotal: "Celkem",
+    revenueDeltaHint: "Δ obratu vs. minulé období",
   },
   en: {
     colChannel: "Channel",
@@ -24,6 +25,7 @@ const T = {
     colRoas: "ROAS",
     colRevenueDelta: "Revenue change",
     rowTotal: "Total",
+    revenueDeltaHint: "Δ revenue vs. previous period",
   },
 } as const;
 
@@ -46,12 +48,12 @@ export default function ChannelTable({
   rows: ChannelRow[];
   totals: Totals;
   goalPno: number;
-  /** period-over-period revenue change for the Total footer row */
+  /** period-over-period revenue change, shown once on the Total footer row */
   revenueDelta?: number;
-  /** confidence that the revenue change is real rather than daily noise. Each
-   *  channel projects the totals by a constant share, so a channel's revenue
-   *  delta and its significance are identical to the aggregate revenue figure —
-   *  one value drives every row badge and the footer. */
+  /** confidence that the revenue change is real rather than daily noise. Channels
+   *  project the totals by a constant share, so a per-channel revenue delta would
+   *  equal this aggregate on every row — so it is surfaced only on the Total row,
+   *  not as five identical per-channel badges. */
   revenueSignificance?: Significance;
 }) {
   const fmt = useFormatters();
@@ -71,7 +73,6 @@ export default function ChannelTable({
               <th className="px-5 py-3 text-right font-semibold">{t("colRevenue")}</th>
               <th className="px-3 py-3 text-right font-semibold">{t("colPno")}</th>
               <th className="px-3 py-3 text-right font-semibold">{t("colRoas")}</th>
-              <th className="px-5 py-3 text-right font-semibold">{t("colRevenueDelta")}</th>
             </tr>
           </thead>
           <tbody>
@@ -109,20 +110,6 @@ export default function ChannelTable({
                 <td className="tnum px-3 py-3 text-right text-navy-700">
                   {r.roas > 0 ? fmt.fmtMultiple(r.roas) : "—"}
                 </td>
-                <td className="px-5 py-3 text-right">
-                  {r.delta ? (
-                    <span className="inline-flex justify-end">
-                      <DeltaBadge
-                        delta={r.delta.revenue}
-                        goodDirection="up"
-                        size="xs"
-                        significance={revenueSignificance}
-                      />
-                    </span>
-                  ) : (
-                    <span className="text-muted">—</span>
-                  )}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -131,23 +118,23 @@ export default function ChannelTable({
               <td className="px-5 py-3">{t("rowTotal")}</td>
               <td className="tnum px-3 py-3 text-right">{fmt.fmtCZK(totals.cost)}</td>
               <td className="tnum px-3 py-3 text-right">{fmt.fmtInt(totals.conversions)}</td>
-              <td className="tnum px-5 py-3 text-right">{fmt.fmtCZK(totals.revenue)}</td>
+              <td className="px-5 py-3 text-right">
+                <div className="flex flex-col items-end gap-1">
+                  <span className="tnum">{fmt.fmtCZK(totals.revenue)}</span>
+                  {revenueDelta !== undefined && (
+                    <span className="inline-flex items-center justify-end gap-1.5" title={t("revenueDeltaHint")}>
+                      <DeltaBadge
+                        delta={revenueDelta}
+                        goodDirection="up"
+                        size="xs"
+                        significance={revenueSignificance}
+                      />
+                    </span>
+                  )}
+                </div>
+              </td>
               <td className="tnum px-3 py-3 text-right">{fmt.fmtPct(totals.pno)}</td>
               <td className="tnum px-3 py-3 text-right">{fmt.fmtMultiple(totals.roas)}</td>
-              <td className="px-5 py-3 text-right">
-                {revenueDelta !== undefined ? (
-                  <span className="inline-flex justify-end">
-                    <DeltaBadge
-                      delta={revenueDelta}
-                      goodDirection="up"
-                      size="xs"
-                      significance={revenueSignificance}
-                    />
-                  </span>
-                ) : (
-                  <span className="text-muted">—</span>
-                )}
-              </td>
             </tr>
           </tfoot>
         </table>
