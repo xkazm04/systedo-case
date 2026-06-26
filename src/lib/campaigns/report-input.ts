@@ -38,8 +38,11 @@ const metricsLine = (c: CampaignRow): string =>
     `náklady ${fmtCZK(c.cost)}`,
     `hodnota konverzí ${fmtCZK(c.conversionValue)}`,
     `konverze ${fmtInt(c.conversions)}`,
-    `ROAS ${c.roas > 0 ? fmtMultiple(c.roas) : "—"}`,
-    `PNO ${c.pno > 0 ? fmtPct(c.pno) : "—"}`,
+    // Distinguish "spent budget with zero return" (cost>0, value=0) from a
+    // harmless paused/zero-spend campaign — both used to print "—", hiding the
+    // worst case behind the same dash as the benign one.
+    `ROAS ${c.roas > 0 ? fmtMultiple(c.roas) : c.cost > 0 ? "0× (bez návratnosti)" : "—"}`,
+    `PNO ${c.pno > 0 ? fmtPct(c.pno) : c.cost > 0 ? "∞ (bez návratnosti)" : "—"}`,
     `CPA ${c.conversions > 0 ? fmtCZK(c.cpa) : "—"}`,
     `CTR ${fmtPct(c.ctr, 2)}`,
     `prokliky ${fmtInt(c.clicks)}`,
