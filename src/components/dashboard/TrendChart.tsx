@@ -19,6 +19,7 @@ const T = {
     legendPrevious: "Předchozí období",
     tooltipPrevious: "Předchozí",
     noChange: "beze změny",
+    empty: "Pro zvolené období nejsou data.",
   },
   en: {
     ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
@@ -31,6 +32,7 @@ const T = {
     legendPrevious: "Previous period",
     tooltipPrevious: "Previous",
     noChange: "no change",
+    empty: "No data for the selected period.",
   },
 } as const;
 
@@ -132,6 +134,22 @@ export default function TrendChart({
     (v: number) => PAD.t + (1 - (v - yMin) / (yMax - yMin)) * plotH,
     [yMin, yMax, plotH]
   );
+
+  // Guard the (currently dormant) empty-series case: every render access below
+  // assumes ≥1 bucket — e.g. the tooltip reads data[active] where active = n-1, so
+  // data[-1] would throw. A short period config or a future data source could yield
+  // no buckets; render a muted placeholder instead. Placed after all hooks so the
+  // rules-of-hooks order is preserved.
+  if (n === 0) {
+    return (
+      <div
+        ref={wrapRef}
+        className="flex h-[300px] items-center justify-center rounded-card border border-line bg-canvas/40 text-sm text-muted"
+      >
+        {t("empty")}
+      </div>
+    );
+  }
 
   const linePath = values
     .map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`)
