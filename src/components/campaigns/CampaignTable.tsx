@@ -305,7 +305,14 @@ export default function CampaignTable({
     } else if (sort.key === "name") {
       cmp = a.c.name.localeCompare(b.c.name, "cs");
     } else {
-      cmp = a.c[sort.key] - b.c[sort.key];
+      // "—" rows (no revenue → PNO=0, no conversions → CPA=0 from safe()) are the
+      // WORST on these "lower is better" metrics, not the best — map them to +∞ so
+      // a worst-first (desc) sort surfaces them instead of burying them next to the
+      // healthiest campaigns. ROAS/cost/conversions/value keep their real 0.
+      const lowerIsBetter = sort.key === "pno" || sort.key === "cpa";
+      const av = lowerIsBetter && a.c[sort.key] <= 0 ? Infinity : a.c[sort.key];
+      const bv = lowerIsBetter && b.c[sort.key] <= 0 ? Infinity : b.c[sort.key];
+      cmp = av === bv ? 0 : av < bv ? -1 : 1;
     }
     return sort.dir === "asc" ? cmp : -cmp;
   });
