@@ -30,7 +30,9 @@ function mulberry32(seed) {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-const rnd = mulberry32(20260608);
+// Single seed constant so the PRNG and the recorded meta.seed never diverge.
+const SEED = 20260608;
+const rnd = mulberry32(SEED);
 const jitter = (scale) => 1 + (rnd() * 2 - 1) * scale;
 const round = (n, step = 1) => Math.round(n / step) * step;
 
@@ -42,12 +44,13 @@ const DAYS = 730;
 // months (no partial leading/trailing bucket that would dip the trend chart).
 const AS_OF = "2026-05-31"; // last complete day represented in the dataset
 
-// Seasonality multiplier per calendar month (0 = Jan). A Czech baby-goods
-// e-shop peaks before Christmas and in spring, dips mid-summer.
+// Seasonality multiplier per calendar month (0 = Jan). A Czech superfoods /
+// nuts-and-seeds e-shop peaks before Christmas and in the spring "healthy
+// resolutions" window, and dips mid-summer.
 const SEASON = [0.92, 0.95, 1.05, 1.08, 1.04, 0.9, 0.82, 0.86, 1.0, 1.08, 1.22, 1.3];
 // Conversion rate gets a small lift in high-intent shopping months.
 const SEASON_CR = [0.97, 0.98, 1.02, 1.03, 1.0, 0.95, 0.92, 0.94, 1.0, 1.04, 1.1, 1.14];
-// Weekend evenings convert a touch better for B2C baby shopping.
+// Weekend evenings convert a touch better for B2C grocery shopping.
 const WEEKDAY_VISITS = [1.04, 1.0, 0.98, 0.98, 1.0, 1.03, 1.05]; // Sun..Sat
 const WEEKDAY_CR = [1.05, 1.0, 0.99, 0.98, 0.99, 1.02, 1.04];
 
@@ -129,11 +132,13 @@ const dataset = {
     disclaimer: "Ilustrativní data vygenerovaná pro účely případové studie.",
     asOf: AS_OF,
     days: DAYS,
-    seed: 20260608,
+    seed: SEED,
   },
   goals: {
     pno: 0.15, // cílové PNO domluvené s klientem
-    monthlyRevenue: 1_600_000,
+    // ~5 % pod trailing run-rate posledního měsíce (≈2,97 mil. Kč k AS_OF), aby
+    // ukazatel plnění cíle dával smysl (dřív 1,6 mil. = nereálných 185 %).
+    monthlyRevenue: 2_800_000,
   },
   channels: channels.map(({ channel, color, visit, cost, conv, rev }) => ({
     channel,
