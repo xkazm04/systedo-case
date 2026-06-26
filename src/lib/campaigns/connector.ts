@@ -73,6 +73,16 @@ function googleAdsProvider(
   };
 }
 
+/** Build the per-tenant key, sanitizing each component so it can't break out of
+ *  the Firestore document path (a "/" in a component would be reinterpreted as a
+ *  nested sub-collection). One helper so the read path (resolveTenant) and the sync
+ *  path (resolveCampaignContext) can never compute a different key for one request. */
+function buildTenantKey(userId: string, projectId?: string | null, customerId?: string | null): string {
+  const safe = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "_");
+  const base = projectId ? `u_${safe(userId)}_proj_${safe(projectId)}` : `u_${safe(userId)}`;
+  return customerId ? `${base}_${safe(customerId)}` : base;
+}
+
 /** The tenant a user's data lives under. Now **per-project**: callers that know
  *  the active project pass its id, isolating campaign/social/patterns/report data
  *  per project (`u_{userId}_proj_{projectId}`), with the connected-account id
@@ -85,8 +95,7 @@ export async function resolveTenant(
 ): Promise<string> {
   if (!userId) return "sample";
   const connection = await getAdsConnection(userId);
-  const base = projectId ? `u_${userId}_proj_${projectId}` : `u_${userId}`;
-  return connection ? `${base}_${connection.customerId}` : base;
+  return buildTenantKey(userId, projectId, connection?.customerId);
 }
 
 /** Resolve both the connector and the tenant for a request in one pass: live
@@ -102,8 +111,7 @@ export async function resolveCampaignContext(
   if (!userId) return { connector: sampleProvider(projectType, projectId ?? undefined), tenant: "sample" };
 
   const connection = await getAdsConnection(userId);
-  const base = projectId ? `u_${userId}_proj_${projectId}` : `u_${userId}`;
-  const tenant = connection ? `${base}_${connection.customerId}` : base;
+  const tenant = buildTenantKey(userId, projectId, connection?.customerId);
 
   if (connection && adsConfigured()) {
     const token = await getUserAccessToken(userId);
