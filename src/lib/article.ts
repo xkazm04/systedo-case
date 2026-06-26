@@ -54,8 +54,11 @@ export interface FigureBlock {
   src: string;
   alt: string;
   caption?: string;
-  width?: number;
-  height?: number;
+  /** Intrinsic dimensions — REQUIRED: they feed both the JSON-LD ImageObject and
+   *  next/image's CLS reservation, both of which degrade silently if omitted.
+   *  Enforced at load by parseArticle. */
+  width: number;
+  height: number;
 }
 
 export type Block =
@@ -132,7 +135,8 @@ function parseArticle(raw: unknown): Article {
   if (!Array.isArray(a.blocks) || a.blocks.length === 0) fail("blocks must be a non-empty array");
   for (const [i, b] of a.blocks.entries()) {
     if (!b || !BLOCK_TYPES.has(b.type)) fail(`block[${i}] has an unknown type`);
-    if (b.type === "figure" && (!b.src || !b.alt)) fail(`figure block[${i}] needs src and alt`);
+    if (b.type === "figure" && (!b.src || !b.alt || !b.width || !b.height))
+      fail(`figure block[${i}] needs src, alt, width and height`);
     if ((b.type === "h2" || b.type === "h3") && !b.id) fail(`heading block[${i}] needs an id`);
   }
   if (!Array.isArray(a.faq) || a.faq.length === 0) fail("faq needs ≥1 item (FAQPage requires it)");
