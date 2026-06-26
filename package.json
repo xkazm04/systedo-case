@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm run build",
     "seed": "node scripts/generate-data.mjs",
+    "seed:check": "node scripts/generate-data.mjs --check",
     "seed:local": "node scripts/seed-local-db.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

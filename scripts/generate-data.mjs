@@ -13,7 +13,7 @@
  *
  * Run with:  node scripts/generate-data.mjs   (or `npm run seed`)
  */
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -112,13 +112,18 @@ for (const dim of ["visit", "cost", "conv", "rev"]) {
   }
 }
 
+// Managing agency shown in the dataset. Kept as a single constant so a rebrand
+// can't drift between the generator and the committed JSON (it once did:
+// commit 126adcc renamed this in the JSON only, and a re-seed would have reverted it).
+const AGENCY = "Adamant";
+
 const dataset = {
   client: {
     name: "Mionelo",
     domain: "mionelo.cz",
     segment: "E-commerce · ořechy, semínka a superpotraviny",
     currency: "CZK",
-    managedBy: "Systedo",
+    managedBy: AGENCY,
   },
   meta: {
     disclaimer: "Ilustrativní data vygenerovaná pro účely případové studie.",
@@ -138,23 +143,42 @@ const dataset = {
   daily,
 };
 
-mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(OUT, JSON.stringify(dataset, null, 2) + "\n", "utf8");
+const OUTPUT = JSON.stringify(dataset, null, 2) + "\n";
 
-// quick summary so the run is auditable
-const totals = daily.reduce(
-  (a, d) => ({
-    visits: a.visits + d.visits,
-    cost: a.cost + d.cost,
-    conversions: a.conversions + d.conversions,
-    revenue: a.revenue + d.revenue,
-  }),
-  { visits: 0, cost: 0, conversions: 0, revenue: 0 }
-);
-console.log(`Wrote ${OUT} (${daily.length} days)`);
-console.log(
-  `Full-series totals → visits ${totals.visits.toLocaleString("cs-CZ")}, ` +
-    `revenue ${Math.round(totals.revenue).toLocaleString("cs-CZ")} Kč, ` +
-    `cost ${Math.round(totals.cost).toLocaleString("cs-CZ")} Kč, ` +
-    `PNO ${((totals.cost / totals.revenue) * 100).toFixed(1)} %`
-);
+if (process.argv.includes("--check")) {
+  // Drift guard (`npm run seed:check`): fail if the committed JSON no longer
+  // matches fresh generator output, so a hand edit can't silently diverge — the
+  // "never drift" promise above is now enforceable, not just documented.
+  let current = "";
+  try {
+    current = readFileSync(OUT, "utf8");
+  } catch {
+    /* missing file → treated as a mismatch below */
+  }
+  if (current !== OUTPUT) {
+    console.error("✗ src/data/performance.json is out of sync with generate-data.mjs. Run `npm run seed`.");
+    process.exit(1);
+  }
+  console.log("✓ performance.json matches the generator.");
+} else {
+  mkdirSync(dirname(OUT), { recursive: true });
+  writeFileSync(OUT, OUTPUT, "utf8");
+
+  // quick summary so the run is auditable
+  const totals = daily.reduce(
+    (a, d) => ({
+      visits: a.visits + d.visits,
+      cost: a.cost + d.cost,
+      conversions: a.conversions + d.conversions,
+      revenue: a.revenue + d.revenue,
+    }),
+    { visits: 0, cost: 0, conversions: 0, revenue: 0 }
+  );
+  console.log(`Wrote ${OUT} (${daily.length} days)`);
+  console.log(
+    `Full-series totals → visits ${totals.visits.toLocaleString("cs-CZ")}, ` +
+      `revenue ${Math.round(totals.revenue).toLocaleString("cs-CZ")} Kč, ` +
+      `cost ${Math.round(totals.cost).toLocaleString("cs-CZ")} Kč, ` +
+      `PNO ${((totals.cost / totals.revenue) * 100).toFixed(1)} %`
+  );
+}
