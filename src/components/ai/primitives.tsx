@@ -250,17 +250,20 @@ export function PromptDisclosure({ prompt }: { prompt: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="card overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-5 py-4 text-sm font-medium text-navy-800"
-      >
-        <span className="flex items-center gap-2">
+      <div className="flex w-full items-center justify-between px-5 py-4 text-sm font-medium text-navy-800">
+        <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-2">
           <Info width={16} height={16} className="text-brand-600" />
           {t("showPrompt")}
+        </button>
+        <span className="flex items-center gap-1.5">
+          {/* The transparency panel is the selling point — let the prospect take the
+              engineered prompt with one click instead of hand-selecting the <pre>. */}
+          <CopyButton text={prompt} />
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-muted">
+            {open ? t("hidePrompt") : t("showPromptToggle")}
+          </button>
         </span>
-        <span className="text-muted">{open ? t("hidePrompt") : t("showPromptToggle")}</span>
-      </button>
+      </div>
       {open && (
         <pre className="overflow-x-auto border-t border-line bg-onyx px-5 py-4 font-mono text-xs leading-relaxed text-onyx-ink">
           {prompt}
