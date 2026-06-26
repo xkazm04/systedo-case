@@ -34,7 +34,14 @@ export const metadata: Metadata = {
       "The AI workspace for advertising. A rare breed in adtech — be adamant about your ads.",
     type: "website",
   },
-  robots: { index: false, follow: false },
+  // Illustrative case study with synthetic data: keep preview deploys and local
+  // runs out of search, but let the canonical production deploy be found (the
+  // whole point of a portfolio is discoverability) without the demo ranking for
+  // real adtech queries. Toggle on VERCEL_ENV so only the production domain indexes.
+  robots:
+    process.env.VERCEL_ENV === "production"
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
