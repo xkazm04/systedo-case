@@ -55,12 +55,37 @@ export const RATE_RULES = {
   syncPerMin: (): RateRule => ({ bucket: "sync:min", limit: envInt("SYNC_RATE_PER_MIN", 20), windowMs: MIN }),
 };
 
-/** Best-effort client IP from the standard proxy headers. Falls back to a shared
- *  "unknown" bucket so a missing header still counts toward *some* limit. */
+/** Number of trusted reverse-proxy hops in front of the app (1 on Vercel). The
+ *  real client IP sits that many entries from the RIGHT of x-forwarded-for;
+ *  anything further left is client-supplied and must not be trusted. */
+const TRUSTED_PROXY_HOPS = envInt("TRUSTED_PROXY_HOPS", 1);
+
+/** Best-effort client IP, resistant to x-forwarded-for spoofing.
+ *
+ *  A client can prepend arbitrary `x-forwarded-for` entries, so the *leftmost*
+ *  value is attacker-controlled — taking it (the previous behaviour) let a caller
+ *  rotate the header to land in a fresh rate-limit bucket on every request,
+ *  defeating the per-IP caps that are the only budget guard for anonymous users.
+ *  We instead prefer the platform's verified connecting-IP header (x-real-ip /
+ *  x-vercel-forwarded-for, which the proxy sets and a client cannot forge), and
+ *  otherwise read XFF from the RIGHT, stepping in by the configured trusted-hop
+ *  count. Falls back to a shared "unknown" bucket so a missing header still counts
+ *  toward *some* limit. */
 export function clientIp(request: Request): string {
+  const trusted =
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("x-vercel-forwarded-for")?.trim();
+  if (trusted) return trusted;
+
   const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]!.trim() || "unknown";
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+  if (fwd) {
+    const hops = fwd.split(",").map((s) => s.trim()).filter(Boolean);
+    if (hops.length > 0) {
+      const idx = Math.max(0, hops.length - TRUSTED_PROXY_HOPS);
+      return hops[idx] || "unknown";
+    }
+  }
+  return "unknown";
 }
 
 /** Reject obviously oversized bodies via the content-length header before we
