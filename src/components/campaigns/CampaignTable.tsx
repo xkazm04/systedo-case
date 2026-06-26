@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
-import { Bolt, ChevronDown, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
+import { Bolt, ChevronDown, Download, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
 import {
   CAMPAIGN_STATUSES,
   CAMPAIGN_TYPE_COLORS,
@@ -26,6 +26,7 @@ import {
   type Severity,
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
+import { toCsv, downloadText } from "@/lib/export";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import ReportView from "./ReportView";
@@ -65,6 +66,12 @@ const T = {
     colPno: "PNO",
     reportShow: "report",
     reportHide: "skrýt",
+    exportCsv: "Export CSV",
+    exportCsvTitle: "Stáhnout zobrazené kampaně jako CSV",
+    csvType: "Typ",
+    csvStatus: "Stav",
+    csvReason: "Hlavní nález",
+    csvScore: "AI skóre",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -99,6 +106,12 @@ const T = {
     colPno: "PNO",
     reportShow: "report",
     reportHide: "hide",
+    exportCsv: "Export CSV",
+    exportCsvTitle: "Download the shown campaigns as CSV",
+    csvType: "Type",
+    csvStatus: "Status",
+    csvReason: "Top finding",
+    csvScore: "AI score",
   },
 } as const;
 
@@ -317,6 +330,31 @@ export default function CampaignTable({
     return sort.dir === "asc" ? cmp : -cmp;
   });
 
+  // Export the *currently filtered + sorted* view as a cs-CZ-friendly CSV (the
+  // deliverable agencies actually hand to clients), carrying triage severity, the
+  // top finding, and any loaded AI score. Reads only in-memory state.
+  const exportCsv = () => {
+    const headers = [
+      t("colCampaign"), t("csvType"), t("csvStatus"), t("colCost"),
+      t("colConversions"), t("colConvValue"), "ROAS", "PNO %",
+      t("colPriority"), t("csvReason"), t("csvScore"),
+    ];
+    const rows = view.map(({ c, tr }) => [
+      c.name,
+      CAMPAIGN_TYPE_LABELS[c.type],
+      campaignStatusLabel(c.status, locale),
+      Math.round(c.cost),
+      Math.round(c.conversions),
+      Math.round(c.conversionValue),
+      c.roas > 0 ? Number(c.roas.toFixed(2)) : "",
+      c.pno > 0 ? Number((c.pno * 100).toFixed(1)) : "",
+      severityLabel(tr.severity, locale),
+      tr.primary ? triageReasonLabel(tr.primary, locale) : "",
+      reports[c.id]?.result.score ?? "",
+    ]);
+    downloadText("systedo-kampane.csv", toCsv(headers, rows));
+  };
+
   return (
     <div className="card overflow-hidden">
       <TriageBanner
@@ -401,6 +439,17 @@ export default function CampaignTable({
               className="text-xs font-medium text-brand-accent hover:underline"
             >
               {t("clearFilters")}
+            </button>
+          )}
+          {view.length > 0 && (
+            <button
+              type="button"
+              onClick={exportCsv}
+              title={t("exportCsvTitle")}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+            >
+              <Download width={14} height={14} />
+              {t("exportCsv")}
             </button>
           )}
           <span className="tnum whitespace-nowrap text-xs text-muted">
