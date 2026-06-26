@@ -72,10 +72,21 @@ export function navLabel(href: string, fallback = "", locale: SupportedLocale = 
   return items.find((i) => i.href === href)?.label ?? fallback;
 }
 
-/** All routes for the sitemap, derived from the one nav model plus the meta
- *  pages, so adding a page is a single edit away from the sitemap. */
+/** Meta pages linked from the footer AND included in the sitemap — declared once
+ *  here so the footer and sitemapEntries can't drift apart. Each carries the footer
+ *  message key for its label. */
+export const FOOTER_META_PAGES = [
+  { href: "/cena", key: "pricing" },
+  { href: "/socialni", key: "social" },
+  { href: "/knihovna", key: "library" },
+  { href: "/mapa", key: "map" },
+  { href: "/design-system", key: "design" },
+] as const;
+
+/** All routes for the sitemap, derived from the one nav model plus the shared meta
+ *  pages, so adding a page is a single edit away from both the footer and sitemap. */
 export function sitemapEntries(): string[] {
-  return [...NAV_ITEMS.map((i) => i.href), "/cena", "/knihovna", "/socialni", "/mapa", "/clanek/vykon", "/design-system"];
+  return [...NAV_ITEMS.map((i) => i.href), ...FOOTER_META_PAGES.map((p) => p.href), "/clanek/vykon"];
 }
 
 /** Diacritics-aware slug ("Zdravý jídelníček" → "zdravy-jidelnicek"). */

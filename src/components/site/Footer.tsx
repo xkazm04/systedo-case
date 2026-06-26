@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import Link from "next/link";
-import { localizedNavItems } from "@/lib/nav";
+import { localizedNavItems, FOOTER_META_PAGES } from "@/lib/nav";
 import { STACK_FACTS } from "@/lib/site";
 import { Logo } from "@/components/icons";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -63,26 +64,17 @@ export default async function Footer() {
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <span>{copyright}</span>
           <span className="flex items-center gap-3">
-            <Link href="/cena" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
-              {t.links.pricing}
-            </Link>
-            <span aria-hidden className="text-onyx-line">·</span>
-            <Link href="/socialni" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
-              {t.links.social}
-            </Link>
-            <span aria-hidden className="text-onyx-line">·</span>
-            <Link href="/knihovna" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
-              {t.links.library}
-            </Link>
-            <span aria-hidden className="text-onyx-line">·</span>
-            <Link href="/mapa" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
-              {t.links.map}
-            </Link>
-            <span aria-hidden className="text-onyx-line">·</span>
-            <Link href="/design-system" className="font-medium text-onyx-muted transition-colors hover:text-brand-300">
-              {t.links.design}
-            </Link>
-            <span aria-hidden className="text-onyx-line">·</span>
+            {FOOTER_META_PAGES.map((p) => (
+              <Fragment key={p.href}>
+                <Link
+                  href={p.href}
+                  className="font-medium text-onyx-muted transition-colors hover:text-brand-300"
+                >
+                  {t.links[p.key]}
+                </Link>
+                <span aria-hidden className="text-onyx-line">·</span>
+              </Fragment>
+            ))}
             <span>{t.links.crafted}</span>
           </span>
         </div>
