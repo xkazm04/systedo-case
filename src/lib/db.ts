@@ -1,6 +1,10 @@
-/** Local SQLite store (server-only). The case study runs in local-dev mode for
- *  the campaigns feature, so we persist synced Google Ads data and AI evaluation
- *  reports to a file on disk — `.data/systedo.db` (gitignored).
+/** Local SQLite store (server-only). Backs two things only:
+ *   - the anonymous AI rate-limiter (`rate_limits`), always on; and
+ *   - in LOCAL_DB mode, the authed product's `users`/`projects` (normally in
+ *     Firestore) so `/app` works fully offline.
+ *  Synced Google Ads campaigns and AI evaluation reports do NOT live here — they
+ *  persist per-tenant in Firestore (see `campaigns/store.ts`, commit 9e66ed9).
+ *  Stored at `.data/systedo.db` (gitignored).
  *
  *  Uses Node's built-in `node:sqlite` (Node 22.5+/24), so there is no native
  *  build step and no extra dependency — the same zero-dependency spirit as the
@@ -17,47 +21,11 @@ import { join } from "node:path";
 const g = globalThis as unknown as { __systedoDb?: DatabaseSync; __systedoSchema?: string };
 
 /** Additive migrations for databases created before a column existed — a
- *  `CREATE TABLE IF NOT EXISTS` won't add a column to an already-existing table. */
-const MIGRATIONS = ["ALTER TABLE reports ADD COLUMN input_hash TEXT"];
+ *  `CREATE TABLE IF NOT EXISTS` won't add a column to an already-existing table.
+ *  Empty now that the campaign/report tables moved to Firestore. */
+const MIGRATIONS: string[] = [];
 
 const SCHEMA = `
-  CREATE TABLE IF NOT EXISTS campaigns (
-    id               TEXT PRIMARY KEY,
-    name             TEXT NOT NULL,
-    type             TEXT NOT NULL,
-    status           TEXT NOT NULL,
-    impressions      INTEGER NOT NULL,
-    clicks           INTEGER NOT NULL,
-    cost             REAL NOT NULL,
-    conversions      REAL NOT NULL,
-    conversion_value REAL NOT NULL,
-    position         INTEGER NOT NULL DEFAULT 0
-  );
-
-  CREATE TABLE IF NOT EXISTS sync_meta (
-    id        INTEGER PRIMARY KEY CHECK (id = 1),
-    source    TEXT NOT NULL,
-    period    TEXT NOT NULL,
-    synced_at TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS reports (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    scope       TEXT NOT NULL,
-    campaign_id TEXT,
-    period      TEXT NOT NULL,
-    model       TEXT NOT NULL,
-    demo        INTEGER NOT NULL,
-    payload     TEXT NOT NULL,
-    prompt      TEXT NOT NULL,
-    took_ms     INTEGER NOT NULL,
-    created_at  TEXT NOT NULL,
-    input_hash  TEXT
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_reports_lookup
-    ON reports (period, scope, campaign_id, id);
-
   CREATE TABLE IF NOT EXISTS rate_limits (
     bucket       TEXT NOT NULL,
     ip           TEXT NOT NULL,
@@ -65,18 +33,6 @@ const SCHEMA = `
     count        INTEGER NOT NULL,
     PRIMARY KEY (bucket, ip)
   );
-
-  CREATE TABLE IF NOT EXISTS campaign_snapshots (
-    synced_at        TEXT NOT NULL,
-    campaign_id      TEXT NOT NULL,
-    status           TEXT NOT NULL,
-    cost             REAL NOT NULL,
-    conversions      REAL NOT NULL,
-    conversion_value REAL NOT NULL
-  );
-
-  CREATE INDEX IF NOT EXISTS idx_snapshots_time
-    ON campaign_snapshots (synced_at, campaign_id);
 
   -- LOCAL_DB mode only: the authed product's users + projects, normally in
   -- Firestore, persisted locally so /app works fully offline (see local-mode.ts,
