@@ -6,7 +6,7 @@
  *  user can see at a glance whether the set is launch-ready and what is missing.
  *  No network, no API: it only reads what the model already returned. */
 
-import type { AdResult } from "./ai-types";
+import { AD_LIMITS, type AdResult } from "./ai-types";
 import type { SupportedLocale } from "@/lib/format";
 
 export type AdStrengthRating = "poor" | "average" | "good" | "excellent";
@@ -42,7 +42,10 @@ export interface AdStrength {
   factors: AdStrengthFactor[];
 }
 
-// What Google nudges you toward for a responsive search ad.
+// Hand-tuned heuristic, NOT Google's real (undocumented) Ad Strength formula.
+// The per-factor weights below sum to 100, and the rating cutoffs (85/65/40) are
+// chosen so a minimal valid set (~5 headlines with some keyword coverage) lands
+// around "average". The GOALS mirror Google's published RSA recommendations.
 const HEADLINE_GOAL = 8;
 const HEADLINE_MIN = 5;
 const DESC_GOAL = 4;
@@ -216,11 +219,34 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
     },
   ];
 
-  const score = Math.round(weighted.reduce((sum, w) => sum + w.weight * w.frac, 0));
+  // Launch-blocker gate: an asset over Google/Sklik's hard character limit can't
+  // ship, so it caps the rating no matter how strong the set is otherwise — a
+  // top-line "Výborná" next to an over-limit headline is a credibility-damaging
+  // contradiction (the per-row TextRow already flags it red).
+  const overLimit =
+    headlines.filter((h) => h.length > AD_LIMITS.headline).length +
+    descriptions.filter((d) => d.length > AD_LIMITS.description).length +
+    callouts.filter((c) => c.length > AD_LIMITS.callout).length;
+
+  let score = Math.round(weighted.reduce((sum, w) => sum + w.weight * w.frac, 0));
+  if (overLimit > 0) score = Math.min(score, 64); // keep below the "good" floor (65)
   const rating: AdStrengthRating =
     score >= 85 ? "excellent" : score >= 65 ? "good" : score >= 40 ? "average" : "poor";
 
-  return { score, rating, factors: weighted.map((w) => w.factor) };
+  const factors = weighted.map((w) => w.factor);
+  factors.push({
+    label: en ? "Within character limits" : "V rámci limitů znaků",
+    status: overLimit === 0 ? "pass" : "fail",
+    detail: en
+      ? overLimit === 0
+        ? "All assets are within Google Ads / Sklik character limits."
+        : `${overLimit} asset${overLimit === 1 ? "" : "s"} exceed the character limit — fix before launch.`
+      : overLimit === 0
+        ? "Všechny prvky jsou v limitech znaků Google Ads / Sklik."
+        : `${overLimit} ${czPlural(overLimit, "prvek překračuje", "prvky překračují", "prvků překračuje")} limit znaků — opravte před spuštěním.`,
+  });
+
+  return { score, rating, factors };
 }
 
 /** Return the localized label for a rating key. */
