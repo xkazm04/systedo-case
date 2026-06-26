@@ -239,7 +239,10 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno, fmt, t);
 
   const pnoOverGoal = c.pno > goalPno;
-  const gaugeMax = Math.max(c.pno, goalPno) * 1.6;
+  // PNO gauge axis headroom — 60 % above the larger of actual/goal so the bar and
+  // markers never sit at the very edge (matches the channel table's PNO alert band).
+  const PNO_GAUGE_HEADROOM = 1.6;
+  const gaugeMax = Math.max(c.pno, goalPno) * PNO_GAUGE_HEADROOM;
 
   // Export the channel breakdown for the selected period as a CSV deliverable —
   // money/counts as raw integers, ratios as decimals, the PoP move formatted.
@@ -518,7 +521,9 @@ function buildInsights(
   const out: Insight[] = [];
   const paid = channels.filter((ch) => ch.cost > 0);
 
-  if (Number.isFinite(revenueDelta) && Math.abs(revenueDelta) > 0.005) {
+  // Below ±0.5 % a revenue move is noise, not a story worth surfacing as an insight.
+  const MIN_REVENUE_DELTA_TO_REPORT = 0.005;
+  if (Number.isFinite(revenueDelta) && Math.abs(revenueDelta) > MIN_REVENUE_DELTA_TO_REPORT) {
     out.push({
       tone: revenueDelta > 0 ? "good" : "warn",
       text: (
@@ -554,8 +559,10 @@ function buildInsights(
     });
   }
 
+  // Flag "room to optimise bids" only when the worst channel's PNO is ≥30 % over goal.
+  const WORST_PNO_FLAG_MULTIPLE = 1.3;
   const worstPno = [...paid].sort((a, b) => b.pno - a.pno)[0];
-  if (worstPno && worstPno.pno > goalPno * 1.3) {
+  if (worstPno && worstPno.pno > goalPno * WORST_PNO_FLAG_MULTIPLE) {
     out.push({
       tone: "warn",
       text: (

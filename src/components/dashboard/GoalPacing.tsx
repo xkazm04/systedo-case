@@ -7,6 +7,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 const T = {
   cs: {
     heading: "Měsíční cíl obratu",
+    scopeChip: "Tento měsíc",
     monthComplete: "měsíc dokončen",
     dayProgress: "{elapsed}/{total} dní · zbývá {remaining}",
     pctOfGoal: "{pct} cíle",
@@ -37,6 +38,7 @@ const T = {
   },
   en: {
     heading: "Monthly revenue target",
+    scopeChip: "This month",
     monthComplete: "month complete",
     dayProgress: "{elapsed}/{total} days · {remaining} remaining",
     pctOfGoal: "{pct} of target",
@@ -96,7 +98,10 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
   } = pacing;
 
   // One axis shared by the fill, the forecast extension and both markers.
-  const gaugeMax = Math.max(goal, projection, mtd) * 1.12;
+  // Gauge axis headroom — 12 % above the largest of goal/projection/mtd so the
+  // forecast extension and markers stay inside the track.
+  const PACING_GAUGE_HEADROOM = 1.12;
+  const gaugeMax = Math.max(goal, projection, mtd) * PACING_GAUGE_HEADROOM;
   const pct = (v: number) => `${Math.min(100, Math.max(0, (v / gaugeMax) * 100))}%`;
 
   const overUnder = attainment - 1; // projection vs goal, as a fraction
@@ -116,6 +121,11 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
         <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
           <Gauge width={17} height={17} className="text-brand-600" />
           {t("heading")}
+          {/* Scope cue: the pacing card is fixed to the current calendar month,
+              independent of the global period selector — say so to avoid confusion. */}
+          <span className="rounded-pill bg-navy-50 px-2 py-0.5 text-[11px] font-medium text-muted">
+            {t("scopeChip")}
+          </span>
         </div>
         <span className="text-xs text-muted">
           {fmt.fmtMonthLong(monthStart)} ·{" "}

@@ -44,7 +44,9 @@ export default function DeltaBadge({
   const sizeCls = size === "xs" ? "!px-2 !py-1 text-[13px]" : "";
   const iconSize = size === "xs" ? 12 : 14;
 
-  if (!Number.isFinite(delta) || Math.abs(delta) < 0.0005) {
+  // |delta| below this rounds to 0,0 % at one decimal, so render "no change" instead.
+  const DELTA_NOISE_FLOOR = 0.0005;
+  if (!Number.isFinite(delta) || Math.abs(delta) < DELTA_NOISE_FLOOR) {
     return <span className={`pill bg-navy-50 text-muted ${sizeCls}`}>{t("noChange")}</span>;
   }
 
