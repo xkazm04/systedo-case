@@ -37,6 +37,14 @@ export interface PeriodResult {
   points: DailyPoint[];
   /** daily points of the equal-length comparison window, for the overlay */
   comparePoints: DailyPoint[];
+  /** the window length the period asked for (days) */
+  requestedDays: number;
+  /** the window length actually used after capping to ⌊n/2⌋ for an equal-length
+   *  comparison; equals requestedDays when the series is long enough */
+  actualDays: number;
+  /** true when actualDays < requestedDays — the series was too short, so e.g.
+   *  "12 měsíců" silently became a shorter span. Surfacing it lets the UI warn. */
+  truncated: boolean;
 }
 
 /** Per-day value of any metric (raw additive, or a derived ratio per day). */
@@ -106,7 +114,17 @@ export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult 
     cr: significanceFor(current, previous, "cr"),
     roas: significanceFor(current, previous, "roas"),
   };
-  return { current: c, previous: p, delta, significance, points: current, comparePoints: previous };
+  return {
+    current: c,
+    previous: p,
+    delta,
+    significance,
+    points: current,
+    comparePoints: previous,
+    requestedDays: days,
+    actualDays: span,
+    truncated: span < days,
+  };
 }
 
 // --- chart buckets ----------------------------------------------------------
@@ -114,12 +132,16 @@ export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult 
 export interface Bucket extends Totals {
   date: string;
   label: string;
+  /** true for a month bucket whose day-count is less than its calendar length (a
+   *  partial leading/trailing month), so the UI can avoid reading a half-month bar
+   *  as a full-month collapse. Always false for day buckets. */
+  partial: boolean;
 }
 
 /** Group daily points into chart buckets (by day or calendar month). */
 export function bucketize(points: DailyPoint[], granularity: "day" | "month"): Bucket[] {
   if (granularity === "day") {
-    return points.map((p) => ({ date: p.date, label: p.date, ...totalsOf([p]) }));
+    return points.map((p) => ({ date: p.date, label: p.date, partial: false, ...totalsOf([p]) }));
   }
   const groups = new Map<string, DailyPoint[]>();
   for (const p of points) {
@@ -128,9 +150,14 @@ export function bucketize(points: DailyPoint[], granularity: "day" | "month"): B
     if (arr) arr.push(p);
     else groups.set(key, [p]);
   }
-  return [...groups.entries()].map(([key, pts]) => ({
-    date: `${key}-01`,
-    label: key,
-    ...totalsOf(pts),
-  }));
+  return [...groups.entries()].map(([key, pts]) => {
+    const [y, m] = key.split("-").map(Number); // m is 1-based
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    return {
+      date: `${key}-01`,
+      label: key,
+      partial: pts.length < daysInMonth,
+      ...totalsOf(pts),
+    };
+  });
 }
