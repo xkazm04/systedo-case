@@ -214,6 +214,11 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     const da = parseDate(fromIso);
     const db = parseDate(toIso);
     if (!da || !db) return DASH;
+    // Non-cs locales: let Intl compose a grammatically correct range (e.g.
+    // "April 28 – May 4, 2026"). The hand-built path below exists ONLY because
+    // cs `formatRange` drops the genitive month name; applying its Czech day-first
+    // word order to `en` produced broken strings like "1.–31. May 2026".
+    if (locale !== "cs") return RANGE_PARTS.formatRange(da, db);
     const a = rangeParts(da);
     const b = rangeParts(db);
     if (a.year === b.year && a.month === b.month) {
