@@ -9,11 +9,11 @@ import { ArrowRight } from "@/components/icons";
 import {
   baseColors,
   colorRamps,
+  fontTokens,
   radiusTokens,
   shadowTokens,
-  readableInkOn,
-  type ColorToken,
 } from "@/lib/design-tokens";
+import Swatch from "./Swatch";
 
 export const metadata: Metadata = {
   title: "Design system",
@@ -106,7 +106,9 @@ const SPARKLINES: Array<{
   },
 ];
 
-/** A heading-scale row used by the typography section. */
+/** Heading-scale demo rows. The size steps (text-4xl…) are Tailwind v4 defaults,
+ *  not custom @theme tokens, so there's nothing of ours to drift; the font-family
+ *  tokens are generated from @theme (see fontTokens) and rendered below. */
 const TYPE_SCALE = [
   { node: <span className="text-4xl font-semibold tracking-tight text-navy-800 sm:text-5xl">Aa</span>, name: "Display / H1", spec: "text-4xl → 5xl · semibold · tracking-tight" },
   { node: <span className="text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">Aa</span>, name: "Nadpis / H2", spec: "text-2xl → 3xl · semibold" },
@@ -141,21 +143,6 @@ function Section({
       </div>
       <div className="mt-8">{children}</div>
     </section>
-  );
-}
-
-function Swatch({ token, big = false }: { token: ColorToken; big?: boolean }) {
-  return (
-    <div className="min-w-0">
-      <div
-        className={`flex ${big ? "h-20" : "h-16"} items-end rounded-xl border border-line/60 p-2`}
-        style={{ background: `var(${token.cssVar})`, color: readableInkOn(token.value) }}
-      >
-        <span className="tnum text-[13px] font-medium opacity-90">{token.step ?? token.name}</span>
-      </div>
-      <p className="mt-1.5 truncate text-[13px] font-medium text-navy-700">{token.name}</p>
-      <p className="tnum truncate text-[13px] uppercase text-muted">{token.value}</p>
-    </div>
   );
 }
 
@@ -259,6 +246,20 @@ export default function DesignSystemPage() {
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-navy-800">{row.name}</p>
                     <p className="tnum text-xs text-muted">{row.spec}</p>
+                  </div>
+                </div>
+              ))}
+              {/* Font-family tokens — generated from @theme, so they can't drift. */}
+              {fontTokens.map((f) => (
+                <div key={f.cssVar} className="flex items-center gap-4 px-3 py-4">
+                  <div className="grid w-20 shrink-0 place-items-center">
+                    <span className="text-2xl text-navy-800" style={{ fontFamily: `var(${f.cssVar})` }}>
+                      Aa
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-navy-800">font-{f.name}</p>
+                    <p className="tnum truncate text-xs text-muted">{f.cssVar}</p>
                   </div>
                 </div>
               ))}

@@ -83,6 +83,16 @@ export const colorRamps: ColorRamp[] = (() => {
   }));
 })();
 
+/** Font-family tokens (--font-*) read from @theme, so the showcase lists them from
+ *  the source rather than a hand-kept copy. (The type *size* steps like `text-4xl`
+ *  are Tailwind v4 defaults — not custom @theme tokens — so there is nothing of
+ *  ours there to drift; only the font families are project tokens.) */
+export const fontTokens: NamedToken[] = parseDeclarations("font").map((t) => ({
+  name: t.name,
+  cssVar: `--font-${t.name}`,
+  value: t.value,
+}));
+
 /** Single-value colour tokens (canvas, surface, ink, muted, line, positive …). */
 export const baseColors: ColorToken[] = COLOR_TOKENS.filter((t) => t.step === null);
 
