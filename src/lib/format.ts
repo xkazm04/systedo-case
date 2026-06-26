@@ -122,7 +122,13 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 
   /** Signed percent for deltas ("+12,4 %", "−3,1 %"). Uses a true minus sign. */
   const fmtSignedPct = (fraction: number, digits = 1): string => {
-    const sign = fraction > 0 ? "+" : fraction < 0 ? "−" : "";
+    if (!Number.isFinite(fraction)) return fmtPct(fraction, digits); // → DASH
+    // Take the sign from the value *as displayed* (rounded to `digits`), not the
+    // raw fraction — otherwise a tiny delta that rounds to "0,0 %" still renders a
+    // misleading "−0,0 %". Mirrors fmtSignedInt, which rounds before signing.
+    const factor = Math.pow(10, digits + 2); // percent carries `digits` decimals
+    const rounded = Math.round(fraction * factor) / factor;
+    const sign = rounded > 0 ? "+" : rounded < 0 ? "−" : "";
     return `${sign}${fmtPct(Math.abs(fraction), digits)}`;
   };
 
