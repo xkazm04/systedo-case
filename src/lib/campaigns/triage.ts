@@ -20,6 +20,16 @@ export const ROAS_CRITICAL_RATIO = 0.6;
  *  where the PNO cell went red but ROAS/triage stayed neutral. */
 export const PNO_CRITICAL_RATIO = 1 / ROAS_CRITICAL_RATIO;
 
+// Change-aware thresholds (sync-over-sync), kept here with the other ratios so the
+// alert logic and any prose share one source of truth instead of bare literals.
+/** A ROAS "crater": the campaign retained less than this share of its prior ROAS
+ *  (i.e. lost more than 40%). */
+export const ROAS_CRATER_RETAINED_MAX = 0.6;
+/** A "spend spike": period-over-period cost jumped at least this much (+50%)… */
+export const SPEND_SPIKE_COST_JUMP = 0.5;
+/** …while conversion value grew less than this fraction of the cost jump (lagged). */
+export const SPEND_SPIKE_VALUE_LAG = 0.5;
+
 // --- per-metric cell tone (shared with the table cells) ----------------------
 
 /** How a single metric reads against the target: on/above target ("good"),
@@ -124,7 +134,7 @@ const RULES: Rule[] = [
     labelEn: "ROAS far below target",
     test: (c) => c.cost > 0 && c.roas > 0 && c.roas < TARGET_ROAS * ROAS_CRITICAL_RATIO,
     detail: (c) =>
-      `ROAS ${fmtMultiple(c.roas)} je pod 60 % cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
+      `ROAS ${fmtMultiple(c.roas)} je pod ${fmtPct(ROAS_CRITICAL_RATIO, 0)} cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
   },
   {
     id: "below_target",
@@ -163,7 +173,7 @@ const CHANGE_RULES: ChangeRule[] = [
       ch.kind === "changed" &&
       ch.roasBefore >= TARGET_ROAS * ROAS_CRITICAL_RATIO &&
       ch.roasAfter > 0 &&
-      ch.roasAfter < ch.roasBefore * 0.6 &&
+      ch.roasAfter < ch.roasBefore * ROAS_CRATER_RETAINED_MAX &&
       ch.roasAfter < TARGET_ROAS,
     detail: (_c, ch) =>
       `ROAS spadl z ${fmtMultiple(ch.roasBefore)} na ${fmtMultiple(ch.roasAfter)} od minulé synchronizace.`,
@@ -175,7 +185,10 @@ const CHANGE_RULES: ChangeRule[] = [
     labelEn: "Spend spike without return",
     // Cost jumped ≥50% while conversion value lagged well behind — efficiency is
     // being diluted even if the absolute ROAS still looks acceptable.
-    test: (_c, ch) => ch.kind === "changed" && ch.costDelta >= 0.5 && ch.valueDelta < ch.costDelta * 0.5,
+    test: (_c, ch) =>
+      ch.kind === "changed" &&
+      ch.costDelta >= SPEND_SPIKE_COST_JUMP &&
+      ch.valueDelta < ch.costDelta * SPEND_SPIKE_VALUE_LAG,
     detail: (_c, ch) =>
       `Náklady ${fmtSignedPct(ch.costDelta)} proti minulé synchronizaci, hodnota konverzí jen ${fmtSignedPct(ch.valueDelta)}.`,
   },
