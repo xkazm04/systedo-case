@@ -181,14 +181,16 @@ export default async function ArticlePage() {
 
       {/* body + sticky TOC */}
       <Container className="grid gap-10 py-12 lg:grid-cols-[220px_1fr] lg:gap-14">
-        <aside className="hidden lg:block">
-          <div className="sticky top-24">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-              {t("tocSidebar")}
-            </p>
-            <ArticleToc items={toc} />
-          </div>
-        </aside>
+        {toc.length > 0 && (
+          <aside className="hidden lg:block">
+            <div className="sticky top-24">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+                {t("tocSidebar")}
+              </p>
+              <ArticleToc items={toc} />
+            </div>
+          </aside>
+        )}
 
         <article className="min-w-0 max-w-2xl">
           <ArticleBody blocks={blocks} />
