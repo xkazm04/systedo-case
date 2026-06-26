@@ -35,6 +35,11 @@ interface SparklineProps {
   /** explicit aria-label; overrides `describe` and promotes the SVG to an image
    *  in the accessibility tree (otherwise the chart is decorative/aria-hidden) */
   label?: string;
+  /** Build the generated aria-label from already-formatted endpoints + percent.
+   *  Defaults to a cs-CZ phrasing; pass this (with a locale-aware `formatValue`)
+   *  to localise the label — this component is dependency-free and has no locale
+   *  of its own, so the single formatting source stays at the call site. */
+  describeLabel?: (parts: { start: string; end: string; pct: string }) => string;
   className?: string;
 }
 
@@ -62,6 +67,7 @@ export default function Sparkline({
   describe = false,
   formatValue,
   label,
+  describeLabel,
   className,
 }: SparklineProps) {
   if (values.length < 2) {
@@ -109,7 +115,10 @@ export default function Sparkline({
     const fmt = formatValue ?? ((n: number) => String(n));
     const pct = pctChange(first, last);
     const pctStr = `${pct > 0 ? "+" : ""}${pct.toFixed(Number.isInteger(pct) ? 0 : 1)} %`;
-    a11yLabel = `Trend od ${fmt(first)} do ${fmt(last)}, změna ${pctStr}`;
+    const parts = { start: fmt(first), end: fmt(last), pct: pctStr };
+    a11yLabel = describeLabel
+      ? describeLabel(parts)
+      : `Trend od ${parts.start} do ${parts.end}, změna ${parts.pct}`;
   }
 
   return (
