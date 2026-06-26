@@ -95,36 +95,49 @@ export function detectAnomalies(
 
 /** Aggregate money effect of the flagged days, in CZK. */
 export interface AnomalyImpact {
-  /** Σ(observed − expected) over revenue anomalies (negative = revenue lost) */
+  /** Σ of revenue *shortfalls* only (observed < expected, ≤ 0 = revenue lost).
+   *  Windfalls are excluded so a good day can't mask a bad one in the headline. */
   revenue: number;
-  /** Σ(observed − expected) over cost anomalies (positive = overspend) */
+  /** Σ of cost *overspend* only (observed > expected, ≥ 0 = wasted spend).
+   *  Underspend is excluded for the same reason. */
   cost: number;
-  /** combined effect = revenue − cost, so lost revenue and wasted spend both
-   *  push the figure negative (a clean "this cost us ~X Kč" headline) */
+  /** Net damage = revenue − cost, so lost revenue and wasted spend both push the
+   *  figure negative (a clean, windfall-free "this cost us ~X Kč" headline). */
   net: number;
+  /** Upside the same anomalies carried (revenue windfalls + cost savings, ≥ 0),
+   *  reported separately so it informs without diluting the damage figure. */
+  gained: number;
   /** count of days carrying a monetary effect (revenue or cost anomalies) */
   count: number;
 }
 
 /**
  * Quantify the anomalies the detector already found into a single Kč figure.
- * Each revenue/cost anomaly carries `observed − expected`, so the deviation is
- * already computed per day — this just sums it. PNO goal-breaches are derived
- * from their underlying cost/revenue anomalies, so they are intentionally not
- * added again (no double-counting). Turns "3 upozornění" into "dopad ≈ −85 tis. Kč".
+ * Only *adverse* deviations feed the damage headline — revenue shortfalls and
+ * cost overspend — so a windfall day can no longer net out a loss day inside the
+ * same "this cost us" number (the previous Σ(observed − expected) blended both,
+ * understating the real damage). Windfalls and savings are surfaced separately as
+ * `gained`. PNO goal-breaches are derived from their underlying cost/revenue
+ * anomalies, so they are intentionally not added again (no double-counting).
+ * Turns "3 upozornění" into "dopad ≈ −85 tis. Kč".
  */
 export function anomalyImpact(anomalies: Anomaly[]): AnomalyImpact {
-  let revenue = 0;
-  let cost = 0;
+  let revenue = 0; // adverse revenue (shortfalls, ≤ 0)
+  let cost = 0; // adverse cost (overspend, ≥ 0)
+  let gained = 0; // windfalls + savings, ≥ 0
   let count = 0;
   for (const a of anomalies) {
     if (a.metric === "revenue") {
-      revenue += a.observed - a.expected;
+      const d = a.observed - a.expected;
+      if (d < 0) revenue += d;
+      else gained += d;
       count += 1;
     } else if (a.metric === "cost") {
-      cost += a.observed - a.expected;
+      const d = a.observed - a.expected;
+      if (d > 0) cost += d;
+      else gained += -d; // cost below expected = a saving
       count += 1;
     }
   }
-  return { revenue, cost, net: revenue - cost, count };
+  return { revenue, cost, net: revenue - cost, gained, count };
 }
