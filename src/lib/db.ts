@@ -73,6 +73,11 @@ export function getDb(): DatabaseSync {
     mkdirSync(dir, { recursive: true });
     db = new DatabaseSync(join(dir, "systedo.db"));
     db.exec("PRAGMA journal_mode = WAL;");
+    // Wait briefly for a contended write instead of throwing SQLITE_BUSY at once.
+    // node:sqlite is synchronous, and the cron sync, concurrent requests, the
+    // rate-limit writer and the HMR schema re-apply can all touch the file at once;
+    // 5s is generous for this low-write workload.
+    db.exec("PRAGMA busy_timeout = 5000;");
     g.__systedoDb = db;
   }
 
