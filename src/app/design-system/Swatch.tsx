@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Check, Copy } from "@/components/icons";
-import { readableInkOn, type ColorToken } from "@/lib/design-tokens";
+import { readableInkOn } from "@/lib/design-tokens-color";
+import type { ColorToken } from "@/lib/design-tokens";
 
 /** Click-to-copy colour swatch: copies the CSS variable name (e.g.
  *  "--color-brand-500") so the living showcase doubles as a working DS reference,

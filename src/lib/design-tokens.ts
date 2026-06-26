@@ -108,21 +108,7 @@ export const shadowTokens: NamedToken[] = parseDeclarations("shadow").map(({ nam
   value,
 }));
 
-/** Relative luminance (WCAG) of a #rgb / #rrggbb colour, 0 (black) … 1 (white). */
-function luminance(hex: string): number {
-  const h = hex.replace("#", "").trim();
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
-  const channel = (i: number) => {
-    const c = parseInt(full.slice(i, i + 2), 16) / 255;
-    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-  };
-  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
-}
-
-/** Pick readable foreground ink (dark or white) for a given swatch colour, so
- *  the on-swatch label stays legible across the whole ramp automatically. */
-export function readableInkOn(hex: string): string {
-  return /^#[0-9a-f]{3,6}$/i.test(hex.trim()) && luminance(hex) > 0.45
-    ? "var(--color-ink)"
-    : "#ffffff";
-}
+/** Re-exported from the Node-free colour module so existing
+ *  `@/lib/design-tokens` imports keep working, while the client `Swatch` island
+ *  can import `readableInkOn` directly from there without pulling node:fs in. */
+export { readableInkOn } from "./design-tokens-color";
