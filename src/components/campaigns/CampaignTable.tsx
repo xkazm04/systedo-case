@@ -172,6 +172,48 @@ function loadSort(): SortState {
   return DEFAULT_SORT;
 }
 
+const FILTERS_STORAGE_KEY = "campaigns.table.filters";
+interface StoredFilters {
+  query: string;
+  typeFilter: CampaignType | "all";
+  statusFilter: CampaignStatus | "all";
+  attentionOnly: boolean;
+}
+const DEFAULT_FILTERS: StoredFilters = {
+  query: "",
+  typeFilter: "all",
+  statusFilter: "all",
+  attentionOnly: false,
+};
+
+/** Restore the table filters the same way sort is restored, so an agency reviewing
+ *  the same segment daily doesn't re-apply them on every visit. Each field is
+ *  validated against the known values before use. */
+function loadFilters(): StoredFilters {
+  if (typeof window === "undefined") return DEFAULT_FILTERS;
+  try {
+    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return DEFAULT_FILTERS;
+    const p = JSON.parse(raw) as Partial<StoredFilters>;
+    return {
+      query: typeof p.query === "string" ? p.query : "",
+      typeFilter:
+        p.typeFilter === "all" || (CAMPAIGN_TYPES as readonly string[]).includes(p.typeFilter as string)
+          ? (p.typeFilter as CampaignType | "all")
+          : "all",
+      statusFilter:
+        p.statusFilter === "all" ||
+        (CAMPAIGN_STATUSES as readonly string[]).includes(p.statusFilter as string)
+          ? (p.statusFilter as CampaignStatus | "all")
+          : "all",
+      attentionOnly: typeof p.attentionOnly === "boolean" ? p.attentionOnly : false,
+    };
+  } catch {
+    /* corrupt or unavailable storage — fall back to the defaults */
+  }
+  return DEFAULT_FILTERS;
+}
+
 type TFnType = ReturnType<typeof useT<keyof typeof T.cs>>;
 
 function SortHeader({
@@ -257,10 +299,10 @@ export default function CampaignTable({
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sort, setSort] = useState<SortState>(loadSort);
-  const [query, setQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<CampaignType | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">("all");
-  const [attentionOnly, setAttentionOnly] = useState(false);
+  const [query, setQuery] = useState(() => loadFilters().query);
+  const [typeFilter, setTypeFilter] = useState<CampaignType | "all">(() => loadFilters().typeFilter);
+  const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">(() => loadFilters().statusFilter);
+  const [attentionOnly, setAttentionOnly] = useState(() => loadFilters().attentionOnly);
 
   // Persist the chosen sort so the table reopens the way the user left it.
   useEffect(() => {
@@ -270,6 +312,18 @@ export default function CampaignTable({
       /* storage may be unavailable (e.g. private mode) — non-fatal */
     }
   }, [sort]);
+
+  // Persist the filters alongside sort, so a daily reviewer's segment survives a reload.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        FILTERS_STORAGE_KEY,
+        JSON.stringify({ query, typeFilter, statusFilter, attentionOnly })
+      );
+    } catch {
+      /* storage may be unavailable (e.g. private mode) — non-fatal */
+    }
+  }, [query, typeFilter, statusFilter, attentionOnly]);
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
   const analyze = (id: string) => {
