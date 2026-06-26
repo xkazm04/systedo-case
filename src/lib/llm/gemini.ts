@@ -37,7 +37,11 @@ export async function runGemini(args: {
       systemInstruction: args.system,
       responseMimeType: "application/json",
       responseSchema: args.schema,
-      temperature: args.temperature ?? 1.0,
+      // Default to a conservative 0.7 (not the API's 1.0): every tool here emits
+      // grounded JSON-schema output, where high creativity raises malformed/repair
+      // rates. Tools needing stricter output pass lower (analysis: 0.4). NOTE:
+      // temperature is Gemini-only — the Claude CLI path (dev) ignores it.
+      temperature: args.temperature ?? 0.7,
     },
   });
 
@@ -59,5 +63,15 @@ export async function runGemini(args: {
       }
     : undefined;
 
-  return { parsed: JSON.parse(text), usage };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    // Throw the retryable wording (see isRetryable in index.ts) so a malformed
+    // Gemini response gets one retry — matching Claude's "nevrátil platný JSON"
+    // path. A native SyntaxError matched none of the RETRYABLE strings, so prod
+    // (Gemini) previously got strictly weaker malformed-output handling than dev.
+    throw new Error("Gemini nevrátil platný JSON.");
+  }
+  return { parsed, usage };
 }

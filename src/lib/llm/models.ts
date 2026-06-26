@@ -12,7 +12,9 @@
  *  via the Claude CLI's `--model` alias. */
 export const CLAUDE_MODEL = "claude-sonnet";
 
-/** Gemini model used in production. */
+/** Gemini model used in production. A `-preview` tag chosen for flash-tier
+ *  price/latency. NOTE: src/lib/llm/cost.ts `RATES` is keyed by this exact string,
+ *  so renaming it (or its GA) needs a matching RATES entry or cost reports as $0. */
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
 /** The app's default/primary model tag (development default). */
