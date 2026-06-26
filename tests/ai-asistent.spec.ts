@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { CLAUDE_TIMEOUT_MS } from "../src/lib/llm/models";
 
 /**
  * End-to-end tests for the AI assistant (/ai-asistent).
@@ -11,9 +12,13 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
  */
 
 const HAS_KEY = Boolean(process.env.GEMINI_API_KEY);
-// Real-model latency. In dev the provider is the Claude Code CLI (slower than
-// Gemini); the app aborts at 60s, so allow ample room here.
-const RESULT_TIMEOUT = 65_000;
+// The e2e suite runs under `next dev` (NODE_ENV !== "production"), where the client
+// abort ceiling is CLAUDE_TIMEOUT_MS + 30s (see useAiTool's AI_TIMEOUT_MS). Derive
+// every latency bound from that constant so a server-cap bump moves the tests with
+// it — the old flat 60s literals could never reach the (now ~180s) timeout state.
+const AI_TIMEOUT_MS = CLAUDE_TIMEOUT_MS + 30_000;
+// Live-model result: wait past the abort ceiling + transfer margin.
+const RESULT_TIMEOUT = AI_TIMEOUT_MS + 15_000;
 
 /** Inactive tool panels stay mounted (hidden); scope to the active one. */
 function tool(page: Page, id: "ads" | "brief" | "analysis"): Locator {
@@ -113,8 +118,10 @@ test.describe("/ai-asistent", () => {
   });
 
   test("shows a styled timeout illustration when the model does not respond", async ({ page }) => {
-    // Intercept the API and never answer; the app aborts at 60s and shows the
-    // timeout illustration. No API key needed — the request never reaches it.
+    // Intercept the API and never answer; the client aborts at AI_TIMEOUT_MS and
+    // shows the timeout illustration. No API key needed — the request never reaches
+    // it. The per-test cap must clear the abort ceiling, so raise it explicitly.
+    test.setTimeout(AI_TIMEOUT_MS + 40_000);
     await page.route("**/api/ai", async () => {
       // deliberately never fulfilled
     });
@@ -124,7 +131,7 @@ test.describe("/ai-asistent", () => {
     await t.getByRole("button", { name: "Vygenerovat inzeráty" }).click();
 
     await expect(t.getByTestId("ai-loading")).toBeVisible();
-    await expect(t.getByTestId("ai-timeout")).toBeVisible({ timeout: 70_000 });
+    await expect(t.getByTestId("ai-timeout")).toBeVisible({ timeout: AI_TIMEOUT_MS + 20_000 });
     await expect(t.getByRole("heading", { name: "Vypršel časový limit" })).toBeVisible();
     await expect(t.getByRole("button", { name: "Zkusit znovu" })).toBeVisible();
   });
