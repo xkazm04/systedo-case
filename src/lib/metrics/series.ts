@@ -65,12 +65,18 @@ function meanVar(xs: number[]): { mean: number; variance: number; n: number } {
   const n = xs.length;
   if (n === 0) return { mean: 0, variance: 0, n: 0 };
   const mean = xs.reduce((a, b) => a + b, 0) / n;
-  const variance = xs.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+  // Sample variance (Bessel's correction, ÷(n−1)): these are a sample of daily
+  // values, not the whole population, so the unbiased estimator is correct here.
+  // A single day has no spread, so variance is 0.
+  const variance = n > 1 ? xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1) : 0;
   return { mean, variance, n };
 }
 
-/** Two-sample normal-approx (Welch-style) significance of the change in a metric
- *  between two equal-length daily windows. Dependency-free. */
+/** Two-sample normal-approx significance of the change in a metric between two
+ *  equal-length daily windows, using sample variance and a z-test (z≥2 ≈ "strong",
+ *  z≥1 "weak"). A normal approximation on daily values — a deliberate, dependency-
+ *  free heuristic for a "is this real or noise?" badge, not a rigorous p-value
+ *  (it oversells significance on very short windows). */
 function significanceFor(current: DailyPoint[], previous: DailyPoint[], key: MetricKey): Significance {
   const a = meanVar(current.map((p) => dailyValue(p, key)));
   const b = meanVar(previous.map((p) => dailyValue(p, key)));
