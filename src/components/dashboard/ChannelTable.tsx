@@ -31,10 +31,14 @@ const T = {
 
 /** Colour PNO relative to the agreed goal: efficient = green, on plan = neutral,
  *  over budget = coral. Organic (cost 0) is treated as fully efficient. */
+// Within +5% of goal still reads "on plan"; ≥60% over goal reads "over budget".
+// The 1.6 alert band matches the dashboard PNO gauge's max (DashboardClient gaugeMax).
+const PNO_TONE_TOLERANCE = 1.05;
+const PNO_TONE_ALERT = 1.6;
 function pnoTone(pno: number, goal: number): string {
   if (pno <= 0) return "text-positive";
-  if (pno <= goal * 1.05) return "text-positive";
-  if (pno >= goal * 1.6) return "text-negative";
+  if (pno <= goal * PNO_TONE_TOLERANCE) return "text-positive";
+  if (pno >= goal * PNO_TONE_ALERT) return "text-negative";
   return "text-navy-700";
 }
 
