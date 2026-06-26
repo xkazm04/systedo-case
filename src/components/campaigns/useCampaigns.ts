@@ -2,13 +2,36 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalProject } from "@/lib/projects/context";
-import type { CampaignReport, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
+import type { CampaignReport, CampaignReportResult, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
 import type {
   Campaign,
   CampaignPeriod,
   ChangesSummary,
   DailyPoint,
 } from "@/lib/campaigns/types";
+
+/** Coerce the analyze response into a safe CampaignReport before it reaches the
+ *  render tree. The route returns structured output, but a partial/trimmed payload
+ *  (missing arrays, a non-numeric score) would otherwise crash ReportView, which
+ *  maps over result.strengths/weaknesses/recommendations unconditionally. */
+function normalizeReport(raw: unknown): CampaignReport {
+  const rep = (raw ?? {}) as CampaignReport;
+  const res = (rep.result ?? {}) as Partial<CampaignReportResult>;
+  return {
+    ...rep,
+    result: {
+      verdict: typeof res.verdict === "string" ? res.verdict : "",
+      score:
+        typeof res.score === "number" && Number.isFinite(res.score)
+          ? Math.max(0, Math.min(100, res.score))
+          : 0,
+      summary: typeof res.summary === "string" ? res.summary : "",
+      strengths: Array.isArray(res.strengths) ? res.strengths : [],
+      weaknesses: Array.isArray(res.weaknesses) ? res.weaknesses : [],
+      recommendations: Array.isArray(res.recommendations) ? res.recommendations : [],
+    },
+  };
+}
 
 export interface CampaignsMeta {
   source: string;
@@ -128,7 +151,7 @@ export function useCampaigns() {
         }
         setState((s) => ({
           ...s,
-          reports: { ...s.reports, [key]: json.report as CampaignReport },
+          reports: { ...s.reports, [key]: normalizeReport(json.report) },
           histories: {
             ...s.histories,
             [key]: (json.history as ReportHistoryPoint[]) ?? s.histories[key] ?? [],
