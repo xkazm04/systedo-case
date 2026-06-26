@@ -103,7 +103,7 @@ export default function HeadingAnchor({
         onClick={copyLink}
         aria-label={t("copyLinkAria", { text })}
         title={t("copyLinkTitle")}
-        className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted opacity-0 transition-opacity hover:text-brand-accent focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 group-hover/anchor:opacity-100 [@media(hover:hover)]:inline-flex"
+        className="hidden h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted opacity-0 transition-opacity hover:text-brand-accent focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 group-hover/anchor:opacity-100 [@media(hover:hover)]:inline-flex [@media(hover:none)]:inline-flex [@media(hover:none)]:opacity-60"
       >
         {copied ? (
           <Check width={15} height={15} className="text-positive" />
