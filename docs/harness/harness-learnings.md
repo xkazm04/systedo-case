@@ -58,3 +58,35 @@ facts the 2026-06-16 notes above don't cover:
 - Full backlog: `docs/harness/feature-scout-2026-06-18/INDEX.md` (75 ideas); 21 implemented (waves 1–4), summaries in `FIXES-WAVE-1…4.md`.
 - **AI-assist wave deferred** (LANDMINE 1): distribution AI-repurpose, speed-lead AI-reply, local review-responses, content-engine cluster map, content brief→draft, lead-quality #4, lp #3, ltv #4, compare-seo #5, keywords #1 — each needs a new server LLM tool + a `test-llm/registry.mjs` entry + a verified Claude CLI.
 - **`keywords` and `project-settings`** left unworked (LLM/competitor-data-bound; Theme-G admin). Safe depth still open: profit #2/#3/#5, ltv #3, compare-seo #2/#4, several inventory/audience/lead-quality items.
+
+---
+
+# 2026-06-25 — ambiguity-guardian + business-visionary scan (combined, top-5/context)
+
+A `/vibeman` Pipeline-B scan of all 20 mapped contexts through BOTH the ambiguity-guardian and
+business-visionary lenses combined (top 5 by value each) → 100 findings; then a 7-track wave fix
+run closing **34** (28 fix/feat/refactor commits, 0 regressions) on branch
+`vibeman/ambiguity-business-fixes-2026-06-25` (unmerged). Full index + per-wave summaries +
+gate-locked notes: `docs/harness/ambiguity-business-scan-2026-06-25/`.
+
+## Structural facts (new)
+- **2026-06-25** — The LLM gate's real pre-commit run exercises the **Claude (dev) path only** (`test-llm/setup.mjs` forces `NODE_ENV=development`); the prod **Gemini path is never proven** (llm-test-gate #2). Editing any `src/lib/llm/*` re-runs all 14 tools against the real Claude CLI (~340 s) — but only the Claude success path is covered, so Gemini-only edits (temperature, parse) pass without being exercised.
+- **2026-06-25** — `src/lib/db.ts` (node:sqlite) now backs ONLY the rate-limiter + (LOCAL_DB) users/projects; campaigns/reports/snapshots live in Firestore (`campaigns/store.ts`). The four campaign SQLite tables were dead schema and were removed.
+- **2026-06-25** — Export seam: `src/lib/export.ts` = `toCsv` (semicolon + CRLF for Czech Excel) + `downloadText`/`downloadDataUrl` (UTF-8 BOM). Reuse it; `exportBriefMarkdown`/`exportAdsCsv`/`exportChannelsCsv` (and now `exportAnalysisMarkdown` + the campaign CSV) are the precedents.
+- **2026-06-25** — `clientIp()` (`src/lib/ai/rate-limit.ts`) now trusts `x-real-ip`/`x-vercel-forwarded-for` then right-indexed XFF (`TRUSTED_PROXY_HOPS`), NOT the spoofable leftmost XFF. A process-wide global anonymous budget cap is still NOT enforced (needs a hashed-route edit).
+
+## Conventions reinforced
+- **An English value under the `cs` locale block, byte-identical to `en`, is an untranslated leak** — and an exact-match Edit hits BOTH blocks (anchor on a locale-unique sibling line to target one).
+- **Derive prose from its constant** — "pod 60 % cíle" must be `fmtPct(ROAS_CRITICAL_RATIO, 0)`, never a literal that drifts on retune.
+- **Hashed-file commits cost ~340 s of real-model run each** — bundle gate-locked fixes into one commit; first confirm the change doesn't alter the Claude success-path contract.
+
+## Anti-patterns to avoid (new)
+- **Trusting `x-forwarded-for[0]`** for rate-limit identity — client-controlled; one header rotation defeats per-IP caps (hit on both AI endpoints).
+- **`data as T` on imported JSON** with no runtime validation — validate at load and fail the build (`article.ts` `parseArticle`).
+- **Constant-share projection** makes per-row deltas identical to the aggregate (the share cancels) — render such a delta once on the total, never per-row (it reads as fabricated data).
+
+## Open follow-ups (from the 2026-06-25 run)
+- **Product decisions (need human input):** contact/hire CTA (nav #1, home #4), in-article lead capture (article-reading #1), landing language vs English brand (home #2).
+- **Gate-locked remainder (each needs its own ~340 s gate run):** llm-provider #3 (Claude-path token telemetry), #4 (probe-cache TTL), deeper #1 (de-couple retry from localized strings), llm-test-gate #1 (add `social.ts` to HASHED_FILES), #2 (prove the Gemini path in CI), #3 (broaden the two chokepoint regexes).
+- **Bigger builds:** multi-article CMS loader (article-content #1), grade-your-account lead magnet (campaign-model #4), config-driven demo engine + channel-share drift (dataset-seed #3/#5), dashboard narrative export (dashboard-kpis #2), report/snapshot retention+pruning (campaign-sync #3, connector #5), metrics-engine dataset-invariant fields (#1).
+- **Medium/Low tail:** ~66 of 100 findings remain (mostly outside the High-value plan); 2 Low are won't-fix-grade. Full list in the per-context reports.
