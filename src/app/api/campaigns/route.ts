@@ -124,12 +124,17 @@ export async function POST(request: Request) {
   // Daily trend series — best-effort: a failed series (e.g. live GAQL hiccup)
   // must not fail the whole sync, which already succeeded above.
   let series: DailyPoint[] = [];
+  let seriesOk = false;
   try {
     series = await connector.fetchSeries(period);
+    seriesOk = true;
   } catch (err) {
     console.error("[campaigns] series sync failed:", err);
   }
-  await saveSeries(tenant, series, { period });
+  // Only persist when the fetch succeeded — a transient failure must not overwrite
+  // the last good series with an empty array, which would blank the trend chart
+  // even though the campaign upsert (and the prior series) were fine.
+  if (seriesOk) await saveSeries(tenant, series, { period });
 
   // Alert on newly-critical campaigns (in-app inbox + best-effort email/webhook,
   // deduped) so a manual sync surfaces problems just like the scheduled cron does.
