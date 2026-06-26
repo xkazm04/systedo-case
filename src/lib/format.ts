@@ -110,14 +110,17 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
         }).format(n)
       : DASH;
 
-  /** Accepts a fraction (0.165) and renders a percent ("16,5 %"). */
-  const fmtPct = (fraction: number, digits = 1): string =>
-    Number.isFinite(fraction)
+  /** Render a 0–1 *ratio* as a percent: 0.165 → "16,5 %". The input is a FRACTION
+   *  (0–1), NOT a 0–100 percentage — passing a field that already holds 12 for
+   *  "12 %" yields "1 200 %". Fields named `*Pct` in this codebase hold fractions;
+   *  keep them that way (or divide by 100) before calling. */
+  const fmtPct = (ratio: number, digits = 1): string =>
+    Number.isFinite(ratio)
       ? new Intl.NumberFormat(intlLocale, {
           style: "percent",
           minimumFractionDigits: digits,
           maximumFractionDigits: digits,
-        }).format(fraction)
+        }).format(ratio)
       : DASH;
 
   /** Signed percent for deltas ("+12,4 %", "−3,1 %"). Uses a true minus sign. */
