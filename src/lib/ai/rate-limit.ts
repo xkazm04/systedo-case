@@ -153,12 +153,12 @@ export function releaseSlot(): void {
 /** 429 with a `Retry-After` header. */
 export function tooManyRequests(retryAfter: number, message: string): Response {
   return Response.json(
-    { error: message, retryAfter },
+    { error: message, code: "rate_limited", retryAfter },
     { status: 429, headers: { "Retry-After": String(retryAfter) } }
   );
 }
 
 /** 413 Payload Too Large. */
 export function payloadTooLarge(message: string): Response {
-  return Response.json({ error: message }, { status: 413 });
+  return Response.json({ error: message, code: "too_large" }, { status: 413 });
 }

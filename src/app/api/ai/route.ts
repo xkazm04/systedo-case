@@ -67,6 +67,7 @@ async function cachedRespond(
       return Response.json(
         {
           error: `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+          code: "quota",
           upgradeUrl: "/cena",
         },
         { status: 429 }
@@ -102,14 +103,14 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return Response.json({ error: "Neplatný JSON v požadavku." }, { status: 400 });
+      return Response.json({ error: "Neplatný JSON v požadavku.", code: "invalid" }, { status: 400 });
     }
 
     mode = (body as { mode?: unknown })?.mode;
     // Output language follows the user's chosen locale, so AI content matches the
     // UI language instead of always being Czech.
     const locale = await getServerLocale();
-    const bad = (error: string) => Response.json({ error }, { status: 422 });
+    const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
     switch (mode) {
       case "ads": {
@@ -161,12 +162,12 @@ export async function POST(request: Request) {
         return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, () => generateLeadSourceDiagnosis(p.value, locale)) : bad(p.error);
       }
       default:
-        return Response.json({ error: "Neznámý režim nástroje." }, { status: 400 });
+        return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
     }
   } catch (err) {
     console.error(`[ai] generation failed (mode=${String(mode)}):`, err);
     return Response.json(
-      { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu." },
+      { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu.", code: "failed" },
       { status: 502 }
     );
   } finally {

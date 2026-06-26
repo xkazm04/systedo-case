@@ -75,8 +75,10 @@ export interface AiMeta {
 export type AiErrorCode = "invalid" | "rate_limited" | "quota" | "too_large" | "failed";
 export interface AiError {
   code: AiErrorCode;
-  /** human, localized (cs-CZ) message */
-  message: string;
+  /** human, localized (cs-CZ) message. Named `error` (not `message`) to match the
+   *  field the routes already emit and clients already read (`json.error`), so the
+   *  envelope is additive — existing handling keeps working, new clients read `code`. */
+  error: string;
   /** seconds until retry — present for code "rate_limited" */
   retryAfter?: number;
   /** upgrade path — present for code "quota" */
