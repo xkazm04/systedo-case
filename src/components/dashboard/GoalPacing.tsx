@@ -11,6 +11,7 @@ const T = {
     dayProgress: "{elapsed}/{total} dní · zbývá {remaining}",
     pctOfGoal: "{pct} cíle",
     chanceLabel: "· {pct} šance na splnění",
+    chanceSettling: "· výhled se ustálí po pár dnech",
     finalRevenue: "Finální obrat",
     forecast: "Výhled na konec měsíce",
     goalSuffix: "· cíl {amount}",
@@ -40,6 +41,7 @@ const T = {
     dayProgress: "{elapsed}/{total} days · {remaining} remaining",
     pctOfGoal: "{pct} of target",
     chanceLabel: "· {pct} chance of hitting target",
+    chanceSettling: "· forecast settles after a few days",
     finalRevenue: "Final revenue",
     forecast: "Month-end forecast",
     goalSuffix: "· target {amount}",
@@ -88,6 +90,7 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
     projectionLow,
     projectionHigh,
     goalProbability,
+    probabilityReliable,
     attainment,
     willHitGoal,
   } = pacing;
@@ -132,10 +135,13 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
             <span className={`text-sm font-semibold ${goalTone}`}>
               {t("pctOfGoal", { pct: fmt.fmtPct(attainment, 0) })}
             </span>
-            {!complete && (
+            {!complete && probabilityReliable && (
               <span className="text-sm text-muted">
                 {t("chanceLabel", { pct: fmt.fmtPct(goalProbability, 0) })}
               </span>
+            )}
+            {!complete && !probabilityReliable && (
+              <span className="text-sm text-muted">{t("chanceSettling")}</span>
             )}
           </div>
           <p className="mt-1 text-sm text-muted">

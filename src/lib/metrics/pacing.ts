@@ -3,6 +3,10 @@
 import type { DailyPoint } from "../types";
 import { dailyRevenueSigma, normalCdf, weekdayWeights } from "./seasonality";
 
+/** Days that must have elapsed before goalProbability is quoted as a hard number.
+ *  Below this the i.i.d.-normal forecast is too volatile to state a precise %. */
+const MIN_ELAPSED_DAYS_FOR_PROBABILITY = 5;
+
 export interface MonthlyPacing {
   /** ISO first-of-month for the current month ("2026-05-01"), for labels */
   monthStart: string;
@@ -32,6 +36,12 @@ export interface MonthlyPacing {
   projectionHigh: number;
   /** probability the month ends at or above goal (0..1), from the normal CDF */
   goalProbability: number;
+  /** whether goalProbability is trustworthy yet. The model treats the remaining
+   *  days as i.i.d.-normal, so very early in the month (few elapsed days) the
+   *  probability is a near-coin-flip dressed as a hard percentage. False until
+   *  enough days have elapsed (or the month is complete) — the UI then suppresses
+   *  the "X % chance" label rather than show false precision. */
+  probabilityReliable: boolean;
   /** projection / goal */
   attainment: number;
   /** projection ≥ goal */
@@ -102,6 +112,7 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
     projectionLow,
     projectionHigh,
     goalProbability,
+    probabilityReliable: daysRemaining === 0 || daysElapsed >= MIN_ELAPSED_DAYS_FOR_PROBABILITY,
     attainment: goal > 0 ? projection / goal : 0,
     willHitGoal: projection >= goal,
   };
