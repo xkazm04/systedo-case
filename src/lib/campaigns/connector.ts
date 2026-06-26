@@ -42,15 +42,33 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
   };
 }
 
-function googleAdsProvider(accessToken: string, customerId: string): AdsConnector {
+function googleAdsProvider(
+  accessToken: string,
+  customerId: string,
+  fallback: AdsConnector
+): AdsConnector {
+  // A live Google Ads call can fail transiently (expired token, quota, GAQL error).
+  // Degrade to the deterministic sample provider instead of throwing — one hiccup
+  // must not 500 the whole premium dashboard, and the demo path is the documented
+  // safe default. The underlying error is logged server-side.
   return {
     source: "google-ads",
     label: "Google Ads · živá data",
     async fetchCampaigns(period) {
-      return adsFetchCampaigns(accessToken, customerId, period);
+      try {
+        return await adsFetchCampaigns(accessToken, customerId, period);
+      } catch (err) {
+        console.error("[campaigns] live fetchCampaigns failed; serving sample data:", err);
+        return fallback.fetchCampaigns(period);
+      }
     },
     async fetchSeries(period) {
-      return adsFetchDailySeries(accessToken, customerId, period);
+      try {
+        return await adsFetchDailySeries(accessToken, customerId, period);
+      } catch (err) {
+        console.error("[campaigns] live fetchSeries failed; serving sample data:", err);
+        return fallback.fetchSeries(period);
+      }
     },
   };
 }
@@ -89,7 +107,15 @@ export async function resolveCampaignContext(
 
   if (connection && adsConfigured()) {
     const token = await getUserAccessToken(userId);
-    if (token) return { connector: googleAdsProvider(token, connection.customerId), tenant };
+    if (token)
+      return {
+        connector: googleAdsProvider(
+          token,
+          connection.customerId,
+          sampleProvider(projectType, projectId ?? undefined)
+        ),
+        tenant,
+      };
   }
   return { connector: sampleProvider(projectType, projectId ?? undefined), tenant };
 }
