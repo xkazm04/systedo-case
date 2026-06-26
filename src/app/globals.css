@@ -213,6 +213,11 @@ html[data-theme="dark"] {
   --shadow-pop: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
 }
 
+/* NOTE: the values below MUST mirror html[data-theme="dark"] above. Vanilla CSS
+   can't share one declaration block between an attribute selector and a media
+   query, so the two triggers are kept in sync by hand (a build-time token gen
+   would remove the duplication). --pattern-line was previously omitted here, so
+   system-dark users saw the light dot-grid tint — fixed below. */
 @media (prefers-color-scheme: dark) {
   html:not([data-theme="light"]) {
     --color-canvas: #0a0f16;
@@ -220,6 +225,7 @@ html[data-theme="dark"] {
     --color-ink: #e7eef5;
     --color-muted: #92a3b3;
     --color-line: #232f3c;
+    --pattern-line: rgba(168, 220, 255, 0.045);
 
     --color-brand-50: #0c2b29;
     --color-brand-100: #0f3a36;
