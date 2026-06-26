@@ -23,6 +23,12 @@ generuje jeho inzeráty.
 Stránky jsou navzájem prolinkované přes navigaci v hlavičce, patičku i odkazy přímo
 v obsahu.
 
+> **Plné cloud rozhraní (`/app`).** Nad rámec čtyř veřejných stránek výše obsahuje
+> repozitář kompletní víceuživatelský produkt: přihlášení přes Google (Auth.js),
+> perzistenci ve Firestore, multi-tenant workspace na `/app`, cron synchronizaci
+> kampaní s e-mailovými upozorněními (Resend) a Creative Studio (Leonardo +
+> Gemini-vision + RAG). Nastavení a proměnné prostředí popisuje [`SETUP.md`](./SETUP.md).
+
 ---
 
 ## Proč Next.js (zdůvodnění volby)
@@ -296,10 +302,17 @@ test-llm/                  # node:test suite proti reálnému Claude + registry 
 
 ## Nasazení (Vercel)
 
+**Statický web (veřejné stránky).** Stačí samotný import:
+
 1. Naimportujte repozitář na [vercel.com/new](https://vercel.com/new).
-2. (Volitelně) přidejte proměnnou prostředí `GEMINI_API_KEY` pro reálné generování
-   inzerátů. Bez ní poběží AI asistent v ukázkovém režimu.
-3. Deploy — žádná databáze ani další konfigurace nejsou potřeba.
+2. (Volitelně) přidejte `GEMINI_API_KEY` pro reálné generování inzerátů (bez něj
+   běží AI asistent v ukázkovém režimu) a `GEMINI_MODEL` pro volbu produkčního modelu.
+3. Deploy — pro veřejné stránky není potřeba databáze ani další konfigurace.
+
+**Plné `/app` rozhraní (Auth + Firestore + cron).** Vyžaduje navíc `AUTH_SECRET`,
+`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, přístup k Firestore a `CRON_SECRET`
+(+ volitelně Resend a klíče pro Creative Studio). Kompletní seznam proměnných a
+postup popisuje [`SETUP.md`](./SETUP.md).
 
 ---
 
