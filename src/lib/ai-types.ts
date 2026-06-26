@@ -64,6 +64,25 @@ export interface AiMeta {
   estCostUsd?: number;
 }
 
+/** Typed error envelope for the AI routes. Success responses are AiResponse<T>;
+ *  every failure should serialize as an AiError so clients branch on `code` rather
+ *  than parsing a free-text message. Status → code:
+ *    400/422 → "invalid"      (bad request / failed validation)
+ *    413     → "too_large"    (body over the size cap)
+ *    429     → "rate_limited" (per-IP min/day) or "quota" (signed-in plan limit)
+ *    502     → "failed"       (provider / generation error)
+ *  `retryAfter` accompanies "rate_limited"; `upgradeUrl` accompanies "quota". */
+export type AiErrorCode = "invalid" | "rate_limited" | "quota" | "too_large" | "failed";
+export interface AiError {
+  code: AiErrorCode;
+  /** human, localized (cs-CZ) message */
+  message: string;
+  /** seconds until retry — present for code "rate_limited" */
+  retryAfter?: number;
+  /** upgrade path — present for code "quota" */
+  upgradeUrl?: string;
+}
+
 export interface AiResponse<T> {
   result: T;
   meta: AiMeta;
