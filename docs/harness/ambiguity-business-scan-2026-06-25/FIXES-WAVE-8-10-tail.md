@@ -38,4 +38,25 @@ Branch `vibeman/ambiguity-business-fixes-2026-06-25` (unmerged), 49 commits.
 - **Clarity (Medium):** nav #4 (sitemap SSOT), nav #5 (TaskPager dict consolidation), metrics #3 (significance: sample vs population variance — a behavior change, needs care), metrics #4 (surface PNO-vs-goal status).
 - **Low (won't-fix-grade):** home-app-shell #5 (page-fade also wraps `/app`), article-reading #5 (touch-only permalinks).
 - **Deferred earlier (unchanged):** product decisions (contact CTA, lead capture, landing language) and bigger builds (multi-article CMS, demo engine, retention/pruning, dashboard narrative export) — see FIXES-WAVE-7-gate-locked.md.
+
+## Wave 11 — clean UI/clarity polish (6 findings, 5 commits)
+> User opted for clean polish only — skip the variance behavior-change and the 2 won't-fix Lows.
+
+| Commit | Finding | File |
+|--------|---------|------|
+| `bc2e43c` | ai-workspace #2 — copy button on the prompt-transparency panel | `ai/primitives.tsx` |
+| `ac54c58` | trend-channel #4 — label the comparison date in the tooltip | `dashboard/TrendChart.tsx` |
+| `403d705` | article-reading #4 — hide the TOC sidebar when no headings | `app/clanek/page.tsx` |
+| `d7b8906` | dashboard-kpis #3 **+** #4 — name the gauge/threshold magic numbers; "this month" scope chip | `DashboardClient.tsx`, `DeltaBadge.tsx`, `GoalPacing.tsx` |
+| `8077d76` | nav-header-footer #4 — single source for footer/sitemap meta pages | `lib/nav.ts`, `site/Footer.tsx` |
+
+## Final cumulative: 55 findings closed, 55 commits, 0 regressions
+tsc 0 · unit 173/173 · `next build` ✓ · LLM gate proven. Branch `vibeman/ambiguity-business-fixes-2026-06-25` (unmerged).
+
+## Remaining (≈12, all more-involved than a one-line touch — deferred with reason)
+- **Needs a server→client boundary or a model+renderer change:** design-system #5 (click-to-copy swatch — page is a Server Component), article-content #4 / article-reading #2 (link/permalink UTM — extend the Inline/CTA model + renderer), ai-generation-api #2 (glass-box usage/cost panel).
+- **Bigger refactor / behavior change:** nav #5 (TaskPager → app message system), metrics #3 (sample vs population variance — changes the significance badges), design-system #3 (dedup the duplicated dark-token block — CSS regression risk without a visual baseline), design-system #4 (generate the type scale from tokens).
+- **Type-only / low immediate value:** ai-generation-api #5 (typed `AiError` union — useful only once wired into the hashed route).
+- **Won't-fix-grade Lows (per user):** home-app-shell #5 (page-fade over `/app`), article-reading #5 (touch-only permalinks).
+- **Product decisions / bigger builds:** unchanged — see FIXES-WAVE-7-gate-locked.md.
 </content>
