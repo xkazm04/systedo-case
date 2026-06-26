@@ -64,9 +64,12 @@ export function localizedNavItems(locale: SupportedLocale): NavItem[] {
 }
 
 /** Label of a nav item by its href, so breadcrumbs reuse the same wording as
- *  the header/footer instead of hard-coding strings that can drift. */
-export function navLabel(href: string, fallback = ""): string {
-  return NAV_ITEMS.find((i) => i.href === href)?.label ?? fallback;
+ *  the header/footer instead of hard-coding strings that can drift. Locale-aware:
+ *  pass the active locale so a non-cs breadcrumb gets the translated label rather
+ *  than the raw cs source (matching localizedNavItems); defaults to cs. */
+export function navLabel(href: string, fallback = "", locale: SupportedLocale = "cs"): string {
+  const items = locale === "cs" ? NAV_ITEMS : localizedNavItems(locale);
+  return items.find((i) => i.href === href)?.label ?? fallback;
 }
 
 /** All routes for the sitemap, derived from the one nav model plus the meta

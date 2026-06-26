@@ -12,6 +12,7 @@ import { fmtDate } from "@/lib/format";
 import { canonical } from "@/lib/site";
 import { navLabel, type Crumb } from "@/lib/nav";
 import { getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
   cs: {
@@ -58,7 +59,7 @@ export default async function ReportPage() {
 
   const breadcrumbs: Crumb[] = [
     { label: t("breadcrumbHome"), href: "/" },
-    { label: navLabel("/clanek", t("breadcrumbArticle")), href: "/clanek" },
+    { label: navLabel("/clanek", t("breadcrumbArticle"), await getServerLocale()), href: "/clanek" },
     { label: meta.category },
     { label: meta.title },
   ];

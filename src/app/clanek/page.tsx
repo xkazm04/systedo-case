@@ -13,6 +13,7 @@ import { fmtDate } from "@/lib/format";
 import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
 import { canonical } from "@/lib/site";
 import { getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
   cs: {
@@ -72,7 +73,7 @@ export default async function ArticlePage() {
   // visible <Breadcrumbs> and the BreadcrumbList JSON-LD so they never drift.
   const breadcrumbs: Crumb[] = [
     { label: t("breadcrumbHome"), href: "/" },
-    { label: navLabel(ARTICLE_PATH, t("breadcrumbArticle")), href: ARTICLE_PATH },
+    { label: navLabel(ARTICLE_PATH, t("breadcrumbArticle"), await getServerLocale()), href: ARTICLE_PATH },
     { label: meta.category, href: categoryHubPath() },
     { label: meta.title },
   ];
