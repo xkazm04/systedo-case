@@ -195,6 +195,10 @@ export default function TrendChart({
 
   // prior value + period-over-period delta at the hovered point, for the tooltip
   const cmpVal = active < cmpN ? cmpValues[active] : undefined;
+  // The compared point's own date — the overlay is index-aligned, so point i of the
+  // previous window sits under point i of the current one. Surfacing it answers
+  // "compared to when?" instead of leaving an unlabelled prior value.
+  const cmpDate = active < cmpN ? compare?.[active]?.date : undefined;
   const curVal = tipBucket[metric];
   const cmpDelta =
     cmpVal !== undefined && cmpVal > 0 ? (curVal - cmpVal) / cmpVal : undefined;
@@ -421,7 +425,8 @@ export default function TrendChart({
           {cmpVal !== undefined && (
             <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[13px]">
               <span className="text-muted">
-                {t("tooltipPrevious")}{" "}
+                {t("tooltipPrevious")}
+                {cmpDate ? ` · ${fmtX(cmpDate)}` : ""}{" "}
                 <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal)}</span>
               </span>
               {cmpDelta !== undefined && Math.abs(cmpDelta) >= 0.0005 ? (
