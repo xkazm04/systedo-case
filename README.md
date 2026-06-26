@@ -216,7 +216,7 @@ npm run test:e2e
 
 Pokrývají: vykreslení záložek, generování inzerátů / briefu / analýzy živým modelem
 (včetně kontroly, že nejde o ukázkový režim), zachování stavu při přepínání nástrojů
-a stylizovanou hlášku po vypršení 30s limitu. Bez `GEMINI_API_KEY` se testy proti
+a stylizovanou hlášku po vypršení 60s limitu. Bez `GEMINI_API_KEY` se testy proti
 modelu přeskočí; strukturální test a test timeoutu poběží i tak.
 
 ---
@@ -318,5 +318,5 @@ postup popisuje [`SETUP.md`](./SETUP.md).
 
 ## Použité technologie
 
-Next.js 16 · React 19 (React Compiler) · TypeScript · Tailwind CSS v4 ·
+Next.js 16 · React 19 · TypeScript · Tailwind CSS v4 ·
 `@google/genai` (Gemini) · vlastní SVG grafy (bez chart knihovny).
