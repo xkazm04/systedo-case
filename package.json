@@ -2,6 +2,9 @@
   "name": "systedo-case",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "dev": "next dev",
     "dev:local": "cross-env DEV_AUTH=true LOCAL_DB=true next dev",
