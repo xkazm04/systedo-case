@@ -55,7 +55,15 @@ export default function HeadingAnchor({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const copyLink = async () => {
-    const link = `${window.location.origin}${window.location.pathname}#${id}`;
+    // Stamp the copied permalink with a UTM tag (like the share bar), so a section
+    // link a reader shares is attributable in the dashboard's analytics story. The
+    // address bar itself stays clean (#id only) — only the copied artifact carries it.
+    const url = new URL(`${window.location.origin}${window.location.pathname}`);
+    url.searchParams.set("utm_source", "permalink");
+    url.searchParams.set("utm_medium", "anchor");
+    url.searchParams.set("utm_campaign", "clanek");
+    url.hash = id;
+    const link = url.toString();
     try {
       await navigator.clipboard.writeText(link);
     } catch {
