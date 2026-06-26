@@ -1,3 +1,5 @@
+import { CLAUDE_MODEL, GEMINI_MODEL } from "@/lib/llm/models";
+
 /** Canonical site origin, resolved from the deploy environment so OG tags,
  *  canonical links and share URLs are correct regardless of the Vercel project
  *  or custom domain. Shared by the root metadata and any component that needs
@@ -14,12 +16,12 @@ export function canonical(path = "/"): string {
 }
 
 /** Stack facts shown in the footer "O projektu" column — a single source of
- *  truth so the footer can't contradict the rest of the app. Note the data line:
- *  content (dashboard/article) is DB-free JSON, while the bonus campaigns page
- *  persists to local node:sqlite — so "JSON persistence (bez DB)" alone was wrong. */
+ *  truth so the footer can't contradict the rest of the app. The model line is
+ *  imported from the LLM wrapper (not hand-typed) so it can never drift from the
+ *  models actually in play; the data line names each store's real backing. */
 export const STACK_FACTS: string[] = [
   "Next.js 16 · App Router",
-  "Data: JSON (obsah) + node:sqlite (kampaně)",
-  "LLM · claude-sonnet (dev) · gemini-3-flash-preview (prod)",
+  "Data: JSON (obsah) + Firestore (kampaně) · node:sqlite (rate-limit)",
+  `LLM · ${CLAUDE_MODEL} (dev) · ${GEMINI_MODEL} (prod)`,
   "Nasaditelné na Vercel",
 ];
