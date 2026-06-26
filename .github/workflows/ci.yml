@@ -1,7 +1,11 @@
 name: CI
 
-# Mirrors the local pre-commit gate: the same `npm run check`
-# (typecheck && lint && build) that Husky/lint-staged enforce locally.
+# Continuous integration. NOTE: this is NOT a full mirror of the local pre-commit
+# hook. CI runs `npm run check` (typecheck && lint && build), the unit suite, and
+# the key-free LLM checks (chokepoint coverage + contract goldens). Two things run
+# in only ONE place by design: `next build` and the contract goldens run only here
+# (CI), while the real-model Claude run is local-only (Husky pre-commit, gated by a
+# logged-in Claude CLI). A green local commit can therefore still fail CI on build.
 on:
   push:
   pull_request:
@@ -25,6 +29,9 @@ jobs:
 
       - name: Run check (typecheck && lint && build)
         run: npm run check
+
+      - name: Unit tests
+        run: npm run test:unit
 
       # Static LLM-wrapper gate: verifies every call site is tagged + test-registered
       # and that provider access stays confined to the chokepoint. Key-free and fast
