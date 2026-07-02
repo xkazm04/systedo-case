@@ -30,6 +30,8 @@ const T = {
     showPromptToggle: "zobrazit",
     generationFailed: "Generování selhalo",
     retry: "Zkusit znovu",
+    upgradeCta: "Zvýšit limit",
+    retryIn: "Zkuste to znovu za {n} s",
     generating: "Generuji odpověď…",
     generatingLong: "Model přemýšlí o něco déle…",
     resultAppears: "Výsledek se zobrazí ihned, jakmile dorazí.",
@@ -59,6 +61,8 @@ const T = {
     showPromptToggle: "show",
     generationFailed: "Generation failed",
     retry: "Try again",
+    upgradeCta: "Upgrade plan",
+    retryIn: "Try again in {n} s",
     generating: "Generating response…",
     generatingLong: "The model is taking a bit longer…",
     resultAppears: "Result will appear as soon as it arrives.",
@@ -297,20 +301,45 @@ export function ToolEmpty({
   );
 }
 
-/** Error state with a retry handler. */
-export function ToolError({ message, onRetry }: { message: string; onRetry: () => void }) {
+/** Error state with a retry handler. When the failure carries a typed AiError
+ *  envelope, it also surfaces the actionable parts: a clickable upgrade CTA on a
+ *  quota hit and a retry-after hint on a rate limit — instead of only free text. */
+export function ToolError({
+  message,
+  onRetry,
+  upgradeUrl,
+  retryAfter,
+}: {
+  message: string;
+  onRetry: () => void;
+  upgradeUrl?: string;
+  retryAfter?: number;
+}) {
   const t = useT(T);
   return (
     <div className="card animate-fade-in border-negative/30 p-6">
       <p className="text-sm font-semibold text-negative">{t("generationFailed")}</p>
       <p className="mt-1 text-sm text-muted">{message}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300"
-      >
-        {t("retry")}
-      </button>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300"
+        >
+          {t("retry")}
+        </button>
+        {upgradeUrl && (
+          <a
+            href={upgradeUrl}
+            className="rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          >
+            {t("upgradeCta")}
+          </a>
+        )}
+        {retryAfter != null && retryAfter > 0 && (
+          <span className="text-xs text-muted">{t("retryIn", { n: retryAfter })}</span>
+        )}
+      </div>
     </div>
   );
 }

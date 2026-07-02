@@ -81,7 +81,7 @@ function buildRequest(seed: LpVariantSeed, controlDescription: string): LpVarian
 
 export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset } =
+  const { status, data, error, errorInfo, timedOut, run, reset } =
     useAiTool<LpVariantIdeasResult>("lp-variant-ideas");
   const [selectedId, setSelectedId] = useState(seeds[0]?.id ?? "");
   const selected = seeds.find((s) => s.id === selectedId) ?? seeds[0];
@@ -141,7 +141,7 @@ export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] 
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} upgradeUrl={errorInfo?.upgradeUrl} retryAfter={errorInfo?.retryAfter} />
           ))}
 
         {status === "done" && r && data && (

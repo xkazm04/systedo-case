@@ -190,7 +190,7 @@ export default function ClusterBuilder() {
           (clusters.timedOut ? (
             <TimeoutState onRetry={build} />
           ) : (
-            <ToolError message={clusters.error ?? ""} onRetry={build} />
+            <ToolError message={clusters.error ?? ""} onRetry={build} upgradeUrl={clusters.errorInfo?.upgradeUrl} retryAfter={clusters.errorInfo?.retryAfter} />
           ))}
 
         {clusters.status === "done" && clusters.data && (

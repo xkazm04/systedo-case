@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AiResponse } from "@/lib/ai-types";
+import type { AiResponse, AiErrorCode } from "@/lib/ai-types";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 import { useT } from "@/lib/i18n/client";
 
@@ -19,6 +19,15 @@ const T = {
 } as const;
 
 type Status = "idle" | "loading" | "done" | "error";
+
+/** The structured part of a failed AI response (AiError, minus the message which
+ *  is surfaced as `error`), so the UI can show a clickable upgrade path on a quota
+ *  hit or a retry-after hint on a rate limit instead of only free text. */
+export interface AiErrorInfo {
+  code?: AiErrorCode;
+  retryAfter?: number;
+  upgradeUrl?: string;
+}
 
 /** localStorage key for a tool's last result, so it survives a refresh / tab switch. */
 const resultKey = (mode: string) => `systedo.ai.result.${mode}`;
@@ -56,6 +65,7 @@ export function useAiTool<T>(mode: string) {
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorInfo, setErrorInfo] = useState<AiErrorInfo | null>(null);
   const [timedOut, setTimedOut] = useState(false);
 
   // The live request's controller + a monotonic run id, so reset()/a new run() can
@@ -105,6 +115,7 @@ export function useAiTool<T>(mode: string) {
 
     setStatus("loading");
     setError(null);
+    setErrorInfo(null);
     setTimedOut(false);
 
     const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -120,6 +131,11 @@ export function useAiTool<T>(mode: string) {
       if (isStale()) return; // a newer run() (or reset) superseded this one
       if (!res.ok) {
         setError(json?.error ?? t("errorGeneric"));
+        setErrorInfo({
+          code: json?.code,
+          retryAfter: typeof json?.retryAfter === "number" ? json.retryAfter : undefined,
+          upgradeUrl: typeof json?.upgradeUrl === "string" ? json.upgradeUrl : undefined,
+        });
         setStatus("error");
         return;
       }
@@ -156,6 +172,7 @@ export function useAiTool<T>(mode: string) {
     runIdRef.current += 1;
     setStatus("idle");
     setError(null);
+    setErrorInfo(null);
     setTimedOut(false);
     setData(null);
     try {
@@ -165,5 +182,5 @@ export function useAiTool<T>(mode: string) {
     }
   }
 
-  return { status, data, error, timedOut, run, reset };
+  return { status, data, error, errorInfo, timedOut, run, reset };
 }

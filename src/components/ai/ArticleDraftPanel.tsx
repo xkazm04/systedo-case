@@ -143,7 +143,7 @@ function DraftFaq({ faq, heading }: { faq: FaqItem[]; heading: string }) {
  *  exportable as Markdown or article JSON. */
 export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset } = useAiTool<ArticleDraftResult>("article-draft");
+  const { status, data, error, errorInfo, timedOut, run, reset } = useAiTool<ArticleDraftResult>("article-draft");
   const [preview, setPreview] = useState<"preview" | "json">("preview");
 
   function onGenerate() {
@@ -215,7 +215,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
         (timedOut ? (
           <TimeoutState onRetry={reset} />
         ) : (
-          <ToolError message={error ?? ""} onRetry={reset} />
+          <ToolError message={error ?? ""} onRetry={reset} upgradeUrl={errorInfo?.upgradeUrl} retryAfter={errorInfo?.retryAfter} />
         ))}
 
       {status === "done" && draft && data && (
