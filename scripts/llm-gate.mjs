@@ -265,7 +265,13 @@ function runRealTests(toolIds) {
       "--test",
       "test-llm/real.test.mjs",
     ],
-    { stdio: "inherit", env: { ...process.env, NODE_ENV: "development" } }
+    {
+      stdio: "inherit",
+      // LLM_CAPTURE: every proving run refreshes the committed corpus of real
+      // model outputs (test-llm/samples/) that the fast offline validator tests
+      // replay — the expensive run doubles as the fixture harvest.
+      env: { ...process.env, NODE_ENV: "development", LLM_CAPTURE: "1" },
+    }
   );
   if (res.status !== 0) fail("real LLM wrapper tests FAILED — commit blocked.");
 }
