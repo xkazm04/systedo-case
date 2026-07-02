@@ -57,6 +57,8 @@ const T = {
     buildingReport: "Sestavuji hodnoticí report…",
     campaignsHeading: "Kampaně",
     campaignCount: "{n} kampaní · analýza po řádcích",
+    degradedBanner:
+      "Živá data z Google Ads jsou dočasně nedostupná — poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
   },
   en: {
     sourceSample: "Google Ads · sample data",
@@ -86,6 +88,8 @@ const T = {
     buildingReport: "Building evaluation report…",
     campaignsHeading: "Campaigns",
     campaignCount: "{n} campaigns · row-by-row analysis",
+    degradedBanner:
+      "Live Google Ads data is temporarily unavailable — the last sync is showing sample data. Try syncing again, or reconnect the account.",
   },
 } as const;
 
@@ -275,6 +279,13 @@ export default function CampaignsClient() {
       {error && (
         <p className="rounded-card border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative">
           {error}
+        </p>
+      )}
+
+      {/* truth-in-labeling: the last live sync fell back to sample data */}
+      {meta?.degraded && (
+        <p className="rounded-card border border-coral-400/40 bg-coral-soft px-4 py-3 text-sm text-coral-600">
+          {t("degradedBanner")}
         </p>
       )}
 

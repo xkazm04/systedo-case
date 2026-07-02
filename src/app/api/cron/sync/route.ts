@@ -47,15 +47,25 @@ export async function GET(request: Request) {
       const period: CampaignPeriod = meta?.period ?? "30d";
 
       const campaigns = await connector.fetchCampaigns(period);
-      await upsertCampaigns(tenant, campaigns, { source: connector.source, period });
 
-      // Best-effort daily series (never fail the sync over a series hiccup).
+      // Best-effort daily series (never fail the sync over a series hiccup) —
+      // fetched before the upsert so the sync meta reflects both fetch outcomes.
       let series: DailyPoint[] = [];
       try {
         series = await connector.fetchSeries(period);
       } catch (err) {
         console.error(`[cron] series sync failed for ${userId}:`, err);
       }
+
+      // Truth-in-labeling (mirrors the manual sync route): a live fetch that fell
+      // back to sample data must be persisted as such, never as "živá data".
+      const degradation = connector.degradation;
+      await upsertCampaigns(tenant, campaigns, {
+        source: degradation.campaigns ? "sample" : connector.source,
+        period,
+        degraded: degradation.campaigns || degradation.series,
+        degradedReason: degradation.reason,
+      });
       await saveSeries(tenant, series, { period });
 
       const alerted = await evaluateAndAlert(tenant, userId, campaigns);

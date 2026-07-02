@@ -30,6 +30,11 @@ export interface SyncMeta {
   source: string;
   period: CampaignPeriod;
   syncedAt: string;
+  /** true when a live sync silently fell back to sample data (campaigns and/or
+   *  series), so the UI can say so instead of labeling demo numbers "živá data" */
+  degraded?: boolean;
+  /** error summary of the live failure behind the fallback, when degraded */
+  degradedReason?: string | null;
 }
 
 function tenantDoc(tenant: string) {
@@ -43,7 +48,13 @@ function tenantDoc(tenant: string) {
 export async function upsertCampaigns(
   tenant: string,
   campaigns: Campaign[],
-  meta: { source: string; period: CampaignPeriod }
+  meta: {
+    source: string;
+    period: CampaignPeriod;
+    /** live sync fell back to sample data (see connector.SyncDegradation) */
+    degraded?: boolean;
+    degradedReason?: string | null;
+  }
 ): Promise<void> {
   const t = tenantDoc(tenant);
   const syncedAt = new Date().toISOString();
@@ -66,8 +77,19 @@ export async function upsertCampaigns(
     })),
   });
 
-  // Sync metadata on the tenant root doc.
-  batch.set(t, { source: meta.source, period: meta.period, syncedAt }, { merge: true });
+  // Sync metadata on the tenant root doc. Firestore rejects `undefined`, so the
+  // optional degradation fields are normalised (and cleared on a healthy sync).
+  batch.set(
+    t,
+    {
+      source: meta.source,
+      period: meta.period,
+      syncedAt,
+      degraded: meta.degraded ?? false,
+      degradedReason: meta.degradedReason ?? null,
+    },
+    { merge: true }
+  );
 
   await batch.commit();
 }
@@ -100,7 +122,13 @@ export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
   const doc = await tenantDoc(tenant).get();
   const r = doc.data();
   if (!r?.syncedAt) return null;
-  return { source: r.source, period: r.period as CampaignPeriod, syncedAt: r.syncedAt };
+  return {
+    source: r.source,
+    period: r.period as CampaignPeriod,
+    syncedAt: r.syncedAt,
+    degraded: Boolean(r.degraded),
+    degradedReason: r.degradedReason ?? null,
+  };
 }
 
 // --- daily series (trend chart) ---------------------------------------------

@@ -119,10 +119,9 @@ export async function POST(request: Request) {
     );
   }
 
-  await upsertCampaigns(tenant, campaigns, { source: connector.source, period });
-
   // Daily trend series — best-effort: a failed series (e.g. live GAQL hiccup)
-  // must not fail the whole sync, which already succeeded above.
+  // must not fail the whole sync. Fetched before the upsert so the persisted
+  // sync meta can reflect the degradation outcome of BOTH fetches.
   let series: DailyPoint[] = [];
   let seriesOk = false;
   try {
@@ -131,6 +130,19 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[campaigns] series sync failed:", err);
   }
+
+  // Truth-in-labeling: when a live fetch silently fell back to the sample
+  // provider, say so. A campaign fallback means the numbers on screen ARE sample
+  // data → the persisted source flips to "sample"; a series-only fallback keeps
+  // the source but still flags the sync as degraded.
+  const degradation = connector.degradation;
+  await upsertCampaigns(tenant, campaigns, {
+    source: degradation.campaigns ? "sample" : connector.source,
+    period,
+    degraded: degradation.campaigns || degradation.series,
+    degradedReason: degradation.reason,
+  });
+
   // Only persist when the fetch succeeded — a transient failure must not overwrite
   // the last good series with an empty array, which would blank the trend chart
   // even though the campaign upsert (and the prior series) were fine.

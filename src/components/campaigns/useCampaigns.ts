@@ -37,6 +37,11 @@ export interface CampaignsMeta {
   source: string;
   period: CampaignPeriod;
   syncedAt: string;
+  /** the last sync's live fetch fell back to sample data — the UI shows a
+   *  truth-in-labeling warning instead of presenting demo numbers as live */
+  degraded?: boolean;
+  /** error summary behind the fallback (diagnostics; not rendered verbatim) */
+  degradedReason?: string | null;
 }
 
 interface State {

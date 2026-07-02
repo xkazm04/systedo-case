@@ -19,6 +19,18 @@ import { getUserAccessToken } from "@/lib/google/token";
 import type { Campaign, CampaignPeriod, DailyPoint } from "./types";
 import type { ProjectType } from "@/lib/projects/types";
 
+/** Per-request outcome of the live→sample fallback. The sync route persists it
+ *  so degraded data is labeled truthfully — a tenant whose token expired must
+ *  never see deterministic demo numbers presented as their live account data. */
+export interface SyncDegradation {
+  /** the live campaign fetch failed and sample data was served instead */
+  campaigns: boolean;
+  /** the live series fetch failed and sample data was served instead */
+  series: boolean;
+  /** error summary of the first live failure (for the sync meta / diagnostics) */
+  reason: string | null;
+}
+
 export interface AdsConnector {
   /** stable id persisted alongside the data, surfaced in the UI */
   source: "sample" | "google-ads";
@@ -27,12 +39,21 @@ export interface AdsConnector {
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
   /** per-day portfolio totals for the trend chart */
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
+  /** which of this request's fetches silently degraded to the sample provider —
+   *  always all-false for the sample provider itself (sample is intended there) */
+  degradation: SyncDegradation;
+}
+
+/** Compact, persistable summary of a live-fetch error (class + message, capped). */
+function describeError(err: unknown): string {
+  return (err instanceof Error ? `${err.name}: ${err.message}` : String(err)).slice(0, 300);
 }
 
 function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnector {
   return {
     source: "sample",
     label: "Google Ads · ukázková data",
+    degradation: { campaigns: false, series: false, reason: null },
     async fetchCampaigns(period) {
       return sampleCampaigns(period, projectType, seedKey);
     },
@@ -50,15 +71,21 @@ function googleAdsProvider(
   // A live Google Ads call can fail transiently (expired token, quota, GAQL error).
   // Degrade to the deterministic sample provider instead of throwing — one hiccup
   // must not 500 the whole premium dashboard, and the demo path is the documented
-  // safe default. The underlying error is logged server-side.
+  // safe default. The underlying error is logged server-side AND recorded on
+  // `degradation`, so the sync route can persist a truthful source label instead
+  // of presenting the fallback's demo numbers as live account data.
+  const degradation: SyncDegradation = { campaigns: false, series: false, reason: null };
   return {
     source: "google-ads",
     label: "Google Ads · živá data",
+    degradation,
     async fetchCampaigns(period) {
       try {
         return await adsFetchCampaigns(accessToken, customerId, period);
       } catch (err) {
         console.error("[campaigns] live fetchCampaigns failed; serving sample data:", err);
+        degradation.campaigns = true;
+        degradation.reason ??= describeError(err);
         return fallback.fetchCampaigns(period);
       }
     },
@@ -67,6 +94,8 @@ function googleAdsProvider(
         return await adsFetchDailySeries(accessToken, customerId, period);
       } catch (err) {
         console.error("[campaigns] live fetchSeries failed; serving sample data:", err);
+        degradation.series = true;
+        degradation.reason ??= describeError(err);
         return fallback.fetchSeries(period);
       }
     },
