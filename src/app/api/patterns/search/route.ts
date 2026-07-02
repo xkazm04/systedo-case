@@ -1,9 +1,12 @@
 /** Semantic search over the winning-patterns library. POST { query } → patterns
  *  ranked by meaning (Gemini embeddings), or substring-matched when embeddings are
- *  unavailable. IP-throttled (embeds N+1 texts per call); no per-user quota. */
+ *  unavailable. IP-throttled (embeds N+1 texts per call) for everyone, plus a
+ *  per-user daily quota for signed-in users — the embedding call is paid, so it's
+ *  metered like the other AI routes (anonymous stays IP-limited only). */
 import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { searchPatterns } from "@/lib/patterns/store";
+import { consume } from "@/lib/usage";
 import { RATE_RULES, clientIp, rateLimit, tooManyRequests } from "@/lib/ai/rate-limit";
 
 export const runtime = "nodejs";
@@ -34,6 +37,23 @@ export async function POST(request: Request) {
   }
 
   const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+
+  // Per-user daily quota for signed-in users (the embedding call is paid).
+  if (userId) {
+    const quota = await consume(userId, "aiEval");
+    if (!quota.ok) {
+      const { used, limits } = quota.status;
+      return Response.json(
+        {
+          error: `Denní limit vyčerpán (${used.aiEval}/${limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+          code: "quota",
+          upgradeUrl: "/cena",
+        },
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const { results, semantic } = await searchPatterns(await resolveTenant(userId, projectId), query);
     return Response.json({ results: results.slice(0, 12), semantic });

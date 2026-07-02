@@ -40,16 +40,22 @@ export async function getUsage(userId: string): Promise<UsageStatus> {
 }
 
 /**
- * Atomically check the day's quota for `kind` and increment if room remains.
- * Returns `{ ok: false }` (without incrementing) when the limit is reached.
- * Map-merge keeps the two counters independent within the day.
+ * Atomically check the day's quota for `kind` and increment by `amount` if room
+ * remains for the whole amount. Returns `{ ok: false }` (without incrementing)
+ * when the increment would exceed the plan limit. `amount` lets one request that
+ * does N paid units (e.g. an image set of N candidates = N Leonardo gens + N
+ * vision calls) charge all N atomically; it defaults to 1, so existing single-unit
+ * callers are unchanged (current + 1 > limit ⟺ current >= limit). Map-merge keeps
+ * the counters independent within the day.
  */
 export async function consume(
   userId: string,
-  kind: UsageKind
+  kind: UsageKind,
+  amount = 1
 ): Promise<{ ok: boolean; status: UsageStatus }> {
   const ref = firestore.collection("usage").doc(userId);
   const day = dayKey();
+  const charge = Math.max(1, Math.floor(amount));
 
   return firestore.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -57,16 +63,17 @@ export async function consume(
     const plan = data.plan ?? "free";
     const current = data.days?.[day]?.[kind] ?? 0;
 
-    if (current >= PLANS[plan][kind]) {
+    if (current + charge > PLANS[plan][kind]) {
       return { ok: false, status: statusFrom(data, day) };
     }
 
-    tx.set(ref, { plan, days: { [day]: { [kind]: current + 1 } } }, { merge: true });
+    const nextCount = current + charge;
+    tx.set(ref, { plan, days: { [day]: { [kind]: nextCount } } }, { merge: true });
 
     const next: UsageDoc = {
       ...data,
       plan,
-      days: { ...data.days, [day]: { ...data.days?.[day], [kind]: current + 1 } },
+      days: { ...data.days, [day]: { ...data.days?.[day], [kind]: nextCount } },
     };
     return { ok: true, status: statusFrom(next, day) };
   });

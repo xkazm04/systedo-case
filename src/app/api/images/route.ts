@@ -89,12 +89,16 @@ export async function POST(request: Request) {
     }
 
     // Per-user daily image quota (signed-in users; anonymous is IP-limited only).
+    // Charge one unit per candidate — each is its own Leonardo generation plus a
+    // Gemini vision score, so an N-candidate set costs N units, not 1.
     if (uid) {
-      const quota = await consume(uid, "image");
+      const quota = await consume(uid, "image", count);
       if (!quota.ok) {
+        const { used, limits } = quota.status;
         return Response.json(
           {
-            error: `Denní limit generování vizuálů vyčerpán (${quota.status.used.image}/${quota.status.limits.image}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+            error: `Denní limit generování vizuálů (${used.image}/${limits.image}) nestačí na ${count} ${count === 1 ? "variantu" : "variant"}. Zkuste méně variant, zítra, nebo vyšší plán (ceník na /cena).`,
+            code: "quota",
             upgradeUrl: "/cena",
           },
           { status: 429 }
