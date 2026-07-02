@@ -39,6 +39,8 @@ export interface Formatters {
   fmtPct: (fraction: number, digits?: number) => string;
   fmtSignedPct: (fraction: number, digits?: number) => string;
   fmtSignedInt: (n: number) => string;
+  fmtSignedCZK: (n: number) => string;
+  fmtSignedCZKCompact: (n: number) => string;
   fmtMultiple: (n: number, digits?: number) => string;
   fmtDate: (iso: string) => string;
   fmtDateShort: (iso: string) => string;
@@ -140,6 +142,25 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     const r = Math.round(n);
     const sign = r > 0 ? "+" : r < 0 ? "−" : "";
     return `${sign}${fmtInt(Math.abs(r))}`;
+  };
+
+  /** Signed currency for money deltas ("+38 000 Kč", "−85 000 Kč"). Rounds
+   *  before signing (mirrors fmtSignedInt) so a sub-koruna delta that displays
+   *  as zero never renders a misleading sign; true minus U+2212. */
+  const fmtSignedCZK = (n: number): string => {
+    if (!Number.isFinite(n)) return DASH;
+    const r = Math.round(n);
+    const sign = r > 0 ? "+" : r < 0 ? "−" : "";
+    return `${sign}${fmtCZK(Math.abs(r))}`;
+  };
+
+  /** Signed compact currency ("+38 tis. Kč", "−1,6 mil. Kč") — the delta form
+   *  of fmtCZKCompact, so negatives carry a true minus instead of Intl's ASCII
+   *  hyphen and gains are explicitly plus-signed. */
+  const fmtSignedCZKCompact = (n: number): string => {
+    if (!Number.isFinite(n)) return DASH;
+    const sign = n > 0 ? "+" : n < 0 ? "−" : "";
+    return `${sign}${fmtCZKCompact(Math.abs(n))}`;
   };
 
   const fmtMultiple = (n: number, digits = 1): string =>
@@ -272,6 +293,8 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     fmtPct,
     fmtSignedPct,
     fmtSignedInt,
+    fmtSignedCZK,
+    fmtSignedCZKCompact,
     fmtMultiple,
     fmtDate,
     fmtDateShort,
@@ -298,6 +321,8 @@ export const {
   fmtPct,
   fmtSignedPct,
   fmtSignedInt,
+  fmtSignedCZK,
+  fmtSignedCZKCompact,
   fmtMultiple,
   fmtDate,
   fmtDateShort,

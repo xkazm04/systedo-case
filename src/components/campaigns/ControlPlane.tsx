@@ -162,8 +162,10 @@ export default function ControlPlane() {
                 <span className="text-navy-800">
                   {m.fromName} <span className="text-muted">→</span> {m.toName}
                 </span>
+                {/* signed helper: a reversal change-set negates estValueGain, so a
+                    hand-written "+" here would render "+−…" */}
                 <span className="tnum text-muted">
-                  {fmt.fmtCZK(m.amount)} · +{fmt.fmtCZK(m.estValueGain)}
+                  {fmt.fmtCZK(m.amount)} · {fmt.fmtSignedCZK(m.estValueGain)}
                 </span>
               </li>
             ))}

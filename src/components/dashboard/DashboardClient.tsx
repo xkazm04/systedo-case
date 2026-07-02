@@ -538,8 +538,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                     }`}
                     title={t("alertsImpactTitle")}
                   >
-                    {impact.net < 0 ? "−" : "+"}
-                    {fmt.fmtCZKCompact(Math.abs(impact.net))}
+                    {fmt.fmtSignedCZKCompact(impact.net)}
                   </span>
                   {/* the upside the same anomalies carried (windfalls + savings) —
                       computed separately by anomalyImpact precisely so it can
@@ -547,7 +546,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                   {impact.gained >= 1 && (
                     <span className="text-muted" title={t("alertsGainedTitle")}>
                       {" "}
-                      (<span className="tnum">+{fmt.fmtCZKCompact(impact.gained)}</span>{" "}
+                      (<span className="tnum">{fmt.fmtSignedCZKCompact(impact.gained)}</span>{" "}
                       {t("alertsGained")})
                     </span>
                   )}

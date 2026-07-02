@@ -15,7 +15,7 @@ import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
 import { triage } from "@/lib/campaigns/triage";
 import { getUserEmail, recordAlert, type AlertItem } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
-import { fmtCZK, fmtMultiple, fmtPct } from "@/lib/format";
+import { fmtCZK, fmtMultiple, fmtPct, fmtSignedCZK } from "@/lib/format";
 import { aggregateTelemetry, listLlmTelemetrySince } from "@/lib/llm/telemetry";
 import { aiOpsLines, summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { cronAuthorized } from "@/lib/cron-auth";
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
       const items: AlertItem[] = moves.map((m) => ({
         campaignId: m.fromId,
         name: `${m.fromName} → ${m.toName}`,
-        reason: `přesunout ${fmtCZK(m.amount)} (+${fmtCZK(m.estValueGain)} hodnoty)`,
+        reason: `přesunout ${fmtCZK(m.amount)} (${fmtSignedCZK(m.estValueGain)} hodnoty)`,
       }));
 
       const title = "Týdenní souhrn výkonu";

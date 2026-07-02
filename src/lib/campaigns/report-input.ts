@@ -2,7 +2,7 @@
  *  ground the AI evaluation — the same idea as `snapshot.ts` for the dashboard:
  *  the model interprets real data instead of inventing it. Pure (no DB, no React).
  */
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "../format";
+import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedCZK, fmtSignedPct } from "../format";
 import {
   CAMPAIGN_TYPE_LABELS,
   CAMPAIGN_TYPE_ROLE_LABELS,
@@ -214,7 +214,7 @@ export function buildOverallPrompt(
           ...rec.moves.map((m) =>
             m.kind === "pause"
               ? `- Pozastavit „${m.fromName}“ (utrácí ${fmtCZK(m.amount)} bez jediné konverze); úspora ${fmtCZK(m.amount)} nákladů bez ztráty hodnoty konverzí.`
-              : `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad +${fmtCZK(m.estValueGain)} hodnoty konverzí.`
+              : `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad ${fmtSignedCZK(m.estValueGain)} hodnoty konverzí.`
           ),
           `- Souhrnný odhad po přesunech: ROAS ${fmtMultiple(rec.simulation.before.roas)} → ${fmtMultiple(rec.simulation.after.roas)}, PNO ${fmtPct(rec.simulation.before.pno)} → ${fmtPct(rec.simulation.after.pno)}.`,
         ]

@@ -31,6 +31,18 @@ test("metric registry: format(v) without a Formatters stays byte-identical Czech
   assert.equal(METRICS.visits.formatCompact(12_400), cs.fmtInt(12_400));
 });
 
+test("signed currency: plus for gains, true minus for losses, rounds before signing", () => {
+  assert.ok(cs.fmtSignedCZK(38_000).startsWith("+"));
+  // U+2212 true minus, never the ASCII hyphen Intl emits for negatives
+  assert.ok(cs.fmtSignedCZK(-85_000).startsWith("−"));
+  assert.ok(!cs.fmtSignedCZK(-85_000).includes("-"));
+  // a sub-koruna delta displays as zero → no misleading sign
+  assert.equal(cs.fmtSignedCZK(0.4), cs.fmtCZK(0));
+  assert.ok(cs.fmtSignedCZKCompact(1_600_000).startsWith("+"));
+  assert.ok(cs.fmtSignedCZKCompact(-1_600_000).startsWith("−"));
+  assert.equal(cs.fmtSignedCZK(Number.NaN), "—");
+});
+
 test("metric registry: format(v, enFormatters) renders the en locale", () => {
   assert.equal(METRICS.revenue.format(1500, en), en.fmtCZK(1500));
   assert.ok(METRICS.revenue.format(1500, en).includes("$"));

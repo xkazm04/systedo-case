@@ -155,7 +155,7 @@ export default async function SharedReportPage({
                   <ArrowRight width={14} height={14} className="text-muted" aria-hidden />
                   <span className="text-navy-700">{m.toName}</span>
                   <span className="tnum ml-auto font-semibold text-positive">
-                    +{fmt.fmtCZK(m.estValueGain)}
+                    {fmt.fmtSignedCZK(m.estValueGain)}
                   </span>
                 </li>
               ))}

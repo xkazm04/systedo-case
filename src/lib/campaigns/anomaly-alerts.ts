@@ -7,7 +7,7 @@
 import { firestore } from "@/lib/firebase";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { detectAnomalies, anomalyImpact, type Anomaly } from "@/lib/metrics/anomalies";
-import { fmtCZKCompact, fmtDate } from "@/lib/format";
+import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact } from "@/lib/format";
 import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
@@ -102,7 +102,9 @@ export async function evaluateAnomalyAlerts(
   }));
 
   const impact = anomalyImpact(fresh);
-  const moneyTail = impact.count > 0 ? ` · dopad ≈ ${fmtCZKCompact(impact.net)}` : "";
+  // Signed helper: a negative net carries a true minus (Intl would emit an ASCII
+  // hyphen), and a positive net is explicitly "+" so it cannot read as damage.
+  const moneyTail = impact.count > 0 ? ` · dopad ≈ ${fmtSignedCZKCompact(impact.net)}` : "";
   const title = `${fresh.length} ${fresh.length === 1 ? "nová anomálie" : "nových anomálií"} ve výkonu`;
   const extra = fresh.length > shown.length ? ` · +${fresh.length - shown.length} dalších` : "";
   const body = shown.map(describe).join(" · ") + extra + moneyTail;
@@ -125,7 +127,7 @@ export async function evaluateAnomalyAlerts(
     const html =
       `<p>Při poslední synchronizaci se objevily nové anomálie ve výkonu kampaní:</p>` +
       `<ul>${li}</ul>` +
-      (impact.count > 0 ? `<p>Odhadovaný dopad: <strong>${escapeHtml(fmtCZKCompact(impact.net))}</strong>.</p>` : "") +
+      (impact.count > 0 ? `<p>Odhadovaný dopad: <strong>${escapeHtml(fmtSignedCZKCompact(impact.net))}</strong>.</p>` : "") +
       `<p>Otevřete dashboard v Systedo pro detail a doporučené kroky.</p>`;
     await sendEmail(email, `Systedo: ${title}`, html);
   }

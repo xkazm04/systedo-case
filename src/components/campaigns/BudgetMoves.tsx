@@ -197,13 +197,13 @@ export default function BudgetMoves({
                   {m.kind === "pause" ? (
                     <p className="text-xs text-muted">
                       {t("estSaving")}{" "}
-                      <span className="tnum font-semibold text-positive">+{fmt.fmtCZK(m.amount)}</span>{" "}
+                      <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.amount)}</span>{" "}
                       {t("savedCost")}
                     </p>
                   ) : (
                     <p className="text-xs text-muted">
                       {t("estGain")}{" "}
-                      <span className="tnum font-semibold text-positive">+{fmt.fmtCZK(m.estValueGain)}</span>{" "}
+                      <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.estValueGain)}</span>{" "}
                       {t("convVal")}
                     </p>
                   )}
