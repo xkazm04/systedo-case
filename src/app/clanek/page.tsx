@@ -14,7 +14,7 @@ import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/arti
 import { articleToMarkdown } from "@/lib/article-markdown";
 import { fmtDate } from "@/lib/format";
 import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
-import { canonical } from "@/lib/site";
+import { canonical, SITE_NAME } from "@/lib/site";
 import { getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -104,6 +104,20 @@ export default async function ArticlePage() {
         dateModified: meta.dateModifiedISO ?? meta.dateISO,
         articleSection: meta.category,
         keywords: meta.tags.join(", "),
+        // The remaining fields Google's Article guidance leans on: the page
+        // this Article is the main entity of, the content language (the
+        // article body is Czech regardless of the UI locale), and the
+        // publishing Organization — all from the shared site constants so
+        // they can't drift from the rest of the app.
+        mainEntityOfPage: articleUrl,
+        url: articleUrl,
+        inLanguage: "cs",
+        publisher: {
+          "@type": "Organization",
+          name: SITE_NAME,
+          url: canonical("/"),
+          logo: { "@type": "ImageObject", url: canonical("/icon.svg") },
+        },
         ...(figures.length ? { image: figures.map((f) => canonical(f.src)) } : {}),
       },
       // One ImageObject per figure — gives each article image its own node with an
