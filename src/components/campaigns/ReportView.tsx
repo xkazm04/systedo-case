@@ -21,6 +21,9 @@ const T = {
     cachedNote: "Z mezipaměti — beze změny vstupů, bez nového volání modelu.",
     cachedTitle:
       "Vstupy (kampaně i období) se nezměnily, proto se zobrazil uložený výsledek bez nového placeného volání modelu.",
+    staleNote: "Data se od tohoto vyhodnocení změnila — doporučujeme přehodnotit.",
+    staleTitle:
+      "Od uložení tohoto vyhodnocení proběhla synchronizace, která změnila podkladové metriky. Skóre a doporučení nemusí odpovídat aktuálním číslům.",
     strengths: "Silné stránky",
     weaknesses: "Slabiny a rizika",
     recommendations: "Doporučené další kroky",
@@ -37,6 +40,9 @@ const T = {
     cachedNote: "From cache — inputs unchanged, no new model call.",
     cachedTitle:
       "Inputs (campaigns and period) have not changed, so the saved result is shown without a new paid model call.",
+    staleNote: "Data has changed since this evaluation — consider re-evaluating.",
+    staleTitle:
+      "A sync after this evaluation changed the underlying metrics. Its score and recommendations may no longer match the numbers on screen.",
     strengths: "Strengths",
     weaknesses: "Weaknesses & risks",
     recommendations: "Recommended next steps",
@@ -65,6 +71,7 @@ export default function ReportView({
   report,
   history,
   cached,
+  stale,
 }: {
   report: CampaignReport;
   /** every score this scope/campaign has earned, for the trend timeline */
@@ -72,6 +79,9 @@ export default function ReportView({
   /** true when this evaluation was served from the input-hash cache (no new
    *  model call), so the user understands why "Re-evaluate" returned instantly */
   cached?: boolean;
+  /** true when a sync after this evaluation changed the underlying metrics, so
+   *  the stored report no longer matches the data on screen */
+  stale?: boolean;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -94,14 +104,26 @@ export default function ReportView({
     <div className="space-y-5">
       <ResultMeta meta={report.meta} copyAllText={copyAllText} createdAt={report.createdAt} />
 
-      {cached && (
+      {/* stale wins over cached: "the data moved on" matters more than "this
+          render was free" when both apply */}
+      {stale ? (
         <p
-          className="flex items-center gap-1.5 rounded-lg bg-navy-50 px-3 py-2 text-xs text-muted"
-          title={t("cachedTitle")}
+          className="flex items-center gap-1.5 rounded-lg bg-coral-soft px-3 py-2 text-xs font-medium text-coral-600"
+          title={t("staleTitle")}
         >
-          <Info width={13} height={13} className="shrink-0 text-brand-600" />
-          {t("cachedNote")}
+          <Info width={13} height={13} className="shrink-0" />
+          {t("staleNote")}
         </p>
+      ) : (
+        cached && (
+          <p
+            className="flex items-center gap-1.5 rounded-lg bg-navy-50 px-3 py-2 text-xs text-muted"
+            title={t("cachedTitle")}
+          >
+            <Info width={13} height={13} className="shrink-0 text-brand-600" />
+            {t("cachedNote")}
+          </p>
+        )
       )}
 
       {/* score + verdict */}

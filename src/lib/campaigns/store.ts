@@ -231,12 +231,28 @@ export async function getReportsForPeriod(
   tenant: string,
   period: CampaignPeriod
 ): Promise<Record<string, CampaignReport>> {
-  const out: Record<string, CampaignReport> = {};
+  return (await getReportsForPeriodWithHashes(tenant, period)).reports;
+}
+
+/** Latest report per key for a period PLUS each report's stored input hash, so
+ *  the GET state can compare it against the current `hashEvalInputs` and flag
+ *  reports whose underlying data changed after they were generated (`toReport`
+ *  deliberately drops the hash from the client payload). Reports saved before
+ *  input hashing existed carry `null`. */
+export async function getReportsForPeriodWithHashes(
+  tenant: string,
+  period: CampaignPeriod
+): Promise<{ reports: Record<string, CampaignReport>; inputHashes: Record<string, string | null> }> {
+  const reports: Record<string, CampaignReport> = {};
+  const inputHashes: Record<string, string | null> = {};
   // asc order → last write for a key wins = the latest report.
   for (const r of await allReports(tenant)) {
-    if (r.period === period) out[reportKey(r)] = toReport(r);
+    if (r.period !== period) continue;
+    const key = reportKey(r);
+    reports[key] = toReport(r);
+    inputHashes[key] = r.input_hash ?? null;
   }
-  return out;
+  return { reports, inputHashes };
 }
 
 /** Deterministic fingerprint of the exact inputs an evaluation depends on. */

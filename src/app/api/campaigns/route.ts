@@ -8,9 +8,10 @@ import { getProject } from "@/lib/projects/store";
 import {
   getLatestChanges,
   getReportHistories,
-  getReportsForPeriod,
+  getReportsForPeriodWithHashes,
   getSeries,
   getSyncMeta,
+  hashEvalInputs,
   listCampaigns,
   saveSeries,
   upsertCampaigns,
@@ -36,14 +37,37 @@ function userIdOf(session: Session | null): string | null {
 }
 
 /** Everything the page needs in one payload: campaigns, sync metadata, the latest
- *  stored reports for the synced period, the per-scope score history, and the
- *  sync-over-sync change diff — all scoped to the tenant. */
+ *  stored reports for the synced period (plus which of them are stale), the
+ *  per-scope score history, and the sync-over-sync change diff — all scoped to
+ *  the tenant. */
 async function loadState(tenant: string) {
   const meta = await getSyncMeta(tenant);
+  const campaigns = await listCampaigns(tenant);
+  const { reports, inputHashes } = meta
+    ? await getReportsForPeriodWithHashes(tenant, meta.period)
+    : { reports: {}, inputHashes: {} as Record<string, string | null> };
+
+  // A report is stale when its stored input fingerprint no longer matches the
+  // data on screen — i.e. a later sync changed the metrics it was based on, so
+  // its score/recommendations may mislead. Reports predating input hashing
+  // (null hash) can't be compared and are not flagged (no false alarms).
+  const staleKeys = meta
+    ? Object.keys(reports).filter((key) => {
+        const stored = inputHashes[key];
+        if (!stored) return false;
+        const current =
+          key === "overall"
+            ? hashEvalInputs("overall", null, meta.period, campaigns)
+            : hashEvalInputs("campaign", key, meta.period, campaigns);
+        return stored !== current;
+      })
+    : [];
+
   return {
-    campaigns: await listCampaigns(tenant),
+    campaigns,
     meta,
-    reports: meta ? await getReportsForPeriod(tenant, meta.period) : {},
+    reports,
+    staleKeys,
     histories: await getReportHistories(tenant),
     changes: await getLatestChanges(tenant),
     series: await getSeries(tenant),

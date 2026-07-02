@@ -262,6 +262,7 @@ const FILTER_FIELD =
 export default function CampaignTable({
   campaigns,
   reports,
+  staleKeys,
   histories,
   analyzing,
   analyzeErrors,
@@ -271,6 +272,8 @@ export default function CampaignTable({
 }: {
   campaigns: Campaign[];
   reports: Record<string, CampaignReport>;
+  /** campaign ids whose stored report predates a data-changing sync (stale) */
+  staleKeys?: string[];
   histories: Record<string, ReportHistoryPoint[]>;
   analyzing: Record<string, boolean>;
   analyzeErrors: Record<string, string>;
@@ -671,7 +674,12 @@ export default function CampaignTable({
                                 {isAnalyzing ? t("analyzing") : t("reanalyze")}
                               </button>
                             </div>
-                            <ReportView report={report} history={histories[c.id]} cached={cached[c.id]} />
+                            <ReportView
+                              report={report}
+                              history={histories[c.id]}
+                              cached={cached[c.id]}
+                              stale={staleKeys?.includes(c.id)}
+                            />
                           </div>
                         ) : null}
                       </td>

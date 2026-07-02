@@ -48,6 +48,9 @@ interface State {
   campaigns: Campaign[];
   meta: CampaignsMeta | null;
   reports: Record<string, CampaignReport>;
+  /** report keys ("overall" or campaign id) whose stored evaluation was made on
+   *  data that a later sync changed — the UI badges them as stale */
+  staleKeys: string[];
   /** full score history per key ("overall" or campaign id), oldest → newest */
   histories: Record<string, ReportHistoryPoint[]>;
   /** what changed since the prior sync (null until ≥2 syncs exist) */
@@ -60,6 +63,7 @@ const EMPTY: State = {
   campaigns: [],
   meta: null,
   reports: {},
+  staleKeys: [],
   histories: {},
   changes: null,
   series: [],
@@ -90,6 +94,7 @@ export function useCampaigns() {
         campaigns: json.campaigns ?? [],
         meta: json.meta ?? null,
         reports: json.reports ?? {},
+        staleKeys: json.staleKeys ?? [],
         histories: json.histories ?? {},
         changes: json.changes ?? null,
         series: json.series ?? [],
@@ -123,6 +128,7 @@ export function useCampaigns() {
         campaigns: json.campaigns ?? [],
         meta: json.meta ?? null,
         reports: json.reports ?? {},
+        staleKeys: json.staleKeys ?? [],
         histories: json.histories ?? {},
         changes: json.changes ?? null,
         series: json.series ?? [],
@@ -157,6 +163,9 @@ export function useCampaigns() {
         setState((s) => ({
           ...s,
           reports: { ...s.reports, [key]: normalizeReport(json.report) },
+          // A just-completed evaluation (fresh or cache-hit) matches the current
+          // data by construction, so the key can't be stale any more.
+          staleKeys: s.staleKeys.filter((k) => k !== key),
           histories: {
             ...s.histories,
             [key]: (json.history as ReportHistoryPoint[]) ?? s.histories[key] ?? [],
@@ -176,6 +185,7 @@ export function useCampaigns() {
     campaigns: state.campaigns,
     meta: state.meta,
     reports: state.reports,
+    staleKeys: state.staleKeys,
     histories: state.histories,
     changes: state.changes,
     series: state.series,

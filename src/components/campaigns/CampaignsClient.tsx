@@ -108,6 +108,7 @@ export default function CampaignsClient() {
     campaigns,
     meta,
     reports,
+    staleKeys,
     histories,
     changes,
     series,
@@ -391,7 +392,12 @@ export default function CampaignsClient() {
 
         {overall && (
           <div className="mt-5 animate-fade-up border-t border-line pt-5">
-            <ReportView report={overall} history={histories["overall"]} cached={cached["overall"]} />
+            <ReportView
+              report={overall}
+              history={histories["overall"]}
+              cached={cached["overall"]}
+              stale={staleKeys.includes("overall")}
+            />
           </div>
         )}
       </section>
@@ -414,6 +420,7 @@ export default function CampaignsClient() {
         <CampaignTable
           campaigns={campaigns}
           reports={reports}
+          staleKeys={staleKeys}
           histories={histories}
           analyzing={analyzing}
           analyzeErrors={analyzeErrors}
