@@ -8,7 +8,13 @@
  *  spread is what makes the per-type comparison and the AI evaluation interesting.
  *
  *  Metrics scale with the requested period, with small deterministic jitter, so a
- *  re-sync of the same period is stable but different periods differ realistically.
+ *  re-sync of the same period is stable *within the same ISO week* but drifts
+ *  week-over-week: without drift every re-sync returned byte-identical campaigns,
+ *  so the sync-over-sync diff ("Co se změnilo"), the change-aware triage rules and
+ *  the alert pipeline were permanently dead for every sample tenant — i.e. exactly
+ *  the case-study audience. One rotating "mover" campaign per week swings hard
+ *  enough to clear the diff's 5 % change threshold, while the stable-within-week
+ *  seeding keeps `hashEvalInputs` report caching valid between same-week syncs.
  */
 import {
   CAMPAIGN_PERIOD_DAYS,
@@ -112,31 +118,79 @@ function specsFor(type?: ProjectType): Spec[] {
   return type ? SPECS_BY_TYPE[type] : ESHOP_SPECS;
 }
 
+// --- weekly drift -------------------------------------------------------------
+
+const DAY_MS = 86_400_000;
+
+/** ISO-8601 week key ("2026-W27") — the coarse time bucket sample campaigns
+ *  drift on. Exported for tests. */
+export function isoWeekKey(date: Date): string {
+  // Shift to the Thursday of the current week — its year decides the ISO year.
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const yearStart = Date.UTC(d.getUTCFullYear(), 0, 1);
+  const week = Math.ceil(((d.getTime() - yearStart) / DAY_MS + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+/** Ordinary campaigns wander ±3 % week-over-week — visible movement, but small
+ *  enough that triage severities stay put (brand Search stays healthy, the
+ *  prospecting types stay below target). */
+const DRIFT_BASE = 0.03;
+/** The week's "mover" swings ±(10–16) %. Because consecutive weeks always pick
+ *  different movers, last week's mover returns to ±DRIFT_BASE, so at least one
+ *  campaign is guaranteed to clear the diff's 5 % change threshold every week. */
+const MOVER_MIN = 0.1;
+const MOVER_SPAN = 0.06;
+
 export function sampleCampaigns(
   period: CampaignPeriod,
   type?: ProjectType,
-  seedKey = "mionelo"
+  seedKey = "mionelo",
+  /** injection point for tests — the time that selects the drift week */
+  now = Date.now()
 ): Campaign[] {
   const days = CAMPAIGN_PERIOD_DAYS[period];
   const rnd = mulberry32(hashStr(`${seedKey}:${period}`));
   const j = (scale = 0.05) => 1 + (rnd() * 2 - 1) * scale;
 
-  return specsFor(type).map((s) => {
+  const specs = specsFor(type);
+  const week = isoWeekKey(new Date(now));
+  const moverFor = (wk: string) => hashStr(`${seedKey}:${period}:${wk}:mover`) % specs.length;
+  // Never re-pick last week's mover: the previous mover's swing collapsing back
+  // to base drift is what guarantees a ≥5 % week-over-week change.
+  let moverIdx = moverFor(week);
+  if (moverFor(isoWeekKey(new Date(now - 7 * DAY_MS))) === moverIdx) {
+    moverIdx = (moverIdx + 1) % specs.length;
+  }
+
+  return specs.map((s, idx) => {
     const impressions = Math.round(s.impr * days * j());
     const clicks = Math.round(impressions * s.ctr * j());
     const cost = Math.round(clicks * s.cpc * j());
     const conversions = Math.max(0, Math.round(clicks * s.convRate * j()));
     const conversionValue = Math.round(conversions * s.aov * j());
+
+    // Weekly drift, seeded per (campaign, week) so output is stable within the
+    // ISO week and deterministic for any given week. Two independent factors —
+    // traffic/spend vs outcomes — so ROAS genuinely moves, not just volume.
+    const dr = mulberry32(hashStr(`${seedKey}:${period}:${week}:${s.id}`));
+    const amp = () => (idx === moverIdx ? MOVER_MIN + dr() * MOVER_SPAN : dr() * DRIFT_BASE);
+    const sign = () => (dr() < 0.5 ? -1 : 1);
+    const spendDrift = 1 + sign() * amp();
+    const outcomeDrift = 1 + sign() * amp();
+
     return {
       id: s.id,
       name: s.name,
       type: s.type,
       status: s.status,
-      impressions,
-      clicks,
-      cost,
-      conversions,
-      conversionValue,
+      impressions: Math.round(impressions * spendDrift),
+      clicks: Math.round(clicks * spendDrift),
+      cost: Math.round(cost * spendDrift),
+      conversions: Math.max(0, Math.round(conversions * outcomeDrift)),
+      conversionValue: Math.max(0, Math.round(conversionValue * outcomeDrift)),
     };
   });
 }
