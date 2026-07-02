@@ -92,3 +92,36 @@ gate-locked notes: `docs/harness/ambiguity-business-scan-2026-06-25/`.
 - **Bigger builds:** multi-article CMS loader (article-content #1), grade-your-account lead magnet (campaign-model #4), config-driven demo engine + channel-share drift (dataset-seed #3/#5), dashboard narrative export (dashboard-kpis #2), report/snapshot retention+pruning (campaign-sync #3, connector #5), metrics-engine dataset-invariant fields (#1).
 - **Medium/Low tail:** ~66 of 100 findings remain (mostly outside the High-value plan); 2 Low are won't-fix-grade. Full list in the per-context reports.
 - **2026-06-26 — tail closed (tracks T1–T3).** The 12-item "Remaining" list from `FIXES-WAVE-8-10-tail.md` is fully worked: 10 implemented, 2 closed by verification (`ai-generation-api #2` already satisfied; `nav #5` won't-do — TaskPager already on app-i18n). Branch `vibeman/ambiguity-business-tail-2026-06-26` (11 commits) → merged to `master`. tsc 0 · unit 173/173 · `next build` ✓ · real Claude 14/14. See `FIXES-TAIL-T1-T3-final.md`.
+
+---
+
+# 2026-07-02 — feature-scout scan + full 9-wave implementation
+
+A `/vibeman` Pipeline-B feature-scout pass over all 20 mapped contexts (5 ideas each, 100 total)
+followed by the complete 9-wave plan: 57 idea-refs implemented + 1 closed-by-verification,
+55 impl commits, tests 173→305, tsc 0, every [CLIENT] wave build-verified, on branch
+`vibeman/feature-scout-2026-07-02` (built in the isolated worktree `systedo-case-fswave`).
+Index + per-context reports + wave ledger: `docs/harness/feature-scout-2026-07-02/`.
+
+## Structural facts (new/corrected)
+- **2026-07-02 — HASHED_FILES covers ALL `src/lib/ai/tools/*.ts` (14 files)**, not the 5-file list in the 2026-06-18 note above (stale). Also hashed: `src/lib/llm/{index,models,claude,gemini}.ts`, both AI/analyze routes, `test-llm/{registry,real.test,setup,resolve-hooks}.mjs`. NOT hashed: `src/lib/llm/{cost,telemetry}.ts`, `scripts/llm-gate.mjs`, `test-llm/{callsites,coverage.test}.mjs`, `src/lib/ai/refine.ts`.
+- **The gate is now v2 per-tool incremental** (wave 4): a one-tool edit re-proves only that tool; shared-file edits (llm/index.ts) re-prove everything. `npm run llm:gate:check` = key-free freshness check (CI lane); the gate auto-stages the refreshed cache; `LLM_CAPTURE=1` during a real run seeds `test-llm/corpus/` for offline validator tests.
+- **The gate cache does NOT transfer between checkouts whose hashed files differ** — copying `.llm-gate-cache.json` from the main checkout into a fresh worktree bought nothing because the main tree's `real.test.mjs` had concurrent-WIP edits when the cache was computed. Budget one full real run (~6–9 min) per fresh worktree.
+- **Node-bound server modules are `server-only`-poisoned** (db, design-tokens, campaigns/social/images stores, firebase; wave 4): a `"use client"` import of them now fails at dev time with a clear error instead of a cryptic `next build` chunk error.
+- **Sample/demo realism is deterministic and load-bearing** (wave 7): `scripts/generate-data.mjs` has an authored EVENTS table (multipliers that consume no PRNG draws) + `--as-of` (default 2026-06-20); campaign sample data drifts per ISO week with a rotating mover. The anomaly engine, impact headlines, and change-aware prompts all rely on these actually firing.
+- **`generateStructured` args now include `tier: "fast"|"quality"`** (haiku CLI alias / flash-lite in prod) and an `AbortSignal` that kills the CLI child / cancels the Gemini call; 4 light tools run fast-tier. `meta.model` stays truthful; registry fixtures mirror tier so gate runs prove the real model.
+- **Sonnet-via-CLI emits unparseable JSON ~1-in-7 calls** under load (measured in the W9 proving runs); the wrapper now retries 3× and surfaces a raw snippet in parse errors. A 12/14 gate failure with "demo fallback" assertions usually means CLI usage-limit exhaustion instead — check `claude` login/limits before debugging tools.
+
+## Conventions reinforced
+- **One hashed commit per gate wave**: stage non-hashed support commits first, bundle every hashed edit into one final commit, prove manually with `npm run llm:gate` (600s timeout) before committing — the run this bought: exactly 1 paid proving run for 5 ideas.
+- **Cross-tool handoff bridge** (sessionStorage seed + nonce + tab/route switch, receiver reads on mount) now powers keywords→brief, brief→ads, decay→obsah, and the 4-step content pipeline. Extend with optional fields only.
+- **useAiTool is the single client seam** for history (bounded 5/tool), refine, per-period variants, persisted drafts, AiError envelope consumption — new tool UX belongs there, not in per-panel state.
+
+## Anti-patterns to avoid (new)
+- **Committing from a checkout a ship-loop/second agent is writing to.** This run found foreign WIP (cron-auth refactor, real.test.mjs retry work) appearing mid-scan in the main checkout; all wave work moved to a worktree. Check `git status` for files you didn't touch BEFORE the first commit, not after.
+- **Assuming a documented hashed-file list is current** — read `HASHED_FILES` in `scripts/llm-gate.mjs` before every gate-adjacent wave; W6 paid a surprise ~5-min real run because the list had grown.
+
+## Open follow-ups (from the 2026-07-02 run)
+- **42 INDEX leftovers** (none gate-locked); ready-made Wave 10 = campaign console depth (campaign-connector-store #2 #3, campaign-console #2 #3 #5, campaign-model-prompts #3 #4 #5, campaign-sync-api #3 #5). Then design-system/helper sweeps, reader/keyboard tail, AI status/latency, ad-form polish, demo-data + testing remainder.
+- **Playwright e2e specs were extended** (mobile TOC, deep-link, PNO goal line, batch triage) **but not executed** this run; dashboard alert-focus e2e still missing (anomaly-data-dependent).
+- **The main checkout carries unrelated concurrent WIP** (cron `cronAuthorized` refactor, real.test.mjs retry work — the latter now ALSO exists on this branch via W9's independent hardening; expect a merge conflict in `test-llm/real.test.mjs` and `src/app/api/cron/*` when this branch merges).
