@@ -165,7 +165,10 @@ export default function CampaignsClient() {
 
   const changePeriod = (p: CampaignPeriod) => {
     setSelected(p);
-    syncAndRefresh(p);
+    // Period toggle prefers the period's stored state (instant + quota-free);
+    // only a never-synced period falls through to a real connector sync. The
+    // explicit "Synchronizovat" button stays a forced refresh.
+    void sync(p, { preferStored: true }).then(refreshAlerts);
   };
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);

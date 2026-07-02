@@ -129,14 +129,22 @@ export function useCampaigns() {
     load();
   }, [load]);
 
-  const sync = useCallback(async (period: CampaignPeriod) => {
+  /** Sync (or serve) one period. `preferStored: true` — the period-toggle path
+   *  — lets the server flip to that period's already-stored state instantly
+   *  (no connector round-trip, no sync quota) and only falls back to a real
+   *  connector sync when the period was never synced. The explicit sync
+   *  buttons omit it, so "Synchronizovat" always means a real refresh. */
+  const sync = useCallback(async (
+    period: CampaignPeriod,
+    opts?: { preferStored?: boolean }
+  ) => {
     setSyncing(true);
     setError(null);
     try {
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period, projectId: pid }),
+        body: JSON.stringify({ period, projectId: pid, preferStored: Boolean(opts?.preferStored) }),
       });
       const json = await res.json();
       if (!res.ok) {

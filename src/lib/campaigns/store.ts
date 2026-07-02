@@ -13,6 +13,12 @@ import { createHash } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { recordActivity } from "./activity";
 import { recordAlert } from "./alerts";
+import {
+  belongsToPeriod,
+  campaignDocId,
+  campaignSeriesDocId,
+  seriesDocId,
+} from "./store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "./triage";
 import type {
   AiResponse,
@@ -31,6 +37,7 @@ import type {
 
 export interface SyncMeta {
   source: string;
+  /** the ACTIVE period — what the page and the analyze route currently show */
   period: CampaignPeriod;
   syncedAt: string;
   /** true when a live sync silently fell back to sample data (campaigns and/or
@@ -38,16 +45,28 @@ export interface SyncMeta {
   degraded?: boolean;
   /** error summary of the live failure behind the fallback, when degraded */
   degradedReason?: string | null;
+  /** when each period was last actually synced — the "is this period's stored
+   *  state warm?" map behind the instant, quota-free period toggle */
+  syncedByPeriod?: Record<string, string>;
 }
 
 function tenantDoc(tenant: string) {
   return firestore.collection("tenants").doc(tenant);
 }
 
+/** The tenant's active period (root meta), or null before the first sync —
+ *  the attribution anchor for docs written before per-period keying. */
+async function activePeriod(tenant: string): Promise<CampaignPeriod | null> {
+  const doc = await tenantDoc(tenant).get();
+  return (doc.data()?.period as CampaignPeriod | undefined) ?? null;
+}
+
 // --- campaigns --------------------------------------------------------------
 
-/** Replace the tenant's campaign set with a freshly-synced one, append a snapshot
- *  of it, and record the sync metadata — all in one atomic batch. */
+/** Replace the tenant's campaign set *for one period* with a freshly-synced
+ *  one, append a snapshot of it, and record the sync metadata — all in one
+ *  atomic batch. Other periods' stored campaigns are left untouched, so
+ *  flipping the period selector serves warm data instead of re-fetching. */
 export async function upsertCampaigns(
   tenant: string,
   campaigns: Campaign[],
@@ -63,14 +82,29 @@ export async function upsertCampaigns(
   const syncedAt = new Date().toISOString();
   const batch = firestore.batch();
 
-  // Clear current campaigns, then write the new set with a stable position.
+  // Clear this period's campaigns (plus any legacy un-keyed docs — once the
+  // active period moves they could no longer be attributed reliably; the old
+  // store wiped everything on every sync, so this deletes strictly less),
+  // then write the new set with a stable position under period-prefixed ids.
   const existing = await t.collection("campaigns").get();
-  existing.forEach((d) => batch.delete(d.ref));
-  campaigns.forEach((c, i) => batch.set(t.collection("campaigns").doc(c.id), { ...c, position: i }));
+  existing.forEach((d) => {
+    const p = d.data().period as string | undefined;
+    if (p === meta.period || p == null) batch.delete(d.ref);
+  });
+  campaigns.forEach((c, i) =>
+    batch.set(t.collection("campaigns").doc(campaignDocId(meta.period, c.id)), {
+      ...c,
+      position: i,
+      period: meta.period,
+    })
+  );
 
-  // Append-only snapshot of this sync (one doc per sync) for change diffing.
+  // Append-only snapshot of this sync (one doc per sync) for change diffing,
+  // tagged with its period so diffs and the health timeline never compare a
+  // 7-day window against a 90-day one.
   batch.set(t.collection("snapshots").doc(syncedAt), {
     syncedAt,
+    period: meta.period,
     campaigns: campaigns.map((c) => ({
       campaignId: c.id,
       status: c.status,
@@ -82,6 +116,7 @@ export async function upsertCampaigns(
 
   // Sync metadata on the tenant root doc. Firestore rejects `undefined`, so the
   // optional degradation fields are normalised (and cleared on a healthy sync).
+  // set+merge deep-merges maps, so syncedByPeriod keeps the other periods.
   batch.set(
     t,
     {
@@ -90,6 +125,7 @@ export async function upsertCampaigns(
       syncedAt,
       degraded: meta.degraded ?? false,
       degradedReason: meta.degradedReason ?? null,
+      syncedByPeriod: { [meta.period]: syncedAt },
     },
     { merge: true }
   );
@@ -115,14 +151,42 @@ function toCampaign(r: FirebaseFirestore.DocumentData): Campaign {
   };
 }
 
-export async function listCampaigns(tenant: string): Promise<Campaign[]> {
+/** The tenant's campaigns for `period` (defaults to the active period, so every
+ *  legacy caller — the analyze route included — keeps reading exactly what the
+ *  page shows). Un-keyed legacy docs count as the active period's data. */
+export async function listCampaigns(tenant: string, period?: CampaignPeriod): Promise<Campaign[]> {
+  const active = await activePeriod(tenant);
+  const requested = period ?? active;
   const snap = await tenantDoc(tenant).collection("campaigns").orderBy("position", "asc").get();
-  return snap.docs.map((d) => toCampaign(d.data()));
+  const docs = snap.docs.map((d) => d.data());
+  if (!requested) return docs.map(toCampaign); // pre-first-sync (empty store)
+  return docs
+    .filter((d) => belongsToPeriod(d.period as string | undefined, active, requested))
+    .map(toCampaign);
 }
 
-export async function getCampaign(tenant: string, id: string): Promise<Campaign | null> {
+export async function getCampaign(
+  tenant: string,
+  id: string,
+  period?: CampaignPeriod
+): Promise<Campaign | null> {
+  const active = await activePeriod(tenant);
+  const requested = period ?? active;
+  if (requested) {
+    const keyed = await tenantDoc(tenant)
+      .collection("campaigns")
+      .doc(campaignDocId(requested, id))
+      .get();
+    if (keyed.exists) return toCampaign(keyed.data()!);
+  }
+  // Legacy un-keyed doc — only valid as the active period's data.
   const doc = await tenantDoc(tenant).collection("campaigns").doc(id).get();
-  return doc.exists ? toCampaign(doc.data()!) : null;
+  if (!doc.exists) return null;
+  const data = doc.data()!;
+  if (requested && !belongsToPeriod(data.period as string | undefined, active, requested)) {
+    return null;
+  }
+  return toCampaign(data);
 }
 
 export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
@@ -135,13 +199,36 @@ export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
     syncedAt: r.syncedAt,
     degraded: Boolean(r.degraded),
     degradedReason: r.degradedReason ?? null,
+    ...(r.syncedByPeriod && typeof r.syncedByPeriod === "object"
+      ? { syncedByPeriod: r.syncedByPeriod as Record<string, string> }
+      : {}),
   };
+}
+
+/** Flip the tenant's ACTIVE period to `period` — the cheap half of a period
+ *  switch, valid only when that period's stored state is warm (it has a
+ *  `syncedByPeriod` entry). Returns the updated meta, or null when there is no
+ *  stored sync for the period (caller falls back to a real connector sync).
+ *  `syncedAt` is set to the period's own last sync so "synchronizováno před…"
+ *  reflects the age of the data actually on screen. The active pointer is what
+ *  the gate-locked analyze route reads, so evaluations follow the page. */
+export async function setActivePeriod(
+  tenant: string,
+  period: CampaignPeriod
+): Promise<SyncMeta | null> {
+  const meta = await getSyncMeta(tenant);
+  const syncedAt = meta?.syncedByPeriod?.[period];
+  if (!meta || !syncedAt) return null;
+  if (meta.period !== period || meta.syncedAt !== syncedAt) {
+    await tenantDoc(tenant).set({ period, syncedAt }, { merge: true });
+  }
+  return { ...meta, period, syncedAt };
 }
 
 // --- daily series (trend chart) ---------------------------------------------
 
-/** Replace the tenant's stored daily series with a freshly-synced one. Held in a
- *  single doc (the series is a small bounded array) keyed `series/latest`. */
+/** Replace the tenant's stored daily series *for one period* — one small doc
+ *  per period (`series/{period}`; the legacy single doc was `series/latest`). */
 export async function saveSeries(
   tenant: string,
   series: DailyPoint[],
@@ -149,15 +236,25 @@ export async function saveSeries(
 ): Promise<void> {
   await tenantDoc(tenant)
     .collection("series")
-    .doc("latest")
+    .doc(seriesDocId(meta.period))
     .set({ period: meta.period, series, syncedAt: new Date().toISOString() });
 }
 
-/** The tenant's latest daily series (oldest → newest), or [] if none synced. */
-export async function getSeries(tenant: string): Promise<DailyPoint[]> {
-  const doc = await tenantDoc(tenant).collection("series").doc("latest").get();
-  const data = doc.data();
-  return Array.isArray(data?.series) ? (data!.series as DailyPoint[]) : [];
+/** The tenant's daily series for `period` (defaults to the active period),
+ *  oldest → newest, or []. Falls back to the legacy `latest` doc when it holds
+ *  exactly the requested period (it always recorded its period). */
+export async function getSeries(tenant: string, period?: CampaignPeriod): Promise<DailyPoint[]> {
+  const col = tenantDoc(tenant).collection("series");
+  const requested = period ?? (await activePeriod(tenant));
+  if (requested) {
+    const keyed = await col.doc(seriesDocId(requested)).get();
+    const data = keyed.data();
+    if (Array.isArray(data?.series)) return data!.series as DailyPoint[];
+  }
+  const legacy = await col.doc("latest").get();
+  const data = legacy.data();
+  if (!Array.isArray(data?.series)) return [];
+  return !requested || data!.period === requested ? (data!.series as DailyPoint[]) : [];
 }
 
 /** Replace the tenant's stored per-campaign daily series (campaign id → points).
@@ -172,15 +269,29 @@ export async function saveCampaignSeries(
 ): Promise<void> {
   await tenantDoc(tenant)
     .collection("series")
-    .doc("campaigns")
+    .doc(campaignSeriesDocId(meta.period))
     .set({ period: meta.period, byId, syncedAt: new Date().toISOString() });
 }
 
-/** The stored per-campaign daily series, or {} when none synced yet. */
-export async function getCampaignSeries(tenant: string): Promise<Record<string, DailyPoint[]>> {
-  const doc = await tenantDoc(tenant).collection("series").doc("campaigns").get();
-  const byId = doc.data()?.byId;
-  return byId && typeof byId === "object" ? (byId as Record<string, DailyPoint[]>) : {};
+/** The stored per-campaign daily series for `period` (defaults to the active
+ *  period), or {}. Falls back to the legacy un-keyed `campaigns` doc when it
+ *  holds exactly the requested period. */
+export async function getCampaignSeries(
+  tenant: string,
+  period?: CampaignPeriod
+): Promise<Record<string, DailyPoint[]>> {
+  const col = tenantDoc(tenant).collection("series");
+  const requested = period ?? (await activePeriod(tenant));
+  if (requested) {
+    const keyed = await col.doc(campaignSeriesDocId(requested)).get();
+    const byId = keyed.data()?.byId;
+    if (byId && typeof byId === "object") return byId as Record<string, DailyPoint[]>;
+  }
+  const legacy = await col.doc("campaigns").get();
+  const data = legacy.data();
+  const byId = data?.byId;
+  if (!byId || typeof byId !== "object") return {};
+  return !requested || data!.period === requested ? (byId as Record<string, DailyPoint[]>) : {};
 }
 
 // --- reports ----------------------------------------------------------------
@@ -419,15 +530,26 @@ interface SnapshotEntry {
  *  with no AI evaluation required. */
 export async function listSnapshotSummaries(
   tenant: string,
-  limit = 12
+  limit = 12,
+  period?: CampaignPeriod
 ): Promise<SnapshotSummaryPoint[]> {
+  const active = await activePeriod(tenant);
+  const requested = period ?? active;
+  // Over-fetch, then filter to the requested period: with per-period storage
+  // snapshots of different windows interleave, and a health timeline must not
+  // read a 7-day column next to a 90-day one as a "recovery".
   const snap = await tenantDoc(tenant)
     .collection("snapshots")
     .orderBy("syncedAt", "desc")
-    .limit(limit)
+    .limit(limit * 4)
     .get();
   return snap.docs
     .map((d) => d.data())
+    .filter(
+      (data) =>
+        !requested || belongsToPeriod(data.period as string | undefined, active, requested)
+    )
+    .slice(0, limit)
     .map((data) => ({
       syncedAt: data.syncedAt as string,
       summary: summarizeSnapshotEntries(
@@ -443,15 +565,30 @@ export async function listSnapshotSummaries(
     .reverse();
 }
 
-export async function getLatestChanges(tenant: string): Promise<ChangesSummary | null> {
+export async function getLatestChanges(
+  tenant: string,
+  period?: CampaignPeriod
+): Promise<ChangesSummary | null> {
+  const active = await activePeriod(tenant);
+  const requested = period ?? active;
+  // Diff the two newest snapshots OF THE SAME PERIOD — comparing a 7-day
+  // window against a 30-day one would report the window change as campaign
+  // movement. Over-fetch and filter (legacy un-keyed snapshots count as the
+  // active period's).
   const snap = await tenantDoc(tenant)
     .collection("snapshots")
     .orderBy("syncedAt", "desc")
-    .limit(2)
+    .limit(20)
     .get();
-  if (snap.size < 2) return null;
+  const docs = snap.docs
+    .map((d) => d.data())
+    .filter(
+      (data) =>
+        !requested || belongsToPeriod(data.period as string | undefined, active, requested)
+    )
+    .slice(0, 2);
+  if (docs.length < 2) return null;
 
-  const docs = snap.docs.map((d) => d.data());
   const current = docs[0]!.syncedAt as string;
   const since = docs[1]!.syncedAt as string;
 
@@ -459,7 +596,7 @@ export async function getLatestChanges(tenant: string): Promise<ChangesSummary |
     new Map(entries.map((e) => [e.campaignId, e]));
   const curMap = toMap((docs[0]!.campaigns ?? []) as SnapshotEntry[]);
   const prevMap = toMap((docs[1]!.campaigns ?? []) as SnapshotEntry[]);
-  const names = new Map((await listCampaigns(tenant)).map((c) => [c.id, c.name]));
+  const names = new Map((await listCampaigns(tenant, requested ?? undefined)).map((c) => [c.id, c.name]));
 
   const valueOf = (e: SnapshotEntry) => e.conversionValue ?? e.conversion_value ?? 0;
   const roas = (cost: number, value: number) => (cost > 0 ? value / cost : 0);
