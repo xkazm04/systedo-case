@@ -8,6 +8,7 @@
  *  Per-tenant collections are small, so reads fetch the whole collection and
  *  filter in code — this keeps queries single-field (auto-indexed), with no
  *  composite indexes to provision. */
+import "server-only";
 import { createHash } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import type {

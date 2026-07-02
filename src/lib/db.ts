@@ -10,6 +10,7 @@
  *  build step and no extra dependency — the same zero-dependency spirit as the
  *  rest of the project. Import only from server code (route handlers / stores).
  */
+import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";

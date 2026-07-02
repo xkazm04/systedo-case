@@ -2,6 +2,7 @@
  *  (bytes) plus a Firestore doc (the prompt + scoring metadata behind each image),
  *  per tenant. Server-only. Best-effort: a Storage failure is surfaced, never
  *  silently corrupts the library. */
+import "server-only";
 import { randomBytes } from "node:crypto";
 import { firestore, storageBucket } from "@/lib/firebase";
 import type { CreativeSummary } from "./types";

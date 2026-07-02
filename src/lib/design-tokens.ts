@@ -7,6 +7,7 @@
  *  Swatches render with `var(--color-…)` (the variables Tailwind v4 emits from
  *  `@theme` into `:root`), so the colour you see is always the live one; the
  *  parsed hex is shown alongside purely as a label. */
+import "server-only";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 

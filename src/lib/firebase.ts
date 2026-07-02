@@ -7,6 +7,7 @@
  *      created by the gcloud provisioning step (gitignored).
  *   3. Application Default Credentials (gcloud ADC).
  */
+import "server-only";
 import { existsSync, readFileSync } from "node:fs";
 import {
   applicationDefault,

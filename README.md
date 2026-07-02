@@ -298,6 +298,12 @@ scripts/llm-gate.mjs       # pre-commit brána pro LLM wrapper (coverage + prove
 test-llm/                  # node:test suite proti reálnému Claude + registry call sites
 ```
 
+Serverové moduly vázané na Node (SQLite, firebase-admin, čtení z disku) začínají
+`import "server-only"` — omylem importované z klientské komponenty selžou okamžitě
+a srozumitelně už v `next dev`, místo kryptické chunk chyby až při `next build`.
+Konvence pro nové store/DB moduly: čisté typy a helpery patří do sesterského
+`*-types.ts` (bez Node závislostí), I/O modul vedle nich dostane `server-only`.
+
 ---
 
 ## Nasazení (Vercel)

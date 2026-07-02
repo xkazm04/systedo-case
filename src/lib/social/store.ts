@@ -1,6 +1,7 @@
 /** Per-tenant social store (Firestore): scheduled/published posts + the comms
  *  inbox. Sample inbound messages are seeded on first read so the inbox demos
  *  without real webhooks. Server-only. */
+import "server-only";
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import {
