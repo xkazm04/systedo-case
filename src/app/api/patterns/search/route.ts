@@ -7,7 +7,8 @@ import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { searchPatterns } from "@/lib/patterns/store";
 import { consume } from "@/lib/usage";
-import { RATE_RULES, clientIp, rateLimit, tooManyRequests } from "@/lib/ai/rate-limit";
+import { RATE_RULES, clientIp, tooManyRequests } from "@/lib/ai/rate-limit";
+import { durableGuard } from "@/lib/ai/durable-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 export async function POST(request: Request) {
-  const limited = rateLimit(clientIp(request), [RATE_RULES.aiPerMin()]);
+  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin()], { spendUnits: 1 });
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,
