@@ -14,6 +14,7 @@ import {
   bucketize,
   channelRowsCompared,
   detectAnomalies,
+  detectTrends,
   evaluatePeriod,
   HEADLINE_METRICS,
   metricDescription,
@@ -26,6 +27,7 @@ import {
   type Anomaly,
   type ChannelRow,
   type PeriodBaseline,
+  type Trend,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -84,6 +86,8 @@ const T = {
     insightPnoAbove: "Celkové PNO {pno} je nad cílem {goal}.",
     insightBestRoas: "Nejefektivnější kanál je {channel} s ROAS {roas}.",
     insightWorstPno: "{channel} má nejvyšší PNO {pno} — prostor pro optimalizaci nabídek.",
+    insightTrendDown: "{metric} — pokles {weeks} v řadě ({pct} kumulativně).",
+    insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
     anomalySpike: "{metric} — nárůst {pct} nad očekávání",
     anomalyDrop: "{metric} — propad {pct} pod očekávání",
     anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
@@ -140,6 +144,8 @@ const T = {
     insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
     insightBestRoas: "Most efficient channel is {channel} with ROAS {roas}.",
     insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
+    insightTrendDown: "{metric} — declining {weeks} in a row ({pct} cumulative).",
+    insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
     anomalySpike: "{metric} — spike {pct} above expected",
     anomalyDrop: "{metric} — drop {pct} below expected",
     anomalyOutage: "{metric} — outage (value near zero)",
@@ -235,6 +241,11 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // 28-day baseline needs it).
   const anomalies = detectAnomalies(data.daily, data.goals);
 
+  // Sustained multi-week drifts ending "now" — the slow bleed the per-day
+  // anomaly thresholds can't see. Full-series like the anomalies (its trailing
+  // weekly buckets and noise floor need the history, not the selected window).
+  const trends = detectTrends(data.daily);
+
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
   const result = evaluatePeriod(data.daily, period.days, baseline);
@@ -274,8 +285,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
     roas: null,
   };
 
-  // auto-generated insights
-  const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno, fmt, t);
+  // auto-generated insights (sustained trends first — highest-signal finding)
+  const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno, trends, fmt, t, locale);
 
   const pnoOverGoal = c.pno > goalPno;
   // PNO gauge axis headroom — 60 % above the larger of actual/goal so the bar and
@@ -597,6 +608,13 @@ function dayWord(n: number, locale: SupportedLocale): string {
   return n === 1 ? "den" : n >= 2 && n <= 4 ? "dny" : "dní";
 }
 
+/** Locale-correct "N weeks" unit for the sustained-trend insight
+ *  (1 týden / 2–4 týdny / 5+ týdnů). */
+function weekWord(n: number, locale?: SupportedLocale): string {
+  if (locale === "en") return n === 1 ? "week" : "weeks";
+  return n === 1 ? "týden" : n >= 2 && n <= 4 ? "týdny" : "týdnů";
+}
+
 // --- insight generation -----------------------------------------------------
 
 interface Insight {
@@ -611,11 +629,32 @@ function buildInsights(
   revenueDelta: number,
   pno: number,
   goalPno: number,
+  trends: Trend[],
   fmt: Formatters,
-  t: TFn
+  t: TFn,
+  locale?: SupportedLocale
 ): Insight[] {
   const out: Insight[] = [];
   const paid = channels.filter((ch) => ch.cost > 0);
+
+  // Sustained multi-week drifts first — agencies get fired over unnoticed
+  // slow bleeds, not single flagged days, so a trend outranks every other line.
+  for (const tr of trends) {
+    const favourable =
+      (tr.direction === "up") === (METRICS[tr.metric].goodDirection === "up");
+    out.push({
+      tone: favourable ? "good" : "warn",
+      text: (
+        <>
+          {t(tr.direction === "down" ? "insightTrendDown" : "insightTrendUp", {
+            metric: metricShort(METRICS[tr.metric], locale),
+            weeks: `${tr.weeks} ${weekWord(tr.weeks, locale)}`,
+            pct: fmt.fmtSignedPct(tr.cumulativeChange),
+          })}
+        </>
+      ),
+    });
+  }
 
   // Below ±0.5 % a revenue move is noise, not a story worth surfacing as an insight.
   const MIN_REVENUE_DELTA_TO_REPORT = 0.005;

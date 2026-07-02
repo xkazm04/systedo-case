@@ -14,11 +14,12 @@ import {
 } from "./series";
 import { channelRowsCompared, type ChannelRow } from "./channels";
 import { detectAnomalies, type Anomaly } from "./anomalies";
+import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
-export const SNAPSHOT_SCHEMA_VERSION = 2;
+export const SNAPSHOT_SCHEMA_VERSION = 3;
 
 export interface SnapshotPeriod {
   key: string;
@@ -52,6 +53,8 @@ export interface MetricsSnapshot {
   channels: ChannelRow[];
   /** flagged days (spike/drop/outage/goal-breach) */
   anomalies: Anomaly[];
+  /** sustained multi-week drifts ending at the latest data ("slow bleed") */
+  trends: Trend[];
   /** monthly goal pacing + forecast band (null when no data) */
   pacing: MonthlyPacing | null;
   goals: { pno: number; monthlyRevenue: number };
@@ -72,6 +75,7 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     buckets: bucketize(result.points, granularity),
     channels: channelRowsCompared(data.channels, result.current, result.previous),
     anomalies: detectAnomalies(data.daily, data.goals),
+    trends: detectTrends(data.daily),
     pacing: monthlyPacing(data.daily, data.goals.monthlyRevenue),
     goals: data.goals,
   };

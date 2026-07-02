@@ -17,6 +17,7 @@ import {
   type PeriodBaseline,
   type Significance,
   type Totals,
+  type Trend,
 } from "./metrics";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
 import { ANALYSIS_PERIOD_LABELS, type AnalysisPeriod } from "./ai-types";
@@ -34,6 +35,8 @@ export interface Snapshot {
   significance: Record<MetricKey, Significance>;
   channels: ChannelRow[];
   anomalies: Anomaly[];
+  /** sustained multi-week drifts ending at the latest data ("slow bleed") */
+  trends: Trend[];
   pacing: MonthlyPacing | null;
   goalPno: number;
   client: { name: string; domain: string; segment: string };
@@ -58,6 +61,7 @@ export function buildSnapshot(
     significance: snap.significance,
     channels: snap.channels,
     anomalies: snap.anomalies,
+    trends: snap.trends,
     pacing: snap.pacing,
     goalPno: snap.goals.pno,
     client: {
@@ -146,8 +150,24 @@ export function snapshotToPromptText(s: Snapshot): string {
     );
   }
 
+  // Sustained multi-week drifts — the "slow bleed" the per-day anomalies miss.
+  if (s.trends.length > 0) {
+    lines.push(
+      "",
+      "Setrvalé trendy (klouzavé týdenní průměry, očištěné o den v týdnu):",
+      ...s.trends.map((tr) => {
+        const what = METRIC_LABEL[tr.metric] ?? tr.metric;
+        const dir = tr.direction === "down" ? "pokles" : "růst";
+        return `- ${what}: ${dir} ${tr.weeks} ${weekWord(tr.weeks)} v řadě, kumulativně ${fmtSignedPct(tr.cumulativeChange)}`;
+      })
+    );
+  }
+
   return lines.join("\n");
 }
+
+/** Czech plural for "N weeks" (1 týden / 2–4 týdny / 5+ týdnů). */
+const weekWord = (n: number): string => (n === 1 ? "týden" : n >= 2 && n <= 4 ? "týdny" : "týdnů");
 
 const METRIC_LABEL: Partial<Record<MetricKey, string>> = {
   visits: "návštěvy",
