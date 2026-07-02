@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
 import type { AdRequest, AiMode } from "@/lib/ai-types";
@@ -60,6 +60,9 @@ const TABS: Tab[] = [
   { id: "creative", labelKey: "tabCreativeLabel", serviceKey: "tabCreativeService", icon: ImageIcon },
 ];
 
+/** Validate an untrusted ?tool= value against the known tab ids. */
+const isTabId = (v: string | null): v is TabId => TABS.some((tab) => tab.id === v);
+
 export default function AiAssistant() {
   const t = useT(T);
   const [tab, setTab] = useState<TabId>("ads");
@@ -77,16 +80,43 @@ export default function AiAssistant() {
   // Bumped when an A/B variant is saved, so the experiments panel reloads.
   const [experimentNonce, setExperimentNonce] = useState(0);
 
+  // Deep link: /ai-asistent?tool=<id> lands on that tool, so a refresh keeps
+  // the user's place next to their restored results and a specific tool can be
+  // shared/bookmarked. Reading location in a mount effect (not an initializer)
+  // keeps the server render and the first client render identical — no
+  // hydration mismatch and no useSearchParams Suspense requirement (the page
+  // stays a server component).
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("tool");
+    if (isTabId(param)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTab(param);
+    }
+  }, []);
+
+  /** Switch tools and mirror the choice into ?tool= (replaceState — no router
+   *  churn, no history spam), keeping the URL shareable and refresh-stable. */
+  const selectTab = (id: TabId) => {
+    setTab(id);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tool", id);
+      window.history.replaceState(null, "", url);
+    } catch {
+      /* URL/history unavailable — tab switching itself still works */
+    }
+  };
+
   const handleCreateBrief = (seed: BriefSeed) => {
     setBriefSeed(seed);
     setBriefNonce((n) => n + 1);
-    setTab("brief");
+    selectTab("brief");
   };
 
   const handleCreateAds = (seed: Partial<AdRequest>) => {
     setAdSeed(seed);
     setAdNonce((n) => n + 1);
-    setTab("ads");
+    selectTab("ads");
   };
 
   return (
@@ -104,7 +134,7 @@ export default function AiAssistant() {
               key={tab_.id}
               role="tab"
               aria-selected={active}
-              onClick={() => setTab(tab_.id)}
+              onClick={() => selectTab(tab_.id)}
               className={`group flex flex-col items-center gap-2 rounded-card border p-3 text-center transition-all sm:flex-row sm:items-center sm:gap-3 sm:p-4 sm:text-left ${
                 active
                   ? "border-brand-300 bg-brand-50 shadow-card"

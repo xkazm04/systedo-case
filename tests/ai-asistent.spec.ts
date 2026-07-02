@@ -43,6 +43,17 @@ test.describe("/ai-asistent", () => {
     await expect(tool(page, "ads").getByRole("heading", { name: "Zadání kampaně" })).toBeVisible();
   });
 
+  test("deep-links the active tool via ?tool=", async ({ page }) => {
+    // a shared /ai-asistent?tool=brief link lands straight on the brief tool
+    await page.goto("/ai-asistent?tool=brief");
+    await expect(tool(page, "brief").getByRole("heading", { name: "Zadání obsahu" })).toBeVisible();
+    await expect(tool(page, "ads")).toBeHidden();
+
+    // an unknown tool id falls back to the default (ads) instead of a blank page
+    await page.goto("/ai-asistent?tool=nonsense");
+    await expect(tool(page, "ads").getByRole("heading", { name: "Zadání kampaně" })).toBeVisible();
+  });
+
   test("PPC: generates ads with the live model", async ({ page }) => {
     test.skip(!HAS_KEY, "Needs GEMINI_API_KEY");
     const t = tool(page, "ads");
