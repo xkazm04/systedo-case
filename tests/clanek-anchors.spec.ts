@@ -45,3 +45,31 @@ test.describe("/clanek heading anchors", () => {
     await expect(toc.getByRole("link", { name: section })).toHaveAttribute("aria-current", "true");
   });
 });
+
+test.describe("/clanek mobile table of contents", () => {
+  // Below the lg breakpoint the sticky TOC rail doesn't exist; the collapsible
+  // <details> island is the only in-page navigation mobile readers get.
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("expands, jumps to a section and collapses after the tap", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/clanek");
+
+    // The desktop rail is display:none at this viewport, so the accessible
+    // "Obsah článku" navigation resolves uniquely to the mobile island.
+    const summary = page.locator("summary", { hasText: "Obsah článku" });
+    await expect(summary).toBeVisible();
+    await summary.click();
+
+    const link = page
+      .getByRole("navigation", { name: "Obsah článku" })
+      .getByRole("link", { name: "Jak poznat kvalitu při nákupu" });
+    await link.click();
+
+    // the anchor jump landed on the section…
+    await expect(page).toHaveURL(/#kvalita$/);
+    await expect(page.locator("#kvalita")).toBeInViewport();
+    // …and the panel collapsed so it doesn't cover the content
+    await expect(link).not.toBeVisible();
+  });
+});

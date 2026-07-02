@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
+import MobileToc from "@/components/article/MobileToc";
 import Breadcrumbs from "@/components/article/Breadcrumbs";
 import ReadingProgress from "@/components/article/ReadingProgress";
 import ShareBar from "@/components/article/ShareBar";
@@ -179,8 +180,9 @@ export default async function ArticlePage() {
         </Container>
       </section>
 
-      {/* body + sticky TOC */}
+      {/* body + sticky TOC (desktop rail) / collapsible TOC island (mobile) */}
       <Container className="grid gap-10 py-12 lg:grid-cols-[220px_1fr] lg:gap-14">
+        <MobileToc items={toc} />
         {toc.length > 0 && (
           <aside className="hidden lg:block">
             <div className="sticky top-24">
