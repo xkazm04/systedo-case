@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Bolt, ChevronDown, Download, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
 import {
   CAMPAIGN_STATUSES,
@@ -22,6 +22,7 @@ import {
   triageReasonLabel,
   summarize,
   triage,
+  triageWeight,
   type MetricTone,
   type Severity,
 } from "@/lib/campaigns/triage";
@@ -282,7 +283,9 @@ export default function CampaignTable({
   /** per-campaign-id diff vs the prior sync, so triage can flag ROAS craters /
    *  spend spikes the current-snapshot rules can't see. Empty until ≥2 syncs. */
   changesById: Record<string, CampaignChange>;
-  onAnalyze: (campaignId: string) => void;
+  /** run one evaluation; resolving `false` signals a failure (the batch queue
+   *  stops there instead of hammering the rate limiter) */
+  onAnalyze: (campaignId: string) => Promise<boolean> | void;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -331,7 +334,35 @@ export default function CampaignTable({
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
   const analyze = (id: string) => {
     setExpanded((e) => ({ ...e, [id]: true }));
-    onAnalyze(id);
+    void onAnalyze(id);
+  };
+
+  // One-click batch over the existing per-row endpoint: strictly sequential
+  // (concurrency 1 respects the AI rate limiter), in triageWeight order — the
+  // documented order a PPC manager should spend their evaluation clicks — and
+  // stopped by the first failure/429 or a user cancel. Rows that already have a
+  // report are skipped; re-evaluation stays a deliberate per-row click.
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
+  const batchCancelled = useRef(false);
+  const runBatch = async () => {
+    if (batch) return;
+    const queue = batchPending
+      .slice()
+      .sort((a, b) => triageWeight(b.c, changesById[b.c.id]) - triageWeight(a.c, changesById[a.c.id]))
+      .map(({ c }) => c.id);
+    if (queue.length === 0) return;
+    batchCancelled.current = false;
+    setBatch({ done: 0, total: queue.length });
+    try {
+      for (let i = 0; i < queue.length; i++) {
+        if (batchCancelled.current) break;
+        const ok = await onAnalyze(queue[i]);
+        setBatch({ done: i + 1, total: queue.length });
+        if (ok === false) break;
+      }
+    } finally {
+      setBatch(null);
+    }
   };
   // First click sorts (numeric/severity desc, text asc); clicking the active column flips.
   const onSort = (key: SortKey) =>
@@ -356,10 +387,12 @@ export default function CampaignTable({
   const filtersActive =
     q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
 
-  // Each row carries its triage result so the badge, the filter and the sort all
-  // read the same classification.
-  const view = all
-    .map((c) => ({ c, tr: triage(c, changesById[c.id]) }))
+  // Each row carries its triage result so the badge, the filter, the sort and
+  // the batch queue all read the same classification.
+  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id]) }));
+  // Flagged rows still lacking a report — the "evaluate all flagged" queue.
+  const batchPending = allRows.filter(({ c, tr }) => tr.severity !== "ok" && !reports[c.id]);
+  const view = allRows
     .filter(({ c, tr }) => {
       if (typeFilter !== "all" && c.type !== typeFilter) return false;
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
@@ -418,6 +451,12 @@ export default function CampaignTable({
         summary={summary}
         sortedBySeverity={sort.key === "severity"}
         onSortBySeverity={() => setSort({ key: "severity", dir: "desc" })}
+        batchPending={batchPending.length}
+        batch={batch}
+        onEvaluateFlagged={() => void runBatch()}
+        onCancelBatch={() => {
+          batchCancelled.current = true;
+        }}
       />
 
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">

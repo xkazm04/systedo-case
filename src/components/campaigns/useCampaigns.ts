@@ -140,8 +140,11 @@ export function useCampaigns() {
     }
   }, [pid]);
 
+  /** Run one evaluation. Resolves `true` on success and `false` on any failure,
+   *  so a sequential batch caller (the triage banner's "evaluate all flagged")
+   *  can stop at the first error/429 instead of hammering the rate limiter. */
   const analyze = useCallback(
-    async (scope: EvalScope, campaignId: string | null, period: CampaignPeriod) => {
+    async (scope: EvalScope, campaignId: string | null, period: CampaignPeriod): Promise<boolean> => {
       const key = scope === "overall" ? "overall" : campaignId ?? "overall";
       setAnalyzing((a) => ({ ...a, [key]: true }));
       setAnalyzeErrors((e) => {
@@ -158,7 +161,7 @@ export function useCampaigns() {
         const json = await res.json();
         if (!res.ok) {
           setAnalyzeErrors((e) => ({ ...e, [key]: json?.error ?? "Vyhodnocení se nezdařilo." }));
-          return;
+          return false;
         }
         setState((s) => ({
           ...s,
@@ -172,8 +175,10 @@ export function useCampaigns() {
           },
         }));
         setCached((cc) => ({ ...cc, [key]: Boolean(json.cached) }));
+        return true;
       } catch {
         setAnalyzeErrors((e) => ({ ...e, [key]: "Nepodařilo se spojit se serverem." }));
+        return false;
       } finally {
         setAnalyzing((a) => ({ ...a, [key]: false }));
       }

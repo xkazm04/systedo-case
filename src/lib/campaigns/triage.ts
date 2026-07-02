@@ -234,9 +234,11 @@ export function triage(c: CampaignRow, change?: CampaignChange): TriageResult {
 
 /** Sort weight: criticals above warnings above healthy, then by spend so the
  *  most expensive problem floats to the top — the order in which a PPC manager
- *  should spend their attention (and their AI-evaluation clicks). */
-export function triageWeight(c: CampaignRow): number {
-  return SEVERITY_RANK[triage(c).severity] * 1e12 + c.cost;
+ *  should spend their attention (and their AI-evaluation clicks). When the
+ *  sync-over-sync `change` is supplied, the change-aware rules count too, so a
+ *  ROAS crater ranks with the criticals it is. */
+export function triageWeight(c: CampaignRow, change?: CampaignChange): number {
+  return SEVERITY_RANK[triage(c, change).severity] * 1e12 + c.cost;
 }
 
 // --- portfolio summary (the banner headline) ---------------------------------
