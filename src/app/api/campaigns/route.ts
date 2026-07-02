@@ -18,7 +18,7 @@ import {
 } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
 import type { DailyPoint } from "@/lib/campaigns/types";
-import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
+import { indexChanges, isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
 import { consume } from "@/lib/usage";
 import {
   RATE_RULES,
@@ -174,9 +174,12 @@ export async function POST(request: Request) {
 
   // Alert on newly-critical campaigns (in-app inbox + best-effort email/webhook,
   // deduped) so a manual sync surfaces problems just like the scheduled cron does.
+  // The upsert above already appended this sync's snapshot, so the diff includes
+  // it — the change-aware rules (ROAS crater, spend spike) can fire too.
   if (userId) {
     try {
-      await evaluateAndAlert(tenant, userId, campaigns);
+      const changesById = indexChanges(await getLatestChanges(tenant));
+      await evaluateAndAlert(tenant, userId, campaigns, changesById);
     } catch (err) {
       console.error("[campaigns] alert evaluation failed:", err);
     }

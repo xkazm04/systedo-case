@@ -6,7 +6,7 @@
  *  Server-only. */
 import { firestore } from "@/lib/firebase";
 import { sendEmail, sendWebhook } from "@/lib/email";
-import { withMetrics, type Campaign } from "./types";
+import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
 
@@ -70,14 +70,18 @@ export async function getUserEmail(userId: string): Promise<string | null> {
 }
 
 /** Evaluate the just-synced campaigns and alert on new criticals across all
- *  channels. Returns how many new criticals were found. */
+ *  channels. Returns how many new criticals were found. When the sync-over-sync
+ *  diff is supplied (indexChanges over store.getLatestChanges), the change-aware
+ *  rules also run, so a ROAS crater reaches the inbox/email/webhook pipeline
+ *  instead of waiting for someone to open the page. */
 export async function evaluateAndAlert(
   tenant: string,
   userId: string,
-  campaigns: Campaign[]
+  campaigns: Campaign[],
+  changesById: Record<string, CampaignChange> = {}
 ): Promise<number> {
   const rows = campaigns.map(withMetrics);
-  const criticals = rows.filter((c) => triage(c).severity === "critical");
+  const criticals = rows.filter((c) => triage(c, changesById[c.id]).severity === "critical");
   const criticalIds = criticals.map((c) => c.id);
 
   const tenantRef = firestore.collection("tenants").doc(tenant);
@@ -92,7 +96,7 @@ export async function evaluateAndAlert(
   const items: AlertItem[] = fresh.map((c) => ({
     campaignId: c.id,
     name: c.name,
-    reason: triage(c).primary?.detail ?? "Vyžaduje pozornost.",
+    reason: triage(c, changesById[c.id]).primary?.detail ?? "Vyžaduje pozornost.",
   }));
   const title = `${fresh.length} nových kritických kampaní`;
   const body = items.map((i) => `${i.name} — ${i.reason}`).join(" · ");

@@ -10,11 +10,11 @@
 import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
-import { getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
+import { getLatestChanges, getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
 import { evaluateAndAlert } from "@/lib/campaigns/alerts";
 import { evaluateAnomalyAlerts } from "@/lib/campaigns/anomaly-alerts";
 import { recordActivity } from "@/lib/campaigns/activity";
-import type { CampaignPeriod, DailyPoint } from "@/lib/campaigns/types";
+import { indexChanges, type CampaignPeriod, type DailyPoint } from "@/lib/campaigns/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,7 +84,14 @@ export async function GET(request: Request) {
       });
       await saveSeries(tenant, series, { period });
 
-      const alerted = await evaluateAndAlert(tenant, userId, campaigns);
+      // The upsert appended this sync's snapshot, so the diff includes it — the
+      // change-aware triage rules (ROAS crater, spend spike) alert here too.
+      const alerted = await evaluateAndAlert(
+        tenant,
+        userId,
+        campaigns,
+        indexChanges(await getLatestChanges(tenant))
+      );
 
       // Surface dashboard anomalies through the same inbox/email/webhook pipeline.
       // Best-effort: a series/detection hiccup must never fail the sync.

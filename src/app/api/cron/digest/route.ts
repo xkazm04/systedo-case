@@ -7,9 +7,9 @@
 import { listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
-import { getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
+import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
-import { aggregate, withMetrics } from "@/lib/campaigns/types";
+import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
 import { triage } from "@/lib/campaigns/triage";
 import { getUserEmail, recordAlert, type AlertItem } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
@@ -54,7 +54,12 @@ export async function GET(request: Request) {
 
       const totals = aggregate(campaigns);
       const rows = campaigns.map(withMetrics);
-      const criticals = rows.filter((c) => triage(c).severity === "critical").length;
+      // Change-aware: a cratering campaign counts as critical in the weekly
+      // recap too, matching the table badges and the sync-time alerts.
+      const changesById = indexChanges(await getLatestChanges(tenant));
+      const criticals = rows.filter(
+        (c) => triage(c, changesById[c.id]).severity === "critical"
+      ).length;
       const moves = recommendBudgetMoves(rows).moves.slice(0, 3);
 
       const kpis: [string, string][] = [

@@ -220,6 +220,17 @@ export interface ChangesSummary {
   items: CampaignChange[];
 }
 
+/** Index a change summary's items by campaign id — the lookup shape the
+ *  change-aware triage consumers (table badges, alerts, digest) share. Pure and
+ *  null-safe, so callers can pass a store result straight through. */
+export function indexChanges(
+  changes: ChangesSummary | null | undefined
+): Record<string, CampaignChange> {
+  const out: Record<string, CampaignChange> = {};
+  for (const item of changes?.items ?? []) out[item.campaignId] = item;
+  return out;
+}
+
 export interface TypeGroup {
   type: CampaignType;
   total: CampaignTotals;
