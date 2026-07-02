@@ -141,6 +141,47 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
                 ))}
               </div>
             );
+          case "table":
+            // Semantic comparison table — real, selectable text (scannable and
+            // snippet-eligible) instead of pixels in an SVG. Cells are Inline[]
+            // runs, so links/bold render exactly like body copy. The wrapper
+            // scrolls horizontally on narrow viewports instead of breaking the
+            // column layout.
+            return (
+              <figure key={i} className="overflow-x-auto rounded-card border border-line bg-surface">
+                <table className="w-full border-collapse text-left text-[0.95rem]">
+                  <thead>
+                    <tr>
+                      {block.header.map((h, j) => (
+                        <th
+                          key={j}
+                          scope="col"
+                          className="border-b border-line px-4 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, j) => (
+                      <tr key={j} className={j > 0 ? "border-t border-line" : undefined}>
+                        {row.map((cell, k) => (
+                          <td key={k} className="tnum px-4 py-3 align-top text-navy-700">
+                            <Inlines content={cell} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {block.caption && (
+                  <figcaption className="border-t border-line px-4 py-3 text-center text-sm leading-relaxed text-muted">
+                    {block.caption}
+                  </figcaption>
+                )}
+              </figure>
+            );
           case "figure": {
             // SVGs are served as-is (the raster optimizer rejects them and they
             // need no resizing); raster sources still flow through next/image's

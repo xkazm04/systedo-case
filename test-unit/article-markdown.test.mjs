@@ -27,6 +27,15 @@ const SAMPLE_BLOCKS = {
   cta: { type: "cta", text: "Prohlédněte si nabídku.", href: "https://example.com", kind: "external", cta: "Do obchodu" },
   stat: { type: "stat", items: [{ value: "42 %", label: "podíl" }] },
   figure: { type: "figure", src: "/clanek/prehled.svg", alt: "přehled druhů", caption: "Popisek obrázku", width: 1200, height: 600 },
+  table: {
+    type: "table",
+    caption: "Srovnání druhů",
+    header: ["Druh", "Cena | akce"],
+    rows: [
+      [[{ text: "vlašské", bold: true }], ["200 Kč"]],
+      [["kešu"], [{ text: "ceník", href: "https://example.com", kind: "external" }]],
+    ],
+  },
 };
 
 test("every registered block type serializes to non-empty Markdown (BLOCK_TYPES is the checklist)", () => {
@@ -73,6 +82,19 @@ test("quote keeps its citation, figure its caption", () => {
   assert.equal(
     blockToMarkdown(SAMPLE_BLOCKS.figure),
     "![přehled druhů](/clanek/prehled.svg)\n*Popisek obrázku*"
+  );
+});
+
+test("table serializes as a GFM pipe table with escaped delimiters + caption", () => {
+  assert.equal(
+    blockToMarkdown(SAMPLE_BLOCKS.table),
+    [
+      "| Druh | Cena \\| akce |",
+      "| --- | --- |",
+      "| **vlašské** | 200 Kč |",
+      "| kešu | [ceník](https://example.com) |",
+      "*Srovnání druhů*",
+    ].join("\n")
   );
 });
 

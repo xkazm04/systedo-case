@@ -40,8 +40,49 @@ test("a non-object input fails", () => {
 
 test("an unknown block type fails", () => {
   const a = validArticle();
-  a.blocks.push({ type: "table", rows: [] });
+  a.blocks.push({ type: "video", src: "/x.mp4" });
   assert.throws(() => validateArticle(a), /unknown type/);
+});
+
+// --- table blocks -------------------------------------------------------------
+
+/** A well-formed 2×2 table block. */
+const validTable = () => ({
+  type: "table",
+  caption: "Srovnání",
+  header: ["Druh", "Cena"],
+  rows: [
+    [["vlašské"], ["200 Kč"]],
+    [[{ text: "kešu", bold: true }], ["260 Kč"]],
+  ],
+});
+
+test("a well-formed table block passes", () => {
+  const a = validArticle();
+  a.blocks.push(validTable());
+  assert.equal(validateArticle(a), a);
+});
+
+test("a table without a header fails", () => {
+  const a = validArticle();
+  a.blocks.push({ ...validTable(), header: [] });
+  assert.throws(() => validateArticle(a), /needs a non-empty header/);
+});
+
+test("a table row with the wrong number of cells fails", () => {
+  const a = validArticle();
+  const table = validTable();
+  table.rows.push([["jen jedna buňka"]]);
+  a.blocks.push(table);
+  assert.throws(() => validateArticle(a), /rows must each have exactly 2 cells/);
+});
+
+test("a dead anchor inside a table cell is caught", () => {
+  const a = validArticle();
+  const table = validTable();
+  table.rows[0][1] = [{ text: "ceník", href: "#cenik-neexistuje", kind: "anchor" }];
+  a.blocks.push(table);
+  assert.throws(() => validateArticle(a), /anchor "#cenik-neexistuje" has no matching heading id/);
 });
 
 test("a figure without intrinsic dimensions fails", () => {
@@ -104,6 +145,11 @@ test("snapshotToArticle output passes the guard (round-trip)", () => {
   const article = snapshotToArticle(snapshot, { name: "Mionelo", segment: "e-shop" }, "2026-05-31");
   assert.ok(article.blocks.length > 0, "bridge emits blocks");
   assert.ok(article.faq.length >= 1, "bridge emits an FAQ");
+  // the paid-channel breakdown ships as a real table block (validated above)
+  const table = article.blocks.find((b) => b.type === "table");
+  assert.ok(table, "bridge emits the per-channel breakdown table");
+  assert.equal(table.rows.length, 2, "one row per paid channel");
+  assert.ok(table.rows.every((r) => r.length === table.header.length));
   assert.equal(article.meta.dateISO, "2026-05-31");
   // explicit re-validation is idempotent and keeps the same object
   assert.equal(validateArticle(article, "round-trip"), article);

@@ -12,7 +12,7 @@ import type { Article, Block, HeadingBlock, Inline } from "./article";
  *  serializer's unit test can use it as a coverage checklist — a type accepted
  *  here must also serialize (`test-unit/article-markdown.test.mjs`). */
 export const BLOCK_TYPES = new Set<Block["type"]>([
-  "h2", "h3", "p", "ul", "ol", "callout", "quote", "cta", "stat", "figure",
+  "h2", "h3", "p", "ul", "ol", "callout", "quote", "cta", "stat", "figure", "table",
 ]);
 
 /** Every `kind:"anchor"` href found in the article's inline content. */
@@ -26,6 +26,7 @@ function anchorHrefs(blocks: Block[]): string[] {
   for (const b of blocks) {
     if (b.type === "p" || b.type === "callout" || b.type === "quote") scan(b.content);
     else if (b.type === "ul" || b.type === "ol") b.items.forEach(scan);
+    else if (b.type === "table") for (const row of b.rows) row.forEach(scan);
   }
   return out;
 }
@@ -52,6 +53,12 @@ export function validateArticle(raw: unknown, source = "article.json"): Article 
     if (b.type === "figure" && (!b.src || !b.alt || !b.width || !b.height))
       fail(`figure block[${i}] needs src, alt, width and height`);
     if ((b.type === "h2" || b.type === "h3") && !b.id) fail(`heading block[${i}] needs an id`);
+    if (b.type === "table") {
+      if (!Array.isArray(b.header) || b.header.length === 0)
+        fail(`table block[${i}] needs a non-empty header`);
+      if (!Array.isArray(b.rows) || b.rows.some((r) => !Array.isArray(r) || r.length !== b.header.length))
+        fail(`table block[${i}] rows must each have exactly ${b.header.length} cells`);
+    }
   }
   if (!Array.isArray(a.faq) || a.faq.length === 0) fail("faq needs ≥1 item (FAQPage requires it)");
 

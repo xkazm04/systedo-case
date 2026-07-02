@@ -64,8 +64,20 @@ export function blockToMarkdown(block: Block, labels: MarkdownLabels = CS_MARKDO
       const img = `![${block.alt}](${block.src})`;
       return block.caption ? `${img}\n*${block.caption}*` : img;
     }
+    case "table": {
+      const head = `| ${block.header.map(escapeCell).join(" | ")} |`;
+      const divider = `| ${block.header.map(() => "---").join(" | ")} |`;
+      const body = block.rows.map(
+        (row) => `| ${row.map((cell) => escapeCell(inlineToMarkdown(cell))).join(" | ")} |`
+      );
+      const table = [head, divider, ...body].join("\n");
+      return block.caption ? `${table}\n*${block.caption}*` : table;
+    }
   }
 }
+
+/** Escape the cell delimiter so content can't break a Markdown table row. */
+const escapeCell = (s: string): string => s.replace(/\|/g, "\\|");
 
 /** Double-quoted YAML scalar (titles/perex routinely contain `:` and quotes). */
 const yamlQuote = (s: string): string => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;

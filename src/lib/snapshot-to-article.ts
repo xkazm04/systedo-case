@@ -8,7 +8,7 @@ import type { Article, Block, Inline } from "./article";
 import { validateArticle } from "./article-validate";
 import { METRICS, type Anomaly, type MetricsSnapshot } from "./metrics";
 import type { MetricKey } from "./types";
-import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
+import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
 
 const METRIC_LABEL: Partial<Record<MetricKey, string>> = {
   visits: "návštěvy",
@@ -151,6 +151,30 @@ export function snapshotToArticle(
     { type: "h2", id: "rizika", text: "Na co si dát pozor" },
     { type: "ul", items: risks },
   ];
+
+  // Per-channel breakdown as a real table — the data is naturally tabular
+  // (scannable, snippet-eligible, selectable text), so it no longer has to be
+  // narrated as bullet prose. Sorted by revenue so the biggest channel leads.
+  if (paid.length > 0) {
+    blocks.push(
+      { type: "h2", id: "kanaly", text: "Rozpad podle kanálů" },
+      {
+        type: "table",
+        caption: `Placené kanály za ${snapshot.period.label} — objem a efektivita.`,
+        header: ["Kanál", "Náklady", "Obrat", "Konverze", "ROAS", "PNO"],
+        rows: [...paid]
+          .sort((a, b) => b.revenue - a.revenue)
+          .map((ch) => [
+            [{ text: ch.channel, bold: true }] as Inline[],
+            [fmtCZK(ch.cost)] as Inline[],
+            [fmtCZK(ch.revenue)] as Inline[],
+            [fmtInt(ch.conversions)] as Inline[],
+            [fmtMultiple(ch.roas)] as Inline[],
+            [fmtPct(ch.pno)] as Inline[],
+          ]),
+      }
+    );
+  }
 
   // Optional anomalies section, only when the detector flagged something.
   if (snapshot.anomalies.length > 0) {

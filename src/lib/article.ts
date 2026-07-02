@@ -64,6 +64,22 @@ export interface FigureBlock {
   height: number;
 }
 
+/** A semantic data table — the workhorse of buying-guide comparisons and the
+ *  natural shape for the generated report's per-channel breakdown: scannable,
+ *  snippet-eligible, real text instead of pixels in an SVG. `rows` nest as
+ *  rows → cells → inline runs, so links and bold stay first-class inside
+ *  cells. Every row must have exactly `header.length` cells (enforced at load
+ *  by validateArticle). */
+export interface TableBlock {
+  type: "table";
+  /** optional caption rendered under the table */
+  caption?: string;
+  /** column labels (plain text, non-empty) */
+  header: string[];
+  /** body rows; each row carries one Inline[] per column */
+  rows: Inline[][][];
+}
+
 export type Block =
   | HeadingBlock
   | ParagraphBlock
@@ -72,7 +88,8 @@ export type Block =
   | QuoteBlock
   | CtaBlock
   | StatBlock
-  | FigureBlock;
+  | FigureBlock
+  | TableBlock;
 
 export interface FaqItem {
   q: string;
