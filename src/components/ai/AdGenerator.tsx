@@ -10,6 +10,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
+  PLATFORMS,
   TONE_LABELS,
   TONES,
   type AdRequest,
@@ -26,6 +27,7 @@ import {
   type AdStrengthRating,
 } from "@/lib/ad-strength";
 import { useAiTool } from "./useAiTool";
+import { usePersistedForm } from "./usePersistedForm";
 import {
   CharCount,
   CopyButton,
@@ -349,13 +351,32 @@ const EXAMPLE: AdRequest = {
 
 const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "google", tone: "vecny" };
 
+/** Structural guard for a restored draft — a stale/foreign shape is dropped
+ *  rather than hydrated into the form (enum fields must stay valid). */
+const isAdForm = (v: unknown): v is AdRequest => {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.product === "string" &&
+    typeof o.benefits === "string" &&
+    typeof o.audience === "string" &&
+    (PLATFORMS as readonly string[]).includes(o.platform as string) &&
+    (TONES as readonly string[]).includes(o.tone as string)
+  );
+};
+
 export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () => void } = {}) {
   const t = useT(T);
   const { locale } = useLocale();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
-  const [form, setForm] = useState<AdRequest>(EMPTY);
+  // The campaign brief is the panel's most expensive input (5 fields) — persist
+  // it like the result already is, so a stray reload doesn't cost the typing.
+  // Keyed per project so drafts don't leak between workspaces.
+  const [form, setForm] = usePersistedForm<AdRequest>(pid ? `ads.${pid}` : "ads", EMPTY, {
+    validate: isAdForm,
+  });
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
     useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");

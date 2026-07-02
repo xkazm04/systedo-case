@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Bolt, Check, Download, Gauge, Target, TrendDown } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
@@ -13,6 +12,7 @@ import {
   type AnalysisResult,
 } from "@/lib/ai-types";
 import { useAiTool } from "./useAiTool";
+import { usePersistedForm } from "./usePersistedForm";
 import {
   Group,
   LoadingTimer,
@@ -66,10 +66,19 @@ const T = {
   },
 } as const;
 
+/** Guard for a restored period draft — anything but a known period is dropped. */
+const isAnalysisPeriod = (v: unknown): v is AnalysisPeriod =>
+  typeof v === "string" && (ANALYSIS_PERIODS as readonly string[]).includes(v);
+
 export default function PerformanceAnalyst() {
   const t = useT(T);
   const { locale } = useLocale();
-  const [period, setPeriod] = useState<AnalysisPeriod>("90d");
+  // Persist the selected period like the results are — a refresh reopens the
+  // tool on the same horizon (and, via the per-period slot below, the same
+  // cached analysis).
+  const [period, setPeriod] = usePersistedForm<AnalysisPeriod>("analysis.period", "90d", {
+    validate: isAnalysisPeriod,
+  });
   // One persistence slot PER PERIOD (analysis.30d / .90d / .12m): running 30d
   // after 90d no longer overwrites the 90d analysis, switching the period
   // restores its cached result instantly (no re-generation, no lost result),

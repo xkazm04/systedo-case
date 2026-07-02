@@ -26,6 +26,7 @@ import {
   type ScoreChip,
 } from "@/lib/content/seo-score";
 import { useAiTool } from "./useAiTool";
+import { usePersistedForm } from "./usePersistedForm";
 import {
   CharCount,
   CopyButton,
@@ -151,6 +152,19 @@ const EXAMPLE: BriefRequest = {
 };
 
 const EMPTY: BriefRequest = { topic: "", primaryKeyword: "", audience: "", contentType: "blog" };
+
+/** Structural guard for a restored draft — a stale/foreign shape is dropped
+ *  rather than hydrated into the form (the content type must stay valid). */
+const isBriefForm = (v: unknown): v is BriefRequest => {
+  if (!v || typeof v !== "object") return false;
+  const o = v as Record<string, unknown>;
+  return (
+    typeof o.topic === "string" &&
+    typeof o.primaryKeyword === "string" &&
+    typeof o.audience === "string" &&
+    (CONTENT_TYPES as readonly string[]).includes(o.contentType as string)
+  );
+};
 
 type SerpDevice = "desktop" | "mobile";
 
@@ -298,11 +312,16 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
 export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | null } = {}) {
   const t = useT(T);
   const { locale } = useLocale();
-  // Seed (from the keyword tool) is applied via lazy init; the parent re-mounts
-  // this component with a new `key` per handoff, so a fresh seed prefills the form
-  // and carries its real keyword data into the next generation — no effect needed.
-  const [form, setForm] = useState<BriefRequest>(() =>
-    seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY
+  // Seed (from the keyword tool) is applied via the initial value; the parent
+  // re-mounts this component with a new `key` per handoff, so a fresh seed
+  // prefills the form and carries its real keyword data into the next
+  // generation. The draft persists across refreshes like the result does —
+  // but a live seed WINS over a stored draft (skipRestore), and the seeded
+  // form immediately writes through as the new draft.
+  const [form, setForm] = usePersistedForm<BriefRequest>(
+    "brief",
+    seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY,
+    { skipRestore: Boolean(seed), validate: isBriefForm }
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
