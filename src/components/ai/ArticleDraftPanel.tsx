@@ -5,7 +5,8 @@ import { Bolt, Document, Download } from "@/components/icons";
 import ArticleBody from "@/components/article/ArticleBody";
 import { downloadText } from "@/lib/export";
 import { useT } from "@/lib/i18n/client";
-import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/article";
+import { inlineToText, type Article, type FaqItem } from "@/lib/article";
+import { blockToMarkdown, inlineToMarkdown, type MarkdownLabels } from "@/lib/article-markdown";
 import type { ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import { useAiTool } from "./useAiTool";
 import { LoadingTimer, PromptDisclosure, ResultMeta, TimeoutState, ToolError } from "./primitives";
@@ -26,7 +27,7 @@ const T = {
     articleAuthor: "Systedo · obsahový tým",
     articleRole: "Koncept článku z AI briefu",
     articleCategory: "Koncept",
-    mdFaqHeading: "## Časté dotazy (FAQ)",
+    mdFaqHeading: "Časté dotazy (FAQ)",
     calloutTip: "Tip",
   },
   en: {
@@ -44,52 +45,25 @@ const T = {
     articleAuthor: "Systedo · content team",
     articleRole: "Article draft from AI brief",
     articleCategory: "Draft",
-    mdFaqHeading: "## Frequently asked questions (FAQ)",
+    mdFaqHeading: "Frequently asked questions (FAQ)",
     calloutTip: "Tip",
   },
 } as const;
 
-/** Serialize one Block into a Markdown fragment. Keeps the same subset the draft
- *  tool produces (p / h2 / h3 / ul / ol / callout / cta); links/bold inside an
- *  Inline[] collapse to plain text via inlineToText. */
-function blockToMarkdown(block: Block, tipLabel: string): string {
-  switch (block.type) {
-    case "h2":
-      return `## ${block.text}`;
-    case "h3":
-      return `### ${block.text}`;
-    case "p":
-      return inlineToText(block.content);
-    case "ul":
-      return block.items.map((it) => `- ${inlineToText(it)}`).join("\n");
-    case "ol":
-      return block.items.map((it, i) => `${i + 1}. ${inlineToText(it)}`).join("\n");
-    case "callout":
-      return [`> **${block.title ?? tipLabel}**`, `> ${inlineToText(block.content)}`].join("\n");
-    case "cta":
-      return `> **${block.text}** — [${block.cta}](${block.href})`;
-    case "quote":
-      return `> ${inlineToText(block.content)}`;
-    case "stat":
-      return block.items.map((s) => `- **${s.value}** — ${s.label}`).join("\n");
-    case "figure":
-      return `![${block.alt}](${block.src})`;
-    default:
-      return "";
-  }
-}
-
-/** Build the full draft Markdown document from the brief metadata + draft body. */
-function draftToMarkdown(brief: BriefResult, draft: ArticleDraftResult, tipLabel: string, faqHeading: string): string {
+/** Build the full draft Markdown document from the brief metadata + draft body.
+ *  Block serialization is the shared `@/lib/article-markdown` implementation
+ *  (the same one behind /clanek/markdown), so links and bold survive the export
+ *  instead of collapsing to plain text like the old panel-private serializer. */
+function draftToMarkdown(brief: BriefResult, draft: ArticleDraftResult, labels: MarkdownLabels): string {
   const lines: string[] = [`# ${brief.h1 || brief.titleTag}`, ""];
   if (brief.metaDescription) lines.push(`_${brief.metaDescription}_`, "");
   for (const block of draft.blocks) {
-    const md = blockToMarkdown(block, tipLabel);
+    const md = blockToMarkdown(block, labels);
     if (md) lines.push(md, "");
   }
   if (draft.faq.length > 0) {
-    lines.push(faqHeading, "");
-    for (const f of draft.faq) lines.push(`**${f.q}**`, "", inlineToText(f.a), "");
+    lines.push(`## ${labels.faqHeading}`, "");
+    for (const f of draft.faq) lines.push(`**${f.q}**`, "", inlineToMarkdown(f.a), "");
   }
   return lines.join("\n").trimEnd() + "\n";
 }
@@ -166,7 +140,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
     if (!draft) return;
     downloadText(
       `systedo-clanek-${slug}.md`,
-      draftToMarkdown(brief, draft, t("calloutTip"), t("mdFaqHeading")),
+      draftToMarkdown(brief, draft, { calloutTitle: t("calloutTip"), faqHeading: t("mdFaqHeading") }),
       "text/markdown;charset=utf-8"
     );
   };

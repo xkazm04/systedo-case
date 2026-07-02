@@ -7,9 +7,11 @@ import Breadcrumbs from "@/components/article/Breadcrumbs";
 import ReadingProgress from "@/components/article/ReadingProgress";
 import ShareBar from "@/components/article/ShareBar";
 import AuthorBio from "@/components/article/AuthorBio";
+import CopyMarkdownButton from "@/components/article/CopyMarkdownButton";
 import TaskPager from "@/components/site/TaskPager";
 import { Clock } from "@/components/icons";
 import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/article";
+import { articleToMarkdown } from "@/lib/article-markdown";
 import { fmtDate } from "@/lib/format";
 import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
 import { canonical } from "@/lib/site";
@@ -47,12 +49,21 @@ const articleUrl = canonical(ARTICLE_PATH);
 // Google image rich results without any extra authoring.
 const figures = figureBlocks(article);
 
+// The article's Markdown twin, serialized once at module scope from the same
+// validated singleton the page renders. Fed to the copy-for-AI button below and
+// served as a document by GET /clanek/markdown.
+const articleMarkdown = articleToMarkdown(article);
+
 // breadcrumbs are built inside the async page function so labels are translatable.
 
 export const metadata: Metadata = {
   title: meta.title,
   description: meta.perex,
-  alternates: { canonical: ARTICLE_PATH },
+  alternates: {
+    canonical: ARTICLE_PATH,
+    // machine-readable twin for AI crawlers / answer engines
+    types: { "text/markdown": `${ARTICLE_PATH}/markdown` },
+  },
   openGraph: { title: meta.title, description: meta.perex, type: "article", url: articleUrl },
 };
 
@@ -174,7 +185,8 @@ export default async function ArticlePage() {
             bio={meta.authorBio}
             url={meta.authorUrl}
           />
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex items-center justify-end gap-1.5">
+            <CopyMarkdownButton markdown={articleMarkdown} />
             <ShareBar url={articleUrl} title={meta.title} />
           </div>
         </Container>

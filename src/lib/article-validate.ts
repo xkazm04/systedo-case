@@ -8,7 +8,10 @@
  *  `test-unit/article-validate.test.mjs`. */
 import type { Article, Block, HeadingBlock, Inline } from "./article";
 
-const BLOCK_TYPES = new Set<Block["type"]>([
+/** Registry of every renderable block type. Exported so the Markdown
+ *  serializer's unit test can use it as a coverage checklist — a type accepted
+ *  here must also serialize (`test-unit/article-markdown.test.mjs`). */
+export const BLOCK_TYPES = new Set<Block["type"]>([
   "h2", "h3", "p", "ul", "ol", "callout", "quote", "cta", "stat", "figure",
 ]);
 
