@@ -5,6 +5,7 @@ import { ArrowRight, Gauge, Sparkles, Target } from "@/components/icons";
 import { buildSnapshot } from "@/lib/snapshot";
 import { fmtMultiple, fmtPct, fmtSignedPct, fmtCZKCompact } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 /* ---------------------------------------------------------------------------
    Adamant — homepage (Monolith direction)
@@ -14,7 +15,15 @@ import { getT } from "@/lib/i18n/server";
    subtle facet pattern lives on <main> (see globals.css .bg-facets).
 --------------------------------------------------------------------------- */
 
-const CHANNELS = ["Google Ads", "Sklik", "Meta", "TikTok"];
+// Honest support levels: Google Ads is the only live-data connector; Sklik gets
+// ad-copy limit checks; Meta/TikTok are social publishing surfaces. The landing
+// states each level rather than implying live ingestion from all four.
+const CHANNELS: { name: string; level: { cs: string; en: string } }[] = [
+  { name: "Google Ads", level: { cs: "živý sync", en: "live sync" } },
+  { name: "Sklik", level: { cs: "kontrola inzerátů", en: "ad-copy checks" } },
+  { name: "Meta", level: { cs: "publikování", en: "publishing" } },
+  { name: "TikTok", level: { cs: "publikování", en: "publishing" } },
+];
 
 const FEATURES = [
   {
@@ -57,6 +66,7 @@ const T = {
 
 export default async function BrandLanding() {
   const t = await getT(T);
+  const locale = await getServerLocale();
 
   // Quantified case-study results for the proof band — the exact numbers the
   // dashboard renders (illustrative data), so the homepage shows outcomes, not
@@ -121,7 +131,7 @@ export default async function BrandLanding() {
 
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-onyx-muted">
               AI ad intelligence for e-shops and agencies — measure performance, triage campaigns
-              and generate the ads, all grounded in your own Google Ads, Sklik, Meta and TikTok data.
+              and generate the ads, grounded in your live Google Ads data.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -146,10 +156,11 @@ export default async function BrandLanding() {
               <span className="font-medium">Works across</span>
               {CHANNELS.map((c) => (
                 <span
-                  key={c}
+                  key={c.name}
                   className="rounded-pill border border-onyx-line bg-onyx-soft/40 px-2.5 py-1 text-xs font-medium text-onyx-ink"
                 >
-                  {c}
+                  {c.name}
+                  <span className="ml-1 font-normal text-onyx-muted">· {c.level[locale] ?? c.level.en}</span>
                 </span>
               ))}
             </div>
