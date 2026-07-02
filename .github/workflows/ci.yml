@@ -2,10 +2,13 @@ name: CI
 
 # Continuous integration. The main job runs `npm run check:ci` — the single
 # command that reproduces this gate locally (check = typecheck && lint && build,
-# then seed drift guard, unit suite, and the key-free LLM checks: chokepoint
-# coverage + contract goldens). Keep ci.yml and the `check:ci` script pointing at
-# each other so the two can never drift. Still NOT a full mirror of pre-commit:
-# the real-model Claude run stays local-only (Husky, gated by a logged-in Claude
+# then seed drift guard, unit suite, and the key-free LLM gate check: chokepoint
+# coverage + contract goldens + cache freshness, i.e. the committed
+# .llm-gate-cache.json must actually prove the committed LLM code, so a
+# --no-verify commit, GitHub-web edit or merge can't land LLM changes under a
+# stale "proven" badge). Keep ci.yml and the `check:ci` script pointing at each
+# other so the two can never drift. Still NOT a full mirror of pre-commit: the
+# real-model Claude run stays local-only (Husky, gated by a logged-in Claude
 # CLI), while `next build` runs only here — so a green local commit can still
 # fail CI on build unless you ran `npm run check:ci` yourself.
 on:
@@ -31,8 +34,9 @@ jobs:
 
       # One command = the whole CI gate, runnable locally before pushing:
       #   check (typecheck && lint && build) → seed drift guard → unit tests →
-      #   LLM chokepoint coverage → LLM contract goldens. All deterministic and
-      #   key-free (the real-model Claude run stays local in the Husky hook).
+      #   llm:gate:check (chokepoint coverage + contract goldens + committed-cache
+      #   freshness — zero model calls). All deterministic and key-free (the
+      #   real-model Claude run stays local in the Husky hook).
       - name: Full CI gate (npm run check:ci)
         run: npm run check:ci
 
