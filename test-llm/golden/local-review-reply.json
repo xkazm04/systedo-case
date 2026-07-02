@@ -4,5 +4,17 @@
   "promptHash": "5d4a27724638835e",
   "schemaKeys": [
     "reply"
-  ]
+  ],
+  "system": "Jsi český správce reputace lokální firmy. Píšeš veřejné odpovědi na recenze v Google firemním profilu — vřele děkuješ za dobrá hodnocení a s pochopením reaguješ na kritiku. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "reply": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "reply"
+    ],
+    "type": "OBJECT"
+  }
 }

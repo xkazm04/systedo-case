@@ -4,5 +4,32 @@
   "promptHash": "d242c5030bc0cba3",
   "schemaKeys": [
     "posts"
-  ]
+  ],
+  "system": "Jsi český social media copywriter pro e-shop s ořechy a semínky. Přizpůsob styl platformě, piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "posts": {
+        "items": {
+          "properties": {
+            "content": {
+              "type": "STRING"
+            },
+            "platform": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "platform",
+            "content"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "posts"
+    ],
+    "type": "OBJECT"
+  }
 }

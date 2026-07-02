@@ -6,5 +6,44 @@
     "recommendations",
     "score",
     "verdict"
-  ]
+  ],
+  "system": "Jsi český PPC stratég. Vyhodnoť kampaň podle předaných čísel a vrať pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "recommendations": {
+        "items": {
+          "properties": {
+            "detail": {
+              "type": "STRING"
+            },
+            "priority": {
+              "type": "STRING"
+            },
+            "title": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "title",
+            "detail",
+            "priority"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "score": {
+        "type": "NUMBER"
+      },
+      "verdict": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "verdict",
+      "score",
+      "recommendations"
+    ],
+    "type": "OBJECT"
+  }
 }

@@ -6,5 +6,40 @@
     "actions",
     "headline",
     "summary"
-  ]
+  ],
+  "system": "Jsi český specialista na výkonnostní marketing. Vycházej jen z předaných čísel a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "actions": {
+        "items": {
+          "properties": {
+            "detail": {
+              "type": "STRING"
+            },
+            "title": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "title",
+            "detail"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "headline": {
+        "type": "STRING"
+      },
+      "summary": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "headline",
+      "summary",
+      "actions"
+    ],
+    "type": "OBJECT"
+  }
 }

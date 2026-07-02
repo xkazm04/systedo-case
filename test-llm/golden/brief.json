@@ -6,5 +6,43 @@
     "metaDescription",
     "outline",
     "titleTag"
-  ]
+  ],
+  "system": "Jsi český SEO stratég. Piš česky, dodržuj SEO limity a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "metaDescription": {
+        "type": "STRING"
+      },
+      "outline": {
+        "items": {
+          "properties": {
+            "heading": {
+              "type": "STRING"
+            },
+            "points": {
+              "items": {
+                "type": "STRING"
+              },
+              "type": "ARRAY"
+            }
+          },
+          "required": [
+            "heading",
+            "points"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "titleTag": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "titleTag",
+      "metaDescription",
+      "outline"
+    ],
+    "type": "OBJECT"
+  }
 }

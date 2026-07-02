@@ -8,5 +8,69 @@
     "h1",
     "sections",
     "verdict"
-  ]
+  ],
+  "system": "Jsi český SEO obsahový stratég pro srovnávací stránky s vysokým nákupním záměrem (X vs Y, alternativy, ceník, recenze). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci, ne obecný brief. Nemáš konkrétní data o konkurentech — drž obsah obecný a doplnitelný. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "comparisonCriteria": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "faq": {
+        "items": {
+          "properties": {
+            "a": {
+              "type": "STRING"
+            },
+            "q": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "q",
+            "a"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "h1": {
+        "type": "STRING"
+      },
+      "sections": {
+        "items": {
+          "properties": {
+            "heading": {
+              "type": "STRING"
+            },
+            "points": {
+              "items": {
+                "type": "STRING"
+              },
+              "type": "ARRAY"
+            }
+          },
+          "required": [
+            "heading",
+            "points"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "verdict": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "h1",
+      "sections",
+      "comparisonCriteria",
+      "verdict",
+      "faq"
+    ],
+    "type": "OBJECT"
+  }
 }

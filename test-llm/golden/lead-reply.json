@@ -5,5 +5,24 @@
   "schemaKeys": [
     "questions",
     "reply"
-  ]
+  ],
+  "system": "Jsi český obchodník specializovaný na rychlou reakci na poptávky. Piš česky, lidsky a profesionálně a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "questions": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "reply": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "reply",
+      "questions"
+    ],
+    "type": "OBJECT"
+  }
 }

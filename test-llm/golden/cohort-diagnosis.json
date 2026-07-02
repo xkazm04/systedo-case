@@ -7,5 +7,31 @@
     "risks",
     "summary",
     "worstCohort"
-  ]
+  ],
+  "system": "Jsi český analytik jednotkové ekonomiky (CAC, LTV, návratnost). Děláš stručnou diagnostiku akvizičních kohort. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "recommendation": {
+        "type": "STRING"
+      },
+      "risks": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "summary": {
+        "type": "STRING"
+      },
+      "worstCohort": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "summary",
+      "worstCohort",
+      "recommendation"
+    ],
+    "type": "OBJECT"
+  }
 }

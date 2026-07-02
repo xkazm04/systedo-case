@@ -4,5 +4,32 @@
   "promptHash": "dad276ed4e7d348f",
   "schemaKeys": [
     "variants"
-  ]
+  ],
+  "system": "Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty na míru pro jednotlivé distribuční kanály. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "variants": {
+        "items": {
+          "properties": {
+            "channel": {
+              "type": "STRING"
+            },
+            "text": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "channel",
+            "text"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "variants"
+    ],
+    "type": "OBJECT"
+  }
 }

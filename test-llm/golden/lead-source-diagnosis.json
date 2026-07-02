@@ -7,5 +7,28 @@
     "recommendation",
     "severity",
     "summary"
-  ]
+  ],
+  "system": "Jsi český analytik kvality leadů. Diagnostikuješ JEDEN podvýkonný zdroj leadů. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "likelyCause": {
+        "type": "STRING"
+      },
+      "recommendation": {
+        "type": "STRING"
+      },
+      "severity": {
+        "type": "STRING"
+      },
+      "summary": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "summary",
+      "likelyCause",
+      "recommendation"
+    ],
+    "type": "OBJECT"
+  }
 }

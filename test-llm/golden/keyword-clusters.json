@@ -4,5 +4,42 @@
   "promptHash": "04d0aad40bf6afd0",
   "schemaKeys": [
     "clusters"
-  ]
+  ],
+  "system": "Jsi český SEO stratég. Z plochého seznamu klíčových slov skládáš tematické klastry (pilíř + podpůrná slova). Pracuj jen s předanými slovy, žádné si nevymýšlej, a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "clusters": {
+        "items": {
+          "properties": {
+            "intent": {
+              "type": "STRING"
+            },
+            "pillar": {
+              "type": "STRING"
+            },
+            "supporting": {
+              "items": {
+                "type": "STRING"
+              },
+              "type": "ARRAY"
+            },
+            "topic": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "topic",
+            "pillar",
+            "supporting"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "clusters"
+    ],
+    "type": "OBJECT"
+  }
 }

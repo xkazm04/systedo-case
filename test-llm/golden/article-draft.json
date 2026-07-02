@@ -5,5 +5,65 @@
   "schemaKeys": [
     "blocks",
     "faq"
-  ]
+  ],
+  "system": "Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku jako sekvenci typovaných bloků. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "blocks": {
+        "items": {
+          "properties": {
+            "cta": {
+              "type": "STRING"
+            },
+            "items": {
+              "items": {
+                "type": "STRING"
+              },
+              "type": "ARRAY"
+            },
+            "text": {
+              "type": "STRING"
+            },
+            "title": {
+              "type": "STRING"
+            },
+            "type": {
+              "type": "STRING"
+            },
+            "variant": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "faq": {
+        "items": {
+          "properties": {
+            "answer": {
+              "type": "STRING"
+            },
+            "question": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "question",
+            "answer"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "blocks",
+      "faq"
+    ],
+    "type": "OBJECT"
+  }
 }

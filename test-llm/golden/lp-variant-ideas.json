@@ -4,5 +4,44 @@
   "promptHash": "b1645e5beb027b28",
   "schemaKeys": [
     "variants"
-  ]
+  ],
+  "system": "Jsi český CRO specialista a copywriter pro landing pages. Z tématu a klíčových slov navrhuješ konkurenční varianty (challengery) pro A/B test proti kontrolní variantě. Každá varianta testuje jinou hypotézu a liší se od kontroly. Nevymýšlej žádná čísla. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "variants": {
+        "items": {
+          "properties": {
+            "headline": {
+              "type": "STRING"
+            },
+            "hypothesis": {
+              "type": "STRING"
+            },
+            "label": {
+              "type": "STRING"
+            },
+            "primaryCTA": {
+              "type": "STRING"
+            },
+            "rationale": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "label",
+            "hypothesis",
+            "headline",
+            "primaryCTA",
+            "rationale"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "variants"
+    ],
+    "type": "OBJECT"
+  }
 }

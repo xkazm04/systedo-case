@@ -6,5 +6,31 @@
     "descriptions",
     "headlines",
     "rationale"
-  ]
+  ],
+  "system": "Jsi český PPC specialista. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "descriptions": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "headlines": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "rationale": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "headlines",
+      "descriptions",
+      "rationale"
+    ],
+    "type": "OBJECT"
+  }
 }
