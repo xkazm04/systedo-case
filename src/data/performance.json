@@ -8,8 +8,8 @@
   },
   "meta": {
     "disclaimer": "Ilustrativní data vygenerovaná pro účely případové studie.",
-    "asOf": "2026-05-31",
-    "days": 730,
+    "asOf": "2026-06-20",
+    "days": 750,
     "seed": 20260608
   },
   "goals": {
@@ -100,17 +100,17 @@
       "kind": "spike"
     },
     {
-      "date": "2026-01-31",
+      "date": "2026-02-20",
       "label": "Spuštění kampaně Performance Max",
       "kind": "milestone"
     },
     {
-      "date": "2026-05-13",
+      "date": "2026-06-02",
       "label": "Výpadek měření konverzí (rozbitá měřicí značka)",
       "kind": "outage"
     },
     {
-      "date": "2026-05-23",
+      "date": "2026-06-06",
       "label": "Víkendový únik nákladů (chybný limit nabídek)",
       "kind": "cost-runaway",
       "days": 2
@@ -5096,10 +5096,10 @@
     },
     {
       "date": "2026-05-13",
-      "visits": 118,
+      "visits": 1972,
       "cost": 10282,
-      "conversions": 1,
-      "revenue": 2377
+      "conversions": 49,
+      "revenue": 79231
     },
     {
       "date": "2026-05-14",
@@ -5167,14 +5167,14 @@
     {
       "date": "2026-05-23",
       "visits": 2260,
-      "cost": 33514,
+      "cost": 13964,
       "conversions": 67,
       "revenue": 108166
     },
     {
       "date": "2026-05-24",
       "visits": 2342,
-      "cost": 32150,
+      "cost": 13396,
       "conversions": 61,
       "revenue": 100823
     },
@@ -5226,6 +5226,146 @@
       "cost": 13924,
       "conversions": 64,
       "revenue": 103554
+    },
+    {
+      "date": "2026-06-01",
+      "visits": 1659,
+      "cost": 9835,
+      "conversions": 42,
+      "revenue": 74338
+    },
+    {
+      "date": "2026-06-02",
+      "visits": 98,
+      "cost": 9327,
+      "conversions": 1,
+      "revenue": 2129
+    },
+    {
+      "date": "2026-06-03",
+      "visits": 1744,
+      "cost": 9970,
+      "conversions": 42,
+      "revenue": 72576
+    },
+    {
+      "date": "2026-06-04",
+      "visits": 1661,
+      "cost": 10119,
+      "conversions": 45,
+      "revenue": 76269
+    },
+    {
+      "date": "2026-06-05",
+      "visits": 1862,
+      "cost": 12025,
+      "conversions": 51,
+      "revenue": 90055
+    },
+    {
+      "date": "2026-06-06",
+      "visits": 2071,
+      "cost": 29431,
+      "conversions": 52,
+      "revenue": 92207
+    },
+    {
+      "date": "2026-06-07",
+      "visits": 1791,
+      "cost": 26707,
+      "conversions": 45,
+      "revenue": 79240
+    },
+    {
+      "date": "2026-06-08",
+      "visits": 1641,
+      "cost": 10457,
+      "conversions": 44,
+      "revenue": 77578
+    },
+    {
+      "date": "2026-06-09",
+      "visits": 1912,
+      "cost": 10561,
+      "conversions": 48,
+      "revenue": 80728
+    },
+    {
+      "date": "2026-06-10",
+      "visits": 1605,
+      "cost": 9140,
+      "conversions": 41,
+      "revenue": 71062
+    },
+    {
+      "date": "2026-06-11",
+      "visits": 1791,
+      "cost": 9962,
+      "conversions": 42,
+      "revenue": 73668
+    },
+    {
+      "date": "2026-06-12",
+      "visits": 1706,
+      "cost": 9898,
+      "conversions": 43,
+      "revenue": 71628
+    },
+    {
+      "date": "2026-06-13",
+      "visits": 1839,
+      "cost": 11317,
+      "conversions": 49,
+      "revenue": 80619
+    },
+    {
+      "date": "2026-06-14",
+      "visits": 2032,
+      "cost": 11068,
+      "conversions": 51,
+      "revenue": 87445
+    },
+    {
+      "date": "2026-06-15",
+      "visits": 1833,
+      "cost": 10097,
+      "conversions": 49,
+      "revenue": 80421
+    },
+    {
+      "date": "2026-06-16",
+      "visits": 1787,
+      "cost": 10374,
+      "conversions": 45,
+      "revenue": 77363
+    },
+    {
+      "date": "2026-06-17",
+      "visits": 1953,
+      "cost": 12195,
+      "conversions": 51,
+      "revenue": 88326
+    },
+    {
+      "date": "2026-06-18",
+      "visits": 1963,
+      "cost": 11518,
+      "conversions": 48,
+      "revenue": 83138
+    },
+    {
+      "date": "2026-06-19",
+      "visits": 1834,
+      "cost": 11368,
+      "conversions": 48,
+      "revenue": 81662
+    },
+    {
+      "date": "2026-06-20",
+      "visits": 2029,
+      "cost": 12466,
+      "conversions": 54,
+      "revenue": 93973
     }
   ]
 }

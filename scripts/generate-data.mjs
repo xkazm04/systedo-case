@@ -12,6 +12,8 @@
  *    would expect to see after a marketing agency takes over.
  *
  * Run with:  node scripts/generate-data.mjs   (or `npm run seed`)
+ * Monthly refresh:  node scripts/generate-data.mjs --as-of YYYY-MM-DD
+ * (see the AS_OF configuration block below), then commit the regenerated JSON.
  */
 import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -37,12 +39,42 @@ const jitter = (scale) => 1 + (rnd() * 2 - 1) * scale;
 const round = (n, step = 1) => Math.round(n / step) * step;
 
 // --- configuration ----------------------------------------------------------
-// Two years of history so every period (incl. "12 měsíců") has an equal-length
-// comparison window before it.
-const DAYS = 730;
-// End on a month boundary so the 12-month view is exactly 12 complete calendar
-// months (no partial leading/trailing bucket that would dip the trend chart).
-const AS_OF = "2026-05-31"; // last complete day represented in the dataset
+// The series ends on AS_OF (the dashboard's "today"). A *mid-month* default is
+// deliberate: it keeps the month-end forecast machinery alive — GoalPacing's
+// seasonality-weighted projection, P10–P90 band and goal probability are all
+// stuck in the degenerate "měsíc dokončen" state when the series ends exactly
+// on a month boundary. Monthly one-command refresh:
+//
+//     node scripts/generate-data.mjs --as-of 2026-07-20     (then commit the JSON)
+//
+// Downstream already handles the partial month: bucketize() flags partial
+// buckets, evaluatePeriod() reports truncation and monthlyAttainmentHistory()
+// counts complete months only.
+const DEFAULT_AS_OF = "2026-06-20";
+
+/** Validated `--as-of YYYY-MM-DD` CLI override (defaults to DEFAULT_AS_OF). */
+function parseAsOf(argv) {
+  const eq = argv.find((a) => a.startsWith("--as-of="));
+  const i = argv.indexOf("--as-of");
+  const raw = eq ? eq.slice("--as-of=".length) : i >= 0 ? argv[i + 1] : null;
+  if (raw == null) return DEFAULT_AS_OF;
+  const d = new Date(`${raw}T00:00:00Z`);
+  const valid =
+    /^\d{4}-\d{2}-\d{2}$/.test(raw) &&
+    !Number.isNaN(d.getTime()) &&
+    d.toISOString().slice(0, 10) === raw;
+  if (!valid) {
+    console.error(`✗ --as-of must be a valid YYYY-MM-DD date, got "${raw}"`);
+    process.exit(1);
+  }
+  return raw;
+}
+const AS_OF = parseAsOf(process.argv.slice(2));
+
+// Two full years ending on the last complete month boundary — so every period
+// (incl. "12 měsíců") keeps an equal-length comparison window before it — plus
+// the in-progress days of the current month when AS_OF sits mid-month.
+const TREND_DAYS = 730;
 
 // Seasonality multiplier per calendar month (0 = Jan). A Czech superfoods /
 // nuts-and-seeds e-shop peaks before Christmas and in the spring "healthy
@@ -55,6 +87,11 @@ const WEEKDAY_VISITS = [1.04, 1.0, 0.98, 0.98, 1.0, 1.03, 1.05]; // Sun..Sat
 const WEEKDAY_CR = [1.05, 1.0, 0.99, 0.98, 0.99, 1.02, 1.04];
 
 const asOfDate = new Date(`${AS_OF}T00:00:00Z`);
+const asOfDay = asOfDate.getUTCDate();
+const daysInAsOfMonth = new Date(
+  Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth() + 1, 0)
+).getUTCDate();
+const DAYS = TREND_DAYS + (asOfDay === daysInAsOfMonth ? 0 : asOfDay);
 
 // --- story events ------------------------------------------------------------
 // Hand-authored, deterministic "story events" layered onto the smooth jittered
@@ -142,7 +179,11 @@ for (let i = 0; i < DAYS; i++) {
   const dateStr = isoDay(date);
   const month = date.getUTCMonth();
   const dow = date.getUTCDay();
-  const t = i / (DAYS - 1); // 0 → 1 progress across the year
+  // 0 → 1 progress across the two-year trend span. Anchored on TREND_DAYS (not
+  // DAYS) so the partial-month extension extrapolates the maturation trend
+  // slightly past 1 instead of re-normalizing it — a monthly `--as-of` refresh
+  // therefore never rewrites the already-committed history.
+  const t = i / (TREND_DAYS - 1);
 
   // Traffic grows ~70 % over the year as the account matures.
   const visitsBase = 1180 + t * 820;
