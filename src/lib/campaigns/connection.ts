@@ -50,6 +50,21 @@ export async function listConnectedAccounts(
   return { accounts: data.accounts ?? [], activeCustomerId: data.activeCustomerId ?? null };
 }
 
+/** One specific connected account in the AdsConnection shape, or null when the
+ *  user never connected it — the per-account lookup behind the scheduled sync's
+ *  all-accounts fan-out (an id the user doesn't own resolves to null, so a
+ *  caller can never sync somebody else's customer id). */
+export async function getConnectedAccount(
+  userId: string,
+  customerId: string
+): Promise<AdsConnection | null> {
+  const { accounts } = await listConnectedAccounts(userId);
+  const match = accounts.find((a) => a.customerId === customerId);
+  return match
+    ? { customerId: match.customerId, customerName: match.customerName, connectedAt: match.connectedAt }
+    : null;
+}
+
 /** The active account (or first connected), in the AdsConnection shape — the
  *  one the connector syncs and the tenant is keyed on. */
 export async function getAdsConnection(userId: string): Promise<AdsConnection | null> {

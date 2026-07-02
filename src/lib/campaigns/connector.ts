@@ -9,7 +9,7 @@
  *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
 import { sampleCampaigns, sampleSeries } from "./sample";
-import { getAdsConnection } from "./connection";
+import { getAdsConnection, getConnectedAccount } from "./connection";
 import {
   adsConfigured,
   fetchCampaigns as adsFetchCampaigns,
@@ -131,15 +131,21 @@ export async function resolveTenant(
  *  Google Ads when the user is signed in, has selected an account, the developer
  *  token is configured, and a valid OAuth token exists; the deterministic sample
  *  provider otherwise. The tenant is per-project when `projectId` is supplied.
- *  `projectType` lets the sample provider produce domain-appropriate data. */
+ *  `projectType` lets the sample provider produce domain-appropriate data.
+ *  `customerId` overrides the active account (the scheduled sync fans out over
+ *  ALL connected accounts, not just the selected one); it must be one of the
+ *  user's own connected accounts — an unknown id falls back to the active one,
+ *  so the behaviour without the override is unchanged. */
 export async function resolveCampaignContext(
   userId: string | null,
   projectId?: string | null,
-  projectType?: ProjectType
+  projectType?: ProjectType,
+  customerId?: string | null
 ): Promise<{ connector: AdsConnector; tenant: string }> {
   if (!userId) return { connector: sampleProvider(projectType, projectId ?? undefined), tenant: "sample" };
 
-  const connection = await getAdsConnection(userId);
+  const override = customerId ? await getConnectedAccount(userId, customerId) : null;
+  const connection = override ?? (await getAdsConnection(userId));
   const tenant = buildTenantKey(userId, projectId, connection?.customerId);
 
   if (connection && adsConfigured()) {
