@@ -14,16 +14,11 @@ import { triage } from "@/lib/campaigns/triage";
 import { getUserEmail, recordAlert, type AlertItem } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { fmtCZK, fmtMultiple, fmtPct } from "@/lib/format";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
-}
 
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) =>
@@ -32,7 +27,7 @@ function escapeHtml(s: string): string {
 }
 
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

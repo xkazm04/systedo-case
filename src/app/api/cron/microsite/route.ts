@@ -5,18 +5,13 @@
  *  be precomputed). Guarded by CRON_SECRET; schedule lives in vercel.json. */
 import { revalidatePath } from "next/cache";
 import { listEnabledSlugs, DEMO_MICROSITE } from "@/lib/microsite";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
-}
-
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

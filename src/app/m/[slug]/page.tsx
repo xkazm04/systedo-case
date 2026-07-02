@@ -102,7 +102,12 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script
+        type="application/ld+json"
+        // Escape `<` so tenant-controlled fields (brandName/clientName) can't break
+        // out of the <script> element with `</script>` on this public, indexed page.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+      />
 
       {/* white-label brand band */}
       <div style={{ backgroundColor: accent }} className="h-1.5 w-full" aria-hidden />
