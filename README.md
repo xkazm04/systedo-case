@@ -64,6 +64,7 @@ npm run typecheck    # tsc --noEmit
 npm run lint         # ESLint
 npm run seed         # přegeneruje src/data/performance.json
 npm run check:ci     # celá CI brána jedním příkazem („projde mi CI?")
+npm run doctor       # preflight: co tvůj .env.local zapíná a proč zbytek běží v demo režimu
 ```
 
 ### DevInspector — klikni na komponentu, zkopíruj cestu ke zdroji
