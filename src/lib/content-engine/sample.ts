@@ -1,5 +1,7 @@
 /** Illustrative topic clusters + decaying posts for a content/media project.
  *  Real-integration seam: keyword tool + Search Console (traffic trend). */
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
 
 export interface ClusterArticle {
   title: string;
@@ -61,3 +63,12 @@ export const SAMPLE_DECAY: DecayingPost[] = [
   { title: "Cvičení po porodu", monthsAgo: 11, trafficChangePct: -0.15 },
   { title: "Jak vybrat autosedačku", monthsAgo: 6, trafficChangePct: 0.04 },
 ];
+
+/** Per-project topic clusters: the combined monthly search volume is scaled by a
+ *  uniform per-project factor so each project reads at its own size. Article
+ *  structure and the decay series (a time/percentage trend, not a magnitude) are
+ *  project-independent and pass through untouched. */
+export function clustersForProject(project: Project): TopicCluster[] {
+  const v = projectVary(project, "content-engine");
+  return SAMPLE_CLUSTERS.map((c) => ({ ...c, volume: v.int(c.volume) }));
+}

@@ -5,12 +5,12 @@ const T = {
   cs: {
     badge: "Ukázková data",
     defaultNote:
-      "Čísla jsou ilustrativní (seedovaná) — nejde o vaše reálné účetnictví. Skutečná data se napojí přes konektor (viz poznámky „Seam“).",
+      "Čísla jsou ilustrativní (seedovaná per-projekt) — nejde o vaše reálná data z reklamních účtů. Skutečná data se napojí přes konektor (viz poznámky „Seam“).",
   },
   en: {
     badge: "Sample data",
     defaultNote:
-      "The numbers are illustrative (seeded) — not your real accounts. Live data will connect via a connector (see “Seam” notes).",
+      "The numbers are illustrative (seeded per project) — not your real ad-account data. Live data will connect via a connector (see “Seam” notes).",
   },
 } as const;
 

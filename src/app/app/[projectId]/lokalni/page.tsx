@@ -2,7 +2,12 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import LocalModule from "@/components/app/modules/LocalModule";
-import { SAMPLE_RECENT_REVIEWS, SAMPLE_REVIEWS, SAMPLE_TARGETS } from "@/lib/local/sample";
+import SampleDataNote from "@/components/app/SampleDataNote";
+import {
+  SAMPLE_RECENT_REVIEWS,
+  reviewsForProject,
+  targetsForProject,
+} from "@/lib/local/sample";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,9 +17,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "lokalni");
   return (
     <ModulePage moduleKey="lokalni">
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
       <LocalModule
-        targets={SAMPLE_TARGETS}
-        reviews={SAMPLE_REVIEWS}
+        targets={targetsForProject(project)}
+        reviews={reviewsForProject(project)}
         recentReviews={SAMPLE_RECENT_REVIEWS}
         businessName={project.name}
       />

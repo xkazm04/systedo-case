@@ -1,6 +1,8 @@
 /** Illustrative landing-page experiments for an app/SaaS project. Each experiment
  *  is a keyword cluster with a control + challenger variants and their traffic /
  *  signups. Real-integration seam: real traffic split + analytics. */
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
 
 export interface Variant {
   label: string;
@@ -58,3 +60,14 @@ export const SAMPLE_EXPERIMENTS: LpExperiment[] = [
     ],
   },
 ];
+
+/** Per-project experiments: each variant's visitors + signups scaled by one
+ *  uniform per-project factor, so projects show different traffic while every
+ *  variant's conversion rate — and therefore which challenger wins — is unchanged. */
+export function experimentsForProject(project: Project): LpExperiment[] {
+  const v = projectVary(project, "lp-exp");
+  return SAMPLE_EXPERIMENTS.map((e) => ({
+    ...e,
+    variants: e.variants.map((va) => ({ ...va, visitors: v.int(va.visitors), signups: v.int(va.signups) })),
+  }));
+}

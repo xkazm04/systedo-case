@@ -9,31 +9,13 @@
  *  consumes this shape unchanged. */
 import { performance } from "@/lib/data";
 import type { PerformanceData } from "@/lib/types";
-import type { Project, ProjectType } from "@/lib/projects/types";
+import type { Project } from "@/lib/projects/types";
+import { projectScale, seed01, seedScale, TYPE_BASE_FOR } from "./seed";
 
-/** Stable 0..1 hash of a seed string (FNV-1a), so derived numbers are distinct
- *  but don't change between requests. */
-export function seed01(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 10_000) / 10_000;
-}
-
-/** Type baseline so an e-shop reads larger than a content project. */
-const TYPE_BASE: Record<ProjectType, number> = { eshop: 1, app: 0.7, leadgen: 0.5, content: 0.45 };
-
-/** Deterministic magnitude factor from a seed string (≈ base × 0.7–1.8). */
-export function seedScale(seed: string, base = 1): number {
-  return base * (0.7 + seed01(seed) * 1.1);
-}
-
-/** Deterministic magnitude factor for a project (≈ type × 0.7–1.8). */
-export function projectScale(project: Project): number {
-  return seedScale(project.id, TYPE_BASE[project.type]);
-}
+// The pure seeding primitives moved to ./seed (no data imports) so modules that
+// only need a per-project factor don't transitively load this base dataset.
+// Re-exported here for the existing call sites that import them from dataset.
+export { seed01, seedScale, projectScale, TYPE_BASE_FOR };
 
 /** Scale the base case-study dataset by a magnitude and relabel the client — the
  *  per-client spine for surfaces keyed by something other than a Project (e.g. a

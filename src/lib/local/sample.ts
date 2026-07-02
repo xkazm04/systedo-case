@@ -1,6 +1,8 @@
 /** Illustrative service×area coverage + review reputation for a lead-gen project.
  *  Real-integration seam: Google Business Profile, a rank tracker, and a reviews
  *  API; pages shipped as microsites (/m/[slug]). */
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
 
 export interface LocalTarget {
   area: string;
@@ -50,6 +52,21 @@ export const SAMPLE_REVIEWS: ReviewProfile[] = [
 
 /** A few illustrative public reviews spanning high and low ratings — the seam for
  *  a reviews API (Google Business Profile). Each can be answered with an AI draft. */
+/** Per-project local targets: monthly local search volume scales by a uniform
+ *  per-project factor; SERP rank and whether a page exists are project-specific
+ *  states, not magnitudes, so they pass through untouched. */
+export function targetsForProject(project: Project): LocalTarget[] {
+  const v = projectVary(project, "local");
+  return SAMPLE_TARGETS.map((t) => ({ ...t, monthlyVolume: v.int(t.monthlyVolume) }));
+}
+
+/** Per-project review profiles: the review COUNT scales per project; the star
+ *  rating is bounded 1–5 and passes through unchanged. */
+export function reviewsForProject(project: Project): ReviewProfile[] {
+  const v = projectVary(project, "local-reviews");
+  return SAMPLE_REVIEWS.map((r) => ({ ...r, reviews: v.int(r.reviews) }));
+}
+
 export const SAMPLE_RECENT_REVIEWS: RecentReview[] = [
   {
     id: "rev-praha-1",

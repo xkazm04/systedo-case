@@ -3,35 +3,28 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import AudienceModule from "@/components/app/modules/AudienceModule";
 import SampleDataNote from "@/components/app/SampleDataNote";
-import {
-  SAMPLE_FUNNEL,
-  SAMPLE_GOALS,
-  SAMPLE_REVENUE,
-  SAMPLE_RPM_HISTORY,
-  SAMPLE_SEGMENTS,
-  SAMPLE_SUBSCRIBER_HISTORY,
-  SAMPLE_SUBSCRIBER_SOURCES,
-} from "@/lib/audience/sample";
+import { audienceForProject } from "@/lib/audience/sample";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  await requireProjectModule(projectId, "publikum");
+  const project = await requireProjectModule(projectId, "publikum");
+  const audience = audienceForProject(project);
   return (
     <ModulePage moduleKey="publikum">
       <div className="mb-5">
         <SampleDataNote />
       </div>
       <AudienceModule
-        funnel={SAMPLE_FUNNEL}
-        segments={SAMPLE_SEGMENTS}
-        revenue={SAMPLE_REVENUE}
-        subscriberSources={SAMPLE_SUBSCRIBER_SOURCES}
-        subscriberHistory={SAMPLE_SUBSCRIBER_HISTORY}
-        rpmHistory={SAMPLE_RPM_HISTORY}
-        goals={SAMPLE_GOALS}
+        funnel={audience.funnel}
+        segments={audience.segments}
+        revenue={audience.revenue}
+        subscriberSources={audience.subscriberSources}
+        subscriberHistory={audience.subscriberHistory}
+        rpmHistory={audience.rpmHistory}
+        goals={audience.goals}
       />
     </ModulePage>
   );
