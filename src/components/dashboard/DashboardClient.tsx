@@ -24,6 +24,7 @@ import {
   TREND_METRICS,
   type Anomaly,
   type ChannelRow,
+  type PeriodBaseline,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -35,6 +36,10 @@ const T = {
     periodLabel: "Období:",
     periodLast: "posledních {n}",
     periodCompare: "· srovnání s předchozím stejně dlouhým obdobím",
+    periodCompareYoy: "· srovnání se stejným obdobím loni",
+    baselineSelector: "Základna srovnání",
+    baselinePrevious: "Předchozí období",
+    baselineYoy: "Loni",
     periodTruncated: "zkráceno na {days}",
     truncatedTitle:
       "Datová řada je kratší než zvolené období — okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
@@ -87,6 +92,10 @@ const T = {
     periodLabel: "Period:",
     periodLast: "last {n}",
     periodCompare: "· compared with the previous period of equal length",
+    periodCompareYoy: "· compared with the same period last year",
+    baselineSelector: "Comparison baseline",
+    baselinePrevious: "Previous period",
+    baselineYoy: "Last year",
     periodTruncated: "shortened to {days}",
     truncatedTitle:
       "The data series is shorter than the selected period — the window and its comparison were capped to the equal-length span available.",
@@ -208,8 +217,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
 
   const [periodKey, setPeriodKey] = useState("90d");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
+  const [baselineChoice, setBaselineChoice] = useState<PeriodBaseline>("previous");
 
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[1];
+  // YoY is hidden for the 12-month view: its adjacent comparison window already
+  // IS the whole previous year, so the two baselines would be identical.
+  const yoyAvailable = period.key !== "12m";
+  const baseline: PeriodBaseline = yoyAvailable ? baselineChoice : "previous";
   const goalPno = data.goals.pno;
 
   // Current-month goal pacing + forecast (independent of the period selector).
@@ -222,7 +236,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
-  const result = evaluatePeriod(data.daily, period.days);
+  const result = evaluatePeriod(data.daily, period.days, baseline);
 
   // Scope the alerts feed + its Kč impact to the selected window, so the card
   // answers about the same period as the KPI cards, chart and channel table —
@@ -309,7 +323,12 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <p className="text-sm text-muted">
             {t("periodLabel")}{" "}
             <span className="font-medium text-navy-700">{t("periodLast", { n: period.label })}</span>
-            <span className="text-muted"> {t("periodCompare")}</span>
+            {/* name the baseline actually used — a YoY request the series can't
+                satisfy falls back to previous-period, and the text follows */}
+            <span className="text-muted">
+              {" "}
+              {result.baseline === "yoy" ? t("periodCompareYoy") : t("periodCompare")}
+            </span>
             {/* the series was too short for the requested window — say so instead
                 of letting „12 měsíců" silently mean a shorter span */}
             {result.truncated && (
@@ -329,18 +348,33 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             {t("dataReport")} <ArrowRight width={14} height={14} />
           </Link>
         </div>
-        <Segmented
-          ariaLabel={t("periodSelector")}
-          options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
-          value={periodKey}
-          onChange={setPeriodKey}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            ariaLabel={t("periodSelector")}
+            options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+            value={periodKey}
+            onChange={setPeriodKey}
+          />
+          {/* comparison-baseline toggle — hidden on 12m, where the adjacent
+              window already equals the whole previous year */}
+          {yoyAvailable && (
+            <Segmented
+              ariaLabel={t("baselineSelector")}
+              options={[
+                { value: "previous" as PeriodBaseline, label: t("baselinePrevious") },
+                { value: "yoy" as PeriodBaseline, label: t("baselineYoy") },
+              ]}
+              value={baselineChoice}
+              onChange={setBaselineChoice}
+            />
+          )}
+        </div>
       </div>
 
       {/* KPI cards — 1 col on small phones, 2 on larger phones, 5 on desktop.
           Keyed by period so the values ease in (staggered) on each switch. */}
       <div
-        key={`kpi-${periodKey}`}
+        key={`kpi-${periodKey}-${result.baseline}`}
         className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 lg:grid-cols-5"
       >
         {HEADLINE_METRICS.map((m, i) => (
@@ -382,6 +416,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <TrendChart
             data={buckets}
             compare={compareBuckets}
+            compareKind={result.baseline}
             metric={trendMetric}
             granularity={period.granularity}
             anomalies={anomalies}

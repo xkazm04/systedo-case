@@ -17,7 +17,9 @@ const T = {
     anomalyGoalBreach: "Překročení cílového PNO ({pno})",
     legendCurrent: "Aktuální období",
     legendPrevious: "Předchozí období",
+    legendYoy: "Stejné období loni",
     tooltipPrevious: "Předchozí",
+    tooltipYoy: "Loni",
     noChange: "beze změny",
     empty: "Pro zvolené období nejsou data.",
     partialBucket: "neúplný měsíc",
@@ -31,7 +33,9 @@ const T = {
     anomalyGoalBreach: "PNO target breached ({pno})",
     legendCurrent: "Current period",
     legendPrevious: "Previous period",
+    legendYoy: "Same period last year",
     tooltipPrevious: "Previous",
+    tooltipYoy: "Last year",
     noChange: "no change",
     empty: "No data for the selected period.",
     partialBucket: "partial month",
@@ -56,13 +60,17 @@ const READOUT: MetricKey[] = ["revenue", "cost", "conversions", "visits", "pno"]
 export default function TrendChart({
   data,
   compare,
+  compareKind = "previous",
   metric,
   granularity,
   anomalies,
 }: {
   data: Bucket[];
-  /** equal-length previous window, overlaid index-aligned as a faint dotted line */
+  /** equal-length comparison window, overlaid index-aligned as a faint dotted line */
   compare?: Bucket[];
+  /** what the comparison window is — adjacent previous period or the same
+   *  period last year; picks the legend/tooltip wording */
+  compareKind?: "previous" | "yoy";
   metric: MetricKey;
   granularity: "day" | "month";
   /** flagged days for the whole series; only those matching the current metric
@@ -405,7 +413,7 @@ export default function TrendChart({
               className="inline-block w-4 border-t-2 border-dotted"
               style={{ borderColor: color, opacity: 0.55 }}
             />
-            {t("legendPrevious")}
+            {compareKind === "yoy" ? t("legendYoy") : t("legendPrevious")}
           </span>
         </div>
       )}
@@ -440,7 +448,7 @@ export default function TrendChart({
           {cmpVal !== undefined && (
             <div className="mt-1.5 flex items-center justify-between gap-2 border-t border-line pt-1.5 text-[13px]">
               <span className="text-muted">
-                {t("tooltipPrevious")}
+                {compareKind === "yoy" ? t("tooltipYoy") : t("tooltipPrevious")}
                 {cmpDate ? ` · ${fmtX(cmpDate)}` : ""}{" "}
                 <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal)}</span>
               </span>

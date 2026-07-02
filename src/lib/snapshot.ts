@@ -14,6 +14,7 @@ import {
   type AnomalyKind,
   type ChannelRow,
   type MonthlyPacing,
+  type PeriodBaseline,
   type Significance,
   type Totals,
 } from "./metrics";
@@ -26,6 +27,8 @@ const PERIOD_DAYS: Record<AnalysisPeriod, number> = { "30d": 30, "90d": 90, "12m
 export interface Snapshot {
   period: AnalysisPeriod;
   periodLabel: string;
+  /** the comparison baseline the deltas were computed against */
+  baseline: PeriodBaseline;
   current: Totals;
   delta: Record<MetricKey, number>;
   significance: Record<MetricKey, Significance>;
@@ -36,15 +39,20 @@ export interface Snapshot {
   client: { name: string; domain: string; segment: string };
 }
 
-export function buildSnapshot(period: AnalysisPeriod): Snapshot {
+export function buildSnapshot(
+  period: AnalysisPeriod,
+  baseline: PeriodBaseline = "previous"
+): Snapshot {
   const snap = buildMetricsSnapshot(performance, {
     key: period,
     label: ANALYSIS_PERIOD_LABELS[period],
     days: PERIOD_DAYS[period],
+    baseline,
   });
   return {
     period,
     periodLabel: ANALYSIS_PERIOD_LABELS[period],
+    baseline: snap.baseline,
     current: snap.current,
     delta: snap.delta,
     significance: snap.significance,
@@ -85,7 +93,13 @@ export function snapshotToPromptText(s: Snapshot): string {
 
   const lines: string[] = [
     `Klient: ${s.client.name} (${s.client.domain}) — ${s.client.segment}`,
-    `Období: posledních ${s.periodLabel} (srovnání s předchozím stejně dlouhým obdobím)`,
+    // Name the baseline the deltas were actually computed against, so the model
+    // never interprets a year-over-year move as a period-over-period one.
+    `Období: posledních ${s.periodLabel} (srovnání ${
+      s.baseline === "yoy"
+        ? "se stejným obdobím loni"
+        : "s předchozím stejně dlouhým obdobím"
+    })`,
     "",
     "Souhrn metrik (hodnota | meziobdobní změna | spolehlivost změny):",
     `- Návštěvy: ${fmtInt(c.visits)} | ${fmtSignedPct(s.delta.visits)}${sig("visits")}`,

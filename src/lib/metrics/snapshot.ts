@@ -5,20 +5,28 @@
 
 import type { MetricKey, PerformanceData } from "../types";
 import type { Totals } from "./totals";
-import { evaluatePeriod, bucketize, type Bucket, type Significance } from "./series";
+import {
+  evaluatePeriod,
+  bucketize,
+  type Bucket,
+  type PeriodBaseline,
+  type Significance,
+} from "./series";
 import { channelRowsCompared, type ChannelRow } from "./channels";
 import { detectAnomalies, type Anomaly } from "./anomalies";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
-export const SNAPSHOT_SCHEMA_VERSION = 1;
+export const SNAPSHOT_SCHEMA_VERSION = 2;
 
 export interface SnapshotPeriod {
   key: string;
   label: string;
   days: number;
   granularity?: "day" | "month";
+  /** comparison baseline — adjacent previous window (default) or year-over-year */
+  baseline?: PeriodBaseline;
 }
 
 /**
@@ -31,6 +39,9 @@ export interface SnapshotPeriod {
 export interface MetricsSnapshot {
   schemaVersion: number;
   period: { key: string; label: string; days: number };
+  /** the comparison baseline actually used (a YoY request the series can't
+   *  satisfy falls back to "previous" — see PeriodResult.baseline) */
+  baseline: PeriodBaseline;
   current: Totals;
   previous: Totals;
   delta: Record<MetricKey, number>;
@@ -48,11 +59,12 @@ export interface MetricsSnapshot {
 
 /** Compose the engine's outputs into the single MetricsSnapshot contract. */
 export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeriod): MetricsSnapshot {
-  const result = evaluatePeriod(data.daily, period.days);
+  const result = evaluatePeriod(data.daily, period.days, period.baseline ?? "previous");
   const granularity = period.granularity ?? (period.days > 90 ? "month" : "day");
   return {
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     period: { key: period.key, label: period.label, days: period.days },
+    baseline: result.baseline,
     current: result.current,
     previous: result.previous,
     delta: result.delta,

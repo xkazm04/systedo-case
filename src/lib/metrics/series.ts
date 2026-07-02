@@ -22,6 +22,17 @@ export const PERIODS: PeriodDef[] = [
   { key: "12m", label: "12 měsíců", days: 365, granularity: "month" },
 ];
 
+/** Which window the comparison uses: the adjacent equal-length window right
+ *  before the current one ("previous"), or the same window shifted back exactly
+ *  one year ("yoy") — the like-for-like baseline for a seasonal business, where
+ *  comparing December against September–November reads pure Christmas
+ *  seasonality as agency performance. */
+export type PeriodBaseline = "previous" | "yoy";
+
+/** Days the YoY comparison shifts back. The seed is deliberately 730 daily
+ *  points — two of these — so every window up to a year has a year-ago twin. */
+const YOY_SHIFT_DAYS = 365;
+
 /** How trustworthy a period-over-period delta is, from a two-sample comparison
  *  of the daily values: "noise" = within normal variance, "strong" ≈ p < 0.05. */
 export type Significance = "strong" | "weak" | "noise";
@@ -45,6 +56,11 @@ export interface PeriodResult {
   /** true when actualDays < requestedDays — the series was too short, so e.g.
    *  "12 měsíců" silently became a shorter span. Surfacing it lets the UI warn. */
   truncated: boolean;
+  /** the comparison baseline actually used. Equals what the caller asked for,
+   *  except when a "yoy" request could not fit even a single day a year back —
+   *  then the engine falls back to "previous" and says so here, so the UI and
+   *  the AI grounding never claim a year-over-year comparison that didn't happen. */
+  baseline: PeriodBaseline;
 }
 
 /** Per-day value of any metric (raw additive, or a derived ratio per day). */
@@ -87,16 +103,54 @@ function significanceFor(current: DailyPoint[], previous: DailyPoint[], key: Met
   return z >= 2 ? "strong" : z >= 1 ? "weak" : "noise";
 }
 
-/** Slice the last `days` as the current window and the preceding `days` as the
- *  comparison window, then compute totals and relative deltas for each metric. */
-export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult {
+/** Slice the last `days` as the current window and compare it against the chosen
+ *  baseline window: the adjacent equal-length window before it ("previous", the
+ *  default) or the same window exactly one year earlier ("yoy"). A YoY request
+ *  that cannot fit even one day a year back falls back to "previous"; the result's
+ *  `baseline` field always reports which comparison was actually made. */
+export function evaluatePeriod(
+  daily: DailyPoint[],
+  days: number,
+  baseline: PeriodBaseline = "previous"
+): PeriodResult {
   const n = daily.length;
+  if (baseline === "yoy") {
+    // Same-period-last-year: the comparison window is the current one shifted
+    // back exactly YOY_SHIFT_DAYS. Cap the current window so its year-ago twin
+    // still fits inside the series; when the series is too short for even one
+    // day, fall through to the adjacent-window baseline below.
+    const span = Math.min(days, n - YOY_SHIFT_DAYS);
+    if (span >= 1) {
+      return compareWindows(
+        daily.slice(n - span),
+        daily.slice(n - span - YOY_SHIFT_DAYS, n - YOY_SHIFT_DAYS),
+        days,
+        span,
+        "yoy"
+      );
+    }
+  }
   // Cap the window to half the series so the current and comparison windows are
   // always equal length. Without this, a period longer than half the data would
   // be compared against a shorter baseline and inflate every delta.
   const span = Math.min(days, Math.floor(n / 2));
-  const current = daily.slice(n - span);
-  const previous = daily.slice(n - span * 2, n - span);
+  return compareWindows(
+    daily.slice(n - span),
+    daily.slice(n - span * 2, n - span),
+    days,
+    span,
+    "previous"
+  );
+}
+
+/** Totals, deltas and significance for one current-vs-comparison window pair. */
+function compareWindows(
+  current: DailyPoint[],
+  previous: DailyPoint[],
+  requestedDays: number,
+  span: number,
+  baseline: PeriodBaseline
+): PeriodResult {
   const c = totalsOf(current);
   const p = totalsOf(previous);
 
@@ -127,9 +181,10 @@ export function evaluatePeriod(daily: DailyPoint[], days: number): PeriodResult 
     significance,
     points: current,
     comparePoints: previous,
-    requestedDays: days,
+    requestedDays,
     actualDays: span,
-    truncated: span < days,
+    truncated: span < requestedDays,
+    baseline,
   };
 }
 
