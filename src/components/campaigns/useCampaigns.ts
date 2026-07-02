@@ -92,6 +92,15 @@ export function useCampaigns() {
   /** per-key: was the last evaluation served from the input-hash cache (no new
    *  paid model call) rather than freshly generated? */
   const [cached, setCached] = useState<Record<string, boolean>>({});
+  /** batch "evaluate everything" run state + its result summary */
+  const [analyzingAll, setAnalyzingAll] = useState(false);
+  const [batchSummary, setBatchSummary] = useState<{
+    evaluated: number;
+    cached: number;
+    remaining: number;
+    quotaExhausted: boolean;
+    error: string | null;
+  } | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -198,6 +207,53 @@ export function useCampaigns() {
     [pid]
   );
 
+  /** One-request batch: evaluate the portfolio + every campaign server-side,
+   *  paying only for targets whose data changed since their stored report (the
+   *  input-hash cache). Reloads the full state afterwards so reports, histories
+   *  and stale badges refresh in one pass. Signed-in only (the route 401s). */
+  const analyzeAll = useCallback(async (): Promise<boolean> => {
+    setAnalyzingAll(true);
+    setBatchSummary(null);
+    try {
+      const res = await fetch("/api/campaigns/analyze/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: pid }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setBatchSummary({
+          evaluated: 0,
+          cached: 0,
+          remaining: 0,
+          quotaExhausted: false,
+          error: json?.error ?? "Hromadné vyhodnocení se nezdařilo.",
+        });
+        return false;
+      }
+      setBatchSummary({
+        evaluated: json.evaluated?.length ?? 0,
+        cached: json.cached?.length ?? 0,
+        remaining: json.remaining?.length ?? 0,
+        quotaExhausted: Boolean(json.quotaExhausted),
+        error: json.error ?? null,
+      });
+      await load();
+      return true;
+    } catch {
+      setBatchSummary({
+        evaluated: 0,
+        cached: 0,
+        remaining: 0,
+        quotaExhausted: false,
+        error: "Nepodařilo se spojit se serverem.",
+      });
+      return false;
+    } finally {
+      setAnalyzingAll(false);
+    }
+  }, [pid, load]);
+
   return {
     campaigns: state.campaigns,
     meta: state.meta,
@@ -214,7 +270,10 @@ export function useCampaigns() {
     analyzing,
     analyzeErrors,
     cached,
+    analyzingAll,
+    batchSummary,
     sync,
     analyze,
+    analyzeAll,
   };
 }

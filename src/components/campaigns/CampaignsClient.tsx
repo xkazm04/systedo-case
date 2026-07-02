@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Bolt, Gauge, Info, Layers, Refresh, Share, Sparkles } from "@/components/icons";
+import { Button } from "@/components/ui";
 import {
   CAMPAIGN_PERIODS,
   campaignPeriodLabel,
@@ -56,6 +58,12 @@ const T = {
     evaluating: "Vyhodnocuji…",
     evaluate: "Vyhodnotit portfolio",
     reevaluate: "Přehodnotit portfolio",
+    evalAll: "Vyhodnotit vše",
+    evalAllBusy: "Vyhodnocuji vše…",
+    evalAllTitle:
+      "Projde portfolio i všechny kampaně najednou; platí se jen za reporty, u kterých se data od posledního vyhodnocení změnila",
+    evalAllSummary: "Hromadné vyhodnocení: {fresh} nových reportů, {cached} beze změny (z cache).",
+    evalAllQuota: "Denní limit AI vyhodnocení vyčerpán — na {n} nezbylo.",
     buildingReport: "Sestavuji hodnoticí report…",
     campaignsHeading: "Kampaně",
     campaignCount: "{n} kampaní · analýza po řádcích",
@@ -87,6 +95,12 @@ const T = {
     evaluating: "Evaluating…",
     evaluate: "Evaluate portfolio",
     reevaluate: "Re-evaluate portfolio",
+    evalAll: "Evaluate everything",
+    evalAllBusy: "Evaluating everything…",
+    evalAllTitle:
+      "Walks the portfolio and every campaign in one go; only reports whose data changed since the last evaluation are paid for",
+    evalAllSummary: "Batch evaluation: {fresh} new reports, {cached} unchanged (from cache).",
+    evalAllQuota: "Daily AI evaluation quota exhausted — {n} left unevaluated.",
     buildingReport: "Building evaluation report…",
     campaignsHeading: "Campaigns",
     campaignCount: "{n} campaigns · row-by-row analysis",
@@ -122,9 +136,16 @@ export default function CampaignsClient() {
     analyzing,
     analyzeErrors,
     cached,
+    analyzingAll,
+    batchSummary,
     sync,
     analyze,
+    analyzeAll,
   } = useCampaigns();
+  // Batch evaluation is signed-in only (the route 401s for the shared sample
+  // tenant), so anonymous visitors don't see a button that can't work.
+  const { status: sessionStatus } = useSession();
+  const authed = sessionStatus === "authenticated";
   // The user's explicit pick wins; otherwise mirror the synced period (so the
   // toolbar highlight matches the data on screen after a reload) and default to 30d.
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
@@ -353,6 +374,26 @@ export default function CampaignsClient() {
                 {sharing ? t("sharing") : t("shareButton")}
               </button>
             )}
+            {authed && (
+              <Button
+                variant="secondary"
+                onClick={() => void analyzeAll()}
+                disabled={analyzingAll || syncing}
+                title={t("evalAllTitle")}
+              >
+                {analyzingAll ? (
+                  <>
+                    <Gauge width={15} height={15} className="animate-pulse" />
+                    {t("evalAllBusy")}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles width={15} height={15} />
+                    {t("evalAll")}
+                  </>
+                )}
+              </Button>
+            )}
             <button
               type="button"
               onClick={() => analyze("overall", null, period)}
@@ -376,6 +417,22 @@ export default function CampaignsClient() {
 
         {overallErr && <p className="mt-4 text-sm text-negative">{overallErr}</p>}
         {shareErr && <p className="mt-3 text-sm text-negative">{shareErr}</p>}
+        {batchSummary &&
+          (batchSummary.error && batchSummary.evaluated === 0 ? (
+            <p className="mt-3 text-sm text-negative">{batchSummary.error}</p>
+          ) : (
+            <p className="mt-3 text-sm text-muted">
+              <span className="tnum">
+                {t("evalAllSummary", { fresh: batchSummary.evaluated, cached: batchSummary.cached })}
+              </span>
+              {batchSummary.quotaExhausted && (
+                <span className="ml-1 text-coral-600">
+                  {t("evalAllQuota", { n: batchSummary.remaining })}
+                </span>
+              )}
+              {batchSummary.error && <span className="ml-1 text-negative">{batchSummary.error}</span>}
+            </p>
+          ))}
         {shareUrl && (
           <div className="mt-4 flex flex-wrap items-center gap-2 rounded-card bg-brand-50 px-4 py-3 text-sm">
             <span className="font-medium text-brand-800">{t("shareLabel")}</span>
