@@ -189,8 +189,10 @@ const DEFAULT_FILTERS: StoredFilters = {
 
 /** Restore the table filters the same way sort is restored, so an agency reviewing
  *  the same segment daily doesn't re-apply them on every visit. Each field is
- *  validated against the known values before use. */
-function loadFilters(): StoredFilters {
+ *  validated against the known values before use. Exported because the type
+ *  filter is lifted to CampaignsClient (the TypeBreakdown cards drive it too)
+ *  and its initial value must come from the same stored record. */
+export function loadFilters(): StoredFilters {
   if (typeof window === "undefined") return DEFAULT_FILTERS;
   try {
     const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY);
@@ -270,6 +272,8 @@ export default function CampaignTable({
   cached,
   changesById,
   onAnalyze,
+  typeFilter,
+  onTypeFilterChange,
 }: {
   campaigns: Campaign[];
   reports: Record<string, CampaignReport>;
@@ -286,6 +290,10 @@ export default function CampaignTable({
   /** run one evaluation; resolving `false` signals a failure (the batch queue
    *  stops there instead of hammering the rate limiter) */
   onAnalyze: (campaignId: string) => Promise<boolean> | void;
+  /** lifted type filter — CampaignsClient owns it so the TypeBreakdown cards
+   *  and the table dropdown drive the same state (click a card → filter rows) */
+  typeFilter: CampaignType | "all";
+  onTypeFilterChange: (t: CampaignType | "all") => void;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -306,7 +314,6 @@ export default function CampaignTable({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [sort, setSort] = useState<SortState>(loadSort);
   const [query, setQuery] = useState(() => loadFilters().query);
-  const [typeFilter, setTypeFilter] = useState<CampaignType | "all">(() => loadFilters().typeFilter);
   const [statusFilter, setStatusFilter] = useState<CampaignStatus | "all">(() => loadFilters().statusFilter);
   const [attentionOnly, setAttentionOnly] = useState(() => loadFilters().attentionOnly);
 
@@ -374,7 +381,7 @@ export default function CampaignTable({
 
   const resetFilters = () => {
     setQuery("");
-    setTypeFilter("all");
+    onTypeFilterChange("all");
     setStatusFilter("all");
     setAttentionOnly(false);
   };
@@ -479,7 +486,7 @@ export default function CampaignTable({
 
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as CampaignType | "all")}
+          onChange={(e) => onTypeFilterChange(e.target.value as CampaignType | "all")}
           aria-label={t("filterTypeAriaLabel")}
           className={FILTER_FIELD}
         >

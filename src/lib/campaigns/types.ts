@@ -234,6 +234,9 @@ export function indexChanges(
 export interface TypeGroup {
   type: CampaignType;
   total: CampaignTotals;
+  /** the group's member campaigns — lets consumers roll up per-type triage
+   *  (e.g. „2 vyžadují pozornost") without regrouping */
+  campaigns: Campaign[];
 }
 
 /** Group campaigns by advertising-channel type, aggregate each group, and sort
@@ -246,6 +249,6 @@ export function groupByType(rows: Campaign[]): TypeGroup[] {
     else byType.set(c.type, [c]);
   }
   return [...byType.entries()]
-    .map(([type, group]) => ({ type, total: aggregate(group) }))
+    .map(([type, group]) => ({ type, total: aggregate(group), campaigns: group }))
     .sort((a, b) => b.total.cost - a.total.cost);
 }

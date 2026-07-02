@@ -9,6 +9,7 @@ import {
   aggregate,
   type CampaignChange,
   type CampaignPeriod,
+  type CampaignType,
 } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -20,7 +21,7 @@ import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
 import ActivityFeed from "./ActivityFeed";
-import CampaignTable from "./CampaignTable";
+import CampaignTable, { loadFilters } from "./CampaignTable";
 import PortfolioTrend from "./PortfolioTrend";
 import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
@@ -125,6 +126,13 @@ export default function CampaignsClient() {
   // toolbar highlight matches the data on screen after a reload) and default to 30d.
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
   const period: CampaignPeriod = selected ?? meta?.period ?? "30d";
+
+  // The table's type filter, lifted here so the TypeBreakdown cards and the
+  // table dropdown drive one state (click a card → the table filters to that
+  // type; click again → clear). Initialised from the same stored record the
+  // table's other filters restore from, so persistence keeps working.
+  const [typeFilter, setTypeFilter] = useState<CampaignType | "all">(() => loadFilters().typeFilter);
+  const toggleTypeFilter = (tp: CampaignType) => setTypeFilter((cur) => (cur === tp ? "all" : tp));
 
   // Bumped after each sync so the alert inbox reloads (a sync can mint new alerts).
   const [alertRefresh, setAlertRefresh] = useState(0);
@@ -310,7 +318,12 @@ export default function CampaignsClient() {
       {/* what changed since the previous sync */}
       {changes && changes.items.length > 0 && <ChangeStrip changes={changes} />}
 
-      <TypeBreakdown campaigns={campaigns} />
+      <TypeBreakdown
+        campaigns={campaigns}
+        changesById={changesById}
+        activeType={typeFilter}
+        onTypeClick={toggleTypeFilter}
+      />
 
       {/* deterministic budget-reallocation recommendations */}
       <BudgetMoves campaigns={campaigns} onApplied={() => sync(period)} />
@@ -427,6 +440,8 @@ export default function CampaignsClient() {
           cached={cached}
           changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
         />
       </section>
     </div>
