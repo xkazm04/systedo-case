@@ -24,7 +24,11 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `npx next dev --port ${PORT}`,
+    // Overridable so CI (or a local run) can point the suite at a production
+    // server instead of the dev server, e.g.
+    //   E2E_WEB_CMD="npx next start --port 3100" npm run test:e2e
+    // (after a build). The override must listen on E2E_PORT (default 3100).
+    command: process.env.E2E_WEB_CMD ?? `npx next dev --port ${PORT}`,
     url: BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
