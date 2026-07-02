@@ -11,6 +11,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { firestore } from "@/lib/firebase";
+import { recordActivity } from "./activity";
+import { recordAlert } from "./alerts";
 import type {
   AiResponse,
   CampaignReport,
@@ -198,6 +200,11 @@ async function allReports(tenant: string): Promise<ReportDoc[]> {
 const reportKey = (r: ReportDoc): string =>
   r.scope === "overall" ? "overall" : r.campaign_id ?? "overall";
 
+/** A score falling by at least this many points between two consecutive stored
+ *  evaluations of the same scope raises a critical inbox alert — the report
+ *  history stops being write-only and becomes proactive monitoring. */
+export const SCORE_DROP_ALERT_POINTS = 15;
+
 export async function saveReport(
   tenant: string,
   args: {
@@ -222,7 +229,54 @@ export async function saveReport(
     created_at: createdAt,
     input_hash: inputHash ?? null,
   };
+
+  // Previous point of this scope's history (same filter getReportHistory uses),
+  // read before the new report lands so the regression check has its baseline.
+  // Best-effort: a failed read only skips the alert, never the save.
+  let previous: ReportDoc | null = null;
+  try {
+    const history = (await allReports(tenant)).filter(
+      (r) => r.scope === scope && (r.campaign_id ?? "") === (campaignId ?? "")
+    );
+    previous = history[history.length - 1] ?? null;
+  } catch {
+    previous = null;
+  }
+
   await tenantDoc(tenant).collection("reports").add(doc);
+
+  // Proactive monitoring on the write seam (the gate-locked analyze route needs
+  // no edit): a timeline entry per evaluation — AI spend becomes auditable —
+  // plus a critical inbox alert on a significant score collapse. Demo-mode
+  // reports carry canned scores, so a demo report neither raises nor baselines
+  // the regression alert. Both wrapped so logging can never fail the evaluation.
+  try {
+    const scopeLabel = scope === "overall" ? "celé portfolio" : `kampaň ${campaignId}`;
+    await recordActivity(tenant, {
+      kind: "report",
+      title: `AI vyhodnocení · skóre ${response.result.score}`,
+      detail: `${scopeLabel} · období ${period} · ${response.result.verdict}`,
+    });
+
+    const drop = previous ? previous.payload.score - response.result.score : 0;
+    if (previous && !previous.demo && !response.meta.demo && drop >= SCORE_DROP_ALERT_POINTS) {
+      await recordAlert(tenant, {
+        type: "critical",
+        title: `AI skóre kleslo o ${drop} bodů (${previous.payload.score} → ${response.result.score})`,
+        body: `${scopeLabel} · ${response.result.verdict}`,
+        items: [
+          {
+            campaignId: campaignId ?? "overall",
+            name: scopeLabel,
+            reason: `Skóre kleslo z ${previous.payload.score} na ${response.result.score} mezi dvěma vyhodnoceními (práh ${SCORE_DROP_ALERT_POINTS} b.).`,
+          },
+        ],
+      });
+    }
+  } catch (err) {
+    console.error(`[campaigns] report activity/alert failed for ${tenant} (non-fatal):`, err);
+  }
+
   return { scope, campaignId, period, result: response.result, meta: response.meta, createdAt };
 }
 
