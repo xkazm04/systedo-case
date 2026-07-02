@@ -86,6 +86,8 @@ const T = {
     footerLabel: "Součet filtru ({n})",
     footerTitle:
       "Souhrn právě vyfiltrovaných kampaní — ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
+    severityPillTitle: "Zobrazit nálezy triáže v detailu řádku",
+    triageHeading: "Proč vyžaduje pozornost",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -134,6 +136,8 @@ const T = {
     footerLabel: "Filter total ({n})",
     footerTitle:
       "Aggregate of the currently filtered campaigns — ROAS and PNO are re-derived from sums, not averaged",
+    severityPillTitle: "Show the triage findings in the row detail",
+    triageHeading: "Why it needs attention",
   },
 } as const;
 
@@ -647,13 +651,21 @@ export default function CampaignTable({
                           —
                         </span>
                       ) : (
-                        <span
-                          className={`pill ${SEVERITY_BADGE[triageResult.severity]}`}
-                          title={triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}
+                        // A button, not a bare pill: the hover-only tooltip left
+                        // touch users with no way to read WHY the row is flagged.
+                        // Clicking opens the row detail, where the same reasons
+                        // render as a copyable list; the title stays as a
+                        // secondary desktop affordance.
+                        <button
+                          type="button"
+                          onClick={() => toggle(c.id)}
+                          aria-expanded={isOpen}
+                          className={`pill cursor-pointer transition-shadow hover:shadow-card ${SEVERITY_BADGE[triageResult.severity]}`}
+                          title={`${t("severityPillTitle")}\n${triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}`}
                         >
                           <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
                           {severityLabel(triageResult.severity, locale)}
-                        </span>
+                        </button>
                       )}
                     </td>
                     <td className="px-5 py-3">
@@ -766,6 +778,35 @@ export default function CampaignTable({
                   {isOpen && (
                     <tr className="border-b border-line/70 bg-canvas/40">
                       <td colSpan={cols} className="px-5 py-5">
+                        {/* Deterministic triage findings, inline and copyable —
+                            the same reasons the pill tooltip shows, finally
+                            reachable on touch devices. Above the AI block, so
+                            "why is this red?" never depends on a paid report. */}
+                        {triageResult.reasons.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted">
+                              {t("triageHeading")}
+                            </h4>
+                            <ul className="mt-2 space-y-1.5">
+                              {triageResult.reasons.map((r) => (
+                                <li key={r.id} className="flex items-start gap-2 text-sm">
+                                  <span
+                                    className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                                      r.severity === "critical" ? "bg-negative" : "bg-coral-500"
+                                    }`}
+                                    aria-hidden
+                                  />
+                                  <span className="text-navy-700">
+                                    <span className="font-semibold text-navy-800">
+                                      {triageReasonLabel(r, locale)}
+                                    </span>{" "}
+                                    — {r.detail}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                         {isAnalyzing && !report ? (
                           <div className="flex items-center gap-3 text-sm text-muted">
                             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
