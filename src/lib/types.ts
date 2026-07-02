@@ -21,6 +21,22 @@ export interface ChannelShare {
   };
 }
 
+/** Kind of an authored story event baked into the demo series by the generator. */
+export type PerformanceEventKind = "spike" | "outage" | "cost-runaway" | "milestone";
+
+/** One entry of the dataset's story-event calendar. The generator has already
+ *  applied the event's effect to the affected `daily` points; this record is the
+ *  annotation layer (chart markers, AI grounding, "what happened here"). */
+export interface PerformanceEvent {
+  /** ISO date the event starts, YYYY-MM-DD */
+  date: string;
+  /** short Czech label, e.g. "Black Friday — špička poptávky" */
+  label: string;
+  kind: PerformanceEventKind;
+  /** consecutive days the event spans (absent = 1) */
+  days?: number;
+}
+
 export interface PerformanceData {
   client: {
     name: string;
@@ -40,6 +56,8 @@ export interface PerformanceData {
     monthlyRevenue: number;
   };
   channels: ChannelShare[];
+  /** authored story-event calendar (optional — older datasets lack it) */
+  events?: PerformanceEvent[];
   daily: DailyPoint[];
 }
 

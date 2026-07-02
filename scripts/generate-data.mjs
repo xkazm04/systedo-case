@@ -55,36 +55,126 @@ const WEEKDAY_VISITS = [1.04, 1.0, 0.98, 0.98, 1.0, 1.03, 1.05]; // Sun..Sat
 const WEEKDAY_CR = [1.05, 1.0, 0.99, 0.98, 0.99, 1.02, 1.04];
 
 const asOfDate = new Date(`${AS_OF}T00:00:00Z`);
+
+// --- story events ------------------------------------------------------------
+// Hand-authored, deterministic "story events" layered onto the smooth jittered
+// baseline. Without them the downstream anomaly engine is starved: the bounded
+// ±10 % jitter can never reach the z ≥ 2.5 flag threshold, so the outage /
+// spike / goal-breach paths (and the "dopad ≈ −X tis. Kč" money-impact
+// headline) were dead UI in the shipped demo. Events are applied AFTER the base
+// computation (and after its floors) as fixed per-day multipliers and consume
+// NO PRNG draws — every non-event day stays byte-identical to the plain
+// generator output.
+//
+// Dates: Black Friday is calendar-anchored (both in-window years); the outage
+// and the cost runaway are anchored relative to AS_OF so they stay inside the
+// default 90-day dashboard window whenever the dataset is refreshed.
+const DAY_MS = 86_400_000;
+const isoDay = (d) => d.toISOString().slice(0, 10);
+const daysBeforeAsOf = (n) => isoDay(new Date(asOfDate.getTime() - n * DAY_MS));
+/** Black Friday (last Friday of November) of the given year. */
+function blackFriday(year) {
+  const d = new Date(Date.UTC(year, 10, 30));
+  while (d.getUTCDay() !== 5) d.setUTCDate(d.getUTCDate() - 1);
+  return isoDay(d);
+}
+/** The Saturday at or before (AS_OF − minDaysBefore) — so the cost-runaway
+ *  story always spans a real weekend, whatever weekday AS_OF falls on. */
+function saturdayBefore(minDaysBefore) {
+  const d = new Date(asOfDate.getTime() - minDaysBefore * DAY_MS);
+  while (d.getUTCDay() !== 6) d.setUTCDate(d.getUTCDate() - 1);
+  return isoDay(d);
+}
+
+// Multipliers apply to the day's computed visits/conversions/revenue/cost.
+// Internal consistency is preserved where the story needs it and broken where
+// the break IS the story: the tracking outage keeps cost at its expected level
+// (Ads kept spending) while *measured* conversions/revenue collapse — exactly
+// what drives the PNO goal-breach rule.
+const EVENTS = [
+  {
+    date: blackFriday(2024),
+    label: "Black Friday — špička poptávky",
+    kind: "spike",
+    mult: { visits: 1.8, conversions: 2.4, revenue: 2.5, cost: 1.6 },
+  },
+  {
+    date: blackFriday(2025),
+    label: "Black Friday — špička poptávky",
+    kind: "spike",
+    mult: { visits: 1.8, conversions: 2.4, revenue: 2.5, cost: 1.6 },
+  },
+  {
+    date: daysBeforeAsOf(120),
+    label: "Spuštění kampaně Performance Max",
+    kind: "milestone",
+  },
+  {
+    date: daysBeforeAsOf(18),
+    label: "Výpadek měření konverzí (rozbitá měřicí značka)",
+    kind: "outage",
+    mult: { visits: 0.06, conversions: 0.03, revenue: 0.03, cost: 1 },
+  },
+  {
+    date: saturdayBefore(8),
+    days: 2,
+    label: "Víkendový únik nákladů (chybný limit nabídek)",
+    kind: "cost-runaway",
+    mult: { visits: 1, conversions: 1, revenue: 1, cost: 2.4 },
+  },
+].sort((a, b) => (a.date < b.date ? -1 : 1));
+
+// Expand multi-day events into a per-date multiplier lookup for the daily loop.
+const eventMultByDate = new Map();
+for (const e of EVENTS) {
+  if (!e.mult) continue;
+  const start = new Date(`${e.date}T00:00:00Z`);
+  for (let k = 0; k < (e.days ?? 1); k++) {
+    eventMultByDate.set(isoDay(new Date(start.getTime() + k * DAY_MS)), e.mult);
+  }
+}
+
 const daily = [];
 
 for (let i = 0; i < DAYS; i++) {
   const date = new Date(asOfDate);
   date.setUTCDate(asOfDate.getUTCDate() - (DAYS - 1 - i));
+  const dateStr = isoDay(date);
   const month = date.getUTCMonth();
   const dow = date.getUTCDay();
   const t = i / (DAYS - 1); // 0 → 1 progress across the year
 
   // Traffic grows ~70 % over the year as the account matures.
   const visitsBase = 1180 + t * 820;
-  const visits = Math.max(
+  let visits = Math.max(
     300,
     round(visitsBase * SEASON[month] * WEEKDAY_VISITS[dow] * jitter(0.1))
   );
 
   // Conversion rate improves from ~2.2 % to ~2.7 % as the funnel is optimised.
   const cr = (0.0218 + t * 0.005) * SEASON_CR[month] * WEEKDAY_CR[dow] * jitter(0.08);
-  const conversions = Math.max(1, Math.round(visits * cr));
+  let conversions = Math.max(1, Math.round(visits * cr));
 
   // Average order value drifts up with the product mix.
   const aov = (1520 + t * 190) * jitter(0.06);
-  const revenue = round(conversions * aov, 1);
+  let revenue = round(conversions * aov, 1);
 
   // PNO (cost / revenue) falls from ~20.5 % to ~13.5 % as spend is optimised.
   const pno = (0.205 - t * 0.07) * jitter(0.06);
-  const cost = round(revenue * pno, 1);
+  let cost = round(revenue * pno, 1);
+
+  // Story-event override (see EVENTS above): fixed multipliers applied after the
+  // base computation and its floors, drawing nothing from the PRNG.
+  const mult = eventMultByDate.get(dateStr);
+  if (mult) {
+    visits = Math.max(0, Math.round(visits * mult.visits));
+    conversions = Math.max(0, Math.round(conversions * mult.conversions));
+    revenue = Math.max(0, round(revenue * mult.revenue, 1));
+    cost = Math.max(0, round(cost * mult.cost, 1));
+  }
 
   daily.push({
-    date: date.toISOString().slice(0, 10),
+    date: dateStr,
     visits,
     cost,
     conversions,
@@ -145,6 +235,11 @@ const dataset = {
     color,
     shares: { visits: visit, cost, conversions: conv, revenue: rev },
   })),
+  // Authored story-event calendar. The multipliers are already baked into
+  // `daily`; this list is the annotation layer (chart markers, AI grounding).
+  events: EVENTS.map(({ date, label, kind, days }) =>
+    days && days > 1 ? { date, label, kind, days } : { date, label, kind }
+  ),
   daily,
 };
 

@@ -88,6 +88,34 @@
       }
     }
   ],
+  "events": [
+    {
+      "date": "2024-11-29",
+      "label": "Black Friday — špička poptávky",
+      "kind": "spike"
+    },
+    {
+      "date": "2025-11-28",
+      "label": "Black Friday — špička poptávky",
+      "kind": "spike"
+    },
+    {
+      "date": "2026-01-31",
+      "label": "Spuštění kampaně Performance Max",
+      "kind": "milestone"
+    },
+    {
+      "date": "2026-05-13",
+      "label": "Výpadek měření konverzí (rozbitá měřicí značka)",
+      "kind": "outage"
+    },
+    {
+      "date": "2026-05-23",
+      "label": "Víkendový únik nákladů (chybný limit nabídek)",
+      "kind": "cost-runaway",
+      "days": 2
+    }
+  ],
   "daily": [
     {
       "date": "2024-06-01",
@@ -1358,10 +1386,10 @@
     },
     {
       "date": "2024-11-29",
-      "visits": 1905,
-      "cost": 14964,
-      "conversions": 49,
-      "revenue": 77945
+      "visits": 3429,
+      "cost": 23942,
+      "conversions": 118,
+      "revenue": 194863
     },
     {
       "date": "2024-11-30",
@@ -3906,10 +3934,10 @@
     },
     {
       "date": "2025-11-28",
-      "visits": 2058,
-      "cost": 14274,
-      "conversions": 56,
-      "revenue": 91868
+      "visits": 3704,
+      "cost": 22838,
+      "conversions": 134,
+      "revenue": 229670
     },
     {
       "date": "2025-11-29",
@@ -5068,10 +5096,10 @@
     },
     {
       "date": "2026-05-13",
-      "visits": 1972,
+      "visits": 118,
       "cost": 10282,
-      "conversions": 49,
-      "revenue": 79231
+      "conversions": 1,
+      "revenue": 2377
     },
     {
       "date": "2026-05-14",
@@ -5139,14 +5167,14 @@
     {
       "date": "2026-05-23",
       "visits": 2260,
-      "cost": 13964,
+      "cost": 33514,
       "conversions": 67,
       "revenue": 108166
     },
     {
       "date": "2026-05-24",
       "visits": 2342,
-      "cost": 13396,
+      "cost": 32150,
       "conversions": 61,
       "revenue": 100823
     },
