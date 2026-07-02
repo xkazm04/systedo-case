@@ -18,6 +18,7 @@ const T = {
     ariaLabel: "Navigace případovou studií",
     continue: "Pokračujte případovou studií",
     finished: "Dokončili jste případovou studii",
+    position: "Úkol {index} ze {total}",
     closingTag: "Konec · děkuji za pozornost",
     closingHeading: "Zpět na přehled",
     closingBody:
@@ -29,6 +30,7 @@ const T = {
     ariaLabel: "Case-study navigation",
     continue: "Continue through the case study",
     finished: "You've completed the case study",
+    position: "Task {index} of {total}",
     closingTag: "Done · thank you for your time",
     closingHeading: "Back to overview",
     closingBody:
@@ -39,7 +41,7 @@ const T = {
 } as const;
 
 type TKeys = keyof (typeof T)["cs"];
-type TFn = (key: TKeys) => string;
+type TFn = (key: TKeys, vars?: Record<string, string | number>) => string;
 
 export default async function TaskPager({ current }: { current: string }) {
   const t = await getT(T);
@@ -56,14 +58,37 @@ export default async function TaskPager({ current }: { current: string }) {
   const next = sequence[index + 1];
   if (!prev && !next) return null;
 
+  // Journey position, counted over the task pages only (task 0 = the overview
+  // rozcestník, which the mobile menu's "Úkol N" badges also exclude). The
+  // dots are decorative — the visible "Úkol N ze M" text carries the meaning.
+  const step = sequence[index].task;
+  const tasks = sequence.filter((item) => item.task > 0);
+
   return (
     <nav
       aria-label={t("ariaLabel")}
       className="mt-16 border-t border-line pt-10"
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
-        {next ? t("continue") : t("finished")}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+          {next ? t("continue") : t("finished")}
+        </p>
+        {step > 0 && (
+          <p className="flex items-center gap-2.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
+            <span>{t("position", { index: step, total: tasks.length })}</span>
+            <span className="flex items-center gap-1.5" aria-hidden>
+              {tasks.map((item) => (
+                <span
+                  key={item.href}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    item.task <= step ? "bg-brand-500" : "bg-navy-100"
+                  }`}
+                />
+              ))}
+            </span>
+          </p>
+        )}
+      </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {prev && <PagerLink item={prev} direction="prev" t={t} />}
         {next ? <PagerLink item={next} direction="next" t={t} /> : <ClosingCta t={t} />}
