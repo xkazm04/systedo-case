@@ -7,6 +7,7 @@ import {
   CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_TYPE_LABELS,
   CAMPAIGN_TYPES,
+  aggregate,
   budgetPacing,
   campaignStatusLabel,
   withMetrics,
@@ -82,6 +83,9 @@ const T = {
       "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den) — vítěz, kterého brzdí rozpočet",
     colTrend: "Trend",
     sparkAria: "Denní náklady kampaně „{name}“ za období: od {start} do {end}",
+    footerLabel: "Součet filtru ({n})",
+    footerTitle:
+      "Souhrn právě vyfiltrovaných kampaní — ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -127,6 +131,9 @@ const T = {
       "ROAS {roas} above target with {pacing} of budget spent ({budget}/day) — a winner held back by its budget",
     colTrend: "Trend",
     sparkAria: "Daily cost of campaign “{name}” over the period: from {start} to {end}",
+    footerLabel: "Filter total ({n})",
+    footerTitle:
+      "Aggregate of the currently filtered campaigns — ROAS and PNO are re-derived from sums, not averaged",
   },
 } as const;
 
@@ -807,6 +814,40 @@ export default function CampaignTable({
               );
             })}
           </tbody>
+          {/* Filtered-segment totals: the number the user filtered FOR. Rendered
+              only when a filter narrows the view — the unfiltered portfolio
+              aggregate already lives in the KPI cards above. `aggregate`
+              re-derives ROAS/PNO from the segment's sums, so the footer can
+              never drift from the body rows' math. */}
+          {filtersActive && view.length > 0 && (
+            <tfoot>
+              {(() => {
+                const seg = aggregate(view.map((v) => v.c));
+                return (
+                  <tr className="border-t-2 border-line bg-canvas/60 font-medium" title={t("footerTitle")}>
+                    <td colSpan={2 + (hasSeries ? 1 : 0)} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
+                      Σ {t("footerLabel", { n: seg.count })}
+                    </td>
+                    <td className="tnum px-3 py-3 text-right text-navy-800">{fmt.fmtCZK(seg.cost)}</td>
+                    <td className="tnum px-3 py-3 text-right text-navy-800">{fmt.fmtInt(seg.conversions)}</td>
+                    <td className="tnum px-3 py-3 text-right font-semibold text-navy-800">
+                      {fmt.fmtCZK(seg.conversionValue)}
+                    </td>
+                    <td className="tnum px-3 py-3 text-right text-navy-800">
+                      {seg.conversions > 0 ? fmt.fmtCZK(seg.cpa) : "—"}
+                    </td>
+                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[roasMetricTone(seg.roas)]}`}>
+                      {seg.roas > 0 ? fmt.fmtMultiple(seg.roas) : "—"}
+                    </td>
+                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[pnoMetricTone(seg.pno)]}`}>
+                      {seg.pno > 0 ? fmt.fmtPct(seg.pno) : "—"}
+                    </td>
+                    <td className="px-5 py-3" />
+                  </tr>
+                );
+              })()}
+            </tfoot>
+          )}
         </table>
       </div>
     </div>
