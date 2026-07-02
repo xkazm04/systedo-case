@@ -1,11 +1,13 @@
 name: CI
 
-# Continuous integration. NOTE: this is NOT a full mirror of the local pre-commit
-# hook. CI runs `npm run check` (typecheck && lint && build), the unit suite, and
-# the key-free LLM checks (chokepoint coverage + contract goldens). Two things run
-# in only ONE place by design: `next build` and the contract goldens run only here
-# (CI), while the real-model Claude run is local-only (Husky pre-commit, gated by a
-# logged-in Claude CLI). A green local commit can therefore still fail CI on build.
+# Continuous integration. The main job runs `npm run check:ci` — the single
+# command that reproduces this gate locally (check = typecheck && lint && build,
+# then seed drift guard, unit suite, and the key-free LLM checks: chokepoint
+# coverage + contract goldens). Keep ci.yml and the `check:ci` script pointing at
+# each other so the two can never drift. Still NOT a full mirror of pre-commit:
+# the real-model Claude run stays local-only (Husky, gated by a logged-in Claude
+# CLI), while `next build` runs only here — so a green local commit can still
+# fail CI on build unless you ran `npm run check:ci` yourself.
 on:
   push:
   pull_request:
@@ -27,28 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run check (typecheck && lint && build)
-        run: npm run check
-
-      - name: Unit tests
-        run: npm run test:unit
-
-      # Data drift guard: the committed src/data/performance.json must match the
-      # seeded-PRNG generator output — a hand edit (or a generator tweak committed
-      # without re-seeding) silently breaks the "numbers always reconcile" invariant
-      # the dashboard, article snapshot and microsites all rely on. Deterministic,
-      # key-free, <1 s.
-      - name: Data drift guard
-        run: npm run seed:check
-
-      # Static LLM-wrapper gate: verifies every call site is tagged + test-registered
-      # and that provider access stays confined to the chokepoint. Key-free and fast
-      # (the real-model run stays local, gated by the Husky pre-commit hook).
-      - name: LLM chokepoint coverage
-        run: npm run test:llm:coverage
-
-      # Contract goldens: every tool's (system + schema) fingerprint must match its
-      # committed snapshot, so a prompt/schema change shows up as a reviewable diff
-      # instead of silently passing. Deterministic and key-free (no model calls).
-      - name: LLM contract goldens
-        run: npm run llm:eval -- --strict
+      # One command = the whole CI gate, runnable locally before pushing:
+      #   check (typecheck && lint && build) → seed drift guard → unit tests →
+      #   LLM chokepoint coverage → LLM contract goldens. All deterministic and
+      #   key-free (the real-model Claude run stays local in the Husky hook).
+      - name: Full CI gate (npm run check:ci)
+        run: npm run check:ci
