@@ -10,11 +10,9 @@
 import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
-import { getLatestChanges, getSyncMeta, saveSeries, upsertCampaigns } from "@/lib/campaigns/store";
-import { evaluateAndAlert } from "@/lib/campaigns/alerts";
-import { evaluateAnomalyAlerts } from "@/lib/campaigns/anomaly-alerts";
-import { recordActivity } from "@/lib/campaigns/activity";
-import { indexChanges, type CampaignPeriod, type DailyPoint } from "@/lib/campaigns/types";
+import { getSyncMeta } from "@/lib/campaigns/store";
+import { runTenantSync } from "@/lib/campaigns/sync";
+import type { CampaignPeriod } from "@/lib/campaigns/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -62,53 +60,13 @@ export async function GET(request: Request) {
       const meta = await getSyncMeta(tenant);
       const period: CampaignPeriod = meta?.period ?? "30d";
 
-      const campaigns = await connector.fetchCampaigns(period);
-
-      // Best-effort daily series (never fail the sync over a series hiccup) —
-      // fetched before the upsert so the sync meta reflects both fetch outcomes.
-      let series: DailyPoint[] = [];
-      try {
-        series = await connector.fetchSeries(period);
-      } catch (err) {
-        console.error(`[cron] series sync failed for ${userId}:`, err);
-      }
-
-      // Truth-in-labeling (mirrors the manual sync route): a live fetch that fell
-      // back to sample data must be persisted as such, never as "živá data".
-      const degradation = connector.degradation;
-      await upsertCampaigns(tenant, campaigns, {
-        source: degradation.campaigns ? "sample" : connector.source,
-        period,
-        degraded: degradation.campaigns || degradation.series,
-        degradedReason: degradation.reason,
-      });
-      await saveSeries(tenant, series, { period });
-
-      // The upsert appended this sync's snapshot, so the diff includes it — the
-      // change-aware triage rules (ROAS crater, spend spike) alert here too.
-      const alerted = await evaluateAndAlert(
-        tenant,
+      // The shared pipeline (fetch → persist with truthful degradation labeling
+      // → change-aware + anomaly alerts → activity timeline). It also carries
+      // the only-overwrite-on-success series guard the manual route had and this
+      // cron lacked — a failed fetch no longer wipes the stored trend series.
+      const { alerted, anomalies } = await runTenantSync(connector, tenant, {
         userId,
-        campaigns,
-        indexChanges(await getLatestChanges(tenant))
-      );
-
-      // Surface dashboard anomalies through the same inbox/email/webhook pipeline.
-      // Best-effort: a series/detection hiccup must never fail the sync.
-      let anomalies = 0;
-      try {
-        anomalies = await evaluateAnomalyAlerts(tenant, userId, series);
-      } catch (err) {
-        console.error(`[cron] anomaly alerting failed for ${userId}:`, err);
-      }
-
-      await recordActivity(tenant, {
-        kind: "sync",
-        title: `Synchronizace · ${campaigns.length} kampaní`,
-        detail:
-          alerted + anomalies > 0
-            ? `Načteno z Google Ads. ${alerted} nových kritických kampaní, ${anomalies} anomálií.`
-            : "Načteno z Google Ads. Bez nových upozornění.",
+        period,
         actor: "Automatická synchronizace",
       });
 

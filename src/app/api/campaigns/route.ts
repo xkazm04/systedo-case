@@ -13,12 +13,9 @@ import {
   getSyncMeta,
   hashEvalInputs,
   listCampaigns,
-  saveSeries,
-  upsertCampaigns,
 } from "@/lib/campaigns/store";
-import { evaluateAndAlert } from "@/lib/campaigns/alerts";
-import type { DailyPoint } from "@/lib/campaigns/types";
-import { indexChanges, isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
+import { runTenantSync } from "@/lib/campaigns/sync";
+import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
 import { consume } from "@/lib/usage";
 import {
   RATE_RULES,
@@ -132,57 +129,18 @@ export async function POST(request: Request) {
   const project = userId && projectId ? await getProject(userId, projectId) : null;
   const { connector, tenant } = await resolveCampaignContext(userId, projectId, project?.type);
 
-  let campaigns;
+  // The shared pipeline (fetch → persist with truthful degradation labeling →
+  // change-aware + anomaly alerts → activity timeline) — identical to the
+  // scheduled cron's, so a manual sync surfaces problems and shows up in the
+  // agency-facing timeline just like an automatic one.
   try {
-    campaigns = await connector.fetchCampaigns(period);
+    await runTenantSync(connector, tenant, { userId, period, actor: "Vy" });
   } catch (err) {
     console.error("[campaigns] sync failed:", err);
     return Response.json(
       { error: err instanceof Error ? err.message : "Synchronizace se nezdařila." },
       { status: 502 }
     );
-  }
-
-  // Daily trend series — best-effort: a failed series (e.g. live GAQL hiccup)
-  // must not fail the whole sync. Fetched before the upsert so the persisted
-  // sync meta can reflect the degradation outcome of BOTH fetches.
-  let series: DailyPoint[] = [];
-  let seriesOk = false;
-  try {
-    series = await connector.fetchSeries(period);
-    seriesOk = true;
-  } catch (err) {
-    console.error("[campaigns] series sync failed:", err);
-  }
-
-  // Truth-in-labeling: when a live fetch silently fell back to the sample
-  // provider, say so. A campaign fallback means the numbers on screen ARE sample
-  // data → the persisted source flips to "sample"; a series-only fallback keeps
-  // the source but still flags the sync as degraded.
-  const degradation = connector.degradation;
-  await upsertCampaigns(tenant, campaigns, {
-    source: degradation.campaigns ? "sample" : connector.source,
-    period,
-    degraded: degradation.campaigns || degradation.series,
-    degradedReason: degradation.reason,
-  });
-
-  // Only persist when the fetch succeeded — a transient failure must not overwrite
-  // the last good series with an empty array, which would blank the trend chart
-  // even though the campaign upsert (and the prior series) were fine.
-  if (seriesOk) await saveSeries(tenant, series, { period });
-
-  // Alert on newly-critical campaigns (in-app inbox + best-effort email/webhook,
-  // deduped) so a manual sync surfaces problems just like the scheduled cron does.
-  // The upsert above already appended this sync's snapshot, so the diff includes
-  // it — the change-aware rules (ROAS crater, spend spike) can fire too.
-  if (userId) {
-    try {
-      const changesById = indexChanges(await getLatestChanges(tenant));
-      await evaluateAndAlert(tenant, userId, campaigns, changesById);
-    } catch (err) {
-      console.error("[campaigns] alert evaluation failed:", err);
-    }
   }
 
   return Response.json(await loadState(tenant));
