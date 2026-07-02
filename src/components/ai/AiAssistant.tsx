@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
-import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
+import { Bolt, Document, Gauge, Image as ImageIcon, Layers, Search } from "@/components/icons";
 import type { AdRequest, AiMode } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
 import AdGenerator from "./AdGenerator";
@@ -10,6 +10,7 @@ import AdExperiments from "./AdExperiments";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
 import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
+import ContentPipeline from "./ContentPipeline";
 import PerformanceAnalyst from "./PerformanceAnalyst";
 import CreativeStudio from "./CreativeStudio";
 import CreativeAttribution from "./CreativeAttribution";
@@ -26,6 +27,8 @@ const T = {
     tabAnalysisService: "Analýzy a strategie",
     tabCreativeLabel: "Vizuály",
     tabCreativeService: "Kreativa & obrázky",
+    tabPipelineLabel: "Obsahová linka",
+    tabPipelineService: "Od klíčových slov k distribuci",
     tablistAriaLabel: "Nástroje AI asistenta",
   },
   en: {
@@ -39,11 +42,13 @@ const T = {
     tabAnalysisService: "Analytics & strategy",
     tabCreativeLabel: "Visuals",
     tabCreativeService: "Creative & images",
+    tabPipelineLabel: "Content pipeline",
+    tabPipelineService: "Keywords to distribution",
     tablistAriaLabel: "AI assistant tools",
   },
 } as const;
 
-type TabId = AiMode | "keywords" | "creative";
+type TabId = AiMode | "keywords" | "creative" | "pipeline";
 
 interface Tab {
   id: TabId;
@@ -58,6 +63,7 @@ const TABS: Tab[] = [
   { id: "brief", labelKey: "tabBriefLabel", serviceKey: "tabBriefService", icon: Document },
   { id: "analysis", labelKey: "tabAnalysisLabel", serviceKey: "tabAnalysisService", icon: Gauge },
   { id: "creative", labelKey: "tabCreativeLabel", serviceKey: "tabCreativeService", icon: ImageIcon },
+  { id: "pipeline", labelKey: "tabPipelineLabel", serviceKey: "tabPipelineService", icon: Layers },
 ];
 
 /** Validate an untrusted ?tool= value against the known tab ids. */
@@ -124,7 +130,7 @@ export default function AiAssistant() {
       <div
         role="tablist"
         aria-label={t("tablistAriaLabel")}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-5"
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6"
       >
         {TABS.map((tab_) => {
           const active = tab_.id === tab;
@@ -192,6 +198,9 @@ export default function AiAssistant() {
         <div data-testid="tool-creative" className={tab === "creative" ? "animate-fade-up" : "hidden"}>
           <CreativeStudio />
           <CreativeAttribution />
+        </div>
+        <div data-testid="tool-pipeline" className={tab === "pipeline" ? "animate-fade-up" : "hidden"}>
+          <ContentPipeline />
         </div>
       </div>
     </div>
