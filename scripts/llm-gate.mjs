@@ -6,9 +6,12 @@
  *    (`// llm-tool: <id>`) and has a registered test, and that provider access is
  *    confined to the wrapper. (Fast — runs every time.)
  * 2. Runs the real Claude wrapper test suite — but ONLY when the LLM-related code
- *    has changed since the last proven pass. A pass is recorded in
- *    .llm-gate-cache.json (committed), keyed by a content hash, so once green the
- *    slow model calls are NOT repeated until something relevant changes.
+ *    has changed since the last proven pass, and only for the AFFECTED tools:
+ *    .llm-gate-cache.json (committed) stores a per-file content hash plus a
+ *    per-tool proof, so a change attributable to specific tools (one tool's
+ *    source file, or one tool's registry entry) re-proves just those tools via
+ *    --test-name-pattern (~25 s each) instead of the full ~340 s suite. Any
+ *    change to shared LLM code conservatively re-runs everything.
  *
  * Exit non-zero blocks the commit.
  *
@@ -20,6 +23,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { findCallSites, checkChokepoint } from "../test-llm/callsites.mjs";
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
+import { toolEntryFingerprint } from "./lib/fingerprint.mjs";
+import { planGateRun } from "./lib/gate-plan.mjs";
 
 const ROOT = process.cwd();
 const CACHE = join(ROOT, ".llm-gate-cache.json");
@@ -107,9 +112,21 @@ if (evalRes.status !== 0) {
 }
 console.log("");
 
-// --- 2) Hash-gated real run -------------------------------------------------
+// --- 2) Hash-gated real run (incremental, per-file + per-tool) ---------------
 
-function hashFiles(files) {
+const REGISTRY_FILE = "test-llm/registry.mjs";
+const ALL_TOOL_IDS = LLM_TOOLS.map((t) => t.id);
+
+function hashFile(f) {
+  const p = join(ROOT, f);
+  return createHash("sha256")
+    .update(existsSync(p) ? readFileSync(p) : Buffer.from("[missing]"))
+    .digest("hex");
+}
+
+/** Legacy (v1) aggregate digest — kept only so an existing proven cache written
+ *  by the pre-incremental gate stays valid and migrates without a model run. */
+function hashFilesAggregate(files) {
   const h = createHash("sha256");
   for (const f of files) {
     const p = join(ROOT, f);
@@ -120,38 +137,148 @@ function hashFiles(files) {
   return h.digest("hex");
 }
 
-const hash = hashFiles(HASHED_FILES);
-const cache = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : null;
+const currentFiles = Object.fromEntries(HASHED_FILES.map((f) => [f, hashFile(f)]));
+const currentRegistry = Object.fromEntries(LLM_TOOLS.map((t) => [t.id, toolEntryFingerprint(t)]));
 
-if (!args.has("--force") && cache?.passed && cache.hash === hash) {
+// Single-tool attribution: a hashed file whose only wrapper call sites are
+// tagged `// llm-tool: <id>` re-proves exactly those ids when it changes.
+const fileTools = {};
+for (const t of tags) (fileTools[t.file] ??= []).push(t.id);
+
+/** Normalize whatever is on disk to the v2 shape, or null when there is no
+ *  usable proof. A v1 cache migrates for free iff its aggregate digest still
+ *  matches the current code (the exact condition the old gate used to skip). */
+function normalizeCache(raw) {
+  if (!raw || raw.passed !== true) return null;
+  if (raw.version === 2 && raw.files && raw.tools && raw.registry) return raw;
+  if (raw.hash && raw.hash === hashFilesAggregate(HASHED_FILES)) {
+    const provenTools = Array.isArray(raw.tools) ? raw.tools : ALL_TOOL_IDS;
+    return {
+      version: 2,
+      passed: true,
+      provenAt: raw.provenAt,
+      files: { ...currentFiles },
+      registry: { ...currentRegistry },
+      tools: Object.fromEntries(provenTools.map((id) => [id, raw.provenAt])),
+    };
+  }
+  return null;
+}
+
+function writeCache(next) {
+  writeFileSync(CACHE, JSON.stringify(next, null, 2) + "\n");
+}
+
+const rawCache = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, "utf8")) : null;
+const cache = normalizeCache(rawCache);
+
+const changedFiles = cache ? HASHED_FILES.filter((f) => currentFiles[f] !== cache.files[f]) : HASHED_FILES;
+const registryChangedTools = cache
+  ? ALL_TOOL_IDS.filter((id) => cache.registry[id] !== undefined && cache.registry[id] !== currentRegistry[id])
+  : [];
+const unprovenTools = cache ? ALL_TOOL_IDS.filter((id) => !cache.tools[id]) : ALL_TOOL_IDS;
+// A registry byte-change is "attributed" when at least one per-tool delta
+// (changed fingerprint, new entry, removed entry) explains it; a change with no
+// per-tool delta means shared helpers/comments moved → conservative full run.
+const newRegistryTools = cache ? ALL_TOOL_IDS.filter((id) => cache.registry[id] === undefined) : [];
+const removedRegistryTools = cache ? Object.keys(cache.registry).filter((id) => currentRegistry[id] === undefined) : [];
+const registryUnattributed =
+  changedFiles.includes(REGISTRY_FILE) &&
+  registryChangedTools.length === 0 &&
+  newRegistryTools.length === 0 &&
+  removedRegistryTools.length === 0;
+
+const plan = cache
+  ? planGateRun({
+      force: args.has("--force"),
+      changedFiles,
+      fileTools,
+      registryFile: REGISTRY_FILE,
+      registryChangedTools,
+      registryUnattributed,
+      unprovenTools,
+      allTools: ALL_TOOL_IDS,
+    })
+  : { mode: "full", tools: ALL_TOOL_IDS, reason: "no valid cached pass" };
+
+if (plan.mode === "skip") {
   console.log("✓ LLM tests already proven for the current code — skipping the real Claude run.");
   console.log(`  (proven ${cache.provenAt}; pass --force or change LLM code to re-run.)`);
+  // Persist the v1 → v2 migration so future runs diff per file/tool.
+  if (rawCache?.version !== 2) writeCache(cache);
   process.exit(0);
 }
 
-console.log("LLM code changed (or no cached pass) — running real wrapper tests against Claude Code…");
-console.log("This calls the model and may take a minute.\n");
+function runRealTests(toolIds) {
+  const partial = toolIds.length < ALL_TOOL_IDS.length;
+  const patternArgs = partial
+    ? toolIds.flatMap((id) => ["--test-name-pattern", `· ${id} \\(`])
+    : [];
+  const res = spawnSync(
+    process.execPath,
+    [
+      "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
+      // The wrapper graph reaches server-only-poisoned modules (telemetry →
+      // firebase). The real tests ARE a server context, so resolve the
+      // react-server condition like Next's server graph does.
+      "--conditions",
+      "react-server",
+      "--import",
+      "./test-llm/setup.mjs",
+      ...patternArgs,
+      "--test",
+      "test-llm/real.test.mjs",
+    ],
+    { stdio: "inherit", env: { ...process.env, NODE_ENV: "development" } }
+  );
+  if (res.status !== 0) fail("real LLM wrapper tests FAILED — commit blocked.");
+}
 
-const res = spawnSync(
-  process.execPath,
-  [
-    "--disable-warning=MODULE_TYPELESS_PACKAGE_JSON",
-    "--import",
-    "./test-llm/setup.mjs",
-    "--test",
-    "test-llm/real.test.mjs",
-  ],
-  { stdio: "inherit", env: { ...process.env, NODE_ENV: "development" } }
-);
+const now = new Date().toISOString();
 
-if (res.status !== 0) fail("real LLM wrapper tests FAILED — commit blocked.");
+if (plan.mode === "partial") {
+  console.log(
+    `LLM code changed — re-proving ${plan.tools.length}/${ALL_TOOL_IDS.length} affected tool(s): ${plan.tools.join(", ")}`
+  );
+  for (const r of plan.reasons ?? []) console.log(`  changed: ${r}`);
+  console.log("This calls the model once per affected tool.\n");
 
-writeFileSync(
-  CACHE,
-  JSON.stringify(
-    { hash, passed: true, provenAt: new Date().toISOString(), tools: LLM_TOOLS.map((t) => t.id) },
-    null,
-    2
-  ) + "\n"
-);
-console.log("\n✓ LLM gate: passed and cached. Won't re-run until the LLM code changes.");
+  runRealTests(plan.tools);
+
+  // Merge the partial pass into the cache: only the attributed files/tools move
+  // forward; everything else keeps its existing proof.
+  const next = {
+    version: 2,
+    passed: true,
+    provenAt: now,
+    files: {
+      ...cache.files,
+      ...Object.fromEntries(changedFiles.map((f) => [f, currentFiles[f]])),
+    },
+    registry: Object.fromEntries(
+      ALL_TOOL_IDS.map((id) => [id, plan.tools.includes(id) ? currentRegistry[id] : (cache.registry[id] ?? currentRegistry[id])])
+    ),
+    tools: Object.fromEntries(
+      ALL_TOOL_IDS.map((id) => [id, plan.tools.includes(id) ? now : cache.tools[id]])
+    ),
+  };
+  writeCache(next);
+  console.log(
+    `\n✓ LLM gate: ${plan.tools.length} tool(s) re-proven and cached (the other ${ALL_TOOL_IDS.length - plan.tools.length} keep their proof).`
+  );
+} else {
+  console.log(`LLM code changed (${plan.reason}) — running the FULL real wrapper suite against Claude Code…`);
+  console.log("This calls the model for every tool and may take a few minutes.\n");
+
+  runRealTests(ALL_TOOL_IDS);
+
+  writeCache({
+    version: 2,
+    passed: true,
+    provenAt: now,
+    files: currentFiles,
+    registry: currentRegistry,
+    tools: Object.fromEntries(ALL_TOOL_IDS.map((id) => [id, now])),
+  });
+  console.log("\n✓ LLM gate: passed and cached. Won't re-run until the LLM code changes.");
+}

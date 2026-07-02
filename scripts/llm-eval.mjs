@@ -11,11 +11,11 @@
  *    node scripts/llm-eval.mjs --update   (re)write goldens from the registry
  *    node scripts/llm-eval.mjs --strict   exit 1 if any tool has drifted
  */
-import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
+import { fingerprint } from "./lib/fingerprint.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(ROOT, "test-llm", "golden");
@@ -23,18 +23,6 @@ const GOLDEN_DIR = join(ROOT, "test-llm", "golden");
 const args = new Set(process.argv.slice(2));
 const UPDATE = args.has("--update");
 const STRICT = args.has("--strict");
-
-/** Deterministic key-sorted JSON — must mirror src/lib/llm/telemetry.ts. */
-function stableStringify(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
-  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
-  const keys = Object.keys(value).sort();
-  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(",")}}`;
-}
-
-function fingerprint(system, schema) {
-  return createHash("sha256").update(`${system} ${stableStringify(schema)}`).digest("hex").slice(0, 16);
-}
 
 function goldenPath(id) {
   return join(GOLDEN_DIR, `${id}.json`);
