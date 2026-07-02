@@ -88,6 +88,15 @@ const T = {
       "Souhrn právě vyfiltrovaných kampaní — ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
     severityPillTitle: "Zobrazit nálezy triáže v detailu řádku",
     triageHeading: "Proč vyžaduje pozornost",
+    funnelHeading: "Trychtýř za období",
+    funnelImpressions: "Zobrazení",
+    funnelClicks: "Prokliky",
+    funnelConversions: "Konverze",
+    funnelConvRate: "konv. poměr",
+    funnelBudget: "Rozpočet {budget}/den · čerpáno {pacing}",
+    csvImpressions: "Zobrazení",
+    csvClicks: "Prokliky",
+    csvConvRate: "Konv. poměr %",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -138,6 +147,15 @@ const T = {
       "Aggregate of the currently filtered campaigns — ROAS and PNO are re-derived from sums, not averaged",
     severityPillTitle: "Show the triage findings in the row detail",
     triageHeading: "Why it needs attention",
+    funnelHeading: "Funnel over the period",
+    funnelImpressions: "Impressions",
+    funnelClicks: "Clicks",
+    funnelConversions: "Conversions",
+    funnelConvRate: "conv. rate",
+    funnelBudget: "Budget {budget}/day · {pacing} spent",
+    csvImpressions: "Impressions",
+    csvClicks: "Clicks",
+    csvConvRate: "Conv. rate %",
   },
 } as const;
 
@@ -470,19 +488,28 @@ export default function CampaignTable({
   // top finding, and any loaded AI score. Reads only in-memory state.
   const exportCsv = () => {
     const headers = [
-      t("colCampaign"), t("csvType"), t("csvStatus"), t("colCost"),
+      t("colCampaign"), t("csvType"), t("csvStatus"),
+      t("csvImpressions"), t("csvClicks"), t("colCost"),
       t("colConversions"), t("colConvValue"), "ROAS", "PNO %",
+      "CTR %", "CPC", t("csvConvRate"),
       t("colPriority"), t("csvReason"), t("csvScore"),
     ];
     const rows = view.map(({ c, tr }) => [
       c.name,
       CAMPAIGN_TYPE_LABELS[c.type],
       campaignStatusLabel(c.status, locale),
+      Math.round(c.impressions),
+      Math.round(c.clicks),
       Math.round(c.cost),
       Math.round(c.conversions),
       Math.round(c.conversionValue),
       c.roas > 0 ? Number(c.roas.toFixed(2)) : "",
       c.pno > 0 ? Number((c.pno * 100).toFixed(1)) : "",
+      // Funnel ratios — the agency deliverable carries the full causal layer;
+      // zero-denominator cells stay empty, matching the on-screen "—".
+      c.impressions > 0 ? Number((c.ctr * 100).toFixed(2)) : "",
+      c.clicks > 0 ? Number(c.cpc.toFixed(2)) : "",
+      c.clicks > 0 ? Number((c.convRate * 100).toFixed(2)) : "",
       severityLabel(tr.severity, locale),
       tr.primary ? triageReasonLabel(tr.primary, locale) : "",
       reports[c.id]?.result.score ?? "",
@@ -807,6 +834,43 @@ export default function CampaignTable({
                             </ul>
                           </div>
                         )}
+                        {/* The funnel layer under the money metrics — the same
+                            CTR/CR/CPC evidence the AI prompt reasons from, so the
+                            human and the model look at identical numbers. */}
+                        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2 rounded-card border border-line bg-surface px-4 py-3 text-sm">
+                          <span className="mr-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                            {t("funnelHeading")}
+                          </span>
+                          <span className="text-navy-700">
+                            <span className="text-xs text-muted">{t("funnelImpressions")}</span>{" "}
+                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.impressions)}</span>
+                          </span>
+                          <span className="text-muted" aria-hidden>→</span>
+                          <span className="text-navy-700">
+                            <span className="text-xs text-muted">{t("funnelClicks")}</span>{" "}
+                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.clicks)}</span>{" "}
+                            <span className="tnum text-xs text-muted">
+                              (CTR {c.impressions > 0 ? fmt.fmtPct(c.ctr, 2) : "—"} · CPC{" "}
+                              {c.clicks > 0 ? fmt.fmtCZK(c.cpc) : "—"})
+                            </span>
+                          </span>
+                          <span className="text-muted" aria-hidden>→</span>
+                          <span className="text-navy-700">
+                            <span className="text-xs text-muted">{t("funnelConversions")}</span>{" "}
+                            <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.conversions)}</span>{" "}
+                            <span className="tnum text-xs text-muted">
+                              ({t("funnelConvRate")} {c.clicks > 0 ? fmt.fmtPct(c.convRate, 2) : "—"})
+                            </span>
+                          </span>
+                          {pacing && (
+                            <span className="tnum ml-auto text-xs text-muted">
+                              {t("funnelBudget", {
+                                budget: fmt.fmtCZK(c.budgetPerDay ?? 0),
+                                pacing: fmt.fmtPct(pacing.pacing, 0),
+                              })}
+                            </span>
+                          )}
+                        </div>
                         {isAnalyzing && !report ? (
                           <div className="flex items-center gap-3 text-sm text-muted">
                             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
