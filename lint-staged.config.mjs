@@ -9,6 +9,10 @@
  */
 const config = {
   "*.{ts,tsx}": ["eslint --fix", () => "tsc --noEmit"],
+  // Data drift guard: staging the dataset generator or its committed output must
+  // keep the two in sync (seeded PRNG → byte-stable). Function form: run once,
+  // ignore the file list. Deterministic, key-free, <1 s.
+  "{scripts/generate-data.mjs,src/data/performance.json}": [() => "npm run seed:check"],
 };
 
 export default config;

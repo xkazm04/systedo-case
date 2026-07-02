@@ -33,6 +33,14 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
+      # Data drift guard: the committed src/data/performance.json must match the
+      # seeded-PRNG generator output — a hand edit (or a generator tweak committed
+      # without re-seeding) silently breaks the "numbers always reconcile" invariant
+      # the dashboard, article snapshot and microsites all rely on. Deterministic,
+      # key-free, <1 s.
+      - name: Data drift guard
+        run: npm run seed:check
+
       # Static LLM-wrapper gate: verifies every call site is tagged + test-registered
       # and that provider access stays confined to the chokepoint. Key-free and fast
       # (the real-model run stays local, gated by the Husky pre-commit hook).

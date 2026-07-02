@@ -160,7 +160,9 @@ if (process.argv.includes("--check")) {
   } catch {
     /* missing file → treated as a mismatch below */
   }
-  if (current !== OUTPUT) {
+  // Compare EOL-normalized: a Windows (autocrlf) checkout of the same bytes is
+  // not drift — only actual content changes should fail the guard.
+  if (current.replace(/\r\n/g, "\n") !== OUTPUT) {
     console.error("✗ src/data/performance.json is out of sync with generate-data.mjs. Run `npm run seed`.");
     process.exit(1);
   }
