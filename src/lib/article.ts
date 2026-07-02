@@ -1,4 +1,5 @@
 import data from "@/data/article.json";
+import { validateArticle } from "./article-validate";
 
 /** A small "headless CMS" content model. The article is stored as structured
  *  JSON (src/data/article.json) and rendered by a typed renderer — so it counts
@@ -99,63 +100,14 @@ export interface Article {
   faq: FaqItem[];
 }
 
-const BLOCK_TYPES = new Set<Block["type"]>([
-  "h2", "h3", "p", "ul", "ol", "callout", "quote", "cta", "stat", "figure",
-]);
-
-/** Every `kind:"anchor"` href found in the article's inline content. */
-function anchorHrefs(blocks: Block[]): string[] {
-  const out: string[] = [];
-  const scan = (inlines: Inline[]) => {
-    for (const node of inlines) {
-      if (typeof node === "object" && "href" in node && node.kind === "anchor") out.push(node.href);
-    }
-  };
-  for (const b of blocks) {
-    if (b.type === "p" || b.type === "callout" || b.type === "quote") scan(b.content);
-    else if (b.type === "ul" || b.type === "ol") b.items.forEach(scan);
-  }
-  return out;
-}
-
 /** Validate the hand-authored JSON against the Article model at load time, failing
- *  the BUILD (not the page) on a malformed entry. The cast type-checks, but nothing
- *  else guarded the data: an unknown block type, a figure missing src/alt, an empty
- *  FAQ (Google requires ≥1 question for FAQPage), a dead `#anchor`, or a duplicate
- *  heading id would otherwise crash the renderer or silently emit invalid JSON-LD —
- *  a risk that grows the moment the content model spans more than one file. */
-function parseArticle(raw: unknown): Article {
-  const fail = (msg: string): never => {
-    throw new Error(`Invalid article.json: ${msg}`);
-  };
-  if (!raw || typeof raw !== "object") return fail("not an object");
-  const a = raw as Article;
-  const m = a.meta;
-  if (!m || typeof m.title !== "string" || !m.title) fail("meta.title is required");
-  if (typeof m.dateISO !== "string" || !m.dateISO) fail("meta.dateISO is required");
-  if (typeof m.readingMinutes !== "number") fail("meta.readingMinutes must be a number");
-  if (!Array.isArray(a.blocks) || a.blocks.length === 0) fail("blocks must be a non-empty array");
-  for (const [i, b] of a.blocks.entries()) {
-    if (!b || !BLOCK_TYPES.has(b.type)) fail(`block[${i}] has an unknown type`);
-    if (b.type === "figure" && (!b.src || !b.alt || !b.width || !b.height))
-      fail(`figure block[${i}] needs src, alt, width and height`);
-    if ((b.type === "h2" || b.type === "h3") && !b.id) fail(`heading block[${i}] needs an id`);
-  }
-  if (!Array.isArray(a.faq) || a.faq.length === 0) fail("faq needs ≥1 item (FAQPage requires it)");
-
-  // Anchor links must resolve to a real, unique heading id.
-  const ids = a.blocks
-    .filter((b): b is HeadingBlock => b.type === "h2" || b.type === "h3")
-    .map((b) => b.id);
-  if (new Set(ids).size !== ids.length) fail("duplicate heading id");
-  const idSet = new Set(ids);
-  for (const href of anchorHrefs(a.blocks)) {
-    if (!idSet.has(href.replace(/^#/, ""))) fail(`anchor "${href}" has no matching heading id`);
-  }
-  return a;
-}
-
-export const article = parseArticle(data);
+ *  the BUILD (not the page) on a malformed entry. The guard itself lives in the
+ *  framework-free `./article-validate` so the other Article producers (the
+ *  snapshotToArticle bridge, AI drafts) run the exact same checks — an unknown
+ *  block type, a figure missing src/alt, an empty FAQ (Google requires ≥1
+ *  question for FAQPage), a dead `#anchor`, or a duplicate heading id would
+ *  otherwise crash the renderer or silently emit invalid JSON-LD. */
+export const article = validateArticle(data, "article.json");
 
 /** Plain-text helper for the FAQ JSON-LD (strips link/bold wrappers). */
 export function inlineToText(content: Inline[]): string {

@@ -5,6 +5,7 @@
  *
  *  Server-safe but pure — takes a snapshot in, returns an Article out. */
 import type { Article, Block, Inline } from "./article";
+import { validateArticle } from "./article-validate";
 import { METRICS, type Anomaly, type MetricsSnapshot } from "./metrics";
 import type { MetricKey } from "./types";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
@@ -198,18 +199,26 @@ export function snapshotToArticle(
     },
   ];
 
-  return {
-    meta: {
-      title,
-      perex,
-      author: "Systedo · marketingová analytika",
-      role: "Automaticky generovaný report",
-      dateISO: asOf,
-      readingMinutes: 2,
-      category: "Výkonnostní report",
-      tags: ["report", "výkonnostní marketing", client.segment, snapshot.period.label],
+  // Run the generated article through the same validation guard as the
+  // hand-authored article.json. This bridge is assembled from conditionals and
+  // ships to public URLs (/clanek/vykon + every /m/{slug} microsite) on every
+  // request — a template edit introducing a duplicate heading id or a dead
+  // anchor must fail loudly here, not render broken JSON-LD silently.
+  return validateArticle(
+    {
+      meta: {
+        title,
+        perex,
+        author: "Systedo · marketingová analytika",
+        role: "Automaticky generovaný report",
+        dateISO: asOf,
+        readingMinutes: 2,
+        category: "Výkonnostní report",
+        tags: ["report", "výkonnostní marketing", client.segment, snapshot.period.label],
+      },
+      blocks,
+      faq,
     },
-    blocks,
-    faq,
-  };
+    "snapshotToArticle output"
+  );
 }
