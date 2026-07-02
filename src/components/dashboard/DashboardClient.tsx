@@ -52,7 +52,8 @@ const T = {
     goalMarkerNote: "Svislá značka = cílová hodnota PNO.",
     alerts: "Upozornění",
     alertsImpact: "Odhadovaný dopad těchto událostí:",
-    alertsImpactTitle: "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním",
+    alertsImpactTitle:
+      "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním ve zvoleném období",
     insights: "Co stojí za pozornost",
     csvChannel: "Kanál",
     csvCost: "Náklady (Kč)",
@@ -100,7 +101,8 @@ const T = {
     goalMarkerNote: "Vertical marker = PNO target.",
     alerts: "Alerts",
     alertsImpact: "Estimated impact of these events:",
-    alertsImpactTitle: "Sum of revenue and cost deviations from expected on flagged days",
+    alertsImpactTitle:
+      "Sum of revenue and cost deviations from expected on flagged days in the selected period",
     insights: "Worth noting",
     csvChannel: "Channel",
     csvCost: "Cost (CZK)",
@@ -207,15 +209,25 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // Current-month goal pacing + forecast (independent of the period selector).
   const pacing = monthlyPacing(data.daily, data.goals.monthlyRevenue);
 
-  // Flagged days across the whole series (chart markers + the alerts feed).
+  // Flagged days across the whole series (the chart maps these to its visible
+  // buckets itself; detection keeps the full history because its trailing
+  // 28-day baseline needs it).
   const anomalies = detectAnomalies(data.daily, data.goals);
-  const topAnomalies = [...anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
-  // Money effect of the flagged days, so "3 alerts" reads as "≈ −85 tis. Kč".
-  const impact = anomalyImpact(anomalies);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
   const result = evaluatePeriod(data.daily, period.days);
+
+  // Scope the alerts feed + its Kč impact to the selected window, so the card
+  // answers about the same period as the KPI cards, chart and channel table —
+  // not an all-time headline (a year-old spike on the 7d view) with no cue.
+  const windowDates = new Set(result.points.map((p) => p.date));
+  const periodAnomalies = anomalies.filter((a) => windowDates.has(a.date));
+  const topAnomalies = [...periodAnomalies]
+    .sort((a, b) => Math.abs(b.z) - Math.abs(a.z))
+    .slice(0, 6);
+  // Money effect of the flagged days, so "3 alerts" reads as "≈ −85 tis. Kč".
+  const impact = anomalyImpact(periodAnomalies);
   const buckets = bucketize(result.points, period.granularity);
   // Bucketize the comparison window too so the chart can overlay it (index-aligned).
   const compareBuckets = bucketize(result.comparePoints, period.granularity);
@@ -436,8 +448,10 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
                 <Bolt width={17} height={17} className="text-coral-600" />
                 {t("alerts")}
+                {/* scope cue — the feed and the impact cover the selected period */}
+                <span className="text-xs font-normal text-muted">· {period.label}</span>
                 <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[13px]">
-                  {anomalies.length}
+                  {periodAnomalies.length}
                 </span>
               </div>
               {impact.count > 0 && Math.abs(impact.net) >= 1 && (
