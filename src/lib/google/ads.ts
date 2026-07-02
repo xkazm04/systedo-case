@@ -232,6 +232,48 @@ export async function fetchDailySeries(
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** Per-campaign daily series for the period — the same date-segmented metrics as
+ *  `fetchDailySeries`, kept per `campaign.id` instead of summed, so each table row
+ *  can show its own trend sparkline. One extra GAQL query per sync. */
+export async function fetchCampaignDailySeries(
+  accessToken: string,
+  customerId: string,
+  period: CampaignPeriod
+): Promise<Record<string, DailyPoint[]>> {
+  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
+  const query = `
+    SELECT
+      campaign.id,
+      segments.date,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.conversions_value
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+  `;
+  const rows = await searchStream(accessToken, customerId, query);
+
+  const byCampaign = new Map<string, Map<string, DailyPoint>>();
+  for (const r of rows) {
+    const id = r.campaign?.id ? String(r.campaign.id) : null;
+    const date = r.segments?.date;
+    if (!id || !date) continue;
+    const byDate = byCampaign.get(id) ?? new Map<string, DailyPoint>();
+    const p = byDate.get(date) ?? { date, cost: 0, conversions: 0, conversionValue: 0 };
+    p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
+    p.conversions += num(r.metrics?.conversions);
+    p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+    byDate.set(date, p);
+    byCampaign.set(id, byDate);
+  }
+
+  const out: Record<string, DailyPoint[]> = {};
+  for (const [id, byDate] of byCampaign) {
+    out[id] = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  return out;
+}
+
 const CHANNEL_TYPE: Record<string, CampaignType> = {
   SEARCH: "search",
   PERFORMANCE_MAX: "performance_max",

@@ -113,6 +113,7 @@ export default function CampaignsClient() {
     histories,
     changes,
     series,
+    campaignSeries,
     loading,
     syncing,
     error,
@@ -441,6 +442,7 @@ export default function CampaignsClient() {
           changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
           period={period}
+          campaignSeries={campaignSeries}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
         />

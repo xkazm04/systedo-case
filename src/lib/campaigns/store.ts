@@ -159,6 +159,29 @@ export async function getSeries(tenant: string): Promise<DailyPoint[]> {
   return Array.isArray(data?.series) ? (data!.series as DailyPoint[]) : [];
 }
 
+/** Replace the tenant's stored per-campaign daily series (campaign id → points).
+ *  One doc (`series/campaigns`): even 90 days × a handful of campaigns is a few
+ *  tens of KB, far under the document limit. Overwritten only on a successful
+ *  fetch — the sync pipeline applies the same only-overwrite-on-success rule as
+ *  the portfolio series, so a transient hiccup can't blank the sparklines. */
+export async function saveCampaignSeries(
+  tenant: string,
+  byId: Record<string, DailyPoint[]>,
+  meta: { period: CampaignPeriod }
+): Promise<void> {
+  await tenantDoc(tenant)
+    .collection("series")
+    .doc("campaigns")
+    .set({ period: meta.period, byId, syncedAt: new Date().toISOString() });
+}
+
+/** The stored per-campaign daily series, or {} when none synced yet. */
+export async function getCampaignSeries(tenant: string): Promise<Record<string, DailyPoint[]>> {
+  const doc = await tenantDoc(tenant).collection("series").doc("campaigns").get();
+  const byId = doc.data()?.byId;
+  return byId && typeof byId === "object" ? (byId as Record<string, DailyPoint[]>) : {};
+}
+
 // --- reports ----------------------------------------------------------------
 
 interface ReportDoc {

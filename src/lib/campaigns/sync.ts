@@ -8,7 +8,7 @@
  *  Server-only. */
 import "server-only";
 import type { AdsConnector } from "./connector";
-import { getLatestChanges, saveSeries, upsertCampaigns } from "./store";
+import { getLatestChanges, saveCampaignSeries, saveSeries, upsertCampaigns } from "./store";
 import { evaluateAndAlert } from "./alerts";
 import { evaluateAnomalyAlerts } from "./anomaly-alerts";
 import { recordActivity } from "./activity";
@@ -61,6 +61,15 @@ export async function runTenantSync(
     console.error(`[campaigns] series sync failed for ${tenant}:`, err);
   }
 
+  // Per-campaign daily series (table sparklines) — same best-effort +
+  // only-overwrite-on-success contract as the portfolio series.
+  let campaignSeries: Record<string, DailyPoint[]> | null = null;
+  try {
+    campaignSeries = await connector.fetchCampaignSeries(period);
+  } catch (err) {
+    console.error(`[campaigns] campaign series sync failed for ${tenant}:`, err);
+  }
+
   // Truth-in-labeling: when a live fetch silently fell back to the sample
   // provider, say so. A campaign fallback means the numbers on screen ARE
   // sample data → the persisted source flips to "sample"; a series-only
@@ -73,6 +82,7 @@ export async function runTenantSync(
     degradedReason: degradation.reason,
   });
   if (seriesOk) await saveSeries(tenant, series, { period });
+  if (campaignSeries) await saveCampaignSeries(tenant, campaignSeries, { period });
 
   // Alerts (signed-in tenants): newly-critical campaigns — change-aware, the
   // upsert above appended this sync's snapshot so the diff includes it — plus

@@ -8,11 +8,12 @@
  *
  *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
-import { sampleCampaigns, sampleSeries } from "./sample";
+import { sampleCampaigns, sampleCampaignSeries, sampleSeries } from "./sample";
 import { getAdsConnection, getConnectedAccount } from "./connection";
 import {
   adsConfigured,
   fetchCampaigns as adsFetchCampaigns,
+  fetchCampaignDailySeries as adsFetchCampaignDailySeries,
   fetchDailySeries as adsFetchDailySeries,
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
@@ -39,6 +40,8 @@ export interface AdsConnector {
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
   /** per-day portfolio totals for the trend chart */
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
+  /** per-campaign daily series (campaign id → points) for the table sparklines */
+  fetchCampaignSeries(period: CampaignPeriod): Promise<Record<string, DailyPoint[]>>;
   /** which of this request's fetches silently degraded to the sample provider —
    *  always all-false for the sample provider itself (sample is intended there) */
   degradation: SyncDegradation;
@@ -59,6 +62,9 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
     },
     async fetchSeries(period) {
       return sampleSeries(period, projectType, seedKey);
+    },
+    async fetchCampaignSeries(period) {
+      return sampleCampaignSeries(period, projectType, seedKey);
     },
   };
 }
@@ -97,6 +103,18 @@ function googleAdsProvider(
         degradation.series = true;
         degradation.reason ??= describeError(err);
         return fallback.fetchSeries(period);
+      }
+    },
+    async fetchCampaignSeries(period) {
+      try {
+        return await adsFetchCampaignDailySeries(accessToken, customerId, period);
+      } catch (err) {
+        console.error("[campaigns] live fetchCampaignSeries failed; serving sample data:", err);
+        // Trend data degraded to sample — same truth-in-labeling flag as the
+        // portfolio series (the sync only persists this fetch on success anyway).
+        degradation.series = true;
+        degradation.reason ??= describeError(err);
+        return fallback.fetchCampaignSeries(period);
       }
     },
   };

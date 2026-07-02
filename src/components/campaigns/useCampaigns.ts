@@ -57,6 +57,8 @@ interface State {
   changes: ChangesSummary | null;
   /** per-day portfolio totals for the trend chart */
   series: DailyPoint[];
+  /** per-campaign daily series (campaign id → points) for the table sparklines */
+  campaignSeries: Record<string, DailyPoint[]>;
 }
 
 const EMPTY: State = {
@@ -67,6 +69,7 @@ const EMPTY: State = {
   histories: {},
   changes: null,
   series: [],
+  campaignSeries: {},
 };
 
 /** Client lifecycle for the campaigns page: loads the synced state, re-syncs from
@@ -98,6 +101,7 @@ export function useCampaigns() {
         histories: json.histories ?? {},
         changes: json.changes ?? null,
         series: json.series ?? [],
+        campaignSeries: json.campaignSeries ?? {},
       });
     } catch {
       setError("Nepodařilo se načíst kampaně.");
@@ -132,6 +136,7 @@ export function useCampaigns() {
         histories: json.histories ?? {},
         changes: json.changes ?? null,
         series: json.series ?? [],
+        campaignSeries: json.campaignSeries ?? {},
       });
     } catch {
       setError("Nepodařilo se spojit se serverem.");
@@ -194,6 +199,7 @@ export function useCampaigns() {
     histories: state.histories,
     changes: state.changes,
     series: state.series,
+    campaignSeries: state.campaignSeries,
     loading,
     syncing,
     error,

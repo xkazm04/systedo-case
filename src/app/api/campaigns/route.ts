@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
 import {
+  getCampaignSeries,
   getLatestChanges,
   getReportHistories,
   getReportsForPeriodWithHashes,
@@ -71,6 +72,7 @@ async function loadState(tenant: string) {
     histories: await getReportHistories(tenant),
     changes,
     series: await getSeries(tenant),
+    campaignSeries: await getCampaignSeries(tenant),
   };
 }
 

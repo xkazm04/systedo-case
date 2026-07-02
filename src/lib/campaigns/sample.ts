@@ -213,6 +213,45 @@ export function sampleCampaigns(
   });
 }
 
+/** Per-campaign, per-day series over the period — the sample counterpart of the
+ *  live `campaign.id + segments.date` fetch behind the table sparklines. Each
+ *  spec gets its own daily walk (weekend dip + jitter seeded per campaign, period
+ *  and date), so a re-sync is stable and every campaign's shape is distinct. */
+export function sampleCampaignSeries(
+  period: CampaignPeriod,
+  type?: ProjectType,
+  seedKey = "mionelo"
+): Record<string, DailyPoint[]> {
+  const days = CAMPAIGN_PERIOD_DAYS[period];
+  const todayMs = Math.floor(Date.now() / 86_400_000) * 86_400_000;
+  const out: Record<string, DailyPoint[]> = {};
+
+  for (const s of specsFor(type)) {
+    const clicks = s.impr * s.ctr;
+    const baseCost = clicks * s.cpc;
+    const baseConv = clicks * s.convRate;
+    const baseValue = baseConv * s.aov;
+
+    const points: DailyPoint[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(todayMs - i * 86_400_000);
+      const date = d.toISOString().slice(0, 10);
+      const rnd = mulberry32(hashStr(`${seedKey}-cseries:${s.id}:${period}:${date}`));
+      const j = (scale = 0.14) => 1 + (rnd() * 2 - 1) * scale;
+      const dow = d.getUTCDay();
+      const weekend = dow === 0 || dow === 6 ? 0.82 : 1;
+      points.push({
+        date,
+        cost: Math.round(baseCost * weekend * j()),
+        conversions: Math.max(0, Math.round(baseConv * weekend * j())),
+        conversionValue: Math.max(0, Math.round(baseValue * weekend * j())),
+      });
+    }
+    out[s.id] = points;
+  }
+  return out;
+}
+
 /** Per-day portfolio totals over the period — the date series the live connector
  *  produces from `segments.date`, mirrored here so the trend chart works out of
  *  the box. Sums all campaign specs per day with a weekend dip + small daily

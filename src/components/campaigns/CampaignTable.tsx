@@ -29,9 +29,11 @@ import {
   type Severity,
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
+import type { DailyPoint } from "@/lib/campaigns/types";
 import { toCsv, downloadText } from "@/lib/export";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import Sparkline from "@/components/charts/Sparkline";
 import ReportView from "./ReportView";
 import TriageBanner from "./TriageBanner";
 
@@ -78,6 +80,8 @@ const T = {
     budgetCapped: "Omezeno rozpočtem",
     budgetCappedTitle:
       "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den) — vítěz, kterého brzdí rozpočet",
+    colTrend: "Trend",
+    sparkAria: "Denní náklady kampaně „{name}“ za období: od {start} do {end}",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -121,6 +125,8 @@ const T = {
     budgetCapped: "Budget-capped",
     budgetCappedTitle:
       "ROAS {roas} above target with {pacing} of budget spent ({budget}/day) — a winner held back by its budget",
+    colTrend: "Trend",
+    sparkAria: "Daily cost of campaign “{name}” over the period: from {start} to {end}",
   },
 } as const;
 
@@ -158,8 +164,9 @@ interface SortState {
 
 /** SortKey array used for validation when restoring sort from localStorage. */
 const SORT_KEYS: SortKey[] = ["severity", "name", "cost", "conversions", "conversionValue", "cpa", "roas", "pno"];
-/** Sortable columns + the (unsortable) AI-report column — drives empty-state colspan. */
-/** Sortable columns + the (unsortable) AI-report column — drives empty-state colspan. */
+/** Sortable columns + the (unsortable) AI-report column — drives empty-state
+ *  colspan. The optional trend-sparkline column is added per render (`cols`)
+ *  only when per-campaign series data exists. */
 const COLS = SORT_KEYS.length + 1;
 
 const SORT_STORAGE_KEY = "campaigns.table.sort";
@@ -281,6 +288,7 @@ export default function CampaignTable({
   changesById,
   onAnalyze,
   period,
+  campaignSeries,
   typeFilter,
   onTypeFilterChange,
 }: {
@@ -301,6 +309,9 @@ export default function CampaignTable({
   onAnalyze: (campaignId: string) => Promise<boolean> | void;
   /** the synced period the rows cover — budget pacing needs the day count */
   period: CampaignPeriod;
+  /** per-campaign daily series (campaign id → points) — when present, each row
+   *  gets a cost sparkline so spend spikes/flatlines are visible at a glance */
+  campaignSeries?: Record<string, DailyPoint[]>;
   /** lifted type filter — CampaignsClient owns it so the TypeBreakdown cards
    *  and the table dropdown drive the same state (click a card → filter rows) */
   typeFilter: CampaignType | "all";
@@ -396,6 +407,11 @@ export default function CampaignTable({
     setStatusFilter("all");
     setAttentionOnly(false);
   };
+
+  // Trend column only when per-campaign series exist (older tenants re-sync
+  // into it); the column count drives the empty-state / detail-row colspans.
+  const hasSeries = Object.values(campaignSeries ?? {}).some((pts) => (pts?.length ?? 0) >= 2);
+  const cols = COLS + (hasSeries ? 1 : 0);
 
   // Derive once, then filter + sort. The helpers are pure and Next's React
   // Compiler memoizes the component, so we compute the view directly.
@@ -579,7 +595,14 @@ export default function CampaignTable({
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               {SORT_COLUMNS.map((col) => (
-                <SortHeader key={col.key} col={col} sort={sort} onSort={onSort} t={t} />
+                <Fragment key={col.key}>
+                  <SortHeader col={col} sort={sort} onSort={onSort} t={t} />
+                  {col.key === "name" && hasSeries && (
+                    <th className="px-3 py-3 text-left font-semibold uppercase tracking-wide">
+                      {t("colTrend")}
+                    </th>
+                  )}
+                </Fragment>
               ))}
               <th className="px-5 py-3 text-right font-semibold">{t("colAiReport")}</th>
             </tr>
@@ -587,7 +610,7 @@ export default function CampaignTable({
           <tbody>
             {view.length === 0 && (
               <tr>
-                <td colSpan={COLS} className="px-5 py-12 text-center">
+                <td colSpan={cols} className="px-5 py-12 text-center">
                   <p className="text-sm text-muted">{t("emptyNoMatch")}</p>
                   <button
                     type="button"
@@ -659,6 +682,28 @@ export default function CampaignTable({
                         )}
                       </div>
                     </td>
+                    {hasSeries && (
+                      <td className="px-3 py-3 align-middle">
+                        {(campaignSeries?.[c.id]?.length ?? 0) >= 2 ? (
+                          <Sparkline
+                            values={campaignSeries![c.id]!.map((p) => p.cost)}
+                            width={96}
+                            height={26}
+                            area={false}
+                            className="h-[26px] w-24"
+                            label={t("sparkAria", {
+                              name: c.name,
+                              start: fmt.fmtCZKCompact(campaignSeries![c.id]![0]!.cost),
+                              end: fmt.fmtCZKCompact(
+                                campaignSeries![c.id]![campaignSeries![c.id]!.length - 1]!.cost
+                              ),
+                            })}
+                          />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(c.cost)}</td>
                     <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtInt(c.conversions)}</td>
                     <td className="tnum px-3 py-3 text-right font-medium text-navy-800">{fmt.fmtCZK(c.conversionValue)}</td>
@@ -713,7 +758,7 @@ export default function CampaignTable({
 
                   {isOpen && (
                     <tr className="border-b border-line/70 bg-canvas/40">
-                      <td colSpan={COLS} className="px-5 py-5">
+                      <td colSpan={cols} className="px-5 py-5">
                         {isAnalyzing && !report ? (
                           <div className="flex items-center gap-3 text-sm text-muted">
                             <Gauge width={18} height={18} className="animate-pulse text-brand-600" />
