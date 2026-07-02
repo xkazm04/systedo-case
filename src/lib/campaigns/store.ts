@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { recordActivity } from "./activity";
 import { recordAlert } from "./alerts";
+import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "./triage";
 import type {
   AiResponse,
   CampaignReport,
@@ -409,6 +410,37 @@ interface SnapshotEntry {
   conversions: number;
   conversion_value?: number;
   conversionValue?: number;
+}
+
+/** Rule-based triage over the last `limit` stored sync snapshots, oldest →
+ *  newest. Every sync appends a full snapshot but only the newest two were ever
+ *  read (the change diff) — this turns the write-only history into a
+ *  deterministic portfolio-health timeline: one triaged point per sync, free,
+ *  with no AI evaluation required. */
+export async function listSnapshotSummaries(
+  tenant: string,
+  limit = 12
+): Promise<SnapshotSummaryPoint[]> {
+  const snap = await tenantDoc(tenant)
+    .collection("snapshots")
+    .orderBy("syncedAt", "desc")
+    .limit(limit)
+    .get();
+  return snap.docs
+    .map((d) => d.data())
+    .map((data) => ({
+      syncedAt: data.syncedAt as string,
+      summary: summarizeSnapshotEntries(
+        ((data.campaigns ?? []) as SnapshotEntry[]).map((e) => ({
+          status: e.status,
+          cost: Number(e.cost) || 0,
+          conversions: Number(e.conversions) || 0,
+          // Legacy snapshots stored snake_case conversion_value.
+          conversionValue: Number(e.conversionValue ?? e.conversion_value ?? 0),
+        }))
+      ),
+    }))
+    .reverse();
 }
 
 export async function getLatestChanges(tenant: string): Promise<ChangesSummary | null> {

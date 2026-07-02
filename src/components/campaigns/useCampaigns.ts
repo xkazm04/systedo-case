@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { CampaignReport, CampaignReportResult, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
+import type { SnapshotSummaryPoint } from "@/lib/campaigns/triage";
 import type {
   Campaign,
   CampaignPeriod,
@@ -59,6 +60,9 @@ interface State {
   series: DailyPoint[];
   /** per-campaign daily series (campaign id → points) for the table sparklines */
   campaignSeries: Record<string, DailyPoint[]>;
+  /** rule-based triage per stored sync snapshot — the deterministic health
+   *  timeline (one point per sync, oldest → newest) */
+  snapshotSummaries: SnapshotSummaryPoint[];
 }
 
 const EMPTY: State = {
@@ -70,6 +74,7 @@ const EMPTY: State = {
   changes: null,
   series: [],
   campaignSeries: {},
+  snapshotSummaries: [],
 };
 
 /** Client lifecycle for the campaigns page: loads the synced state, re-syncs from
@@ -102,6 +107,7 @@ export function useCampaigns() {
         changes: json.changes ?? null,
         series: json.series ?? [],
         campaignSeries: json.campaignSeries ?? {},
+        snapshotSummaries: json.snapshotSummaries ?? [],
       });
     } catch {
       setError("Nepodařilo se načíst kampaně.");
@@ -137,6 +143,7 @@ export function useCampaigns() {
         changes: json.changes ?? null,
         series: json.series ?? [],
         campaignSeries: json.campaignSeries ?? {},
+        snapshotSummaries: json.snapshotSummaries ?? [],
       });
     } catch {
       setError("Nepodařilo se spojit se serverem.");
@@ -200,6 +207,7 @@ export function useCampaigns() {
     changes: state.changes,
     series: state.series,
     campaignSeries: state.campaignSeries,
+    snapshotSummaries: state.snapshotSummaries,
     loading,
     syncing,
     error,

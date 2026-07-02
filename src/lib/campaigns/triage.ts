@@ -5,7 +5,13 @@
  *  constants that colour the ROAS / PNO cells, so the badge, the cell colour and
  *  the banner can never disagree. */
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../format";
-import { TARGET_PNO, TARGET_ROAS, type CampaignChange, type CampaignRow } from "./types";
+import {
+  TARGET_PNO,
+  TARGET_ROAS,
+  withMetrics,
+  type CampaignChange,
+  type CampaignRow,
+} from "./types";
 
 // --- thresholds (single source of truth for "below target" colouring) --------
 
@@ -265,4 +271,48 @@ export function summarize(
   }
   s.attention = s.critical + s.warning;
   return s;
+}
+
+// --- historic snapshot triage (the portfolio-health timeline) -----------------
+
+/** The per-campaign fields every stored sync snapshot carries — sufficient to
+ *  evaluate all four snapshot rules (status / cost / conversions, with ROAS and
+ *  PNO re-derived from cost and conversion value). */
+export interface SnapshotTriageEntry {
+  status: string;
+  cost: number;
+  conversions: number;
+  conversionValue: number;
+}
+
+/** One stored sync, triaged: when it happened + how the portfolio scored then. */
+export interface SnapshotSummaryPoint {
+  /** ISO timestamp of the sync the snapshot belongs to */
+  syncedAt: string;
+  summary: TriageSummary;
+}
+
+/** Run the snapshot triage rules over one stored sync snapshot and roll the
+ *  severities up into the same TriageSummary the live banner shows — the
+ *  deterministic, free counterpart of the AI score timeline ("are we trending
+ *  healthier?" answered on every sync, not only when someone pays for an
+ *  evaluation). The change-aware rules need a diff and deliberately don't run
+ *  here: each historic point stands alone. Funnel fields the snapshot doesn't
+ *  store (impressions/clicks) are zeroed — no rule reads them. */
+export function summarizeSnapshotEntries(entries: SnapshotTriageEntry[]): TriageSummary {
+  return summarize(
+    entries.map((e, i) =>
+      withMetrics({
+        id: String(i),
+        name: "",
+        type: "search",
+        status: e.status === "paused" ? "paused" : "enabled",
+        impressions: 0,
+        clicks: 0,
+        cost: Number(e.cost) || 0,
+        conversions: Number(e.conversions) || 0,
+        conversionValue: Number(e.conversionValue) || 0,
+      })
+    )
+  );
 }

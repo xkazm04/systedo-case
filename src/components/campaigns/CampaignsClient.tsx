@@ -22,6 +22,7 @@ import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
 import ActivityFeed from "./ActivityFeed";
 import CampaignTable, { loadFilters } from "./CampaignTable";
+import HealthTimeline from "./HealthTimeline";
 import PortfolioTrend from "./PortfolioTrend";
 import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
@@ -114,6 +115,7 @@ export default function CampaignsClient() {
     changes,
     series,
     campaignSeries,
+    snapshotSummaries,
     loading,
     syncing,
     error,
@@ -431,6 +433,13 @@ export default function CampaignsClient() {
           <h2 className="text-sm font-semibold text-navy-800">{t("campaignsHeading")}</h2>
           <span className="text-xs text-muted">{t("campaignCount", { n: campaigns.length })}</span>
         </div>
+        {/* deterministic health timeline from stored snapshots — the rule-based
+            counterpart of the AI score history, sitting next to the triage banner */}
+        {snapshotSummaries.length >= 2 && (
+          <div className="mb-3">
+            <HealthTimeline points={snapshotSummaries} />
+          </div>
+        )}
         <CampaignTable
           campaigns={campaigns}
           reports={reports}

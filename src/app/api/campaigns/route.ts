@@ -14,6 +14,7 @@ import {
   getSyncMeta,
   hashEvalInputs,
   listCampaigns,
+  listSnapshotSummaries,
 } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
@@ -73,6 +74,9 @@ async function loadState(tenant: string) {
     changes,
     series: await getSeries(tenant),
     campaignSeries: await getCampaignSeries(tenant),
+    // Rule-based health per stored sync — the deterministic timeline next to
+    // the AI score history (which only grows when evaluations are paid for).
+    snapshotSummaries: await listSnapshotSummaries(tenant),
   };
 }
 
