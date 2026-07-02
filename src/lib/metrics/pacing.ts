@@ -151,3 +151,52 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
     impliedExtraDailySpend,
   };
 }
+
+// --- goal attainment track record --------------------------------------------
+
+export interface MonthAttainment {
+  /** ISO first-of-month ("2026-04-01"), for labels */
+  month: string;
+  /** total revenue of that complete calendar month */
+  revenue: number;
+  /** revenue / goal */
+  attainment: number;
+  /** revenue ≥ goal */
+  hit: boolean;
+}
+
+/**
+ * Month-by-month goal attainment over the last `n` COMPLETE calendar months —
+ * the track record behind the pacing card's point-in-time gauge. A month counts
+ * only when every calendar day is present in the series: a partial leading (or
+ * in-progress current) month would otherwise read as a fake miss.
+ * NOTE: the goal is the single constant `goals.monthlyRevenue` applied to every
+ * month — the dataset carries no per-month goal history.
+ */
+export function monthlyAttainmentHistory(
+  daily: DailyPoint[],
+  goal: number,
+  n = 6
+): MonthAttainment[] {
+  const groups = new Map<string, { revenue: number; count: number }>();
+  for (const p of daily) {
+    const key = p.date.slice(0, 7); // YYYY-MM
+    const g = groups.get(key) ?? { revenue: 0, count: 0 };
+    g.revenue += p.revenue;
+    g.count += 1;
+    groups.set(key, g);
+  }
+  return [...groups.entries()]
+    .filter(([key, g]) => {
+      const [y, m] = key.split("-").map(Number); // m is 1-based
+      return g.count >= new Date(Date.UTC(y, m, 0)).getUTCDate();
+    })
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .slice(-n)
+    .map(([key, g]) => ({
+      month: `${key}-01`,
+      revenue: g.revenue,
+      attainment: goal > 0 ? g.revenue / goal : 0,
+      hit: g.revenue >= goal,
+    }));
+}

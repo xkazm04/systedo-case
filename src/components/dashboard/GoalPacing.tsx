@@ -1,7 +1,7 @@
 "use client";
 
 import { Gauge } from "@/components/icons";
-import type { MonthlyPacing } from "@/lib/metrics";
+import type { MonthAttainment, MonthlyPacing } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -38,6 +38,9 @@ const T = {
       "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
     statRequiredTitleOnPace:
       "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel — současné tempo stačí.",
+    historyLabel: "Plnění cíle v uzavřených měsících",
+    historyHit: "cíl splněn",
+    historyMiss: "cíl nesplněn",
     planTitle: "Dnešní plán {amount}",
     goalTitle: "Cíl {amount}",
     ciBandTitle: "Pravděpodobné rozpětí konce měsíce {low} – {high}",
@@ -75,6 +78,9 @@ const T = {
       "Average daily revenue the remaining days must deliver to still hit the monthly target. At the current ROAS that is ≈ +{spend}/day of extra spend.",
     statRequiredTitleOnPace:
       "Average daily revenue the remaining days must deliver to still hit the monthly target — the current pace suffices.",
+    historyLabel: "Goal attainment in closed months",
+    historyHit: "target met",
+    historyMiss: "target missed",
     planTitle: "Today's plan {amount}",
     goalTitle: "Target {amount}",
     ciBandTitle: "Probable month-end range {low} – {high}",
@@ -85,7 +91,14 @@ const T = {
  *  Mirrors the PNO-vs-goal gauge: a horizontal bar with a goal marker,
  *  colour-coded ahead/behind. The bar shows actual month-to-date (solid) plus
  *  the forecast remainder (lighter), with ticks for the goal and "today's plan". */
-export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
+export default function GoalPacing({
+  pacing,
+  history,
+}: {
+  pacing: MonthlyPacing;
+  /** month-by-month goal attainment of the last complete months (track record) */
+  history?: MonthAttainment[];
+}) {
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -235,6 +248,40 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
             </div>
           )}
           <p className="mt-2 text-[13px] text-muted">{gaugeNote}</p>
+
+          {/* track record: hit/miss mini-bars for the last complete months —
+              "did we hit goal the last months?" next to "will we hit it now?" */}
+          {history && history.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs text-muted">{t("historyLabel")}</p>
+              <ul className="mt-1.5 flex items-end gap-2">
+                {history.map((h) => (
+                  <li
+                    key={h.month}
+                    className="flex flex-col items-center gap-1"
+                    title={`${fmt.fmtMonth(h.month)} · ${t("pctOfGoal", {
+                      pct: fmt.fmtPct(h.attainment, 0),
+                    })} · ${h.hit ? t("historyHit") : t("historyMiss")}`}
+                  >
+                    <span className="flex h-7 w-5 items-end overflow-hidden rounded-sm bg-navy-50">
+                      <span
+                        aria-hidden
+                        className={`block w-full rounded-sm ${
+                          h.hit ? "bg-brand-500" : "bg-coral-500"
+                        }`}
+                        style={{ height: `${Math.min(100, h.attainment * 100)}%` }}
+                      />
+                    </span>
+                    <span className="text-[10px] text-muted">{fmt.fmtMonth(h.month)}</span>
+                    <span className="sr-only">
+                      {t("pctOfGoal", { pct: fmt.fmtPct(h.attainment, 0) })} ·{" "}
+                      {h.hit ? t("historyHit") : t("historyMiss")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* stat tiles — the required-pace prescription joins the three gauges

@@ -19,6 +19,7 @@ import {
   metricDescription,
   metricShort,
   METRICS,
+  monthlyAttainmentHistory,
   monthlyPacing,
   PERIODS,
   TREND_METRICS,
@@ -393,8 +394,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         ))}
       </div>
 
-      {/* monthly revenue goal pacing + month-end forecast */}
-      {pacing && <GoalPacing pacing={pacing} />}
+      {/* monthly revenue goal pacing + month-end forecast + attainment history */}
+      {pacing && (
+        <GoalPacing
+          pacing={pacing}
+          history={monthlyAttainmentHistory(data.daily, data.goals.monthlyRevenue)}
+        />
+      )}
 
       {/* trend chart */}
       <div className="card p-5 sm:p-6">
