@@ -7,10 +7,12 @@ import {
   CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_TYPE_LABELS,
   CAMPAIGN_TYPES,
+  budgetPacing,
   campaignStatusLabel,
   withMetrics,
   type Campaign,
   type CampaignChange,
+  type CampaignPeriod,
   type CampaignStatus,
   type CampaignType,
 } from "@/lib/campaigns/types";
@@ -73,6 +75,9 @@ const T = {
     csvStatus: "Stav",
     csvReason: "Hlavní nález",
     csvScore: "AI skóre",
+    budgetCapped: "Omezeno rozpočtem",
+    budgetCappedTitle:
+      "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den) — vítěz, kterého brzdí rozpočet",
   },
   en: {
     sortTitle: "Sort by “{col}”",
@@ -113,6 +118,9 @@ const T = {
     csvStatus: "Status",
     csvReason: "Top finding",
     csvScore: "AI score",
+    budgetCapped: "Budget-capped",
+    budgetCappedTitle:
+      "ROAS {roas} above target with {pacing} of budget spent ({budget}/day) — a winner held back by its budget",
   },
 } as const;
 
@@ -272,6 +280,7 @@ export default function CampaignTable({
   cached,
   changesById,
   onAnalyze,
+  period,
   typeFilter,
   onTypeFilterChange,
 }: {
@@ -290,6 +299,8 @@ export default function CampaignTable({
   /** run one evaluation; resolving `false` signals a failure (the batch queue
    *  stops there instead of hammering the rate limiter) */
   onAnalyze: (campaignId: string) => Promise<boolean> | void;
+  /** the synced period the rows cover — budget pacing needs the day count */
+  period: CampaignPeriod;
   /** lifted type filter — CampaignsClient owns it so the TypeBreakdown cards
    *  and the table dropdown drive the same state (click a card → filter rows) */
   typeFilter: CampaignType | "all";
@@ -594,6 +605,9 @@ export default function CampaignTable({
               const err = analyzeErrors[c.id];
               const isOpen = Boolean(expanded[c.id]);
               const needsAttention = triageResult.severity !== "ok";
+              // "Winner starved by its budget" — profitable yet pacing at/above
+              // its budget; null when the row carries no budget (no mis-flags).
+              const pacing = budgetPacing(c, period);
               return (
                 <Fragment key={c.id}>
                   <tr className="border-b border-line/70 hover:bg-canvas/60">
@@ -630,6 +644,19 @@ export default function CampaignTable({
                         >
                           {campaignStatusLabel(c.status, locale)}
                         </span>
+                        {pacing?.capped && (
+                          <span
+                            className="pill bg-coral-soft text-coral-600"
+                            title={t("budgetCappedTitle", {
+                              roas: fmt.fmtMultiple(c.roas),
+                              pacing: fmt.fmtPct(pacing.pacing, 0),
+                              budget: fmt.fmtCZK(c.budgetPerDay ?? 0),
+                            })}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+                            {t("budgetCapped")}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(c.cost)}</td>

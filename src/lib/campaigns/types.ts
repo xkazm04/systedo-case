@@ -114,6 +114,10 @@ export interface Campaign {
   conversions: number;
   /** value of conversions = revenue attributed to the campaign, CZK */
   conversionValue: number;
+  /** daily budget, CZK — optional (older synced docs predate the field; live rows
+   *  without a resolvable campaign budget omit it). Never aggregated: budgets are
+   *  caps, not spend, so summing them across campaigns would be meaningless. */
+  budgetPerDay?: number;
 }
 
 /** One day of portfolio totals — the date-segmented series behind the trend
@@ -189,6 +193,39 @@ export function aggregate(rows: Campaign[]): CampaignTotals {
     { impressions: 0, clicks: 0, cost: 0, conversions: 0, conversionValue: 0 }
   );
   return { ...sum, ...deriveMetrics(sum), count: rows.length };
+}
+
+// --- daily budget & pacing ----------------------------------------------------
+
+/** A profitable campaign counts as "budget-capped" when it has spent at least
+ *  this share of its period budget (days × daily budget). 95 % rather than 100 %
+ *  because Google's own delivery smoothing routinely leaves a small remainder
+ *  even on campaigns that are effectively limited by budget. */
+export const BUDGET_CAP_PACING_MIN = 0.95;
+
+export interface BudgetPacing {
+  /** share of the period budget actually spent = cost / (days × budgetPerDay).
+   *  Can exceed 1 — Google may overdeliver on individual days. */
+  pacing: number;
+  /** the classic "winner starved by its budget": enabled, ROAS at/above target,
+   *  yet pacing at/above BUDGET_CAP_PACING_MIN — the highest-leverage place to
+   *  add budget instead of shifting it away */
+  capped: boolean;
+}
+
+/** Pure pacing computation for one campaign over the synced period. Returns
+ *  null when the campaign has no (positive) daily budget — older synced docs
+ *  and live rows without a resolvable budget stay unflagged, never mis-flagged. */
+export function budgetPacing(
+  c: Pick<CampaignRow, "cost" | "roas" | "status" | "budgetPerDay">,
+  period: CampaignPeriod
+): BudgetPacing | null {
+  const budget = c.budgetPerDay;
+  if (typeof budget !== "number" || budget <= 0) return null;
+  const pacing = c.cost / (CAMPAIGN_PERIOD_DAYS[period] * budget);
+  const capped =
+    c.status === "enabled" && c.roas >= TARGET_ROAS && pacing >= BUDGET_CAP_PACING_MIN;
+  return { pacing, capped };
 }
 
 // --- sync-over-sync change diff (client-safe shapes) -------------------------

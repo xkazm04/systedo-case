@@ -107,6 +107,10 @@ function toCampaign(r: FirebaseFirestore.DocumentData): Campaign {
     cost: Number(r.cost),
     conversions: Number(r.conversions),
     conversionValue: Number(r.conversionValue),
+    // Optional — docs synced before the budget field existed simply omit it.
+    ...(typeof r.budgetPerDay === "number" && r.budgetPerDay > 0
+      ? { budgetPerDay: Number(r.budgetPerDay) }
+      : {}),
   };
 }
 

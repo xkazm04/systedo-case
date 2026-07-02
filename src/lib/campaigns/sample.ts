@@ -62,12 +62,27 @@ interface Spec {
   convRate: number;
   /** average order value, CZK (→ conversion value) */
   aov: number;
+  /** daily budget as a multiple of expected daily spend (impr × ctr × cpc).
+   *  Default leaves comfortable headroom; ~1 marks the campaign as effectively
+   *  budget-limited — the hyper-efficient brand Search is deliberately capped so
+   *  the demo portfolio contains the classic "winner starved by its budget". */
+  budgetFactor?: number;
+}
+
+/** Headroom multiple for campaigns whose budget is not the limiting factor. */
+const BUDGET_HEADROOM = 1.15;
+
+/** Deterministic daily budget for a spec, CZK — derived from the spec's own
+ *  expected daily spend so demo mode shows believable budgets without consuming
+ *  any PRNG draws (existing sample output stays byte-identical). */
+function specBudgetPerDay(s: Spec): number {
+  return Math.max(1, Math.round(s.impr * s.ctr * s.cpc * (s.budgetFactor ?? BUDGET_HEADROOM)));
 }
 
 // Daily base rates per campaign. Distinct profiles per type drive the spread.
 // E-shop (Mionelo baby store) — the original portfolio, kept byte-for-byte.
 const ESHOP_SPECS: Spec[] = [
-  { id: "1001", name: "Search · Brand — Mionelo", type: "search", status: "enabled", impr: 900, ctr: 0.14, cpc: 4.5, convRate: 0.09, aov: 980 },
+  { id: "1001", name: "Search · Brand — Mionelo", type: "search", status: "enabled", impr: 900, ctr: 0.14, cpc: 4.5, convRate: 0.09, aov: 980, budgetFactor: 1.0 },
   { id: "1002", name: "Search · Ořechy a semínka", type: "search", status: "enabled", impr: 5200, ctr: 0.06, cpc: 9.5, convRate: 0.035, aov: 890 },
   { id: "1003", name: "Performance Max · Celý sortiment", type: "performance_max", status: "enabled", impr: 42000, ctr: 0.012, cpc: 6.0, convRate: 0.03, aov: 1020 },
   { id: "1004", name: "Shopping · Bestsellery", type: "shopping", status: "enabled", impr: 28000, ctr: 0.009, cpc: 5.0, convRate: 0.028, aov: 760 },
@@ -78,7 +93,7 @@ const ESHOP_SPECS: Spec[] = [
 
 // SaaS / app — trials & signups; higher first-year value, lower conversion. No Shopping.
 const APP_SPECS: Spec[] = [
-  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 1100, ctr: 0.16, cpc: 6.0, convRate: 0.07, aov: 4200 },
+  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 1100, ctr: 0.16, cpc: 6.0, convRate: 0.07, aov: 4200, budgetFactor: 1.0 },
   { id: "1002", name: "Search · Kategorie („software/nástroj“)", type: "search", status: "enabled", impr: 6400, ctr: 0.05, cpc: 22.0, convRate: 0.022, aov: 3800 },
   { id: "1003", name: "Performance Max · Free trial", type: "performance_max", status: "enabled", impr: 38000, ctr: 0.011, cpc: 14.0, convRate: 0.018, aov: 4000 },
   { id: "1004", name: "Demand Gen · Akvizice trialů", type: "demand_gen", status: "enabled", impr: 110000, ctr: 0.007, cpc: 5.5, convRate: 0.004, aov: 3600 },
@@ -88,7 +103,7 @@ const APP_SPECS: Spec[] = [
 
 // Lead-gen — high-intent local/service queries; value = qualified-lead value.
 const LEADGEN_SPECS: Spec[] = [
-  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 800, ctr: 0.15, cpc: 7.0, convRate: 0.11, aov: 2600 },
+  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 800, ctr: 0.15, cpc: 7.0, convRate: 0.11, aov: 2600, budgetFactor: 1.0 },
   { id: "1002", name: "Search · Služba + lokalita", type: "search", status: "enabled", impr: 4800, ctr: 0.07, cpc: 28.0, convRate: 0.05, aov: 2400 },
   { id: "1003", name: "Performance Max · Leady", type: "performance_max", status: "enabled", impr: 26000, ctr: 0.013, cpc: 16.0, convRate: 0.03, aov: 2500 },
   { id: "1004", name: "Display · Remarketing", type: "display", status: "enabled", impr: 90000, ctr: 0.006, cpc: 2.6, convRate: 0.008, aov: 2300 },
@@ -98,7 +113,7 @@ const LEADGEN_SPECS: Spec[] = [
 
 // Content / media — audience growth; value = subscriber/lead value (lower AOV).
 const CONTENT_SPECS: Spec[] = [
-  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 1400, ctr: 0.13, cpc: 3.2, convRate: 0.08, aov: 320 },
+  { id: "1001", name: "Search · Brand", type: "search", status: "enabled", impr: 1400, ctr: 0.13, cpc: 3.2, convRate: 0.08, aov: 320, budgetFactor: 1.0 },
   { id: "1002", name: "Demand Gen · Odběry newsletteru", type: "demand_gen", status: "enabled", impr: 130000, ctr: 0.009, cpc: 2.4, convRate: 0.012, aov: 300 },
   { id: "1003", name: "Performance Max · Růst publika", type: "performance_max", status: "enabled", impr: 60000, ctr: 0.011, cpc: 3.0, convRate: 0.02, aov: 290 },
   { id: "1004", name: "Display · Remarketing obsahu", type: "display", status: "enabled", impr: 150000, ctr: 0.006, cpc: 1.8, convRate: 0.006, aov: 280 },
@@ -191,6 +206,9 @@ export function sampleCampaigns(
       cost: Math.round(cost * spendDrift),
       conversions: Math.max(0, Math.round(conversions * outcomeDrift)),
       conversionValue: Math.max(0, Math.round(conversionValue * outcomeDrift)),
+      // Static per spec (budgets are settings, not performance): drift moves the
+      // spend around the budget, which is exactly what pacing should reflect.
+      budgetPerDay: specBudgetPerDay(s),
     };
   });
 }

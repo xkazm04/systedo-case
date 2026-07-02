@@ -440,6 +440,7 @@ export default function CampaignsClient() {
           cached={cached}
           changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
+          period={period}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
         />

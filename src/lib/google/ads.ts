@@ -271,6 +271,7 @@ export async function fetchCampaigns(
       campaign.name,
       campaign.status,
       campaign.advertising_channel_type,
+      campaign_budget.amount_micros,
       metrics.impressions,
       metrics.clicks,
       metrics.cost_micros,
@@ -286,6 +287,9 @@ export async function fetchCampaigns(
     .map((r) => {
       const c = r.campaign!;
       const m = r.metrics ?? {};
+      // Daily budget (micros → CZK/day) — optional on the model, so a campaign
+      // without a resolvable budget simply omits the field (never writes 0).
+      const budgetPerDay = Math.round(num(r.campaignBudget?.amountMicros) / 1_000_000);
       return {
         id: String(c.id),
         name: c.name ?? `Kampaň ${c.id}`,
@@ -297,6 +301,7 @@ export async function fetchCampaigns(
         cost: Math.round(num(m.costMicros) / 1_000_000),
         conversions: num(m.conversions),
         conversionValue: Math.round(num(m.conversionsValue)),
+        ...(budgetPerDay > 0 ? { budgetPerDay } : {}),
       } satisfies Campaign;
     });
 }
