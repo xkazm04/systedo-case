@@ -4,10 +4,8 @@ import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
 import Breadcrumbs from "@/components/article/Breadcrumbs";
 import { Gauge } from "@/components/icons";
-import { performance } from "@/lib/data";
-import { buildMetricsSnapshot } from "@/lib/metrics";
-import { snapshotToArticle } from "@/lib/snapshot-to-article";
 import { inlineToText, tableOfContents } from "@/lib/article";
+import { reportArticle } from "./report-article";
 import { fmtDate } from "@/lib/format";
 import { canonical } from "@/lib/site";
 import { navLabel, type Crumb } from "@/lib/nav";
@@ -38,12 +36,9 @@ const T = {
 const REPORT_PATH = "/clanek/vykon";
 const reportUrl = canonical(REPORT_PATH);
 
-const snapshot = buildMetricsSnapshot(performance, { key: "90d", label: "90 dní", days: 90 });
-const article = snapshotToArticle(
-  snapshot,
-  { name: performance.client.name, segment: performance.client.segment },
-  performance.meta.asOf
-);
+// Built in ./report-article (module scope, deterministic) and shared with the
+// segment's opengraph-image so the share card can't drift from the report.
+const article = reportArticle;
 const { meta, blocks, faq } = article;
 
 export const metadata: Metadata = {
