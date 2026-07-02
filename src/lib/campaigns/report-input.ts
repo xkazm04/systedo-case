@@ -5,9 +5,12 @@
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "../format";
 import {
   CAMPAIGN_TYPE_LABELS,
+  CAMPAIGN_TYPE_ROLE_LABELS,
+  CAMPAIGN_TYPE_ROLES,
   CAMPAIGN_STATUS_LABELS,
   TARGET_PNO,
   aggregate,
+  campaignTypesForRole,
   groupByType,
   indexChanges,
   withMetrics,
@@ -66,7 +69,9 @@ const CLIENT_LINE = "Klient: Mionelo (mionelo.cz) — e-shop s ořechy, semínky
 
 const metricsLine = (c: CampaignRow): string =>
   [
-    `typ ${CAMPAIGN_TYPE_LABELS[c.type]}`,
+    // Role tag ("výkonnostní" / "prospekční") so the model reads a video
+    // campaign's ROAS differently from a Search campaign's — see header().
+    `typ ${CAMPAIGN_TYPE_LABELS[c.type]} (${CAMPAIGN_TYPE_ROLE_LABELS[CAMPAIGN_TYPE_ROLES[c.type]]})`,
     `stav ${CAMPAIGN_STATUS_LABELS[c.status].toLowerCase()}`,
     `náklady ${fmtCZK(c.cost)}`,
     `hodnota konverzí ${fmtCZK(c.conversionValue)}`,
@@ -85,11 +90,24 @@ function targetLine(): string {
   return `Cílové PNO domluvené s klientem: ${fmtPct(TARGET_PNO, 0)} (≈ ROAS ${fmtMultiple(1 / TARGET_PNO)}).`;
 }
 
+/** One-line strategist framing derived from CAMPAIGN_TYPE_ROLES (never a
+ *  hand-typed type list that drifts from the map): prospecting types build
+ *  demand that last-click ROAS under-credits, so the model must weigh them in
+ *  portfolio context instead of reading their direct ROAS as failure. */
+function roleLine(): string {
+  return (
+    `Role typů kampaní: výkonnostní (${campaignTypesForRole("performance")}) hodnoť přímo vůči cílovému ROAS; ` +
+    `prospekční (${campaignTypesForRole("prospecting")}) budují poptávku, kterou last-click atribuce podhodnocuje — ` +
+    `hodnoť je v kontextu celého portfolia, ne jen podle přímého ROAS.`
+  );
+}
+
 function header(period: CampaignPeriod): string[] {
   return [
     CLIENT_LINE,
     `Období: posledních ${CAMPAIGN_PERIOD_LABELS[period]}.`,
     targetLine(),
+    roleLine(),
   ];
 }
 
@@ -173,7 +191,7 @@ export function buildOverallPrompt(
     "VÝKON PODLE TYPU (náklady | hodnota konverzí | ROAS | PNO):",
     ...types.map(
       (g) =>
-        `- ${CAMPAIGN_TYPE_LABELS[g.type]} (${g.total.count}): ${fmtCZK(g.total.cost)} | ${fmtCZK(g.total.conversionValue)} | ${g.total.roas > 0 ? fmtMultiple(g.total.roas) : "—"} | ${g.total.pno > 0 ? fmtPct(g.total.pno) : "—"}`
+        `- ${CAMPAIGN_TYPE_LABELS[g.type]} (${g.total.count}, ${CAMPAIGN_TYPE_ROLE_LABELS[CAMPAIGN_TYPE_ROLES[g.type]]}): ${fmtCZK(g.total.cost)} | ${fmtCZK(g.total.conversionValue)} | ${g.total.roas > 0 ? fmtMultiple(g.total.roas) : "—"} | ${g.total.pno > 0 ? fmtPct(g.total.pno) : "—"}`
     ),
     "",
     "JEDNOTLIVÉ KAMPANĚ (seřazené podle nákladů):",

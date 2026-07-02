@@ -39,6 +39,45 @@ export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
   video: "#15324b",
 };
 
+/** Funnel role of each channel type. Performance types answer existing demand
+ *  and are fairly judged by direct (last-click) ROAS; prospecting types *create*
+ *  demand, which last-click attribution systematically under-credits — so they
+ *  trend "red" against the same target without being broken. Encoded once here
+ *  so the prompts, breakdowns and any future per-role tolerance read one map.
+ *  Deliberately informational: no triage threshold moves based on the role. */
+export type CampaignTypeRole = "performance" | "prospecting";
+
+export const CAMPAIGN_TYPE_ROLES: Record<CampaignType, CampaignTypeRole> = {
+  search: "performance",
+  performance_max: "performance",
+  shopping: "performance",
+  display: "prospecting",
+  demand_gen: "prospecting",
+  video: "prospecting",
+};
+
+export const CAMPAIGN_TYPE_ROLE_LABELS: Record<CampaignTypeRole, string> = {
+  performance: "výkonnostní",
+  prospecting: "prospekční",
+};
+
+export const CAMPAIGN_TYPE_ROLE_LABELS_EN: Record<CampaignTypeRole, string> = {
+  performance: "performance",
+  prospecting: "prospecting",
+};
+
+export function campaignTypeRoleLabel(role: CampaignTypeRole, locale: SupportedLocale): string {
+  return (locale === "en" ? CAMPAIGN_TYPE_ROLE_LABELS_EN : CAMPAIGN_TYPE_ROLE_LABELS)[role];
+}
+
+/** Localized labels of every type playing `role`, for prose that must stay in
+ *  sync with the map ("prospekční (Display, Demand Gen, Video)"). */
+export function campaignTypesForRole(role: CampaignTypeRole): string {
+  return CAMPAIGN_TYPES.filter((t) => CAMPAIGN_TYPE_ROLES[t] === role)
+    .map((t) => CAMPAIGN_TYPE_LABELS[t])
+    .join(", ");
+}
+
 export const CAMPAIGN_STATUSES = ["enabled", "paused"] as const;
 export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
 
