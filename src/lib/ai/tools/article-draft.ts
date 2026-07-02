@@ -22,6 +22,7 @@ import type { Block, CalloutBlock, FaqItem } from "../../article";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, slugify } from "./_shared";
+import { refineLines } from "./refine";
 
 const ARTICLE_DRAFT_SYSTEM = `Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku připravený k publikaci.
 
@@ -71,6 +72,7 @@ function buildArticleDraftPrompt(req: ArticleDraftRequest): string {
     "",
     'Vrať objekt s polem „blocks" (tělo článku jako sekvence bloků) a polem „faq" (otázka + odpověď).',
     "Pořadí bloků: úvodní odstavec, pak pro každou sekci osnovy nadpis h2 + odstavce/seznam, jeden callout a na konci jeden cta.",
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");

@@ -25,6 +25,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolError,
@@ -119,7 +120,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
-  const { status, data, error, timedOut, run, reset } =
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
     useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
   const [selectedSource, setSelectedSource] = useState(seeds[0]?.source ?? "");
   const selected = seeds.find((s) => s.source === selectedSource) ?? seeds[0];
@@ -241,6 +242,8 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
                 {t("dataDisclaimer")}
               </span>
             </div>
+
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

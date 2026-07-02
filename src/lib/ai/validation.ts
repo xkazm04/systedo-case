@@ -37,6 +37,7 @@ import {
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
 import { digest } from "./tools/_shared";
+import { REFINE_MAX } from "./tools/refine";
 import type { SupportedLocale } from "../format";
 
 /** Pick the right locale variant. Falls back to Czech for any unlisted locale. */
@@ -45,6 +46,14 @@ function t(locale: SupportedLocale, cs: string, en: string): string {
 }
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+/** Optional free-text refine note carried by a re-run ("kratší", "vynech ceny").
+ *  Length-capped here so the prompt stays bounded; the prompt builders append it
+ *  to the user prompt only (never system/schema — the gate contract is untouched). */
+function parseRefineNote(o: Record<string, unknown>): string | undefined {
+  const refine = str(o.refine);
+  return refine ? refine.slice(0, REFINE_MAX) : undefined;
+}
 
 type Valid<T> = { valid: true; value: T } | { valid: false; error: string };
 
@@ -160,6 +169,8 @@ export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale
   if (qualification) value.qualification = qualification.slice(0, 600);
   const brand = str(o.brand);
   if (brand) value.brand = brand.slice(0, 120);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -200,12 +211,12 @@ export function validateRepurposeRequest(input: unknown, locale: SupportedLocale
     return { valid: false, error: t(locale, "Text článku je příliš dlouhý.", "Article body is too long.") };
   }
   const digestedBody = digest(body);
-  return {
-    valid: true,
-    value: digestedBody
-      ? { title, url, tone, channels, body: digestedBody }
-      : { title, url, tone, channels },
-  };
+  const value: RepurposeRequest = digestedBody
+    ? { title, url, tone, channels, body: digestedBody }
+    : { title, url, tone, channels };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
 }
 
 export function validateLocalReviewReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LocalReviewReplyRequest> {
@@ -231,6 +242,8 @@ export function validateLocalReviewReplyRequest(input: unknown, locale: Supporte
   if (businessType) value.businessType = businessType.slice(0, 120);
   const businessName = str(o.businessName);
   if (businessName) value.businessName = businessName.slice(0, 120);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -301,6 +314,8 @@ export function validateArticleDraftRequest(input: unknown, locale: SupportedLoc
   };
   if (audience) value.audience = audience.slice(0, 300);
   if (CONTENT_TYPES.includes(contentType)) value.contentType = contentType;
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -354,6 +369,8 @@ export function validateCohortDiagnosisRequest(input: unknown, locale: Supported
   };
   const trend = str(o.trend);
   if (TREND_DIRECTIONS.has(trend)) value.trend = trend as CohortDiagnosisRequest["trend"];
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -419,6 +436,8 @@ export function validateLeadSourceDiagnosisRequest(
     }
     if (peers.length > 0) value.peers = peers;
   }
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -450,6 +469,8 @@ export function validateComparisonOutlineRequest(input: unknown, locale: Support
   if (competitor) value.competitor = competitor.slice(0, 120);
   const positioning = str(o.positioning);
   if (positioning) value.positioning = positioning.slice(0, 600);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -493,6 +514,8 @@ export function validateLpVariantIdeasRequest(input: unknown, locale: SupportedL
   if (typeof o.controlCvr === "number" && Number.isFinite(o.controlCvr) && o.controlCvr > 0 && o.controlCvr <= 1) {
     value.controlCvr = o.controlCvr;
   }
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -558,5 +581,7 @@ export function validateKeywordClustersRequest(input: unknown, locale: Supported
   const value: KeywordClustersRequest = { keywords };
   const topic = str(o.topic);
   if (topic) value.topic = topic.slice(0, 200);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }

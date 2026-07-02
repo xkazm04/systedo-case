@@ -17,6 +17,7 @@ import type {
 import { fmtCZK, fmtMultiple, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
+import { refineLines } from "./refine";
 
 function cohortDiagnosisSystem(eshop: boolean): string {
   const domain = eshop ? "e-shopy a opakované nákupy" : "produktové a SaaS firmy";
@@ -73,6 +74,7 @@ function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
     `Povolené názvy kohort pro pole „worstCohort": ${labels}.`,
     "",
     'Vrať: „summary" (krátký odstavec čtení ekonomiky), „worstCohort" (přesný název nejproblematičtější kohorty z dat), „recommendation" (jedna nejúčinnější páka k řešení jako první) a volitelně „risks" (1–3 rizika). Vycházej pouze z uvedených čísel.',
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");

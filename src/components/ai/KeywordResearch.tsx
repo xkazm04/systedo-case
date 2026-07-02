@@ -21,6 +21,7 @@ import { useAiTool } from "./useAiTool";
 import {
   Field,
   LoadingTimer,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolEmpty,
@@ -449,6 +450,7 @@ export default function KeywordResearch({
                     />
                   ))}
                 </ul>
+                {clusters.canRefine && <RefineBar onRefine={clusters.refine} />}
               </div>
             )}
 

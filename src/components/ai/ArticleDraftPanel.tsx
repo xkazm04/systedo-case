@@ -9,7 +9,14 @@ import { inlineToText, type Article, type FaqItem } from "@/lib/article";
 import { blockToMarkdown, inlineToMarkdown, type MarkdownLabels } from "@/lib/article-markdown";
 import type { ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import { useAiTool } from "./useAiTool";
-import { LoadingTimer, PromptDisclosure, ResultMeta, TimeoutState, ToolError } from "./primitives";
+import {
+  LoadingTimer,
+  PromptDisclosure,
+  RefineBar,
+  ResultMeta,
+  TimeoutState,
+  ToolError,
+} from "./primitives";
 
 const T = {
   cs: {
@@ -117,7 +124,7 @@ function DraftFaq({ faq, heading }: { faq: FaqItem[]; heading: string }) {
  *  exportable as Markdown or article JSON. */
 export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
     useAiTool<ArticleDraftResult>("article-draft");
   const [preview, setPreview] = useState<"preview" | "json">("preview");
 
@@ -253,6 +260,8 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
               {JSON.stringify(draftToArticle(brief, draft, t("articleAuthor"), t("articleRole"), t("articleCategory")), null, 2)}
             </pre>
           )}
+
+          {canRefine && <RefineBar onRefine={refine} />}
 
           <PromptDisclosure prompt={data.meta.prompt} />
         </div>

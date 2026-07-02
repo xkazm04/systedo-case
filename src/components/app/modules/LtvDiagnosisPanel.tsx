@@ -19,6 +19,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolError,
@@ -90,7 +91,7 @@ export default function LtvDiagnosisPanel({
   eshop?: boolean;
 }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset } =
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
     useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
   const r = data?.result;
 
@@ -184,6 +185,8 @@ export default function LtvDiagnosisPanel({
                 </ul>
               </div>
             )}
+
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

@@ -16,6 +16,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolError,
@@ -81,7 +82,7 @@ function buildRequest(seed: LpVariantSeed, controlDescription: string): LpVarian
 
 export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset } =
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
     useAiTool<LpVariantIdeasResult>("lp-variant-ideas");
   const [selectedId, setSelectedId] = useState(seeds[0]?.id ?? "");
   const selected = seeds.find((s) => s.id === selectedId) ?? seeds[0];
@@ -187,6 +188,8 @@ export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] 
                 </div>
               ))}
             </div>
+
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

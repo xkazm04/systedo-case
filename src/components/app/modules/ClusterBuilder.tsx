@@ -13,6 +13,7 @@ import { KEYWORD_INTENT_LABELS, type KeywordList } from "@/lib/keywords/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolError,
@@ -211,6 +212,7 @@ export default function ClusterBuilder() {
                 ))}
               </ul>
             )}
+            {clusters.canRefine && <RefineBar onRefine={clusters.refine} />}
           </div>
         )}
       </div>

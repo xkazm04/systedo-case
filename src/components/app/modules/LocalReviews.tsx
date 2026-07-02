@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Pill } from "@/components/ui";
 import { Bolt, Check, Copy, Info, Refresh, Sparkles } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { RefineBar } from "@/components/ai/primitives";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import type { RecentReview } from "@/lib/local/sample";
 import { useT } from "@/lib/i18n/client";
@@ -75,7 +76,8 @@ export default function LocalReviews({
 
   // Results persist by mode only, so we pin the current AI result to a review id
   // and ignore output meant for a different one.
-  const { status, data, error, timedOut, run, reset } = useAiTool<LocalReviewReplyResult>("local-review-reply");
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
+    useAiTool<LocalReviewReplyResult>("local-review-reply");
   const [activeId, setActiveId] = useState<string | null>(null);
   /** id → the reply text shown in that review's editor (user edits live here). */
   const [drafts, setDrafts] = useState<Map<string, string>>(() => new Map());
@@ -237,6 +239,13 @@ export default function LocalReviews({
                     rows={4}
                     className="mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
                   />
+                  {/* Iterate on the AI reply for THIS review with a steering note
+                      (server-side `refine`) — same review + context re-sent. */}
+                  {activeId === r.id && status === "done" && canRefine ? (
+                    <div className="mt-2">
+                      <RefineBar onRefine={refine} />
+                    </div>
+                  ) : null}
                   {activeId === r.id && isDemo ? (
                     <p className="mt-2 flex items-center gap-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs text-coral-600">
                       <Info width={14} height={14} className="shrink-0" />

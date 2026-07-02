@@ -12,6 +12,7 @@ import { CHANNEL_LIMITS, REPURPOSE_CHANNELS, repurpose } from "../../distributio
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { clamp, digest, txt } from "./_shared";
+import { refineLines } from "./refine";
 
 const REPURPOSE_SYSTEM = `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
 
@@ -44,6 +45,7 @@ function buildRepurposePrompt(req: RepurposeRequest, channels: string[]): string
     ...channels.map((c) => `- ${c} | max ${CHANNEL_LIMITS[c as keyof typeof CHANNEL_LIMITS] ?? 1000} znaků`),
     "",
     `Vrať pole „variants", jeden objekt { channel, text } pro každý kanál. channel musí být přesně jeden z: ${channels.join(", ")}.`,
+    ...refineLines(req.refine),
   ].join("\n");
 }
 

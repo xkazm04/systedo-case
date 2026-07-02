@@ -27,6 +27,7 @@ import {
   type Snippet,
 } from "@/lib/speed-lead/snippets";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
 import type { LeadReplyResult } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -349,7 +350,8 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
 
   // AI reply generator (lead-reply tool, via /api/ai). The deterministic draft is
   // the initial value and the fallback; on success we swap in the model's reply.
-  const { status, data, error, timedOut, run, reset } = useAiTool<LeadReplyResult>("lead-reply");
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
+    useAiTool<LeadReplyResult>("lead-reply");
   /** The lead id the current AI result belongs to — results persist by mode only,
    *  so we pin them to a lead and ignore output meant for a different one. */
   const [aiLeadId, setAiLeadId] = useState<string | null>(null);
@@ -735,6 +737,13 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                 <Info width={14} height={14} className="shrink-0" />
                 {t("demoMode")}
               </p>
+            ) : null}
+            {/* Iterate on the AI reply with a steering note — same lead + context,
+                plus the user's instruction (server-side `refine`). */}
+            {usingAi && canRefine ? (
+              <div className="mt-2">
+                <RefineBar onRefine={refine} disabled={status !== "done"} />
+              </div>
             ) : null}
           </div>
 

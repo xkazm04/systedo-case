@@ -9,7 +9,7 @@ import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useAiTool } from "@/components/ai/useAiTool";
-import { ResultMeta } from "@/components/ai/primitives";
+import { RefineBar, ResultMeta } from "@/components/ai/primitives";
 import type { ComparisonOutlineResult } from "@/lib/ai-types";
 import {
   acquisitionFor,
@@ -345,9 +345,8 @@ function QueryRow({
 }) {
   const meta = OPP_META[r.opportunity];
   const acq = acquisitionFor(r, seoChannel);
-  const { status, data, error, timedOut, run, reset } = useAiTool<ComparisonOutlineResult>(
-    `comparison-outline:${r.query}`,
-  );
+  const { status, data, error, timedOut, run, reset, refine, canRefine } =
+    useAiTool<ComparisonOutlineResult>(`comparison-outline:${r.query}`);
   const [open, setOpen] = useState(false);
 
   function onGenerate() {
@@ -444,18 +443,21 @@ function QueryRow({
               </div>
             )}
             {status === "done" && data && (
-              <ScaffoldPanel
-                result={data.result}
-                demo={data.meta.demo}
-                tookMs={data.meta.tookMs}
-                model={data.meta.model}
-                t={t}
-                onHandoff={() => {
-                  onCreateFromOutline(r, data.result);
-                  reset();
-                  setOpen(false);
-                }}
-              />
+              <div className="space-y-3">
+                <ScaffoldPanel
+                  result={data.result}
+                  demo={data.meta.demo}
+                  tookMs={data.meta.tookMs}
+                  model={data.meta.model}
+                  t={t}
+                  onHandoff={() => {
+                    onCreateFromOutline(r, data.result);
+                    reset();
+                    setOpen(false);
+                  }}
+                />
+                {canRefine && <RefineBar onRefine={refine} />}
+              </div>
             )}
           </td>
         </tr>

@@ -334,6 +334,9 @@ export interface LeadReplyRequest {
   /** the business / brand name, so the reply signs off as the business and reads
    *  on-brand instead of generic */
   brand?: string;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 export interface LeadReplyResult {
@@ -360,6 +363,9 @@ export interface RepurposeRequest {
   channels: string[];
   /** tone of voice, shared with the other tools */
   tone: Tone;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** One channel-native variant: the channel label and its ready-to-ship text. */
@@ -393,6 +399,9 @@ export interface LocalReviewReplyRequest {
   /** the business name, so the reply can reference / sign off as the business
    *  instead of a generic "we" */
   businessName?: string;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 export interface LocalReviewReplyResult {
@@ -429,6 +438,9 @@ export interface ArticleDraftRequest {
   audience?: string;
   /** content type (blog / category / product), when known */
   contentType?: ContentType;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** A near-publishable article draft in the app's headless content model — the
@@ -484,6 +496,9 @@ export interface CohortDiagnosisRequest {
   trend?: TrendDirection;
   /** e-shop project → customer / repeat-purchase framing instead of signups / ARPU */
   eshop?: boolean;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** The trend direction shape, mirrored from lib/ltv/compute so the client+server
@@ -526,6 +541,9 @@ export interface KeywordClustersRequest {
   keywords: KeywordClusterInput[];
   /** optional overarching topic, to steer the grouping */
   topic?: string;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** One topic cluster: a single pillar keyword + its supporting keywords, with the
@@ -583,6 +601,9 @@ export interface ComparisonOutlineRequest {
   /** the user's own positioning / differentiators — real grounding for "your side"
    *  of the comparison, so the page isn't a blank placeholder skeleton */
   positioning?: string;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** One section of the comparison page: an H2 heading + the bullet points it covers. */
@@ -629,6 +650,9 @@ export interface LpVariantIdeasRequest {
   losers?: string[];
   /** the control's conversion rate (0–1) — the bar a challenger must clear */
   controlCvr?: number;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** One AI-drafted challenger concept: a testable angle for a landing-page variant.
@@ -717,6 +741,9 @@ export interface LeadSourceDiagnosisRequest {
   /** other sources' compact metrics, best-first — lets the diagnosis name a
    *  concrete better source to move budget to instead of a generic "move it" */
   peers?: LeadSourcePeer[];
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 /** A peer source's compact metrics, for comparison inside the diagnosis (so it can

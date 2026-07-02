@@ -22,6 +22,7 @@ import {
 import { fmtCZK, fmtInt, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { refineLines } from "./refine";
 
 const LEAD_SOURCE_DIAGNOSIS_SYSTEM = `Jsi zkušený český analytik akvizice a kvality leadů pro B2B a lead-gen firmy. Děláš stručnou diagnostiku JEDNOHO podvýkonného zdroje leadů.
 
@@ -83,6 +84,7 @@ function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string
       "Pokud doporučuješ přesun rozpočtu, jmenuj konkrétní lepší zdroj z výše uvedených podle čísel (vyšší kvalifikace / win rate, nižší CPQL)."
     );
   }
+  lines.push(...refineLines(req.refine));
   return lines.join("\n");
 }
 

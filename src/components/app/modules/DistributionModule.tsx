@@ -29,6 +29,7 @@ import {
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { RefineBar } from "@/components/ai/primitives";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
@@ -476,6 +477,13 @@ function VariantCard({
           <Info width={14} height={14} className="shrink-0" />
           {t("demoMode")}
         </p>
+      ) : null}
+      {/* Iterate on the AI variant with a steering note — same article, same
+          channel, plus the user's instruction (server-side `refine`). */}
+      {usingAi && ai.canRefine ? (
+        <div className="mt-2">
+          <RefineBar onRefine={ai.refine} disabled={ai.status !== "done"} />
+        </div>
       ) : null}
 
       {/* The exact UTM-stamped link shipped in this variant — visible + copyable

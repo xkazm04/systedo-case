@@ -13,6 +13,7 @@ import type {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { refineLines } from "./refine";
 
 const LOCAL_REVIEW_REPLY_SYSTEM = `Jsi zkušený český správce reputace lokální firmy. Píšeš veřejné odpovědi na recenze v Google firemním profilu tak, aby působily lidsky, profesionálně a posilovaly důvěru dalších zákazníků, kteří odpověď uvidí.
 
@@ -47,6 +48,7 @@ function buildLocalReviewReplyPrompt(req: LocalReviewReplyRequest): string {
     "",
     tone,
     'Vrať objekt s polem „reply" (celá veřejná odpověď připravená k publikaci).',
+    ...refineLines(req.refine),
   ].join("\n");
 }
 

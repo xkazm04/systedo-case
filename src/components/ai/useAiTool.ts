@@ -67,6 +67,11 @@ export function useAiTool<T>(mode: string) {
   // newer state. Refs, not state — mutating them must not trigger a re-render.
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  // The last submitted payload, so refine() can re-run the same input with an
+  // extra instruction note. Ref for the handler; `canRefine` mirrors its presence
+  // as state because refs must not be read during render.
+  const lastPayloadRef = useRef<Record<string, unknown> | null>(null);
+  const [canRefine, setCanRefine] = useState(false);
   // Mirror of `history` for event handlers/async closures (never read in render),
   // so run()/restore() see the current list without stale-closure races.
   const historyRef = useRef<AiHistoryEntry<T>[]>([]);
@@ -110,6 +115,9 @@ export function useAiTool<T>(mode: string) {
     controllerRef.current = controller;
     const runId = ++runIdRef.current;
     const isStale = () => runId !== runIdRef.current;
+
+    lastPayloadRef.current = payload;
+    setCanRefine(true);
 
     setStatus("loading");
     setError(null);
@@ -158,6 +166,19 @@ export function useAiTool<T>(mode: string) {
     }
   }
 
+  /** Re-run the LAST submitted input with a free-text steering note („kratší",
+   *  „vynech ceny"). The note rides as `refine` in the payload, so it both reaches
+   *  the tool's prompt builder and changes the server's input hash — the 15-min
+   *  response cache can't return the byte-identical previous result. Only
+   *  available after a run in this session (a restored-from-storage result has no
+   *  payload to re-send — see `canRefine`). */
+  function refine(note: string) {
+    const base = lastPayloadRef.current;
+    const trimmed = note.trim();
+    if (!base || !trimmed) return;
+    void run({ ...base, refine: trimmed });
+  }
+
   /** Show a previous generation from the history strip. Pure state switch — no
    *  request, no quota. Aborts an in-flight run so a late response can't clobber
    *  the restored entry. */
@@ -184,7 +205,21 @@ export function useAiTool<T>(mode: string) {
     setError(null);
     setTimedOut(false);
     setData(null);
+    lastPayloadRef.current = null;
+    setCanRefine(false);
   }
 
-  return { status, data, error, timedOut, run, reset, history, activeIndex, restore };
+  return {
+    status,
+    data,
+    error,
+    timedOut,
+    run,
+    reset,
+    history,
+    activeIndex,
+    restore,
+    refine,
+    canRefine,
+  };
 }

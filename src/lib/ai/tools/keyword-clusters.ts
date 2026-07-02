@@ -22,6 +22,7 @@ import type {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { refineLines } from "./refine";
 
 const KEYWORD_CLUSTERS_SYSTEM = `Jsi český SEO stratég. Z plochého seznamu klíčových slov skládáš tematické klastry připravené k tvorbě obsahu (pilířová stránka + podpůrné podstránky).
 
@@ -51,6 +52,7 @@ function buildKeywordClustersPrompt(req: KeywordClustersRequest): string {
     ...lines,
     "",
     'Vrať pole „clusters“. Každý klastr je objekt { topic, intent?, pillar, supporting[] }, kde „pillar“ je jedno hlavní slovo a „supporting“ jsou zbývající slova klastru. Použij POUZE slova z výše uvedeného seznamu, doslova.',
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");

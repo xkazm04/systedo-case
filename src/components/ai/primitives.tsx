@@ -40,6 +40,10 @@ const T = {
     historyCurrent: "aktuální",
     historyRestoreTitle: "Zobrazit tuto generaci ({when})",
     historyDemoTag: "demo",
+    refineLabel: "Upřesnit a vygenerovat znovu",
+    refinePlaceholder: "Např. „kratší“, „více na benefity“, „vynech ceny“…",
+    refineSubmit: "Přegenerovat",
+    refineHint: "Model dostane stejné zadání plus vaši poznámku.",
   },
   en: {
     copyDefault: "Copy",
@@ -73,6 +77,10 @@ const T = {
     historyCurrent: "current",
     historyRestoreTitle: "Show this generation ({when})",
     historyDemoTag: "demo",
+    refineLabel: "Refine and regenerate",
+    refinePlaceholder: "E.g. “shorter”, “focus on benefits”, “drop the prices”…",
+    refineSubmit: "Regenerate",
+    refineHint: "The model gets the same input plus your note.",
   },
 } as const;
 
@@ -307,6 +315,50 @@ export function ResultMeta({
       {metaRow}
       {strip}
     </div>
+  );
+}
+
+/** Iteration loop under a generated result: a free-text steering note („kratší",
+ *  „více na benefity") re-runs the SAME input with the note appended, so the user
+ *  can iterate instead of mangling the form — and the changed input naturally
+ *  busts the server's response cache. Render only for tools whose server accepts
+ *  a `refine` note (the non-gate-locked modes) and only when the hook reports
+ *  `canRefine` (a result restored from storage has no payload to re-send). */
+export function RefineBar({ onRefine, disabled }: { onRefine: (note: string) => void; disabled?: boolean }) {
+  const t = useT(T);
+  const [note, setNote] = useState("");
+  const canGo = !disabled && note.trim().length >= 2;
+  return (
+    <form
+      data-testid="ai-refine"
+      className="rounded-card border border-line bg-surface p-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canGo) onRefine(note);
+      }}
+    >
+      <p className="text-sm font-medium text-navy-700">{t("refineLabel")}</p>
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          maxLength={500}
+          placeholder={t("refinePlaceholder")}
+          aria-label={t("refineLabel")}
+          className={inputClass}
+        />
+        <button
+          type="submit"
+          disabled={!canGo}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <Bolt width={15} height={15} />
+          {t("refineSubmit")}
+        </button>
+      </div>
+      <p className="mt-1.5 text-xs text-muted">{t("refineHint")}</p>
+    </form>
   );
 }
 

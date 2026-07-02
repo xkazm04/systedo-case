@@ -10,6 +10,7 @@ import { draftReply } from "../../speed-lead/draft";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { cleanList, txt } from "./_shared";
+import { refineLines } from "./refine";
 
 const LEAD_REPLY_SYSTEM = `Jsi zkušený český obchodník a specialista na rychlou reakci na poptávky (speed-to-lead). Píšeš první odpověď na příchozí poptávku tak, aby působila lidsky, profesionálně a posunula obchod dál.
 
@@ -43,6 +44,7 @@ function buildLeadReplyPrompt(req: LeadReplyRequest): string {
     qualification
       ? 'Vrať objekt s polem „reply" (celá odpověď připravená k odeslání) a polem „questions" — doptej se POUZE na to, co ještě nevíme (na známá pole se neptej znovu) a tón přizpůsob známé kvalifikaci.'
       : 'Vrať objekt s polem „reply" (celá odpověď připravená k odeslání) a polem „questions" (2–3 kvalifikační otázky).',
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");

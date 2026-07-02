@@ -23,6 +23,7 @@ import { COMPARE_INTENT_LABELS } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
+import { refineLines } from "./refine";
 
 const COMPARISON_OUTLINE_SYSTEM = `Jsi český SEO obsahový stratég specializovaný na srovnávací stránky s vysokým nákupním záměrem (typu „X vs Y", „alternativy k X", „ceník X", „recenze X"). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci — ne obecný brief.
 
@@ -66,6 +67,7 @@ function buildComparisonOutlinePrompt(req: ComparisonOutlineRequest): string {
     grounded
       ? "Použij uvedeného konkurenta a vaši pozici jako reálná data — jmenuj je a opři o ně srovnání, kritéria i verdikt."
       : "Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem.",
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");

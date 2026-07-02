@@ -22,6 +22,7 @@ import type {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, clamp } from "./_shared";
+import { refineLines } from "./refine";
 
 const LP_VARIANT_IDEAS_SYSTEM = `Jsi český CRO specialista (optimalizace konverzního poměru) a copywriter pro landing pages. Z tématu a klíčových slov navrhuješ konkurenční varianty landing page (challengery), které se otestují proti stávající kontrolní variantě v A/B testu.
 
@@ -52,6 +53,7 @@ function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest): string {
       : "",
     "",
     "Vrať pole „variants“ se 2–3 odlišnými koncepty. Každý koncept je objekt { label, hypothesis, headline, primaryCTA, rationale }. Každá varianta ať testuje jinou hypotézu, liší se od kontroly a nepoužívá už vyvrácený úhel. Nevymýšlej žádná čísla.",
+    ...refineLines(req.refine),
   ]
     .filter((line) => line !== "")
     .join("\n");
