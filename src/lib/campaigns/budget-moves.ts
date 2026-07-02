@@ -17,13 +17,21 @@ export interface RecommendOptions {
   shiftFraction?: number;
   /** ignore campaigns spending less than this (noise floor), CZK */
   minSpend?: number;
+  /** admit zero-return spenders (cost > 0, ROAS = 0 — the critical
+   *  `no_conversions` triage finding) as `kind: "pause"` recommendations. Their
+   *  waste = full cost, so they rank worst-of-all. Opt-in: the control-plane
+   *  bundles moves straight into live budget mutations and must keep receiving
+   *  shifts only — the BudgetMoves panel and the AI prompt opt in. */
+  includePauses?: boolean;
 }
 
 /**
  * Pair the worst-performing spenders (enabled, ROAS below target) with the best
  * over-performers (enabled, ROAS at/above target) and propose concrete budget
  * shifts, ranked by *wasted spend* = cost × (1 − roas/target). Each donor and
- * recipient is used at most once. Returns the moves plus a projected portfolio
+ * recipient is used at most once. With `includePauses`, zero-return donors are
+ * emitted as pause moves (stop the spend — nothing was coming back) instead of
+ * being silently invisible. Returns the moves plus a projected portfolio
  * simulation so the UI can show the estimated ROAS/PNO lift. Deterministic.
  */
 export function recommendBudgetMoves(
@@ -33,12 +41,17 @@ export function recommendBudgetMoves(
   const maxMoves = opts.maxMoves ?? 3;
   const shiftFraction = opts.shiftFraction ?? 0.4;
   const minSpend = opts.minSpend ?? 1000;
+  const includePauses = opts.includePauses ?? false;
 
   const enabled = rows.filter((c) => c.status === "enabled");
 
-  // Donors: paying for under-target efficiency, ranked by wasted spend.
+  // Donors: paying for under-target efficiency, ranked by wasted spend. A
+  // zero-return spender wastes its ENTIRE cost (1 − 0/target = 1), so once
+  // admitted it out-ranks every partially-performing donor by construction.
   const donors = enabled
-    .filter((c) => c.cost >= minSpend && c.roas > 0 && c.roas < TARGET_ROAS)
+    .filter(
+      (c) => c.cost >= minSpend && c.roas < TARGET_ROAS && (includePauses ? true : c.roas > 0)
+    )
     .map((c) => ({ c, waste: c.cost * (1 - c.roas / TARGET_ROAS) }))
     .sort((a, b) => b.waste - a.waste)
     .map((x) => x.c);
@@ -52,6 +65,25 @@ export function recommendBudgetMoves(
   const usedRecipient = new Set<string>();
   for (const donor of donors) {
     if (moves.length >= maxMoves) break;
+
+    // Zero return → there is nothing to re-point; the right action is to stop
+    // the spend. No recipient is consumed, and estValueGain is honestly 0 (the
+    // gain is the saved cost, which `amount` carries).
+    if (donor.roas <= 0) {
+      moves.push({
+        kind: "pause",
+        fromId: donor.id,
+        fromName: donor.name,
+        toId: "",
+        toName: "",
+        amount: donor.cost,
+        fromRoas: 0,
+        toRoas: 0,
+        estValueGain: 0,
+      });
+      continue;
+    }
+
     const recipient = recipients.find((r) => r.id !== donor.id && !usedRecipient.has(r.id));
     if (!recipient) break;
     usedRecipient.add(recipient.id);
@@ -61,6 +93,7 @@ export function recommendBudgetMoves(
     if (amount <= 0) continue;
 
     moves.push({
+      kind: "shift",
       fromId: donor.id,
       fromName: donor.name,
       toId: recipient.id,

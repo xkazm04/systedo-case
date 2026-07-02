@@ -4,16 +4,21 @@
 import { aggregate, type Campaign, type CampaignTotals } from "./types";
 
 export interface BudgetMove {
+  /** "shift" re-points spend to a recipient; "pause" stops the donor's spend
+   *  entirely (no recipient — `toId`/`toName` stay empty). Optional for
+   *  backward compatibility: absent means "shift". */
+  kind?: "shift" | "pause";
   fromId: string;
   fromName: string;
   toId: string;
   toName: string;
-  /** CZK shifted from the donor to the recipient */
+  /** CZK shifted from the donor to the recipient (or saved by pausing) */
   amount: number;
   /** donor / recipient ROAS at the time of the recommendation */
   fromRoas: number;
   toRoas: number;
-  /** estimated extra conversion value = amount × (toRoas − fromRoas) */
+  /** estimated extra conversion value = amount × (toRoas − fromRoas); 0 for a
+   *  pause of a zero-return donor (nothing was coming back anyway) */
   estValueGain: number;
 }
 
@@ -36,14 +41,27 @@ export function simulateBudgetShift(rows: Campaign[], moves: BudgetMove[]): Simu
 
   for (const m of moves) {
     const from = byId.get(m.fromId);
-    const to = byId.get(m.toId);
-    if (!from || !to || from.id === to.id) continue;
+    if (!from) continue;
 
     const amount = Math.min(m.amount, from.cost);
     if (amount <= 0) continue;
 
     const fromValPerCzk = from.cost > 0 ? from.conversionValue / from.cost : 0;
     const fromConvPerCzk = from.cost > 0 ? from.conversions / from.cost : 0;
+
+    // A pause is the donor half of a shift with no recipient: the spend leaves
+    // the portfolio (and whatever value it was buying leaves with it — 0 for a
+    // zero-return donor), using the identical linear marginal model.
+    if (m.kind === "pause") {
+      from.cost -= amount;
+      from.conversionValue = Math.max(0, from.conversionValue - amount * fromValPerCzk);
+      from.conversions = Math.max(0, from.conversions - amount * fromConvPerCzk);
+      continue;
+    }
+
+    const to = byId.get(m.toId);
+    if (!to || from.id === to.id) continue;
+
     const toValPerCzk = to.cost > 0 ? to.conversionValue / to.cost : 0;
     const toConvPerCzk = to.cost > 0 ? to.conversions / to.cost : 0;
 

@@ -14,7 +14,11 @@ const T = {
     pill: "bez AI · okamžité",
     balanced: "Rozpočet je vůči cíli vyvážený — žádné zjevné přesuny se nenabízejí.",
     move: "Přesunout {amount}",
+    pauseMove: "Pozastavit „{name}“",
+    pauseMoveSpend: "utrácí {amount} bez návratnosti",
     estGain: "Odhadovaný přínos:",
+    estSaving: "Odhadovaná úspora:",
+    savedCost: "nákladů bez ztráty hodnoty konverzí.",
     convVal: "hodnoty konverzí.",
     signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci.",
     confirmShift: "Přesunout {amount} v Google Ads?",
@@ -48,7 +52,11 @@ const T = {
     pill: "no AI · instant",
     balanced: "Budget is balanced against target — no obvious moves to suggest.",
     move: "Move {amount}",
+    pauseMove: "Pause “{name}”",
+    pauseMoveSpend: "spending {amount} with no return",
     estGain: "Estimated gain:",
+    estSaving: "Estimated saving:",
+    savedCost: "of spend, with no conversion value lost.",
     convVal: "conversion value.",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
     confirmShift: "Move {amount} in Google Ads?",
@@ -91,7 +99,12 @@ export default function BudgetMoves({
 }) {
   const { status } = useSession();
   const authed = status === "authenticated";
-  const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics));
+  // includePauses: a zero-return spender (the critical no_conversions finding)
+  // surfaces here as a pause-first recommendation instead of the panel claiming
+  // "budget is balanced" while the triage banner shows a budget-burner.
+  const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics), {
+    includePauses: true,
+  });
   const { before, after } = simulation;
   const valueGain = after.conversionValue - before.conversionValue;
   const fmt = useFormatters();
@@ -155,24 +168,45 @@ export default function BudgetMoves({
           <ul className="mt-5 space-y-3">
             {moves.map((m, i) => (
               <li key={i} className="rounded-card border border-line p-4">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
-                  <span className="font-semibold text-navy-800">{t("move", { amount: fmt.fmtCZK(m.amount) })}</span>
-                  <span className="inline-flex items-center gap-1.5 text-navy-700">
-                    from <span className="font-medium">{m.fromName}</span>
-                    <span className="tnum text-negative">ROAS {fmt.fmtMultiple(m.fromRoas)}</span>
-                  </span>
-                  <ArrowRight width={15} height={15} className="text-muted" aria-label="to" />
-                  <span className="inline-flex items-center gap-1.5 text-navy-700">
-                    <span className="font-medium">{m.toName}</span>
-                    <span className="tnum text-positive">ROAS {fmt.fmtMultiple(m.toRoas)}</span>
-                  </span>
-                </div>
+                {m.kind === "pause" ? (
+                  // Pause-first row: a zero-return spender has nothing worth
+                  // re-pointing — the recommendation is to stop the bleed.
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+                    <span className="font-semibold text-navy-800">
+                      {t("pauseMove", { name: m.fromName })}
+                    </span>
+                    <span className="tnum text-negative">
+                      {t("pauseMoveSpend", { amount: fmt.fmtCZK(m.amount) })}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
+                    <span className="font-semibold text-navy-800">{t("move", { amount: fmt.fmtCZK(m.amount) })}</span>
+                    <span className="inline-flex items-center gap-1.5 text-navy-700">
+                      from <span className="font-medium">{m.fromName}</span>
+                      <span className="tnum text-negative">ROAS {fmt.fmtMultiple(m.fromRoas)}</span>
+                    </span>
+                    <ArrowRight width={15} height={15} className="text-muted" aria-label="to" />
+                    <span className="inline-flex items-center gap-1.5 text-navy-700">
+                      <span className="font-medium">{m.toName}</span>
+                      <span className="tnum text-positive">ROAS {fmt.fmtMultiple(m.toRoas)}</span>
+                    </span>
+                  </div>
+                )}
                 <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-muted">
-                    {t("estGain")}{" "}
-                    <span className="tnum font-semibold text-positive">+{fmt.fmtCZK(m.estValueGain)}</span>{" "}
-                    {t("convVal")}
-                  </p>
+                  {m.kind === "pause" ? (
+                    <p className="text-xs text-muted">
+                      {t("estSaving")}{" "}
+                      <span className="tnum font-semibold text-positive">+{fmt.fmtCZK(m.amount)}</span>{" "}
+                      {t("savedCost")}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted">
+                      {t("estGain")}{" "}
+                      <span className="tnum font-semibold text-positive">+{fmt.fmtCZK(m.estValueGain)}</span>{" "}
+                      {t("convVal")}
+                    </p>
+                  )}
                   {(() => {
                     // Actions touch a live Google Ads account — only offered to a
                     // signed-in user (the server also 401s), so anonymous/sample
@@ -258,19 +292,27 @@ export default function BudgetMoves({
                     }
                     return (
                       <span className="inline-flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setConfirming(shiftKey)}
-                          title={t("applyShiftTitle")}
-                          className="rounded-pill bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
-                        >
-                          {t("applyShift")}
-                        </button>
+                        {/* A pause recommendation has no recipient — offering a
+                            budget shift there would move money out of nothing. */}
+                        {m.kind !== "pause" && (
+                          <button
+                            type="button"
+                            onClick={() => setConfirming(shiftKey)}
+                            title={t("applyShiftTitle")}
+                            className="rounded-pill bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+                          >
+                            {t("applyShift")}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setConfirming(pauseKey)}
                           title={t("pauseSourceTitle")}
-                          className="rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
+                          className={
+                            m.kind === "pause"
+                              ? "rounded-pill bg-coral-500 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-coral-600"
+                              : "rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
+                          }
                         >
                           {t("pauseSource")}
                         </button>

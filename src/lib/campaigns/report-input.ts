@@ -156,7 +156,10 @@ export function buildOverallPrompt(
   const flagged = rows
     .map((c) => ({ c, t: triage(c, changesById[c.id]) }))
     .filter((x) => x.t.severity !== "ok");
-  const rec = recommendBudgetMoves(rows);
+  // includePauses: a zero-return spender surfaces as a pause recommendation, so
+  // the prompt's deterministic-moves block can't contradict a critical
+  // no_conversions triage finding sitting right above it.
+  const rec = recommendBudgetMoves(rows, { includePauses: true });
 
   return [
     "Vyhodnoť celé portfolio reklamních kampaní klienta z Google Ads jako PPC stratég.",
@@ -190,9 +193,10 @@ export function buildOverallPrompt(
     "DOPORUČENÉ PŘESUNY ROZPOČTU (deterministický model — použij je jako základ, neodporuj jim):",
     ...(rec.moves.length > 0
       ? [
-          ...rec.moves.map(
-            (m) =>
-              `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad +${fmtCZK(m.estValueGain)} hodnoty konverzí.`
+          ...rec.moves.map((m) =>
+            m.kind === "pause"
+              ? `- Pozastavit „${m.fromName}“ (utrácí ${fmtCZK(m.amount)} bez jediné konverze); úspora ${fmtCZK(m.amount)} nákladů bez ztráty hodnoty konverzí.`
+              : `- Přesunout ${fmtCZK(m.amount)} z „${m.fromName}“ (ROAS ${fmtMultiple(m.fromRoas)}) do „${m.toName}“ (ROAS ${fmtMultiple(m.toRoas)}); odhad +${fmtCZK(m.estValueGain)} hodnoty konverzí.`
           ),
           `- Souhrnný odhad po přesunech: ROAS ${fmtMultiple(rec.simulation.before.roas)} → ${fmtMultiple(rec.simulation.after.roas)}, PNO ${fmtPct(rec.simulation.before.pno)} → ${fmtPct(rec.simulation.after.pno)}.`,
         ]
