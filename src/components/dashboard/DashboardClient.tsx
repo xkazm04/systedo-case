@@ -54,6 +54,9 @@ const T = {
     alertsImpact: "Odhadovaný dopad těchto událostí:",
     alertsImpactTitle:
       "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním ve zvoleném období",
+    alertsGained: "pozitivní odchylky",
+    alertsGainedTitle:
+      "Součet příznivých odchylek ve dnech s upozorněním — neočekávaný obrat navíc a ušetřené náklady. Vykazuje se zvlášť, aby nesnižoval hlavní číslo škody.",
     insights: "Co stojí za pozornost",
     csvChannel: "Kanál",
     csvCost: "Náklady (Kč)",
@@ -103,6 +106,9 @@ const T = {
     alertsImpact: "Estimated impact of these events:",
     alertsImpactTitle:
       "Sum of revenue and cost deviations from expected on flagged days in the selected period",
+    alertsGained: "positive deviations",
+    alertsGainedTitle:
+      "Sum of favourable deviations on flagged days — unexpected extra revenue and cost savings. Reported separately so it does not dilute the damage figure.",
     insights: "Worth noting",
     csvChannel: "Channel",
     csvCost: "Cost (CZK)",
@@ -466,6 +472,16 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                     {impact.net < 0 ? "−" : "+"}
                     {fmt.fmtCZKCompact(Math.abs(impact.net))}
                   </span>
+                  {/* the upside the same anomalies carried (windfalls + savings) —
+                      computed separately by anomalyImpact precisely so it can
+                      inform without diluting the damage headline */}
+                  {impact.gained >= 1 && (
+                    <span className="text-muted" title={t("alertsGainedTitle")}>
+                      {" "}
+                      (<span className="tnum">+{fmt.fmtCZKCompact(impact.gained)}</span>{" "}
+                      {t("alertsGained")})
+                    </span>
+                  )}
                 </p>
               )}
               <ul className="mt-3 space-y-3">
