@@ -35,6 +35,9 @@ const T = {
     periodLabel: "Období:",
     periodLast: "posledních {n}",
     periodCompare: "· srovnání s předchozím stejně dlouhým obdobím",
+    periodTruncated: "zkráceno na {days}",
+    truncatedTitle:
+      "Datová řada je kratší než zvolené období — okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
     dataReport: "Datový report",
     trendHeading: "Vývoj v čase",
     channelsHeading: "Výkon podle kanálů",
@@ -80,6 +83,9 @@ const T = {
     periodLabel: "Period:",
     periodLast: "last {n}",
     periodCompare: "· compared with the previous period of equal length",
+    periodTruncated: "shortened to {days}",
+    truncatedTitle:
+      "The data series is shorter than the selected period — the window and its comparison were capped to the equal-length span available.",
     dataReport: "Data report",
     trendHeading: "Trend over time",
     channelsHeading: "Performance by channel",
@@ -286,6 +292,17 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             {t("periodLabel")}{" "}
             <span className="font-medium text-navy-700">{t("periodLast", { n: period.label })}</span>
             <span className="text-muted"> {t("periodCompare")}</span>
+            {/* the series was too short for the requested window — say so instead
+                of letting „12 měsíců" silently mean a shorter span */}
+            {result.truncated && (
+              <span className="text-coral-600" title={t("truncatedTitle")}>
+                {" "}
+                ·{" "}
+                {t("periodTruncated", {
+                  days: `${fmt.fmtInt(result.actualDays)} ${dayWord(result.actualDays, locale)}`,
+                })}
+              </span>
+            )}
           </p>
           <Link
             href="/clanek/vykon"
@@ -499,6 +516,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       </div>
     </div>
   );
+}
+
+/** Locale-correct "N days" unit for the truncation hint (Czech needs three
+ *  plural forms: 1 den / 2–4 dny / 5+ dní). */
+function dayWord(n: number, locale: SupportedLocale): string {
+  if (locale === "en") return n === 1 ? "day" : "days";
+  return n === 1 ? "den" : n >= 2 && n <= 4 ? "dny" : "dní";
 }
 
 // --- insight generation -----------------------------------------------------

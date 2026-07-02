@@ -20,6 +20,7 @@ const T = {
     tooltipPrevious: "Předchozí",
     noChange: "beze změny",
     empty: "Pro zvolené období nejsou data.",
+    partialBucket: "neúplný měsíc",
   },
   en: {
     ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
@@ -33,6 +34,7 @@ const T = {
     tooltipPrevious: "Previous",
     noChange: "no change",
     empty: "No data for the selected period.",
+    partialBucket: "partial month",
   },
 } as const;
 
@@ -364,7 +366,17 @@ export default function TrendChart({
                 opacity={0.6}
               />
             )}
-            <circle cx={tipX} cy={y(tipBucket[metric])} r={5} fill="white" stroke={color} strokeWidth={2.5} />
+            {/* a partial month bucket gets a hollow, dashed marker (like the
+                compare dot) so a half-month "sag" isn't read as a real collapse */}
+            <circle
+              cx={tipX}
+              cy={y(tipBucket[metric])}
+              r={5}
+              fill={tipBucket.partial ? "var(--color-surface)" : "white"}
+              stroke={color}
+              strokeWidth={tipBucket.partial ? 1.8 : 2.5}
+              strokeDasharray={tipBucket.partial ? "2.5 2" : undefined}
+            />
           </g>
         )}
 
@@ -407,6 +419,9 @@ export default function TrendChart({
         >
           <p className="text-xs font-semibold text-navy-700">
             {granularity === "month" ? fmt.fmtMonth(tipBucket.date) : fmt.fmtDateShort(tipBucket.date)}
+            {tipBucket.partial && (
+              <span className="font-normal text-muted"> · {t("partialBucket")}</span>
+            )}
           </p>
           <p className="tnum mt-1 text-lg font-semibold" style={{ color }}>
             {meta.format(tipBucket[metric])}
