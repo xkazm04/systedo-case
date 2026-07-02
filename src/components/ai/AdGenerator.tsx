@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
-import { Bolt, Check, Close, Download, Gauge, Layers, Sparkles } from "@/components/icons";
+import { Bolt, Check, Close, Download, Gauge, Layers, Refresh, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -27,12 +27,13 @@ import {
 } from "@/lib/ad-strength";
 import { useAiTool } from "./useAiTool";
 import {
+  CharCount,
+  CopyButton,
   Field,
   Group,
   LoadingTimer,
   PromptDisclosure,
   ResultMeta,
-  TextRow,
   TimeoutState,
   ToolEmpty,
   ToolError,
@@ -93,6 +94,9 @@ const T = {
     placeholderProduct: "Kešu ořechy natural, 500 g",
     placeholderBenefits: "100% natural, bez soli a oleje, skladem, doprava zdarma…",
     placeholderAudience: "Lidé se zájmem o zdravý životní styl",
+    editableHint: "Texty lze upravovat přímo v řádcích — síla inzerátu, náhled i exporty se přepočítají živě.",
+    undoEdits: "Vrátit vygenerované",
+    undoEditsTitle: "Zahodit ruční úpravy a vrátit původní vygenerované texty",
   },
   en: {
     adStrengthTitle: "Ad strength",
@@ -147,6 +151,9 @@ const T = {
     placeholderProduct: "Cashew nuts natural, 500 g",
     placeholderBenefits: "100% natural, no salt or oil, in stock, free shipping…",
     placeholderAudience: "People interested in a healthy lifestyle",
+    editableHint: "Texts are editable right in the rows — ad strength, the preview and exports recompute live.",
+    undoEdits: "Restore generated",
+    undoEditsTitle: "Discard manual edits and restore the original generated texts",
   },
 } as const;
 
@@ -282,6 +289,55 @@ function RsaPreview({
   );
 }
 
+/** TextRow's editable sibling: same over-limit tinting, counter and copy button,
+ *  but the text itself is an input/textarea — an over-limit (red) or weak asset
+ *  can be fixed in place and Ad Strength, the RSA preview and every export
+ *  recompute live instead of the feedback loop dying at copy-out. */
+function EditableTextRow({
+  text,
+  limit,
+  label,
+  multiline,
+  onChange,
+}: {
+  text: string;
+  limit: number;
+  label: string;
+  multiline?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const over = text.length > limit;
+  const fieldClass =
+    "min-w-0 flex-1 bg-transparent text-sm text-navy-800 outline-none placeholder:text-muted";
+  return (
+    <li
+      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 transition-colors focus-within:border-brand-400 ${
+        over ? "border-negative/40 bg-negative-soft" : "border-line bg-surface"
+      }`}
+    >
+      {multiline ? (
+        <textarea
+          value={text}
+          rows={2}
+          aria-label={label}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${fieldClass} resize-none`}
+        />
+      ) : (
+        <input
+          type="text"
+          value={text}
+          aria-label={label}
+          onChange={(e) => onChange(e.target.value)}
+          className={fieldClass}
+        />
+      )}
+      <CharCount value={text.length} limit={limit} />
+      <CopyButton text={text} label="" />
+    </li>
+  );
+}
+
 const EXAMPLE: AdRequest = {
   product: "Kešu ořechy natural, 500 g",
   benefits:
@@ -320,7 +376,28 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
     if (canSubmit) run({ ...form });
   }
 
-  const r = data?.result;
+  const generated = data?.result ?? null;
+  // The editable working copy of the generation. Everything downstream — the
+  // strength meter, the RSA preview, copy-all, the CSV export and the A/B save —
+  // reads `r` (edited ?? generated), so an in-place fix recomputes them all.
+  const [edited, setEdited] = useState<AdResult | null>(null);
+  // Re-seed the editable copy whenever a generation arrives or a history entry
+  // is restored (same external-sync pattern as the hook's storage restore).
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setEdited(generated);
+  }, [generated]);
+  const r = edited ?? generated ?? undefined;
+  const dirty = useMemo(
+    () =>
+      generated !== null && edited !== null && JSON.stringify(edited) !== JSON.stringify(generated),
+    [edited, generated]
+  );
+  const editList = (key: "headlines" | "descriptions" | "callouts", index: number, value: string) =>
+    setEdited((e) => (e ? { ...e, [key]: e[key].map((x, i) => (i === index ? value : x)) } : e));
+  const editLongHeadline = (value: string) =>
+    setEdited((e) => (e ? { ...e, longHeadline: value } : e));
+
   const strength = useMemo(() => (r ? computeAdStrength(r, locale) : null), [r, locale]);
 
   // Save the current ad as a variant of an A/B test (same name → same test).
@@ -504,7 +581,20 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
               onRestore={restore}
             />
 
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 text-xs text-muted">{t("editableHint")}</p>
+              <div className="flex flex-wrap items-center gap-2">
+              {dirty && (
+                <button
+                  type="button"
+                  onClick={() => setEdited(generated)}
+                  title={t("undoEditsTitle")}
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+                >
+                  <Refresh width={14} height={14} />
+                  {t("undoEdits")}
+                </button>
+              )}
               {authStatus === "authenticated" && (
                 <>
                   {abOpen ? (
@@ -555,6 +645,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
                 <Download width={14} height={14} />
                 {t("downloadCsv")}
               </button>
+              </div>
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
@@ -571,7 +662,13 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
             <Group title={t("groupHeadlines")} hint={t("maxCharsHint", { n: AD_LIMITS.headline })}>
               <ul className="space-y-2">
                 {r.headlines.map((h, i) => (
-                  <TextRow key={i} text={h} limit={AD_LIMITS.headline} />
+                  <EditableTextRow
+                    key={i}
+                    text={h}
+                    limit={AD_LIMITS.headline}
+                    label={`${t("groupHeadlines")} ${i + 1}`}
+                    onChange={(v) => editList("headlines", i, v)}
+                  />
                 ))}
               </ul>
             </Group>
@@ -579,7 +676,14 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
             <Group title={t("groupDescriptions")} hint={t("maxCharsHint", { n: AD_LIMITS.description })}>
               <ul className="space-y-2">
                 {r.descriptions.map((d, i) => (
-                  <TextRow key={i} text={d} limit={AD_LIMITS.description} />
+                  <EditableTextRow
+                    key={i}
+                    text={d}
+                    limit={AD_LIMITS.description}
+                    label={`${t("groupDescriptions")} ${i + 1}`}
+                    multiline
+                    onChange={(v) => editList("descriptions", i, v)}
+                  />
                 ))}
               </ul>
             </Group>
@@ -588,14 +692,26 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
               <Group title={t("groupCallouts")} hint={t("maxCharsHint", { n: AD_LIMITS.callout })}>
                 <ul className="space-y-2">
                   {r.callouts.map((c, i) => (
-                    <TextRow key={i} text={c} limit={AD_LIMITS.callout} />
+                    <EditableTextRow
+                      key={i}
+                      text={c}
+                      limit={AD_LIMITS.callout}
+                      label={`${t("groupCallouts")} ${i + 1}`}
+                      onChange={(v) => editList("callouts", i, v)}
+                    />
                   ))}
                 </ul>
               </Group>
 
               <Group title={t("groupLongHeadline")} hint={t("maxCharsHint", { n: AD_LIMITS.longHeadline })}>
                 <ul>
-                  <TextRow text={r.longHeadline} limit={AD_LIMITS.longHeadline} />
+                  <EditableTextRow
+                    text={r.longHeadline}
+                    limit={AD_LIMITS.longHeadline}
+                    label={t("groupLongHeadline")}
+                    multiline
+                    onChange={editLongHeadline}
+                  />
                 </ul>
               </Group>
             </div>
