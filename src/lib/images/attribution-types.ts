@@ -5,6 +5,7 @@
  *  "style prior" that biases the next generation toward winners. */
 import type { ImageStyle } from "./types";
 import { IMAGE_STYLE_LABELS } from "./types";
+import { fmtMultiple } from "@/lib/format";
 
 /** Real (or entered) performance for one creative over its run. */
 export interface CreativeMetrics {
@@ -104,7 +105,7 @@ export function deriveStylePrior(stats: StyleStat[]): StylePrior {
   if (best.totalCost > 0) {
     return {
       style: best.style,
-      hint: `Drž se vizuálního stylu „${best.label}" — historicky nejlépe konvertuje (ROAS ${best.roas.toFixed(1)}).`,
+      hint: `Drž se vizuálního stylu „${best.label}" — historicky nejlépe konvertuje (ROAS ${fmtMultiple(best.roas)}).`,
     };
   }
   return {

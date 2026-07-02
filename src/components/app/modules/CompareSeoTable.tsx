@@ -512,11 +512,13 @@ function TuningPanel({
   setWeights,
   onReset,
   t,
+  fmt,
 }: {
   weights: ScoreWeights;
   setWeights: (w: ScoreWeights) => void;
   onReset: () => void;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
+  fmt: ReturnType<typeof useFormatters>;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -567,7 +569,7 @@ function TuningPanel({
                   aria-label={t("intentWeightAria", { label: INTENT_LABELS[k] })}
                 />
                 <span className="tnum w-12 shrink-0 text-right text-navy-800">
-                  {weights.intent[k].toFixed(2)}×
+                  {fmt.fmtMultiple(weights.intent[k], 2)}
                 </span>
               </label>
             ))}
@@ -790,6 +792,7 @@ export default function CompareSeoTable({
         setWeights={setWeights}
         onReset={() => setWeights(defaultWeights)}
         t={t}
+        fmt={fmt}
       />
 
       <div className="card overflow-hidden">

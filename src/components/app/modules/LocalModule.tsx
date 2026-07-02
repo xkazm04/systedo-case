@@ -66,7 +66,10 @@ const T = {
   },
 } as const;
 
-const star = (r: number) => `${r.toFixed(1).replace(".", ",")} ★`;
+/** Locale-aware "4,6 ★" rating label (comma decimal comes from the formatter,
+ *  not a hand-faked replace). Mirrored in LocalReviews. */
+const star = (r: number, fmtDecimal: (n: number, digits?: number) => string) =>
+  `${fmtDecimal(r, 1)} ★`;
 
 /** Map a local SERP rank to a Pill tone + label, matching the module's color language.
  *  1–3 = positive, 4–10 = warning (negative-soft), 11+ = coral, no page = neutral. */
@@ -119,7 +122,7 @@ export default async function LocalModule({
         </div>
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("rating")}</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-positive">{star(s.avgRating)}</p>
+          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-positive">{star(s.avgRating, fmt.fmtDecimal)}</p>
         </div>
       </div>
 
@@ -215,7 +218,7 @@ export default async function LocalModule({
                 <p className="text-sm font-semibold text-navy-800">{r.area}</p>
                 <p className="text-xs text-muted">{t("reviewCount", { n: fmt.fmtInt(r.reviews) })}</p>
               </div>
-              <span className="tnum text-sm font-semibold text-positive">{star(r.rating)}</span>
+              <span className="tnum text-sm font-semibold text-positive">{star(r.rating, fmt.fmtDecimal)}</span>
             </div>
           ))}
         </div>

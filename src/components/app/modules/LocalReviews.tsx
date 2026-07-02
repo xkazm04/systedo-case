@@ -7,7 +7,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import type { RecentReview } from "@/lib/local/sample";
-import { useT } from "@/lib/i18n/client";
+import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
@@ -50,7 +50,10 @@ const T = {
   },
 } as const;
 
-const star = (r: number) => `${r.toFixed(1).replace(".", ",")} ★`;
+/** Locale-aware "4,6 ★" rating label (comma decimal comes from the formatter,
+ *  not a hand-faked replace). Mirrored in LocalModule. */
+const star = (r: number, fmtDecimal: (n: number, digits?: number) => string) =>
+  `${fmtDecimal(r, 1)} ★`;
 
 /** Rating → Pill tone: 4–5 positive, 3 coral, ≤2 negative. */
 function ratingTone(rating: number): "positive" | "coral" | "negative" {
@@ -73,6 +76,7 @@ export default function LocalReviews({
   businessName?: string;
 }) {
   const t = useT(T);
+  const fmt = useFormatters();
 
   // Results persist by mode only, so we pin the current AI result to a review id
   // and ignore output meant for a different one.
@@ -146,7 +150,7 @@ export default function LocalReviews({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-navy-800">{r.author}</span>
                     <span className="text-xs text-muted">{r.area}</span>
-                    <Pill tone={ratingTone(r.rating)}>{star(r.rating)}</Pill>
+                    <Pill tone={ratingTone(r.rating)}>{star(r.rating, fmt.fmtDecimal)}</Pill>
                   </div>
                   <p className="mt-1.5 text-sm leading-relaxed text-navy-700">{r.text}</p>
                 </div>

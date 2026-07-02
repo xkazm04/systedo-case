@@ -313,7 +313,7 @@ export default async function InventorySeasonModule({
                       </span>
                     </td>
                     <td className="tnum px-4 py-3 text-right text-navy-700">{t("stockUnits", { n: fmt.fmtInt(product.stock) })}</td>
-                    <td className="tnum px-4 py-3 text-right text-navy-700">{product.dailyVelocity.toFixed(1)}</td>
+                    <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtDecimal(product.dailyVelocity, 1)}</td>
                     <td className={`tnum px-4 py-3 text-right font-medium ${marginRiskClass(row)}`}>
                       {Number.isFinite(daysOfCover) ? t("daysOfCover", { n: Math.round(daysOfCover) }) : "—"}
                     </td>

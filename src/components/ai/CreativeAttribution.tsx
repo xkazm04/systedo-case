@@ -187,7 +187,7 @@ export default function CreativeAttribution() {
                   </td>
                   <td className="px-4 py-2.5 text-right tnum text-muted">{s.count}</td>
                   <td className="px-4 py-2.5 text-right tnum text-muted">
-                    {s.avgVisionScore != null ? s.avgVisionScore.toFixed(1) : "—"}
+                    {s.avgVisionScore != null ? fmt.fmtDecimal(s.avgVisionScore, 1) : "—"}
                   </td>
                   <td className="px-4 py-2.5 text-right tnum text-muted">{fmt.fmtCZK(s.totalCost)}</td>
                   <td className="px-4 py-2.5 text-right tnum font-semibold text-navy-800">

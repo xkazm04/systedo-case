@@ -1,6 +1,7 @@
 /** Lead-quality math: cost per lead vs cost per *qualified* lead, qualification
  *  and win rates, ROI, and a composite quality score. Flags "junk" sources that
  *  are cheap per lead but low quality. Pure. */
+import { fmtCZK } from "@/lib/format";
 import type { LeadSource, PeriodCounts } from "./sample";
 
 export interface SourceMetrics extends LeadSource {
@@ -246,9 +247,9 @@ export interface AlertOptions {
 }
 
 /** Format a fraction as a whole-percent string for alert copy ("26 %"). Kept
- *  local so the pure layer has no formatter dependency. */
+ *  local because it takes the |fraction| (fmtPct would keep the sign). Money in
+ *  the alert copy goes through the shared `fmtCZK` instead of a local clone. */
 const pctText = (fraction: number): string => `${Math.round(Math.abs(fraction) * 100)} %`;
-const czkText = (n: number): string => `${Math.round(n).toLocaleString("cs-CZ")} Kč`;
 
 /** Threshold alerts for one source's trend: a CPQL rise beyond the threshold
  *  ("vzrostlo o >25 %") and/or CPQL over target ("překračuje cíl"). A paid
@@ -272,7 +273,7 @@ export function sourceAlerts(t: SourceTrend, opts: AlertOptions = {}): LeadQuali
       source: t.source,
       kind: "cpql-target",
       severity: "critical",
-      message: `CPQL zdroje „${t.source}” (${czkText(t.cpqlNow)}) překračuje cíl ${czkText(targetCzk)}.`,
+      message: `CPQL zdroje „${t.source}” (${fmtCZK(t.cpqlNow)}) překračuje cíl ${fmtCZK(targetCzk)}.`,
     });
   }
   return alerts;

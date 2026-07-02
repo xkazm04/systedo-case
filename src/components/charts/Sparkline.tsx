@@ -4,6 +4,8 @@
  *  the positive/negative tokens from the first→last delta. Used in the hero and
  *  every KPI card. */
 
+import { fmtSignedPct } from "@/lib/format";
+
 type Direction = "up" | "down";
 
 interface SparklineProps {
@@ -114,7 +116,9 @@ export default function Sparkline({
   if (!a11yLabel && describe) {
     const fmt = formatValue ?? ((n: number) => String(n));
     const pct = pctChange(first, last);
-    const pctStr = `${pct > 0 ? "+" : ""}${pct.toFixed(Number.isInteger(pct) ? 0 : 1)} %`;
+    // Route the percent through the shared signed formatter (comma decimal +
+    // true minus in cs), matching the default cs phrasing of `describeLabel`.
+    const pctStr = fmtSignedPct(pct / 100, Number.isInteger(pct) ? 0 : 1);
     const parts = { start: fmt(first), end: fmt(last), pct: pctStr };
     a11yLabel = describeLabel
       ? describeLabel(parts)

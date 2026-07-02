@@ -307,7 +307,7 @@ export default async function LtvModule({
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("payback")}</p>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {summary.avgPayback != null ? t("paybackMonths", { n: summary.avgPayback.toFixed(1) }) : "—"}
+            {summary.avgPayback != null ? t("paybackMonths", { n: fmt.fmtDecimal(summary.avgPayback, 1) }) : "—"}
           </p>
         </div>
       </div>
@@ -475,7 +475,7 @@ export default async function LtvModule({
                       </td>
                       <td className="tnum px-4 py-3 text-right text-navy-700">
                         {c.paybackMonth != null
-                          ? t("paybackMonths", { n: c.paybackMonth.toFixed(1) })
+                          ? t("paybackMonths", { n: fmt.fmtDecimal(c.paybackMonth, 1) })
                           : t("paybackOver")}
                       </td>
                       <td className="px-4 py-3">

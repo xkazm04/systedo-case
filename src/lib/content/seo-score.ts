@@ -11,7 +11,7 @@
  */
 
 import type { BriefResult } from "@/lib/ai-types";
-import type { SupportedLocale } from "@/lib/format";
+import { createFormatters, type SupportedLocale } from "@/lib/format";
 
 // ===========================================================================
 // Pixel-width estimation
@@ -203,6 +203,9 @@ export function scoreBrief(
 ): BriefScore {
   const kw = primaryKeyword.trim();
   const en = locale === "en";
+  // Locale-bound number formatting, so the cs hint says "18,4 slov" (comma
+  // decimal) while the en hint says "18.4 words" — not a raw toFixed leak.
+  const f = createFormatters(locale);
 
   // --- readability -------------------------------------------------------
   const avg = avgSentenceLength(brief);
@@ -218,11 +221,11 @@ export function scoreBrief(
       hint: en
         ? avg === 0
           ? "Nothing to measure — no text to evaluate."
-          : `Average ${avg.toFixed(1)} words per sentence` +
+          : `Average ${f.fmtDecimal(avg, 1)} words per sentence` +
             (avg <= SENTENCE_OK ? " — easy to read." : avg <= SENTENCE_WARN ? " — consider shorter sentences." : " — sentences are too long.")
         : avg === 0
           ? "Není co měřit — chybí text k vyhodnocení."
-          : `Průměr ${avg.toFixed(1)} slov na větu` +
+          : `Průměr ${f.fmtDecimal(avg, 1)} slov na větu` +
             (avg <= SENTENCE_OK ? " — dobře čitelné." : avg <= SENTENCE_WARN ? " — zvažte kratší věty." : " — věty jsou příliš dlouhé."),
     },
     {
