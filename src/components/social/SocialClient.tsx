@@ -57,6 +57,7 @@ const T = {
     publishedAt: "published {rel}",
     createdAt: "created {rel}",
     link: "link",
+    demoLink: "ukázka — nezveřejněno",
     inboxTitle: "Inbox — comments & messages",
     pending: "{n} pending",
     loadingInbox: "Loading inbox…",
@@ -105,6 +106,7 @@ const T = {
     publishedAt: "published {rel}",
     createdAt: "created {rel}",
     link: "link",
+    demoLink: "demo — not actually posted",
     inboxTitle: "Inbox — comments & messages",
     pending: "{n} pending",
     loadingInbox: "Loading inbox…",
@@ -605,11 +607,17 @@ function PostsList() {
                   : post.status === "published" && post.publishedAt
                     ? t("publishedAt", { rel: fmt.fmtRelative(post.publishedAt) })
                     : t("createdAt", { rel: fmt.fmtRelative(post.createdAt) })}
-                {post.externalUrl && (
-                  <a href={post.externalUrl} target="_blank" rel="noopener noreferrer" className="link-inline">
-                    {t("link")}
-                  </a>
-                )}
+                {post.externalUrl &&
+                  (post.externalUrl.startsWith("https://demo.social/") ? (
+                    // Simulated publish (demo mode): don't dress the placeholder URL
+                    // up as a real, clickable published post.
+                    <span className="text-muted">· {t("demoLink")}</span>
+                  ) : (
+                    // Real connected account: the returned URL is a genuine post link.
+                    <a href={post.externalUrl} target="_blank" rel="noopener noreferrer" className="link-inline">
+                      {t("link")}
+                    </a>
+                  ))}
               </p>
             </li>
           ))}

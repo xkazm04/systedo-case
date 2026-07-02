@@ -4,10 +4,10 @@ import { useEffect } from "react";
 
 /** Last-resort error boundary: replaces the ROOT LAYOUT when it crashes, so
  *  nothing from the app shell — globals.css, fonts, LocaleProvider — can be
- *  assumed. It therefore inlines its own <html>/<body>, styles and static cs
- *  copy (the locale cookie reader lives in the crashed layer). Uses the brand
- *  onyx/teal palette from the viewport constants so even a total failure
- *  stays on-brand. */
+ *  assumed. It therefore inlines its own <html>/<body> and styles, and shows
+ *  both languages (the locale cookie reader lives in the crashed layer). Uses
+ *  the brand onyx/teal palette from the viewport constants so even a total
+ *  failure stays on-brand. */
 export default function GlobalError({
   error,
   reset,
@@ -16,7 +16,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error(error);
+    console.error("[global error boundary]", error);
   }, [error]);
 
   return (
@@ -44,7 +44,7 @@ export default function GlobalError({
               color: "#6ee3da",
             }}
           >
-            Neočekávaná chyba
+            Neočekávaná chyba · Unexpected error
           </p>
           <h1 style={{ margin: "14px 0 0", fontSize: 30, fontWeight: 700, letterSpacing: "-0.02em" }}>
             Něco se pokazilo
@@ -52,6 +52,8 @@ export default function GlobalError({
           <p style={{ margin: "14px 0 0", fontSize: 15, lineHeight: 1.6, color: "#b3c3d3" }}>
             Omlouváme se — aplikaci se teď nepodařilo vykreslit. Většinou jde o přechodný výpadek;
             zkuste to prosím znovu.
+            <br />
+            The app hit an unexpected error. It is usually transient; please try again.
           </p>
           {error.digest ? (
             <p style={{ margin: "12px 0 0", fontSize: 13, fontFamily: "ui-monospace, monospace", color: "#b3c3d3" }}>
@@ -73,7 +75,7 @@ export default function GlobalError({
               color: "#04211f",
             }}
           >
-            Zkusit znovu
+            Zkusit znovu · Try again
           </button>
         </div>
       </body>

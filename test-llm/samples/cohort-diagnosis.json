@@ -1,9 +1,10 @@
 {
-  "summary": "Akviziční výkon se mezi lednem a březnem 2025 prudce zhoršil: CAC vzrostl z 1 200 Kč na 2 100 Kč (+75 %), LTV kleslo z 5 400 Kč na 2 200 Kč (-59 %) a M3 retence z 62 % na 31 %. Poměr LTV:CAC se propadl ze 4,5× na 1,0× a návratnost u březnové kohorty přesahuje sledovaný horizont (nevrací se). Firma přitom objem akvizice zvyšuje (180 → 240 registrací), takže roste podíl nejméně ziskových uživatelů na celkovém mixu.",
+  "summary": "Kohorty vykazují jednoznačně zhoršující se trend: CAC roste z 1 200 Kč (2025-01) na 2 100 Kč (2025-03), LTV klesá z 5 400 Kč na 2 200 Kč, LTV:CAC se propadá ze 4,5× na 1,0× a návratnost se prodlužuje ze 4 měsíců až za sledovaný horizont. M3 retence klesá z 62 % na 31 %, zatímco objem registrací roste (180→240), takže se zhoršující ekonomika týká čím dál většího objemu uživatelů. Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× jsou z velké části taženy dolů poslední kohortou.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit škálování kanálu/kampaně, která přivedla březnovou kohortu, a rozpočet přesměrovat zpět k mixu srovnatelnému s lednem; klíčovou pákou je zvýšit M3 retenci zpět nad ~50 % (např. zlepšením onboardingu a time-to-value), protože právě pokles retence z 62 % na 31 % je hlavní příčinou kolapsu LTV a poměru LTV:CAC.",
+  "recommendation": "Zaměřit se na zlepšení M3 retence u nejnovějších kohort (aktivace a onboarding v prvních 90 dnech) — pokles retence z 62 % na 31 % je hlavní hnací silou propadu LTV:CAC, a jeho zastavení má větší pákový efekt než další snižování CAC, který roste souběžně s rostoucím objemem akvizice.",
   "risks": [
-    "Další škálování bez zásahu prohloubí ztrátu, protože březnová kohorta má zároveň nejvyšší objem (240) i nejhorší jednotkovou ekonomiku.",
-    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je už pod hranicí návratnosti (1,0×)."
+    "Analýza je založena jen na 3 kohortách, trend nemusí být statisticky robustní.",
+    "Kohorta 2025-03 nemá dokončenou návratnost (payback > horizont), takže její skutečné LTV může být ještě nižší, než je uvedeno.",
+    "Nejhorší kohorta má zároveň nejvyšší objem registrací (240), takže dopad zhoršující se jednotkové ekonomiky na celkový byznys roste."
   ]
 }

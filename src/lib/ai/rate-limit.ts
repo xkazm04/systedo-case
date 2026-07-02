@@ -12,6 +12,12 @@
  *
  *  Everything is tunable via env so a deploy can tighten/loosen without a code
  *  change; the defaults are conservative enough to protect a demo budget.
+ *
+ *  NOTE: on Vercel's ephemeral serverless filesystem this sqlite counter is
+ *  effectively per-instance, so the paid routes front it with the Firestore-backed
+ *  `durableGuard` (./durable-limit) for a cross-instance cap + a global daily spend
+ *  ceiling; this module remains the in-process fallback when Firestore is
+ *  unreachable, and the source of the shared RateRule/RateResult contract.
  */
 import { getDb } from "../db";
 

@@ -24,11 +24,11 @@ import {
   acquireSlot,
   clientIp,
   payloadTooLarge,
-  rateLimit,
   releaseSlot,
   tooLarge,
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
+import { durableGuard } from "@/lib/ai/durable-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ async function userId(): Promise<string | null> {
 
 export async function POST(request: Request) {
   if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
-  const limited = rateLimit(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()]);
+  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()], { spendUnits: 1 });
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,
@@ -89,12 +89,16 @@ export async function POST(request: Request) {
     }
 
     // Per-user daily image quota (signed-in users; anonymous is IP-limited only).
+    // Charge one unit per candidate — each is its own Leonardo generation plus a
+    // Gemini vision score, so an N-candidate set costs N units, not 1.
     if (uid) {
-      const quota = await consume(uid, "image");
+      const quota = await consume(uid, "image", count);
       if (!quota.ok) {
+        const { used, limits } = quota.status;
         return Response.json(
           {
-            error: `Denní limit generování vizuálů vyčerpán (${quota.status.used.image}/${quota.status.limits.image}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+            error: `Denní limit generování vizuálů (${used.image}/${limits.image}) nestačí na ${count} ${count === 1 ? "variantu" : "variant"}. Zkuste méně variant, zítra, nebo vyšší plán (ceník na /cena).`,
+            code: "quota",
             upgradeUrl: "/cena",
           },
           { status: 429 }

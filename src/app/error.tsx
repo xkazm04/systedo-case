@@ -44,7 +44,7 @@ export default function RouteError({
   useEffect(() => {
     // Surface the client-side error for observability; the server log carries
     // the digest twin, so the visible code below is enough to correlate them.
-    console.error(error);
+    console.error("[root error boundary]", error);
   }, [error]);
 
   return (
@@ -64,7 +64,7 @@ export default function RouteError({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
           >
             {t.retry}
           </button>

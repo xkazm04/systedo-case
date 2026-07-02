@@ -197,6 +197,9 @@ export default function CreativeStudio() {
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<ImageGenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Upgrade path carried by a quota (429) response from /api/images, so the error
+  // state can show a clickable "raise your limit" CTA instead of only the message.
+  const [errorUpgrade, setErrorUpgrade] = useState<string | undefined>(undefined);
 
   const [library, setLibrary] = useState<CreativeSummary[]>([]);
   const [delBusy, setDelBusy] = useState<string | null>(null);
@@ -230,6 +233,7 @@ export default function CreativeStudio() {
     if (!result) return;
     setStatus("loading");
     setError(null);
+    setErrorUpgrade(undefined);
     try {
       const blob = await (await fetch(img.dataUrl)).blob();
       const fd = new FormData();
@@ -260,6 +264,7 @@ export default function CreativeStudio() {
       const json = await res.json();
       if (!res.ok) {
         setError(json?.error ?? t("errorVariantGen"));
+        setErrorUpgrade(typeof json?.upgradeUrl === "string" ? json.upgradeUrl : undefined);
         setStatus("error");
         return;
       }
@@ -348,6 +353,7 @@ export default function CreativeStudio() {
   const generate = async (avoid?: string) => {
     setStatus("loading");
     setError(null);
+    setErrorUpgrade(undefined);
     try {
       const res = await fetch("/api/images", {
         method: "POST",
@@ -368,6 +374,7 @@ export default function CreativeStudio() {
       const json = await res.json();
       if (!res.ok) {
         setError(json?.error ?? t("errorGen"));
+        setErrorUpgrade(typeof json?.upgradeUrl === "string" ? json.upgradeUrl : undefined);
         setStatus("error");
         return;
       }
@@ -614,7 +621,7 @@ export default function CreativeStudio() {
               {t("loadingLabel")}
             </div>
           )}
-          {status === "error" && <ToolError message={error ?? ""} onRetry={() => setStatus("idle")} />}
+          {status === "error" && <ToolError message={error ?? ""} onRetry={() => setStatus("idle")} upgradeUrl={errorUpgrade} />}
 
           {status === "done" && result && (
             <div className="animate-fade-up space-y-4">

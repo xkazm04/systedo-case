@@ -4,6 +4,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
+import SampleDataNote from "@/components/app/SampleDataNote";
 import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { getProjectDataset } from "@/lib/project-data/dataset";
@@ -22,6 +23,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const seoChannel = seoChannelFrom(rows);
   return (
     <ModulePage moduleKey="srovnani-seo">
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
       <CompareSeoModule queries={SAMPLE_QUERIES} seoChannel={seoChannel} />
     </ModulePage>
   );

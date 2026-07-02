@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos",
-      "hypothesis": "Nadpis s konkrétním přínosem (přehled nad úkoly a projekty) zvýší konverzi oproti obecnému popisu produktu, protože návštěvník rychleji pochopí hodnotu nástroje.",
-      "headline": "Mějte všechny úkoly a projekty pod kontrolou na jednom místě",
-      "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní přínos komunikuje hodnotu rychleji než obecný popis a nespoléhá na slevu ani dlouhý formulář, které už neuspěly."
+      "label": "B2 · Rychlé nasazení",
+      "hypothesis": "Zdůraznění rychlého a bezproblémového nasazení nástroje namísto obecného popisu funkcí sníží vnímanou bariéru vstupu a zvýší konverzní poměr oproti kontrolní variantě.",
+      "headline": "Řízení projektů bez zdlouhavého zavádění",
+      "primaryCTA": "Vyzkoušet nyní",
+      "rationale": "Zájemci o 'nástroj na úkoly' se často obávají složitého zavádění, takže slib rychlého startu řeší konkrétní bariéru, kterou obecný popis produktu nepokrývá."
     },
     {
-      "label": "Problém napřed",
-      "hypothesis": "Pojmenování konkrétního problému (zmeškané termíny, chaos v úkolech) v nadpisu zvýší konverzi, protože osloví návštěvníky přesně v okamžiku, kdy tento problém řeší.",
-      "headline": "Konec zapomenutým úkolům a zmeškaným termínům",
-      "primaryCTA": "Zjistit, jak to funguje",
-      "rationale": "Agitace problému vytváří okamžitou relevanci a motivaci k akci, aniž by nabízela slevu nebo vyžadovala dlouhý formulář."
+      "label": "C2 · Sociální důkaz",
+      "hypothesis": "Sdělení postavené na důvěře projektových týmů namísto obecného popisu produktu sníží vnímané riziko výběru nástroje a zvýší konverzní poměr.",
+      "headline": "Nástroj, kterému projektové týmy důvěřují",
+      "primaryCTA": "Zjistit proč",
+      "rationale": "Na přeplněném trhu software pro řízení projektů je nedůvěra k dalšímu nástroji klíčovou bariérou, kterou obecný popis produktu neřeší."
     },
     {
-      "label": "Rychlé bezbariérové vyzkoušení",
-      "hypothesis": "Zdůraznění rychlosti a jednoduchosti vstupu (bez dlouhého formuláře či karty) zvýší konverzi, protože odstraní obavu z časové a administrativní zátěže.",
-      "headline": "Vyzkoušejte nástroj na řízení projektů za méně než minutu",
-      "primaryCTA": "Začít bez karty",
-      "rationale": "Nízkoprahová nabídka přímo reaguje na neúspěch dlouhého formuláře tím, že slibuje minimální bariéru vstupu bez slevy."
+      "label": "D · Bolest a řešení",
+      "hypothesis": "Pojmenování konkrétní bolesti (roztříštěné úkoly v e-mailech a tabulkách) namísto obecného popisu funkcí zvýší relevanci sdělení a konverzní poměr.",
+      "headline": "Konec úkolů rozházených v e-mailech a tabulkách",
+      "primaryCTA": "Sjednotit úkoly na jedno místo",
+      "rationale": "Návštěvníci hledající 'nástroj na úkoly' typicky řeší konkrétní frustraci z chaosu, a přímé pojmenování problému motivuje k akci silněji než obecná prezentace produktu."
     }
   ]
 }

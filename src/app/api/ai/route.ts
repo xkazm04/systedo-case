@@ -37,11 +37,11 @@ import {
   acquireSlot,
   clientIp,
   payloadTooLarge,
-  rateLimit,
   releaseSlot,
   tooLarge,
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
+import { durableGuard } from "@/lib/ai/durable-limit";
 
 // The Gemini SDK needs the Node.js runtime (not Edge).
 export const runtime = "nodejs";
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
   if (tooLarge(request)) {
     return payloadTooLarge("Požadavek je příliš velký.");
   }
-  const limited = rateLimit(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()]);
+  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()], { spendUnits: 1 });
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,

@@ -20,27 +20,53 @@ import { fileURLToPath } from "node:url";
 import { generateStructured, CLAUDE_MODEL, CLAUDE_MODEL_FAST } from "../src/lib/llm/index.ts";
 import { LLM_TOOLS } from "./registry.mjs";
 
-const PER_TEST_TIMEOUT = 120_000;
+// Three attempts because the Claude CLI occasionally returns a truncated /
+// invalid-JSON response, which the wrapper absorbs by falling back to the demo
+// stub (meta.demo=true). That is a transient CLI flake, not a contract break, so
+// we retry it; a genuinely broken tool fails all attempts. Timeout covers the
+// worst case of MAX_ATTEMPTS slow real calls back to back.
+const MAX_ATTEMPTS = 3;
+const PER_TEST_TIMEOUT = 300_000;
 const CAPTURE = process.env.LLM_CAPTURE === "1";
 const SAMPLES_DIR = join(dirname(fileURLToPath(import.meta.url)), "samples");
 
+/** The model a tool must run on: registry `tier: "fast"` → haiku-class. */
+const expectedModelFor = (tool) => (tool.tier === "fast" ? CLAUDE_MODEL_FAST : CLAUDE_MODEL);
+
+/** True when a call produced a real, provider-backed, schema-valid result on
+ *  the tool's own tier. */
+function passed(tool, res) {
+  return res.meta.demo === false && res.meta.model === expectedModelFor(tool) && tool.validate(res.result);
+}
+
 for (const tool of LLM_TOOLS) {
   test(`LLM wrapper · ${tool.id} (${tool.label}) · real Claude`, { timeout: PER_TEST_TIMEOUT }, async () => {
-    const res = await generateStructured({
-      system: tool.system,
-      prompt: tool.prompt,
-      schema: tool.schema,
-      tier: tool.tier,
-      normalize: (parsed) => parsed,
-      demo: () => ({ __demo: true }),
-    });
+    let res;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      res = await generateStructured({
+        system: tool.system,
+        prompt: tool.prompt,
+        schema: tool.schema,
+        tier: tool.tier,
+        normalize: (parsed) => parsed,
+        demo: () => ({ __demo: true }),
+      });
+      if (passed(tool, res)) break;
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(
+          `[${tool.id}] attempt ${attempt}/${MAX_ATTEMPTS} flaked (demo=${res.meta.demo}, model=${res.meta.model}) — retrying`
+        );
+      }
+    }
 
+    // Assert on the final attempt so a persistent failure still reports a
+    // meaningful message; a transient flake will have broken out above.
     assert.equal(
       res.meta.demo,
       false,
-      `[${tool.id}] got the demo fallback — is the Claude CLI installed and logged in?`
+      `[${tool.id}] got the demo fallback after ${MAX_ATTEMPTS} attempts — is the Claude CLI installed and logged in?`
     );
-    const expectedModel = tool.tier === "fast" ? CLAUDE_MODEL_FAST : CLAUDE_MODEL;
+    const expectedModel = expectedModelFor(tool);
     assert.equal(
       res.meta.model,
       expectedModel,

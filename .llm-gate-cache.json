@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-02T19:39:34.534Z",
+  "provenAt": "2026-07-02T21:07:11.412Z",
   "files": {
     "src/lib/llm/index.ts": "3968f85c5ddf2a0835cab7928443d1e52aaea498e4fd5eee2633aa96fdd61762",
     "src/lib/llm/claude.ts": "dadda4fbc837e96bd7a2f2333d6a1281941472d31d2ab3f9572fcf07a74049fa",
@@ -21,10 +21,10 @@
     "src/lib/ai/tools/comparison-outline.ts": "113fa4b309d78fe9706a7399ee8aabaaeb2e07ac5abd42c6577c6c25435a4564",
     "src/lib/ai/tools/lp-variant-ideas.ts": "2c6f0d8ec80480a0855f73a7fb8fe2290acb617964073b7bd480dbb60f4865d9",
     "src/lib/ai/tools/lead-source-diagnosis.ts": "6cb57a25078a55f268c8d1e5f3645169d42d35200c401547f40cdd689cb4445d",
-    "src/app/api/ai/route.ts": "9a363f6a34b7dcc3f3b208508c8405ab0e333af4aa82b073751056aa8eab4f4b",
-    "src/app/api/campaigns/analyze/route.ts": "8df9ab3dae910628ad56294473e7b56e39975b663671c503c39306221ef484fd",
+    "src/app/api/ai/route.ts": "7bae5756b52135ab96f4569de43253209759c3b72875bd4bfc3b173fe45b3a91",
+    "src/app/api/campaigns/analyze/route.ts": "75f3eadaa9213faef6380bd92c9f880de402df16e09d852b84235386b90d2598",
     "test-llm/registry.mjs": "af67526fc5624a56c352b00743d81fa6bb3cfcdebbf786bdf8c368e49bacd7b3",
-    "test-llm/real.test.mjs": "65b598af652492626c21125b6570ce8389957d5ab29806ab26ce527420d7e1f3",
+    "test-llm/real.test.mjs": "9abd6556f3dbe7a9b37c868abb560f6afe96c65a445ecb1a90aed02d4f181b93",
     "test-llm/setup.mjs": "4d62e067901dc6556781321a86e7543b005136ba8098a87db1cc86520459bafe",
     "test-llm/resolve-hooks.mjs": "aa857ceecccc973b33e0dcd91040facacbf05b472978b3c55dd377ba9c06ab14"
   },
@@ -45,19 +45,19 @@
     "lead-source-diagnosis": "6c9786ca7ac47f86"
   },
   "tools": {
-    "ads": "2026-07-02T19:39:34.534Z",
-    "brief": "2026-07-02T19:39:34.534Z",
-    "analysis": "2026-07-02T19:39:34.534Z",
-    "campaign-eval": "2026-07-02T19:39:34.534Z",
-    "social": "2026-07-02T19:39:34.534Z",
-    "lead-reply": "2026-07-02T19:39:34.534Z",
-    "repurpose": "2026-07-02T19:39:34.534Z",
-    "local-review-reply": "2026-07-02T19:39:34.534Z",
-    "article-draft": "2026-07-02T19:39:34.534Z",
-    "cohort-diagnosis": "2026-07-02T19:39:34.534Z",
-    "keyword-clusters": "2026-07-02T19:39:34.534Z",
-    "comparison-outline": "2026-07-02T19:39:34.534Z",
-    "lp-variant-ideas": "2026-07-02T19:39:34.534Z",
-    "lead-source-diagnosis": "2026-07-02T19:39:34.534Z"
+    "ads": "2026-07-02T21:07:11.412Z",
+    "brief": "2026-07-02T21:07:11.412Z",
+    "analysis": "2026-07-02T21:07:11.412Z",
+    "campaign-eval": "2026-07-02T21:07:11.412Z",
+    "social": "2026-07-02T21:07:11.412Z",
+    "lead-reply": "2026-07-02T21:07:11.412Z",
+    "repurpose": "2026-07-02T21:07:11.412Z",
+    "local-review-reply": "2026-07-02T21:07:11.412Z",
+    "article-draft": "2026-07-02T21:07:11.412Z",
+    "cohort-diagnosis": "2026-07-02T21:07:11.412Z",
+    "keyword-clusters": "2026-07-02T21:07:11.412Z",
+    "comparison-outline": "2026-07-02T21:07:11.412Z",
+    "lp-variant-ideas": "2026-07-02T21:07:11.412Z",
+    "lead-source-diagnosis": "2026-07-02T21:07:11.412Z"
   }
 }

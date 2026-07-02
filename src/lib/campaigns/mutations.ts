@@ -15,6 +15,7 @@ import {
   pauseCampaign,
   setCampaignBudgetMicros,
 } from "@/lib/google/ads";
+import { computeDailyMicros, planBudgetMove, dedupeSnapshots } from "./budget-math";
 import type { BudgetSnapshot } from "./control-plane-types";
 
 export interface MutationResult {
@@ -111,7 +112,7 @@ export async function applyBudgetShift(
 
   const meta = await getSyncMeta(tenant);
   const days = meta ? CAMPAIGN_PERIOD_DAYS[meta.period] : 30;
-  const dailyMicros = Math.round((move.amount / days) * 1_000_000);
+  const dailyMicros = computeDailyMicros(move.amount, days);
   if (dailyMicros <= 0) return { ok: false, error: "Přesun je příliš malý na úpravu rozpočtu." };
 
   try {
@@ -126,13 +127,15 @@ export async function applyBudgetShift(
     }
 
     // Keep the donor serving with a small floor; move only what we actually took.
-    const MIN_DAILY_MICROS = 10_000_000; // 10 CZK/day
-    const fromNew = Math.max(MIN_DAILY_MICROS, from.amountMicros - dailyMicros);
-    const movedMicros = from.amountMicros - fromNew;
-    if (movedMicros <= 0) {
+    const moved = planBudgetMove({
+      dailyMicros,
+      fromMicros: from.amountMicros,
+      toMicros: to.amountMicros,
+    });
+    if ("error" in moved) {
       return { ok: false, error: "Zdrojová kampaň už má minimální rozpočet." };
     }
-    const toNew = to.amountMicros + movedMicros;
+    const { fromNew, toNew, movedMicros } = moved;
 
     await setCampaignBudgetMicros(token, customerId, from.budgetResourceName, fromNew);
     await setCampaignBudgetMicros(token, customerId, to.budgetResourceName, toNew);
@@ -183,10 +186,7 @@ export async function restoreBudgets(
   const tenant = `u_${userId}_${customerId}`;
 
   // De-dupe by budget, keeping the first (prior-most) snapshot for each.
-  const byBudget = new Map<string, number>();
-  for (const s of snapshots) {
-    if (!byBudget.has(s.budgetResourceName)) byBudget.set(s.budgetResourceName, s.prevMicros);
-  }
+  const byBudget = dedupeSnapshots(snapshots);
   if (byBudget.size === 0) return { ok: false, error: "Chybí snímek původních rozpočtů." };
 
   try {

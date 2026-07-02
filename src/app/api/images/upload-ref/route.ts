@@ -5,9 +5,9 @@ import { leonardoConfigured, uploadInitImage, type InitImageExt } from "@/lib/le
 import {
   RATE_RULES,
   clientIp,
-  rateLimit,
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
+import { durableGuard } from "@/lib/ai/durable-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ const EXT_BY_TYPE: Record<string, InitImageExt> = {
 };
 
 export async function POST(request: Request) {
-  const limited = rateLimit(clientIp(request), [RATE_RULES.aiPerMin()]);
+  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin()]);
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,

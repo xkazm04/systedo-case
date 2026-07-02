@@ -1,6 +1,8 @@
 /** Illustrative lead sources with CRM outcomes for a lead-gen project. The point:
  *  a source can be cheap per lead but expensive per *qualified* lead. Real-
  *  integration seam: CRM webhook (lead → qualified → won + value). */
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
 
 /** The four counts + spend that drive every per-source rate. Used both for the
  *  current period (flattened onto `LeadSource`) and for the optional `prior`
@@ -47,3 +49,25 @@ export const SAMPLE_SOURCES: LeadSource[] = [
   // Unpaid source intentionally left without funnel/velocity/prior fields → graceful degrade.
   { source: "Organic & doporučení", leads: 140, qualified: 110, won: 38, spend: 0, revenue: 1_520_000 },
 ];
+
+/** Per-project view of the lead sources: every count/spend/revenue is scaled by
+ *  one uniform per-project factor, so two projects show different volumes while
+ *  the funnel ordering (leads ≥ qualified ≥ opportunities ≥ won) and every
+ *  derived rate (CPQL, qualification, win) stay exactly as designed. The velocity
+ *  days and labels are project-independent and pass through untouched. */
+export function sourcesForProject(project: Project): LeadSource[] {
+  const v = projectVary(project, "lead-quality");
+  const counts = (c: PeriodCounts): PeriodCounts => ({
+    leads: v.int(c.leads),
+    qualified: v.int(c.qualified),
+    won: v.int(c.won),
+    spend: v.int(c.spend),
+  });
+  return SAMPLE_SOURCES.map((s) => ({
+    ...s,
+    ...counts(s),
+    revenue: v.int(s.revenue),
+    opportunities: s.opportunities === undefined ? undefined : v.int(s.opportunities),
+    prior: s.prior ? counts(s.prior) : undefined,
+  }));
+}

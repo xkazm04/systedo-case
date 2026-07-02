@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { Button, buttonClass } from "@/components/ui";
 import { AI_TIMER_TARGET_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
 
 const T = {
@@ -421,9 +422,10 @@ export function ToolEmpty({
 }
 
 /** Error state with a retry handler. When the hook surfaces the typed AiError
- *  extras, a rate-limit renders as a live countdown that re-enables the retry
+ *  envelope, a rate-limit renders as a live countdown that re-enables the retry
  *  button at zero, and a quota error renders the server-provided upgrade link —
- *  a self-healing wait instead of a dead-end string. */
+ *  a self-healing wait instead of a dead-end string. Buttons ride the shared
+ *  design-system primitive (Button / buttonClass). */
 export function ToolError({
   message,
   onRetry,
@@ -444,19 +446,11 @@ export function ToolError({
       <p className="text-sm font-semibold text-negative">{t("generationFailed")}</p>
       <p className="mt-1 text-sm text-muted">{message}</p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={onRetry}
-          disabled={waiting}
-          className="rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <Button variant="secondary" size="sm" onClick={onRetry} disabled={waiting}>
           {waiting ? t("retryInBtn", { n: retryIn }) : t("retry")}
-        </button>
+        </Button>
         {upgradeUrl && (
-          <Link
-            href={upgradeUrl}
-            className="rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-          >
+          <Link href={upgradeUrl} className={buttonClass("primary", "sm")}>
             {t("upgradeCta")}
           </Link>
         )}

@@ -1,5 +1,7 @@
 /** Illustrative audience funnel, segments and revenue for a content/media project.
  *  Real-integration seam: ESP (newsletter), analytics, ad/sponsorship data. */
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
 
 export interface AudienceFunnel {
   /** monthly visitors */
@@ -116,3 +118,41 @@ export const SAMPLE_GOALS: AudienceGoals = {
   subscriberTarget: 25_000,
   monthlyRevenueTarget: 260_000,
 };
+
+/** The whole audience dataset for one project. */
+export interface AudienceData {
+  funnel: AudienceFunnel;
+  segments: Segment[];
+  revenue: RevenueStream[];
+  subscriberSources: SubscriberSource[];
+  subscriberHistory: MonthlyPoint[];
+  rpmHistory: MonthlyPoint[];
+  goals: AudienceGoals;
+}
+
+/** Per-project audience data: magnitude fields (visitors, subscribers, revenue,
+ *  new subs, targets, history levels) scale by one uniform per-project factor;
+ *  bounded rates (openRate, RPM, retention30, costPerSub) pass through so they
+ *  stay valid. The funnel's subscriber total is recomputed from the scaled
+ *  segments, so the "segments sum to the total" invariant stays exact. */
+export function audienceForProject(project: Project): AudienceData {
+  const v = projectVary(project, "audience");
+  const segments = SAMPLE_SEGMENTS.map((s) => ({ ...s, subscribers: v.int(s.subscribers) }));
+  const subscribers = segments.reduce((sum, s) => sum + s.subscribers, 0);
+  return {
+    funnel: {
+      visitors: v.int(SAMPLE_FUNNEL.visitors),
+      subscribers,
+      activeSubscribers: v.int(SAMPLE_FUNNEL.activeSubscribers),
+    },
+    segments,
+    revenue: SAMPLE_REVENUE.map((r) => ({ ...r, amount: v.int(r.amount) })),
+    subscriberSources: SAMPLE_SUBSCRIBER_SOURCES.map((s) => ({ ...s, newSubs: v.int(s.newSubs) })),
+    subscriberHistory: SAMPLE_SUBSCRIBER_HISTORY.map((p) => ({ ...p, value: v.int(p.value) })),
+    rpmHistory: SAMPLE_RPM_HISTORY,
+    goals: {
+      subscriberTarget: v.int(SAMPLE_GOALS.subscriberTarget),
+      monthlyRevenueTarget: v.int(SAMPLE_GOALS.monthlyRevenueTarget),
+    },
+  };
+}

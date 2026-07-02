@@ -240,7 +240,7 @@ const T = {
     byMonths: "by month",
     week: "week",
     month: "month",
-    currencyUnit: "CZK",
+    currencyUnit: "USD",
   },
 } as const;
 

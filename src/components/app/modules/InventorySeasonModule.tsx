@@ -232,7 +232,7 @@ export default async function InventorySeasonModule({
                     className={`border-b border-line/70 last:border-0 ${r.isPeak ? "bg-brand-50/60" : ""}`}
                   >
                     <td className="px-5 py-3">
-                      <span className={`font-medium ${isCurrent ? "text-navy-900" : "text-navy-800"}`}>
+                      <span className={`font-medium ${isCurrent ? "text-ink" : "text-navy-800"}`}>
                         {r.label}
                         {isCurrent ? t("currentSuffix") : ""}
                       </span>

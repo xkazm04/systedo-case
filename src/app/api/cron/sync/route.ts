@@ -13,20 +13,15 @@ import { listProjects } from "@/lib/projects/store";
 import { getSyncMeta } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 // long-running fan-out across users
 export const maxDuration = 300;
 
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false; // disabled until a secret is configured
-  return request.headers.get("authorization") === `Bearer ${secret}`;
-}
-
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

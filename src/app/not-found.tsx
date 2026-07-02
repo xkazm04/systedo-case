@@ -6,12 +6,13 @@ import { getServerLocale } from "@/lib/i18n/locale";
 import { getT } from "@/lib/i18n/server";
 
 /** Branded, locale-aware 404. Reached via notFound() from the dynamic routes
- *  (/report/[token], /m/[slug], /app/[projectId]) and by any mistyped URL —
- *  exactly the links people share (expired report tokens, retyped microsite
- *  slugs). Instead of the framework's bare English default it guides the
- *  visitor back through the case-study signposts, derived from the nav SSOT so
- *  the recovery links can never drift from the header/footer. Server component
- *  (same getServerLocale + getT pattern as the root layout). */
+ *  (/report/[token], /m/[slug], /app/[projectId] — including its project-
+ *  ownership guards) and by any mistyped URL — exactly the links people share
+ *  (expired report tokens, retyped microsite slugs). Instead of the
+ *  framework's bare English default it guides the visitor back through the
+ *  case-study signposts, derived from the nav SSOT so the recovery links can
+ *  never drift from the header/footer. Server component (same getServerLocale
+ *  + getT pattern as the root layout). */
 
 const T = {
   cs: {
@@ -44,7 +45,7 @@ export default async function NotFound() {
         <p className="mt-4 text-sm leading-relaxed text-muted">{t("body")}</p>
         <Link
           href="/"
-          className="mt-6 inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          className="mt-6 inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
         >
           {t("cta")}
           <ArrowRight width={16} height={16} aria-hidden />
