@@ -3,6 +3,7 @@
  *  LTV:CAC ratio and the payback month. Pure. */
 import type { Cohort, CohortChannel } from "./sample";
 import { isPaidChannel } from "./sample";
+import { csvNum } from "@/lib/export";
 
 export const LTV_HORIZON = 12;
 
@@ -309,9 +310,11 @@ export function csvCell(value: string | number): string {
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-/** Build a CSV of the cohort table (header + one row per cohort) with the raw
- *  numeric values, so a deck/sheet can reformat them. CRLF line endings per
- *  RFC-4180; every cell escaped. Pure — no DOM, safe to unit-test. */
+/** Build a CSV of the cohort table (header + one row per cohort). Integer cells
+ *  stay raw; the ratio cells (M3 retention, LTV:CAC) render via `csvNum` so a
+ *  cs-locale sheet parses them as numbers — csvCell then quotes the embedded
+ *  decimal comma per RFC-4180. CRLF line endings; every cell escaped. Pure — no
+ *  DOM, safe to unit-test. */
 export function buildCohortCsv(rows: CohortMetrics[]): string {
   const header = ["Kohorta", "Registrace", "CAC", "M3 retence", "LTV", "LTV:CAC", "Návratnost (měs.)"];
   const lines = [header.map(csvCell).join(",")];
@@ -321,9 +324,9 @@ export function buildCohortCsv(rows: CohortMetrics[]): string {
         csvCell(r.month),
         csvCell(r.signups),
         csvCell(Math.round(r.cac)),
-        csvCell(r.m3),
+        csvCell(csvNum(r.m3, 2)),
         csvCell(Math.round(r.ltv)),
-        csvCell(Number(r.ltvCac.toFixed(2))),
+        csvCell(csvNum(r.ltvCac, 2)),
         csvCell(r.paybackMonth ?? ""),
       ].join(",")
     );

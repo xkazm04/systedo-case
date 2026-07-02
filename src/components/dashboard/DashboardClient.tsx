@@ -8,7 +8,7 @@ import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
 import { Bolt, Bulb, Download, Target, TrendDown, TrendUp } from "@/components/icons";
-import { downloadText, toCsv } from "@/lib/export";
+import { csvNum, downloadText, toCsv } from "@/lib/export";
 import {
   anomalyImpact,
   bucketize,
@@ -310,7 +310,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   const gaugeMax = Math.max(c.pno, goalPno) * PNO_GAUGE_HEADROOM;
 
   // Export the channel breakdown for the selected period as a CSV deliverable —
-  // money/counts as raw integers, ratios as decimals, the PoP move formatted.
+  // money/counts as raw integers, ratios as locale-decimal cells (csvNum), so
+  // Czech Excel parses "0,85" as a number instead of text/date.
   const exportChannelsCsv = () => {
     const headers = [
       t("csvChannel"),
@@ -326,8 +327,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       Math.round(r.cost),
       Math.round(r.conversions),
       Math.round(r.revenue),
-      r.pno > 0 ? r.pno.toFixed(4) : "",
-      r.roas > 0 ? r.roas.toFixed(2) : "",
+      r.pno > 0 ? csvNum(r.pno, 4, locale) : "",
+      r.roas > 0 ? csvNum(r.roas, 2, locale) : "",
       r.delta ? fmt.fmtSignedPct(r.delta.revenue) : "",
     ]);
     rows.push([
@@ -335,8 +336,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       Math.round(c.cost),
       Math.round(c.conversions),
       Math.round(c.revenue),
-      c.pno.toFixed(4),
-      c.roas.toFixed(2),
+      csvNum(c.pno, 4, locale),
+      csvNum(c.roas, 2, locale),
       fmt.fmtSignedPct(result.delta.revenue),
     ]);
     downloadText(`systedo-kanaly-${period.key}.csv`, toCsv(headers, rows));

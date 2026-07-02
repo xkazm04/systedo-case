@@ -31,7 +31,7 @@ import {
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
 import type { DailyPoint } from "@/lib/campaigns/types";
-import { toCsv, downloadText } from "@/lib/export";
+import { csvNum, toCsv, downloadText } from "@/lib/export";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import Sparkline from "@/components/charts/Sparkline";
@@ -503,13 +503,14 @@ export default function CampaignTable({
       Math.round(c.cost),
       Math.round(c.conversions),
       Math.round(c.conversionValue),
-      c.roas > 0 ? Number(c.roas.toFixed(2)) : "",
-      c.pno > 0 ? Number((c.pno * 100).toFixed(1)) : "",
+      c.roas > 0 ? csvNum(c.roas, 2, locale) : "",
+      c.pno > 0 ? csvNum(c.pno * 100, 1, locale) : "",
       // Funnel ratios — the agency deliverable carries the full causal layer;
-      // zero-denominator cells stay empty, matching the on-screen "—".
-      c.impressions > 0 ? Number((c.ctr * 100).toFixed(2)) : "",
-      c.clicks > 0 ? Number(c.cpc.toFixed(2)) : "",
-      c.clicks > 0 ? Number((c.convRate * 100).toFixed(2)) : "",
+      // zero-denominator cells stay empty, matching the on-screen "—". Ratio
+      // cells go through csvNum so Czech Excel parses them as numbers.
+      c.impressions > 0 ? csvNum(c.ctr * 100, 2, locale) : "",
+      c.clicks > 0 ? csvNum(c.cpc, 2, locale) : "",
+      c.clicks > 0 ? csvNum(c.convRate * 100, 2, locale) : "",
       severityLabel(tr.severity, locale),
       tr.primary ? triageReasonLabel(tr.primary, locale) : "",
       reports[c.id]?.result.score ?? "",

@@ -59,3 +59,12 @@ test("buildCohortCsv emits a header + one row per cohort with escaped fields", (
   // the comma+quote month is wrapped and its quotes doubled
   assert.ok(lines[1].startsWith('"Q1, ""peak""",100,1000,'));
 });
+
+test("buildCohortCsv ratio cells are cs-decimal (csvNum) and quoted for the comma delimiter", () => {
+  const row = withMetrics(base); // m3 = 0.4 → "0,4"
+  const csv = buildCohortCsv([row]);
+  const line = csv.split("\r\n")[1];
+  // decimal comma inside a comma-delimited document must arrive quoted
+  assert.ok(line.includes('"0,4"'), `expected a quoted cs-decimal M3 cell in: ${line}`);
+  assert.ok(!line.includes("0.4"), `no period-decimal ratio cells should remain: ${line}`);
+});

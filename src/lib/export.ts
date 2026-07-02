@@ -1,6 +1,8 @@
-/** Dependency-free CSV + client-download helpers shared by the export buttons
- *  (dashboard channel table, AI tool outputs). `toCsv` is pure; `downloadText`
+/** CSV + client-download helpers shared by the export buttons (dashboard
+ *  channel table, AI tool outputs). `toCsv`/`csvNum` are pure; `downloadText`
  *  is browser-only and a no-op on the server. */
+
+import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 
 /** Quote a CSV field when it contains the delimiter, a quote, or a newline. */
 function csvField(v: string | number): string {
@@ -12,6 +14,20 @@ function csvField(v: string | number): string {
  *  delimiter — the separator Czech Excel (cs-CZ) expects — and CRLF line ends. */
 export function toCsv(headers: string[], rows: (string | number)[][]): string {
   return [headers, ...rows].map((r) => r.map(csvField).join(";")).join("\r\n");
+}
+
+/** A numeric cell in the locale the export targets: "0,85" for cs (the decimal
+ *  comma Czech Excel parses as a number), "0.85" for en. Grouping is disabled so
+ *  a thousands space can never split the cell, and a non-finite value degrades
+ *  to the empty cell the exports already use for missing ratios. Pair with
+ *  `toCsv` (semicolon delimiter → a decimal comma needs no quoting) or quote via
+ *  the consumer's own field escaper for comma-delimited documents. */
+export function csvNum(n: number, digits = 2, locale: SupportedLocale = DEFAULT_LOCALE): string {
+  if (!Number.isFinite(n)) return "";
+  return new Intl.NumberFormat(LOCALES[locale].intlLocale, {
+    maximumFractionDigits: digits,
+    useGrouping: false,
+  }).format(n);
 }
 
 /** UTF-8 byte-order mark, so Excel renders Czech diacritics in the export. */
