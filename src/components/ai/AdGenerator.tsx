@@ -365,7 +365,17 @@ const isAdForm = (v: unknown): v is AdRequest => {
   );
 };
 
-export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () => void } = {}) {
+export default function AdGenerator({
+  seed,
+  onVariantSaved,
+}: {
+  /** cross-tool handoff (brief → ads): prefills the form via the initial value.
+   *  The parent re-mounts this component with a new `key` per handoff, so a
+   *  fresh seed applies through the lazy init — same pattern as the keyword →
+   *  brief bridge in ContentBriefGenerator. */
+  seed?: Partial<AdRequest> | null;
+  onVariantSaved?: () => void;
+} = {}) {
   const t = useT(T);
   const { locale } = useLocale();
   const { status: authStatus } = useSession();
@@ -373,10 +383,14 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
   const pid = project?.id;
   // The campaign brief is the panel's most expensive input (5 fields) — persist
   // it like the result already is, so a stray reload doesn't cost the typing.
-  // Keyed per project so drafts don't leak between workspaces.
-  const [form, setForm] = usePersistedForm<AdRequest>(pid ? `ads.${pid}` : "ads", EMPTY, {
-    validate: isAdForm,
-  });
+  // Keyed per project so drafts don't leak between workspaces. A live seed WINS
+  // over a stored draft (skipRestore) and immediately writes through as the new
+  // draft — mirroring the brief tool's seed-vs-draft precedence.
+  const [form, setForm] = usePersistedForm<AdRequest>(
+    pid ? `ads.${pid}` : "ads",
+    seed ? { ...EMPTY, ...seed } : EMPTY,
+    { skipRestore: Boolean(seed), validate: isAdForm }
+  );
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
     useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Search } from "@/components/icons";
-import type { AiMode } from "@/lib/ai-types";
+import type { AdRequest, AiMode } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
 import AdGenerator from "./AdGenerator";
 import AdExperiments from "./AdExperiments";
@@ -67,6 +67,11 @@ export default function AiAssistant() {
   // brief tool re-apply the seed even if the same selection is sent twice.
   const [briefSeed, setBriefSeed] = useState<BriefSeed | null>(null);
   const [briefNonce, setBriefNonce] = useState(0);
+  // Brief → ads handoff: the finished brief seeds the PPC ad generator (same
+  // seed + nonce + tab-switch pattern), completing the research → content →
+  // performance loop without retyping the topic/audience/benefits.
+  const [adSeed, setAdSeed] = useState<Partial<AdRequest> | null>(null);
+  const [adNonce, setAdNonce] = useState(0);
   // Bumped when a keyword list is saved, so the saved-lists panel reloads.
   const [savedNonce, setSavedNonce] = useState(0);
   // Bumped when an A/B variant is saved, so the experiments panel reloads.
@@ -76,6 +81,12 @@ export default function AiAssistant() {
     setBriefSeed(seed);
     setBriefNonce((n) => n + 1);
     setTab("brief");
+  };
+
+  const handleCreateAds = (seed: Partial<AdRequest>) => {
+    setAdSeed(seed);
+    setAdNonce((n) => n + 1);
+    setTab("ads");
   };
 
   return (
@@ -126,7 +137,12 @@ export default function AiAssistant() {
           active one re-runs its fade because the class flips from hidden. */}
       <div className="mt-6">
         <div data-testid="tool-ads" className={tab === "ads" ? "animate-fade-up" : "hidden"}>
-          <AdGenerator onVariantSaved={() => setExperimentNonce((n) => n + 1)} />
+          {/* re-mount on each handoff so a new seed prefills via lazy init */}
+          <AdGenerator
+            key={`ads-${adNonce}`}
+            seed={adSeed}
+            onVariantSaved={() => setExperimentNonce((n) => n + 1)}
+          />
           <AdExperiments refreshKey={experimentNonce} />
         </div>
         <div data-testid="tool-keywords" className={tab === "keywords" ? "animate-fade-up" : "hidden"}>
@@ -138,7 +154,7 @@ export default function AiAssistant() {
         </div>
         <div data-testid="tool-brief" className={tab === "brief" ? "animate-fade-up" : "hidden"}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}
-          <ContentBriefGenerator key={`brief-${briefNonce}`} seed={briefSeed} />
+          <ContentBriefGenerator key={`brief-${briefNonce}`} seed={briefSeed} onCreateAds={handleCreateAds} />
         </div>
         <div data-testid="tool-analysis" className={tab === "analysis" ? "animate-fade-up" : "hidden"}>
           <PerformanceAnalyst />

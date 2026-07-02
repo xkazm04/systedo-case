@@ -9,11 +9,13 @@ import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPES,
   SEO_LIMITS,
+  type AdRequest,
   type BriefKeyword,
   type BriefRequest,
   type BriefResult,
   type ContentType,
 } from "@/lib/ai-types";
+import { briefToAdSeed } from "@/lib/ai/handoff";
 import type { BriefSeed } from "./KeywordResearch";
 import ArticleDraftPanel from "./ArticleDraftPanel";
 import {
@@ -57,6 +59,8 @@ const T = {
     emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Vytvořit brief.",
     downloadBriefTitle: "Stáhnout brief jako Markdown",
     downloadBrief: "Stáhnout .md",
+    createAdsTitle: "Předat téma, publikum a benefity z briefu do generátoru PPC inzerátů",
+    createAds: "Vytvořit inzeráty z briefu",
     serpPreviewLabel: "Náhled ve vyhledávání",
     serpDeviceDesktop: "Desktop",
     serpDeviceMobile: "Mobile",
@@ -107,6 +111,8 @@ const T = {
     emptyHint: "Tip: try “Fill example” and click Create brief.",
     downloadBriefTitle: "Download brief as Markdown",
     downloadBrief: "Download .md",
+    createAdsTitle: "Hand the brief's topic, audience and benefits to the PPC ad generator",
+    createAds: "Create ads from brief",
     serpPreviewLabel: "Search preview",
     serpDeviceDesktop: "Desktop",
     serpDeviceMobile: "Mobile",
@@ -309,7 +315,16 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
   );
 }
 
-export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | null } = {}) {
+export default function ContentBriefGenerator({
+  seed,
+  onCreateAds,
+}: {
+  seed?: BriefSeed | null;
+  /** brief → ads handoff: called with a prefilled ad request mapped from the
+   *  finished brief; the parent switches to the ads tab and re-mounts the
+   *  generator with the seed (mirrors the keywords → brief bridge). */
+  onCreateAds?: (seed: Partial<AdRequest>) => void;
+} = {}) {
   const t = useT(T);
   const { locale } = useLocale();
   // Seed (from the keyword tool) is applied via the initial value; the parent
@@ -506,7 +521,20 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
               onRestore={restore}
             />
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {/* brief → ads: complete the research → content → performance loop —
+                  one input yields brief + article + ad set without retyping */}
+              {onCreateAds && (
+                <button
+                  type="button"
+                  onClick={() => onCreateAds(briefToAdSeed(form.topic, form.audience, r))}
+                  title={t("createAdsTitle")}
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+                >
+                  <Bolt width={14} height={14} />
+                  {t("createAds")}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={exportBriefMarkdown}
