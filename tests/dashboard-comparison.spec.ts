@@ -28,6 +28,22 @@ test.describe("/dashboard — previous-period overlay", () => {
     await expect(chart.locator('path[stroke-dasharray="1 5"]')).toHaveCount(1);
   });
 
+  test("draws the PNO goal reference line only when the PNO metric is selected", async ({ page }) => {
+    // Default metric (revenue) has no target — no reference line.
+    await expect(page.getByTestId("trend-goal-line")).toHaveCount(0);
+
+    // Switch the trend chart to PNO via the metric selector tablist.
+    await page
+      .getByRole("tablist", { name: "Metrika grafu" })
+      .getByRole("tab", { name: "PNO", exact: true })
+      .click();
+
+    const goalLine = page.getByTestId("trend-goal-line");
+    await expect(goalLine).toBeVisible();
+    await expect(goalLine.locator("line")).toHaveCount(1);
+    await expect(goalLine.locator("text")).toContainText("Cíl");
+  });
+
   test("tooltip shows the prior value alongside the current one on hover", async ({ page }) => {
     const chart = chartOf(page);
     await chart.scrollIntoViewIfNeeded();

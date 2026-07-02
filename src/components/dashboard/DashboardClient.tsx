@@ -426,6 +426,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             metric={trendMetric}
             granularity={period.granularity}
             anomalies={anomalies}
+            goalValue={trendMetric === "pno" ? goalPno : undefined}
           />
         </div>
       </div>

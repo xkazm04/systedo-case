@@ -23,6 +23,7 @@ const T = {
     noChange: "beze změny",
     empty: "Pro zvolené období nejsou data.",
     partialBucket: "neúplný měsíc",
+    goalLine: "Cíl {value}",
   },
   en: {
     ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
@@ -39,6 +40,7 @@ const T = {
     noChange: "no change",
     empty: "No data for the selected period.",
     partialBucket: "partial month",
+    goalLine: "Target {value}",
   },
 } as const;
 
@@ -64,6 +66,7 @@ export default function TrendChart({
   metric,
   granularity,
   anomalies,
+  goalValue,
 }: {
   data: Bucket[];
   /** equal-length comparison window, overlaid index-aligned as a faint dotted line */
@@ -76,6 +79,10 @@ export default function TrendChart({
   /** flagged days for the whole series; only those matching the current metric
    *  and a visible bucket are drawn as markers */
   anomalies?: Anomaly[];
+  /** target value for the plotted metric — drawn as a dashed horizontal
+   *  reference line (e.g. the PNO goal), so the viewer sees WHEN the series
+   *  crossed it, not just that breach markers exist */
+  goalValue?: number;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -126,8 +133,11 @@ export default function TrendChart({
   const plotW = Math.max(1, w - PAD.l - PAD.r);
   const plotH = H - PAD.t - PAD.b;
 
-  // Scale the y-axis to both series so the dotted overlay never clips off-chart.
-  const domainValues = hasCompare ? values.concat(cmpValues) : values;
+  // Scale the y-axis to both series (and the goal line, when present) so
+  // neither the dotted overlay nor the reference line ever clips off-chart.
+  const domainValues = (hasCompare ? values.concat(cmpValues) : values).concat(
+    goalValue !== undefined ? [goalValue] : []
+  );
   const dataMax = Math.max(...domainValues, 0);
   const dataMin = Math.min(...domainValues);
   // Ratio/efficiency metrics (PNO, ROAS, AOV, CR) don't naturally start at zero,
@@ -280,6 +290,33 @@ export default function TrendChart({
             </text>
           </g>
         ))}
+
+        {/* goal reference line — a dashed horizontal target (e.g. the PNO goal)
+            that turns the trend into a pass/fail story over time and makes the
+            goal-breach diamonds legible; drawn under both series */}
+        {goalValue !== undefined && (
+          <g data-testid="trend-goal-line">
+            <line
+              x1={PAD.l}
+              x2={w - PAD.r}
+              y1={y(goalValue)}
+              y2={y(goalValue)}
+              stroke="var(--color-coral-500)"
+              strokeWidth={1.3}
+              strokeDasharray="6 4"
+              opacity={0.75}
+            />
+            <text
+              x={w - PAD.r}
+              y={y(goalValue) - 5}
+              textAnchor="end"
+              className="fill-coral-600"
+              style={{ fontSize: 10, fontWeight: 600 }}
+            >
+              {t("goalLine", { value: meta.formatCompact(goalValue) })}
+            </text>
+          </g>
+        )}
 
         {/* previous-period overlay — faint dotted line, drawn under the current
             series so the live line always stays on top */}
