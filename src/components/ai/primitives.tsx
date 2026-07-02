@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
+import Link from "next/link";
 import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -44,6 +45,8 @@ const T = {
     refinePlaceholder: "Např. „kratší“, „více na benefity“, „vynech ceny“…",
     refineSubmit: "Přegenerovat",
     refineHint: "Model dostane stejné zadání plus vaši poznámku.",
+    retryInBtn: "Zkusit znovu ({n} s)",
+    upgradeCta: "Přejít na ceník",
   },
   en: {
     copyDefault: "Copy",
@@ -81,6 +84,8 @@ const T = {
     refinePlaceholder: "E.g. “shorter”, “focus on benefits”, “drop the prices”…",
     refineSubmit: "Regenerate",
     refineHint: "The model gets the same input plus your note.",
+    retryInBtn: "Try again ({n} s)",
+    upgradeCta: "See pricing",
   },
 } as const;
 
@@ -415,20 +420,47 @@ export function ToolEmpty({
   );
 }
 
-/** Error state with a retry handler. */
-export function ToolError({ message, onRetry }: { message: string; onRetry: () => void }) {
+/** Error state with a retry handler. When the hook surfaces the typed AiError
+ *  extras, a rate-limit renders as a live countdown that re-enables the retry
+ *  button at zero, and a quota error renders the server-provided upgrade link —
+ *  a self-healing wait instead of a dead-end string. */
+export function ToolError({
+  message,
+  onRetry,
+  retryIn,
+  upgradeUrl,
+}: {
+  message: string;
+  onRetry: () => void;
+  /** seconds until retry is allowed (rate limit) — counts down to 0 in the hook */
+  retryIn?: number | null;
+  /** upgrade path for a spent quota (e.g. /cena) */
+  upgradeUrl?: string | null;
+}) {
   const t = useT(T);
+  const waiting = typeof retryIn === "number" && retryIn > 0;
   return (
     <div className="card animate-fade-in border-negative/30 p-6">
       <p className="text-sm font-semibold text-negative">{t("generationFailed")}</p>
       <p className="mt-1 text-sm text-muted">{message}</p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300"
-      >
-        {t("retry")}
-      </button>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={waiting}
+          className="rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {waiting ? t("retryInBtn", { n: retryIn }) : t("retry")}
+        </button>
+        {upgradeUrl && (
+          <Link
+            href={upgradeUrl}
+            className="rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          >
+            {t("upgradeCta")}
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

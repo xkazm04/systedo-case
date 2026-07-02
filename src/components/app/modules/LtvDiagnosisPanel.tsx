@@ -91,7 +91,7 @@ export default function LtvDiagnosisPanel({
   eshop?: boolean;
 }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine } =
     useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
   const r = data?.result;
 
@@ -135,7 +135,7 @@ export default function LtvDiagnosisPanel({
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
           ))}
 
         {status === "done" && r && data && (

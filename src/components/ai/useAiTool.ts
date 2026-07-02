@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { AiResponse } from "@/lib/ai-types";
+import type { AiError, AiErrorCode, AiResponse } from "@/lib/ai-types";
 import {
   parseStoredHistory,
   pushHistory,
@@ -57,6 +57,13 @@ export function useAiTool<T>(mode: string) {
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
+  // The typed half of the server's AiError envelope. The server has shipped
+  // code/retryAfter/upgradeUrl for a while; consuming it turns a dead-end 429
+  // string into a live countdown ("zkuste to za N s") and a quota-upgrade link.
+  const [errorCode, setErrorCode] = useState<AiErrorCode | null>(null);
+  const [upgradeUrl, setUpgradeUrl] = useState<string | null>(null);
+  /** Seconds until a rate-limited request may be retried; counts down to 0. */
+  const [retryIn, setRetryIn] = useState<number | null>(null);
   // Bounded newest-first list of past generations for this tool (persisted), plus
   // which entry the panel currently shows (0 = the newest).
   const [history, setHistory] = useState<AiHistoryEntry<T>[]>([]);
@@ -107,6 +114,14 @@ export function useAiTool<T>(mode: string) {
     }
   }, [mode]);
 
+  // Live countdown for a rate-limited request: tick retryIn down once per second
+  // until it hits 0, at which point the error UI re-enables its retry action.
+  useEffect(() => {
+    if (retryIn === null || retryIn <= 0) return;
+    const id = setTimeout(() => setRetryIn((v) => (v === null ? null : Math.max(0, v - 1))), 1000);
+    return () => clearTimeout(id);
+  }, [retryIn]);
+
   async function run(payload: Record<string, unknown>) {
     // Abort any in-flight request and claim a new run id, so an earlier (slower)
     // run can't resolve later and overwrite this one's state.
@@ -122,6 +137,9 @@ export function useAiTool<T>(mode: string) {
     setStatus("loading");
     setError(null);
     setTimedOut(false);
+    setErrorCode(null);
+    setUpgradeUrl(null);
+    setRetryIn(null);
 
     const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
@@ -135,7 +153,21 @@ export function useAiTool<T>(mode: string) {
       const json = await res.json();
       if (isStale()) return; // a newer run() (or reset) superseded this one
       if (!res.ok) {
-        setError(json?.error ?? t("errorGeneric"));
+        // Consume the typed AiError envelope instead of throwing its structure
+        // away: `code` lets the UI branch, `retryAfter` (body, else the
+        // Retry-After header) drives a countdown, `upgradeUrl` renders a CTA.
+        const err = (json ?? {}) as Partial<AiError>;
+        setError(typeof err.error === "string" && err.error ? err.error : t("errorGeneric"));
+        setErrorCode(typeof err.code === "string" ? err.code : null);
+        setUpgradeUrl(typeof err.upgradeUrl === "string" ? err.upgradeUrl : null);
+        const headerRetry = Number(res.headers.get("Retry-After"));
+        const retryAfter =
+          typeof err.retryAfter === "number" && err.retryAfter > 0
+            ? err.retryAfter
+            : Number.isFinite(headerRetry) && headerRetry > 0
+              ? headerRetry
+              : null;
+        setRetryIn(retryAfter !== null ? Math.min(Math.ceil(retryAfter), 3600) : null);
         setStatus("error");
         return;
       }
@@ -204,6 +236,9 @@ export function useAiTool<T>(mode: string) {
     setStatus("idle");
     setError(null);
     setTimedOut(false);
+    setErrorCode(null);
+    setUpgradeUrl(null);
+    setRetryIn(null);
     setData(null);
     lastPayloadRef.current = null;
     setCanRefine(false);
@@ -213,6 +248,9 @@ export function useAiTool<T>(mode: string) {
     status,
     data,
     error,
+    errorCode,
+    retryIn,
+    upgradeUrl,
     timedOut,
     run,
     reset,

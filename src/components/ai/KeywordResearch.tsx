@@ -425,7 +425,7 @@ export default function KeywordResearch({
               (clusters.timedOut ? (
                 <TimeoutState onRetry={runClusters} />
               ) : (
-                <ToolError message={clusters.error ?? ""} onRetry={runClusters} />
+                <ToolError message={clusters.error ?? ""} onRetry={runClusters} retryIn={clusters.retryIn} upgradeUrl={clusters.upgradeUrl} />
               ))}
             {clusters.status === "done" && clusters.data && (
               <div className="animate-fade-up space-y-3 rounded-card border border-line bg-canvas/60 p-4">

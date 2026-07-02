@@ -70,7 +70,7 @@ export default function PerformanceAnalyst() {
   const t = useT(T);
   const { locale } = useLocale();
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
-  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
     useAiTool<AnalysisResult>("analysis");
 
   const r = data?.result;
@@ -190,7 +190,7 @@ export default function PerformanceAnalyst() {
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
           ))}
 
         {status === "done" && r && data && (

@@ -300,7 +300,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
   const project = useOptionalProject();
   const pid = project?.id;
   const [form, setForm] = useState<AdRequest>(EMPTY);
-  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
     useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");
   const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
@@ -491,7 +491,7 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
           ))}
 
         {status === "done" && r && data && (

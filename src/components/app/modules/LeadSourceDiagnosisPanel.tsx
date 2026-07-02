@@ -120,7 +120,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
-  const { status, data, error, timedOut, run, reset, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine } =
     useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
   const [selectedSource, setSelectedSource] = useState(seeds[0]?.source ?? "");
   const selected = seeds.find((s) => s.source === selectedSource) ?? seeds[0];
@@ -183,7 +183,7 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
           ))}
 
         {status === "done" && r && data && (

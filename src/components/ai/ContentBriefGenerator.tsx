@@ -305,7 +305,7 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
     seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
-  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
     useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
@@ -474,7 +474,7 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
           (timedOut ? (
             <TimeoutState onRetry={reset} />
           ) : (
-            <ToolError message={error ?? ""} onRetry={reset} />
+            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
           ))}
 
         {status === "done" && r && data && (
