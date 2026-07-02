@@ -117,7 +117,8 @@ function DraftFaq({ faq, heading }: { faq: FaqItem[]; heading: string }) {
  *  exportable as Markdown or article JSON. */
 export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const t = useT(T);
-  const { status, data, error, timedOut, run, reset } = useAiTool<ArticleDraftResult>("article-draft");
+  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+    useAiTool<ArticleDraftResult>("article-draft");
   const [preview, setPreview] = useState<"preview" | "json">("preview");
 
   function onGenerate() {
@@ -194,7 +195,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
 
       {status === "done" && draft && data && (
         <div className="animate-fade-up space-y-5">
-          <ResultMeta meta={data.meta} />
+          <ResultMeta meta={data.meta} history={history} activeIndex={activeIndex} onRestore={restore} />
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-pill border border-line p-0.5 text-xs font-medium">

@@ -300,7 +300,8 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
   const project = useOptionalProject();
   const pid = project?.id;
   const [form, setForm] = useState<AdRequest>(EMPTY);
-  const { status, data, error, timedOut, run, reset } = useAiTool<AdResult>("ads");
+  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+    useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");
   const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
   const [abOpen, setAbOpen] = useState(false);
@@ -495,7 +496,13 @@ export default function AdGenerator({ onVariantSaved }: { onVariantSaved?: () =>
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+            <ResultMeta
+              meta={data.meta}
+              copyAllText={copyAllText}
+              history={history}
+              activeIndex={activeIndex}
+              onRestore={restore}
+            />
 
             <div className="flex flex-wrap items-center justify-end gap-2">
               {authStatus === "authenticated" && (

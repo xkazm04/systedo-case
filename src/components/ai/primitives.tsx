@@ -36,6 +36,10 @@ const T = {
     resultAppearsLimit: " Limit je {n} sekund.",
     timeoutTitle: "Vypršel časový limit",
     timeoutBody: "Model neodpověděl do {n} sekund. Někdy stačí druhý pokus — zkuste to prosím znovu.",
+    historyLabel: "Předchozí generace:",
+    historyCurrent: "aktuální",
+    historyRestoreTitle: "Zobrazit tuto generaci ({when})",
+    historyDemoTag: "demo",
   },
   en: {
     copyDefault: "Copy",
@@ -65,6 +69,10 @@ const T = {
     resultAppearsLimit: " Limit is {n} seconds.",
     timeoutTitle: "Request timed out",
     timeoutBody: "The model did not respond within {n} seconds. A second attempt often works — please try again.",
+    historyLabel: "Previous generations:",
+    historyCurrent: "current",
+    historyRestoreTitle: "Show this generation ({when})",
+    historyDemoTag: "demo",
   },
 } as const;
 
@@ -169,23 +177,74 @@ export function Group({
   );
 }
 
+/** A past generation as the history strip needs it — structurally satisfied by
+ *  useAiTool's AiHistoryEntry, so panels pass `history={history}` straight through. */
+export interface ResultHistoryItem {
+  savedAt: number;
+  payload: { meta: AiMeta };
+}
+
 /** Result header: model badge, demo / live status, an optional relative
- *  "generated X ago" stamp for stored reports, and an optional "copy all". */
+ *  "generated X ago" stamp for stored reports, and an optional "copy all".
+ *  When a panel passes its generation history (2+ entries), a compact
+ *  "Předchozí generace" strip renders below — timestamped chips that restore a
+ *  past result without a new model call. */
 export function ResultMeta({
   meta,
   copyAllText,
   createdAt,
+  extra,
+  history,
+  activeIndex,
+  onRestore,
 }: {
   meta: AiMeta;
   copyAllText?: string;
   createdAt?: string;
+  /** extra pill(s) rendered alongside the model badge (e.g. the analysis period) */
+  extra?: ReactNode;
+  history?: ResultHistoryItem[];
+  activeIndex?: number;
+  onRestore?: (index: number) => void;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
-  return (
+  const strip =
+    history && onRestore && history.length > 1 ? (
+      <div className="flex flex-wrap items-center gap-1.5" data-testid="ai-history">
+        <span className="text-xs text-muted">{t("historyLabel")}</span>
+        {history.map((h, i) => {
+          const active = i === (activeIndex ?? 0);
+          const when = h.savedAt ? fmt.fmtDateTime(new Date(h.savedAt).toISOString()) : "";
+          const label = h.savedAt
+            ? fmt.fmtRelative(new Date(h.savedAt).toISOString())
+            : h.payload.meta.model;
+          return (
+            <button
+              key={`${h.savedAt}-${i}`}
+              type="button"
+              onClick={() => onRestore(i)}
+              disabled={active}
+              title={t("historyRestoreTitle", { when: when || h.payload.meta.model })}
+              className={`rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors ${
+                active
+                  ? "border-brand-300 bg-brand-50 text-brand-800"
+                  : "border-line text-muted hover:border-brand-300 hover:text-brand-accent"
+              }`}
+            >
+              {label}
+              {h.payload.meta.demo ? ` · ${t("historyDemoTag")}` : ""}
+              {active ? ` · ${t("historyCurrent")}` : ""}
+            </button>
+          );
+        })}
+      </div>
+    ) : null;
+  const metaRow = (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="pill bg-navy-50 text-navy-700">{meta.model}</span>
+        {extra}
         {meta.demo ? (
           <span className="pill bg-coral-soft text-coral-600">
             <Info width={13} height={13} />
@@ -240,6 +299,13 @@ export function ResultMeta({
         )}
       </div>
       {copyAllText && <CopyButton text={copyAllText} label={t("copyAll")} />}
+    </div>
+  );
+  if (!strip) return metaRow;
+  return (
+    <div className="space-y-2.5">
+      {metaRow}
+      {strip}
     </div>
   );
 }

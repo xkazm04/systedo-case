@@ -70,7 +70,8 @@ export default function PerformanceAnalyst() {
   const t = useT(T);
   const { locale } = useLocale();
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
-  const { status, data, error, timedOut, run, reset } = useAiTool<AnalysisResult>("analysis");
+  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+    useAiTool<AnalysisResult>("analysis");
 
   const r = data?.result;
   const copyAllText = r
@@ -194,7 +195,13 @@ export default function PerformanceAnalyst() {
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+            <ResultMeta
+              meta={data.meta}
+              copyAllText={copyAllText}
+              history={history}
+              activeIndex={activeIndex}
+              onRestore={restore}
+            />
 
             {/* headline + summary */}
             <div className="rounded-card border border-navy-200 bg-navy-50 p-5">

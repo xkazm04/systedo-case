@@ -2,6 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AiResponse } from "@/lib/ai-types";
+import {
+  parseStoredHistory,
+  pushHistory,
+  serializeHistory,
+  type AiHistoryEntry,
+} from "@/lib/ai/history";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 import { useT } from "@/lib/i18n/client";
 
@@ -20,17 +26,11 @@ const T = {
 
 type Status = "idle" | "loading" | "done" | "error";
 
-/** localStorage key for a tool's last result, so it survives a refresh / tab switch. */
+/** localStorage key for a tool's generation history, so results survive a
+ *  refresh / tab switch. The slot holds a bounded, newest-first list (see
+ *  lib/ai/history) — a re-run appends instead of destroying the previous
+ *  generation the user paid quota for. */
 const resultKey = (mode: string) => `systedo.ai.result.${mode}`;
-
-/** Bump when the persisted AiResponse shape changes, so a stale entry from a
- *  previous deploy is dropped on restore instead of rendered against missing fields. */
-const RESULT_SCHEMA_VERSION = 1;
-interface StoredResult<T> {
-  v: number;
-  savedAt: number;
-  payload: AiResponse<T>;
-}
 
 /** Hard ceiling: if the model hasn't answered in time, abort and show a timeout.
  *  Environment-aware, because the two providers have very different latency:
@@ -57,40 +57,48 @@ export function useAiTool<T>(mode: string) {
   const [data, setData] = useState<AiResponse<T> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [timedOut, setTimedOut] = useState(false);
+  // Bounded newest-first list of past generations for this tool (persisted), plus
+  // which entry the panel currently shows (0 = the newest).
+  const [history, setHistory] = useState<AiHistoryEntry<T>[]>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   // The live request's controller + a monotonic run id, so reset()/a new run() can
   // abort an in-flight call and a late response from a superseded run can't clobber
   // newer state. Refs, not state — mutating them must not trigger a re-render.
   const controllerRef = useRef<AbortController | null>(null);
   const runIdRef = useRef(0);
+  // Mirror of `history` for event handlers/async closures (never read in render),
+  // so run()/restore() see the current list without stale-closure races.
+  const historyRef = useRef<AiHistoryEntry<T>[]>([]);
 
-  // Restore the last result for this tool on mount, so a refresh or a switch to
-  // another tab and back doesn't throw away a generation the user paid for.
+  const commitHistory = (next: AiHistoryEntry<T>[]) => {
+    historyRef.current = next;
+    setHistory(next);
+  };
+
+  // Restore this tool's generation history on mount, so a refresh or a switch to
+  // another tab and back doesn't throw away generations the user paid for.
   // Hydrating from localStorage after mount is a valid external-store sync; doing
   // it in an effect (rather than a lazy useState initializer) is what keeps the
   // server render and the first client render identical, so the set-state-in-effect
-  // rule is suppressed deliberately for the two restore calls below.
+  // rule is suppressed deliberately for the restore calls below.
   useEffect(() => {
-    let restored: AiResponse<T> | null = null;
+    let entries: AiHistoryEntry<T>[] = [];
     try {
       const raw = window.localStorage.getItem(resultKey(mode));
-      if (raw) {
-        const stored = JSON.parse(raw) as Partial<StoredResult<T>>;
-        // Only restore a result whose schema version matches — after a deploy that
-        // changed AiResponse, a blind cast would render against missing fields.
-        if (stored && stored.v === RESULT_SCHEMA_VERSION && stored.payload) {
-          restored = stored.payload;
-        } else {
-          window.localStorage.removeItem(resultKey(mode));
-        }
-      }
+      entries = parseStoredHistory<T>(raw);
+      // A slot that exists but yields nothing is stale (schema bump) or corrupt.
+      if (raw && entries.length === 0) window.localStorage.removeItem(resultKey(mode));
     } catch {
       /* corrupt or unavailable storage — start fresh */
     }
-    if (restored) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setData(restored);
+    historyRef.current = entries;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHistory(entries);
+    if (entries.length > 0) {
+      setData(entries[0].payload);
       setStatus("done");
+      setActiveIndex(0);
     }
   }, [mode]);
 
@@ -125,13 +133,14 @@ export function useAiTool<T>(mode: string) {
       }
       setData(json as AiResponse<T>);
       setStatus("done");
+      setActiveIndex(0);
+      const next = pushHistory(historyRef.current, {
+        savedAt: Date.now(),
+        payload: json as AiResponse<T>,
+      });
+      commitHistory(next);
       try {
-        const stored: StoredResult<T> = {
-          v: RESULT_SCHEMA_VERSION,
-          savedAt: Date.now(),
-          payload: json as AiResponse<T>,
-        };
-        window.localStorage.setItem(resultKey(mode), JSON.stringify(stored));
+        window.localStorage.setItem(resultKey(mode), serializeHistory(next));
       } catch {
         /* over quota / unavailable — keep the in-memory result, just don't persist */
       }
@@ -149,21 +158,33 @@ export function useAiTool<T>(mode: string) {
     }
   }
 
+  /** Show a previous generation from the history strip. Pure state switch — no
+   *  request, no quota. Aborts an in-flight run so a late response can't clobber
+   *  the restored entry. */
+  function restore(index: number) {
+    const entry = historyRef.current[index];
+    if (!entry) return;
+    controllerRef.current?.abort();
+    runIdRef.current += 1;
+    setData(entry.payload);
+    setStatus("done");
+    setActiveIndex(index);
+    setError(null);
+    setTimedOut(false);
+  }
+
   function reset() {
     // Abort an in-flight request and bump the run id so its late resolution is
-    // ignored (and doesn't surface as a spurious timeout).
+    // ignored (and doesn't surface as a spurious timeout). The persisted history
+    // deliberately survives a reset — reset is the error-retry path, and wiping
+    // past generations there would destroy exactly what the history protects.
     controllerRef.current?.abort();
     runIdRef.current += 1;
     setStatus("idle");
     setError(null);
     setTimedOut(false);
     setData(null);
-    try {
-      window.localStorage.removeItem(resultKey(mode));
-    } catch {
-      /* unavailable storage — nothing to clear */
-    }
   }
 
-  return { status, data, error, timedOut, run, reset };
+  return { status, data, error, timedOut, run, reset, history, activeIndex, restore };
 }

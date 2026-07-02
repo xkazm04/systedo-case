@@ -305,7 +305,8 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
     seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
-  const { status, data, error, timedOut, run, reset } = useAiTool<BriefResult>("brief");
+  const { status, data, error, timedOut, run, reset, history, activeIndex, restore } =
+    useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -478,7 +479,13 @@ export default function ContentBriefGenerator({ seed }: { seed?: BriefSeed | nul
 
         {status === "done" && r && data && (
           <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} copyAllText={copyAllText} />
+            <ResultMeta
+              meta={data.meta}
+              copyAllText={copyAllText}
+              history={history}
+              activeIndex={activeIndex}
+              onRestore={restore}
+            />
 
             <div className="flex justify-end">
               <button
