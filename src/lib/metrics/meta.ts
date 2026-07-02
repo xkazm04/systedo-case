@@ -1,15 +1,14 @@
 /** Metric metadata — labels, descriptions, formatting and the curated metric sets
  *  the UI iterates over (headline KPIs, trend toggles, ratio-axis metrics). */
 
-import {
-  fmtCZK,
-  fmtCZKCompact,
-  fmtInt,
-  fmtMultiple,
-  fmtPct,
-} from "../format";
-import type { SupportedLocale } from "../format";
+import { createFormatters } from "../format";
+import type { Formatters, SupportedLocale } from "../format";
 import type { MetricKey } from "../types";
+
+/** Default (cs-CZ / CZK) formatter instance — the fallback when a call site does
+ *  not pass its own locale-bound `Formatters`, so every existing `meta.format(v)`
+ *  call keeps rendering byte-identical Czech output. */
+const csF = createFormatters();
 
 export interface MetricMeta {
   key: MetricKey;
@@ -21,9 +20,12 @@ export interface MetricMeta {
   descriptionEn: string;
   /** which direction is "good" — used to colour deltas (PNO down = good) */
   goodDirection: "up" | "down";
-  format: (v: number) => string;
+  /** Format a value; pass the locale-bound `Formatters` (e.g. from
+   *  `useFormatters()`) so the number follows the active locale — omitted, it
+   *  falls back to the Czech default. */
+  format: (v: number, f?: Formatters) => string;
   /** compact form for chart axes / tooltips */
-  formatCompact: (v: number) => string;
+  formatCompact: (v: number, f?: Formatters) => string;
   /** whether this metric can be plotted as a sum over time */
   plottable: boolean;
 }
@@ -53,8 +55,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "Visits",
     descriptionEn: "Number of visits across all channels.",
     goodDirection: "up",
-    format: fmtInt,
-    formatCompact: (v) => fmtInt(v),
+    format: (v, f = csF) => f.fmtInt(v),
+    formatCompact: (v, f = csF) => f.fmtInt(v),
     plottable: true,
   },
   cost: {
@@ -66,8 +68,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "Cost",
     descriptionEn: "Media spend on advertising.",
     goodDirection: "down",
-    format: fmtCZK,
-    formatCompact: fmtCZKCompact,
+    format: (v, f = csF) => f.fmtCZK(v),
+    formatCompact: (v, f = csF) => f.fmtCZKCompact(v),
     plottable: true,
   },
   conversions: {
@@ -79,8 +81,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "Conversions",
     descriptionEn: "Number of completed orders.",
     goodDirection: "up",
-    format: fmtInt,
-    formatCompact: (v) => fmtInt(v),
+    format: (v, f = csF) => f.fmtInt(v),
+    formatCompact: (v, f = csF) => f.fmtInt(v),
     plottable: true,
   },
   revenue: {
@@ -92,8 +94,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "Revenue",
     descriptionEn: "Revenue attributed to marketing (conversion value).",
     goodDirection: "up",
-    format: fmtCZK,
-    formatCompact: fmtCZKCompact,
+    format: (v, f = csF) => f.fmtCZK(v),
+    formatCompact: (v, f = csF) => f.fmtCZKCompact(v),
     plottable: true,
   },
   pno: {
@@ -105,8 +107,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "PNO",
     descriptionEn: "Cost-to-revenue ratio = cost / revenue.",
     goodDirection: "down",
-    format: (v) => fmtPct(v),
-    formatCompact: (v) => fmtPct(v),
+    format: (v, f = csF) => f.fmtPct(v),
+    formatCompact: (v, f = csF) => f.fmtPct(v),
     plottable: true,
   },
   aov: {
@@ -118,8 +120,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "AOV",
     descriptionEn: "Average order value = revenue / conversions.",
     goodDirection: "up",
-    format: fmtCZK,
-    formatCompact: fmtCZKCompact,
+    format: (v, f = csF) => f.fmtCZK(v),
+    formatCompact: (v, f = csF) => f.fmtCZKCompact(v),
     plottable: true,
   },
   cr: {
@@ -131,8 +133,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "CR",
     descriptionEn: "Share of visits that resulted in an order.",
     goodDirection: "up",
-    format: (v) => fmtPct(v, 2),
-    formatCompact: (v) => fmtPct(v, 1),
+    format: (v, f = csF) => f.fmtPct(v, 2),
+    formatCompact: (v, f = csF) => f.fmtPct(v, 1),
     plottable: true,
   },
   roas: {
@@ -144,8 +146,8 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     shortEn: "ROAS",
     descriptionEn: "Return on ad spend = revenue / cost.",
     goodDirection: "up",
-    format: (v) => fmtMultiple(v),
-    formatCompact: (v) => fmtMultiple(v),
+    format: (v, f = csF) => f.fmtMultiple(v),
+    formatCompact: (v, f = csF) => f.fmtMultiple(v),
     plottable: true,
   },
 };

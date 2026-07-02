@@ -310,7 +310,7 @@ export default function TrendChart({
               className="tnum fill-muted text-[12px]"
               style={{ fontSize: 10 }}
             >
-              {meta.formatCompact(v)}
+              {meta.formatCompact(v, fmt)}
             </text>
           </g>
         ))}
@@ -337,7 +337,7 @@ export default function TrendChart({
               className="fill-coral-600"
               style={{ fontSize: 10, fontWeight: 600 }}
             >
-              {t("goalLine", { value: meta.formatCompact(goalValue) })}
+              {t("goalLine", { value: meta.formatCompact(goalValue, fmt) })}
             </text>
           </g>
         )}
@@ -493,7 +493,7 @@ export default function TrendChart({
             )}
           </p>
           <p className="tnum mt-1 text-lg font-semibold" style={{ color }}>
-            {meta.format(tipBucket[metric])}
+            {meta.format(tipBucket[metric], fmt)}
           </p>
           {activeAnomaly && (
             <p
@@ -511,7 +511,7 @@ export default function TrendChart({
               <span className="text-muted">
                 {compareKind === "yoy" ? t("tooltipYoy") : t("tooltipPrevious")}
                 {cmpDate ? ` · ${fmtX(cmpDate)}` : ""}{" "}
-                <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal)}</span>
+                <span className="tnum font-medium text-navy-700">{meta.formatCompact(cmpVal, fmt)}</span>
               </span>
               {cmpDelta !== undefined && Math.abs(cmpDelta) >= 0.0005 ? (
                 <span
@@ -529,7 +529,7 @@ export default function TrendChart({
               <div key={m} className="flex items-center justify-between gap-2 text-[13px]">
                 <dt className="text-muted">{metricShort(METRICS[m], locale)}</dt>
                 <dd className="tnum font-medium text-navy-700">
-                  {METRICS[m].formatCompact(tipBucket[m])}
+                  {METRICS[m].formatCompact(tipBucket[m], fmt)}
                 </dd>
               </div>
             ))}

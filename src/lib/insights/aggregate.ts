@@ -6,7 +6,7 @@ import type { Project } from "@/lib/projects/types";
 import { MODULES } from "@/lib/projects/modules";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
-import { fmtCZK, fmtInt, fmtMultiple, fmtPct, type SupportedLocale } from "@/lib/format";
+import { createFormatters, type SupportedLocale } from "@/lib/format";
 import { computeProfit } from "@/lib/profit/compute";
 import { defaultMargins } from "@/lib/profit/sample";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
@@ -41,6 +41,9 @@ function rec(
 }
 
 function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] {
+  // Numbers must follow the sentence's language — an English recommendation
+  // with "1 234 567 Kč" inside reads as a rendering bug.
+  const f = createFormatters(locale);
   const data = getProjectDataset(project);
   const out: Recommendation[] = [];
 
@@ -53,9 +56,9 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `${r.channel} loses money after margin`
         : `${r.channel} prodělává po marži`,
       locale === "en"
-        ? `ROAS ${fmtMultiple(r.roas)} is below break-even ${fmtMultiple(r.breakEvenRoas)}. Shift budget to profitable channels.`
-        : `ROAS ${fmtMultiple(r.roas)} je pod bodem zvratu ${fmtMultiple(r.breakEvenRoas)}. Přesuňte rozpočet do ziskových kanálů.`,
-      fmtCZK(r.netProfit), Math.abs(r.netProfit)));
+        ? `ROAS ${f.fmtMultiple(r.roas)} is below break-even ${f.fmtMultiple(r.breakEvenRoas)}. Shift budget to profitable channels.`
+        : `ROAS ${f.fmtMultiple(r.roas)} je pod bodem zvratu ${f.fmtMultiple(r.breakEvenRoas)}. Přesuňte rozpočet do ziskových kanálů.`,
+      f.fmtCZK(r.netProfit), Math.abs(r.netProfit)));
   }
 
   // Reference "now" derived from the dataset's last day → deterministic projected dates.
@@ -110,7 +113,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
       locale === "en"
         ? `${topMove.fromTitle} is stock-constrained — move part of its budget to fast-moving SKUs in the same category (${topMove.category}).`
         : `${topMove.fromTitle} je omezené zásobou — přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
-      fmtCZK(topMove.amountCzk), topMove.amountCzk));
+      f.fmtCZK(topMove.amountCzk), topMove.amountCzk));
   }
 
   // Seasonality → upcoming peak
@@ -123,14 +126,15 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `${next.label} is a seasonal peak`
         : `${next.label} bývá sezónní špička`,
       locale === "en"
-        ? `Index ${fmtMultiple(next.index)} — prepare a higher budget and stock in advance.`
-        : `Index ${fmtMultiple(next.index)} — připravte vyšší rozpočet a zásoby s předstihem.`,
-      fmtMultiple(next.index)));
+        ? `Index ${f.fmtMultiple(next.index)} — prepare a higher budget and stock in advance.`
+        : `Index ${f.fmtMultiple(next.index)} — připravte vyšší rozpočet a zásoby s předstihem.`,
+      f.fmtMultiple(next.index)));
   }
   return out;
 }
 
 function appRecs(locale: SupportedLocale): Recommendation[] {
+  const f = createFormatters(locale);
   const out: Recommendation[] = [];
   const ltv = ltvSummary(SAMPLE_COHORTS);
   if (ltv.avgLtvCac < 3) {
@@ -139,9 +143,9 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
         ? "LTV:CAC below target"
         : "LTV:CAC pod cílem",
       locale === "en"
-        ? `Ratio ${fmtMultiple(ltv.avgLtvCac)} (target ≥ 3×). Before adding budget, improve retention/ARPU or reduce CAC.`
-        : `Poměr ${fmtMultiple(ltv.avgLtvCac)} (cíl ≥ 3×). Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC.`,
-      fmtMultiple(ltv.avgLtvCac)));
+        ? `Ratio ${f.fmtMultiple(ltv.avgLtvCac)} (target ≥ 3×). Before adding budget, improve retention/ARPU or reduce CAC.`
+        : `Poměr ${f.fmtMultiple(ltv.avgLtvCac)} (cíl ≥ 3×). Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC.`,
+      f.fmtMultiple(ltv.avgLtvCac)));
   }
   for (const w of SAMPLE_EXPERIMENTS.map(evaluate).filter((r) => r.significant)) {
     out.push(rec("experimenty-lp", "opportunity",
@@ -149,8 +153,8 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
         ? `Ship the winner: ${w.cluster}`
         : `Nasadit vítěze: ${w.cluster}`,
       locale === "en"
-        ? `Variant leads conclusively (${fmtPct(w.confidence)} confidence). Deploy it as the primary landing page.`
-        : `Varianta vede průkazně (${fmtPct(w.confidence)} jistota). Nasaďte ji jako hlavní landing page.`));
+        ? `Variant leads conclusively (${f.fmtPct(w.confidence)} confidence). Deploy it as the primary landing page.`
+        : `Varianta vede průkazně (${f.fmtPct(w.confidence)} jistota). Nasaďte ji jako hlavní landing page.`));
   }
   const top = scoreQueries(SAMPLE_QUERIES).find((q) => q.opportunity === "high");
   if (top) {
@@ -159,13 +163,14 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
         ? `Content for query ${top.query}`
         : `Obsah pro dotaz ${top.query}`,
       locale === "en"
-        ? `High opportunity, ${fmtInt(top.volume)} searches/mo. Create a comparison page.`
-        : `Vysoká příležitost, ${fmtInt(top.volume)} hledání/měs. Vytvořte srovnávací stránku.`));
+        ? `High opportunity, ${f.fmtInt(top.volume)} searches/mo. Create a comparison page.`
+        : `Vysoká příležitost, ${f.fmtInt(top.volume)} hledání/měs. Vytvořte srovnávací stránku.`));
   }
   return out;
 }
 
 function leadgenRecs(locale: SupportedLocale): Recommendation[] {
+  const f = createFormatters(locale);
   const out: Recommendation[] = [];
   for (const s of SAMPLE_SOURCES.map(leadMetrics).filter((s) => s.junk)) {
     out.push(rec("kvalita-leadu", "warning",
@@ -173,9 +178,9 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         ? `${s.source}: cheap but low-quality leads`
         : `${s.source}: levné, ale nekvalitní leady`,
       locale === "en"
-        ? `Qualification rate ${fmtPct(s.qualRate)}, CPQL ${fmtCZK(s.cpql)}. Optimise bidding toward qualified leads.`
-        : `Míra kvalifikace ${fmtPct(s.qualRate)}, CPQL ${fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
-      fmtCZK(s.spend), s.spend));
+        ? `Qualification rate ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimise bidding toward qualified leads.`
+        : `Míra kvalifikace ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
+      f.fmtCZK(s.spend), s.spend));
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
@@ -195,13 +200,14 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
       locale === "en"
-        ? `${fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
-        : `${fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`));
+        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
+        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`));
   }
   return out;
 }
 
 function contentRecs(locale: SupportedLocale): Recommendation[] {
+  const f = createFormatters(locale);
   const out: Recommendation[] = [];
   for (const p of decayingPosts(SAMPLE_DECAY)) {
     out.push(rec("obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
@@ -209,9 +215,9 @@ function contentRecs(locale: SupportedLocale): Recommendation[] {
         ? `Refresh: ${p.title}`
         : `Obnovit: ${p.title}`,
       locale === "en"
-        ? `Traffic ${fmtPct(p.trafficChangePct)} year-on-year. Update and re-link into the cluster.`
-        : `Návštěvnost ${fmtPct(p.trafficChangePct)} meziročně. Aktualizujte a znovu prolinkujte do klastru.`,
-      fmtPct(p.trafficChangePct)));
+        ? `Traffic ${f.fmtPct(p.trafficChangePct)} year-on-year. Update and re-link into the cluster.`
+        : `Návštěvnost ${f.fmtPct(p.trafficChangePct)} meziročně. Aktualizujte a znovu prolinkujte do klastru.`,
+      f.fmtPct(p.trafficChangePct)));
   }
   return out;
 }
