@@ -14,6 +14,7 @@ import { generateStructured } from "../../llm";
 import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolations } from "./_shared";
+import { refineLines } from "./refine";
 
 const AD_SYSTEM = `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
 
@@ -42,6 +43,9 @@ function buildAdPrompt(req: AdRequest): string {
     "- 8 návrhů klíčových slov pro tuto kampaň,",
     `- 1 dlouhý nadpis (longHeadline) max ${AD_LIMITS.longHeadline} znaků,`,
     "- krátké zdůvodnění (rationale, 1–2 věty), proč jsou texty postavené takto.",
+    // Refine note (re-run steering) rides on the USER prompt only — the system
+    // prompt + schema stay byte-identical, so the gate/golden fingerprint holds.
+    ...refineLines(req.refine),
   ].join("\n");
 }
 
@@ -131,10 +135,15 @@ export const adsSkill: Skill<AdRequest, AdResult> = {
   demo: demoAds,
 };
 
-export function generateAds(req: AdRequest, locale?: SupportedLocale): Promise<AiResponse<AdResult>> {
+export function generateAds(
+  req: AdRequest,
+  locale?: SupportedLocale,
+  signal?: AbortSignal
+): Promise<AiResponse<AdResult>> {
   return generateStructured({
     // llm-tool: ads
     ...skillToGenerateArgs(adsSkill, req),
     locale,
+    signal,
   });
 }

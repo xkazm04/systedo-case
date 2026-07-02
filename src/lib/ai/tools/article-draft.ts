@@ -249,7 +249,8 @@ function validateArticleDraft(parsed: unknown): string[] {
 
 export function generateArticleDraft(
   req: ArticleDraftRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<ArticleDraftResult>> {
   const fallback = (): ArticleDraftResult => demoArticleDraft(req);
 
@@ -278,5 +279,6 @@ export function generateArticleDraft(
     validate: validateArticleDraft,
     demo: fallback,
     locale,
+    signal,
   });
 }

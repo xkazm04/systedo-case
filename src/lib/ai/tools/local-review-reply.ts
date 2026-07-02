@@ -82,7 +82,8 @@ function cannedReply(req: LocalReviewReplyRequest): string {
 
 export function generateLocalReviewReply(
   req: LocalReviewReplyRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<LocalReviewReplyResult>> {
   const fallback = (): LocalReviewReplyResult => ({ reply: cannedReply(req) });
 
@@ -102,6 +103,8 @@ export function generateLocalReviewReply(
   return generateStructured({
     // llm-tool: local-review-reply
     id: "local-review-reply",
+    // Light tool -> fast tier: haiku-class CLI in dev, flash-lite-class in prod.
+    tier: "fast",
     prompt: buildLocalReviewReplyPrompt(req),
     system: LOCAL_REVIEW_REPLY_SYSTEM,
     schema: LOCAL_REVIEW_REPLY_SCHEMA,
@@ -110,5 +113,6 @@ export function generateLocalReviewReply(
     validate,
     demo: fallback,
     locale,
+    signal,
   });
 }

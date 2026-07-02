@@ -165,7 +165,8 @@ function demoLpVariantIdeas(req: LpVariantIdeasRequest): LpVariantIdeasResult {
 
 export function generateLpVariantIdeas(
   req: LpVariantIdeasRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<LpVariantIdeasResult>> {
   return generateStructured({
     // llm-tool: lp-variant-ideas
@@ -178,5 +179,6 @@ export function generateLpVariantIdeas(
     validate: validateLpVariantIdeas,
     demo: () => demoLpVariantIdeas(req),
     locale,
+    signal,
   });
 }

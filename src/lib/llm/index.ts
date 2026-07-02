@@ -15,10 +15,17 @@ import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
-import { CLAUDE_MODEL, GEMINI_MODEL } from "./models";
+import { claudeModelTag, geminiModelTag, type ModelTier } from "./models";
 import { promptFingerprint, recordLlmCall } from "./telemetry";
 
-export { APP_MODEL, CLAUDE_MODEL, GEMINI_MODEL } from "./models";
+export {
+  APP_MODEL,
+  CLAUDE_MODEL,
+  CLAUDE_MODEL_FAST,
+  GEMINI_MODEL,
+  GEMINI_MODEL_FAST,
+  type ModelTier,
+} from "./models";
 
 /** Development uses Claude; anything else (production) uses Gemini. */
 export function isDevEnvironment(): boolean {
@@ -50,6 +57,18 @@ export interface GenerateArgs<T> {
    *  prompt) so the model writes in that language — the fingerprint (system +
    *  schema) is unchanged, so the LLM golden/coverage gate is unaffected. */
   locale?: SupportedLocale;
+  /** Model tier for this call. Defaults to "quality" (full-strength model);
+   *  light tools opt into "fast" (haiku-class CLI alias in dev, flash-lite-class
+   *  Gemini in prod) for lower latency and token rates. The stamped `meta.model`
+   *  always reports the tier-resolved model that actually served the call. */
+  tier?: ModelTier;
+  /** Client abort propagation. When the caller's request is aborted (client
+   *  timeout, re-run, closed tab), the in-flight provider work stops — the
+   *  Claude CLI child is killed and the Gemini SDK request is cancelled —
+   *  instead of holding one of the few process-wide concurrency slots for
+   *  output nobody will read. An abort is non-retryable, never falls over to
+   *  another provider, and never degrades to the demo. */
+  signal?: AbortSignal;
 }
 
 /** Append an authoritative language directive for non-default locales so the AI
@@ -70,24 +89,31 @@ interface ProviderCall {
   prompt: string;
   schema: object;
   temperature?: number;
+  tier?: ModelTier;
+  signal?: AbortSignal;
 }
 
-/** One LLM provider behind a uniform run() returning parsed JSON + optional usage. */
+/** One LLM provider behind a uniform run() returning parsed JSON + optional
+ *  usage. `modelFor` resolves the tier-appropriate model tag, so the envelope
+ *  telemetry always names the model that actually served the call. */
 interface Provider {
-  model: string;
+  modelFor: (tier?: ModelTier) => string;
   available: () => boolean;
   run: (call: ProviderCall) => Promise<{ parsed: unknown; usage?: TokenUsage }>;
 }
 
 const claudeProvider: Provider = {
-  model: CLAUDE_MODEL,
+  modelFor: claudeModelTag,
   available: claudeAvailable,
   // Claude runs on the dev subscription — no metered token usage to report.
-  run: async (c) => ({ parsed: await runClaude({ system: c.system, prompt: c.prompt, schema: c.schema }), usage: undefined }),
+  run: async (c) => ({
+    parsed: await runClaude({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal }),
+    usage: undefined,
+  }),
 };
 
 const geminiProvider: Provider = {
-  model: GEMINI_MODEL,
+  modelFor: geminiModelTag,
   available: geminiAvailable,
   run: (c) => runGemini(c),
 };
@@ -117,7 +143,9 @@ async function runWithRetry(
       return { ...out, attempts: i };
     } catch (err) {
       lastErr = err;
-      if (i < attempts && isRetryable(err)) {
+      // A client abort is a deliberate stop — retrying would keep burning the
+      // provider for a caller that is already gone.
+      if (i < attempts && isRetryable(err) && !call.signal?.aborted) {
         await sleep(250 * i);
         continue;
       }
@@ -162,12 +190,19 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
     prompt: effectivePrompt,
     schema: args.schema,
     temperature: args.temperature,
+    tier: args.tier,
+    signal: args.signal,
   };
 
   for (let idx = 0; idx < providers.length; idx++) {
     const provider = providers[idx];
+    const model = provider.modelFor(args.tier);
     try {
-      const first = await runWithRetry(provider, baseCall, 2);
+      // 3 bounded attempts on recoverable errors: the dev CLI intermittently
+      // emits unparseable JSON (observed ~1-in-7 calls under model variance),
+      // and two attempts made a 14-tool proving run a coin flip. Non-retryable
+      // failures still throw on the first attempt.
+      const first = await runWithRetry(provider, baseCall, 3);
       let parsed = first.parsed;
       let usage = first.usage;
       let totalAttempts = first.attempts;
@@ -192,11 +227,11 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       }
 
       const meta: AiMeta = {
-        model: provider.model,
+        model,
         demo: false,
         prompt: effectivePrompt,
         tookMs: Date.now() - start,
-        provider: provider.model,
+        provider: model,
         attempts: totalAttempts,
         fellBack: idx > 0,
       };
@@ -204,7 +239,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       if (repaired) meta.repaired = true;
       if (usage) {
         meta.usage = usage;
-        meta.estCostUsd = estimateCostUsd(provider.model, usage);
+        meta.estCostUsd = estimateCostUsd(model, usage);
       } else if (provider === claudeProvider) {
         meta.estCostUsd = 0; // dev subscription — no metered cost
       }
@@ -213,8 +248,8 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       await recordLlmCall({
         toolId,
         promptHash,
-        provider: provider.model,
-        model: provider.model,
+        provider: model,
+        model,
         demo: false,
         tookMs: meta.tookMs,
         attempts: totalAttempts,
@@ -227,7 +262,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
 
       return { result: args.normalize(parsed), meta };
     } catch (err) {
-      console.error(`[llm] provider ${provider.model} failed:`, err);
+      // A client abort is a deliberate stop: no cross-provider fallback, no
+      // demo degradation — surface it so the route ends quietly (client gone).
+      if (args.signal?.aborted) throw err;
+      console.error(`[llm] provider ${model} failed:`, err);
       // Fall through to the next configured provider; if this was the last one,
       // the loop ends and we degrade to the demo below.
     }
@@ -235,7 +273,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
 
   // No provider available, or all failed — deterministic demo so the app stays usable.
   const demoMeta: AiMeta = {
-    model: dev ? CLAUDE_MODEL : GEMINI_MODEL,
+    model: (dev ? claudeProvider : geminiProvider).modelFor(args.tier),
     demo: true,
     prompt: effectivePrompt,
     tookMs: Date.now() - start,

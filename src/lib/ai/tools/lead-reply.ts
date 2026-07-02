@@ -67,7 +67,11 @@ const LEAD_REPLY_SCHEMA = {
   propertyOrdering: ["reply", "questions"],
 };
 
-export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocale): Promise<AiResponse<LeadReplyResult>> {
+export function generateLeadReply(
+  req: LeadReplyRequest,
+  locale?: SupportedLocale,
+  signal?: AbortSignal
+): Promise<AiResponse<LeadReplyResult>> {
   // The deterministic draft is reused both as the keyless demo and as the floor
   // for any field the model leaves empty.
   const fallback = (): LeadReplyResult => {
@@ -108,6 +112,8 @@ export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocal
   return generateStructured({
     // llm-tool: lead-reply
     id: "lead-reply",
+    // Light tool -> fast tier: haiku-class CLI in dev, flash-lite-class in prod.
+    tier: "fast",
     prompt: buildLeadReplyPrompt(req),
     system: LEAD_REPLY_SYSTEM,
     schema: LEAD_REPLY_SCHEMA,
@@ -116,5 +122,6 @@ export function generateLeadReply(req: LeadReplyRequest, locale?: SupportedLocal
     validate,
     demo: fallback,
     locale,
+    signal,
   });
 }

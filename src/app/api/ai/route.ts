@@ -112,54 +112,57 @@ export async function POST(request: Request) {
     const locale = await getServerLocale();
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
+    // Every tool call carries request.signal: when the client aborts (timeout,
+    // re-run, closed tab), the wrapper kills the Claude CLI child / cancels the
+    // Gemini request instead of burning a concurrency slot on unread output.
     switch (mode) {
       case "ads": {
         const p = validateAdRequest(body, locale);
-        return p.valid ? cachedRespond("ads", p.value, locale, () => generateAds(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("ads", p.value, locale, () => generateAds(p.value, locale, request.signal)) : bad(p.error);
       }
       case "brief": {
         const p = validateBriefRequest(body, locale);
-        return p.valid ? cachedRespond("brief", p.value, locale, () => generateBrief(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("brief", p.value, locale, () => generateBrief(p.value, locale, request.signal)) : bad(p.error);
       }
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
-        return p.valid ? cachedRespond("analysis", p.value, locale, () => generateAnalysis(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("analysis", p.value, locale, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lead-reply": {
         const p = validateLeadReplyRequest(body, locale);
-        return p.valid ? cachedRespond("lead-reply", p.value, locale, () => generateLeadReply(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("lead-reply", p.value, locale, () => generateLeadReply(p.value, locale, request.signal)) : bad(p.error);
       }
       case "repurpose": {
         const p = validateRepurposeRequest(body, locale);
-        return p.valid ? cachedRespond("repurpose", p.value, locale, () => generateRepurpose(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("repurpose", p.value, locale, () => generateRepurpose(p.value, locale, request.signal)) : bad(p.error);
       }
       case "local-review-reply": {
         const p = validateLocalReviewReplyRequest(body, locale);
-        return p.valid ? cachedRespond("local-review-reply", p.value, locale, () => generateLocalReviewReply(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("local-review-reply", p.value, locale, () => generateLocalReviewReply(p.value, locale, request.signal)) : bad(p.error);
       }
       case "article-draft": {
         const p = validateArticleDraftRequest(body, locale);
-        return p.valid ? cachedRespond("article-draft", p.value, locale, () => generateArticleDraft(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("article-draft", p.value, locale, () => generateArticleDraft(p.value, locale, request.signal)) : bad(p.error);
       }
       case "cohort-diagnosis": {
         const p = validateCohortDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("cohort-diagnosis", p.value, locale, () => generateCohortDiagnosis(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("cohort-diagnosis", p.value, locale, () => generateCohortDiagnosis(p.value, locale, request.signal)) : bad(p.error);
       }
       case "keyword-clusters": {
         const p = validateKeywordClustersRequest(body, locale);
-        return p.valid ? cachedRespond("keyword-clusters", p.value, locale, () => generateKeywordClusters(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("keyword-clusters", p.value, locale, () => generateKeywordClusters(p.value, locale, request.signal)) : bad(p.error);
       }
       case "comparison-outline": {
         const p = validateComparisonOutlineRequest(body, locale);
-        return p.valid ? cachedRespond("comparison-outline", p.value, locale, () => generateComparisonOutline(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("comparison-outline", p.value, locale, () => generateComparisonOutline(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lp-variant-ideas": {
         const p = validateLpVariantIdeasRequest(body, locale);
-        return p.valid ? cachedRespond("lp-variant-ideas", p.value, locale, () => generateLpVariantIdeas(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("lp-variant-ideas", p.value, locale, () => generateLpVariantIdeas(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lead-source-diagnosis": {
         const p = validateLeadSourceDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, () => generateLeadSourceDiagnosis(p.value, locale)) : bad(p.error);
+        return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });

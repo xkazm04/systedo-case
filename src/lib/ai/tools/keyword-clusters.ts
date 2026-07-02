@@ -236,11 +236,14 @@ function validateKeywordClusters(parsed: unknown, req: KeywordClustersRequest): 
 
 export function generateKeywordClusters(
   req: KeywordClustersRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<KeywordClustersResult>> {
   return generateStructured({
     // llm-tool: keyword-clusters
     id: "keyword-clusters",
+    // Light tool -> fast tier: haiku-class CLI in dev, flash-lite-class in prod.
+    tier: "fast",
     prompt: buildKeywordClustersPrompt(req),
     system: KEYWORD_CLUSTERS_SYSTEM,
     schema: KEYWORD_CLUSTERS_SCHEMA,
@@ -249,5 +252,6 @@ export function generateKeywordClusters(
     validate: (parsed) => validateKeywordClusters(parsed, req),
     demo: () => demoKeywordClusters(req),
     locale,
+    signal,
   });
 }

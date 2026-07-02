@@ -12,6 +12,7 @@ import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapsh
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
+import { refineLines } from "./refine";
 
 const ANALYSIS_SYSTEM = `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
 
@@ -22,7 +23,7 @@ Pravidla:
 - Piš česky, věcně, bez vaty a marketingových frází.
 - Drž se zadaného JSON schématu.`;
 
-function buildAnalysisPrompt(snapshotText: string): string {
+function buildAnalysisPrompt(snapshotText: string, refine?: string): string {
   return [
     "Níže jsou reálná výkonnostní data klienta z marketingových kampaní.",
     "Zanalyzuj je jako PPC specialista a připrav krátké shrnutí pro klienta.",
@@ -31,6 +32,9 @@ function buildAnalysisPrompt(snapshotText: string): string {
     snapshotText,
     "",
     "Na základě těchto čísel urči: jednovětý verdikt, krátké shrnutí, co se daří (wins), kde jsou rizika (risks) a 3–4 konkrétní další kroky (actions). Vycházej pouze z uvedených dat.",
+    // Refine note (re-run steering) rides on the USER prompt only — the system
+    // prompt + schema stay byte-identical, so the gate/golden fingerprint holds.
+    ...refineLines(refine),
   ].join("\n");
 }
 
@@ -147,12 +151,16 @@ function demoAnalysis(s: Snapshot): AnalysisResult {
   };
 }
 
-export function generateAnalysis(req: AnalysisRequest, locale?: SupportedLocale): Promise<AiResponse<AnalysisResult>> {
+export function generateAnalysis(
+  req: AnalysisRequest,
+  locale?: SupportedLocale,
+  signal?: AbortSignal
+): Promise<AiResponse<AnalysisResult>> {
   const snapshot = buildSnapshot(req.period);
   return generateStructured({
     // llm-tool: analysis
     id: "analysis",
-    prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot)),
+    prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot), req.refine),
     system: ANALYSIS_SYSTEM,
     schema: ANALYSIS_SCHEMA,
     // Strictly-grounded numeric read (5/5): keep temperature low so the verdict
@@ -162,5 +170,6 @@ export function generateAnalysis(req: AnalysisRequest, locale?: SupportedLocale)
     validate: validateAnalysis,
     demo: () => demoAnalysis(snapshot),
     locale,
+    signal,
   });
 }

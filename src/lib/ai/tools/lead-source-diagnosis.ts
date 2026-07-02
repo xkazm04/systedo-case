@@ -230,7 +230,8 @@ export function demoLeadSourceDiagnosis(
 
 export function generateLeadSourceDiagnosis(
   req: LeadSourceDiagnosisRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<LeadSourceDiagnosisResult>> {
   return generateStructured({
     // llm-tool: lead-source-diagnosis
@@ -243,5 +244,6 @@ export function generateLeadSourceDiagnosis(
     validate: (parsed) => validateLeadSourceDiagnosis(parsed),
     demo: () => demoLeadSourceDiagnosis(req),
     locale,
+    signal,
   });
 }

@@ -12,6 +12,7 @@ import {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, clamp, cap, slugify } from "./_shared";
+import { refineLines } from "./refine";
 
 const BRIEF_SYSTEM = `Jsi český SEO a obsahový stratég v marketingové agentuře. Připravuješ zadání (brief) pro tvorbu obsahu na web a e-shop.
 
@@ -55,6 +56,9 @@ function buildBriefPrompt(req: BriefRequest): string {
     "- 8 souvisejících klíčových slov,",
     "- 4 návrhy kotevního textu pro interní odkazy,",
     "- krátké zdůvodnění (rationale).",
+    // Refine note (re-run steering) rides on the USER prompt only — the system
+    // prompt + schema stay byte-identical, so the gate/golden fingerprint holds.
+    ...refineLines(req.refine),
   ].join("\n");
 }
 
@@ -174,7 +178,11 @@ function demoBrief(req: BriefRequest): BriefResult {
   };
 }
 
-export function generateBrief(req: BriefRequest, locale?: SupportedLocale): Promise<AiResponse<BriefResult>> {
+export function generateBrief(
+  req: BriefRequest,
+  locale?: SupportedLocale,
+  signal?: AbortSignal
+): Promise<AiResponse<BriefResult>> {
   return generateStructured({
     // llm-tool: brief
     id: "brief",
@@ -186,5 +194,6 @@ export function generateBrief(req: BriefRequest, locale?: SupportedLocale): Prom
     validate: validateBrief,
     demo: () => demoBrief(req),
     locale,
+    signal,
   });
 }

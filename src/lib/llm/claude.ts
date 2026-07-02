@@ -11,9 +11,10 @@
  */
 import { spawn, spawnSync } from "node:child_process";
 import {
-  CLAUDE_CLI_MODEL,
   CLAUDE_THINKING_TOKENS,
   CLAUDE_TIMEOUT_MS,
+  claudeCliAlias,
+  type ModelTier,
 } from "./models";
 
 const isWindows = process.platform === "win32";
@@ -28,11 +29,13 @@ function cliEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-const CLI_ARGS = [
+/** CLI argv for one generation — the model alias follows the requested tier
+ *  (sonnet for quality, haiku for the fast tier). */
+const cliArgs = (tier?: ModelTier): string[] => [
   "-p",
   "-", // read the prompt from stdin
   "--model",
-  CLAUDE_CLI_MODEL,
+  claudeCliAlias(tier),
   "--dangerously-skip-permissions",
   "--max-turns",
   "1",
@@ -66,11 +69,20 @@ function buildCliPrompt(system: string, prompt: string, schema: object): string 
   ].join("\n");
 }
 
-function runCli(input: string): Promise<string> {
+function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
+    const { tier, signal } = opts;
+    // A client that has already gone away must not spawn a CLI child at all.
+    // The wording deliberately matches no RETRYABLE marker (see ./index.ts) —
+    // an abort is a deliberate stop, never worth a retry.
+    if (signal?.aborted) {
+      reject(new Error("Požadavek byl zrušen klientem před spuštěním Claude CLI."));
+      return;
+    }
+    const args = cliArgs(tier);
     const child = isWindows
-      ? spawn("cmd", ["/c", "claude", ...CLI_ARGS], { windowsHide: true, env: cliEnv() })
-      : spawn("claude", CLI_ARGS, { env: cliEnv() });
+      ? spawn("cmd", ["/c", "claude", ...args], { windowsHide: true, env: cliEnv() })
+      : spawn("claude", args, { env: cliEnv() });
 
     let stdout = "";
     let stderr = "";
@@ -78,15 +90,28 @@ function runCli(input: string): Promise<string> {
       child.kill();
       reject(new Error(`Claude CLI vypršel po ${CLAUDE_TIMEOUT_MS} ms.`));
     }, CLAUDE_TIMEOUT_MS);
+    // Client abort (timeout, re-run, closed tab): kill the child instead of
+    // letting it burn one of the few process-wide concurrency slots for up to
+    // CLAUDE_TIMEOUT_MS producing output nobody will read.
+    const onAbort = () => {
+      clearTimeout(timer);
+      child.kill();
+      reject(new Error("Požadavek byl zrušen klientem — Claude CLI ukončeno."));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+    const cleanup = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    };
 
     child.stdout.on("data", (d) => (stdout += d.toString()));
     child.stderr.on("data", (d) => (stderr += d.toString()));
     child.on("error", (err) => {
-      clearTimeout(timer);
+      cleanup();
       reject(err);
     });
     child.on("close", (code) => {
-      clearTimeout(timer);
+      cleanup();
       // Some non-zero exits still print a usable answer on stdout; prefer stdout.
       if (stdout.trim()) resolve(stdout);
       else reject(new Error(`Claude CLI selhal (kód ${code}): ${stderr.slice(0, 300)}`));
@@ -177,14 +202,25 @@ export function extractJson(raw: string): Record<string, unknown> | null {
 }
 
 /** Run a structured generation through the Claude CLI. Returns the parsed JSON
- *  object (pre-normalization). Throws on CLI failure or unparseable output. */
+ *  object (pre-normalization). Throws on CLI failure, unparseable output, or a
+ *  client abort (the CLI child is killed). `tier` picks the model alias. */
 export async function runClaude(args: {
   system: string;
   prompt: string;
   schema: object;
+  tier?: ModelTier;
+  signal?: AbortSignal;
 }): Promise<Record<string, unknown>> {
-  const out = await runCli(buildCliPrompt(args.system, args.prompt, args.schema));
+  const out = await runCli(buildCliPrompt(args.system, args.prompt, args.schema), {
+    tier: args.tier,
+    signal: args.signal,
+  });
   const parsed = extractJson(out);
-  if (!parsed) throw new Error("Claude CLI nevrátil platný JSON.");
+  if (!parsed) {
+    // Keep the retryable marker first (see RETRYABLE in ./index.ts) and append
+    // a bounded raw snippet so a parse failure is diagnosable from the log.
+    const snippet = out.trim().slice(0, 200).replace(/\s+/g, " ");
+    throw new Error(`Claude CLI nevrátil platný JSON. Začátek výstupu: ${snippet}`);
+  }
   return parsed;
 }

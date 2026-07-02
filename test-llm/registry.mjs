@@ -9,6 +9,10 @@
  *  pulling the data/JSON graph into the test runner and keeps each probe small
  *  and fast, while the coverage check guarantees the fixtures stay in 1:1 sync
  *  with the actual call sites.
+ *
+ *  `tier: "fast"` mirrors call sites that opt into the light model tier
+ *  (src/lib/llm/models.ts) — the real test then proves the tool on the model it
+ *  actually runs (haiku-class in dev) instead of only the quality tier.
  */
 import { Type } from "@google/genai";
 
@@ -158,6 +162,7 @@ export const LLM_TOOLS = [
   },
   {
     id: "lead-reply",
+    tier: "fast",
     label: "Rychlá reakce na poptávku",
     system:
       "Jsi český obchodník specializovaný na rychlou reakci na poptávky. Piš česky, lidsky a profesionálně a vracej pouze validní JSON dle schématu.",
@@ -175,6 +180,7 @@ export const LLM_TOOLS = [
   },
   {
     id: "repurpose",
+    tier: "fast",
     label: "Přepracování článku do kanálů",
     system:
       "Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty na míru pro jednotlivé distribuční kanály. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
@@ -207,6 +213,7 @@ export const LLM_TOOLS = [
   },
   {
     id: "local-review-reply",
+    tier: "fast",
     label: "Odpověď na recenzi",
     system:
       "Jsi český správce reputace lokální firmy. Píšeš veřejné odpovědi na recenze v Google firemním profilu — vřele děkuješ za dobrá hodnocení a s pochopením reaguješ na kritiku. Piš česky a vracej pouze validní JSON dle schématu.",
@@ -309,6 +316,7 @@ export const LLM_TOOLS = [
   },
   {
     id: "keyword-clusters",
+    tier: "fast",
     label: "Seskupení klíčových slov do klastrů",
     system:
       "Jsi český SEO stratég. Z plochého seznamu klíčových slov skládáš tematické klastry (pilíř + podpůrná slova). Pracuj jen s předanými slovy, žádné si nevymýšlej, a vracej pouze validní JSON dle schématu.",

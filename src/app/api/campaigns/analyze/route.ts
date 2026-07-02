@@ -11,6 +11,7 @@ import { getServerLocale } from "@/lib/i18n/locale";
 import {
   findCachedReport,
   getCampaign,
+  getLatestChanges,
   getReportHistory,
   getSyncMeta,
   hashEvalInputs,
@@ -83,10 +84,22 @@ export async function POST(request: Request) {
       if (!target) return Response.json({ error: "Kampaň nebyla nalezena." }, { status: 404 });
     }
 
+    // The sync-over-sync diff grounds the prompts in the same change-aware
+    // triage the UI badges show (and is folded into the input hash below, so a
+    // new sync that moves the diff invalidates the cached report).
+    const changes = await getLatestChanges(tenant);
+
     // Skip the paid LLM call when an identical-input evaluation already exists
-    // (same campaigns, same period). `?force=1` bypasses for a deliberate re-run.
+    // (same campaigns, same period, same diff). `?force=1` bypasses for a
+    // deliberate re-run.
     const reportCampaignId = scope === "campaign" ? campaignId : null;
-    const inputHash = hashEvalInputs(scope, reportCampaignId, meta.period, campaigns);
+    const inputHash = hashEvalInputs(
+      scope,
+      reportCampaignId,
+      meta.period,
+      campaigns,
+      changes?.current ?? null
+    );
     const force = new URL(request.url).searchParams.get("force") === "1";
     if (!force) {
       const cached = await findCachedReport(tenant, scope, reportCampaignId, meta.period, inputHash);
@@ -135,7 +148,10 @@ export async function POST(request: Request) {
         campaigns,
         period: meta.period,
         patternLines,
+        changes: changes ?? undefined,
         locale: await getServerLocale(),
+        // Client abort propagation: a closed tab / re-run stops the provider work.
+        signal: request.signal,
       });
       const report = await saveReport(tenant, {
         scope,

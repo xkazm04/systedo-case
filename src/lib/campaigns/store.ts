@@ -309,12 +309,17 @@ export async function getReportsForPeriodWithHashes(
   return { reports, inputHashes };
 }
 
-/** Deterministic fingerprint of the exact inputs an evaluation depends on. */
+/** Deterministic fingerprint of the exact inputs an evaluation depends on.
+ *  `changesCurrent` (ChangesSummary.current — the diff's sync marker) is folded
+ *  in when supplied: the prompts now embed the sync-over-sync diff, so a cached
+ *  report must be invalidated when the diff moves even if the campaign tuples
+ *  happen to match. Omitted/null keeps the legacy hash byte-identical. */
 export function hashEvalInputs(
   scope: EvalScope,
   campaignId: string | null,
   period: CampaignPeriod,
-  campaigns: Campaign[]
+  campaigns: Campaign[],
+  changesCurrent?: string | null
 ): string {
   const inScope =
     scope === "campaign"
@@ -324,8 +329,9 @@ export function hashEvalInputs(
     (c) =>
       `${c.id}:${c.status}:${c.impressions}:${c.clicks}:${c.cost}:${c.conversions}:${c.conversionValue}`
   );
+  const changesPart = changesCurrent ? `|chg:${changesCurrent}` : "";
   return createHash("sha1")
-    .update(`${scope}|${campaignId ?? ""}|${period}|${tuples.join(";")}`)
+    .update(`${scope}|${campaignId ?? ""}|${period}|${tuples.join(";")}${changesPart}`)
     .digest("hex");
 }
 

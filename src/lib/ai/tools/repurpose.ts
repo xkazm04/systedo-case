@@ -73,7 +73,11 @@ const REPURPOSE_SCHEMA = {
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
 
-export function generateRepurpose(req: RepurposeRequest, locale?: SupportedLocale): Promise<AiResponse<RepurposeResult>> {
+export function generateRepurpose(
+  req: RepurposeRequest,
+  locale?: SupportedLocale,
+  signal?: AbortSignal
+): Promise<AiResponse<RepurposeResult>> {
   // Requested channels, restricted to the known set (order preserved); default
   // to all channels if none survive the filter.
   const known = new Set<string>(REPURPOSE_CHANNELS);
@@ -138,6 +142,8 @@ export function generateRepurpose(req: RepurposeRequest, locale?: SupportedLocal
   return generateStructured({
     // llm-tool: repurpose
     id: "repurpose",
+    // Light tool -> fast tier: haiku-class CLI in dev, flash-lite-class in prod.
+    tier: "fast",
     prompt: buildRepurposePrompt(req, channels),
     system: REPURPOSE_SYSTEM,
     schema: REPURPOSE_SCHEMA,
@@ -146,5 +152,6 @@ export function generateRepurpose(req: RepurposeRequest, locale?: SupportedLocal
     validate,
     demo: fallback,
     locale,
+    signal,
   });
 }

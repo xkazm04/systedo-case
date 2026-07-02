@@ -116,6 +116,8 @@ export async function POST(request: Request) {
       grounding: perfGrounding(),
       brand,
       locale: await getServerLocale(),
+      // Client abort propagation: a closed tab / re-run stops the provider work.
+      signal: request.signal,
     });
     return Response.json({
       drafts: response.result.posts,

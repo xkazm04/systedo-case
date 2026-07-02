@@ -40,6 +40,7 @@ function userIdOf(session: Session | null): string | null {
 async function loadState(tenant: string) {
   const meta = await getSyncMeta(tenant);
   const campaigns = await listCampaigns(tenant);
+  const changes = await getLatestChanges(tenant);
   const { reports, inputHashes } = meta
     ? await getReportsForPeriodWithHashes(tenant, meta.period)
     : { reports: {}, inputHashes: {} as Record<string, string | null> };
@@ -48,14 +49,16 @@ async function loadState(tenant: string) {
   // data on screen — i.e. a later sync changed the metrics it was based on, so
   // its score/recommendations may mislead. Reports predating input hashing
   // (null hash) can't be compared and are not flagged (no false alarms).
+  // The current hash folds in the sync diff exactly like the analyze route, so
+  // a fresh report is never flagged stale by hash-recipe mismatch.
   const staleKeys = meta
     ? Object.keys(reports).filter((key) => {
         const stored = inputHashes[key];
         if (!stored) return false;
         const current =
           key === "overall"
-            ? hashEvalInputs("overall", null, meta.period, campaigns)
-            : hashEvalInputs("campaign", key, meta.period, campaigns);
+            ? hashEvalInputs("overall", null, meta.period, campaigns, changes?.current ?? null)
+            : hashEvalInputs("campaign", key, meta.period, campaigns, changes?.current ?? null);
         return stored !== current;
       })
     : [];
@@ -66,7 +69,7 @@ async function loadState(tenant: string) {
     reports,
     staleKeys,
     histories: await getReportHistories(tenant),
-    changes: await getLatestChanges(tenant),
+    changes,
     series: await getSeries(tenant),
   };
 }

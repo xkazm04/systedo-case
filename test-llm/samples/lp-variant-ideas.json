@@ -1,0 +1,25 @@
+{
+  "variants": [
+    {
+      "label": "Konkrétní přínos",
+      "hypothesis": "Nadpis s konkrétním přínosem (přehled nad úkoly a projekty) zvýší konverzi oproti obecnému popisu produktu, protože návštěvník rychleji pochopí hodnotu nástroje.",
+      "headline": "Mějte všechny úkoly a projekty pod kontrolou na jednom místě",
+      "primaryCTA": "Vyzkoušet zdarma",
+      "rationale": "Konkrétní přínos komunikuje hodnotu rychleji než obecný popis a nespoléhá na slevu ani dlouhý formulář, které už neuspěly."
+    },
+    {
+      "label": "Problém napřed",
+      "hypothesis": "Pojmenování konkrétního problému (zmeškané termíny, chaos v úkolech) v nadpisu zvýší konverzi, protože osloví návštěvníky přesně v okamžiku, kdy tento problém řeší.",
+      "headline": "Konec zapomenutým úkolům a zmeškaným termínům",
+      "primaryCTA": "Zjistit, jak to funguje",
+      "rationale": "Agitace problému vytváří okamžitou relevanci a motivaci k akci, aniž by nabízela slevu nebo vyžadovala dlouhý formulář."
+    },
+    {
+      "label": "Rychlé bezbariérové vyzkoušení",
+      "hypothesis": "Zdůraznění rychlosti a jednoduchosti vstupu (bez dlouhého formuláře či karty) zvýší konverzi, protože odstraní obavu z časové a administrativní zátěže.",
+      "headline": "Vyzkoušejte nástroj na řízení projektů za méně než minutu",
+      "primaryCTA": "Začít bez karty",
+      "rationale": "Nízkoprahová nabídka přímo reaguje na neúspěch dlouhého formuláře tím, že slibuje minimální bariéru vstupu bez slevy."
+    }
+  ]
+}

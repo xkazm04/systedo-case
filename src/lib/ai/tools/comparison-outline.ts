@@ -247,7 +247,8 @@ function validateComparisonOutline(parsed: unknown): string[] {
 
 export function generateComparisonOutline(
   req: ComparisonOutlineRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<ComparisonOutlineResult>> {
   const fallback = (): ComparisonOutlineResult => demoComparisonOutline(req);
 
@@ -281,5 +282,6 @@ export function generateComparisonOutline(
     validate: validateComparisonOutline,
     demo: fallback,
     locale,
+    signal,
   });
 }

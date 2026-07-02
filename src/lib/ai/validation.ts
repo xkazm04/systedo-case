@@ -83,7 +83,10 @@ export function validateAdRequest(input: unknown, locale: SupportedLocale = "cs"
   if (!TONES.includes(tone)) {
     return { valid: false, error: t(locale, "Neplatný tón komunikace.", "Invalid communication tone.") };
   }
-  return { valid: true, value: { product, benefits, audience, platform, tone } };
+  const value: AdRequest = { product, benefits, audience, platform, tone };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
 }
 
 export function validateBriefRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<BriefRequest> {
@@ -108,7 +111,10 @@ export function validateBriefRequest(input: unknown, locale: SupportedLocale = "
   if (!CONTENT_TYPES.includes(contentType)) {
     return { valid: false, error: t(locale, "Neplatný typ obsahu.", "Invalid content type.") };
   }
-  return { valid: true, value: { topic, primaryKeyword, audience, contentType, keywords: parseKeywords(o.keywords) } };
+  const value: BriefRequest = { topic, primaryKeyword, audience, contentType, keywords: parseKeywords(o.keywords) };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
 }
 
 /** Sanitize optional grounding keywords carried over from the keyword tool —
@@ -135,11 +141,15 @@ export function validateAnalysisRequest(input: unknown, locale: SupportedLocale 
   if (typeof input !== "object" || input === null) {
     return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
-  const period = (input as Record<string, unknown>).period as AnalysisPeriod;
+  const o = input as Record<string, unknown>;
+  const period = o.period as AnalysisPeriod;
   if (!ANALYSIS_PERIODS.includes(period)) {
     return { valid: false, error: t(locale, "Neplatné období analýzy.", "Invalid analysis period.") };
   }
-  return { valid: true, value: { period } };
+  const value: AnalysisRequest = { period };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
 }
 
 export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LeadReplyRequest> {

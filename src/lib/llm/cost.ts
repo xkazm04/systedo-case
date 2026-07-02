@@ -6,7 +6,7 @@
  *  on-screen estimate — not billing. The dev Claude path runs on a subscription,
  *  so it has no per-token rate here and is reported as costUsd: 0 by the wrapper.
  */
-import { GEMINI_MODEL } from "./models";
+import { GEMINI_MODEL, GEMINI_MODEL_FAST } from "./models";
 
 export interface TokenUsage {
   inputTokens: number;
@@ -25,6 +25,9 @@ interface Rate {
 // the new key here or estimateCostUsd silently returns 0 (guarded with a warn below).
 const RATES: Record<string, Rate> = {
   [GEMINI_MODEL]: { inPerMTok: 0.075, outPerMTok: 0.3 },
+  // Fast tier (flash-lite class) — roughly half the flash rate, so the cheaper
+  // routing of light tools stays visible (and honest) in the cost telemetry.
+  [GEMINI_MODEL_FAST]: { inPerMTok: 0.0375, outPerMTok: 0.15 },
 };
 
 /** Estimated USD cost for a call, or 0 when the model has no metered rate. */

@@ -1,0 +1,89 @@
+{
+  "h1": "monday.com vs Trello: který nástroj pro projektový management je pro vás ten pravý?",
+  "sections": [
+    {
+      "heading": "Co je monday.com a co je Trello",
+      "points": [
+        "Stručné představení obou nástrojů a jejich základní filozofie (Work OS vs. kanban nástroj)",
+        "Pro jaký typ týmů a projektů se každý z nástrojů typicky používá",
+        "Historie a pozice na trhu projektového řízení – doplnit aktuální kontext"
+      ]
+    },
+    {
+      "heading": "Hlavní funkce a možnosti",
+      "points": [
+        "Porovnání pohledů na práci (tabulky, kanban, Gantt, kalendář, časová osa) – doplnit, co který nástroj nabízí",
+        "Automatizace a workflow pravidla",
+        "Sledování úkolů, termínů a odpovědností",
+        "Reporting a dashboardy – doplnit konkrétní rozsah funkcí"
+      ]
+    },
+    {
+      "heading": "Cena a tarify",
+      "points": [
+        "Přehled cenových úrovní obou nástrojů (free/starter/business/enterprise) – doplnit aktuální ceny",
+        "Limity bezplatné verze (počet uživatelů, desek, úložiště)",
+        "Co se odemyká v placených tarifech",
+        "Poznámka: ceny se často mění, ověřit před publikací"
+      ]
+    },
+    {
+      "heading": "Uživatelské rozhraní a snadnost použití",
+      "points": [
+        "Křivka učení pro nové uživatele a týmy",
+        "Míra vizuální přehlednosti a customizace rozhraní",
+        "Dostupnost šablon pro rychlý start",
+        "Mobilní aplikace a jejich funkčnost v terénu"
+      ]
+    },
+    {
+      "heading": "Integrace a rozšiřitelnost",
+      "points": [
+        "Podpora napojení na běžné nástroje (Slack, Google Workspace, Microsoft 365, Zapier apod.)",
+        "Dostupnost veřejného API pro vlastní integrace",
+        "Marketplace doplňků a rozšíření – doplnit konkrétní počty/příklady"
+      ]
+    },
+    {
+      "heading": "Pro koho se každý nástroj hodí",
+      "points": [
+        "monday.com: vhodné spíše pro týmy hledající komplexní Work OS s pokročilou customizací – doplnit konkrétní use-case",
+        "Trello: vhodné spíše pro jednodušší kanban workflow a menší týmy – doplnit konkrétní use-case",
+        "Doporučení podle velikosti firmy, rozpočtu a komplexity projektů"
+      ]
+    }
+  ],
+  "comparisonCriteria": [
+    "Cena a poměr cena/výkon",
+    "Snadnost použití a nástup nových uživatelů",
+    "Flexibilita a možnosti customizace",
+    "Automatizace a workflow",
+    "Integrace s dalšími nástroji",
+    "Reporting a analytika",
+    "Škálovatelnost pro rostoucí týmy",
+    "Kvalita zákaznické podpory"
+  ],
+  "verdict": "Volba mezi monday.com a Trello závisí především na komplexitě projektů a potřebě customizace – Trello obvykle vyhovuje jednodušším kanban workflow, zatímco monday.com je vhodnější pro týmy potřebující robustnější Work OS s pokročilými funkcemi. Doporučujeme doplnit konkrétní srovnání na základě aktuálních dat a zkušeností redakce.",
+  "faq": [
+    {
+      "q": "Je monday.com dražší než Trello?",
+      "a": "Obecně bývá monday.com vnímán jako nástroj s vyšší cenovou hladinou díky širší funkcionalitě, ale konkrétní srovnání cen je třeba doplnit podle aktuálních tarifů obou nástrojů."
+    },
+    {
+      "q": "Má Trello dostatečnou bezplatnou verzi pro malý tým?",
+      "a": "Bezplatné verze obou nástrojů mají svá omezení (počet desek, uživatelů, automatizací) – doporučujeme doplnit konkrétní limity platné v době publikace."
+    },
+    {
+      "q": "Lze snadno migrovat data mezi monday.com a Trello?",
+      "a": "Migrace je obvykle možná prostřednictvím exportu/importu nebo integračních nástrojů třetích stran – doplnit konkrétní postup a případná úskalí."
+    },
+    {
+      "q": "Který nástroj je jednodušší na zaučení nového týmu?",
+      "a": "Trello je díky jednoduchému kanban principu obecně považováno za rychlejší na zaučení, zatímco monday.com nabízí více možností za cenu strmější křivky učení – doplnit na základě zkušeností uživatelů."
+    },
+    {
+      "q": "Podporují oba nástroje integraci se Slackem a Google Workspace?",
+      "a": "Oba nástroje běžně nabízejí integrace s populárními pracovními nástroji, rozsah a hloubka integrací se ale liší – doplnit aktuální seznam podporovaných integrací."
+    }
+  ]
+}

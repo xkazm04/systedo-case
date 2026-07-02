@@ -206,7 +206,8 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
 
 export function generateCohortDiagnosis(
   req: CohortDiagnosisRequest,
-  locale?: SupportedLocale
+  locale?: SupportedLocale,
+  signal?: AbortSignal
 ): Promise<AiResponse<CohortDiagnosisResult>> {
   return generateStructured({
     // llm-tool: cohort-diagnosis
@@ -219,5 +220,6 @@ export function generateCohortDiagnosis(
     validate: (parsed) => validateCohortDiagnosis(parsed, req),
     demo: () => demoCohortDiagnosis(req),
     locale,
+    signal,
   });
 }

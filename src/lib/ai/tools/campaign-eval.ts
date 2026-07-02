@@ -21,6 +21,7 @@ import {
   withMetrics,
   type Campaign,
   type CampaignPeriod,
+  type ChangesSummary,
 } from "../../campaigns/types";
 import { buildCampaignPrompt, buildOverallPrompt } from "../../campaigns/report-input";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "../../format";
@@ -223,22 +224,29 @@ export function generateCampaignEvaluation(args: {
   period: CampaignPeriod;
   /** account's winning-pattern lines, to ground the portfolio prompt */
   patternLines?: string[];
+  /** sync-over-sync diff — grounds the prompts in the same change-aware triage
+   *  the UI badges show (roas_crater / spend_spike), so the evaluation can't
+   *  contradict a crater badge sitting next to it */
+  changes?: ChangesSummary;
   /** output language (defaults to Czech) */
   locale?: SupportedLocale;
+  /** client abort propagation (stops the provider work when the caller is gone) */
+  signal?: AbortSignal;
 }): Promise<AiResponse<CampaignReportResult>> {
   const single = args.scope === "campaign" && args.target;
   return generateStructured({
     // llm-tool: campaign-eval
     id: "campaign-eval",
     prompt: single
-      ? buildCampaignPrompt(args.target!, args.campaigns, args.period)
-      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? []),
+      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes)
+      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes),
     system: EVAL_SYSTEM,
     schema: EVAL_SCHEMA,
     temperature: 0.6,
     normalize: normalizeReport,
     validate: validateReport,
     locale: args.locale,
+    signal: args.signal,
     demo: () =>
       single ? demoCampaignReport(args.target!, args.campaigns) : demoOverallReport(args.campaigns),
   });

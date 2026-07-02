@@ -1,0 +1,9 @@
+{
+  "summary": "Akviziční výkon se mezi lednem a březnem 2025 prudce zhoršil: CAC vzrostl z 1 200 Kč na 2 100 Kč (+75 %), LTV kleslo z 5 400 Kč na 2 200 Kč (-59 %) a M3 retence z 62 % na 31 %. Poměr LTV:CAC se propadl ze 4,5× na 1,0× a návratnost u březnové kohorty přesahuje sledovaný horizont (nevrací se). Firma přitom objem akvizice zvyšuje (180 → 240 registrací), takže roste podíl nejméně ziskových uživatelů na celkovém mixu.",
+  "worstCohort": "2025-03",
+  "recommendation": "Okamžitě omezit škálování kanálu/kampaně, která přivedla březnovou kohortu, a rozpočet přesměrovat zpět k mixu srovnatelnému s lednem; klíčovou pákou je zvýšit M3 retenci zpět nad ~50 % (např. zlepšením onboardingu a time-to-value), protože právě pokles retence z 62 % na 31 % je hlavní příčinou kolapsu LTV a poměru LTV:CAC.",
+  "risks": [
+    "Další škálování bez zásahu prohloubí ztrátu, protože březnová kohorta má zároveň nejvyšší objem (240) i nejhorší jednotkovou ekonomiku.",
+    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je už pod hranicí návratnosti (1,0×)."
+  ]
+}

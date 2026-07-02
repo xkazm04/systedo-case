@@ -1,0 +1,6 @@
+{
+  "summary": "Zdroj Meta lead formuláře generuje výrazně méně kvalitní leady než ostatní kanály: míra kvalifikace 24,1 % je méně než poloviční oproti Google Search (41,0 %) a necelá polovina oproti doporučením (55,0 %), win rate 10,8 % je nejnižší ze všech srovnávaných zdrojů. Nízké CPL 178 Kč naznačuje snadnou, nízkoprahovou akvizici kontaktů, ale výsledná CPQL 738 Kč je téměř dvojnásobná oproti Google Search (392 Kč) a více než trojnásobná oproti doporučením (210 Kč) – zdroj tedy přivádí velký objem kontaktů, které neodpovídají profilu skutečného zákazníka, což ukazuje na špatně nastavené cílení publika u Meta lead formulářů.",
+  "likelyCause": "mis-targeting",
+  "recommendation": "Přenastavit cílení Meta lead formulářů (např. lookalike publikum postavené na uzavřených obchodech, nikoli na obecném zájmu) a část rozpočtu 96 000 Kč přesunout na Doporučení (referral), které má CPQL jen 210 Kč a win rate 24,0 %.",
+  "severity": "high"
+}

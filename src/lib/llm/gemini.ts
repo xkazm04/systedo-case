@@ -3,7 +3,7 @@
  *  outside development, or as the production fallback. The API key stays on the
  *  server and never reaches the client. */
 import { GoogleGenAI } from "@google/genai";
-import { GEMINI_MODEL } from "./models";
+import { geminiModelTag, type ModelTier } from "./models";
 import type { TokenUsage } from "./cost";
 
 /** Parsed model output plus the provider-reported token usage (when available). */
@@ -19,19 +19,22 @@ export function geminiAvailable(): boolean {
 
 /** Run a structured generation through Gemini. Returns the parsed JSON object
  *  (pre-normalization) and token usage. Throws when the key is missing or the
- *  model returns an empty body. */
+ *  model returns an empty body. `tier` picks the model tag (flash vs flash-lite);
+ *  `signal` aborts the SDK request when the client goes away. */
 export async function runGemini(args: {
   system: string;
   prompt: string;
   schema: object;
   temperature?: number;
+  tier?: ModelTier;
+  signal?: AbortSignal;
 }): Promise<GeminiResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Chybí GEMINI_API_KEY.");
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: geminiModelTag(args.tier),
     contents: args.prompt,
     config: {
       systemInstruction: args.system,
@@ -42,6 +45,9 @@ export async function runGemini(args: {
       // rates. Tools needing stricter output pass lower (analysis: 0.4). NOTE:
       // temperature is Gemini-only — the Claude CLI path (dev) ignores it.
       temperature: args.temperature ?? 0.7,
+      // Client abort propagation: stop the HTTP call when the caller aborted
+      // (the SDK cancels client-side; see GenerateContentConfig.abortSignal).
+      abortSignal: args.signal,
     },
   });
 
