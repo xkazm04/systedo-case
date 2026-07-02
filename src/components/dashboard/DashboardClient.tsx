@@ -59,6 +59,7 @@ const T = {
     goalMarker: "Cíl {pct}",
     goalMarkerNote: "Svislá značka = cílová hodnota PNO.",
     alerts: "Upozornění",
+    alertFocusTitle: "Zobrazit tuto událost v grafu",
     alertsImpact: "Odhadovaný dopad těchto událostí:",
     alertsImpactTitle:
       "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním ve zvoleném období",
@@ -117,6 +118,7 @@ const T = {
     goalMarker: "Target {pct}",
     goalMarkerNote: "Vertical marker = PNO target.",
     alerts: "Alerts",
+    alertFocusTitle: "Show this event on the chart",
     alertsImpact: "Estimated impact of these events:",
     alertsImpactTitle:
       "Sum of revenue and cost deviations from expected on flagged days in the selected period",
@@ -225,6 +227,19 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   const [periodKey, setPeriodKey] = useState("90d");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
   const [baselineChoice, setBaselineChoice] = useState<PeriodBaseline>("previous");
+  // "See this alert in context": clicking an alert switches the chart to the
+  // event's metric and pins its point (seq bumps so a repeat click re-applies).
+  const [chartFocus, setChartFocus] = useState<{ date: string; seq: number } | null>(null);
+  const chartCardRef = useRef<HTMLDivElement>(null);
+
+  const focusAlert = (a: Anomaly) => {
+    // goal-breach alerts describe PNO against the goal; other kinds carry their
+    // own metric. Only switch to metrics the selector actually offers.
+    const metric: MetricKey = a.kind === "goal-breach" ? "pno" : a.metric;
+    if (TREND_METRICS.includes(metric)) setTrendMetric(metric);
+    setChartFocus((f) => ({ date: a.date, seq: (f?.seq ?? 0) + 1 }));
+    chartCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[1];
   // YoY is hidden for the 12-month view: its adjacent comparison window already
@@ -414,7 +429,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
       )}
 
       {/* trend chart */}
-      <div className="card p-5 sm:p-6">
+      <div ref={chartCardRef} className="card p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-navy-800">{t("trendHeading")}</h2>
@@ -438,6 +453,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             granularity={period.granularity}
             anomalies={anomalies}
             goalValue={trendMetric === "pno" ? goalPno : undefined}
+            focus={chartFocus}
           />
         </div>
       </div>
@@ -541,24 +557,34 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                 {topAnomalies.map((a, i) => {
                   const ins = anomalyLine(a, fmt, t, locale);
                   return (
-                    <li key={i} className="flex gap-2.5 text-sm">
-                      <span
-                        className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${
-                          ins.tone === "good"
-                            ? "bg-positive-soft text-positive"
-                            : "bg-coral-soft text-coral-600"
-                        }`}
+                    <li key={i}>
+                      {/* the alert and the chart's anomaly diamond describe the
+                          same event — clicking here switches the chart to the
+                          event's metric and pins its point in context */}
+                      <button
+                        type="button"
+                        onClick={() => focusAlert(a)}
+                        title={t("alertFocusTitle")}
+                        className="group -mx-1.5 flex w-[calc(100%+0.75rem)] gap-2.5 rounded-lg px-1.5 py-0.5 text-left text-sm transition-colors hover:bg-canvas/70"
                       >
-                        {ins.tone === "good" ? (
-                          <TrendUp width={12} height={12} />
-                        ) : (
-                          <TrendDown width={12} height={12} />
-                        )}
-                      </span>
-                      <span className="leading-snug text-navy-700">
-                        <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span>{" "}
-                        — {ins.text}
-                      </span>
+                        <span
+                          className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                            ins.tone === "good"
+                              ? "bg-positive-soft text-positive"
+                              : "bg-coral-soft text-coral-600"
+                          }`}
+                        >
+                          {ins.tone === "good" ? (
+                            <TrendUp width={12} height={12} />
+                          ) : (
+                            <TrendDown width={12} height={12} />
+                          )}
+                        </span>
+                        <span className="leading-snug text-navy-700 group-hover:text-navy-800">
+                          <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span>{" "}
+                          — {ins.text}
+                        </span>
+                      </button>
                     </li>
                   );
                 })}

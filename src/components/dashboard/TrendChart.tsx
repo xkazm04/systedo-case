@@ -67,6 +67,7 @@ export default function TrendChart({
   granularity,
   anomalies,
   goalValue,
+  focus,
 }: {
   data: Bucket[];
   /** equal-length comparison window, overlaid index-aligned as a faint dotted line */
@@ -83,6 +84,10 @@ export default function TrendChart({
    *  reference line (e.g. the PNO goal), so the viewer sees WHEN the series
    *  crossed it, not just that breach markers exist */
   goalValue?: number;
+  /** "see this alert in context": a date to pin the crosshair + tooltip on
+   *  (resolved to a bucket like the anomaly markers). `seq` bumps per request
+   *  so clicking the same alert again re-focuses after the user moved away. */
+  focus?: { date: string; seq: number } | null;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -100,6 +105,25 @@ export default function TrendChart({
     setW(el.clientWidth);
     return () => ro.disconnect();
   }, []);
+
+  // Focus request from the alerts feed: resolve the event's date to a visible
+  // bucket (exact date for daily granularity, same YYYY-MM for monthly — the
+  // same matching the anomaly markers use) and seed the existing hover state,
+  // so the crosshair + tooltip open pinned on that point. The next pointer
+  // move / leave clears it exactly like a normal hover.
+  useEffect(() => {
+    if (!focus) return;
+    const idx =
+      granularity === "month"
+        ? data.findIndex((d) => d.date.slice(0, 7) === focus.date.slice(0, 7))
+        : data.findIndex((d) => d.date === focus.date);
+    if (idx < 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHover(idx);
+    // Only the focus request triggers a pin — a data/granularity change must
+    // not re-apply a stale alert focus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   const n = data.length;
   const values = data.map((d) => d[metric]);
