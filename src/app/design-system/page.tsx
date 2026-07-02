@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import type { SVGProps, ReactElement } from "react";
 import Link from "next/link";
-import { Container, Eyebrow, Pill, PILL_TONE_NAMES } from "@/components/ui";
+import {
+  Button,
+  BUTTON_SIZE_NAMES,
+  BUTTON_VARIANT_NAMES,
+  Container,
+  Eyebrow,
+  Pill,
+  PILL_TONE_NAMES,
+} from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
 import LocaleShowcase from "@/components/LocaleShowcase";
 import * as Icons from "@/components/icons";
@@ -174,6 +182,7 @@ export default function DesignSystemPage() {
             {[
               ["Barvy", "#barvy"],
               ["Typografie", "#typografie"],
+              ["Tlačítka", "#tlacitka"],
               ["Pill", "#pill"],
               ["Ikony", "#ikony"],
               ["Sparkline", "#sparkline"],
@@ -304,6 +313,31 @@ export default function DesignSystemPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </Section>
+
+        {/* ----------------------------------------------------------- Buttons */}
+        <Section
+          id="tlacitka"
+          testid="ds-buttons"
+          eyebrow="Komponenta"
+          title="Tlačítka — varianty a velikosti"
+          intro="Sdílený primitiv Button, extrahovaný z ~185 ručně psaných tlačítek. Čtyři varianty × tři velikosti, enumerované přímo z komponenty. Výchozí typ je button (nikdy neodešle formulář omylem); s parametrem href se vykreslí jako odkaz se stejným stylem."
+        >
+          <div className="card space-y-5 p-6">
+            {BUTTON_VARIANT_NAMES.map((variant) => (
+              <div key={variant} className="flex flex-wrap items-center gap-3">
+                <span className="tnum w-24 shrink-0 text-[13px] text-muted">{variant}</span>
+                {BUTTON_SIZE_NAMES.map((size) => (
+                  <Button key={size} variant={variant} size={size}>
+                    {variant} · {size}
+                  </Button>
+                ))}
+                <Button variant={variant} size="md" disabled>
+                  disabled
+                </Button>
+              </div>
+            ))}
           </div>
         </Section>
 

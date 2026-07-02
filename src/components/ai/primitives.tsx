@@ -5,6 +5,7 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { Button } from "@/components/ui";
 import { AI_TIMER_TARGET_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
 
 const T = {
@@ -321,20 +322,13 @@ export function ToolError({
       <p className="text-sm font-semibold text-negative">{t("generationFailed")}</p>
       <p className="mt-1 text-sm text-muted">{message}</p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={onRetry}
-          className="rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 hover:border-brand-300"
-        >
+        <Button variant="secondary" size="sm" onClick={onRetry}>
           {t("retry")}
-        </button>
+        </Button>
         {upgradeUrl && (
-          <a
-            href={upgradeUrl}
-            className="rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-          >
+          <Button href={upgradeUrl} variant="primary" size="sm">
             {t("upgradeCta")}
-          </a>
+          </Button>
         )}
         {retryAfter != null && retryAfter > 0 && (
           <span className="text-xs text-muted">{t("retryIn", { n: retryAfter })}</span>
