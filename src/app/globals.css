@@ -372,6 +372,34 @@ html[data-theme="dark"] .theme-toggle-moon {
   animation: drop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Route-level loading fallback (app/loading.tsx). The reveal holds opacity 0
+   for the first 40% of its 0.5s run (~200ms), so fast navigations swap in the
+   real page before the spinner ever paints — no flash on quick round-trips. */
+@keyframes loadingReveal {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes loadingPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.animate-loading-reveal {
+  animation: loadingReveal 0.5s ease both;
+}
+.animate-loading-pulse {
+  animation: loadingPulse 1.6s ease-in-out infinite;
+}
+
 /* hide scrollbars on horizontally-scrollable control strips (mobile) */
 .no-scrollbar {
   -ms-overflow-style: none;
@@ -388,6 +416,12 @@ html[data-theme="dark"] .theme-toggle-moon {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  /* the loading pulse is infinite — stop it outright rather than let the
+     0.01ms duration spin it; the mark just shows statically at full opacity */
+  .animate-loading-pulse {
+    animation: none !important;
+    opacity: 1;
   }
 }
 
