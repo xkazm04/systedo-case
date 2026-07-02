@@ -32,6 +32,12 @@ const T = {
     statDoneValue: "Hotovo",
     statDoneSub: "měsíc uzavřen",
     statDaysSub: "z {total} dní",
+    statRequiredLabel: "Potřebné tempo",
+    statRequiredSub: "vs. {recent}/den nyní",
+    statRequiredTitle:
+      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
+    statRequiredTitleOnPace:
+      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel — současné tempo stačí.",
     planTitle: "Dnešní plán {amount}",
     goalTitle: "Cíl {amount}",
     ciBandTitle: "Pravděpodobné rozpětí konce měsíce {low} – {high}",
@@ -63,6 +69,12 @@ const T = {
     statDoneValue: "Done",
     statDoneSub: "month closed",
     statDaysSub: "of {total} days",
+    statRequiredLabel: "Required pace",
+    statRequiredSub: "vs. {recent}/day now",
+    statRequiredTitle:
+      "Average daily revenue the remaining days must deliver to still hit the monthly target. At the current ROAS that is ≈ +{spend}/day of extra spend.",
+    statRequiredTitleOnPace:
+      "Average daily revenue the remaining days must deliver to still hit the monthly target — the current pace suffices.",
     planTitle: "Today's plan {amount}",
     goalTitle: "Target {amount}",
     ciBandTitle: "Probable month-end range {low} – {high}",
@@ -95,6 +107,9 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
     probabilityReliable,
     attainment,
     willHitGoal,
+    requiredDailyRevenue,
+    recentDailyRevenue,
+    impliedExtraDailySpend,
   } = pacing;
 
   // One axis shared by the fill, the forecast extension and both markers.
@@ -113,6 +128,10 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
     planPart: complete ? "" : t("gaugePlanPart"),
     ciPart: complete ? "" : t("gaugeCiPart"),
   });
+
+  // Show the required-pace tile whenever days remain AND a goal gap remains —
+  // once the goal is banked (required = 0) the tile would be noise.
+  const showRequired = !complete && requiredDailyRevenue > 0;
 
   return (
     <div className="card animate-fade-up p-5 sm:p-6">
@@ -218,8 +237,13 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
           <p className="mt-2 text-[13px] text-muted">{gaugeNote}</p>
         </div>
 
-        {/* stat tiles */}
-        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 lg:gap-0 lg:divide-y lg:divide-line">
+        {/* stat tiles — the required-pace prescription joins the three gauges
+            whenever a goal gap remains to be closed (2×2 on small screens) */}
+        <dl
+          className={`grid grid-cols-1 gap-3 ${
+            showRequired ? "sm:grid-cols-2" : "sm:grid-cols-3"
+          } lg:grid-cols-1 lg:gap-0 lg:divide-y lg:divide-line`}
+        >
           <Stat
             label={t("statMtdLabel")}
             value={fmt.fmtCZK(mtd)}
@@ -236,6 +260,21 @@ export default function GoalPacing({ pacing }: { pacing: MonthlyPacing }) {
             value={complete ? t("statDoneValue") : String(daysRemaining)}
             sub={complete ? t("statDoneSub") : t("statDaysSub", { total: daysInMonth })}
           />
+          {/* the prescription: what the remaining days must average — turns the
+              passive forecast into a daily operating target */}
+          {showRequired && (
+            <Stat
+              label={t("statRequiredLabel")}
+              value={fmt.fmtCZK(requiredDailyRevenue)}
+              sub={t("statRequiredSub", { recent: fmt.fmtCZKCompact(recentDailyRevenue) })}
+              tone={requiredDailyRevenue > recentDailyRevenue ? "text-coral-600" : "text-positive"}
+              title={
+                impliedExtraDailySpend >= 1
+                  ? t("statRequiredTitle", { spend: fmt.fmtCZKCompact(impliedExtraDailySpend) })
+                  : t("statRequiredTitleOnPace")
+              }
+            />
+          )}
         </dl>
       </div>
     </div>
@@ -247,14 +286,17 @@ function Stat({
   value,
   sub,
   tone = "text-navy-800",
+  title,
 }: {
   label: string;
   value: string;
   sub?: string;
   tone?: string;
+  /** optional hover explanation for the tile */
+  title?: string;
 }) {
   return (
-    <div className="lg:py-2.5 lg:first:pt-0 lg:last:pb-0">
+    <div className="lg:py-2.5 lg:first:pt-0 lg:last:pb-0" title={title}>
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={`tnum mt-1 text-lg font-semibold ${tone}`}>{value}</dd>
       {sub && <dd className="mt-0.5 text-[13px] text-muted">{sub}</dd>}

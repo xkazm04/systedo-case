@@ -2,6 +2,11 @@
 
 import type { DailyPoint } from "../types";
 import { dailyRevenueSigma, normalCdf, weekdayWeights } from "./seasonality";
+import { totalsOf } from "./totals";
+
+/** Trailing window whose ROAS converts a revenue-pace shortfall into the extra
+ *  daily ad spend it would take to close it (matches the anomaly baseline span). */
+const ROAS_WINDOW_DAYS = 28;
 
 /** Days that must have elapsed before goalProbability is quoted as a hard number.
  *  Below this the i.i.d.-normal forecast is too volatile to state a precise %. */
@@ -46,6 +51,22 @@ export interface MonthlyPacing {
   attainment: number;
   /** projection ≥ goal */
   willHitGoal: boolean;
+  /** revenue/day the remaining days must average for the month to still hit the
+   *  goal: max(0, goal − mtd) / daysRemaining. 0 when the month is complete or
+   *  the goal is already banked — the prescription behind "behind plan". */
+  requiredDailyRevenue: number;
+  /** revenue/day the remaining days are expected to deliver at the current pace,
+   *  implied by the seasonality-weighted projection ((projection − mtd) /
+   *  daysRemaining) — so it already carries the weekday shape of the recent past
+   *  rather than a flat linear run-rate. 0 when the month is complete. */
+  recentDailyRevenue: number;
+  /** requiredDailyRevenue / recentDailyRevenue — how much the remaining pace must
+   *  accelerate (> 1 = behind, ≤ 1 = current pace suffices); 0 when recent is 0 */
+  requiredVsRecent: number;
+  /** extra ad spend per day implied by the pace shortfall at the trailing 28-day
+   *  ROAS: max(0, required − recent) / roas. The steering number — "at current
+   *  ROAS that's ≈ +X Kč/day of spend". 0 when on pace or ROAS is unknown. */
+  impliedExtraDailySpend: number;
 }
 
 /**
@@ -97,6 +118,15 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
   const goalProbability =
     remainingStd > 0 ? normalCdf((projection - goal) / remainingStd) : projection >= goal ? 1 : 0;
 
+  // Required-pace prescription: what the remaining days must average vs what
+  // they are on track to deliver, and the extra daily spend the gap implies.
+  const requiredDailyRevenue = daysRemaining > 0 ? Math.max(0, goal - mtd) / daysRemaining : 0;
+  const recentDailyRevenue = daysRemaining > 0 ? Math.max(0, projection - mtd) / daysRemaining : 0;
+  const requiredVsRecent = recentDailyRevenue > 0 ? requiredDailyRevenue / recentDailyRevenue : 0;
+  const recentRoas = totalsOf(daily.slice(-ROAS_WINDOW_DAYS)).roas;
+  const impliedExtraDailySpend =
+    recentRoas > 0 ? Math.max(0, requiredDailyRevenue - recentDailyRevenue) / recentRoas : 0;
+
   return {
     monthStart: `${ym}-01`,
     daysInMonth,
@@ -115,5 +145,9 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
     probabilityReliable: daysRemaining === 0 || daysElapsed >= MIN_ELAPSED_DAYS_FOR_PROBABILITY,
     attainment: goal > 0 ? projection / goal : 0,
     willHitGoal: projection >= goal,
+    requiredDailyRevenue,
+    recentDailyRevenue,
+    requiredVsRecent,
+    impliedExtraDailySpend,
   };
 }
