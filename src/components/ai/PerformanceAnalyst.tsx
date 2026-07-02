@@ -17,6 +17,7 @@ import {
   Group,
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolEmpty,
@@ -83,7 +84,7 @@ export default function PerformanceAnalyst() {
   // after 90d no longer overwrites the 90d analysis, switching the period
   // restores its cached result instantly (no re-generation, no lost result),
   // and the rendered analysis always belongs to the selected period.
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
     useAiTool<AnalysisResult>("analysis", period);
 
   const r = data?.result;
@@ -286,6 +287,10 @@ export default function PerformanceAnalyst() {
                 </ol>
               </Group>
             )}
+
+            {/* Iterate on the last generation with a steering note (server-side
+                refine) instead of mangling the form to bust the response cache. */}
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

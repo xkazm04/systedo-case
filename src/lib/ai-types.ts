@@ -126,6 +126,9 @@ export interface AdRequest {
   audience: string;
   platform: Platform;
   tone: Tone;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 export interface AdResult {
@@ -173,6 +176,9 @@ export interface BriefRequest {
   contentType: ContentType;
   /** optional real keyword data carried over from the keyword-research tool */
   keywords?: BriefKeyword[];
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 export interface BriefResult {
@@ -214,6 +220,9 @@ export function analysisPeriodLabel(p: AnalysisPeriod, locale: SupportedLocale):
 
 export interface AnalysisRequest {
   period: AnalysisPeriod;
+  /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
 }
 
 export interface AnalysisResult {

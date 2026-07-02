@@ -35,6 +35,7 @@ import {
   Group,
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolEmpty,
@@ -391,7 +392,7 @@ export default function AdGenerator({
     seed ? { ...EMPTY, ...seed } : EMPTY,
     { skipRestore: Boolean(seed), validate: isAdForm }
   );
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
     useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");
   const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
@@ -767,6 +768,10 @@ export default function AdGenerator({
                 <p className="mt-1.5 text-sm leading-relaxed text-navy-700">{r.rationale}</p>
               </div>
             )}
+
+            {/* Iterate on the last generation with a steering note (server-side
+                refine) instead of mangling the form to bust the response cache. */}
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

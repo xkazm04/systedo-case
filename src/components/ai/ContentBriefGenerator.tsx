@@ -36,6 +36,7 @@ import {
   Group,
   LoadingTimer,
   PromptDisclosure,
+  RefineBar,
   ResultMeta,
   TimeoutState,
   ToolEmpty,
@@ -339,7 +340,7 @@ export default function ContentBriefGenerator({
     { skipRestore: Boolean(seed), validate: isBriefForm }
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
     useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
@@ -639,6 +640,10 @@ export default function ContentBriefGenerator({
                 publishable draft as the app's typed Block[] + FAQ, rendered with
                 the same ArticleBody as /clanek and exportable as .md / JSON. */}
             <ArticleDraftPanel brief={r} />
+
+            {/* Iterate on the last generation with a steering note (server-side
+                refine) instead of mangling the form to bust the response cache. */}
+            {canRefine && <RefineBar onRefine={refine} />}
 
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>
