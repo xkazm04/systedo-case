@@ -15,6 +15,15 @@ export function canonical(path = "/"): string {
   return new URL(path, SITE_URL).toString();
 }
 
+/** Product/brand name, shared by the root metadata and the web app manifest so
+ *  an installed/pinned instance can never drift from the browser tab. */
+export const SITE_NAME = "Adamant";
+
+/** One-line product description — the root metadata and the manifest read the
+ *  same string. */
+export const SITE_DESCRIPTION =
+  "Adamant is the AI workspace for advertising — a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.";
+
 /** Stack facts shown in the footer "O projektu" column — a single source of
  *  truth so the footer can't contradict the rest of the app. The model line is
  *  imported from the LLM wrapper (not hand-typed) so it can never drift from the

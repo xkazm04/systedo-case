@@ -7,7 +7,7 @@ import ChromeGate from "@/components/site/ChromeGate";
 import Providers from "@/components/auth/Providers";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/locale";
-import { SITE_URL } from "@/lib/site";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import { auth, DEV_AUTH } from "@/auth";
 import { DevInspector } from "./_dev-inspector/DevInspector";
 import { getT } from "@/lib/i18n/server";
@@ -15,18 +15,15 @@ import { getT } from "@/lib/i18n/server";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-const SITE = "Adamant";
-
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: "Adamant — AI ad intelligence",
-    template: `%s · ${SITE}`,
+    template: `%s · ${SITE_NAME}`,
   },
-  description:
-    "Adamant is the AI workspace for advertising — a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.",
-  applicationName: SITE,
-  authors: [{ name: "Adamant" }],
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  authors: [{ name: SITE_NAME }],
   keywords: ["Adamant", "advertising", "ads", "PPC", "marketing", "dashboard", "AI", "adtech"],
   openGraph: {
     title: "Adamant — AI ad intelligence",
