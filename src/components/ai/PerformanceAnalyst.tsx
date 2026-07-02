@@ -70,8 +70,12 @@ export default function PerformanceAnalyst() {
   const t = useT(T);
   const { locale } = useLocale();
   const [period, setPeriod] = useState<AnalysisPeriod>("90d");
+  // One persistence slot PER PERIOD (analysis.30d / .90d / .12m): running 30d
+  // after 90d no longer overwrites the 90d analysis, switching the period
+  // restores its cached result instantly (no re-generation, no lost result),
+  // and the rendered analysis always belongs to the selected period.
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore } =
-    useAiTool<AnalysisResult>("analysis");
+    useAiTool<AnalysisResult>("analysis", period);
 
   const r = data?.result;
   const copyAllText = r
@@ -198,6 +202,14 @@ export default function PerformanceAnalyst() {
             <ResultMeta
               meta={data.meta}
               copyAllText={copyAllText}
+              // The result is stored per period, so the selected period IS the
+              // period this analysis covers — label it to kill the old
+              // "picker says 30 dní, text analyses 12 months" mismatch.
+              extra={
+                <span className="pill bg-brand-50 text-brand-700">
+                  {analysisPeriodLabel(period, locale)}
+                </span>
+              }
               history={history}
               activeIndex={activeIndex}
               onRestore={restore}

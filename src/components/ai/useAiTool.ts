@@ -29,8 +29,11 @@ type Status = "idle" | "loading" | "done" | "error";
 /** localStorage key for a tool's generation history, so results survive a
  *  refresh / tab switch. The slot holds a bounded, newest-first list (see
  *  lib/ai/history) — a re-run appends instead of destroying the previous
- *  generation the user paid quota for. */
-const resultKey = (mode: string) => `systedo.ai.result.${mode}`;
+ *  generation the user paid quota for. An optional variant suffix gives one
+ *  mode several independent slots (e.g. one analysis per period: `.90d`);
+ *  the default (no variant) keeps every existing tool's key byte-identical. */
+const resultKey = (mode: string, variant?: string) =>
+  `systedo.ai.result.${mode}${variant ? `.${variant}` : ""}`;
 
 /** Hard ceiling: if the model hasn't answered in time, abort and show a timeout.
  *  Environment-aware, because the two providers have very different latency:
@@ -50,8 +53,11 @@ export const AI_TIMER_TARGET_MS = process.env.NODE_ENV === "production" ? 18_000
 export const AI_TIMEOUT_SECONDS = Math.round(AI_TIMEOUT_MS / 1000);
 
 /** Shared request lifecycle for every AI tool: posts {mode, ...payload} to the
- *  single /api/ai endpoint, tracks status/data/error, and aborts after the ceiling. */
-export function useAiTool<T>(mode: string) {
+ *  single /api/ai endpoint, tracks status/data/error, and aborts after the ceiling.
+ *  `variant` selects an independent persistence slot within the mode (see
+ *  resultKey) — switching it restores that slot's result instead of mislabeling
+ *  the previous one. */
+export function useAiTool<T>(mode: string, variant?: string) {
   const t = useT(T);
   const [status, setStatus] = useState<Status>("idle");
   const [data, setData] = useState<AiResponse<T> | null>(null);
@@ -95,24 +101,35 @@ export function useAiTool<T>(mode: string) {
   // server render and the first client render identical, so the set-state-in-effect
   // rule is suppressed deliberately for the restore calls below.
   useEffect(() => {
+    // Switching the storage slot (mode or variant) supersedes any in-flight run —
+    // a late response must not land in the newly selected slot's UI.
+    controllerRef.current?.abort();
+    runIdRef.current += 1;
     let entries: AiHistoryEntry<T>[] = [];
     try {
-      const raw = window.localStorage.getItem(resultKey(mode));
+      const raw = window.localStorage.getItem(resultKey(mode, variant));
       entries = parseStoredHistory<T>(raw);
       // A slot that exists but yields nothing is stale (schema bump) or corrupt.
-      if (raw && entries.length === 0) window.localStorage.removeItem(resultKey(mode));
+      if (raw && entries.length === 0) window.localStorage.removeItem(resultKey(mode, variant));
     } catch {
       /* corrupt or unavailable storage — start fresh */
     }
     historyRef.current = entries;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHistory(entries);
+    setActiveIndex(0);
+    setError(null);
+    setTimedOut(false);
     if (entries.length > 0) {
       setData(entries[0].payload);
       setStatus("done");
-      setActiveIndex(0);
+    } else {
+      // A slot with nothing stored must not keep showing the previous slot's
+      // result (that mismatch is exactly what per-variant slots remove).
+      setData(null);
+      setStatus("idle");
     }
-  }, [mode]);
+  }, [mode, variant]);
 
   // Live countdown for a rate-limited request: tick retryIn down once per second
   // until it hits 0, at which point the error UI re-enables its retry action.
@@ -180,7 +197,7 @@ export function useAiTool<T>(mode: string) {
       });
       commitHistory(next);
       try {
-        window.localStorage.setItem(resultKey(mode), serializeHistory(next));
+        window.localStorage.setItem(resultKey(mode, variant), serializeHistory(next));
       } catch {
         /* over quota / unavailable — keep the in-memory result, just don't persist */
       }
