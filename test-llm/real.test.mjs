@@ -12,22 +12,44 @@ import assert from "node:assert/strict";
 import { generateStructured, CLAUDE_MODEL } from "../src/lib/llm/index.ts";
 import { LLM_TOOLS } from "./registry.mjs";
 
-const PER_TEST_TIMEOUT = 120_000;
+// Three attempts because the Claude CLI occasionally returns a truncated /
+// invalid-JSON response, which the wrapper absorbs by falling back to the demo
+// stub (meta.demo=true). That is a transient CLI flake, not a contract break, so
+// we retry it; a genuinely broken tool fails all attempts. Timeout covers the
+// worst case of MAX_ATTEMPTS slow real calls back to back.
+const MAX_ATTEMPTS = 3;
+const PER_TEST_TIMEOUT = 300_000;
+
+/** True when a call produced a real, provider-backed, schema-valid result. */
+function passed(tool, res) {
+  return res.meta.demo === false && res.meta.model === CLAUDE_MODEL && tool.validate(res.result);
+}
 
 for (const tool of LLM_TOOLS) {
   test(`LLM wrapper · ${tool.id} (${tool.label}) · real Claude`, { timeout: PER_TEST_TIMEOUT }, async () => {
-    const res = await generateStructured({
-      system: tool.system,
-      prompt: tool.prompt,
-      schema: tool.schema,
-      normalize: (parsed) => parsed,
-      demo: () => ({ __demo: true }),
-    });
+    let res;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      res = await generateStructured({
+        system: tool.system,
+        prompt: tool.prompt,
+        schema: tool.schema,
+        normalize: (parsed) => parsed,
+        demo: () => ({ __demo: true }),
+      });
+      if (passed(tool, res)) break;
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(
+          `[${tool.id}] attempt ${attempt}/${MAX_ATTEMPTS} flaked (demo=${res.meta.demo}, model=${res.meta.model}) — retrying`
+        );
+      }
+    }
 
+    // Assert on the final attempt so a persistent failure still reports a
+    // meaningful message; a transient flake will have broken out above.
     assert.equal(
       res.meta.demo,
       false,
-      `[${tool.id}] got the demo fallback — is the Claude CLI installed and logged in?`
+      `[${tool.id}] got the demo fallback after ${MAX_ATTEMPTS} attempts — is the Claude CLI installed and logged in?`
     );
     assert.equal(res.meta.model, CLAUDE_MODEL, `[${tool.id}] expected the Claude provider in dev`);
     assert.ok(
