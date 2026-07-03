@@ -51,6 +51,7 @@ const T = {
 const COLORS: Record<MetricKey, string> = {
   revenue: "var(--color-brand-500)",
   cost: "var(--color-coral-500)",
+  profit: "var(--color-brand-600)",
   visits: "var(--color-navy-400)",
   conversions: "var(--color-brand-700)",
   pno: "var(--color-navy-600)",

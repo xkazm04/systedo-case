@@ -172,6 +172,7 @@ const T = {
 const TREND_CSV_METRICS: MetricKey[] = [
   "revenue",
   "cost",
+  "profit",
   "visits",
   "conversions",
   "pno",
@@ -326,6 +327,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         })}
       </span>
     ),
+    profit: null,
     aov: null,
     cr: null,
     roas: null,

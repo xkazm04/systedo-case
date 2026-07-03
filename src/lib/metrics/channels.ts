@@ -36,6 +36,7 @@ export function channelRows(channels: ChannelShare[], totals: Totals): ChannelRo
         // CTR/CPC lives on the period totals.
         impressions: 0,
         clicks: 0,
+        profit: revenue - cost,
         pno: safe(cost, revenue),
         aov: safe(revenue, conversions),
         cr: safe(conversions, visits),
@@ -68,6 +69,7 @@ export function channelRowsCompared(
       cost: rel(row.cost, prev?.cost ?? 0),
       conversions: rel(row.conversions, prev?.conversions ?? 0),
       revenue: rel(row.revenue, prev?.revenue ?? 0),
+      profit: rel(row.profit, prev?.profit ?? 0),
       pno: rel(row.pno, prev?.pno ?? 0),
       aov: rel(row.aov, prev?.aov ?? 0),
       cr: rel(row.cr, prev?.cr ?? 0),

@@ -98,6 +98,19 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     formatCompact: (v, f = csF) => f.fmtCZKCompact(v),
     plottable: true,
   },
+  profit: {
+    key: "profit",
+    label: "Přínos po nákladech",
+    short: "Přínos",
+    description: "Obrat připsaný marketingu po odečtení nákladů = obrat − náklady.",
+    labelEn: "Net contribution",
+    shortEn: "Contribution",
+    descriptionEn: "Marketing-attributed revenue minus ad spend = revenue − cost.",
+    goodDirection: "up",
+    format: (v, f = csF) => f.fmtCZK(v),
+    formatCompact: (v, f = csF) => f.fmtCZKCompact(v),
+    plottable: true,
+  },
   pno: {
     key: "pno",
     label: "PNO",
@@ -193,6 +206,7 @@ export const HEADLINE_METRICS: MetricKey[] = [
 export const TREND_METRICS: MetricKey[] = [
   "revenue",
   "cost",
+  "profit",
   "visits",
   "conversions",
   "pno",

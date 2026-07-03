@@ -80,6 +80,7 @@ function dailyValue(p: DailyPoint, key: MetricKey): number {
     case "cost": return p.cost;
     case "conversions": return p.conversions;
     case "revenue": return p.revenue;
+    case "profit": return p.revenue - p.cost;
     case "pno": return p.revenue > 0 ? p.cost / p.revenue : 0;
     case "aov": return p.conversions > 0 ? p.revenue / p.conversions : 0;
     case "cr": return p.visits > 0 ? p.conversions / p.visits : 0;
@@ -171,6 +172,7 @@ function compareWindows(
     cost: rel(c.cost, p.cost),
     conversions: rel(c.conversions, p.conversions),
     revenue: rel(c.revenue, p.revenue),
+    profit: rel(c.profit, p.profit),
     pno: rel(c.pno, p.pno),
     aov: rel(c.aov, p.aov),
     cr: rel(c.cr, p.cr),
@@ -183,6 +185,7 @@ function compareWindows(
     cost: significanceFor(current, previous, "cost"),
     conversions: significanceFor(current, previous, "conversions"),
     revenue: significanceFor(current, previous, "revenue"),
+    profit: significanceFor(current, previous, "profit"),
     pno: significanceFor(current, previous, "pno"),
     aov: significanceFor(current, previous, "aov"),
     cr: significanceFor(current, previous, "cr"),

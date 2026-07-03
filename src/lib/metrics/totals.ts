@@ -13,6 +13,8 @@ export interface Totals {
   impressions: number;
   /** paid ad clicks (0 when the dataset doesn't carry the paid-traffic pair) */
   clicks: number;
+  /** contribution after ad spend = revenue − cost (margin-free "profit") */
+  profit: number;
   /** podíl nákladů na obratu = cost / revenue */
   pno: number;
   /** average order value = revenue / conversions */
@@ -56,6 +58,7 @@ export function totalsOf(points: DailyPoint[]): Totals {
   );
   return {
     ...sum,
+    profit: sum.revenue - sum.cost,
     pno: pno(sum.cost, sum.revenue),
     aov: aov(sum.revenue, sum.conversions),
     cr: cr(sum.conversions, sum.visits),

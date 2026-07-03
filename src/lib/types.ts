@@ -74,5 +74,15 @@ export type RawMetric = "visits" | "cost" | "conversions" | "revenue";
 
 /** Every metric we surface, including derived ratios. `ctr` (clicks /
  *  impressions) and `cpc` (cost / clicks) derive from the optional paid-traffic
- *  fields and read 0 when a dataset doesn't carry them. */
-export type MetricKey = RawMetric | "pno" | "aov" | "cr" | "roas" | "ctr" | "cpc";
+ *  fields and read 0 when a dataset doesn't carry them. `profit` is the
+ *  additive contribution metric (revenue − cost) — the absolute "what marketing
+ *  earned after spend" the efficiency ratios can't express. */
+export type MetricKey =
+  | RawMetric
+  | "profit"
+  | "pno"
+  | "aov"
+  | "cr"
+  | "roas"
+  | "ctr"
+  | "cpc";
