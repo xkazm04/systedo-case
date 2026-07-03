@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai/history";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 import { useT } from "@/lib/i18n/client";
+import { useAiStatus } from "./useAiStatus";
 
 const T = {
   cs: {
@@ -88,6 +89,14 @@ export function useAiTool<T>(mode: string, variant?: string) {
   // Mirror of `history` for event handlers/async closures (never read in render),
   // so run()/restore() see the current list without stale-closure races.
   const historyRef = useRef<AiHistoryEntry<T>[]>([]);
+
+  // Observed average duration for THIS tool from the wrapper's telemetry (via
+  // the shared /api/ai/status fetch), so the loading timer can pace to reality
+  // instead of one global constant. Some callers suffix the mode with a per-row
+  // key ("comparison-outline:<query>") for storage isolation — strip to the
+  // tool id the telemetry is keyed by. Null = no reliable sample yet.
+  const aiStatus = useAiStatus();
+  const expectedMs = aiStatus?.latency?.[mode.split(":")[0]] ?? null;
 
   const commitHistory = (next: AiHistoryEntry<T>[]) => {
     historyRef.current = next;
@@ -276,5 +285,6 @@ export function useAiTool<T>(mode: string, variant?: string) {
     restore,
     refine,
     canRefine,
+    expectedMs,
   };
 }

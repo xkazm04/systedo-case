@@ -205,10 +205,11 @@ function StepStatus({
     retryIn: number | null;
     upgradeUrl: string | null;
     timedOut: boolean;
+    expectedMs: number | null;
     reset: () => void;
   };
 }) {
-  if (tool.status === "loading") return <LoadingTimer />;
+  if (tool.status === "loading") return <LoadingTimer expectedMs={tool.expectedMs} />;
   if (tool.status !== "error") return null;
   return tool.timedOut ? (
     <TimeoutState onRetry={tool.reset} />

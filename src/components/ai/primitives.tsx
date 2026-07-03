@@ -36,6 +36,7 @@ const T = {
     generatingLong: "Model přemýšlí o něco déle…",
     resultAppears: "Výsledek se zobrazí ihned, jakmile dorazí.",
     resultAppearsLimit: " Limit je {n} sekund.",
+    usuallyTakes: "Obvykle trvá ~{s}.",
     timeoutTitle: "Vypršel časový limit",
     timeoutBody: "Model neodpověděl do {n} sekund. Někdy stačí druhý pokus — zkuste to prosím znovu.",
     historyLabel: "Předchozí generace:",
@@ -75,6 +76,7 @@ const T = {
     generatingLong: "The model is taking a bit longer…",
     resultAppears: "Result will appear as soon as it arrives.",
     resultAppearsLimit: " Limit is {n} seconds.",
+    usuallyTakes: "Usually takes ~{s}.",
     timeoutTitle: "Request timed out",
     timeoutBody: "The model did not respond within {n} seconds. A second attempt often works — please try again.",
     historyLabel: "Previous generations:",
@@ -459,11 +461,16 @@ export function ToolError({
   );
 }
 
-/** Animated loading indicator: a ring that fills toward the ~15s target the
- *  model usually needs. Results render the instant the response arrives (the
- *  ring is purely visual); past the target it keeps spinning until the hard limit. */
-export function LoadingTimer() {
+/** Animated loading indicator: a ring that fills toward the moment the answer
+ *  usually arrives. When the tool's real observed pace is known (telemetry via
+ *  useAiTool's `expectedMs`), the ring targets THAT and the copy says so
+ *  („Obvykle trvá ~42 s") — a lead reply and an article draft no longer share
+ *  one fictional pace. Falls back to the global AI_TIMER_TARGET_MS constant.
+ *  Results render the instant the response arrives (the ring is purely
+ *  visual); past the target it keeps spinning until the hard limit. */
+export function LoadingTimer({ expectedMs }: { expectedMs?: number | null } = {}) {
   const t = useT(T);
+  const fmt = useFormatters();
   const [elapsed, setElapsed] = useState(0); // seconds
 
   useEffect(() => {
@@ -472,7 +479,9 @@ export function LoadingTimer() {
     return () => clearInterval(id);
   }, []);
 
-  const target = AI_TIMER_TARGET_MS / 1000;
+  // Sub-second averages are junk for pacing — treat them as "no data".
+  const informed = typeof expectedMs === "number" && expectedMs >= 1000;
+  const target = (informed ? expectedMs : AI_TIMER_TARGET_MS) / 1000;
   const progress = Math.min(elapsed / target, 1);
   const over = elapsed >= target;
   const R = 42;
@@ -509,6 +518,7 @@ export function LoadingTimer() {
         {over ? t("generatingLong") : t("generating")}
       </p>
       <p className="mt-1 max-w-xs text-sm text-muted">
+        {informed && !over ? `${t("usuallyTakes", { s: fmt.fmtDuration(target) })} ` : ""}
         {t("resultAppears")}{over ? t("resultAppearsLimit", { n: AI_TIMEOUT_SECONDS }) : ""}
       </p>
     </div>

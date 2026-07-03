@@ -186,7 +186,7 @@ export default function ClusterBuilder() {
           </div>
         )}
 
-        {clusters.status === "loading" && <LoadingTimer />}
+        {clusters.status === "loading" && <LoadingTimer expectedMs={clusters.expectedMs} />}
         {clusters.status === "error" &&
           (clusters.timedOut ? (
             <TimeoutState onRetry={build} />

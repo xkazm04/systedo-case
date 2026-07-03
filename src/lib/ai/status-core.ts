@@ -10,6 +10,7 @@
  *  request on canned demo output or a spent budget. */
 
 import { AI_DEMO_RATE_WARN } from "@/lib/llm/telemetry-ops";
+import type { LlmTelemetryEntry } from "@/lib/llm/telemetry";
 
 /** Which path a generation would take right now. Mirrors the provider order in
  *  the LLM wrapper: Claude→Gemini in dev, Gemini→Claude in prod, demo when
@@ -35,6 +36,10 @@ export interface AiStatusPayload {
    *  seemingly-available provider means it is silently failing at call time
    *  (the availability probe is cached and can outlive a provider outage) */
   recent?: { calls: number; demoRate: number };
+  /** observed average duration (ms) per tool id, from real (non-demo) calls —
+   *  lets the loading timer pace to how long THIS tool actually takes instead
+   *  of one global constant */
+  latency?: Record<string, number>;
   /** anonymous per-IP budget left in the current windows (read-only peek) */
   remaining: { perMin: number; perDay: number };
   /** the configured per-IP limits, for "N of M" rendering */
@@ -60,6 +65,33 @@ export function resolveWouldServe(
         ["claude", claudeOk],
       ];
   return order.find(([, ok]) => ok)?.[0] ?? "demo";
+}
+
+/** Minimum real calls before an average is trusted to pace a loading timer. */
+export const LATENCY_MIN_CALLS = 2;
+
+/** Observed average duration per tool from raw telemetry entries. Demo-served
+ *  calls are excluded — the canned fallback answers instantly and would fake a
+ *  fast model — as are junk durations and the "unknown" bucket; tools with
+ *  fewer than `minCalls` real samples stay absent so a single outlier can't
+ *  set expectations. Pure. */
+export function latencyByTool(
+  entries: readonly LlmTelemetryEntry[],
+  minCalls: number = LATENCY_MIN_CALLS
+): Record<string, number> {
+  const byTool = new Map<string, number[]>();
+  for (const e of entries) {
+    if (e.demo || !(e.tookMs > 0)) continue;
+    const arr = byTool.get(e.toolId);
+    if (arr) arr.push(e.tookMs);
+    else byTool.set(e.toolId, [e.tookMs]);
+  }
+  const out: Record<string, number> = {};
+  for (const [toolId, took] of byTool) {
+    if (toolId === "unknown" || took.length < minCalls) continue;
+    out[toolId] = Math.round(took.reduce((s, v) => s + v, 0) / took.length);
+  }
+  return out;
 }
 
 /** Below this many generations left for the day, the banner starts warning. */

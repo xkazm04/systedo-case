@@ -392,7 +392,7 @@ export default function AdGenerator({
     seed ? { ...EMPTY, ...seed } : EMPTY,
     { skipRestore: Boolean(seed), validate: isAdForm }
   );
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
     useAiTool<AdResult>("ads");
   const [abName, setAbName] = useState("");
   const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
@@ -599,7 +599,7 @@ export default function AdGenerator({
             hint={t("emptyHint")}
           />
         )}
-        {status === "loading" && <LoadingTimer />}
+        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
         {status === "error" &&
           (timedOut ? (
             <TimeoutState onRetry={reset} />

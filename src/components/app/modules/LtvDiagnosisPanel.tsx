@@ -91,7 +91,7 @@ export default function LtvDiagnosisPanel({
   eshop?: boolean;
 }) {
   const t = useT(T);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine, expectedMs } =
     useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
   const r = data?.result;
 
@@ -129,7 +129,7 @@ export default function LtvDiagnosisPanel({
           </p>
         )}
 
-        {status === "loading" && <LoadingTimer />}
+        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
 
         {status === "error" &&
           (timedOut ? (

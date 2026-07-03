@@ -340,7 +340,7 @@ export default function ContentBriefGenerator({
     { skipRestore: Boolean(seed), validate: isBriefForm }
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
     useAiTool<BriefResult>("brief");
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
@@ -504,7 +504,7 @@ export default function ContentBriefGenerator({
             hint={t("emptyHint")}
           />
         )}
-        {status === "loading" && <LoadingTimer />}
+        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
         {status === "error" &&
           (timedOut ? (
             <TimeoutState onRetry={reset} />

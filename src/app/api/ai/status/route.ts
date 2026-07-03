@@ -22,7 +22,7 @@ import { summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { getUsage } from "@/lib/usage";
 import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
 import { peekDurableRemaining } from "@/lib/ai/durable-limit";
-import { resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
+import { latencyByTool, resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
 
 // The availability probe shells out to the Claude CLI (Node runtime required).
 export const runtime = "nodejs";
@@ -61,11 +61,17 @@ export async function GET(request: Request) {
   // Recent demo share from the wrapper's own telemetry: the availability probe
   // is cached, so a provider that silently went down after the probe shows up
   // here (demo-served calls) before anywhere else. Best-effort — the reader
-  // returns [] on a store failure and the field simply stays absent.
-  const recent = summarizeAiOps(aggregateTelemetry(await listLlmTelemetry(200)));
+  // returns [] on a store failure and the fields simply stay absent.
+  const entries = await listLlmTelemetry(200);
+  const recent = summarizeAiOps(aggregateTelemetry(entries));
   if (recent.calls > 0) {
     payload.recent = { calls: recent.calls, demoRate: recent.demoRate };
   }
+
+  // Observed per-tool pace (real calls only), so each tool's loading timer can
+  // target how long that tool actually takes instead of one global constant.
+  const latency = latencyByTool(entries);
+  if (Object.keys(latency).length > 0) payload.latency = latency;
 
   // Signed-in callers are metered per plan (aiEval) on top of the IP cap; the
   // banner treats the plan quota as the binding budget when it is present.

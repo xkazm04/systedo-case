@@ -420,7 +420,7 @@ export default function KeywordResearch({
 
             {/* AI clustering output — pillar + supporting topic clusters over the
                 current research, each with a one-click brief handoff. */}
-            {clusters.status === "loading" && <LoadingTimer />}
+            {clusters.status === "loading" && <LoadingTimer expectedMs={clusters.expectedMs} />}
             {clusters.status === "error" &&
               (clusters.timedOut ? (
                 <TimeoutState onRetry={runClusters} />

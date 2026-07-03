@@ -84,7 +84,7 @@ export default function PerformanceAnalyst() {
   // after 90d no longer overwrites the 90d analysis, switching the period
   // restores its cached result instantly (no re-generation, no lost result),
   // and the rendered analysis always belongs to the selected period.
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine } =
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
     useAiTool<AnalysisResult>("analysis", period);
 
   const r = data?.result;
@@ -199,7 +199,7 @@ export default function PerformanceAnalyst() {
             hint={t("emptyHint")}
           />
         )}
-        {status === "loading" && <LoadingTimer />}
+        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
         {status === "error" &&
           (timedOut ? (
             <TimeoutState onRetry={reset} />

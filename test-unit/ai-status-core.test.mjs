@@ -4,6 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  LATENCY_MIN_CALLS,
+  latencyByTool,
   PREFLIGHT_LOW_REMAINING,
   preflightNotice,
   resolveWouldServe,
@@ -92,6 +94,54 @@ test("a mostly-demo recent window flags a degraded provider", () => {
     status({ remaining: { perMin: 8, perDay: 0 }, recent: { calls: 10, demoRate: 1 } })
   );
   assert.equal(spent.kind, "exhausted");
+});
+
+/** Minimal telemetry entry (the shape recordLlmCall persists). */
+function entry(overrides = {}) {
+  return {
+    toolId: "brief",
+    promptHash: "a",
+    provider: "claude-sonnet",
+    model: "claude-sonnet",
+    demo: false,
+    tookMs: 40_000,
+    attempts: 1,
+    repaired: false,
+    estCostUsd: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    at: "2026-07-02T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+test("latencyByTool averages real calls per tool and rounds", () => {
+  const latency = latencyByTool([
+    entry({ toolId: "brief", tookMs: 40_000 }),
+    entry({ toolId: "brief", tookMs: 50_001 }),
+    entry({ toolId: "lead-reply", tookMs: 9_000 }),
+    entry({ toolId: "lead-reply", tookMs: 11_000 }),
+  ]);
+  assert.deepEqual(latency, { brief: 45001, "lead-reply": 10000 });
+});
+
+test("latencyByTool ignores demo calls, junk durations, unknown and thin samples", () => {
+  const latency = latencyByTool([
+    // demo answers are instant — they must not fake a fast model
+    entry({ toolId: "ads", demo: true, tookMs: 5 }),
+    entry({ toolId: "ads", demo: true, tookMs: 5 }),
+    // zero/absent durations are junk rows
+    entry({ toolId: "analysis", tookMs: 0 }),
+    entry({ toolId: "analysis", tookMs: 0 }),
+    // untagged calls have no panel to pace
+    entry({ toolId: "unknown", tookMs: 30_000 }),
+    entry({ toolId: "unknown", tookMs: 30_000 }),
+    // a single sample is below the minimum — one outlier must not set expectations
+    ...Array.from({ length: LATENCY_MIN_CALLS - 1 }, () =>
+      entry({ toolId: "repurpose", tookMs: 120_000 })
+    ),
+  ]);
+  assert.deepEqual(latency, {});
 });
 
 test("a signed-in plan quota is the binding budget over the IP cap", () => {
