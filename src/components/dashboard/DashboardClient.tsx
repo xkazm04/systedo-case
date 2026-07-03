@@ -26,6 +26,7 @@ import {
   PERIODS,
   TREND_METRICS,
   type Anomaly,
+  type Bucket,
   type ChannelRow,
   type PeriodBaseline,
   type Trend,
@@ -51,6 +52,8 @@ const T = {
     trendHeading: "Vývoj v čase",
     channelsHeading: "Výkon podle kanálů",
     downloadTitle: "Stáhnout rozpad podle kanálů jako CSV",
+    downloadTrendTitle: "Stáhnout časovou řadu grafu jako CSV",
+    csvDate: "Datum",
     periodSelector: "Výběr období",
     chartMetricSelector: "Metrika grafu",
     pnoVsGoal: "PNO vs. cíl",
@@ -110,6 +113,8 @@ const T = {
     trendHeading: "Trend over time",
     channelsHeading: "Performance by channel",
     downloadTitle: "Download channel breakdown as CSV",
+    downloadTrendTitle: "Download the chart's time series as CSV",
+    csvDate: "Date",
     periodSelector: "Period selector",
     chartMetricSelector: "Chart metric",
     pnoVsGoal: "Cost ratio vs. goal",
@@ -155,6 +160,18 @@ const T = {
     anomalyGoalBreach: "PNO target breached ({pno})",
   },
 } as const;
+
+/** Column order of the trend-series CSV — the full metric set, dates first. */
+const TREND_CSV_METRICS: MetricKey[] = [
+  "revenue",
+  "cost",
+  "visits",
+  "conversions",
+  "pno",
+  "roas",
+  "aov",
+  "cr",
+];
 
 function Segmented<T extends string>({
   options,
@@ -344,6 +361,36 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
     downloadText(`systedo-kanaly-${period.key}.csv`, toCsv(headers, rows));
   };
 
+  // Export the chart's underlying time series — the dataset an analyst re-plots
+  // in a client deck. One row per visible bucket with all 8 metrics, plus the
+  // index-aligned comparison window (previous period / YoY, following the
+  // active baseline) as prefixed columns. Same deliverable conventions as the
+  // channel CSV: raw integers for money/counts, locale-decimal ratios (csvNum).
+  const exportTrendCsv = () => {
+    const cell = (b: Bucket, m: MetricKey): string | number => {
+      if (m === "pno" || m === "cr") return b[m] > 0 ? csvNum(b[m], 4, locale) : "";
+      if (m === "roas") return b[m] > 0 ? csvNum(b[m], 2, locale) : "";
+      return Math.round(b[m]);
+    };
+    const label = (m: MetricKey) => metricShort(METRICS[m], locale);
+    const hasCompare = compareBuckets.length > 0;
+    const prevWord = result.baseline === "yoy" ? t("baselineYoy") : t("baselinePrevious");
+    const headers = [
+      t("csvDate"),
+      ...TREND_CSV_METRICS.map(label),
+      ...(hasCompare ? TREND_CSV_METRICS.map((m) => `${prevWord} — ${label(m)}`) : []),
+    ];
+    const rows: (string | number)[][] = buckets.map((b, i) => {
+      const prev = compareBuckets[i];
+      return [
+        b.date,
+        ...TREND_CSV_METRICS.map((m) => cell(b, m)),
+        ...(hasCompare ? TREND_CSV_METRICS.map((m) => (prev ? cell(prev, m) : "")) : []),
+      ];
+    });
+    downloadText(`systedo-vyvoj-${period.key}.csv`, toCsv(headers, rows));
+  };
+
   return (
     <div className="space-y-6">
       {/* period selector */}
@@ -439,12 +486,23 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               {metricDescription(METRICS[trendMetric], locale)}
             </p>
           </div>
-          <Segmented
-            ariaLabel={t("chartMetricSelector")}
-            options={TREND_METRICS.map((m) => ({ value: m, label: metricShort(METRICS[m], locale) }))}
-            value={trendMetric}
-            onChange={setTrendMetric}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <Segmented
+              ariaLabel={t("chartMetricSelector")}
+              options={TREND_METRICS.map((m) => ({ value: m, label: metricShort(METRICS[m], locale) }))}
+              value={trendMetric}
+              onChange={setTrendMetric}
+            />
+            <button
+              type="button"
+              onClick={exportTrendCsv}
+              title={t("downloadTrendTitle")}
+              className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+            >
+              <Download width={14} height={14} />
+              CSV
+            </button>
+          </div>
         </div>
         <div className="mt-4">
           <TrendChart
