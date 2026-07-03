@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Layers, Search } from "@/components/icons";
 import type { AdRequest, AiMode } from "@/lib/ai-types";
@@ -69,6 +69,18 @@ const TABS: Tab[] = [
 /** Validate an untrusted ?tool= value against the known tab ids. */
 const isTabId = (v: string | null): v is TabId => TABS.some((tab) => tab.id === v);
 
+/** ARIA wiring + visibility for one tool panel: pairs the panel with its tab
+ *  (aria-controls ↔ aria-labelledby) and keeps the existing testid/fade classes. */
+function panelProps(id: TabId, active: TabId) {
+  return {
+    role: "tabpanel",
+    id: `tool-${id}`,
+    "aria-labelledby": `ai-tab-${id}`,
+    "data-testid": `tool-${id}`,
+    className: active === id ? "animate-fade-up" : "hidden",
+  } as const;
+}
+
 export default function AiAssistant() {
   const t = useT(T);
   const [tab, setTab] = useState<TabId>("ads");
@@ -125,11 +137,41 @@ export default function AiAssistant() {
     selectTab("ads");
   };
 
+  // WAI-ARIA tabs pattern: the roles below promise arrow-key navigation, so
+  // deliver it — roving tabIndex (one tab stop for the whole strip) plus
+  // ArrowLeft/ArrowRight/Home/End moving BOTH focus and selection, wrapping.
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const onTablistKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const current = TABS.findIndex((tab_) => tab_.id === tab);
+    let next: number;
+    switch (e.key) {
+      case "ArrowRight":
+        next = (current + 1) % TABS.length;
+        break;
+      case "ArrowLeft":
+        next = (current - 1 + TABS.length) % TABS.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = TABS.length - 1;
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    const id = TABS[next].id;
+    selectTab(id);
+    tabRefs.current[id]?.focus();
+  };
+
   return (
     <div>
       <div
         role="tablist"
         aria-label={t("tablistAriaLabel")}
+        onKeyDown={onTablistKeyDown}
         className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6"
       >
         {TABS.map((tab_) => {
@@ -138,8 +180,14 @@ export default function AiAssistant() {
           return (
             <button
               key={tab_.id}
+              ref={(el) => {
+                tabRefs.current[tab_.id] = el;
+              }}
               role="tab"
+              id={`ai-tab-${tab_.id}`}
               aria-selected={active}
+              aria-controls={`tool-${tab_.id}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => selectTab(tab_.id)}
               className={`group flex flex-col items-center gap-2 rounded-card border p-3 text-center transition-all sm:flex-row sm:items-center sm:gap-3 sm:p-4 sm:text-left ${
                 active
@@ -170,9 +218,11 @@ export default function AiAssistant() {
       </div>
 
       {/* All tools stay mounted (state is preserved across tab switches); the
-          active one re-runs its fade because the class flips from hidden. */}
+          active one re-runs its fade because the class flips from hidden.
+          Each wrapper is the tab's aria-controls target: a real tabpanel,
+          labelled by its tab (hidden panels leave the a11y tree via display:none). */}
       <div className="mt-6">
-        <div data-testid="tool-ads" className={tab === "ads" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("ads", tab)}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}
           <AdGenerator
             key={`ads-${adNonce}`}
@@ -181,25 +231,25 @@ export default function AiAssistant() {
           />
           <AdExperiments refreshKey={experimentNonce} />
         </div>
-        <div data-testid="tool-keywords" className={tab === "keywords" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("keywords", tab)}>
           <KeywordResearch
             onCreateBrief={handleCreateBrief}
             onSaved={() => setSavedNonce((n) => n + 1)}
           />
           <SavedKeywordLists refreshKey={savedNonce} />
         </div>
-        <div data-testid="tool-brief" className={tab === "brief" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("brief", tab)}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}
           <ContentBriefGenerator key={`brief-${briefNonce}`} seed={briefSeed} onCreateAds={handleCreateAds} />
         </div>
-        <div data-testid="tool-analysis" className={tab === "analysis" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("analysis", tab)}>
           <PerformanceAnalyst />
         </div>
-        <div data-testid="tool-creative" className={tab === "creative" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("creative", tab)}>
           <CreativeStudio />
           <CreativeAttribution />
         </div>
-        <div data-testid="tool-pipeline" className={tab === "pipeline" ? "animate-fade-up" : "hidden"}>
+        <div {...panelProps("pipeline", tab)}>
           <ContentPipeline />
         </div>
       </div>

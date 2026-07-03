@@ -43,6 +43,29 @@ test.describe("/ai-asistent", () => {
     await expect(tool(page, "ads").getByRole("heading", { name: "Zadání kampaně" })).toBeVisible();
   });
 
+  test("tab strip is a real WAI-ARIA tablist: arrow keys move focus + selection", async ({ page }) => {
+    const tab = (name: RegExp) => page.getByRole("tab", { name });
+
+    // focus the active tab (the strip's single tab stop) and step right
+    await tab(/PPC inzeráty/).click();
+    await page.keyboard.press("ArrowRight");
+    await expect(tab(/Klíčová slova/)).toBeFocused();
+    await expect(tab(/Klíčová slova/)).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByTestId("tool-keywords")).toBeVisible();
+
+    // End jumps to the last tab, ArrowRight wraps back to the first
+    await page.keyboard.press("End");
+    await expect(tab(/Obsahová linka/)).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(tab(/PPC inzeráty/)).toBeFocused();
+    await expect(page.getByTestId("tool-ads")).toBeVisible();
+
+    // the roles are wired: tab ↔ panel pairing via aria-controls/labelledby
+    await expect(tab(/PPC inzeráty/)).toHaveAttribute("aria-controls", "tool-ads");
+    await expect(page.getByTestId("tool-ads")).toHaveAttribute("role", "tabpanel");
+    await expect(page.getByTestId("tool-ads")).toHaveAttribute("aria-labelledby", "ai-tab-ads");
+  });
+
   test("deep-links the active tool via ?tool=", async ({ page }) => {
     // a shared /ai-asistent?tool=brief link lands straight on the brief tool
     await page.goto("/ai-asistent?tool=brief");
