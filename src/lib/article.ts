@@ -94,6 +94,9 @@ export type Block =
 export interface FaqItem {
   q: string;
   a: Inline[];
+  /** Optional stable anchor id for deep-linking the question; when omitted, a
+   *  diacritics-aware slug of the question is used (see faqItemId). */
+  id?: string;
 }
 
 export interface Article {

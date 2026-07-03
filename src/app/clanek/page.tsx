@@ -8,9 +8,12 @@ import ReadingProgress from "@/components/article/ReadingProgress";
 import ShareBar from "@/components/article/ShareBar";
 import AuthorBio from "@/components/article/AuthorBio";
 import CopyMarkdownButton from "@/components/article/CopyMarkdownButton";
+import FaqHashOpen from "@/components/article/FaqHashOpen";
+import FaqPermalink from "@/components/article/FaqPermalink";
 import TaskPager from "@/components/site/TaskPager";
 import { Clock } from "@/components/icons";
 import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/article";
+import { faqItemId } from "@/lib/article-validate";
 import { articleToMarkdown } from "@/lib/article-markdown";
 import { fmtDate } from "@/lib/format";
 import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
@@ -144,9 +147,12 @@ export default async function ArticlePage() {
       },
       {
         "@type": "FAQPage",
+        // Each Question carries its deep link, so a FAQ rich result can land the
+        // user on the exact answer (FaqHashOpen then auto-opens the accordion).
         mainEntity: faq.map((f) => ({
           "@type": "Question",
           name: f.q,
+          url: `${articleUrl}#${faqItemId(f)}`,
           acceptedAnswer: { "@type": "Answer", text: inlineToText(f.a) },
         })),
       },
@@ -237,11 +243,17 @@ export default async function ArticlePage() {
             <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight text-navy-800">
               {t("faqHeading")}
             </h2>
+            {/* Auto-open + scroll to the question a #hash targets — a deep link
+                into a collapsed accordion is useless without it. */}
+            <FaqHashOpen ids={faq.map(faqItemId)} />
             <div className="mt-5 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {faq.map((f, i) => (
-                <details key={i} className="group px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
-                  <summary className="flex cursor-pointer items-center justify-between gap-4 font-medium text-navy-800">
-                    {f.q}
+              {faq.map((f) => {
+                const id = faqItemId(f);
+                return (
+                <details key={id} id={id} className="group scroll-mt-24 px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer items-center gap-2 font-medium text-navy-800">
+                    <span className="flex-1">{f.q}</span>
+                    <FaqPermalink id={id} question={f.q} />
                     <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-50 text-navy-600 transition-transform group-open:rotate-45">
                       +
                     </span>
@@ -266,7 +278,8 @@ export default async function ArticlePage() {
                     )}
                   </p>
                 </details>
-              ))}
+                );
+              })}
             </div>
           </section>
 

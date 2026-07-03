@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Link } from "@/components/icons";
+import CopyToast from "./CopyToast";
+import { buildSectionPermalink, copyTextWithFallback } from "./permalink";
 import { announceSection } from "./section-store";
 import { useT } from "@/lib/i18n/client";
 
@@ -55,32 +57,11 @@ export default function HeadingAnchor({
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const copyLink = async () => {
-    // Stamp the copied permalink with a UTM tag (like the share bar), so a section
-    // link a reader shares is attributable in the dashboard's analytics story. The
-    // address bar itself stays clean (#id only) — only the copied artifact carries it.
-    const url = new URL(`${window.location.origin}${window.location.pathname}`);
-    url.searchParams.set("utm_source", "permalink");
-    url.searchParams.set("utm_medium", "anchor");
-    url.searchParams.set("utm_campaign", "clanek");
-    url.hash = id;
-    const link = url.toString();
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      // Fallback for browsers without the async clipboard API.
-      const ta = document.createElement("textarea");
-      ta.value = link;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* clipboard unavailable — nothing more we can do */
-      }
-      document.body.removeChild(ta);
-    }
+    // The UTM-stamped artifact + clipboard fallback are shared with the FAQ
+    // permalinks (./permalink) so the copied link format can't drift.
+    await copyTextWithFallback(
+      buildSectionPermalink(window.location.origin, window.location.pathname, id)
+    );
 
     // Reflect the permalink in the address bar (no scroll jump — the heading is
     // already in view) and slide the TOC highlight to the copied section.
@@ -113,19 +94,8 @@ export default function HeadingAnchor({
       </button>
 
       {/* Confirmation toast — a sibling of the heading (never a descendant) so it
-          stays out of the heading's accessible name. role=status announces it. */}
-      {copied && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
-        >
-          <span className="animate-drop inline-flex items-center gap-2 rounded-pill bg-onyx px-4 py-2.5 text-sm font-medium text-white shadow-pop">
-            <Check width={16} height={16} className="text-brand-400" />
-            {t("copiedToast")}
-          </span>
-        </div>
-      )}
+          stays out of the heading's accessible name. */}
+      {copied && <CopyToast>{t("copiedToast")}</CopyToast>}
     </div>
   );
 }

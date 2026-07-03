@@ -1,12 +1,21 @@
 /** The Article model's load-time validation guard, extracted into a framework-
- *  free module (type-only imports, no JSON/data import) so EVERY Article
- *  producer can run it — the hand-authored `article.json` singleton, the
+ *  free module (no JSON/data import; the only runtime dependency is the pure
+ *  `slugify` helper) so EVERY Article producer can run it — the hand-authored `article.json` singleton, the
  *  deterministic `snapshotToArticle` bridge behind `/clanek/vykon` and the
  *  `/m/{slug}` microsites, and (later) AI-drafted articles. Generated content is
  *  the surface most likely to drift, and until now it was the only one with
  *  zero protection. Pure and cheap (tens of blocks), unit-tested in
  *  `test-unit/article-validate.test.mjs`. */
-import type { Article, Block, HeadingBlock, Inline } from "./article";
+import type { Article, Block, FaqItem, HeadingBlock, Inline } from "./article";
+import { slugify } from "./nav";
+
+/** Effective anchor id of a FAQ item: the authored `id` when present, otherwise
+ *  a diacritics-aware slug of the question ("Kolik ořechů…" → "kolik-orechu-…").
+ *  Single source for the renderer, the hash-open island and the validator, so
+ *  the deep link and the DOM id can never drift apart. */
+export function faqItemId(item: Pick<FaqItem, "q" | "id">): string {
+  return item.id ?? slugify(item.q);
+}
 
 /** Registry of every renderable block type. Exported so the Markdown
  *  serializer's unit test can use it as a coverage checklist — a type accepted
@@ -68,6 +77,17 @@ export function validateArticle(raw: unknown, source = "article.json"): Article 
     .map((b) => b.id);
   if (new Set(ids).size !== ids.length) fail("duplicate heading id");
   const idSet = new Set(ids);
+
+  // FAQ anchors share the page's id namespace with the headings: each effective
+  // id (authored or slug-derived) must be non-empty, unique among the FAQ and
+  // must not shadow a heading id — otherwise the deep link opens the wrong
+  // element (mirrors the heading-id uniqueness check above).
+  const faqIds = a.faq.map((f) => faqItemId(f));
+  for (const [i, id] of faqIds.entries()) {
+    if (!id) fail(`faq[${i}] derives an empty anchor id — give it an explicit "id"`);
+    if (idSet.has(id)) fail(`faq id "${id}" collides with a heading id`);
+  }
+  if (new Set(faqIds).size !== faqIds.length) fail("duplicate faq id");
   for (const href of anchorHrefs(a.blocks)) {
     if (!idSet.has(href.replace(/^#/, ""))) fail(`anchor "${href}" has no matching heading id`);
   }
