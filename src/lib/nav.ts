@@ -89,14 +89,66 @@ export function sitemapEntries(): string[] {
   return [...NAV_ITEMS.map((i) => i.href), ...FOOTER_META_PAGES.map((p) => p.href), "/clanek/vykon"];
 }
 
-/** Diacritics-aware slug ("Zdravý jídelníček" → "zdravy-jidelnicek"). */
-export function slugify(value: string): string {
+/** Diacritics-insensitive text normalization (NFD strip + lowercase), shared by
+ *  `slugify` and the quick-nav matcher so "clanek" finds "Článek". */
+export function normalizeForSearch(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
+    .toLowerCase();
+}
+
+/** Diacritics-aware slug ("Zdravý jídelníček" → "zdravy-jidelnicek"). */
+export function slugify(value: string): string {
+  return normalizeForSearch(value)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+/** One destination the quick-nav (Cmd/Ctrl+K) palette can jump to. */
+export interface NavSearchTarget {
+  href: string;
+  label: string;
+  /** secondary search text shown as the row's hint (journey blurb / section name) */
+  hint: string;
+}
+
+/** Every palette-reachable destination, derived from the same typed nav model
+ *  the header/footer render (journey pages + footer meta pages + `/app` when
+ *  authed) — so the palette can't drift from the real navigation. Pure. */
+export function navSearchTargets(locale: SupportedLocale, authed: boolean): NavSearchTarget[] {
+  const messages = getMessages(locale);
+  const targets: NavSearchTarget[] = localizedNavItems(locale).map((item) => ({
+    href: item.href,
+    label: item.label,
+    hint: item.blurb,
+  }));
+  for (const page of FOOTER_META_PAGES) {
+    targets.push({ href: page.href, label: messages.footer.links[page.key], hint: messages.footer.pages });
+  }
+  if (authed) targets.push({ href: "/app", label: messages.nav.openApp, hint: "" });
+  return targets;
+}
+
+/** Filter + rank targets for a palette query, diacritics-insensitively:
+ *  label prefix beats label substring beats hint substring (stable within a
+ *  tier). An empty query returns everything in nav order. Pure. */
+export function matchNavTargets(query: string, targets: NavSearchTarget[]): NavSearchTarget[] {
+  const q = normalizeForSearch(query.trim());
+  if (!q) return targets;
+  const scored: { target: NavSearchTarget; score: number }[] = [];
+  for (const target of targets) {
+    const label = normalizeForSearch(target.label);
+    const score = label.startsWith(q)
+      ? 0
+      : label.includes(q)
+        ? 1
+        : normalizeForSearch(target.hint).includes(q)
+          ? 2
+          : -1;
+    if (score >= 0) scored.push({ target, score });
+  }
+  return scored.sort((a, b) => a.score - b.score).map((s) => s.target);
 }
 
 /** Path to the article hub. The case study has a single article surface at

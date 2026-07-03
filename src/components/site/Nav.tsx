@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { localizedNavItems } from "@/lib/nav";
 import { buttonClass } from "@/components/ui";
 import { ArrowRight, Close, Logo, Menu } from "@/components/icons";
+import CommandPalette from "@/components/site/CommandPalette";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -73,6 +74,8 @@ export default function Nav() {
               <ArrowRight width={15} height={15} />
             </Link>
           )}
+          {/* ⌘K quick-nav: desktop hint chip + the global shortcut/dialog */}
+          <CommandPalette authed={authed} />
           <UsageMeter />
           <AuthButton />
           <LocaleSwitcher />

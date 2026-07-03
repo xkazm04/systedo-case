@@ -30,6 +30,11 @@ export interface Messages {
     themeToSystem: string;
     /** short "Task N" prefix in the mobile menu */
     task: string;
+    /** quick-nav (Cmd/Ctrl+K) palette: trigger/dialog label, input placeholder,
+     *  empty-state line */
+    quickNav: string;
+    quickNavPlaceholder: string;
+    quickNavEmpty: string;
     /** nav label + home-card blurb, keyed by route href */
     items: Record<string, NavCopy>;
   };
@@ -68,6 +73,9 @@ const cs: Messages = {
     themeToDark: "Přepnout na tmavý režim",
     themeToSystem: "Řídit se nastavením systému",
     task: "Úkol",
+    quickNav: "Rychlá navigace",
+    quickNavPlaceholder: "Kam chcete přejít?",
+    quickNavEmpty: "Nic neodpovídá hledání.",
     items: {
       "/": { label: "Přehled", blurb: "Rozcestník případové studie a zdůvodnění zvoleného stacku." },
       "/dashboard": {
@@ -122,6 +130,9 @@ const en: Messages = {
     themeToDark: "Switch to dark mode",
     themeToSystem: "Follow the system setting",
     task: "Task",
+    quickNav: "Quick navigation",
+    quickNavPlaceholder: "Where do you want to go?",
+    quickNavEmpty: "Nothing matches your search.",
     items: {
       "/": { label: "Overview", blurb: "Case-study hub and the rationale for the chosen stack." },
       "/dashboard": {
