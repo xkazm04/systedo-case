@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
 import JourneyBeacon from "@/components/site/JourneyBeacon";
+import PagerHotkeys from "@/components/site/PagerHotkeys";
 import { localizedNavItems, type NavItem } from "@/lib/nav";
 import { getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -72,6 +73,8 @@ export default async function TaskPager({ current }: { current: string }) {
     >
       {/* record this stop for the mobile menu's visited marks + resume link */}
       <JourneyBeacon current={current} />
+      {/* ←/→ flip between the rel=prev/next pages (docs-pager hotkeys) */}
+      <PagerHotkeys prevHref={prev?.href} nextHref={next?.href} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
           {next ? t("continue") : t("finished")}
@@ -128,33 +131,53 @@ function ClosingCta({ t }: { t: TFn }) {
   );
 }
 
+/** Discreet keyboard affordance for the pager hotkeys — shown only on
+ *  hover-capable (keyboard-likely) devices, invisible to touch readers. */
+function PagerKbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd
+      aria-hidden
+      className="hidden rounded border border-line bg-canvas px-1 py-px text-[10px] font-medium normal-case leading-none text-muted [@media(hover:hover)]:inline-block"
+    >
+      {children}
+    </kbd>
+  );
+}
+
 function PagerLink({ item, direction, t }: { item: NavItem; direction: "prev" | "next"; t: TFn }) {
   const isNext = direction === "next";
   return (
     <Link
       href={item.href}
       rel={isNext ? "next" : "prev"}
+      aria-keyshortcuts={isNext ? "ArrowRight" : "ArrowLeft"}
       className={`card group flex flex-col gap-2 p-5 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-pop ${
         isNext ? "items-end text-right sm:col-start-2" : "items-start"
       }`}
     >
       <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
         {!isNext && (
-          <ArrowRight
-            width={14}
-            height={14}
-            className="rotate-180 transition-transform group-hover:-translate-x-1"
-            aria-hidden
-          />
+          <>
+            <ArrowRight
+              width={14}
+              height={14}
+              className="rotate-180 transition-transform group-hover:-translate-x-1"
+              aria-hidden
+            />
+            <PagerKbd>←</PagerKbd>
+          </>
         )}
         {isNext ? t("next") : t("prev")}
         {isNext && (
-          <ArrowRight
-            width={14}
-            height={14}
-            className="transition-transform group-hover:translate-x-1"
-            aria-hidden
-          />
+          <>
+            <PagerKbd>→</PagerKbd>
+            <ArrowRight
+              width={14}
+              height={14}
+              className="transition-transform group-hover:translate-x-1"
+              aria-hidden
+            />
+          </>
         )}
       </span>
       <span className="text-base font-semibold text-navy-800 transition-colors group-hover:text-brand-accent">
