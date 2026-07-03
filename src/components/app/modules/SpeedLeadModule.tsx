@@ -189,19 +189,13 @@ function ago(min: number, t: (key: "agoMin" | "agoH", vars: Record<string, numbe
   return t("agoH", { n: Math.round(min / 60) });
 }
 
-/** Format remaining seconds as m:ss (e.g. 3:07). */
+/** Format remaining seconds as m:ss (e.g. 3:07) — locale-neutral countdown.
+ *  Human durations ("42 s", "3,5 min") come from the shared `fmt.fmtDuration`,
+ *  which follows the active locale instead of hardcoding cs-CZ. */
 function mmss(totalSec: number): string {
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-/** Human duration for the analytics band: "42 s", "3,5 min". */
-function fmtDuration(totalSec: number): string {
-  if (totalSec < 60) return `${Math.round(totalSec)} s`;
-  const min = totalSec / 60;
-  const rounded = Math.round(min * 10) / 10;
-  return `${rounded.toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} min`;
 }
 
 /** Per-project localStorage key for the editable snippet library. */
@@ -498,7 +492,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
         <div className="min-w-[120px]">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("medianResponse")}</p>
           <p className="tnum mt-0.5 text-lg font-semibold text-navy-800">
-            {analytics.medianResponseSec != null ? fmtDuration(analytics.medianResponseSec) : "—"}
+            {analytics.medianResponseSec != null ? fmt.fmtDuration(analytics.medianResponseSec) : "—"}
           </p>
           <p className="text-[11px] text-muted">
             {analytics.answered > 0
@@ -528,7 +522,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
                 <span key={c.channel} className="text-xs text-navy-700">
                   {CHANNEL_LABELS[c.channel]}{" "}
                   <strong className="tnum font-semibold">
-                    {c.avgResponseSec != null ? fmtDuration(c.avgResponseSec) : "—"}
+                    {c.avgResponseSec != null ? fmt.fmtDuration(c.avgResponseSec) : "—"}
                   </strong>
                 </span>
               ))

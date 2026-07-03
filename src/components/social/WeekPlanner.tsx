@@ -9,8 +9,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
-import { useT } from "@/lib/i18n/client";
-import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { useFormatters, useT } from "@/lib/i18n/client";
+import type { Formatters } from "@/lib/format";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
@@ -73,18 +73,19 @@ function localIso(d: Date): string {
 }
 
 /** Build the next 7 days from today (computed in an effect, not render, to avoid an
- *  SSR/client hydration mismatch on the date). */
-function buildWeek(locale: string): Day[] {
+ *  SSR/client hydration mismatch on the date). Labels come from the shared
+ *  locale-bound formatters instead of re-deriving the BCP-47 tag here. */
+function buildWeek(fmt: Formatters): Day[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const intlLocale = locale === "en" ? "en-US" : "cs-CZ";
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const dow = d.getDay();
+    const iso = localIso(d);
     return {
-      iso: localIso(d),
-      label: d.toLocaleDateString(intlLocale, { weekday: "short", day: "numeric", month: "numeric" }),
+      iso,
+      label: fmt.fmtWeekdayShort(iso),
       weekend: dow === 0 || dow === 6,
     };
   });
@@ -104,7 +105,7 @@ export default function WeekPlanner() {
   const project = useOptionalProject();
   const pid = project?.id;
   const t = useT(T);
-  const { locale } = useLocale();
+  const fmt = useFormatters();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [week, setWeek] = useState<Day[]>([]);
 
@@ -131,12 +132,12 @@ export default function WeekPlanner() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWeek(buildWeek(locale));
+    setWeek(buildWeek(fmt));
     void loadPosts();
     const handler = () => void loadPosts();
     window.addEventListener("social:posts-changed", handler);
     return () => window.removeEventListener("social:posts-changed", handler);
-  }, [loadPosts, locale]);
+  }, [loadPosts, fmt]);
 
   // Scheduled posts grouped by their day (YYYY-MM-DD), for the calendar cells.
   const byDay = new Map<string, SocialPost[]>();
@@ -315,10 +316,7 @@ export default function WeekPlanner() {
                         {p.scheduledAt && (
                           <span className="ml-auto inline-flex items-center gap-0.5 font-normal normal-case text-muted">
                             <Clock width={9} height={9} />
-                            {new Date(p.scheduledAt).toLocaleTimeString(
-                              locale === "en" ? "en-US" : "cs-CZ",
-                              { hour: "2-digit", minute: "2-digit" }
-                            )}
+                            {fmt.fmtTime(p.scheduledAt)}
                           </span>
                         )}
                       </p>

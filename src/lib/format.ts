@@ -47,6 +47,9 @@ export interface Formatters {
   fmtMonth: (iso: string) => string;
   fmtMonthLong: (iso: string) => string;
   fmtDateTime: (iso: string) => string;
+  fmtTime: (iso: string) => string;
+  fmtWeekdayShort: (iso: string) => string;
+  fmtDuration: (totalSec: number) => string;
   fmtRange: (fromIso: string, toIso: string) => string;
   fmtRelative: (iso: string, now?: Date) => string;
   fmtCZKCompactA11y: (n: number) => CompactA11y;
@@ -217,6 +220,38 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
       : DASH;
   };
 
+  const TIME = new Intl.DateTimeFormat(intlLocale, { hour: "2-digit", minute: "2-digit" });
+
+  /** Clock time of an ISO timestamp ("14:05" cs, "02:05 PM" en) — the scheduled-
+   *  post / event-time counterpart of `fmtDateTime`. */
+  const fmtTime = (iso: string): string => {
+    const d = parseDate(iso);
+    return d ? TIME.format(d) : DASH;
+  };
+
+  const WEEKDAY_SHORT = new Intl.DateTimeFormat(intlLocale, {
+    weekday: "short",
+    day: "numeric",
+    month: "numeric",
+  });
+
+  /** Short weekday + day/month ("po 6. 7." cs, "Mon, 7/6" en) for calendar /
+   *  planner cells. */
+  const fmtWeekdayShort = (iso: string): string => {
+    const d = parseDate(iso);
+    return d ? WEEKDAY_SHORT.format(d) : DASH;
+  };
+
+  /** Human duration ("42 s", "3,5 min"): sub-minute values round to whole
+   *  seconds, minutes keep at most one locale-formatted decimal. The "s"/"min"
+   *  unit abbreviations are locale-neutral. */
+  const fmtDuration = (totalSec: number): string => {
+    if (!Number.isFinite(totalSec)) return DASH;
+    if (totalSec < 60) return `${Math.round(totalSec)} s`;
+    const min = new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 1 }).format(totalSec / 60);
+    return `${min} min`;
+  };
+
   const RANGE_PARTS = new Intl.DateTimeFormat(intlLocale, {
     day: "numeric",
     month: "long",
@@ -301,6 +336,9 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     fmtMonth,
     fmtMonthLong,
     fmtDateTime,
+    fmtTime,
+    fmtWeekdayShort,
+    fmtDuration,
     fmtRange,
     fmtRelative,
     fmtCZKCompactA11y,
@@ -329,6 +367,9 @@ export const {
   fmtMonth,
   fmtMonthLong,
   fmtDateTime,
+  fmtTime,
+  fmtWeekdayShort,
+  fmtDuration,
   fmtRange,
   fmtRelative,
   fmtCZKCompactA11y,

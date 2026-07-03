@@ -43,6 +43,24 @@ test("signed currency: plus for gains, true minus for losses, rounds before sign
   assert.equal(cs.fmtSignedCZK(Number.NaN), "—");
 });
 
+test("date/time surface: fmtDuration, fmtTime, fmtWeekdayShort follow the locale", () => {
+  // durations: whole seconds under a minute, one locale decimal above it
+  assert.equal(cs.fmtDuration(42), "42 s");
+  assert.equal(cs.fmtDuration(210), "3,5 min");
+  assert.equal(en.fmtDuration(210), "3.5 min");
+  assert.equal(cs.fmtDuration(180), "3 min"); // no forced ",0"
+  assert.equal(cs.fmtDuration(Number.NaN), "—");
+  // clock time of a full ISO timestamp
+  assert.ok(cs.fmtTime("2026-06-15T14:05:00").includes("14:05"));
+  assert.equal(cs.fmtTime("not-a-date"), "—");
+  // short weekday label for a date-only string (2026-07-06 is a Monday)
+  const csDay = cs.fmtWeekdayShort("2026-07-06");
+  const enDay = en.fmtWeekdayShort("2026-07-06");
+  assert.ok(csDay.toLowerCase().includes("po"), `cs weekday: ${csDay}`);
+  assert.ok(enDay.includes("Mon"), `en weekday: ${enDay}`);
+  assert.equal(cs.fmtWeekdayShort("nope"), "—");
+});
+
 test("metric registry: format(v, enFormatters) renders the en locale", () => {
   assert.equal(METRICS.revenue.format(1500, en), en.fmtCZK(1500));
   assert.ok(METRICS.revenue.format(1500, en).includes("$"));
