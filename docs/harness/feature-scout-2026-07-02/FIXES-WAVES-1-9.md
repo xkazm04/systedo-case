@@ -36,3 +36,21 @@
 ## What remains (INDEX leftovers — 42 ideas, none [GATE])
 
 Ready-made Wave 10 = campaign console depth (campaign-connector-store #2 #3, campaign-console #2 #3 #5, campaign-model-prompts #3 #4 #5, campaign-sync-api #3 #5). Then: design-system/helper sweeps, reader/keyboard tail, AI status/latency, ad-form polish, demo-data remainder, testing/tooling remainder. Also open: Playwright e2e extended but not executed this run; dashboard alert-focus e2e noted as a follow-up by W8.
+
+---
+
+# Tail close-out (T1–T6, 2026-07-03) — the whole scan is now worked
+
+After the master merge (8fddb9a: 17 conflicts, 3 double-implementations reconciled, gate 14/14 ~484 s zero drift), all **42 leftover ideas** were implemented in 6 tail waves — **100/100 scan ideas closed** (99 implemented + 1 already-existed).
+
+| Tail wave | Ideas | Result | Tests after |
+|---|---|---|---|
+| T1 Campaign console depth | 10 | 10/10 (budget pacing, per-campaign sparklines, funnel detail, pause recommendations, health timeline, type roles, batch endpoint, per-period store) | 381 |
+| T2 Design-system & helper sweeps | 11 | 11/11 (toFixed sweep — 3 gate-hashed sites deferred; locale-bound builders; signed-CZK; csvNum; fmtDuration; Sparkline unification ×4 clones; contrast guard — caught+fixed a 4.43:1 accent; DeltaBadge showcase; period labels; 3-mode theme cycle) | 394 |
+| T3 Reader/keyboard a11y | 9 | 9/9 (FAQ permalinks, resume-reading chip, print styles, tabs keyboard model, ⌘K palette, journey beacon, pager hotkeys, trend CSV, chart keyboard nav) | 416 |
+| T4+T5 AI status & ad-form polish | 6 | 6/6 (gate-free /api/ai/status preflight + provider health + per-tool expected latency; Ads-Editor CSV; RSA combo sampler; Sklik preview) | 433 |
+| T6 Demo/metrics/testing remainder | 6 | 6/6 (shared demo PRNG + envelope, impressions/clicks + CTR/CPC metrics, weekday profile card, profit metric, keyless fixture e2e, llm:new scaffold) | 455 |
+
+Final state: **tsc 0 · unit 455/455 · next build ✓ · seed:check ✓ · llm:gate:check ✓**; zero real-model gate runs in the entire tail (all hashed sites deferred or avoided).
+
+Remaining known-open (all deliberate): 3 gate-hashed toFixed sites (lp-variant-ideas, cohort-diagnosis, analyze route — batch with the next gate-paying change), Playwright suite extended across waves but not executed (incl. a /design-system VR baseline that needs `--update-snapshots`), dashboard alert-focus e2e.
