@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Layers, Refresh, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
+import { buildAdsEditorAdSheet, buildAdsEditorKeywordSheet } from "@/lib/ads-editor";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -73,6 +74,9 @@ const T = {
     abAdd: "Přidat do A/B testu",
     downloadCsvTitle: "Stáhnout všechny texty jako CSV",
     downloadCsv: "Stáhnout CSV",
+    downloadEditorCsvTitle:
+      "Stáhnout CSV připravené pro import do Google Ads Editoru — jeden řádek inzerátu (Headline 1–15, Description 1–4) + druhý soubor s klíčovými slovy",
+    downloadEditorCsv: "CSV pro Ads Editor",
     groupHeadlines: "Nadpisy",
     groupDescriptions: "Popisky",
     groupCallouts: "Odznaky",
@@ -130,6 +134,9 @@ const T = {
     abAdd: "Add to A/B test",
     downloadCsvTitle: "Download all texts as CSV",
     downloadCsv: "Download CSV",
+    downloadEditorCsvTitle:
+      "Download a CSV ready for Google Ads Editor import — one ad row (Headline 1–15, Description 1–4) + a second file with keywords",
+    downloadEditorCsv: "Ads Editor CSV",
     groupHeadlines: "Headlines",
     groupDescriptions: "Descriptions",
     groupCallouts: "Callouts",
@@ -475,6 +482,30 @@ export default function AdGenerator({
     );
   };
 
+  // Ads-Editor-ready export: the same edited assets transposed into the one-row
+  // Headline 1..15 / Description 1..4 shape Ads Editor imports, plus a keyword
+  // sheet — "download → import → launch" instead of hand-transposing the listing.
+  // One click saves both files (ad + keywords); campaign/ad-group seed from the
+  // brief's product, the path/URL from the same slug the preview shows.
+  const exportAdsEditorCsv = () => {
+    if (!r) return;
+    const name = form.product.trim() || "Kampan";
+    const path1 = slugify(r.keywords[0] ?? form.product);
+    const seed = {
+      campaign: name,
+      adGroup: name,
+      path1,
+      finalUrl: `https://www.mionelo.cz/${path1}`,
+    };
+    const fileSeed = slugify(form.product) || "kampan";
+    const ad = buildAdsEditorAdSheet(r, seed);
+    downloadText(`systedo-ads-editor-${fileSeed}.csv`, toCsv(ad.headers, ad.rows));
+    const kw = buildAdsEditorKeywordSheet(r.keywords, seed);
+    if (kw.rows.length > 0) {
+      downloadText(`systedo-ads-editor-${fileSeed}-klicova-slova.csv`, toCsv(kw.headers, kw.rows));
+    }
+  };
+
   const copyAllText = r
     ? [
         t("copyAllHeadlines"),
@@ -680,6 +711,15 @@ export default function AdGenerator({
               >
                 <Download width={14} height={14} />
                 {t("downloadCsv")}
+              </button>
+              <button
+                type="button"
+                onClick={exportAdsEditorCsv}
+                title={t("downloadEditorCsvTitle")}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+              >
+                <Download width={14} height={14} />
+                {t("downloadEditorCsv")}
               </button>
               </div>
             </div>
