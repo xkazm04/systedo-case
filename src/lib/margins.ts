@@ -14,9 +14,9 @@
  *  Known remaining seam (tracked under project-type-aware sample worlds): the
  *  profit module's illustrative *product-category mix* still uses generic
  *  categories (Elektronika…) rather than the real catalog's categories
- *  (Kočárky…), so a blended margin can't yet be rolled up across product views.
- *  The margin *tables and fallbacks* below are now shared; the product taxonomy
- *  is the next step. */
+ *  (Ořechy, Semínka, Sušené plody), so a blended margin can't yet be rolled up
+ *  across product views. The margin *tables and fallbacks* below are now shared
+ *  AND keyed to the live catalog taxonomy; the profit product-mix is the next step. */
 
 // --- by channel (profit / POAS) ---------------------------------------------
 
@@ -35,14 +35,15 @@ export const CHANNEL_FALLBACK_MARGIN = 0.45;
 
 // --- by product category (inventory value-at-risk) --------------------------
 
-/** Gross-margin fraction by product category, for the real catalog taxonomy. */
+/** Gross-margin fraction by product category, keyed to the live catalog taxonomy
+ *  (src/lib/catalog/sample.ts: Ořechy / Semínka / Sušené plody). Keep these keys in
+ *  sync with the catalog's categories — a mismatch silently collapses every SKU to
+ *  CATEGORY_FALLBACK_MARGIN in the inventory value-at-risk model (regression seen when
+ *  the catalog was rebranded to nuts/seeds but this table was left on baby-gear keys). */
 export const CATEGORY_MARGINS: Record<string, number> = {
-  Kočárky: 0.22,
-  Autosedačky: 0.28,
-  Židličky: 0.34,
-  Postýlky: 0.3,
-  Chůvičky: 0.42,
-  Nosítka: 0.48,
+  Ořechy: 0.3,
+  Semínka: 0.38,
+  "Sušené plody": 0.34,
 };
 
 /** Fallback gross margin for a category not in the table above. */

@@ -85,7 +85,7 @@ test("seasonalBudgetPlan applies no cap when cover is infinite", () => {
 
 test("marginOf prefers an explicit margin, then category, then default", () => {
   assert.equal(marginOf(product({ margin: 0.6 })), 0.6);
-  assert.equal(marginOf(product({ category: "Nosítka" })), 0.48); // category table
+  assert.equal(marginOf(product({ category: "Semínka" })), 0.38); // category table (live catalog taxonomy)
   assert.equal(marginOf(product({ category: "Neznámá" })), 0.3); // default
 });
 
