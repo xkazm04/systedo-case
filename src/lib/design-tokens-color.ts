@@ -8,7 +8,7 @@
  */
 
 /** Relative luminance (WCAG) of a #rgb / #rrggbb colour, 0 (black) … 1 (white). */
-function luminance(hex: string): number {
+export function luminance(hex: string): number {
   const h = hex.replace("#", "").trim();
   const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
   const channel = (i: number) => {
@@ -16,6 +16,14 @@ function luminance(hex: string): number {
     return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
   };
   return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+}
+
+/** WCAG contrast ratio between two hex colours, 1 (identical) … 21 (black on
+ *  white). Order-independent. Powers the token-pair contrast guard in
+ *  test-unit/design-tokens-contrast.test.mjs. */
+export function contrastRatio(hexA: string, hexB: string): number {
+  const [hi, lo] = [luminance(hexA), luminance(hexB)].sort((a, b) => b - a);
+  return (hi + 0.05) / (lo + 0.05);
 }
 
 /** Pick readable foreground ink (dark or white) for a given swatch colour, so

@@ -43,8 +43,10 @@
 
   /* brand accent — the teal used for accent TEXT (eyebrows, inline links,
      icon glyphs on tinted chips). Split out from the ramp so dark mode can make
-     accent text light without disturbing the saturated brand-700 button hover. */
-  --color-brand-accent: #11807c;
+     accent text light without disturbing the saturated brand-700 button hover.
+     Two steps darker than brand-700: #11807c sat at 4.43:1 on the canvas —
+     just under WCAG AA 4.5:1 (the contrast guard test enforces the pair). */
+  --color-brand-accent: #117d79;
 
   /* coral — accent / attention */
   --color-coral-400: #ff8a5c;
