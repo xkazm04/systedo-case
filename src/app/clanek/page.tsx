@@ -10,6 +10,7 @@ import AuthorBio from "@/components/article/AuthorBio";
 import CopyMarkdownButton from "@/components/article/CopyMarkdownButton";
 import FaqHashOpen from "@/components/article/FaqHashOpen";
 import FaqPermalink from "@/components/article/FaqPermalink";
+import PrintExpand from "@/components/article/PrintExpand";
 import TaskPager from "@/components/site/TaskPager";
 import { Clock } from "@/components/icons";
 import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/article";
@@ -166,6 +167,9 @@ export default async function ArticlePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ReadingProgress readingMinutes={meta.readingMinutes} />
+      {/* print/PDF: open every <details> for the duration of printing (closed
+          disclosure content doesn't print) and restore the state after */}
+      <PrintExpand />
 
       {/* article header */}
       <section className="border-b border-line bg-surface">
@@ -205,7 +209,7 @@ export default async function ArticlePage() {
             bio={meta.authorBio}
             url={meta.authorUrl}
           />
-          <div className="mt-4 flex items-center justify-end gap-1.5">
+          <div className="mt-4 flex items-center justify-end gap-1.5 print:hidden">
             <CopyMarkdownButton markdown={articleMarkdown} />
             <ShareBar url={articleUrl} title={meta.title} />
           </div>
@@ -216,7 +220,7 @@ export default async function ArticlePage() {
       <Container className="grid gap-10 py-12 lg:grid-cols-[220px_1fr] lg:gap-14">
         <MobileToc items={toc} />
         {toc.length > 0 && (
-          <aside className="hidden lg:block">
+          <aside className="hidden lg:block print:hidden">
             <div className="sticky top-24">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                 {t("tocSidebar")}
@@ -250,7 +254,7 @@ export default async function ArticlePage() {
               {faq.map((f) => {
                 const id = faqItemId(f);
                 return (
-                <details key={id} id={id} className="group scroll-mt-24 px-5 py-4 [&_summary::-webkit-details-marker]:hidden">
+                <details key={id} id={id} className="group scroll-mt-24 px-5 py-4 print:break-inside-avoid [&_summary::-webkit-details-marker]:hidden">
                   <summary className="flex cursor-pointer items-center gap-2 font-medium text-navy-800">
                     <span className="flex-1">{f.q}</span>
                     <FaqPermalink id={id} question={f.q} />

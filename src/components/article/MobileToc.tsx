@@ -37,7 +37,7 @@ export default function MobileToc({ items }: { items: TocItem[] }) {
   return (
     <details
       ref={detailsRef}
-      className="group rounded-card border border-line bg-surface lg:hidden [&_summary::-webkit-details-marker]:hidden"
+      className="group rounded-card border border-line bg-surface lg:hidden print:hidden [&_summary::-webkit-details-marker]:hidden"
     >
       <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm font-semibold text-navy-800">
         {t("summary")}

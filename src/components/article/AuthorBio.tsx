@@ -51,7 +51,8 @@ export default async function AuthorBio({ name, role, credential, bio, url }: Au
 
       {bio && (
         <details className="group mt-3 [&_summary::-webkit-details-marker]:hidden">
-          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-pill text-sm font-medium text-brand-700 transition-colors hover:text-brand-800">
+          {/* toggle chrome — hidden in print, where PrintExpand opens the bio itself */}
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-pill text-sm font-medium text-brand-700 transition-colors hover:text-brand-800 print:hidden">
             <span className="group-open:hidden">{t("aboutAuthor")}</span>
             <span className="hidden group-open:inline">{t("hideBio")}</span>
             <ChevronDown

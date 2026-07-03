@@ -46,6 +46,24 @@ test.describe("/clanek heading anchors", () => {
   });
 });
 
+test.describe("/clanek print rendering", () => {
+  // Print / save-as-PDF is the classic offline path for a buying guide: the
+  // screen chrome (progress bar, share row, TOC, pager) must disappear and the
+  // article text itself must stay.
+  test("hides the reading chrome under print media", async ({ page }) => {
+    await page.goto("/clanek");
+    await page.emulateMedia({ media: "print" });
+
+    await expect(page.getByTestId("reading-progress")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Kopírovat odkaz na článek" })).toBeHidden();
+    await expect(page.getByRole("navigation", { name: "Navigace případovou studií" })).toBeHidden();
+    // both TOC variants (desktop rail + mobile island) are screen-only
+    await expect(page.getByRole("navigation", { name: "Obsah článku" })).toBeHidden();
+    // the article body still prints
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+});
+
 test.describe("/clanek mobile table of contents", () => {
   // Below the lg breakpoint the sticky TOC rail doesn't exist; the collapsible
   // <details> island is the only in-page navigation mobile readers get.

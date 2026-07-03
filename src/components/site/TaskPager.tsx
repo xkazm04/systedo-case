@@ -67,7 +67,7 @@ export default async function TaskPager({ current }: { current: string }) {
   return (
     <nav
       aria-label={t("ariaLabel")}
-      className="mt-16 border-t border-line pt-10"
+      className="mt-16 border-t border-line pt-10 print:hidden"
     >
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">

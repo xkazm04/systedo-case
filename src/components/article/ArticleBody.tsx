@@ -110,7 +110,7 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
           case "callout": {
             const s = CALLOUT_STYLES[block.variant];
             return (
-              <aside key={i} className={`rounded-card border ${s.box} p-5`}>
+              <aside key={i} className={`rounded-card border ${s.box} p-5 print:break-inside-avoid`}>
                 {block.title && (
                   <p className={`text-sm font-semibold ${s.title}`}>{block.title}</p>
                 )}
@@ -132,7 +132,7 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
             );
           case "stat":
             return (
-              <div key={i} className="grid gap-3 rounded-card border border-line bg-canvas p-5 sm:grid-cols-3">
+              <div key={i} className="grid gap-3 rounded-card border border-line bg-canvas p-5 print:break-inside-avoid sm:grid-cols-3">
                 {block.items.map((s, j) => (
                   <div key={j} className="text-center sm:text-left">
                     <p className="tnum text-xl font-semibold text-navy-800">{s.value}</p>
@@ -189,7 +189,7 @@ export default function ArticleBody({ blocks }: { blocks: Block[] }) {
             // width/height reserve space to avoid layout shift.
             const isSvg = block.src.endsWith(".svg");
             return (
-              <figure key={i}>
+              <figure key={i} className="print:break-inside-avoid">
                 <Image
                   src={block.src}
                   alt={block.alt}
