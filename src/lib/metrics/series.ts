@@ -2,6 +2,7 @@
  *  dependency-free two-sample significance, plus chart bucketing by day or month. */
 
 import type { DailyPoint, MetricKey } from "../types";
+import type { SupportedLocale } from "../format";
 import { rel, totalsOf, type Totals } from "./totals";
 
 // --- periods ----------------------------------------------------------------
@@ -9,6 +10,8 @@ import { rel, totalsOf, type Totals } from "./totals";
 export interface PeriodDef {
   key: string;
   label: string;
+  /** English label — pick via {@link periodLabel} so the locale switcher works */
+  labelEn: string;
   /** length of the window in days; the comparison window is the equal span before it */
   days: number;
   /** chart granularity for this period */
@@ -16,11 +19,17 @@ export interface PeriodDef {
 }
 
 export const PERIODS: PeriodDef[] = [
-  { key: "7d", label: "7 dní", days: 7, granularity: "day" },
-  { key: "30d", label: "30 dní", days: 30, granularity: "day" },
-  { key: "90d", label: "90 dní", days: 90, granularity: "day" },
-  { key: "12m", label: "12 měsíců", days: 365, granularity: "month" },
+  { key: "7d", label: "7 dní", labelEn: "7 days", days: 7, granularity: "day" },
+  { key: "30d", label: "30 dní", labelEn: "30 days", days: 30, granularity: "day" },
+  { key: "90d", label: "90 dní", labelEn: "90 days", days: 90, granularity: "day" },
+  { key: "12m", label: "12 měsíců", labelEn: "12 months", days: 365, granularity: "month" },
 ];
+
+/** Localised period label, mirroring `metricLabel`: falls back to Czech when no
+ *  locale is given, so the snapshot/article writers keep their cs output. */
+export function periodLabel(p: PeriodDef, locale?: SupportedLocale): string {
+  return locale === "en" ? p.labelEn : p.label;
+}
 
 /** Which window the comparison uses: the adjacent equal-length window right
  *  before the current one ("previous"), or the same window shifted back exactly

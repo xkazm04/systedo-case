@@ -22,6 +22,7 @@ import {
   METRICS,
   monthlyAttainmentHistory,
   monthlyPacing,
+  periodLabel,
   PERIODS,
   TREND_METRICS,
   type Anomaly,
@@ -350,7 +351,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <p className="text-sm text-muted">
             {t("periodLabel")}{" "}
-            <span className="font-medium text-navy-700">{t("periodLast", { n: period.label })}</span>
+            <span className="font-medium text-navy-700">{t("periodLast", { n: periodLabel(period, locale) })}</span>
             {/* name the baseline actually used — a YoY request the series can't
                 satisfy falls back to previous-period, and the text follows */}
             <span className="text-muted">
@@ -379,7 +380,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
         <div className="flex flex-wrap items-center gap-2">
           <Segmented
             ariaLabel={t("periodSelector")}
-            options={PERIODS.map((p) => ({ value: p.key, label: p.label }))}
+            options={PERIODS.map((p) => ({ value: p.key, label: periodLabel(p, locale) }))}
             value={periodKey}
             onChange={setPeriodKey}
           />
@@ -465,7 +466,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-navy-800">{t("channelsHeading")}</h2>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-muted">{period.label}</span>
+              <span className="text-xs text-muted">{periodLabel(period, locale)}</span>
               <button
                 type="button"
                 onClick={exportChannelsCsv}
@@ -525,7 +526,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
                 <Bolt width={17} height={17} className="text-coral-600" />
                 {t("alerts")}
                 {/* scope cue — the feed and the impact cover the selected period */}
-                <span className="text-xs font-normal text-muted">· {period.label}</span>
+                <span className="text-xs font-normal text-muted">· {periodLabel(period, locale)}</span>
                 <span className="pill ml-auto bg-coral-soft text-coral-600 !px-2 !py-0.5 text-[13px]">
                   {periodAnomalies.length}
                 </span>
