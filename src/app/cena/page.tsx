@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Container, Eyebrow, Pill } from "@/components/ui";
+import { Button, buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Check } from "@/components/icons";
 import { PLAN_INFO } from "@/lib/plans";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
@@ -151,21 +151,22 @@ export default async function PricingPage() {
               </ul>
 
               {plan.id === "free" ? (
-                <Link
-                  href="/kampane"
-                  className="mt-7 inline-flex items-center justify-center gap-2 rounded-pill border border-line px-5 py-3 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
-                >
+                // Next <Link> wearing the shared Button style — the buttonClass
+                // escape hatch the primitive exports for exactly this case.
+                <Link href="/kampane" className={buttonClass("secondary", "lg", { className: "mt-7" })}>
                   {t("ctaFree")}
                   <ArrowRight width={16} height={16} />
                 </Link>
               ) : (
-                <a
+                <Button
                   href="mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Pro"
-                  className="mt-7 inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99]"
+                  variant="primary"
+                  size="lg"
+                  className="mt-7 active:scale-[0.99]"
                 >
                   {t("ctaPro")}
                   <ArrowRight width={16} height={16} />
-                </a>
+                </Button>
               )}
             </div>
           );

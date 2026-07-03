@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { localizedNavItems } from "@/lib/nav";
+import { buttonClass } from "@/components/ui";
 import { ArrowRight, Close, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
@@ -64,10 +65,10 @@ export default function Nav() {
 
         <div className="flex items-center gap-2">
           {authed && (
-            <Link
-              href="/app"
-              className="hidden items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 sm:inline-flex"
-            >
+            // Shared Button styling on a Next <Link> via buttonClass; the
+            // responsive hide uses max-sm:hidden so it can't fight the base
+            // inline-flex display utility.
+            <Link href="/app" className={buttonClass("primary", "sm", { className: "max-sm:hidden" })}>
               {messages.nav.openApp}
               <ArrowRight width={15} height={15} />
             </Link>
