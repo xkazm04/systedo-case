@@ -1,0 +1,78 @@
+/** Pure decision helpers + payload contract for the AI preflight status
+ *  endpoint (GET /api/ai/status). Framework-free and store-free, so the server
+ *  route and the client hook/banner share one shape and the logic is
+ *  unit-testable without Firestore or sqlite.
+ *
+ *  Why this exists: the client only learned it was in keyless demo mode AFTER a
+ *  generation completed (meta.demo on the result), and had no view of the
+ *  per-IP budget until it slammed into a 429. The status payload lets every AI
+ *  panel warn upfront — before the user fills a careful form and burns a
+ *  request on canned demo output or a spent budget. */
+
+/** Which path a generation would take right now. Mirrors the provider order in
+ *  the LLM wrapper: Claude→Gemini in dev, Gemini→Claude in prod, demo when
+ *  neither is configured. */
+export type AiServePath = "claude" | "gemini" | "demo";
+
+export interface AiStatusPayload {
+  /** development environment (Claude-first provider order) */
+  dev: boolean;
+  /** no provider is configured/available — generations return canned demo output */
+  demo: boolean;
+  /** the provider a generation would use right now */
+  wouldServe: AiServePath;
+  /** anonymous per-IP budget left in the current windows (read-only peek) */
+  remaining: { perMin: number; perDay: number };
+  /** the configured per-IP limits, for "N of M" rendering */
+  limits: { perMin: number; perDay: number };
+  /** signed-in per-plan AI quota (aiEval), when the caller is authenticated */
+  usage?: { used: number; limit: number };
+}
+
+/** Resolve which path would serve a generation, given the environment-preferred
+ *  provider order the wrapper uses (dev: Claude first; prod: Gemini first). */
+export function resolveWouldServe(
+  dev: boolean,
+  claudeOk: boolean,
+  geminiOk: boolean
+): AiServePath {
+  const order: [AiServePath, boolean][] = dev
+    ? [
+        ["claude", claudeOk],
+        ["gemini", geminiOk],
+      ]
+    : [
+        ["gemini", geminiOk],
+        ["claude", claudeOk],
+      ];
+  return order.find(([, ok]) => ok)?.[0] ?? "demo";
+}
+
+/** Below this many generations left for the day, the banner starts warning. */
+export const PREFLIGHT_LOW_REMAINING = 5;
+
+export type PreflightKind = "demo" | "exhausted" | "low" | null;
+
+export interface PreflightNotice {
+  kind: PreflightKind;
+  /** generations left today on the binding budget (0 for kind "demo"/"exhausted") */
+  remaining: number;
+  /** the exhausted/low budget is the signed-in plan quota (else the per-IP cap) */
+  metered: boolean;
+}
+
+/** What (if anything) the preflight banner should say. Demo mode outranks
+ *  budget states (a burned request is worse when the answer is canned); the
+ *  binding daily budget is the signed-in plan quota when present, else the
+ *  anonymous per-IP daily cap. The per-minute window is deliberately ignored
+ *  here — a sub-minute wait is already handled by the 429 countdown. */
+export function preflightNotice(s: AiStatusPayload): PreflightNotice {
+  if (s.demo) return { kind: "demo", remaining: 0, metered: Boolean(s.usage) };
+  const metered = Boolean(s.usage);
+  const remaining = s.usage
+    ? Math.max(0, s.usage.limit - s.usage.used)
+    : Math.max(0, s.remaining.perDay);
+  if (remaining <= 0) return { kind: "exhausted", remaining: 0, metered };
+  if (remaining <= PREFLIGHT_LOW_REMAINING) return { kind: "low", remaining, metered };
+  return { kind: null, remaining, metered };
+}

@@ -7,6 +7,7 @@ import type { AdRequest, AiMode } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
 import AdGenerator from "./AdGenerator";
 import AdExperiments from "./AdExperiments";
+import AiPreflight from "./AiPreflight";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
 import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
@@ -216,6 +217,10 @@ export default function AiAssistant() {
           );
         })}
       </div>
+
+      {/* One preflight for every tool: demo-mode / spent-budget warnings render
+          BEFORE a form is filled and a request burned, not after. */}
+      <AiPreflight />
 
       {/* All tools stay mounted (state is preserved across tab switches); the
           active one re-runs its fade because the class flips from hidden.

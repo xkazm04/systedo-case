@@ -137,6 +137,22 @@ export function rateLimit(ip: string, rules: RateRule[]): RateResult {
   return { ok: true, retryAfter: 0 };
 }
 
+/** Read-only view of the fixed-window counters: how many requests remain per
+ *  rule for `ip`, WITHOUT incrementing anything. Backs the preflight
+ *  /api/ai/status endpoint, so a status check can never consume the very budget
+ *  it reports. Same window math as rateLimit(). */
+export function peekRateLimit(ip: string, rules: RateRule[]): number[] {
+  const db = getDb();
+  const now = Date.now();
+  const read = db.prepare("SELECT window_start, count FROM rate_limits WHERE bucket = ? AND ip = ?");
+  return rules.map((rule) => {
+    const windowStart = now - (now % rule.windowMs);
+    const row = read.get(rule.bucket, ip) as { window_start: number; count: number } | undefined;
+    const current = row && row.window_start >= windowStart ? row.count : 0;
+    return Math.max(0, rule.limit - current);
+  });
+}
+
 // --- process-level concurrency cap -----------------------------------------
 // Survives Next.js dev hot-reload on globalThis (same pattern as the db handle).
 const g = globalThis as unknown as { __aiInflight?: number };

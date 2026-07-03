@@ -29,7 +29,12 @@
  *   - AI_CEILING_FAIL_CLOSED   "1" → refuse paid calls when Firestore is unreachable
  */
 import { firestore } from "@/lib/firebase";
-import { rateLimit as localRateLimit, type RateRule, type RateResult } from "./rate-limit";
+import {
+  peekRateLimit as localPeekRateLimit,
+  rateLimit as localRateLimit,
+  type RateRule,
+  type RateResult,
+} from "./rate-limit";
 import {
   ceilingExceeded,
   currentCount,
@@ -127,5 +132,29 @@ export async function durableGuard(
       return { ok: false, retryAfter: 60 };
     }
     return localRateLimit(ip, rules);
+  }
+}
+
+/** Read-only peek at the durable counters: how many requests remain per rule for
+ *  `ip`, WITHOUT incrementing anything — the data behind the preflight
+ *  /api/ai/status endpoint. Reads the same Firestore docs durableGuard writes
+ *  (plain gets, no transaction — a peek needs no atomicity), so the number the
+ *  banner shows matches the budget the paid route will actually enforce. Falls
+ *  back to the local sqlite peek when Firestore is unreachable, mirroring the
+ *  guard's own fallback path. */
+export async function peekDurableRemaining(ip: string, rules: RateRule[]): Promise<number[]> {
+  const now = Date.now();
+  try {
+    const snaps = await Promise.all(
+      rules.map((rule) => firestore.collection(COLL).doc(rateDocId(rule.bucket, ip)).get())
+    );
+    return rules.map((rule, i) => {
+      const stored = snaps[i].data() as { windowStart?: number; count?: number } | undefined;
+      const current = currentCount(stored, windowStartFor(rule, now));
+      return Math.max(0, rule.limit - current);
+    });
+  } catch (err) {
+    console.error("[durable-limit] Firestore peek failed; using local fallback:", err);
+    return localPeekRateLimit(ip, rules);
   }
 }
