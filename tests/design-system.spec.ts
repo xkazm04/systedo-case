@@ -21,9 +21,17 @@ test.describe("/design-system", () => {
     await expect(page.getByRole("heading", { name: "Design system na jedné obrazovce" })).toBeVisible();
 
     // each token/component section is present
-    for (const id of ["ds-colors", "ds-typography", "ds-pills", "ds-icons", "ds-sparklines", "ds-elevation"]) {
+    for (const id of ["ds-colors", "ds-typography", "ds-buttons", "ds-pills", "ds-icons", "ds-sparklines", "ds-deltabadge", "ds-elevation"]) {
       await expect(page.getByTestId(id)).toBeVisible();
     }
+  });
+
+  test("DeltaBadge matrix renders the significance states", async ({ page }) => {
+    const section = page.getByTestId("ds-deltabadge");
+    // the sub-threshold delta collapses to the explicit "no change" state
+    await expect(section.getByText("beze změny", { exact: true })).toBeVisible();
+    // a statistically insignificant change renders muted with the noise tooltip
+    await expect(section.locator('[title*="statisticky nevýznamná"]').first()).toBeVisible();
   });
 
   test("colour ramps and base tokens render swatches", async ({ page }) => {

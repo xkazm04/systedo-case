@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Bulb, Layers, TrendUp, TrendDown } from "@/components/icons";
+import { Bulb, Layers } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
+import DeltaBadge from "@/components/dashboard/DeltaBadge";
 import NextSteps from "@/components/app/NextSteps";
 import type { ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
@@ -337,20 +338,9 @@ function TrendSpark({
   );
 }
 
-/** A small +/− delta pill reused on the summary cards. */
-function DeltaPill({ value, fmtSignedPct }: { value: number; fmtSignedPct: (v: number) => string }) {
-  if (!Number.isFinite(value) || Math.abs(value) < 0.0005) {
-    return <span className="text-xs font-medium text-muted">→ 0 %</span>;
-  }
-  const up = value > 0;
-  const Icon = up ? TrendUp : TrendDown;
-  return (
-    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${up ? "text-positive" : "text-negative"}`}>
-      <Icon width={12} height={12} />
-      {fmtSignedPct(value)}
-    </span>
-  );
-}
+// Delta pills on the summary cards use the shared DeltaBadge (design-system
+// primitive) — locale-aware, goodDirection-aware and with the zero-floor
+// "beze změny" state, instead of a local sign-coloured clone.
 
 // --- real-numbers override (#ROB-02) ----------------------------------------
 
@@ -677,7 +667,7 @@ export default function ProfitModule({
         <div className="card p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("netAdProfit")}</p>
-            <DeltaPill value={netDelta} fmtSignedPct={fmt.fmtSignedPct} />
+            <DeltaBadge delta={netDelta} goodDirection="up" size="xs" />
           </div>
           <p
             className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
@@ -691,7 +681,7 @@ export default function ProfitModule({
         <div className="card p-5">
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</p>
-            <DeltaPill value={poasDelta} fmtSignedPct={fmt.fmtSignedPct} />
+            <DeltaBadge delta={poasDelta} goodDirection="up" size="xs" />
           </div>
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
             {fmt.fmtMultiple(summary.poas)}
@@ -729,7 +719,7 @@ export default function ProfitModule({
             <div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("netProfit")}</span>
-                <DeltaPill value={netDelta} fmtSignedPct={fmt.fmtSignedPct} />
+                <DeltaBadge delta={netDelta} goodDirection="up" size="xs" />
               </div>
               <div className="mt-1.5">
                 <TrendSpark
@@ -745,7 +735,7 @@ export default function ProfitModule({
             <div>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</span>
-                <DeltaPill value={poasDelta} fmtSignedPct={fmt.fmtSignedPct} />
+                <DeltaBadge delta={poasDelta} goodDirection="up" size="xs" />
               </div>
               <div className="mt-1.5">
                 <TrendSpark

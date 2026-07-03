@@ -11,6 +11,7 @@ import {
   PILL_TONE_NAMES,
 } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
+import DeltaBadge from "@/components/dashboard/DeltaBadge";
 import LocaleShowcase from "@/components/LocaleShowcase";
 import * as Icons from "@/components/icons";
 import { ArrowRight } from "@/components/icons";
@@ -146,6 +147,24 @@ const SPARKLINES: Array<{
   },
 ];
 
+/** DeltaBadge state matrix: direction × statistical significance × which
+ *  direction counts as "good". Deterministic values, so the page stays a stable
+ *  visual-regression baseline. */
+const DELTA_STATES: Array<{
+  note: string;
+  delta: number;
+  goodDirection: "up" | "down";
+  significance?: "strong" | "weak" | "noise";
+}> = [
+  { note: "růst · významné", delta: 0.124, goodDirection: "up", significance: "strong" },
+  { note: "růst · slabý signál", delta: 0.062, goodDirection: "up", significance: "weak" },
+  { note: "růst · šum", delta: 0.008, goodDirection: "up", significance: "noise" },
+  { note: "pokles · významné", delta: -0.087, goodDirection: "up", significance: "strong" },
+  { note: "pokles metriky, kde je pokles dobrý (PNO)", delta: -0.054, goodDirection: "down", significance: "strong" },
+  { note: "růst metriky, kde je pokles dobrý (PNO)", delta: 0.054, goodDirection: "down", significance: "strong" },
+  { note: "pod prahem zobrazení", delta: 0.0002, goodDirection: "up" },
+];
+
 /** Heading-scale demo rows. The size steps (text-4xl…) are Tailwind v4 defaults,
  *  not custom @theme tokens, so there's nothing of ours to drift; the font-family
  *  tokens are generated from @theme (see fontTokens) and rendered below. */
@@ -218,6 +237,7 @@ export default function DesignSystemPage() {
               ["Pill", "#pill"],
               ["Ikony", "#ikony"],
               ["Sparkline", "#sparkline"],
+              ["DeltaBadge", "#deltabadge"],
               ["Lokalizace", "#lokalizace"],
               ["Plochy", "#plochy"],
             ].map(([label, href]) => (
@@ -430,6 +450,30 @@ export default function DesignSystemPage() {
                 <div className="flex min-h-[72px] items-center justify-center rounded-xl bg-canvas p-3">
                   <Sparkline {...v.props} />
                 </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
+        {/* -------------------------------------------------------- DeltaBadge */}
+        <Section
+          id="deltabadge"
+          testid="ds-deltabadge"
+          eyebrow="Komponenta"
+          title="DeltaBadge — stavy změn"
+          intro="Barevný indikátor změny zná dobrý směr metriky (pokles PNO je zelený) a statistickou významnost: šum se vykresluje tlumeně, takže běžné denní kolísání nikdy nevypadá jako trend. Stejný primitiv používají KPI karty i modul ziskovosti."
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {DELTA_STATES.map((s) => (
+              <div key={s.note} className="card flex items-center justify-between gap-3 p-5">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-navy-800">{s.note}</p>
+                  <p className="tnum mt-0.5 text-[13px] text-muted">
+                    goodDirection=&quot;{s.goodDirection}&quot;
+                    {s.significance ? ` · ${s.significance}` : ""}
+                  </p>
+                </div>
+                <DeltaBadge delta={s.delta} goodDirection={s.goodDirection} significance={s.significance} />
               </div>
             ))}
           </div>
