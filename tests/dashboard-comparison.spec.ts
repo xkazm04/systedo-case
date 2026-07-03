@@ -44,6 +44,30 @@ test.describe("/dashboard — previous-period overlay", () => {
     await expect(goalLine.locator("text")).toContainText("Cíl");
   });
 
+  test("chart is keyboard-navigable and the tooltip pins on Enter", async ({ page }) => {
+    const chart = page.getByTestId("trend-chart");
+    await chart.scrollIntoViewIfNeeded();
+    await chart.focus();
+
+    // first arrow press opens the readout at the latest point
+    await page.keyboard.press("ArrowLeft");
+    const tooltip = page.getByTestId("trend-tooltip");
+    await expect(tooltip).toBeVisible();
+
+    // Enter pins it — pointer traffic (over the chart, then away) can't clear it
+    await page.keyboard.press("Enter");
+    const box = await chart.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) return;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.move(box.x - 20, box.y - 20, { steps: 4 });
+    await expect(tooltip).toBeVisible();
+
+    // Esc releases the pin and closes the readout
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toBeHidden();
+  });
+
   test("tooltip shows the prior value alongside the current one on hover", async ({ page }) => {
     const chart = chartOf(page);
     await chart.scrollIntoViewIfNeeded();

@@ -24,6 +24,8 @@ const T = {
     empty: "Pro zvolené období nejsou data.",
     partialBucket: "neúplný měsíc",
     goalLine: "Cíl {value}",
+    kbdHelp:
+      "Vývoj metriky {label} — šipkami procházíte body, Home/End skočí na okraje, Enter připne popisek, Esc jej zavře.",
   },
   en: {
     ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
@@ -41,6 +43,8 @@ const T = {
     empty: "No data for the selected period.",
     partialBucket: "partial month",
     goalLine: "Target {value}",
+    kbdHelp:
+      "Trend of {label} — arrow keys step through the points, Home/End jump to the edges, Enter pins the tooltip, Esc closes it.",
   },
 } as const;
 
@@ -96,6 +100,12 @@ export default function TrendChart({
   const wrapRef = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(760);
   const [hover, setHover] = useState<number | null>(null);
+  // Click (or Enter) pins the tooltip so values can be inspected calmly:
+  // pointer moves/leaves no longer touch the hover state until unpinned.
+  const [pinned, setPinned] = useState(false);
+  // Set ONLY by keyboard stepping — drives the aria-live readout without
+  // making every pointer move chatty for screen-reader users.
+  const [announceIdx, setAnnounceIdx] = useState<number | null>(null);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -221,16 +231,70 @@ export default function TrendChart({
   const fmtX = (iso: string) =>
     granularity === "month" ? fmt.fmtMonth(iso) : fmt.fmtDateShort(iso);
 
-  const onMove = (e: React.PointerEvent<SVGRectElement>) => {
+  /** Bucket index under a pointer event on the capture overlay. */
+  const pointerIndex = (e: React.PointerEvent<SVGRectElement> | React.MouseEvent<SVGRectElement>) => {
     // the overlay rect's own left edge already sits at x = PAD.l, so px is
     // measured from the plot origin — no extra PAD.l offset needed.
     const rect = e.currentTarget.getBoundingClientRect();
     const px = e.clientX - rect.left;
-    const idx = Math.round((px / plotW) * (n - 1));
-    setHover(Math.min(n - 1, Math.max(0, idx)));
+    return Math.min(n - 1, Math.max(0, Math.round((px / plotW) * (n - 1))));
   };
 
-  const active = hover ?? n - 1;
+  const onMove = (e: React.PointerEvent<SVGRectElement>) => {
+    if (pinned) return;
+    setHover(pointerIndex(e));
+  };
+
+  /** Click pins the tooltip at the clicked bucket; a second click releases it. */
+  const onOverlayClick = (e: React.MouseEvent<SVGRectElement>) => {
+    if (pinned) {
+      setPinned(false);
+      return;
+    }
+    setHover(pointerIndex(e));
+    setPinned(true);
+  };
+
+  /** Keyboard access to the whole readout: ←/→ step (first press opens at the
+   *  latest point), Home/End jump, Enter/Space toggle the pin, Esc clears. */
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const focusIdx = (idx: number) => {
+      setHover(idx);
+      setAnnounceIdx(idx);
+    };
+    switch (e.key) {
+      case "ArrowLeft":
+      case "ArrowRight": {
+        e.preventDefault();
+        const delta = e.key === "ArrowLeft" ? -1 : 1;
+        focusIdx(hover === null ? n - 1 : Math.min(n - 1, Math.max(0, hover + delta)));
+        break;
+      }
+      case "Home":
+        e.preventDefault();
+        focusIdx(0);
+        break;
+      case "End":
+        e.preventDefault();
+        focusIdx(n - 1);
+        break;
+      case "Enter":
+      case " ":
+        e.preventDefault();
+        if (hover === null) focusIdx(n - 1);
+        setPinned((p) => !p);
+        break;
+      case "Escape":
+        setPinned(false);
+        setHover(null);
+        setAnnounceIdx(null);
+        break;
+    }
+  };
+
+  // Clamp against the current series — a pinned/hovered index can outlive a
+  // period switch that shrinks the bucket count.
+  const active = Math.min(hover ?? n - 1, n - 1);
   const activeAnomaly = anomalyByIndex.get(active);
   const tipBucket = data[active];
   const tipX = x(active);
@@ -272,8 +336,41 @@ export default function TrendChart({
     return a.kind === "spike" ? good === "up" : good === "down";
   }
 
+  // Screen-reader readout for the keyboard-stepped point: date · value
+  // (· partial note) (· prior value + delta) (· anomaly reason). Built from the
+  // same formatted strings the visual tooltip shows.
+  let announceText = "";
+  if (announceIdx !== null) {
+    const idx = Math.min(announceIdx, n - 1);
+    const b = data[idx];
+    const parts = [fmtX(b.date), meta.format(b[metric], fmt)];
+    if (b.partial) parts.push(t("partialBucket"));
+    const prevVal = idx < cmpN ? cmpValues[idx] : undefined;
+    if (prevVal !== undefined && prevVal > 0) {
+      const d = (b[metric] - prevVal) / prevVal;
+      parts.push(
+        `${compareKind === "yoy" ? t("tooltipYoy") : t("tooltipPrevious")} ${meta.formatCompact(prevVal, fmt)} (${fmt.fmtSignedPct(d)})`
+      );
+    }
+    const anom = anomalyByIndex.get(idx);
+    if (anom) parts.push(anomalyReason(anom));
+    announceText = parts.join(" · ");
+  }
+
   return (
-    <div ref={wrapRef} className="relative w-full select-none">
+    <div
+      ref={wrapRef}
+      data-testid="trend-chart"
+      role="group"
+      aria-label={t("kbdHelp", { label: metricLabel(meta, locale) })}
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      onBlur={() => {
+        setAnnounceIdx(null);
+        if (!pinned) setHover(null);
+      }}
+      className="relative w-full select-none"
+    >
       <svg
         width={w}
         height={H}
@@ -449,7 +546,7 @@ export default function TrendChart({
           </g>
         )}
 
-        {/* pointer capture overlay */}
+        {/* pointer capture overlay — click pins/releases the tooltip */}
         <rect
           x={PAD.l}
           y={PAD.t}
@@ -457,10 +554,18 @@ export default function TrendChart({
           height={plotH}
           fill="transparent"
           onPointerMove={onMove}
-          onPointerLeave={() => setHover(null)}
+          onPointerLeave={() => {
+            if (!pinned) setHover(null);
+          }}
+          onClick={onOverlayClick}
           style={{ touchAction: "none" }}
         />
       </svg>
+
+      {/* keyboard-stepped readout for assistive tech (pointer moves stay silent) */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {announceText}
+      </div>
 
       {/* legend — only when the comparison overlay is present */}
       {hasCompare && (
