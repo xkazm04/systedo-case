@@ -6,6 +6,7 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Layers, Refresh, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
 import { buildAdsEditorAdSheet, buildAdsEditorKeywordSheet } from "@/lib/ads-editor";
+import { sampleRsaCombo } from "@/lib/rsa-combos";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -54,6 +55,10 @@ const T = {
     rsaSponsoredLine: "Sponzorováno · Mionelo",
     rsaTitleFallback: "Nadpis inzerátu",
     rsaDescFallback: "Popisek inzerátu se zobrazí tady.",
+    rsaNextCombo: "Další kombinace",
+    rsaNextComboTitle: "Zobrazit další kombinaci nadpisů a popisků, jak je Google střídá",
+    rsaComboOf: "Kombinace {i}/{n}",
+    rsaComboAssets: "nadpisy č. {h} · popisky č. {d}",
     formHeading: "Zadání kampaně",
     fillExample: "Vyplnit ukázku",
     fieldProduct: "Produkt nebo služba",
@@ -114,6 +119,10 @@ const T = {
     rsaSponsoredLine: "Sponsored · Mionelo",
     rsaTitleFallback: "Ad headline",
     rsaDescFallback: "Ad description will appear here.",
+    rsaNextCombo: "Next combination",
+    rsaNextComboTitle: "Show another headline/description combination, the way Google rotates them",
+    rsaComboOf: "Combination {i}/{n}",
+    rsaComboAssets: "headlines {h} · descriptions {d}",
     formHeading: "Campaign brief",
     fillExample: "Fill example",
     fieldProduct: "Product or service",
@@ -251,7 +260,11 @@ const slugify = (s: string): string =>
     .replace(/-+$/g, "");
 
 /** Live preview that assembles a sample responsive search ad the way Google
- *  shows it: up to 3 headlines joined with " | " and up to 2 descriptions. */
+ *  shows it: up to 3 headlines joined with " | " and up to 2 descriptions.
+ *  Google actually SERVES an RSA as rotating combinations, so the preview
+ *  rotates too: "Další kombinace" advances a deterministic sampler over the
+ *  non-blank assets (combination 1 = the classic first-3 + first-2 view), with
+ *  the shown asset numbers tying the combo back to the numbered rows below. */
 function RsaPreview({
   headlines,
   descriptions,
@@ -265,8 +278,12 @@ function RsaPreview({
   platform: Platform;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
 }) {
-  const title = headlines.filter((h) => h.trim()).slice(0, 3).join(" | ");
-  const desc = descriptions.filter((d) => d.trim()).slice(0, 2).join(" ");
+  // Raw click count; the sampler wraps it modulo the combination count, so a
+  // re-generation shrinking the asset lists can never point out of range.
+  const [combo, setCombo] = useState(0);
+  const sample = sampleRsaCombo(headlines, descriptions, combo);
+  const title = sample.headlines.join(" | ");
+  const desc = sample.descriptions.join(" ");
   const path = slugify(pathSeed);
   const isGoogle = platform === "google";
   return (
@@ -295,6 +312,26 @@ function RsaPreview({
           {desc || t("rsaDescFallback")}
         </p>
       </div>
+      {sample.count > 1 && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <p className="tnum min-w-0 text-xs text-muted">
+            {t("rsaComboOf", { i: sample.index + 1, n: sample.count })} ·{" "}
+            {t("rsaComboAssets", {
+              h: sample.headlineNumbers.join("·"),
+              d: sample.descriptionNumbers.join("·"),
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={() => setCombo((c) => c + 1)}
+            title={t("rsaNextComboTitle")}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+          >
+            <Refresh width={13} height={13} />
+            {t("rsaNextCombo")}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
