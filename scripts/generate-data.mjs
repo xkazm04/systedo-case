@@ -20,7 +20,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 // Shared demo core — the same seeded PRNG as the sample campaigns and sample
 // keywords (one implementation instead of three copies).
-import { mulberry32 } from "../src/lib/demo/prng.mjs";
+import { mulberry32, hashStr } from "../src/lib/demo/prng.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(__dirname, "../src/data/performance.json");
@@ -164,6 +164,44 @@ for (const e of EVENTS) {
   }
 }
 
+// --- channel mix ------------------------------------------------------------
+// Shares are applied to whatever period the user selects, so the channel table
+// always reconciles with the headline KPIs. Each share dimension sums to 1, and
+// because the dimensions differ, every channel ends up with its own realistic
+// CR / AOV / PNO profile (e.g. Heureka is efficient, Meta prospecting is not).
+// (Defined before the daily loop because the paid-traffic share below derives
+// from the organic channel's visit share.)
+const channels = [
+  { channel: "Google Ads (Search + PMax)", color: "#1f8f88", visit: 0.22, cost: 0.33, conv: 0.29, rev: 0.3 },
+  { channel: "Google Nákupy", color: "#2dd4ce", visit: 0.12, cost: 0.16, conv: 0.14, rev: 0.14 },
+  { channel: "Sklik (Seznam)", color: "#15324b", visit: 0.11, cost: 0.13, conv: 0.12, rev: 0.12 },
+  { channel: "Heureka", color: "#f59e0b", visit: 0.08, cost: 0.07, conv: 0.1, rev: 0.09 },
+  { channel: "Zboží.cz", color: "#94a3b8", visit: 0.06, cost: 0.06, conv: 0.07, rev: 0.07 },
+  { channel: "Meta (FB / IG)", color: "#fb7141", visit: 0.19, cost: 0.25, conv: 0.12, rev: 0.13 },
+  { channel: "Organic & přímá", color: "#0b1b2b", visit: 0.22, cost: 0.0, conv: 0.16, rev: 0.15 },
+];
+
+// sanity-check that shares sum to ~1 on every dimension
+for (const dim of ["visit", "cost", "conv", "rev"]) {
+  const sum = channels.reduce((a, c) => a + c[dim], 0);
+  if (Math.abs(sum - 1) > 1e-9) {
+    throw new Error(`channel ${dim} shares sum to ${sum}, expected 1`);
+  }
+}
+
+// --- paid traffic (impressions + clicks) --------------------------------------
+// Clicks are the paid share of visits — derived from the channel mix (1 − the
+// organic channel's visit share) so the two never drift apart — and impressions
+// follow from a blended CTR that improves gently as the account matures (better
+// query coverage, ad relevance and shopping feeds), unlocking the CPC/CTR KPIs.
+// Each day's jitter comes from a SEPARATE per-day PRNG (seeded off the shared
+// hash, not the main `rnd` stream) so the original visits/cost/conversions/
+// revenue series stays byte-identical to the committed history.
+const PAID_VISIT_SHARE =
+  1 - channels.find((c) => c.channel.startsWith("Organic")).visit;
+const CTR_START = 0.016; // blended paid CTR at the start of the two years
+const CTR_LIFT = 0.004; // gentle improvement across the trend span
+
 const daily = [];
 
 for (let i = 0; i < DAYS; i++) {
@@ -207,36 +245,24 @@ for (let i = 0; i < DAYS; i++) {
     cost = Math.max(0, round(cost * mult.cost, 1));
   }
 
+  // Paid traffic, derived from the FINAL visits (consistent by construction —
+  // event days move clicks with them). Per-day secondary PRNG: consuming zero
+  // draws from `rnd` keeps the already-committed series byte-identical.
+  const trnd = mulberry32(hashStr(`traffic:${dateStr}`) ^ SEED);
+  const tj = (scale) => 1 + (trnd() * 2 - 1) * scale;
+  const clicks = Math.max(0, Math.round(visits * PAID_VISIT_SHARE * tj(0.05)));
+  const ctrDay = (CTR_START + t * CTR_LIFT) * tj(0.08);
+  const impressions = Math.max(clicks, Math.round(clicks / ctrDay));
+
   daily.push({
     date: dateStr,
     visits,
+    impressions,
+    clicks,
     cost,
     conversions,
     revenue,
   });
-}
-
-// --- channel mix ------------------------------------------------------------
-// Shares are applied to whatever period the user selects, so the channel table
-// always reconciles with the headline KPIs. Each share dimension sums to 1, and
-// because the dimensions differ, every channel ends up with its own realistic
-// CR / AOV / PNO profile (e.g. Heureka is efficient, Meta prospecting is not).
-const channels = [
-  { channel: "Google Ads (Search + PMax)", color: "#1f8f88", visit: 0.22, cost: 0.33, conv: 0.29, rev: 0.3 },
-  { channel: "Google Nákupy", color: "#2dd4ce", visit: 0.12, cost: 0.16, conv: 0.14, rev: 0.14 },
-  { channel: "Sklik (Seznam)", color: "#15324b", visit: 0.11, cost: 0.13, conv: 0.12, rev: 0.12 },
-  { channel: "Heureka", color: "#f59e0b", visit: 0.08, cost: 0.07, conv: 0.1, rev: 0.09 },
-  { channel: "Zboží.cz", color: "#94a3b8", visit: 0.06, cost: 0.06, conv: 0.07, rev: 0.07 },
-  { channel: "Meta (FB / IG)", color: "#fb7141", visit: 0.19, cost: 0.25, conv: 0.12, rev: 0.13 },
-  { channel: "Organic & přímá", color: "#0b1b2b", visit: 0.22, cost: 0.0, conv: 0.16, rev: 0.15 },
-];
-
-// sanity-check that shares sum to ~1 on every dimension
-for (const dim of ["visit", "cost", "conv", "rev"]) {
-  const sum = channels.reduce((a, c) => a + c[dim], 0);
-  if (Math.abs(sum - 1) > 1e-9) {
-    throw new Error(`channel ${dim} shares sum to ${sum}, expected 1`);
-  }
 }
 
 // Managing agency shown in the dataset. Kept as a single constant so a rebrand

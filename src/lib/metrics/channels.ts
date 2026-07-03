@@ -31,10 +31,17 @@ export function channelRows(channels: ChannelShare[], totals: Totals): ChannelRo
         cost,
         conversions,
         revenue,
+        // The channel mix carries no impressions/clicks shares, so the paid-
+        // traffic pair (and its CTR/CPC) reads 0 per channel — the aggregate
+        // CTR/CPC lives on the period totals.
+        impressions: 0,
+        clicks: 0,
         pno: safe(cost, revenue),
         aov: safe(revenue, conversions),
         cr: safe(conversions, visits),
         roas: safe(revenue, cost),
+        ctr: 0,
+        cpc: 0,
         revenueShare: ch.shares.revenue,
       };
     })
@@ -65,6 +72,8 @@ export function channelRowsCompared(
       aov: rel(row.aov, prev?.aov ?? 0),
       cr: rel(row.cr, prev?.cr ?? 0),
       roas: rel(row.roas, prev?.roas ?? 0),
+      ctr: rel(row.ctr, prev?.ctr ?? 0),
+      cpc: rel(row.cpc, prev?.cpc ?? 0),
     };
     return { ...row, delta };
   });

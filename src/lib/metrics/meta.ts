@@ -150,6 +150,32 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     formatCompact: (v, f = csF) => f.fmtMultiple(v),
     plottable: true,
   },
+  ctr: {
+    key: "ctr",
+    label: "Míra prokliku",
+    short: "CTR",
+    description: "Podíl zobrazení reklam, která skončila proklikem.",
+    labelEn: "Click-through rate",
+    shortEn: "CTR",
+    descriptionEn: "Share of ad impressions that resulted in a click.",
+    goodDirection: "up",
+    format: (v, f = csF) => f.fmtPct(v, 2),
+    formatCompact: (v, f = csF) => f.fmtPct(v, 1),
+    plottable: true,
+  },
+  cpc: {
+    key: "cpc",
+    label: "Cena za proklik",
+    short: "CPC",
+    description: "Průměrná cena za proklik = náklady / prokliky.",
+    labelEn: "Cost per click",
+    shortEn: "CPC",
+    descriptionEn: "Average cost per click = cost / clicks.",
+    goodDirection: "down",
+    format: (v, f = csF) => f.fmtCZK(v),
+    formatCompact: (v, f = csF) => f.fmtCZK(v),
+    plottable: true,
+  },
 };
 
 /** Metrics shown as headline KPI cards, in order (mirrors the assignment). */
@@ -173,9 +199,18 @@ export const TREND_METRICS: MetricKey[] = [
   "roas",
   "aov",
   "cr",
+  "ctr",
+  "cpc",
 ];
 
 /** Metrics whose natural baseline is not zero (ratios / efficiency). The trend
  *  chart zooms the y-axis to the data range for these instead of anchoring at 0,
  *  so movement in a 3.8×→4.2× ROAS or a 1.8 %→2.1 % CR is actually visible. */
-export const RATIO_METRICS: ReadonlySet<MetricKey> = new Set(["pno", "aov", "cr", "roas"]);
+export const RATIO_METRICS: ReadonlySet<MetricKey> = new Set([
+  "pno",
+  "aov",
+  "cr",
+  "roas",
+  "ctr",
+  "cpc",
+]);

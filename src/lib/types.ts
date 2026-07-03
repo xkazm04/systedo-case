@@ -7,6 +7,11 @@ export interface DailyPoint {
   cost: number;
   conversions: number;
   revenue: number;
+  /** paid ad impressions (optional — older datasets lack the paid-traffic pair;
+   *  derived CTR/CPC gracefully fall back to 0 when absent) */
+  impressions?: number;
+  /** paid ad clicks (optional, see impressions) */
+  clicks?: number;
 }
 
 export interface ChannelShare {
@@ -61,8 +66,13 @@ export interface PerformanceData {
   daily: DailyPoint[];
 }
 
-/** Raw, additive metrics. */
+/** Raw, additive metrics (always present on every DailyPoint). The optional
+ *  paid-traffic pair (impressions/clicks) deliberately stays out: seasonality
+ *  weighting and anomaly detection iterate this union and must not divide by
+ *  fields an older dataset lacks. */
 export type RawMetric = "visits" | "cost" | "conversions" | "revenue";
 
-/** Every metric we surface, including derived ratios. */
-export type MetricKey = RawMetric | "pno" | "aov" | "cr" | "roas";
+/** Every metric we surface, including derived ratios. `ctr` (clicks /
+ *  impressions) and `cpc` (cost / clicks) derive from the optional paid-traffic
+ *  fields and read 0 when a dataset doesn't carry them. */
+export type MetricKey = RawMetric | "pno" | "aov" | "cr" | "roas" | "ctr" | "cpc";

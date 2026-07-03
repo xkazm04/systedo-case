@@ -57,6 +57,9 @@ const COLORS: Record<MetricKey, string> = {
   aov: "var(--color-brand-500)",
   cr: "var(--color-brand-500)",
   roas: "var(--color-brand-500)",
+  ctr: "var(--color-brand-500)",
+  // cost-per-click reads like PNO (down = good), so it shares its ink
+  cpc: "var(--color-navy-600)",
 };
 
 const H = 300;

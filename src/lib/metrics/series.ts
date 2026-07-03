@@ -72,7 +72,8 @@ export interface PeriodResult {
   baseline: PeriodBaseline;
 }
 
-/** Per-day value of any metric (raw additive, or a derived ratio per day). */
+/** Per-day value of any metric (raw additive, or a derived ratio per day). The
+ *  paid-traffic ratios read 0 when the optional impressions/clicks are absent. */
 function dailyValue(p: DailyPoint, key: MetricKey): number {
   switch (key) {
     case "visits": return p.visits;
@@ -83,6 +84,8 @@ function dailyValue(p: DailyPoint, key: MetricKey): number {
     case "aov": return p.conversions > 0 ? p.revenue / p.conversions : 0;
     case "cr": return p.visits > 0 ? p.conversions / p.visits : 0;
     case "roas": return p.cost > 0 ? p.revenue / p.cost : 0;
+    case "ctr": return (p.impressions ?? 0) > 0 ? (p.clicks ?? 0) / (p.impressions ?? 0) : 0;
+    case "cpc": return (p.clicks ?? 0) > 0 ? p.cost / (p.clicks ?? 0) : 0;
   }
 }
 
@@ -172,6 +175,8 @@ function compareWindows(
     aov: rel(c.aov, p.aov),
     cr: rel(c.cr, p.cr),
     roas: rel(c.roas, p.roas),
+    ctr: rel(c.ctr, p.ctr),
+    cpc: rel(c.cpc, p.cpc),
   };
   const significance: Record<MetricKey, Significance> = {
     visits: significanceFor(current, previous, "visits"),
@@ -182,6 +187,8 @@ function compareWindows(
     aov: significanceFor(current, previous, "aov"),
     cr: significanceFor(current, previous, "cr"),
     roas: significanceFor(current, previous, "roas"),
+    ctr: significanceFor(current, previous, "ctr"),
+    cpc: significanceFor(current, previous, "cpc"),
   };
   return {
     current: c,

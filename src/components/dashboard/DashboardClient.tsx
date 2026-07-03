@@ -171,6 +171,8 @@ const TREND_CSV_METRICS: MetricKey[] = [
   "roas",
   "aov",
   "cr",
+  "ctr",
+  "cpc",
 ];
 
 function Segmented<T extends string>({
@@ -316,6 +318,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
     aov: null,
     cr: null,
     roas: null,
+    ctr: null,
+    cpc: null,
   };
 
   // auto-generated insights (sustained trends first — highest-signal finding)
@@ -368,8 +372,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // channel CSV: raw integers for money/counts, locale-decimal ratios (csvNum).
   const exportTrendCsv = () => {
     const cell = (b: Bucket, m: MetricKey): string | number => {
-      if (m === "pno" || m === "cr") return b[m] > 0 ? csvNum(b[m], 4, locale) : "";
-      if (m === "roas") return b[m] > 0 ? csvNum(b[m], 2, locale) : "";
+      if (m === "pno" || m === "cr" || m === "ctr") return b[m] > 0 ? csvNum(b[m], 4, locale) : "";
+      if (m === "roas" || m === "cpc") return b[m] > 0 ? csvNum(b[m], 2, locale) : "";
       return Math.round(b[m]);
     };
     const label = (m: MetricKey) => metricShort(METRICS[m], locale);

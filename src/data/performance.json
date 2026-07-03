@@ -120,6 +120,8 @@
     {
       "date": "2024-06-01",
       "visits": 1083,
+      "impressions": 52088,
+      "clicks": 882,
       "cost": 7233,
       "conversions": 23,
       "revenue": 36448
@@ -127,6 +129,8 @@
     {
       "date": "2024-06-02",
       "visits": 1105,
+      "impressions": 52958,
+      "clicks": 879,
       "cost": 7126,
       "conversions": 23,
       "revenue": 33043
@@ -134,6 +138,8 @@
     {
       "date": "2024-06-03",
       "visits": 1005,
+      "impressions": 52456,
+      "clicks": 810,
       "cost": 5955,
       "conversions": 20,
       "revenue": 29508
@@ -141,6 +147,8 @@
     {
       "date": "2024-06-04",
       "visits": 1109,
+      "impressions": 53652,
+      "clicks": 906,
       "cost": 8606,
       "conversions": 25,
       "revenue": 40185
@@ -148,6 +156,8 @@
     {
       "date": "2024-06-05",
       "visits": 1099,
+      "impressions": 50799,
+      "clicks": 861,
       "cost": 6551,
       "conversions": 23,
       "revenue": 33781
@@ -155,6 +165,8 @@
     {
       "date": "2024-06-06",
       "visits": 1096,
+      "impressions": 51987,
+      "clicks": 869,
       "cost": 7597,
       "conversions": 23,
       "revenue": 35667
@@ -162,6 +174,8 @@
     {
       "date": "2024-06-07",
       "visits": 1097,
+      "impressions": 53028,
+      "clicks": 870,
       "cost": 6606,
       "conversions": 22,
       "revenue": 32166
@@ -169,6 +183,8 @@
     {
       "date": "2024-06-08",
       "visits": 1186,
+      "impressions": 56257,
+      "clicks": 939,
       "cost": 8313,
       "conversions": 24,
       "revenue": 38545
@@ -176,6 +192,8 @@
     {
       "date": "2024-06-09",
       "visits": 1125,
+      "impressions": 51757,
+      "clicks": 893,
       "cost": 8033,
       "conversions": 24,
       "revenue": 38189
@@ -183,6 +201,8 @@
     {
       "date": "2024-06-10",
       "visits": 1159,
+      "impressions": 55039,
+      "clicks": 918,
       "cost": 8334,
       "conversions": 26,
       "revenue": 40826
@@ -190,6 +210,8 @@
     {
       "date": "2024-06-11",
       "visits": 1059,
+      "impressions": 55512,
+      "clicks": 836,
       "cost": 6590,
       "conversions": 22,
       "revenue": 34335
@@ -197,6 +219,8 @@
     {
       "date": "2024-06-12",
       "visits": 1107,
+      "impressions": 52751,
+      "clicks": 903,
       "cost": 7408,
       "conversions": 23,
       "revenue": 34653
@@ -204,6 +228,8 @@
     {
       "date": "2024-06-13",
       "visits": 1012,
+      "impressions": 49156,
+      "clicks": 774,
       "cost": 6415,
       "conversions": 20,
       "revenue": 30745
@@ -211,6 +237,8 @@
     {
       "date": "2024-06-14",
       "visits": 1162,
+      "impressions": 55156,
+      "clicks": 890,
       "cost": 6590,
       "conversions": 23,
       "revenue": 33514
@@ -218,6 +246,8 @@
     {
       "date": "2024-06-15",
       "visits": 1134,
+      "impressions": 58299,
+      "clicks": 873,
       "cost": 6988,
       "conversions": 23,
       "revenue": 35856
@@ -225,6 +255,8 @@
     {
       "date": "2024-06-16",
       "visits": 1210,
+      "impressions": 63975,
+      "clicks": 978,
       "cost": 8586,
       "conversions": 27,
       "revenue": 43068
@@ -232,6 +264,8 @@
     {
       "date": "2024-06-17",
       "visits": 1118,
+      "impressions": 60717,
+      "clicks": 905,
       "cost": 6906,
       "conversions": 23,
       "revenue": 35161
@@ -239,6 +273,8 @@
     {
       "date": "2024-06-18",
       "visits": 1073,
+      "impressions": 55362,
+      "clicks": 874,
       "cost": 6833,
       "conversions": 23,
       "revenue": 34312
@@ -246,6 +282,8 @@
     {
       "date": "2024-06-19",
       "visits": 1130,
+      "impressions": 52113,
+      "clicks": 903,
       "cost": 7605,
       "conversions": 24,
       "revenue": 35744
@@ -253,6 +291,8 @@
     {
       "date": "2024-06-20",
       "visits": 1099,
+      "impressions": 49375,
+      "clicks": 833,
       "cost": 6923,
       "conversions": 23,
       "revenue": 35333
@@ -260,6 +300,8 @@
     {
       "date": "2024-06-21",
       "visits": 1150,
+      "impressions": 52071,
+      "clicks": 896,
       "cost": 6986,
       "conversions": 23,
       "revenue": 34531
@@ -267,6 +309,8 @@
     {
       "date": "2024-06-22",
       "visits": 1066,
+      "impressions": 46616,
+      "clicks": 806,
       "cost": 6681,
       "conversions": 22,
       "revenue": 32796
@@ -274,6 +318,8 @@
     {
       "date": "2024-06-23",
       "visits": 1217,
+      "impressions": 60534,
+      "clicks": 955,
       "cost": 8387,
       "conversions": 27,
       "revenue": 40770
@@ -281,6 +327,8 @@
     {
       "date": "2024-06-24",
       "visits": 1123,
+      "impressions": 49909,
+      "clicks": 862,
       "cost": 7700,
       "conversions": 24,
       "revenue": 37849
@@ -288,6 +336,8 @@
     {
       "date": "2024-06-25",
       "visits": 966,
+      "impressions": 51760,
+      "clicks": 780,
       "cost": 5724,
       "conversions": 19,
       "revenue": 29171
@@ -295,6 +345,8 @@
     {
       "date": "2024-06-26",
       "visits": 1124,
+      "impressions": 53632,
+      "clicks": 881,
       "cost": 6425,
       "conversions": 22,
       "revenue": 32201
@@ -302,6 +354,8 @@
     {
       "date": "2024-06-27",
       "visits": 1173,
+      "impressions": 55451,
+      "clicks": 888,
       "cost": 8031,
       "conversions": 26,
       "revenue": 38746
@@ -309,6 +363,8 @@
     {
       "date": "2024-06-28",
       "visits": 1121,
+      "impressions": 53042,
+      "clicks": 913,
       "cost": 8406,
       "conversions": 25,
       "revenue": 39504
@@ -316,6 +372,8 @@
     {
       "date": "2024-06-29",
       "visits": 1194,
+      "impressions": 59100,
+      "clicks": 956,
       "cost": 7254,
       "conversions": 24,
       "revenue": 38083
@@ -323,6 +381,8 @@
     {
       "date": "2024-06-30",
       "visits": 1063,
+      "impressions": 52992,
+      "clicks": 788,
       "cost": 7986,
       "conversions": 24,
       "revenue": 37697
@@ -330,6 +390,8 @@
     {
       "date": "2024-07-01",
       "visits": 1080,
+      "impressions": 52226,
+      "clicks": 865,
       "cost": 6427,
       "conversions": 21,
       "revenue": 33399
@@ -337,6 +399,8 @@
     {
       "date": "2024-07-02",
       "visits": 908,
+      "impressions": 40328,
+      "clicks": 689,
       "cost": 5616,
       "conversions": 17,
       "revenue": 26713
@@ -344,6 +408,8 @@
     {
       "date": "2024-07-03",
       "visits": 1061,
+      "impressions": 50108,
+      "clicks": 789,
       "cost": 6897,
       "conversions": 21,
       "revenue": 32792
@@ -351,6 +417,8 @@
     {
       "date": "2024-07-04",
       "visits": 912,
+      "impressions": 46450,
+      "clicks": 715,
       "cost": 6242,
       "conversions": 19,
       "revenue": 29810
@@ -358,6 +426,8 @@
     {
       "date": "2024-07-05",
       "visits": 984,
+      "impressions": 50082,
+      "clicks": 802,
       "cost": 6660,
       "conversions": 20,
       "revenue": 31632
@@ -365,6 +435,8 @@
     {
       "date": "2024-07-06",
       "visits": 1034,
+      "impressions": 52655,
+      "clicks": 833,
       "cost": 6035,
       "conversions": 22,
       "revenue": 31761
@@ -372,6 +444,8 @@
     {
       "date": "2024-07-07",
       "visits": 1078,
+      "impressions": 51276,
+      "clicks": 808,
       "cost": 6838,
       "conversions": 24,
       "revenue": 35340
@@ -379,6 +453,8 @@
     {
       "date": "2024-07-08",
       "visits": 1002,
+      "impressions": 46048,
+      "clicks": 768,
       "cost": 5956,
       "conversions": 21,
       "revenue": 31028
@@ -386,6 +462,8 @@
     {
       "date": "2024-07-09",
       "visits": 914,
+      "impressions": 43355,
+      "clicks": 736,
       "cost": 5025,
       "conversions": 18,
       "revenue": 26004
@@ -393,6 +471,8 @@
     {
       "date": "2024-07-10",
       "visits": 1001,
+      "impressions": 44361,
+      "clicks": 757,
       "cost": 6142,
       "conversions": 20,
       "revenue": 29559
@@ -400,6 +480,8 @@
     {
       "date": "2024-07-11",
       "visits": 1011,
+      "impressions": 48397,
+      "clicks": 804,
       "cost": 5733,
       "conversions": 20,
       "revenue": 29133
@@ -407,6 +489,8 @@
     {
       "date": "2024-07-12",
       "visits": 1105,
+      "impressions": 54674,
+      "clicks": 841,
       "cost": 8163,
       "conversions": 25,
       "revenue": 38372
@@ -414,6 +498,8 @@
     {
       "date": "2024-07-13",
       "visits": 1106,
+      "impressions": 49845,
+      "clicks": 859,
       "cost": 7403,
       "conversions": 23,
       "revenue": 37198
@@ -421,6 +507,8 @@
     {
       "date": "2024-07-14",
       "visits": 955,
+      "impressions": 46260,
+      "clicks": 732,
       "cost": 7002,
       "conversions": 22,
       "revenue": 33237
@@ -428,6 +516,8 @@
     {
       "date": "2024-07-15",
       "visits": 978,
+      "impressions": 49139,
+      "clicks": 795,
       "cost": 5481,
       "conversions": 19,
       "revenue": 27761
@@ -435,6 +525,8 @@
     {
       "date": "2024-07-16",
       "visits": 920,
+      "impressions": 43380,
+      "clicks": 744,
       "cost": 5481,
       "conversions": 18,
       "revenue": 26854
@@ -442,6 +534,8 @@
     {
       "date": "2024-07-17",
       "visits": 1073,
+      "impressions": 48696,
+      "clicks": 829,
       "cost": 6972,
       "conversions": 21,
       "revenue": 33294
@@ -449,6 +543,8 @@
     {
       "date": "2024-07-18",
       "visits": 992,
+      "impressions": 44054,
+      "clicks": 757,
       "cost": 6263,
       "conversions": 21,
       "revenue": 31647
@@ -456,6 +552,8 @@
     {
       "date": "2024-07-19",
       "visits": 1081,
+      "impressions": 51510,
+      "clicks": 829,
       "cost": 6636,
       "conversions": 22,
       "revenue": 33356
@@ -463,6 +561,8 @@
     {
       "date": "2024-07-20",
       "visits": 1087,
+      "impressions": 52484,
+      "clicks": 851,
       "cost": 6475,
       "conversions": 22,
       "revenue": 32592
@@ -470,6 +570,8 @@
     {
       "date": "2024-07-21",
       "visits": 1034,
+      "impressions": 49572,
+      "clicks": 809,
       "cost": 6742,
       "conversions": 23,
       "revenue": 34514
@@ -477,6 +579,8 @@
     {
       "date": "2024-07-22",
       "visits": 1105,
+      "impressions": 51139,
+      "clicks": 835,
       "cost": 6537,
       "conversions": 21,
       "revenue": 31922
@@ -484,6 +588,8 @@
     {
       "date": "2024-07-23",
       "visits": 946,
+      "impressions": 44579,
+      "clicks": 770,
       "cost": 5779,
       "conversions": 19,
       "revenue": 27484
@@ -491,6 +597,8 @@
     {
       "date": "2024-07-24",
       "visits": 1091,
+      "impressions": 47146,
+      "clicks": 820,
       "cost": 6405,
       "conversions": 21,
       "revenue": 32235
@@ -498,6 +606,8 @@
     {
       "date": "2024-07-25",
       "visits": 1075,
+      "impressions": 54513,
+      "clicks": 849,
       "cost": 6784,
       "conversions": 22,
       "revenue": 33726
@@ -505,6 +615,8 @@
     {
       "date": "2024-07-26",
       "visits": 1063,
+      "impressions": 48927,
+      "clicks": 843,
       "cost": 7009,
       "conversions": 23,
       "revenue": 33292
@@ -512,6 +624,8 @@
     {
       "date": "2024-07-27",
       "visits": 1051,
+      "impressions": 45339,
+      "clicks": 786,
       "cost": 6555,
       "conversions": 21,
       "revenue": 31644
@@ -519,6 +633,8 @@
     {
       "date": "2024-07-28",
       "visits": 962,
+      "impressions": 45273,
+      "clicks": 724,
       "cost": 6033,
       "conversions": 20,
       "revenue": 30805
@@ -526,6 +642,8 @@
     {
       "date": "2024-07-29",
       "visits": 1006,
+      "impressions": 48255,
+      "clicks": 758,
       "cost": 5437,
       "conversions": 19,
       "revenue": 28920
@@ -533,6 +651,8 @@
     {
       "date": "2024-07-30",
       "visits": 924,
+      "impressions": 44827,
+      "clicks": 739,
       "cost": 5262,
       "conversions": 18,
       "revenue": 27268
@@ -540,6 +660,8 @@
     {
       "date": "2024-07-31",
       "visits": 1066,
+      "impressions": 53474,
+      "clicks": 840,
       "cost": 6387,
       "conversions": 20,
       "revenue": 31116
@@ -547,6 +669,8 @@
     {
       "date": "2024-08-01",
       "visits": 1150,
+      "impressions": 51132,
+      "clicks": 861,
       "cost": 8163,
       "conversions": 25,
       "revenue": 38973
@@ -554,6 +678,8 @@
     {
       "date": "2024-08-02",
       "visits": 1112,
+      "impressions": 55580,
+      "clicks": 907,
       "cost": 7059,
       "conversions": 22,
       "revenue": 33779
@@ -561,6 +687,8 @@
     {
       "date": "2024-08-03",
       "visits": 1025,
+      "impressions": 47761,
+      "clicks": 814,
       "cost": 6675,
       "conversions": 23,
       "revenue": 33730
@@ -568,6 +696,8 @@
     {
       "date": "2024-08-04",
       "visits": 1047,
+      "impressions": 52356,
+      "clicks": 821,
       "cost": 7124,
       "conversions": 22,
       "revenue": 35070
@@ -575,6 +705,8 @@
     {
       "date": "2024-08-05",
       "visits": 999,
+      "impressions": 45701,
+      "clicks": 755,
       "cost": 6836,
       "conversions": 22,
       "revenue": 34101
@@ -582,6 +714,8 @@
     {
       "date": "2024-08-06",
       "visits": 964,
+      "impressions": 41353,
+      "clicks": 716,
       "cost": 5643,
       "conversions": 19,
       "revenue": 29575
@@ -589,6 +723,8 @@
     {
       "date": "2024-08-07",
       "visits": 1093,
+      "impressions": 50546,
+      "clicks": 876,
       "cost": 5957,
       "conversions": 22,
       "revenue": 31828
@@ -596,6 +732,8 @@
     {
       "date": "2024-08-08",
       "visits": 1008,
+      "impressions": 54294,
+      "clicks": 820,
       "cost": 5806,
       "conversions": 19,
       "revenue": 30234
@@ -603,6 +741,8 @@
     {
       "date": "2024-08-09",
       "visits": 1061,
+      "impressions": 53044,
+      "clicks": 839,
       "cost": 6773,
       "conversions": 22,
       "revenue": 34112
@@ -610,6 +750,8 @@
     {
       "date": "2024-08-10",
       "visits": 1206,
+      "impressions": 51622,
+      "clicks": 901,
       "cost": 8726,
       "conversions": 28,
       "revenue": 44750
@@ -617,6 +759,8 @@
     {
       "date": "2024-08-11",
       "visits": 1040,
+      "impressions": 48037,
+      "clicks": 811,
       "cost": 6328,
       "conversions": 21,
       "revenue": 33853
@@ -624,6 +768,8 @@
     {
       "date": "2024-08-12",
       "visits": 1001,
+      "impressions": 46308,
+      "clicks": 775,
       "cost": 7030,
       "conversions": 21,
       "revenue": 33786
@@ -631,6 +777,8 @@
     {
       "date": "2024-08-13",
       "visits": 1049,
+      "impressions": 49604,
+      "clicks": 778,
       "cost": 6352,
       "conversions": 23,
       "revenue": 33971
@@ -638,6 +786,8 @@
     {
       "date": "2024-08-14",
       "visits": 1057,
+      "impressions": 50976,
+      "clicks": 846,
       "cost": 6461,
       "conversions": 21,
       "revenue": 33654
@@ -645,6 +795,8 @@
     {
       "date": "2024-08-15",
       "visits": 1098,
+      "impressions": 52739,
+      "clicks": 867,
       "cost": 7211,
       "conversions": 24,
       "revenue": 36030
@@ -652,6 +804,8 @@
     {
       "date": "2024-08-16",
       "visits": 1033,
+      "impressions": 51285,
+      "clicks": 786,
       "cost": 5947,
       "conversions": 22,
       "revenue": 31910
@@ -659,6 +813,8 @@
     {
       "date": "2024-08-17",
       "visits": 1106,
+      "impressions": 47726,
+      "clicks": 841,
       "cost": 7949,
       "conversions": 26,
       "revenue": 39934
@@ -666,6 +822,8 @@
     {
       "date": "2024-08-18",
       "visits": 1206,
+      "impressions": 55591,
+      "clicks": 917,
       "cost": 8049,
       "conversions": 25,
       "revenue": 39573
@@ -673,6 +831,8 @@
     {
       "date": "2024-08-19",
       "visits": 1003,
+      "impressions": 43618,
+      "clicks": 749,
       "cost": 6664,
       "conversions": 22,
       "revenue": 34923
@@ -680,6 +840,8 @@
     {
       "date": "2024-08-20",
       "visits": 1073,
+      "impressions": 51042,
+      "clicks": 861,
       "cost": 6871,
       "conversions": 23,
       "revenue": 34212
@@ -687,6 +849,8 @@
     {
       "date": "2024-08-21",
       "visits": 1155,
+      "impressions": 52693,
+      "clicks": 905,
       "cost": 8021,
       "conversions": 25,
       "revenue": 39803
@@ -694,6 +858,8 @@
     {
       "date": "2024-08-22",
       "visits": 1033,
+      "impressions": 48416,
+      "clicks": 785,
       "cost": 6259,
       "conversions": 21,
       "revenue": 30751
@@ -701,6 +867,8 @@
     {
       "date": "2024-08-23",
       "visits": 1027,
+      "impressions": 50601,
+      "clicks": 828,
       "cost": 5877,
       "conversions": 20,
       "revenue": 29589
@@ -708,6 +876,8 @@
     {
       "date": "2024-08-24",
       "visits": 1200,
+      "impressions": 56212,
+      "clicks": 925,
       "cost": 8800,
       "conversions": 28,
       "revenue": 43343
@@ -715,6 +885,8 @@
     {
       "date": "2024-08-25",
       "visits": 1226,
+      "impressions": 62292,
+      "clicks": 962,
       "cost": 8813,
       "conversions": 28,
       "revenue": 43312
@@ -722,6 +894,8 @@
     {
       "date": "2024-08-26",
       "visits": 1048,
+      "impressions": 46315,
+      "clicks": 807,
       "cost": 7174,
       "conversions": 23,
       "revenue": 35282
@@ -729,6 +903,8 @@
     {
       "date": "2024-08-27",
       "visits": 1031,
+      "impressions": 50469,
+      "clicks": 801,
       "cost": 6407,
       "conversions": 22,
       "revenue": 33895
@@ -736,6 +912,8 @@
     {
       "date": "2024-08-28",
       "visits": 1034,
+      "impressions": 48021,
+      "clicks": 792,
       "cost": 6121,
       "conversions": 20,
       "revenue": 31242
@@ -743,6 +921,8 @@
     {
       "date": "2024-08-29",
       "visits": 1123,
+      "impressions": 48107,
+      "clicks": 833,
       "cost": 7223,
       "conversions": 24,
       "revenue": 37551
@@ -750,6 +930,8 @@
     {
       "date": "2024-08-30",
       "visits": 1067,
+      "impressions": 45577,
+      "clicks": 807,
       "cost": 6428,
       "conversions": 22,
       "revenue": 33754
@@ -757,6 +939,8 @@
     {
       "date": "2024-08-31",
       "visits": 1186,
+      "impressions": 56844,
+      "clicks": 966,
       "cost": 8575,
       "conversions": 28,
       "revenue": 43300
@@ -764,6 +948,8 @@
     {
       "date": "2024-09-01",
       "visits": 1275,
+      "impressions": 66816,
+      "clicks": 1015,
       "cost": 9632,
       "conversions": 32,
       "revenue": 47273
@@ -771,6 +957,8 @@
     {
       "date": "2024-09-02",
       "visits": 1244,
+      "impressions": 65539,
+      "clicks": 1001,
       "cost": 8629,
       "conversions": 28,
       "revenue": 44395
@@ -778,6 +966,8 @@
     {
       "date": "2024-09-03",
       "visits": 1226,
+      "impressions": 56628,
+      "clicks": 926,
       "cost": 8123,
       "conversions": 27,
       "revenue": 39331
@@ -785,6 +975,8 @@
     {
       "date": "2024-09-04",
       "visits": 1140,
+      "impressions": 52582,
+      "clicks": 851,
       "cost": 6991,
       "conversions": 25,
       "revenue": 37600
@@ -792,6 +984,8 @@
     {
       "date": "2024-09-05",
       "visits": 1210,
+      "impressions": 59252,
+      "clicks": 904,
       "cost": 8567,
       "conversions": 27,
       "revenue": 43929
@@ -799,6 +993,8 @@
     {
       "date": "2024-09-06",
       "visits": 1458,
+      "impressions": 76489,
+      "clicks": 1176,
       "cost": 9456,
       "conversions": 33,
       "revenue": 48171
@@ -806,6 +1002,8 @@
     {
       "date": "2024-09-07",
       "visits": 1260,
+      "impressions": 62100,
+      "clicks": 949,
       "cost": 8366,
       "conversions": 28,
       "revenue": 42620
@@ -813,6 +1011,8 @@
     {
       "date": "2024-09-08",
       "visits": 1242,
+      "impressions": 56409,
+      "clicks": 935,
       "cost": 9249,
       "conversions": 31,
       "revenue": 48484
@@ -820,6 +1020,8 @@
     {
       "date": "2024-09-09",
       "visits": 1303,
+      "impressions": 60415,
+      "clicks": 1033,
       "cost": 8497,
       "conversions": 28,
       "revenue": 43481
@@ -827,6 +1029,8 @@
     {
       "date": "2024-09-10",
       "visits": 1353,
+      "impressions": 68184,
+      "clicks": 1052,
       "cost": 9351,
       "conversions": 31,
       "revenue": 45289
@@ -834,6 +1038,8 @@
     {
       "date": "2024-09-11",
       "visits": 1246,
+      "impressions": 62870,
+      "clicks": 1017,
       "cost": 8892,
       "conversions": 29,
       "revenue": 46956
@@ -841,6 +1047,8 @@
     {
       "date": "2024-09-12",
       "visits": 1263,
+      "impressions": 61548,
+      "clicks": 938,
       "cost": 8550,
       "conversions": 29,
       "revenue": 42915
@@ -848,6 +1056,8 @@
     {
       "date": "2024-09-13",
       "visits": 1420,
+      "impressions": 74357,
+      "clicks": 1160,
       "cost": 9144,
       "conversions": 33,
       "revenue": 48458
@@ -855,6 +1065,8 @@
     {
       "date": "2024-09-14",
       "visits": 1422,
+      "impressions": 65572,
+      "clicks": 1062,
       "cost": 9669,
       "conversions": 33,
       "revenue": 51059
@@ -862,6 +1074,8 @@
     {
       "date": "2024-09-15",
       "visits": 1337,
+      "impressions": 58110,
+      "clicks": 1018,
       "cost": 10037,
       "conversions": 33,
       "revenue": 52509
@@ -869,6 +1083,8 @@
     {
       "date": "2024-09-16",
       "visits": 1301,
+      "impressions": 65355,
+      "clicks": 1021,
       "cost": 7872,
       "conversions": 28,
       "revenue": 41608
@@ -876,6 +1092,8 @@
     {
       "date": "2024-09-17",
       "visits": 1305,
+      "impressions": 63900,
+      "clicks": 982,
       "cost": 8732,
       "conversions": 27,
       "revenue": 44231
@@ -883,6 +1101,8 @@
     {
       "date": "2024-09-18",
       "visits": 1402,
+      "impressions": 72082,
+      "clicks": 1131,
       "cost": 9724,
       "conversions": 31,
       "revenue": 50019
@@ -890,6 +1110,8 @@
     {
       "date": "2024-09-19",
       "visits": 1219,
+      "impressions": 53459,
+      "clicks": 942,
       "cost": 8516,
       "conversions": 29,
       "revenue": 45103
@@ -897,6 +1119,8 @@
     {
       "date": "2024-09-20",
       "visits": 1316,
+      "impressions": 60177,
+      "clicks": 1052,
       "cost": 9011,
       "conversions": 29,
       "revenue": 45527
@@ -904,6 +1128,8 @@
     {
       "date": "2024-09-21",
       "visits": 1472,
+      "impressions": 61881,
+      "clicks": 1099,
       "cost": 11659,
       "conversions": 37,
       "revenue": 59035
@@ -911,6 +1137,8 @@
     {
       "date": "2024-09-22",
       "visits": 1476,
+      "impressions": 72685,
+      "clicks": 1206,
       "cost": 10240,
       "conversions": 34,
       "revenue": 51046
@@ -918,6 +1146,8 @@
     {
       "date": "2024-09-23",
       "visits": 1243,
+      "impressions": 55122,
+      "clicks": 980,
       "cost": 9181,
       "conversions": 29,
       "revenue": 46499
@@ -925,6 +1155,8 @@
     {
       "date": "2024-09-24",
       "visits": 1237,
+      "impressions": 58650,
+      "clicks": 933,
       "cost": 7599,
       "conversions": 26,
       "revenue": 39236
@@ -932,6 +1164,8 @@
     {
       "date": "2024-09-25",
       "visits": 1313,
+      "impressions": 64452,
+      "clicks": 1007,
       "cost": 8285,
       "conversions": 29,
       "revenue": 45019
@@ -939,6 +1173,8 @@
     {
       "date": "2024-09-26",
       "visits": 1225,
+      "impressions": 57201,
+      "clicks": 953,
       "cost": 8168,
       "conversions": 27,
       "revenue": 40522
@@ -946,6 +1182,8 @@
     {
       "date": "2024-09-27",
       "visits": 1274,
+      "impressions": 60001,
+      "clicks": 1016,
       "cost": 9287,
       "conversions": 29,
       "revenue": 45582
@@ -953,6 +1191,8 @@
     {
       "date": "2024-09-28",
       "visits": 1415,
+      "impressions": 60165,
+      "clicks": 1056,
       "cost": 10091,
       "conversions": 32,
       "revenue": 52015
@@ -960,6 +1200,8 @@
     {
       "date": "2024-09-29",
       "visits": 1349,
+      "impressions": 60520,
+      "clicks": 1021,
       "cost": 10371,
       "conversions": 33,
       "revenue": 52386
@@ -967,6 +1209,8 @@
     {
       "date": "2024-09-30",
       "visits": 1396,
+      "impressions": 63930,
+      "clicks": 1122,
       "cost": 10700,
       "conversions": 33,
       "revenue": 52863
@@ -974,6 +1218,8 @@
     {
       "date": "2024-10-01",
       "visits": 1315,
+      "impressions": 62116,
+      "clicks": 1000,
       "cost": 9394,
       "conversions": 32,
       "revenue": 47837
@@ -981,6 +1227,8 @@
     {
       "date": "2024-10-02",
       "visits": 1303,
+      "impressions": 59345,
+      "clicks": 1055,
       "cost": 8931,
       "conversions": 30,
       "revenue": 45349
@@ -988,6 +1236,8 @@
     {
       "date": "2024-10-03",
       "visits": 1370,
+      "impressions": 64946,
+      "clicks": 1116,
       "cost": 9169,
       "conversions": 32,
       "revenue": 48109
@@ -995,6 +1245,8 @@
     {
       "date": "2024-10-04",
       "visits": 1533,
+      "impressions": 72917,
+      "clicks": 1189,
       "cost": 11639,
       "conversions": 39,
       "revenue": 63629
@@ -1002,6 +1254,8 @@
     {
       "date": "2024-10-05",
       "visits": 1529,
+      "impressions": 74963,
+      "clicks": 1225,
       "cost": 11351,
       "conversions": 36,
       "revenue": 58526
@@ -1009,6 +1263,8 @@
     {
       "date": "2024-10-06",
       "visits": 1392,
+      "impressions": 69528,
+      "clicks": 1103,
       "cost": 11337,
       "conversions": 37,
       "revenue": 56688
@@ -1016,6 +1272,8 @@
     {
       "date": "2024-10-07",
       "visits": 1517,
+      "impressions": 68839,
+      "clicks": 1153,
       "cost": 9979,
       "conversions": 35,
       "revenue": 54363
@@ -1023,6 +1281,8 @@
     {
       "date": "2024-10-08",
       "visits": 1541,
+      "impressions": 70820,
+      "clicks": 1245,
       "cost": 10925,
       "conversions": 37,
       "revenue": 58326
@@ -1030,6 +1290,8 @@
     {
       "date": "2024-10-09",
       "visits": 1363,
+      "impressions": 59646,
+      "clicks": 1042,
       "cost": 10301,
       "conversions": 34,
       "revenue": 51089
@@ -1037,6 +1299,8 @@
     {
       "date": "2024-10-10",
       "visits": 1418,
+      "impressions": 67238,
+      "clicks": 1108,
       "cost": 9733,
       "conversions": 33,
       "revenue": 50575
@@ -1044,6 +1308,8 @@
     {
       "date": "2024-10-11",
       "visits": 1426,
+      "impressions": 67475,
+      "clicks": 1137,
       "cost": 11850,
       "conversions": 37,
       "revenue": 60499
@@ -1051,6 +1317,8 @@
     {
       "date": "2024-10-12",
       "visits": 1403,
+      "impressions": 62115,
+      "clicks": 1102,
       "cost": 9828,
       "conversions": 34,
       "revenue": 51136
@@ -1058,6 +1326,8 @@
     {
       "date": "2024-10-13",
       "visits": 1606,
+      "impressions": 68407,
+      "clicks": 1233,
       "cost": 11765,
       "conversions": 39,
       "revenue": 61591
@@ -1065,6 +1335,8 @@
     {
       "date": "2024-10-14",
       "visits": 1334,
+      "impressions": 67279,
+      "clicks": 1083,
       "cost": 9820,
       "conversions": 30,
       "revenue": 49062
@@ -1072,6 +1344,8 @@
     {
       "date": "2024-10-15",
       "visits": 1482,
+      "impressions": 67509,
+      "clicks": 1141,
       "cost": 9219,
       "conversions": 32,
       "revenue": 50837
@@ -1079,6 +1353,8 @@
     {
       "date": "2024-10-16",
       "visits": 1347,
+      "impressions": 65067,
+      "clicks": 1029,
       "cost": 9520,
       "conversions": 31,
       "revenue": 50912
@@ -1086,6 +1362,8 @@
     {
       "date": "2024-10-17",
       "visits": 1477,
+      "impressions": 68996,
+      "clicks": 1158,
       "cost": 11115,
       "conversions": 36,
       "revenue": 57348
@@ -1093,6 +1371,8 @@
     {
       "date": "2024-10-18",
       "visits": 1373,
+      "impressions": 61070,
+      "clicks": 1098,
       "cost": 9194,
       "conversions": 32,
       "revenue": 50762
@@ -1100,6 +1380,8 @@
     {
       "date": "2024-10-19",
       "visits": 1433,
+      "impressions": 65204,
+      "clicks": 1140,
       "cost": 10846,
       "conversions": 36,
       "revenue": 59299
@@ -1107,6 +1389,8 @@
     {
       "date": "2024-10-20",
       "visits": 1514,
+      "impressions": 66693,
+      "clicks": 1203,
       "cost": 11806,
       "conversions": 36,
       "revenue": 58765
@@ -1114,6 +1398,8 @@
     {
       "date": "2024-10-21",
       "visits": 1384,
+      "impressions": 70255,
+      "clicks": 1109,
       "cost": 9130,
       "conversions": 32,
       "revenue": 48418
@@ -1121,6 +1407,8 @@
     {
       "date": "2024-10-22",
       "visits": 1430,
+      "impressions": 61000,
+      "clicks": 1096,
       "cost": 10637,
       "conversions": 34,
       "revenue": 53600
@@ -1128,6 +1416,8 @@
     {
       "date": "2024-10-23",
       "visits": 1385,
+      "impressions": 64158,
+      "clicks": 1127,
       "cost": 9974,
       "conversions": 34,
       "revenue": 52358
@@ -1135,6 +1425,8 @@
     {
       "date": "2024-10-24",
       "visits": 1538,
+      "impressions": 67079,
+      "clicks": 1181,
       "cost": 11888,
       "conversions": 36,
       "revenue": 59391
@@ -1142,6 +1434,8 @@
     {
       "date": "2024-10-25",
       "visits": 1619,
+      "impressions": 77104,
+      "clicks": 1320,
       "cost": 12426,
       "conversions": 40,
       "revenue": 65560
@@ -1149,6 +1443,8 @@
     {
       "date": "2024-10-26",
       "visits": 1598,
+      "impressions": 72010,
+      "clicks": 1190,
       "cost": 12510,
       "conversions": 40,
       "revenue": 64072
@@ -1156,6 +1452,8 @@
     {
       "date": "2024-10-27",
       "visits": 1651,
+      "impressions": 74106,
+      "clicks": 1287,
       "cost": 11784,
       "conversions": 38,
       "revenue": 60523
@@ -1163,6 +1461,8 @@
     {
       "date": "2024-10-28",
       "visits": 1470,
+      "impressions": 74697,
+      "clicks": 1191,
       "cost": 11570,
       "conversions": 37,
       "revenue": 58365
@@ -1170,6 +1470,8 @@
     {
       "date": "2024-10-29",
       "visits": 1356,
+      "impressions": 65199,
+      "clicks": 1100,
       "cost": 8349,
       "conversions": 31,
       "revenue": 46200
@@ -1177,6 +1479,8 @@
     {
       "date": "2024-10-30",
       "visits": 1564,
+      "impressions": 76450,
+      "clicks": 1247,
       "cost": 10281,
       "conversions": 34,
       "revenue": 53122
@@ -1184,6 +1488,8 @@
     {
       "date": "2024-10-31",
       "visits": 1328,
+      "impressions": 60843,
+      "clicks": 992,
       "cost": 8484,
       "conversions": 30,
       "revenue": 46428
@@ -1191,6 +1497,8 @@
     {
       "date": "2024-11-01",
       "visits": 1781,
+      "impressions": 87181,
+      "clicks": 1441,
       "cost": 12247,
       "conversions": 42,
       "revenue": 66580
@@ -1198,6 +1506,8 @@
     {
       "date": "2024-11-02",
       "visits": 1654,
+      "impressions": 76545,
+      "clicks": 1330,
       "cost": 12490,
       "conversions": 46,
       "revenue": 67766
@@ -1205,6 +1515,8 @@
     {
       "date": "2024-11-03",
       "visits": 1588,
+      "impressions": 70652,
+      "clicks": 1250,
       "cost": 12083,
       "conversions": 42,
       "revenue": 63611
@@ -1212,6 +1524,8 @@
     {
       "date": "2024-11-04",
       "visits": 1747,
+      "impressions": 80891,
+      "clicks": 1341,
       "cost": 11850,
       "conversions": 41,
       "revenue": 64087
@@ -1219,6 +1533,8 @@
     {
       "date": "2024-11-05",
       "visits": 1586,
+      "impressions": 70586,
+      "clicks": 1270,
       "cost": 11460,
       "conversions": 38,
       "revenue": 59764
@@ -1226,6 +1542,8 @@
     {
       "date": "2024-11-06",
       "visits": 1461,
+      "impressions": 69283,
+      "clicks": 1113,
       "cost": 10337,
       "conversions": 35,
       "revenue": 56648
@@ -1233,6 +1551,8 @@
     {
       "date": "2024-11-07",
       "visits": 1818,
+      "impressions": 78236,
+      "clicks": 1412,
       "cost": 12913,
       "conversions": 44,
       "revenue": 69036
@@ -1240,6 +1560,8 @@
     {
       "date": "2024-11-08",
       "visits": 1648,
+      "impressions": 81238,
+      "clicks": 1275,
       "cost": 11626,
       "conversions": 39,
       "revenue": 58461
@@ -1247,6 +1569,8 @@
     {
       "date": "2024-11-09",
       "visits": 1579,
+      "impressions": 76527,
+      "clicks": 1204,
       "cost": 11812,
       "conversions": 40,
       "revenue": 60343
@@ -1254,6 +1578,8 @@
     {
       "date": "2024-11-10",
       "visits": 1558,
+      "impressions": 74542,
+      "clicks": 1177,
       "cost": 12611,
       "conversions": 39,
       "revenue": 62937
@@ -1261,6 +1587,8 @@
     {
       "date": "2024-11-11",
       "visits": 1509,
+      "impressions": 66820,
+      "clicks": 1141,
       "cost": 10824,
       "conversions": 37,
       "revenue": 56295
@@ -1268,6 +1596,8 @@
     {
       "date": "2024-11-12",
       "visits": 1586,
+      "impressions": 78919,
+      "clicks": 1259,
       "cost": 11526,
       "conversions": 40,
       "revenue": 64107
@@ -1275,6 +1605,8 @@
     {
       "date": "2024-11-13",
       "visits": 1572,
+      "impressions": 76072,
+      "clicks": 1224,
       "cost": 10208,
       "conversions": 36,
       "revenue": 54206
@@ -1282,6 +1614,8 @@
     {
       "date": "2024-11-14",
       "visits": 1562,
+      "impressions": 77288,
+      "clicks": 1234,
       "cost": 12177,
       "conversions": 39,
       "revenue": 63920
@@ -1289,6 +1623,8 @@
     {
       "date": "2024-11-15",
       "visits": 1790,
+      "impressions": 84146,
+      "clicks": 1425,
       "cost": 12194,
       "conversions": 43,
       "revenue": 66384
@@ -1296,6 +1632,8 @@
     {
       "date": "2024-11-16",
       "visits": 1904,
+      "impressions": 90846,
+      "clicks": 1489,
       "cost": 15535,
       "conversions": 52,
       "revenue": 79010
@@ -1303,6 +1641,8 @@
     {
       "date": "2024-11-17",
       "visits": 1611,
+      "impressions": 81983,
+      "clicks": 1277,
       "cost": 11586,
       "conversions": 41,
       "revenue": 63535
@@ -1310,6 +1650,8 @@
     {
       "date": "2024-11-18",
       "visits": 1758,
+      "impressions": 85562,
+      "clicks": 1349,
       "cost": 13440,
       "conversions": 45,
       "revenue": 69091
@@ -1317,6 +1659,8 @@
     {
       "date": "2024-11-19",
       "visits": 1773,
+      "impressions": 87842,
+      "clicks": 1378,
       "cost": 14624,
       "conversions": 48,
       "revenue": 74020
@@ -1324,6 +1668,8 @@
     {
       "date": "2024-11-20",
       "visits": 1552,
+      "impressions": 70467,
+      "clicks": 1155,
       "cost": 10406,
       "conversions": 38,
       "revenue": 57951
@@ -1331,6 +1677,8 @@
     {
       "date": "2024-11-21",
       "visits": 1555,
+      "impressions": 71223,
+      "clicks": 1220,
       "cost": 10522,
       "conversions": 36,
       "revenue": 57005
@@ -1338,6 +1686,8 @@
     {
       "date": "2024-11-22",
       "visits": 1632,
+      "impressions": 83525,
+      "clicks": 1336,
       "cost": 11797,
       "conversions": 39,
       "revenue": 61212
@@ -1345,6 +1695,8 @@
     {
       "date": "2024-11-23",
       "visits": 1884,
+      "impressions": 93905,
+      "clicks": 1518,
       "cost": 14791,
       "conversions": 51,
       "revenue": 82612
@@ -1352,6 +1704,8 @@
     {
       "date": "2024-11-24",
       "visits": 1815,
+      "impressions": 85738,
+      "clicks": 1464,
       "cost": 14159,
       "conversions": 46,
       "revenue": 75801
@@ -1359,6 +1713,8 @@
     {
       "date": "2024-11-25",
       "visits": 1582,
+      "impressions": 68096,
+      "clicks": 1211,
       "cost": 11054,
       "conversions": 38,
       "revenue": 56677
@@ -1366,6 +1722,8 @@
     {
       "date": "2024-11-26",
       "visits": 1574,
+      "impressions": 68082,
+      "clicks": 1206,
       "cost": 12251,
       "conversions": 39,
       "revenue": 62689
@@ -1373,6 +1731,8 @@
     {
       "date": "2024-11-27",
       "visits": 1620,
+      "impressions": 72455,
+      "clicks": 1232,
       "cost": 10764,
       "conversions": 38,
       "revenue": 57311
@@ -1380,6 +1740,8 @@
     {
       "date": "2024-11-28",
       "visits": 1810,
+      "impressions": 84062,
+      "clicks": 1417,
       "cost": 13026,
       "conversions": 43,
       "revenue": 69739
@@ -1387,6 +1749,8 @@
     {
       "date": "2024-11-29",
       "visits": 3429,
+      "impressions": 163305,
+      "clicks": 2617,
       "cost": 23942,
       "conversions": 118,
       "revenue": 194863
@@ -1394,6 +1758,8 @@
     {
       "date": "2024-11-30",
       "visits": 1847,
+      "impressions": 92482,
+      "clicks": 1496,
       "cost": 14846,
       "conversions": 52,
       "revenue": 78968
@@ -1401,6 +1767,8 @@
     {
       "date": "2024-12-01",
       "visits": 2011,
+      "impressions": 89743,
+      "clicks": 1641,
       "cost": 17240,
       "conversions": 54,
       "revenue": 87792
@@ -1408,6 +1776,8 @@
     {
       "date": "2024-12-02",
       "visits": 1893,
+      "impressions": 90395,
+      "clicks": 1502,
       "cost": 13702,
       "conversions": 49,
       "revenue": 77578
@@ -1415,6 +1785,8 @@
     {
       "date": "2024-12-03",
       "visits": 1670,
+      "impressions": 72730,
+      "clicks": 1336,
       "cost": 13067,
       "conversions": 43,
       "revenue": 68234
@@ -1422,6 +1794,8 @@
     {
       "date": "2024-12-04",
       "visits": 1924,
+      "impressions": 80337,
+      "clicks": 1430,
       "cost": 16281,
       "conversions": 51,
       "revenue": 83035
@@ -1429,6 +1803,8 @@
     {
       "date": "2024-12-05",
       "visits": 1828,
+      "impressions": 89968,
+      "clicks": 1428,
       "cost": 13583,
       "conversions": 47,
       "revenue": 70525
@@ -1436,6 +1812,8 @@
     {
       "date": "2024-12-06",
       "visits": 1789,
+      "impressions": 81260,
+      "clicks": 1364,
       "cost": 12752,
       "conversions": 46,
       "revenue": 68496
@@ -1443,6 +1821,8 @@
     {
       "date": "2024-12-07",
       "visits": 1825,
+      "impressions": 79772,
+      "clicks": 1463,
       "cost": 13697,
       "conversions": 46,
       "revenue": 73640
@@ -1450,6 +1830,8 @@
     {
       "date": "2024-12-08",
       "visits": 1832,
+      "impressions": 83181,
+      "clicks": 1453,
       "cost": 15548,
       "conversions": 52,
       "revenue": 79567
@@ -1457,6 +1839,8 @@
     {
       "date": "2024-12-09",
       "visits": 1663,
+      "impressions": 79279,
+      "clicks": 1291,
       "cost": 12627,
       "conversions": 45,
       "revenue": 67926
@@ -1464,6 +1848,8 @@
     {
       "date": "2024-12-10",
       "visits": 1881,
+      "impressions": 84343,
+      "clicks": 1432,
       "cost": 15034,
       "conversions": 51,
       "revenue": 78760
@@ -1471,6 +1857,8 @@
     {
       "date": "2024-12-11",
       "visits": 1910,
+      "impressions": 84108,
+      "clicks": 1519,
       "cost": 13409,
       "conversions": 48,
       "revenue": 74659
@@ -1478,6 +1866,8 @@
     {
       "date": "2024-12-12",
       "visits": 1812,
+      "impressions": 83507,
+      "clicks": 1410,
       "cost": 13397,
       "conversions": 47,
       "revenue": 69585
@@ -1485,6 +1875,8 @@
     {
       "date": "2024-12-13",
       "visits": 1955,
+      "impressions": 90423,
+      "clicks": 1456,
       "cost": 14337,
       "conversions": 49,
       "revenue": 73125
@@ -1492,6 +1884,8 @@
     {
       "date": "2024-12-14",
       "visits": 2093,
+      "impressions": 103327,
+      "clicks": 1656,
       "cost": 17440,
       "conversions": 59,
       "revenue": 95863
@@ -1499,6 +1893,8 @@
     {
       "date": "2024-12-15",
       "visits": 1777,
+      "impressions": 90915,
+      "clicks": 1435,
       "cost": 13361,
       "conversions": 48,
       "revenue": 73738
@@ -1506,6 +1902,8 @@
     {
       "date": "2024-12-16",
       "visits": 1902,
+      "impressions": 92123,
+      "clicks": 1466,
       "cost": 13500,
       "conversions": 47,
       "revenue": 73127
@@ -1513,6 +1911,8 @@
     {
       "date": "2024-12-17",
       "visits": 1704,
+      "impressions": 73614,
+      "clicks": 1334,
       "cost": 12740,
       "conversions": 44,
       "revenue": 65534
@@ -1520,6 +1920,8 @@
     {
       "date": "2024-12-18",
       "visits": 1879,
+      "impressions": 86908,
+      "clicks": 1469,
       "cost": 12750,
       "conversions": 45,
       "revenue": 71873
@@ -1527,6 +1929,8 @@
     {
       "date": "2024-12-19",
       "visits": 1810,
+      "impressions": 85090,
+      "clicks": 1369,
       "cost": 13757,
       "conversions": 47,
       "revenue": 72988
@@ -1534,6 +1938,8 @@
     {
       "date": "2024-12-20",
       "visits": 1961,
+      "impressions": 81712,
+      "clicks": 1482,
       "cost": 14627,
       "conversions": 49,
       "revenue": 77168
@@ -1541,6 +1947,8 @@
     {
       "date": "2024-12-21",
       "visits": 1789,
+      "impressions": 81526,
+      "clicks": 1400,
       "cost": 12939,
       "conversions": 46,
       "revenue": 70270
@@ -1548,6 +1956,8 @@
     {
       "date": "2024-12-22",
       "visits": 1909,
+      "impressions": 83273,
+      "clicks": 1463,
       "cost": 14091,
       "conversions": 51,
       "revenue": 77829
@@ -1555,6 +1965,8 @@
     {
       "date": "2024-12-23",
       "visits": 2001,
+      "impressions": 102208,
+      "clicks": 1618,
       "cost": 16108,
       "conversions": 54,
       "revenue": 85996
@@ -1562,6 +1974,8 @@
     {
       "date": "2024-12-24",
       "visits": 1641,
+      "impressions": 69790,
+      "clicks": 1242,
       "cost": 12918,
       "conversions": 45,
       "revenue": 67521
@@ -1569,6 +1983,8 @@
     {
       "date": "2024-12-25",
       "visits": 1673,
+      "impressions": 77749,
+      "clicks": 1287,
       "cost": 12372,
       "conversions": 41,
       "revenue": 67462
@@ -1576,6 +1992,8 @@
     {
       "date": "2024-12-26",
       "visits": 1911,
+      "impressions": 86601,
+      "clicks": 1516,
       "cost": 13870,
       "conversions": 52,
       "revenue": 78387
@@ -1583,6 +2001,8 @@
     {
       "date": "2024-12-27",
       "visits": 1917,
+      "impressions": 81079,
+      "clicks": 1429,
       "cost": 14678,
       "conversions": 49,
       "revenue": 78611
@@ -1590,6 +2010,8 @@
     {
       "date": "2024-12-28",
       "visits": 1876,
+      "impressions": 81658,
+      "clicks": 1391,
       "cost": 15769,
       "conversions": 54,
       "revenue": 84070
@@ -1597,6 +2019,8 @@
     {
       "date": "2024-12-29",
       "visits": 1863,
+      "impressions": 79802,
+      "clicks": 1432,
       "cost": 14558,
       "conversions": 51,
       "revenue": 80798
@@ -1604,6 +2028,8 @@
     {
       "date": "2024-12-30",
       "visits": 1704,
+      "impressions": 75945,
+      "clicks": 1334,
       "cost": 11632,
       "conversions": 44,
       "revenue": 67015
@@ -1611,6 +2037,8 @@
     {
       "date": "2024-12-31",
       "visits": 1720,
+      "impressions": 76988,
+      "clicks": 1377,
       "cost": 12688,
       "conversions": 42,
       "revenue": 68142
@@ -1618,6 +2046,8 @@
     {
       "date": "2025-01-01",
       "visits": 1191,
+      "impressions": 54657,
+      "clicks": 937,
       "cost": 6962,
       "conversions": 25,
       "revenue": 39748
@@ -1625,6 +2055,8 @@
     {
       "date": "2025-01-02",
       "visits": 1367,
+      "impressions": 65216,
+      "clicks": 1087,
       "cost": 8895,
       "conversions": 31,
       "revenue": 48677
@@ -1632,6 +2064,8 @@
     {
       "date": "2025-01-03",
       "visits": 1432,
+      "impressions": 61367,
+      "clicks": 1082,
       "cost": 9346,
       "conversions": 32,
       "revenue": 50729
@@ -1639,6 +2073,8 @@
     {
       "date": "2025-01-04",
       "visits": 1248,
+      "impressions": 57295,
+      "clicks": 990,
       "cost": 8694,
       "conversions": 31,
       "revenue": 46966
@@ -1646,6 +2082,8 @@
     {
       "date": "2025-01-05",
       "visits": 1281,
+      "impressions": 62772,
+      "clicks": 1020,
       "cost": 8749,
       "conversions": 30,
       "revenue": 47053
@@ -1653,6 +2091,8 @@
     {
       "date": "2025-01-06",
       "visits": 1210,
+      "impressions": 59006,
+      "clicks": 940,
       "cost": 7360,
       "conversions": 27,
       "revenue": 41019
@@ -1660,6 +2100,8 @@
     {
       "date": "2025-01-07",
       "visits": 1383,
+      "impressions": 59402,
+      "clicks": 1087,
       "cost": 8785,
       "conversions": 30,
       "revenue": 50006
@@ -1667,6 +2109,8 @@
     {
       "date": "2025-01-08",
       "visits": 1341,
+      "impressions": 60406,
+      "clicks": 1090,
       "cost": 8149,
       "conversions": 28,
       "revenue": 46290
@@ -1674,6 +2118,8 @@
     {
       "date": "2025-01-09",
       "visits": 1447,
+      "impressions": 67808,
+      "clicks": 1141,
       "cost": 9570,
       "conversions": 34,
       "revenue": 54273
@@ -1681,6 +2127,8 @@
     {
       "date": "2025-01-10",
       "visits": 1223,
+      "impressions": 50750,
+      "clicks": 942,
       "cost": 7452,
       "conversions": 26,
       "revenue": 39284
@@ -1688,6 +2136,8 @@
     {
       "date": "2025-01-11",
       "visits": 1422,
+      "impressions": 67297,
+      "clicks": 1126,
       "cost": 9049,
       "conversions": 33,
       "revenue": 49594
@@ -1695,6 +2145,8 @@
     {
       "date": "2025-01-12",
       "visits": 1276,
+      "impressions": 58359,
+      "clicks": 946,
       "cost": 9479,
       "conversions": 31,
       "revenue": 51304
@@ -1702,6 +2154,8 @@
     {
       "date": "2025-01-13",
       "visits": 1437,
+      "impressions": 67931,
+      "clicks": 1132,
       "cost": 9215,
       "conversions": 30,
       "revenue": 47603
@@ -1709,6 +2163,8 @@
     {
       "date": "2025-01-14",
       "visits": 1194,
+      "impressions": 56337,
+      "clicks": 978,
       "cost": 7735,
       "conversions": 27,
       "revenue": 41998
@@ -1716,6 +2172,8 @@
     {
       "date": "2025-01-15",
       "visits": 1364,
+      "impressions": 66789,
+      "clicks": 1098,
       "cost": 8507,
       "conversions": 31,
       "revenue": 46882
@@ -1723,6 +2181,8 @@
     {
       "date": "2025-01-16",
       "visits": 1299,
+      "impressions": 54780,
+      "clicks": 1015,
       "cost": 8197,
       "conversions": 29,
       "revenue": 46266
@@ -1730,6 +2190,8 @@
     {
       "date": "2025-01-17",
       "visits": 1338,
+      "impressions": 58825,
+      "clicks": 1017,
       "cost": 8979,
       "conversions": 33,
       "revenue": 51640
@@ -1737,6 +2199,8 @@
     {
       "date": "2025-01-18",
       "visits": 1379,
+      "impressions": 61397,
+      "clicks": 1050,
       "cost": 9903,
       "conversions": 35,
       "revenue": 55607
@@ -1744,6 +2208,8 @@
     {
       "date": "2025-01-19",
       "visits": 1257,
+      "impressions": 54948,
+      "clicks": 935,
       "cost": 8383,
       "conversions": 28,
       "revenue": 45351
@@ -1751,6 +2217,8 @@
     {
       "date": "2025-01-20",
       "visits": 1452,
+      "impressions": 62428,
+      "clicks": 1147,
       "cost": 10074,
       "conversions": 34,
       "revenue": 54544
@@ -1758,6 +2226,8 @@
     {
       "date": "2025-01-21",
       "visits": 1414,
+      "impressions": 58116,
+      "clicks": 1050,
       "cost": 9460,
       "conversions": 31,
       "revenue": 50282
@@ -1765,6 +2235,8 @@
     {
       "date": "2025-01-22",
       "visits": 1302,
+      "impressions": 58247,
+      "clicks": 1035,
       "cost": 8985,
       "conversions": 29,
       "revenue": 46806
@@ -1772,6 +2244,8 @@
     {
       "date": "2025-01-23",
       "visits": 1288,
+      "impressions": 61404,
+      "clicks": 1023,
       "cost": 7376,
       "conversions": 27,
       "revenue": 43022
@@ -1779,6 +2253,8 @@
     {
       "date": "2025-01-24",
       "visits": 1304,
+      "impressions": 58331,
+      "clicks": 1026,
       "cost": 9703,
       "conversions": 31,
       "revenue": 51536
@@ -1786,6 +2262,8 @@
     {
       "date": "2025-01-25",
       "visits": 1329,
+      "impressions": 57053,
+      "clicks": 1029,
       "cost": 9324,
       "conversions": 32,
       "revenue": 51260
@@ -1793,6 +2271,8 @@
     {
       "date": "2025-01-26",
       "visits": 1315,
+      "impressions": 57345,
+      "clicks": 1071,
       "cost": 8461,
       "conversions": 32,
       "revenue": 49318
@@ -1800,6 +2280,8 @@
     {
       "date": "2025-01-27",
       "visits": 1230,
+      "impressions": 49695,
+      "clicks": 923,
       "cost": 7701,
       "conversions": 28,
       "revenue": 43410
@@ -1807,6 +2289,8 @@
     {
       "date": "2025-01-28",
       "visits": 1354,
+      "impressions": 66416,
+      "clicks": 1087,
       "cost": 8024,
       "conversions": 30,
       "revenue": 46319
@@ -1814,6 +2298,8 @@
     {
       "date": "2025-01-29",
       "visits": 1220,
+      "impressions": 51886,
+      "clicks": 936,
       "cost": 8392,
       "conversions": 29,
       "revenue": 44484
@@ -1821,6 +2307,8 @@
     {
       "date": "2025-01-30",
       "visits": 1212,
+      "impressions": 53111,
+      "clicks": 968,
       "cost": 8109,
       "conversions": 28,
       "revenue": 44552
@@ -1828,6 +2316,8 @@
     {
       "date": "2025-01-31",
       "visits": 1504,
+      "impressions": 69363,
+      "clicks": 1127,
       "cost": 9288,
       "conversions": 34,
       "revenue": 53273
@@ -1835,6 +2325,8 @@
     {
       "date": "2025-02-01",
       "visits": 1467,
+      "impressions": 67574,
+      "clicks": 1095,
       "cost": 10232,
       "conversions": 36,
       "revenue": 58113
@@ -1842,6 +2334,8 @@
     {
       "date": "2025-02-02",
       "visits": 1513,
+      "impressions": 74337,
+      "clicks": 1212,
       "cost": 9152,
       "conversions": 35,
       "revenue": 53159
@@ -1849,6 +2343,8 @@
     {
       "date": "2025-02-03",
       "visits": 1314,
+      "impressions": 56497,
+      "clicks": 1047,
       "cost": 9072,
       "conversions": 32,
       "revenue": 52651
@@ -1856,6 +2352,8 @@
     {
       "date": "2025-02-04",
       "visits": 1439,
+      "impressions": 62261,
+      "clicks": 1075,
       "cost": 9242,
       "conversions": 31,
       "revenue": 48481
@@ -1863,6 +2361,8 @@
     {
       "date": "2025-02-05",
       "visits": 1310,
+      "impressions": 61774,
+      "clicks": 989,
       "cost": 8460,
       "conversions": 30,
       "revenue": 45372
@@ -1870,6 +2370,8 @@
     {
       "date": "2025-02-06",
       "visits": 1383,
+      "impressions": 57659,
+      "clicks": 1029,
       "cost": 8399,
       "conversions": 29,
       "revenue": 47654
@@ -1877,6 +2379,8 @@
     {
       "date": "2025-02-07",
       "visits": 1533,
+      "impressions": 65881,
+      "clicks": 1148,
       "cost": 10689,
       "conversions": 36,
       "revenue": 57918
@@ -1884,6 +2388,8 @@
     {
       "date": "2025-02-08",
       "visits": 1474,
+      "impressions": 62635,
+      "clicks": 1135,
       "cost": 9803,
       "conversions": 36,
       "revenue": 53714
@@ -1891,6 +2397,8 @@
     {
       "date": "2025-02-09",
       "visits": 1565,
+      "impressions": 69266,
+      "clicks": 1261,
       "cost": 11737,
       "conversions": 40,
       "revenue": 64316
@@ -1898,6 +2406,8 @@
     {
       "date": "2025-02-10",
       "visits": 1294,
+      "impressions": 55295,
+      "clicks": 1005,
       "cost": 9156,
       "conversions": 32,
       "revenue": 51902
@@ -1905,6 +2415,8 @@
     {
       "date": "2025-02-11",
       "visits": 1358,
+      "impressions": 65855,
+      "clicks": 1095,
       "cost": 9487,
       "conversions": 33,
       "revenue": 54613
@@ -1912,6 +2424,8 @@
     {
       "date": "2025-02-12",
       "visits": 1500,
+      "impressions": 63292,
+      "clicks": 1114,
       "cost": 10658,
       "conversions": 34,
       "revenue": 57035
@@ -1919,6 +2433,8 @@
     {
       "date": "2025-02-13",
       "visits": 1437,
+      "impressions": 60796,
+      "clicks": 1078,
       "cost": 9564,
       "conversions": 33,
       "revenue": 52900
@@ -1926,6 +2442,8 @@
     {
       "date": "2025-02-14",
       "visits": 1542,
+      "impressions": 66946,
+      "clicks": 1155,
       "cost": 11106,
       "conversions": 39,
       "revenue": 60884
@@ -1933,6 +2451,8 @@
     {
       "date": "2025-02-15",
       "visits": 1390,
+      "impressions": 56606,
+      "clicks": 1037,
       "cost": 9492,
       "conversions": 31,
       "revenue": 49834
@@ -1940,6 +2460,8 @@
     {
       "date": "2025-02-16",
       "visits": 1588,
+      "impressions": 73832,
+      "clicks": 1289,
       "cost": 11117,
       "conversions": 39,
       "revenue": 59007
@@ -1947,6 +2469,8 @@
     {
       "date": "2025-02-17",
       "visits": 1387,
+      "impressions": 58737,
+      "clicks": 1035,
       "cost": 9734,
       "conversions": 32,
       "revenue": 53523
@@ -1954,6 +2478,8 @@
     {
       "date": "2025-02-18",
       "visits": 1261,
+      "impressions": 54239,
+      "clicks": 960,
       "cost": 8836,
       "conversions": 31,
       "revenue": 50121
@@ -1961,6 +2487,8 @@
     {
       "date": "2025-02-19",
       "visits": 1389,
+      "impressions": 61871,
+      "clicks": 1039,
       "cost": 8528,
       "conversions": 31,
       "revenue": 49801
@@ -1968,6 +2496,8 @@
     {
       "date": "2025-02-20",
       "visits": 1378,
+      "impressions": 61943,
+      "clicks": 1060,
       "cost": 8136,
       "conversions": 30,
       "revenue": 45225
@@ -1975,6 +2505,8 @@
     {
       "date": "2025-02-21",
       "visits": 1322,
+      "impressions": 55715,
+      "clicks": 1034,
       "cost": 8711,
       "conversions": 29,
       "revenue": 47977
@@ -1982,6 +2514,8 @@
     {
       "date": "2025-02-22",
       "visits": 1346,
+      "impressions": 63872,
+      "clicks": 1079,
       "cost": 8965,
       "conversions": 31,
       "revenue": 51450
@@ -1989,6 +2523,8 @@
     {
       "date": "2025-02-23",
       "visits": 1524,
+      "impressions": 61941,
+      "clicks": 1142,
       "cost": 11082,
       "conversions": 36,
       "revenue": 59860
@@ -1996,6 +2532,8 @@
     {
       "date": "2025-02-24",
       "visits": 1512,
+      "impressions": 73761,
+      "clicks": 1221,
       "cost": 9949,
       "conversions": 33,
       "revenue": 53451
@@ -2003,6 +2541,8 @@
     {
       "date": "2025-02-25",
       "visits": 1355,
+      "impressions": 58063,
+      "clicks": 1088,
       "cost": 10027,
       "conversions": 33,
       "revenue": 53709
@@ -2010,6 +2550,8 @@
     {
       "date": "2025-02-26",
       "visits": 1429,
+      "impressions": 59465,
+      "clicks": 1082,
       "cost": 10932,
       "conversions": 35,
       "revenue": 57964
@@ -2017,6 +2559,8 @@
     {
       "date": "2025-02-27",
       "visits": 1438,
+      "impressions": 63260,
+      "clicks": 1066,
       "cost": 8856,
       "conversions": 30,
       "revenue": 48058
@@ -2024,6 +2568,8 @@
     {
       "date": "2025-02-28",
       "visits": 1353,
+      "impressions": 60574,
+      "clicks": 1049,
       "cost": 9202,
       "conversions": 31,
       "revenue": 50281
@@ -2031,6 +2577,8 @@
     {
       "date": "2025-03-01",
       "visits": 1752,
+      "impressions": 71183,
+      "clicks": 1325,
       "cost": 11680,
       "conversions": 45,
       "revenue": 67760
@@ -2038,6 +2586,8 @@
     {
       "date": "2025-03-02",
       "visits": 1481,
+      "impressions": 62477,
+      "clicks": 1162,
       "cost": 9679,
       "conversions": 37,
       "revenue": 55615
@@ -2045,6 +2595,8 @@
     {
       "date": "2025-03-03",
       "visits": 1470,
+      "impressions": 67511,
+      "clicks": 1170,
       "cost": 10355,
       "conversions": 36,
       "revenue": 60191
@@ -2052,6 +2604,8 @@
     {
       "date": "2025-03-04",
       "visits": 1610,
+      "impressions": 70683,
+      "clicks": 1278,
       "cost": 11079,
       "conversions": 38,
       "revenue": 59348
@@ -2059,6 +2613,8 @@
     {
       "date": "2025-03-05",
       "visits": 1592,
+      "impressions": 66980,
+      "clicks": 1264,
       "cost": 10924,
       "conversions": 39,
       "revenue": 64532
@@ -2066,6 +2622,8 @@
     {
       "date": "2025-03-06",
       "visits": 1595,
+      "impressions": 70986,
+      "clicks": 1196,
       "cost": 11220,
       "conversions": 40,
       "revenue": 63092
@@ -2073,6 +2631,8 @@
     {
       "date": "2025-03-07",
       "visits": 1709,
+      "impressions": 73983,
+      "clicks": 1317,
       "cost": 11502,
       "conversions": 42,
       "revenue": 63716
@@ -2080,6 +2640,8 @@
     {
       "date": "2025-03-08",
       "visits": 1807,
+      "impressions": 82914,
+      "clicks": 1400,
       "cost": 13104,
       "conversions": 46,
       "revenue": 73769
@@ -2087,6 +2649,8 @@
     {
       "date": "2025-03-09",
       "visits": 1643,
+      "impressions": 65871,
+      "clicks": 1223,
       "cost": 11915,
       "conversions": 44,
       "revenue": 67911
@@ -2094,6 +2658,8 @@
     {
       "date": "2025-03-10",
       "visits": 1556,
+      "impressions": 66960,
+      "clicks": 1185,
       "cost": 11389,
       "conversions": 37,
       "revenue": 62441
@@ -2101,6 +2667,8 @@
     {
       "date": "2025-03-11",
       "visits": 1579,
+      "impressions": 69084,
+      "clicks": 1243,
       "cost": 11491,
       "conversions": 41,
       "revenue": 67955
@@ -2108,6 +2676,8 @@
     {
       "date": "2025-03-12",
       "visits": 1573,
+      "impressions": 68453,
+      "clicks": 1247,
       "cost": 10604,
       "conversions": 40,
       "revenue": 60229
@@ -2115,6 +2685,8 @@
     {
       "date": "2025-03-13",
       "visits": 1569,
+      "impressions": 75061,
+      "clicks": 1228,
       "cost": 11749,
       "conversions": 39,
       "revenue": 65269
@@ -2122,6 +2694,8 @@
     {
       "date": "2025-03-14",
       "visits": 1671,
+      "impressions": 75095,
+      "clicks": 1311,
       "cost": 11554,
       "conversions": 41,
       "revenue": 66027
@@ -2129,6 +2703,8 @@
     {
       "date": "2025-03-15",
       "visits": 1692,
+      "impressions": 75934,
+      "clicks": 1258,
       "cost": 11702,
       "conversions": 43,
       "revenue": 66033
@@ -2136,6 +2712,8 @@
     {
       "date": "2025-03-16",
       "visits": 1665,
+      "impressions": 82697,
+      "clicks": 1359,
       "cost": 12264,
       "conversions": 43,
       "revenue": 71817
@@ -2143,6 +2721,8 @@
     {
       "date": "2025-03-17",
       "visits": 1571,
+      "impressions": 74751,
+      "clicks": 1265,
       "cost": 10471,
       "conversions": 40,
       "revenue": 60091
@@ -2150,6 +2730,8 @@
     {
       "date": "2025-03-18",
       "visits": 1474,
+      "impressions": 61353,
+      "clicks": 1111,
       "cost": 10411,
       "conversions": 38,
       "revenue": 60723
@@ -2157,6 +2739,8 @@
     {
       "date": "2025-03-19",
       "visits": 1619,
+      "impressions": 70486,
+      "clicks": 1297,
       "cost": 10703,
       "conversions": 38,
       "revenue": 60639
@@ -2164,6 +2748,8 @@
     {
       "date": "2025-03-20",
       "visits": 1553,
+      "impressions": 66377,
+      "clicks": 1211,
       "cost": 10845,
       "conversions": 37,
       "revenue": 62238
@@ -2171,6 +2757,8 @@
     {
       "date": "2025-03-21",
       "visits": 1472,
+      "impressions": 69240,
+      "clicks": 1141,
       "cost": 9976,
       "conversions": 36,
       "revenue": 58914
@@ -2178,6 +2766,8 @@
     {
       "date": "2025-03-22",
       "visits": 1602,
+      "impressions": 72782,
+      "clicks": 1291,
       "cost": 10224,
       "conversions": 40,
       "revenue": 61360
@@ -2185,6 +2775,8 @@
     {
       "date": "2025-03-23",
       "visits": 1720,
+      "impressions": 71180,
+      "clicks": 1315,
       "cost": 11563,
       "conversions": 42,
       "revenue": 65788
@@ -2192,6 +2784,8 @@
     {
       "date": "2025-03-24",
       "visits": 1621,
+      "impressions": 75589,
+      "clicks": 1326,
       "cost": 11463,
       "conversions": 42,
       "revenue": 65574
@@ -2199,6 +2793,8 @@
     {
       "date": "2025-03-25",
       "visits": 1422,
+      "impressions": 61209,
+      "clicks": 1101,
       "cost": 9904,
       "conversions": 34,
       "revenue": 55898
@@ -2206,6 +2802,8 @@
     {
       "date": "2025-03-26",
       "visits": 1618,
+      "impressions": 70044,
+      "clicks": 1265,
       "cost": 11615,
       "conversions": 41,
       "revenue": 67641
@@ -2213,6 +2811,8 @@
     {
       "date": "2025-03-27",
       "visits": 1582,
+      "impressions": 71480,
+      "clicks": 1220,
       "cost": 11992,
       "conversions": 40,
       "revenue": 64386
@@ -2220,6 +2820,8 @@
     {
       "date": "2025-03-28",
       "visits": 1577,
+      "impressions": 73667,
+      "clicks": 1213,
       "cost": 11432,
       "conversions": 40,
       "revenue": 64490
@@ -2227,6 +2829,8 @@
     {
       "date": "2025-03-29",
       "visits": 1775,
+      "impressions": 81186,
+      "clicks": 1340,
       "cost": 13348,
       "conversions": 48,
       "revenue": 75612
@@ -2234,6 +2838,8 @@
     {
       "date": "2025-03-30",
       "visits": 1596,
+      "impressions": 69711,
+      "clicks": 1236,
       "cost": 11184,
       "conversions": 42,
       "revenue": 63776
@@ -2241,6 +2847,8 @@
     {
       "date": "2025-03-31",
       "visits": 1440,
+      "impressions": 67937,
+      "clicks": 1145,
       "cost": 9454,
       "conversions": 33,
       "revenue": 51712
@@ -2248,6 +2856,8 @@
     {
       "date": "2025-04-01",
       "visits": 1711,
+      "impressions": 79125,
+      "clicks": 1383,
       "cost": 11752,
       "conversions": 41,
       "revenue": 63983
@@ -2255,6 +2865,8 @@
     {
       "date": "2025-04-02",
       "visits": 1546,
+      "impressions": 63551,
+      "clicks": 1190,
       "cost": 10480,
       "conversions": 38,
       "revenue": 59190
@@ -2262,6 +2874,8 @@
     {
       "date": "2025-04-03",
       "visits": 1733,
+      "impressions": 82947,
+      "clicks": 1395,
       "cost": 12278,
       "conversions": 41,
       "revenue": 66576
@@ -2269,6 +2883,8 @@
     {
       "date": "2025-04-04",
       "visits": 1549,
+      "impressions": 66110,
+      "clicks": 1208,
       "cost": 11410,
       "conversions": 40,
       "revenue": 65122
@@ -2276,6 +2892,8 @@
     {
       "date": "2025-04-05",
       "visits": 1634,
+      "impressions": 75938,
+      "clicks": 1319,
       "cost": 12167,
       "conversions": 42,
       "revenue": 68357
@@ -2283,6 +2901,8 @@
     {
       "date": "2025-04-06",
       "visits": 1785,
+      "impressions": 77467,
+      "clicks": 1422,
       "cost": 12682,
       "conversions": 47,
       "revenue": 71247
@@ -2290,6 +2910,8 @@
     {
       "date": "2025-04-07",
       "visits": 1590,
+      "impressions": 73492,
+      "clicks": 1209,
       "cost": 11334,
       "conversions": 41,
       "revenue": 63907
@@ -2297,6 +2919,8 @@
     {
       "date": "2025-04-08",
       "visits": 1754,
+      "impressions": 80692,
+      "clicks": 1325,
       "cost": 11348,
       "conversions": 41,
       "revenue": 63300
@@ -2304,6 +2928,8 @@
     {
       "date": "2025-04-09",
       "visits": 1722,
+      "impressions": 72187,
+      "clicks": 1324,
       "cost": 11197,
       "conversions": 44,
       "revenue": 66678
@@ -2311,6 +2937,8 @@
     {
       "date": "2025-04-10",
       "visits": 1617,
+      "impressions": 66366,
+      "clicks": 1263,
       "cost": 12443,
       "conversions": 42,
       "revenue": 67262
@@ -2318,6 +2946,8 @@
     {
       "date": "2025-04-11",
       "visits": 1661,
+      "impressions": 71626,
+      "clicks": 1276,
       "cost": 12950,
       "conversions": 44,
       "revenue": 70088
@@ -2325,6 +2955,8 @@
     {
       "date": "2025-04-12",
       "visits": 1778,
+      "impressions": 80772,
+      "clicks": 1322,
       "cost": 12220,
       "conversions": 44,
       "revenue": 73879
@@ -2332,6 +2964,8 @@
     {
       "date": "2025-04-13",
       "visits": 1844,
+      "impressions": 87935,
+      "clicks": 1458,
       "cost": 12475,
       "conversions": 44,
       "revenue": 71977
@@ -2339,6 +2973,8 @@
     {
       "date": "2025-04-14",
       "visits": 1774,
+      "impressions": 80203,
+      "clicks": 1354,
       "cost": 11951,
       "conversions": 42,
       "revenue": 69804
@@ -2346,6 +2982,8 @@
     {
       "date": "2025-04-15",
       "visits": 1546,
+      "impressions": 72415,
+      "clicks": 1207,
       "cost": 10690,
       "conversions": 37,
       "revenue": 59839
@@ -2353,6 +2991,8 @@
     {
       "date": "2025-04-16",
       "visits": 1771,
+      "impressions": 79383,
+      "clicks": 1400,
       "cost": 12195,
       "conversions": 43,
       "revenue": 68251
@@ -2360,6 +3000,8 @@
     {
       "date": "2025-04-17",
       "visits": 1785,
+      "impressions": 73242,
+      "clicks": 1361,
       "cost": 10839,
       "conversions": 42,
       "revenue": 65209
@@ -2367,6 +3009,8 @@
     {
       "date": "2025-04-18",
       "visits": 1567,
+      "impressions": 73661,
+      "clicks": 1274,
       "cost": 11478,
       "conversions": 42,
       "revenue": 65670
@@ -2374,6 +3018,8 @@
     {
       "date": "2025-04-19",
       "visits": 1725,
+      "impressions": 75332,
+      "clicks": 1290,
       "cost": 11665,
       "conversions": 44,
       "revenue": 66826
@@ -2381,6 +3027,8 @@
     {
       "date": "2025-04-20",
       "visits": 1887,
+      "impressions": 77740,
+      "clicks": 1449,
       "cost": 14404,
       "conversions": 48,
       "revenue": 78153
@@ -2388,6 +3036,8 @@
     {
       "date": "2025-04-21",
       "visits": 1825,
+      "impressions": 79365,
+      "clicks": 1446,
       "cost": 12258,
       "conversions": 45,
       "revenue": 72022
@@ -2395,6 +3045,8 @@
     {
       "date": "2025-04-22",
       "visits": 1595,
+      "impressions": 72195,
+      "clicks": 1209,
       "cost": 11741,
       "conversions": 41,
       "revenue": 65345
@@ -2402,6 +3054,8 @@
     {
       "date": "2025-04-23",
       "visits": 1714,
+      "impressions": 70582,
+      "clicks": 1308,
       "cost": 10982,
       "conversions": 40,
       "revenue": 63448
@@ -2409,6 +3063,8 @@
     {
       "date": "2025-04-24",
       "visits": 1763,
+      "impressions": 83584,
+      "clicks": 1390,
       "cost": 12774,
       "conversions": 44,
       "revenue": 69866
@@ -2416,6 +3072,8 @@
     {
       "date": "2025-04-25",
       "visits": 1633,
+      "impressions": 67794,
+      "clicks": 1264,
       "cost": 11254,
       "conversions": 39,
       "revenue": 64467
@@ -2423,6 +3081,8 @@
     {
       "date": "2025-04-26",
       "visits": 1895,
+      "impressions": 87063,
+      "clicks": 1506,
       "cost": 13224,
       "conversions": 50,
       "revenue": 80516
@@ -2430,6 +3090,8 @@
     {
       "date": "2025-04-27",
       "visits": 1845,
+      "impressions": 82044,
+      "clicks": 1503,
       "cost": 14073,
       "conversions": 49,
       "revenue": 83187
@@ -2437,6 +3099,8 @@
     {
       "date": "2025-04-28",
       "visits": 1820,
+      "impressions": 87393,
+      "clicks": 1484,
       "cost": 12531,
       "conversions": 46,
       "revenue": 71847
@@ -2444,6 +3108,8 @@
     {
       "date": "2025-04-29",
       "visits": 1558,
+      "impressions": 75001,
+      "clicks": 1236,
       "cost": 10177,
       "conversions": 37,
       "revenue": 57459
@@ -2451,6 +3117,8 @@
     {
       "date": "2025-04-30",
       "visits": 1728,
+      "impressions": 68196,
+      "clicks": 1293,
       "cost": 12415,
       "conversions": 42,
       "revenue": 68237
@@ -2458,6 +3126,8 @@
     {
       "date": "2025-05-01",
       "visits": 1764,
+      "impressions": 72261,
+      "clicks": 1366,
       "cost": 12708,
       "conversions": 45,
       "revenue": 71350
@@ -2465,6 +3135,8 @@
     {
       "date": "2025-05-02",
       "visits": 1618,
+      "impressions": 79037,
+      "clicks": 1315,
       "cost": 12022,
       "conversions": 41,
       "revenue": 69591
@@ -2472,6 +3144,8 @@
     {
       "date": "2025-05-03",
       "visits": 1662,
+      "impressions": 69814,
+      "clicks": 1292,
       "cost": 11441,
       "conversions": 44,
       "revenue": 66498
@@ -2479,6 +3153,8 @@
     {
       "date": "2025-05-04",
       "visits": 1816,
+      "impressions": 80374,
+      "clicks": 1402,
       "cost": 13010,
       "conversions": 46,
       "revenue": 71308
@@ -2486,6 +3162,8 @@
     {
       "date": "2025-05-05",
       "visits": 1607,
+      "impressions": 66633,
+      "clicks": 1269,
       "cost": 10274,
       "conversions": 36,
       "revenue": 56818
@@ -2493,6 +3171,8 @@
     {
       "date": "2025-05-06",
       "visits": 1566,
+      "impressions": 63564,
+      "clicks": 1194,
       "cost": 10341,
       "conversions": 40,
       "revenue": 61380
@@ -2500,6 +3180,8 @@
     {
       "date": "2025-05-07",
       "visits": 1550,
+      "impressions": 71551,
+      "clicks": 1221,
       "cost": 9545,
       "conversions": 34,
       "revenue": 52580
@@ -2507,6 +3189,8 @@
     {
       "date": "2025-05-08",
       "visits": 1785,
+      "impressions": 84958,
+      "clicks": 1442,
       "cost": 13123,
       "conversions": 46,
       "revenue": 72182
@@ -2514,6 +3198,8 @@
     {
       "date": "2025-05-09",
       "visits": 1656,
+      "impressions": 77964,
+      "clicks": 1352,
       "cost": 10959,
       "conversions": 38,
       "revenue": 60697
@@ -2521,6 +3207,8 @@
     {
       "date": "2025-05-10",
       "visits": 1765,
+      "impressions": 71968,
+      "clicks": 1356,
       "cost": 10814,
       "conversions": 41,
       "revenue": 62310
@@ -2528,6 +3216,8 @@
     {
       "date": "2025-05-11",
       "visits": 1541,
+      "impressions": 64623,
+      "clicks": 1169,
       "cost": 10380,
       "conversions": 37,
       "revenue": 60815
@@ -2535,6 +3225,8 @@
     {
       "date": "2025-05-12",
       "visits": 1645,
+      "impressions": 71944,
+      "clicks": 1279,
       "cost": 12555,
       "conversions": 41,
       "revenue": 69392
@@ -2542,6 +3234,8 @@
     {
       "date": "2025-05-13",
       "visits": 1731,
+      "impressions": 72358,
+      "clicks": 1356,
       "cost": 11402,
       "conversions": 44,
       "revenue": 66816
@@ -2549,6 +3243,8 @@
     {
       "date": "2025-05-14",
       "visits": 1746,
+      "impressions": 80018,
+      "clicks": 1393,
       "cost": 10076,
       "conversions": 38,
       "revenue": 60748
@@ -2556,6 +3252,8 @@
     {
       "date": "2025-05-15",
       "visits": 1614,
+      "impressions": 66250,
+      "clicks": 1237,
       "cost": 11765,
       "conversions": 41,
       "revenue": 67897
@@ -2563,6 +3261,8 @@
     {
       "date": "2025-05-16",
       "visits": 1763,
+      "impressions": 78134,
+      "clicks": 1432,
       "cost": 11537,
       "conversions": 45,
       "revenue": 69407
@@ -2570,6 +3270,8 @@
     {
       "date": "2025-05-17",
       "visits": 1858,
+      "impressions": 77285,
+      "clicks": 1382,
       "cost": 12893,
       "conversions": 47,
       "revenue": 74570
@@ -2577,6 +3279,8 @@
     {
       "date": "2025-05-18",
       "visits": 1632,
+      "impressions": 75578,
+      "clicks": 1325,
       "cost": 10833,
       "conversions": 43,
       "revenue": 66661
@@ -2584,6 +3288,8 @@
     {
       "date": "2025-05-19",
       "visits": 1514,
+      "impressions": 60699,
+      "clicks": 1175,
       "cost": 9053,
       "conversions": 34,
       "revenue": 55704
@@ -2591,6 +3297,8 @@
     {
       "date": "2025-05-20",
       "visits": 1615,
+      "impressions": 72015,
+      "clicks": 1240,
       "cost": 10824,
       "conversions": 38,
       "revenue": 62752
@@ -2598,6 +3306,8 @@
     {
       "date": "2025-05-21",
       "visits": 1667,
+      "impressions": 71634,
+      "clicks": 1241,
       "cost": 11487,
       "conversions": 41,
       "revenue": 67608
@@ -2605,6 +3315,8 @@
     {
       "date": "2025-05-22",
       "visits": 1804,
+      "impressions": 73502,
+      "clicks": 1384,
       "cost": 11997,
       "conversions": 41,
       "revenue": 67854
@@ -2612,6 +3324,8 @@
     {
       "date": "2025-05-23",
       "visits": 1860,
+      "impressions": 73578,
+      "clicks": 1379,
       "cost": 12926,
       "conversions": 44,
       "revenue": 71893
@@ -2619,6 +3333,8 @@
     {
       "date": "2025-05-24",
       "visits": 1818,
+      "impressions": 81519,
+      "clicks": 1480,
       "cost": 11385,
       "conversions": 44,
       "revenue": 68648
@@ -2626,6 +3342,8 @@
     {
       "date": "2025-05-25",
       "visits": 1837,
+      "impressions": 89243,
+      "clicks": 1492,
       "cost": 11979,
       "conversions": 48,
       "revenue": 73529
@@ -2633,6 +3351,8 @@
     {
       "date": "2025-05-26",
       "visits": 1723,
+      "impressions": 71438,
+      "clicks": 1280,
       "cost": 12651,
       "conversions": 45,
       "revenue": 74177
@@ -2640,6 +3360,8 @@
     {
       "date": "2025-05-27",
       "visits": 1509,
+      "impressions": 64763,
+      "clicks": 1216,
       "cost": 10006,
       "conversions": 36,
       "revenue": 58320
@@ -2647,6 +3369,8 @@
     {
       "date": "2025-05-28",
       "visits": 1674,
+      "impressions": 74561,
+      "clicks": 1257,
       "cost": 11856,
       "conversions": 39,
       "revenue": 66284
@@ -2654,6 +3378,8 @@
     {
       "date": "2025-05-29",
       "visits": 1493,
+      "impressions": 64436,
+      "clicks": 1175,
       "cost": 9029,
       "conversions": 34,
       "revenue": 52246
@@ -2661,6 +3387,8 @@
     {
       "date": "2025-05-30",
       "visits": 1754,
+      "impressions": 70671,
+      "clicks": 1356,
       "cost": 12257,
       "conversions": 41,
       "revenue": 68204
@@ -2668,6 +3396,8 @@
     {
       "date": "2025-05-31",
       "visits": 1792,
+      "impressions": 79660,
+      "clicks": 1391,
       "cost": 12700,
       "conversions": 44,
       "revenue": 70932
@@ -2675,6 +3405,8 @@
     {
       "date": "2025-06-01",
       "visits": 1477,
+      "impressions": 62017,
+      "clicks": 1130,
       "cost": 9109,
       "conversions": 34,
       "revenue": 54300
@@ -2682,6 +3414,8 @@
     {
       "date": "2025-06-02",
       "visits": 1540,
+      "impressions": 67138,
+      "clicks": 1222,
       "cost": 9989,
       "conversions": 34,
       "revenue": 57423
@@ -2689,6 +3423,8 @@
     {
       "date": "2025-06-03",
       "visits": 1491,
+      "impressions": 63692,
+      "clicks": 1180,
       "cost": 9510,
       "conversions": 34,
       "revenue": 55130
@@ -2696,6 +3432,8 @@
     {
       "date": "2025-06-04",
       "visits": 1540,
+      "impressions": 62245,
+      "clicks": 1191,
       "cost": 9981,
       "conversions": 35,
       "revenue": 57589
@@ -2703,6 +3441,8 @@
     {
       "date": "2025-06-05",
       "visits": 1517,
+      "impressions": 69888,
+      "clicks": 1172,
       "cost": 8741,
       "conversions": 32,
       "revenue": 52642
@@ -2710,6 +3450,8 @@
     {
       "date": "2025-06-06",
       "visits": 1382,
+      "impressions": 54072,
+      "clicks": 1044,
       "cost": 9065,
       "conversions": 33,
       "revenue": 52181
@@ -2717,6 +3459,8 @@
     {
       "date": "2025-06-07",
       "visits": 1412,
+      "impressions": 59582,
+      "clicks": 1145,
       "cost": 10082,
       "conversions": 37,
       "revenue": 57213
@@ -2724,6 +3468,8 @@
     {
       "date": "2025-06-08",
       "visits": 1529,
+      "impressions": 60160,
+      "clicks": 1161,
       "cost": 11087,
       "conversions": 38,
       "revenue": 64500
@@ -2731,6 +3477,8 @@
     {
       "date": "2025-06-09",
       "visits": 1383,
+      "impressions": 64227,
+      "clicks": 1089,
       "cost": 7687,
       "conversions": 30,
       "revenue": 46387
@@ -2738,6 +3486,8 @@
     {
       "date": "2025-06-10",
       "visits": 1284,
+      "impressions": 52296,
+      "clicks": 977,
       "cost": 8327,
       "conversions": 29,
       "revenue": 47605
@@ -2745,6 +3495,8 @@
     {
       "date": "2025-06-11",
       "visits": 1416,
+      "impressions": 66858,
+      "clicks": 1142,
       "cost": 9250,
       "conversions": 34,
       "revenue": 52270
@@ -2752,6 +3504,8 @@
     {
       "date": "2025-06-12",
       "visits": 1509,
+      "impressions": 65934,
+      "clicks": 1207,
       "cost": 9359,
       "conversions": 36,
       "revenue": 57658
@@ -2759,6 +3513,8 @@
     {
       "date": "2025-06-13",
       "visits": 1441,
+      "impressions": 64459,
+      "clicks": 1171,
       "cost": 8792,
       "conversions": 33,
       "revenue": 53792
@@ -2766,6 +3522,8 @@
     {
       "date": "2025-06-14",
       "visits": 1391,
+      "impressions": 64867,
+      "clicks": 1081,
       "cost": 8015,
       "conversions": 31,
       "revenue": 49635
@@ -2773,6 +3531,8 @@
     {
       "date": "2025-06-15",
       "visits": 1447,
+      "impressions": 66779,
+      "clicks": 1130,
       "cost": 9823,
       "conversions": 34,
       "revenue": 58128
@@ -2780,6 +3540,8 @@
     {
       "date": "2025-06-16",
       "visits": 1522,
+      "impressions": 70134,
+      "clicks": 1179,
       "cost": 9267,
       "conversions": 34,
       "revenue": 58302
@@ -2787,6 +3549,8 @@
     {
       "date": "2025-06-17",
       "visits": 1543,
+      "impressions": 60369,
+      "clicks": 1153,
       "cost": 11215,
       "conversions": 38,
       "revenue": 64636
@@ -2794,6 +3558,8 @@
     {
       "date": "2025-06-18",
       "visits": 1489,
+      "impressions": 65259,
+      "clicks": 1184,
       "cost": 9299,
       "conversions": 35,
       "revenue": 56914
@@ -2801,6 +3567,8 @@
     {
       "date": "2025-06-19",
       "visits": 1466,
+      "impressions": 58934,
+      "clicks": 1102,
       "cost": 9117,
       "conversions": 34,
       "revenue": 55816
@@ -2808,6 +3576,8 @@
     {
       "date": "2025-06-20",
       "visits": 1440,
+      "impressions": 58759,
+      "clicks": 1137,
       "cost": 8650,
       "conversions": 35,
       "revenue": 54111
@@ -2815,6 +3585,8 @@
     {
       "date": "2025-06-21",
       "visits": 1640,
+      "impressions": 66795,
+      "clicks": 1227,
       "cost": 11099,
       "conversions": 40,
       "revenue": 66798
@@ -2822,6 +3594,8 @@
     {
       "date": "2025-06-22",
       "visits": 1486,
+      "impressions": 62535,
+      "clicks": 1165,
       "cost": 11079,
       "conversions": 37,
       "revenue": 63334
@@ -2829,6 +3603,8 @@
     {
       "date": "2025-06-23",
       "visits": 1562,
+      "impressions": 68787,
+      "clicks": 1215,
       "cost": 9796,
       "conversions": 35,
       "revenue": 58935
@@ -2836,6 +3612,8 @@
     {
       "date": "2025-06-24",
       "visits": 1365,
+      "impressions": 60196,
+      "clicks": 1030,
       "cost": 7984,
       "conversions": 31,
       "revenue": 48582
@@ -2843,6 +3621,8 @@
     {
       "date": "2025-06-25",
       "visits": 1474,
+      "impressions": 59457,
+      "clicks": 1149,
       "cost": 8894,
       "conversions": 34,
       "revenue": 51849
@@ -2850,6 +3630,8 @@
     {
       "date": "2025-06-26",
       "visits": 1484,
+      "impressions": 58348,
+      "clicks": 1131,
       "cost": 8552,
       "conversions": 33,
       "revenue": 52123
@@ -2857,6 +3639,8 @@
     {
       "date": "2025-06-27",
       "visits": 1523,
+      "impressions": 64595,
+      "clicks": 1175,
       "cost": 10358,
       "conversions": 38,
       "revenue": 62968
@@ -2864,6 +3648,8 @@
     {
       "date": "2025-06-28",
       "visits": 1527,
+      "impressions": 62547,
+      "clicks": 1174,
       "cost": 9898,
       "conversions": 39,
       "revenue": 61777
@@ -2871,6 +3657,8 @@
     {
       "date": "2025-06-29",
       "visits": 1545,
+      "impressions": 62520,
+      "clicks": 1162,
       "cost": 9989,
       "conversions": 37,
       "revenue": 59765
@@ -2878,6 +3666,8 @@
     {
       "date": "2025-06-30",
       "visits": 1531,
+      "impressions": 64008,
+      "clicks": 1141,
       "cost": 10669,
       "conversions": 37,
       "revenue": 61408
@@ -2885,6 +3675,8 @@
     {
       "date": "2025-07-01",
       "visits": 1394,
+      "impressions": 63745,
+      "clicks": 1107,
       "cost": 8313,
       "conversions": 33,
       "revenue": 52331
@@ -2892,6 +3684,8 @@
     {
       "date": "2025-07-02",
       "visits": 1258,
+      "impressions": 56280,
+      "clicks": 956,
       "cost": 7979,
       "conversions": 29,
       "revenue": 46912
@@ -2899,6 +3693,8 @@
     {
       "date": "2025-07-03",
       "visits": 1312,
+      "impressions": 52246,
+      "clicks": 1001,
       "cost": 7864,
       "conversions": 28,
       "revenue": 46091
@@ -2906,6 +3702,8 @@
     {
       "date": "2025-07-04",
       "visits": 1258,
+      "impressions": 49603,
+      "clicks": 963,
       "cost": 7933,
       "conversions": 29,
       "revenue": 48590
@@ -2913,6 +3711,8 @@
     {
       "date": "2025-07-05",
       "visits": 1391,
+      "impressions": 58613,
+      "clicks": 1073,
       "cost": 8449,
       "conversions": 32,
       "revenue": 49213
@@ -2920,6 +3720,8 @@
     {
       "date": "2025-07-06",
       "visits": 1423,
+      "impressions": 59641,
+      "clicks": 1094,
       "cost": 8988,
       "conversions": 34,
       "revenue": 52449
@@ -2927,6 +3729,8 @@
     {
       "date": "2025-07-07",
       "visits": 1299,
+      "impressions": 57648,
+      "clicks": 967,
       "cost": 7886,
       "conversions": 30,
       "revenue": 46493
@@ -2934,6 +3738,8 @@
     {
       "date": "2025-07-08",
       "visits": 1382,
+      "impressions": 58719,
+      "clicks": 1064,
       "cost": 7576,
       "conversions": 30,
       "revenue": 48247
@@ -2941,6 +3747,8 @@
     {
       "date": "2025-07-09",
       "visits": 1182,
+      "impressions": 52544,
+      "clicks": 906,
       "cost": 6059,
       "conversions": 24,
       "revenue": 37094
@@ -2948,6 +3756,8 @@
     {
       "date": "2025-07-10",
       "visits": 1396,
+      "impressions": 58895,
+      "clicks": 1075,
       "cost": 8078,
       "conversions": 30,
       "revenue": 47915
@@ -2955,6 +3765,8 @@
     {
       "date": "2025-07-11",
       "visits": 1511,
+      "impressions": 65507,
+      "clicks": 1205,
       "cost": 8706,
       "conversions": 32,
       "revenue": 52284
@@ -2962,6 +3774,8 @@
     {
       "date": "2025-07-12",
       "visits": 1530,
+      "impressions": 66635,
+      "clicks": 1229,
       "cost": 9718,
       "conversions": 34,
       "revenue": 55352
@@ -2969,6 +3783,8 @@
     {
       "date": "2025-07-13",
       "visits": 1291,
+      "impressions": 50437,
+      "clicks": 962,
       "cost": 7995,
       "conversions": 30,
       "revenue": 49451
@@ -2976,6 +3792,8 @@
     {
       "date": "2025-07-14",
       "visits": 1358,
+      "impressions": 59089,
+      "clicks": 1057,
       "cost": 8738,
       "conversions": 32,
       "revenue": 51898
@@ -2983,6 +3801,8 @@
     {
       "date": "2025-07-15",
       "visits": 1392,
+      "impressions": 57608,
+      "clicks": 1047,
       "cost": 9046,
       "conversions": 31,
       "revenue": 51637
@@ -2990,6 +3810,8 @@
     {
       "date": "2025-07-16",
       "visits": 1355,
+      "impressions": 51959,
+      "clicks": 1012,
       "cost": 6955,
       "conversions": 28,
       "revenue": 44033
@@ -2997,6 +3819,8 @@
     {
       "date": "2025-07-17",
       "visits": 1307,
+      "impressions": 53947,
+      "clicks": 1063,
       "cost": 7946,
       "conversions": 31,
       "revenue": 50893
@@ -3004,6 +3828,8 @@
     {
       "date": "2025-07-18",
       "visits": 1345,
+      "impressions": 62326,
+      "clicks": 1064,
       "cost": 7981,
       "conversions": 31,
       "revenue": 47776
@@ -3011,6 +3837,8 @@
     {
       "date": "2025-07-19",
       "visits": 1320,
+      "impressions": 58469,
+      "clicks": 1024,
       "cost": 7963,
       "conversions": 32,
       "revenue": 50364
@@ -3018,6 +3846,8 @@
     {
       "date": "2025-07-20",
       "visits": 1350,
+      "impressions": 53833,
+      "clicks": 1025,
       "cost": 7219,
       "conversions": 30,
       "revenue": 46143
@@ -3025,6 +3855,8 @@
     {
       "date": "2025-07-21",
       "visits": 1321,
+      "impressions": 58754,
+      "clicks": 1082,
       "cost": 7238,
       "conversions": 28,
       "revenue": 45181
@@ -3032,6 +3864,8 @@
     {
       "date": "2025-07-22",
       "visits": 1361,
+      "impressions": 54680,
+      "clicks": 1022,
       "cost": 7323,
       "conversions": 29,
       "revenue": 46915
@@ -3039,6 +3873,8 @@
     {
       "date": "2025-07-23",
       "visits": 1272,
+      "impressions": 54744,
+      "clicks": 1038,
       "cost": 7433,
       "conversions": 28,
       "revenue": 44229
@@ -3046,6 +3882,8 @@
     {
       "date": "2025-07-24",
       "visits": 1269,
+      "impressions": 52901,
+      "clicks": 1035,
       "cost": 8170,
       "conversions": 30,
       "revenue": 48960
@@ -3053,6 +3891,8 @@
     {
       "date": "2025-07-25",
       "visits": 1258,
+      "impressions": 53066,
+      "clicks": 943,
       "cost": 7469,
       "conversions": 29,
       "revenue": 47106
@@ -3060,6 +3900,8 @@
     {
       "date": "2025-07-26",
       "visits": 1316,
+      "impressions": 53619,
+      "clicks": 996,
       "cost": 8766,
       "conversions": 33,
       "revenue": 51266
@@ -3067,6 +3909,8 @@
     {
       "date": "2025-07-27",
       "visits": 1400,
+      "impressions": 58443,
+      "clicks": 1053,
       "cost": 8950,
       "conversions": 33,
       "revenue": 53010
@@ -3074,6 +3918,8 @@
     {
       "date": "2025-07-28",
       "visits": 1462,
+      "impressions": 62371,
+      "clicks": 1126,
       "cost": 9866,
       "conversions": 34,
       "revenue": 57792
@@ -3081,6 +3927,8 @@
     {
       "date": "2025-07-29",
       "visits": 1220,
+      "impressions": 52819,
+      "clicks": 965,
       "cost": 8043,
       "conversions": 29,
       "revenue": 49123
@@ -3088,6 +3936,8 @@
     {
       "date": "2025-07-30",
       "visits": 1365,
+      "impressions": 57954,
+      "clicks": 1105,
       "cost": 8147,
       "conversions": 29,
       "revenue": 48877
@@ -3095,6 +3945,8 @@
     {
       "date": "2025-07-31",
       "visits": 1354,
+      "impressions": 62331,
+      "clicks": 1068,
       "cost": 8621,
       "conversions": 29,
       "revenue": 49782
@@ -3102,6 +3954,8 @@
     {
       "date": "2025-08-01",
       "visits": 1337,
+      "impressions": 59295,
+      "clicks": 1053,
       "cost": 8207,
       "conversions": 31,
       "revenue": 50938
@@ -3109,6 +3963,8 @@
     {
       "date": "2025-08-02",
       "visits": 1437,
+      "impressions": 59222,
+      "clicks": 1135,
       "cost": 9211,
       "conversions": 34,
       "revenue": 55819
@@ -3116,6 +3972,8 @@
     {
       "date": "2025-08-03",
       "visits": 1568,
+      "impressions": 61947,
+      "clicks": 1208,
       "cost": 9870,
       "conversions": 38,
       "revenue": 58917
@@ -3123,6 +3981,8 @@
     {
       "date": "2025-08-04",
       "visits": 1342,
+      "impressions": 55817,
+      "clicks": 1085,
       "cost": 8279,
       "conversions": 32,
       "revenue": 53585
@@ -3130,6 +3990,8 @@
     {
       "date": "2025-08-05",
       "visits": 1337,
+      "impressions": 60270,
+      "clicks": 1032,
       "cost": 8430,
       "conversions": 31,
       "revenue": 50469
@@ -3137,6 +3999,8 @@
     {
       "date": "2025-08-06",
       "visits": 1425,
+      "impressions": 60218,
+      "clicks": 1089,
       "cost": 8631,
       "conversions": 35,
       "revenue": 55167
@@ -3144,6 +4008,8 @@
     {
       "date": "2025-08-07",
       "visits": 1402,
+      "impressions": 58087,
+      "clicks": 1051,
       "cost": 9135,
       "conversions": 34,
       "revenue": 55592
@@ -3151,6 +4017,8 @@
     {
       "date": "2025-08-08",
       "visits": 1336,
+      "impressions": 56651,
+      "clicks": 1060,
       "cost": 7864,
       "conversions": 30,
       "revenue": 50768
@@ -3158,6 +4026,8 @@
     {
       "date": "2025-08-09",
       "visits": 1476,
+      "impressions": 64475,
+      "clicks": 1152,
       "cost": 10453,
       "conversions": 38,
       "revenue": 62520
@@ -3165,6 +4035,8 @@
     {
       "date": "2025-08-10",
       "visits": 1623,
+      "impressions": 64774,
+      "clicks": 1278,
       "cost": 10827,
       "conversions": 40,
       "revenue": 66882
@@ -3172,6 +4044,8 @@
     {
       "date": "2025-08-11",
       "visits": 1323,
+      "impressions": 59247,
+      "clicks": 1028,
       "cost": 8472,
       "conversions": 29,
       "revenue": 49531
@@ -3179,6 +4053,8 @@
     {
       "date": "2025-08-12",
       "visits": 1427,
+      "impressions": 62367,
+      "clicks": 1109,
       "cost": 8658,
       "conversions": 33,
       "revenue": 52580
@@ -3186,6 +4062,8 @@
     {
       "date": "2025-08-13",
       "visits": 1509,
+      "impressions": 69262,
+      "clicks": 1228,
       "cost": 9161,
       "conversions": 34,
       "revenue": 58734
@@ -3193,6 +4071,8 @@
     {
       "date": "2025-08-14",
       "visits": 1338,
+      "impressions": 53150,
+      "clicks": 1005,
       "cost": 8333,
       "conversions": 31,
       "revenue": 52338
@@ -3200,6 +4080,8 @@
     {
       "date": "2025-08-15",
       "visits": 1459,
+      "impressions": 60725,
+      "clicks": 1165,
       "cost": 9274,
       "conversions": 34,
       "revenue": 57054
@@ -3207,6 +4089,8 @@
     {
       "date": "2025-08-16",
       "visits": 1490,
+      "impressions": 62803,
+      "clicks": 1195,
       "cost": 8473,
       "conversions": 34,
       "revenue": 54749
@@ -3214,6 +4098,8 @@
     {
       "date": "2025-08-17",
       "visits": 1502,
+      "impressions": 61632,
+      "clicks": 1152,
       "cost": 9170,
       "conversions": 37,
       "revenue": 58370
@@ -3221,6 +4107,8 @@
     {
       "date": "2025-08-18",
       "visits": 1504,
+      "impressions": 62943,
+      "clicks": 1195,
       "cost": 8465,
       "conversions": 33,
       "revenue": 51579
@@ -3228,6 +4116,8 @@
     {
       "date": "2025-08-19",
       "visits": 1418,
+      "impressions": 60258,
+      "clicks": 1071,
       "cost": 9359,
       "conversions": 33,
       "revenue": 56973
@@ -3235,6 +4125,8 @@
     {
       "date": "2025-08-20",
       "visits": 1340,
+      "impressions": 55154,
+      "clicks": 1084,
       "cost": 7847,
       "conversions": 29,
       "revenue": 49983
@@ -3242,6 +4134,8 @@
     {
       "date": "2025-08-21",
       "visits": 1419,
+      "impressions": 63546,
+      "clicks": 1158,
       "cost": 9154,
       "conversions": 33,
       "revenue": 57106
@@ -3249,6 +4143,8 @@
     {
       "date": "2025-08-22",
       "visits": 1481,
+      "impressions": 67370,
+      "clicks": 1161,
       "cost": 9830,
       "conversions": 37,
       "revenue": 63550
@@ -3256,6 +4152,8 @@
     {
       "date": "2025-08-23",
       "visits": 1641,
+      "impressions": 67258,
+      "clicks": 1234,
       "cost": 9643,
       "conversions": 37,
       "revenue": 61185
@@ -3263,6 +4161,8 @@
     {
       "date": "2025-08-24",
       "visits": 1478,
+      "impressions": 63941,
+      "clicks": 1205,
       "cost": 10659,
       "conversions": 39,
       "revenue": 62852
@@ -3270,6 +4170,8 @@
     {
       "date": "2025-08-25",
       "visits": 1508,
+      "impressions": 67760,
+      "clicks": 1175,
       "cost": 8959,
       "conversions": 34,
       "revenue": 56331
@@ -3277,6 +4179,8 @@
     {
       "date": "2025-08-26",
       "visits": 1305,
+      "impressions": 49718,
+      "clicks": 991,
       "cost": 7764,
       "conversions": 29,
       "revenue": 47943
@@ -3284,6 +4188,8 @@
     {
       "date": "2025-08-27",
       "visits": 1474,
+      "impressions": 59638,
+      "clicks": 1156,
       "cost": 10237,
       "conversions": 35,
       "revenue": 60302
@@ -3291,6 +4197,8 @@
     {
       "date": "2025-08-28",
       "visits": 1365,
+      "impressions": 55439,
+      "clicks": 1028,
       "cost": 9370,
       "conversions": 34,
       "revenue": 55579
@@ -3298,6 +4206,8 @@
     {
       "date": "2025-08-29",
       "visits": 1591,
+      "impressions": 63185,
+      "clicks": 1197,
       "cost": 10707,
       "conversions": 38,
       "revenue": 62904
@@ -3305,6 +4215,8 @@
     {
       "date": "2025-08-30",
       "visits": 1565,
+      "impressions": 68560,
+      "clicks": 1196,
       "cost": 10604,
       "conversions": 36,
       "revenue": 62522
@@ -3312,6 +4224,8 @@
     {
       "date": "2025-08-31",
       "visits": 1625,
+      "impressions": 67809,
+      "clicks": 1328,
       "cost": 9324,
       "conversions": 37,
       "revenue": 57198
@@ -3319,6 +4233,8 @@
     {
       "date": "2025-09-01",
       "visits": 1822,
+      "impressions": 70265,
+      "clicks": 1402,
       "cost": 12580,
       "conversions": 44,
       "revenue": 75066
@@ -3326,6 +4242,8 @@
     {
       "date": "2025-09-02",
       "visits": 1824,
+      "impressions": 83211,
+      "clicks": 1430,
       "cost": 12871,
       "conversions": 48,
       "revenue": 81337
@@ -3333,6 +4251,8 @@
     {
       "date": "2025-09-03",
       "visits": 1533,
+      "impressions": 68047,
+      "clicks": 1181,
       "cost": 10059,
       "conversions": 36,
       "revenue": 60447
@@ -3340,6 +4260,8 @@
     {
       "date": "2025-09-04",
       "visits": 1742,
+      "impressions": 76017,
+      "clicks": 1408,
       "cost": 12106,
       "conversions": 44,
       "revenue": 71934
@@ -3347,6 +4269,8 @@
     {
       "date": "2025-09-05",
       "visits": 1630,
+      "impressions": 70966,
+      "clicks": 1255,
       "cost": 10408,
       "conversions": 40,
       "revenue": 65732
@@ -3354,6 +4278,8 @@
     {
       "date": "2025-09-06",
       "visits": 1936,
+      "impressions": 74470,
+      "clicks": 1462,
       "cost": 14309,
       "conversions": 49,
       "revenue": 84892
@@ -3361,6 +4287,8 @@
     {
       "date": "2025-09-07",
       "visits": 1642,
+      "impressions": 68492,
+      "clicks": 1288,
       "cost": 10642,
       "conversions": 40,
       "revenue": 66785
@@ -3368,6 +4296,8 @@
     {
       "date": "2025-09-08",
       "visits": 1576,
+      "impressions": 68297,
+      "clicks": 1181,
       "cost": 9646,
       "conversions": 38,
       "revenue": 59363
@@ -3375,6 +4305,8 @@
     {
       "date": "2025-09-09",
       "visits": 1579,
+      "impressions": 70974,
+      "clicks": 1277,
       "cost": 9170,
       "conversions": 37,
       "revenue": 58510
@@ -3382,6 +4314,8 @@
     {
       "date": "2025-09-10",
       "visits": 1612,
+      "impressions": 68370,
+      "clicks": 1297,
       "cost": 9356,
       "conversions": 38,
       "revenue": 59323
@@ -3389,6 +4323,8 @@
     {
       "date": "2025-09-11",
       "visits": 1740,
+      "impressions": 77051,
+      "clicks": 1392,
       "cost": 11799,
       "conversions": 46,
       "revenue": 71449
@@ -3396,6 +4332,8 @@
     {
       "date": "2025-09-12",
       "visits": 1688,
+      "impressions": 70570,
+      "clicks": 1370,
       "cost": 13109,
       "conversions": 46,
       "revenue": 78174
@@ -3403,6 +4341,8 @@
     {
       "date": "2025-09-13",
       "visits": 1635,
+      "impressions": 64009,
+      "clicks": 1279,
       "cost": 11156,
       "conversions": 42,
       "revenue": 68339
@@ -3410,6 +4350,8 @@
     {
       "date": "2025-09-14",
       "visits": 1918,
+      "impressions": 76144,
+      "clicks": 1450,
       "cost": 12249,
       "conversions": 48,
       "revenue": 76749
@@ -3417,6 +4359,8 @@
     {
       "date": "2025-09-15",
       "visits": 1779,
+      "impressions": 74760,
+      "clicks": 1373,
       "cost": 12505,
       "conversions": 48,
       "revenue": 81173
@@ -3424,6 +4368,8 @@
     {
       "date": "2025-09-16",
       "visits": 1639,
+      "impressions": 75590,
+      "clicks": 1293,
       "cost": 10795,
       "conversions": 43,
       "revenue": 66537
@@ -3431,6 +4377,8 @@
     {
       "date": "2025-09-17",
       "visits": 1758,
+      "impressions": 74636,
+      "clicks": 1328,
       "cost": 11801,
       "conversions": 44,
       "revenue": 74966
@@ -3438,6 +4386,8 @@
     {
       "date": "2025-09-18",
       "visits": 1796,
+      "impressions": 83188,
+      "clicks": 1439,
       "cost": 10890,
       "conversions": 44,
       "revenue": 70112
@@ -3445,6 +4395,8 @@
     {
       "date": "2025-09-19",
       "visits": 1921,
+      "impressions": 81006,
+      "clicks": 1426,
       "cost": 12851,
       "conversions": 47,
       "revenue": 76148
@@ -3452,6 +4404,8 @@
     {
       "date": "2025-09-20",
       "visits": 1767,
+      "impressions": 67467,
+      "clicks": 1310,
       "cost": 12413,
       "conversions": 47,
       "revenue": 75880
@@ -3459,6 +4413,8 @@
     {
       "date": "2025-09-21",
       "visits": 1945,
+      "impressions": 84371,
+      "clicks": 1465,
       "cost": 13888,
       "conversions": 55,
       "revenue": 92694
@@ -3466,6 +4422,8 @@
     {
       "date": "2025-09-22",
       "visits": 1782,
+      "impressions": 77373,
+      "clicks": 1394,
       "cost": 10755,
       "conversions": 42,
       "revenue": 66158
@@ -3473,6 +4431,8 @@
     {
       "date": "2025-09-23",
       "visits": 1646,
+      "impressions": 68646,
+      "clicks": 1275,
       "cost": 10306,
       "conversions": 39,
       "revenue": 64046
@@ -3480,6 +4440,8 @@
     {
       "date": "2025-09-24",
       "visits": 1829,
+      "impressions": 78109,
+      "clicks": 1413,
       "cost": 12092,
       "conversions": 47,
       "revenue": 77767
@@ -3487,6 +4449,8 @@
     {
       "date": "2025-09-25",
       "visits": 1704,
+      "impressions": 66131,
+      "clicks": 1294,
       "cost": 10139,
       "conversions": 40,
       "revenue": 62906
@@ -3494,6 +4458,8 @@
     {
       "date": "2025-09-26",
       "visits": 1744,
+      "impressions": 66131,
+      "clicks": 1317,
       "cost": 10649,
       "conversions": 42,
       "revenue": 65741
@@ -3501,6 +4467,8 @@
     {
       "date": "2025-09-27",
       "visits": 1904,
+      "impressions": 77489,
+      "clicks": 1502,
       "cost": 13765,
       "conversions": 49,
       "revenue": 83913
@@ -3508,6 +4476,8 @@
     {
       "date": "2025-09-28",
       "visits": 1722,
+      "impressions": 68312,
+      "clicks": 1322,
       "cost": 12572,
       "conversions": 48,
       "revenue": 76821
@@ -3515,6 +4485,8 @@
     {
       "date": "2025-09-29",
       "visits": 1843,
+      "impressions": 87213,
+      "clicks": 1501,
       "cost": 12338,
       "conversions": 47,
       "revenue": 81972
@@ -3522,6 +4494,8 @@
     {
       "date": "2025-09-30",
       "visits": 1805,
+      "impressions": 76312,
+      "clicks": 1366,
       "cost": 10296,
       "conversions": 44,
       "revenue": 68971
@@ -3529,6 +4503,8 @@
     {
       "date": "2025-10-01",
       "visits": 1746,
+      "impressions": 70023,
+      "clicks": 1321,
       "cost": 12549,
       "conversions": 47,
       "revenue": 78595
@@ -3536,6 +4512,8 @@
     {
       "date": "2025-10-02",
       "visits": 1732,
+      "impressions": 72442,
+      "clicks": 1329,
       "cost": 13279,
       "conversions": 47,
       "revenue": 80044
@@ -3543,6 +4521,8 @@
     {
       "date": "2025-10-03",
       "visits": 1791,
+      "impressions": 83993,
+      "clicks": 1464,
       "cost": 11590,
       "conversions": 44,
       "revenue": 73129
@@ -3550,6 +4530,8 @@
     {
       "date": "2025-10-04",
       "visits": 1785,
+      "impressions": 69251,
+      "clicks": 1357,
       "cost": 12897,
       "conversions": 48,
       "revenue": 81895
@@ -3557,6 +4539,8 @@
     {
       "date": "2025-10-05",
       "visits": 2130,
+      "impressions": 84610,
+      "clicks": 1693,
       "cost": 15548,
       "conversions": 56,
       "revenue": 94891
@@ -3564,6 +4548,8 @@
     {
       "date": "2025-10-06",
       "visits": 1825,
+      "impressions": 73790,
+      "clicks": 1457,
       "cost": 12211,
       "conversions": 49,
       "revenue": 76614
@@ -3571,6 +4557,8 @@
     {
       "date": "2025-10-07",
       "visits": 1723,
+      "impressions": 77589,
+      "clicks": 1394,
       "cost": 11765,
       "conversions": 47,
       "revenue": 78535
@@ -3578,6 +4566,8 @@
     {
       "date": "2025-10-08",
       "visits": 1813,
+      "impressions": 74115,
+      "clicks": 1430,
       "cost": 12872,
       "conversions": 47,
       "revenue": 80696
@@ -3585,6 +4575,8 @@
     {
       "date": "2025-10-09",
       "visits": 1737,
+      "impressions": 74756,
+      "clicks": 1357,
       "cost": 11220,
       "conversions": 43,
       "revenue": 70989
@@ -3592,6 +4584,8 @@
     {
       "date": "2025-10-10",
       "visits": 1833,
+      "impressions": 72315,
+      "clicks": 1427,
       "cost": 12117,
       "conversions": 52,
       "revenue": 81735
@@ -3599,6 +4593,8 @@
     {
       "date": "2025-10-11",
       "visits": 1855,
+      "impressions": 77623,
+      "clicks": 1488,
       "cost": 13762,
       "conversions": 54,
       "revenue": 92425
@@ -3606,6 +4602,8 @@
     {
       "date": "2025-10-12",
       "visits": 1996,
+      "impressions": 89214,
+      "clicks": 1618,
       "cost": 14026,
       "conversions": 54,
       "revenue": 92665
@@ -3613,6 +4611,8 @@
     {
       "date": "2025-10-13",
       "visits": 1963,
+      "impressions": 82846,
+      "clicks": 1465,
       "cost": 13652,
       "conversions": 54,
       "revenue": 86414
@@ -3620,6 +4620,8 @@
     {
       "date": "2025-10-14",
       "visits": 1884,
+      "impressions": 75139,
+      "clicks": 1402,
       "cost": 11990,
       "conversions": 50,
       "revenue": 77681
@@ -3627,6 +4629,8 @@
     {
       "date": "2025-10-15",
       "visits": 1731,
+      "impressions": 73901,
+      "clicks": 1350,
       "cost": 11045,
       "conversions": 44,
       "revenue": 72446
@@ -3634,6 +4638,8 @@
     {
       "date": "2025-10-16",
       "visits": 1746,
+      "impressions": 79605,
+      "clicks": 1409,
       "cost": 12148,
       "conversions": 47,
       "revenue": 80463
@@ -3641,6 +4647,8 @@
     {
       "date": "2025-10-17",
       "visits": 2005,
+      "impressions": 88757,
+      "clicks": 1589,
       "cost": 15361,
       "conversions": 56,
       "revenue": 95892
@@ -3648,6 +4656,8 @@
     {
       "date": "2025-10-18",
       "visits": 2029,
+      "impressions": 84359,
+      "clicks": 1571,
       "cost": 13722,
       "conversions": 56,
       "revenue": 92780
@@ -3655,6 +4665,8 @@
     {
       "date": "2025-10-19",
       "visits": 2104,
+      "impressions": 85111,
+      "clicks": 1642,
       "cost": 16070,
       "conversions": 63,
       "revenue": 99009
@@ -3662,6 +4674,8 @@
     {
       "date": "2025-10-20",
       "visits": 2017,
+      "impressions": 84334,
+      "clicks": 1528,
       "cost": 12491,
       "conversions": 51,
       "revenue": 83512
@@ -3669,6 +4683,8 @@
     {
       "date": "2025-10-21",
       "visits": 2030,
+      "impressions": 86263,
+      "clicks": 1577,
       "cost": 15076,
       "conversions": 56,
       "revenue": 95233
@@ -3676,6 +4692,8 @@
     {
       "date": "2025-10-22",
       "visits": 1893,
+      "impressions": 74760,
+      "clicks": 1466,
       "cost": 11987,
       "conversions": 49,
       "revenue": 78468
@@ -3683,6 +4701,8 @@
     {
       "date": "2025-10-23",
       "visits": 1771,
+      "impressions": 72187,
+      "clicks": 1313,
       "cost": 12602,
       "conversions": 48,
       "revenue": 78946
@@ -3690,6 +4710,8 @@
     {
       "date": "2025-10-24",
       "visits": 1971,
+      "impressions": 81045,
+      "clicks": 1538,
       "cost": 12965,
       "conversions": 50,
       "revenue": 85686
@@ -3697,6 +4719,8 @@
     {
       "date": "2025-10-25",
       "visits": 1971,
+      "impressions": 79240,
+      "clicks": 1605,
       "cost": 12957,
       "conversions": 50,
       "revenue": 81919
@@ -3704,6 +4728,8 @@
     {
       "date": "2025-10-26",
       "visits": 1815,
+      "impressions": 79033,
+      "clicks": 1377,
       "cost": 12551,
       "conversions": 49,
       "revenue": 79069
@@ -3711,6 +4737,8 @@
     {
       "date": "2025-10-27",
       "visits": 2018,
+      "impressions": 84269,
+      "clicks": 1530,
       "cost": 13107,
       "conversions": 49,
       "revenue": 80110
@@ -3718,6 +4746,8 @@
     {
       "date": "2025-10-28",
       "visits": 1853,
+      "impressions": 80715,
+      "clicks": 1467,
       "cost": 11118,
       "conversions": 47,
       "revenue": 75452
@@ -3725,6 +4755,8 @@
     {
       "date": "2025-10-29",
       "visits": 1777,
+      "impressions": 74094,
+      "clicks": 1358,
       "cost": 12056,
       "conversions": 45,
       "revenue": 74808
@@ -3732,6 +4764,8 @@
     {
       "date": "2025-10-30",
       "visits": 1887,
+      "impressions": 81798,
+      "clicks": 1459,
       "cost": 13362,
       "conversions": 53,
       "revenue": 83555
@@ -3739,6 +4773,8 @@
     {
       "date": "2025-10-31",
       "visits": 2090,
+      "impressions": 81831,
+      "clicks": 1636,
       "cost": 14829,
       "conversions": 58,
       "revenue": 100321
@@ -3746,6 +4782,8 @@
     {
       "date": "2025-11-01",
       "visits": 2233,
+      "impressions": 95146,
+      "clicks": 1669,
       "cost": 17143,
       "conversions": 66,
       "revenue": 114177
@@ -3753,6 +4791,8 @@
     {
       "date": "2025-11-02",
       "visits": 2062,
+      "impressions": 78770,
+      "clicks": 1572,
       "cost": 14861,
       "conversions": 58,
       "revenue": 92605
@@ -3760,6 +4800,8 @@
     {
       "date": "2025-11-03",
       "visits": 2231,
+      "impressions": 92891,
+      "clicks": 1782,
       "cost": 17660,
       "conversions": 64,
       "revenue": 109927
@@ -3767,6 +4809,8 @@
     {
       "date": "2025-11-04",
       "visits": 2192,
+      "impressions": 92962,
+      "clicks": 1745,
       "cost": 14881,
       "conversions": 63,
       "revenue": 98937
@@ -3774,6 +4818,8 @@
     {
       "date": "2025-11-05",
       "visits": 2184,
+      "impressions": 92245,
+      "clicks": 1650,
       "cost": 14786,
       "conversions": 59,
       "revenue": 96983
@@ -3781,6 +4827,8 @@
     {
       "date": "2025-11-06",
       "visits": 2098,
+      "impressions": 83032,
+      "clicks": 1605,
       "cost": 15289,
       "conversions": 59,
       "revenue": 96607
@@ -3788,6 +4836,8 @@
     {
       "date": "2025-11-07",
       "visits": 2252,
+      "impressions": 89039,
+      "clicks": 1709,
       "cost": 17524,
       "conversions": 68,
       "revenue": 114312
@@ -3795,6 +4845,8 @@
     {
       "date": "2025-11-08",
       "visits": 2318,
+      "impressions": 88556,
+      "clicks": 1720,
       "cost": 16027,
       "conversions": 64,
       "revenue": 109256
@@ -3802,6 +4854,8 @@
     {
       "date": "2025-11-09",
       "visits": 2346,
+      "impressions": 101279,
+      "clicks": 1879,
       "cost": 18708,
       "conversions": 71,
       "revenue": 116588
@@ -3809,6 +4863,8 @@
     {
       "date": "2025-11-10",
       "visits": 2040,
+      "impressions": 84407,
+      "clicks": 1620,
       "cost": 12589,
       "conversions": 53,
       "revenue": 83864
@@ -3816,6 +4872,8 @@
     {
       "date": "2025-11-11",
       "visits": 1993,
+      "impressions": 78491,
+      "clicks": 1499,
       "cost": 13475,
       "conversions": 53,
       "revenue": 86683
@@ -3823,6 +4881,8 @@
     {
       "date": "2025-11-12",
       "visits": 2130,
+      "impressions": 90750,
+      "clicks": 1613,
       "cost": 15286,
       "conversions": 60,
       "revenue": 98758
@@ -3830,6 +4890,8 @@
     {
       "date": "2025-11-13",
       "visits": 2282,
+      "impressions": 101393,
+      "clicks": 1813,
       "cost": 14871,
       "conversions": 63,
       "revenue": 101141
@@ -3837,6 +4899,8 @@
     {
       "date": "2025-11-14",
       "visits": 2415,
+      "impressions": 96920,
+      "clicks": 1902,
       "cost": 17581,
       "conversions": 66,
       "revenue": 107840
@@ -3844,6 +4908,8 @@
     {
       "date": "2025-11-15",
       "visits": 2383,
+      "impressions": 89652,
+      "clicks": 1788,
       "cost": 16926,
       "conversions": 65,
       "revenue": 105126
@@ -3851,6 +4917,8 @@
     {
       "date": "2025-11-16",
       "visits": 2476,
+      "impressions": 114320,
+      "clicks": 1991,
       "cost": 19129,
       "conversions": 73,
       "revenue": 126061
@@ -3858,6 +4926,8 @@
     {
       "date": "2025-11-17",
       "visits": 2209,
+      "impressions": 92294,
+      "clicks": 1692,
       "cost": 15774,
       "conversions": 62,
       "revenue": 103644
@@ -3865,6 +4935,8 @@
     {
       "date": "2025-11-18",
       "visits": 2298,
+      "impressions": 96346,
+      "clicks": 1769,
       "cost": 16772,
       "conversions": 62,
       "revenue": 108949
@@ -3872,6 +4944,8 @@
     {
       "date": "2025-11-19",
       "visits": 2011,
+      "impressions": 76393,
+      "clicks": 1546,
       "cost": 16144,
       "conversions": 59,
       "revenue": 102752
@@ -3879,6 +4953,8 @@
     {
       "date": "2025-11-20",
       "visits": 2167,
+      "impressions": 91393,
+      "clicks": 1688,
       "cost": 15451,
       "conversions": 62,
       "revenue": 98307
@@ -3886,6 +4962,8 @@
     {
       "date": "2025-11-21",
       "visits": 2134,
+      "impressions": 82353,
+      "clicks": 1637,
       "cost": 14653,
       "conversions": 62,
       "revenue": 97774
@@ -3893,6 +4971,8 @@
     {
       "date": "2025-11-22",
       "visits": 2363,
+      "impressions": 96398,
+      "clicks": 1770,
       "cost": 14821,
       "conversions": 64,
       "revenue": 102245
@@ -3900,6 +4980,8 @@
     {
       "date": "2025-11-23",
       "visits": 2279,
+      "impressions": 90067,
+      "clicks": 1783,
       "cost": 19561,
       "conversions": 72,
       "revenue": 121708
@@ -3907,6 +4989,8 @@
     {
       "date": "2025-11-24",
       "visits": 2110,
+      "impressions": 85140,
+      "clicks": 1706,
       "cost": 15180,
       "conversions": 58,
       "revenue": 99933
@@ -3914,6 +4998,8 @@
     {
       "date": "2025-11-25",
       "visits": 2083,
+      "impressions": 94214,
+      "clicks": 1661,
       "cost": 14476,
       "conversions": 58,
       "revenue": 100378
@@ -3921,6 +5007,8 @@
     {
       "date": "2025-11-26",
       "visits": 2108,
+      "impressions": 83525,
+      "clicks": 1592,
       "cost": 12976,
       "conversions": 56,
       "revenue": 88799
@@ -3928,6 +5016,8 @@
     {
       "date": "2025-11-27",
       "visits": 2152,
+      "impressions": 79311,
+      "clicks": 1616,
       "cost": 16198,
       "conversions": 64,
       "revenue": 110144
@@ -3935,6 +5025,8 @@
     {
       "date": "2025-11-28",
       "visits": 3704,
+      "impressions": 171909,
+      "clicks": 3024,
       "cost": 22838,
       "conversions": 134,
       "revenue": 229670
@@ -3942,6 +5034,8 @@
     {
       "date": "2025-11-29",
       "visits": 2320,
+      "impressions": 99736,
+      "clicks": 1793,
       "cost": 15805,
       "conversions": 65,
       "revenue": 106220
@@ -3949,6 +5043,8 @@
     {
       "date": "2025-11-30",
       "visits": 2199,
+      "impressions": 89582,
+      "clicks": 1780,
       "cost": 15484,
       "conversions": 61,
       "revenue": 101401
@@ -3956,6 +5052,8 @@
     {
       "date": "2025-12-01",
       "visits": 2195,
+      "impressions": 83773,
+      "clicks": 1702,
       "cost": 16544,
       "conversions": 66,
       "revenue": 106591
@@ -3963,6 +5061,8 @@
     {
       "date": "2025-12-02",
       "visits": 2141,
+      "impressions": 87130,
+      "clicks": 1651,
       "cost": 15772,
       "conversions": 62,
       "revenue": 99789
@@ -3970,6 +5070,8 @@
     {
       "date": "2025-12-03",
       "visits": 2150,
+      "impressions": 96069,
+      "clicks": 1710,
       "cost": 16410,
       "conversions": 63,
       "revenue": 102755
@@ -3977,6 +5079,8 @@
     {
       "date": "2025-12-04",
       "visits": 2254,
+      "impressions": 88041,
+      "clicks": 1760,
       "cost": 17512,
       "conversions": 68,
       "revenue": 111163
@@ -3984,6 +5088,8 @@
     {
       "date": "2025-12-05",
       "visits": 2410,
+      "impressions": 104873,
+      "clicks": 1853,
       "cost": 17020,
       "conversions": 74,
       "revenue": 116190
@@ -3991,6 +5097,8 @@
     {
       "date": "2025-12-06",
       "visits": 2222,
+      "impressions": 83723,
+      "clicks": 1655,
       "cost": 18842,
       "conversions": 70,
       "revenue": 117770
@@ -3998,6 +5106,8 @@
     {
       "date": "2025-12-07",
       "visits": 2681,
+      "impressions": 119895,
+      "clicks": 2172,
       "cost": 20787,
       "conversions": 85,
       "revenue": 145016
@@ -4005,6 +5115,8 @@
     {
       "date": "2025-12-08",
       "visits": 2168,
+      "impressions": 92738,
+      "clicks": 1685,
       "cost": 16656,
       "conversions": 68,
       "revenue": 114007
@@ -4012,6 +5124,8 @@
     {
       "date": "2025-12-09",
       "visits": 2329,
+      "impressions": 89275,
+      "clicks": 1756,
       "cost": 17579,
       "conversions": 70,
       "revenue": 114451
@@ -4019,6 +5133,8 @@
     {
       "date": "2025-12-10",
       "visits": 2328,
+      "impressions": 101453,
+      "clicks": 1790,
       "cost": 16376,
       "conversions": 68,
       "revenue": 111458
@@ -4026,6 +5142,8 @@
     {
       "date": "2025-12-11",
       "visits": 2441,
+      "impressions": 91946,
+      "clicks": 1879,
       "cost": 20431,
       "conversions": 75,
       "revenue": 128401
@@ -4033,6 +5151,8 @@
     {
       "date": "2025-12-12",
       "visits": 2392,
+      "impressions": 105393,
+      "clicks": 1874,
       "cost": 18422,
       "conversions": 70,
       "revenue": 116504
@@ -4040,6 +5160,8 @@
     {
       "date": "2025-12-13",
       "visits": 2659,
+      "impressions": 109648,
+      "clicks": 2121,
       "cost": 21235,
       "conversions": 84,
       "revenue": 144023
@@ -4047,6 +5169,8 @@
     {
       "date": "2025-12-14",
       "visits": 2485,
+      "impressions": 105918,
+      "clicks": 1914,
       "cost": 20797,
       "conversions": 82,
       "revenue": 132208
@@ -4054,6 +5178,8 @@
     {
       "date": "2025-12-15",
       "visits": 2377,
+      "impressions": 98943,
+      "clicks": 1808,
       "cost": 17927,
       "conversions": 71,
       "revenue": 116804
@@ -4061,6 +5187,8 @@
     {
       "date": "2025-12-16",
       "visits": 2218,
+      "impressions": 87637,
+      "clicks": 1709,
       "cost": 16026,
       "conversions": 65,
       "revenue": 110571
@@ -4068,6 +5196,8 @@
     {
       "date": "2025-12-17",
       "visits": 2275,
+      "impressions": 87096,
+      "clicks": 1785,
       "cost": 18412,
       "conversions": 70,
       "revenue": 118293
@@ -4075,6 +5205,8 @@
     {
       "date": "2025-12-18",
       "visits": 2278,
+      "impressions": 94571,
+      "clicks": 1736,
       "cost": 14499,
       "conversions": 61,
       "revenue": 99645
@@ -4082,6 +5214,8 @@
     {
       "date": "2025-12-19",
       "visits": 2496,
+      "impressions": 106981,
+      "clicks": 2012,
       "cost": 17855,
       "conversions": 69,
       "revenue": 116166
@@ -4089,6 +5223,8 @@
     {
       "date": "2025-12-20",
       "visits": 2460,
+      "impressions": 99851,
+      "clicks": 2002,
       "cost": 17490,
       "conversions": 69,
       "revenue": 115816
@@ -4096,6 +5232,8 @@
     {
       "date": "2025-12-21",
       "visits": 2452,
+      "impressions": 98487,
+      "clicks": 1949,
       "cost": 19346,
       "conversions": 70,
       "revenue": 121421
@@ -4103,6 +5241,8 @@
     {
       "date": "2025-12-22",
       "visits": 2170,
+      "impressions": 83526,
+      "clicks": 1622,
       "cost": 17186,
       "conversions": 67,
       "revenue": 114048
@@ -4110,6 +5250,8 @@
     {
       "date": "2025-12-23",
       "visits": 2156,
+      "impressions": 93406,
+      "clicks": 1703,
       "cost": 13968,
       "conversions": 59,
       "revenue": 93773
@@ -4117,6 +5259,8 @@
     {
       "date": "2025-12-24",
       "visits": 2437,
+      "impressions": 104722,
+      "clicks": 1996,
       "cost": 18637,
       "conversions": 71,
       "revenue": 119619
@@ -4124,6 +5268,8 @@
     {
       "date": "2025-12-25",
       "visits": 2225,
+      "impressions": 95422,
+      "clicks": 1763,
       "cost": 15643,
       "conversions": 64,
       "revenue": 102400
@@ -4131,6 +5277,8 @@
     {
       "date": "2025-12-26",
       "visits": 2527,
+      "impressions": 99482,
+      "clicks": 1890,
       "cost": 19863,
       "conversions": 80,
       "revenue": 138296
@@ -4138,6 +5286,8 @@
     {
       "date": "2025-12-27",
       "visits": 2530,
+      "impressions": 97701,
+      "clicks": 1881,
       "cost": 17824,
       "conversions": 76,
       "revenue": 125962
@@ -4145,6 +5295,8 @@
     {
       "date": "2025-12-28",
       "visits": 2417,
+      "impressions": 94018,
+      "clicks": 1924,
       "cost": 18665,
       "conversions": 71,
       "revenue": 123732
@@ -4152,6 +5304,8 @@
     {
       "date": "2025-12-29",
       "visits": 2274,
+      "impressions": 91926,
+      "clicks": 1698,
       "cost": 15700,
       "conversions": 63,
       "revenue": 102082
@@ -4159,6 +5313,8 @@
     {
       "date": "2025-12-30",
       "visits": 2364,
+      "impressions": 92962,
+      "clicks": 1786,
       "cost": 16042,
       "conversions": 65,
       "revenue": 105545
@@ -4166,6 +5322,8 @@
     {
       "date": "2025-12-31",
       "visits": 2323,
+      "impressions": 87279,
+      "clicks": 1762,
       "cost": 17302,
       "conversions": 67,
       "revenue": 115641
@@ -4173,6 +5331,8 @@
     {
       "date": "2026-01-01",
       "visits": 1631,
+      "impressions": 64269,
+      "clicks": 1313,
       "cost": 10633,
       "conversions": 43,
       "revenue": 70978
@@ -4180,6 +5340,8 @@
     {
       "date": "2026-01-02",
       "visits": 1628,
+      "impressions": 63683,
+      "clicks": 1262,
       "cost": 9703,
       "conversions": 39,
       "revenue": 63728
@@ -4187,6 +5349,8 @@
     {
       "date": "2026-01-03",
       "visits": 1863,
+      "impressions": 73193,
+      "clicks": 1429,
       "cost": 12923,
       "conversions": 51,
       "revenue": 84687
@@ -4194,6 +5358,8 @@
     {
       "date": "2026-01-04",
       "visits": 1629,
+      "impressions": 67327,
+      "clicks": 1257,
       "cost": 11427,
       "conversions": 42,
       "revenue": 74068
@@ -4201,6 +5367,8 @@
     {
       "date": "2026-01-05",
       "visits": 1647,
+      "impressions": 64389,
+      "clicks": 1255,
       "cost": 9533,
       "conversions": 40,
       "revenue": 64468
@@ -4208,6 +5376,8 @@
     {
       "date": "2026-01-06",
       "visits": 1511,
+      "impressions": 62453,
+      "clicks": 1132,
       "cost": 10842,
       "conversions": 40,
       "revenue": 70376
@@ -4215,6 +5385,8 @@
     {
       "date": "2026-01-07",
       "visits": 1639,
+      "impressions": 68045,
+      "clicks": 1266,
       "cost": 8858,
       "conversions": 39,
       "revenue": 62098
@@ -4222,6 +5394,8 @@
     {
       "date": "2026-01-08",
       "visits": 1648,
+      "impressions": 68397,
+      "clicks": 1240,
       "cost": 10705,
       "conversions": 39,
       "revenue": 68395
@@ -4229,6 +5403,8 @@
     {
       "date": "2026-01-09",
       "visits": 1798,
+      "impressions": 74371,
+      "clicks": 1368,
       "cost": 10989,
       "conversions": 43,
       "revenue": 71001
@@ -4236,6 +5412,8 @@
     {
       "date": "2026-01-10",
       "visits": 1774,
+      "impressions": 72470,
+      "clicks": 1446,
       "cost": 9909,
       "conversions": 43,
       "revenue": 70359
@@ -4243,6 +5421,8 @@
     {
       "date": "2026-01-11",
       "visits": 1832,
+      "impressions": 70755,
+      "clicks": 1411,
       "cost": 11850,
       "conversions": 50,
       "revenue": 80503
@@ -4250,6 +5430,8 @@
     {
       "date": "2026-01-12",
       "visits": 1738,
+      "impressions": 70708,
+      "clicks": 1419,
       "cost": 10334,
       "conversions": 44,
       "revenue": 71089
@@ -4257,6 +5439,8 @@
     {
       "date": "2026-01-13",
       "visits": 1521,
+      "impressions": 61948,
+      "clicks": 1178,
       "cost": 9765,
       "conversions": 36,
       "revenue": 63788
@@ -4264,6 +5448,8 @@
     {
       "date": "2026-01-14",
       "visits": 1605,
+      "impressions": 63515,
+      "clicks": 1307,
       "cost": 9166,
       "conversions": 37,
       "revenue": 65324
@@ -4271,6 +5457,8 @@
     {
       "date": "2026-01-15",
       "visits": 1674,
+      "impressions": 69850,
+      "clicks": 1289,
       "cost": 9911,
       "conversions": 40,
       "revenue": 66571
@@ -4278,6 +5466,8 @@
     {
       "date": "2026-01-16",
       "visits": 1640,
+      "impressions": 65931,
+      "clicks": 1335,
       "cost": 9696,
       "conversions": 39,
       "revenue": 67056
@@ -4285,6 +5475,8 @@
     {
       "date": "2026-01-17",
       "visits": 1905,
+      "impressions": 75653,
+      "clicks": 1442,
       "cost": 10803,
       "conversions": 48,
       "revenue": 77518
@@ -4292,6 +5484,8 @@
     {
       "date": "2026-01-18",
       "visits": 1944,
+      "impressions": 82666,
+      "clicks": 1571,
       "cost": 13529,
       "conversions": 55,
       "revenue": 91723
@@ -4299,6 +5493,8 @@
     {
       "date": "2026-01-19",
       "visits": 1846,
+      "impressions": 78056,
+      "clicks": 1387,
       "cost": 11836,
       "conversions": 48,
       "revenue": 79784
@@ -4306,6 +5502,8 @@
     {
       "date": "2026-01-20",
       "visits": 1661,
+      "impressions": 61618,
+      "clicks": 1282,
       "cost": 10233,
       "conversions": 42,
       "revenue": 67921
@@ -4313,6 +5511,8 @@
     {
       "date": "2026-01-21",
       "visits": 1669,
+      "impressions": 69620,
+      "clicks": 1331,
       "cost": 9491,
       "conversions": 39,
       "revenue": 63276
@@ -4320,6 +5520,8 @@
     {
       "date": "2026-01-22",
       "visits": 1868,
+      "impressions": 78936,
+      "clicks": 1410,
       "cost": 11318,
       "conversions": 47,
       "revenue": 74452
@@ -4327,6 +5529,8 @@
     {
       "date": "2026-01-23",
       "visits": 1754,
+      "impressions": 65101,
+      "clicks": 1317,
       "cost": 10519,
       "conversions": 44,
       "revenue": 69798
@@ -4334,6 +5538,8 @@
     {
       "date": "2026-01-24",
       "visits": 1706,
+      "impressions": 69501,
+      "clicks": 1284,
       "cost": 10337,
       "conversions": 43,
       "revenue": 74320
@@ -4341,6 +5547,8 @@
     {
       "date": "2026-01-25",
       "visits": 1824,
+      "impressions": 76142,
+      "clicks": 1433,
       "cost": 11438,
       "conversions": 49,
       "revenue": 77418
@@ -4348,6 +5556,8 @@
     {
       "date": "2026-01-26",
       "visits": 1636,
+      "impressions": 59817,
+      "clicks": 1235,
       "cost": 10720,
       "conversions": 39,
       "revenue": 68857
@@ -4355,6 +5565,8 @@
     {
       "date": "2026-01-27",
       "visits": 1607,
+      "impressions": 66798,
+      "clicks": 1308,
       "cost": 10158,
       "conversions": 43,
       "revenue": 72742
@@ -4362,6 +5574,8 @@
     {
       "date": "2026-01-28",
       "visits": 1655,
+      "impressions": 68794,
+      "clicks": 1250,
       "cost": 10264,
       "conversions": 42,
       "revenue": 73667
@@ -4369,6 +5583,8 @@
     {
       "date": "2026-01-29",
       "visits": 1724,
+      "impressions": 75829,
+      "clicks": 1396,
       "cost": 10723,
       "conversions": 42,
       "revenue": 73029
@@ -4376,6 +5592,8 @@
     {
       "date": "2026-01-30",
       "visits": 1652,
+      "impressions": 66077,
+      "clicks": 1306,
       "cost": 10342,
       "conversions": 43,
       "revenue": 70864
@@ -4383,6 +5601,8 @@
     {
       "date": "2026-01-31",
       "visits": 1745,
+      "impressions": 76464,
+      "clicks": 1404,
       "cost": 11413,
       "conversions": 45,
       "revenue": 77745
@@ -4390,6 +5610,8 @@
     {
       "date": "2026-02-01",
       "visits": 1774,
+      "impressions": 69724,
+      "clicks": 1375,
       "cost": 11282,
       "conversions": 47,
       "revenue": 81726
@@ -4397,6 +5619,8 @@
     {
       "date": "2026-02-02",
       "visits": 1708,
+      "impressions": 68958,
+      "clicks": 1304,
       "cost": 10246,
       "conversions": 41,
       "revenue": 66546
@@ -4404,6 +5628,8 @@
     {
       "date": "2026-02-03",
       "visits": 1597,
+      "impressions": 60588,
+      "clicks": 1231,
       "cost": 9893,
       "conversions": 37,
       "revenue": 65640
@@ -4411,6 +5637,8 @@
     {
       "date": "2026-02-04",
       "visits": 1657,
+      "impressions": 74029,
+      "clicks": 1352,
       "cost": 10840,
       "conversions": 43,
       "revenue": 72961
@@ -4418,6 +5646,8 @@
     {
       "date": "2026-02-05",
       "visits": 1772,
+      "impressions": 75753,
+      "clicks": 1395,
       "cost": 9989,
       "conversions": 43,
       "revenue": 69346
@@ -4425,6 +5655,8 @@
     {
       "date": "2026-02-06",
       "visits": 1725,
+      "impressions": 74309,
+      "clicks": 1373,
       "cost": 12060,
       "conversions": 45,
       "revenue": 79158
@@ -4432,6 +5664,8 @@
     {
       "date": "2026-02-07",
       "visits": 1941,
+      "impressions": 71715,
+      "clicks": 1450,
       "cost": 13838,
       "conversions": 54,
       "revenue": 89664
@@ -4439,6 +5673,8 @@
     {
       "date": "2026-02-08",
       "visits": 1842,
+      "impressions": 73698,
+      "clicks": 1372,
       "cost": 11403,
       "conversions": 46,
       "revenue": 80446
@@ -4446,6 +5682,8 @@
     {
       "date": "2026-02-09",
       "visits": 1949,
+      "impressions": 76311,
+      "clicks": 1555,
       "cost": 12793,
       "conversions": 50,
       "revenue": 84687
@@ -4453,6 +5691,8 @@
     {
       "date": "2026-02-10",
       "visits": 1689,
+      "impressions": 64801,
+      "clicks": 1345,
       "cost": 10457,
       "conversions": 41,
       "revenue": 69521
@@ -4460,6 +5700,8 @@
     {
       "date": "2026-02-11",
       "visits": 1640,
+      "impressions": 63797,
+      "clicks": 1330,
       "cost": 10212,
       "conversions": 40,
       "revenue": 66358
@@ -4467,6 +5709,8 @@
     {
       "date": "2026-02-12",
       "visits": 1756,
+      "impressions": 71495,
+      "clicks": 1378,
       "cost": 10648,
       "conversions": 43,
       "revenue": 69719
@@ -4474,6 +5718,8 @@
     {
       "date": "2026-02-13",
       "visits": 1884,
+      "impressions": 72659,
+      "clicks": 1427,
       "cost": 12005,
       "conversions": 46,
       "revenue": 79451
@@ -4481,6 +5727,8 @@
     {
       "date": "2026-02-14",
       "visits": 1953,
+      "impressions": 78091,
+      "clicks": 1451,
       "cost": 12525,
       "conversions": 51,
       "revenue": 88428
@@ -4488,6 +5736,8 @@
     {
       "date": "2026-02-15",
       "visits": 1713,
+      "impressions": 63454,
+      "clicks": 1275,
       "cost": 10508,
       "conversions": 44,
       "revenue": 70114
@@ -4495,6 +5745,8 @@
     {
       "date": "2026-02-16",
       "visits": 1691,
+      "impressions": 66490,
+      "clicks": 1378,
       "cost": 9756,
       "conversions": 42,
       "revenue": 68484
@@ -4502,6 +5754,8 @@
     {
       "date": "2026-02-17",
       "visits": 1635,
+      "impressions": 64743,
+      "clicks": 1250,
       "cost": 9680,
       "conversions": 43,
       "revenue": 69755
@@ -4509,6 +5763,8 @@
     {
       "date": "2026-02-18",
       "visits": 1711,
+      "impressions": 63894,
+      "clicks": 1341,
       "cost": 9549,
       "conversions": 41,
       "revenue": 66493
@@ -4516,6 +5772,8 @@
     {
       "date": "2026-02-19",
       "visits": 1859,
+      "impressions": 72886,
+      "clicks": 1517,
       "cost": 10614,
       "conversions": 48,
       "revenue": 77502
@@ -4523,6 +5781,8 @@
     {
       "date": "2026-02-20",
       "visits": 2026,
+      "impressions": 82607,
+      "clicks": 1629,
       "cost": 12588,
       "conversions": 50,
       "revenue": 82484
@@ -4530,6 +5790,8 @@
     {
       "date": "2026-02-21",
       "visits": 1971,
+      "impressions": 74856,
+      "clicks": 1510,
       "cost": 12035,
       "conversions": 49,
       "revenue": 84553
@@ -4537,6 +5799,8 @@
     {
       "date": "2026-02-22",
       "visits": 1718,
+      "impressions": 70723,
+      "clicks": 1298,
       "cost": 10159,
       "conversions": 44,
       "revenue": 71455
@@ -4544,6 +5808,8 @@
     {
       "date": "2026-02-23",
       "visits": 1639,
+      "impressions": 63212,
+      "clicks": 1314,
       "cost": 9042,
       "conversions": 39,
       "revenue": 61828
@@ -4551,6 +5817,8 @@
     {
       "date": "2026-02-24",
       "visits": 1721,
+      "impressions": 75034,
+      "clicks": 1389,
       "cost": 9686,
       "conversions": 42,
       "revenue": 69851
@@ -4558,6 +5826,8 @@
     {
       "date": "2026-02-25",
       "visits": 1917,
+      "impressions": 76540,
+      "clicks": 1481,
       "cost": 11414,
       "conversions": 49,
       "revenue": 80363
@@ -4565,6 +5835,8 @@
     {
       "date": "2026-02-26",
       "visits": 1811,
+      "impressions": 72011,
+      "clicks": 1455,
       "cost": 10496,
       "conversions": 44,
       "revenue": 70996
@@ -4572,6 +5844,8 @@
     {
       "date": "2026-02-27",
       "visits": 1891,
+      "impressions": 81474,
+      "clicks": 1547,
       "cost": 12700,
       "conversions": 52,
       "revenue": 83892
@@ -4579,6 +5853,8 @@
     {
       "date": "2026-02-28",
       "visits": 1932,
+      "impressions": 75697,
+      "clicks": 1507,
       "cost": 12578,
       "conversions": 53,
       "revenue": 88576
@@ -4586,6 +5862,8 @@
     {
       "date": "2026-03-01",
       "visits": 1933,
+      "impressions": 75498,
+      "clicks": 1565,
       "cost": 13728,
       "conversions": 56,
       "revenue": 93782
@@ -4593,6 +5871,8 @@
     {
       "date": "2026-03-02",
       "visits": 1803,
+      "impressions": 70611,
+      "clicks": 1346,
       "cost": 12038,
       "conversions": 51,
       "revenue": 88113
@@ -4600,6 +5880,8 @@
     {
       "date": "2026-03-03",
       "visits": 1921,
+      "impressions": 77365,
+      "clicks": 1488,
       "cost": 11332,
       "conversions": 48,
       "revenue": 77912
@@ -4607,6 +5889,8 @@
     {
       "date": "2026-03-04",
       "visits": 1915,
+      "impressions": 76157,
+      "clicks": 1506,
       "cost": 11829,
       "conversions": 49,
       "revenue": 81823
@@ -4614,6 +5898,8 @@
     {
       "date": "2026-03-05",
       "visits": 2027,
+      "impressions": 75182,
+      "clicks": 1553,
       "cost": 13186,
       "conversions": 53,
       "revenue": 94119
@@ -4621,6 +5907,8 @@
     {
       "date": "2026-03-06",
       "visits": 2191,
+      "impressions": 92655,
+      "clicks": 1784,
       "cost": 14152,
       "conversions": 60,
       "revenue": 100345
@@ -4628,6 +5916,8 @@
     {
       "date": "2026-03-07",
       "visits": 2163,
+      "impressions": 88399,
+      "clicks": 1674,
       "cost": 12440,
       "conversions": 56,
       "revenue": 91798
@@ -4635,6 +5925,8 @@
     {
       "date": "2026-03-08",
       "visits": 1923,
+      "impressions": 76167,
+      "clicks": 1524,
       "cost": 13513,
       "conversions": 58,
       "revenue": 98836
@@ -4642,6 +5934,8 @@
     {
       "date": "2026-03-09",
       "visits": 1970,
+      "impressions": 82862,
+      "clicks": 1587,
       "cost": 14811,
       "conversions": 56,
       "revenue": 98740
@@ -4649,6 +5943,8 @@
     {
       "date": "2026-03-10",
       "visits": 1792,
+      "impressions": 69715,
+      "clicks": 1452,
       "cost": 13505,
       "conversions": 51,
       "revenue": 90788
@@ -4656,6 +5952,8 @@
     {
       "date": "2026-03-11",
       "visits": 1794,
+      "impressions": 74076,
+      "clicks": 1396,
       "cost": 12235,
       "conversions": 46,
       "revenue": 82119
@@ -4663,6 +5961,8 @@
     {
       "date": "2026-03-12",
       "visits": 1970,
+      "impressions": 77141,
+      "clicks": 1552,
       "cost": 12811,
       "conversions": 54,
       "revenue": 87716
@@ -4670,6 +5970,8 @@
     {
       "date": "2026-03-13",
       "visits": 2075,
+      "impressions": 80091,
+      "clicks": 1641,
       "cost": 14738,
       "conversions": 60,
       "revenue": 102561
@@ -4677,6 +5979,8 @@
     {
       "date": "2026-03-14",
       "visits": 1938,
+      "impressions": 81337,
+      "clicks": 1570,
       "cost": 11752,
       "conversions": 53,
       "revenue": 86865
@@ -4684,6 +5988,8 @@
     {
       "date": "2026-03-15",
       "visits": 1897,
+      "impressions": 77500,
+      "clicks": 1519,
       "cost": 13787,
       "conversions": 57,
       "revenue": 94130
@@ -4691,6 +5997,8 @@
     {
       "date": "2026-03-16",
       "visits": 1841,
+      "impressions": 65644,
+      "clicks": 1378,
       "cost": 12485,
       "conversions": 47,
       "revenue": 83869
@@ -4698,6 +6006,8 @@
     {
       "date": "2026-03-17",
       "visits": 1985,
+      "impressions": 78670,
+      "clicks": 1613,
       "cost": 13194,
       "conversions": 53,
       "revenue": 89332
@@ -4705,6 +6015,8 @@
     {
       "date": "2026-03-18",
       "visits": 2131,
+      "impressions": 93435,
+      "clicks": 1711,
       "cost": 14734,
       "conversions": 58,
       "revenue": 103373
@@ -4712,6 +6024,8 @@
     {
       "date": "2026-03-19",
       "visits": 1970,
+      "impressions": 85955,
+      "clicks": 1554,
       "cost": 12379,
       "conversions": 54,
       "revenue": 91587
@@ -4719,6 +6033,8 @@
     {
       "date": "2026-03-20",
       "visits": 2267,
+      "impressions": 86090,
+      "clicks": 1700,
       "cost": 14209,
       "conversions": 58,
       "revenue": 94684
@@ -4726,6 +6042,8 @@
     {
       "date": "2026-03-21",
       "visits": 2314,
+      "impressions": 94534,
+      "clicks": 1733,
       "cost": 14903,
       "conversions": 62,
       "revenue": 100518
@@ -4733,6 +6051,8 @@
     {
       "date": "2026-03-22",
       "visits": 2175,
+      "impressions": 86514,
+      "clicks": 1763,
       "cost": 14924,
       "conversions": 61,
       "revenue": 104931
@@ -4740,6 +6060,8 @@
     {
       "date": "2026-03-23",
       "visits": 1884,
+      "impressions": 75993,
+      "clicks": 1462,
       "cost": 12343,
       "conversions": 47,
       "revenue": 83259
@@ -4747,6 +6069,8 @@
     {
       "date": "2026-03-24",
       "visits": 1798,
+      "impressions": 70856,
+      "clicks": 1452,
       "cost": 10942,
       "conversions": 44,
       "revenue": 73634
@@ -4754,6 +6078,8 @@
     {
       "date": "2026-03-25",
       "visits": 2064,
+      "impressions": 79417,
+      "clicks": 1653,
       "cost": 13227,
       "conversions": 57,
       "revenue": 97437
@@ -4761,6 +6087,8 @@
     {
       "date": "2026-03-26",
       "visits": 2050,
+      "impressions": 89195,
+      "clicks": 1616,
       "cost": 13245,
       "conversions": 55,
       "revenue": 88731
@@ -4768,6 +6096,8 @@
     {
       "date": "2026-03-27",
       "visits": 2190,
+      "impressions": 86620,
+      "clicks": 1641,
       "cost": 12985,
       "conversions": 59,
       "revenue": 94756
@@ -4775,6 +6105,8 @@
     {
       "date": "2026-03-28",
       "visits": 2168,
+      "impressions": 91343,
+      "clicks": 1746,
       "cost": 15950,
       "conversions": 64,
       "revenue": 112468
@@ -4782,6 +6114,8 @@
     {
       "date": "2026-03-29",
       "visits": 2030,
+      "impressions": 89176,
+      "clicks": 1647,
       "cost": 11955,
       "conversions": 54,
       "revenue": 86908
@@ -4789,6 +6123,8 @@
     {
       "date": "2026-03-30",
       "visits": 1977,
+      "impressions": 81645,
+      "clicks": 1599,
       "cost": 11254,
       "conversions": 50,
       "revenue": 81702
@@ -4796,6 +6132,8 @@
     {
       "date": "2026-03-31",
       "visits": 1897,
+      "impressions": 76896,
+      "clicks": 1477,
       "cost": 11543,
       "conversions": 49,
       "revenue": 81554
@@ -4803,6 +6141,8 @@
     {
       "date": "2026-04-01",
       "visits": 2116,
+      "impressions": 76316,
+      "clicks": 1595,
       "cost": 14980,
       "conversions": 60,
       "revenue": 101472
@@ -4810,6 +6150,8 @@
     {
       "date": "2026-04-02",
       "visits": 2039,
+      "impressions": 78659,
+      "clicks": 1610,
       "cost": 12930,
       "conversions": 56,
       "revenue": 94378
@@ -4817,6 +6159,8 @@
     {
       "date": "2026-04-03",
       "visits": 2331,
+      "impressions": 100469,
+      "clicks": 1907,
       "cost": 15878,
       "conversions": 68,
       "revenue": 114608
@@ -4824,6 +6168,8 @@
     {
       "date": "2026-04-04",
       "visits": 2020,
+      "impressions": 79261,
+      "clicks": 1573,
       "cost": 14928,
       "conversions": 60,
       "revenue": 101560
@@ -4831,6 +6177,8 @@
     {
       "date": "2026-04-05",
       "visits": 2351,
+      "impressions": 94782,
+      "clicks": 1890,
       "cost": 15120,
       "conversions": 63,
       "revenue": 109520
@@ -4838,6 +6186,8 @@
     {
       "date": "2026-04-06",
       "visits": 2239,
+      "impressions": 94677,
+      "clicks": 1831,
       "cost": 12936,
       "conversions": 60,
       "revenue": 98061
@@ -4845,6 +6195,8 @@
     {
       "date": "2026-04-07",
       "visits": 2181,
+      "impressions": 89814,
+      "clicks": 1720,
       "cost": 15023,
       "conversions": 62,
       "revenue": 109040
@@ -4852,6 +6204,8 @@
     {
       "date": "2026-04-08",
       "visits": 2084,
+      "impressions": 80142,
+      "clicks": 1693,
       "cost": 13069,
       "conversions": 55,
       "revenue": 89191
@@ -4859,6 +6213,8 @@
     {
       "date": "2026-04-09",
       "visits": 2255,
+      "impressions": 92803,
+      "clicks": 1836,
       "cost": 13081,
       "conversions": 57,
       "revenue": 92577
@@ -4866,6 +6222,8 @@
     {
       "date": "2026-04-10",
       "visits": 1999,
+      "impressions": 82193,
+      "clicks": 1552,
       "cost": 13176,
       "conversions": 54,
       "revenue": 90244
@@ -4873,6 +6231,8 @@
     {
       "date": "2026-04-11",
       "visits": 2265,
+      "impressions": 81813,
+      "clicks": 1735,
       "cost": 14660,
       "conversions": 62,
       "revenue": 102896
@@ -4880,6 +6240,8 @@
     {
       "date": "2026-04-12",
       "visits": 2138,
+      "impressions": 90222,
+      "clicks": 1695,
       "cost": 13460,
       "conversions": 64,
       "revenue": 102309
@@ -4887,6 +6249,8 @@
     {
       "date": "2026-04-13",
       "visits": 1977,
+      "impressions": 78782,
+      "clicks": 1557,
       "cost": 13145,
       "conversions": 52,
       "revenue": 91985
@@ -4894,6 +6258,8 @@
     {
       "date": "2026-04-14",
       "visits": 2087,
+      "impressions": 79630,
+      "clicks": 1664,
       "cost": 12680,
       "conversions": 54,
       "revenue": 88285
@@ -4901,6 +6267,8 @@
     {
       "date": "2026-04-15",
       "visits": 2203,
+      "impressions": 89852,
+      "clicks": 1681,
       "cost": 12690,
       "conversions": 55,
       "revenue": 96563
@@ -4908,6 +6276,8 @@
     {
       "date": "2026-04-16",
       "visits": 1943,
+      "impressions": 80584,
+      "clicks": 1554,
       "cost": 13271,
       "conversions": 56,
       "revenue": 94342
@@ -4915,6 +6285,8 @@
     {
       "date": "2026-04-17",
       "visits": 2115,
+      "impressions": 77400,
+      "clicks": 1629,
       "cost": 12840,
       "conversions": 58,
       "revenue": 96479
@@ -4922,6 +6294,8 @@
     {
       "date": "2026-04-18",
       "visits": 2328,
+      "impressions": 90472,
+      "clicks": 1854,
       "cost": 14914,
       "conversions": 65,
       "revenue": 104253
@@ -4929,6 +6303,8 @@
     {
       "date": "2026-04-19",
       "visits": 2263,
+      "impressions": 92811,
+      "clicks": 1853,
       "cost": 14477,
       "conversions": 60,
       "revenue": 106105
@@ -4936,6 +6312,8 @@
     {
       "date": "2026-04-20",
       "visits": 2063,
+      "impressions": 91007,
+      "clicks": 1657,
       "cost": 12570,
       "conversions": 53,
       "revenue": 92676
@@ -4943,6 +6321,8 @@
     {
       "date": "2026-04-21",
       "visits": 2016,
+      "impressions": 79141,
+      "clicks": 1569,
       "cost": 12970,
       "conversions": 57,
       "revenue": 91175
@@ -4950,6 +6330,8 @@
     {
       "date": "2026-04-22",
       "visits": 1954,
+      "impressions": 81529,
+      "clicks": 1543,
       "cost": 12094,
       "conversions": 53,
       "revenue": 87683
@@ -4957,6 +6339,8 @@
     {
       "date": "2026-04-23",
       "visits": 2204,
+      "impressions": 89699,
+      "clicks": 1744,
       "cost": 13592,
       "conversions": 63,
       "revenue": 101172
@@ -4964,6 +6348,8 @@
     {
       "date": "2026-04-24",
       "visits": 2322,
+      "impressions": 92130,
+      "clicks": 1875,
       "cost": 14529,
       "conversions": 63,
       "revenue": 111093
@@ -4971,6 +6357,8 @@
     {
       "date": "2026-04-25",
       "visits": 2382,
+      "impressions": 95224,
+      "clicks": 1916,
       "cost": 16221,
       "conversions": 68,
       "revenue": 115743
@@ -4978,6 +6366,8 @@
     {
       "date": "2026-04-26",
       "visits": 1990,
+      "impressions": 80802,
+      "clicks": 1530,
       "cost": 13589,
       "conversions": 58,
       "revenue": 97718
@@ -4985,6 +6375,8 @@
     {
       "date": "2026-04-27",
       "visits": 2042,
+      "impressions": 83864,
+      "clicks": 1614,
       "cost": 14558,
       "conversions": 60,
       "revenue": 101413
@@ -4992,6 +6384,8 @@
     {
       "date": "2026-04-28",
       "visits": 2164,
+      "impressions": 91378,
+      "clicks": 1673,
       "cost": 14778,
       "conversions": 60,
       "revenue": 102342
@@ -4999,6 +6393,8 @@
     {
       "date": "2026-04-29",
       "visits": 1911,
+      "impressions": 73458,
+      "clicks": 1450,
       "cost": 12490,
       "conversions": 53,
       "revenue": 93609
@@ -5006,6 +6402,8 @@
     {
       "date": "2026-04-30",
       "visits": 2311,
+      "impressions": 84914,
+      "clicks": 1780,
       "cost": 16464,
       "conversions": 66,
       "revenue": 114430
@@ -5013,6 +6411,8 @@
     {
       "date": "2026-05-01",
       "visits": 1904,
+      "impressions": 70452,
+      "clicks": 1493,
       "cost": 13202,
       "conversions": 53,
       "revenue": 91042
@@ -5020,6 +6420,8 @@
     {
       "date": "2026-05-02",
       "visits": 2272,
+      "impressions": 84898,
+      "clicks": 1695,
       "cost": 13138,
       "conversions": 59,
       "revenue": 101416
@@ -5027,6 +6429,8 @@
     {
       "date": "2026-05-03",
       "visits": 2302,
+      "impressions": 87160,
+      "clicks": 1781,
       "cost": 14655,
       "conversions": 66,
       "revenue": 112175
@@ -5034,6 +6438,8 @@
     {
       "date": "2026-05-04",
       "visits": 2183,
+      "impressions": 76516,
+      "clicks": 1638,
       "cost": 13922,
       "conversions": 60,
       "revenue": 100587
@@ -5041,6 +6447,8 @@
     {
       "date": "2026-05-05",
       "visits": 1960,
+      "impressions": 71063,
+      "clicks": 1507,
       "cost": 11568,
       "conversions": 50,
       "revenue": 84965
@@ -5048,6 +6456,8 @@
     {
       "date": "2026-05-06",
       "visits": 1970,
+      "impressions": 81630,
+      "clicks": 1503,
       "cost": 11533,
       "conversions": 50,
       "revenue": 88023
@@ -5055,6 +6465,8 @@
     {
       "date": "2026-05-07",
       "visits": 2041,
+      "impressions": 82806,
+      "clicks": 1566,
       "cost": 11728,
       "conversions": 51,
       "revenue": 88002
@@ -5062,6 +6474,8 @@
     {
       "date": "2026-05-08",
       "visits": 1945,
+      "impressions": 74873,
+      "clicks": 1478,
       "cost": 12229,
       "conversions": 50,
       "revenue": 84352
@@ -5069,6 +6483,8 @@
     {
       "date": "2026-05-09",
       "visits": 2246,
+      "impressions": 86738,
+      "clicks": 1721,
       "cost": 14429,
       "conversions": 63,
       "revenue": 109410
@@ -5076,6 +6492,8 @@
     {
       "date": "2026-05-10",
       "visits": 2176,
+      "impressions": 79567,
+      "clicks": 1680,
       "cost": 14462,
       "conversions": 61,
       "revenue": 100579
@@ -5083,6 +6501,8 @@
     {
       "date": "2026-05-11",
       "visits": 1899,
+      "impressions": 79172,
+      "clicks": 1526,
       "cost": 11684,
       "conversions": 52,
       "revenue": 86597
@@ -5090,6 +6510,8 @@
     {
       "date": "2026-05-12",
       "visits": 2051,
+      "impressions": 83414,
+      "clicks": 1665,
       "cost": 13023,
       "conversions": 52,
       "revenue": 92647
@@ -5097,6 +6519,8 @@
     {
       "date": "2026-05-13",
       "visits": 1972,
+      "impressions": 72347,
+      "clicks": 1491,
       "cost": 10282,
       "conversions": 49,
       "revenue": 79231
@@ -5104,6 +6528,8 @@
     {
       "date": "2026-05-14",
       "visits": 1994,
+      "impressions": 70485,
+      "clicks": 1501,
       "cost": 11025,
       "conversions": 50,
       "revenue": 81652
@@ -5111,6 +6537,8 @@
     {
       "date": "2026-05-15",
       "visits": 2138,
+      "impressions": 79487,
+      "clicks": 1603,
       "cost": 13490,
       "conversions": 55,
       "revenue": 97700
@@ -5118,6 +6546,8 @@
     {
       "date": "2026-05-16",
       "visits": 2228,
+      "impressions": 94850,
+      "clicks": 1757,
       "cost": 15574,
       "conversions": 63,
       "revenue": 111962
@@ -5125,6 +6555,8 @@
     {
       "date": "2026-05-17",
       "visits": 2002,
+      "impressions": 75849,
+      "clicks": 1566,
       "cost": 13369,
       "conversions": 61,
       "revenue": 101307
@@ -5132,6 +6564,8 @@
     {
       "date": "2026-05-18",
       "visits": 2011,
+      "impressions": 87044,
+      "clicks": 1623,
       "cost": 11552,
       "conversions": 52,
       "revenue": 84240
@@ -5139,6 +6573,8 @@
     {
       "date": "2026-05-19",
       "visits": 2199,
+      "impressions": 87868,
+      "clicks": 1666,
       "cost": 13899,
       "conversions": 57,
       "revenue": 98883
@@ -5146,6 +6582,8 @@
     {
       "date": "2026-05-20",
       "visits": 2112,
+      "impressions": 74841,
+      "clicks": 1583,
       "cost": 12162,
       "conversions": 57,
       "revenue": 93416
@@ -5153,6 +6591,8 @@
     {
       "date": "2026-05-21",
       "visits": 2273,
+      "impressions": 79780,
+      "clicks": 1712,
       "cost": 14117,
       "conversions": 58,
       "revenue": 103856
@@ -5160,6 +6600,8 @@
     {
       "date": "2026-05-22",
       "visits": 2184,
+      "impressions": 82814,
+      "clicks": 1648,
       "cost": 13939,
       "conversions": 61,
       "revenue": 100562
@@ -5167,6 +6609,8 @@
     {
       "date": "2026-05-23",
       "visits": 2260,
+      "impressions": 94519,
+      "clicks": 1835,
       "cost": 13964,
       "conversions": 67,
       "revenue": 108166
@@ -5174,6 +6618,8 @@
     {
       "date": "2026-05-24",
       "visits": 2342,
+      "impressions": 84251,
+      "clicks": 1793,
       "cost": 13396,
       "conversions": 61,
       "revenue": 100823
@@ -5181,6 +6627,8 @@
     {
       "date": "2026-05-25",
       "visits": 1931,
+      "impressions": 69414,
+      "clicks": 1457,
       "cost": 12781,
       "conversions": 55,
       "revenue": 96913
@@ -5188,6 +6636,8 @@
     {
       "date": "2026-05-26",
       "visits": 2064,
+      "impressions": 80958,
+      "clicks": 1622,
       "cost": 12628,
       "conversions": 51,
       "revenue": 88362
@@ -5195,6 +6645,8 @@
     {
       "date": "2026-05-27",
       "visits": 1995,
+      "impressions": 80250,
+      "clicks": 1519,
       "cost": 11762,
       "conversions": 55,
       "revenue": 89376
@@ -5202,6 +6654,8 @@
     {
       "date": "2026-05-28",
       "visits": 2276,
+      "impressions": 97738,
+      "clicks": 1805,
       "cost": 13478,
       "conversions": 58,
       "revenue": 98345
@@ -5209,6 +6663,8 @@
     {
       "date": "2026-05-29",
       "visits": 2186,
+      "impressions": 79774,
+      "clicks": 1693,
       "cost": 12653,
       "conversions": 56,
       "revenue": 96619
@@ -5216,6 +6672,8 @@
     {
       "date": "2026-05-30",
       "visits": 1967,
+      "impressions": 76298,
+      "clicks": 1516,
       "cost": 12346,
       "conversions": 54,
       "revenue": 91924
@@ -5223,6 +6681,8 @@
     {
       "date": "2026-05-31",
       "visits": 2207,
+      "impressions": 92806,
+      "clicks": 1722,
       "cost": 13924,
       "conversions": 64,
       "revenue": 103554
@@ -5230,6 +6690,8 @@
     {
       "date": "2026-06-01",
       "visits": 1659,
+      "impressions": 66515,
+      "clicks": 1329,
       "cost": 9835,
       "conversions": 42,
       "revenue": 74338
@@ -5237,6 +6699,8 @@
     {
       "date": "2026-06-02",
       "visits": 98,
+      "impressions": 3876,
+      "clicks": 79,
       "cost": 9327,
       "conversions": 1,
       "revenue": 2129
@@ -5244,6 +6708,8 @@
     {
       "date": "2026-06-03",
       "visits": 1744,
+      "impressions": 72755,
+      "clicks": 1389,
       "cost": 9970,
       "conversions": 42,
       "revenue": 72576
@@ -5251,6 +6717,8 @@
     {
       "date": "2026-06-04",
       "visits": 1661,
+      "impressions": 66771,
+      "clicks": 1291,
       "cost": 10119,
       "conversions": 45,
       "revenue": 76269
@@ -5258,6 +6726,8 @@
     {
       "date": "2026-06-05",
       "visits": 1862,
+      "impressions": 71267,
+      "clicks": 1459,
       "cost": 12025,
       "conversions": 51,
       "revenue": 90055
@@ -5265,6 +6735,8 @@
     {
       "date": "2026-06-06",
       "visits": 2071,
+      "impressions": 75898,
+      "clicks": 1551,
       "cost": 29431,
       "conversions": 52,
       "revenue": 92207
@@ -5272,6 +6744,8 @@
     {
       "date": "2026-06-07",
       "visits": 1791,
+      "impressions": 72123,
+      "clicks": 1380,
       "cost": 26707,
       "conversions": 45,
       "revenue": 79240
@@ -5279,6 +6753,8 @@
     {
       "date": "2026-06-08",
       "visits": 1641,
+      "impressions": 67008,
+      "clicks": 1326,
       "cost": 10457,
       "conversions": 44,
       "revenue": 77578
@@ -5286,6 +6762,8 @@
     {
       "date": "2026-06-09",
       "visits": 1912,
+      "impressions": 73440,
+      "clicks": 1538,
       "cost": 10561,
       "conversions": 48,
       "revenue": 80728
@@ -5293,6 +6771,8 @@
     {
       "date": "2026-06-10",
       "visits": 1605,
+      "impressions": 66633,
+      "clicks": 1310,
       "cost": 9140,
       "conversions": 41,
       "revenue": 71062
@@ -5300,6 +6780,8 @@
     {
       "date": "2026-06-11",
       "visits": 1791,
+      "impressions": 64726,
+      "clicks": 1398,
       "cost": 9962,
       "conversions": 42,
       "revenue": 73668
@@ -5307,6 +6789,8 @@
     {
       "date": "2026-06-12",
       "visits": 1706,
+      "impressions": 72918,
+      "clicks": 1361,
       "cost": 9898,
       "conversions": 43,
       "revenue": 71628
@@ -5314,6 +6798,8 @@
     {
       "date": "2026-06-13",
       "visits": 1839,
+      "impressions": 70144,
+      "clicks": 1370,
       "cost": 11317,
       "conversions": 49,
       "revenue": 80619
@@ -5321,6 +6807,8 @@
     {
       "date": "2026-06-14",
       "visits": 2032,
+      "impressions": 71522,
+      "clicks": 1545,
       "cost": 11068,
       "conversions": 51,
       "revenue": 87445
@@ -5328,6 +6816,8 @@
     {
       "date": "2026-06-15",
       "visits": 1833,
+      "impressions": 65468,
+      "clicks": 1365,
       "cost": 10097,
       "conversions": 49,
       "revenue": 80421
@@ -5335,6 +6825,8 @@
     {
       "date": "2026-06-16",
       "visits": 1787,
+      "impressions": 68190,
+      "clicks": 1413,
       "cost": 10374,
       "conversions": 45,
       "revenue": 77363
@@ -5342,6 +6834,8 @@
     {
       "date": "2026-06-17",
       "visits": 1953,
+      "impressions": 69542,
+      "clicks": 1467,
       "cost": 12195,
       "conversions": 51,
       "revenue": 88326
@@ -5349,6 +6843,8 @@
     {
       "date": "2026-06-18",
       "visits": 1963,
+      "impressions": 77872,
+      "clicks": 1546,
       "cost": 11518,
       "conversions": 48,
       "revenue": 83138
@@ -5356,6 +6852,8 @@
     {
       "date": "2026-06-19",
       "visits": 1834,
+      "impressions": 65113,
+      "clicks": 1396,
       "cost": 11368,
       "conversions": 48,
       "revenue": 81662
@@ -5363,6 +6861,8 @@
     {
       "date": "2026-06-20",
       "visits": 2029,
+      "impressions": 81169,
+      "clicks": 1641,
       "cost": 12466,
       "conversions": 54,
       "revenue": 93973
