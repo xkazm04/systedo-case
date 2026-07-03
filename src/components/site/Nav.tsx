@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { localizedNavItems } from "@/lib/nav";
+import { firstUnvisited, readVisited } from "@/lib/journey";
 import { buttonClass } from "@/components/ui";
-import { ArrowRight, Close, Logo, Menu } from "@/components/icons";
+import { ArrowRight, Check, Close, Logo, Menu } from "@/components/icons";
 import CommandPalette from "@/components/site/CommandPalette";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
@@ -24,7 +25,28 @@ export default function Nav() {
   const { status } = useSession();
   const navItems = localizedNavItems(locale);
   const [open, setOpen] = useState(false);
+  // Journey memory for the mobile menu: which task pages the reviewer has seen
+  // (written by TaskPager's JourneyBeacon). Read in the toggle handler — the
+  // menu only renders post-interaction, so storage can't cause a hydration
+  // mismatch, and re-reading on every open keeps it fresh across navigations.
+  const [visited, setVisited] = useState<string[]>([]);
   const authed = status === "authenticated";
+
+  const toggleMenu = () => {
+    if (!open) {
+      try {
+        setVisited(readVisited(window.localStorage));
+      } catch {
+        setVisited([]);
+      }
+    }
+    setOpen((v) => !v);
+  };
+
+  // "Pokračovat" resume target: the first task page not yet visited. The
+  // current page is always marked visited by its beacon before the menu can
+  // open, so the target is genuinely the next stop.
+  const resumeTarget = firstUnvisited(navItems, visited);
 
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">
@@ -82,7 +104,7 @@ export default function Nav() {
           <ThemeToggle />
           <button
             type="button"
-            onClick={() => setOpen((v) => !v)}
+            onClick={toggleMenu}
             aria-label={open ? messages.nav.closeMenu : messages.nav.openMenu}
             aria-expanded={open}
             className="grid h-10 w-10 place-items-center rounded-lg text-navy-700 hover:bg-navy-50 md:hidden"
@@ -105,8 +127,27 @@ export default function Nav() {
                 <ArrowRight width={17} height={17} />
               </Link>
             )}
+            {/* resume where the journey left off — one tap to the first unvisited task */}
+            {resumeTarget && resumeTarget.href !== pathname && (
+              <Link
+                href={resumeTarget.href}
+                onClick={() => setOpen(false)}
+                className="mb-1 flex items-center justify-between gap-3 rounded-lg border border-brand-200 bg-brand-50 px-3 py-3"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-700">
+                    {messages.nav.resume}
+                  </span>
+                  <span className="truncate text-[17px] font-semibold text-brand-800">
+                    {messages.nav.task} {resumeTarget.task} — {resumeTarget.label}
+                  </span>
+                </span>
+                <ArrowRight width={17} height={17} className="shrink-0 text-brand-700" />
+              </Link>
+            )}
             {navItems.map((item) => {
               const active = isActive(pathname, item.href);
+              const seen = item.task > 0 && visited.includes(item.href);
               return (
                 <Link
                   key={item.href}
@@ -118,7 +159,13 @@ export default function Nav() {
                 >
                   {item.label}
                   {item.task > 0 && (
-                    <span className="text-xs font-semibold text-muted">
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                      {seen && (
+                        <>
+                          <Check width={13} height={13} className="text-brand-600" aria-hidden />
+                          <span className="sr-only">{messages.nav.visited}</span>
+                        </>
+                      )}
                       {messages.nav.task} {item.task}
                     </span>
                   )}

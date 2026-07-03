@@ -30,6 +30,10 @@ export interface Messages {
     themeToSystem: string;
     /** short "Task N" prefix in the mobile menu */
     task: string;
+    /** mobile-menu journey memory: the "continue where you left off" row… */
+    resume: string;
+    /** …and the accessible name of the visited checkmark */
+    visited: string;
     /** quick-nav (Cmd/Ctrl+K) palette: trigger/dialog label, input placeholder,
      *  empty-state line */
     quickNav: string;
@@ -73,6 +77,8 @@ const cs: Messages = {
     themeToDark: "Přepnout na tmavý režim",
     themeToSystem: "Řídit se nastavením systému",
     task: "Úkol",
+    resume: "Pokračovat",
+    visited: "Navštíveno",
     quickNav: "Rychlá navigace",
     quickNavPlaceholder: "Kam chcete přejít?",
     quickNavEmpty: "Nic neodpovídá hledání.",
@@ -130,6 +136,8 @@ const en: Messages = {
     themeToDark: "Switch to dark mode",
     themeToSystem: "Follow the system setting",
     task: "Task",
+    resume: "Continue",
+    visited: "Visited",
     quickNav: "Quick navigation",
     quickNavPlaceholder: "Where do you want to go?",
     quickNavEmpty: "Nothing matches your search.",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
+import JourneyBeacon from "@/components/site/JourneyBeacon";
 import { localizedNavItems, type NavItem } from "@/lib/nav";
 import { getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -69,6 +70,8 @@ export default async function TaskPager({ current }: { current: string }) {
       aria-label={t("ariaLabel")}
       className="mt-16 border-t border-line pt-10 print:hidden"
     >
+      {/* record this stop for the mobile menu's visited marks + resume link */}
+      <JourneyBeacon current={current} />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">
           {next ? t("continue") : t("finished")}
