@@ -50,8 +50,10 @@ const T = {
     adStrengthTitle: "Síla inzerátu",
     adStrengthAriaLabel: "Síla inzerátu: {rating}, {score} ze 100",
     rsaPreviewLabelGoogle: "Náhled inzerátu (RSA)",
-    rsaPreviewLabel: "Náhled inzerátu",
+    sklikPreviewLabel: "Náhled inzerátu (Sklik)",
     rsaPreviewBadge: "Ukázková kombinace",
+    sklikPreviewBadge: "Stylizovaná ukázka (Seznam)",
+    sklikAdTag: "Reklama",
     rsaSponsoredLine: "Sponzorováno · Mionelo",
     rsaTitleFallback: "Nadpis inzerátu",
     rsaDescFallback: "Popisek inzerátu se zobrazí tady.",
@@ -114,8 +116,10 @@ const T = {
     adStrengthTitle: "Ad strength",
     adStrengthAriaLabel: "Ad strength: {rating}, {score} out of 100",
     rsaPreviewLabelGoogle: "Ad preview (RSA)",
-    rsaPreviewLabel: "Ad preview",
+    sklikPreviewLabel: "Ad preview (Sklik)",
     rsaPreviewBadge: "Sample combination",
+    sklikPreviewBadge: "Stylized sample (Seznam)",
+    sklikAdTag: "Ad",
     rsaSponsoredLine: "Sponsored · Mionelo",
     rsaTitleFallback: "Ad headline",
     rsaDescFallback: "Ad description will appear here.",
@@ -259,12 +263,14 @@ const slugify = (s: string): string =>
     .slice(0, 28)
     .replace(/-+$/g, "");
 
-/** Live preview that assembles a sample responsive search ad the way Google
- *  shows it: up to 3 headlines joined with " | " and up to 2 descriptions.
- *  Google actually SERVES an RSA as rotating combinations, so the preview
- *  rotates too: "Další kombinace" advances a deterministic sampler over the
- *  non-blank assets (combination 1 = the classic first-3 + first-2 view), with
- *  the shown asset numbers tying the combo back to the numbered rows below. */
+/** Live ad preview, branched by platform: a Google SERP mock (up to 3 headlines
+ *  joined with " | ") or a stylized Seznam.cz result for Sklik (2 headlines
+ *  joined per the kombinovaná reklama, the labelled "Reklama" tag beside the
+ *  URL) — so the platform toggle changes the rendered ad, not just a caption.
+ *  Both platforms actually SERVE rotating combinations, so the preview rotates
+ *  too: "Další kombinace" advances a deterministic sampler over the non-blank
+ *  assets (combination 1 = the classic first-slice view), with the shown asset
+ *  numbers tying the combo back to the numbered rows below. */
 function RsaPreview({
   headlines,
   descriptions,
@@ -282,42 +288,69 @@ function RsaPreview({
   // re-generation shrinking the asset lists can never point out of range.
   const [combo, setCombo] = useState(0);
   const sample = sampleRsaCombo(headlines, descriptions, combo);
-  const title = sample.headlines.join(" | ");
   const desc = sample.descriptions.join(" ");
   const path = slugify(pathSeed);
   const isGoogle = platform === "google";
+  // Google composes up to 3 headlines; Sklik's kombinovaná reklama joins 2.
+  const title = isGoogle ? sample.headlines.join(" | ") : sample.headlines.slice(0, 2).join(" – ");
+  const shownHeadlineNumbers = isGoogle
+    ? sample.headlineNumbers
+    : sample.headlineNumbers.slice(0, 2);
   return (
     <div data-testid="rsa-preview" className="rounded-card border border-line bg-surface p-5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted">{isGoogle ? t("rsaPreviewLabelGoogle") : t("rsaPreviewLabel")}</p>
-        <span className="pill bg-navy-50 text-muted">{t("rsaPreviewBadge")}</span>
+        <p className="text-xs text-muted">
+          {isGoogle ? t("rsaPreviewLabelGoogle") : t("sklikPreviewLabel")}
+        </p>
+        <span className="pill bg-navy-50 text-muted">
+          {isGoogle ? t("rsaPreviewBadge") : t("sklikPreviewBadge")}
+        </span>
       </div>
-      <div className="mt-3">
-        <div className="flex items-center gap-2">
-          <span
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-[13px] font-semibold text-white"
-            aria-hidden
-          >
-            M
-          </span>
-          <div className="min-w-0 leading-tight">
-            <p className="text-xs font-semibold text-navy-800">{t("rsaSponsoredLine")}</p>
-            <p className="truncate text-xs text-serp-url">
+      {isGoogle ? (
+        <div className="mt-3">
+          <div className="flex items-center gap-2">
+            <span
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-onyx text-[13px] font-semibold text-white"
+              aria-hidden
+            >
+              M
+            </span>
+            <div className="min-w-0 leading-tight">
+              <p className="text-xs font-semibold text-navy-800">{t("rsaSponsoredLine")}</p>
+              <p className="truncate text-xs text-serp-url">
+                www.mionelo.cz{path ? ` › ${path}` : ""}
+              </p>
+            </div>
+          </div>
+          <p className="mt-2 text-xl leading-snug text-serp-link">{title || t("rsaTitleFallback")}</p>
+          <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-navy-600">
+            {desc || t("rsaDescFallback")}
+          </p>
+        </div>
+      ) : (
+        /* Stylized Seznam.cz result: title first, then the labelled "Reklama"
+           tag beside the URL — the shape Sklik ads render in Seznam search. */
+        <div className="mt-3" data-testid="sklik-preview">
+          <p className="text-xl leading-snug text-serp-link">{title || t("rsaTitleFallback")}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span className="shrink-0 rounded border border-positive/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-positive">
+              {t("sklikAdTag")}
+            </span>
+            <p className="min-w-0 truncate text-xs text-serp-url">
               www.mionelo.cz{path ? ` › ${path}` : ""}
             </p>
           </div>
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-navy-600">
+            {desc || t("rsaDescFallback")}
+          </p>
         </div>
-        <p className="mt-2 text-xl leading-snug text-serp-link">{title || t("rsaTitleFallback")}</p>
-        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-navy-600">
-          {desc || t("rsaDescFallback")}
-        </p>
-      </div>
+      )}
       {sample.count > 1 && (
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
           <p className="tnum min-w-0 text-xs text-muted">
             {t("rsaComboOf", { i: sample.index + 1, n: sample.count })} ·{" "}
             {t("rsaComboAssets", {
-              h: sample.headlineNumbers.join("·"),
+              h: shownHeadlineNumbers.join("·"),
               d: sample.descriptionNumbers.join("·"),
             })}
           </p>
