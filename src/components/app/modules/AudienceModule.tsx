@@ -2,6 +2,7 @@
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { Bulb, Target, TrendUp, TrendDown } from "@/components/icons";
 import { Pill } from "@/components/ui";
+import Sparkline from "@/components/charts/Sparkline";
 import NextSteps from "@/components/app/NextSteps";
 import {
   audienceSummary,
@@ -137,38 +138,23 @@ const CPM_BAND = { cpmFloor: 280, cpmCeil: 520 };
 const SPARK_W = 120;
 const SPARK_H = 32;
 
-/** Compact inline sparkline for a short monthly series, min-max normalised to its
- *  own range so the shape reads regardless of absolute scale. Pure SVG, no DOM. */
+/** Compact inline sparkline for a short monthly series over the shared chart
+ *  primitive (min-max scaling, last-point dot). Only the "—" empty state for
+ *  sub-2-point series stays local. */
 function MiniSpark({ series, label }: { series: number[]; label: string }) {
   if (series.length < 2) return <span className="text-sm text-muted">—</span>;
-  const min = Math.min(...series);
-  const max = Math.max(...series);
-  const span = max - min || 1;
-  const step = SPARK_W / (series.length - 1);
-  const pts = series
-    .map((v, i) => `${(i * step).toFixed(2)},${(SPARK_H * (1 - (v - min) / span)).toFixed(2)}`)
-    .join(" ");
-  const last = series[series.length - 1]!;
-  const lastY = SPARK_H * (1 - (last - min) / span);
   return (
-    <svg
-      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+    <Sparkline
+      values={series}
       width={SPARK_W}
       height={SPARK_H}
+      area={false}
+      stroke="var(--color-brand-accent)"
+      strokeWidth={1.75}
+      dot
       className="overflow-visible"
-      role="img"
-      aria-label={label}
-    >
-      <polyline
-        points={pts}
-        fill="none"
-        stroke="var(--color-brand-accent)"
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={(series.length - 1) * step} cy={lastY} r={2} fill="var(--color-brand-accent)" />
-    </svg>
+      label={label}
+    />
   );
 }
 

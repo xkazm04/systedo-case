@@ -112,6 +112,38 @@ const SPARKLINES: Array<{
     note: "240 × 72",
     props: { values: SERIES.steady, width: 240, height: 72, autoColor: true, dot: true },
   },
+  {
+    label: "Responzivní šířka",
+    note: "responsive",
+    props: {
+      values: SERIES.up,
+      responsive: true,
+      autoColor: true,
+      dot: true,
+      className: "h-9 w-full",
+    },
+  },
+  {
+    label: "Vrchol série",
+    note: "markPeak",
+    props: {
+      values: SERIES.volatile,
+      area: false,
+      markPeak: true,
+      stroke: "var(--color-brand-accent)",
+    },
+  },
+  {
+    label: "Pozorováno + odhad",
+    note: "dashFrom, dot",
+    props: {
+      values: SERIES.steady,
+      area: false,
+      dashFrom: 6,
+      dot: true,
+      stroke: "var(--color-navy-500)",
+    },
+  },
 ];
 
 /** Heading-scale demo rows. The size steps (text-4xl…) are Tailwind v4 defaults,

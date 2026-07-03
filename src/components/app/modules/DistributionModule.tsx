@@ -20,12 +20,8 @@ import {
   newsletterPlainText,
   splitNewsletter,
 } from "@/lib/distribution/newsletter";
-import {
-  ctrSparkPoints,
-  rollupLearnings,
-  sparkPointsAttr,
-  type DimensionLeader,
-} from "@/lib/distribution/learnings";
+import { rollupLearnings, type DimensionLeader } from "@/lib/distribution/learnings";
+import Sparkline from "@/components/charts/Sparkline";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
 import { useAiTool } from "@/components/ai/useAiTool";
@@ -669,33 +665,25 @@ function NewsletterHandoff({
 const SPARK_W = 120;
 const SPARK_H = 28;
 
-/** Hand-rolled CTR sparkline: a polyline over the per-channel CTRs scaled to the
- *  series max, with a dot on the peak. Inline <svg>, no chart lib. */
+/** Per-channel CTR sparkline over the shared chart primitive — `markPeak` puts
+ *  the dot on the BEST channel (not the last point), which is the semantic the
+ *  hand-rolled version existed for. */
 function CtrSparkline({ ctrs, labels, t, fmt }: { ctrs: number[]; labels: string[]; t: TFn; fmt: ReturnType<typeof useFormatters> }) {
-  const points = ctrSparkPoints(ctrs, SPARK_W, SPARK_H);
-  if (points.length < 2) return null;
+  if (ctrs.length < 2) return null;
   const peakIndex = ctrs.reduce((best, v, i) => (v > ctrs[best]! ? i : best), 0);
-  const peak = points[peakIndex]!;
   const items = labels.map((l, i) => `${l} ${fmt.fmtPct(ctrs[i] ?? 0)}`).join(", ");
   return (
-    <svg
-      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+    <Sparkline
+      values={ctrs}
       width={SPARK_W}
       height={SPARK_H}
+      area={false}
+      stroke="var(--color-brand-accent)"
+      strokeWidth={1.75}
+      markPeak
       className="overflow-visible"
-      role="img"
-      aria-label={t("sparkAriaLabel", { items, peak: labels[peakIndex] ?? "" })}
-    >
-      <polyline
-        points={sparkPointsAttr(points)}
-        fill="none"
-        stroke="var(--color-brand-accent)"
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx={peak.x} cy={peak.y} r={2.4} fill="var(--color-brand-accent)" />
-    </svg>
+      label={t("sparkAriaLabel", { items, peak: labels[peakIndex] ?? "" })}
+    />
   );
 }
 

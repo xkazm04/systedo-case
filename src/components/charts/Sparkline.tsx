@@ -1,8 +1,11 @@
 /** Pure, server-renderable sparkline (no client JS). Maps a number series to an
  *  SVG path with an optional soft area fill, a signature last-point dot, a faint
  *  baseline at the starting value, and a trend-aware `autoColor` mode that picks
- *  the positive/negative tokens from the first→last delta. Used in the hero and
- *  every KPI card. */
+ *  the positive/negative tokens from the first→last delta. Opt-in extras cover
+ *  what the analytics modules used to hand-roll: `responsive` full-width sizing,
+ *  `markPeak`/`markTrough` extremum dots, a `dashFrom` observed→forecast split
+ *  and a fixed `domain` for cross-chart comparability. Used in the hero, every
+ *  KPI card, the campaign table and the app modules. */
 
 import { fmtSignedPct } from "@/lib/format";
 
@@ -17,8 +20,27 @@ interface SparklineProps {
   strokeWidth?: number;
   /** draw a baseline-anchored area under the line */
   area?: boolean;
-  /** mark the last data point with a dot (the Robinhood/Stocks "you are here") */
+  /** opacity of the area fill (default 0.6; the module trend cards use ~0.1) */
+  areaOpacity?: number;
+  /** mark the last data point with a dot (the Robinhood/Stocks "you are here").
+   *  With `dashFrom` set, the dot marks the last MEASURED point instead — the
+   *  boundary where the solid line hands over to the dashed forecast. */
   dot?: boolean;
+  /** mark the series' highest point with a dot (first occurrence) */
+  markPeak?: boolean;
+  /** mark the series' lowest point with a dot (first occurrence) */
+  markTrough?: boolean;
+  /** index where the modelled/forecast tail begins: points up to and including
+   *  `dashFrom` render solid (measured), the tail renders dashed at reduced
+   *  opacity — the observed/extrapolated shape of the survival sparklines */
+  dashFrom?: number;
+  /** fixed y-domain [min, max] instead of auto-scaling to the data range, so
+   *  curves stay comparable across rows (e.g. retention fractions on [0, 1]) */
+  domain?: readonly [number, number];
+  /** size via CSS instead of fixed pixels: `width`/`height` become only the
+   *  viewBox coordinate system and the svg fills its container (pair with a
+   *  className like "h-9 w-full") */
+  responsive?: boolean;
   /** draw a faint dashed line at the series' starting value, so the trend reads
    *  against where it began */
   baseline?: boolean;
@@ -62,7 +84,13 @@ export default function Sparkline({
   fill = "var(--color-brand-100)",
   strokeWidth = 2,
   area = true,
+  areaOpacity = 0.6,
   dot = false,
+  markPeak = false,
+  markTrough = false,
+  dashFrom,
+  domain,
+  responsive = false,
   baseline = false,
   autoColor = false,
   goodDirection = "up",
@@ -73,7 +101,7 @@ export default function Sparkline({
   className,
 }: SparklineProps) {
   if (values.length < 2) {
-    return <svg width={width} height={height} className={className} aria-hidden />;
+    return <svg width={responsive ? undefined : width} height={responsive ? undefined : height} viewBox={`0 0 ${width} ${height}`} className={className} aria-hidden />;
   }
 
   const first = values[0];
@@ -91,8 +119,10 @@ export default function Sparkline({
     areaFill = tone.fill;
   }
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  // Fixed domain keeps curves comparable across rows (retention on [0, 1]);
+  // otherwise the y-axis auto-scales to the data range.
+  const min = domain ? domain[0] : Math.min(...values);
+  const max = domain ? domain[1] : Math.max(...values);
   const span = max - min || 1;
   const pad = strokeWidth + 1;
   const innerW = width - pad * 2;
@@ -104,12 +134,29 @@ export default function Sparkline({
     return [x, yFor(v)] as const;
   });
 
-  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+  const pathFor = (points: readonly (readonly [number, number])[]): string =>
+    points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+
+  const line = pathFor(pts);
   const areaPath = `${line} L${pts[pts.length - 1][0].toFixed(2)} ${height - pad} L${pts[0][0].toFixed(
     2
   )} ${height - pad} Z`;
 
-  const [lastX, lastY] = pts[pts.length - 1];
+  // Observed→forecast split: solid head up to `dashFrom`, dashed tail after it
+  // (they share the boundary vertex so the segments join seamlessly).
+  const splitAt =
+    dashFrom !== undefined ? Math.max(0, Math.min(Math.trunc(dashFrom), pts.length - 1)) : undefined;
+  const hasTail = splitAt !== undefined && splitAt < pts.length - 1;
+  const solidLine = hasTail ? pathFor(pts.slice(0, splitAt + 1)) : line;
+  const dashedLine = hasTail ? pathFor(pts.slice(splitAt)) : undefined;
+
+  // The "you are here" dot sits on the last MEASURED point when a forecast
+  // tail exists, else on the series' last point.
+  const [lastX, lastY] = splitAt !== undefined ? pts[splitAt] : pts[pts.length - 1];
+
+  // Extremum markers (first occurrence wins on ties).
+  const peakIndex = markPeak ? values.indexOf(Math.max(...values)) : -1;
+  const troughIndex = markTrough ? values.indexOf(Math.min(...values)) : -1;
 
   // accessibility: an explicit label wins; otherwise summarise the trend.
   let a11yLabel = label;
@@ -127,8 +174,8 @@ export default function Sparkline({
 
   return (
     <svg
-      width={width}
-      height={height}
+      width={responsive ? undefined : width}
+      height={responsive ? undefined : height}
       viewBox={`0 0 ${width} ${height}`}
       className={className}
       role={a11yLabel ? "img" : undefined}
@@ -136,7 +183,7 @@ export default function Sparkline({
       aria-hidden={a11yLabel ? undefined : true}
       preserveAspectRatio="none"
     >
-      {area && <path d={areaPath} fill={areaFill} opacity={0.6} />}
+      {area && <path d={areaPath} fill={areaFill} opacity={areaOpacity} />}
       {baseline && (
         <line
           x1={pad}
@@ -151,7 +198,7 @@ export default function Sparkline({
         />
       )}
       <path
-        d={line}
+        d={solidLine}
         fill="none"
         stroke={lineStroke}
         strokeWidth={strokeWidth}
@@ -159,6 +206,25 @@ export default function Sparkline({
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
       />
+      {dashedLine && (
+        <path
+          d={dashedLine}
+          fill="none"
+          stroke={lineStroke}
+          strokeWidth={Math.max(1, strokeWidth - 0.25)}
+          strokeOpacity={0.45}
+          strokeDasharray="2 2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
+      {[
+        ...(markPeak && peakIndex >= 0 ? [pts[peakIndex]] : []),
+        ...(markTrough && troughIndex >= 0 ? [pts[troughIndex]] : []),
+      ].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r={strokeWidth + 0.75} fill={lineStroke} />
+      ))}
       {dot && (
         <circle
           cx={lastX}

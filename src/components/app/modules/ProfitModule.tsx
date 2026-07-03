@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bulb, Layers, TrendUp, TrendDown } from "@/components/icons";
 import { Pill } from "@/components/ui";
+import Sparkline from "@/components/charts/Sparkline";
 import NextSteps from "@/components/app/NextSteps";
 import type { ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
@@ -297,9 +298,11 @@ function scenarioMetrics(rows: ChannelRow[], margins: ChannelMargin[]): ProfitSu
 
 // --- trend sparkline (#3) ---------------------------------------------------
 
-/** Hand-rolled SVG sparkline for one trend series (no chart lib). Maps values to
- *  a viewBox, draws a polyline + a soft area fill, marks the last point. */
-function Sparkline({
+/** Full-width trend sparkline over the shared chart primitive (`responsive`
+ *  viewBox sizing, soft area fill, last-point dot). Only the empty-state dash
+ *  for sub-2-point series stays local — the shared component renders those as
+ *  an empty decorative svg. */
+function TrendSpark({
   values,
   color,
   ariaLabel,
@@ -310,29 +313,27 @@ function Sparkline({
 }) {
   const w = 120;
   const h = 34;
-  const pad = 3;
   if (values.length < 2) {
     return (
       <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" role="img" aria-label={ariaLabel}>
-        <line x1={pad} y1={h / 2} x2={w - pad} y2={h / 2} stroke={color} strokeOpacity={0.3} strokeDasharray="2 3" />
+        <line x1={3} y1={h / 2} x2={w - 3} y2={h / 2} stroke={color} strokeOpacity={0.3} strokeDasharray="2 3" />
       </svg>
     );
   }
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const x = (i: number) => pad + (i / (values.length - 1)) * (w - 2 * pad);
-  const y = (v: number) => pad + (1 - (v - min) / span) * (h - 2 * pad);
-  const pts = values.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-  const area = `${pad},${h - pad} ${pts} ${w - pad},${h - pad}`;
-  const lastX = x(values.length - 1);
-  const lastY = y(values[values.length - 1]!);
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" role="img" aria-label={ariaLabel}>
-      <polygon points={area} fill={color} fillOpacity={0.1} />
-      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={lastX} cy={lastY} r={2.2} fill={color} />
-    </svg>
+    <Sparkline
+      values={values}
+      width={w}
+      height={h}
+      responsive
+      className="h-9 w-full"
+      stroke={color}
+      fill={color}
+      areaOpacity={0.1}
+      strokeWidth={1.5}
+      dot
+      label={ariaLabel}
+    />
   );
 }
 
@@ -731,9 +732,9 @@ export default function ProfitModule({
                 <DeltaPill value={netDelta} fmtSignedPct={fmt.fmtSignedPct} />
               </div>
               <div className="mt-1.5">
-                <Sparkline
+                <TrendSpark
                   values={trend.map((t) => t.netProfit)}
-                  color="#1f8f88"
+                  color="var(--color-brand-accent)"
                   ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZK(trend[trend.length - 1]!.netProfit) })}
                 />
               </div>
@@ -747,9 +748,9 @@ export default function ProfitModule({
                 <DeltaPill value={poasDelta} fmtSignedPct={fmt.fmtSignedPct} />
               </div>
               <div className="mt-1.5">
-                <Sparkline
+                <TrendSpark
                   values={trend.map((t) => t.poas)}
-                  color="#15324b"
+                  color="var(--color-navy-500)"
                   ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
                 />
               </div>

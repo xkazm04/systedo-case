@@ -7,7 +7,8 @@ import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
 import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
-import { cohortTrend, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
+import Sparkline from "@/components/charts/Sparkline";
+import { cohortTrend } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import type { Cohort } from "@/lib/ltv/sample";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
@@ -188,46 +189,28 @@ function channelColor(channel: string): string {
 const SPARK_W = 96;
 const SPARK_H = 28;
 
-/** Inline SVG retention sparkline for one cohort: the observed
- *  months render as a solid line, the extrapolated tail as a lighter dashed line,
- *  so the modeled part of the decay reads as an estimate, not measured data. */
+/** Retention sparkline for one cohort over the shared chart primitive: the
+ *  observed months render solid, the extrapolated tail dashed (`dashFrom`), so
+ *  the modeled part of the decay reads as an estimate, not measured data. The
+ *  fixed `domain` [0, 1] keeps curves comparable across cohorts. */
 function SurvivalSpark({ row, ariaLabel }: { row: CohortMetrics; ariaLabel: string }) {
-  const { observed, extrapolated } = survivalSparkline(row.survival, row.observedMonths, SPARK_W, SPARK_H);
-  if (observed.length === 0) return <span className="text-muted">—</span>;
-  const lastObserved = observed[observed.length - 1]!;
+  const n = row.survival.length;
+  const observed = Math.max(0, Math.min(row.observedMonths, n));
+  if (n < 2 || observed === 0) return <span className="text-muted">—</span>;
   return (
-    <svg
-      viewBox={`0 0 ${SPARK_W} ${SPARK_H}`}
+    <Sparkline
+      values={row.survival}
       width={SPARK_W}
       height={SPARK_H}
+      area={false}
+      stroke="var(--color-brand-accent)"
+      strokeWidth={1.75}
+      domain={[0, 1]}
+      dashFrom={observed - 1}
+      dot
       className="overflow-visible"
-      role="img"
-      aria-label={ariaLabel}
-    >
-      {extrapolated.length >= 2 && (
-        <polyline
-          points={sparklinePoints(extrapolated)}
-          fill="none"
-          stroke="var(--color-brand-accent)"
-          strokeWidth={1.5}
-          strokeOpacity={0.45}
-          strokeDasharray="2 2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-      {observed.length >= 2 && (
-        <polyline
-          points={sparklinePoints(observed)}
-          fill="none"
-          stroke="var(--color-brand-accent)"
-          strokeWidth={1.75}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      )}
-      <circle cx={lastObserved.x} cy={lastObserved.y} r={1.75} fill="var(--color-brand-accent)" />
-    </svg>
+      label={ariaLabel}
+    />
   );
 }
 
