@@ -15,6 +15,10 @@ function status(overrides = {}) {
     dev: true,
     demo: false,
     wouldServe: "claude",
+    providers: [
+      { model: "claude-sonnet", available: true },
+      { model: "gemini-3-flash-preview", available: false },
+    ],
     remaining: { perMin: 8, perDay: 80 },
     limits: { perMin: 8, perDay: 80 },
     ...overrides,
@@ -63,6 +67,31 @@ test("anonymous daily budget: low then exhausted; per-minute alone is ignored", 
   // a sub-minute wait is the 429 countdown's job, not the preflight banner's
   const minuteOnly = preflightNotice(status({ remaining: { perMin: 0, perDay: 42 } }));
   assert.equal(minuteOnly.kind, null);
+});
+
+test("a mostly-demo recent window flags a degraded provider", () => {
+  // provider looks available (cached probe) but recent calls fell to the demo
+  const degraded = preflightNotice(status({ recent: { calls: 10, demoRate: 0.8 } }));
+  assert.equal(degraded.kind, "degraded");
+  assert.equal(degraded.remaining, 80);
+
+  // a healthy demo share (below the digest's warn threshold) stays quiet
+  const healthy = preflightNotice(status({ recent: { calls: 10, demoRate: 0.2 } }));
+  assert.equal(healthy.kind, null);
+
+  // an empty window proves nothing
+  const empty = preflightNotice(status({ recent: { calls: 0, demoRate: 0 } }));
+  assert.equal(empty.kind, null);
+
+  // hard states outrank the degradation warning
+  const demo = preflightNotice(
+    status({ demo: true, wouldServe: "demo", recent: { calls: 10, demoRate: 1 } })
+  );
+  assert.equal(demo.kind, "demo");
+  const spent = preflightNotice(
+    status({ remaining: { perMin: 8, perDay: 0 }, recent: { calls: 10, demoRate: 1 } })
+  );
+  assert.equal(spent.kind, "exhausted");
 });
 
 test("a signed-in plan quota is the binding budget over the IP cap", () => {

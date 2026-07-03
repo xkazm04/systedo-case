@@ -9,10 +9,18 @@
  *  panel warn upfront — before the user fills a careful form and burns a
  *  request on canned demo output or a spent budget. */
 
+import { AI_DEMO_RATE_WARN } from "@/lib/llm/telemetry-ops";
+
 /** Which path a generation would take right now. Mirrors the provider order in
  *  the LLM wrapper: Claude→Gemini in dev, Gemini→Claude in prod, demo when
  *  neither is configured. */
 export type AiServePath = "claude" | "gemini" | "demo";
+
+/** One provider's health as the wrapper sees it (cached availability probe). */
+export interface AiProviderStatus {
+  model: string;
+  available: boolean;
+}
 
 export interface AiStatusPayload {
   /** development environment (Claude-first provider order) */
@@ -21,6 +29,12 @@ export interface AiStatusPayload {
   demo: boolean;
   /** the provider a generation would use right now */
   wouldServe: AiServePath;
+  /** per-provider availability — the one-call answer to "why is everything demo?" */
+  providers: AiProviderStatus[];
+  /** recent-traffic rollup from the wrapper's telemetry: a high demo share on a
+   *  seemingly-available provider means it is silently failing at call time
+   *  (the availability probe is cached and can outlive a provider outage) */
+  recent?: { calls: number; demoRate: number };
   /** anonymous per-IP budget left in the current windows (read-only peek) */
   remaining: { perMin: number; perDay: number };
   /** the configured per-IP limits, for "N of M" rendering */
@@ -51,7 +65,7 @@ export function resolveWouldServe(
 /** Below this many generations left for the day, the banner starts warning. */
 export const PREFLIGHT_LOW_REMAINING = 5;
 
-export type PreflightKind = "demo" | "exhausted" | "low" | null;
+export type PreflightKind = "demo" | "exhausted" | "degraded" | "low" | null;
 
 export interface PreflightNotice {
   kind: PreflightKind;
@@ -62,10 +76,13 @@ export interface PreflightNotice {
 }
 
 /** What (if anything) the preflight banner should say. Demo mode outranks
- *  budget states (a burned request is worse when the answer is canned); the
- *  binding daily budget is the signed-in plan quota when present, else the
- *  anonymous per-IP daily cap. The per-minute window is deliberately ignored
- *  here — a sub-minute wait is already handled by the 429 countdown. */
+ *  budget states (a burned request is worse when the answer is canned); a
+ *  degraded provider (recent traffic mostly served by the demo fallback even
+ *  though a provider looks available — the same threshold the weekly digest
+ *  warns on) outranks the soft low-budget hint. The binding daily budget is the
+ *  signed-in plan quota when present, else the anonymous per-IP daily cap. The
+ *  per-minute window is deliberately ignored here — a sub-minute wait is
+ *  already handled by the 429 countdown. */
 export function preflightNotice(s: AiStatusPayload): PreflightNotice {
   if (s.demo) return { kind: "demo", remaining: 0, metered: Boolean(s.usage) };
   const metered = Boolean(s.usage);
@@ -73,6 +90,9 @@ export function preflightNotice(s: AiStatusPayload): PreflightNotice {
     ? Math.max(0, s.usage.limit - s.usage.used)
     : Math.max(0, s.remaining.perDay);
   if (remaining <= 0) return { kind: "exhausted", remaining: 0, metered };
+  if (s.recent && s.recent.calls > 0 && s.recent.demoRate > AI_DEMO_RATE_WARN) {
+    return { kind: "degraded", remaining, metered };
+  }
   if (remaining <= PREFLIGHT_LOW_REMAINING) return { kind: "low", remaining, metered };
   return { kind: null, remaining, metered };
 }

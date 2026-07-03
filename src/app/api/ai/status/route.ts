@@ -16,6 +16,9 @@ import { auth } from "@/auth";
 import { isDevEnvironment } from "@/lib/llm";
 import { claudeAvailable } from "@/lib/llm/claude";
 import { geminiAvailable } from "@/lib/llm/gemini";
+import { claudeModelTag, geminiModelTag } from "@/lib/llm/models";
+import { aggregateTelemetry, listLlmTelemetry } from "@/lib/llm/telemetry";
+import { summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { getUsage } from "@/lib/usage";
 import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
 import { peekDurableRemaining } from "@/lib/ai/durable-limit";
@@ -27,7 +30,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const dev = isDevEnvironment();
-  const wouldServe = resolveWouldServe(dev, claudeAvailable(), geminiAvailable());
+  const claudeOk = claudeAvailable();
+  const geminiOk = geminiAvailable();
+  const wouldServe = resolveWouldServe(dev, claudeOk, geminiOk);
 
   // Read-only peek at the same rules — and the same durable counters — the paid
   // route enforces, so the preflight number matches what a POST would hit.
@@ -38,9 +43,29 @@ export async function GET(request: Request) {
     dev,
     demo: wouldServe === "demo",
     wouldServe,
+    // Per-provider health, in the wrapper's environment-preferred order — the
+    // operator's one-call diagnosis of "why is everything demo?".
+    providers: dev
+      ? [
+          { model: claudeModelTag(), available: claudeOk },
+          { model: geminiModelTag(), available: geminiOk },
+        ]
+      : [
+          { model: geminiModelTag(), available: geminiOk },
+          { model: claudeModelTag(), available: claudeOk },
+        ],
     remaining: { perMin, perDay },
     limits: { perMin: rules[0].limit, perDay: rules[1].limit },
   };
+
+  // Recent demo share from the wrapper's own telemetry: the availability probe
+  // is cached, so a provider that silently went down after the probe shows up
+  // here (demo-served calls) before anywhere else. Best-effort — the reader
+  // returns [] on a store failure and the field simply stays absent.
+  const recent = summarizeAiOps(aggregateTelemetry(await listLlmTelemetry(200)));
+  if (recent.calls > 0) {
+    payload.recent = { calls: recent.calls, demoRate: recent.demoRate };
+  }
 
   // Signed-in callers are metered per plan (aiEval) on top of the IP cap; the
   // banner treats the plan quota as the binding budget when it is present.
