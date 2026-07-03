@@ -165,7 +165,7 @@ export default async function ArticlePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ReadingProgress />
+      <ReadingProgress readingMinutes={meta.readingMinutes} />
 
       {/* article header */}
       <section className="border-b border-line bg-surface">
