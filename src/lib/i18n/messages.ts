@@ -22,6 +22,12 @@ export interface Messages {
     openApp: string;
     openMenu: string;
     closeMenu: string;
+    /** theme toggle: generic SSR label (the stored choice is client-only)… */
+    themeToggle: string;
+    /** …and the precise "next click activates X" labels set after hydration */
+    themeToLight: string;
+    themeToDark: string;
+    themeToSystem: string;
     /** short "Task N" prefix in the mobile menu */
     task: string;
     /** nav label + home-card blurb, keyed by route href */
@@ -57,6 +63,10 @@ const cs: Messages = {
     openApp: "Otevřít aplikaci",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
+    themeToggle: "Přepnout režim zobrazení (světlý · tmavý · podle systému)",
+    themeToLight: "Přepnout na světlý režim",
+    themeToDark: "Přepnout na tmavý režim",
+    themeToSystem: "Řídit se nastavením systému",
     task: "Úkol",
     items: {
       "/": { label: "Přehled", blurb: "Rozcestník případové studie a zdůvodnění zvoleného stacku." },
@@ -107,6 +117,10 @@ const en: Messages = {
     openApp: "Open app",
     openMenu: "Open menu",
     closeMenu: "Close menu",
+    themeToggle: "Switch colour theme (light · dark · system)",
+    themeToLight: "Switch to light mode",
+    themeToDark: "Switch to dark mode",
+    themeToSystem: "Follow the system setting",
     task: "Task",
     items: {
       "/": { label: "Overview", blurb: "Case-study hub and the rationale for the chosen stack." },
