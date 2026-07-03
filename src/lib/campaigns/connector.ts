@@ -9,6 +9,8 @@
  *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
 import { sampleCampaigns, sampleCampaignSeries, sampleSeries } from "./sample";
+import { googleDemoEnvelope, type DemoEnvelope } from "./envelope";
+import { performance } from "@/lib/data";
 import { getAdsConnection, getConnectedAccount } from "./connection";
 import {
   adsConfigured,
@@ -17,7 +19,7 @@ import {
   fetchDailySeries as adsFetchDailySeries,
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
-import type { Campaign, CampaignPeriod, DailyPoint } from "./types";
+import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
 import type { ProjectType } from "@/lib/projects/types";
 
 /** Per-request outcome of the live→sample fallback. The sync route persists it
@@ -53,18 +55,27 @@ function describeError(err: unknown): string {
 }
 
 function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnector {
+  // The e-shop sample campaigns describe the SAME client as the case-study
+  // dashboard, so reconcile their period totals with the dashboard's Google
+  // channel share of the same window (dataset injected here — the sample
+  // generator stays JSON-free for the unit-test resolve hook). Other project
+  // types have no dashboard counterpart and keep their tuned profiles.
+  const envelopeFor = (period: CampaignPeriod): DemoEnvelope | null =>
+    (projectType ?? "eshop") === "eshop"
+      ? googleDemoEnvelope(performance, CAMPAIGN_PERIOD_DAYS[period])
+      : null;
   return {
     source: "sample",
     label: "Google Ads · ukázková data",
     degradation: { campaigns: false, series: false, reason: null },
     async fetchCampaigns(period) {
-      return sampleCampaigns(period, projectType, seedKey);
+      return sampleCampaigns(period, projectType, seedKey, Date.now(), envelopeFor(period));
     },
     async fetchSeries(period) {
-      return sampleSeries(period, projectType, seedKey);
+      return sampleSeries(period, projectType, seedKey, envelopeFor(period));
     },
     async fetchCampaignSeries(period) {
-      return sampleCampaignSeries(period, projectType, seedKey);
+      return sampleCampaignSeries(period, projectType, seedKey, envelopeFor(period));
     },
   };
 }

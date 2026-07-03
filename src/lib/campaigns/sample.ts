@@ -24,28 +24,11 @@ import {
   type CampaignType,
   type DailyPoint,
 } from "./types";
+import type { DemoEnvelope } from "./envelope";
 import type { ProjectType } from "@/lib/projects/types";
-
-// --- seeded PRNG (mulberry32), matching the seed script -----------------------
-function mulberry32(seed: number) {
-  let a = seed >>> 0;
-  return function () {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// FNV-1a string hash → numeric seed (keeps each period reproducible-but-distinct)
-function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
+// Shared demo core (same PRNG + hash as the dashboard seed script), so the two
+// surfaces that describe Mionelo can't drift apart at the primitive level.
+import { mulberry32, hashStr } from "@/lib/demo/prng.mjs";
 
 interface Spec {
   id: string;
@@ -133,6 +116,34 @@ function specsFor(type?: ProjectType): Spec[] {
   return type ? SPECS_BY_TYPE[type] : ESHOP_SPECS;
 }
 
+/** Reconcile the spec portfolio with a {@link DemoEnvelope}: scale volumes so
+ *  the period's expected cost/value totals match the dashboard's same-window
+ *  Google share. Two knobs keep every shape intact:
+ *   - `impr` × costScale — CTR/CPC/convRate untouched, so cost, clicks,
+ *     conversions and budgets all scale together and per-campaign ratios
+ *     (the demo's efficient-brand / weak-prospecting story) are preserved;
+ *   - `aov` × (valueScale / costScale) — lifts order values toward the
+ *     dashboard's AOV so conversion value lands on the envelope too.
+ *  No envelope (or a degenerate one) → the original specs, byte-identical. */
+function scaledSpecs(specs: Spec[], days: number, envelope?: DemoEnvelope | null): Spec[] {
+  if (!envelope) return specs;
+  let cost = 0;
+  let value = 0;
+  for (const s of specs) {
+    const clicks = s.impr * s.ctr;
+    cost += clicks * s.cpc * days;
+    value += clicks * s.convRate * s.aov * days;
+  }
+  if (!(cost > 0) || !(value > 0)) return specs;
+  const costScale = envelope.cost / cost;
+  const valueScale = envelope.value / value;
+  return specs.map((s) => ({
+    ...s,
+    impr: s.impr * costScale,
+    aov: s.aov * (valueScale / costScale),
+  }));
+}
+
 // --- weekly drift -------------------------------------------------------------
 
 const DAY_MS = 86_400_000;
@@ -164,13 +175,15 @@ export function sampleCampaigns(
   type?: ProjectType,
   seedKey = "mionelo",
   /** injection point for tests — the time that selects the drift week */
-  now = Date.now()
+  now = Date.now(),
+  /** dashboard-derived period totals to reconcile with (see ./envelope) */
+  envelope?: DemoEnvelope | null
 ): Campaign[] {
   const days = CAMPAIGN_PERIOD_DAYS[period];
   const rnd = mulberry32(hashStr(`${seedKey}:${period}`));
   const j = (scale = 0.05) => 1 + (rnd() * 2 - 1) * scale;
 
-  const specs = specsFor(type);
+  const specs = scaledSpecs(specsFor(type), days, envelope);
   const week = isoWeekKey(new Date(now));
   const moverFor = (wk: string) => hashStr(`${seedKey}:${period}:${wk}:mover`) % specs.length;
   // Never re-pick last week's mover: the previous mover's swing collapsing back
@@ -220,13 +233,15 @@ export function sampleCampaigns(
 export function sampleCampaignSeries(
   period: CampaignPeriod,
   type?: ProjectType,
-  seedKey = "mionelo"
+  seedKey = "mionelo",
+  /** dashboard-derived period totals to reconcile with (see ./envelope) */
+  envelope?: DemoEnvelope | null
 ): Record<string, DailyPoint[]> {
   const days = CAMPAIGN_PERIOD_DAYS[period];
   const todayMs = Math.floor(Date.now() / 86_400_000) * 86_400_000;
   const out: Record<string, DailyPoint[]> = {};
 
-  for (const s of specsFor(type)) {
+  for (const s of scaledSpecs(specsFor(type), days, envelope)) {
     const clicks = s.impr * s.ctr;
     const baseCost = clicks * s.cpc;
     const baseConv = clicks * s.convRate;
@@ -259,7 +274,9 @@ export function sampleCampaignSeries(
 export function sampleSeries(
   period: CampaignPeriod,
   type?: ProjectType,
-  seedKey = "mionelo"
+  seedKey = "mionelo",
+  /** dashboard-derived period totals to reconcile with (see ./envelope) */
+  envelope?: DemoEnvelope | null
 ): DailyPoint[] {
   const days = CAMPAIGN_PERIOD_DAYS[period];
   // Anchor on a fixed "today" boundary (UTC midnight) so points land on dates.
@@ -269,7 +286,7 @@ export function sampleSeries(
   let baseCost = 0;
   let baseConv = 0;
   let baseValue = 0;
-  for (const s of specsFor(type)) {
+  for (const s of scaledSpecs(specsFor(type), days, envelope)) {
     const clicks = s.impr * s.ctr;
     baseCost += clicks * s.cpc;
     baseConv += clicks * s.convRate;
