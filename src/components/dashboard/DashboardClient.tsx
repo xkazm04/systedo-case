@@ -7,6 +7,7 @@ import KpiCard from "@/components/dashboard/KpiCard";
 import GoalPacing from "@/components/dashboard/GoalPacing";
 import TrendChart from "@/components/dashboard/TrendChart";
 import ChannelTable from "@/components/dashboard/ChannelTable";
+import WeekdayProfileCard, { weekdayName } from "@/components/dashboard/WeekdayProfileCard";
 import { Bolt, Bulb, Download, Target, TrendDown, TrendUp } from "@/components/icons";
 import { csvNum, downloadText, toCsv } from "@/lib/export";
 import {
@@ -25,11 +26,13 @@ import {
   periodLabel,
   PERIODS,
   TREND_METRICS,
+  weekdayProfile,
   type Anomaly,
   type Bucket,
   type ChannelRow,
   type PeriodBaseline,
   type Trend,
+  type WeekdayProfilePoint,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -93,6 +96,8 @@ const T = {
     insightWorstPno: "{channel} má nejvyšší PNO {pno} — prostor pro optimalizaci nabídek.",
     insightTrendDown: "{metric} — pokles {weeks} v řadě ({pct} kumulativně).",
     insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
+    insightWeekday:
+      "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
     anomalySpike: "{metric} — nárůst {pct} nad očekávání",
     anomalyDrop: "{metric} — propad {pct} pod očekávání",
     anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
@@ -154,6 +159,8 @@ const T = {
     insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
     insightTrendDown: "{metric} — declining {weeks} in a row ({pct} cumulative).",
     insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
+    insightWeekday:
+      "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
     anomalySpike: "{metric} — spike {pct} above expected",
     anomalyDrop: "{metric} — drop {pct} below expected",
     anomalyOutage: "{metric} — outage (value near zero)",
@@ -281,6 +288,10 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   // weekly buckets and noise floor need the history, not the selected window).
   const trends = detectTrends(data.daily);
 
+  // Day-of-week revenue profile (trailing 12 weeks) — the seasonality the
+  // forecast and anomaly detection already weight by, finally shown to the user.
+  const profile = weekdayProfile(data.daily);
+
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
   const result = evaluatePeriod(data.daily, period.days, baseline);
@@ -323,7 +334,17 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   };
 
   // auto-generated insights (sustained trends first — highest-signal finding)
-  const insights = buildInsights(channels, result.delta.revenue, c.pno, goalPno, trends, fmt, t, locale);
+  const insights = buildInsights(
+    channels,
+    result.delta.revenue,
+    c.pno,
+    goalPno,
+    trends,
+    profile,
+    fmt,
+    t,
+    locale
+  );
 
   const pnoOverGoal = c.pno > goalPno;
   // PNO gauge axis headroom — 60 % above the larger of actual/goal so the bar and
@@ -684,6 +705,9 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
               ))}
             </ul>
           </div>
+
+          {/* day-of-week performance profile (drives ad scheduling / day bids) */}
+          <WeekdayProfileCard profile={profile} />
         </aside>
       </div>
     </div>
@@ -719,6 +743,7 @@ function buildInsights(
   pno: number,
   goalPno: number,
   trends: Trend[],
+  profile: WeekdayProfilePoint[],
   fmt: Formatters,
   t: TFn,
   locale?: SupportedLocale
@@ -792,6 +817,27 @@ function buildInsights(
       text: (
         <>
           {t("insightWorstPno", { channel: worstPno.channel, pno: fmt.fmtPct(worstPno.pno) })}
+        </>
+      ),
+    });
+  }
+
+  // Day-of-week shape, when it is pronounced enough to act on (≥15 pp spread
+  // between the strongest and weakest day) — the ad-scheduling lever.
+  const WEEKDAY_SPREAD_TO_REPORT = 0.15;
+  const bestDay = profile.find((p) => p.best);
+  const worstDay = profile.find((p) => p.worst);
+  if (bestDay && worstDay && bestDay.index - worstDay.index >= WEEKDAY_SPREAD_TO_REPORT) {
+    out.push({
+      tone: "info",
+      text: (
+        <>
+          {t("insightWeekday", {
+            best: weekdayName(bestDay.day, locale ?? "cs"),
+            bestPct: fmt.fmtPct(bestDay.index - 1, 0).replace("-", ""),
+            worst: weekdayName(worstDay.day, locale ?? "cs"),
+            worstPct: fmt.fmtPct(1 - worstDay.index, 0).replace("-", ""),
+          })}
         </>
       ),
     });

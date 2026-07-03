@@ -55,3 +55,43 @@ export function weekdayWeightsFor(daily: DailyPoint[], key: RawMetric): number[]
 export function weekdayWeights(daily: DailyPoint[]): number[] {
   return weekdayWeightsFor(daily, "revenue");
 }
+
+/** One weekday's slot in the day-of-week performance profile. */
+export interface WeekdayProfilePoint {
+  /** UTC day-of-week (0 = Sunday … 6 = Saturday) */
+  day: number;
+  /** performance index vs the weekday average — 1 = average, 1.2 = 20 % above */
+  index: number;
+  /** the single strongest weekday (false everywhere when the profile is flat) */
+  best: boolean;
+  /** the single weakest weekday (false everywhere when the profile is flat) */
+  worst: boolean;
+}
+
+/**
+ * The user-facing view of {@link weekdayWeightsFor}: the engine has always
+ * computed per-weekday indices (to de-seasonalise anomalies and weight the
+ * forecast) but never showed them. Normalised around 1 like the weights —
+ * "Sunday runs 35 % below average, Tuesday 20 % above" — which is exactly the
+ * shape ad-scheduling / bid-adjustment decisions need. Falls back to a flat
+ * profile (all 1, no best/worst) when the series is too short to know better.
+ */
+export function weekdayProfile(
+  daily: DailyPoint[],
+  key: RawMetric = "revenue"
+): WeekdayProfilePoint[] {
+  const weights = weekdayWeightsFor(daily, key);
+  let bestDay = 0;
+  let worstDay = 0;
+  weights.forEach((w, i) => {
+    if (w > weights[bestDay]) bestDay = i;
+    if (w < weights[worstDay]) worstDay = i;
+  });
+  const flat = weights.every((w) => w === weights[0]);
+  return weights.map((index, day) => ({
+    day,
+    index,
+    best: !flat && day === bestDay,
+    worst: !flat && day === worstDay,
+  }));
+}
