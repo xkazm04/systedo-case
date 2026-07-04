@@ -8,7 +8,6 @@ import { localizedNavItems } from "@/lib/nav";
 import { firstUnvisited, readVisited } from "@/lib/journey";
 import { buttonClass } from "@/components/ui";
 import { ArrowRight, Check, Close, Logo, Menu } from "@/components/icons";
-import CommandPalette from "@/components/site/CommandPalette";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -65,27 +64,7 @@ export default function Nav() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-1 md:flex">
-          {navItems.map((item) => {
-            const active = isActive(pathname, item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={`relative rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active ? "text-navy-800" : "text-muted hover:text-navy-700"
-                }`}
-              >
-                {item.label}
-                {active && (
-                  <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-brand-500" />
-                )}
-              </Link>
-            );
-          })}
-        </div>
-
+        {/* Primary nav lives in the homepage crossroad now, not the header. */}
         <div className="flex items-center gap-2">
           {authed && (
             // Shared Button styling on a Next <Link> via buttonClass; the
@@ -96,8 +75,6 @@ export default function Nav() {
               <ArrowRight width={15} height={15} />
             </Link>
           )}
-          {/* ⌘K quick-nav: desktop hint chip + the global shortcut/dialog */}
-          <CommandPalette authed={authed} />
           <UsageMeter />
           <AuthButton />
           <LocaleSwitcher />

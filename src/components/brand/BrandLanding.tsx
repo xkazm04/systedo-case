@@ -1,11 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Container, Eyebrow } from "@/components/ui";
-import { ArrowRight, Gauge, Sparkles, Target } from "@/components/icons";
+import { Container } from "@/components/ui";
+import { ArrowRight, Sparkles } from "@/components/icons";
 import { buildSnapshot } from "@/lib/snapshot";
 import { fmtMultiple, fmtPct, fmtSignedPct, fmtCZKCompact } from "@/lib/format";
 import { getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
+import { localizedNavItems } from "@/lib/nav";
+import Crossroad from "@/components/brand/crossroad/Crossroad";
+import { CROSSROAD_HREFS, type CrossroadItem } from "@/components/brand/crossroad/meta";
 
 /* ---------------------------------------------------------------------------
    Adamant — homepage (Monolith direction)
@@ -23,30 +26,6 @@ const CHANNELS: { name: string; level: { cs: string; en: string } }[] = [
   { name: "Sklik", level: { cs: "kontrola inzerátů", en: "ad-copy checks" } },
   { name: "Meta", level: { cs: "publikování", en: "publishing" } },
   { name: "TikTok", level: { cs: "publikování", en: "publishing" } },
-];
-
-const FEATURES = [
-  {
-    href: "/dashboard",
-    icon: Gauge,
-    title: "Performance dashboard",
-    blurb:
-      "Every channel, cost and conversion in one faceted view — period deltas, goal pacing and auto-generated insights.",
-  },
-  {
-    href: "/kampane",
-    icon: Target,
-    title: "Campaign intelligence",
-    blurb:
-      "Triage what needs attention, defend your ROAS targets and grade every campaign with grounded AI evaluations.",
-  },
-  {
-    href: "/ai-asistent",
-    icon: Sparkles,
-    title: "AI ad studio",
-    blurb:
-      "Generate PPC ads, SEO briefs and analysis grounded in your real numbers — with Google Ads & Sklik limit checks.",
-  },
 ];
 
 const T = {
@@ -67,6 +46,14 @@ const T = {
 export default async function BrandLanding() {
   const t = await getT(T);
   const locale = await getServerLocale();
+
+  // The four case-study destinations that used to live in the header nav, now
+  // surfaced as the homepage crossroad. Localized labels/blurbs come from the
+  // shared nav model, filtered + ordered to the crossroad set; each card's icon
+  // and illustration join on the client (see crossroad/meta).
+  const crossroad: CrossroadItem[] = localizedNavItems(locale).filter((i) =>
+    (CROSSROAD_HREFS as readonly string[]).includes(i.href)
+  );
 
   // Quantified case-study results for the proof band — the exact numbers the
   // dashboard renders (illustrative data), so the homepage shows outcomes, not
@@ -100,7 +87,9 @@ export default async function BrandLanding() {
         </div>
 
         <Container className="relative py-20 lg:py-28">
-          <div className="max-w-xl">
+          {/* Text column extended across ~70% of the hero on desktop, overlapping
+              the monolith so only the right ~30% reads as pure key visual. */}
+          <div className="w-full lg:w-[70%]">
             <div className="flex items-center gap-3">
               <span className="relative grid h-11 w-11 place-items-center overflow-hidden rounded-2xl ring-1 ring-onyx-line">
                 <Image
@@ -168,48 +157,8 @@ export default async function BrandLanding() {
         </Container>
       </section>
 
-      {/* --------------------------------------------------------- Product */}
-      <Container className="py-16 sm:py-20">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Eyebrow>The workspace</Eyebrow>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
-              Everything you need to be adamant
-            </h2>
-          </div>
-          <p className="max-w-md text-sm text-muted">
-            Three surfaces, one source of truth. Measure performance, defend your campaigns and
-            create the ads — all grounded in the same data.
-          </p>
-        </div>
-
-        <div className="mt-10 grid gap-5 sm:grid-cols-3">
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <Link
-                key={f.href}
-                href={f.href}
-                className="card group flex flex-col p-6 transition-all hover:-translate-y-1 hover:shadow-pop active:translate-y-0 active:scale-[0.99]"
-              >
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
-                  <Icon width={22} height={22} />
-                </span>
-                <h3 className="mt-5 text-lg font-semibold text-navy-800">{f.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{f.blurb}</p>
-                <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent">
-                  Open
-                  <ArrowRight
-                    width={16}
-                    height={16}
-                    className="transition-transform group-hover:translate-x-1"
-                  />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </Container>
+      {/* -------------------------------------- Crossroad (nav destinations) */}
+      <Crossroad items={crossroad} />
 
       {/* ----------------------------------------------------------- Proof */}
       <section className="border-y border-line bg-brand-50/40">
