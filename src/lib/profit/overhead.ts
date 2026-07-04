@@ -60,7 +60,9 @@ export function applyOverhead(
       netProfit,
       poas,
       breakEvenRoas,
-      profitable: r.roas >= breakEvenRoas,
+      // netProfit ≥ 0 rather than roas ≥ break-even, so a zero-cost channel
+      // (guarded roas=0) isn't falsely flagged as a loss. See profit/compute.ts.
+      profitable: netProfit >= 0,
       conversions: r.conversions,
       allocatedOverhead,
       fulfilmentCost,

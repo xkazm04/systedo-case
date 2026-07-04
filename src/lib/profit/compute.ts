@@ -35,7 +35,11 @@ export function computeProfit(
       netProfit,
       poas,
       breakEvenRoas,
-      profitable: r.roas >= breakEvenRoas,
+      // Profitable ⇔ netProfit ≥ 0 (revenue·margin ≥ cost). This equals the
+      // ROAS ≥ break-even test for paid channels, but stays correct for a
+      // zero-cost channel (organic/direct), whose guarded roas=0 would
+      // otherwise read as a false "loses money after margin".
+      profitable: netProfit >= 0,
     };
   });
 
