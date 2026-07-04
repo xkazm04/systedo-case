@@ -411,6 +411,28 @@ html[data-theme="dark"] .theme-toggle-moon {
   display: none;
 }
 
+/* slim, theme-matched scrollbar for the app side rails — a 2px track with a
+   rounded thumb in the neutral ramp, so it reads as part of the UI (and adapts
+   to dark mode via the navy tokens) rather than as a chunky OS scrollbar. */
+.scrollbar-slim {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-navy-200) transparent;
+}
+.scrollbar-slim::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+.scrollbar-slim::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-slim::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: var(--color-navy-200);
+}
+.scrollbar-slim:hover::-webkit-scrollbar-thumb {
+  background-color: var(--color-navy-300);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

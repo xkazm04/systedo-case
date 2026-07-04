@@ -137,7 +137,7 @@ function SidebarBody({
       </div>
 
       {/* grouped module nav (all modules, not filtered by type) */}
-      <nav className="flex-1 space-y-6 overflow-y-auto p-3">
+      <nav className="scrollbar-slim flex-1 space-y-6 overflow-y-auto p-3">
         {topSections.map((section) => {
           const items = bySection(section);
           if (items.length === 0) return null;
@@ -268,7 +268,10 @@ export default function DemoShell({
             </div>
           </header>
 
-          <div className="flex-1">{children}</div>
+          {/* facet lattice behind the content, echoing the site-wide texture the
+              old /dashboard inherited from <main> (the shell's solid canvas would
+              otherwise cover it). */}
+          <div className="flex-1 bg-facets">{children}</div>
         </div>
       </div>
     </ProjectProvider>

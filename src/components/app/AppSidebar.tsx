@@ -102,7 +102,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         <ProjectSwitcher onNavigate={onNavigate} />
       </div>
 
-      <nav className="flex-1 space-y-6 overflow-y-auto p-3">
+      <nav className="scrollbar-slim flex-1 space-y-6 overflow-y-auto p-3">
         {topSections.map((section) => {
           const items = bySection(section);
           if (items.length === 0) return null;
