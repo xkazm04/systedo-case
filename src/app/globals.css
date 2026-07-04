@@ -402,6 +402,31 @@ html[data-theme="dark"] .theme-toggle-moon {
   animation: loadingPulse 1.6s ease-in-out infinite;
 }
 
+/* Global themed scrollbar — a slim navy thumb on a transparent track, applied to
+   BOTH axes, so horizontal scrollbars (wide tables, the comparison grid, control
+   strips) and the main window read as part of the UI instead of the chunky OS
+   default, matching the vertical side rails. Adapts to dark mode via the navy
+   ramp. The two classes below are higher-specificity opt-outs that still win:
+   `.no-scrollbar` (hidden) and `.scrollbar-slim` (the ultra-thin 2px side rail). */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-navy-200) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: var(--color-navy-200);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-navy-300);
+}
+
 /* hide scrollbars on horizontally-scrollable control strips (mobile) */
 .no-scrollbar {
   -ms-overflow-style: none;
