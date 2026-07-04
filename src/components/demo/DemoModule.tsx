@@ -34,8 +34,6 @@ import AudienceModule from "@/components/app/modules/AudienceModule";
 import ProjectSettings from "@/components/app/modules/ProjectSettings";
 
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { collectRecommendations } from "@/lib/insights/aggregate";
-import { getServerLocale } from "@/lib/i18n/locale";
 import { getT } from "@/lib/i18n/server";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS as PROFIT_PRODUCTS } from "@/lib/profit/sample";
@@ -60,7 +58,7 @@ import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
 import { audienceForProject } from "@/lib/audience/sample";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
-import { demoHref } from "@/lib/demo/projects";
+import { DEMO_PROJECTS, demoHref } from "@/lib/demo/projects";
 
 /** Profit / inventory period windows (mirrors the authed zisk + sklad pages). */
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
@@ -344,17 +342,16 @@ export default async function DemoModule({
         </ModulePage>
       );
 
-    /* --------------------------------------------- Overview (default / home) */
-    default: {
-      const locale = await getServerLocale();
+    /* ------------------------------- Portfolio overview (default / home) */
+    default:
+      // The demo is a single /dashboard route, so module links ignore the
+      // project and route within the demo; the comparison shows every demo
+      // project (no single "active" one to highlight).
       return (
         <ProjectOverview
-          project={project}
-          data={getProjectDataset(project)}
-          recommendations={collectRecommendations(project, locale)}
-          hrefForModule={demoHref}
+          projects={DEMO_PROJECTS}
+          hrefForModule={(_projectId, key) => demoHref(key)}
         />
       );
-    }
   }
 }

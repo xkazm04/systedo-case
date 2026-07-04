@@ -10,17 +10,23 @@
 import { performance } from "@/lib/data";
 import type { PerformanceData } from "@/lib/types";
 import type { Project } from "@/lib/projects/types";
-import { projectScale, seed01, seedScale, TYPE_BASE_FOR } from "./seed";
+import { projectEfficiency, projectScale, seed01, seedScale, TYPE_BASE_FOR } from "./seed";
 
 // The pure seeding primitives moved to ./seed (no data imports) so modules that
 // only need a per-project factor don't transitively load this base dataset.
 // Re-exported here for the existing call sites that import them from dataset.
-export { seed01, seedScale, projectScale, TYPE_BASE_FOR };
+export { seed01, seedScale, projectScale, projectEfficiency, TYPE_BASE_FOR };
 
 /** Scale the base case-study dataset by a magnitude and relabel the client — the
  *  per-client spine for surfaces keyed by something other than a Project (e.g. a
- *  microsite slug), so each client reads as its own reality. */
-export function scaledDataset(scale: number, label: { name: string; domain?: string }): PerformanceData {
+ *  microsite slug), so each client reads as its own reality. `efficiency` (default
+ *  1) divides cost independently of magnitude, so ROAS / PNO / CPA vary per client
+ *  rather than being identical across scaled copies of one base. */
+export function scaledDataset(
+  scale: number,
+  label: { name: string; domain?: string },
+  efficiency = 1
+): PerformanceData {
   return {
     ...performance,
     client: {
@@ -32,7 +38,7 @@ export function scaledDataset(scale: number, label: { name: string; domain?: str
     daily: performance.daily.map((d) => ({
       date: d.date,
       visits: Math.round(d.visits * scale),
-      cost: Math.round(d.cost * scale),
+      cost: Math.round((d.cost * scale) / efficiency),
       conversions: Math.round(d.conversions * scale),
       revenue: Math.round(d.revenue * scale),
     })),
@@ -40,8 +46,9 @@ export function scaledDataset(scale: number, label: { name: string; domain?: str
 }
 
 export function getProjectDataset(project: Project): PerformanceData {
-  return scaledDataset(projectScale(project), {
-    name: project.name,
-    domain: project.domain || undefined,
-  });
+  return scaledDataset(
+    projectScale(project),
+    { name: project.name, domain: project.domain || undefined },
+    projectEfficiency(project)
+  );
 }

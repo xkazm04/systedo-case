@@ -32,3 +32,11 @@ export function seedScale(seed: string, base = 1): number {
 export function projectScale(project: Project): number {
   return seedScale(project.id, TYPE_BASE[project.type]);
 }
+
+/** Deterministic efficiency factor for a project (≈ 0.8–1.25), applied to cost
+ *  independently of magnitude — so projects read as *distinct realities* (their
+ *  ROAS / PNO / CPA differ), not just scaled copies of one base. Higher = more
+ *  efficient (better ROAS, lower PNO). */
+export function projectEfficiency(project: Project): number {
+  return 0.8 + seed01(`${project.id}:eff`) * 0.45;
+}
