@@ -92,14 +92,21 @@ export default async function ProjectOverview({
   project,
   data,
   recommendations,
+  hrefForModule,
 }: {
   project: Project;
   data: PerformanceData;
   recommendations: Recommendation[];
+  /** Builds the link for a module key. Defaults to the authed `/app/{id}/{key}`
+   *  route; the public demo overrides it to route within `/dashboard?m=`. */
+  hrefForModule?: (key: string) => string;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
   const locale = await getServerLocale();
+
+  const moduleHref =
+    hrefForModule ?? ((key: string) => (key ? `/app/${project.id}/${key}` : `/app/${project.id}`));
 
   const meta = projectTypeMeta(project.type, locale);
   const typeIcon = PROJECT_TYPE_META[project.type].icon;
@@ -192,7 +199,7 @@ export default async function ProjectOverview({
             {recommendations.map((r, i) => (
               <Link
                 key={r.id}
-                href={`/app/${project.id}/${r.module}`}
+                href={moduleHref(r.module)}
                 className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-navy-50"
               >
                 <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_DOT[r.severity]}`} aria-hidden />
@@ -226,7 +233,7 @@ export default async function ProjectOverview({
         {quick.map((m) => (
             <Link
               key={m.key}
-              href={`/app/${project.id}/${m.key}`}
+              href={moduleHref(m.key)}
               className="card group flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-pop"
             >
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">

@@ -12,6 +12,8 @@ import { usePathname } from "next/navigation";
  *  (Reading the path needs a client component; children stay server-rendered.) */
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const fade = !pathname.startsWith("/app");
+  // Skip the fade on the data tools (authed /app + the public /dashboard demo):
+  // a 0.4s fade on every module click reads as lag, not polish.
+  const fade = !pathname.startsWith("/app") && pathname !== "/dashboard";
   return <div className={fade ? "animate-fade-in" : undefined}>{children}</div>;
 }

@@ -1,0 +1,360 @@
+/** Server-side module dispatcher for the public /dashboard demo. Mirrors each
+ *  authed module page's data-prep (the same pure sample libs) but feeds a mock
+ *  demo project instead of resolving one behind auth — so every module renders
+ *  publicly with coherent illustrative data. Kept in one file so the 22 real
+ *  module pages under /app/[projectId]/* stay untouched.
+ *
+ *  The API/LLM-backed modules (campaigns, social, creative, patterns, reports)
+ *  are propless clients that self-fetch: on the deployed app they return the
+ *  anonymous "sample" tenant; locally without a backend they show their own clean
+ *  empty/demo state. Everything else renders fully from static sample data. */
+import ModulePage from "@/components/app/ModulePage";
+import SampleDataNote from "@/components/app/SampleDataNote";
+import ProjectOverview from "@/components/app/ProjectOverview";
+import DashboardClient from "@/components/dashboard/DashboardClient";
+import CampaignsClient from "@/components/campaigns/CampaignsClient";
+import KeywordsModule from "@/components/app/modules/KeywordsModule";
+import ContentModule from "@/components/app/modules/ContentModule";
+import SocialClient from "@/components/social/SocialClient";
+import CreativeStudio from "@/components/ai/CreativeStudio";
+import PatternsLibrary from "@/components/patterns/PatternsLibrary";
+import SharedReportsList from "@/components/campaigns/SharedReportsList";
+import ProfitModule from "@/components/app/modules/ProfitModule";
+import CatalogModule from "@/components/app/modules/CatalogModule";
+import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
+import LtvModule from "@/components/app/modules/LtvModule";
+import LpExperimentsModule from "@/components/app/modules/LpExperimentsModule";
+import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
+import LeadQualityModule from "@/components/app/modules/LeadQualityModule";
+import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
+import LocalModule from "@/components/app/modules/LocalModule";
+import ContentEngineModule from "@/components/app/modules/ContentEngineModule";
+import DistributionModule from "@/components/app/modules/DistributionModule";
+import AudienceModule from "@/components/app/modules/AudienceModule";
+import ProjectSettings from "@/components/app/modules/ProjectSettings";
+
+import { getProjectDataset } from "@/lib/project-data/dataset";
+import { collectRecommendations } from "@/lib/insights/aggregate";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getT } from "@/lib/i18n/server";
+import { channelRows, totalsOf } from "@/lib/metrics";
+import { defaultMargins, SAMPLE_PRODUCTS as PROFIT_PRODUCTS } from "@/lib/profit/sample";
+import { profitTrend } from "@/lib/profit/trend";
+import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
+import { SAMPLE_PRODUCTS as CATALOG_PRODUCTS } from "@/lib/catalog/sample";
+import {
+  budgetChangeSet,
+  monthlySeasonality,
+  seasonalBudgetPlan,
+  stockRows,
+} from "@/lib/inventory/compute";
+import { ESHOP_COHORTS, SAMPLE_COHORTS } from "@/lib/ltv/sample";
+import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
+import { experimentsForProject } from "@/lib/lp-exp/sample";
+import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
+import { seoChannelFrom } from "@/lib/seo-compare/compute";
+import { sourcesForProject } from "@/lib/lead-quality/sample";
+import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
+import { SAMPLE_RECENT_REVIEWS, reviewsForProject, targetsForProject } from "@/lib/local/sample";
+import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
+import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
+import { audienceForProject } from "@/lib/audience/sample";
+import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
+import { demoHref } from "@/lib/demo/projects";
+
+/** Profit / inventory period windows (mirrors the authed zisk + sklad pages). */
+const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
+const TREND_GRANULARITY: Record<string, TrendGranularity> = {
+  "30": "week",
+  "90": "week",
+  "365": "month",
+};
+/** Notional baseline monthly ad budget (CZK) the seasonal plan scales. */
+const BASELINE_MONTHLY_BUDGET = 120_000;
+
+const KAMPANE_T = {
+  cs: {
+    desc: "Google Ads kampaně, triáž, AI vyhodnocení a přesuny rozpočtu. Zaměření pro tento typ projektu: {focus}.",
+  },
+  en: {
+    desc: "Google Ads campaigns, triage, AI evaluation and budget shifts. Focus for this project type: {focus}.",
+  },
+} as const;
+const REPORTY_T = {
+  cs: {
+    desc: "Sdílené reporty pro klienty — vytvoříte je v modulu Kampaně tlačítkem „Sdílet report“. Zde je spravujete: počet zobrazení a zneplatnění odkazu.",
+  },
+  en: {
+    desc: "Shared reports for clients — create them in the Campaigns module using the “Share report” button. Manage them here: view count and link invalidation.",
+  },
+} as const;
+
+/** The illustrative-data banner most static modules carry, in the page gutter. */
+function noted(children: React.ReactNode) {
+  return (
+    <>
+      <div className="mb-5">
+        <SampleDataNote />
+      </div>
+      {children}
+    </>
+  );
+}
+
+export default async function DemoModule({
+  moduleKey,
+  project,
+}: {
+  moduleKey: string;
+  project: Project;
+}) {
+  switch (moduleKey) {
+    /* -------------------------------------------------------------- Overview */
+    case "vykon":
+      return (
+        <ModulePage moduleKey="vykon">
+          <DashboardClient data={getProjectDataset(project)} />
+        </ModulePage>
+      );
+
+    /* ------------------------------------------------------------ Acquisition */
+    case "kampane": {
+      const focus = PROJECT_TYPE_META[project.type].channelFocus;
+      const t = await getT(KAMPANE_T);
+      return (
+        <ModulePage moduleKey="kampane" description={focus ? t("desc", { focus }) : undefined}>
+          <CampaignsClient />
+        </ModulePage>
+      );
+    }
+    case "klicova-slova":
+      return (
+        <ModulePage moduleKey="klicova-slova">
+          <KeywordsModule />
+        </ModulePage>
+      );
+    case "sklad-sezonnost": {
+      const data = getProjectDataset(project);
+      const season = monthlySeasonality(data.daily);
+      const lastDate = data.daily.at(-1)?.date;
+      // Reference "now" derived from the dataset's last day (deterministic).
+      const now = new Date(`${lastDate ?? "2026-01-01"}T00:00:00Z`);
+      const currentMonth = now.getUTCMonth();
+      const stock = stockRows(CATALOG_PRODUCTS, now);
+      const covers = stock
+        .map((s) => s.daysOfCover)
+        .filter((d) => Number.isFinite(d))
+        .sort((a, b) => a - b);
+      const aggregateDaysOfCover =
+        covers.length > 0 ? covers[Math.floor(covers.length / 2)]! : Infinity;
+      const budgetPlan = seasonalBudgetPlan(BASELINE_MONTHLY_BUDGET, season, {
+        daysOfCover: aggregateDaysOfCover,
+        currentMonth,
+      });
+      const changeSet = budgetChangeSet(stock);
+      return (
+        <ModulePage moduleKey="sklad-sezonnost">
+          {noted(
+            <InventorySeasonModule
+              season={season}
+              currentMonth={currentMonth}
+              stock={stock}
+              budgetPlan={budgetPlan}
+              changeSet={changeSet}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "srovnani-seo": {
+      const data = getProjectDataset(project);
+      const rows = channelRows(data.channels, totalsOf(data.daily.slice(-90)));
+      const seoChannel = seoChannelFrom(rows);
+      return (
+        <ModulePage moduleKey="srovnani-seo">
+          {noted(<CompareSeoModule queries={SAMPLE_QUERIES} seoChannel={seoChannel} />)}
+        </ModulePage>
+      );
+    }
+    case "lokalni":
+      return (
+        <ModulePage moduleKey="lokalni">
+          {noted(
+            <LocalModule
+              targets={targetsForProject(project)}
+              reviews={reviewsForProject(project)}
+              recentReviews={SAMPLE_RECENT_REVIEWS}
+              businessName={project.name}
+            />
+          )}
+        </ModulePage>
+      );
+    case "obsahovy-engine":
+      return (
+        <ModulePage moduleKey="obsahovy-engine">
+          {noted(<ContentEngineModule clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />)}
+        </ModulePage>
+      );
+
+    /* ----------------------------------------------------------------- Studio */
+    case "obsah":
+      return (
+        <ModulePage moduleKey="obsah">
+          <ContentModule />
+        </ModulePage>
+      );
+    case "socialni":
+      return (
+        <ModulePage moduleKey="socialni">
+          <SocialClient />
+        </ModulePage>
+      );
+    case "kreativa":
+      return (
+        <ModulePage moduleKey="kreativa">
+          <CreativeStudio />
+        </ModulePage>
+      );
+    case "produktova-kreativa":
+      return (
+        <ModulePage moduleKey="produktova-kreativa">
+          {noted(<CatalogModule products={CATALOG_PRODUCTS} />)}
+        </ModulePage>
+      );
+    case "experimenty-lp":
+      return (
+        <ModulePage moduleKey="experimenty-lp">
+          {noted(<LpExperimentsModule experiments={experimentsForProject(project)} />)}
+        </ModulePage>
+      );
+    case "rychla-reakce":
+      return (
+        <ModulePage moduleKey="rychla-reakce">
+          {noted(<SpeedLeadModule leads={SAMPLE_LEADS} />)}
+        </ModulePage>
+      );
+    case "distribuce":
+      return (
+        <ModulePage moduleKey="distribuce">
+          {noted(
+            <DistributionModule source={SAMPLE_SOURCE} attribution={attributionForProject(project)} />
+          )}
+        </ModulePage>
+      );
+
+    /* --------------------------------------------------------------- Insights */
+    case "knihovna":
+      return (
+        <ModulePage moduleKey="knihovna">
+          <PatternsLibrary />
+        </ModulePage>
+      );
+    case "reporty": {
+      const t = await getT(REPORTY_T);
+      return (
+        <ModulePage moduleKey="reporty" description={t("desc")}>
+          <SharedReportsList refreshSignal={0} />
+        </ModulePage>
+      );
+    }
+    case "zisk": {
+      const data = getProjectDataset(project);
+      const margins = defaultMargins(data.channels);
+      const anchorIso =
+        data.daily.length > 0 ? data.daily[data.daily.length - 1]!.date : undefined;
+      const rowsByPeriod = Object.fromEntries(
+        Object.entries(PERIOD_DAYS).map(([key, days]) => [
+          key,
+          channelRows(data.channels, totalsOf(data.daily.slice(-days))),
+        ])
+      );
+      const trendByPeriod = Object.fromEntries(
+        Object.entries(PERIOD_DAYS).map(([key, days]) => [
+          key,
+          profitTrend(
+            data.daily.slice(-days),
+            data.channels,
+            margins,
+            TREND_GRANULARITY[key] ?? "week",
+            anchorIso
+          ),
+        ])
+      ) as Record<string, ProfitTrendPoint[]>;
+      return (
+        <ModulePage moduleKey="zisk">
+          {noted(
+            <ProfitModule
+              projectId={project.id}
+              rowsByPeriod={rowsByPeriod}
+              trendByPeriod={trendByPeriod}
+              channels={data.channels}
+              products={PROFIT_PRODUCTS}
+              defaults={margins}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "ltv": {
+      const eshop = project.type === "eshop";
+      const cohorts = eshop ? ESHOP_COHORTS : SAMPLE_COHORTS;
+      return (
+        <ModulePage moduleKey="ltv">
+          {noted(
+            <LtvModule
+              rows={cohorts.map((c) => withMetrics(c))}
+              summary={ltvSummary(cohorts)}
+              cohorts={cohorts}
+              eshop={eshop}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "kvalita-leadu":
+      return (
+        <ModulePage moduleKey="kvalita-leadu">
+          {noted(<LeadQualityModule sources={sourcesForProject(project)} />)}
+        </ModulePage>
+      );
+    case "publikum": {
+      const audience = audienceForProject(project);
+      return (
+        <ModulePage moduleKey="publikum">
+          {noted(
+            <AudienceModule
+              funnel={audience.funnel}
+              segments={audience.segments}
+              revenue={audience.revenue}
+              subscriberSources={audience.subscriberSources}
+              subscriberHistory={audience.subscriberHistory}
+              rpmHistory={audience.rpmHistory}
+              goals={audience.goals}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+
+    /* ----------------------------------------------------------------- System */
+    case "nastaveni":
+      return (
+        <ModulePage moduleKey="nastaveni">
+          <ProjectSettings />
+        </ModulePage>
+      );
+
+    /* --------------------------------------------- Overview (default / home) */
+    default: {
+      const locale = await getServerLocale();
+      return (
+        <ProjectOverview
+          project={project}
+          data={getProjectDataset(project)}
+          recommendations={collectRecommendations(project, locale)}
+          hrefForModule={demoHref}
+        />
+      );
+    }
+  }
+}
