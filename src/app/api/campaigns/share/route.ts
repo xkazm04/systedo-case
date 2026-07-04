@@ -13,8 +13,6 @@ import {
 import { getProject } from "@/lib/projects/store";
 import { canonical } from "@/lib/site";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

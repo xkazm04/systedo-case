@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B2 · Rychlé nasazení",
-      "hypothesis": "Zdůraznění rychlého a bezproblémového nasazení nástroje namísto obecného popisu funkcí sníží vnímanou bariéru vstupu a zvýší konverzní poměr oproti kontrolní variantě.",
-      "headline": "Řízení projektů bez zdlouhavého zavádění",
-      "primaryCTA": "Vyzkoušet nyní",
-      "rationale": "Zájemci o 'nástroj na úkoly' se často obávají složitého zavádění, takže slib rychlého startu řeší konkrétní bariéru, kterou obecný popis produktu nepokrývá."
+      "label": "Konkrétní přínos místo obecného popisu",
+      "hypothesis": "Headline s konkrétním, hmatatelným přínosem (přehled nad úkoly a projekty) zvýší konverzi oproti obecnému popisu produktu v kontrolní variantě.",
+      "headline": "Všechny projekty a úkoly pod kontrolou – na jednom místě",
+      "primaryCTA": "Vyzkoušet zdarma",
+      "rationale": "Konkrétní slib řeší přímo bolest uživatele hledajícího nástroj na úkoly, což obecný popis v kontrole nedělá."
     },
     {
-      "label": "C2 · Sociální důkaz",
-      "hypothesis": "Sdělení postavené na důvěře projektových týmů namísto obecného popisu produktu sníží vnímané riziko výběru nástroje a zvýší konverzní poměr.",
-      "headline": "Nástroj, kterému projektové týmy důvěřují",
-      "primaryCTA": "Zjistit proč",
-      "rationale": "Na přeplněném trhu software pro řízení projektů je nedůvěra k dalšímu nástroji klíčovou bariérou, kterou obecný popis produktu neřeší."
+      "label": "Rychlý start bez tření",
+      "hypothesis": "Minimalizace vstupní bariéry (start na jeden klik, žádný formulář) zvýší konverzi oproti kontrole i oproti variantě s dlouhým formulářem.",
+      "headline": "Založte první projekt za 30 vteřin bez zdlouhavé registrace",
+      "primaryCTA": "Začít bez registrace",
+      "rationale": "Testuje opačnou hypotézu než neúspěšná varianta C – že odstranění tření, nikoli jeho přidání, zvyšuje konverzi."
     },
     {
-      "label": "D · Bolest a řešení",
-      "hypothesis": "Pojmenování konkrétní bolesti (roztříštěné úkoly v e-mailech a tabulkách) namísto obecného popisu funkcí zvýší relevanci sdělení a konverzní poměr.",
-      "headline": "Konec úkolů rozházených v e-mailech a tabulkách",
-      "primaryCTA": "Sjednotit úkoly na jedno místo",
-      "rationale": "Návštěvníci hledající 'nástroj na úkoly' typicky řeší konkrétní frustraci z chaosu, a přímé pojmenování problému motivuje k akci silněji než obecná prezentace produktu."
+      "label": "Zaměření na tým, ne na jednotlivce",
+      "hypothesis": "Zdůraznění přínosu pro celý tým namísto obecného popisu produktu zvýší konverzi u rozhodovatelů nakupujících nástroj pro více lidí.",
+      "headline": "Projektové řízení, které si váš tým skutečně oblíbí",
+      "primaryCTA": "Pozvat tým",
+      "rationale": "Cílí na manažery rozhodující o nástroji pro tým, což je jiný úhel než obecný popis produktu nebo slevová nabídka."
     }
   ]
 }

@@ -7,8 +7,6 @@ import { revalidatePath } from "next/cache";
 import { listEnabledSlugs, DEMO_MICROSITE } from "@/lib/microsite";
 import { cronAuthorized } from "@/lib/cron-auth";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) {

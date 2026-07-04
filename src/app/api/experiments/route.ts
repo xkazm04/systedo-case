@@ -15,8 +15,6 @@ import {
 import type { AdResult } from "@/lib/ai-types";
 import type { AdVariantMetrics } from "@/lib/ai/experiment-types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

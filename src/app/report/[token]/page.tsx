@@ -54,7 +54,6 @@ const T = {
   },
 } as const;
 
-export const dynamic = "force-dynamic";
 // Shared links are private; never index them (the root layout is noindex too).
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 

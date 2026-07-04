@@ -5,8 +5,6 @@ import AudienceModule from "@/components/app/modules/AudienceModule";
 import SampleDataNote from "@/components/app/SampleDataNote";
 import { audienceForProject } from "@/lib/audience/sample";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

@@ -4,8 +4,6 @@ import ModulePage from "@/components/app/ModulePage";
 import SharedReportsList from "@/components/campaigns/SharedReportsList";
 import { getT } from "@/lib/i18n/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const T = {
   cs: {

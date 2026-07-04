@@ -5,8 +5,6 @@
 import { auth } from "@/auth";
 import { applyBudgetShift, applyPause } from "@/lib/campaigns/mutations";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 

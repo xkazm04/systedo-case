@@ -10,8 +10,6 @@ import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

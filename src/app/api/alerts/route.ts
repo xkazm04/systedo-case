@@ -5,8 +5,6 @@ import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listAlerts, markAlertsRead } from "@/lib/campaigns/alerts";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

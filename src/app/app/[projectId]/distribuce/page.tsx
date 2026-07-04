@@ -5,8 +5,6 @@ import DistributionModule from "@/components/app/modules/DistributionModule";
 import SampleDataNote from "@/components/app/SampleDataNote";
 import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

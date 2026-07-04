@@ -7,8 +7,6 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 /** Notional baseline monthly ad budget (CZK) the seasonal plan scales. */
 const BASELINE_MONTHLY_BUDGET = 120_000;

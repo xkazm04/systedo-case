@@ -5,8 +5,6 @@ import ContentEngineModule from "@/components/app/modules/ContentEngineModule";
 import SampleDataNote from "@/components/app/SampleDataNote";
 import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

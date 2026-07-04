@@ -19,8 +19,6 @@ import {
 } from "@/lib/images/attribution-types";
 import { isImageStyle } from "@/lib/images/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

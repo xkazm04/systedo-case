@@ -16,8 +16,6 @@ import {
 } from "@/lib/campaigns/control-plane";
 import { GuardrailError } from "@/lib/campaigns/control-plane-types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function requireUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

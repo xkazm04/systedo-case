@@ -7,8 +7,6 @@ import { publishReply } from "@/lib/social/publish";
 import { draftReply } from "@/lib/social/draft";
 import { isSocialPlatform } from "@/lib/social/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 

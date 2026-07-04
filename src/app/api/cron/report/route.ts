@@ -14,8 +14,6 @@ import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { canonical } from "@/lib/site";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 function authorized(request: Request): boolean {

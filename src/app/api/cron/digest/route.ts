@@ -20,8 +20,6 @@ import { aggregateTelemetry, listLlmTelemetrySince } from "@/lib/llm/telemetry";
 import { aiOpsLines, summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { cronAuthorized } from "@/lib/cron-auth";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 function escapeHtml(s: string): string {

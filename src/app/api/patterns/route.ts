@@ -7,8 +7,6 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { deletePattern, getLibrary, savePattern } from "@/lib/patterns/store";
 import { isPatternCategory } from "@/lib/patterns/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 

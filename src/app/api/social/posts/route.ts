@@ -7,8 +7,6 @@ import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/stor
 import { publishPost } from "@/lib/social/publish";
 import { PLATFORM_LIMITS, isSocialPlatform } from "@/lib/social/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 

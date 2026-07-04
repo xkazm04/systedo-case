@@ -35,9 +35,7 @@ const T = {
   },
 } as const;
 
-export const runtime = "nodejs";
 // Daily self-update target for the cron's revalidatePath.
-export const revalidate = 86400;
 
 export async function generateMetadata({
   params,

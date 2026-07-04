@@ -3,8 +3,6 @@ import { auth } from "@/auth";
 import { deleteProject, updateProject } from "@/lib/projects/store";
 import { PROJECT_TYPES, type ProjectPatch, type ProjectType } from "@/lib/projects/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 async function userId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

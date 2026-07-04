@@ -30,8 +30,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   // Abuse guards first — evaluation is a paid LLM call on a public endpoint.

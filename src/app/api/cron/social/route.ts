@@ -7,8 +7,6 @@ import { listProjects } from "@/lib/projects/store";
 import { listDueScheduled, updatePost } from "@/lib/social/store";
 import { publishPost } from "@/lib/social/publish";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 function authorized(request: Request): boolean {

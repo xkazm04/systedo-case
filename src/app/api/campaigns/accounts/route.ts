@@ -20,8 +20,6 @@ import {
   setActiveAccount,
 } from "@/lib/campaigns/connection";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 function userIdOf(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null;

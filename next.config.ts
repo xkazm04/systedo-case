@@ -9,12 +9,15 @@ const nextConfig: NextConfig = {
     root: import.meta.dirname,
   },
 
-  // Loosen caching so the authed product always reflects the latest version.
-  // staleTimes=0 disables reuse of the client-side Router Cache, so every
-  // navigation refetches fresh RSC instead of replaying a stale snapshot.
-  experimental: {
-    staleTimes: { dynamic: 0, static: 0 },
-  },
+  // Cache Components + Instant Navigations (Next 16.3). Dynamic-by-default with
+  // no implicit caching: every route renders a static shell instantly, and any
+  // per-request/per-user data (auth, locale, project data) streams in behind a
+  // <Suspense> boundary. This supersedes the old `staleTimes: 0` freshness hack —
+  // dynamic data is never part of the cached shell, so navigations stay fresh
+  // *and* feel instant. partialPrefetching prefetches one reusable shell per
+  // route (not one request per link) and caches it on the client for the session.
+  cacheComponents: true,
+  partialPrefetching: true,
 
   // Belt-and-suspenders: forbid any browser/CDN from caching the authed app's
   // HTML/RSC, so a deploy never serves a previous app version behind /app.

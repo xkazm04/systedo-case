@@ -6,8 +6,6 @@ import CampaignsClient from "@/components/campaigns/CampaignsClient";
 import { PROJECT_TYPE_META } from "@/lib/projects/types";
 import { getT } from "@/lib/i18n/server";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const T = {
   cs: {

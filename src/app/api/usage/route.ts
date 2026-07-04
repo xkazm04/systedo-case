@@ -2,8 +2,6 @@
 import { auth } from "@/auth";
 import { getUsage } from "@/lib/usage";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET() {
   const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;

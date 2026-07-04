@@ -9,8 +9,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const MAX_BYTES = 8 * 1024 * 1024; // 8 MB

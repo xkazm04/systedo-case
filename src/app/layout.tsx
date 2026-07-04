@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
@@ -53,48 +54,68 @@ export const viewport: Viewport = {
  *  "follow the system", which the prefers-color-scheme CSS handles on its own. */
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
+/** Runs before paint: upgrades <html lang> from the locale cookie. The <html>
+ *  shell is prerendered static (Cache Components) with a `cs` default, so this
+ *  corrects the lang attribute for `en` visitors without a server cookie read at
+ *  the document root — which would make every route's shell dynamic. */
+const langScript = `(function(){try{var m=document.cookie.match(/(?:^|; )locale=(cs|en)/);if(m){document.documentElement.lang=m[1];}}catch(e){}})();`;
+
 const SKIP_T = {
   cs: { skip: "Přejít na obsah" },
   en: { skip: "Skip to content" },
 } as const;
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html
+      lang="cs"
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: langScript }} />
+      </head>
+      <body className="flex min-h-full flex-col">
+        {/* The chrome + page read the locale cookie (and, in dev-auth, the
+            session) — request data that Cache Components requires to sit inside a
+            Suspense boundary. Keeping it here lets <html>/<body> prerender as the
+            static shell while the localized app streams in (correctly localized
+            server-side, so no flash of the default language for the content). */}
+        <Suspense fallback={<main id="obsah" className="flex-1 bg-facets" aria-hidden />}>
+          <LocalizedApp>{children}</LocalizedApp>
+        </Suspense>
+        {process.env.NODE_ENV === "development" && <DevInspector />}
+      </body>
+    </html>
+  );
+}
+
+async function LocalizedApp({ children }: { children: React.ReactNode }) {
   const locale = await getServerLocale();
   const tSkip = await getT(SKIP_T);
   // Only seed the session server-side in dev-auth mode; in production the client
   // provider fetches it as usual, so public pages keep doing no auth lookup.
   const session = DEV_AUTH ? await auth() : undefined;
   return (
-    <html
-      lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full`}
-      suppressHydrationWarning
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-      </head>
-      <body className="flex min-h-full flex-col">
-        <LocaleProvider initialLocale={locale}>
-        <Providers session={session} devAuth={DEV_AUTH}>
-          <a
-            href="#obsah"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-onyx focus:px-4 focus:py-2 focus:text-sm focus:text-onyx-ink"
-          >
-            {tSkip("skip")}
-          </a>
-          <ChromeGate>
-            <Nav />
-          </ChromeGate>
-          <main id="obsah" className="flex-1 bg-facets">
-            {children}
-          </main>
-          <ChromeGate>
-            <Footer />
-          </ChromeGate>
-        </Providers>
-        </LocaleProvider>
-        {process.env.NODE_ENV === "development" && <DevInspector />}
-      </body>
-    </html>
+    <LocaleProvider initialLocale={locale}>
+      <Providers session={session} devAuth={DEV_AUTH}>
+        <a
+          href="#obsah"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-onyx focus:px-4 focus:py-2 focus:text-sm focus:text-onyx-ink"
+        >
+          {tSkip("skip")}
+        </a>
+        <ChromeGate>
+          <Nav />
+        </ChromeGate>
+        <main id="obsah" className="flex-1 bg-facets">
+          {children}
+        </main>
+        <ChromeGate>
+          <Footer />
+        </ChromeGate>
+      </Providers>
+    </LocaleProvider>
   );
 }

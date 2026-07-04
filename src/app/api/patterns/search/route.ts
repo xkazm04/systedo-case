@@ -10,8 +10,6 @@ import { consume } from "@/lib/usage";
 import { RATE_RULES, clientIp, tooManyRequests } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 

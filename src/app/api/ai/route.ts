@@ -43,8 +43,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-// The Gemini SDK needs the Node.js runtime (not Edge).
-export const runtime = "nodejs";
 
 /** Cache-then-quota-then-generate for one tool call. An identical (mode, locale,
  *  input) returns the cached result WITHOUT spending the daily quota or re-paying

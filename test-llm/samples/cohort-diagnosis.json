@@ -1,10 +1,9 @@
 {
-  "summary": "Kohorty vykazují jednoznačně zhoršující se trend: CAC roste z 1 200 Kč (2025-01) na 2 100 Kč (2025-03), LTV klesá z 5 400 Kč na 2 200 Kč, LTV:CAC se propadá ze 4,5× na 1,0× a návratnost se prodlužuje ze 4 měsíců až za sledovaný horizont. M3 retence klesá z 62 % na 31 %, zatímco objem registrací roste (180→240), takže se zhoršující ekonomika týká čím dál většího objemu uživatelů. Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× jsou z velké části taženy dolů poslední kohortou.",
+  "summary": "Napříč kohortami 2025-01 až 2025-03 se jednotková ekonomika prudce zhoršuje: CAC roste z 1 200 Kč na 2 100 Kč (+75 %), zatímco LTV klesá z 5 400 Kč na 2 200 Kč, takže poměr LTV:CAC padá ze 4,5× na 1,0×. Souběžně klesá M3 retence z 62 % na 31 % a návratnost investice se z 4 měsíců protáhla na stav, kdy se v pozorovaném horizontu vůbec nevrací. Kohorta 2025-03 přitom má nejvyšší objem registrací (240), takže firma nejvíc peněz utrácí právě na akvizici, která se ekonomicky nevrací.",
   "worstCohort": "2025-03",
-  "recommendation": "Zaměřit se na zlepšení M3 retence u nejnovějších kohort (aktivace a onboarding v prvních 90 dnech) — pokles retence z 62 % na 31 % je hlavní hnací silou propadu LTV:CAC, a jeho zastavení má větší pákový efekt než další snižování CAC, který roste souběžně s rostoucím objemem akvizice.",
+  "recommendation": "Zaměřit se na zvýšení M3 retence u kohorty 2025-03 (onboarding a aktivační intervence v prvních třech měsících), protože propad retence z 62 % na 31 % je hlavní hnací silou poklesu LTV a bez jeho zastavení se CAC u této kohorty nikdy nevrátí.",
   "risks": [
-    "Analýza je založena jen na 3 kohortách, trend nemusí být statisticky robustní.",
-    "Kohorta 2025-03 nemá dokončenou návratnost (payback > horizont), takže její skutečné LTV může být ještě nižší, než je uvedeno.",
-    "Nejhorší kohorta má zároveň nejvyšší objem registrací (240), takže dopad zhoršující se jednotkové ekonomiky na celkový byznys roste."
+    "Data jsou souhrnná bez rozpadu podle akvizičního kanálu, takže není jisté, zda nárůst CAC a pokles retence způsobuje stejný zdroj registrací.",
+    "Kohorta 2025-03 může mít stále otevřený pozorovací horizont, takže uvedené LTV a návratnost jsou průběžné a mohou se ještě měnit."
   ]
 }

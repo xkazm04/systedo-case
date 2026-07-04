@@ -38,8 +38,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 // A portfolio of sequential model calls takes a while — same budget as the cron.
 export const maxDuration = 300;
 

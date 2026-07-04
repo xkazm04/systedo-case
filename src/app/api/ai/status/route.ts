@@ -24,9 +24,6 @@ import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
 import { peekDurableRemaining } from "@/lib/ai/durable-limit";
 import { latencyByTool, resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
 
-// The availability probe shells out to the Claude CLI (Node runtime required).
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const dev = isDevEnvironment();

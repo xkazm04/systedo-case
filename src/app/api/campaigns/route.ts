@@ -29,8 +29,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 function userIdOf(session: Session | null): string | null {
   return (session?.user as { id?: string } | undefined)?.id ?? null;

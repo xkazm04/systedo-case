@@ -6,8 +6,6 @@ import SampleDataNote from "@/components/app/SampleDataNote";
 import { ESHOP_COHORTS, SAMPLE_COHORTS } from "@/lib/ltv/sample";
 import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;

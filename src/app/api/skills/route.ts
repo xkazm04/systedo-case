@@ -5,8 +5,6 @@
  *  Node runtime. */
 import { skillRegistry, GATE_COVERED_SKILL_IDS } from "@/lib/skills/registry";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 export async function GET() {
   return Response.json({

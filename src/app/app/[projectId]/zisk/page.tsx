@@ -9,8 +9,6 @@ import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
 /** Trend granularity per period: short windows read better weekly, the year monthly. */

@@ -15,8 +15,6 @@ import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { cronAuthorized } from "@/lib/cron-auth";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 // long-running fan-out across users
 export const maxDuration = 300;
 
