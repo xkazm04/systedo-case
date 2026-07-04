@@ -190,7 +190,12 @@ export function validateChatRequest(input: unknown, locale: SupportedLocale = "c
   if (messages[messages.length - 1]!.role !== "user") {
     return { valid: false, error: t(locale, "Poslední zpráva musí být od uživatele.", "The last message must be from the user.") };
   }
-  return { valid: true, value: { period, messages } };
+  const value: ChatRequest = { period, messages };
+  // Optional grounding hint; the route resolves + tenancy-checks it. Bounded so a
+  // bogus id can't bloat the cache key.
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
+  return { valid: true, value };
 }
 
 export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LeadReplyRequest> {

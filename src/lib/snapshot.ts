@@ -8,6 +8,7 @@
  *  anomalies and the pacing forecast band. */
 
 import { performance } from "./data";
+import type { PerformanceData } from "./types";
 import {
   buildMetricsSnapshot,
   type Anomaly,
@@ -44,9 +45,13 @@ export interface Snapshot {
 
 export function buildSnapshot(
   period: AnalysisPeriod,
-  baseline: PeriodBaseline = "previous"
+  baseline: PeriodBaseline = "previous",
+  // Phase-D data seam: ground on a specific project's dataset (getProjectDataset)
+  // or, later, its synced live data — defaults to the base case-study dataset so
+  // every existing caller is unchanged.
+  data: PerformanceData = performance
 ): Snapshot {
-  const snap = buildMetricsSnapshot(performance, {
+  const snap = buildMetricsSnapshot(data, {
     key: period,
     label: ANALYSIS_PERIOD_LABELS[period],
     days: PERIOD_DAYS[period],
@@ -65,9 +70,9 @@ export function buildSnapshot(
     pacing: snap.pacing,
     goalPno: snap.goals.pno,
     client: {
-      name: performance.client.name,
-      domain: performance.client.domain,
-      segment: performance.client.segment,
+      name: data.client.name,
+      domain: data.client.domain,
+      segment: data.client.segment,
     },
   };
 }

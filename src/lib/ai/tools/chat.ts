@@ -5,6 +5,7 @@
 import { Type } from "@google/genai";
 import { type AiResponse, type ChatRequest, type ChatResult, type ChatTurn } from "../../ai-types";
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapshot";
+import type { PerformanceData } from "../../types";
 import { fmtCZK, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { ANALYSIS_SYSTEM } from "./analysis";
@@ -67,9 +68,12 @@ function demoChat(s: Snapshot): ChatResult {
 export function generateChat(
   req: ChatRequest,
   locale?: SupportedLocale,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  // Phase-D: the project's dataset, resolved + tenancy-checked by the route.
+  // Undefined → base case-study grounding.
+  data?: PerformanceData
 ): Promise<AiResponse<ChatResult>> {
-  const snapshot = buildSnapshot(req.period);
+  const snapshot = buildSnapshot(req.period, "previous", data);
   return generateStructured({
     // llm-tool: chat
     id: "chat",

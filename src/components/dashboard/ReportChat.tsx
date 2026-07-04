@@ -41,8 +41,9 @@ const T = {
   },
 } as const;
 
-/** One live chat turn against /api/ai mode:chat, grounded server-side by period. */
-function useReportChat(period: AnalysisPeriod) {
+/** One live chat turn against /api/ai mode:chat, grounded server-side by period +
+ *  the project (the route tenancy-checks the id and falls back to base). */
+function useReportChat(period: AnalysisPeriod, projectId?: string) {
   const [messages, setMessages] = useState<ChatTurn[]>([]);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +56,7 @@ function useReportChat(period: AnalysisPeriod) {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode: "chat", period, messages: msgs }),
+        body: JSON.stringify({ mode: "chat", period, projectId, messages: msgs }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -95,15 +96,18 @@ export default function ReportChat({
   chips,
   backHref,
   subtitle,
+  projectId,
 }: {
   report: AnalysisResult;
   period: AnalysisPeriod;
   chips: string[];
   backHref: string;
   subtitle: string;
+  /** ground the chat on this project (route tenancy-checks it); omit → base. */
+  projectId?: string;
 }) {
   const t = useT(T);
-  const { messages, pending, error, send, retry } = useReportChat(period);
+  const { messages, pending, error, send, retry } = useReportChat(period, projectId);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const onSend = (text: string) => {

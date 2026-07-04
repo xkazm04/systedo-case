@@ -32,7 +32,11 @@ import {
 import { consume } from "@/lib/usage";
 import { getServerLocale } from "@/lib/i18n/locale";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse } from "@/lib/ai-types";
+import type { AiResponse, ChatRequest } from "@/lib/ai-types";
+import type { PerformanceData } from "@/lib/types";
+import { getProject } from "@/lib/projects/store";
+import { getProjectDataset } from "@/lib/project-data/dataset";
+import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import {
   RATE_RULES,
@@ -53,6 +57,7 @@ async function cachedRespond(
   mode: string,
   value: unknown,
   locale: SupportedLocale,
+  userId: string | null,
   gen: () => Promise<AiResponse<unknown>>
 ): Promise<Response> {
   const key = hashAiInput(mode, locale, value);
@@ -60,7 +65,6 @@ async function cachedRespond(
   if (cached) return Response.json(cached);
 
   // Per-user daily AI quota (signed-in users) — charged only on a real generation.
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
   if (userId) {
     const quota = await consume(userId, "aiEval");
     if (!quota.ok) {
@@ -78,6 +82,24 @@ async function cachedRespond(
   const result = await gen();
   setCachedAi(key, result);
   return Response.json(result);
+}
+
+/** Resolve the dataset a chat turn grounds on, with tenancy. A demo project id is
+ *  public; a real project id must belong to the caller. `keyId` keys the response
+ *  cache by the EFFECTIVE grounding, so an unowned id can never serve another
+ *  tenant's cached answer — it degrades to the shared base result. */
+async function resolveGrounding(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<{ data?: PerformanceData; keyId: string }> {
+  if (!projectId) return { keyId: "base" };
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return { data: getProjectDataset(demo), keyId: demo.id };
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return { data: getProjectDataset(project), keyId: project.id };
+  }
+  return { keyId: "base" };
 }
 
 export async function POST(request: Request) {
@@ -110,6 +132,8 @@ export async function POST(request: Request) {
     // Output language follows the user's chosen locale, so AI content matches the
     // UI language instead of always being Czech.
     const locale = await getServerLocale();
+    // Resolved once: powers the daily quota AND per-project grounding tenancy.
+    const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
     // Every tool call carries request.signal: when the client aborts (timeout,
@@ -118,55 +142,62 @@ export async function POST(request: Request) {
     switch (mode) {
       case "ads": {
         const p = validateAdRequest(body, locale);
-        return p.valid ? cachedRespond("ads", p.value, locale, () => generateAds(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("ads", p.value, locale, userId, () => generateAds(p.value, locale, request.signal)) : bad(p.error);
       }
       case "brief": {
         const p = validateBriefRequest(body, locale);
-        return p.valid ? cachedRespond("brief", p.value, locale, () => generateBrief(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("brief", p.value, locale, userId, () => generateBrief(p.value, locale, request.signal)) : bad(p.error);
       }
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
-        return p.valid ? cachedRespond("analysis", p.value, locale, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("analysis", p.value, locale, userId, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
       }
       case "chat": {
         const p = validateChatRequest(body, locale);
-        return p.valid ? cachedRespond("chat", p.value, locale, () => generateChat(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // Tenancy-checked grounding; cache by the EFFECTIVE project (keyId), so an
+        // unowned id degrades to base and never serves another tenant's answer.
+        const { data, keyId } = await resolveGrounding(p.value.projectId, userId);
+        const value: ChatRequest = { ...p.value, projectId: keyId };
+        return cachedRespond("chat", value, locale, userId, () =>
+          generateChat(p.value, locale, request.signal, data)
+        );
       }
       case "lead-reply": {
         const p = validateLeadReplyRequest(body, locale);
-        return p.valid ? cachedRespond("lead-reply", p.value, locale, () => generateLeadReply(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("lead-reply", p.value, locale, userId, () => generateLeadReply(p.value, locale, request.signal)) : bad(p.error);
       }
       case "repurpose": {
         const p = validateRepurposeRequest(body, locale);
-        return p.valid ? cachedRespond("repurpose", p.value, locale, () => generateRepurpose(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("repurpose", p.value, locale, userId, () => generateRepurpose(p.value, locale, request.signal)) : bad(p.error);
       }
       case "local-review-reply": {
         const p = validateLocalReviewReplyRequest(body, locale);
-        return p.valid ? cachedRespond("local-review-reply", p.value, locale, () => generateLocalReviewReply(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("local-review-reply", p.value, locale, userId, () => generateLocalReviewReply(p.value, locale, request.signal)) : bad(p.error);
       }
       case "article-draft": {
         const p = validateArticleDraftRequest(body, locale);
-        return p.valid ? cachedRespond("article-draft", p.value, locale, () => generateArticleDraft(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("article-draft", p.value, locale, userId, () => generateArticleDraft(p.value, locale, request.signal)) : bad(p.error);
       }
       case "cohort-diagnosis": {
         const p = validateCohortDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("cohort-diagnosis", p.value, locale, () => generateCohortDiagnosis(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("cohort-diagnosis", p.value, locale, userId, () => generateCohortDiagnosis(p.value, locale, request.signal)) : bad(p.error);
       }
       case "keyword-clusters": {
         const p = validateKeywordClustersRequest(body, locale);
-        return p.valid ? cachedRespond("keyword-clusters", p.value, locale, () => generateKeywordClusters(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("keyword-clusters", p.value, locale, userId, () => generateKeywordClusters(p.value, locale, request.signal)) : bad(p.error);
       }
       case "comparison-outline": {
         const p = validateComparisonOutlineRequest(body, locale);
-        return p.valid ? cachedRespond("comparison-outline", p.value, locale, () => generateComparisonOutline(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("comparison-outline", p.value, locale, userId, () => generateComparisonOutline(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lp-variant-ideas": {
         const p = validateLpVariantIdeasRequest(body, locale);
-        return p.valid ? cachedRespond("lp-variant-ideas", p.value, locale, () => generateLpVariantIdeas(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("lp-variant-ideas", p.value, locale, userId, () => generateLpVariantIdeas(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lead-source-diagnosis": {
         const p = validateLeadSourceDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, userId, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });

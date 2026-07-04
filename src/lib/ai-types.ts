@@ -250,6 +250,10 @@ export interface ChatRequest {
   period: AnalysisPeriod;
   /** conversation so far, oldest first, ending with the latest user turn */
   messages: ChatTurn[];
+  /** Phase-D: which project to ground on. The route resolves it to a dataset
+   *  (demo project or the caller's owned project) and falls back to the base
+   *  case-study when absent / unresolved. */
+  projectId?: string;
 }
 
 export interface ChatResult {
