@@ -1,83 +1,35 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { localizedNavItems, FOOTER_META_PAGES } from "@/lib/nav";
-import { STACK_FACTS } from "@/lib/site";
-import { Logo } from "@/components/icons";
+import { FOOTER_META_PAGES } from "@/lib/nav";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getMessages } from "@/lib/i18n/messages";
 
 export default async function Footer() {
   const locale = await getServerLocale();
   const t = getMessages(locale).footer;
-  const navItems = localizedNavItems(locale);
-  const [introBefore, introAfter] = t.intro.split("{role}");
   const copyright = t.copyright.replace("{year}", String(new Date().getFullYear()));
 
   return (
     <footer className="mt-24 border-t border-line bg-onyx text-onyx-ink">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx-soft text-brand-400">
-              <Logo width={20} height={20} />
-            </span>
-            <span className="text-[17px] font-semibold tracking-tight text-white">Adamant</span>
-          </div>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-onyx-muted">
-            {introBefore}
-            <strong className="text-white">{t.role}</strong>
-            {introAfter}
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-onyx-muted">
-            {t.pages}
-          </h2>
-          <ul className="mt-4 space-y-2.5">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="text-sm text-onyx-ink transition-colors hover:text-brand-300"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-onyx-muted">
-            {t.about}
-          </h2>
-          <ul className="mt-4 space-y-2.5 text-sm text-onyx-muted">
-            {STACK_FACTS.map((fact) => (
-              <li key={fact}>{fact}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      <div className="border-t border-onyx-line">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>{copyright}</span>
-          <span className="flex items-center gap-3">
-            {FOOTER_META_PAGES.map((p) => (
-              <Fragment key={p.href}>
-                <Link
-                  href={p.href}
-                  className="font-medium text-onyx-muted transition-colors hover:text-brand-300"
-                >
-                  {t.links[p.key]}
-                </Link>
-                <span aria-hidden className="text-onyx-line">·</span>
-              </Fragment>
-            ))}
-            <span>{t.links.crafted}</span>
-          </span>
-        </div>
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <span>{copyright}</span>
+        <span className="flex items-center gap-3">
+          {FOOTER_META_PAGES.map((p, i) => (
+            <Fragment key={p.href}>
+              {i > 0 && (
+                <span aria-hidden className="text-onyx-line">
+                  ·
+                </span>
+              )}
+              <Link
+                href={p.href}
+                className="font-medium text-onyx-muted transition-colors hover:text-brand-300"
+              >
+                {t.links[p.key]}
+              </Link>
+            </Fragment>
+          ))}
+        </span>
       </div>
     </footer>
   );
