@@ -474,4 +474,22 @@ export const LLM_TOOLS = [
     validate: (r) =>
       r && isStr(r.summary) && isStr(r.recommendation) && isStr(r.likelyCause),
   },
+  {
+    id: "chat",
+    label: "Datový report — chat",
+    system:
+      "Jsi český specialista na výkonnostní marketing. Vedeš navazující konverzaci nad reportem výkonu, odpovídáš stručně a jen z předaných čísel, a vracíš pouze validní JSON dle schématu.",
+    prompt:
+      "Data: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×. Nejslabší kanál: Sklik / Obsahová síť s PNO 34 %.\n\nKlient: Proč má Sklik / Obsahová síť tak vysoké PNO? Odpověz jednou až třemi větami.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        reply: { type: Type.STRING },
+      },
+      required: ["reply"],
+    },
+    // Lenient on purpose: assert shape/presence, not exact wording — strict
+    // every()-style checks flake under model variance (see article-draft).
+    validate: (r) => r && isStr(r.reply),
+  },
 ];

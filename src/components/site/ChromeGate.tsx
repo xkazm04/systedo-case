@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
  *  normal chrome. */
 export default function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname === "/app" || pathname.startsWith("/app/") || pathname === "/dashboard") return null;
+  if (pathname === "/app" || pathname.startsWith("/app/") || pathname === "/dashboard" || pathname.startsWith("/dashboard/"))
+    return null;
   return <>{children}</>;
 }

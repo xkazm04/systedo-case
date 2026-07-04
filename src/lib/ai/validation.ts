@@ -13,6 +13,8 @@ import {
   type AnalysisPeriod,
   type AnalysisRequest,
   type ArticleDraftRequest,
+  type ChatRequest,
+  type ChatTurn,
   type BriefKeyword,
   type BriefRequest,
   type CohortDiagnosisCohort,
@@ -150,6 +152,45 @@ export function validateAnalysisRequest(input: unknown, locale: SupportedLocale 
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };
+}
+
+/** Chat: a valid analysis period + a bounded, non-empty transcript ending on a
+ *  user turn. Caps turn count and per-turn length so the grounded prompt stays
+ *  small (the same abuse surface as every other public AI mode). */
+const CHAT_MAX_TURNS = 24;
+const CHAT_MAX_CHARS = 2000;
+
+export function validateChatRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<ChatRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const period = o.period as AnalysisPeriod;
+  if (!ANALYSIS_PERIODS.includes(period)) {
+    return { valid: false, error: t(locale, "Neplatné období analýzy.", "Invalid analysis period.") };
+  }
+  if (!Array.isArray(o.messages) || o.messages.length === 0) {
+    return { valid: false, error: t(locale, "Konverzace je prázdná.", "The conversation is empty.") };
+  }
+  if (o.messages.length > CHAT_MAX_TURNS) {
+    return { valid: false, error: t(locale, "Konverzace je příliš dlouhá.", "The conversation is too long.") };
+  }
+  const messages: ChatTurn[] = [];
+  for (const raw of o.messages) {
+    if (typeof raw !== "object" || raw === null) {
+      return { valid: false, error: t(locale, "Neplatná zpráva v konverzaci.", "Invalid message in the conversation.") };
+    }
+    const role = (raw as Record<string, unknown>).role;
+    const content = str((raw as Record<string, unknown>).content);
+    if ((role !== "user" && role !== "assistant") || !content) {
+      return { valid: false, error: t(locale, "Neplatná zpráva v konverzaci.", "Invalid message in the conversation.") };
+    }
+    messages.push({ role, content: content.slice(0, CHAT_MAX_CHARS) });
+  }
+  if (messages[messages.length - 1]!.role !== "user") {
+    return { valid: false, error: t(locale, "Poslední zpráva musí být od uživatele.", "The last message must be from the user.") };
+  }
+  return { valid: true, value: { period, messages } };
 }
 
 export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LeadReplyRequest> {

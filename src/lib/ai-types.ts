@@ -235,6 +235,29 @@ export interface AnalysisResult {
 
 export type AnalysisResponse = AiResponse<AnalysisResult>;
 
+// ---------------------------------------------------------------------------
+// Report chat — a follow-up conversation grounded in the same performance
+// snapshot as the analysis. The opening report is the deterministic analysis;
+// each turn here asks the model a free-text question about those numbers.
+// ---------------------------------------------------------------------------
+
+export interface ChatTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ChatRequest {
+  period: AnalysisPeriod;
+  /** conversation so far, oldest first, ending with the latest user turn */
+  messages: ChatTurn[];
+}
+
+export interface ChatResult {
+  reply: string;
+}
+
+export type ChatResponse = AiResponse<ChatResult>;
+
 // ===========================================================================
 // Tool 4 — campaign / portfolio evaluation (grounded in synced Google Ads data)
 // ===========================================================================

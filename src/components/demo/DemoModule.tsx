@@ -111,7 +111,7 @@ export default async function DemoModule({
     case "vykon":
       return (
         <ModulePage moduleKey="vykon">
-          <DashboardClient data={getProjectDataset(project)} />
+          <DashboardClient data={getProjectDataset(project)} reportHref="/dashboard/report" />
         </ModulePage>
       );
 

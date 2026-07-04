@@ -247,14 +247,21 @@ function Segmented<T extends string>({
   );
 }
 
-export default function DashboardClient({ data }: { data: PerformanceData }) {
+export default function DashboardClient({
+  data,
+  reportHref = "/clanek/vykon",
+}: {
+  data: PerformanceData;
+  /** Where the "Datový report" action goes — the live report→chat surface on
+   *  each real surface; defaults to the public article. */
+  reportHref?: string;
+}) {
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
 
   const [periodKey, setPeriodKey] = useState("90d");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
-  const [baselineChoice, setBaselineChoice] = useState<PeriodBaseline>("previous");
   // "See this alert in context": clicking an alert switches the chart to the
   // event's metric and pins its point (seq bumps so a repeat click re-applies).
   const [chartFocus, setChartFocus] = useState<{ date: string; seq: number } | null>(null);
@@ -270,10 +277,8 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
   };
 
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[1];
-  // YoY is hidden for the 12-month view: its adjacent comparison window already
-  // IS the whole previous year, so the two baselines would be identical.
-  const yoyAvailable = period.key !== "12m";
-  const baseline: PeriodBaseline = yoyAvailable ? baselineChoice : "previous";
+  // Comparison is always the previous equal-length period.
+  const baseline: PeriodBaseline = "previous";
   const goalPno = data.goals.pno;
 
   // Current-month goal pacing + forecast (independent of the period selector).
@@ -426,12 +431,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
           <p className="text-sm text-muted">
             {t("periodLabel")}{" "}
             <span className="font-medium text-navy-700">{t("periodLast", { n: periodLabel(period, locale) })}</span>
-            {/* name the baseline actually used — a YoY request the series can't
-                satisfy falls back to previous-period, and the text follows */}
-            <span className="text-muted">
-              {" "}
-              {result.baseline === "yoy" ? t("periodCompareYoy") : t("periodCompare")}
-            </span>
+            <span className="text-muted"> {t("periodCompare")}</span>
             {/* the series was too short for the requested window — say so instead
                 of letting „12 měsíců" silently mean a shorter span */}
             {result.truncated && (
@@ -445,7 +445,7 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             )}
           </p>
           <Link
-            href="/clanek/vykon"
+            href={reportHref}
             className="inline-flex items-center gap-1 text-sm font-medium text-brand-accent hover:underline"
           >
             {t("dataReport")} <ArrowRight width={14} height={14} />
@@ -458,26 +458,13 @@ export default function DashboardClient({ data }: { data: PerformanceData }) {
             value={periodKey}
             onChange={setPeriodKey}
           />
-          {/* comparison-baseline toggle — hidden on 12m, where the adjacent
-              window already equals the whole previous year */}
-          {yoyAvailable && (
-            <Segmented
-              ariaLabel={t("baselineSelector")}
-              options={[
-                { value: "previous" as PeriodBaseline, label: t("baselinePrevious") },
-                { value: "yoy" as PeriodBaseline, label: t("baselineYoy") },
-              ]}
-              value={baselineChoice}
-              onChange={setBaselineChoice}
-            />
-          )}
         </div>
       </div>
 
       {/* KPI cards — 1 col on small phones, 2 on larger phones, 5 on desktop.
           Keyed by period so the values ease in (staggered) on each switch. */}
       <div
-        key={`kpi-${periodKey}-${result.baseline}`}
+        key={`kpi-${periodKey}`}
         className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 sm:gap-4 lg:grid-cols-5"
       >
         {HEADLINE_METRICS.map((m, i) => (

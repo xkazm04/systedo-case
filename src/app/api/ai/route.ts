@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import {
   generateAds,
   generateAnalysis,
+  generateChat,
   generateArticleDraft,
   generateBrief,
   generateCohortDiagnosis,
@@ -16,6 +17,7 @@ import {
 import {
   validateAdRequest,
   validateAnalysisRequest,
+  validateChatRequest,
   validateArticleDraftRequest,
   validateBriefRequest,
   validateCohortDiagnosisRequest,
@@ -125,6 +127,10 @@ export async function POST(request: Request) {
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
         return p.valid ? cachedRespond("analysis", p.value, locale, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "chat": {
+        const p = validateChatRequest(body, locale);
+        return p.valid ? cachedRespond("chat", p.value, locale, () => generateChat(p.value, locale, request.signal)) : bad(p.error);
       }
       case "lead-reply": {
         const p = validateLeadReplyRequest(body, locale);

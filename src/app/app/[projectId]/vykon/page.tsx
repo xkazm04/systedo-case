@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "vykon");
   return (
     <ModulePage moduleKey="vykon">
-      <DashboardClient data={getProjectDataset(project)} />
+      <DashboardClient data={getProjectDataset(project)} reportHref={`/app/${projectId}/report`} />
     </ModulePage>
   );
 }

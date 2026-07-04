@@ -14,7 +14,7 @@ import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
 import { refineLines } from "./refine";
 
-const ANALYSIS_SYSTEM = `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
+export const ANALYSIS_SYSTEM = `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
 
 Pravidla:
 - Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
@@ -97,7 +97,7 @@ function validateAnalysis(parsed: unknown): string[] {
   return v;
 }
 
-function demoAnalysis(s: Snapshot): AnalysisResult {
+export function demoAnalysis(s: Snapshot): AnalysisResult {
   const c = s.current;
   const pnoUnder = c.pno <= s.goalPno;
   const paid = s.channels.filter((ch) => ch.cost > 0);

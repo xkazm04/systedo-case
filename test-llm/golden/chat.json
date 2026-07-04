@@ -1,0 +1,20 @@
+{
+  "id": "chat",
+  "label": "Datový report — chat",
+  "promptHash": "3dd605104a76ba3f",
+  "schemaKeys": [
+    "reply"
+  ],
+  "system": "Jsi český specialista na výkonnostní marketing. Vedeš navazující konverzaci nad reportem výkonu, odpovídáš stručně a jen z předaných čísel, a vracíš pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "reply": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "reply"
+    ],
+    "type": "OBJECT"
+  }
+}

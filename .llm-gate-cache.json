@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-04T08:37:48.398Z",
+  "provenAt": "2026-07-04T14:25:59.186Z",
   "files": {
     "src/lib/llm/index.ts": "3968f85c5ddf2a0835cab7928443d1e52aaea498e4fd5eee2633aa96fdd61762",
     "src/lib/llm/claude.ts": "dadda4fbc837e96bd7a2f2333d6a1281941472d31d2ab3f9572fcf07a74049fa",
@@ -10,7 +10,7 @@
     "src/lib/ai/tools/_shared.ts": "8677f577eb1a5c874771e9a7669e8a14c4173f714b8e378519a2dd6f308ab8e6",
     "src/lib/ai/tools/ads.ts": "1a5ebfdb927751d64e7be08423e4b2dee36926d4faa7c20caac39a3990518a45",
     "src/lib/ai/tools/brief.ts": "e1eb7a823bf76d03f97bc95e853eacceea6f7c42c0ef68db0d99d14884a399f4",
-    "src/lib/ai/tools/analysis.ts": "fc499cc66cdcea2ff0f15b6e119e8f92488d8aa79fa24862e586117a75f08c41",
+    "src/lib/ai/tools/analysis.ts": "29c4141c8411a3f6ef88f68502b58816a6aedd72dd7063c3e6c6fbd4e3ffa874",
     "src/lib/ai/tools/campaign-eval.ts": "0918b095da41c1c1508201a4acac21d4e9748209f7b17a4df613561d724fa318",
     "src/lib/ai/tools/lead-reply.ts": "2c7f44f4ef39c311c73284842b619d28867e824f2b586631d072fcc779499ce6",
     "src/lib/ai/tools/repurpose.ts": "482ea902357b4c68e16030f8e868a5e4ced5579e827f4aff682f0b39e4d1f875",
@@ -21,9 +21,10 @@
     "src/lib/ai/tools/comparison-outline.ts": "6859aa1a97f2bfd1b02b4b75c9d09f02f32d39e4bb6d1baa152b8aa92cbaefc1",
     "src/lib/ai/tools/lp-variant-ideas.ts": "8f3ba53646f5834cd0e3d4c9d4248d5fa1bc8fdd40843e969d09f7d598c32e15",
     "src/lib/ai/tools/lead-source-diagnosis.ts": "e32437ba040c91a3f36fa82f16ec4712e07d01cb31e6a475bf5e75d9ee900539",
-    "src/app/api/ai/route.ts": "1b7c242186a1c016b6973f2dcf45058b1ddadf228d614754873d29db933e03c9",
+    "src/lib/ai/tools/chat.ts": "5f46c3fd5d7c0af47b655a73d31c1d7fc1f7bb5853438f05280c4a7259f71ff1",
+    "src/app/api/ai/route.ts": "6ded3d0fa60e5689fa88bc65468013d153b13d65ee2a20316b78664c8850c16f",
     "src/app/api/campaigns/analyze/route.ts": "a069384cce506d83d452bc67d6313b974786af5bb86bd7fd8683ca8814a6c960",
-    "test-llm/registry.mjs": "415508150718e396242728b02f31e041e9a1837991b354f82dd742e959dfc615",
+    "test-llm/registry.mjs": "3a34096dce7c75e9d0d8b71ef7150a64782d84cf7c3525b3b871b4b3f87bf2f2",
     "test-llm/real.test.mjs": "f24ee41d0fb9a1b0ad574e9c78869e7e9da8c53d363de5002bf2b533e1b360e3",
     "test-llm/setup.mjs": "4d62e067901dc6556781321a86e7543b005136ba8098a87db1cc86520459bafe",
     "test-llm/resolve-hooks.mjs": "aa857ceecccc973b33e0dcd91040facacbf05b472978b3c55dd377ba9c06ab14"
@@ -42,22 +43,24 @@
     "keyword-clusters": "6346ba6588a6a813",
     "comparison-outline": "5a419c226fb8347d",
     "lp-variant-ideas": "d30750247299eb77",
-    "lead-source-diagnosis": "133a98b920f44a6c"
+    "lead-source-diagnosis": "133a98b920f44a6c",
+    "chat": "09163f3ca8890a44"
   },
   "tools": {
-    "ads": "2026-07-04T08:37:48.398Z",
-    "brief": "2026-07-04T08:37:48.398Z",
-    "analysis": "2026-07-04T08:37:48.398Z",
-    "campaign-eval": "2026-07-04T08:37:48.398Z",
-    "social": "2026-07-04T08:37:48.398Z",
-    "lead-reply": "2026-07-04T08:37:48.398Z",
-    "repurpose": "2026-07-04T08:37:48.398Z",
-    "local-review-reply": "2026-07-04T08:37:48.398Z",
-    "article-draft": "2026-07-04T08:37:48.398Z",
-    "cohort-diagnosis": "2026-07-04T08:37:48.398Z",
-    "keyword-clusters": "2026-07-04T08:37:48.398Z",
-    "comparison-outline": "2026-07-04T08:37:48.398Z",
-    "lp-variant-ideas": "2026-07-04T08:37:48.398Z",
-    "lead-source-diagnosis": "2026-07-04T08:37:48.398Z"
+    "ads": "2026-07-04T14:25:59.186Z",
+    "brief": "2026-07-04T14:25:59.186Z",
+    "analysis": "2026-07-04T14:25:59.186Z",
+    "campaign-eval": "2026-07-04T14:25:59.186Z",
+    "social": "2026-07-04T14:25:59.186Z",
+    "lead-reply": "2026-07-04T14:25:59.186Z",
+    "repurpose": "2026-07-04T14:25:59.186Z",
+    "local-review-reply": "2026-07-04T14:25:59.186Z",
+    "article-draft": "2026-07-04T14:25:59.186Z",
+    "cohort-diagnosis": "2026-07-04T14:25:59.186Z",
+    "keyword-clusters": "2026-07-04T14:25:59.186Z",
+    "comparison-outline": "2026-07-04T14:25:59.186Z",
+    "lp-variant-ideas": "2026-07-04T14:25:59.186Z",
+    "lead-source-diagnosis": "2026-07-04T14:25:59.186Z",
+    "chat": "2026-07-04T14:25:59.186Z"
   }
 }
