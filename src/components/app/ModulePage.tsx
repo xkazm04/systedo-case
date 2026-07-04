@@ -35,7 +35,14 @@ export default async function ModulePage({
           </h2>
           {desc && <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{desc}</p>}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {/* Right side, opposite the title. Static server `actions` render here;
+            a client module can also portal header content (e.g. Campaigns' KPI
+            badges) into `#module-header-actions` — display:contents so its
+            children join this flex row. */}
+        <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+          {actions}
+          <span id="module-header-actions" className="contents" />
+        </div>
       </div>
       {children}
     </div>

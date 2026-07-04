@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Sparkles } from "@/components/icons";
 import ReportView from "@/components/campaigns/ReportView";
-import PortfolioTrend from "@/components/campaigns/PortfolioTrend";
 import TypeBreakdown from "@/components/campaigns/TypeBreakdown";
 import PrintButton from "@/components/campaigns/PrintButton";
 import { getSharedReport } from "@/lib/campaigns/shared-report";
@@ -118,13 +117,6 @@ export default async function SharedReportPage({
             </div>
           ))}
         </div>
-
-        {/* daily trend */}
-        {shared.series.length >= 2 && (
-          <div className="mt-6">
-            <PortfolioTrend series={shared.series} />
-          </div>
-        )}
 
         {/* by-type breakdown */}
         <div className="mt-6">

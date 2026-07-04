@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { Bolt, Gauge, Info, Layers, Refresh, Share, Sparkles } from "@/components/icons";
 import { Button } from "@/components/ui";
@@ -25,7 +26,6 @@ import AlertsInbox from "./AlertsInbox";
 import ActivityFeed from "./ActivityFeed";
 import CampaignTable, { loadFilters } from "./CampaignTable";
 import HealthTimeline from "./HealthTimeline";
-import PortfolioTrend from "./PortfolioTrend";
 import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
 import SharedReportsList from "./SharedReportsList";
@@ -127,7 +127,6 @@ export default function CampaignsClient() {
     staleKeys,
     histories,
     changes,
-    series,
     campaignSeries,
     snapshotSummaries,
     loading,
@@ -146,6 +145,14 @@ export default function CampaignsClient() {
   // tenant), so anonymous visitors don't see a button that can't work.
   const { status: sessionStatus } = useSession();
   const authed = sessionStatus === "authenticated";
+  // Portal host for the header badges (rendered into ModulePage's header slot,
+  // opposite the title). Resolved after mount so the target div exists in the DOM.
+  const [headerHost, setHeaderHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    // Resolve the portal target once the header is committed to the DOM.
+    const resolveHost = () => setHeaderHost(document.getElementById("module-header-actions"));
+    resolveHost();
+  }, []);
   // The user's explicit pick wins; otherwise mirror the synced period (so the
   // toolbar highlight matches the data on screen after a reload) and default to 30d.
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
@@ -267,6 +274,25 @@ export default function CampaignsClient() {
 
   return (
     <div className="space-y-8">
+      {/* Portfolio KPIs, minimized to badges in the page header (opposite the
+          title) via a portal into ModulePage's header slot. */}
+      {headerHost &&
+        createPortal(
+          <>
+            {kpis.map((k) => (
+              <span
+                key={k.label}
+                title={k.hint}
+                className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs"
+              >
+                <span className="text-muted">{k.label}</span>
+                <span className="tnum font-semibold text-navy-800">{k.value}</span>
+              </span>
+            ))}
+          </>,
+          headerHost
+        )}
+
       {/* toolbar */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-wrap items-center gap-2">
@@ -328,19 +354,36 @@ export default function CampaignsClient() {
       {/* connect a Google Ads account (live data) — sample data otherwise */}
       <AdsAccountPicker onConnected={() => sync(period)} />
 
-      {/* portfolio KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="card p-4">
-            <p className="text-xs text-muted">{k.label}</p>
-            <p className="tnum mt-1 text-xl font-semibold text-navy-800">{k.value}</p>
-            {k.hint && <p className="mt-0.5 text-xs text-muted">{k.hint}</p>}
+      {/* per-campaign table — the primary view, moved to the top so row-by-row
+          triage is the first thing in focus */}
+      <section>
+        <div className="mb-3 flex items-baseline justify-between">
+          <h2 className="text-sm font-semibold text-navy-800">{t("campaignsHeading")}</h2>
+          <span className="text-xs text-muted">{t("campaignCount", { n: campaigns.length })}</span>
+        </div>
+        {/* deterministic health timeline from stored snapshots — the rule-based
+            counterpart of the AI score history, sitting next to the triage banner */}
+        {snapshotSummaries.length >= 2 && (
+          <div className="mb-3">
+            <HealthTimeline points={snapshotSummaries} />
           </div>
-        ))}
-      </div>
-
-      {/* daily portfolio trend (from the date-segmented series) */}
-      {series.length >= 2 && <PortfolioTrend series={series} />}
+        )}
+        <CampaignTable
+          campaigns={campaigns}
+          reports={reports}
+          staleKeys={staleKeys}
+          histories={histories}
+          analyzing={analyzing}
+          analyzeErrors={analyzeErrors}
+          cached={cached}
+          changesById={changesById}
+          onAnalyze={(id) => analyze("campaign", id, period)}
+          period={period}
+          campaignSeries={campaignSeries}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+        />
+      </section>
 
       {/* what changed since the previous sync */}
       {changes && changes.items.length > 0 && <ChangeStrip changes={changes} />}
@@ -486,36 +529,6 @@ export default function CampaignsClient() {
 
       {/* governed budget control plane: simulate → approve → ledger → revert */}
       <ControlPlane />
-
-      {/* per-campaign table */}
-      <section>
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold text-navy-800">{t("campaignsHeading")}</h2>
-          <span className="text-xs text-muted">{t("campaignCount", { n: campaigns.length })}</span>
-        </div>
-        {/* deterministic health timeline from stored snapshots — the rule-based
-            counterpart of the AI score history, sitting next to the triage banner */}
-        {snapshotSummaries.length >= 2 && (
-          <div className="mb-3">
-            <HealthTimeline points={snapshotSummaries} />
-          </div>
-        )}
-        <CampaignTable
-          campaigns={campaigns}
-          reports={reports}
-          staleKeys={staleKeys}
-          histories={histories}
-          analyzing={analyzing}
-          analyzeErrors={analyzeErrors}
-          cached={cached}
-          changesById={changesById}
-          onAnalyze={(id) => analyze("campaign", id, period)}
-          period={period}
-          campaignSeries={campaignSeries}
-          typeFilter={typeFilter}
-          onTypeFilterChange={setTypeFilter}
-        />
-      </section>
     </div>
   );
 }
