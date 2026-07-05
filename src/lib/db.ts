@@ -13,7 +13,7 @@
 import "server-only";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 // Survive Next.js dev hot-reload: keep a single connection on globalThis instead
 // of opening a new handle every time this module is re-evaluated. We also remember
@@ -21,10 +21,25 @@ import { join } from "node:path";
 // outlived an HMR across a schema change still picks up new tables/columns.
 const g = globalThis as unknown as { __systedoDb?: DatabaseSync; __systedoSchema?: string };
 
-/** Additive migrations for databases created before a column existed — a
- *  `CREATE TABLE IF NOT EXISTS` won't add a column to an already-existing table.
- *  Empty now that the campaign/report tables moved to Firestore. */
-const MIGRATIONS: string[] = [];
+/** Additive column migrations for databases created before a column existed — a
+ *  `CREATE TABLE IF NOT EXISTS` won't add a column to an already-existing table. Each
+ *  is applied ONLY when the column is actually missing (checked via PRAGMA), so the N
+ *  test processes that share `.data/systedo.db` don't all fire the same ALTER at once
+ *  and contend on the write lock. */
+const COLUMN_MIGRATIONS: { table: string; column: string; ddl: string }[] = [
+  // Generic ERP adapter config (endpoint/format/mapping) for warehouse_connection.
+  {
+    table: "warehouse_connection",
+    column: "config_json",
+    ddl: "ALTER TABLE warehouse_connection ADD COLUMN config_json TEXT",
+  },
+];
+
+function hasColumn(db: DatabaseSync, table: string, column: string): boolean {
+  return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some(
+    (c) => c.name === column
+  );
+}
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS rate_limits (
@@ -82,6 +97,7 @@ const SCHEMA = `
     provider     TEXT NOT NULL,
     inventory_id TEXT,
     token_enc    TEXT,
+    config_json  TEXT,
     connected_at TEXT NOT NULL,
     last_sync_at TEXT,
     PRIMARY KEY (user_id, project_id)
@@ -90,14 +106,16 @@ const SCHEMA = `
 
 /** Marker identifying the current schema definition; when it changes, the schema
  *  is (idempotently) re-applied even to a cached handle. */
-const SCHEMA_KEY = `${SCHEMA}\n--migrations--\n${MIGRATIONS.join("\n")}`;
+const SCHEMA_KEY = `${SCHEMA}\n--migrations--\n${COLUMN_MIGRATIONS.map((m) => m.ddl).join("\n")}`;
 
 export function getDb(): DatabaseSync {
   let db = g.__systedoDb;
   if (!db) {
-    const dir = join(process.cwd(), ".data");
-    mkdirSync(dir, { recursive: true });
-    db = new DatabaseSync(join(dir, "systedo.db"));
+    // The test runner spawns one process per test file, all sharing this file; it sets
+    // SYSTEDO_DB_FILE to a per-process path so parallel suites don't contend on one db.
+    const dbFile = process.env.SYSTEDO_DB_FILE || join(process.cwd(), ".data", "systedo.db");
+    mkdirSync(dirname(dbFile), { recursive: true });
+    db = new DatabaseSync(dbFile);
     db.exec("PRAGMA journal_mode = WAL;");
     // Wait briefly for a contended write instead of throwing SQLITE_BUSY at once.
     // node:sqlite is synchronous, and the cron sync, concurrent requests, the
@@ -114,11 +132,12 @@ export function getDb(): DatabaseSync {
   // restart, and a db file created before a table existed get it created.
   if (g.__systedoSchema !== SCHEMA_KEY) {
     db.exec(SCHEMA);
-    for (const stmt of MIGRATIONS) {
+    for (const m of COLUMN_MIGRATIONS) {
+      if (hasColumn(db, m.table, m.column)) continue; // fresh db already has it via CREATE
       try {
-        db.exec(stmt);
+        db.exec(m.ddl);
       } catch {
-        /* column already exists — node:sqlite throws, which is fine */
+        /* a concurrent process added it first — node:sqlite throws, which is fine */
       }
     }
     g.__systedoSchema = SCHEMA_KEY;

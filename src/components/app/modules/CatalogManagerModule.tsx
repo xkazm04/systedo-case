@@ -96,6 +96,15 @@ const T = {
     lastSync: "poslední synchronizace",
     neverSynced: "zatím nesynchronizováno",
     disconnect: "Odpojit",
+    erpHint: "Napojte libovolné ERP/WMS přes HTTP endpoint vracející JSON nebo CSV.",
+    erpEndpoint: "URL koncového bodu",
+    erpFormat: "Formát",
+    erpAuth: "Ověření",
+    erpAuthNone: "Bez ověření",
+    erpAuthHeader: "Vlastní hlavička",
+    erpItemsPath: "Cesta k položkám (JSON)",
+    erpMapping: "Mapování polí",
+    erpMappingHint: "Názvy zdrojových polí z odpovědi ERP. SKU a název jsou povinné.",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -171,6 +180,15 @@ const T = {
     lastSync: "last sync",
     neverSynced: "not synced yet",
     disconnect: "Disconnect",
+    erpHint: "Connect any ERP/WMS via an HTTP endpoint returning JSON or CSV.",
+    erpEndpoint: "Endpoint URL",
+    erpFormat: "Format",
+    erpAuth: "Auth",
+    erpAuthNone: "None",
+    erpAuthHeader: "Custom header",
+    erpItemsPath: "Items path (JSON)",
+    erpMapping: "Field mapping",
+    erpMappingHint: "Source field names from the ERP response. SKU and name are required.",
   },
 } as const;
 
@@ -239,6 +257,17 @@ export default function CatalogManagerModule({
   const [feedUrl, setFeedUrl] = useState("");
   const [syncProvider, setSyncProvider] = useState("demo");
   const [syncToken, setSyncToken] = useState("");
+  const [erpCfg, setErpCfg] = useState({
+    endpoint: "",
+    format: "json" as "json" | "csv",
+    itemsPath: "data.products",
+    auth: "none" as "none" | "bearer" | "header",
+    mapSku: "sku",
+    mapName: "name",
+    mapPrice: "price",
+    mapStock: "stock",
+  });
+  const setErp = (patch: Partial<typeof erpCfg>) => setErpCfg((c) => ({ ...c, ...patch }));
   const [importStrategy, setImportStrategy] = useState<"merge" | "replace">("merge");
   const [importState, setImportState] = useState<
     "idle" | "previewing" | "preview" | "importing" | "done" | "error"
@@ -255,8 +284,16 @@ export default function CatalogManagerModule({
   const hasFeedInput = feedText.trim() !== "" || feedUrl.trim() !== "";
   const selectedProvider = SYNC_PROVIDERS.find((p) => p.id === syncProvider);
   const isWarehouse = importSource === "warehouse";
+  const isErp = selectedProvider?.id === "erp";
+  const erpNeedsToken = isErp && erpCfg.auth !== "none";
   const hasConnectInput =
-    !!selectedProvider?.implemented && (!selectedProvider.needsToken || syncToken.trim() !== "");
+    !!selectedProvider?.implemented &&
+    (isErp
+      ? erpCfg.endpoint.trim() !== "" &&
+        erpCfg.mapSku.trim() !== "" &&
+        erpCfg.mapName.trim() !== "" &&
+        (!erpNeedsToken || syncToken.trim() !== "")
+      : !selectedProvider.needsToken || syncToken.trim() !== "");
   // Feed: needs pasted/URL input. Warehouse: syncs through the persisted connection.
   const hasImportInput = isWarehouse ? syncConn != null : hasFeedInput;
   const providerLabel = (pid: string) => SYNC_PROVIDERS.find((p) => p.id === pid)?.label ?? pid;
@@ -280,10 +317,30 @@ export default function CatalogManagerModule({
     if (!hasConnectInput || connBusy) return;
     setConnBusy(true);
     try {
+      const payload = isErp
+        ? {
+            provider: "erp",
+            token: erpNeedsToken ? syncToken.trim() || undefined : undefined,
+            config: {
+              endpoint: erpCfg.endpoint.trim(),
+              format: erpCfg.format,
+              auth: erpCfg.auth,
+              ...(erpCfg.format === "json" && erpCfg.itemsPath.trim()
+                ? { itemsPath: erpCfg.itemsPath.trim() }
+                : {}),
+              mapping: {
+                sku: erpCfg.mapSku.trim(),
+                name: erpCfg.mapName.trim(),
+                ...(erpCfg.mapPrice.trim() ? { price: erpCfg.mapPrice.trim() } : {}),
+                ...(erpCfg.mapStock.trim() ? { stock: erpCfg.mapStock.trim() } : {}),
+              },
+            },
+          }
+        : { provider: syncProvider, token: syncToken.trim() || undefined };
       const res = await fetch(`/api/projects/${projectId}/warehouse`, {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ provider: syncProvider, token: syncToken.trim() || undefined }),
+        body: JSON.stringify(payload),
       });
       const j = await res.json();
       if (res.ok && j.connection) {
@@ -584,7 +641,98 @@ export default function CatalogManagerModule({
                       ))}
                     </select>
                   </label>
-                  {selectedProvider?.needsToken ? (
+                  {isErp ? (
+                    <div className="grid gap-2">
+                      <p className="text-[11px] text-muted">{t("erpHint")}</p>
+                      <label className="block">
+                        <span className="text-xs font-medium text-navy-700">{t("erpEndpoint")}</span>
+                        <input
+                          value={erpCfg.endpoint}
+                          onChange={(e) => setErp({ endpoint: e.target.value })}
+                          placeholder="https://erp.example.cz/api/products"
+                          autoComplete="off"
+                          className={`${inputBase} mt-1 w-full font-mono text-xs`}
+                        />
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block">
+                          <span className="text-xs font-medium text-navy-700">{t("erpFormat")}</span>
+                          <select
+                            value={erpCfg.format}
+                            onChange={(e) => setErp({ format: e.target.value as "json" | "csv" })}
+                            className={`${inputBase} mt-1 w-full cursor-pointer`}
+                          >
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                          </select>
+                        </label>
+                        <label className="block">
+                          <span className="text-xs font-medium text-navy-700">{t("erpAuth")}</span>
+                          <select
+                            value={erpCfg.auth}
+                            onChange={(e) => setErp({ auth: e.target.value as "none" | "bearer" | "header" })}
+                            className={`${inputBase} mt-1 w-full cursor-pointer`}
+                          >
+                            <option value="none">{t("erpAuthNone")}</option>
+                            <option value="bearer">Bearer token</option>
+                            <option value="header">{t("erpAuthHeader")}</option>
+                          </select>
+                        </label>
+                      </div>
+                      {erpCfg.format === "json" && (
+                        <label className="block">
+                          <span className="text-xs font-medium text-navy-700">{t("erpItemsPath")}</span>
+                          <input
+                            value={erpCfg.itemsPath}
+                            onChange={(e) => setErp({ itemsPath: e.target.value })}
+                            placeholder="data.products"
+                            autoComplete="off"
+                            className={`${inputBase} mt-1 w-full font-mono text-xs`}
+                          />
+                        </label>
+                      )}
+                      <div>
+                        <span className="text-xs font-medium text-navy-700">{t("erpMapping")}</span>
+                        <div className="mt-1 grid grid-cols-2 gap-2">
+                          {(
+                            [
+                              ["mapSku", "SKU", true],
+                              ["mapName", t("namePh"), true],
+                              ["mapPrice", t("price"), false],
+                              ["mapStock", t("stock"), false],
+                            ] as const
+                          ).map(([k, label, req]) => (
+                            <label key={k} className="block">
+                              <span className="text-[11px] text-muted">
+                                {label}
+                                {req ? " *" : ""}
+                              </span>
+                              <input
+                                value={erpCfg[k]}
+                                onChange={(e) => setErp({ [k]: e.target.value } as Partial<typeof erpCfg>)}
+                                autoComplete="off"
+                                className={`${inputBase} mt-0.5 w-full font-mono text-xs`}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                        <p className="mt-1 text-[11px] text-muted">{t("erpMappingHint")}</p>
+                      </div>
+                      {erpNeedsToken && (
+                        <label className="block">
+                          <span className="text-xs font-medium text-navy-700">{t("token")}</span>
+                          <input
+                            type="password"
+                            value={syncToken}
+                            onChange={(e) => setSyncToken(e.target.value)}
+                            placeholder={t("tokenPlaceholder")}
+                            autoComplete="off"
+                            className={`${inputBase} mt-1 w-full`}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  ) : selectedProvider?.needsToken ? (
                     <label className="block">
                       <span className="text-xs font-medium text-navy-700">{t("token")}</span>
                       <input

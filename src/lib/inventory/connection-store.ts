@@ -4,20 +4,25 @@
  *  token blob never leaves the server decrypted except in the sync path. Server-only. */
 import { LOCAL_DB } from "@/lib/local-mode";
 
-/** The stored record — `tokenEnc` is the AES-GCM blob from token-crypto.ts. */
+/** The stored record — `tokenEnc` is the AES-GCM blob from token-crypto.ts; `config`
+ *  holds the generic ERP adapter's endpoint/format/mapping (not secret — the token is
+ *  the only secret and it lives, encrypted, in `tokenEnc`). */
 export interface StoredConnection {
   provider: string;
   inventoryId?: string;
   tokenEnc?: string;
+  config?: Record<string, unknown>;
   connectedAt: string;
   lastSyncAt?: string;
 }
 
-/** Client-safe view — no token bytes, just whether one is stored. */
+/** Client-safe view — no token bytes, just whether one is stored. `config` is safe to
+ *  return (endpoint/mapping, no credentials) so the UI can show + edit it. */
 export interface PublicConnection {
   provider: string;
   inventoryId?: string;
   hasToken: boolean;
+  config?: Record<string, unknown>;
   connectedAt: string;
   lastSyncAt?: string;
 }
@@ -35,6 +40,7 @@ export function publicConnection(c: StoredConnection): PublicConnection {
     provider: c.provider,
     inventoryId: c.inventoryId,
     hasToken: Boolean(c.tokenEnc),
+    ...(c.config ? { config: c.config } : {}),
     connectedAt: c.connectedAt,
     lastSyncAt: c.lastSyncAt,
   };

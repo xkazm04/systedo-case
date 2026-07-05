@@ -24,11 +24,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     provider?: unknown;
     token?: unknown;
     inventoryId?: unknown;
+    config?: unknown;
     mode?: unknown;
     strategy?: unknown;
   } | null;
 
-  // Provider/token from the request, else from the persisted connection.
+  // Provider/token/config from the request, else from the persisted connection.
   const stored = await getConnection(uid, id);
   const providerId = (typeof body?.provider === "string" && body.provider) || stored?.provider || "";
   const useStored = stored?.provider === providerId;
@@ -37,6 +38,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!token && useStored && stored.tokenEnc) token = decryptToken(stored.tokenEnc) ?? "";
   const inventoryId =
     (typeof body?.inventoryId === "string" && body.inventoryId) || (useStored ? stored.inventoryId : undefined);
+  const config =
+    (body?.config && typeof body.config === "object" ? body.config : undefined) ??
+    (useStored ? stored.config : undefined);
   const strategy = STRATEGIES.includes(body?.strategy as ImportStrategy)
     ? (body!.strategy as ImportStrategy)
     : "merge";
@@ -46,6 +50,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     providerId,
     token,
     inventoryId,
+    config,
     strategy,
     apply,
     now: new Date(),
@@ -59,6 +64,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return Response.json({ error: `Napojení na ${result.provider} připravujeme.` }, { status: 501 });
     case "no-token":
       return Response.json({ error: `${result.provider} vyžaduje API token.` }, { status: 400 });
+    case "no-config":
+      return Response.json({ error: `${result.provider} vyžaduje konfiguraci koncového bodu.` }, { status: 400 });
     case "provider-error":
       return Response.json({ error: result.message }, { status: 502 });
     case "empty":

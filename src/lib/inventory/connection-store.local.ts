@@ -9,6 +9,7 @@ interface Row {
   provider: string;
   inventory_id: string | null;
   token_enc: string | null;
+  config_json: string | null;
   connected_at: string;
   last_sync_at: string | null;
 }
@@ -18,11 +19,22 @@ interface OwnedRow extends Row {
   project_id: string;
 }
 
+function parseConfig(json: string | null): Record<string, unknown> | undefined {
+  if (!json) return undefined;
+  try {
+    const v = JSON.parse(json);
+    return v && typeof v === "object" ? (v as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function toStored(r: Row): StoredConnection {
   return {
     provider: r.provider,
     inventoryId: r.inventory_id || undefined,
     tokenEnc: r.token_enc || undefined,
+    config: parseConfig(r.config_json),
     connectedAt: r.connected_at,
     lastSyncAt: r.last_sync_at || undefined,
   };
@@ -47,12 +59,13 @@ export async function saveConnection(userId: string, projectId: string, conn: St
   getDb()
     .prepare(
       `INSERT INTO warehouse_connection
-         (user_id, project_id, provider, inventory_id, token_enc, connected_at, last_sync_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+         (user_id, project_id, provider, inventory_id, token_enc, config_json, connected_at, last_sync_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, project_id) DO UPDATE SET
          provider = excluded.provider,
          inventory_id = excluded.inventory_id,
          token_enc = excluded.token_enc,
+         config_json = excluded.config_json,
          connected_at = excluded.connected_at,
          last_sync_at = excluded.last_sync_at`
     )
@@ -62,6 +75,7 @@ export async function saveConnection(userId: string, projectId: string, conn: St
       conn.provider,
       conn.inventoryId ?? null,
       conn.tokenEnc ?? null,
+      conn.config ? JSON.stringify(conn.config) : null,
       conn.connectedAt,
       conn.lastSyncAt ?? null
     );

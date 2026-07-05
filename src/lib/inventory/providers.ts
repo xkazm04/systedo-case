@@ -33,13 +33,18 @@ export interface SyncProviderMeta {
   needsToken: boolean;
   /** whether this cycle actually implements the fetch (else "coming soon"). */
   implemented: boolean;
+  /** whether the provider needs an endpoint/mapping config (the generic ERP adapter). */
+  needsConfig?: boolean;
 }
 
-/** The providers offered in the sync picker: a credential-free demo, Baselinker
- *  (implemented, credential-gated), and the rest registered as coming-soon. */
+/** The providers offered in the sync picker: credential-free demos, Baselinker and the
+ *  generic ERP adapter (implemented), and the vendor-specific ERPs as coming-soon (they
+ *  are reachable today via the generic "Obecné ERP" adapter). */
 export const SYNC_PROVIDERS: SyncProviderMeta[] = [
   { id: "demo", label: "Ukázkový sklad (demo)", needsToken: false, implemented: true },
   { id: "baselinker", label: "Baselinker", needsToken: true, implemented: true },
+  { id: "erp", label: "Obecné ERP (CSV/JSON)", needsToken: false, implemented: true, needsConfig: true },
+  { id: "erp-demo", label: "Ukázkové ERP (demo)", needsToken: false, implemented: true },
   { id: "shipmonk", label: "ShipMonk", needsToken: true, implemented: false },
   { id: "skladon", label: "Skladon", needsToken: true, implemented: false },
   { id: "pohoda", label: "POHODA", needsToken: true, implemented: false },
@@ -61,6 +66,8 @@ export function sourceForProvider(id: string): OfferingSource {
       return "shipmonk";
     case "skladon":
       return "skladon";
+    case "erp":
+    case "erp-demo":
     case "pohoda":
     case "money-s3":
     case "helios":

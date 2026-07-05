@@ -15,21 +15,33 @@ import {
   type ProviderProduct,
 } from "./providers";
 import { BaselinkerError, fetchBaselinkerProducts } from "./baselinker";
+import { ErpError, fetchErpProducts, parseErpConfig, demoErpProducts } from "./erp";
 import { saveConnection, type StoredConnection } from "./connection-store";
 
-/** Fetch a provider's products. Throws (BaselinkerError / Error) on a provider failure. */
+/** Fetch a provider's products. Throws (BaselinkerError / ErpError / Error) on a
+ *  provider failure. `config` carries the generic ERP adapter's endpoint/mapping. */
 export async function resolveProviderProducts(
   providerId: string,
   token: string,
   inventoryId: string | undefined,
-  now: Date
+  now: Date,
+  config?: unknown
 ): Promise<ProviderProduct[]> {
   if (providerId === "demo") return demoWarehouseProducts(now);
+  if (providerId === "erp-demo") return demoErpProducts();
   if (providerId === "baselinker") return fetchBaselinkerProducts(token, inventoryId);
+  if (providerId === "erp") return fetchErpProducts(parseErpConfig(config), token);
   throw new Error(`Provider ${providerId} not implemented.`);
 }
 
-export type SyncCode = "ok" | "unknown-provider" | "not-implemented" | "no-token" | "provider-error" | "empty";
+export type SyncCode =
+  | "ok"
+  | "unknown-provider"
+  | "not-implemented"
+  | "no-token"
+  | "no-config"
+  | "provider-error"
+  | "empty";
 
 export interface SyncResult {
   code: SyncCode;
@@ -44,6 +56,8 @@ export interface SyncOpts {
   providerId: string;
   token: string;
   inventoryId?: string;
+  /** the generic ERP adapter's endpoint/format/mapping (raw; parsed per-run). */
+  config?: unknown;
   strategy: ImportStrategy;
   apply: boolean;
   now: Date;
@@ -58,15 +72,16 @@ export async function runCatalogSync(userId: string, projectId: string, opts: Sy
   if (!meta) return { code: "unknown-provider" };
   if (!meta.implemented) return { code: "not-implemented", provider: meta.label };
   if (meta.needsToken && !opts.token) return { code: "no-token", provider: meta.label };
+  if (meta.needsConfig && !opts.config) return { code: "no-config", provider: meta.label };
 
   let products: ProviderProduct[];
   try {
-    products = await resolveProviderProducts(opts.providerId, opts.token, opts.inventoryId, opts.now);
+    products = await resolveProviderProducts(opts.providerId, opts.token, opts.inventoryId, opts.now, opts.config);
   } catch (e) {
     return {
       code: "provider-error",
       provider: meta.label,
-      message: e instanceof BaselinkerError ? e.message : "Synchronizace selhala.",
+      message: e instanceof BaselinkerError || e instanceof ErpError ? e.message : "Synchronizace selhala.",
     };
   }
   if (products.length === 0) return { code: "empty", provider: meta.label };

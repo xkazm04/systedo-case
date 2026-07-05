@@ -5,6 +5,8 @@ import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { syncProvider } from "@/lib/inventory/providers";
 import { encryptToken, hasTokenCrypto } from "@/lib/inventory/token-crypto";
+import { ErpError, parseErpConfig, type ErpAdapterConfig } from "@/lib/inventory/erp";
+import { FeedFetchError, validateFeedUrl } from "@/lib/catalog/feed-fetch";
 import {
   deleteConnection,
   getConnection,
@@ -36,7 +38,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!auth.ok) return auth.res;
 
   const body = (await req.json().catch(() => null)) as
-    | { provider?: unknown; token?: unknown; inventoryId?: unknown }
+    | { provider?: unknown; token?: unknown; inventoryId?: unknown; config?: unknown }
     | null;
 
   const providerId = typeof body?.provider === "string" ? body.provider : "";
@@ -48,8 +50,25 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const token = typeof body?.token === "string" ? body.token.trim() : "";
   const inventoryId = typeof body?.inventoryId === "string" ? body.inventoryId.trim() || undefined : undefined;
 
+  // Generic ERP adapter: validate the endpoint/mapping config (+ pre-check the endpoint
+  // against the SSRF guard so a bad URL is rejected at connect time, not first sync).
+  let config: ErpAdapterConfig | undefined;
+  let tokenRequired = meta.needsToken;
+  if (meta.needsConfig) {
+    try {
+      config = parseErpConfig(body?.config);
+      validateFeedUrl(config.endpoint);
+    } catch (e) {
+      if (e instanceof ErpError || e instanceof FeedFetchError) {
+        return Response.json({ error: e.message }, { status: 400 });
+      }
+      throw e;
+    }
+    tokenRequired = config.auth !== "none";
+  }
+
   let tokenEnc: string | undefined;
-  if (meta.needsToken) {
+  if (tokenRequired) {
     if (!token) return Response.json({ error: `${meta.label} vyžaduje API token.` }, { status: 400 });
     if (!hasTokenCrypto()) {
       return Response.json(
@@ -64,6 +83,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     provider: providerId,
     inventoryId,
     tokenEnc,
+    ...(config ? { config: config as unknown as Record<string, unknown> } : {}),
     connectedAt: new Date().toISOString(),
   };
   await saveConnection(auth.uid, id, conn);

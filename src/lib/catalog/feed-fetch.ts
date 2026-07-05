@@ -120,7 +120,7 @@ const guardedLookup = ((
   });
 }) as unknown as typeof dns.lookup;
 
-function rawGet(url: URL): Promise<IncomingMessage> {
+function rawGet(url: URL, extraHeaders?: Record<string, string>): Promise<IncomingMessage> {
   return new Promise((resolve, reject) => {
     const mod = url.protocol === "https:" ? https : http;
     const req = mod.request(
@@ -131,8 +131,9 @@ function rawGet(url: URL): Promise<IncomingMessage> {
         timeout: TIMEOUT_MS,
         headers: {
           "user-agent": "AdamantFeedBot/1.0 (+catalog import)",
-          accept: "application/xml, text/xml, application/rss+xml, text/csv, */*",
+          accept: "application/json, application/xml, text/xml, application/rss+xml, text/csv, */*",
           "accept-encoding": "gzip, deflate, br",
+          ...extraHeaders,
         },
       },
       resolve
@@ -185,12 +186,13 @@ function readCapped(res: IncomingMessage): Promise<string> {
   });
 }
 
-/** Fetch a feed's text with SSRF protection. Throws FeedFetchError on any guard or
- *  network failure — the route surfaces the message to the user. */
-export async function fetchFeed(rawUrl: string): Promise<string> {
+/** Fetch a URL's text with SSRF protection. Throws FeedFetchError on any guard or
+ *  network failure — the route surfaces the message to the user. `opts.headers` adds
+ *  request headers (e.g. an ERP endpoint's auth), merged over the defaults. */
+export async function fetchFeed(rawUrl: string, opts?: { headers?: Record<string, string> }): Promise<string> {
   let url = validateFeedUrl(rawUrl);
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const res = await rawGet(url);
+    const res = await rawGet(url, opts?.headers);
     const status = res.statusCode ?? 0;
     const location = res.headers.location;
     if (status >= 300 && status < 400 && location) {

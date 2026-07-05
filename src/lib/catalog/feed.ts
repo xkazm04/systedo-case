@@ -142,8 +142,9 @@ function parseGoogle(text: string): FeedItem[] {
 
 /** Quote-aware CSV/TSV parser: returns records of raw string fields. Handles the
  *  RFC-4180 basics — quoted fields, "" escaping, delimiters/newlines inside quotes,
- *  CRLF. Delimiter is auto-detected from the header row. */
-function parseCsvRecords(text: string): string[][] {
+ *  CRLF. Delimiter is auto-detected from the header row. Exported so the generic ERP
+ *  adapter (inventory/erp.ts) reuses the same tokenizer. */
+export function parseCsvRecords(text: string): string[][] {
   const body = text.replace(/^﻿/, ""); // strip BOM
   const headerLine = body.slice(0, body.search(/\r?\n/) === -1 ? body.length : body.search(/\r?\n/));
   const delim = (() => {

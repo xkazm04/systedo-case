@@ -37,6 +37,7 @@ export async function GET(request: Request) {
         providerId: connection.provider,
         token,
         inventoryId: connection.inventoryId,
+        config: connection.config,
         strategy: "merge",
         apply: true,
         now,

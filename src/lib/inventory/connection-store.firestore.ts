@@ -14,6 +14,7 @@ function toStored(d: FirebaseFirestore.DocumentData): StoredConnection | null {
     provider: d.provider,
     inventoryId: d.inventoryId || undefined,
     tokenEnc: d.tokenEnc || undefined,
+    config: d.config && typeof d.config === "object" ? (d.config as Record<string, unknown>) : undefined,
     connectedAt: d.connectedAt ?? new Date(0).toISOString(),
     lastSyncAt: d.lastSyncAt || undefined,
   };
