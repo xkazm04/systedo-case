@@ -3,12 +3,15 @@
  *  diff, and persists on apply.
  *
  *  Field ownership (why a re-import is safe): a feed carries name/price/category/
- *  availability/gtin, NOT margins, sales velocity, exact stock, nature or channels.
- *  So the feed OVERWRITES the former and PRESERVES the latter from the existing
- *  offering — re-importing a price feed never wipes a WMS stock count or a hand-set
- *  margin. Non-product offerings (plans/services) are never touched by a product feed. */
-import type { Offering, ProductOffering } from "./offering";
+ *  availability/gtin, NOT margins, sales velocity, exact stock, nature or channels —
+ *  so a feed OVERWRITES the former and PRESERVES the latter. A warehouse/ERP source
+ *  (Baselinker, ShipMonk, Skladon, ERP) IS authoritative for stock/velocity/margin,
+ *  so it overwrites those too. Non-product offerings (plans/services) are untouched. */
+import type { Offering, OfferingSource, ProductOffering } from "./offering";
 import { isProduct } from "./offering";
+
+/** Sources authoritative for warehouse-grade fields (stock, velocity, COGS margin). */
+const WAREHOUSE_SOURCES = new Set<OfferingSource>(["baselinker", "shipmonk", "skladon", "erp"]);
 
 export type ImportStrategy = "merge" | "replace";
 
@@ -26,7 +29,7 @@ export interface CatalogDiff {
 
 const keyOf = (o: ProductOffering): string => o.sku || o.id;
 
-/** The feed-owned fields whose change counts as an "update". */
+/** The fields whose change counts as an "update" in the diff. */
 function differs(a: ProductOffering, b: ProductOffering): boolean {
   return (
     a.name !== b.name ||
@@ -34,23 +37,31 @@ function differs(a: ProductOffering, b: ProductOffering): boolean {
     a.category !== b.category ||
     a.active !== b.active ||
     (a.gtin ?? "") !== (b.gtin ?? "") ||
-    a.stock !== b.stock
+    a.stock !== b.stock ||
+    a.dailyVelocity !== b.dailyVelocity ||
+    (a.margin ?? -1) !== (b.margin ?? -1)
   );
 }
 
-/** Overlay a feed offering onto an existing one: feed wins on its owned fields;
- *  everything else (margin, velocity, nature, channels, tags, restock, emoji) is
- *  kept. A feed stock of 0 (unknown) never overwrites a real existing count. */
-function overlay(existing: ProductOffering, feed: ProductOffering, now: string): ProductOffering {
+/** Overlay an incoming offering onto an existing one. Both feed + warehouse win on
+ *  name/price/category/availability/gtin; a warehouse/ERP source additionally owns
+ *  stock/velocity/margin (it's authoritative), while a feed preserves those (its
+ *  stock 0 = "unknown" never wipes a real count; its margin/velocity aren't trusted).
+ *  Nature, channels, tags, restock and emoji are always kept from the existing row. */
+function overlay(existing: ProductOffering, incoming: ProductOffering, now: string): ProductOffering {
+  const authoritative = WAREHOUSE_SOURCES.has(incoming.source);
   return {
     ...existing,
-    name: feed.name,
-    price: feed.price,
-    category: feed.category,
-    active: feed.active,
-    gtin: feed.gtin ?? existing.gtin,
-    stock: feed.stock > 0 ? feed.stock : existing.stock,
-    source: feed.source,
+    name: incoming.name,
+    price: incoming.price,
+    category: incoming.category,
+    active: incoming.active,
+    gtin: incoming.gtin ?? existing.gtin,
+    stock: authoritative ? incoming.stock : incoming.stock > 0 ? incoming.stock : existing.stock,
+    dailyVelocity:
+      authoritative && incoming.dailyVelocity > 0 ? incoming.dailyVelocity : existing.dailyVelocity,
+    margin: authoritative && incoming.margin != null ? incoming.margin : existing.margin,
+    source: incoming.source,
     updatedAt: now,
   };
 }

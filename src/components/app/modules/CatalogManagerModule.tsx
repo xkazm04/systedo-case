@@ -15,6 +15,7 @@ import { useT } from "@/lib/i18n/client";
 import type { Locality, Offering, OfferingKind, OfferingNature } from "@/lib/catalog/offering";
 import { isPlan, isProduct, isService } from "@/lib/catalog/offering";
 import type { CatalogDiff } from "@/lib/catalog/import";
+import { SYNC_PROVIDERS } from "@/lib/inventory/providers";
 import type { WarehouseConnection } from "@/lib/inventory/warehouse";
 import type { ProjectType } from "@/lib/projects/types";
 import type { IconKey } from "@/lib/projects/icon-keys";
@@ -77,6 +78,17 @@ const T = {
     urlLabel: "URL feedu",
     urlPlaceholder: "https://…/feed.xml",
     orPaste: "nebo vložte obsah ručně",
+    tabFeed: "Feed",
+    tabWarehouse: "Sklad / WMS",
+    syncHint:
+      "Synchronizujte katalog ze skladu (WMS) nebo ERP. Ukázkový sklad funguje bez přihlášení; Baselinker vyžaduje API token.",
+    provider: "Poskytovatel",
+    token: "API token",
+    tokenPlaceholder: "Vložte API token…",
+    comingSoon: "připravujeme",
+    demoNote: "Ukázková data skladu — bez přihlašovacích údajů.",
+    sync: "Synchronizovat",
+    syncing: "Synchronizuji…",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -135,6 +147,17 @@ const T = {
     urlLabel: "Feed URL",
     urlPlaceholder: "https://…/feed.xml",
     orPaste: "or paste the content",
+    tabFeed: "Feed",
+    tabWarehouse: "Warehouse / WMS",
+    syncHint:
+      "Sync your catalog from a warehouse (WMS) or ERP. The sample warehouse works with no login; Baselinker needs an API token.",
+    provider: "Provider",
+    token: "API token",
+    tokenPlaceholder: "Paste the API token…",
+    comingSoon: "coming soon",
+    demoNote: "Sample warehouse data — no credentials.",
+    sync: "Sync",
+    syncing: "Syncing…",
   },
 } as const;
 
@@ -198,8 +221,11 @@ export default function CatalogManagerModule({
 
   // ---- feed import (paste XML/CSV → preview diff → merge/replace + persist) ----
   const [showImport, setShowImport] = useState(false);
+  const [importSource, setImportSource] = useState<"feed" | "warehouse">("feed");
   const [feedText, setFeedText] = useState("");
   const [feedUrl, setFeedUrl] = useState("");
+  const [syncProvider, setSyncProvider] = useState("demo");
+  const [syncToken, setSyncToken] = useState("");
   const [importStrategy, setImportStrategy] = useState<"merge" | "replace">("merge");
   const [importState, setImportState] = useState<
     "idle" | "previewing" | "preview" | "importing" | "done" | "error"
@@ -212,20 +238,21 @@ export default function CatalogManagerModule({
   } | null>(null);
 
   const hasFeedInput = feedText.trim() !== "" || feedUrl.trim() !== "";
+  const selectedProvider = SYNC_PROVIDERS.find((p) => p.id === syncProvider);
+  const isWarehouse = importSource === "warehouse";
+  const hasSyncInput =
+    !!selectedProvider?.implemented && (!selectedProvider.needsToken || syncToken.trim() !== "");
+  const hasImportInput = isWarehouse ? hasSyncInput : hasFeedInput;
 
-  async function runImport(mode: "preview" | "apply") {
-    if (!hasFeedInput) return;
+  // Both feed import (/import) and warehouse sync (/sync) funnel through the same
+  // preview/apply diff handling — only the endpoint + payload differ.
+  async function submitImport(path: "import" | "sync", payload: Record<string, unknown>, mode: "preview" | "apply") {
     setImportState(mode === "preview" ? "previewing" : "importing");
     try {
-      const res = await fetch(`/api/projects/${projectId}/catalog/import`, {
+      const res = await fetch(`/api/projects/${projectId}/catalog/${path}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          url: feedUrl.trim() || undefined, // URL wins server-side; else content
-          content: feedText,
-          mode,
-          strategy: importStrategy,
-        }),
+        body: JSON.stringify({ ...payload, mode, strategy: importStrategy }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -244,6 +271,15 @@ export default function CatalogManagerModule({
       setImportInfo({ error: undefined });
     }
   }
+
+  const runImport = (mode: "preview" | "apply") =>
+    submitImport("import", { url: feedUrl.trim() || undefined, content: feedText }, mode);
+  const runSync = (mode: "preview" | "apply") =>
+    submitImport("sync", { provider: syncProvider, token: syncToken.trim() || undefined }, mode);
+  const run = (mode: "preview" | "apply") => {
+    if (!hasImportInput) return;
+    return isWarehouse ? runSync(mode) : runImport(mode);
+  };
 
   const localityName = (id: string) => localities.find((l) => l.id === id)?.name ?? id;
 
@@ -393,30 +429,86 @@ export default function CatalogManagerModule({
           </button>
           {showImport && (
             <div className="space-y-3 border-t border-line px-4 py-3">
-              <p className="text-xs text-muted">{t("importHint")}</p>
-              <label className="block">
-                <span className="text-xs font-medium text-navy-700">{t("urlLabel")}</span>
-                <input
-                  type="url"
-                  value={feedUrl}
-                  onChange={(e) => setFeedUrl(e.target.value)}
-                  placeholder={t("urlPlaceholder")}
-                  className={`${inputBase} mt-1 w-full`}
-                />
-              </label>
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
-                <span className="h-px flex-1 bg-line" />
-                {t("orPaste")}
-                <span className="h-px flex-1 bg-line" />
+              {/* source tabs: paste/URL a feed, or sync a warehouse/ERP */}
+              <div className="inline-flex rounded-pill border border-line p-0.5 text-xs">
+                {(["feed", "warehouse"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setImportSource(s)}
+                    aria-pressed={importSource === s}
+                    className={`rounded-pill px-3 py-1 font-medium transition-colors ${
+                      importSource === s ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                    }`}
+                  >
+                    {t(s === "feed" ? "tabFeed" : "tabWarehouse")}
+                  </button>
+                ))}
               </div>
-              <textarea
-                value={feedText}
-                onChange={(e) => setFeedText(e.target.value)}
-                placeholder={t("feedPlaceholder")}
-                rows={5}
-                spellCheck={false}
-                className={`${inputBase} w-full resize-y font-mono text-xs`}
-              />
+
+              {importSource === "feed" ? (
+                <>
+                  <p className="text-xs text-muted">{t("importHint")}</p>
+                  <label className="block">
+                    <span className="text-xs font-medium text-navy-700">{t("urlLabel")}</span>
+                    <input
+                      type="url"
+                      value={feedUrl}
+                      onChange={(e) => setFeedUrl(e.target.value)}
+                      placeholder={t("urlPlaceholder")}
+                      className={`${inputBase} mt-1 w-full`}
+                    />
+                  </label>
+                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
+                    <span className="h-px flex-1 bg-line" />
+                    {t("orPaste")}
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                  <textarea
+                    value={feedText}
+                    onChange={(e) => setFeedText(e.target.value)}
+                    placeholder={t("feedPlaceholder")}
+                    rows={5}
+                    spellCheck={false}
+                    className={`${inputBase} w-full resize-y font-mono text-xs`}
+                  />
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-muted">{t("syncHint")}</p>
+                  <label className="block">
+                    <span className="text-xs font-medium text-navy-700">{t("provider")}</span>
+                    <select
+                      value={syncProvider}
+                      onChange={(e) => setSyncProvider(e.target.value)}
+                      className={`${inputBase} mt-1 w-full cursor-pointer`}
+                    >
+                      {SYNC_PROVIDERS.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                          {p.implemented ? "" : ` — ${t("comingSoon")}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {selectedProvider?.needsToken ? (
+                    <label className="block">
+                      <span className="text-xs font-medium text-navy-700">{t("token")}</span>
+                      <input
+                        type="password"
+                        value={syncToken}
+                        onChange={(e) => setSyncToken(e.target.value)}
+                        placeholder={t("tokenPlaceholder")}
+                        autoComplete="off"
+                        className={`${inputBase} mt-1 w-full`}
+                      />
+                    </label>
+                  ) : (
+                    <p className="text-[11px] text-muted">{t("demoNote")}</p>
+                  )}
+                </>
+              )}
+
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex rounded-pill border border-line p-0.5 text-xs">
                   {(["merge", "replace"] as const).map((s) => (
@@ -436,19 +528,25 @@ export default function CatalogManagerModule({
                 </div>
                 <button
                   type="button"
-                  onClick={() => runImport("preview")}
-                  disabled={!hasFeedInput || importState === "previewing"}
+                  onClick={() => run("preview")}
+                  disabled={!hasImportInput || importState === "previewing"}
                   className="rounded-pill border border-line px-3.5 py-1.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
                 >
                   {importState === "previewing" ? t("previewing") : t("preview")}
                 </button>
                 <button
                   type="button"
-                  onClick={() => runImport("apply")}
-                  disabled={!hasFeedInput || importState === "importing"}
+                  onClick={() => run("apply")}
+                  disabled={!hasImportInput || importState === "importing"}
                   className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {importState === "importing" ? t("importing") : t("runImport")}
+                  {importState === "importing"
+                    ? isWarehouse
+                      ? t("syncing")
+                      : t("importing")
+                    : isWarehouse
+                      ? t("sync")
+                      : t("runImport")}
                 </button>
               </div>
 
