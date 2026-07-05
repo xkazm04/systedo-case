@@ -221,7 +221,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <div className="stagger grid gap-6 lg:grid-cols-[320px_1fr]">
       {/* product feed */}
       <div className="space-y-2">
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">

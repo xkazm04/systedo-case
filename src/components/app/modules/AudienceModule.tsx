@@ -244,7 +244,7 @@ export default async function AudienceModule({
   const goalsProgress = goals ? goalProgress(funnel, s, goals, subGrowth) : null;
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("subscribers")}</p>

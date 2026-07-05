@@ -485,7 +485,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
         : t("leadsOverSla_many");
 
   return (
-    <div className="space-y-4">
+    <div className="stagger space-y-4">
       {/* Response-time analytics band — derived from this session's responses
           plus the live SLA state of still-open leads. */}
       <div className="flex flex-wrap items-stretch gap-3 rounded-card border border-line bg-surface px-4 py-3">

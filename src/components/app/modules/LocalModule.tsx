@@ -99,7 +99,7 @@ export default async function LocalModule({
   const m = matrix(targets);
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("coverage")}</p>

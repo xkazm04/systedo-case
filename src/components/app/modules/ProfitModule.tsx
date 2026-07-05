@@ -564,7 +564,7 @@ export default function ProfitModule({
   const granularityUnit = period === "365" ? t("month") : t("week");
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       {/* controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">

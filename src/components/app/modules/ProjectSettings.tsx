@@ -129,7 +129,7 @@ export default function ProjectSettings() {
   const ds = projectDataSource(project);
 
   return (
-    <div className="max-w-2xl space-y-8">
+    <div className="stagger max-w-2xl space-y-8">
       <div className="card flex items-center justify-between gap-3 p-5">
         <div>
           <p className="text-sm font-semibold text-navy-800">{t("dataSourceTitle")}</p>

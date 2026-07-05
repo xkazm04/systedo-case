@@ -214,7 +214,7 @@ export default async function ProjectOverview({
     const kpis = KPI_PRESETS[project.type];
 
     return (
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
+      <div className="stagger mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
         {/* header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -332,7 +332,7 @@ export default async function ProjectOverview({
   const topCombined = combined.slice(0, 8);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
+    <div className="stagger mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
       {/* portfolio header */}
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent">

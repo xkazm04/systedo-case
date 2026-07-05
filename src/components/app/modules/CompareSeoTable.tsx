@@ -731,7 +731,7 @@ export default function CompareSeoTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       <SummaryCards rows={rows} high={highCount} seoChannel={seoChannel} t={t} fmt={fmt} />
 
       <div className="card flex flex-wrap items-center gap-3 p-4">

@@ -84,7 +84,7 @@ export default async function LpExperimentsModule({ experiments }: { experiments
   const shipped = results.filter((r) => r.significant && r.winner);
 
   return (
-    <div className="space-y-4">
+    <div className="stagger space-y-4">
       {results.map((r) => {
         const maxCvr = Math.max(...r.variants.map((v) => v.cvr), 0.0001);
         // A running test below its target sample size is still collecting data —

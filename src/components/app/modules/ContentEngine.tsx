@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   ArrowRight,
   Bulb,
@@ -13,8 +14,7 @@ import {
 import { Pill } from "@/components/ui";
 import Modal from "@/components/app/Modal";
 import NextSteps from "@/components/app/NextSteps";
-import ClusterBuilder from "@/components/app/modules/ClusterBuilder";
-import ContentBriefGenerator from "@/components/ai/ContentBriefGenerator";
+import SectionSkeleton from "@/components/app/SectionSkeleton";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
@@ -24,6 +24,16 @@ import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/conte
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 import type { KeywordList } from "@/lib/keywords/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+
+/** Heavy, modal-gated workspaces — code-split so their JS loads on first open,
+ *  not in this module's initial bundle. Modal renders null while closed, so
+ *  neither mounts (or downloads) until the user opens the builder / brief. */
+const ClusterBuilder = dynamic(() => import("@/components/app/modules/ClusterBuilder"), {
+  loading: () => <SectionSkeleton height="h-72" />,
+});
+const ContentBriefGenerator = dynamic(() => import("@/components/ai/ContentBriefGenerator"), {
+  loading: () => <SectionSkeleton height="h-96" />,
+});
 
 const T = {
   cs: {
@@ -235,7 +245,7 @@ export default function ContentEngine({
   ].filter((s) => isModuleAvailable(project.type, s.to));
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       {/* header: honest data-source labeling + interconnect chips + primary actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">

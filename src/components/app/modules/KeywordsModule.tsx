@@ -25,7 +25,7 @@ export default function KeywordsModule() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="stagger space-y-8">
       <KeywordResearch onCreateBrief={onCreateBrief} onSaved={() => setSavedNonce((n) => n + 1)} />
       <SavedKeywordLists refreshKey={savedNonce} />
     </div>

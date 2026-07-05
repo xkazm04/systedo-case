@@ -164,7 +164,7 @@ export default function DistributionModule({
   const best = attribution.reduce((a, b) => (b.clicks > a.clicks ? b : a), attribution[0]!);
 
   return (
-    <div className="space-y-6">
+    <div className="stagger space-y-6">
       {/* source */}
       <div className="card flex items-center gap-4 p-5">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-accent">
