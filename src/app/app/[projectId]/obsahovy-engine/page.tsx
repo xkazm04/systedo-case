@@ -1,8 +1,9 @@
-/** Obsahový engine — topic clusters + content-decay refresh. */
+/** Obsahový engine — the unified content module (Tvorba): topic clusters +
+ *  decaying content as view-first tables, with the AI brief → article-draft
+ *  workspace and cross-module hand-offs opened in modals. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
-import ContentEngineModule from "@/components/app/modules/ContentEngineModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
+import ContentEngine from "@/components/app/modules/ContentEngine";
 import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 
 
@@ -11,10 +12,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "obsahovy-engine");
   return (
     <ModulePage moduleKey="obsahovy-engine">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
-      <ContentEngineModule clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />
+      <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />
     </ModulePage>
   );
 }

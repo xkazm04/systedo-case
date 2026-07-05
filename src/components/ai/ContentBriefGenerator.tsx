@@ -16,6 +16,7 @@ import {
   type ContentType,
 } from "@/lib/ai-types";
 import { briefToAdSeed } from "@/lib/ai/handoff";
+import { useOptionalProject } from "@/lib/projects/context";
 import type { BriefSeed } from "./KeywordResearch";
 import ArticleDraftPanel from "./ArticleDraftPanel";
 import {
@@ -65,6 +66,7 @@ const T = {
     serpPreviewLabel: "Náhled ve vyhledávání",
     serpDeviceDesktop: "Desktop",
     serpDeviceMobile: "Mobile",
+    serpHostFallback: "vas-web.cz",
     serpTruncatedBoth: "Title i meta description se ve výsledcích zkrátí.",
     serpTruncatedTitle: "Title se ve výsledcích zkrátí — Google jej ořízne i v rámci limitu znaků.",
     serpTruncatedMeta: "Meta description se ve výsledcích zkrátí.",
@@ -117,6 +119,7 @@ const T = {
     serpPreviewLabel: "Search preview",
     serpDeviceDesktop: "Desktop",
     serpDeviceMobile: "Mobile",
+    serpHostFallback: "your-site.com",
     serpTruncatedBoth: "Title and meta will be truncated in search results.",
     serpTruncatedTitle: "Title will be truncated in results — Google clips it even within the character limit.",
     serpTruncatedMeta: "Meta description will be truncated in search results.",
@@ -199,16 +202,32 @@ function ScoreRow({ chip }: { chip: ScoreChip }) {
   );
 }
 
+/** Bare display host from a stored domain: strip scheme, `www.`, path and trailing
+ *  slash so the SERP preview reads like Google's (e.g. "https://www.mionelo.cz/" →
+ *  "mionelo.cz"). Empty in → empty out (the caller supplies the placeholder). */
+function normalizeHost(domain: string | undefined | null): string {
+  if (!domain) return "";
+  return domain
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/.*$/, "")
+    .trim();
+}
+
 /** Google-style search result preview from the generated title/meta/slug. */
 function SerpPreview({
   title,
   meta,
   slug,
+  host,
   t,
 }: {
   title: string;
   meta: string;
   slug: string;
+  /** the project's real domain — grounds the preview in the client's own site */
+  host: string;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
 }) {
   const [device, setDevice] = useState<SerpDevice>("desktop");
@@ -242,7 +261,7 @@ function SerpPreview({
         </div>
       </div>
       <div className="mt-2" style={{ maxWidth: device === "mobile" ? "22rem" : undefined }}>
-        <p className="truncate text-xs text-serp-url">mionelo.cz › blog › {slug || "url-slug"}</p>
+        <p className="truncate text-xs text-serp-url">{host} › blog › {slug || "url-slug"}</p>
         <p className="mt-0.5 text-lg leading-snug text-serp-link">{tv.text}</p>
         <p className="mt-1 text-sm text-navy-600">{mv.text}</p>
       </div>
@@ -328,6 +347,10 @@ export default function ContentBriefGenerator({
 } = {}) {
   const t = useT(T);
   const { locale } = useLocale();
+  // The project's real domain grounds the SERP preview (falls back to a neutral
+  // placeholder when the module is rendered outside a project, e.g. /ai-asistent).
+  const project = useOptionalProject();
+  const host = normalizeHost(project?.domain) || t("serpHostFallback");
   // Seed (from the keyword tool) is applied via the initial value; the parent
   // re-mounts this component with a new `key` per handoff, so a fresh seed
   // prefills the form and carries its real keyword data into the next
@@ -548,7 +571,7 @@ export default function ContentBriefGenerator({
             </div>
 
             <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
-              <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} t={t} />
+              <SerpPreview title={r.titleTag} meta={r.metaDescription} slug={r.slug} host={host} t={t} />
               <Scorecard brief={r} primaryKeyword={form.primaryKeyword} locale={locale} t={t} />
             </div>
 

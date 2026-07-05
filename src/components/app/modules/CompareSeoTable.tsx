@@ -705,7 +705,7 @@ export default function CompareSeoTable({
     } catch {
       /* non-critical — the brief tool still opens, just unseeded */
     }
-    router.push(`/app/${project.id}/obsah`);
+    router.push(`/app/${project.id}/obsahovy-engine`);
   }
 
   function onCreate(r: ScoredQuery) {

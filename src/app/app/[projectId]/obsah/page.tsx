@@ -1,15 +1,8 @@
-/** Obsah & SEO — the AI content-brief tool (seeded from the keyword module). */
-import { requireProjectModule } from "@/lib/projects/guard";
-import ModulePage from "@/components/app/ModulePage";
-import ContentModule from "@/components/app/modules/ContentModule";
-
+/** Legacy route — "Obsah & SEO" was merged into "Obsahový engine" (Tvorba).
+ *  Permanently redirect so old links / bookmarks land on the unified module. */
+import { redirect } from "next/navigation";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  await requireProjectModule(projectId, "obsah");
-  return (
-    <ModulePage moduleKey="obsah">
-      <ContentModule />
-    </ModulePage>
-  );
+  redirect(`/app/${projectId}/obsahovy-engine`);
 }

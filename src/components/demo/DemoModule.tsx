@@ -14,7 +14,6 @@ import ProjectOverview from "@/components/app/ProjectOverview";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import CampaignsClient from "@/components/campaigns/CampaignsClient";
 import KeywordsModule from "@/components/app/modules/KeywordsModule";
-import ContentModule from "@/components/app/modules/ContentModule";
 import SocialClient from "@/components/social/SocialClient";
 import CreativeStudio from "@/components/ai/CreativeStudio";
 import PatternsLibrary from "@/components/patterns/PatternsLibrary";
@@ -29,7 +28,7 @@ import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
 import LeadQualityModule from "@/components/app/modules/LeadQualityModule";
 import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
 import LocalModule from "@/components/app/modules/LocalModule";
-import ContentEngineModule from "@/components/app/modules/ContentEngineModule";
+import ContentEngine from "@/components/app/modules/ContentEngine";
 import DistributionModule from "@/components/app/modules/DistributionModule";
 import AudienceModule from "@/components/app/modules/AudienceModule";
 import ProjectSettings from "@/components/app/modules/ProjectSettings";
@@ -41,13 +40,14 @@ import { defaultMargins, SAMPLE_PRODUCTS as PROFIT_PRODUCTS } from "@/lib/profit
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 import { SAMPLE_PRODUCTS as CATALOG_PRODUCTS } from "@/lib/catalog/sample";
+import { productsFor } from "@/lib/catalog/resolve";
 import {
   budgetChangeSet,
   monthlySeasonality,
   seasonalBudgetPlan,
   stockRows,
 } from "@/lib/inventory/compute";
-import { warehouseConnectionFor, warehouseSnapshot } from "@/lib/inventory/warehouse";
+import { warehouseConnectionFor } from "@/lib/inventory/warehouse";
 import { ESHOP_COHORTS, SAMPLE_COHORTS } from "@/lib/ltv/sample";
 import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 import { experimentsForProject } from "@/lib/lp-exp/sample";
@@ -145,12 +145,10 @@ export default async function DemoModule({
       const now = new Date(`${lastDate ?? "2026-01-01"}T00:00:00Z`);
       const currentMonth = now.getUTCMonth();
 
-      // Direction 2 prototype: the demo project presents as connected to a
-      // warehouse hub (Baselinker), so the module runs on warehouse-grade data;
-      // `?wh=off` forces the not-connected connector picker instead.
+      // Products come from the project catalog; `?wh=off` toggles the source badge
+      // (connected → Baselinker) shown by WarehouseSourceBar.
       const connection = warehouse === "off" ? null : warehouseConnectionFor(project.id, now);
-      const snapshot = connection ? warehouseSnapshot(connection, now) : null;
-      const products = snapshot ? snapshot.products : CATALOG_PRODUCTS;
+      const products = productsFor(project, now);
 
       const stock = stockRows(products, now);
       const covers = stock
@@ -202,18 +200,11 @@ export default async function DemoModule({
           )}
         </ModulePage>
       );
+    /* ----------------------------------------------------------------- Studio */
     case "obsahovy-engine":
       return (
         <ModulePage moduleKey="obsahovy-engine">
-          {noted(<ContentEngineModule clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />)}
-        </ModulePage>
-      );
-
-    /* ----------------------------------------------------------------- Studio */
-    case "obsah":
-      return (
-        <ModulePage moduleKey="obsah">
-          <ContentModule />
+          <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />
         </ModulePage>
       );
     case "socialni":

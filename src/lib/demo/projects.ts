@@ -51,10 +51,17 @@ export function demoProjectForModule(m: ModuleDef): Project {
   return demoProjectFor(type);
 }
 
+/** Retired module keys → their successor, so old deep links still resolve. */
+const MODULE_ALIASES: Record<string, string> = {
+  // "Obsah & SEO" was merged into the unified "Obsahový engine" (Tvorba).
+  obsah: "obsahovy-engine",
+};
+
 /** Resolve a `?m=` value (possibly an array) to a real module — defaults to the
- *  overview when absent or unknown. */
+ *  overview when absent or unknown; retired keys map to their successor. */
 export function demoModuleFor(key: string | string[] | undefined): ModuleDef {
-  const k = (Array.isArray(key) ? key[0] : key) ?? "";
+  const raw = (Array.isArray(key) ? key[0] : key) ?? "";
+  const k = MODULE_ALIASES[raw] ?? raw;
   return MODULES.find((m) => m.key === k) ?? MODULES[0]!;
 }
 

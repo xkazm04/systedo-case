@@ -186,7 +186,7 @@ export default async function LpExperimentsModule({ experiments }: { experiments
           <NextSteps
             steps={[
               {
-                to: "obsah",
+                to: "obsahovy-engine",
                 label: t("nextUpdateCopy"),
                 hint: t("nextUpdateCopyHint"),
               },
