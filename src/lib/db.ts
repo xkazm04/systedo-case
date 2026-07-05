@@ -72,6 +72,20 @@ const SCHEMA = `
     updated_at TEXT NOT NULL,
     PRIMARY KEY (user_id, project_id)
   );
+
+  -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
+  -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
+  -- never returned to the client. Mirrors the Firestore projectConnections doc.
+  CREATE TABLE IF NOT EXISTS warehouse_connection (
+    user_id      TEXT NOT NULL,
+    project_id   TEXT NOT NULL,
+    provider     TEXT NOT NULL,
+    inventory_id TEXT,
+    token_enc    TEXT,
+    connected_at TEXT NOT NULL,
+    last_sync_at TEXT,
+    PRIMARY KEY (user_id, project_id)
+  );
 `;
 
 /** Marker identifying the current schema definition; when it changes, the schema

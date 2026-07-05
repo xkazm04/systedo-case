@@ -1,8 +1,9 @@
 /** Sync a project's catalog from a warehouse/ERP provider. Per-user, ownership-
  *  checked, server-only. `demo` returns the sample warehouse (no credentials);
- *  `baselinker` fetches live via a user-supplied token (not stored this cycle).
- *  Products → offerings → the same mergeCatalog as the feed import. Two modes:
- *  "preview" (read-only diff) and "apply" (merge + persist). */
+ *  `baselinker` fetches live. Provider + token come from the request, or fall back to
+ *  the project's persisted connection (whose token is decrypted here only). Products →
+ *  offerings → the same mergeCatalog as the feed import. Two modes: "preview"
+ *  (read-only diff) and "apply" (merge + persist; also stamps the connection's sync). */
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { listOfferings, saveOfferings } from "@/lib/catalog/store";
@@ -17,6 +18,8 @@ import {
   type ProviderProduct,
 } from "@/lib/inventory/providers";
 import { BaselinkerError, fetchBaselinkerProducts } from "@/lib/inventory/baselinker";
+import { getConnection, saveConnection } from "@/lib/inventory/connection-store";
+import { decryptToken } from "@/lib/inventory/token-crypto";
 
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
@@ -36,21 +39,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     strategy?: unknown;
   } | null;
 
-  const providerId = typeof body?.provider === "string" ? body.provider : "";
+  // Provider/token from the request, else from the persisted connection.
+  const stored = await getConnection(uid, id);
+  const providerId = (typeof body?.provider === "string" && body.provider) || stored?.provider || "";
   const meta = syncProvider(providerId);
   if (!meta) return Response.json({ error: "Neznámý poskytovatel." }, { status: 400 });
   if (!meta.implemented) {
     return Response.json({ error: `Napojení na ${meta.label} připravujeme.` }, { status: 501 });
   }
 
-  const token = typeof body?.token === "string" ? body.token : "";
-  const inventoryId = typeof body?.inventoryId === "string" ? body.inventoryId : undefined;
+  const useStored = stored?.provider === providerId;
+  let token = typeof body?.token === "string" ? body.token.trim() : "";
+  if (!token && useStored && stored.tokenEnc) token = decryptToken(stored.tokenEnc) ?? "";
+  const inventoryId =
+    (typeof body?.inventoryId === "string" && body.inventoryId) || (useStored ? stored.inventoryId : undefined);
   const strategy = STRATEGIES.includes(body?.strategy as ImportStrategy)
     ? (body!.strategy as ImportStrategy)
     : "merge";
   const apply = body?.mode === "apply";
 
-  if (meta.needsToken && !token.trim()) {
+  if (meta.needsToken && !token) {
     return Response.json({ error: `${meta.label} vyžaduje API token.` }, { status: 400 });
   }
 
@@ -90,5 +98,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   await saveOfferings(uid, id, next);
+  // Stamp the last successful sync on the persisted connection.
+  if (useStored && stored) {
+    await saveConnection(uid, id, { ...stored, lastSyncAt: nowIso });
+  }
   return Response.json({ ok: true, applied: true, format: meta.label, diff, offerings: next, count: next.length });
 }

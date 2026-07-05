@@ -4,10 +4,10 @@
  *  offering entity: products (e-shop), plans + competitors (app/SaaS) or services ×
  *  localities (lead-gen), plus each offering's pricing, margin and online/local
  *  nature. This is the source the smart modules (Sklad, Srovnání & SEO, Lokální,
- *  Zisk) read from. Edits persist per project (Save), and a product feed (Heureka /
- *  Zboží.cz / Google / CSV) can be imported; live WMS API sync is the remaining
- *  follow-up. Demo (`persistable=false`) stays session-only. */
-import { useRef, useState } from "react";
+ *  Zisk) read from. Edits persist per project (Save); a product feed (Heureka /
+ *  Zboží.cz / Google / CSV) can be imported, and a warehouse/ERP (demo or Baselinker)
+ *  can be connected + synced. Demo (`persistable=false`) stays session-only. */
+import { useEffect, useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import { Plus } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
@@ -16,6 +16,7 @@ import type { Locality, Offering, OfferingKind, OfferingNature } from "@/lib/cat
 import { isPlan, isProduct, isService } from "@/lib/catalog/offering";
 import type { CatalogDiff } from "@/lib/catalog/import";
 import { SYNC_PROVIDERS } from "@/lib/inventory/providers";
+import type { PublicConnection } from "@/lib/inventory/connection-store";
 import type { WarehouseConnection } from "@/lib/inventory/warehouse";
 import type { ProjectType } from "@/lib/projects/types";
 import type { IconKey } from "@/lib/projects/icon-keys";
@@ -59,7 +60,7 @@ const T = {
     remove: "Odebrat",
     importHeading: "Import feedu",
     importHint:
-      "Zadejte URL feedu, nebo vložte XML/CSV (Heureka, Zboží.cz, Google Nákupy). Živá synchronizace WMS přijde příště.",
+      "Zadejte URL feedu, nebo vložte XML/CSV (Heureka, Zboží.cz, Google Nákupy).",
     feedPlaceholder: "Sem vložte obsah feedu — XML nebo CSV…",
     strategyMerge: "Sloučit",
     strategyReplace: "Nahradit",
@@ -89,6 +90,12 @@ const T = {
     demoNote: "Ukázková data skladu — bez přihlašovacích údajů.",
     sync: "Synchronizovat",
     syncing: "Synchronizuji…",
+    connect: "Připojit",
+    connecting: "Připojuji…",
+    connectedTo: "Připojeno:",
+    lastSync: "poslední synchronizace",
+    neverSynced: "zatím nesynchronizováno",
+    disconnect: "Odpojit",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -128,7 +135,7 @@ const T = {
     remove: "Remove",
     importHeading: "Import feed",
     importHint:
-      "Enter a feed URL, or paste XML/CSV (Heureka, Zboží.cz, Google Shopping). Live WMS sync lands next.",
+      "Enter a feed URL, or paste XML/CSV (Heureka, Zboží.cz, Google Shopping).",
     feedPlaceholder: "Paste the feed content here — XML or CSV…",
     strategyMerge: "Merge",
     strategyReplace: "Replace",
@@ -158,6 +165,12 @@ const T = {
     demoNote: "Sample warehouse data — no credentials.",
     sync: "Sync",
     syncing: "Syncing…",
+    connect: "Connect",
+    connecting: "Connecting…",
+    connectedTo: "Connected:",
+    lastSync: "last sync",
+    neverSynced: "not synced yet",
+    disconnect: "Disconnect",
   },
 } as const;
 
@@ -236,13 +249,74 @@ export default function CatalogManagerModule({
     warnings?: string[];
     error?: string;
   } | null>(null);
+  const [syncConn, setSyncConn] = useState<PublicConnection | null>(null);
+  const [connBusy, setConnBusy] = useState(false);
 
   const hasFeedInput = feedText.trim() !== "" || feedUrl.trim() !== "";
   const selectedProvider = SYNC_PROVIDERS.find((p) => p.id === syncProvider);
   const isWarehouse = importSource === "warehouse";
-  const hasSyncInput =
+  const hasConnectInput =
     !!selectedProvider?.implemented && (!selectedProvider.needsToken || syncToken.trim() !== "");
-  const hasImportInput = isWarehouse ? hasSyncInput : hasFeedInput;
+  // Feed: needs pasted/URL input. Warehouse: syncs through the persisted connection.
+  const hasImportInput = isWarehouse ? syncConn != null : hasFeedInput;
+  const providerLabel = (pid: string) => SYNC_PROVIDERS.find((p) => p.id === pid)?.label ?? pid;
+
+  // Load the persisted warehouse connection once (authed only).
+  useEffect(() => {
+    if (!persistable) return;
+    let alive = true;
+    fetch(`/api/projects/${projectId}/warehouse`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive) setSyncConn(j?.connection ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [persistable, projectId]);
+
+  async function connect() {
+    if (!hasConnectInput || connBusy) return;
+    setConnBusy(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/warehouse`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ provider: syncProvider, token: syncToken.trim() || undefined }),
+      });
+      const j = await res.json();
+      if (res.ok && j.connection) {
+        setSyncConn(j.connection);
+        setSyncToken("");
+        setImportState("idle");
+        setImportInfo(null);
+      } else {
+        setImportState("error");
+        setImportInfo({ error: j?.error });
+      }
+    } catch {
+      setImportState("error");
+      setImportInfo({ error: undefined });
+    } finally {
+      setConnBusy(false);
+    }
+  }
+
+  async function disconnect() {
+    if (connBusy) return;
+    setConnBusy(true);
+    try {
+      await fetch(`/api/projects/${projectId}/warehouse`, { method: "DELETE" });
+      setSyncConn(null);
+      setImportInfo(null);
+      setImportState("idle");
+    } catch {
+      /* ignore */
+    } finally {
+      setConnBusy(false);
+    }
+  }
 
   // Both feed import (/import) and warehouse sync (/sync) funnel through the same
   // preview/apply diff handling — only the endpoint + payload differ.
@@ -275,7 +349,7 @@ export default function CatalogManagerModule({
   const runImport = (mode: "preview" | "apply") =>
     submitImport("import", { url: feedUrl.trim() || undefined, content: feedText }, mode);
   const runSync = (mode: "preview" | "apply") =>
-    submitImport("sync", { provider: syncProvider, token: syncToken.trim() || undefined }, mode);
+    submitImport("sync", { provider: syncConn?.provider ?? syncProvider }, mode);
   const run = (mode: "preview" | "apply") => {
     if (!hasImportInput) return;
     return isWarehouse ? runSync(mode) : runImport(mode);
@@ -473,6 +547,25 @@ export default function CatalogManagerModule({
                     className={`${inputBase} w-full resize-y font-mono text-xs`}
                   />
                 </>
+              ) : syncConn ? (
+                <div className="flex items-center justify-between gap-2 rounded-lg bg-positive-soft/50 px-3 py-2 text-xs">
+                  <span className="text-navy-700">
+                    <span className="font-semibold text-positive">●</span> {t("connectedTo")}{" "}
+                    <span className="font-medium">{providerLabel(syncConn.provider)}</span>
+                    {" · "}
+                    {syncConn.lastSyncAt
+                      ? `${t("lastSync")} ${syncConn.lastSyncAt.slice(0, 16).replace("T", " ")}`
+                      : t("neverSynced")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={disconnect}
+                    disabled={connBusy}
+                    className="shrink-0 rounded-pill border border-line px-2.5 py-1 font-medium text-muted transition-colors hover:border-coral-300 hover:text-coral-600 disabled:opacity-50"
+                  >
+                    {t("disconnect")}
+                  </button>
+                </div>
               ) : (
                 <>
                   <p className="text-xs text-muted">{t("syncHint")}</p>
@@ -506,9 +599,18 @@ export default function CatalogManagerModule({
                   ) : (
                     <p className="text-[11px] text-muted">{t("demoNote")}</p>
                   )}
+                  <button
+                    type="button"
+                    onClick={connect}
+                    disabled={!hasConnectInput || connBusy}
+                    className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {connBusy ? t("connecting") : t("connect")}
+                  </button>
                 </>
               )}
 
+              {(importSource === "feed" || syncConn) && (
               <div className="flex flex-wrap items-center gap-2">
                 <div className="inline-flex rounded-pill border border-line p-0.5 text-xs">
                   {(["merge", "replace"] as const).map((s) => (
@@ -549,6 +651,7 @@ export default function CatalogManagerModule({
                       : t("runImport")}
                 </button>
               </div>
+              )}
 
               {importInfo?.error !== undefined && importState === "error" && (
                 <p className="text-xs font-medium text-negative">
