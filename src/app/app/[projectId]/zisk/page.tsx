@@ -6,6 +6,8 @@ import SampleDataNote from "@/components/app/SampleDataNote";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
+import { categoryMixFromCatalog } from "@/lib/profit/products";
+import { productsFor } from "@/lib/catalog/resolve";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 
@@ -23,6 +25,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "zisk");
   const data = getProjectDataset(project);
   const margins = defaultMargins(data.channels);
+  // Category mix derived from the real product catalog (retiring the generic mock);
+  // falls back to the sample mix for an empty catalog.
+  const catalogMix = categoryMixFromCatalog(productsFor(project));
+  const products = catalogMix.length > 0 ? catalogMix : SAMPLE_PRODUCTS;
   // Anchor "now" to the latest day in the series — derived server-side so the
   // client never reaches for Date.now() during render (react-compiler safe).
   const anchorIso = data.daily.length > 0 ? data.daily[data.daily.length - 1]!.date : undefined;
@@ -61,7 +67,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         rowsByPeriod={rowsByPeriod}
         trendByPeriod={trendByPeriod}
         channels={data.channels}
-        products={SAMPLE_PRODUCTS}
+        products={products}
         defaults={margins}
       />
     </ModulePage>

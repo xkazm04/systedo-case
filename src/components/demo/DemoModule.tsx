@@ -37,10 +37,11 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 import { getT } from "@/lib/i18n/server";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS as PROFIT_PRODUCTS } from "@/lib/profit/sample";
+import { categoryMixFromCatalog } from "@/lib/profit/products";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 import { SAMPLE_PRODUCTS as CATALOG_PRODUCTS } from "@/lib/catalog/sample";
-import { productsFor } from "@/lib/catalog/resolve";
+import { localitiesFor, plansFor, productsFor, servicesFor } from "@/lib/catalog/resolve";
 import {
   budgetChangeSet,
   monthlySeasonality,
@@ -53,9 +54,11 @@ import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 import { experimentsForProject } from "@/lib/lp-exp/sample";
 import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
+import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { sourcesForProject } from "@/lib/lead-quality/sample";
 import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
 import { SAMPLE_RECENT_REVIEWS, reviewsForProject, targetsForProject } from "@/lib/local/sample";
+import { targetsFromCatalog } from "@/lib/local/catalog";
 import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
 import { audienceForProject } from "@/lib/audience/sample";
@@ -181,18 +184,23 @@ export default async function DemoModule({
       const data = getProjectDataset(project);
       const rows = channelRows(data.channels, totalsOf(data.daily.slice(-90)));
       const seoChannel = seoChannelFrom(rows);
+      const generated = comparisonQueriesFromCatalog(project.name, plansFor(project));
+      const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
       return (
         <ModulePage moduleKey="srovnani-seo">
-          {noted(<CompareSeoModule queries={SAMPLE_QUERIES} seoChannel={seoChannel} />)}
+          {noted(<CompareSeoModule queries={queries} seoChannel={seoChannel} />)}
         </ModulePage>
       );
     }
-    case "lokalni":
+    case "lokalni": {
+      const services = servicesFor(project);
+      const targets =
+        services.length > 0 ? targetsFromCatalog(services, localitiesFor(project)) : targetsForProject(project);
       return (
         <ModulePage moduleKey="lokalni">
           {noted(
             <LocalModule
-              targets={targetsForProject(project)}
+              targets={targets}
               reviews={reviewsForProject(project)}
               recentReviews={SAMPLE_RECENT_REVIEWS}
               businessName={project.name}
@@ -200,6 +208,7 @@ export default async function DemoModule({
           )}
         </ModulePage>
       );
+    }
     /* ----------------------------------------------------------------- Studio */
     case "obsahovy-engine":
       return (
@@ -264,6 +273,8 @@ export default async function DemoModule({
     case "zisk": {
       const data = getProjectDataset(project);
       const margins = defaultMargins(data.channels);
+      const catalogMix = categoryMixFromCatalog(productsFor(project));
+      const products = catalogMix.length > 0 ? catalogMix : PROFIT_PRODUCTS;
       const anchorIso =
         data.daily.length > 0 ? data.daily[data.daily.length - 1]!.date : undefined;
       const rowsByPeriod = Object.fromEntries(
@@ -292,7 +303,7 @@ export default async function DemoModule({
               rowsByPeriod={rowsByPeriod}
               trendByPeriod={trendByPeriod}
               channels={data.channels}
-              products={PROFIT_PRODUCTS}
+              products={products}
               defaults={margins}
             />
           )}

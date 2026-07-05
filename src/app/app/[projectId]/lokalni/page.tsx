@@ -8,18 +8,25 @@ import {
   reviewsForProject,
   targetsForProject,
 } from "@/lib/local/sample";
+import { targetsFromCatalog } from "@/lib/local/catalog";
+import { localitiesFor, servicesFor } from "@/lib/catalog/resolve";
 
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "lokalni");
+  // Coverage matrix rows come from the catalog: each service offering × its
+  // localities. Fall back to the sample targets if the catalog has no services.
+  const services = servicesFor(project);
+  const targets =
+    services.length > 0 ? targetsFromCatalog(services, localitiesFor(project)) : targetsForProject(project);
   return (
     <ModulePage moduleKey="lokalni">
       <div className="mb-5">
         <SampleDataNote />
       </div>
       <LocalModule
-        targets={targetsForProject(project)}
+        targets={targets}
         reviews={reviewsForProject(project)}
         recentReviews={SAMPLE_RECENT_REVIEWS}
         businessName={project.name}

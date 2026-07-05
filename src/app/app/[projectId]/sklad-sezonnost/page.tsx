@@ -4,8 +4,8 @@ import ModulePage from "@/components/app/ModulePage";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
 import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
-import { warehouseConnectionFor, warehouseSnapshot } from "@/lib/inventory/warehouse";
+import { productsFor } from "@/lib/catalog/resolve";
+import { warehouseConnectionFor } from "@/lib/inventory/warehouse";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
 
@@ -24,12 +24,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
   const currentMonth = now.getUTCMonth();
 
-  // Direction 2 seam: a linked warehouse supplies warehouse-grade products
-  // (measured velocity, per-SKU COGS, PO-backed restock); otherwise fall back to
-  // the frozen storefront sample and prompt to connect a source.
+  // Products come from the project catalog (the business source of truth); the
+  // warehouse connection is the source badge shown by WarehouseSourceBar.
   const connection = warehouseConnectionFor(project.id, now);
-  const snapshot = connection ? warehouseSnapshot(connection, now) : null;
-  const products = snapshot ? snapshot.products : SAMPLE_PRODUCTS;
+  const products = productsFor(project, now);
 
   const stock = stockRows(products, now);
 
