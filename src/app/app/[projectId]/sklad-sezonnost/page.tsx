@@ -4,7 +4,7 @@ import ModulePage from "@/components/app/ModulePage";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
 import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { productsFor } from "@/lib/catalog/resolve";
+import { loadProductsFor } from "@/lib/catalog/load";
 import { warehouseConnectionFor } from "@/lib/inventory/warehouse";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
@@ -27,7 +27,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Products come from the project catalog (the business source of truth); the
   // warehouse connection is the source badge shown by WarehouseSourceBar.
   const connection = warehouseConnectionFor(project.id, now);
-  const products = productsFor(project, now);
+  const products = await loadProductsFor(project, now);
 
   const stock = stockRows(products, now);
 

@@ -61,6 +61,17 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_projects_user
     ON projects (user_id, created_at);
+
+  -- LOCAL_DB mode only: a project's business catalog (offerings), stored as one
+  -- JSON blob keyed by (user, project). Mirrors the Firestore projectCatalogs doc.
+  -- Read/written by catalog/store.local.ts; the seed is the fallback when absent.
+  CREATE TABLE IF NOT EXISTS project_catalog (
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, project_id)
+  );
 `;
 
 /** Marker identifying the current schema definition; when it changes, the schema

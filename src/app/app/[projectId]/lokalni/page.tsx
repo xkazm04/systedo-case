@@ -9,7 +9,8 @@ import {
   targetsForProject,
 } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
-import { localitiesFor, servicesFor } from "@/lib/catalog/resolve";
+import { localitiesFor } from "@/lib/catalog/resolve";
+import { loadServicesFor } from "@/lib/catalog/load";
 
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
@@ -17,7 +18,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "lokalni");
   // Coverage matrix rows come from the catalog: each service offering × its
   // localities. Fall back to the sample targets if the catalog has no services.
-  const services = servicesFor(project);
+  const services = await loadServicesFor(project);
   const targets =
     services.length > 0 ? targetsFromCatalog(services, localitiesFor(project)) : targetsForProject(project);
   return (

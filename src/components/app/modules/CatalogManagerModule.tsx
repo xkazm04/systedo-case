@@ -25,6 +25,9 @@ const T = {
     offerings: "položek",
     add: "Přidat",
     save: "Uložit změny",
+    saving: "Ukládám…",
+    saved: "Uloženo",
+    saveError: "Uložení selhalo",
     namePh: "Název",
     products: "Produkty",
     plans: "Plány",
@@ -59,6 +62,9 @@ const T = {
     offerings: "items",
     add: "Add",
     save: "Save changes",
+    saving: "Saving…",
+    saved: "Saved",
+    saveError: "Save failed",
     namePh: "Name",
     products: "Products",
     plans: "Plans",
@@ -111,6 +117,7 @@ export default function CatalogManagerModule({
   projectType,
   projectName,
   projectId,
+  persistable = false,
 }: {
   offerings: Offering[];
   connection: WarehouseConnection | null;
@@ -118,10 +125,32 @@ export default function CatalogManagerModule({
   projectType: ProjectType;
   projectName: string;
   projectId: string;
+  /** When true, "Save" persists to /api/projects/[id]/catalog; else session-only (demo). */
+  persistable?: boolean;
 }) {
   const t = useT(T);
-  const [items, setItems] = useState<Offering[]>(offerings);
+  const [items, setItemsState] = useState<Offering[]>(offerings);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  // Any edit drops us back to "idle" so a stale "Saved" never lingers.
+  const setItems = (u: Offering[] | ((prev: Offering[]) => Offering[])) => {
+    setItemsState(u);
+    setSaveState("idle");
+  };
   const nextId = useRef(0);
+
+  async function save() {
+    setSaveState("saving");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/catalog`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ offerings: items }),
+      });
+      setSaveState(res.ok ? "saved" : "error");
+    } catch {
+      setSaveState("error");
+    }
+  }
   const localityName = (id: string) => localities.find((l) => l.id === id)?.name ?? id;
 
   function update(id: string, changes: Partial<Offering> & { stock?: number }) {
@@ -240,15 +269,22 @@ export default function CatalogManagerModule({
         </button>
         <button
           type="button"
-          disabled
-          title={t("sessionNote")}
-          className="rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white opacity-50"
+          disabled={!persistable || saveState === "saving"}
+          onClick={persistable ? save : undefined}
+          title={persistable ? undefined : t("sessionNote")}
+          className={`rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 ${
+            !persistable ? "opacity-50" : saveState === "saving" ? "opacity-70" : ""
+          }`}
         >
-          {t("save")}
+          {saveState === "saving" ? t("saving") : saveState === "saved" ? t("saved") : t("save")}
         </button>
+        {saveState === "saved" && <span className="text-xs font-medium text-positive">✓ {t("saved")}</span>}
+        {saveState === "error" && <span className="text-xs font-medium text-negative">{t("saveError")}</span>}
       </div>
 
-      <p className="rounded-lg bg-brand-50/60 px-3.5 py-2.5 text-xs text-navy-700">{t("sessionNote")}</p>
+      {!persistable && (
+        <p className="rounded-lg bg-brand-50/60 px-3.5 py-2.5 text-xs text-navy-700">{t("sessionNote")}</p>
+      )}
     </div>
   );
 }

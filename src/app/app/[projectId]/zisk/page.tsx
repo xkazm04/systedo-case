@@ -7,7 +7,7 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
 import { categoryMixFromCatalog } from "@/lib/profit/products";
-import { productsFor } from "@/lib/catalog/resolve";
+import { loadProductsFor } from "@/lib/catalog/load";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 
@@ -27,7 +27,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const margins = defaultMargins(data.channels);
   // Category mix derived from the real product catalog (retiring the generic mock);
   // falls back to the sample mix for an empty catalog.
-  const catalogMix = categoryMixFromCatalog(productsFor(project));
+  const catalogMix = categoryMixFromCatalog(await loadProductsFor(project));
   const products = catalogMix.length > 0 ? catalogMix : SAMPLE_PRODUCTS;
   // Anchor "now" to the latest day in the series — derived server-side so the
   // client never reaches for Date.now() during render (react-compiler safe).

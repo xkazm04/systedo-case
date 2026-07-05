@@ -8,7 +8,7 @@ import SampleDataNote from "@/components/app/SampleDataNote";
 import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
-import { plansFor } from "@/lib/catalog/resolve";
+import { loadPlansFor } from "@/lib/catalog/load";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 
@@ -23,7 +23,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const seoChannel = seoChannelFrom(rows);
   // Comparison queries generated from the project's plan offerings + their named
   // competitors; fall back to the sample set if the catalog has no plans.
-  const generated = comparisonQueriesFromCatalog(project.name, plansFor(project));
+  const generated = comparisonQueriesFromCatalog(project.name, await loadPlansFor(project));
   const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
   return (
     <ModulePage moduleKey="srovnani-seo">
