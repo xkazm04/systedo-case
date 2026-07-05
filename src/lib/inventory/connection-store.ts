@@ -22,6 +22,13 @@ export interface PublicConnection {
   lastSyncAt?: string;
 }
 
+/** A stored connection with its owner keys — for the cron re-sync sweep. */
+export interface OwnedConnection {
+  userId: string;
+  projectId: string;
+  connection: StoredConnection;
+}
+
 /** Strip the token from a stored connection for the client. */
 export function publicConnection(c: StoredConnection): PublicConnection {
   return {
@@ -47,4 +54,9 @@ export async function saveConnection(userId: string, projectId: string, conn: St
 
 export async function deleteConnection(userId: string, projectId: string): Promise<void> {
   return (await backend()).deleteConnection(userId, projectId);
+}
+
+/** Every project's connection across all users — the cron re-sync's work list. */
+export async function listAllConnections(): Promise<OwnedConnection[]> {
+  return (await backend()).listAllConnections();
 }

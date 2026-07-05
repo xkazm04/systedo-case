@@ -3,7 +3,7 @@
  *  Mirrors the Firestore backend's interface. */
 import { getDb } from "@/lib/db";
 import { ensureLocalUser } from "@/lib/users/local";
-import type { StoredConnection } from "./connection-store";
+import type { OwnedConnection, StoredConnection } from "./connection-store";
 
 interface Row {
   provider: string;
@@ -13,11 +13,12 @@ interface Row {
   last_sync_at: string | null;
 }
 
-export async function getConnection(userId: string, projectId: string): Promise<StoredConnection | null> {
-  const r = getDb()
-    .prepare("SELECT * FROM warehouse_connection WHERE user_id = ? AND project_id = ?")
-    .get(userId, projectId) as Row | undefined;
-  if (!r) return null;
+interface OwnedRow extends Row {
+  user_id: string;
+  project_id: string;
+}
+
+function toStored(r: Row): StoredConnection {
   return {
     provider: r.provider,
     inventoryId: r.inventory_id || undefined,
@@ -25,6 +26,20 @@ export async function getConnection(userId: string, projectId: string): Promise<
     connectedAt: r.connected_at,
     lastSyncAt: r.last_sync_at || undefined,
   };
+}
+
+export async function getConnection(userId: string, projectId: string): Promise<StoredConnection | null> {
+  const r = getDb()
+    .prepare("SELECT * FROM warehouse_connection WHERE user_id = ? AND project_id = ?")
+    .get(userId, projectId) as Row | undefined;
+  return r ? toStored(r) : null;
+}
+
+export async function listAllConnections(): Promise<OwnedConnection[]> {
+  const rows = getDb()
+    .prepare("SELECT * FROM warehouse_connection")
+    .all() as unknown as OwnedRow[];
+  return rows.map((r) => ({ userId: r.user_id, projectId: r.project_id, connection: toStored(r) }));
 }
 
 export async function saveConnection(userId: string, projectId: string, conn: StoredConnection): Promise<void> {
