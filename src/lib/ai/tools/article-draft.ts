@@ -10,7 +10,13 @@
  *  and follows a flat shape far more reliably than a deep anyOf union. We then
  *  strictly normalize each raw block into a valid typed Block, dropping anything
  *  malformed — correctness over coverage. Supported kinds: p, h2, h3, ul, ol,
- *  callout, cta (a safe subset of the real Block union). */
+ *  callout, cta, figure (a safe subset of the real Block union).
+ *
+ *  A `figure` block is a PLACEHOLDER: the model suggests where an image fits and
+ *  describes it in `alt` (never a made-up URL) — the client fills the real `src`
+ *  from the Creative library. So figures are normalized with an empty src and
+ *  0×0 size; the draft panel renders unfilled placeholders as an "add image" slot
+ *  and drops any that stay empty from the export. */
 import { Type } from "@google/genai";
 import type {
   AiResponse,
@@ -31,6 +37,7 @@ Pravidla:
 - Vyjdi z předané osnovy (H2 sekce a jejich odrážky): pro KAŽDOU sekci osnovy vytvoř nadpis (blok typu „h2") a pod ním 1–2 odstavce (bloky typu „p") plus případně seznam (blok typu „ul" nebo „ol").
 - Hned na začátku napiš úvodní odstavec (perex) navazující na meta description.
 - Zařaď přesně jeden blok typu „callout" (užitečný tip nebo varování) a na konci přesně jeden blok typu „cta" s pobídkou k akci.
+- Volitelně zařaď NEJVÝŠE jeden blok typu „figure" (obrázek) tam, kde by vizuál článku pomohl — typicky za úvodem nebo u klíčové sekce. Do pole „alt" napiš stručný popis toho, co by měl obrázek zachycovat; NEVYMÝŠLEJ URL ani cestu k souboru — obrázek doplní uživatel z knihovny vizuálů. Pokud se vizuál nehodí, „figure" vynech.
 - Klíčová slova z briefu zapracuj přirozeně do textu — žádné keyword stuffing.
 - Text musí být věcný, čtivý a užitečný, ne výplň.
 - Každý blok je objekt s polem „type". Podle typu vyplň:
@@ -39,6 +46,7 @@ Pravidla:
   - „ul" / „ol": pole „items" (pole řetězců — odrážky).
   - „callout": pole „variant" („tip" | „info" | „warn"), volitelně „title", a pole „text".
   - „cta": pole „text" (pobídka), „cta" (text tlačítka); odkaz doplní aplikace.
+  - „figure": pole „alt" (popis navrhovaného obrázku), volitelně „caption" (popisek pod obrázkem); „src" nevyplňuj.
 - Odstavce drž krátké (2–4 věty). Celkem vrať nejvýše ~16 bloků — buď stručný a věcný, ne mnohomluvný.
 - Vrať POUZE jeden validní JSON objekt dle schématu (pole „blocks" a „faq") — žádný text okolo, žádné markdown bloky, žádné komentáře.`;
 
@@ -92,7 +100,7 @@ const ARTICLE_DRAFT_SCHEMA = {
         properties: {
           type: {
             type: Type.STRING,
-            description: "p | h2 | h3 | ul | ol | callout | cta",
+            description: "p | h2 | h3 | ul | ol | callout | cta | figure",
           },
           text: { type: Type.STRING, description: "Text odstavce / nadpisu / calloutu / pobídky" },
           items: {
@@ -103,9 +111,11 @@ const ARTICLE_DRAFT_SCHEMA = {
           variant: { type: Type.STRING, description: "tip | info | warn (jen pro callout)" },
           title: { type: Type.STRING, description: "Volitelný nadpis calloutu" },
           cta: { type: Type.STRING, description: "Text tlačítka (jen pro cta)" },
+          alt: { type: Type.STRING, description: "Popis navrhovaného obrázku (jen pro figure) — bez URL" },
+          caption: { type: Type.STRING, description: "Volitelný popisek pod obrázkem (jen pro figure)" },
         },
         required: ["type"],
-        propertyOrdering: ["type", "text", "items", "variant", "title", "cta"],
+        propertyOrdering: ["type", "text", "items", "variant", "title", "cta", "alt", "caption"],
       },
     },
     faq: {
@@ -173,6 +183,15 @@ function toBlock(raw: unknown, index: number): Block | null {
       const text = txt(o.text);
       const cta = txt(o.cta) || "Zjistit více";
       return text ? { type: "cta", text, href: "/cena", kind: "internal", cta } : null;
+    }
+    case "figure": {
+      // Placeholder only: the model describes the wanted image in `alt`; the
+      // client fills the real src (and true dimensions) from the Creative
+      // library, so we emit an empty src + 0×0 size here.
+      const alt = txt(o.alt) || txt(o.text);
+      if (!alt) return null;
+      const caption = txt(o.caption);
+      return { type: "figure", src: "", alt, width: 0, height: 0, ...(caption ? { caption } : {}) };
     }
     default:
       return null;

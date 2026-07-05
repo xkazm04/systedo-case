@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-04T15:07:58.800Z",
+  "provenAt": "2026-07-05T09:20:40.444Z",
   "files": {
     "src/lib/llm/index.ts": "3968f85c5ddf2a0835cab7928443d1e52aaea498e4fd5eee2633aa96fdd61762",
     "src/lib/llm/claude.ts": "dadda4fbc837e96bd7a2f2333d6a1281941472d31d2ab3f9572fcf07a74049fa",
@@ -15,7 +15,7 @@
     "src/lib/ai/tools/lead-reply.ts": "2c7f44f4ef39c311c73284842b619d28867e824f2b586631d072fcc779499ce6",
     "src/lib/ai/tools/repurpose.ts": "482ea902357b4c68e16030f8e868a5e4ced5579e827f4aff682f0b39e4d1f875",
     "src/lib/ai/tools/local-review-reply.ts": "a1bf19b1a8a867ab5f14f5d5c380cf237cc7ea92806fb72b32d0e868c5ef0f3c",
-    "src/lib/ai/tools/article-draft.ts": "74deb63f58c58beff69fd8d028dc80ecf61b3c0f03a8141b7dc64238fd3af226",
+    "src/lib/ai/tools/article-draft.ts": "35074621e668fab643389b360c5c8c1b2024bb5ac0a2780610cfea765fec54f4",
     "src/lib/ai/tools/cohort-diagnosis.ts": "5548b7062e9996163ae1835e81303be9e4a4eb32afbb218d28c8b0d7f2fee083",
     "src/lib/ai/tools/keyword-clusters.ts": "c652e46b6693edadca82991c94e4a6867f215203f6252ffe1cb95464141f3c52",
     "src/lib/ai/tools/comparison-outline.ts": "6859aa1a97f2bfd1b02b4b75c9d09f02f32d39e4bb6d1baa152b8aa92cbaefc1",
@@ -55,7 +55,7 @@
     "lead-reply": "2026-07-04T15:07:58.800Z",
     "repurpose": "2026-07-04T15:07:58.800Z",
     "local-review-reply": "2026-07-04T15:07:58.800Z",
-    "article-draft": "2026-07-04T15:07:58.800Z",
+    "article-draft": "2026-07-05T09:20:40.444Z",
     "cohort-diagnosis": "2026-07-04T15:07:58.800Z",
     "keyword-clusters": "2026-07-04T15:07:58.800Z",
     "comparison-outline": "2026-07-04T15:07:58.800Z",

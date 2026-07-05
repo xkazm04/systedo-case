@@ -94,9 +94,12 @@ export function briefToArticleDraftRequest(
 }
 
 /** The draft body as plain Markdown — grounding for the repurpose step and the
- *  wizard's .md export. Uses the shared Block serializer so links/bold survive. */
+ *  wizard's .md export. Uses the shared Block serializer so links/bold survive.
+ *  Unfilled figure placeholders (empty src) are skipped so the export never
+ *  carries a broken `![alt]()`. */
 export function draftBodyMarkdown(draft: ArticleDraftResult, labels?: MarkdownLabels): string {
   return draft.blocks
+    .filter((b) => !(b.type === "figure" && !b.src))
     .map((b) => blockToMarkdown(b, labels))
     .filter(Boolean)
     .join("\n\n");
