@@ -4,7 +4,9 @@
 import { Pill, type PillTone } from "@/components/ui";
 import { Calendar, Coins, Refresh } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
+import InventoryBudgetActions from "@/components/app/modules/InventoryBudgetActions";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { buildActionPlan } from "@/lib/inventory/action-plan";
 import type {
   BudgetChangeSet,
   SeasonalBudgetPlan,
@@ -164,6 +166,9 @@ export default async function InventorySeasonModule({
   const valueAtRisk = stock
     .filter((s) => s.status === "pause" || s.status === "low" || s.status === "resuming")
     .reduce((sum, s) => sum + s.coverValue, 0);
+
+  // Direction 3: the proposal becomes an executable, governed, cross-channel plan.
+  const actionPlan = buildActionPlan(stock, changeSet);
 
   return (
     <div className="space-y-6">
@@ -359,49 +364,8 @@ export default async function InventorySeasonModule({
         </div>
       </div>
 
-      {/* per-SKU budget change-set proposal */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
-            <Refresh width={18} height={18} className="text-brand-accent" />
-            {t("budgetShiftTitle")}
-          </h3>
-          {changeSet.moves.length > 0 && (
-            <Pill tone="brand">{t("shiftTotal", { amount: fmt.fmtCZK(changeSet.totalShifted) })}</Pill>
-          )}
-        </div>
-        {changeSet.moves.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted">
-            {t("noShift")}
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="px-5 py-3 font-medium">{t("colFrom")}</th>
-                  <th className="px-4 py-3 font-medium">{t("colTo")}</th>
-                  <th className="px-4 py-3 font-medium">{t("colCategory")}</th>
-                  <th className="px-5 py-3 text-right font-medium">{t("colShift")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {changeSet.moves.map((m) => (
-                  <tr key={`${m.fromSku}->${m.toSku}`} className="border-b border-line/70 last:border-0">
-                    <td className="px-5 py-3 text-navy-700">{m.fromTitle}</td>
-                    <td className="px-4 py-3 font-medium text-navy-800">{m.toTitle}</td>
-                    <td className="px-4 py-3 text-muted">{m.category}</td>
-                    <td className="tnum px-5 py-3 text-right font-medium text-positive">+{fmt.fmtCZK(m.amountCzk)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className="border-t border-line px-5 py-3 text-xs text-muted">
-          {t("shiftNote")}
-        </p>
-      </div>
+      {/* per-SKU budget change-set — now an executable, governed action plan */}
+      <InventoryBudgetActions plan={actionPlan} />
 
       <NextSteps steps={[{ to: "kampane", label: t("nextStep"), hint: t("nextStepHint") }]} />
     </div>

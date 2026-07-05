@@ -1,61 +1,78 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+/** Create-project form — single-step comparison matrix.
+ *  Project types are columns, modules are rows (each with a one-line description).
+ *  Pick a type by its column header; the active column's cells become live toggles
+ *  you click straight in the grid (core is locked on, proposed additions toggle in
+ *  coral). "Reset" restores the type's default package. Name/brand + create live on
+ *  the same screen — no separate customize step. */
+import { Fragment, useState } from "react";
 import { ArrowRight, Check } from "@/components/icons";
-import { ModuleIcon } from "@/components/app/icon-map";
-import { modulesFor } from "@/lib/projects/modules";
+import { Pill } from "@/components/ui";
+import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import {
+  MODULES,
+  SECTION_ORDER,
+  moduleBlurb,
+  moduleLabel,
+  sectionLabel,
+  type ModuleDef,
+  type ModuleSection,
+} from "@/lib/projects/modules";
 import {
   PROJECT_TYPES,
   PROJECT_TYPE_META,
+  projectTypeMeta,
   type ProjectType,
 } from "@/lib/projects/types";
-import { useT } from "@/lib/i18n/client";
+import { defaultModules, moduleStatus, packageSize, type ModuleStatus } from "./create-project-packages";
+import { ProjectDetailsFields, useProjectDraft } from "./create-project-shared";
 
 const T = {
   cs: {
-    typeLabel: "Typ projektu",
-    typeHint: "Určuje, které moduly se objeví v levém menu a jaké metriky uvidíte v přehledu.",
-    modulesFor: "Moduly pro",
-    projectName: "Název projektu",
-    namePlaceholder: "např. Mionelo",
-    website: "Web",
-    websiteOptional: "(nepovinné)",
-    websitePlaceholder: "mionelo.cz",
-    brandColor: "Barva značky",
-    colorLabel: "Barva",
-    errorEmpty: "Zadejte název projektu.",
-    errorCreate: "Nepodařilo se vytvořit projekt.",
-    errorGeneric: "Něco se pokazilo.",
+    heading: "Vyberte typ a poskládejte moduly",
+    hint: "Klikněte na typ v hlavičce sloupce, pak přímo v mřížce zapínejte a vypínejte moduly. Kdykoli obnovíte výchozí sadu.",
+    colModule: "Modul",
+    modulesShort: "modulů",
+    modulesOn: "zapnuto",
+    system: "Systém",
+    reset: "Obnovit výchozí",
+    legendCore: "vždy zapnuto",
+    legendOn: "zapnuto",
+    legendProposed: "navrženo",
+    create: "Vytvořit projekt",
     submitting: "Zakládám…",
-    submit: "Vytvořit projekt",
     cancel: "Zrušit",
   },
   en: {
-    typeLabel: "Project type",
-    typeHint: "Determines which modules appear in the left menu and which metrics you see in the overview.",
-    modulesFor: "Modules for",
-    projectName: "Project name",
-    namePlaceholder: "e.g. Mionelo",
-    website: "Website",
-    websiteOptional: "(optional)",
-    websitePlaceholder: "mionelo.com",
-    brandColor: "Brand color",
-    colorLabel: "Color",
-    errorEmpty: "Enter a project name.",
-    errorCreate: "Failed to create project.",
-    errorGeneric: "Something went wrong.",
+    heading: "Choose a type and assemble modules",
+    hint: "Click a type in the column header, then toggle modules on and off right in the grid. Reset to the default set anytime.",
+    colModule: "Module",
+    modulesShort: "modules",
+    modulesOn: "on",
+    system: "System",
+    reset: "Reset to default",
+    legendCore: "always on",
+    legendOn: "on",
+    legendProposed: "proposed",
+    create: "Create project",
     submitting: "Creating…",
-    submit: "Create project",
     cancel: "Cancel",
   },
 } as const;
 
-/** Accent presets a project can be branded with (brand-ramp + a few extras). */
-const ACCENTS = ["#14b8b1", "#0e9c97", "#6366f1", "#8b5cf6", "#fb7141", "#d4503e"];
+function groupedModules(): [ModuleSection, ModuleDef[]][] {
+  return SECTION_ORDER.map((s) => [s, MODULES.filter((m) => m.section === s)] as [ModuleSection, ModuleDef[]]);
+}
 
-const inputClass =
-  "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-muted/70 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
+/** Read-only comparison mark for a non-active column. */
+function InactiveMark({ status }: { status: ModuleStatus }) {
+  if (status === "core") return <span className="text-navy-500">◆</span>;
+  if (status === "on") return <span className="font-semibold text-brand-500">✓</span>;
+  if (status === "add") return <span className="font-bold text-coral-400">+</span>;
+  return <span className="text-navy-200">·</span>;
+}
 
 export default function CreateProjectForm({
   onCancel,
@@ -63,165 +80,210 @@ export default function CreateProjectForm({
   /** Shown only when the user already has projects (so they can back out). */
   onCancel?: () => void;
 }) {
-  const router = useRouter();
   const t = useT(T);
+  const { locale } = useLocale();
+  const draft = useProjectDraft();
   const [type, setType] = useState<ProjectType>("eshop");
-  const [name, setName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [accent, setAccent] = useState<string>(PROJECT_TYPE_META.eshop.defaultAccent);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [accent, setAccent] = useState(PROJECT_TYPE_META.eshop.defaultAccent);
+  const [enabled, setEnabled] = useState<Set<string>>(() => defaultModules("eshop"));
 
-  function pickType(t: ProjectType) {
-    setType(t);
-    setAccent(PROJECT_TYPE_META[t].defaultAccent);
+  function pickType(pt: ProjectType) {
+    setType(pt);
+    setAccent(PROJECT_TYPE_META[pt].defaultAccent);
+    setEnabled(defaultModules(pt));
+  }
+  function toggle(key: string) {
+    setEnabled((s) => {
+      const n = new Set(s);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+  }
+  function reset() {
+    setEnabled(defaultModules(type));
   }
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError(t("errorEmpty"));
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, type, accentColor: accent, domain: domain.trim() || undefined }),
-      });
-      const json = (await res.json()) as { project?: { id: string }; error?: string };
-      if (!res.ok || !json.project) throw new Error(json.error ?? t("errorCreate"));
-      router.push(`/app/${json.project.id}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t("errorGeneric"));
-      setSubmitting(false);
-    }
-  }
-
-  const previewModules = modulesFor(type).filter((m) => m.section !== "system");
+  const def = defaultModules(type);
+  const atDefault = def.size === enabled.size && [...def].every((k) => enabled.has(k));
+  const groups = groupedModules();
 
   return (
-    <form onSubmit={submit} className="space-y-8">
-      {/* type picker */}
-      <fieldset>
-        <legend className="text-sm font-semibold text-navy-800">{t("typeLabel")}</legend>
-        <p className="mt-1 text-sm text-muted">
-          {t("typeHint")}
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {PROJECT_TYPES.map((pt) => {
-            const meta = PROJECT_TYPE_META[pt];
-            const selected = pt === type;
-            return (
-              <button
-                key={pt}
-                type="button"
-                onClick={() => pickType(pt)}
-                aria-pressed={selected}
-                className={`relative flex items-start gap-3 rounded-card border p-4 text-left transition-all ${
-                  selected
-                    ? "border-brand-400 bg-brand-50/60 ring-2 ring-brand-200"
-                    : "border-line bg-surface hover:border-brand-300"
-                }`}
-              >
-                <span
-                  className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-white"
-                  style={{ backgroundColor: meta.defaultAccent }}
-                >
-                  <ModuleIcon icon={meta.icon} width={20} height={20} />
-                </span>
-                <span className="min-w-0">
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-navy-800">
-                    {meta.label}
-                    {selected && <Check width={15} height={15} className="text-brand-accent" />}
-                  </span>
-                  <span className="mt-0.5 block text-xs leading-relaxed text-muted">{meta.tagline}</span>
-                </span>
-              </button>
-            );
-          })}
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="max-w-xl">
+          <h2 className="text-sm font-semibold text-navy-800">{t("heading")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("hint")}</p>
         </div>
-      </fieldset>
-
-      {/* module preview for the chosen type */}
-      <div className="rounded-card border border-line bg-canvas px-4 py-3.5">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.12em] text-muted">
-          {`${t("modulesFor")} „${PROJECT_TYPE_META[type].label}“`}
-        </p>
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {previewModules.map((m) => (
-            <span
-              key={m.key || "overview"}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-surface px-2.5 py-1 text-xs font-medium text-navy-700"
-            >
-              <ModuleIcon icon={m.icon} width={13} height={13} className="text-brand-accent" />
-              {m.label}
-            </span>
-          ))}
+        <div className="flex items-center gap-2">
+          <Pill tone="brand">
+            {enabled.size} {t("modulesOn")}
+          </Pill>
+          <button
+            type="button"
+            onClick={reset}
+            disabled={atDefault}
+            className="rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-default disabled:opacity-40 disabled:hover:border-line disabled:hover:text-muted"
+          >
+            {t("reset")}
+          </button>
         </div>
       </div>
 
-      {/* name + domain */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-sm font-medium text-navy-800">{t("projectName")}</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={t("namePlaceholder")}
-            className={`mt-1.5 ${inputClass}`}
-            autoFocus
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm font-medium text-navy-800">
-            {t("website")} <span className="font-normal text-muted">{t("websiteOptional")}</span>
+      <div className="overflow-x-auto rounded-card border border-line">
+        <table className="w-full min-w-[600px] border-collapse text-sm">
+          <thead>
+            <tr>
+              <th className="border-b border-line px-3 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-muted">
+                {t("colModule")}
+              </th>
+              {PROJECT_TYPES.map((pt) => {
+                const active = pt === type;
+                return (
+                  <th
+                    key={pt}
+                    className={`border-b border-l border-line p-0 text-center ${active ? "bg-brand-50" : ""}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => pickType(pt)}
+                      aria-pressed={active}
+                      className={`w-full px-2 py-2 transition-colors ${active ? "" : "hover:bg-canvas"}`}
+                    >
+                      <span className={`block text-[13px] font-semibold ${active ? "text-brand-accent" : "text-navy-800"}`}>
+                        {projectTypeMeta(pt, locale).label}
+                      </span>
+                      <span className="tnum mt-0.5 block text-[11px] text-muted">
+                        {active ? enabled.size : packageSize(pt)} {t("modulesShort")}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map(([sec, list]) =>
+              list.length === 0 ? null : (
+                <Fragment key={sec}>
+                  <tr>
+                    <td
+                      colSpan={PROJECT_TYPES.length + 1}
+                      className="border-b border-line bg-canvas px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted"
+                    >
+                      {sectionLabel(sec, locale) || t("system")}
+                    </td>
+                  </tr>
+                  {list.map((m) => (
+                    <tr key={m.key || "overview"}>
+                      <td className="border-b border-line/70 px-3 py-2 align-top">
+                        <div className="font-medium text-navy-800">{moduleLabel(m, locale)}</div>
+                        <div className="text-xs leading-snug text-muted">{moduleBlurb(m, locale)}</div>
+                      </td>
+                      {PROJECT_TYPES.map((pt) => {
+                        const active = pt === type;
+                        const st = moduleStatus(m, pt);
+                        const on = enabled.has(m.key);
+                        return (
+                          <td
+                            key={pt}
+                            className={`border-b border-l border-line/70 p-0 text-center align-middle ${
+                              active ? "bg-brand-50/40" : ""
+                            }`}
+                          >
+                            {active ? (
+                              st === "core" ? (
+                                <span
+                                  title={t("legendCore")}
+                                  className="mx-auto grid h-5 w-5 place-items-center rounded-md bg-brand-600/75 text-white"
+                                >
+                                  <Check width={13} height={13} />
+                                </span>
+                              ) : st === "no" ? (
+                                <span className="text-navy-200">·</span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={on}
+                                  aria-label={moduleLabel(m, locale)}
+                                  onClick={() => toggle(m.key)}
+                                  className="grid h-full w-full place-items-center py-1.5"
+                                >
+                                  <span
+                                    className={`grid h-5 w-5 place-items-center rounded-md border transition-colors ${
+                                      on
+                                        ? st === "add"
+                                          ? "border-coral-500 bg-coral-500 text-white"
+                                          : "border-brand-600 bg-brand-600 text-white"
+                                        : `bg-surface text-transparent ${st === "add" ? "border-dashed border-coral-300" : "border-navy-300"}`
+                                    }`}
+                                  >
+                                    <Check width={13} height={13} />
+                                  </span>
+                                </button>
+                              )
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => pickType(pt)}
+                                aria-label={projectTypeMeta(pt, locale).label}
+                                className="grid h-full w-full place-items-center py-2 opacity-70 transition-opacity hover:opacity-100"
+                              >
+                                <InactiveMark status={st} />
+                              </button>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </Fragment>
+              )
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="text-navy-500">◆</span> {t("legendCore")}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="grid h-4 w-4 place-items-center rounded bg-brand-600 text-white">
+            <Check width={10} height={10} />
           </span>
-          <input
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            placeholder={t("websitePlaceholder")}
-            className={`mt-1.5 ${inputClass}`}
-          />
-        </label>
+          {t("legendOn")}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="font-bold text-coral-500">+</span> {t("legendProposed")}
+        </span>
       </div>
 
-      {/* accent */}
-      <div>
-        <span className="text-sm font-medium text-navy-800">{t("brandColor")}</span>
-        <div className="mt-2 flex items-center gap-2">
-          {ACCENTS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={`${t("colorLabel")} ${c}`}
-              aria-pressed={accent === c}
-              onClick={() => setAccent(c)}
-              className={`h-8 w-8 rounded-full transition-transform hover:scale-110 ${
-                accent === c ? "ring-2 ring-offset-2 ring-offset-surface" : ""
-              }`}
-              style={{ backgroundColor: c, boxShadow: accent === c ? `0 0 0 2px ${c}` : undefined }}
-            />
-          ))}
-        </div>
-      </div>
+      <ProjectDetailsFields
+        name={draft.name}
+        setName={draft.setName}
+        domain={draft.domain}
+        setDomain={draft.setDomain}
+        accent={accent}
+        setAccent={setAccent}
+      />
 
-      {error && (
+      {draft.error && (
         <p className="rounded-lg bg-negative-soft px-3.5 py-2.5 text-sm text-negative" role="alert">
-          {error}
+          {draft.error}
         </p>
       )}
 
       <div className="flex items-center gap-3">
         <button
-          type="submit"
-          disabled={submitting}
+          type="button"
+          onClick={() => draft.submit(type, accent)}
+          disabled={draft.submitting}
           className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
         >
-          {submitting ? t("submitting") : t("submit")}
-          {!submitting && <ArrowRight width={16} height={16} />}
+          {draft.submitting ? t("submitting") : t("create")}
+          {!draft.submitting && <ArrowRight width={16} height={16} />}
         </button>
         {onCancel && (
           <button
@@ -233,6 +295,6 @@ export default function CreateProjectForm({
           </button>
         )}
       </div>
-    </form>
+    </div>
   );
 }

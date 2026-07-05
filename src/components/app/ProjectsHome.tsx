@@ -70,7 +70,7 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
       </div>
 
       <Container className="py-12 sm:py-16">
-        <div className="mx-auto max-w-3xl">
+        <div className="mx-auto max-w-[62rem]">
           <header className="mb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-navy-800 sm:text-4xl">
               {showForm ? (empty ? t("headingFirst") : t("headingNew")) : t("headingList")}
@@ -85,7 +85,7 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
               <CreateProjectForm onCancel={empty ? undefined : () => setCreating(false)} />
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p) => (
                 <ProjectCard key={p.id} project={p} />
               ))}

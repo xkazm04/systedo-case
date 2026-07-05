@@ -2,9 +2,10 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
+import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { SAMPLE_PRODUCTS } from "@/lib/catalog/sample";
+import { warehouseConnectionFor, warehouseSnapshot } from "@/lib/inventory/warehouse";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
 
@@ -23,7 +24,14 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
   const currentMonth = now.getUTCMonth();
 
-  const stock = stockRows(SAMPLE_PRODUCTS, now);
+  // Direction 2 seam: a linked warehouse supplies warehouse-grade products
+  // (measured velocity, per-SKU COGS, PO-backed restock); otherwise fall back to
+  // the frozen storefront sample and prompt to connect a source.
+  const connection = warehouseConnectionFor(project.id, now);
+  const snapshot = connection ? warehouseSnapshot(connection, now) : null;
+  const products = snapshot ? snapshot.products : SAMPLE_PRODUCTS;
+
+  const stock = stockRows(products, now);
 
   // Aggregate days-of-cover (median of finite covers) caps upcoming budget months.
   const covers = stock.map((s) => s.daysOfCover).filter((d) => Number.isFinite(d)).sort((a, b) => a - b);
@@ -38,7 +46,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   return (
     <ModulePage moduleKey="sklad-sezonnost">
       <div className="mb-5">
-        <SampleDataNote />
+        <WarehouseSourceBar connection={connection} skuCount={products.length} />
       </div>
       <InventorySeasonModule
         season={season}

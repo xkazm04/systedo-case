@@ -22,6 +22,7 @@ import SharedReportsList from "@/components/campaigns/SharedReportsList";
 import ProfitModule from "@/components/app/modules/ProfitModule";
 import CatalogModule from "@/components/app/modules/CatalogModule";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
+import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
 import LtvModule from "@/components/app/modules/LtvModule";
 import LpExperimentsModule from "@/components/app/modules/LpExperimentsModule";
 import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
@@ -46,6 +47,7 @@ import {
   seasonalBudgetPlan,
   stockRows,
 } from "@/lib/inventory/compute";
+import { warehouseConnectionFor, warehouseSnapshot } from "@/lib/inventory/warehouse";
 import { ESHOP_COHORTS, SAMPLE_COHORTS } from "@/lib/ltv/sample";
 import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 import { experimentsForProject } from "@/lib/lp-exp/sample";
@@ -102,9 +104,13 @@ function noted(children: React.ReactNode) {
 export default async function DemoModule({
   moduleKey,
   project,
+  warehouse,
 }: {
   moduleKey: string;
   project: Project;
+  /** Direction 2 demo toggle: `off` shows the connector picker instead of the
+   *  connected warehouse-grade view. Defaults to connected. */
+  warehouse?: "on" | "off";
 }) {
   switch (moduleKey) {
     /* -------------------------------------------------------------- Overview */
@@ -138,7 +144,15 @@ export default async function DemoModule({
       // Reference "now" derived from the dataset's last day (deterministic).
       const now = new Date(`${lastDate ?? "2026-01-01"}T00:00:00Z`);
       const currentMonth = now.getUTCMonth();
-      const stock = stockRows(CATALOG_PRODUCTS, now);
+
+      // Direction 2 prototype: the demo project presents as connected to a
+      // warehouse hub (Baselinker), so the module runs on warehouse-grade data;
+      // `?wh=off` forces the not-connected connector picker instead.
+      const connection = warehouse === "off" ? null : warehouseConnectionFor(project.id, now);
+      const snapshot = connection ? warehouseSnapshot(connection, now) : null;
+      const products = snapshot ? snapshot.products : CATALOG_PRODUCTS;
+
+      const stock = stockRows(products, now);
       const covers = stock
         .map((s) => s.daysOfCover)
         .filter((d) => Number.isFinite(d))
@@ -152,15 +166,16 @@ export default async function DemoModule({
       const changeSet = budgetChangeSet(stock);
       return (
         <ModulePage moduleKey="sklad-sezonnost">
-          {noted(
-            <InventorySeasonModule
-              season={season}
-              currentMonth={currentMonth}
-              stock={stock}
-              budgetPlan={budgetPlan}
-              changeSet={changeSet}
-            />
-          )}
+          <div className="mb-5">
+            <WarehouseSourceBar connection={connection} skuCount={products.length} />
+          </div>
+          <InventorySeasonModule
+            season={season}
+            currentMonth={currentMonth}
+            stock={stock}
+            budgetPlan={budgetPlan}
+            changeSet={changeSet}
+          />
         </ModulePage>
       );
     }

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string | string[] }>;
+  searchParams: Promise<{ m?: string | string[]; wh?: string | string[] }>;
 }) {
   return (
     <Suspense fallback={<DemoShellSkeleton />}>
@@ -31,14 +31,16 @@ export default function DashboardPage({
 async function DemoWorkspace({
   searchParams,
 }: {
-  searchParams: Promise<{ m?: string | string[] }>;
+  searchParams: Promise<{ m?: string | string[]; wh?: string | string[] }>;
 }) {
-  const { m } = await searchParams;
+  const { m, wh } = await searchParams;
   const mod = demoModuleFor(m);
   const project = demoProjectForModule(mod);
+  // `?wh=off` previews the Direction 2 not-connected connector picker.
+  const whFlag = Array.isArray(wh) ? wh[0] : wh;
   return (
     <DemoShell activeKey={mod.key} project={project} projects={DEMO_PROJECTS}>
-      <DemoModule moduleKey={mod.key} project={project} />
+      <DemoModule moduleKey={mod.key} project={project} warehouse={whFlag === "off" ? "off" : "on"} />
     </DemoShell>
   );
 }
