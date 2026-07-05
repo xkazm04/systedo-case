@@ -13,34 +13,51 @@
       "icon": null,
       "contexts": [
         {
-          "name": "Home, App Shell & Transitions",
-          "description": "The Adamant product landing (Monolith brand direction): a hero that uses the wide monolith key visual as a full-bleed background decoration, then the real product surfaces. Plus the global HTML shell, the site-wide subtle .bg-facets pattern on <main>, and the per-navigation fade transition wrapping every route. Brand assets live in public/brand.",
-          "businessFeature": "Home & App Shell",
+          "name": "Home, App Shell & Brand Identity",
+          "description": "Defines the root App Router shell and the Adamant homepage. The layout wires global metadata, Geist fonts, a pre-paint no-flash theme script, the locale and auth providers, a skip-to-content link, and gates the marketing Nav/Footer around a faceted <main>; template.tsx replays an opacity fade on every navigation. BrandLanding renders the Monolith hero over the wide key-visual, three product cards, and a live 90-day proof band built from real snapshot KPIs (ROAS, PNO, revenue). The data-driven opengraph-image composes a branded share card from yearly totals, and the brand PNGs plus faceted favicon supply the visual identity.",
+          "businessFeature": "Marketing Homepage",
           "category": "ui",
           "filePaths": [
             "src/app/page.tsx",
-            "src/components/brand/BrandLanding.tsx",
             "src/app/layout.tsx",
             "src/app/template.tsx",
-            "src/lib/site.ts",
-            "public/brand/logo-monolith.png",
+            "src/app/opengraph-image.tsx",
+            "src/components/brand/BrandLanding.tsx",
+            "src/app/icon.svg",
+            "public/brand/hero-monolith.png",
             "public/brand/illu-monolith.png",
-            "public/brand/hero-monolith.png"
+            "public/brand/logo-monolith.png"
           ],
           "target": null,
           "apiRoutes": []
         },
         {
-          "name": "Header & Footer Navigation",
-          "description": "Lets visitors move through the case study: a site-wide header and footer plus a documentation-style prev/next task pager, all driven by one typed navigation model so links never drift. The header also hosts a system-aware light/dark theme toggle.",
-          "businessFeature": "Primary Navigation",
+          "name": "Header, Footer & Navigation Model",
+          "description": "Provides the shared marketing chrome and its single navigation source of truth. NAV_ITEMS drives the sticky header (active-link underline, mobile drawer, auth-aware Open-App CTA, usage meter, theme and locale toggles), the three-column footer, the documentation-style prev/next TaskPager that walks the case study in task order, and the canonical sitemap. ChromeGate hides this chrome under /app so the authed product keeps its own sidebar shell. site.ts resolves the canonical origin and footer stack facts; nav.ts also exposes diacritics-aware slugify and breadcrumb helpers.",
+          "businessFeature": "Site Navigation",
           "category": "ui",
           "filePaths": [
             "src/components/site/Nav.tsx",
             "src/components/site/Footer.tsx",
             "src/components/site/TaskPager.tsx",
-            "src/components/site/ThemeToggle.tsx",
-            "src/lib/nav.ts"
+            "src/components/site/ChromeGate.tsx",
+            "src/lib/nav.ts",
+            "src/lib/site.ts",
+            "src/app/sitemap.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Public Case-Study Pages",
+          "description": "A set of public marketing/showcase routes that round out the case study. The pricing page (/cena) renders Free and Pro plan cards from PLAN_INFO with localized currency and a mailto upgrade CTA; the sitemap page (/mapa) presents the information architecture as a deliverable with ItemList JSON-LD derived from NAV_ITEMS plus supplementary meta pages; /knihovna and /socialni are thin metadata-bearing wrappers that mount the PatternsLibrary and SocialClient feature components. Each page reuses the shared Container/Eyebrow primitives for consistent layout.",
+          "businessFeature": "Case-Study Showcase",
+          "category": "ui",
+          "filePaths": [
+            "src/app/cena/page.tsx",
+            "src/app/mapa/page.tsx",
+            "src/app/knihovna/page.tsx",
+            "src/app/socialni/page.tsx"
           ],
           "target": null,
           "apiRoutes": []
@@ -56,7 +73,7 @@
       "contexts": [
         {
           "name": "Dashboard Workspace & KPIs",
-          "description": "Interactive performance dashboard for the client: headline KPI cards (visits, cost, conversions, revenue, PNO) with period switching, period-over-period delta badges, a monthly revenue-goal pacing card with a seasonality-aware month-end forecast, and auto-generated insights.",
+          "description": "Server-renders the public performance dashboard and re-hosts the same client inside the authed project shell (the /vykon module), then drives the whole interactive workspace: a sliding-pill period selector that recomputes totals, KPI cards with sparklines and significance-aware delta badges, a goal-pacing gauge, auto-generated Czech insights, an anomaly alerts feed with Kč impact, the PNO-vs-goal gauge, and a channel CSV export.",
           "businessFeature": "Performance Dashboard",
           "category": "ui",
           "filePaths": [
@@ -64,15 +81,16 @@
             "src/components/dashboard/DashboardClient.tsx",
             "src/components/dashboard/KpiCard.tsx",
             "src/components/dashboard/GoalPacing.tsx",
-            "src/components/dashboard/DeltaBadge.tsx"
+            "src/components/dashboard/DeltaBadge.tsx",
+            "src/app/app/[projectId]/vykon/page.tsx"
           ],
           "target": null,
           "apiRoutes": []
         },
         {
           "name": "Trend Chart & Channel Breakdown",
-          "description": "Dependency-free SVG trend chart with switchable metrics and a faint previous-period overlay (period-over-period delta in the hover tooltip), plus the channel-mix table that breaks the selected period down by marketing channel and reconciles to the headline totals.",
-          "businessFeature": "Performance Visualisations",
+          "description": "The dashboard's two analytical visuals plus an end-to-end test. The SVG trend chart plots any metric with a ratio-aware y-axis, overlays the equal-length previous period as a dotted index-aligned line, marks anomalies as tinted diamonds, and exposes a hover crosshair tooltip with period-over-period deltas; the channel table projects the mix onto period totals with revenue-share bars and goal-coloured PNO; the Playwright spec asserts the comparison overlay and tooltip.",
+          "businessFeature": "Charts & Channels",
           "category": "ui",
           "filePaths": [
             "src/components/dashboard/TrendChart.tsx",
@@ -84,11 +102,20 @@
         },
         {
           "name": "Metrics Analytics Engine",
-          "description": "Pure analytics layer that turns the daily time series into totals, equal-length period comparisons, chart buckets and channel rows, with the metric metadata (labels, formats, good-direction) the UI renders.",
-          "businessFeature": "Performance Metrics",
+          "description": "Pure, React-free analytics layer over the daily series, exposed through one barrel so KPIs, charts and tables reconcile from a single source of truth. It sums totals and derives marketing ratios, compares equal-length periods with two-sample significance, buckets points by day or month, projects the channel mix, runs seasonality-aware monthly pacing and forecasts, detects de-seasonalised anomalies with money impact, holds metric metadata, and composes a serialisable MetricsSnapshot contract.",
+          "businessFeature": "Analytics Engine",
           "category": "lib",
           "filePaths": [
-            "src/lib/metrics.ts",
+            "src/lib/metrics/index.ts",
+            "src/lib/metrics/ratios.ts",
+            "src/lib/metrics/totals.ts",
+            "src/lib/metrics/series.ts",
+            "src/lib/metrics/seasonality.ts",
+            "src/lib/metrics/pacing.ts",
+            "src/lib/metrics/channels.ts",
+            "src/lib/metrics/anomalies.ts",
+            "src/lib/metrics/meta.ts",
+            "src/lib/metrics/snapshot.ts",
             "src/lib/data.ts",
             "src/lib/types.ts"
           ],
@@ -97,12 +124,57 @@
         },
         {
           "name": "Performance Dataset & Seed",
-          "description": "The JSON 'database' behind the dashboard plus the seeded PRNG generator that produces a reproducible, internally-consistent two-year daily series (visits, cost, conversions, revenue).",
-          "businessFeature": "Performance Dataset",
+          "description": "The committed JSON dataset that backs the dashboard and the deterministic generator that produces it. A seeded mulberry32 PRNG synthesises two years of internally consistent daily points (revenue = conversions × AOV, cost = revenue × PNO) with month, weekday and trend seasonality for the Mionelo e-shop, plus a channel mix whose share dimensions each sum to one, a target PNO and a monthly revenue goal — reproducible via npm run seed.",
+          "businessFeature": "Seed Dataset",
           "category": "data",
           "filePaths": [
             "src/data/performance.json",
             "scripts/generate-data.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Content & Article",
+      "domain": "feature",
+      "type": null,
+      "color": "#F59E0B",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Article Reading Experience",
+          "description": "The reader-facing magazine layout for two routes: the hand-authored /clanek article and its auto-generated /clanek/vykon performance-report twin. Both pages render a structured block list through ArticleBody (paragraphs, lists, callouts, quotes, stat grids, next/image figures, CTAs) beside a sticky ArticleToc whose IntersectionObserver tracks the section being read. Surrounding islands add a scaleX ReadingProgress bar, hover-to-copy HeadingAnchor permalinks bridged to the TOC via a section-store pub/sub, an accessible Breadcrumbs trail, a UTM-stamped ShareBar with native Web Share, and an E-E-A-T AuthorBio. Each page emits Article, BreadcrumbList, and FAQPage JSON-LD. A Playwright spec verifies the permalink copy, address-bar anchor, toast, and TOC sync.",
+          "businessFeature": "Content Article",
+          "category": "ui",
+          "filePaths": [
+            "src/app/clanek/page.tsx",
+            "src/app/clanek/vykon/page.tsx",
+            "src/components/article/ArticleBody.tsx",
+            "src/components/article/ArticleToc.tsx",
+            "src/components/article/Breadcrumbs.tsx",
+            "src/components/article/HeadingAnchor.tsx",
+            "src/components/article/ReadingProgress.tsx",
+            "src/components/article/ShareBar.tsx",
+            "src/components/article/AuthorBio.tsx",
+            "src/components/article/section-store.ts",
+            "tests/clanek-anchors.spec.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Headless Article Content",
+          "description": "The headless-CMS content layer behind the article routes. article.ts defines the typed content model — meta, an Inline union keeping internal/external/anchor links and bold first-class, a discriminated Block union (heading, paragraph, list, callout, quote, stat, figure, cta), and FAQ — loads the hand-authored article.json, and derives the H2 table of contents, plain-text FAQ strings, and figure list promoted into JSON-LD ImageObjects. Two hand-drawn public SVG diagrams are referenced as figure sources. snapshot-to-article.ts is the cross-pillar producer: it deterministically transforms a dashboard MetricsSnapshot into the same Article shape (KPI stats, wins, risks, anomalies, recommended actions, FAQ) so analytics data publishes through the identical renderer.",
+          "businessFeature": "Article Content Model",
+          "category": "data",
+          "filePaths": [
+            "src/lib/article.ts",
+            "src/data/article.json",
+            "public/clanek/prehled-druhu.svg",
+            "public/clanek/skladovani.svg",
+            "src/lib/snapshot-to-article.ts"
           ],
           "target": null,
           "apiRoutes": []
@@ -117,26 +189,8 @@
       "icon": null,
       "contexts": [
         {
-          "name": "LLM Wrapper Test Gate",
-          "description": "The pre-commit gate that keeps the AI layer honest: it verifies every LLM call site goes through the wrapper chokepoint and is tagged + test-registered, then runs the real Claude wrapper test suite only when LLM code changed (cached by content hash) so the slow model calls don't repeat needlessly.",
-          "businessFeature": "LLM Test Gate",
-          "category": "test",
-          "filePaths": [
-            "scripts/llm-gate.mjs",
-            "test-llm/callsites.mjs",
-            "test-llm/registry.mjs",
-            "test-llm/resolve-hooks.mjs",
-            "test-llm/setup.mjs",
-            "test-llm/real.test.mjs",
-            "test-llm/coverage.test.mjs",
-            ".llm-gate-cache.json"
-          ],
-          "target": null,
-          "apiRoutes": []
-        },
-        {
           "name": "AI Assistant Workspace",
-          "description": "The tabbed AI workspace page hosting the three marketing tools in one interface, with shared form/result primitives, a copy-prompt transparency panel and a request-lifecycle hook with an animated loading timer and 30s timeout. Includes the Playwright e2e suite for the page.",
+          "description": "The /ai-asistent marketing-tool page and its tabbed AiAssistant shell: five tabs (PPC ads, keyword research, content brief, performance analysis, creatives) where every panel stays mounted so results survive tab switches, and the keyword tool seeds the brief tool via a nonce-keyed cross-tool handoff. Shared primitives render the result meta badge (model, demo/live, token cost, self-repair), copy buttons, character counters, prompt disclosure, empty/error/loading-ring and timeout states. The useAiTool hook drives every tool's request lifecycle — POSTing to /api/ai, persisting the last result to localStorage, and aborting at an environment-aware ceiling. A Playwright e2e suite exercises the tabs, live generation and the timeout illustration.",
           "businessFeature": "AI Assistant Workspace",
           "category": "ui",
           "filePaths": [
@@ -153,7 +207,7 @@
         },
         {
           "name": "AI Tool Forms (Ads, Brief, Analysis)",
-          "description": "The three client-side tool forms: a PPC ad generator with Google Ads/Sklik character-limit checks, a Google-style Ad Strength meter and a live responsive-search-ad preview; an SEO content brief builder with a search-result preview; and a performance analysis tool grounded in the dashboard data.",
+          "description": "The three client form components that drive the assistant's core tools: AdGenerator collects a campaign brief and renders generated headlines/descriptions/callouts with per-field character limits, a live Google RSA preview, CSV export and an A/B-variant save; ContentBriefGenerator takes a topic plus optional seeded keywords and renders title/meta in a pixel-accurate SERP preview, an SEO scorecard, outline, FAQ and Markdown export plus an article-draft handoff; PerformanceAnalyst runs a period-scoped dashboard analysis. The pure ad-strength heuristic computes a Google-Ads-style Poor→Excellent rating with a weighted factor checklist from the generated ad set, no network.",
           "businessFeature": "AI Marketing Tools",
           "category": "ui",
           "filePaths": [
@@ -168,15 +222,16 @@
           ]
         },
         {
-          "name": "AI Generation Tools & API",
-          "description": "The server-only AI tools and their single /api/ai endpoint: ads, SEO brief, performance analysis and campaign evaluation, each with JSON-schema structured output, request validation and a dataset snapshot that grounds the analysis prompt in real dashboard numbers.",
+          "name": "AI Generation API & Endpoint",
+          "description": "The single public POST /api/ai Node-runtime endpoint that fronts every AI tool: it guards a paid LLM provider with content-length, per-IP fixed-window rate limits (per-minute and per-day, persisted in SQLite) and a process-level concurrency cap, enforces a per-user daily quota for signed-in callers, then dispatches by mode through runtime request validators that coerce and bound each tool's payload. The shared ai-types contract defines every request/result shape and the AiMeta envelope (model, demo flag, token usage, cost, self-repair) used by client and server alike, while snapshot builds the grounded dashboard-metrics text that feeds the analysis prompt.",
           "businessFeature": "AI Generation Pipeline",
           "category": "api",
           "filePaths": [
             "src/app/api/ai/route.ts",
-            "src/lib/gemini.ts",
             "src/lib/ai-types.ts",
-            "src/lib/snapshot.ts"
+            "src/lib/snapshot.ts",
+            "src/lib/ai/validation.ts",
+            "src/lib/ai/rate-limit.ts"
           ],
           "target": null,
           "apiRoutes": [
@@ -184,15 +239,37 @@
           ]
         },
         {
-          "name": "LLM Provider Wrapper",
-          "description": "The single chokepoint for every AI call: one generateStructured() entry point that switches provider by environment — Claude Code CLI (Sonnet via subscription) in development, Google Gemini in production — stamps the result with the active model and degrades to a deterministic demo when no provider is configured.",
-          "businessFeature": "LLM Provider Wrapper",
+          "name": "AI Tool Library — Content & SEO Builders",
+          "description": "Server-only structured-generation tools for content and SEO, plus the registry that re-exports every tool and the shared string/list helpers (trim, clamp, clean lists, slugify, char-limit violations) they build on. Each tool builds a Czech system prompt and JSON schema, normalizes and validates the model output, and ships a deterministic keyless demo: ads (limit-enforced RSA copy as a Skill plugin), SEO brief, article draft (typed Block[] body), keyword intent-clustering, intent-aware comparison-page scaffolds, A/B landing-page challenger ideas, channel-native repurposing and platform-tailored social posts. All run through the provider-switching generateStructured wrapper.",
+          "businessFeature": "AI Tool Library",
           "category": "lib",
           "filePaths": [
-            "src/lib/llm/index.ts",
-            "src/lib/llm/models.ts",
-            "src/lib/llm/claude.ts",
-            "src/lib/llm/gemini.ts"
+            "src/lib/ai/tools/index.ts",
+            "src/lib/ai/tools/_shared.ts",
+            "src/lib/ai/tools/ads.ts",
+            "src/lib/ai/tools/brief.ts",
+            "src/lib/ai/tools/article-draft.ts",
+            "src/lib/ai/tools/keyword-clusters.ts",
+            "src/lib/ai/tools/comparison-outline.ts",
+            "src/lib/ai/tools/lp-variant-ideas.ts",
+            "src/lib/ai/tools/repurpose.ts",
+            "src/lib/ai/tools/social.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "AI Tool Library — Analytics & Inbox Diagnoses",
+          "description": "Server-only structured-generation tools that interpret real numbers or draft on-brand replies, each grounded strictly in supplied data so the model invents no figures. Analysis and campaign/portfolio evaluation read dashboard and synced-ads metrics into scored verdicts, wins/risks and prioritized recommendations; cohort-diagnosis and lead-source-diagnosis name the worst cohort or root cause (spam/mis-targeting/pricing) and the single lever to pull; lead-reply and local-review-reply turn an inbound message or a star-rated review into a tone-appropriate Czech reply. Every tool builds its prompt and JSON schema, normalizes/validates output, supplies a deterministic data-driven demo and runs through generateStructured.",
+          "businessFeature": "AI Tool Library",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/ai/tools/analysis.ts",
+            "src/lib/ai/tools/campaign-eval.ts",
+            "src/lib/ai/tools/cohort-diagnosis.ts",
+            "src/lib/ai/tools/lead-source-diagnosis.ts",
+            "src/lib/ai/tools/lead-reply.ts",
+            "src/lib/ai/tools/local-review-reply.ts"
           ],
           "target": null,
           "apiRoutes": []
@@ -200,44 +277,64 @@
       ]
     },
     {
-      "name": "Content Article",
-      "domain": "feature",
+      "name": "LLM Platform",
+      "domain": "shared",
       "type": null,
-      "color": "#F59E0B",
+      "color": "#7C3AED",
       "icon": null,
       "contexts": [
         {
-          "name": "Article Reading Experience",
-          "description": "The published article page: breadcrumb trail, a typed renderer for structured blocks (headings, lists, callouts, CTAs, lazy next/image figures), hover-to-copy heading permalink anchors that sync the TOC highlight, a sticky table of contents, a reading-progress bar, a UTM-tagged share + copy-link bar, an FAQ accordion and Article/ImageObject/Breadcrumb/FAQ JSON-LD.",
-          "businessFeature": "Content Article",
-          "category": "ui",
+          "name": "LLM Provider Wrapper",
+          "description": "The single chokepoint for every AI call: one generateStructured() entry point that orders two providers by environment — Claude Code CLI (shelled out, prompt on stdin, JSON robustly extracted) in development, Google Gemini's native responseSchema in production — then runs bounded retries, cross-provider fallback, and one self-repair re-prompt when raw output violates domain limits. It stamps each result with the active model/attempts/cost, estimates USD from per-model token rates, persists per-call telemetry, and degrades to a deterministic demo when no provider is configured. Server-only.",
+          "businessFeature": "LLM Provider Wrapper",
+          "category": "lib",
           "filePaths": [
-            "src/app/clanek/page.tsx",
-            "src/components/article/ArticleBody.tsx",
-            "src/components/article/ArticleToc.tsx",
-            "src/components/article/Breadcrumbs.tsx",
-            "src/components/article/HeadingAnchor.tsx",
-            "src/components/article/ReadingProgress.tsx",
-            "src/components/article/ShareBar.tsx",
-            "src/components/article/section-store.ts",
-            "tests/clanek-anchors.spec.ts"
+            "src/lib/llm/index.ts",
+            "src/lib/llm/models.ts",
+            "src/lib/llm/claude.ts",
+            "src/lib/llm/gemini.ts",
+            "src/lib/llm/cost.ts"
           ],
           "target": null,
           "apiRoutes": []
         },
         {
-          "name": "Headless Article Content",
-          "description": "The headless-CMS content model for the article: structured JSON in the repo plus the typed loader that derives the table of contents and FAQ schema, keeps internal/external/anchor links first-class, and supports figure/image blocks promoted into the Article JSON-LD graph as ImageObject nodes.",
-          "businessFeature": "Article Content Model",
-          "category": "data",
+          "name": "LLM Wrapper Coverage Gate",
+          "description": "A pre-commit gate that keeps every AI call site honest. Static analysis walks src for generateStructured() call sites, asserts each carries a // llm-tool tag mapped 1:1 to a registry entry, and verifies provider SDKs and child_process spawning never leak outside the wrapper (single chokepoint). It then hash-gates the slow real-Claude suite: a committed cache records a content hash of the LLM files so once green the model calls are skipped until something relevant changes, blocking the commit on any failure.",
+          "businessFeature": "LLM Test Gate",
+          "category": "test",
           "filePaths": [
-            "src/lib/article.ts",
-            "src/data/article.json",
-            "public/clanek/prehled-druhu.svg",
-            "public/clanek/skladovani.svg"
+            "scripts/llm-gate.mjs",
+            "test-llm/callsites.mjs",
+            "test-llm/coverage.test.mjs",
+            "test-llm/registry.mjs",
+            "test-llm/resolve-hooks.mjs",
+            "test-llm/setup.mjs",
+            ".llm-gate-cache.json"
           ],
           "target": null,
           "apiRoutes": []
+        },
+        {
+          "name": "LLM Eval Harness & Telemetry",
+          "description": "Two complementary eval layers over the tool registry. The real-Claude suite drives generateStructured() once per registered tool against the live CLI, asserting non-demo, correct-provider, schema-shaped output. The golden harness fingerprints each tool's system prompt plus schema and diffs it against committed snapshots so a drifted contract surfaces (advisory, --update to accept, --strict to fail). At runtime telemetry hashes each call's contract, writes cost/latency/usage/repair entries to Firestore, and the eval/telemetry GET endpoint serves recent calls plus a per-tool drift rollup to the regression dashboard.",
+          "businessFeature": "LLM Evaluation",
+          "category": "test",
+          "filePaths": [
+            "scripts/llm-eval.mjs",
+            "test-llm/real.test.mjs",
+            "src/lib/llm/telemetry.ts",
+            "src/app/api/eval/telemetry/route.ts",
+            "test-llm/golden/ads.json",
+            "test-llm/golden/analysis.json",
+            "test-llm/golden/brief.json",
+            "test-llm/golden/campaign-eval.json",
+            "test-llm/golden/social.json"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/eval/telemetry"
+          ]
         }
       ]
     },
@@ -249,18 +346,21 @@
       "icon": null,
       "contexts": [
         {
-          "name": "Campaign Console UI",
-          "description": "Client-side console for the Google Ads campaign portfolio: a sortable, filterable campaign table with a rule-based triage layer (attention banner, per-row severity badges, needs-attention filter, sort-by-priority), a by-type spend/ROAS breakdown, per-campaign and portfolio AI evaluation report cards with a score timeline, and a hook that syncs data and runs evaluations with per-row busy state.",
+          "name": "Campaign Intelligence Console",
+          "description": "Client-side Google Ads campaign console mounted both publicly at /kampane and inside the authed project shell at /app/[projectId]/kampane. A useCampaigns hook syncs per-tenant state and runs per-row/portfolio AI evaluations with independent busy and cache flags. It renders a period toolbar, portfolio KPIs, a daily PortfolioTrend sparkline, a ChangeStrip diff since the last sync, a TypeBreakdown, and a sortable, filterable CampaignTable whose TriageBanner, severity badges and needs-attention filter share one rule layer; expandable ReportView cards show score, verdict, strengths, recommendations and a ScoreTimeline. A Playwright spec asserts triage flagging and worst-first sorting.",
           "businessFeature": "Campaign Console",
           "category": "ui",
           "filePaths": [
             "src/app/kampane/page.tsx",
+            "src/app/app/[projectId]/kampane/page.tsx",
             "src/components/campaigns/CampaignsClient.tsx",
             "src/components/campaigns/CampaignTable.tsx",
             "src/components/campaigns/TriageBanner.tsx",
             "src/components/campaigns/ReportView.tsx",
             "src/components/campaigns/ScoreTimeline.tsx",
             "src/components/campaigns/TypeBreakdown.tsx",
+            "src/components/campaigns/PortfolioTrend.tsx",
+            "src/components/campaigns/ChangeStrip.tsx",
             "src/components/campaigns/useCampaigns.ts",
             "tests/kampane-triage.spec.ts"
           ],
@@ -271,43 +371,686 @@
           ]
         },
         {
-          "name": "Campaign Sync & Evaluation API",
-          "description": "Server routes that sync Google Ads campaigns from the connector into SQLite (GET state / POST sync) and run a single-campaign or whole-portfolio AI evaluation, persisting each report so it matches the data on screen.",
+          "name": "Budget Moves, Alerts & Governed Control Plane",
+          "description": "The action layer over the campaign console. A pure recommender pairs under-target spenders with over-performers and a linear simulate model projects portfolio ROAS/PNO lift, surfaced by the BudgetMoves panel where each move can be confirmed to pause or shift live budget. The ControlPlane bundles moves into a simulated, human-approved, revertible change-set with advisory policy guardrails. Server mutations apply pauses and budget shifts with per-tenant audit, an activity feed records every change, and the alerts pipeline plus anomaly detector mint deduped in-app/email/webhook notifications shown by AdsAccountPicker, AlertsInbox and ActivityFeed.",
+          "businessFeature": "Ad-Ops Control Plane",
+          "category": "lib",
+          "filePaths": [
+            "src/components/campaigns/BudgetMoves.tsx",
+            "src/components/campaigns/ControlPlane.tsx",
+            "src/components/campaigns/AlertsInbox.tsx",
+            "src/components/campaigns/ActivityFeed.tsx",
+            "src/components/campaigns/AdsAccountPicker.tsx",
+            "src/lib/campaigns/budget-moves.ts",
+            "src/lib/campaigns/control-plane.ts",
+            "src/lib/campaigns/control-plane-types.ts",
+            "src/lib/campaigns/mutations.ts",
+            "src/lib/campaigns/alerts.ts",
+            "src/lib/campaigns/anomaly-alerts.ts",
+            "src/lib/campaigns/activity.ts",
+            "src/lib/campaigns/simulate.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Campaign Sync, Evaluation & Apply API",
+          "description": "The server endpoints behind the console, all Node-runtime, force-dynamic and per-tenant in Firestore. /api/campaigns lists the synced state and re-syncs from the connector (live Ads or sample data), saving the series and minting alerts. /api/campaigns/analyze runs a rate-limited, quota-counted, input-hash-cached LLM evaluation grounded in account patterns. /api/campaigns/accounts connects, switches and disconnects Google Ads accounts; /api/campaigns/apply applies audited pauses and budget shifts; /api/campaigns/control-plane creates, approves and reverts change-sets. /api/activity and /api/alerts serve the read-only timeline and the alert inbox with mark-read.",
           "businessFeature": "Campaign Sync & Evaluation",
           "category": "api",
           "filePaths": [
             "src/app/api/campaigns/route.ts",
-            "src/app/api/campaigns/analyze/route.ts"
+            "src/app/api/campaigns/analyze/route.ts",
+            "src/app/api/campaigns/accounts/route.ts",
+            "src/app/api/campaigns/apply/route.ts",
+            "src/app/api/campaigns/control-plane/route.ts",
+            "src/app/api/activity/route.ts",
+            "src/app/api/alerts/route.ts"
           ],
           "target": null,
           "apiRoutes": [
             "/api/campaigns",
-            "/api/campaigns/analyze"
+            "/api/campaigns/analyze",
+            "/api/campaigns/accounts",
+            "/api/campaigns/apply",
+            "/api/campaigns/control-plane",
+            "/api/activity",
+            "/api/alerts"
           ]
         },
         {
-          "name": "Google Ads Connector & SQLite Store",
-          "description": "The data layer for campaigns: a Google Ads connector with a deterministic sample provider (and a ready seam for live credentials), plus a node:sqlite store that persists synced campaigns and AI reports to a local file with no native build step.",
+          "name": "Google Ads Connector, Connections & Tenant Store",
+          "description": "The campaign data layer: an Ads connector that hides two providers behind one interface — a deterministic seeded-PRNG sample provider that fabricates a believable Mionelo e-shop portfolio (brand Search efficient, PMax carrying volume, Video prospecting below target) so the case study works keyless, and a dependency-free Google Ads REST/GAQL client driven by the user's OAuth token (transparently refreshed) plus a developer token. resolveCampaignContext picks provider and per-account tenant; per-tenant stores persist campaigns, daily series, AI reports, append-only snapshots and sync-over-sync change diffs, alongside MCC connection management and a self-healing local node:sqlite handle.",
           "businessFeature": "Campaign Data Layer",
           "category": "data",
           "filePaths": [
             "src/lib/campaigns/connector.ts",
             "src/lib/campaigns/sample.ts",
             "src/lib/campaigns/store.ts",
-            "src/lib/db.ts"
+            "src/lib/campaigns/connection.ts",
+            "src/lib/db.ts",
+            "src/lib/google/ads.ts",
+            "src/lib/google/token.ts"
           ],
           "target": null,
           "apiRoutes": []
         },
         {
-          "name": "Campaign Model & AI Prompts",
-          "description": "Framework-free campaign domain model (types, derived metrics, aggregation, by-type grouping, agreed PNO/ROAS targets), a pure rule-based triage/severity helper that flags rule-breaching campaigns and ranks where attention is due, and the prompt builders that turn synced numbers into grounded per-campaign and portfolio evaluation prompts.",
+          "name": "Campaign Domain Model, Triage & AI Prompts",
+          "description": "The framework-free campaign model and its analysis layers, shared by connector, store, UI and AI. types.ts defines advertising-channel types, statuses, periods, the agreed PNO/ROAS target, raw-plus-derived metrics, portfolio aggregation and by-type grouping. triage.ts applies ordered rules (paused-but-spending, no-conversions, ROAS critical/below-target) plus sync-over-sync rules (ROAS crater, unbacked spend spike) to emit severity badges and metric tones tied to the same thresholds the table colours use. report-input.ts renders those numbers and the deterministic triage into grounded Czech prompt blocks for per-campaign and portfolio evaluation.",
           "businessFeature": "Campaign Domain & Prompts",
           "category": "lib",
           "filePaths": [
             "src/lib/campaigns/types.ts",
             "src/lib/campaigns/triage.ts",
             "src/lib/campaigns/report-input.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Client Reports & White-label Microsite",
+          "description": "The client-facing delivery surface. report-config persists per-tenant white-label branding, recipients and cadence (pure shapes split out for client import) driving a branded report page and daily cron; shared-report snapshots a portfolio evaluation behind an unguessable, TTL-expiring, view-counted, revocable token rendered at /report/[token] with a print-to-PDF button. microsite publishes an SEO-indexable /m/[slug] page that re-renders a deterministic article from per-client-scaled snapshot data on every request. APIs manage report config, share links and microsites; the reporty module page lists shared links, with settings/list/card client components.",
+          "businessFeature": "Client Reports & Microsites",
+          "category": "ui",
+          "filePaths": [
+            "src/lib/campaigns/report-config.ts",
+            "src/lib/campaigns/report-config-types.ts",
+            "src/lib/campaigns/shared-report.ts",
+            "src/lib/microsite.ts",
+            "src/app/api/campaigns/report-config/route.ts",
+            "src/app/api/campaigns/share/route.ts",
+            "src/app/api/microsite/route.ts",
+            "src/app/report/[token]/page.tsx",
+            "src/app/m/[slug]/page.tsx",
+            "src/app/app/[projectId]/reporty/page.tsx",
+            "src/components/campaigns/ReportSettings.tsx",
+            "src/components/campaigns/SharedReportsList.tsx",
+            "src/components/campaigns/PrintButton.tsx",
+            "src/components/campaigns/MicrositeCard.tsx"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/campaigns/report-config",
+            "/api/campaigns/share",
+            "/api/microsite"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authed Product Shell",
+      "domain": "feature",
+      "type": null,
+      "color": "#10B981",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Authed App Shell & Sidebar",
+          "description": "Renders the authed product chrome at /app/[projectId]: the project layout resolves the active project (404 if not the user's) plus the project list and seeds the ProjectProvider, then AppShell arranges a fixed AppSidebar rail and slim AppTopbar over scrollable content. The sidebar lists modules filtered by project type, grouped by section with a pinned settings/system block; the topbar names the active module and the shell-context syncs the mobile drawer. ModulePage frames module bodies, while NextSteps, SampleDataNote and ProjectOverview supply cross-module wiring, an honest sample-data banner, and the type-adaptive KPI/recommendation home; icon-map resolves IconKeys to SVG components.",
+          "businessFeature": "App Shell",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/layout.tsx",
+            "src/app/app/[projectId]/page.tsx",
+            "src/components/app/AppShell.tsx",
+            "src/components/app/AppSidebar.tsx",
+            "src/components/app/AppTopbar.tsx",
+            "src/components/app/shell-context.tsx",
+            "src/components/app/icon-map.tsx",
+            "src/components/app/ModulePage.tsx",
+            "src/components/app/NextSteps.tsx",
+            "src/components/app/SampleDataNote.tsx",
+            "src/components/app/ProjectOverview.tsx"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Projects: Home, Switcher, CRUD & Auth Gate",
+          "description": "The /app project hub and its data plumbing: the app layout gates the whole authed surface with a server-side session check, rendering AppSignInGate (Google sign-in) for anonymous visitors. The /app page lists the user's projects or runs first-run onboarding via ProjectsHome, which embeds CreateProjectForm to POST a new project. ProjectSwitcher and the active-project context let the shell read one source of truth. The per-user project store dispatches lazily between local node:sqlite and Firestore backends behind an identical interface, and the /api/projects routes provide list/create/update/delete CRUD over types and a guard-protected helper; brief-seed bridges keyword research to the content brief.",
+          "businessFeature": "Project Management",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/layout.tsx",
+            "src/app/app/page.tsx",
+            "src/components/app/AppSignInGate.tsx",
+            "src/components/app/ProjectsHome.tsx",
+            "src/components/app/ProjectSwitcher.tsx",
+            "src/components/app/CreateProjectForm.tsx",
+            "src/lib/projects/context.tsx",
+            "src/lib/projects/store.ts",
+            "src/lib/projects/store.local.ts",
+            "src/lib/projects/store.firestore.ts",
+            "src/lib/projects/guard.ts",
+            "src/lib/projects/brief-seed.ts",
+            "src/app/api/projects/route.ts",
+            "src/app/api/projects/[id]/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/projects",
+            "/api/projects/[id]"
+          ]
+        },
+        {
+          "name": "Module Registry, Project Types & Data Spine",
+          "description": "The declarative core that composes the product per business type. modules.ts is the single registry: ModuleDefs with availableFor, sections and KPI_PRESETS drive the sidebar and overview, with modulesFor/isModuleAvailable helpers. types.ts defines the Project model and PROJECT_TYPE_META (eshop/app/leadgen/content), and icon-keys.ts holds the framework-free IconKey union. local-mode.ts toggles the sqlite-vs-Firestore backend, hard-gated off in production. project-data/dataset.ts derives one deterministic per-project performance dataset (id→magnitude, type→baseline) from the shared base series, and source.ts is the sample-vs-live (Google Ads) data-source seam labeling each surface honestly.",
+          "businessFeature": "Module Registry",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/projects/modules.ts",
+            "src/lib/projects/types.ts",
+            "src/lib/projects/icon-keys.ts",
+            "src/lib/local-mode.ts",
+            "src/lib/project-data/dataset.ts",
+            "src/lib/project-data/source.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Project Settings",
+          "description": "The Nastavení module under /app/[projectId]/nastaveni: a guard-protected server page wraps the ProjectSettings client form in the standard ModulePage frame. The form lets the owner rename the project, set its website/domain, switch project type (which re-composes the sidebar modules and overview KPIs), and pick a brand accent colour, persisting changes via PATCH /api/projects/[id] and refreshing the shell. It surfaces the current data source (sample vs live Google Ads) as a pill and includes a confirm-gated danger zone that DELETEs the project and returns the user to the project hub.",
+          "businessFeature": "Project Settings",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/nastaveni/page.tsx",
+            "src/components/app/modules/ProjectSettings.tsx"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/projects/[id]"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Identity & Billing",
+      "domain": "shared",
+      "type": null,
+      "color": "#14B8A6",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Authentication & Users",
+          "description": "Authenticates users via Auth.js (NextAuth v5) Sign-in-with-Google carrying the Google Ads (adwords) scope, persisting sessions and refresh tokens through a Firestore adapter backed by a server-only firebase-admin singleton. A DEV_AUTH bypass returns a synthetic test session (hard-gated off in production) and mirrors that identity into a local node:sqlite user store for foreign-keyable rows. The client AuthButton shows avatar/sign-out or a Google sign-in button, while Providers wraps the app in SessionProvider so components read live auth state.",
+          "businessFeature": "Authentication",
+          "category": "lib",
+          "filePaths": [
+            "src/auth.ts",
+            "src/components/auth/AuthButton.tsx",
+            "src/components/auth/Providers.tsx",
+            "src/app/api/auth/[...nextauth]/route.ts",
+            "src/lib/users/local.ts",
+            "src/lib/firebase.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/auth/[...nextauth]"
+          ]
+        },
+        {
+          "name": "Usage Metering & Plans",
+          "description": "Meters per-user daily quotas for paid actions (AI evaluations, Google Ads syncs, image generations) in Firestore, where consume() atomically checks and increments a counter, refusing once the plan limit is hit, and getUsage() reads the current status without incrementing. A pure plans module holds the free/pro limit catalogue, pricing copy, and upgrade path so client code imports them without firebase-admin. The /api/usage route returns the signed-in user's status, and the header UsageMeter chip renders remaining AI quota with a color-coded bar linking to pricing.",
+          "businessFeature": "Usage & Plans",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/usage.ts",
+            "src/lib/plans.ts",
+            "src/components/usage/UsageMeter.tsx",
+            "src/app/api/usage/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/usage"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Acquisition Modules",
+      "domain": "feature",
+      "type": null,
+      "color": "#F97316",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Keywords Research Module",
+          "description": "Authed /klicova-slova module where a user enters a seed term (and optional landing URL) and gets keyword ideas with monthly searches, competition and CPC — live from the signed-in user's Google Ads Keyword Planner when connected, else a deterministic seeded sample. Ideas are intent-classified and opportunity-scored (high volume × low competition), AI-clustered into pillar/supporting topics, handed to the content brief, or saved per-tenant in Firestore as tagged lists (core/negative/watch) that aggregate negatives for Google Ads.",
+          "businessFeature": "Keyword Research",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/klicova-slova/page.tsx",
+            "src/components/app/modules/KeywordsModule.tsx",
+            "src/components/ai/KeywordResearch.tsx",
+            "src/components/ai/SavedKeywordLists.tsx",
+            "src/lib/keywords/engine.ts",
+            "src/lib/keywords/sample.ts",
+            "src/lib/keywords/store.ts",
+            "src/lib/keywords/types.ts",
+            "src/app/api/keywords/route.ts",
+            "src/app/api/keywords/lists/route.ts",
+            "src/lib/google/keyword-planner.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/keywords",
+            "/api/keywords/lists"
+          ]
+        },
+        {
+          "name": "Local Dominance Module",
+          "description": "Authed /lokalni module for a lead-gen business that pivots service×area targets into a coverage grid, scoring each cell's local SERP rank (TOP 3 / 4–10 / 11+ / missing) and surfacing uncovered, high-volume gaps to fill with microsites and Google Business profiles. Pure rollups compute coverage percentage, weak positions, gap search volume and review-weighted ratings. A client review panel drafts AI public replies per recent review — warm thanks for 4–5 stars, empathetic de-escalation for low ones — with a canned deterministic fallback.",
+          "businessFeature": "Local SEO & Reputation",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/lokalni/page.tsx",
+            "src/components/app/modules/LocalModule.tsx",
+            "src/components/app/modules/LocalReviews.tsx",
+            "src/lib/local/compute.ts",
+            "src/lib/local/sample.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "SEO Comparison Module",
+          "description": "Authed /srovnani-seo module that scores high-intent comparison queries (alternative/vs/pricing/review) by volume × tunable intent weight × SERP white-space ÷ difficulty, re-ranking live in a client score-tuning panel whose intent weights and tier cutoffs persist per project to localStorage. Each query is tied to the organic channel's real conversion rate and AOV to estimate monthly acquisitions, can source queries from saved keyword lists, generates an AI comparison-page scaffold inline, and hands a brief seed to the content tool.",
+          "businessFeature": "Comparison SEO",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/srovnani-seo/page.tsx",
+            "src/components/app/modules/CompareSeoModule.tsx",
+            "src/components/app/modules/CompareSeoTable.tsx",
+            "src/lib/seo-compare/compute.ts",
+            "src/lib/seo-compare/sample.ts",
+            "test-unit/seo-compare.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Inventory & Seasonality Module",
+          "description": "Authed /sklad-sezonnost module that indexes each calendar month by average daily revenue and turns per-SKU stock velocity into days-of-cover, a run/trim/pause/resuming status, and a deterministic projected stockout date from a server-derived reference day. It scales a baseline monthly ad budget by seasonality (capping upcoming months when aggregate cover is thin), weights value-at-risk by margin, and proposes a per-SKU budget change-set moving spend from constrained SKUs to the fastest in-stock peer in the same category.",
+          "businessFeature": "Stock-Aware Pacing",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/sklad-sezonnost/page.tsx",
+            "src/components/app/modules/InventorySeasonModule.tsx",
+            "src/lib/inventory/compute.ts",
+            "test-unit/inventory-pacing.test.mjs",
+            "test-unit/inventory-stockout.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Content Studio",
+      "domain": "feature",
+      "type": null,
+      "color": "#EAB308",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Content & SEO Brief",
+          "description": "Implements the obsah module: a client component seeds the AI content-brief generator from the keyword module via sessionStorage and links to the published-article surface so the brief→article loop is visible. Its ArticleDraftPanel turns a finished brief into a near-publishable typed Block[]+FAQ draft, previewing it through the shared ArticleBody and exporting Markdown or article JSON. The pure seo-score library estimates SERP pixel-width truncation per Arial glyph advances and scores a brief into readability, keyword-coverage and E-E-A-T chips with an overall 0–100.",
+          "businessFeature": "Content Brief",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/obsah/page.tsx",
+            "src/components/app/modules/ContentModule.tsx",
+            "src/components/ai/ArticleDraftPanel.tsx",
+            "src/lib/content/seo-score.ts",
+            "test-unit/seo-score.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Content Engine — Topic Clusters & Decay",
+          "description": "Renders the project's content engine module: it ranks topic clusters least-complete-first via weighted completeness (a published pillar outweighs supporting pages), flags pillar-less clusters, draws a hub-and-spoke internal-link map highlighting missing-link debt, and lists decaying posts by year-over-year traffic loss. Each cluster's next-gap article, every decaying row, and AI-clustered keyword lists hand off to the Obsah brief tool by writing a per-project sessionStorage BriefSeed before routing. Pure compute helpers (completeness, nextGap, clusterLinkGraph, decayingPosts) are unit-tested.",
+          "businessFeature": "Content Clusters",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/obsahovy-engine/page.tsx",
+            "src/components/app/modules/ContentEngineModule.tsx",
+            "src/components/app/modules/ClusterBuilder.tsx",
+            "src/components/app/modules/ClusterLinkMap.tsx",
+            "src/components/app/modules/ClusterNextStep.tsx",
+            "src/components/app/modules/DecayTable.tsx",
+            "src/lib/content-engine/compute.ts",
+            "src/lib/content-engine/sample.ts",
+            "test-unit/content-engine-clusters.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Content Distribution & Channel Attribution",
+          "description": "Powers the distribuce module: one source article is repurposed into channel-native variants (Newsletter, LinkedIn, Instagram, X) honouring per-channel length budgets, each with a UTM-stamped link so what ships is attributable. Every variant is copy/edit-able with a live counter, regenerated on demand via the AI repurpose tool, and pushed into the social center pre-filled. The Newsletter variant splits into a validated subject plus a paste-ready plain-text or downloadable HTML email; a per-channel attribution table and a descriptive CTR insights rollup with a hand-rolled sparkline close the loop. UTM, newsletter, and learnings helpers are unit-tested.",
+          "businessFeature": "Content Distribution",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/distribuce/page.tsx",
+            "src/components/app/modules/DistributionModule.tsx",
+            "src/lib/distribution/generate.ts",
+            "src/lib/distribution/handoff.ts",
+            "src/lib/distribution/learnings.ts",
+            "src/lib/distribution/newsletter.ts",
+            "src/lib/distribution/sample.ts",
+            "src/lib/distribution/utm.ts",
+            "test-unit/distribution-learnings.test.mjs",
+            "test-unit/distribution-newsletter.test.mjs",
+            "test-unit/distribution-utm.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        }
+      ]
+    },
+    {
+      "name": "Creative, Social & Experiments",
+      "domain": "feature",
+      "type": null,
+      "color": "#D946EF",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Social Publishing & Week Planner",
+          "description": "Authed social command center where a marketer drafts platform-tailored captions (deterministic templates or the AI social tool grounded in the brand voice and top ROAS channels), composes and either publishes now or schedules a post, and bulk-plans a week by generating one post per topic line spread across consecutive days. It connects demo Facebook/Instagram/LinkedIn/TikTok accounts (real Meta/LinkedIn OAuth is a credential-gated seam), persists per-tenant posts and a sample-seeded comments/DM inbox in Firestore, and suggests approvable replies; publishing is simulated until app credentials exist.",
+          "businessFeature": "Social Publishing",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/socialni/page.tsx",
+            "src/components/social/SocialClient.tsx",
+            "src/components/social/WeekPlanner.tsx",
+            "src/lib/social/connection.ts",
+            "src/lib/social/draft.ts",
+            "src/lib/social/publish.ts",
+            "src/lib/social/store.ts",
+            "src/lib/social/types.ts",
+            "src/app/api/social/accounts/route.ts",
+            "src/app/api/social/draft/route.ts",
+            "src/app/api/social/messages/route.ts",
+            "src/app/api/social/posts/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/social/accounts",
+            "/api/social/draft",
+            "/api/social/messages",
+            "/api/social/posts"
+          ]
+        },
+        {
+          "name": "Creative Studio — Image Generation & Attribution",
+          "description": "On-brand visual generator running a generate-recognize-rank loop: Leonardo produces N candidates (style-only prompts, or faithful image-to-image from an uploaded product reference with a fidelity slider), Gemini vision scores each for quality and brand-fit, and the best wins, with iterate-on-defects, background removal, and a per-tenant asset library streamed privately from Firebase Storage. Without LEONARDO_API_KEY it degrades to deterministic SVG placeholders. A creative-to-revenue attribution panel ranks visual styles by ROAS and distills a style prior that biases the next generation toward the best-earning look. Generation is IP-throttled with a per-user daily quota.",
+          "businessFeature": "AI Creative Studio",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/kreativa/page.tsx",
+            "src/components/ai/CreativeStudio.tsx",
+            "src/components/ai/CreativeAttribution.tsx",
+            "src/lib/images/studio.ts",
+            "src/lib/images/store.ts",
+            "src/lib/images/attribution.ts",
+            "src/lib/images/attribution-types.ts",
+            "src/lib/images/types.ts",
+            "src/lib/leonardo/client.ts",
+            "src/lib/leonardo/rate.ts",
+            "src/app/api/images/route.ts",
+            "src/app/api/images/attribution/route.ts",
+            "src/app/api/images/file/[id]/route.ts",
+            "src/app/api/images/nobg/route.ts",
+            "src/app/api/images/upload-ref/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/images",
+            "/api/images/attribution",
+            "/api/images/file/[id]",
+            "/api/images/nobg",
+            "/api/images/upload-ref"
+          ]
+        },
+        {
+          "name": "Product Creative & Catalog Feed Module",
+          "description": "Authed /produktova-kreativa module that turns a product feed row into a Google Ads RSA/PMax asset group — deterministic, offline headlines/long-headlines/descriptions built within RSA character limits with live char counts, swapped for richer on-brand copy when the AI ads tool returns (callouts, keywords, rationale). Switching SKUs discards the prior product's AI output. Assembled groups export to a Google Ads Editor-style RFC 4180 CSV or a plain-text clipboard dump, both pure functions.",
+          "businessFeature": "Catalog Ad Creative",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/produktova-kreativa/page.tsx",
+            "src/components/app/modules/CatalogModule.tsx",
+            "src/lib/catalog/generate.ts",
+            "src/lib/catalog/export.ts",
+            "src/lib/catalog/sample.ts",
+            "test-unit/catalog-export.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "LP & Ad Experiments",
+          "description": "A/B experimentation surface combining landing-page tests and ad-variant tests. The server module evaluates sample landing-page experiments per keyword cluster, computing per-variant conversion rate, uplift versus control, a two-proportion significance with a sample-size trust gate and Šidák multiple-comparisons correction, and only hands off statistically proven winners; an AI panel proposes challenger variants that avoid disproven losing arms. The ad-experiment side persists per-tenant variants in Firestore, picks a winner by entered ROAS (falling back to predicted ad strength), and lets users record performance metrics. Unit tests cover the trust-gate math.",
+          "businessFeature": "A/B Experiments",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/experimenty-lp/page.tsx",
+            "src/components/app/modules/LpExperimentsModule.tsx",
+            "src/components/app/modules/LpVariantIdeasPanel.tsx",
+            "src/components/ai/AdExperiments.tsx",
+            "src/lib/lp-exp/compute.ts",
+            "src/lib/lp-exp/sample.ts",
+            "src/lib/ai/experiments.ts",
+            "src/lib/ai/experiment-types.ts",
+            "src/app/api/experiments/route.ts",
+            "test-unit/lp-exp.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/experiments"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Economics & Insights Modules",
+      "domain": "feature",
+      "type": null,
+      "color": "#0EA5E9",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Profit & POAS Module",
+          "description": "Authed /zisk module that applies an editable per-channel gross-margin model to the channel mix to compute profit on ad spend (POAS), net profit and break-even ROAS, flagging channels that look fine on ROAS but lose money after margin. It lets a user override with real revenue/spend, layer fixed overhead plus per-order fulfilment for contribution-margin POAS, view product-category margins, plot bucketed profit/POAS trends, run a greedy budget-reallocation simulator, and save/compare named margin scenarios — persisting overrides and scenarios per project.",
+          "businessFeature": "Profit (POAS)",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/zisk/page.tsx",
+            "src/components/app/modules/ProfitModule.tsx",
+            "src/lib/profit/compute.ts",
+            "src/lib/profit/overhead.ts",
+            "src/lib/profit/products.ts",
+            "src/lib/profit/sample.ts",
+            "src/lib/profit/trend.ts",
+            "src/lib/profit/types.ts",
+            "test-unit/profit.test.mjs",
+            "test-unit/profit-overhead.test.mjs",
+            "test-unit/profit-products.test.mjs",
+            "test-unit/profit-trend.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "CAC → LTV Cohorts",
+          "description": "Renders the project-type-aware CAC/LTV cohort module: a server page picks e-shop (customer/repeat-purchase) or SaaS (signup/retention) sample cohorts, computes blended/paid CAC, LTV, LTV:CAC and payback per cohort, and extrapolates each retention tail geometrically to a chosen horizon. It draws observed-vs-modeled survival sparklines, a per-channel economics table, a newest-vs-oldest trend pill, an interactive horizon/churn projection with a low/expected/high confidence band, a CSV report download, and a client AI cohort-diagnosis panel fed only real numbers.",
+          "businessFeature": "CAC/LTV Cohorts",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/ltv/page.tsx",
+            "src/components/app/modules/LtvModule.tsx",
+            "src/components/app/modules/LtvDiagnosisPanel.tsx",
+            "src/components/app/modules/LtvProjectionPanel.tsx",
+            "src/components/app/modules/LtvReportButton.tsx",
+            "src/lib/ltv/compute.ts",
+            "src/lib/ltv/sample.ts",
+            "test-unit/ltv.test.mjs",
+            "test-unit/ltv-projection.test.mjs",
+            "test-unit/ltv-survival.test.mjs",
+            "test-unit/ltv-trend.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Lead Quality",
+          "description": "Powers the kvalita-leadu module: from sample lead sources it computes cost-per-lead vs cost-per-qualified-lead, qualification and win rates, ROI and a composite quality score, flagging cheap-but-junk paid sources. It builds a Lead→SQL→Opportunity→Won funnel with per-stage conversion and drop-off, average velocity, a campaign drill-down, and a period-over-period drift watch raising CPQL-rise and over-target alerts. A client AI panel diagnoses why an under-performing source fails (spam, mis-targeting, pricing) using only real computed metrics and peer comparisons.",
+          "businessFeature": "Lead Quality",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/kvalita-leadu/page.tsx",
+            "src/components/app/modules/LeadQualityModule.tsx",
+            "src/components/app/modules/LeadSourceDiagnosisPanel.tsx",
+            "src/lib/lead-quality/compute.ts",
+            "src/lib/lead-quality/sample.ts",
+            "test-unit/lead-quality-funnel.test.mjs",
+            "test-unit/lead-quality-trend.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Speed-to-Lead Inbox",
+          "description": "Drives the rychla-reakce inbox: inbound leads get a live per-lead SLA countdown (on-track/warning/breached) against a 5-minute target, breaching leads pinned to the top with an escalation banner. A deterministic reply draft seeds an editable textarea that an AI lead-reply tool refines, alongside a per-project localStorage snippet library with name/channel placeholder expansion. Reps capture BANT-style timeline/budget/scope/disposition into a 0–100 qualification score, while a response-time analytics band reports median reply time, within-SLA rate and per-channel averages.",
+          "businessFeature": "Speed to Lead",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/rychla-reakce/page.tsx",
+            "src/components/app/modules/SpeedLeadModule.tsx",
+            "src/lib/speed-lead/analytics.ts",
+            "src/lib/speed-lead/draft.ts",
+            "src/lib/speed-lead/qualification.ts",
+            "src/lib/speed-lead/sample.ts",
+            "src/lib/speed-lead/snippets.ts",
+            "test-unit/speed-lead-analytics.test.mjs",
+            "test-unit/speed-lead-qualification.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Audience & Revenue",
+          "description": "Drives the audience & revenue module: from a subscriber funnel, segments, revenue streams and trailing monthly histories it computes conversion/active/ARPU summaries, attributes new subscribers to acquisition channels (shares, blended paid cost-per-sub, lowest-retention flag), measures revenue-mix concentration via an HHI-style diversification score with a dependency warning, builds a sponsorship rate card (opens-per-send × benchmark CPM band plus per-segment premiums), projects subscriber and RPM trends with a one-month forecast, and tracks progress toward subscriber/revenue goals with a compounding ETA. All rollups are pure and NaN-safe, covered by unit tests.",
+          "businessFeature": "Audience & Revenue",
+          "category": "ui",
+          "filePaths": [
+            "src/app/app/[projectId]/publikum/page.tsx",
+            "src/components/app/modules/AudienceModule.tsx",
+            "src/lib/audience/compute.ts",
+            "src/lib/audience/sample.ts",
+            "test-unit/audience-revenue-mix.test.mjs",
+            "test-unit/audience-source-attribution.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Patterns Library & Insights",
+          "description": "The patterns library module surfaces winning patterns deterministically mined from a tenant's own campaigns and AI-score history (best channel type, scaling templates, budget pits, brand-search wins, optimization trends), lets users pin or hand-author patterns persisted to Firestore, and offers semantic search ranked by Gemini-embedding cosine similarity with a substring fallback. Saved patterns also ground the AI evaluation via getPatternLines. The insights layer aggregates each project type's modules into ranked cross-module Recommendations for the Overview command center. API routes back the library CRUD and search; signal math is unit-tested.",
+          "businessFeature": "Patterns Library",
+          "category": "lib",
+          "filePaths": [
+            "src/app/app/[projectId]/knihovna/page.tsx",
+            "src/components/patterns/PatternsLibrary.tsx",
+            "src/lib/patterns/embeddings.ts",
+            "src/lib/patterns/extract.ts",
+            "src/lib/patterns/store.ts",
+            "src/lib/patterns/types.ts",
+            "src/lib/insights/aggregate.ts",
+            "src/lib/insights/types.ts",
+            "src/app/api/patterns/route.ts",
+            "src/app/api/patterns/search/route.ts",
+            "test-unit/signals.test.mjs"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/patterns",
+            "/api/patterns/search"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Platform & Operations",
+      "domain": "shared",
+      "type": null,
+      "color": "#64748B",
+      "icon": null,
+      "contexts": [
+        {
+          "name": "Scheduled Jobs — Cron Endpoints",
+          "description": "Vercel Cron GET handlers, each Bearer-guarded by CRON_SECRET and fanning out across every connected user. sync re-fetches each tenant's Google Ads campaigns + daily series, persists them, and raises critical/anomaly alerts; digest emails a weekly portfolio recap (KPIs, critical count, top budget moves) via email/webhook/in-app; report creates and delivers a shared client report when its weekly/monthly cadence is due; social publishes posts whose scheduled time has arrived; microsite revalidates each enabled client microsite path so its cached page reflects the latest snapshot.",
+          "businessFeature": "Scheduled Automation",
+          "category": "api",
+          "filePaths": [
+            "src/app/api/cron/digest/route.ts",
+            "src/app/api/cron/microsite/route.ts",
+            "src/app/api/cron/report/route.ts",
+            "src/app/api/cron/social/route.ts",
+            "src/app/api/cron/sync/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/cron/digest",
+            "/api/cron/microsite",
+            "/api/cron/report",
+            "/api/cron/social",
+            "/api/cron/sync"
+          ]
+        },
+        {
+          "name": "AI Skills Registry & Catalog",
+          "description": "A governed plugin surface for AI capabilities. types.ts defines the Skill SDK contract (id, schema, prompt builder, normalizer, deterministic demo, optional validator) plus shape validation and a GenerateArgs adapter that keeps one tagged wrapper call per skill. registry.ts admits a skill only when it is structurally complete and covered by the prove-once gate (GATE_COVERED_SKILL_IDS), throwing on rejection and self-registering the built-in ads skill. The skills route returns the registered, gate-covered catalog plus the gate-covered id set, so callers see exactly what is safe to run.",
+          "businessFeature": "Skills Registry",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/skills/registry.ts",
+            "src/lib/skills/types.ts",
+            "src/app/api/skills/route.ts"
+          ],
+          "target": null,
+          "apiRoutes": [
+            "/api/skills"
+          ]
+        },
+        {
+          "name": "Shared Email & Export Utilities",
+          "description": "Server- and client-side delivery helpers shared across alerts, digests, reports, and export buttons. email.ts sends best-effort outbound notifications: sendWebhook POSTs a Slack-compatible payload to ALERT_WEBHOOK_URL, and sendEmail sends transactional mail through Resend when RESEND_API_KEY is set (logging the intended send otherwise). export.ts provides dependency-free CSV building (semicolon delimiter and CRLF for Czech Excel) plus browser-only downloadText and downloadDataUrl helpers that prepend a UTF-8 BOM so diacritics render and no-op without a DOM.",
+          "businessFeature": "Notifications & Export",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/email.ts",
+            "src/lib/export.ts"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Dev Inspector & Local DB Seed",
+          "description": "Local developer tooling. The DevInspector is a dev-only click-to-source overlay: a key chord arms it, hover highlights an element, and right-click copies a Claude-Code-friendly path:line of the call site (Alt targets the innermost element). devLocate walks the DOM data-loc ancestor chain and skips library paths; devInspectorUi renders the highlight boxes, source label, and breadcrumb HUD. A Babel plugin and Turbopack loader stamp host JSX elements with data-loc only when DEV_INSPECT=1. seed-local-db.mjs seeds the local node:sqlite DB with a dev user and four sample projects for OAuth-free /app and UAT runs.",
+          "businessFeature": "Local Dev Tooling",
+          "category": "lib",
+          "filePaths": [
+            "src/app/_dev-inspector/DevInspector.tsx",
+            "src/app/_dev-inspector/devInspectorUi.tsx",
+            "src/app/_dev-inspector/devLocate.ts",
+            "scripts/dev-inspector/inject-source-loc.cjs",
+            "scripts/dev-inspector/source-loc-loader.cjs",
+            "scripts/seed-local-db.mjs"
           ],
           "target": null,
           "apiRoutes": []
@@ -323,25 +1066,40 @@
       "contexts": [
         {
           "name": "Design System, Icons & Charts",
-          "description": "Reusable visual primitives shared across every page: layout/typography building blocks (Container, Eyebrow, Pill), the SVG icon set, the dependency-free Sparkline, global Tailwind styles, the favicon, and a living /design-system showcase generated from the @theme token names so it never drifts, with a Playwright visual-regression baseline.",
+          "description": "The shared visual foundation and its living style guide. globals.css declares the @theme token set (navy/brand/coral ramps, onyx surfaces, radii, shadows, type scale) with a token-driven dark mode, facet/dotgrid textures and print rules; design-tokens.ts parses that @theme block at build time so the server-rendered /design-system page generates swatches, typography, Pill tones, the full icon set and Sparkline variants straight from source. ui.tsx supplies Container/Eyebrow/Pill primitives, icons.tsx an inline dependency-free SVG set, Sparkline a pure server-rendered trend chart, and ThemeToggle pins light/dark via data-theme. A Playwright spec asserts structure and a visual baseline.",
           "businessFeature": "Design System",
           "category": "ui",
           "filePaths": [
+            "src/app/design-system/page.tsx",
+            "src/app/globals.css",
+            "src/lib/design-tokens.ts",
             "src/components/ui.tsx",
             "src/components/icons.tsx",
             "src/components/charts/Sparkline.tsx",
-            "src/app/globals.css",
-            "src/app/icon.svg",
-            "src/app/design-system/page.tsx",
-            "src/lib/design-tokens.ts",
+            "src/components/site/ThemeToggle.tsx",
             "tests/design-system.spec.ts"
           ],
           "target": null,
           "apiRoutes": []
         },
         {
-          "name": "Czech Formatting Helpers",
-          "description": "Centralised Czech-locale formatting helpers (currency, percent, signed deltas, multiples, dates, relative time, collapsed date ranges, and screen-reader-safe compact/aria pairs) so every page and every AI prompt renders numbers identically.",
+          "name": "Internationalization (i18n)",
+          "description": "A framework-light cs/en localization layer. messages.ts holds a typed message dictionary where Czech is the source of truth defining the Messages shape, so English must stay structurally identical; locale.ts reads the chosen locale from a cookie server-side via next/headers, and LocaleProvider seeds the same value client-side, persisting switches to the cookie and refreshing the route so server components re-render. The header LocaleSwitcher flips between CS and EN, and LocaleShowcase proves the formatting layer is locale-parameterised by rendering fixed sample values through createFormatters as the user toggles markets.",
+          "businessFeature": "Localization",
+          "category": "lib",
+          "filePaths": [
+            "src/lib/i18n/locale.ts",
+            "src/lib/i18n/messages.ts",
+            "src/lib/i18n/LocaleProvider.tsx",
+            "src/components/site/LocaleSwitcher.tsx",
+            "src/components/LocaleShowcase.tsx"
+          ],
+          "target": null,
+          "apiRoutes": []
+        },
+        {
+          "name": "Locale-Aware Formatting Helpers",
+          "description": "A single centralised number, currency, percent and date formatting layer parameterised by locale. createFormatters binds a full set of Intl-backed helpers (fmtCZK, fmtCZKCompact, fmtInt, fmtPct, fmtSignedPct, fmtMultiple, fmtDate, fmtRange, fmtRelative and screen-reader-friendly compact-a11y variants) to one locale plus currency from the LOCALES table, rendering an em-dash placeholder for non-finite or unparseable values so malformed data never leaks NaN into the UI or AI prompts. A default Czech (cs-CZ / CZK) instance re-exports every named helper so all existing call sites keep working unchanged.",
           "businessFeature": "Formatting",
           "category": "lib",
           "filePaths": [
@@ -352,7 +1110,7 @@
         },
         {
           "name": "Build & Tooling Config",
-          "description": "Project build and tooling configuration: dependencies and npm scripts (including the composite check gate), TypeScript/Next.js/ESLint/PostCSS-Tailwind setup, the Playwright config, the quality gate (Husky pre-commit, lint-staged, GitHub Actions CI mirroring npm run check), and the repo README + env example.",
+          "description": "Project build and tooling configuration: dependencies and npm scripts (including the composite check gate and unit/e2e/LLM test runners), TypeScript/Next.js/ESLint/PostCSS-Tailwind setup, the Playwright config, the Vercel deploy + cron schedule manifest, the quality gate (Husky pre-commit, lint-staged, GitHub Actions CI mirroring npm run check, Dependabot), Git LFS attributes, and the repo README + setup guide + env example.",
           "businessFeature": "Build & Tooling",
           "category": "config",
           "filePaths": [
@@ -363,10 +1121,13 @@
             "postcss.config.mjs",
             "lint-staged.config.mjs",
             "playwright.config.ts",
+            "vercel.json",
             ".husky/pre-commit",
             ".github/workflows/ci.yml",
+            ".github/dependabot.yml",
             ".gitattributes",
             "README.md",
+            "SETUP.md",
             ".env.example"
           ],
           "target": null,
@@ -391,80 +1152,199 @@
     },
     {
       "source": "AI Marketing Assistant",
-      "target": "Shared Foundations",
+      "target": "LLM Platform",
       "type": "uses",
       "description": ""
     },
     {
-      "source": "Content Article",
-      "target": "Shared Foundations",
+      "source": "AI Marketing Assistant",
+      "target": "Performance Dashboard",
+      "type": "uses",
+      "description": "grounds analysis in dashboard metrics"
+    },
+    {
+      "source": "Content & Article",
+      "target": "Performance Dashboard",
+      "type": "uses",
+      "description": "performance-report article from snapshot"
+    },
+    {
+      "source": "Campaign Intelligence",
+      "target": "LLM Platform",
       "type": "uses",
       "description": ""
     },
     {
       "source": "Campaign Intelligence",
-      "target": "Shared Foundations",
-      "type": "uses",
-      "description": ""
-    },
-    {
-      "source": "Performance Dashboard",
       "target": "AI Marketing Assistant",
-      "type": "triggers",
+      "type": "uses",
+      "description": "campaign-eval tool"
+    },
+    {
+      "source": "Campaign Intelligence",
+      "target": "Identity & Billing",
+      "type": "uses",
       "description": ""
     },
     {
-      "source": "AI Marketing Assistant",
-      "target": "Campaign Intelligence",
+      "source": "Authed Product Shell",
+      "target": "Identity & Billing",
       "type": "uses",
       "description": ""
+    },
+    {
+      "source": "Authed Product Shell",
+      "target": "Performance Dashboard",
+      "type": "uses",
+      "description": "per-project metrics"
+    },
+    {
+      "source": "Acquisition Modules",
+      "target": "Authed Product Shell",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Content Studio",
+      "target": "Authed Product Shell",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Creative, Social & Experiments",
+      "target": "Authed Product Shell",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Economics & Insights Modules",
+      "target": "Authed Product Shell",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Acquisition Modules",
+      "target": "AI Marketing Assistant",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Content Studio",
+      "target": "AI Marketing Assistant",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Creative, Social & Experiments",
+      "target": "AI Marketing Assistant",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Economics & Insights Modules",
+      "target": "AI Marketing Assistant",
+      "type": "uses",
+      "description": ""
+    },
+    {
+      "source": "Platform & Operations",
+      "target": "Campaign Intelligence",
+      "type": "triggers",
+      "description": "cron sync/digest/report"
+    },
+    {
+      "source": "Platform & Operations",
+      "target": "Creative, Social & Experiments",
+      "type": "triggers",
+      "description": "cron social publish"
+    },
+    {
+      "source": "Identity & Billing",
+      "target": "AI Marketing Assistant",
+      "type": "uses",
+      "description": "meters paid AI actions"
     }
   ],
   "index": [
-    "Site Shell & Landing › Home, App Shell & Transitions [ui] — 8 files",
-    "Site Shell & Landing › Header & Footer Navigation [ui] — 5 files",
-    "Performance Dashboard › Dashboard Workspace & KPIs [ui] — 5 files",
+    "Site Shell & Landing › Home, App Shell & Brand Identity [ui] — 9 files",
+    "Site Shell & Landing › Header, Footer & Navigation Model [ui] — 7 files",
+    "Site Shell & Landing › Public Case-Study Pages [ui] — 4 files",
+    "Performance Dashboard › Dashboard Workspace & KPIs [ui] — 6 files",
     "Performance Dashboard › Trend Chart & Channel Breakdown [ui] — 3 files",
-    "Performance Dashboard › Metrics Analytics Engine [lib] — 3 files",
+    "Performance Dashboard › Metrics Analytics Engine [lib] — 12 files",
     "Performance Dashboard › Performance Dataset & Seed [data] — 2 files",
-    "AI Marketing Assistant › LLM Wrapper Test Gate [test] — 8 files",
+    "Content & Article › Article Reading Experience [ui] — 11 files",
+    "Content & Article › Headless Article Content [data] — 5 files",
     "AI Marketing Assistant › AI Assistant Workspace [ui] — 5 files",
     "AI Marketing Assistant › AI Tool Forms (Ads, Brief, Analysis) [ui] — 4 files",
-    "AI Marketing Assistant › AI Generation Tools & API [api] — 4 files",
-    "AI Marketing Assistant › LLM Provider Wrapper [lib] — 4 files",
-    "Content Article › Article Reading Experience [ui] — 9 files",
-    "Content Article › Headless Article Content [data] — 4 files",
-    "Campaign Intelligence › Campaign Console UI [ui] — 9 files",
-    "Campaign Intelligence › Campaign Sync & Evaluation API [api] — 2 files",
-    "Campaign Intelligence › Google Ads Connector & SQLite Store [data] — 4 files",
-    "Campaign Intelligence › Campaign Model & AI Prompts [lib] — 3 files",
+    "AI Marketing Assistant › AI Generation API & Endpoint [api] — 5 files",
+    "AI Marketing Assistant › AI Tool Library — Content & SEO Builders [lib] — 10 files",
+    "AI Marketing Assistant › AI Tool Library — Analytics & Inbox Diagnoses [lib] — 6 files",
+    "LLM Platform › LLM Provider Wrapper [lib] — 5 files",
+    "LLM Platform › LLM Wrapper Coverage Gate [test] — 7 files",
+    "LLM Platform › LLM Eval Harness & Telemetry [test] — 9 files",
+    "Campaign Intelligence › Campaign Intelligence Console [ui] — 12 files",
+    "Campaign Intelligence › Budget Moves, Alerts & Governed Control Plane [lib] — 13 files",
+    "Campaign Intelligence › Campaign Sync, Evaluation & Apply API [api] — 7 files",
+    "Campaign Intelligence › Google Ads Connector, Connections & Tenant Store [data] — 7 files",
+    "Campaign Intelligence › Campaign Domain Model, Triage & AI Prompts [lib] — 3 files",
+    "Campaign Intelligence › Client Reports & White-label Microsite [ui] — 14 files",
+    "Authed Product Shell › Authed App Shell & Sidebar [ui] — 11 files",
+    "Authed Product Shell › Projects: Home, Switcher, CRUD & Auth Gate [ui] — 14 files",
+    "Authed Product Shell › Module Registry, Project Types & Data Spine [lib] — 6 files",
+    "Authed Product Shell › Project Settings [ui] — 2 files",
+    "Identity & Billing › Authentication & Users [lib] — 6 files",
+    "Identity & Billing › Usage Metering & Plans [lib] — 4 files",
+    "Acquisition Modules › Keywords Research Module [ui] — 11 files",
+    "Acquisition Modules › Local Dominance Module [ui] — 5 files",
+    "Acquisition Modules › SEO Comparison Module [ui] — 6 files",
+    "Acquisition Modules › Inventory & Seasonality Module [ui] — 5 files",
+    "Content Studio › Content & SEO Brief [ui] — 5 files",
+    "Content Studio › Content Engine — Topic Clusters & Decay [ui] — 9 files",
+    "Content Studio › Content Distribution & Channel Attribution [ui] — 11 files",
+    "Creative, Social & Experiments › Social Publishing & Week Planner [ui] — 12 files",
+    "Creative, Social & Experiments › Creative Studio — Image Generation & Attribution [ui] — 15 files",
+    "Creative, Social & Experiments › Product Creative & Catalog Feed Module [ui] — 6 files",
+    "Creative, Social & Experiments › LP & Ad Experiments [ui] — 10 files",
+    "Economics & Insights Modules › Profit & POAS Module [ui] — 12 files",
+    "Economics & Insights Modules › CAC → LTV Cohorts [ui] — 11 files",
+    "Economics & Insights Modules › Lead Quality [ui] — 7 files",
+    "Economics & Insights Modules › Speed-to-Lead Inbox [ui] — 9 files",
+    "Economics & Insights Modules › Audience & Revenue [ui] — 6 files",
+    "Economics & Insights Modules › Patterns Library & Insights [lib] — 11 files",
+    "Platform & Operations › Scheduled Jobs — Cron Endpoints [api] — 5 files",
+    "Platform & Operations › AI Skills Registry & Catalog [lib] — 3 files",
+    "Platform & Operations › Shared Email & Export Utilities [lib] — 2 files",
+    "Platform & Operations › Dev Inspector & Local DB Seed [lib] — 6 files",
     "Shared Foundations › Design System, Icons & Charts [ui] — 8 files",
-    "Shared Foundations › Czech Formatting Helpers [lib] — 1 files",
-    "Shared Foundations › Build & Tooling Config [config] — 12 files"
+    "Shared Foundations › Internationalization (i18n) [lib] — 5 files",
+    "Shared Foundations › Locale-Aware Formatting Helpers [lib] — 1 files",
+    "Shared Foundations › Build & Tooling Config [config] — 15 files"
   ],
   "summary": {
-    "totalGroups": 6,
-    "totalContexts": 20,
-    "totalFiles": 103,
+    "totalGroups": 14,
+    "totalContexts": 54,
+    "totalFiles": 405,
     "categories": {
-      "ui": 9,
-      "lib": 4,
+      "ui": 30,
+      "lib": 15,
       "data": 3,
-      "test": 1,
-      "api": 2,
+      "api": 3,
+      "test": 2,
       "config": 1
     },
     "domains": {
-      "feature": 5,
-      "shared": 1
+      "feature": 10,
+      "shared": 4
     }
   },
   "audit": {
     "ok": true,
     "tier": "medium",
-    "warnings": 0
+    "warnings": 0,
+    "coveragePct": 100
   },
   "instructions": "Context map for systedo-case. Each group is a business domain (domain field); each context is a feature with its files (filePaths) + a technical category. Read this to learn which files belong to which feature BEFORE editing. When you change a context's files, update them here (or run Vibeman's refresh) to keep this fresh.",
-  "generatedAt": "2026-06-15T18:31:41.223Z",
-  "revision": "7dc2dc09d795"
+  "generatedAt": "2026-06-20T08:16:32.845Z",
+  "revision": "rescan-2026-06-20-offline"
 }

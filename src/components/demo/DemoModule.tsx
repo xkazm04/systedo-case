@@ -22,6 +22,7 @@ import ProfitModule from "@/components/app/modules/ProfitModule";
 import CatalogModule from "@/components/app/modules/CatalogModule";
 import InventorySeasonModule from "@/components/app/modules/InventorySeasonModule";
 import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
+import CatalogManagerModule from "@/components/app/modules/CatalogManagerModule";
 import LtvModule from "@/components/app/modules/LtvModule";
 import LpExperimentsModule from "@/components/app/modules/LpExperimentsModule";
 import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
@@ -41,7 +42,7 @@ import { categoryMixFromCatalog } from "@/lib/profit/products";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 import { SAMPLE_PRODUCTS as CATALOG_PRODUCTS } from "@/lib/catalog/sample";
-import { localitiesFor, plansFor, productsFor, servicesFor } from "@/lib/catalog/resolve";
+import { getProjectCatalog, localitiesFor, plansFor, productsFor, servicesFor } from "@/lib/catalog/resolve";
 import {
   budgetChangeSet,
   monthlySeasonality,
@@ -305,6 +306,28 @@ export default async function DemoModule({
               channels={data.channels}
               products={products}
               defaults={margins}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "katalog": {
+      const data = getProjectDataset(project);
+      const lastDate = data.daily.at(-1)?.date;
+      const now = new Date(`${lastDate ?? "2026-01-01"}T00:00:00Z`);
+      const offerings = getProjectCatalog(project, now);
+      const connection =
+        project.type === "eshop" && warehouse !== "off" ? warehouseConnectionFor(project.id, now) : null;
+      return (
+        <ModulePage moduleKey="katalog">
+          {noted(
+            <CatalogManagerModule
+              offerings={offerings}
+              connection={connection}
+              localities={localitiesFor(project)}
+              projectType={project.type}
+              projectName={project.name}
+              projectId={project.id}
             />
           )}
         </ModulePage>

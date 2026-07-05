@@ -254,6 +254,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Subscriber funnel, segments and revenue (RPM / sponsorship).",
   },
   {
+    key: "katalog",
+    label: "Katalog",
+    labelEn: "Catalog",
+    icon: "store",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Produkty, plány nebo služby — ceny, marže, dostupnost a povaha (online/lokální). Zdroj, ze kterého čerpají ostatní moduly.",
+    blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
+  },
+  {
     key: "nastaveni",
     label: "Nastavení",
     labelEn: "Settings",

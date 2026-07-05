@@ -1,14 +1,14 @@
 {
-  "headline": "Kampaň generuje solidní zisk – ROAS 5,4× a PNO 18,3 % ukazují na zdravou efektivitu",
-  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje kampaň PNO 18,3 % a ROAS 5,4×, což signalizuje ziskový a efektivně řízený výkon nad běžným benchmarkem.",
+  "headline": "Účet je vysoce ziskový – PNO 18,3 % a ROAS 5,4× dávají prostor bezpečně škálovat rozpočet.",
+  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje kampaň PNO 18,3 % a ROAS 5,4×, což je výrazně pod rizikovou hranicí. Výkon je stabilní a ziskový, což otevírá prostor pro postupné navyšování investic.",
   "actions": [
     {
-      "title": "Postupně navýšit rozpočet",
-      "detail": "Při ROAS 5,4× a PNO výrazně pod 25% hranicí je prostor pro škálování – navyšujte rozpočet po krocích 10–15 % a sledujte, zda se PNO nezhoršuje."
+      "title": "Navýšit rozpočet u nejvýkonnějších kampaní",
+      "detail": "Postupně zvyšujte denní rozpočet o 15–20 % u kampaní s PNO pod celkovým průměrem, aby se využil prostor daný ROAS 5,4× bez rizika prudkého propadu efektivity."
     },
     {
-      "title": "Nastavit alert na PNO",
-      "detail": "Zaveďte hlídání PNO s prahem např. 22 %, aby bylo možné rychle zareagovat úpravou nabídek nebo cílení dřív, než škálování sníží ziskovost."
+      "title": "Nastavit sledování PNO při škálování",
+      "detail": "Po každém navýšení rozpočtu sledujte PNO minimálně 7 dní a stanovte cílový práh (např. 25 %), při jehož překročení se navyšování zastaví."
     }
   ]
 }

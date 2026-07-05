@@ -1,8 +1,8 @@
 {
-  "reply": "Dobrý den,\n\ndíky za vaši poptávku. Elektroinstalační kontrola v kancelářských prostorech je pro nás standardní služba a máme v současnosti volné kapacity.\n\nRychle se vám ozveme s dostupnými termíny a konkrétní nabídkou. Abychom mohli poskytnout co nejpřesnější odhad, potřebujeme od vás doplnit pár informací – odpovědi nám pomohou nastavit ideální časový plán.\n\nTěšíme se na spolupráci.\n\nS pozdravem,\nAdamant",
+  "reply": "Dobrý den,\n\ndíky za váš dotaz. Revize elektroinstalace v kancelářích rozhodně řešíme a máme volné kapacity. Rádi bychom si ujasnil pár detailů, abychom vám podali co nejpřesnější nabídku a dohodli termín, který vám vyhovuje.\n\nZasleme vám odpovědi na pár otázek níže, a pak se spojíme s konkrétním termínem.\n\nTěšíme se na spolupráci!\n\nBest regards,\nElektrotechnika [Vaše firma]",
   "questions": [
-    "Jedná se o kompletní revizi elektroinstalace nebo zaměřit se na konkrétní okruhy nebo zařízení?",
-    "Máte nějaký preferovaný termín kontroly? Lze ji plánovat na dobu mimo pracovní dobu?",
-    "Jsou vám známy jakékoliv problémy s elektroinstalací nebo má kancelář specifické požadavky (např. zvýšené nároky na bezpečnost)?"
+    "Kdy nejméně urgentně potřebujete revizi provést? (konkrétní týden/měsíc)",
+    "Jedná se o diagnostiku současného stavu, či máte konkrétní problémy/obavy s elektroinstalací?",
+    "Je budova stále v provozu během revize, nebo máme možnost omezit provoz?"
   ]
 }

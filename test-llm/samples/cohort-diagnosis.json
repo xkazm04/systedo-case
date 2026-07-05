@@ -1,9 +1,9 @@
 {
-  "summary": "Napříč kohortami 2025-01 až 2025-03 se jednotková ekonomika prudce zhoršuje: CAC roste z 1 200 Kč na 2 100 Kč (+75 %), zatímco LTV klesá z 5 400 Kč na 2 200 Kč, takže poměr LTV:CAC padá ze 4,5× na 1,0×. Souběžně klesá M3 retence z 62 % na 31 % a návratnost investice se z 4 měsíců protáhla na stav, kdy se v pozorovaném horizontu vůbec nevrací. Kohorta 2025-03 přitom má nejvyšší objem registrací (240), takže firma nejvíc peněz utrácí právě na akvizici, která se ekonomicky nevrací.",
+  "summary": "Kohorty vykazují jasně zhoršující se trend: CAC roste (1 200 → 2 100 Kč), LTV klesá (5 400 → 2 200 Kč) a M3 retence se propadá (62 % → 31 %). Kohorta 2025-01 byla vysoce zisková (LTV:CAC 4,5×, návratnost 4 měsíce), kohorta 2025-02 už je jen průměrná (2,4×, návratnost 7 měsíců) a kohorta 2025-03 se nevrací vůbec (LTV:CAC 1,0×, návratnost přesahuje horizont). Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× tak maskují prudké zhoršení kvality nejnovějších akvizic, navíc s nejvyšším objemem registrací (240).",
   "worstCohort": "2025-03",
-  "recommendation": "Zaměřit se na zvýšení M3 retence u kohorty 2025-03 (onboarding a aktivační intervence v prvních třech měsících), protože propad retence z 62 % na 31 % je hlavní hnací silou poklesu LTV a bez jeho zastavení se CAC u této kohorty nikdy nevrátí.",
+  "recommendation": "Zaměřit se na zlepšení M3 retence u kohorty 2025-03 (31 % oproti 62 % u 2025-01) — pokles retence je hlavní hnací silou kolapsu LTV a nevratnosti CAC, takže zvýšení udržení uživatelů v prvních třech měsících má z dostupných pák největší dopad na obnovení návratnosti investice.",
   "risks": [
-    "Data jsou souhrnná bez rozpadu podle akvizičního kanálu, takže není jisté, zda nárůst CAC a pokles retence způsobuje stejný zdroj registrací.",
-    "Kohorta 2025-03 může mít stále otevřený pozorovací horizont, takže uvedené LTV a návratnost jsou průběžné a mohou se ještě měnit."
+    "Bez zásahu poroste blended CAC dál, protože 2025-03 má zároveň nejvyšší podíl registrací (240) a nejhorší ekonomiku.",
+    "Pokud propad retence souvisí s konkrétním akvizičním kanálem, další škálování stejného kanálu prohloubí ztrátovost."
   ]
 }

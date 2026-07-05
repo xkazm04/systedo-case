@@ -57,3 +57,16 @@ next-env.d.ts
 /.claude/logs/
 /.claude/worktrees/
 /.claude/settings.local.json
+
+# ship-loop working journals — the harness's own state/backlog/journal/decisions
+# (agent process notes, not app code or a reusable skill). Its own convention is
+# that these stay uncommitted.
+/.claude/ship-loop/
+
+# generated context scan reports — timestamped analysis output. The committed
+# artifact is /context-map.json; the scan-report-*.md dumps are transient.
+/docs/contexts/scan-report-*.md
+
+# UAT test-run outputs — dated run dirs (verdicts, findings.json, capture scripts).
+# The reusable specs in uat/characters and uat/journeys stay committed.
+/uat/runs/

@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos místo obecného popisu",
-      "hypothesis": "Headline s konkrétním, hmatatelným přínosem (přehled nad úkoly a projekty) zvýší konverzi oproti obecnému popisu produktu v kontrolní variantě.",
-      "headline": "Všechny projekty a úkoly pod kontrolou – na jednom místě",
+      "label": "Konkrétní přínos",
+      "hypothesis": "Nahrazení obecného popisu produktu konkrétním slibem výsledku (přehled, bez chaosu) zvýší konverzní poměr oproti kontrolní variantě.",
+      "headline": "Všechny úkoly a projekty na jednom místě – bez tabulek a chaosu",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní slib řeší přímo bolest uživatele hledajícího nástroj na úkoly, což obecný popis v kontrole nedělá."
+      "rationale": "Konkrétní vyjádření výsledku oslovuje návštěvníka rychleji a srozumitelněji než obecný popis funkcí produktu."
     },
     {
-      "label": "Rychlý start bez tření",
-      "hypothesis": "Minimalizace vstupní bariéry (start na jeden klik, žádný formulář) zvýší konverzi oproti kontrole i oproti variantě s dlouhým formulářem.",
-      "headline": "Založte první projekt za 30 vteřin bez zdlouhavé registrace",
-      "primaryCTA": "Začít bez registrace",
-      "rationale": "Testuje opačnou hypotézu než neúspěšná varianta C – že odstranění tření, nikoli jeho přidání, zvyšuje konverzi."
+      "label": "Sociální důkaz a důvěra",
+      "hypothesis": "Zdůraznění důvěryhodnosti nástroje mezi týmy namísto obecného popisu zvýší ochotu vyzkoušet produkt.",
+      "headline": "Nástroj pro řízení projektů, kterému týmy věří",
+      "primaryCTA": "Vyzkoušet nástroj",
+      "rationale": "Budování důvěry přes sociální důkaz snižuje vnímané riziko vyzkoušení nového nástroje lépe než neutrální popis."
     },
     {
-      "label": "Zaměření na tým, ne na jednotlivce",
-      "hypothesis": "Zdůraznění přínosu pro celý tým namísto obecného popisu produktu zvýší konverzi u rozhodovatelů nakupujících nástroj pro více lidí.",
-      "headline": "Projektové řízení, které si váš tým skutečně oblíbí",
-      "primaryCTA": "Pozvat tým",
-      "rationale": "Cílí na manažery rozhodující o nástroji pro tým, což je jiný úhel než obecný popis produktu nebo slevová nabídka."
+      "label": "Zaměření na konkrétní bolest",
+      "hypothesis": "Pojmenování konkrétního problému cílové skupiny (zmeškané termíny, roztříštěné úkoly) v nadpisu zvýší relevanci sdělení a konverzi oproti obecnému popisu.",
+      "headline": "Konec zapomenutým úkolům a zmeškaným termínům",
+      "primaryCTA": "Získat přehled nad projekty",
+      "rationale": "Pojmenování konkrétní bolesti vytváří okamžitou relevanci a silnější motivaci k akci než obecné sdělení."
     }
   ]
 }
