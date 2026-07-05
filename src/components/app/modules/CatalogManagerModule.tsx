@@ -58,7 +58,7 @@ const T = {
     remove: "Odebrat",
     importHeading: "Import feedu",
     importHint:
-      "Vložte XML feed (Heureka, Zboží.cz, Google Nákupy) nebo CSV. Napojení přes URL a živá synchronizace WMS přijdou příště.",
+      "Zadejte URL feedu, nebo vložte XML/CSV (Heureka, Zboží.cz, Google Nákupy). Živá synchronizace WMS přijde příště.",
     feedPlaceholder: "Sem vložte obsah feedu — XML nebo CSV…",
     strategyMerge: "Sloučit",
     strategyReplace: "Nahradit",
@@ -74,6 +74,9 @@ const T = {
     diffUpdated: "změněných",
     diffUnchanged: "beze změny",
     diffRemoved: "odebráno",
+    urlLabel: "URL feedu",
+    urlPlaceholder: "https://…/feed.xml",
+    orPaste: "nebo vložte obsah ručně",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -113,7 +116,7 @@ const T = {
     remove: "Remove",
     importHeading: "Import feed",
     importHint:
-      "Paste an XML feed (Heureka, Zboží.cz, Google Shopping) or CSV. URL connect + live WMS sync land next.",
+      "Enter a feed URL, or paste XML/CSV (Heureka, Zboží.cz, Google Shopping). Live WMS sync lands next.",
     feedPlaceholder: "Paste the feed content here — XML or CSV…",
     strategyMerge: "Merge",
     strategyReplace: "Replace",
@@ -129,6 +132,9 @@ const T = {
     diffUpdated: "updated",
     diffUnchanged: "unchanged",
     diffRemoved: "removed",
+    urlLabel: "Feed URL",
+    urlPlaceholder: "https://…/feed.xml",
+    orPaste: "or paste the content",
   },
 } as const;
 
@@ -193,6 +199,7 @@ export default function CatalogManagerModule({
   // ---- feed import (paste XML/CSV → preview diff → merge/replace + persist) ----
   const [showImport, setShowImport] = useState(false);
   const [feedText, setFeedText] = useState("");
+  const [feedUrl, setFeedUrl] = useState("");
   const [importStrategy, setImportStrategy] = useState<"merge" | "replace">("merge");
   const [importState, setImportState] = useState<
     "idle" | "previewing" | "preview" | "importing" | "done" | "error"
@@ -204,14 +211,21 @@ export default function CatalogManagerModule({
     error?: string;
   } | null>(null);
 
+  const hasFeedInput = feedText.trim() !== "" || feedUrl.trim() !== "";
+
   async function runImport(mode: "preview" | "apply") {
-    if (!feedText.trim()) return;
+    if (!hasFeedInput) return;
     setImportState(mode === "preview" ? "previewing" : "importing");
     try {
       const res = await fetch(`/api/projects/${projectId}/catalog/import`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ content: feedText, mode, strategy: importStrategy }),
+        body: JSON.stringify({
+          url: feedUrl.trim() || undefined, // URL wins server-side; else content
+          content: feedText,
+          mode,
+          strategy: importStrategy,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -380,6 +394,21 @@ export default function CatalogManagerModule({
           {showImport && (
             <div className="space-y-3 border-t border-line px-4 py-3">
               <p className="text-xs text-muted">{t("importHint")}</p>
+              <label className="block">
+                <span className="text-xs font-medium text-navy-700">{t("urlLabel")}</span>
+                <input
+                  type="url"
+                  value={feedUrl}
+                  onChange={(e) => setFeedUrl(e.target.value)}
+                  placeholder={t("urlPlaceholder")}
+                  className={`${inputBase} mt-1 w-full`}
+                />
+              </label>
+              <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-muted">
+                <span className="h-px flex-1 bg-line" />
+                {t("orPaste")}
+                <span className="h-px flex-1 bg-line" />
+              </div>
               <textarea
                 value={feedText}
                 onChange={(e) => setFeedText(e.target.value)}
@@ -408,7 +437,7 @@ export default function CatalogManagerModule({
                 <button
                   type="button"
                   onClick={() => runImport("preview")}
-                  disabled={!feedText.trim() || importState === "previewing"}
+                  disabled={!hasFeedInput || importState === "previewing"}
                   className="rounded-pill border border-line px-3.5 py-1.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
                 >
                   {importState === "previewing" ? t("previewing") : t("preview")}
@@ -416,7 +445,7 @@ export default function CatalogManagerModule({
                 <button
                   type="button"
                   onClick={() => runImport("apply")}
-                  disabled={!feedText.trim() || importState === "importing"}
+                  disabled={!hasFeedInput || importState === "importing"}
                   className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                 >
                   {importState === "importing" ? t("importing") : t("runImport")}
