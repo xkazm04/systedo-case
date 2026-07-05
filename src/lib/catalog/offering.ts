@@ -22,7 +22,9 @@ export type OfferingSource =
   | "shipmonk"
   | "skladon"
   | "merchant-center"
-  | "erp";
+  | "erp"
+  /** imported from a product feed (Heureka / Zboží.cz / generic XML or CSV). */
+  | "feed";
 
 export interface OfferingBase {
   id: string;

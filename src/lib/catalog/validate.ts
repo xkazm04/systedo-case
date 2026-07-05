@@ -22,6 +22,7 @@ const SOURCES = new Set<OfferingSource>([
   "skladon",
   "merchant-center",
   "erp",
+  "feed",
 ]);
 const INTERVALS = new Set(["month", "year", "one-off"]);
 const PRICE_MODELS = new Set(["from", "fixed", "quote"]);

@@ -4,8 +4,9 @@
  *  offering entity: products (e-shop), plans + competitors (app/SaaS) or services ×
  *  localities (lead-gen), plus each offering's pricing, margin and online/local
  *  nature. This is the source the smart modules (Sklad, Srovnání & SEO, Lokální,
- *  Zisk) read from. PHASE 2a: edits are session-only — persistence and live WMS sync
- *  land next. */
+ *  Zisk) read from. Edits persist per project (Save), and a product feed (Heureka /
+ *  Zboží.cz / Google / CSV) can be imported; live WMS API sync is the remaining
+ *  follow-up. Demo (`persistable=false`) stays session-only. */
 import { useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import { Plus } from "@/components/icons";
@@ -13,6 +14,7 @@ import { ModuleIcon } from "@/components/app/icon-map";
 import { useT } from "@/lib/i18n/client";
 import type { Locality, Offering, OfferingKind, OfferingNature } from "@/lib/catalog/offering";
 import { isPlan, isProduct, isService } from "@/lib/catalog/offering";
+import type { CatalogDiff } from "@/lib/catalog/import";
 import type { WarehouseConnection } from "@/lib/inventory/warehouse";
 import type { ProjectType } from "@/lib/projects/types";
 import type { IconKey } from "@/lib/projects/icon-keys";
@@ -54,6 +56,24 @@ const T = {
     week: "týd.",
     empty: "Zatím žádné položky. Přidejte první, nebo připojte zdroj.",
     remove: "Odebrat",
+    importHeading: "Import feedu",
+    importHint:
+      "Vložte XML feed (Heureka, Zboží.cz, Google Nákupy) nebo CSV. Napojení přes URL a živá synchronizace WMS přijdou příště.",
+    feedPlaceholder: "Sem vložte obsah feedu — XML nebo CSV…",
+    strategyMerge: "Sloučit",
+    strategyReplace: "Nahradit",
+    strategyMergeHint: "Aktualizovat podle SKU, ruční položky ponechat",
+    strategyReplaceHint: "Nahradit celý katalog položkami z feedu",
+    preview: "Náhled",
+    previewing: "Analyzuji…",
+    runImport: "Importovat",
+    importing: "Importuji…",
+    imported: "Naimportováno",
+    importFailed: "Import selhal",
+    diffAdded: "nových",
+    diffUpdated: "změněných",
+    diffUnchanged: "beze změny",
+    diffRemoved: "odebráno",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -91,6 +111,24 @@ const T = {
     week: "wk",
     empty: "No items yet. Add the first, or connect a source.",
     remove: "Remove",
+    importHeading: "Import feed",
+    importHint:
+      "Paste an XML feed (Heureka, Zboží.cz, Google Shopping) or CSV. URL connect + live WMS sync land next.",
+    feedPlaceholder: "Paste the feed content here — XML or CSV…",
+    strategyMerge: "Merge",
+    strategyReplace: "Replace",
+    strategyMergeHint: "Update by SKU, keep manual items",
+    strategyReplaceHint: "Replace the whole catalog with the feed",
+    preview: "Preview",
+    previewing: "Analyzing…",
+    runImport: "Import",
+    importing: "Importing…",
+    imported: "Imported",
+    importFailed: "Import failed",
+    diffAdded: "new",
+    diffUpdated: "updated",
+    diffUnchanged: "unchanged",
+    diffRemoved: "removed",
   },
 } as const;
 
@@ -151,6 +189,48 @@ export default function CatalogManagerModule({
       setSaveState("error");
     }
   }
+
+  // ---- feed import (paste XML/CSV → preview diff → merge/replace + persist) ----
+  const [showImport, setShowImport] = useState(false);
+  const [feedText, setFeedText] = useState("");
+  const [importStrategy, setImportStrategy] = useState<"merge" | "replace">("merge");
+  const [importState, setImportState] = useState<
+    "idle" | "previewing" | "preview" | "importing" | "done" | "error"
+  >("idle");
+  const [importInfo, setImportInfo] = useState<{
+    diff?: CatalogDiff;
+    format?: string;
+    warnings?: string[];
+    error?: string;
+  } | null>(null);
+
+  async function runImport(mode: "preview" | "apply") {
+    if (!feedText.trim()) return;
+    setImportState(mode === "preview" ? "previewing" : "importing");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/catalog/import`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ content: feedText, mode, strategy: importStrategy }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setImportState("error");
+        setImportInfo({ error: json?.error, warnings: json?.warnings });
+        return;
+      }
+      if (mode === "apply" && Array.isArray(json.offerings)) {
+        setItemsState(json.offerings as Offering[]);
+        setSaveState("saved");
+      }
+      setImportState(mode === "apply" ? "done" : "preview");
+      setImportInfo({ diff: json.diff, format: json.format, warnings: json.warnings });
+    } catch {
+      setImportState("error");
+      setImportInfo({ error: undefined });
+    }
+  }
+
   const localityName = (id: string) => localities.find((l) => l.id === id)?.name ?? id;
 
   function update(id: string, changes: Partial<Offering> & { stock?: number }) {
@@ -281,6 +361,105 @@ export default function CatalogManagerModule({
         {saveState === "saved" && <span className="text-xs font-medium text-positive">✓ {t("saved")}</span>}
         {saveState === "error" && <span className="text-xs font-medium text-negative">{t("saveError")}</span>}
       </div>
+
+      {/* feed import — authed only (needs the ownership-checked API) */}
+      {persistable && (
+        <div className="rounded-card border border-line bg-surface">
+          <button
+            type="button"
+            onClick={() => setShowImport((v) => !v)}
+            aria-expanded={showImport}
+            className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-navy-800"
+          >
+            <span className="inline-flex items-center gap-2">
+              <ModuleIcon icon="store" width={15} height={15} className="text-brand-accent" />
+              {t("importHeading")}
+            </span>
+            <span className="text-lg leading-none text-muted">{showImport ? "–" : "+"}</span>
+          </button>
+          {showImport && (
+            <div className="space-y-3 border-t border-line px-4 py-3">
+              <p className="text-xs text-muted">{t("importHint")}</p>
+              <textarea
+                value={feedText}
+                onChange={(e) => setFeedText(e.target.value)}
+                placeholder={t("feedPlaceholder")}
+                rows={5}
+                spellCheck={false}
+                className={`${inputBase} w-full resize-y font-mono text-xs`}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex rounded-pill border border-line p-0.5 text-xs">
+                  {(["merge", "replace"] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setImportStrategy(s)}
+                      aria-pressed={importStrategy === s}
+                      title={t(s === "merge" ? "strategyMergeHint" : "strategyReplaceHint")}
+                      className={`rounded-pill px-3 py-1 font-medium transition-colors ${
+                        importStrategy === s ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                      }`}
+                    >
+                      {t(s === "merge" ? "strategyMerge" : "strategyReplace")}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => runImport("preview")}
+                  disabled={!feedText.trim() || importState === "previewing"}
+                  className="rounded-pill border border-line px-3.5 py-1.5 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-50"
+                >
+                  {importState === "previewing" ? t("previewing") : t("preview")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => runImport("apply")}
+                  disabled={!feedText.trim() || importState === "importing"}
+                  className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {importState === "importing" ? t("importing") : t("runImport")}
+                </button>
+              </div>
+
+              {importInfo?.error !== undefined && importState === "error" && (
+                <p className="text-xs font-medium text-negative">
+                  {t("importFailed")}
+                  {importInfo.error ? `: ${importInfo.error}` : ""}
+                </p>
+              )}
+              {importInfo?.diff && (
+                <div className="rounded-lg bg-brand-50/60 px-3 py-2 text-xs text-navy-700">
+                  {importState === "done" && (
+                    <span className="font-semibold text-positive">✓ {t("imported")} · </span>
+                  )}
+                  {importInfo.format && (
+                    <span className="uppercase tracking-wide text-muted">{importInfo.format}</span>
+                  )}
+                  <span className="tnum ml-1">
+                    {importInfo.diff.added} {t("diffAdded")} · {importInfo.diff.updated} {t("diffUpdated")} ·{" "}
+                    {importInfo.diff.unchanged} {t("diffUnchanged")}
+                    {importInfo.diff.removed > 0 && (
+                      <>
+                        {" · "}
+                        {importInfo.diff.removed} {t("diffRemoved")}
+                      </>
+                    )}
+                  </span>
+                </div>
+              )}
+              {importInfo?.warnings && importInfo.warnings.length > 0 && (
+                <ul className="space-y-0.5 text-[11px] text-coral-600">
+                  {importInfo.warnings.map((w, i) => (
+                    <li key={i}>• {w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {!persistable && (
         <p className="rounded-lg bg-brand-50/60 px-3.5 py-2.5 text-xs text-navy-700">{t("sessionNote")}</p>
