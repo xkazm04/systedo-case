@@ -26,6 +26,8 @@ import {
   projectTypeMeta,
   type ProjectType,
 } from "@/lib/projects/types";
+import { defaultNatureFor } from "@/lib/catalog/starter";
+import type { OfferingNature } from "@/lib/catalog/offering";
 import { defaultModules, moduleStatus, packageSize, type ModuleStatus } from "./create-project-packages";
 import { ProjectDetailsFields, useProjectDraft } from "./create-project-shared";
 
@@ -41,6 +43,14 @@ const T = {
     legendCore: "vždy zapnuto",
     legendOn: "zapnuto",
     legendProposed: "navrženo",
+    natureHeading: "Povaha podnikání",
+    natureHint: "Určuje výchozí katalog nového projektu (online prodej vs. lokální provozovna). Kdykoli upravíte v Katalogu.",
+    onlineLabel: "Online",
+    onlineDesc: "Prodej či služby online, doručení po celé ČR.",
+    localLabel: "Lokální",
+    localDesc: "Provozovna nebo výjezd — vázáno na místo.",
+    hybridLabel: "Kombinace",
+    hybridDesc: "Online i lokálně současně.",
     create: "Vytvořit projekt",
     submitting: "Zakládám…",
     cancel: "Zrušit",
@@ -56,6 +66,14 @@ const T = {
     legendCore: "always on",
     legendOn: "on",
     legendProposed: "proposed",
+    natureHeading: "Business nature",
+    natureHint: "Sets the new project's starter catalog (online sales vs. a local presence). Edit anytime in Catalog.",
+    onlineLabel: "Online",
+    onlineDesc: "Sold or served online, shipped nationwide.",
+    localLabel: "Local",
+    localDesc: "A storefront or on-site visits — tied to a place.",
+    hybridLabel: "Hybrid",
+    hybridDesc: "Both online and local.",
     create: "Create project",
     submitting: "Creating…",
     cancel: "Cancel",
@@ -86,11 +104,13 @@ export default function CreateProjectForm({
   const [type, setType] = useState<ProjectType>("eshop");
   const [accent, setAccent] = useState(PROJECT_TYPE_META.eshop.defaultAccent);
   const [enabled, setEnabled] = useState<Set<string>>(() => defaultModules("eshop"));
+  const [nature, setNature] = useState<OfferingNature>(() => defaultNatureFor("eshop"));
 
   function pickType(pt: ProjectType) {
     setType(pt);
     setAccent(PROJECT_TYPE_META[pt].defaultAccent);
     setEnabled(defaultModules(pt));
+    setNature(defaultNatureFor(pt));
   }
   function toggle(key: string) {
     setEnabled((s) => {
@@ -107,6 +127,11 @@ export default function CreateProjectForm({
   const def = defaultModules(type);
   const atDefault = def.size === enabled.size && [...def].every((k) => enabled.has(k));
   const groups = groupedModules();
+  const natureOptions: { key: OfferingNature; label: string; desc: string }[] = [
+    { key: "online", label: t("onlineLabel"), desc: t("onlineDesc") },
+    { key: "local", label: t("localLabel"), desc: t("localDesc") },
+    { key: "hybrid", label: t("hybridLabel"), desc: t("hybridDesc") },
+  ];
 
   return (
     <div className="space-y-6">
@@ -260,6 +285,32 @@ export default function CreateProjectForm({
         </span>
       </div>
 
+      <div>
+        <span className="text-sm font-medium text-navy-800">{t("natureHeading")}</span>
+        <p className="mt-0.5 text-xs text-muted">{t("natureHint")}</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          {natureOptions.map((n) => {
+            const active = nature === n.key;
+            return (
+              <button
+                key={n.key}
+                type="button"
+                onClick={() => setNature(n.key)}
+                aria-pressed={active}
+                className={`rounded-card border px-3.5 py-2.5 text-left transition-colors ${
+                  active
+                    ? "border-brand-400 bg-brand-50 ring-1 ring-brand-200"
+                    : "border-line hover:border-brand-300"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-navy-800">{n.label}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted">{n.desc}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <ProjectDetailsFields
         name={draft.name}
         setName={draft.setName}
@@ -278,7 +329,7 @@ export default function CreateProjectForm({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          onClick={() => draft.submit(type, accent)}
+          onClick={() => draft.submit(type, accent, nature)}
           disabled={draft.submitting}
           className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
         >

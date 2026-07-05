@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/lib/i18n/client";
 import type { ProjectType } from "@/lib/projects/types";
+import type { OfferingNature } from "@/lib/catalog/offering";
 
 /** Accent presets a project can be branded with (brand-ramp + a few extras). */
 export const ACCENTS = ["#14b8b1", "#0e9c97", "#6366f1", "#8b5cf6", "#fb7141", "#d4503e"];
@@ -52,7 +53,7 @@ export function useProjectDraft() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(type: ProjectType, accent: string) {
+  async function submit(type: ProjectType, accent: string, nature?: OfferingNature) {
     if (!name.trim()) {
       setError(t("errorEmpty"));
       return;
@@ -63,7 +64,7 @@ export function useProjectDraft() {
       const res = await fetch("/api/projects", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name, type, accentColor: accent, domain: domain.trim() || undefined }),
+        body: JSON.stringify({ name, type, accentColor: accent, domain: domain.trim() || undefined, nature }),
       });
       const json = (await res.json()) as { project?: { id: string }; error?: string };
       if (!res.ok || !json.project) throw new Error(json.error ?? t("errorCreate"));
