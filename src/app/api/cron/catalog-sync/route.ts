@@ -9,6 +9,8 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { listAllConnections } from "@/lib/inventory/connection-store";
 import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
+import { alertSyncFailed, alertSyncRecovered } from "@/lib/inventory/sync-alerts";
+import { classifySyncResult } from "@/lib/inventory/sync-health";
 
 export const maxDuration = 300;
 
@@ -27,6 +29,8 @@ export async function GET(request: Request) {
     added?: number;
     updated?: number;
     reason?: string;
+    alerted?: boolean;
+    recovered?: boolean;
   }[] = [];
 
   for (const { userId, projectId, connection } of connections) {
@@ -43,18 +47,19 @@ export async function GET(request: Request) {
         now,
         stampConnection: { userId, projectId, connection },
       });
-      if (result.code === "ok") {
-        results.push({
-          userId,
-          projectId,
-          provider: connection.provider,
-          ok: true,
-          added: result.diff?.added,
-          updated: result.diff?.updated,
-        });
-      } else {
-        results.push({ userId, projectId, provider: connection.provider, ok: false, reason: result.message ?? result.code });
-      }
+      const ok = result.code === "ok";
+
+      // Alert on the health TRANSITION only (first failure / recovery), not every run —
+      // runCatalogSync already persisted the new lastError/failCount on the connection.
+      const { newlyFailed, recovered } = classifySyncResult(connection, ok);
+      if (newlyFailed) await alertSyncFailed(userId, projectId, connection.provider, result.message ?? result.code);
+      else if (recovered) await alertSyncRecovered(userId, projectId, connection.provider);
+
+      results.push(
+        ok
+          ? { userId, projectId, provider: connection.provider, ok: true, added: result.diff?.added, updated: result.diff?.updated, recovered }
+          : { userId, projectId, provider: connection.provider, ok: false, reason: result.message ?? result.code, alerted: newlyFailed }
+      );
     } catch (err) {
       console.error(`[cron] catalog-sync failed for ${userId}/${projectId}:`, err);
       results.push({
@@ -71,6 +76,8 @@ export async function GET(request: Request) {
     connections: results.length,
     synced: results.filter((r) => r.ok).length,
     failed: results.filter((r) => !r.ok).length,
+    alerted: results.filter((r) => r.alerted).length,
+    recovered: results.filter((r) => r.recovered).length,
     results,
   });
 }

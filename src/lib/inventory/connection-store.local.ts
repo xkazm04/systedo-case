@@ -12,6 +12,9 @@ interface Row {
   config_json: string | null;
   connected_at: string;
   last_sync_at: string | null;
+  last_error: string | null;
+  last_error_at: string | null;
+  fail_count: number | null;
 }
 
 interface OwnedRow extends Row {
@@ -37,6 +40,9 @@ function toStored(r: Row): StoredConnection {
     config: parseConfig(r.config_json),
     connectedAt: r.connected_at,
     lastSyncAt: r.last_sync_at || undefined,
+    lastError: r.last_error || undefined,
+    lastErrorAt: r.last_error_at || undefined,
+    failCount: r.fail_count ?? undefined,
   };
 }
 
@@ -59,15 +65,19 @@ export async function saveConnection(userId: string, projectId: string, conn: St
   getDb()
     .prepare(
       `INSERT INTO warehouse_connection
-         (user_id, project_id, provider, inventory_id, token_enc, config_json, connected_at, last_sync_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+         (user_id, project_id, provider, inventory_id, token_enc, config_json, connected_at,
+          last_sync_at, last_error, last_error_at, fail_count)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (user_id, project_id) DO UPDATE SET
          provider = excluded.provider,
          inventory_id = excluded.inventory_id,
          token_enc = excluded.token_enc,
          config_json = excluded.config_json,
          connected_at = excluded.connected_at,
-         last_sync_at = excluded.last_sync_at`
+         last_sync_at = excluded.last_sync_at,
+         last_error = excluded.last_error,
+         last_error_at = excluded.last_error_at,
+         fail_count = excluded.fail_count`
     )
     .run(
       userId,
@@ -77,7 +87,10 @@ export async function saveConnection(userId: string, projectId: string, conn: St
       conn.tokenEnc ?? null,
       conn.config ? JSON.stringify(conn.config) : null,
       conn.connectedAt,
-      conn.lastSyncAt ?? null
+      conn.lastSyncAt ?? null,
+      conn.lastError ?? null,
+      conn.lastErrorAt ?? null,
+      conn.failCount ?? null
     );
 }
 

@@ -95,6 +95,7 @@ const T = {
     connectedTo: "Připojeno:",
     lastSync: "poslední synchronizace",
     neverSynced: "zatím nesynchronizováno",
+    syncFailedLabel: "Poslední synchronizace selhala",
     disconnect: "Odpojit",
     erpHint: "Napojte libovolné ERP/WMS přes HTTP endpoint vracející JSON nebo CSV.",
     erpEndpoint: "URL koncového bodu",
@@ -179,6 +180,7 @@ const T = {
     connectedTo: "Connected:",
     lastSync: "last sync",
     neverSynced: "not synced yet",
+    syncFailedLabel: "Last sync failed",
     disconnect: "Disconnect",
     erpHint: "Connect any ERP/WMS via an HTTP endpoint returning JSON or CSV.",
     erpEndpoint: "Endpoint URL",
@@ -605,14 +607,25 @@ export default function CatalogManagerModule({
                   />
                 </>
               ) : syncConn ? (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-positive-soft/50 px-3 py-2 text-xs">
+                <div
+                  className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs ${
+                    syncConn.lastError ? "bg-coral-soft" : "bg-positive-soft/50"
+                  }`}
+                >
                   <span className="text-navy-700">
-                    <span className="font-semibold text-positive">●</span> {t("connectedTo")}{" "}
-                    <span className="font-medium">{providerLabel(syncConn.provider)}</span>
+                    <span className={`font-semibold ${syncConn.lastError ? "text-coral-600" : "text-positive"}`}>
+                      ●
+                    </span>{" "}
+                    {t("connectedTo")} <span className="font-medium">{providerLabel(syncConn.provider)}</span>
                     {" · "}
                     {syncConn.lastSyncAt
                       ? `${t("lastSync")} ${syncConn.lastSyncAt.slice(0, 16).replace("T", " ")}`
                       : t("neverSynced")}
+                    {syncConn.lastError && (
+                      <span className="mt-0.5 block font-medium text-coral-600">
+                        {t("syncFailedLabel")}: {syncConn.lastError}
+                      </span>
+                    )}
                   </span>
                   <button
                     type="button"

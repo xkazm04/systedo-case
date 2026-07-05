@@ -65,9 +65,10 @@ export interface SyncOpts {
   stampConnection?: { userId: string; projectId: string; connection: StoredConnection };
 }
 
-/** Run one project's catalog sync. Never throws — provider failures come back as a
- *  SyncResult code the caller maps to an HTTP status (route) or logs (cron). */
-export async function runCatalogSync(userId: string, projectId: string, opts: SyncOpts): Promise<SyncResult> {
+/** The sync itself — validate, fetch, merge, and (on apply) persist the offerings.
+ *  Never throws; provider failures come back as a SyncResult code. Does NOT touch the
+ *  connection record — runCatalogSync owns that (health stamping). */
+async function computeSync(userId: string, projectId: string, opts: SyncOpts): Promise<SyncResult> {
   const meta = syncProvider(opts.providerId);
   if (!meta) return { code: "unknown-provider" };
   if (!meta.implemented) return { code: "not-implemented", provider: meta.label };
@@ -99,9 +100,35 @@ export async function runCatalogSync(userId: string, projectId: string, opts: Sy
   if (!opts.apply) return { code: "ok", provider: meta.label, diff };
 
   await saveOfferings(userId, projectId, next);
-  const stamp = opts.stampConnection;
-  if (stamp) {
-    await saveConnection(stamp.userId, stamp.projectId, { ...stamp.connection, lastSyncAt: nowIso });
-  }
   return { code: "ok", provider: meta.label, diff, offerings: next };
+}
+
+/** Run one project's catalog sync and, on an APPLY with a stored connection, record its
+ *  health: success stamps lastSyncAt + clears the error; failure records lastError and
+ *  bumps failCount (leaving lastSyncAt at the last good sync). A preview is read-only.
+ *  The cron reads that health to alert on the healthy→failing transition. Never throws. */
+export async function runCatalogSync(userId: string, projectId: string, opts: SyncOpts): Promise<SyncResult> {
+  const result = await computeSync(userId, projectId, opts);
+
+  const stamp = opts.stampConnection;
+  if (opts.apply && stamp) {
+    const nowIso = opts.now.toISOString();
+    if (result.code === "ok") {
+      await saveConnection(stamp.userId, stamp.projectId, {
+        ...stamp.connection,
+        lastSyncAt: nowIso,
+        lastError: undefined,
+        lastErrorAt: undefined,
+        failCount: 0,
+      });
+    } else {
+      await saveConnection(stamp.userId, stamp.projectId, {
+        ...stamp.connection,
+        lastError: result.message ?? result.code,
+        lastErrorAt: nowIso,
+        failCount: (stamp.connection.failCount ?? 0) + 1,
+      });
+    }
+  }
+  return result;
 }

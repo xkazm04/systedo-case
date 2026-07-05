@@ -33,6 +33,22 @@ const COLUMN_MIGRATIONS: { table: string; column: string; ddl: string }[] = [
     column: "config_json",
     ddl: "ALTER TABLE warehouse_connection ADD COLUMN config_json TEXT",
   },
+  // Sync-health tracking (drives the cron's failure alerting).
+  {
+    table: "warehouse_connection",
+    column: "last_error",
+    ddl: "ALTER TABLE warehouse_connection ADD COLUMN last_error TEXT",
+  },
+  {
+    table: "warehouse_connection",
+    column: "last_error_at",
+    ddl: "ALTER TABLE warehouse_connection ADD COLUMN last_error_at TEXT",
+  },
+  {
+    table: "warehouse_connection",
+    column: "fail_count",
+    ddl: "ALTER TABLE warehouse_connection ADD COLUMN fail_count INTEGER",
+  },
 ];
 
 function hasColumn(db: DatabaseSync, table: string, column: string): boolean {
@@ -92,14 +108,17 @@ const SCHEMA = `
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.
   CREATE TABLE IF NOT EXISTS warehouse_connection (
-    user_id      TEXT NOT NULL,
-    project_id   TEXT NOT NULL,
-    provider     TEXT NOT NULL,
-    inventory_id TEXT,
-    token_enc    TEXT,
-    config_json  TEXT,
-    connected_at TEXT NOT NULL,
-    last_sync_at TEXT,
+    user_id       TEXT NOT NULL,
+    project_id    TEXT NOT NULL,
+    provider      TEXT NOT NULL,
+    inventory_id  TEXT,
+    token_enc     TEXT,
+    config_json   TEXT,
+    connected_at  TEXT NOT NULL,
+    last_sync_at  TEXT,
+    last_error    TEXT,
+    last_error_at TEXT,
+    fail_count    INTEGER,
     PRIMARY KEY (user_id, project_id)
   );
 `;
