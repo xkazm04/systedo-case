@@ -10,7 +10,7 @@
  *  not per module — the per-module skeleton is provided by ./loading.tsx. */
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { getProject, listProjects } from "@/lib/projects/store";
 import { ProjectProvider } from "@/lib/projects/context";
 import AppShell from "@/components/app/AppShell";
@@ -38,7 +38,7 @@ async function ProjectGate({
   params: Promise<{ projectId: string }>;
 }) {
   const { projectId } = await params;
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
   if (!userId) notFound();
 
   const [project, projects] = await Promise.all([

@@ -9,7 +9,7 @@
  *  once auth resolves. */
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { auth } from "@/auth";
+import { currentSession } from "@/lib/session";
 import AppSignInGate from "@/components/app/AppSignInGate";
 
 export const metadata: Metadata = {
@@ -26,7 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 async function AuthGate({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const session = await currentSession();
   if (!session?.user) return <AppSignInGate />;
   return <>{children}</>;
 }

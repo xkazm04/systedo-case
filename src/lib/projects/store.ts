@@ -4,6 +4,7 @@
  *  `store.firestore` (and therefore never pulls firebase-admin in / triggers its
  *  init). Both backends export an identical interface, so every call site —
  *  layout, project hub, guard, /api/projects — is unchanged. Server-only. */
+import { cache } from "react";
 import { LOCAL_DB } from "@/lib/local-mode";
 import type { NewProjectInput, Project, ProjectPatch } from "./types";
 
@@ -11,15 +12,20 @@ function backend() {
   return LOCAL_DB ? import("./store.local") : import("./store.firestore");
 }
 
-/** All of a user's projects, newest first. */
-export async function listProjects(userId: string): Promise<Project[]> {
+/** All of a user's projects, newest first. Wrapped in React `cache()` so the
+ *  layout and the page share one read per request instead of each re-querying. */
+export const listProjects = cache(async (userId: string): Promise<Project[]> => {
   return (await backend()).listProjects(userId);
-}
+});
 
-/** A single project, or null if it doesn't exist / isn't the user's. */
-export async function getProject(userId: string, projectId: string): Promise<Project | null> {
-  return (await backend()).getProject(userId, projectId);
-}
+/** A single project, or null if it doesn't exist / isn't the user's. Request-
+ *  deduped via `cache()` so the project layout, the module guard, and the page
+ *  resolve the same doc once per navigation. */
+export const getProject = cache(
+  async (userId: string, projectId: string): Promise<Project | null> => {
+    return (await backend()).getProject(userId, projectId);
+  }
+);
 
 /** Create a project and return it. */
 export async function createProject(userId: string, input: NewProjectInput): Promise<Project> {
