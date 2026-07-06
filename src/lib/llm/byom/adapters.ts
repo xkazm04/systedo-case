@@ -290,6 +290,10 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
   if (process.env.OPENROUTER_APP_NAME) headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
   const common = {
     model,
+    // Give every model a generous output budget (matching the Anthropic adapter). Without this,
+    // OpenRouter applies each model's own — sometimes low — default cap, truncating structured JSON
+    // mid-object so it fails to parse. One knob so all OpenRouter targets return complete outputs.
+    max_tokens: 16000,
     ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
     ...openrouterReasoning(call.reasoning ?? "default"),
   };

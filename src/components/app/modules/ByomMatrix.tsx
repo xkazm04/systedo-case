@@ -12,6 +12,8 @@ import {
   type PublicByomConfig,
   type ReasoningLevel,
 } from "@/lib/llm/keys/types";
+import { bestModelForOp, cellComposite, matrixSlug } from "@/lib/llm/quality";
+import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
 
 const T = {
   cs: {
@@ -138,13 +140,24 @@ export default function ByomMatrix() {
             const models = vendor ? BYOM_MODEL_CATALOG[vendor].models : [];
             const modelOpt = models.find((m) => m.id === ov?.model);
             const reasoningDisabled = !vendor || Boolean(modelOpt?.noReasoning) || busy !== null;
+            const rec = hasQualityScores() ? bestModelForOp(QUALITY_SCORES, op.id) : null;
 
             return (
               <div
                 key={op.id}
                 className="grid grid-cols-1 gap-2 border-b border-line px-4 py-3 last:border-0 sm:grid-cols-[1.4fr_1fr_1.2fr_1fr] sm:items-center sm:gap-3"
               >
-                <span className="text-sm font-medium text-navy-800">{op.label}</span>
+                <span className="text-sm font-medium text-navy-800">
+                  {op.label}
+                  {rec && (
+                    <span
+                      className="ml-2 whitespace-nowrap text-xs font-normal text-brand-accent"
+                      title={`Nejlepší naměřený model: ${rec.model}`}
+                    >
+                      ★ {rec.model.split("/").pop()} {rec.composite.toFixed(1)}
+                    </span>
+                  )}
+                </span>
 
                 {/* provider */}
                 <select
@@ -189,11 +202,16 @@ export default function ByomMatrix() {
                   }}
                 >
                   {vendor ? (
-                    models.map((m) => (
-                      <option key={m.id} value={m.id}>
-                        {m.id}
-                      </option>
-                    ))
+                    models.map((m) => {
+                      const s = hasQualityScores()
+                        ? cellComposite(QUALITY_SCORES, op.id, matrixSlug(vendor, m.id))
+                        : null;
+                      return (
+                        <option key={m.id} value={m.id}>
+                          {`${m.id}${s !== null ? ` · ${s.toFixed(1)}` : ""}`}
+                        </option>
+                      );
+                    })
                   ) : (
                     <option value="">—</option>
                   )}

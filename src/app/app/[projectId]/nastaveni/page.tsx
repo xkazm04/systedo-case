@@ -5,6 +5,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ProjectSettings from "@/components/app/modules/ProjectSettings";
 import ByomKeys from "@/components/app/modules/ByomKeys";
+import ByomQualityOverview from "@/components/app/modules/ByomQualityOverview";
 import ByomMatrix from "@/components/app/modules/ByomMatrix";
 
 
@@ -15,6 +16,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     <ModulePage moduleKey="nastaveni">
       <ProjectSettings />
       <ByomKeys />
+      <ByomQualityOverview />
       <ByomMatrix />
     </ModulePage>
   );

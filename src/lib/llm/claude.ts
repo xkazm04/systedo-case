@@ -37,8 +37,17 @@ const cliArgs = (tier?: ModelTier): string[] => [
   "--model",
   claudeCliAlias(tier),
   "--dangerously-skip-permissions",
+  // Load ONLY user settings (keeps the login/auth session) and NOT project/local — so this headless
+  // one-shot JSON generation does not inherit the repo's CLAUDE.md/AGENTS.md interactive-coding
+  // instructions. The repo's AGENTS.md tells an agent to "read docs before acting", which spent the
+  // single allowed turn on a Read and truncated the answer to a "Reached max turns (1)" one-liner.
+  // (`--bare` would also drop project instructions but skips auth too → "Not logged in".)
+  "--setting-sources",
+  "user",
+  // Headroom above one turn so a model that still takes a thinking/tool step reaches the final JSON
+  // instead of being cut off mid-answer. Bounded by CLAUDE_TIMEOUT_MS regardless.
   "--max-turns",
-  "1",
+  "6",
 ];
 
 let _available: boolean | null = null;

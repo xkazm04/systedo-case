@@ -74,6 +74,10 @@ const TOOLS = toolFilter.length ? LLM_TOOLS.filter((t) => toolFilter.includes(t.
 
 const CONCURRENCY = Number(process.env.LLM_QUALITY_CONCURRENCY) || 4;
 const REASONING = process.env.LLM_QUALITY_REASONING || "default";
+// How many Sonnet judges to run per cell (median of the valid ones). >1 both guards
+// against LLM variance and survives an occasional Sonnet failure without accepting an
+// off-model (Gemini) score.
+const JUDGE_COUNT = Math.max(1, Number(process.env.LLM_QUALITY_JUDGES) || 3);
 
 const API_KEY = process.env.OPENROUTER_API_KEY;
 if (!API_KEY) {
@@ -120,7 +124,19 @@ function judgePrompt(tool, output) {
   ].join("\n");
 }
 
-async function judge(tool, output) {
+// The judge MUST be Sonnet (Claude CLI). `generateStructured` falls back Claude→Gemini
+// on failure, so a single judge can be silently scored by Gemini — a *different* judge,
+// invalid for cross-model comparison. Run JUDGE_COUNT judges in parallel, KEEP ONLY the
+// Sonnet verdicts, and take the median. If none stayed on Sonnet, leave the cell
+// unjudged (—) rather than accept an off-model score.
+const isSonnetJudge = (model) => /claude|sonnet|anthropic/i.test(model || "");
+const median = (xs) => {
+  const s = [...xs].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+
+async function judgeOnce(tool, output) {
   const res = await generateStructured({
     id: "quality-judge",
     system: JUDGE_SYSTEM,
@@ -129,7 +145,36 @@ async function judge(tool, output) {
     normalize: (x) => x,
     demo: () => ({ score: 0, verdict: "(judge unavailable)", issues: ["judge demo fallback"] }),
   });
-  return { judged: res.meta.demo === false, judgeModel: res.meta.model, ...res.result };
+  return { model: res.meta.model, demo: res.meta.demo, ...res.result };
+}
+
+async function judge(tool, output) {
+  const runs = await Promise.all(
+    Array.from({ length: JUDGE_COUNT }, () =>
+      judgeOnce(tool, output).catch((e) => ({ error: String(e?.message ?? e) }))
+    )
+  );
+  const sonnet = runs.filter((r) => !r.error && r.demo === false && isSonnetJudge(r.model));
+  if (!sonnet.length) {
+    const offModel = runs.find((r) => r.model)?.model ?? "?";
+    return {
+      judged: false,
+      judgeModel: offModel,
+      judges: 0,
+      score: 0,
+      verdict: "(no Sonnet judge — off-model rejected)",
+      issues: [`all ${runs.length} judges fell back off Sonnet (e.g. ${offModel})`],
+    };
+  }
+  const dims = ["score", "relevance", "correctness", "adherence", "tone"];
+  const agg = {};
+  for (const d of dims) agg[d] = median(sonnet.map((r) => numOr(r[d])));
+  // verdict + issues from the run whose overall score is closest to the median.
+  const pick = sonnet.reduce(
+    (best, r) => (Math.abs(numOr(r.score) - agg.score) < Math.abs(numOr(best.score) - agg.score) ? r : best),
+    sonnet[0]
+  );
+  return { judged: true, judgeModel: "claude-sonnet", judges: sonnet.length, ...agg, verdict: pick.verdict, issues: pick.issues };
 }
 
 // ── one (operation × target) cell ─────────────────────────────────────────────

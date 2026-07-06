@@ -16,7 +16,7 @@ import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
 import { byomModel, claudeModelTag, geminiModelTag, type ModelTier } from "./models";
-import { promptFingerprint, recordLlmCall } from "./telemetry";
+import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
 import { runByom } from "./byom/adapters";
 import { getByomContext } from "./byom-context";
 import { ByomUserError } from "./errors";
@@ -202,6 +202,26 @@ function buildRepairNote(violations: string[]): string {
   ].join("\n");
 }
 
+/** Top-level required field names declared by a Google-`Type` / JSON schema. */
+function requiredFields(schema: object): string[] {
+  const s = schema as { required?: unknown };
+  return Array.isArray(s.required) ? (s.required as string[]) : [];
+}
+
+/** A call that "succeeded" (parsed to an object) can still be corrupt or truncated — a model that
+ *  stopped mid-JSON, or a degenerate one-liner that happened to parse. Flag it when it isn't an
+ *  object, or is missing more than a third of the schema's required fields. Used so the telemetry
+ *  records an ERROR even though the call didn't throw and the app still normalizes it to keep working
+ *  — otherwise monitoring would read a truncated/garbage response as a healthy success. */
+function looksCorrupt(parsed: unknown, schema: object): boolean {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return true;
+  const req = requiredFields(schema);
+  if (!req.length) return false;
+  const obj = parsed as Record<string, unknown>;
+  const missing = req.filter((k) => obj[k] === undefined || obj[k] === null);
+  return missing.length > Math.max(1, Math.floor(req.length / 3));
+}
+
 /**
  * The single chokepoint for every LLM call in the app. Tries providers in
  * environment-preferred order (Claude→Gemini in dev, Gemini→Claude in prod),
@@ -293,11 +313,19 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         tookMs: meta.tookMs,
         attempts: totalAttempts,
         repaired,
+        fellBack: idx > 0,
         estCostUsd: meta.estCostUsd ?? 0,
         inputTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
         at: new Date().toISOString(),
       });
+
+      // The parse succeeded but may still be corrupt/truncated. Flag it to LightTrack as an error
+      // (alongside the success above, which carries the real cost/latency) so a garbage or truncated
+      // response doesn't read as a healthy success in the monitoring.
+      if (looksCorrupt(parsed, args.schema)) {
+        recordLlmError(model, toolId, "corrupted/truncated structured output (missing required fields)");
+      }
 
       return { result: args.normalize(parsed), meta };
     } catch (err) {
@@ -308,6 +336,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // they picked that isn't available) is theirs to fix — surface it instead of
       // silently falling back to the app's own paid provider or the demo.
       if (err instanceof ByomUserError) throw err;
+      // This provider just exhausted its retries; we're about to fall through to the
+      // next one (or degrade to the demo). Mirror it to LightTrack as an error event
+      // so the silent fallback becomes a signal the monitoring can act on.
+      recordLlmError(model, toolId, err instanceof Error ? err.message : String(err));
       console.error(`[llm] provider ${model} failed:`, err);
       // Fall through to the next configured provider; if this was the last one,
       // the loop ends and we degrade to the demo below.

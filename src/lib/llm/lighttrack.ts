@@ -98,6 +98,7 @@ export function trackLlmEvent(entry: LlmTelemetryEntry): void {
     const tags = [`tool:${entry.toolId}`, ENV_TAG];
     if (entry.demo) tags.push("demo");
     if (entry.repaired) tags.push("repaired");
+    if (entry.fellBack) tags.push("fell_back");
 
     const body: Record<string, unknown> = {
       provider: normProvider(entry.provider || entry.model),
@@ -123,6 +124,33 @@ export function trackLlmEvent(entry: LlmTelemetryEntry): void {
     // project key would override it server-side.
     if (PROJECT) body.project_id = PROJECT;
 
+    post("/v1/events", body);
+  } catch {
+    // Never let mirroring surface to the caller.
+  }
+}
+
+/**
+ * Mirror a provider-level FAILURE to LightTrack as an `error` event. The chokepoint
+ * calls this when a whole provider exhausts its retries and it is about to fall
+ * through to the next provider (or degrade to the demo) — so a silent fallback stops
+ * being invisible and becomes a signal the monitoring can act on (error-spike, etc.).
+ * Fire-and-forget, same best-effort contract as `trackLlmEvent`.
+ */
+export function trackLlmError(model: string, toolId: string, message: string): void {
+  if (!ENABLED) return;
+  try {
+    const body: Record<string, unknown> = {
+      provider: normProvider(model),
+      model,
+      status: "error",
+      error: message.slice(0, 500),
+      operation: "chat",
+      source: SOURCE,
+      tags: [`tool:${toolId}`, ENV_TAG, "provider_failed"],
+      metadata: { toolId, product_id: toolId },
+    };
+    if (PROJECT) body.project_id = PROJECT;
     post("/v1/events", body);
   } catch {
     // Never let mirroring surface to the caller.
