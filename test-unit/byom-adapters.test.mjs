@@ -140,3 +140,71 @@ test("runByom gemini: native responseSchema JSON + 429 is a user quota fault", a
     bad.restore();
   }
 });
+
+/** Stub fetch that returns a different response per call (by index). */
+function stubFetchSeq(responses) {
+  const original = global.fetch;
+  const calls = [];
+  let i = 0;
+  global.fetch = async (url, opts) => {
+    const r = responses[Math.min(i, responses.length - 1)];
+    i += 1;
+    calls.push({ url, opts });
+    return {
+      ok: r.status >= 200 && r.status < 300,
+      status: r.status,
+      json: async () => r.body,
+      text: async () => (typeof r.body === "string" ? r.body : JSON.stringify(r.body)),
+    };
+  };
+  return { calls, restore: () => (global.fetch = original) };
+}
+
+test("runByom openai: a recoverable structured 400 falls back to prompt-embed", async () => {
+  const f = stubFetchSeq([
+    { status: 400, body: { error: { message: "response_format not supported here" } } },
+    { status: 200, body: { choices: [{ message: { content: '{"ok":1}' } }], usage: {} } },
+  ]);
+  try {
+    const out = await runByom({ vendor: "openai", apiKey: "sk" }, CALL);
+    assert.deepEqual(out.parsed, { ok: 1 });
+    assert.equal(f.calls.length, 2); // structured attempt, then the prompt-embed retry
+    const body1 = JSON.parse(f.calls[0].opts.body);
+    assert.equal(body1.response_format.type, "json_schema"); // first tried native structured output
+    const body2 = JSON.parse(f.calls[1].opts.body);
+    assert.equal("response_format" in body2, false); // fallback drops the structured param
+    assert.match(body2.messages[1].content, /JSON/); // and embeds the schema in the prompt
+  } finally {
+    f.restore();
+  }
+});
+
+test("runByom openai: a structured user fault (401) surfaces with no wasted retry", async () => {
+  const f = stubFetchSeq([{ status: 401, body: { error: "bad key" } }]);
+  try {
+    await assert.rejects(
+      () => runByom({ vendor: "openai", apiKey: "bad" }, CALL),
+      (e) => e instanceof ByomUserError && e.code === "auth"
+    );
+    assert.equal(f.calls.length, 1); // no prompt-embed fallback on a user fault
+  } finally {
+    f.restore();
+  }
+});
+
+test("runByom anthropic: native structured request carries output_config, then falls back", async () => {
+  const f = stubFetchSeq([
+    { status: 400, body: { error: { type: "invalid_request_error", message: "output_config unsupported" } } },
+    { status: 200, body: { content: [{ type: "text", text: '{"reply":"ok"}' }], usage: {} } },
+  ]);
+  try {
+    const out = await runByom({ vendor: "anthropic", apiKey: "sk-ant" }, CALL);
+    assert.deepEqual(out.parsed, { reply: "ok" });
+    const body1 = JSON.parse(f.calls[0].opts.body);
+    assert.equal(body1.output_config.format.type, "json_schema");
+    const body2 = JSON.parse(f.calls[1].opts.body);
+    assert.equal("output_config" in body2, false);
+  } finally {
+    f.restore();
+  }
+});

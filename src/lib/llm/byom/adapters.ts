@@ -1,10 +1,14 @@
 /** BYOM provider adapters — one uniform `run()` per vendor for a user's own API
  *  key. All three call the vendor's REST API with `fetch` (no vendor SDK) so the
- *  failure path exposes a raw HTTP status the fallback classifier can read, and so
- *  the adapters share one shape. Gemini uses native structured output (the tools'
- *  Google-`Type` schema is already the shape `responseSchema` wants); OpenAI and
- *  Anthropic embed the schema in the prompt and parse with the wrapper's robust
- *  `extractJson` (the same approach the Claude CLI provider uses). Server-only.
+ *  failure path exposes a raw HTTP status the fallback classifier can read, and
+ *  so the adapters share one shape. All three request NATIVE structured output:
+ *  Gemini via `responseSchema` (the tools' Google-`Type` schema is already its
+ *  shape), OpenAI via `response_format: json_schema` (strict) and Anthropic via
+ *  `output_config.format`, both fed a JSON Schema from ./schema. If a user-picked
+ *  model rejects the structured-output param, the OpenAI/Anthropic adapters retry
+ *  once with a prompt-embedded schema (the universal fallback the Claude CLI
+ *  provider uses), so any model still works. Output is parsed with the wrapper's
+ *  robust `extractJson`. Server-only.
  *
  *  NOTE: raw `fetch` (not the vendor SDKs) is deliberate — it keeps the three
  *  adapters uniform, needs no new dependencies (matching the repo's zero-dep
@@ -13,6 +17,7 @@
 import { extractJson } from "../claude";
 import { classifyByomHttp } from "../errors";
 import { byomModel } from "../models";
+import { toJsonSchema } from "./schema";
 import type { TokenUsage } from "../cost";
 import type { ResolvedByomKey } from "../keys/types";
 import type { ModelTier } from "../models";
@@ -33,7 +38,7 @@ export interface ByomResult {
   usage?: TokenUsage;
 }
 
-/** Build the user-turn content for the prompt-embed vendors: the task prompt plus
+/** Build the user-turn content for the prompt-embed fallback: the task prompt plus
  *  a strict "return only one JSON object matching this schema" instruction. */
 function embeddedUserContent(prompt: string, schema: object): string {
   return [
@@ -61,24 +66,71 @@ async function byomHttpError(vendor: string, res: Response): Promise<Error> {
   );
 }
 
-// ── OpenAI (Chat Completions, prompt-embed) ───────────────────────────────────
+/** Try a native-structured-output request first; on a USER fault surface it
+ *  immediately (no wasted retry), on a RECOVERABLE failure (e.g. the model doesn't
+ *  support the structured-output param → 400, or a transient 5xx) retry once with
+ *  the universal prompt-embed request, so any user-chosen model still works. The
+ *  returned Response is guaranteed `ok`. */
+async function fetchWithFallback(
+  vendor: string,
+  doStructured: () => Promise<Response>,
+  doPromptEmbed: () => Promise<Response>
+): Promise<Response> {
+  const res = await doStructured();
+  if (res.ok) return res;
+  let body = "";
+  try {
+    body = await res.text();
+  } catch {
+    /* body unreadable — classify on status alone */
+  }
+  const userErr = classifyByomHttp(vendor, res.status, body);
+  if (userErr) throw userErr;
+  const res2 = await doPromptEmbed();
+  if (!res2.ok) throw await byomHttpError(vendor, res2);
+  return res2;
+}
+
+// ── OpenAI (Chat Completions, native json_schema → prompt-embed fallback) ──────
 async function runOpenAi(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   const model = byomModel("openai", call.tier, byom.model, byom.fastModel);
   const base = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-  const res = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${byom.apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: call.system },
-        { role: "user", content: embeddedUserContent(call.prompt, call.schema) },
-      ],
-      ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
-    }),
-    signal: call.signal,
-  });
-  if (!res.ok) throw await byomHttpError("openai", res);
+  const headers = { Authorization: `Bearer ${byom.apiKey}`, "Content-Type": "application/json" };
+  const common = {
+    model,
+    ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
+  };
+  const post = (payload: object) =>
+    fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: call.signal,
+    });
+
+  const res = await fetchWithFallback(
+    "openai",
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: call.prompt },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "structured_output", strict: true, schema: toJsonSchema(call.schema) },
+        },
+      }),
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: embeddedUserContent(call.prompt, call.schema) },
+        ],
+      })
+  );
 
   const json = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
@@ -99,29 +151,41 @@ async function runOpenAi(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   return { parsed, usage };
 }
 
-// ── Anthropic (Messages API, prompt-embed) ────────────────────────────────────
+// ── Anthropic (Messages API, native output_config → prompt-embed fallback) ─────
 async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   const model = byomModel("anthropic", call.tier, byom.model, byom.fastModel);
   const base = process.env.ANTHROPIC_BASE_URL ?? "https://api.anthropic.com";
-  const res = await fetch(`${base}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "x-api-key": byom.apiKey,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    // No temperature (removed on current Claude models — a value 400s). No thinking
-    // (structured extraction doesn't need it). max_tokens sized for the heaviest
-    // tool while staying under the non-streaming HTTP-timeout guidance.
-    body: JSON.stringify({
-      model,
-      max_tokens: 16000,
-      system: call.system,
-      messages: [{ role: "user", content: embeddedUserContent(call.prompt, call.schema) }],
-    }),
-    signal: call.signal,
-  });
-  if (!res.ok) throw await byomHttpError("anthropic", res);
+  const headers = {
+    "x-api-key": byom.apiKey,
+    "anthropic-version": "2023-06-01",
+    "content-type": "application/json",
+  };
+  // No temperature (removed on current Claude models — a value 400s). No thinking
+  // (structured extraction doesn't need it). max_tokens sized for the heaviest
+  // tool while staying under the non-streaming HTTP-timeout guidance.
+  const common = { model, max_tokens: 16000, system: call.system };
+  const post = (payload: object) =>
+    fetch(`${base}/v1/messages`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: call.signal,
+    });
+
+  const res = await fetchWithFallback(
+    "anthropic",
+    () =>
+      post({
+        ...common,
+        messages: [{ role: "user", content: call.prompt }],
+        output_config: { format: { type: "json_schema", schema: toJsonSchema(call.schema) } },
+      }),
+    () =>
+      post({
+        ...common,
+        messages: [{ role: "user", content: embeddedUserContent(call.prompt, call.schema) }],
+      })
+  );
 
   const json = (await res.json()) as {
     stop_reason?: string;
