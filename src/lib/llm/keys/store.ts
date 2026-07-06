@@ -122,14 +122,9 @@ export async function markByomValidation(
   await save(userId, cfg);
 }
 
-/** Decrypt the active vendor's key for a call. Returns null when BYOM isn't set
- *  up (no active vendor / no key) or the blob can't be decrypted (missing or
- *  rotated secret). The ONLY path plaintext leaves the store — server-only, never
- *  serialized to a client. Callers gate this on the user's plan entitlement. */
-export async function resolveActiveByomKey(userId: string): Promise<ResolvedByomKey | null> {
-  const cfg = await get(userId);
-  const vendor = cfg.activeVendor;
-  if (!vendor) return null;
+/** Decrypt one vendor's key from an already-loaded config. The only place
+ *  plaintext is produced — server-only, never serialized to a client. */
+function resolveFromConfig(cfg: StoredByomConfig, vendor: ByomVendor): ResolvedByomKey | null {
   const k = cfg.keys[vendor];
   if (!k) return null;
   const apiKey = decryptByomKey(k.keyEnc);
@@ -140,4 +135,18 @@ export async function resolveActiveByomKey(userId: string): Promise<ResolvedByom
     ...(k.model ? { model: k.model } : {}),
     ...(k.fastModel ? { fastModel: k.fastModel } : {}),
   };
+}
+
+/** Decrypt the ACTIVE vendor's key for a generation. Returns null when BYOM isn't
+ *  set up (no active vendor / no key) or the blob can't be decrypted (missing or
+ *  rotated secret). Callers gate this on the user's plan entitlement. */
+export async function resolveActiveByomKey(userId: string): Promise<ResolvedByomKey | null> {
+  const cfg = await get(userId);
+  return cfg.activeVendor ? resolveFromConfig(cfg, cfg.activeVendor) : null;
+}
+
+/** Decrypt a SPECIFIC vendor's key regardless of which is active — the "test
+ *  connection" flow re-validates a vendor that may not be the active one. */
+export async function resolveByomKey(userId: string, vendor: ByomVendor): Promise<ResolvedByomKey | null> {
+  return resolveFromConfig(await get(userId), vendor);
 }

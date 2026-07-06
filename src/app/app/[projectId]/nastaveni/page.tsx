@@ -1,7 +1,10 @@
-/** Nastavení — project settings (name, brand, type, delete). */
+/** Nastavení — project settings (name, brand, type, delete), plus the per-user
+ *  BYOM key management (account-wide, shown here since the app has no dedicated
+ *  account area). */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ProjectSettings from "@/components/app/modules/ProjectSettings";
+import ByomKeys from "@/components/app/modules/ByomKeys";
 
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
@@ -10,6 +13,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   return (
     <ModulePage moduleKey="nastaveni">
       <ProjectSettings />
+      <ByomKeys />
     </ModulePage>
   );
 }
