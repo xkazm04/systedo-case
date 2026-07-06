@@ -13,7 +13,9 @@
 import { auth } from "@/auth";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { getPatternLines } from "@/lib/patterns/store";
-import { consume } from "@/lib/usage";
+import { consume, getUserPlan } from "@/lib/usage";
+import { enterByomForOperation } from "@/lib/llm/byom/request";
+import { ByomUserError } from "@/lib/llm/errors";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getServerLocale } from "@/lib/i18n/locale";
 import {
@@ -149,6 +151,12 @@ export async function POST(request: Request) {
   const evaluated: string[] = [];
   let quotaExhausted = false;
   let failure: string | null = null;
+  let providerError: string | null = null;
+
+  // BYOM: run the whole batch on the caller's "campaign-eval" provider (matrix
+  // override or global active); BYOM-served calls skip the per-user quota.
+  const byomPlan = await getUserPlan(userId);
+  const byom = await enterByomForOperation(userId, byomPlan, "campaign-eval");
 
   try {
     const locale = await getServerLocale();
@@ -156,13 +164,15 @@ export async function POST(request: Request) {
     for (let i = 0; i < pending.length; i++) {
       const target = pending[i]!;
 
-      // Per-user daily quota per actual (non-cached) model call — identical to
-      // the single route. Exhaustion ends the batch gracefully with a report
-      // of what remains, instead of a hard 429 that throws away partial work.
-      const quota = await consume(userId, "aiEval");
-      if (!quota.ok) {
-        quotaExhausted = true;
-        break;
+      // Per-user daily quota per actual (non-cached, non-BYOM) model call.
+      // Exhaustion ends the batch gracefully with a report of what remains,
+      // instead of a hard 429 that throws away partial work.
+      if (!byom) {
+        const quota = await consume(userId, "aiEval");
+        if (!quota.ok) {
+          quotaExhausted = true;
+          break;
+        }
       }
 
       // Ground the portfolio eval in the account's own winning patterns (RAG) —
@@ -205,8 +215,10 @@ export async function POST(request: Request) {
         evaluated.push(target.key);
       } catch (err) {
         // Stop at the first failure — the same "don't hammer a failing
-        // provider" rule the client-side flagged queue follows.
-        console.error(`[campaigns] batch evaluation failed at ${target.key}:`, err);
+        // provider" rule the client-side flagged queue follows. A BYOM user fault
+        // (their key/account/model) is surfaced verbatim below.
+        if (err instanceof ByomUserError) providerError = err.message;
+        else console.error(`[campaigns] batch evaluation failed at ${target.key}:`, err);
         failure = target.key;
         break;
       }
@@ -223,8 +235,10 @@ export async function POST(request: Request) {
     cached,
     remaining,
     quotaExhausted,
-    ...(failure
-      ? { error: `Vyhodnocení „${failure}“ se nezdařilo — dávka byla zastavena.` }
-      : {}),
+    ...(providerError
+      ? { error: providerError, code: "provider" }
+      : failure
+        ? { error: `Vyhodnocení „${failure}“ se nezdařilo — dávka byla zastavena.` }
+        : {}),
   });
 }

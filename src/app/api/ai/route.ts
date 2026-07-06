@@ -29,10 +29,10 @@ import {
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
 } from "@/lib/ai/validation";
-import { consume, getUserPlan, planHasByom } from "@/lib/usage";
+import { consume, getUserPlan } from "@/lib/usage";
 import { getServerLocale } from "@/lib/i18n/locale";
-import { enterByomContext, getByomContext } from "@/lib/llm/byom-context";
-import { resolveActiveByomKey, type ResolvedByomKey } from "@/lib/llm/keys/store";
+import { getByomContext } from "@/lib/llm/byom-context";
+import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
 import type { AiResponse, ChatRequest } from "@/lib/ai-types";
@@ -148,15 +148,13 @@ export async function POST(request: Request) {
     const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
-    // BYOM: an entitled (byom plan) caller with a stored active key generates on
-    // their OWN provider — resolved once here and carried through generation via
-    // AsyncLocalStorage so the wrapper picks it up and the cache/quota above see it.
-    // Anonymous or non-entitled callers resolve to null → the app's own providers.
-    let byom: ResolvedByomKey | null = null;
-    if (userId && planHasByom(await getUserPlan(userId))) {
-      byom = await resolveActiveByomKey(userId);
-    }
-    enterByomContext(byom ?? undefined);
+    // BYOM: resolve the per-operation provider for THIS mode (the matrix override
+    // for the tool, else the global active vendor) and enter it into the request
+    // context — the helper gates on entitlement (byom plan or the BYOM_MATRIX dev
+    // flag). cachedRespond reads it back for the cache key + quota-skip; a
+    // non-entitled/anonymous caller resolves to none → the app's own providers.
+    const plan = userId ? await getUserPlan(userId) : "free";
+    await enterByomForOperation(userId, plan, typeof mode === "string" ? mode : "unknown");
 
     // Every tool call carries request.signal: when the client aborts (timeout,
     // re-run, closed tab), the wrapper kills the Claude CLI child / cancels the

@@ -46,6 +46,13 @@ export async function getUserPlan(userId: string): Promise<Plan> {
   return (snap.data() as UsageDoc)?.plan ?? "free";
 }
 
+/** BYOM (and the per-operation matrix) is unlocked for a byom-plan user, OR in any
+ *  environment with the `BYOM_MATRIX=true` dev flag set — the "development flag OR
+ *  billing plan" gate. Reads env, so server-only (kept out of the pure plans.ts). */
+export function byomUnlocked(plan: Plan): boolean {
+  return planHasByom(plan) || process.env.BYOM_MATRIX === "true";
+}
+
 /**
  * Atomically check the day's quota for `kind` and increment by `amount` if room
  * remains for the whole amount. Returns `{ ok: false }` (without incrementing)

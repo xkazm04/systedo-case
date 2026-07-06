@@ -5,7 +5,9 @@ import { auth } from "@/auth";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
-import { consume } from "@/lib/usage";
+import { consume, getUserPlan } from "@/lib/usage";
+import { enterByomForOperation } from "@/lib/llm/byom/request";
+import { ByomUserError } from "@/lib/llm/errors";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getServerLocale } from "@/lib/i18n/locale";
 import {
@@ -107,8 +109,12 @@ export async function POST(request: Request) {
       }
     }
 
-    // Per-user daily quota — only counts an actual (non-cached) LLM call.
-    if (userId) {
+    // BYOM: run "campaign-eval" on the caller's assigned provider (matrix override
+    // or global active); BYOM-served calls skip the per-user quota.
+    const byomPlan = userId ? await getUserPlan(userId) : "free";
+    const byom = await enterByomForOperation(userId, byomPlan, "campaign-eval");
+    // Per-user daily quota — only counts an actual (non-cached, non-BYOM) LLM call.
+    if (userId && !byom) {
       const quota = await consume(userId, "aiEval");
       if (!quota.ok) {
         return Response.json(
@@ -163,6 +169,11 @@ export async function POST(request: Request) {
       const history = await getReportHistory(tenant, scope, scope === "campaign" ? campaignId : null);
       return Response.json({ report, history });
     } catch (err) {
+      if (err instanceof ByomUserError) {
+        const status =
+          err.code === "auth" || err.code === "permission" ? 401 : err.code === "quota" ? 429 : 400;
+        return Response.json({ error: err.message, code: "provider" }, { status });
+      }
       console.error("[campaigns] evaluation failed:", err);
       return Response.json(
         { error: "Vyhodnocení se nezdařilo. Zkuste to prosím za chvíli znovu." },

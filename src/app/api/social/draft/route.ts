@@ -5,7 +5,9 @@
  *     with the deterministic templates as the demo fallback. */
 import { auth } from "@/auth";
 import { generateSocialPosts } from "@/lib/ai/tools";
-import { consume } from "@/lib/usage";
+import { consume, getUserPlan } from "@/lib/usage";
+import { enterByomForOperation } from "@/lib/llm/byom/request";
+import { ByomUserError } from "@/lib/llm/errors";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { buildSnapshot } from "@/lib/snapshot";
 import { fmtMultiple, fmtSignedPct } from "@/lib/format";
@@ -93,7 +95,11 @@ export async function POST(request: Request) {
 
   try {
     const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-    if (userId) {
+    const plan = userId ? await getUserPlan(userId) : "free";
+    // BYOM: an entitled caller runs "social" on their assigned provider (matrix
+    // override or global active); BYOM-served calls skip the per-user quota.
+    const byom = await enterByomForOperation(userId, plan, "social");
+    if (userId && !byom) {
       const quota = await consume(userId, "aiEval");
       if (!quota.ok) {
         return Response.json(
@@ -124,6 +130,11 @@ export async function POST(request: Request) {
       tookMs: response.meta.tookMs,
     });
   } catch (err) {
+    if (err instanceof ByomUserError) {
+      const status =
+        err.code === "auth" || err.code === "permission" ? 401 : err.code === "quota" ? 429 : 400;
+      return Response.json({ error: err.message, code: "provider" }, { status });
+    }
     console.error("[social] AI draft failed:", err);
     return Response.json(
       { error: "Návrh se nezdařil. Zkuste to prosím za chvíli znovu." },

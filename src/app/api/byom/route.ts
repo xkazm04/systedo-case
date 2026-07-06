@@ -1,7 +1,7 @@
 /** BYOM settings — read the caller's config (+ entitlement) and update the active
  *  vendor / per-vendor model choice. Per-user (keys apply across all projects).
  *  Adding/removing keys lives in ./keys; testing a key lives in ./validate. */
-import { getUserPlan, planHasByom } from "@/lib/usage";
+import { byomUnlocked, getUserPlan } from "@/lib/usage";
 import { getPublicByomConfig, setActiveByomVendor, setByomKeyModels } from "@/lib/llm/keys/store";
 import { isByomVendor, type ByomVendor } from "@/lib/llm/keys/types";
 import { requireByomUser, requireUser } from "./guard";
@@ -12,7 +12,7 @@ export async function GET() {
   const u = await requireUser();
   if (u instanceof Response) return u;
   const [plan, config] = await Promise.all([getUserPlan(u.userId), getPublicByomConfig(u.userId)]);
-  return Response.json({ entitled: planHasByom(plan), config });
+  return Response.json({ entitled: byomUnlocked(plan), config });
 }
 
 /** Update the active vendor and/or a vendor's chosen models. Body:

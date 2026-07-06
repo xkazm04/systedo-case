@@ -22,7 +22,11 @@ function toStored(d: FirebaseFirestore.DocumentData): StoredByomConfig {
     typeof d.activeVendor === "string" && (BYOM_VENDORS as readonly string[]).includes(d.activeVendor)
       ? (d.activeVendor as ByomVendor)
       : undefined;
-  return { ...(activeVendor ? { activeVendor } : {}), keys };
+  const operations =
+    d.operations && typeof d.operations === "object"
+      ? (d.operations as StoredByomConfig["operations"])
+      : undefined;
+  return { ...(activeVendor ? { activeVendor } : {}), keys, ...(operations ? { operations } : {}) };
 }
 
 /** Firestore rejects nested `undefined` — drop undefined fields from each key. */
@@ -34,6 +38,7 @@ function clean(cfg: StoredByomConfig): Record<string, unknown> {
   }
   const out: Record<string, unknown> = { keys };
   if (cfg.activeVendor) out.activeVendor = cfg.activeVendor;
+  if (cfg.operations && Object.keys(cfg.operations).length) out.operations = cfg.operations;
   return out;
 }
 

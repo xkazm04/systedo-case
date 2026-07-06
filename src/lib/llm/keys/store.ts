@@ -8,6 +8,7 @@ import { LOCAL_DB } from "@/lib/local-mode";
 import { decryptByomKey, encryptByomKey, hasByomCrypto } from "./crypto";
 import {
   publicByomConfig,
+  type ByomOperationOverride,
   type ByomVendor,
   type PublicByomConfig,
   type ResolvedByomKey,
@@ -149,4 +150,50 @@ export async function resolveActiveByomKey(userId: string): Promise<ResolvedByom
  *  connection" flow re-validates a vendor that may not be the active one. */
 export async function resolveByomKey(userId: string, vendor: ByomVendor): Promise<ResolvedByomKey | null> {
   return resolveFromConfig(await get(userId), vendor);
+}
+
+/** Resolve the effective BYOM key for one OPERATION: the matrix override for that
+ *  toolId (its vendor + model + reasoning) when set and its vendor has a key, else
+ *  the global active vendor (with default reasoning). Null when BYOM isn't set up. */
+export async function resolveByomForOperation(userId: string, toolId: string): Promise<ResolvedByomKey | null> {
+  const cfg = await get(userId);
+  const op = cfg.operations?.[toolId];
+  if (op) {
+    const k = cfg.keys[op.vendor];
+    if (k) {
+      const apiKey = decryptByomKey(k.keyEnc);
+      if (apiKey) {
+        return {
+          vendor: op.vendor,
+          apiKey,
+          ...(op.model ? { model: op.model } : {}),
+          reasoning: op.reasoning,
+        };
+      }
+    }
+  }
+  return cfg.activeVendor ? resolveFromConfig(cfg, cfg.activeVendor) : null;
+}
+
+/** Assign an operation to a vendor + model + reasoning in the matrix. The vendor
+ *  must already have a stored key. */
+export async function setByomOperation(
+  userId: string,
+  toolId: string,
+  override: ByomOperationOverride
+): Promise<void> {
+  const cfg = await get(userId);
+  if (!cfg.keys[override.vendor]) throw new Error(`No BYOM key stored for vendor "${override.vendor}".`);
+  cfg.operations = { ...(cfg.operations ?? {}), [toolId]: override };
+  await save(userId, cfg);
+}
+
+/** Remove an operation's matrix override (it falls back to the global active vendor). */
+export async function clearByomOperation(userId: string, toolId: string): Promise<void> {
+  const cfg = await get(userId);
+  if (!cfg.operations?.[toolId]) return;
+  const next = { ...cfg.operations };
+  delete next[toolId];
+  cfg.operations = next;
+  await save(userId, cfg);
 }

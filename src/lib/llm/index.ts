@@ -138,6 +138,7 @@ function byomProvider(byom: ResolvedByomKey): Provider {
         temperature: c.temperature,
         tier: c.tier,
         signal: c.signal,
+        reasoning: byom.reasoning,
       }),
   };
 }

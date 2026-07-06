@@ -2,7 +2,7 @@
  *  (app router only mounts `route.ts`), just a helper the sibling routes import.
  *  Server-only. */
 import { auth } from "@/auth";
-import { getUserPlan, planHasByom } from "@/lib/usage";
+import { byomUnlocked, getUserPlan } from "@/lib/usage";
 
 async function currentUserId(): Promise<string | null> {
   return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
@@ -20,7 +20,7 @@ export async function requireUser(): Promise<{ userId: string } | Response> {
 export async function requireByomUser(): Promise<{ userId: string } | Response> {
   const u = await requireUser();
   if (u instanceof Response) return u;
-  if (!planHasByom(await getUserPlan(u.userId))) {
+  if (!byomUnlocked(await getUserPlan(u.userId))) {
     return Response.json(
       {
         error: "Vlastní klíče jsou součástí plánu Vlastní klíč. Aktivujte jej v ceníku.",
