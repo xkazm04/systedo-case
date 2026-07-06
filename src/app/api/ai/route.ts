@@ -29,8 +29,11 @@ import {
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
 } from "@/lib/ai/validation";
-import { consume } from "@/lib/usage";
+import { consume, getUserPlan, planHasByom } from "@/lib/usage";
 import { getServerLocale } from "@/lib/i18n/locale";
+import { enterByomContext, getByomContext } from "@/lib/llm/byom-context";
+import { resolveActiveByomKey, type ResolvedByomKey } from "@/lib/llm/keys/store";
+import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
 import type { AiResponse, ChatRequest } from "@/lib/ai-types";
 import type { PerformanceData } from "@/lib/types";
@@ -60,12 +63,21 @@ async function cachedRespond(
   userId: string | null,
   gen: () => Promise<AiResponse<unknown>>
 ): Promise<Response> {
-  const key = hashAiInput(mode, locale, value);
+  // The result depends on which provider serves it, so a BYOM caller gets its own
+  // cache bucket (vendor + chosen models) and never shares a non-BYOM caller's
+  // result — or another vendor/model's.
+  const byom = getByomContext();
+  const providerTag = byom ? `byom:${byom.vendor}:${byom.model ?? ""}:${byom.fastModel ?? ""}` : "app";
+  const key = hashAiInput(mode, locale, value, providerTag);
   const cached = getCachedAi(key);
   if (cached) return Response.json(cached);
 
-  // Per-user daily AI quota (signed-in users) — charged only on a real generation.
-  if (userId) {
+  // Per-user daily AI quota (signed-in users) — charged only on a real generation,
+  // and SKIPPED for BYOM-served calls: the BYOM plan is unlimited by design (the
+  // user pays their own tokens), and the per-IP durable guard above still bounds
+  // abuse. A recoverable BYOM fallback to the app provider is rare (our fault /
+  // outage) and stays within that per-IP cap.
+  if (userId && !byom) {
     const quota = await consume(userId, "aiEval");
     if (!quota.ok) {
       return Response.json(
@@ -136,9 +148,19 @@ export async function POST(request: Request) {
     const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
+    // BYOM: an entitled (byom plan) caller with a stored active key generates on
+    // their OWN provider — resolved once here and carried through generation via
+    // AsyncLocalStorage so the wrapper picks it up and the cache/quota above see it.
+    // Anonymous or non-entitled callers resolve to null → the app's own providers.
+    let byom: ResolvedByomKey | null = null;
+    if (userId && planHasByom(await getUserPlan(userId))) {
+      byom = await resolveActiveByomKey(userId);
+    }
+    enterByomContext(byom ?? undefined);
+
     // Every tool call carries request.signal: when the client aborts (timeout,
     // re-run, closed tab), the wrapper kills the Claude CLI child / cancels the
-    // Gemini request instead of burning a concurrency slot on unread output.
+    // provider request instead of burning a concurrency slot on unread output.
     switch (mode) {
       case "ads": {
         const p = validateAdRequest(body, locale);
@@ -203,6 +225,15 @@ export async function POST(request: Request) {
         return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
     }
   } catch (err) {
+    // A BYOM user fault (bad/expired key, their account out of credit, a model they
+    // picked that isn't available) reaches here from the wrapper — surface it with
+    // an actionable message + the "provider" code so the client can point the user
+    // at their key settings, instead of the generic failure. No app-provider retry.
+    if (err instanceof ByomUserError) {
+      const status =
+        err.code === "auth" || err.code === "permission" ? 401 : err.code === "quota" ? 429 : 400;
+      return Response.json({ error: err.message, code: "provider" }, { status });
+    }
     console.error(`[ai] generation failed (mode=${String(mode)}):`, err);
     return Response.json(
       { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu.", code: "failed" },

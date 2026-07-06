@@ -39,6 +39,13 @@ export async function getUsage(userId: string): Promise<UsageStatus> {
   return statusFrom((snap.data() as UsageDoc) ?? {}, dayKey());
 }
 
+/** Just the user's plan (one read), for entitlement checks that don't need the
+ *  full usage status — e.g. gating BYOM on the byom plan. Defaults to "free". */
+export async function getUserPlan(userId: string): Promise<Plan> {
+  const snap = await firestore.collection("usage").doc(userId).get();
+  return (snap.data() as UsageDoc)?.plan ?? "free";
+}
+
 /**
  * Atomically check the day's quota for `kind` and increment by `amount` if room
  * remains for the whole amount. Returns `{ ok: false }` (without incrementing)

@@ -71,8 +71,11 @@ export interface AiMeta {
  *    413     → "too_large"    (body over the size cap)
  *    429     → "rate_limited" (per-IP min/day) or "quota" (signed-in plan limit)
  *    502     → "failed"       (provider / generation error)
+ *    400/401/429 → "provider" (BYOM: the caller's OWN key/account/model failed —
+ *                              surfaced so they can fix it, never retried on the
+ *                              app's provider; the message carries the specifics)
  *  `retryAfter` accompanies "rate_limited"; `upgradeUrl` accompanies "quota". */
-export type AiErrorCode = "invalid" | "rate_limited" | "quota" | "too_large" | "failed";
+export type AiErrorCode = "invalid" | "rate_limited" | "quota" | "too_large" | "failed" | "provider";
 export interface AiError {
   code: AiErrorCode;
   /** human, localized (cs-CZ) message. Named `error` (not `message`) to match the

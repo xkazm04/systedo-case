@@ -20,3 +20,11 @@ export function runWithByomContext<T>(byom: ResolvedByomKey | undefined, fn: () 
 export function getByomContext(): ResolvedByomKey | undefined {
   return store.getStore();
 }
+
+/** Set the BYOM context for the remainder of the current request's async
+ *  execution — the callback-free form for a route handler that resolves the key
+ *  and then dispatches, avoiding wrapping the whole handler body. Each request
+ *  runs in its own async context, so this never bleeds into a concurrent request. */
+export function enterByomContext(byom: ResolvedByomKey | undefined): void {
+  store.enterWith(byom);
+}
