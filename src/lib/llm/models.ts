@@ -86,9 +86,10 @@ export const CLAUDE_API_MODEL_FAST = "claude-haiku-4-5";
  *  rate simply reports est. $0 (BYOM pays the provider directly, so the on-screen
  *  cost is a best-effort hint, not billing). */
 export const BYOM_DEFAULT_MODELS: Record<ByomVendor, { quality: string; fast: string }> = {
-  openai: { quality: "gpt-4o", fast: "gpt-4o-mini" },
+  openai: { quality: "gpt-5.4-mini", fast: "gpt-5.4-mini" },
   anthropic: { quality: CLAUDE_API_MODEL, fast: CLAUDE_API_MODEL_FAST },
-  gemini: { quality: GEMINI_MODEL, fast: GEMINI_MODEL_FAST },
+  gemini: { quality: "gemini-3.5-flash", fast: "gemini-3.1-flash-lite" },
+  openrouter: { quality: "z-ai/glm-5.2", fast: "deepseek/deepseek-v4-flash" },
 };
 
 /** Resolve the model tag for a BYOM call: the user's per-tier override when set,

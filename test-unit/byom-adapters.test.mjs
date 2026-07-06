@@ -44,7 +44,8 @@ test("byomModel: vendor defaults + per-tier overrides", () => {
   assert.equal(byomModel("openai", "quality", "gpt-5"), "gpt-5");
   assert.equal(byomModel("openai", "fast", "gpt-5", "gpt-5-mini"), "gpt-5-mini");
   // an override for the other tier doesn't bleed across tiers
-  assert.equal(byomModel("openai", "quality", undefined, "gpt-5-mini"), "gpt-4o");
+  assert.equal(byomModel("openai", "quality", undefined, "gpt-5-mini"), "gpt-5.4-mini");
+  assert.equal(byomModel("openrouter"), "z-ai/glm-5.2");
 });
 
 const CALL = { system: "sys", prompt: "make json", schema: { type: "OBJECT" } };
@@ -187,6 +188,21 @@ test("runByom openai: a structured user fault (401) surfaces with no wasted retr
       (e) => e instanceof ByomUserError && e.code === "auth"
     );
     assert.equal(f.calls.length, 1); // no prompt-embed fallback on a user fault
+  } finally {
+    f.restore();
+  }
+});
+
+test("runByom openrouter: default catalog model + reasoning param + structured request", async () => {
+  const f = stubFetch(200, { choices: [{ message: { content: '{"ok":1}' } }], usage: {} });
+  try {
+    const out = await runByom({ vendor: "openrouter", apiKey: "or-key" }, { ...CALL, reasoning: "low" });
+    assert.deepEqual(out.parsed, { ok: 1 });
+    assert.match(f.calls[0].url, /openrouter\.ai.*\/chat\/completions$/);
+    const body = JSON.parse(f.calls[0].opts.body);
+    assert.equal(body.model, "z-ai/glm-5.2"); // vendor default from the catalog
+    assert.deepEqual(body.reasoning, { effort: "low" }); // OpenRouter unified reasoning param
+    assert.equal(body.response_format.type, "json_schema");
   } finally {
     f.restore();
   }

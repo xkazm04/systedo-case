@@ -18,8 +18,9 @@ import { extractJson } from "../claude";
 import { classifyByomHttp } from "../errors";
 import { byomModel } from "../models";
 import { toJsonSchema } from "./schema";
+import { anthropicReasoning, geminiThinkingConfig, openaiReasoning, openrouterReasoning } from "./reasoning";
 import type { TokenUsage } from "../cost";
-import type { ResolvedByomKey } from "../keys/types";
+import type { ReasoningLevel, ResolvedByomKey } from "../keys/types";
 import type { ModelTier } from "../models";
 
 /** The subset of the wrapper's ProviderCall a BYOM adapter needs (kept local to
@@ -31,6 +32,8 @@ export interface ByomCall {
   temperature?: number;
   tier?: ModelTier;
   signal?: AbortSignal;
+  /** reasoning depth for this call; mapped to the provider's own param */
+  reasoning?: ReasoningLevel;
 }
 
 export interface ByomResult {
@@ -99,6 +102,7 @@ async function runOpenAi(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   const common = {
     model,
     ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
+    ...openaiReasoning(call.reasoning ?? "default"),
   };
   const post = (payload: object) =>
     fetch(`${base}/chat/completions`, {
@@ -164,6 +168,10 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
   // (structured extraction doesn't need it). max_tokens sized for the heaviest
   // tool while staying under the non-streaming HTTP-timeout guidance.
   const common = { model, max_tokens: 16000, system: call.system };
+  // Reasoning: thinking is top-level, effort nests in output_config; both are
+  // no-ops on models without a reasoning knob (e.g. haiku).
+  const reason = anthropicReasoning(model, call.reasoning ?? "default");
+  const thinking = reason.thinking ? { thinking: reason.thinking } : {};
   const post = (payload: object) =>
     fetch(`${base}/v1/messages`, {
       method: "POST",
@@ -177,13 +185,19 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
     () =>
       post({
         ...common,
+        ...thinking,
         messages: [{ role: "user", content: call.prompt }],
-        output_config: { format: { type: "json_schema", schema: toJsonSchema(call.schema) } },
+        output_config: {
+          format: { type: "json_schema", schema: toJsonSchema(call.schema) },
+          ...(reason.effort ? { effort: reason.effort } : {}),
+        },
       }),
     () =>
       post({
         ...common,
+        ...thinking,
         messages: [{ role: "user", content: embeddedUserContent(call.prompt, call.schema) }],
+        ...(reason.effort ? { output_config: { effort: reason.effort } } : {}),
       })
   );
 
@@ -230,6 +244,9 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
         responseMimeType: "application/json",
         responseSchema: call.schema,
         temperature: call.temperature ?? 0.7,
+        ...(geminiThinkingConfig(call.reasoning ?? "default")
+          ? { thinkingConfig: geminiThinkingConfig(call.reasoning ?? "default") }
+          : {}),
       },
     }),
     signal: call.signal,
@@ -260,6 +277,73 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   return { parsed, usage };
 }
 
+// ── OpenRouter (OpenAI-compatible chat completions; unified reasoning param) ───
+async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
+  const model = byomModel("openrouter", call.tier, byom.model, byom.fastModel);
+  const base = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${byom.apiKey}`,
+    "Content-Type": "application/json",
+  };
+  // Optional attribution headers OpenRouter recommends (skipped when unset).
+  if (process.env.OPENROUTER_SITE_URL) headers["HTTP-Referer"] = process.env.OPENROUTER_SITE_URL;
+  if (process.env.OPENROUTER_APP_NAME) headers["X-Title"] = process.env.OPENROUTER_APP_NAME;
+  const common = {
+    model,
+    ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
+    ...openrouterReasoning(call.reasoning ?? "default"),
+  };
+  const post = (payload: object) =>
+    fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: call.signal,
+    });
+
+  const res = await fetchWithFallback(
+    "openrouter",
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: call.prompt },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "structured_output", strict: true, schema: toJsonSchema(call.schema) },
+        },
+      }),
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: embeddedUserContent(call.prompt, call.schema) },
+        ],
+      })
+  );
+
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
+  const text = json.choices?.[0]?.message?.content;
+  const parsed = text ? extractJson(text) : null;
+  if (!parsed) throw new Error("OpenRouter nevrátil platný JSON.");
+
+  const u = json.usage;
+  const usage: TokenUsage | undefined = u
+    ? {
+        inputTokens: u.prompt_tokens ?? 0,
+        outputTokens: u.completion_tokens ?? 0,
+        totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+      }
+    : undefined;
+  return { parsed, usage };
+}
+
 /** Dispatch one structured generation to the user's active BYOM vendor. Throws a
  *  ByomUserError on a user fault (surfaced, no fallback) or a recoverable Error
  *  (the wrapper falls through to the app's own provider). */
@@ -271,5 +355,7 @@ export function runByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResu
       return runAnthropic(byom, call);
     case "gemini":
       return runGemini(byom, call);
+    case "openrouter":
+      return runOpenRouter(byom, call);
   }
 }
