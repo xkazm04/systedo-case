@@ -7,6 +7,7 @@ import { syncProvider } from "@/lib/inventory/providers";
 import { encryptToken, hasTokenCrypto } from "@/lib/inventory/token-crypto";
 import { ErpError, parseErpConfig, type ErpAdapterConfig } from "@/lib/inventory/erp";
 import { FeedFetchError, validateFeedUrl } from "@/lib/catalog/feed-fetch";
+import { CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import {
   deleteConnection,
   getConnection,
@@ -36,6 +37,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const auth = await ownedProject(id);
   if (!auth.ok) return auth.res;
+
+  const limited = enforceCatalogRate(auth.uid, CATALOG_RATE.connect());
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as
     | { provider?: unknown; token?: unknown; inventoryId?: unknown; config?: unknown }

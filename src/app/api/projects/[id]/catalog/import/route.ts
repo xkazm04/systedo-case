@@ -10,6 +10,8 @@ import { isProduct, type ProductOffering } from "@/lib/catalog/offering";
 import { feedItemsToOfferings, parseFeed, sourceForFormat, type FeedFormat } from "@/lib/catalog/feed";
 import { mergeCatalog, type ImportStrategy } from "@/lib/catalog/import";
 import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
+import { CATALOG_MAX_BODY_BYTES, CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
+import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
 
 /** Guard against a pathological paste (~12 MB of text). */
 const MAX_CONTENT = 12_000_000;
@@ -23,6 +25,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const project = await getProject(uid, id);
   if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+
+  // Reject an oversized body up front, then throttle before the fetch/parse work.
+  if (tooLarge(req, CATALOG_MAX_BODY_BYTES)) return payloadTooLarge("Feed je příliš velký.");
+  const limited = enforceCatalogRate(uid, CATALOG_RATE.import());
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as {
     content?: unknown;

@@ -8,6 +8,7 @@ import { getProject } from "@/lib/projects/store";
 import { getConnection } from "@/lib/inventory/connection-store";
 import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
+import { CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import type { ImportStrategy } from "@/lib/catalog/import";
 
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
@@ -19,6 +20,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const project = await getProject(uid, id);
   if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+
+  // Throttle before any provider round-trip (each sync hits an external ERP/API).
+  const limited = enforceCatalogRate(uid, CATALOG_RATE.sync());
+  if (limited) return limited;
 
   const body = (await req.json().catch(() => null)) as {
     provider?: unknown;
