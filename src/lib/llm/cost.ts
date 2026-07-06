@@ -6,7 +6,12 @@
  *  on-screen estimate — not billing. The dev Claude path runs on a subscription,
  *  so it has no per-token rate here and is reported as costUsd: 0 by the wrapper.
  */
-import { GEMINI_MODEL, GEMINI_MODEL_FAST } from "./models";
+import {
+  CLAUDE_API_MODEL,
+  CLAUDE_API_MODEL_FAST,
+  GEMINI_MODEL,
+  GEMINI_MODEL_FAST,
+} from "./models";
 
 export interface TokenUsage {
   inputTokens: number;
@@ -28,6 +33,13 @@ const RATES: Record<string, Rate> = {
   // Fast tier (flash-lite class) — roughly half the flash rate, so the cheaper
   // routing of light tools stays visible (and honest) in the cost telemetry.
   [GEMINI_MODEL_FAST]: { inPerMTok: 0.0375, outPerMTok: 0.15 },
+  // BYOM default models. Approximate public list prices per 1M tokens, only for an
+  // on-screen estimate — the BYOM user pays the provider directly. A user who
+  // picks a model not listed here reports est. $0 (guarded with a warn below).
+  [CLAUDE_API_MODEL]: { inPerMTok: 3, outPerMTok: 15 }, // claude-sonnet-5
+  [CLAUDE_API_MODEL_FAST]: { inPerMTok: 1, outPerMTok: 5 }, // claude-haiku-4-5
+  "gpt-4o": { inPerMTok: 2.5, outPerMTok: 10 },
+  "gpt-4o-mini": { inPerMTok: 0.15, outPerMTok: 0.6 },
 };
 
 /** Estimated USD cost for a call, or 0 when the model has no metered rate. */

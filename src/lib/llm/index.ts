@@ -15,8 +15,12 @@ import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
-import { claudeModelTag, geminiModelTag, type ModelTier } from "./models";
+import { byomModel, claudeModelTag, geminiModelTag, type ModelTier } from "./models";
 import { promptFingerprint, recordLlmCall } from "./telemetry";
+import { runByom } from "./byom/adapters";
+import { getByomContext } from "./byom-context";
+import { ByomUserError } from "./errors";
+import type { ResolvedByomKey } from "./keys/types";
 
 export {
   APP_MODEL,
@@ -118,6 +122,38 @@ const geminiProvider: Provider = {
   run: (c) => runGemini(c),
 };
 
+/** A Provider backed by the caller's OWN API key (BYOM). Always "available" — it
+ *  is only built when a key has been resolved — and `modelFor` reports the user's
+ *  chosen (or the vendor-default) model so the envelope + telemetry name what
+ *  actually served the call. */
+function byomProvider(byom: ResolvedByomKey): Provider {
+  return {
+    modelFor: (tier) => byomModel(byom.vendor, tier, byom.model, byom.fastModel),
+    available: () => true,
+    run: (c) =>
+      runByom(byom, {
+        system: c.system,
+        prompt: c.prompt,
+        schema: c.schema,
+        temperature: c.temperature,
+        tier: c.tier,
+        signal: c.signal,
+      }),
+  };
+}
+
+/** The ordered provider list for a request. When a BYOM key is set it goes FIRST;
+ *  the app's own env providers follow as the recoverable-fallback tail — reached
+ *  only when a BYOM call fails through OUR fault (a user fault throws a
+ *  ByomUserError and never reaches them). Without BYOM this is exactly the
+ *  environment-preferred order the app has always used. */
+export function resolveProviders(dev: boolean, byom: ResolvedByomKey | undefined): Provider[] {
+  const env = (dev ? [claudeProvider, geminiProvider] : [geminiProvider, claudeProvider]).filter((p) =>
+    p.available()
+  );
+  return byom ? [byomProvider(byom), ...env] : env;
+}
+
 /** Recoverable failure modes thrown by the provider adapters — worth one retry. */
 const RETRYABLE = ["nevrátil platný JSON", "prázdnou odpověď", "vypršel", "selhal"];
 
@@ -179,8 +215,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   const promptHash = promptFingerprint(args.system, args.schema);
   const toolId = args.id ?? "unknown";
 
-  const ordered = dev ? [claudeProvider, geminiProvider] : [geminiProvider, claudeProvider];
-  const providers = ordered.filter((p) => p.available());
+  // BYOM (when the request carries a resolved key) goes first, with the app's env
+  // providers as the recoverable-fallback tail; absent BYOM this is today's order.
+  const byom = getByomContext();
+  const providers = resolveProviders(dev, byom);
 
   // The locale override goes on the PROMPT, never the system prompt, so the
   // fingerprint (system + schema) — and the golden/coverage gate — is unchanged.
@@ -265,6 +303,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // A client abort is a deliberate stop: no cross-provider fallback, no
       // demo degradation — surface it so the route ends quietly (client gone).
       if (args.signal?.aborted) throw err;
+      // A BYOM user fault (bad/expired key, their account out of credit, a model
+      // they picked that isn't available) is theirs to fix — surface it instead of
+      // silently falling back to the app's own paid provider or the demo.
+      if (err instanceof ByomUserError) throw err;
       console.error(`[llm] provider ${model} failed:`, err);
       // Fall through to the next configured provider; if this was the last one,
       // the loop ends and we degrade to the demo below.

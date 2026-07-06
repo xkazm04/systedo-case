@@ -7,6 +7,7 @@
  *                         far better token economics for local work.
  *    - production       → Google Gemini API.
  */
+import type { ByomVendor } from "./keys/types";
 
 /** Per-call model tier. Every tool defaults to "quality" (the full-strength
  *  model); short, low-stakes tools (lead replies, review replies, repurposing,
@@ -65,4 +66,41 @@ export const CLAUDE_THINKING_TOKENS = 4000;
  *  run ~2 min on a cold CLI spawn); lighter tools return well inside this. The
  *  dev client ceiling in useAiTool tracks this value, so the two stay aligned. */
 export const CLAUDE_TIMEOUT_MS = 150_000;
+
+// ===========================================================================
+// BYOM (bring-your-own-model): default model tags per vendor. Distinct from the
+// app's own provider tags above — a BYOM Anthropic call hits the HTTP Messages
+// API (real model ids like claude-sonnet-5), not the local Claude Code CLI.
+// ===========================================================================
+
+/** Default Anthropic HTTP-API model for a BYOM quality-tier call. The user picks
+ *  the model in settings; this is the starting point (Sonnet: strong copy at a
+ *  sensible token price for a bulk marketing workload the user pays for). */
+export const CLAUDE_API_MODEL = "claude-sonnet-5";
+
+/** Default Anthropic HTTP-API model for a BYOM fast-tier call. */
+export const CLAUDE_API_MODEL_FAST = "claude-haiku-4-5";
+
+/** Per-vendor default models (quality + fast). Overridable per key in settings.
+ *  These double as the cost-table keys in ./cost.ts — a user-picked model with no
+ *  rate simply reports est. $0 (BYOM pays the provider directly, so the on-screen
+ *  cost is a best-effort hint, not billing). */
+export const BYOM_DEFAULT_MODELS: Record<ByomVendor, { quality: string; fast: string }> = {
+  openai: { quality: "gpt-4o", fast: "gpt-4o-mini" },
+  anthropic: { quality: CLAUDE_API_MODEL, fast: CLAUDE_API_MODEL_FAST },
+  gemini: { quality: GEMINI_MODEL, fast: GEMINI_MODEL_FAST },
+};
+
+/** Resolve the model tag for a BYOM call: the user's per-tier override when set,
+ *  else the vendor default. `meta.model` reports whatever this returns, so the
+ *  telemetry and cost estimate always name the model that actually served. */
+export function byomModel(
+  vendor: ByomVendor,
+  tier: ModelTier = "quality",
+  modelOverride?: string,
+  fastOverride?: string
+): string {
+  const d = BYOM_DEFAULT_MODELS[vendor];
+  return tier === "fast" ? fastOverride || d.fast : modelOverride || d.quality;
+}
 

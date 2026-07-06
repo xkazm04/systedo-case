@@ -1,12 +1,12 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-05T15:11:59.046Z",
+  "provenAt": "2026-07-06T08:04:00.294Z",
   "files": {
-    "src/lib/llm/index.ts": "3968f85c5ddf2a0835cab7928443d1e52aaea498e4fd5eee2633aa96fdd61762",
+    "src/lib/llm/index.ts": "b063e18233bdbec9f29b5f33faaa7748a8dca463fc6d2d4e1993edbdc9ab969d",
     "src/lib/llm/claude.ts": "dadda4fbc837e96bd7a2f2333d6a1281941472d31d2ab3f9572fcf07a74049fa",
     "src/lib/llm/gemini.ts": "551c65705b524b574a58cfd238e5076e2429abeb92196211cb2903a10d5ab257",
-    "src/lib/llm/models.ts": "d8eb88893a1c6f494732810f105e62b44eccdecca7027b7a4e48d5c4e96e9700",
+    "src/lib/llm/models.ts": "bfdae504e063afd4abbf8b9e53840ab55a4dbe6887e5f94460d05e08c369cadc",
     "src/lib/ai/tools/_shared.ts": "8677f577eb1a5c874771e9a7669e8a14c4173f714b8e378519a2dd6f308ab8e6",
     "src/lib/ai/tools/ads.ts": "1a5ebfdb927751d64e7be08423e4b2dee36926d4faa7c20caac39a3990518a45",
     "src/lib/ai/tools/brief.ts": "e1eb7a823bf76d03f97bc95e853eacceea6f7c42c0ef68db0d99d14884a399f4",
@@ -47,20 +47,20 @@
     "chat": "09163f3ca8890a44"
   },
   "tools": {
-    "ads": "2026-07-05T15:11:59.046Z",
-    "brief": "2026-07-05T15:11:59.046Z",
-    "analysis": "2026-07-05T15:11:59.046Z",
-    "campaign-eval": "2026-07-05T15:11:59.046Z",
-    "social": "2026-07-05T15:11:59.046Z",
-    "lead-reply": "2026-07-05T15:11:59.046Z",
-    "repurpose": "2026-07-05T15:11:59.046Z",
-    "local-review-reply": "2026-07-05T15:11:59.046Z",
-    "article-draft": "2026-07-05T15:11:59.046Z",
-    "cohort-diagnosis": "2026-07-05T15:11:59.046Z",
-    "keyword-clusters": "2026-07-05T15:11:59.046Z",
-    "comparison-outline": "2026-07-05T15:11:59.046Z",
-    "lp-variant-ideas": "2026-07-05T15:11:59.046Z",
-    "lead-source-diagnosis": "2026-07-05T15:11:59.046Z",
-    "chat": "2026-07-05T15:11:59.046Z"
+    "ads": "2026-07-06T08:04:00.294Z",
+    "brief": "2026-07-06T08:04:00.294Z",
+    "analysis": "2026-07-06T08:04:00.294Z",
+    "campaign-eval": "2026-07-06T08:04:00.294Z",
+    "social": "2026-07-06T08:04:00.294Z",
+    "lead-reply": "2026-07-06T08:04:00.294Z",
+    "repurpose": "2026-07-06T08:04:00.294Z",
+    "local-review-reply": "2026-07-06T08:04:00.294Z",
+    "article-draft": "2026-07-06T08:04:00.294Z",
+    "cohort-diagnosis": "2026-07-06T08:04:00.294Z",
+    "keyword-clusters": "2026-07-06T08:04:00.294Z",
+    "comparison-outline": "2026-07-06T08:04:00.294Z",
+    "lp-variant-ideas": "2026-07-06T08:04:00.294Z",
+    "lead-source-diagnosis": "2026-07-06T08:04:00.294Z",
+    "chat": "2026-07-06T08:04:00.294Z"
   }
 }
