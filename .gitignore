@@ -70,3 +70,6 @@ next-env.d.ts
 # UAT test-run outputs — dated run dirs (verdicts, findings.json, capture scripts).
 # The reusable specs in uat/characters and uat/journeys stay committed.
 /uat/runs/
+
+# LLM quality-matrix reports — timestamped benchmark artifacts (npm run llm:quality).
+/test-llm/quality/reports/

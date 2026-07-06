@@ -30,6 +30,7 @@
     "llm:eval": "node scripts/llm-eval.mjs",
     "llm:eval:update": "node scripts/llm-eval.mjs --update",
     "llm:new": "node scripts/llm-new-tool.mjs",
+    "llm:quality": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --conditions react-server --import ./test-llm/setup.mjs test-llm/quality/run.mjs",
     "prepare": "husky"
   },
   "dependencies": {
