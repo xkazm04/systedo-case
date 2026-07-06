@@ -1,11 +1,11 @@
 /** Measured LLM quality scores — the output of `npm run llm:quality` baked into
  *  the app by `scripts/bake-quality-scores.mjs`. This is generated data; re-bake
  *  it (don't hand-edit) after a fresh matrix run. See docs/testing/llm-quality-matrix.md.
- *  Baked from a run at 2026-07-06T17:20:20.638Z. */
+ *  Baked from a run at 2026-07-06T21:18:52.850Z. */
 import type { QualityScores } from "./quality";
 
 export const QUALITY_SCORES: QualityScores = {
-  "measuredAt": "2026-07-06T17:20:20.638Z",
+  "measuredAt": "2026-07-06T21:18:52.850Z",
   "judge": "claude-sonnet",
   "models": [
     "z-ai/glm-5.2",
@@ -18,56 +18,56 @@ export const QUALITY_SCORES: QualityScores = {
   "cells": {
     "ads": {
       "z-ai/glm-5.2": {
-        "relevance": 9,
-        "correctness": 3,
-        "adherence": 6,
-        "tone": 8,
-        "score": 5.5,
-        "valid": true,
-        "judges": 3
-      },
-      "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
+        "relevance": 8,
+        "correctness": 8,
+        "adherence": 8,
         "tone": 7,
         "score": 7,
         "valid": true,
         "judges": 3
       },
-      "xiaomi/mimo-v2.5-pro": {
-        "relevance": 9,
-        "correctness": 5,
-        "adherence": 8,
-        "tone": 7.5,
-        "score": 6.5,
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 8,
+        "correctness": 8,
+        "adherence": 9,
+        "tone": 7,
+        "score": 7.5,
         "valid": true,
+        "judges": 3
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 8,
+        "correctness": 7,
+        "adherence": 9,
+        "tone": 8,
+        "score": 8,
+        "valid": false,
         "judges": 3
       },
       "openai/gpt-5.4-mini": {
         "relevance": 8,
-        "correctness": 7.5,
-        "adherence": 9,
-        "tone": 7.5,
+        "correctness": 8,
+        "adherence": 8,
+        "tone": 7,
         "score": 7,
         "valid": true,
         "judges": 3
       },
       "anthropic/claude-sonnet-5": {
         "relevance": 8,
-        "correctness": 9,
+        "correctness": 5,
         "adherence": 9,
-        "tone": 6,
-        "score": 7,
+        "tone": 7,
+        "score": 6.5,
         "valid": true,
         "judges": 3
       },
       "google/gemini-3.5-flash": {
         "relevance": 8,
-        "correctness": 6,
+        "correctness": 9,
         "adherence": 8,
-        "tone": 8,
-        "score": 7,
+        "tone": 6,
+        "score": 7.5,
         "valid": true,
         "judges": 3
       }
@@ -77,7 +77,7 @@ export const QUALITY_SCORES: QualityScores = {
         "relevance": 9,
         "correctness": 8,
         "adherence": 9,
-        "tone": 9,
+        "tone": 8,
         "score": 8,
         "valid": true,
         "judges": 3
@@ -86,31 +86,31 @@ export const QUALITY_SCORES: QualityScores = {
         "relevance": 9,
         "correctness": 8,
         "adherence": 8,
-        "tone": 9,
+        "tone": 8,
         "score": 8,
         "valid": true,
         "judges": 3
       },
       "xiaomi/mimo-v2.5-pro": {
         "relevance": 9,
-        "correctness": 6,
+        "correctness": 8,
         "adherence": 9,
         "tone": 7,
-        "score": 7,
-        "valid": true,
+        "score": 8,
+        "valid": false,
         "judges": 3
       },
       "openai/gpt-5.4-mini": {
         "relevance": 9,
         "correctness": 9,
-        "adherence": 9,
+        "adherence": 8,
         "tone": 8,
-        "score": 8.5,
+        "score": 8,
         "valid": true,
         "judges": 3
       },
       "anthropic/claude-sonnet-5": {
-        "relevance": 10,
+        "relevance": 9,
         "correctness": 9,
         "adherence": 9,
         "tone": 9,
@@ -120,10 +120,10 @@ export const QUALITY_SCORES: QualityScores = {
       },
       "google/gemini-3.5-flash": {
         "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
+        "correctness": 7,
+        "adherence": 8,
         "tone": 8,
-        "score": 8.5,
+        "score": 7.5,
         "valid": true,
         "judges": 3
       }
@@ -132,38 +132,38 @@ export const QUALITY_SCORES: QualityScores = {
       "z-ai/glm-5.2": {
         "relevance": 9,
         "correctness": 6,
-        "adherence": 9,
-        "tone": 8,
-        "score": 7,
-        "valid": true,
-        "judges": 3
-      },
-      "deepseek/deepseek-v4-flash": {
-        "relevance": 8,
-        "correctness": 4,
         "adherence": 8,
-        "tone": 8,
-        "score": 6,
-        "valid": true,
-        "judges": 3
-      },
-      "xiaomi/mimo-v2.5-pro": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 4,
-        "tone": 9,
-        "score": 6,
-        "valid": true,
-        "judges": 3
-      },
-      "openai/gpt-5.4-mini": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 8.5,
         "tone": 9,
         "score": 7.5,
         "valid": true,
         "judges": 3
+      },
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 9,
+        "correctness": 6,
+        "adherence": 9,
+        "tone": 8,
+        "score": 7.5,
+        "valid": true,
+        "judges": 3
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 8,
+        "correctness": 4,
+        "adherence": 5.5,
+        "tone": 8.5,
+        "score": 5.5,
+        "valid": true,
+        "judges": 2
+      },
+      "openai/gpt-5.4-mini": {
+        "relevance": 9,
+        "correctness": 9,
+        "adherence": 9,
+        "tone": 7,
+        "score": 8,
+        "valid": true,
+        "judges": 1
       },
       "anthropic/claude-sonnet-5": {
         "relevance": 9,
@@ -172,56 +172,20 @@ export const QUALITY_SCORES: QualityScores = {
         "tone": 9,
         "score": 8,
         "valid": true,
-        "judges": 3
+        "judges": 1
       },
       "google/gemini-3.5-flash": {
-        "relevance": 8,
+        "relevance": 9,
         "correctness": 6,
         "adherence": 8,
-        "tone": 8,
+        "tone": 9,
         "score": 7,
         "valid": true,
-        "judges": 3
+        "judges": 1
       }
     },
     "campaign-eval": {
       "z-ai/glm-5.2": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 9,
-        "tone": 9,
-        "score": 7,
-        "valid": true,
-        "judges": 3
-      },
-      "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 6,
-        "adherence": 9,
-        "tone": 8,
-        "score": 7,
-        "valid": true,
-        "judges": 3
-      },
-      "xiaomi/mimo-v2.5-pro": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 9,
-        "tone": 7,
-        "score": 7,
-        "valid": true,
-        "judges": 3
-      },
-      "openai/gpt-5.4-mini": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 9,
-        "tone": 7,
-        "score": 7.5,
-        "valid": true,
-        "judges": 3
-      },
-      "anthropic/claude-sonnet-5": {
         "relevance": 9,
         "correctness": 6,
         "adherence": 9,
@@ -230,54 +194,63 @@ export const QUALITY_SCORES: QualityScores = {
         "valid": true,
         "judges": 1
       },
-      "google/gemini-3.5-flash": {
-        "relevance": 8,
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 9,
         "correctness": 6,
-        "adherence": 8,
-        "tone": 8,
+        "adherence": 9,
+        "tone": 9,
         "score": 7,
+        "valid": true,
+        "judges": 1
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 9,
+        "tone": 9,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "openai/gpt-5.4-mini": {
+        "relevance": 9,
+        "correctness": 9,
+        "adherence": 10,
+        "tone": 8,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "anthropic/claude-sonnet-5": {
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 9,
+        "tone": 9,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "google/gemini-3.5-flash": {
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 9,
+        "tone": 9,
+        "score": 8,
         "valid": true,
         "judges": 1
       }
     },
     "social": {
       "z-ai/glm-5.2": {
-        "relevance": 5,
-        "correctness": 3,
-        "adherence": 1,
-        "tone": 7,
-        "score": 2,
-        "valid": false,
+        "relevance": 9,
+        "correctness": 6,
+        "adherence": 9,
+        "tone": 8,
+        "score": 7.5,
+        "valid": true,
         "judges": 1
       },
       "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 6,
-        "adherence": 7,
-        "tone": 8,
-        "score": 7,
-        "valid": true,
-        "judges": 1
-      },
-      "xiaomi/mimo-v2.5-pro": {
-        "relevance": 9,
-        "correctness": 6,
-        "adherence": 8,
-        "tone": 8,
-        "score": 7,
-        "valid": true,
-        "judges": 1
-      },
-      "openai/gpt-5.4-mini": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
-        "tone": 8,
-        "score": 8,
-        "valid": true,
-        "judges": 1
-      },
-      "anthropic/claude-sonnet-5": {
         "relevance": 9,
         "correctness": 7,
         "adherence": 9,
@@ -286,7 +259,25 @@ export const QUALITY_SCORES: QualityScores = {
         "valid": true,
         "judges": 1
       },
-      "google/gemini-3.5-flash": {
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 8,
+        "correctness": 4,
+        "adherence": 7,
+        "tone": 8,
+        "score": 6,
+        "valid": true,
+        "judges": 1
+      },
+      "openai/gpt-5.4-mini": {
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 9,
+        "tone": 8,
+        "score": 7,
+        "valid": true,
+        "judges": 1
+      },
+      "anthropic/claude-sonnet-5": {
         "relevance": 9,
         "correctness": 8,
         "adherence": 9,
@@ -294,15 +285,24 @@ export const QUALITY_SCORES: QualityScores = {
         "score": 8,
         "valid": true,
         "judges": 1
+      },
+      "google/gemini-3.5-flash": {
+        "relevance": 8,
+        "correctness": 5,
+        "adherence": 7,
+        "tone": 8,
+        "score": 7,
+        "valid": true,
+        "judges": 1
       }
     },
     "lead-reply": {
       "deepseek/deepseek-v4-flash": {
-        "relevance": 6,
-        "correctness": 6,
-        "adherence": 5,
+        "relevance": 8,
+        "correctness": 7,
+        "adherence": 8,
         "tone": 8,
-        "score": 5,
+        "score": 7,
         "valid": true,
         "judges": 1
       }
@@ -321,38 +321,38 @@ export const QUALITY_SCORES: QualityScores = {
     "local-review-reply": {
       "deepseek/deepseek-v4-flash": {
         "relevance": 9,
-        "correctness": 6,
+        "correctness": 5,
         "adherence": 9,
         "tone": 9,
-        "score": 7.5,
+        "score": 7,
         "valid": true,
         "judges": 1
       }
     },
     "article-draft": {
       "z-ai/glm-5.2": {
-        "relevance": 9,
-        "correctness": 8,
-        "adherence": 8,
-        "tone": 9,
-        "score": 8,
+        "relevance": 6.5,
+        "correctness": 4,
+        "adherence": 3.5,
+        "tone": 7,
+        "score": 4.5,
         "valid": true,
         "judges": 1
       },
       "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 8,
-        "adherence": 8,
+        "relevance": 8,
+        "correctness": 6,
+        "adherence": 5,
         "tone": 9,
-        "score": 8,
+        "score": 6.5,
         "valid": true,
         "judges": 1
       },
       "xiaomi/mimo-v2.5-pro": {
         "relevance": 9,
-        "correctness": 7,
-        "adherence": 6.5,
-        "tone": 9,
+        "correctness": 6,
+        "adherence": 9,
+        "tone": 8,
         "score": 7.5,
         "valid": true,
         "judges": 1
@@ -370,15 +370,15 @@ export const QUALITY_SCORES: QualityScores = {
         "relevance": 9,
         "correctness": 9,
         "adherence": 9,
-        "tone": 9,
-        "score": 9,
+        "tone": 8,
+        "score": 8.5,
         "valid": true,
         "judges": 1
       },
       "google/gemini-3.5-flash": {
         "relevance": 9,
-        "correctness": 8,
-        "adherence": 8,
+        "correctness": 7.5,
+        "adherence": 9,
         "tone": 9,
         "score": 8.3,
         "valid": true,
@@ -388,28 +388,28 @@ export const QUALITY_SCORES: QualityScores = {
     "cohort-diagnosis": {
       "z-ai/glm-5.2": {
         "relevance": 9,
-        "correctness": 9,
+        "correctness": 8,
         "adherence": 6,
         "tone": 9,
-        "score": 7.5,
+        "score": 7,
         "valid": true,
         "judges": 1
       },
       "deepseek/deepseek-v4-flash": {
         "relevance": 9,
-        "correctness": 9,
+        "correctness": 8,
         "adherence": 7,
         "tone": 9,
-        "score": 8,
+        "score": 7,
         "valid": true,
         "judges": 1
       },
       "xiaomi/mimo-v2.5-pro": {
-        "relevance": 8,
-        "correctness": 5,
-        "adherence": 6,
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 7,
         "tone": 9,
-        "score": 6,
+        "score": 7.5,
         "valid": true,
         "judges": 1
       },
@@ -418,50 +418,41 @@ export const QUALITY_SCORES: QualityScores = {
         "correctness": 8,
         "adherence": 6,
         "tone": 9,
-        "score": 7,
+        "score": 7.5,
         "valid": true,
         "judges": 1
       },
       "anthropic/claude-sonnet-5": {
         "relevance": 9,
-        "correctness": 9,
-        "adherence": 6.5,
+        "correctness": 8,
+        "adherence": 6,
         "tone": 9,
         "score": 7.5,
         "valid": true,
         "judges": 1
       },
       "google/gemini-3.5-flash": {
-        "relevance": 8,
-        "correctness": 7,
-        "adherence": 5,
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 7,
         "tone": 9,
-        "score": 6.5,
+        "score": 8,
         "valid": true,
         "judges": 1
       }
     },
     "keyword-clusters": {
       "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 7,
-        "tone": 9,
-        "score": 7,
+        "relevance": 7,
+        "correctness": 3,
+        "adherence": 5,
+        "tone": 8,
+        "score": 5,
         "valid": true,
         "judges": 1
       }
     },
     "comparison-outline": {
-      "z-ai/glm-5.2": {
-        "relevance": 9,
-        "correctness": 7,
-        "adherence": 9,
-        "tone": 8,
-        "score": 7.5,
-        "valid": true,
-        "judges": 1
-      },
       "deepseek/deepseek-v4-flash": {
         "relevance": 9,
         "correctness": 4,
@@ -473,11 +464,67 @@ export const QUALITY_SCORES: QualityScores = {
       },
       "xiaomi/mimo-v2.5-pro": {
         "relevance": 8,
-        "correctness": 5,
-        "adherence": 6,
-        "tone": 6,
+        "correctness": 6,
+        "adherence": 8,
+        "tone": 8,
+        "score": 7,
+        "valid": true,
+        "judges": 1
+      },
+      "openai/gpt-5.4-mini": {
+        "relevance": 8,
+        "correctness": 7,
+        "adherence": 5,
+        "tone": 8,
         "score": 6,
-        "valid": false,
+        "valid": true,
+        "judges": 1
+      },
+      "anthropic/claude-sonnet-5": {
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 9,
+        "tone": 8,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "google/gemini-3.5-flash": {
+        "relevance": 9,
+        "correctness": 9,
+        "adherence": 8,
+        "tone": 9,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      }
+    },
+    "lp-variant-ideas": {
+      "z-ai/glm-5.2": {
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 9,
+        "tone": 8,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 8,
+        "correctness": 8,
+        "adherence": 7,
+        "tone": 8,
+        "score": 7,
+        "valid": true,
+        "judges": 1
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 8,
+        "correctness": 5,
+        "adherence": 7,
+        "tone": 8,
+        "score": 6.5,
+        "valid": true,
         "judges": 1
       },
       "openai/gpt-5.4-mini": {
@@ -491,34 +538,81 @@ export const QUALITY_SCORES: QualityScores = {
       },
       "anthropic/claude-sonnet-5": {
         "relevance": 9,
-        "correctness": 7,
-        "adherence": 8,
+        "correctness": 9,
+        "adherence": 9,
         "tone": 8,
-        "score": 7.5,
+        "score": 8,
         "valid": true,
         "judges": 1
       },
       "google/gemini-3.5-flash": {
         "relevance": 9,
-        "correctness": 8,
-        "adherence": 7,
+        "correctness": 5,
+        "adherence": 8,
         "tone": 8,
-        "score": 7.5,
+        "score": 7,
         "valid": true,
         "judges": 1
       }
     },
-    "lp-variant-ideas": {
+    "lead-source-diagnosis": {
       "z-ai/glm-5.2": {
         "relevance": 9,
+        "correctness": 8,
+        "adherence": 6,
+        "tone": 7,
+        "score": 7.5,
+        "valid": true,
+        "judges": 1
+      },
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 9,
         "correctness": 7,
-        "adherence": 9,
+        "adherence": 7,
+        "tone": 9,
+        "score": 7,
+        "valid": true,
+        "judges": 1
+      },
+      "xiaomi/mimo-v2.5-pro": {
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 7,
         "tone": 9,
         "score": 8,
         "valid": true,
         "judges": 1
       },
-      "deepseek/deepseek-v4-flash": {
+      "openai/gpt-5.4-mini": {
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 7,
+        "tone": 9,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
+      "anthropic/claude-sonnet-5": {
+        "relevance": 9,
+        "correctness": 7,
+        "adherence": 6,
+        "tone": 9,
+        "score": 7.5,
+        "valid": true,
+        "judges": 1
+      },
+      "google/gemini-3.5-flash": {
+        "relevance": 8,
+        "correctness": 7,
+        "adherence": 6,
+        "tone": 8,
+        "score": 7,
+        "valid": true,
+        "judges": 1
+      }
+    },
+    "chat": {
+      "z-ai/glm-5.2": {
         "relevance": 8,
         "correctness": 3,
         "adherence": 7,
@@ -527,151 +621,48 @@ export const QUALITY_SCORES: QualityScores = {
         "valid": true,
         "judges": 1
       },
+      "deepseek/deepseek-v4-flash": {
+        "relevance": 9,
+        "correctness": 8,
+        "adherence": 9,
+        "tone": 9,
+        "score": 8,
+        "valid": true,
+        "judges": 1
+      },
       "xiaomi/mimo-v2.5-pro": {
-        "relevance": 1,
-        "correctness": 2,
-        "adherence": 1,
-        "tone": 1,
-        "score": 1,
+        "relevance": 9,
+        "correctness": 6,
+        "adherence": 7,
+        "tone": 9,
+        "score": 7,
         "valid": false,
         "judges": 1
       },
       "openai/gpt-5.4-mini": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
-        "tone": 8,
-        "score": 8,
-        "valid": true,
-        "judges": 1
-      },
-      "anthropic/claude-sonnet-5": {
         "relevance": 8,
-        "correctness": 6,
-        "adherence": 7,
-        "tone": 8,
-        "score": 7,
-        "valid": true,
-        "judges": 1
-      },
-      "google/gemini-3.5-flash": {
-        "relevance": 9,
         "correctness": 5,
         "adherence": 8,
         "tone": 8,
         "score": 6,
         "valid": true,
         "judges": 1
-      }
-    },
-    "lead-source-diagnosis": {
-      "z-ai/glm-5.2": {
+      },
+      "anthropic/claude-sonnet-5": {
         "relevance": 9,
-        "correctness": 7,
-        "adherence": 7,
+        "correctness": 10,
+        "adherence": 9,
         "tone": 9,
-        "score": 7,
+        "score": 9,
         "valid": true,
         "judges": 1
       },
-      "deepseek/deepseek-v4-flash": {
-        "relevance": 7,
-        "correctness": 4,
-        "adherence": 6,
-        "tone": 5,
-        "score": 5,
-        "valid": true,
-        "judges": 1
-      },
-      "xiaomi/mimo-v2.5-pro": {
+      "google/gemini-3.5-flash": {
         "relevance": 8,
-        "correctness": 6,
+        "correctness": 9,
         "adherence": 6,
-        "tone": 6,
+        "tone": 8,
         "score": 6.5,
-        "valid": true,
-        "judges": 1
-      },
-      "openai/gpt-5.4-mini": {
-        "relevance": 9,
-        "correctness": 8,
-        "adherence": 7,
-        "tone": 9,
-        "score": 8,
-        "valid": true,
-        "judges": 1
-      },
-      "anthropic/claude-sonnet-5": {
-        "relevance": 9,
-        "correctness": 8.5,
-        "adherence": 7,
-        "tone": 9,
-        "score": 8.3,
-        "valid": true,
-        "judges": 1
-      },
-      "google/gemini-3.5-flash": {
-        "relevance": 9,
-        "correctness": 8,
-        "adherence": 7,
-        "tone": 9,
-        "score": 8,
-        "valid": true,
-        "judges": 1
-      }
-    },
-    "chat": {
-      "z-ai/glm-5.2": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
-        "tone": 8,
-        "score": 8.5,
-        "valid": true,
-        "judges": 1
-      },
-      "deepseek/deepseek-v4-flash": {
-        "relevance": 9,
-        "correctness": 6,
-        "adherence": 9,
-        "tone": 9,
-        "score": 7.5,
-        "valid": true,
-        "judges": 1
-      },
-      "xiaomi/mimo-v2.5-pro": {
-        "relevance": 6,
-        "correctness": 5,
-        "adherence": 6,
-        "tone": 8,
-        "score": 4,
-        "valid": true,
-        "judges": 1
-      },
-      "openai/gpt-5.4-mini": {
-        "relevance": 7,
-        "correctness": 6,
-        "adherence": 8,
-        "tone": 8,
-        "score": 6,
-        "valid": true,
-        "judges": 1
-      },
-      "anthropic/claude-sonnet-5": {
-        "relevance": 8,
-        "correctness": 4,
-        "adherence": 5,
-        "tone": 8,
-        "score": 5,
-        "valid": true,
-        "judges": 1
-      },
-      "google/gemini-3.5-flash": {
-        "relevance": 9,
-        "correctness": 9,
-        "adherence": 9,
-        "tone": 7,
-        "score": 8,
         "valid": true,
         "judges": 1
       }
