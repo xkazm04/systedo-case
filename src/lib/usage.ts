@@ -8,9 +8,9 @@
  *  top — not included here. The plan catalogue + usage shapes live in the pure
  *  `plans.ts` so the UI can import them without firebase-admin. */
 import { firestore } from "@/lib/firebase";
-import { PLANS, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
+import { PLANS, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
 
-export { PLANS };
+export { PLANS, planHasByom };
 export type { Plan, UsageKind, UsageStatus, PlanLimits } from "@/lib/plans";
 
 interface UsageDoc {

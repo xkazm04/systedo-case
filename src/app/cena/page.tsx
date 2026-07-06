@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Check } from "@/components/icons";
-import { PLAN_INFO } from "@/lib/plans";
+import { PLAN_INFO, type Plan } from "@/lib/plans";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -23,6 +23,7 @@ const T = {
     perMonth: "/ měsíc",
     ctaFree: "Vyzkoušet přehled kampaní",
     ctaPro: "Mám zájem o Pro",
+    ctaByom: "Mám zájem o vlastní klíč",
     disclaimer:
       "Případová studie: platební brána (Stripe) není napojená — upgrade je tenká vrstva nad polem",
     disclaimerSuffix: "v uživatelově dokumentu. Limity jsou denní a počítají se v UTC.",
@@ -37,6 +38,7 @@ const T = {
     perMonth: "/ month",
     ctaFree: "Try the campaign overview",
     ctaPro: "I’m interested in Pro",
+    ctaByom: "I want my own key",
     disclaimer:
       "Case study: the payment gateway (Stripe) is not wired up — upgrading is a thin layer over the",
     disclaimerSuffix: "field in the user document. Limits are daily and counted in UTC.",
@@ -46,7 +48,7 @@ const T = {
 /** Per-plan marketing copy, keyed by plan id and locale. */
 const PLAN_COPY: Record<
   "cs" | "en",
-  Record<"free" | "pro", { tagline: string; features: readonly string[] }>
+  Record<Plan, { tagline: string; features: readonly string[] }>
 > = {
   cs: {
     free: {
@@ -69,6 +71,16 @@ const PLAN_COPY: Record<
         "Automatická hodinová synchronizace + e-mail alerty",
         "Týdenní souhrnný report",
         "Prioritní zpracování",
+      ],
+    },
+    byom: {
+      tagline: "Vlastní API klíč, neomezené AI generování a volba modelu.",
+      features: [
+        "Neomezená AI generování přes vlastní klíč",
+        "OpenAI, Gemini nebo Claude — přepínání modelů",
+        "Platíte tokeny přímo poskytovateli",
+        "Bez denního limitu na AI nástroje",
+        "Přístup ke všem AI nástrojům v aplikaci",
       ],
     },
   },
@@ -95,6 +107,16 @@ const PLAN_COPY: Record<
         "Priority processing",
       ],
     },
+    byom: {
+      tagline: "Your own API key, unlimited AI generation and model choice.",
+      features: [
+        "Unlimited AI generation with your own key",
+        "OpenAI, Gemini or Claude — switch models",
+        "You pay tokens directly to the provider",
+        "No daily cap on AI tools",
+        "Access to every AI tool in the app",
+      ],
+    },
   },
 };
 
@@ -116,9 +138,9 @@ export default async function PricingPage() {
         </p>
       </div>
 
-      <div className="mt-12 grid gap-5 md:grid-cols-2 md:gap-6">
+      <div className="mt-12 grid gap-5 md:grid-cols-3 md:gap-6">
         {PLAN_INFO.map((plan) => {
-          const copy = planCopy[plan.id as "free" | "pro"];
+          const copy = planCopy[plan.id];
           return (
             <div
               key={plan.id}
@@ -158,13 +180,20 @@ export default async function PricingPage() {
                   <ArrowRight width={16} height={16} />
                 </Link>
               ) : (
+                // Payment is not wired (see disclaimer) — both paid tiers route to a
+                // mailto seam. Only the featured plan gets the primary button so Pro
+                // stays the visual hero next to the cheaper BYOM card.
                 <Button
-                  href="mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Pro"
-                  variant="primary"
+                  href={
+                    plan.id === "byom"
+                      ? "mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Vlastn%C3%AD%20kl%C3%AD%C4%8D"
+                      : "mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Pro"
+                  }
+                  variant={plan.featured ? "primary" : "secondary"}
                   size="lg"
                   className="mt-7 active:scale-[0.99]"
                 >
-                  {t("ctaPro")}
+                  {plan.id === "byom" ? t("ctaByom") : t("ctaPro")}
                   <ArrowRight width={16} height={16} />
                 </Button>
               )}
