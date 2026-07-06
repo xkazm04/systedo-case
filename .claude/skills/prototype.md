@@ -9,6 +9,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent
 A disciplined A/B prototyping loop for refining a UI component. Start from a named file, produce radically different directional variants **behind a tab switcher scaffolded into the real component** (so the user flips between them live in the running app), let the user prune/fuse across rounds until one direction wins, then consolidate + refactor.
 
 > Adapted for **systedo-case** (Next.js 16 App Router, Tailwind token system, CSS transitions, i18n via `useT`/`getT`). The workflow structure is codebase-agnostic; the calibration in Phase 3a and the coordination/animation rules are specific to this repo.
+>
+> Adopted from the canonical `prototype` skill in the sibling `personas` project (`.claude/skills/prototype/skill.md`). The A/B directional-variant loop is carried over verbatim; personas-only specifics (framer-motion SVG animation, the `active-runs.md` ledger, git worktrees, `typo-*`/`ThemedSelect` primitives) are intentionally dropped — systedo has none of them — and replaced with the systedo equivalents (CSS transitions, vibeman path-scoped commits, `@/components/ui` + `inputClass`, LLM-gate awareness).
 
 **The key deliverable is in-app switching.** The variants render inside the component's real call site (e.g. `CreateProjectForm` renders inside `ProjectsHome` at `/app`) so the user reloads the actual screen and toggles directions there. If you find yourself building a standalone HTML artifact, you're doing the *wrong* skill — that's a one-off visual, not this live A/B loop.
 
@@ -134,6 +136,8 @@ Deliverables per variant:
 - **Design for extraction.** Name sub-components that could live elsewhere (`TypeColumn`, `ModuleRow`, `PackageMatrix`), not a monolithic `.tsx`. A variant with no extractable pieces may be killed on reusability grounds even if it looks good.
 - **Answer "what am I choosing between?" in round 1.** If the user is picking among nouns (project types, modules), the affordance must show *meaningful facts* — module count per type, one-sentence descriptions, the KPI preset — not name-only chips.
 
+- **Answer "what did I gain?" in round 1 for output-producing surfaces.** When the component emits results (generated copy, ranked ideas, drafts, evaluations), each result must carry signal about *why it matters* — a rank/quality label, a delta versus a baseline or average, a plain-language derivation line — not raw numbers alone. Naked output (a bare score bar, an unlabeled list) is a round-1 failure mode, the mirror of name-only choice chips.
+
 **Do not propose 3+ variants in round 1. Two is the right number.** More = analysis paralysis; the user picks direction by round 2 anyway. (If the user has already sketched N directions elsewhere, seed rounds from the strongest two — still two live at a time.)
 
 Batch the writes, then **typecheck once** (`npm run typecheck`) at the end of the round. End the round with an explicit menu of what you built and ask for the next move — don't auto-advance.
@@ -217,6 +221,10 @@ Don't run `tsc` after every file write. Batch writes, `npm run typecheck` once p
 If the baseline re-exports helpers used by siblings, keep those re-exports stable when refactoring internals. Unexpected broken imports in unrelated files erode trust.
 
 ---
+
+### Keep baseline as reference, not a ceiling
+
+The baseline is preserved for A/B, not because it's the target. Early rounds should feel radically different from it. If the user's feedback keeps pushing variants back toward the baseline, propose a fresh direction instead of compressing toward it — a variant asked to re-acquire everything the baseline already has is a signal the direction, not the details, is wrong.
 
 ## Signals the iteration is converging
 
