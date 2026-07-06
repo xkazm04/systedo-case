@@ -121,6 +121,16 @@ const SCHEMA = `
     fail_count    INTEGER,
     PRIMARY KEY (user_id, project_id)
   );
+
+  -- LOCAL_DB mode only: a user's BYOM (bring-your-own-model) config — one JSON
+  -- blob holding the active vendor and per-vendor ENCRYPTED provider API keys
+  -- (see llm/keys/crypto.ts). Keys are never stored plaintext, never returned to
+  -- the client. Mirrors the Firestore byomConfigs doc.
+  CREATE TABLE IF NOT EXISTS byom_config (
+    user_id    TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 `;
 
 /** Marker identifying the current schema definition; when it changes, the schema
