@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "aktivita",
+    label: "Aktivita",
+    labelEn: "Activity",
+    icon: "activity",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Sjednocená časová osa akcí napříč moduly a AI — filtr podle modulu, závažnosti a období, export CSV.",
+    blurbEn: "A unified timeline of module + AI actions — filter by module, severity and window, export CSV.",
+  },
+  {
     key: "integrace",
     label: "Integrace",
     labelEn: "Integrations",

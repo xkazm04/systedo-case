@@ -10,6 +10,7 @@ import {
   Bookmark,
   Box,
   Calendar,
+  Clock,
   Cog,
   Coins,
   Compare,
@@ -70,6 +71,7 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   distribute: Broadcast,
   audience: Users,
   integrations: Link,
+  activity: Clock,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)
