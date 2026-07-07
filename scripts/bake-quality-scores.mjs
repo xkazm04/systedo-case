@@ -50,11 +50,19 @@ for (const r of report.results ?? []) {
   measured.add(r.target);
 }
 
-// Honest judge label: "medián ze 3" only if every cell used 3 judges; otherwise
-// (a quota-limited re-judge mixes counts) just name the judge model.
+// Honest judge label. A median-of-N run (report.judgeConfig) earns "medián ze N"
+// only when EVERY cell realised >= 2 Sonnet judges (a rare off-model attempt may
+// land a cell on 2 of 3 — still a median); if any cell is single-judged (a
+// quota-limited pass), just name the judge model.
+const configured = Number(report.judgeConfig) || 0;
+const minJudges = judgeCounts.size ? Math.min(...judgeCounts) : 0;
 const uniform = judgeCounts.size === 1 ? [...judgeCounts][0] : null;
 const judgeLabel =
-  uniform && uniform > 1 ? `claude-sonnet (medián ze ${uniform})` : "claude-sonnet";
+  configured > 1 && minJudges >= 2
+    ? `claude-sonnet (medián ze ${configured})`
+    : uniform && uniform > 1
+      ? `claude-sonnet (medián ze ${uniform})`
+      : "claude-sonnet";
 
 // Preserve the report's target order, but only models actually measured (a model
 // that never served has no cells and shouldn't appear in the scorecard).

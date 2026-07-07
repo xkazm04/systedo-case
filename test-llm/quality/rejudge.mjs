@@ -151,7 +151,12 @@ function latestReport() {
   const files = readdirSync(REPORTS).filter((f) => f.startsWith("quality-") && f.endsWith(".json")).sort();
   return files.length ? join(REPORTS, files[files.length - 1]) : null;
 }
-const path = process.argv[2] ? join(ROOT, process.argv[2]) : latestReport();
+// --all (or LLM_QUALITY_REJUDGE_ALL=1) re-judges EVERY served cell, not just the
+// unjudged ones — use it to lift a whole report to a uniform judge count. Flags are
+// skipped when picking the optional report-path arg.
+const REJUDGE_ALL = process.env.LLM_QUALITY_REJUDGE_ALL === "1" || process.argv.includes("--all");
+const pathArg = process.argv.slice(2).find((a) => !a.startsWith("--"));
+const path = pathArg ? join(ROOT, pathArg) : latestReport();
 if (!path || !existsSync(path)) {
   console.error("✗ No report JSON found — run `npm run llm:quality` first (or pass a path).");
   process.exit(1);
@@ -160,18 +165,24 @@ if (!path || !existsSync(path)) {
 const report = JSON.parse(readFileSync(path, "utf8"));
 const gen = report.results ?? [];
 const toolById = new Map(LLM_TOOLS.map((t) => [t.id, t]));
+const servedCount = gen.filter((r) => r.served).length;
 
-const gaps = gen.filter((r) => r.served && !(r.judge && r.judge.judged) && toolById.has(r.tool));
-console.log(`\nRe-judge — ${gaps.length} served-but-unjudged cells (of ${gen.filter((r) => r.served).length} served), ${JUDGE_COUNT} judge(s) each.`);
-if (!gaps.length) {
+const targets = gen.filter(
+  (r) => r.served && toolById.has(r.tool) && (REJUDGE_ALL || !(r.judge && r.judge.judged))
+);
+const mode = REJUDGE_ALL ? "re-judging ALL served cells" : "filling served-but-unjudged cells";
+console.log(`\nRe-judge (${mode}) — ${targets.length} cells (of ${servedCount} served), ${JUDGE_COUNT} judge(s) each.`);
+if (!targets.length) {
   console.log("✓ nothing to re-judge — every served cell already has a score.");
   process.exit(0);
 }
 
 let filled = 0;
-await mapLimit(gaps, 2, async (r) => {
+await mapLimit(targets, 2, async (r) => {
   const j = await judge(toolById.get(r.tool), r.output);
-  r.judge = j; // mutate the report row in place
+  // Non-destructive: only replace when the new judge succeeded, or when there was no
+  // good score to begin with — a quota cutoff mid-run must never downgrade a cell.
+  if (j.judged || !(r.judge && r.judge.judged)) r.judge = j;
   if (j.judged) filled++;
   process.stdout.write(j.judged ? "." : "x");
   return j;
@@ -181,10 +192,10 @@ process.stdout.write("\n");
 // ── write an updated report (new timestamp so bake picks it up) ────────────────
 const at = new Date().toISOString();
 const stamp = at.replace(/[:.]/g, "-");
-const out = { ...report, at, rejudgedFrom: report.at, results: gen };
+const out = { ...report, at, rejudgedFrom: report.at, judgeConfig: JUDGE_COUNT, results: gen };
 writeFileSync(join(REPORTS, `quality-${stamp}.json`), JSON.stringify(out, null, 2) + "\n");
 
 const judgedNow = gen.filter((r) => r.served && r.judge?.judged).length;
-console.log(`✓ filled ${filled}/${gaps.length} gaps · ${judgedNow}/${gen.filter((r) => r.served).length} served cells now judged`);
+console.log(`✓ judged ${filled}/${targets.length} this pass · ${judgedNow}/${servedCount} served cells now scored`);
 console.log(`✓ report: test-llm/quality/reports/quality-${stamp}.json (re-judged from ${report.at})`);
-if (filled < gaps.length) console.log(`  ${gaps.length - filled} still unjudged — re-run to fill (likely quota again).`);
+if (filled < targets.length) console.log(`  ${targets.length - filled} not (re-)scored this pass — re-run to finish (likely quota again).`);
