@@ -32,7 +32,7 @@ const short = (slug: string) => slug.split("/").pop() ?? slug;
 const tone = (s: number) =>
   s >= 8 ? "text-positive" : s >= 6 ? "text-navy-800" : s >= 4 ? "text-coral-600" : "text-negative";
 
-export default function ByomQualityMatrix() {
+export default function ByomQualityMatrix({ className = "max-w-4xl" }: { className?: string }) {
   const t = useT(T);
   if (!hasQualityScores()) return null;
 
@@ -41,17 +41,20 @@ export default function ByomQualityMatrix() {
 
   const thBase = "px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted";
   const tdBase = "px-3 py-2.5 tnum text-center";
+  // Operation column gets a fixed, roomier floor (~50px more than the labels need)
+  // so the long Czech names never wrap and the score columns stay aligned.
+  const opCol = "min-w-[210px]";
 
   return (
-    <section className="mt-10 max-w-4xl">
+    <section className={`mt-10 ${className}`}>
       <h3 className="text-lg font-semibold text-navy-800">{t("title")}</h3>
       <p className="mt-0.5 text-sm text-muted">{t("intro")}</p>
 
       <div className="card mt-4 overflow-x-auto p-0">
-        <table className="w-full min-w-[680px] border-collapse text-sm">
+        <table className="w-full min-w-[730px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line">
-              <th className={`${thBase} text-left`}>{t("colOperation")}</th>
+              <th className={`${thBase} ${opCol} text-left`}>{t("colOperation")}</th>
               {models.map((m) => (
                 <th key={m} className={thBase} title={m}>
                   {short(m)}
@@ -64,7 +67,7 @@ export default function ByomQualityMatrix() {
               const best = bestModelForOp(QUALITY_SCORES, op.id)?.model;
               return (
                 <tr key={op.id} className="border-b border-line last:border-0">
-                  <td className="px-3 py-2.5 text-left font-medium text-navy-800">{op.label}</td>
+                  <td className={`${opCol} px-3 py-2.5 text-left font-medium text-navy-800`}>{op.label}</td>
                   {models.map((m) => {
                     const s = cellComposite(QUALITY_SCORES, op.id, m);
                     const isBest = s !== null && m === best;

@@ -36,7 +36,7 @@ const T = {
 const short = (slug: string) => slug.split("/").pop() ?? slug;
 const barTone = (s: number) => (s >= 8 ? "bg-positive" : s >= 6 ? "bg-brand-500" : s >= 4 ? "bg-coral-500" : "bg-negative");
 
-export default function ByomQualityOverview() {
+export default function ByomQualityOverview({ className = "max-w-3xl" }: { className?: string }) {
   const t = useT(T);
   if (!hasQualityScores()) return null;
 
@@ -45,7 +45,7 @@ export default function ByomQualityOverview() {
   const date = QUALITY_SCORES.measuredAt.slice(0, 10);
 
   return (
-    <section className="mt-8 max-w-3xl">
+    <section className={`mt-8 ${className}`}>
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-navy-800">{t("title")}</h3>
         <p className="mt-0.5 text-sm text-muted">{t("intro")}</p>
