@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "spotreba",
+    label: "Spotřeba",
+    labelEn: "Usage",
+    icon: "usage",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Spotřeba AI podle operace a modelu za období — náklady, tokeny, podíl a export CSV.",
+    blurbEn: "AI usage by operation and model over a period — cost, tokens, share and CSV export.",
+  },
+  {
     key: "mesicni-report",
     label: "Měsíční report",
     labelEn: "Monthly report",

@@ -35,4 +35,5 @@ export type IconKey =
   | "distribute"
   | "audience"
   | "integrations"
-  | "activity";
+  | "activity"
+  | "usage";
