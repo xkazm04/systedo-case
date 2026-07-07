@@ -238,6 +238,35 @@ export interface AnalysisResult {
 
 export type AnalysisResponse = AiResponse<AnalysisResult>;
 
+// ===========================================================================
+// Tool 14 — monthly recap (per-project, per-business-type grounded)
+// ===========================================================================
+// Like `analysis` but grounded on the caller's OWN project dataset and framed to
+// the project's business type, so the recap fits non-eshop projects (local /
+// leadgen / content) instead of always speaking e-commerce (revenue/PNO/ROAS).
+// Field names are metric-neutral (highlights/watchouts/priorities) for the same
+// reason. Reuses AnalysisPeriod.
+
+export interface MonthlyRecapRequest {
+  period: AnalysisPeriod;
+  /** the project to ground on; resolved + tenancy-checked by the route, which
+   *  rewrites it to the EFFECTIVE grounding id before it reaches the cache key */
+  projectId?: string;
+  /** optional free-text refinement note from a re-run — appended to the user
+   *  prompt only, so the system+schema fingerprint (gate/golden) stays stable */
+  refine?: string;
+}
+
+export interface MonthlyRecapResult {
+  headline: string;
+  summary: string;
+  highlights: string[];
+  watchouts: string[];
+  priorities: { title: string; detail: string }[];
+}
+
+export type MonthlyRecapResponse = AiResponse<MonthlyRecapResult>;
+
 // ---------------------------------------------------------------------------
 // Report chat — a follow-up conversation grounded in the same performance
 // snapshot as the analysis. The opening report is the deterministic analysis;

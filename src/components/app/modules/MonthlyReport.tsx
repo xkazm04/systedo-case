@@ -1,15 +1,16 @@
 "use client";
 
 /** Měsíční report / Monthly report — a client-ready performance recap: KPI tiles
- *  grounded in the same snapshot the AI reads, plus an on-demand AI narrative
- *  (reuses the existing `analysis` operation — no new LLM op, no gate), print +
- *  Markdown export. Account epic (consolidation phase 6). */
+ *  grounded in the same snapshot the AI reads, plus an on-demand AI narrative.
+ *  The narrative uses the `monthly-recap` op — grounded on THIS project's dataset
+ *  and framed to its business type, so it fits non-eshop projects. Print +
+ *  Markdown export. Account epic. */
 import { useState } from "react";
 import { Bolt, Check, Document, Download, Gauge, Target, TrendDown } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { downloadText } from "@/lib/export";
-import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type AnalysisResult } from "@/lib/ai-types";
+import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, REPORT_TILES, type ReportMetric, type ReportSnap } from "@/lib/report/compute";
 
@@ -44,7 +45,7 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
   const { locale } = useLocale();
   const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct } = useFormatters();
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
-  const { status, data, run, reset } = useAiTool<AnalysisResult>("analysis", period);
+  const { status, data, run, reset } = useAiTool<MonthlyRecapResult>("monthly-recap", period);
 
   const snap = snaps[period];
   const labels = METRIC_LABEL[locale === "en" ? "en" : "cs"];
@@ -73,9 +74,9 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
     ];
     if (r) {
       lines.push("", `## ${r.headline}`, "", r.summary,
-        "", `### ${t("wins")}`, ...r.wins.map((w) => `- ${w}`),
-        "", `### ${t("risks")}`, ...r.risks.map((w) => `- ${w}`),
-        "", `### ${t("actions")}`, ...r.actions.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`));
+        "", `### ${t("wins")}`, ...r.highlights.map((w) => `- ${w}`),
+        "", `### ${t("risks")}`, ...r.watchouts.map((w) => `- ${w}`),
+        "", `### ${t("actions")}`, ...r.priorities.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`));
     }
     downloadText(`report-${period}.md`, lines.join("\n"), "text/markdown;charset=utf-8");
   }
@@ -166,9 +167,9 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
               </div>
             </div>
             <div className="grid gap-5 sm:grid-cols-2">
-              {r.wins.length > 0 && (
+              {r.highlights.length > 0 && (
                 <Group title={t("wins")}>
-                  {r.wins.map((w, i) => (
+                  {r.highlights.map((w, i) => (
                     <li key={i} className="flex gap-2.5 text-sm text-navy-700">
                       <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-positive-soft text-positive"><Check width={12} height={12} /></span>
                       <span className="leading-snug">{w}</span>
@@ -176,9 +177,9 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
                   ))}
                 </Group>
               )}
-              {r.risks.length > 0 && (
+              {r.watchouts.length > 0 && (
                 <Group title={t("risks")}>
-                  {r.risks.map((w, i) => (
+                  {r.watchouts.map((w, i) => (
                     <li key={i} className="flex gap-2.5 text-sm text-navy-700">
                       <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-coral-soft text-coral-600"><TrendDown width={12} height={12} /></span>
                       <span className="leading-snug">{w}</span>
@@ -187,11 +188,11 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
                 </Group>
               )}
             </div>
-            {r.actions.length > 0 && (
+            {r.priorities.length > 0 && (
               <div>
                 <p className="mb-2 text-sm font-semibold text-navy-800">{t("actions")}</p>
                 <ol className="space-y-2.5">
-                  {r.actions.map((a, i) => (
+                  {r.priorities.map((a, i) => (
                     <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-4">
                       <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">{i + 1}</span>
                       <div>

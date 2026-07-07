@@ -46,6 +46,7 @@ const HASHED_FILES = [
   "src/lib/ai/tools/ads.ts",
   "src/lib/ai/tools/brief.ts",
   "src/lib/ai/tools/analysis.ts",
+  "src/lib/ai/tools/monthly-recap.ts",
   "src/lib/ai/tools/campaign-eval.ts",
   "src/lib/ai/tools/lead-reply.ts",
   "src/lib/ai/tools/repurpose.ts",

@@ -12,11 +12,13 @@ import {
   generateLeadSourceDiagnosis,
   generateLocalReviewReply,
   generateLpVariantIdeas,
+  generateMonthlyRecap,
   generateRepurpose,
 } from "@/lib/ai/tools";
 import {
   validateAdRequest,
   validateAnalysisRequest,
+  validateMonthlyRecapRequest,
   validateChatRequest,
   validateArticleDraftRequest,
   validateBriefRequest,
@@ -36,8 +38,9 @@ import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, ChatRequest } from "@/lib/ai-types";
+import type { AiResponse, ChatRequest, MonthlyRecapRequest } from "@/lib/ai-types";
 import type { PerformanceData } from "@/lib/types";
+import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
@@ -97,20 +100,31 @@ async function cachedRespond(
   return Response.json(result);
 }
 
-/** Resolve the dataset a chat turn grounds on, with tenancy. A demo project id is
- *  public; a real project id must belong to the caller. `keyId` keys the response
- *  cache by the EFFECTIVE grounding, so an unowned id can never serve another
- *  tenant's cached answer — it degrades to the shared base result. */
+/** Czech business-type framing per project type — lets a grounded op (monthly
+ *  recap) speak the project's language instead of assuming e-commerce. */
+const BUSINESS_TYPE: Record<ProjectType, string> = {
+  eshop: "e-shop (e-commerce)",
+  app: "digitální produkt / aplikace",
+  leadgen: "generování poptávek (leadgen)",
+  content: "obsahový web / publisher",
+  local: "lokální podnik / služby",
+};
+
+/** Resolve the dataset a grounded op (chat, monthly recap) reads, with tenancy. A
+ *  demo project id is public; a real project id must belong to the caller. `keyId`
+ *  keys the response cache by the EFFECTIVE grounding, so an unowned id can never
+ *  serve another tenant's cached answer — it degrades to the shared base result.
+ *  `businessType` frames per-type recaps (undefined for the base fallback). */
 async function resolveGrounding(
   projectId: string | undefined,
   userId: string | null
-): Promise<{ data?: PerformanceData; keyId: string }> {
+): Promise<{ data?: PerformanceData; keyId: string; businessType?: string }> {
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return { data: getProjectDataset(demo), keyId: demo.id };
+  if (demo) return { data: getProjectDataset(demo), keyId: demo.id, businessType: BUSINESS_TYPE[demo.type] };
   if (userId) {
     const project = await getProject(userId, projectId);
-    if (project) return { data: getProjectDataset(project), keyId: project.id };
+    if (project) return { data: getProjectDataset(project), keyId: project.id, businessType: BUSINESS_TYPE[project.type] };
   }
   return { keyId: "base" };
 }
@@ -181,6 +195,17 @@ export async function POST(request: Request) {
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
         return p.valid ? cachedRespond("analysis", p.value, locale, userId, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "monthly-recap": {
+        const p = validateMonthlyRecapRequest(body, locale);
+        if (!p.valid) return bad(p.error);
+        // Tenancy-checked per-project grounding + business-type framing; cache by
+        // the EFFECTIVE project (keyId) so an unowned id degrades to base.
+        const { data, keyId, businessType } = await resolveGrounding(p.value.projectId, userId);
+        const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
+        return cachedRespond("monthly-recap", value, locale, userId, () =>
+          generateMonthlyRecap(p.value, locale, request.signal, data, businessType)
+        );
       }
       case "chat": {
         const p = validateChatRequest(body, locale);

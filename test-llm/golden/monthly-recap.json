@@ -1,0 +1,61 @@
+{
+  "id": "monthly-recap",
+  "label": "Měsíční rekapitulace",
+  "promptHash": "ca3d51da9d30bd86",
+  "schemaKeys": [
+    "headline",
+    "highlights",
+    "priorities",
+    "summary",
+    "watchouts"
+  ],
+  "system": "Jsi český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu, rámuješ ji podle typu podnikání klienta, vycházíš jen z předaných čísel a vracíš pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "headline": {
+        "type": "STRING"
+      },
+      "highlights": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "priorities": {
+        "items": {
+          "properties": {
+            "detail": {
+              "type": "STRING"
+            },
+            "title": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "title",
+            "detail"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "summary": {
+        "type": "STRING"
+      },
+      "watchouts": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "headline",
+      "summary",
+      "highlights",
+      "watchouts",
+      "priorities"
+    ],
+    "type": "OBJECT"
+  }
+}

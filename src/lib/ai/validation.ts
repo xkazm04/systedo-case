@@ -26,6 +26,7 @@ import {
   type EvaluationRequest,
   type KeywordClusterInput,
   type KeywordClustersRequest,
+  type MonthlyRecapRequest,
   type LeadReplyChannel,
   type LeadReplyRequest,
   type LeadSourceDiagnosisRequest,
@@ -149,6 +150,25 @@ export function validateAnalysisRequest(input: unknown, locale: SupportedLocale 
     return { valid: false, error: t(locale, "Neplatné období analýzy.", "Invalid analysis period.") };
   }
   const value: AnalysisRequest = { period };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+export function validateMonthlyRecapRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<MonthlyRecapRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const period = o.period as AnalysisPeriod;
+  if (!ANALYSIS_PERIODS.includes(period)) {
+    return { valid: false, error: t(locale, "Neplatné období analýzy.", "Invalid analysis period.") };
+  }
+  const value: MonthlyRecapRequest = { period };
+  // Optional grounding hint; the route resolves + tenancy-checks it. Bounded so a
+  // bogus id can't bloat the cache key.
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

@@ -15,6 +15,7 @@
 export { generateAds } from "./ads";
 export { generateBrief } from "./brief";
 export { generateAnalysis } from "./analysis";
+export { generateMonthlyRecap } from "./monthly-recap";
 export { generateChat } from "./chat";
 export { generateCampaignEvaluation } from "./campaign-eval";
 export { generateSocialPosts } from "./social";

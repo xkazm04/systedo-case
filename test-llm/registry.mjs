@@ -492,4 +492,38 @@ export const LLM_TOOLS = [
     // every()-style checks flake under model variance (see article-draft).
     validate: (r) => r && isStr(r.reply),
   },
+  {
+    id: "monthly-recap",
+    label: "Měsíční rekapitulace",
+    system:
+      "Jsi český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu, rámuješ ji podle typu podnikání klienta, vycházíš jen z předaných čísel a vracíš pouze validní JSON dle schématu.",
+    prompt:
+      "Typ podnikání klienta: lokální podnik / služby.\nData: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×, konverze +12 %. Vrať jednovětý verdikt (headline), krátké shrnutí (summary), 3 úspěchy (highlights), 2 věci k hlídání (watchouts) a 2 priority na příští měsíc (priorities: title + detail).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        headline: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        highlights: { type: Type.ARRAY, items: { type: Type.STRING } },
+        watchouts: { type: Type.ARRAY, items: { type: Type.STRING } },
+        priorities: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { title: { type: Type.STRING }, detail: { type: Type.STRING } },
+            required: ["title", "detail"],
+          },
+        },
+      },
+      required: ["headline", "summary", "highlights", "watchouts", "priorities"],
+    },
+    validate: (r) =>
+      r &&
+      isStr(r.headline) &&
+      isStr(r.summary) &&
+      isStrArr(r.highlights, 1) &&
+      isStrArr(r.watchouts, 1) &&
+      Array.isArray(r.priorities) &&
+      isStr(r.priorities[0]?.title),
+  },
 ];
