@@ -25,7 +25,7 @@ db.exec(`
   );
   CREATE TABLE IF NOT EXISTS projects (
     id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL,
-    accent_color TEXT NOT NULL, domain TEXT, tenant TEXT, ads_customer_id TEXT,
+    accent_color TEXT NOT NULL, logo_url TEXT, domain TEXT, tenant TEXT, ads_customer_id TEXT,
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_projects_user ON projects (user_id, created_at);

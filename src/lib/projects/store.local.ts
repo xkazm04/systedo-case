@@ -21,6 +21,7 @@ interface ProjectRow {
   name: string;
   type: string;
   accent_color: string;
+  logo_url: string | null;
   domain: string | null;
   tenant: string | null;
   ads_customer_id: string | null;
@@ -34,6 +35,7 @@ function toProject(r: ProjectRow): Project {
     name: r.name || "Projekt",
     type: (r.type as Project["type"]) ?? "eshop",
     accentColor: r.accent_color ?? PROJECT_TYPE_META.eshop.defaultAccent,
+    logoUrl: r.logo_url || undefined,
     domain: r.domain || undefined,
     tenant: r.tenant || undefined,
     adsCustomerId: r.ads_customer_id || undefined,
@@ -100,6 +102,7 @@ export async function updateProject(
     type: patch.type ?? row.type,
     accent_color: patch.accentColor ?? row.accent_color,
     // `undefined` means "leave as-is"; an empty string clears the field.
+    logo_url: patch.logoUrl !== undefined ? patch.logoUrl.trim() || null : row.logo_url,
     domain: patch.domain !== undefined ? patch.domain.trim() || null : row.domain,
     ads_customer_id:
       patch.adsCustomerId !== undefined ? patch.adsCustomerId || null : row.ads_customer_id,
@@ -107,12 +110,13 @@ export async function updateProject(
   };
   db.prepare(
     `UPDATE projects
-       SET name = ?, type = ?, accent_color = ?, domain = ?, ads_customer_id = ?, updated_at = ?
+       SET name = ?, type = ?, accent_color = ?, logo_url = ?, domain = ?, ads_customer_id = ?, updated_at = ?
      WHERE id = ? AND user_id = ?`
   ).run(
     next.name,
     next.type,
     next.accent_color,
+    next.logo_url,
     next.domain,
     next.ads_customer_id,
     next.updated_at,

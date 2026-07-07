@@ -163,6 +163,8 @@ export interface Project {
   type: ProjectType;
   /** brand accent (brand-ramp hex) used in the shell rail + client reports */
   accentColor: string;
+  /** optional client logo URL, shown on client-facing reports + the branding preview */
+  logoUrl?: string;
   /** optional client website/domain, shown in the switcher + overview */
   domain?: string;
   /** Forward-compatible data-isolation key. v1 leaves this undefined so the data
@@ -186,7 +188,7 @@ export interface NewProjectInput {
 }
 
 /** Patchable fields on an existing project. */
-export type ProjectPatch = Partial<Pick<Project, "name" | "type" | "accentColor" | "domain" | "adsCustomerId">>;
+export type ProjectPatch = Partial<Pick<Project, "name" | "type" | "accentColor" | "logoUrl" | "domain" | "adsCustomerId">>;
 
 /** The default home module for a freshly-opened project. */
 export const PROJECT_HOME_SEGMENT = "";

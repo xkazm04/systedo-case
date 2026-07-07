@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "branding",
+    label: "Branding",
+    labelEn: "Branding",
+    icon: "creative",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Brand accent a logo pro klientské reporty a web — s živým náhledem hlavičky.",
+    blurbEn: "Brand accent and logo for client reports and the microsite — with a live header preview.",
+  },
+  {
     key: "spotreba",
     label: "Spotřeba",
     labelEn: "Usage",

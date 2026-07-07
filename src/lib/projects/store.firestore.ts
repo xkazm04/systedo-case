@@ -26,6 +26,7 @@ function toProject(id: string, data: FirebaseFirestore.DocumentData): Project {
     name: typeof data.name === "string" ? data.name : "Projekt",
     type: data.type ?? "eshop",
     accentColor: data.accentColor ?? PROJECT_TYPE_META.eshop.defaultAccent,
+    logoUrl: data.logoUrl || undefined,
     domain: data.domain || undefined,
     tenant: data.tenant || undefined,
     adsCustomerId: data.adsCustomerId || undefined,

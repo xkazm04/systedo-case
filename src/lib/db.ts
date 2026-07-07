@@ -49,6 +49,12 @@ const COLUMN_MIGRATIONS: { table: string; column: string; ddl: string }[] = [
     column: "fail_count",
     ddl: "ALTER TABLE warehouse_connection ADD COLUMN fail_count INTEGER",
   },
+  // Client logo URL for branding / client-facing reports (see projects/store.local.ts).
+  {
+    table: "projects",
+    column: "logo_url",
+    ddl: "ALTER TABLE projects ADD COLUMN logo_url TEXT",
+  },
 ];
 
 function hasColumn(db: DatabaseSync, table: string, column: string): boolean {
@@ -83,6 +89,7 @@ const SCHEMA = `
     name            TEXT NOT NULL,
     type            TEXT NOT NULL,
     accent_color    TEXT NOT NULL,
+    logo_url        TEXT,
     domain          TEXT,
     tenant          TEXT,
     ads_customer_id TEXT,

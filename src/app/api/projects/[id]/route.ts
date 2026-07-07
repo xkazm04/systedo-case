@@ -24,6 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
   if (isProjectType(body.type)) patch.type = body.type;
   if (typeof body.accentColor === "string") patch.accentColor = body.accentColor;
+  if (typeof body.logoUrl === "string") patch.logoUrl = body.logoUrl.trim();
   if (typeof body.domain === "string") patch.domain = body.domain.trim();
   if (typeof body.adsCustomerId === "string") patch.adsCustomerId = body.adsCustomerId;
 
