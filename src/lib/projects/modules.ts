@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "ucet",
+    label: "Účet & zabezpečení",
+    labelEn: "Account & security",
+    icon: "account",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Profil, přehled zabezpečení, odhlášení a žádost o smazání účtu.",
+    blurbEn: "Profile, a security overview, sign-out and an account-deletion request.",
+  },
+  {
     key: "branding",
     label: "Branding",
     labelEn: "Branding",

@@ -73,6 +73,7 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   integrations: Link,
   activity: Clock,
   usage: Coins,
+  account: Users,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)
