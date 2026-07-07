@@ -3,10 +3,10 @@
 /** Content Schedule — a baseline Google Business Profile post planner: an idea
  *  queue drawn from the service catalog on the left, a 4-week calendar on the
  *  right. Schedule an idea onto the next open day, then mark it published; the
- *  board persists to localStorage per project. AI drafting (via the content
+ *  board persists to the project (per-user, server-side). AI drafting (via the content
  *  engine) is a documented next step — this establishes the scheduling spine
  *  (consolidation phase 5). */
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar, Check, Plus } from "@/components/icons";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
@@ -23,7 +23,7 @@ const T = {
     publish: "Publikovat", unschedule: "Zpět do námětů",
     more: "+{n} další",
     statusIdea: "Námět", statusScheduled: "Naplánováno", statusPublished: "Publikováno",
-    footer: "Naplánujte námět na den, pak publikujte na Google Business Profile. AI koncept z obsahového enginu je dalším krokem; stav se ukládá lokálně.",
+    footer: "Naplánujte námět na den, pak publikujte na Google Business Profile. AI koncept z obsahového enginu je dalším krokem; stav se ukládá k projektu.",
   },
   en: {
     ideasTitle: "Post ideas",
@@ -34,7 +34,7 @@ const T = {
     publish: "Publish", unschedule: "Back to ideas",
     more: "+{n} more",
     statusIdea: "Idea", statusScheduled: "Scheduled", statusPublished: "Published",
-    footer: "Schedule an idea onto a day, then publish to the Google Business Profile. AI drafting from the content engine is the next step; state is stored locally.",
+    footer: "Schedule an idea onto a day, then publish to the Google Business Profile. AI drafting from the content engine is the next step; state is saved to the project.",
   },
 } as const;
 
@@ -62,39 +62,31 @@ export default function ContentSchedule({
   const weekdays = WEEKDAYS[locale === "en" ? "en" : "cs"];
   const [posts, setPosts] = useState<ContentPost[]>(initial);
 
-  const storageKey = `contentschedule:v1:${projectId}`;
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw) as ContentPost[];
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        if (Array.isArray(parsed) && parsed.length) setPosts(parsed);
-      }
-    } catch {
-      /* ignore malformed state */
-    }
-  }, [storageKey]);
-  useEffect(() => {
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(posts));
-    } catch {
-      /* storage unavailable */
-    }
-  }, [posts, storageKey]);
-
   const counts = useMemo(() => statusCounts(posts), [posts]);
   const queue = useMemo(() => ideas(posts), [posts]);
   const grid = useMemo(() => calendarGrid(posts), [posts]);
 
-  function schedule(id: string) {
-    setPosts((prev) => {
-      const day = nextFreeDay(prev);
-      return prev.map((p) => (p.id === id ? { ...p, status: "scheduled", day } : p));
-    });
+  // Persist the whole board to the project (per-user, server-side). Best-effort:
+  // the local state is already updated, so a save failure never blocks the UI.
+  // Only a named transition (schedule/publish) surfaces on the activity feed.
+  function persist(next: ContentPost[], event?: string) {
+    void fetch(`/api/projects/${projectId}/state/content-schedule`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ data: next, ...(event ? { event } : {}) }),
+    }).catch(() => {});
   }
-  function setStatus(id: string, status: PostStatus, day: number | null) {
-    setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, status, day } : p)));
+
+  function schedule(id: string) {
+    const day = nextFreeDay(posts);
+    const next = posts.map((p) => (p.id === id ? { ...p, status: "scheduled" as PostStatus, day } : p));
+    setPosts(next);
+    persist(next, "scheduled");
+  }
+  function setStatus(id: string, status: PostStatus, day: number | null, event?: string) {
+    const next = posts.map((p) => (p.id === id ? { ...p, status, day } : p));
+    setPosts(next);
+    persist(next, event);
   }
 
   return (
@@ -154,7 +146,7 @@ export default function ContentSchedule({
                         title={p.status === "scheduled" ? t("publish") : t("unschedule")}
                         onClick={() =>
                           p.status === "scheduled"
-                            ? setStatus(p.id, "published", p.day)
+                            ? setStatus(p.id, "published", p.day, "published")
                             : setStatus(p.id, "idea", null)
                         }
                         className={"block w-full truncate rounded border px-1.5 py-0.5 text-left text-[10.5px] font-medium transition-colors " + STATUS_CHIP[p.status]}

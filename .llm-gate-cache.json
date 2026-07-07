@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-07T17:01:38.187Z",
+  "provenAt": "2026-07-07T18:10:06.731Z",
   "files": {
     "src/lib/llm/index.ts": "da88b88d7056266b4f2fc9184f4ef2d646e79bcf57d640ce76742be26d70fb00",
     "src/lib/llm/claude.ts": "d22de2892d7e0cac02b3cdcbc4685e0b97566a3e4e3ef794ac1610d8bdbc5f87",
@@ -27,7 +27,7 @@
     "test-llm/registry.mjs": "3a34096dce7c75e9d0d8b71ef7150a64782d84cf7c3525b3b871b4b3f87bf2f2",
     "test-llm/real.test.mjs": "f24ee41d0fb9a1b0ad574e9c78869e7e9da8c53d363de5002bf2b533e1b360e3",
     "test-llm/setup.mjs": "c68c3ee6116787cd28f8c4e59db24b90f4e282678a84b3d9250851045227b550",
-    "test-llm/resolve-hooks.mjs": "aa857ceecccc973b33e0dcd91040facacbf05b472978b3c55dd377ba9c06ab14"
+    "test-llm/resolve-hooks.mjs": "e94034d1a23323f0a01d5db21bc67237a4a2407a77fa47accbf3bdcd5a478c99"
   },
   "registry": {
     "ads": "effc530aa98ccf60",
@@ -47,20 +47,20 @@
     "chat": "09163f3ca8890a44"
   },
   "tools": {
-    "ads": "2026-07-07T17:01:38.187Z",
-    "brief": "2026-07-07T17:01:38.187Z",
-    "analysis": "2026-07-07T17:01:38.187Z",
-    "campaign-eval": "2026-07-07T17:01:38.187Z",
-    "social": "2026-07-07T17:01:38.187Z",
-    "lead-reply": "2026-07-07T17:01:38.187Z",
-    "repurpose": "2026-07-07T17:01:38.187Z",
-    "local-review-reply": "2026-07-07T17:01:38.187Z",
-    "article-draft": "2026-07-07T17:01:38.187Z",
-    "cohort-diagnosis": "2026-07-07T17:01:38.187Z",
-    "keyword-clusters": "2026-07-07T17:01:38.187Z",
-    "comparison-outline": "2026-07-07T17:01:38.187Z",
-    "lp-variant-ideas": "2026-07-07T17:01:38.187Z",
-    "lead-source-diagnosis": "2026-07-07T17:01:38.187Z",
-    "chat": "2026-07-07T17:01:38.187Z"
+    "ads": "2026-07-07T18:10:06.731Z",
+    "brief": "2026-07-07T18:10:06.731Z",
+    "analysis": "2026-07-07T18:10:06.731Z",
+    "campaign-eval": "2026-07-07T18:10:06.731Z",
+    "social": "2026-07-07T18:10:06.731Z",
+    "lead-reply": "2026-07-07T18:10:06.731Z",
+    "repurpose": "2026-07-07T18:10:06.731Z",
+    "local-review-reply": "2026-07-07T18:10:06.731Z",
+    "article-draft": "2026-07-07T18:10:06.731Z",
+    "cohort-diagnosis": "2026-07-07T18:10:06.731Z",
+    "keyword-clusters": "2026-07-07T18:10:06.731Z",
+    "comparison-outline": "2026-07-07T18:10:06.731Z",
+    "lp-variant-ideas": "2026-07-07T18:10:06.731Z",
+    "lead-source-diagnosis": "2026-07-07T18:10:06.731Z",
+    "chat": "2026-07-07T18:10:06.731Z"
   }
 }

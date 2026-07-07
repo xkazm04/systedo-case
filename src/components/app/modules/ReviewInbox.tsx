@@ -3,10 +3,11 @@
 /** Review Inbox — a fuller reputation surface than the Lokální module's panel:
  *  search / filter / sort across the project's reviews, a sentiment summary, a
  *  per-review AI reply (reusing the existing `local-review-reply` operation),
- *  flag-for-owner, and saved-reply macros. Per-review state (drafts, answered,
- *  flagged) + the filter persist to localStorage per project. Ported in spirit
- *  from the local-SEO app's ReviewInbox (consolidation phase 5). */
-import { useEffect, useMemo, useState } from "react";
+ *  flag-for-owner, and saved-reply macros. Per-review triage (drafts, answered,
+ *  flagged) persists to the project (per-user, server-side): draft edits are saved
+ *  debounced, a flag / mark-answered saves immediately and posts to the activity
+ *  feed. Ported in spirit from the local-SEO app's ReviewInbox. */
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import { Bolt, Bookmark, Check, Copy, Info, Refresh, Search, Sparkles } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
@@ -41,7 +42,7 @@ const T = {
     draftLabel: "Návrh odpovědi", aiReply: "AI odpověď", demoMode: "Ukázkový režim",
     macros: "Šablony", copy: "Kopírovat", copied: "Zkopírováno",
     generationFailed: "Generování selhalo", timedOut: "Model neodpověděl včas — zkuste to znovu.", retry: "Zkusit znovu",
-    footer: "Odpovídejte veřejně — vřelé poděkování buduje důvěru, vstřícná reakce na kritiku snižuje její dopad. Stav se ukládá lokálně; seam: reviews API (Google Business Profile).",
+    footer: "Odpovídejte veřejně — vřelé poděkování buduje důvěru, vstřícná reakce na kritiku snižuje její dopad. Stav se ukládá k projektu; seam: reviews API (Google Business Profile).",
   },
   en: {
     searchPlaceholder: "Search reviews…",
@@ -57,7 +58,7 @@ const T = {
     draftLabel: "Reply draft", aiReply: "AI reply", demoMode: "Demo mode",
     macros: "Templates", copy: "Copy", copied: "Copied",
     generationFailed: "Generation failed", timedOut: "Model timed out — please try again.", retry: "Retry",
-    footer: "Reply publicly — a warm thank-you builds trust, an empathetic response to criticism reduces its impact. State is stored locally; seam: reviews API (Google Business Profile).",
+    footer: "Reply publicly — a warm thank-you builds trust, an empathetic response to criticism reduces its impact. State is saved to the project; seam: reviews API (Google Business Profile).",
   },
 } as const;
 
@@ -80,7 +81,7 @@ function ratingTone(rating: number): "positive" | "coral" | "negative" {
   return "negative";
 }
 
-interface Persisted {
+export interface ReviewInboxState {
   answered: string[];
   flagged: string[];
   drafts: Record<string, string>;
@@ -93,58 +94,58 @@ export default function ReviewInbox({
   areas,
   businessName,
   businessType,
+  projectId,
+  initialState,
 }: {
   reviews: ReviewItem[];
   areas: string[];
   businessName?: string;
   businessType?: string;
+  projectId: string;
+  initialState?: ReviewInboxState;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
   const { locale } = useLocale();
   const localeMacros = MACROS[locale === "en" ? "en" : "cs"];
 
-  const [filter, setFilter] = useState<ReviewFilter>({ query: "", band: "all", area: "all", status: "all" });
-  const [sort, setSort] = useState<SortKey>("newest");
-  const [answered, setAnswered] = useState<Set<string>>(() => new Set());
-  const [flagged, setFlagged] = useState<Set<string>>(() => new Set());
-  const [drafts, setDrafts] = useState<Map<string, string>>(() => new Map());
+  const [filter, setFilter] = useState<ReviewFilter>({
+    query: "",
+    band: "all",
+    area: "all",
+    status: "all",
+    ...(initialState?.filter ?? {}),
+  });
+  const [sort, setSort] = useState<SortKey>(initialState?.sort ?? "newest");
+  const [answered, setAnswered] = useState<Set<string>>(() => new Set(initialState?.answered ?? []));
+  const [flagged, setFlagged] = useState<Set<string>>(() => new Set(initialState?.flagged ?? []));
+  const [drafts, setDrafts] = useState<Map<string, string>>(() => new Map(Object.entries(initialState?.drafts ?? {})));
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const storageKey = "reviewinbox:v1";
+  // Persist the whole triage snapshot to the project (per-user, server-side).
+  // Best-effort; local state already updated. A named `event` posts to the feed.
+  const stateUrl = `/api/projects/${projectId}/state/reviews`;
+  function save(a: Set<string>, f: Set<string>, d: Map<string, string>, event?: string) {
+    const data: ReviewInboxState = { answered: [...a], flagged: [...f], drafts: Object.fromEntries(d) };
+    void fetch(stateUrl, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ data, ...(event ? { event } : {}) }),
+    }).catch(() => {});
+  }
 
-  // Hydrate persisted state once, after mount (SSR renders defaults).
+  // Draft edits (typing, macros, an applied AI reply) save debounced — coalesce
+  // keystrokes into one write. Skip the initial mount; flag/answered save eagerly.
+  const mounted = useRef(false);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (!raw) return;
-      const p = JSON.parse(raw) as Persisted;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAnswered(new Set(p.answered ?? []));
-      setFlagged(new Set(p.flagged ?? []));
-      setDrafts(new Map(Object.entries(p.drafts ?? {})));
-      if (p.filter) setFilter((f) => ({ ...f, ...p.filter }));
-      if (p.sort) setSort(p.sort);
-    } catch {
-      /* ignore malformed state */
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
     }
-  }, []);
-
-  // Persist on change.
-  useEffect(() => {
-    const p: Persisted = {
-      answered: [...answered],
-      flagged: [...flagged],
-      drafts: Object.fromEntries(drafts),
-      filter,
-      sort,
-    };
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(p));
-    } catch {
-      /* storage unavailable */
-    }
-  }, [answered, flagged, drafts, filter, sort]);
+    const id = setTimeout(() => save(answered, flagged, drafts), 700);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drafts]);
 
   // AI reply — reuse the existing operation (single-flight; pinned to activeId).
   const { status, data, error, timedOut, run, reset, refine, canRefine } =
@@ -184,11 +185,22 @@ export default function ReviewInbox({
   function setDraft(id: string, text: string) {
     setDrafts((m) => new Map(m).set(id, text));
   }
-  function toggle(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
-    const next = new Set(set);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setter(next);
+  // Discrete triage transitions save immediately; turning one ON posts to the feed.
+  function toggleFlag(id: string) {
+    const next = new Set(flagged);
+    const on = !next.has(id);
+    if (on) next.add(id);
+    else next.delete(id);
+    setFlagged(next);
+    save(answered, next, drafts, on ? "flagged" : undefined);
+  }
+  function toggleAnswered(id: string) {
+    const next = new Set(answered);
+    const on = !next.has(id);
+    if (on) next.add(id);
+    else next.delete(id);
+    setAnswered(next);
+    save(next, flagged, drafts, on ? "reply-published" : undefined);
   }
   async function copyDraft(id: string) {
     const text = drafts.get(id);
@@ -320,14 +332,14 @@ export default function ReviewInbox({
                   <div className="mt-2.5 flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => toggle(flagged, setFlagged, r.id)}
+                      onClick={() => toggleFlag(r.id)}
                       className={"inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors " + (isFlagged ? "border-coral-400 bg-coral-500/10 text-coral-600" : "border-line text-muted hover:border-brand-300")}
                     >
                       <Bookmark width={13} height={13} />{isFlagged ? t("flagged") : t("flag")}
                     </button>
                     <button
                       type="button"
-                      onClick={() => toggle(answered, setAnswered, r.id)}
+                      onClick={() => toggleAnswered(r.id)}
                       className={"inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors " + (isAnswered ? "border-positive/50 bg-positive-soft text-positive" : "border-line text-muted hover:border-brand-300")}
                     >
                       <Check width={13} height={13} />{isAnswered ? t("answered") : t("markAnswered")}

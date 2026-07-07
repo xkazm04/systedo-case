@@ -111,6 +111,19 @@ const SCHEMA = `
     PRIMARY KEY (user_id, project_id)
   );
 
+  -- LOCAL_DB mode only: per-(user, project, key) JSON blob for module state that
+  -- used to live only in the browser (the content schedule, review triage). Mirrors
+  -- the Firestore users/{uid}/projectState/{projectId}__{key} doc. See
+  -- project-state/store.local.ts.
+  CREATE TABLE IF NOT EXISTS project_state (
+    user_id    TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, project_id, key)
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.

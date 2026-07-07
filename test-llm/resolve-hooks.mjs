@@ -16,6 +16,9 @@ async function exists(p) {
 }
 
 const EXT_CANDIDATES = [".ts", ".tsx", ".mts"];
+// Real module extensions Node resolves on its own; anything else (e.g. a store
+// dispatcher's `./store.local` / `./store.firestore`) still needs a `.ts` appended.
+const REAL_EXTS = new Set([".ts", ".tsx", ".mts", ".js", ".mjs", ".cjs", ".json", ".node"]);
 
 export async function resolve(specifier, context, nextResolve) {
   let spec = specifier;
@@ -27,8 +30,9 @@ export async function resolve(specifier, context, nextResolve) {
 
   const isRelative = spec.startsWith("./") || spec.startsWith("../");
   const isFileUrl = spec.startsWith("file:");
+  const ext = extname(spec);
 
-  if ((isRelative || isFileUrl) && !extname(spec)) {
+  if ((isRelative || isFileUrl) && (!ext || !REAL_EXTS.has(ext))) {
     const baseHref = isFileUrl
       ? spec
       : new URL(spec, context.parentURL ?? pathToFileURL(`${process.cwd()}/`).href).href;
