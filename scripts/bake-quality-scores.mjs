@@ -29,6 +29,7 @@ if (!path || !existsSync(path)) {
 
 const report = JSON.parse(readFileSync(path, "utf8"));
 const round = (n) => Math.round(Number(n) * 10) / 10;
+const round6 = (n) => Math.round(Number(n) * 1e6) / 1e6; // cost: keep sub-cent precision
 
 const cells = {};
 const measured = new Set();
@@ -38,7 +39,7 @@ for (const r of report.results ?? []) {
   const j = r.judge;
   const n = Number(j.judges ?? 1);
   judgeCounts.add(n);
-  (cells[r.tool] ??= {})[r.target] = {
+  const cell = {
     relevance: round(j.relevance),
     correctness: round(j.correctness),
     adherence: round(j.adherence),
@@ -47,6 +48,9 @@ for (const r of report.results ?? []) {
     valid: Boolean(r.valid),
     judges: n,
   };
+  const cost = round6(r.estCostUsd ?? 0);
+  if (cost > 0) cell.costUsd = cost;
+  (cells[r.tool] ??= {})[r.target] = cell;
   measured.add(r.target);
 }
 

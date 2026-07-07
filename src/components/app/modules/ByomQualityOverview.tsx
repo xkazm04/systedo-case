@@ -1,7 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
-import { modelRanking } from "@/lib/llm/quality";
+import { formatCostUsd, modelRanking } from "@/lib/llm/quality";
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
 
 const T = {
@@ -13,9 +13,10 @@ const T = {
     colScore: "Skóre",
     colWins: "Nejlepší v",
     colCoverage: "Pokrytí",
+    colCost: "Cena / op",
     ops: "operací",
     method:
-      "Změřeno {date} · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován.",
+      "Změřeno {date} · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
     na: "—",
   },
   en: {
@@ -26,9 +27,10 @@ const T = {
     colScore: "Score",
     colWins: "Best in",
     colCoverage: "Coverage",
+    colCost: "Cost / op",
     ops: "ops",
     method:
-      "Measured {date} · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised.",
+      "Measured {date} · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised. Cost is the mean actual per-operation price reported by OpenRouter.",
     na: "—",
   },
 } as const;
@@ -52,17 +54,18 @@ export default function ByomQualityOverview({ className = "max-w-3xl" }: { class
       </div>
 
       <div className="card overflow-hidden p-0">
-        <div className="hidden grid-cols-[1.5fr_1.6fr_0.8fr_0.9fr] gap-3 border-b border-line px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
+        <div className="hidden grid-cols-[1.4fr_1.5fr_0.7fr_0.8fr_0.7fr] gap-3 border-b border-line px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted sm:grid">
           <span>{t("colModel")}</span>
           <span>{t("colScore")}</span>
           <span className="text-right">{t("colWins")}</span>
           <span className="text-right">{t("colCoverage")}</span>
+          <span className="text-right">{t("colCost")}</span>
         </div>
 
         {ranking.map((m) => (
           <div
             key={m.model}
-            className="grid grid-cols-1 gap-2 border-b border-line px-4 py-3 last:border-0 sm:grid-cols-[1.5fr_1.6fr_0.8fr_0.9fr] sm:items-center sm:gap-3"
+            className="grid grid-cols-1 gap-2 border-b border-line px-4 py-3 last:border-0 sm:grid-cols-[1.4fr_1.5fr_0.7fr_0.8fr_0.7fr] sm:items-center sm:gap-3"
           >
             <span className="text-sm font-medium text-navy-800" title={m.model}>
               {short(m.model)}
@@ -87,6 +90,9 @@ export default function ByomQualityOverview({ className = "max-w-3xl" }: { class
             </span>
             <span className="tnum text-sm text-muted sm:text-right">
               {m.measured}/{m.total} {t("ops")}
+            </span>
+            <span className="tnum text-sm text-navy-700 sm:text-right">
+              {formatCostUsd(m.avgCostUsd)}
             </span>
           </div>
         ))}

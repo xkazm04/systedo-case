@@ -298,7 +298,9 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       if (repaired) meta.repaired = true;
       if (usage) {
         meta.usage = usage;
-        meta.estCostUsd = estimateCostUsd(model, usage);
+        // Prefer a provider-reported real cost (e.g. OpenRouter's usage.cost) over
+        // the local RATES estimate; fall back to the estimate when none is returned.
+        meta.estCostUsd = usage.costUsd ?? estimateCostUsd(model, usage);
       } else if (provider === claudeProvider) {
         meta.estCostUsd = 0; // dev subscription — no metered cost
       }

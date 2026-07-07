@@ -1,9 +1,9 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-06T17:24:54.799Z",
+  "provenAt": "2026-07-07T11:38:06.278Z",
   "files": {
-    "src/lib/llm/index.ts": "ed3d1140eaea90e24a253a715da2d49fb7b55bd08b5c852632d2d3296a067980",
+    "src/lib/llm/index.ts": "111d9124a902863ae8179b656543bb4ea22995663e7ba6daebc33261cf1fcacd",
     "src/lib/llm/claude.ts": "d22de2892d7e0cac02b3cdcbc4685e0b97566a3e4e3ef794ac1610d8bdbc5f87",
     "src/lib/llm/gemini.ts": "551c65705b524b574a58cfd238e5076e2429abeb92196211cb2903a10d5ab257",
     "src/lib/llm/models.ts": "afe2f7e36ca8d4b7e38ab2941926ed5a36d37d8444ab79391db380e3f4cd47e2",
@@ -47,20 +47,20 @@
     "chat": "09163f3ca8890a44"
   },
   "tools": {
-    "ads": "2026-07-06T17:24:54.799Z",
-    "brief": "2026-07-06T17:24:54.799Z",
-    "analysis": "2026-07-06T17:24:54.799Z",
-    "campaign-eval": "2026-07-06T17:24:54.799Z",
-    "social": "2026-07-06T17:24:54.799Z",
-    "lead-reply": "2026-07-06T17:24:54.799Z",
-    "repurpose": "2026-07-06T17:24:54.799Z",
-    "local-review-reply": "2026-07-06T17:24:54.799Z",
-    "article-draft": "2026-07-06T17:24:54.799Z",
-    "cohort-diagnosis": "2026-07-06T17:24:54.799Z",
-    "keyword-clusters": "2026-07-06T17:24:54.799Z",
-    "comparison-outline": "2026-07-06T17:24:54.799Z",
-    "lp-variant-ideas": "2026-07-06T17:24:54.799Z",
-    "lead-source-diagnosis": "2026-07-06T17:24:54.799Z",
-    "chat": "2026-07-06T17:24:54.799Z"
+    "ads": "2026-07-07T11:38:06.278Z",
+    "brief": "2026-07-07T11:38:06.278Z",
+    "analysis": "2026-07-07T11:38:06.278Z",
+    "campaign-eval": "2026-07-07T11:38:06.278Z",
+    "social": "2026-07-07T11:38:06.278Z",
+    "lead-reply": "2026-07-07T11:38:06.278Z",
+    "repurpose": "2026-07-07T11:38:06.278Z",
+    "local-review-reply": "2026-07-07T11:38:06.278Z",
+    "article-draft": "2026-07-07T11:38:06.278Z",
+    "cohort-diagnosis": "2026-07-07T11:38:06.278Z",
+    "keyword-clusters": "2026-07-07T11:38:06.278Z",
+    "comparison-outline": "2026-07-07T11:38:06.278Z",
+    "lp-variant-ideas": "2026-07-07T11:38:06.278Z",
+    "lead-source-diagnosis": "2026-07-07T11:38:06.278Z",
+    "chat": "2026-07-07T11:38:06.278Z"
   }
 }

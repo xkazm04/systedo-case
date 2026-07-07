@@ -17,6 +17,9 @@ export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
   totalTokens: number;
+  /** Provider-reported ACTUAL USD cost for this call, when the API returns one
+   *  (e.g. OpenRouter's `usage.cost`). Preferred over the local RATES estimate. */
+  costUsd?: number;
 }
 
 interface Rate {

@@ -296,6 +296,9 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
     max_tokens: 16000,
     ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
     ...openrouterReasoning(call.reasoning ?? "default"),
+    // Ask OpenRouter to return the ACTUAL credits/USD cost of the call in the usage
+    // block, so the wrapper reports real BYOM cost instead of a rate estimate.
+    usage: { include: true },
   };
   const post = (payload: object) =>
     fetch(`${base}/chat/completions`, {
@@ -331,7 +334,7 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
 
   const json = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
-    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; cost?: number };
   };
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
@@ -343,6 +346,7 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
         inputTokens: u.prompt_tokens ?? 0,
         outputTokens: u.completion_tokens ?? 0,
         totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+        ...(typeof u.cost === "number" ? { costUsd: u.cost } : {}),
       }
     : undefined;
   return { parsed, usage };

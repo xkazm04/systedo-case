@@ -179,7 +179,10 @@ async function judge(tool, output) {
 
 // ── one (operation × target) cell ─────────────────────────────────────────────
 async function runCell(tool, target) {
-  const key = { vendor: "openrouter", apiKey: API_KEY, model: target, reasoning: REASONING };
+  // fastModel = target too: fast-tier tools (lead-reply, repurpose, …) otherwise
+  // resolve to the vendor's fast DEFAULT (deepseek) instead of the model under test,
+  // which would leave those operations uncovered for every non-deepseek target.
+  const key = { vendor: "openrouter", apiKey: API_KEY, model: target, fastModel: target, reasoning: REASONING };
   try {
     const res = await runWithByomContext(key, () =>
       generateStructured({
@@ -246,18 +249,25 @@ const gen = await mapLimit(cells, CONCURRENCY, async ({ tool, target }) => {
 process.stdout.write("\n");
 
 const servedCells = gen.filter((r) => r.served);
-console.log(`2/2 · judging ${servedCells.length} served outputs with the Claude CLI (concurrency 2)…`);
-const judged = await mapLimit(servedCells, 2, async (r) => {
-  const j = await judge(
-    TOOLS.find((t) => t.id === r.tool),
-    r.output
-  );
-  process.stdout.write(j.judged ? "." : "x");
-  return { k: `${r.tool}|${r.target}`, j };
-});
-process.stdout.write("\n");
-const byKey = new Map(judged.map((x) => [x.k, x.j]));
-for (const r of gen) if (r.served) r.judge = byKey.get(`${r.tool}|${r.target}`) ?? null;
+// NOJUDGE captures the served outputs (with their real cost) WITHOUT spawning the
+// Claude judge — safe to run alongside `next dev` (the judge's process storm can
+// starve Turbopack). Judge the cached outputs afterwards with `llm:quality:rejudge`.
+if (process.env.LLM_QUALITY_NOJUDGE === "1") {
+  console.log(`2/2 · skipping judging (LLM_QUALITY_NOJUDGE=1) — ${servedCells.length} served outputs captured for a later rejudge.`);
+} else {
+  console.log(`2/2 · judging ${servedCells.length} served outputs with the Claude CLI (concurrency 2)…`);
+  const judged = await mapLimit(servedCells, 2, async (r) => {
+    const j = await judge(
+      TOOLS.find((t) => t.id === r.tool),
+      r.output
+    );
+    process.stdout.write(j.judged ? "." : "x");
+    return { k: `${r.tool}|${r.target}`, j };
+  });
+  process.stdout.write("\n");
+  const byKey = new Map(judged.map((x) => [x.k, x.j]));
+  for (const r of gen) if (r.served) r.judge = byKey.get(`${r.tool}|${r.target}`) ?? null;
+}
 
 // ── report ────────────────────────────────────────────────────────────────────
 const at = new Date().toISOString();

@@ -21,6 +21,8 @@ export interface QualityCell extends QualityDims {
   valid: boolean;
   /** how many Sonnet judges backed this median (confidence) */
   judges: number;
+  /** provider-reported USD cost of this one generation (OpenRouter usage.cost) */
+  costUsd?: number;
 }
 
 export interface QualityScores {
@@ -87,10 +89,12 @@ export interface ModelOverall {
   total: number;
   /** operations where this model is the top scorer */
   wins: number;
+  /** mean provider-reported cost per operation (null when unmeasured) */
+  avgCostUsd: number | null;
 }
 
 /** Per-model overall = mean composite across its measured operations, plus how
- *  many operations it covered and how many it won outright. */
+ *  many operations it covered, how many it won outright, and its mean cost/op. */
 export function modelOverall(scores: QualityScores, model: string): ModelOverall {
   const ops = Object.keys(scores.cells);
   const comps = ops
@@ -98,6 +102,10 @@ export function modelOverall(scores: QualityScores, model: string): ModelOverall
     .filter((v): v is number => v !== null);
   const overall = comps.length ? clamp10(comps.reduce((s, v) => s + v, 0) / comps.length) : null;
   const wins = ops.filter((op) => bestModelForOp(scores, op)?.model === model).length;
+  const costs = ops
+    .map((op) => scores.cells[op]?.[model]?.costUsd)
+    .filter((v): v is number => typeof v === "number" && v > 0);
+  const avgCostUsd = costs.length ? costs.reduce((s, v) => s + v, 0) / costs.length : null;
   return {
     model,
     overall,
@@ -105,7 +113,15 @@ export function modelOverall(scores: QualityScores, model: string): ModelOverall
     measured: comps.length,
     total: ops.length,
     wins,
+    avgCostUsd,
   };
+}
+
+/** Format a USD cost for display — sub-cent values keep enough precision to stay
+ *  non-zero; null/0 renders as an em dash. */
+export function formatCostUsd(n: number | null | undefined): string {
+  if (n === null || n === undefined || n === 0) return "—";
+  return n < 0.01 ? `$${n.toFixed(4)}` : `$${n.toFixed(3)}`;
 }
 
 /** Models ranked by overall composite (unmeasured last). */
