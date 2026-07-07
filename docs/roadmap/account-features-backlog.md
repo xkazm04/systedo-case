@@ -83,10 +83,13 @@ here:
    when empty. Activity: `recordActivity()` now fires on project settings/branding changes (the
    project PATCH route); the Activity page reads the live tenant feed, seed fallback when empty.
    Both are Firestore-only, so "live" is visible in production, not local/dev. Activity emitters now
-   fire on project **create**, **settings/branding** changes, **catalog** save, **warehouse**
-   connect/disconnect, and **Google Ads** link (all via one `emitProjectActivity` helper). *Remaining:*
-   emitters for content/reviews/map/keywords/social/experiment mutations, and a `projectId` on more
-   AI call payloads so per-project spend covers every operation, not just the grounded ones.
+   fire on project **create**, **settings/branding**, **Google Ads link**, **catalog** save +
+   **feed import**, **warehouse** connect/disconnect, **keyword list** save, **A/B variant** save,
+   **social** post schedule/publish, and **client microsite** publish/offline — spanning nastaveni,
+   branding, integrace, katalog, klicova-slova, experimenty-lp, socialni and reporty (campaigns
+   already emitted). *Remaining:* the modules without a server-side mutation seam (reviews / content
+   schedule / map are client/demo-only today), and a `projectId` on more AI call payloads so
+   per-project spend covers every operation, not just the grounded ones.
 2. **Monthly report per-type grounding** — a structured recap op on `getProjectDataset(project)`
    (this one *would* trigger the ~10-min LLM gate) so tiles/narrative fit non-eshop types.
 3. **Account** — true session-revocation + persisted sign-in metadata (NextAuth adapter reads).
