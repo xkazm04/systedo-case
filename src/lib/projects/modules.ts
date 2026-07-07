@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "integrace",
+    label: "Integrace",
+    labelEn: "Integrations",
+    icon: "integrations",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Stav napojení — připravenost konektorů (reklama, AI, recenze, reporty, infrastruktura) pro nasazení.",
+    blurbEn: "Integration status — connector readiness (advertising, AI, reviews, reports, infrastructure) for deployment.",
+  },
+  {
     key: "nastaveni",
     label: "Nastavení",
     labelEn: "Settings",

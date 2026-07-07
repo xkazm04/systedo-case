@@ -33,4 +33,5 @@ export type IconKey =
   | "schedule"
   | "clusters"
   | "distribute"
-  | "audience";
+  | "audience"
+  | "integrations";

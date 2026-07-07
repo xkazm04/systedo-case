@@ -21,6 +21,7 @@ import {
   Grid,
   Inbox,
   Layers,
+  Link,
   Broadcast,
   Megaphone,
   Network,
@@ -68,6 +69,7 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   clusters: Network,
   distribute: Broadcast,
   audience: Users,
+  integrations: Link,
 };
 
 /** Renders the icon for a key. Use this (not `const Icon = MODULE_ICONS[k]`)
