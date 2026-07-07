@@ -80,6 +80,7 @@ export const FOOTER_META_PAGES = [
   { href: "/socialni", key: "social" },
   { href: "/knihovna", key: "library" },
   { href: "/kvalita-modelu", key: "quality" },
+  { href: "/lokalni-seo", key: "localSeo" },
   { href: "/mapa", key: "map" },
   { href: "/design-system", key: "design" },
 ] as const;

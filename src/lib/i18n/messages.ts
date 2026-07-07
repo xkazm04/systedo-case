@@ -57,6 +57,7 @@ export interface Messages {
       social: string;
       library: string;
       quality: string;
+      localSeo: string;
       map: string;
       design: string;
       crafted: string;
@@ -117,6 +118,7 @@ const cs: Messages = {
       social: "Sociální sítě",
       library: "Knihovna vzorů",
       quality: "Kvalita modelů",
+      localSeo: "Lokální SEO",
       map: "Mapa",
       design: "Design system",
       crafted: "Vytvořeno s důrazem na UX, datovou konzistenci a čistý kód.",
@@ -177,6 +179,7 @@ const en: Messages = {
       social: "Social",
       library: "Pattern library",
       quality: "Model quality",
+      localSeo: "Local SEO",
       map: "Sitemap",
       design: "Design system",
       crafted: "Built with care for UX, data consistency and clean code.",

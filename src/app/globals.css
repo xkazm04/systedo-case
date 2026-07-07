@@ -423,6 +423,39 @@ html[data-theme="dark"] .theme-toggle-moon {
   animation: loadingPulse 1.6s ease-in-out infinite;
 }
 
+/* ---------------------------------------------------------------------------
+   Marketing chart draw-ins (components/marketing/charts/*). Hand-rolled SVG on
+   design tokens; these keyframes give the reveal on scroll-in — the chart is
+   mounted only while in view (via <ChartReveal>), so each keyframe replays on
+   re-entry (the "wow on arrival"). Paths use pathLength="1" so a single dash of
+   length 1 draws from offset 1 → 0 without measuring geometry. The universal
+   reduced-motion rule below neutralises all three, settling them to their end
+   state instantly, so no content is ever hidden. */
+@keyframes chartDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes gaugeSweep {
+  from { stroke-dashoffset: var(--gauge-arc, 0); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.chart-draw {
+  stroke-dasharray: 1;
+  animation: chartDraw 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.gauge-sweep {
+  animation: gaugeSweep 1.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.bar-grow {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: barGrow 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Global themed scrollbar — a slim navy thumb on a transparent track, applied to
    BOTH axes, so horizontal scrollbars (wide tables, the comparison grid, control
    strips) and the main window read as part of the UI instead of the chunky OS
