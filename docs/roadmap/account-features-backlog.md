@@ -77,8 +77,14 @@ All six modules ship and are wired into the sidebar (system section, every proje
 remains is turning seeded/gated surfaces into fully live ones — captured per-epic above and summed
 here:
 
-1. **Real data emission** — Activity (`recordActivity()` from every module) and Usage
-   (`userId`/`projectId` on `llmTelemetry`) are seeded on the real shapes; wire the producers.
+1. **Real data emission** — ✅ **done (live-read with seed fallback).** Usage: `llmTelemetry`
+   now carries `userId`/`projectId` (attributed at the chokepoint via an AsyncLocalStorage request
+   context set by the AI route); the Usage page reads the live per-project rollup, seed fallback
+   when empty. Activity: `recordActivity()` now fires on project settings/branding changes (the
+   project PATCH route); the Activity page reads the live tenant feed, seed fallback when empty.
+   Both are Firestore-only, so "live" is visible in production, not local/dev. *Remaining:* more
+   `recordActivity()` emitters (content/reviews/map mutations) and a `projectId` on more AI call
+   payloads so per-project spend covers every operation, not just the grounded ones.
 2. **Monthly report per-type grounding** — a structured recap op on `getProjectDataset(project)`
    (this one *would* trigger the ~10-min LLM gate) so tiles/narrative fit non-eshop types.
 3. **Account** — true session-revocation + persisted sign-in metadata (NextAuth adapter reads).
