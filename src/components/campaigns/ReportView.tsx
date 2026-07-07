@@ -72,6 +72,7 @@ export default function ReportView({
   history,
   cached,
   stale,
+  clientSafe,
 }: {
   report: CampaignReport;
   /** every score this scope/campaign has earned, for the trend timeline */
@@ -82,6 +83,9 @@ export default function ReportView({
   /** true when a sync after this evaluation changed the underlying metrics, so
    *  the stored report no longer matches the data on screen */
   stale?: boolean;
+  /** client-facing render (public shared link): hide the internal AI chrome —
+   *  the model/cost pill and the raw-prompt disclosure a client shouldn't see */
+  clientSafe?: boolean;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -102,7 +106,9 @@ export default function ReportView({
 
   return (
     <div className="space-y-5">
-      <ResultMeta meta={report.meta} copyAllText={copyAllText} createdAt={report.createdAt} />
+      {!clientSafe && (
+        <ResultMeta meta={report.meta} copyAllText={copyAllText} createdAt={report.createdAt} />
+      )}
 
       {/* stale wins over cached: "the data moved on" matters more than "this
           render was free" when both apply */}
@@ -211,7 +217,7 @@ export default function ReportView({
         </section>
       )}
 
-      <PromptDisclosure prompt={report.meta.prompt} />
+      {!clientSafe && <PromptDisclosure prompt={report.meta.prompt} />}
     </div>
   );
 }

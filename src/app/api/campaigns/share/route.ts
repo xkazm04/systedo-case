@@ -38,6 +38,7 @@ export async function POST(request: Request) {
   const token = await createSharedReport(tenant, accountName, {
     name: project?.name,
     accent: project?.accentColor,
+    logo: project?.logoUrl,
   });
   if (!token) {
     return Response.json(

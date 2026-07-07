@@ -33,6 +33,8 @@ export interface SharedReport {
   /** white-label branding captured at creation (optional) */
   brandName?: string;
   accentColor?: string;
+  /** client/white-label logo captured at share time, rendered on the client page */
+  logoUrl?: string;
   report: CampaignReport;
   history: ReportHistoryPoint[];
   campaigns: Campaign[];
@@ -68,7 +70,7 @@ function isExpired(expiresAt: string | undefined): boolean {
 export async function createSharedReport(
   tenant: string,
   accountName: string,
-  brandFallback?: { name?: string; accent?: string }
+  brandFallback?: { name?: string; accent?: string; logo?: string }
 ): Promise<string | null> {
   const meta = await getSyncMeta(tenant);
   if (!meta) return null;
@@ -87,6 +89,7 @@ export async function createSharedReport(
     views: 0,
     brandName: config.brandName || brandFallback?.name || undefined,
     accentColor: config.accentColor || brandFallback?.accent || undefined,
+    logoUrl: brandFallback?.logo || undefined,
     report,
     history: await getReportHistory(tenant, "overall", null),
     campaigns: await listCampaigns(tenant),

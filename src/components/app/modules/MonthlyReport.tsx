@@ -39,10 +39,12 @@ export default function MonthlyReport({
   tiles,
   snaps,
   projectName,
+  logoUrl,
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
   projectName: string;
+  logoUrl?: string;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -89,9 +91,15 @@ export default function MonthlyReport({
     <div id="monthly-report" className="space-y-6">
       {/* header + controls */}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-navy-800">{projectName}</h2>
-          <p className="text-sm text-muted">{t("heading")} · {analysisPeriodLabel(period, locale)}</p>
+        <div className="flex items-center gap-3">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={projectName} className="h-10 w-auto max-w-[160px] object-contain" />
+          )}
+          <div>
+            <h2 className="text-lg font-semibold text-navy-800">{projectName}</h2>
+            <p className="text-sm text-muted">{t("heading")} · {analysisPeriodLabel(period, locale)}</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden">
           <div className="inline-flex overflow-hidden rounded-pill border border-line">

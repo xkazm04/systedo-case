@@ -95,7 +95,13 @@ export default async function SharedReportPage({
       <div style={{ backgroundColor: accent }} className="h-1.5 w-full" aria-hidden />
       <Container className="max-w-3xl py-12 sm:py-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Eyebrow>{brand} · {t("eyebrow")}</Eyebrow>
+          <div className="flex items-center gap-3">
+            {shared.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={shared.logoUrl} alt={brand} className="h-8 w-auto max-w-[160px] object-contain" />
+            )}
+            <Eyebrow>{brand} · {t("eyebrow")}</Eyebrow>
+          </div>
           <div className="flex items-center gap-2">
             <PrintButton />
             <Pill tone="neutral">{t("readOnly")}</Pill>
@@ -130,7 +136,7 @@ export default async function SharedReportPage({
             {t("aiSection")}
           </h2>
           <div className="mt-5 border-t border-line pt-5">
-            <ReportView report={shared.report} history={shared.history} />
+            <ReportView report={shared.report} history={shared.history} clientSafe />
           </div>
         </section>
 

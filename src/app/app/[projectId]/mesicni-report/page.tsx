@@ -54,7 +54,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   return (
     <ModulePage moduleKey="mesicni-report">
-      <MonthlyReport tiles={tiles} snaps={snaps} projectName={project.name} />
+      <MonthlyReport tiles={tiles} snaps={snaps} projectName={project.name} logoUrl={project.logoUrl} />
     </ModulePage>
   );
 }
