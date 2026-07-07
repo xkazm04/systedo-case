@@ -21,7 +21,7 @@ import type { AreaPack, MapListing } from "@/lib/mappack/sample";
 const T = {
   cs: {
     searchArea: "Vyhledávací oblast",
-    liveMap: "Živá mapa · OpenStreetMap",
+    liveMap: "Mapa · OpenStreetMap (ukázková pozice)",
     tilesUnavailable: "Mapové dlaždice nejsou dostupné — pořadí vedle stále ukazuje každého konkurenta.",
     noGeo: "Pro tuto oblast zatím nejsou souřadnice.",
     you: "vy",
@@ -34,7 +34,7 @@ const T = {
   },
   en: {
     searchArea: "Search area",
-    liveMap: "Live map · OpenStreetMap",
+    liveMap: "Map · OpenStreetMap (sample ranking)",
     tilesUnavailable: "Map tiles unavailable — the ranked listings alongside still show every competitor.",
     noGeo: "No coordinates for this area yet.",
     you: "you",
