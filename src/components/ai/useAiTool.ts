@@ -10,6 +10,7 @@ import {
 } from "@/lib/ai/history";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 import { useT } from "@/lib/i18n/client";
+import { useOptionalProject } from "@/lib/projects/context";
 import { useAiStatus } from "./useAiStatus";
 
 const T = {
@@ -98,6 +99,13 @@ export function useAiTool<T>(mode: string, variant?: string) {
   const aiStatus = useAiStatus();
   const expectedMs = aiStatus?.latency?.[mode.split(":")[0]] ?? null;
 
+  // The active project (null on public/marketing surfaces). Threaded into every
+  // request body so the chokepoint attributes per-project spend for EVERY
+  // operation — not just the ones that already carry a projectId (chat). Added
+  // only at the wire; the stored payload/refine stay clean and a payload that
+  // already names a project (chat's grounding) is never overridden.
+  const contextProjectId = useOptionalProject()?.id;
+
   const commitHistory = (next: AiHistoryEntry<T>[]) => {
     historyRef.current = next;
     setHistory(next);
@@ -173,7 +181,11 @@ export function useAiTool<T>(mode: string, variant?: string) {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, ...payload }),
+        body: JSON.stringify({
+          mode,
+          ...payload,
+          ...(contextProjectId && payload.projectId === undefined ? { projectId: contextProjectId } : {}),
+        }),
         signal: controller.signal,
       });
       const json = await res.json();
