@@ -7,25 +7,38 @@ import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
-import type { ReportSnap } from "@/lib/report/compute";
+import { reportTilesForType, type ReportSnap } from "@/lib/report/compute";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "mesicni-report");
   const dataset = getProjectDataset(project);
 
+  // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
+  // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
+  const tiles = reportTilesForType(project.type);
+
   const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
   for (const p of ANALYSIS_PERIODS) {
     const s = buildSnapshot(p, "previous", dataset);
+    const c = s.current;
+    // Derived, type-relevant metrics not carried directly on Totals.
+    const cpa = c.conversions > 0 ? c.cost / c.conversions : 0;
+    const prevConv = c.conversions / (1 + (s.delta.conversions ?? 0));
+    const prevCost = c.cost / (1 + (s.delta.cost ?? 0));
+    const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
+    const cpaDelta = prevCpa > 0 ? cpa / prevCpa - 1 : 0;
     snaps[p] = {
       label: s.periodLabel,
       current: {
-        revenue: s.current.revenue,
-        roas: s.current.roas,
-        pno: s.current.pno,
-        conversions: s.current.conversions,
-        cost: s.current.cost,
-        visits: s.current.visits,
+        revenue: c.revenue,
+        roas: c.roas,
+        pno: c.pno,
+        conversions: c.conversions,
+        cost: c.cost,
+        visits: c.visits,
+        cpa,
+        convRate: c.cr,
       },
       delta: {
         revenue: s.delta.revenue,
@@ -33,13 +46,15 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         conversions: s.delta.conversions,
         cost: s.delta.cost,
         visits: s.delta.visits,
+        convRate: s.delta.cr,
+        cpa: cpaDelta,
       },
     };
   }
 
   return (
     <ModulePage moduleKey="mesicni-report">
-      <MonthlyReport snaps={snaps} projectName={project.name} />
+      <MonthlyReport tiles={tiles} snaps={snaps} projectName={project.name} />
     </ModulePage>
   );
 }

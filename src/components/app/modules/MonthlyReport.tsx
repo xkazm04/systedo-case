@@ -12,7 +12,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { downloadText } from "@/lib/export";
 import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
-import { deltaTone, REPORT_TILES, type ReportMetric, type ReportSnap } from "@/lib/report/compute";
+import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 
 const T = {
   cs: {
@@ -35,24 +35,28 @@ const T = {
   },
 } as const;
 
-const METRIC_LABEL: Record<"cs" | "en", Record<ReportMetric, string>> = {
-  cs: { revenue: "Obrat", roas: "ROAS", pno: "PNO", conversions: "Konverze", cost: "Náklady", visits: "Návštěvy" },
-  en: { revenue: "Revenue", roas: "ROAS", pno: "PNO", conversions: "Conversions", cost: "Cost", visits: "Visits" },
-};
-
-export default function MonthlyReport({ snaps, projectName }: { snaps: Record<AnalysisPeriod, ReportSnap>; projectName: string }) {
+export default function MonthlyReport({
+  tiles,
+  snaps,
+  projectName,
+}: {
+  tiles: ReportTileSpec[];
+  snaps: Record<AnalysisPeriod, ReportSnap>;
+  projectName: string;
+}) {
   const t = useT(T);
   const { locale } = useLocale();
   const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct } = useFormatters();
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
   const { status, data, run, reset } = useAiTool<MonthlyRecapResult>("monthly-recap", period);
 
+  const en = locale === "en";
   const snap = snaps[period];
-  const labels = METRIC_LABEL[locale === "en" ? "en" : "cs"];
   const r = data?.result;
 
+  const tileLabel = (spec: ReportTileSpec): string => (en ? spec.labelEn : spec.label);
   const fmtVal = (metric: ReportMetric, v: number): string => {
-    const spec = REPORT_TILES.find((s) => s.metric === metric);
+    const spec = tiles.find((s) => s.metric === metric);
     switch (spec?.format) {
       case "czk": return fmtCZKCompact(v);
       case "multiple": return fmtMultiple(v);
@@ -68,9 +72,9 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
       "",
       `_${analysisPeriodLabel(period, locale)}_`,
       "",
-      "| " + REPORT_TILES.map((s) => labels[s.metric]).join(" | ") + " |",
-      "| " + REPORT_TILES.map(() => "---").join(" | ") + " |",
-      "| " + REPORT_TILES.map((s) => fmtVal(s.metric, snap.current[s.metric])).join(" | ") + " |",
+      "| " + tiles.map((s) => tileLabel(s)).join(" | ") + " |",
+      "| " + tiles.map(() => "---").join(" | ") + " |",
+      "| " + tiles.map((s) => fmtVal(s.metric, snap.current[s.metric] ?? 0)).join(" | ") + " |",
     ];
     if (r) {
       lines.push("", `## ${r.headline}`, "", r.summary,
@@ -113,12 +117,12 @@ export default function MonthlyReport({ snaps, projectName }: { snaps: Record<An
 
       {/* KPI tiles */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {REPORT_TILES.map((spec) => {
-          const value = snap.current[spec.metric];
+        {tiles.map((spec) => {
+          const value = snap.current[spec.metric] ?? 0;
           const d = spec.hasDelta ? snap.delta[spec.metric] : undefined;
           return (
             <div key={spec.metric} className="card p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">{labels[spec.metric]}</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{tileLabel(spec)}</p>
               <p className="tnum mt-1 text-2xl font-semibold text-navy-800">{fmtVal(spec.metric, value)}</p>
               {typeof d === "number" && (
                 <p className={"tnum mt-0.5 text-xs font-medium " + toneClass(deltaTone(d, spec.goodWhenDown))}>
