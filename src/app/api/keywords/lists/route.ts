@@ -6,6 +6,7 @@
  *  Saving requires an account (anonymous research stays transient). Node runtime. */
 import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { recordActivity } from "@/lib/campaigns/activity";
 import {
   saveKeywordList,
   listKeywordLists,
@@ -74,6 +75,14 @@ export async function POST(request: Request) {
 
   const tenant = await resolveTenant(userId, projectId);
   const list = await saveKeywordList(tenant, { name, seed, source, keywords });
+  await recordActivity(tenant, {
+    kind: "update",
+    module: "klicova-slova",
+    severity: "info",
+    title: "Seznam klíčových slov uložen",
+    detail: `${name} · ${keywords.length} slov`,
+    actor: "Vy",
+  });
   return Response.json({ list });
 }
 

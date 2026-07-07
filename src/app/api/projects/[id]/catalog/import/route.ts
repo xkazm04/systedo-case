@@ -12,6 +12,7 @@ import { mergeCatalog, type ImportStrategy } from "@/lib/catalog/import";
 import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
 import { CATALOG_MAX_BODY_BYTES, CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
+import { emitProjectActivity } from "@/lib/activity/emit";
 
 /** Guard against a pathological paste (~12 MB of text). */
 const MAX_CONTENT = 12_000_000;
@@ -85,5 +86,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   await saveOfferings(uid, id, next);
+  await emitProjectActivity(uid, id, {
+    kind: "update",
+    module: "katalog",
+    severity: "info",
+    title: "Katalog importován z feedu",
+    detail: `${parsed.format} · ${next.length} položek`,
+    actor: "Vy",
+  });
   return Response.json({ ok: true, applied: true, format: parsed.format, warnings: parsed.warnings, diff, offerings: next, count: next.length });
 }

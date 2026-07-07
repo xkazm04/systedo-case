@@ -3,6 +3,7 @@
  *  without sign-in. Publishing is simulated in demo mode (see lib/social/publish). */
 import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { recordActivity } from "@/lib/campaigns/activity";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost } from "@/lib/social/publish";
 import { PLATFORM_LIMITS, isSocialPlatform } from "@/lib/social/types";
@@ -46,6 +47,10 @@ export async function POST(request: Request) {
   // Schedule for later → the cron publishes it when due.
   if (future) {
     const post = await createPost(tenant, { platform, content, status: "scheduled", scheduledAt });
+    await recordActivity(tenant, {
+      kind: "update", module: "socialni", severity: "info",
+      title: "Příspěvek naplánován", detail: platform, actor: "Vy",
+    });
     return Response.json({ post });
   }
 
@@ -56,6 +61,11 @@ export async function POST(request: Request) {
     ? { status: "published" as const, publishedAt: new Date().toISOString(), externalUrl: result.externalUrl }
     : { status: "failed" as const, error: result.error ?? "Publikování se nezdařilo." };
   await updatePost(tenant, post.id, patch);
+  await recordActivity(tenant, {
+    kind: "update", module: "socialni", severity: result.ok ? "success" : "warning",
+    title: result.ok ? "Příspěvek publikován" : "Publikování příspěvku selhalo",
+    detail: platform, actor: "Vy",
+  });
   return Response.json({ post: { ...post, ...patch } });
 }
 

@@ -6,6 +6,7 @@
  *  tenant is rejected. Node runtime. */
 import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { recordActivity } from "@/lib/campaigns/activity";
 import { slugify } from "@/lib/nav";
 import {
   getMicrosite,
@@ -69,6 +70,10 @@ export async function POST(request: Request) {
     accentColor: accentColor && /^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : undefined,
     periodDays: Number.isFinite(periodDays) ? periodDays : undefined,
   });
+  await recordActivity(tenant, {
+    kind: "update", module: "reporty", severity: "success",
+    title: "Klientská microsite publikována", detail: clientName, actor: "Vy",
+  });
   return Response.json({ microsite });
 }
 
@@ -78,5 +83,9 @@ export async function DELETE(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);
   await disableMicrosite(tenant);
+  await recordActivity(tenant, {
+    kind: "update", module: "reporty", severity: "warning",
+    title: "Klientská microsite vypnuta", detail: "", actor: "Vy",
+  });
   return Response.json({ ok: true });
 }

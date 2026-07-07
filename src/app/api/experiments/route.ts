@@ -6,6 +6,7 @@
  *  Requires an account (anonymous generation stays transient). Node runtime. */
 import { auth } from "@/auth";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { recordActivity } from "@/lib/campaigns/activity";
 import {
   listExperiments,
   upsertExperimentVariant,
@@ -69,6 +70,14 @@ export async function POST(request: Request) {
     label: typeof body.label === "string" ? body.label : undefined,
     ad,
     strength: num(body.strength),
+  });
+  await recordActivity(tenant, {
+    kind: "update",
+    module: "experimenty-lp",
+    severity: "info",
+    title: "A/B varianta uložena",
+    detail: name,
+    actor: "Vy",
   });
   return Response.json({ experiment });
 }
