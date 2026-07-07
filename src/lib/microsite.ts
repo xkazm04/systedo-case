@@ -29,6 +29,11 @@ export interface MicrositeConfig {
   /** trailing window in days */
   periodDays: number;
   enabled: boolean;
+  /** true when the figures are the scaled case-study series, not a tenant's real
+   *  synced data — the page then discloses it and is NOT search-indexed, so demo
+   *  numbers are never published as indexed "proof". A real, Ads-connected tenant
+   *  leaves this false and keeps the indexed proof page. */
+  illustrative?: boolean;
   updatedAt: string;
 }
 
@@ -43,6 +48,7 @@ export const DEMO_MICROSITE: MicrositeConfig = {
   accentColor: "#0f766e",
   periodDays: 30,
   enabled: true,
+  illustrative: true,
   updatedAt: "",
 };
 

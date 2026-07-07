@@ -28,6 +28,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     const prevCost = c.cost / (1 + (s.delta.cost ?? 0));
     const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
     const cpaDelta = prevCpa > 0 ? cpa / prevCpa - 1 : 0;
+    // Contribution (revenue − ad cost) + profit-on-ad-spend. NOT after-COGS —
+    // true net profit needs per-SKU margin (a separate seam).
+    const poas = c.cost > 0 ? c.profit / c.cost : 0;
     snaps[p] = {
       label: s.periodLabel,
       current: {
@@ -39,6 +42,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         visits: c.visits,
         cpa,
         convRate: c.cr,
+        profit: c.profit,
+        poas,
       },
       delta: {
         revenue: s.delta.revenue,
@@ -48,6 +53,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         visits: s.delta.visits,
         convRate: s.delta.cr,
         cpa: cpaDelta,
+        profit: s.delta.profit,
       },
     };
   }

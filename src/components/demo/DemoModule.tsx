@@ -33,6 +33,11 @@ import ContentEngine from "@/components/app/modules/ContentEngine";
 import DistributionModule from "@/components/app/modules/DistributionModule";
 import AudienceModule from "@/components/app/modules/AudienceModule";
 import ProjectSettings from "@/components/app/modules/ProjectSettings";
+import SpendModule from "@/components/app/modules/SpendModule";
+import IntegrationStatusModule from "@/components/app/modules/IntegrationStatusModule";
+import AccountSecurity from "@/components/app/modules/AccountSecurity";
+import { spendForProject } from "@/lib/spend/sample";
+import { computeIntegrationRows } from "@/lib/integrations/compute";
 
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { getT } from "@/lib/i18n/server";
@@ -103,6 +108,12 @@ function noted(children: React.ReactNode) {
       {children}
     </>
   );
+}
+
+/** No-op for the public demo's Account surface — there's no real session to end,
+ *  so sign-out / revoke do nothing here (the buttons are shown for the tour). */
+async function demoAccountAction() {
+  "use server";
 }
 
 export default async function DemoModule({
@@ -379,6 +390,45 @@ export default async function DemoModule({
       return (
         <ModulePage moduleKey="nastaveni">
           <ProjectSettings />
+        </ModulePage>
+      );
+    case "spotreba":
+      return (
+        <ModulePage moduleKey="spotreba">
+          {noted(<SpendModule entries={spendForProject(project)} isLive={false} />)}
+        </ModulePage>
+      );
+    case "integrace":
+      // A representative "mostly connected" readiness board, so a prospect sees
+      // what a live deployment looks like (real env probing is per-tenant + authed).
+      return (
+        <ModulePage moduleKey="integrace">
+          {noted(
+            <IntegrationStatusModule
+              rows={computeIntegrationRows({
+                googleAdsToken: true, googleAdsCustomer: true, googleOAuth: true,
+                gemini: true, resend: true, cron: true,
+                firestore: true, localDb: false, devAuth: false,
+                lighttrack: false, social: false, leonardo: true,
+                adsLinked: true, byomValidated: false, warehouse: false,
+              })}
+            />
+          )}
+        </ModulePage>
+      );
+    case "ucet":
+      return (
+        <ModulePage moduleKey="ucet">
+          {noted(
+            <AccountSecurity
+              user={{ id: "demo-user", name: "Ukázkový uživatel", email: "demo@adamant.app", image: null }}
+              facts={{ hasEmail: true, oauth: true, devMode: false }}
+              expiresDate={null}
+              sessionCount={2}
+              signOutAction={demoAccountAction}
+              signOutEverywhereAction={demoAccountAction}
+            />
+          )}
         </ModulePage>
       );
 

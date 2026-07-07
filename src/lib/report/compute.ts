@@ -14,7 +14,11 @@ export type ReportMetric =
   | "cost"
   | "visits"
   | "cpa"
-  | "convRate";
+  | "convRate"
+  /** contribution = revenue − ad cost (NOT after-COGS; margin data is a separate seam) */
+  | "profit"
+  /** profit on ad spend = contribution / ad cost */
+  | "poas";
 export type ReportFormat = "czk" | "multiple" | "pct" | "int";
 export type DeltaTone = "positive" | "negative" | "neutral";
 
@@ -48,7 +52,9 @@ const CONV_RATE = T("convRate", "Konverzní poměr", "Conversion rate", "pct");
 export const REPORT_TILE_PRESETS: Record<ProjectType, ReportTileSpec[]> = {
   eshop: [
     T("revenue", "Obrat", "Revenue", "czk"),
+    T("profit", "Příspěvek", "Contribution", "czk"),
     T("roas", "ROAS", "ROAS", "multiple", false, false),
+    T("poas", "POAS", "POAS", "multiple", false, false),
     T("pno", "PNO", "PNO", "pct", true),
     T("conversions", "Konverze", "Conversions", "int"),
     COST,

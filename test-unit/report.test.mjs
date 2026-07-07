@@ -18,10 +18,12 @@ test("deltaTone: negligible delta is neutral", () => {
   assert.equal(deltaTone(0.00001, true), "neutral");
 });
 
-test("REPORT_TILES covers the six recap metrics; only cost & PNO are goodWhenDown", () => {
-  assert.deepEqual(REPORT_TILES.map((t) => t.metric), ["revenue", "roas", "pno", "conversions", "cost", "visits"]);
+test("eshop REPORT_TILES: contribution + POAS present; only cost & PNO are goodWhenDown", () => {
+  assert.deepEqual(REPORT_TILES.map((t) => t.metric), ["revenue", "profit", "roas", "poas", "pno", "conversions", "cost", "visits"]);
   assert.deepEqual(REPORT_TILES.filter((t) => t.goodWhenDown).map((t) => t.metric), ["pno", "cost"]);
+  // ratio metrics (roas, poas) carry no period delta tile
   assert.equal(REPORT_TILES.find((t) => t.metric === "roas").hasDelta, false);
+  assert.equal(REPORT_TILES.find((t) => t.metric === "poas").hasDelta, false);
 });
 
 test("report tiles are per-type: leadgen/local lead with leads/CPL, never e-shop Obrat/ROAS", () => {

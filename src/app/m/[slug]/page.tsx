@@ -22,6 +22,7 @@ const T = {
     propConversions: "Konverze",
     propPno: "PNO",
     updatedAt: "aktualizováno {date}",
+    illustrative: "Ilustrativní ukázková data (case study) — nejde o reálné výsledky klienta.",
   },
   en: {
     notFound: "Microsite not found",
@@ -32,6 +33,7 @@ const T = {
     propConversions: "Conversions",
     propPno: "Cost ratio",
     updatedAt: "updated {date}",
+    illustrative: "Illustrative sample data (case study) — not a client's real results.",
   },
 } as const;
 
@@ -52,8 +54,10 @@ export async function generateMetadata({
     title: article.meta.title,
     description: article.meta.perex,
     alternates: { canonical: path },
-    // These microsites are meant to be found — override the site-wide noindex.
-    robots: { index: true, follow: true },
+    // Real tenants' pages are meant to be found (override the site-wide noindex);
+    // an illustrative (case-study) microsite is NEVER indexed — demo numbers must
+    // not be published as search-findable "proof".
+    robots: config.illustrative ? { index: false, follow: true } : { index: true, follow: true },
     openGraph: { title: article.meta.title, description: article.meta.perex, type: "article", url: canonical(path) },
   };
 }
@@ -122,6 +126,9 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
           <p className="mt-4 text-xs text-muted">
             {config.clientName} · {config.segment} · {t("updatedAt", { date: fmt.fmtDate(asOf) })}
           </p>
+          {config.illustrative && (
+            <p className="mt-4 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">{t("illustrative")}</p>
+          )}
         </header>
 
         <article className="prose-article mt-8 max-w-3xl">
