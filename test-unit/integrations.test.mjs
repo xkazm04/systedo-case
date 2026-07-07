@@ -9,6 +9,7 @@ const NONE = {
   gemini: false, resend: false, cron: false,
   firestore: false, localDb: false, devAuth: false,
   lighttrack: false, social: false, leonardo: false, adsLinked: false,
+  byomValidated: false, warehouse: false,
 };
 
 const rowById = (rows, id) => rows.find((r) => r.id === id);
@@ -23,6 +24,15 @@ test("Google Ads: missing platform → missing; platform but unlinked → action
 test("AI/LLM: server key present → connected, else action (BYOM fallback)", () => {
   assert.equal(rowById(computeIntegrationRows(NONE), "ai-llm").status, "action");
   assert.equal(rowById(computeIntegrationRows({ ...NONE, gemini: true }), "ai-llm").status, "connected");
+});
+
+test("AI/LLM: a validated BYOM key connects even without a server key", () => {
+  assert.equal(rowById(computeIntegrationRows({ ...NONE, byomValidated: true }), "ai-llm").status, "connected");
+});
+
+test("warehouse probe: connected when present, optional when absent", () => {
+  assert.equal(rowById(computeIntegrationRows(NONE), "warehouse").status, "optional");
+  assert.equal(rowById(computeIntegrationRows({ ...NONE, warehouse: true }), "warehouse").status, "connected");
 });
 
 test("persistence: connected on firestore OR local db, else missing", () => {

@@ -32,8 +32,14 @@ export interface ProvisionInput {
   lighttrack: boolean;
   social: boolean;
   leonardo: boolean;
-  /** the active project has a Google Ads customer linked */
+  /** the active project has a Google Ads customer linked (live: project field or a
+   *  connected Ads account for the user) */
   adsLinked: boolean;
+  /** live probe: the user has a validated BYOM key — AI works even without a
+   *  server GEMINI_API_KEY */
+  byomValidated: boolean;
+  /** live probe: this project has a saved warehouse/ERP feed connection */
+  warehouse: boolean;
 }
 
 const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "reviews", "reports", "infra"];
@@ -48,7 +54,8 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
       status: adsPlatform ? (p.adsLinked ? "connected" : "action") : "missing",
     },
     { id: "sklik", category: "ads", status: "manual" },
-    { id: "ai-llm", category: "ai", status: p.gemini ? "connected" : "action" },
+    // Live: a server key OR a validated BYOM key means AI generation works.
+    { id: "ai-llm", category: "ai", status: p.gemini || p.byomValidated ? "connected" : "action" },
     { id: "gbp", category: "reviews", status: "planned" },
     { id: "social", category: "content", status: p.social ? "connected" : "missing" },
     { id: "creative-images", category: "content", status: p.leonardo ? "connected" : "missing" },
@@ -59,6 +66,9 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
       category: "infra",
       status: p.firestore || p.localDb ? "connected" : "missing",
     },
+    // Live probe: a saved product-feed / ERP connection for this project. Optional
+    // (only commerce projects need it), so absence reads "optional", not "missing".
+    { id: "warehouse", category: "infra", status: p.warehouse ? "connected" : "optional" },
     {
       id: "auth",
       category: "infra",

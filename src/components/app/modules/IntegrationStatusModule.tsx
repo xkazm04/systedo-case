@@ -19,8 +19,9 @@ const COPY = {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / BYOM)",
       gbp: "Google Business Profile", social: "Sociální publikování (Meta / LinkedIn)",
       "creative-images": "Generování obrázků (Leonardo)", "email-reports": "E-mail & reporty (Resend)",
-      lighttrack: "LightTrack (LLM telemetrie)", persistence: "Datové úložiště", auth: "Přihlášení (Google OAuth)", cron: "Automatizace (cron)",
+      lighttrack: "LightTrack (LLM telemetrie)", persistence: "Datové úložiště", warehouse: "Datový sklad / feed", auth: "Přihlášení (Google OAuth)", cron: "Automatizace (cron)",
     } as Record<string, string>,
+    probeNote: "Zahrnuje živé ověření: platný BYOM klíč, napojený datový sklad a připojený účet Google Ads.",
   },
   en: {
     lead: "Connector readiness for this project — what's active, what's awaiting a step, and what's still manual. Derived from the real environment + project config.",
@@ -33,8 +34,9 @@ const COPY = {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generation (Gemini / BYOM)",
       gbp: "Google Business Profile", social: "Social publishing (Meta / LinkedIn)",
       "creative-images": "Image generation (Leonardo)", "email-reports": "Email & reports (Resend)",
-      lighttrack: "LightTrack (LLM telemetry)", persistence: "Data store", auth: "Sign-in (Google OAuth)", cron: "Automation (cron)",
+      lighttrack: "LightTrack (LLM telemetry)", persistence: "Data store", warehouse: "Data warehouse / feed", auth: "Sign-in (Google OAuth)", cron: "Automation (cron)",
     } as Record<string, string>,
+    probeNote: "Includes live checks: a validated BYOM key, a connected data warehouse, and a linked Google Ads account.",
   },
 } as const;
 
@@ -90,6 +92,8 @@ export default async function IntegrationStatusModule({ rows }: { rows: Integrat
           </div>
         ))}
       </div>
+
+      <p className="text-xs text-muted">{c.probeNote}</p>
     </div>
   );
 }
