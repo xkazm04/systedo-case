@@ -32,6 +32,7 @@ import {
 import { consume, getUserPlan } from "@/lib/usage";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getByomContext } from "@/lib/llm/byom-context";
+import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
@@ -147,6 +148,15 @@ export async function POST(request: Request) {
     // Resolved once: powers the daily quota AND per-project grounding tenancy.
     const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
+
+    // Identity attribution for telemetry (per-user + per-project spend). Best-effort:
+    // the projectId is taken from the payload when the caller names one — read back
+    // by generateStructured at the recordLlmCall seam.
+    const reqProjectId = (body as { projectId?: unknown })?.projectId;
+    enterLlmRequestContext({
+      ...(userId ? { userId } : {}),
+      ...(typeof reqProjectId === "string" && reqProjectId ? { projectId: reqProjectId } : {}),
+    });
 
     // BYOM: resolve the per-operation provider for THIS mode (the matrix override
     // for the tool, else the global active vendor) and enter it into the request

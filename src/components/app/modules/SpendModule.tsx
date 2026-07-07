@@ -19,6 +19,7 @@ const T = {
     colModel: "Model", colCalls: "Volání", colTokens: "Tokeny", colCost: "Náklady", colShare: "Podíl",
     export: "Export CSV", empty: "V tomto období není žádná spotřeba.",
     note: "Ilustrativní spotřeba LLM. Živá verze agreguje kolekci llmTelemetry (zaznamenáno v recordLlmCall) za období.",
+    noteLive: "Živá data z llmTelemetry pro tento projekt za posledních 60 dní.",
   },
   en: {
     cost: "Cost", calls: "Calls", tokens: "Tokens",
@@ -27,13 +28,14 @@ const T = {
     colModel: "Model", colCalls: "Calls", colTokens: "Tokens", colCost: "Cost", colShare: "Share",
     export: "Export CSV", empty: "No usage in this period.",
     note: "Illustrative LLM usage. The live version aggregates the llmTelemetry collection (recorded at recordLlmCall) over the period.",
+    noteLive: "Live data from llmTelemetry for this project over the last 60 days.",
   },
 } as const;
 
 const usd = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
 const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
-export default function SpendModule({ entries }: { entries: SpendEntry[] }) {
+export default function SpendModule({ entries, isLive = false }: { entries: SpendEntry[]; isLive?: boolean }) {
   const t = useT(T);
   const { fmtInt, fmtPct } = useFormatters();
   const [windowDays, setWindowDays] = useState(30);
@@ -147,7 +149,7 @@ export default function SpendModule({ entries }: { entries: SpendEntry[] }) {
         </div>
       )}
 
-      <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">{t("note")}</p>
+      <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">{isLive ? t("noteLive") : t("note")}</p>
     </div>
   );
 }

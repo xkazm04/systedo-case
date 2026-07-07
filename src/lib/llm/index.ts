@@ -19,6 +19,7 @@ import { byomModel, claudeModelTag, geminiModelTag, type ModelTier } from "./mod
 import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
 import { runByom } from "./byom/adapters";
 import { getByomContext } from "./byom-context";
+import { getLlmRequestContext } from "./request-context";
 import { ByomUserError } from "./errors";
 import type { ResolvedByomKey } from "./keys/types";
 
@@ -236,6 +237,14 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
   const promptHash = promptFingerprint(args.system, args.schema);
   const toolId = args.id ?? "unknown";
 
+  // Identity attribution for the telemetry entry (who/what this call is for),
+  // set by the AI route. Only defined keys are included — Firestore rejects an
+  // `undefined` field, so we never spread bare optionals into the entry.
+  const reqCtx = getLlmRequestContext();
+  const attribution: { userId?: string; projectId?: string } = {};
+  if (reqCtx?.userId) attribution.userId = reqCtx.userId;
+  if (reqCtx?.projectId) attribution.projectId = reqCtx.projectId;
+
   // BYOM (when the request carries a resolved key) goes first, with the app's env
   // providers as the recoverable-fallback tail; absent BYOM this is today's order.
   const byom = getByomContext();
@@ -320,6 +329,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         inputTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
         at: new Date().toISOString(),
+        ...attribution,
       });
 
       // The parse succeeded but may still be corrupt/truncated. Flag it to LightTrack as an error
@@ -369,6 +379,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
     inputTokens: 0,
     outputTokens: 0,
     at: new Date().toISOString(),
+    ...attribution,
   });
   return { result: args.demo(), meta: demoMeta };
 }
