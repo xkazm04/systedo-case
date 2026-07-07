@@ -304,6 +304,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
+    key: "mesicni-report",
+    label: "Měsíční report",
+    labelEn: "Monthly report",
+    icon: "reports",
+    section: "system",
+    availableFor: ALL,
+    blurb: "Klientský souhrn výkonu za období — KPI dlaždice, AI narativ, tisk a export.",
+    blurbEn: "A client-ready performance recap — KPI tiles, an AI narrative, print and export.",
+  },
+  {
     key: "aktivita",
     label: "Aktivita",
     labelEn: "Activity",
