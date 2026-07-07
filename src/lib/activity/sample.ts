@@ -22,6 +22,9 @@ export interface ActivityEvent {
   /** age in days (0 = today) */
   daysAgo: number;
   params: { area?: string; name?: string; value?: number };
+  /** pre-localized literal title (set when mapped from a live ActivityRecord,
+   *  which already stores a written title); the UI renders it instead of `tmpl`. */
+  text?: string;
 }
 
 interface Recipe {

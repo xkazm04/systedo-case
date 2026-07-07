@@ -26,6 +26,7 @@ const T = {
     kindSync: "Synchronizace",
     kindAlert: "Upozornění",
     kindReport: "Report",
+    kindUpdate: "Změna",
   },
   en: {
     ariaLabel: "Activity history",
@@ -44,6 +45,7 @@ const T = {
     kindSync: "Sync",
     kindAlert: "Alert",
     kindReport: "Report",
+    kindUpdate: "Change",
   },
 } as const;
 
@@ -66,6 +68,7 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
     sync: t("kindSync"),
     alert: t("kindAlert"),
     report: t("kindReport"),
+    update: t("kindUpdate"),
   };
 
   const load = useCallback(async () => {
@@ -161,4 +164,5 @@ const KIND_ICON: Record<ActivityKind, typeof Clock> = {
   sync: Refresh,
   alert: Bell,
   report: Document,
+  update: Bolt,
 };

@@ -2,7 +2,7 @@
  *  filter, severity rollup, active modules, CSV escaping, determinism. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { activeModules, csvCell, filterActivity, severityCounts } from "@/lib/activity/compute";
+import { actorFor, activeModules, csvCell, filterActivity, recordToEvent, severityCounts } from "@/lib/activity/compute";
 import { activityForProject } from "@/lib/activity/sample";
 
 const ev = (over = {}) => ({
@@ -34,6 +34,35 @@ test("csvCell quotes only when needed and escapes quotes", () => {
   assert.equal(csvCell("plain"), "plain");
   assert.equal(csvCell("a,b"), '"a,b"');
   assert.equal(csvCell('he said "hi"'), '"he said ""hi"""');
+});
+
+test("actorFor maps labels to ai/system/you", () => {
+  assert.equal(actorFor(undefined), "system");
+  assert.equal(actorFor("Vy"), "you");
+  assert.equal(actorFor("You"), "you");
+  assert.equal(actorFor("Automatická synchronizace"), "system");
+  assert.equal(actorFor("Jan Novák"), "you");
+});
+
+test("recordToEvent infers module/severity from kind, or uses the record's own", () => {
+  const NOW = Date.parse("2026-07-07T00:00:00.000Z");
+  const inferred = recordToEvent(
+    { id: "r1", kind: "alert", title: "Rozpočet vyčerpán", detail: "Kampaň X", at: "2026-07-04T00:00:00.000Z" },
+    NOW
+  );
+  assert.equal(inferred.module, "kampane");
+  assert.equal(inferred.severity, "warning");
+  assert.equal(inferred.daysAgo, 3);
+  assert.equal(inferred.text, "Rozpočet vyčerpán — Kampaň X");
+
+  const explicit = recordToEvent(
+    { id: "r2", kind: "update", title: "Branding upraven", detail: "", at: "2026-07-07T00:00:00.000Z", module: "branding", severity: "success", actor: "Vy" },
+    NOW
+  );
+  assert.equal(explicit.module, "branding");
+  assert.equal(explicit.severity, "success");
+  assert.equal(explicit.actor, "you");
+  assert.equal(explicit.text, "Branding upraven");
 });
 
 test("activityForProject is deterministic, newest-first, valid shape", () => {

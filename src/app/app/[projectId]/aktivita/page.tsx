@@ -1,23 +1,33 @@
-/** Aktivita / Activity — a project-wide timeline of module + AI actions. Seeded
- *  on the same shape as the campaigns activity feed; account-level, so available
- *  for every project type. */
+/** Aktivita / Activity — a project-wide timeline of module + AI actions. Reads the
+ *  tenant's live activity feed (written best-effort at each mutation/sync/alert
+ *  seam); falls back to a seeded cross-module sample when the feed is empty
+ *  (local/dev, or a fresh project). Account-level, every project type. */
 import { requireProjectModule } from "@/lib/projects/guard";
+import { currentUserId } from "@/lib/session";
 import ModulePage from "@/components/app/ModulePage";
 import ActivityModule from "@/components/app/modules/ActivityModule";
 import SampleDataNote from "@/components/app/SampleDataNote";
 import { activityForProject } from "@/lib/activity/sample";
+import { liveActivityForProject } from "@/lib/activity/live";
 import { localitiesFor } from "@/lib/catalog/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "aktivita");
-  const events = activityForProject(project, localitiesFor(project));
+
+  const userId = await currentUserId();
+  const live = await liveActivityForProject(userId, project.id);
+  const isLive = live.length > 0;
+  const events = isLive ? live : activityForProject(project, localitiesFor(project));
+
   return (
     <ModulePage moduleKey="aktivita">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
-      <ActivityModule events={events} />
+      {!isLive && (
+        <div className="mb-5">
+          <SampleDataNote />
+        </div>
+      )}
+      <ActivityModule events={events} isLive={isLive} />
     </ModulePage>
   );
 }

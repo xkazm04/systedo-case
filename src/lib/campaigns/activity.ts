@@ -7,7 +7,11 @@
  *  Server-only. */
 import { firestore } from "@/lib/firebase";
 
-export type ActivityKind = "budget_shift" | "pause" | "sync" | "alert" | "report";
+export type ActivityKind = "budget_shift" | "pause" | "sync" | "alert" | "report" | "update";
+
+/** Severity for the project-wide activity view (the account-level Activity
+ *  module); optional so the existing campaign writers stay unchanged. */
+export type ActivitySeverity = "info" | "success" | "warning" | "critical";
 
 export interface ActivityInput {
   kind: ActivityKind;
@@ -17,6 +21,11 @@ export interface ActivityInput {
   detail: string;
   /** optional actor label ("Vy", a userId, or "Automatická synchronizace") */
   actor?: string;
+  /** module key the event belongs to — powers the project-wide Activity feed's
+   *  module filter/chip. Absent for legacy campaign events (inferred from kind). */
+  module?: string;
+  /** optional severity for the project-wide feed (inferred from kind when absent) */
+  severity?: ActivitySeverity;
 }
 
 export interface ActivityRecord extends ActivityInput {

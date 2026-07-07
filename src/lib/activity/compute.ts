@@ -1,5 +1,6 @@
 /** Activity-feed filtering + rollups. Pure (framework-free), tested. */
-import type { ActivityEvent, ActivitySeverity } from "./sample";
+import type { ActivityActor, ActivityEvent, ActivitySeverity } from "./sample";
+import type { ActivityRecord } from "@/lib/campaigns/activity";
 
 export interface ActivityFilter {
   /** module key, or "all" */
@@ -35,4 +36,38 @@ export function activeModules(events: ActivityEvent[]): string[] {
 /** RFC-4180-safe CSV cell (quote when it contains a comma, quote or newline). */
 export function csvCell(value: string): string {
   return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+const DAY_MS = 86_400_000;
+
+/** Module + severity a legacy campaign event maps to when it carries neither. */
+const MODULE_FOR_KIND: Record<string, string> = {
+  budget_shift: "kampane", pause: "kampane", sync: "kampane", alert: "kampane", report: "reporty", update: "nastaveni",
+};
+const SEVERITY_FOR_KIND: Record<string, ActivitySeverity> = {
+  budget_shift: "info", pause: "warning", sync: "info", alert: "warning", report: "info", update: "info",
+};
+
+/** "Vy"/"You" → you; auto/sync labels → system; any other named actor → a person. */
+export function actorFor(actor: string | undefined): ActivityActor {
+  if (!actor) return "system";
+  if (/^(vy|you)$/i.test(actor.trim())) return "you";
+  if (/auto|synchron|sync/i.test(actor)) return "system";
+  return "you";
+}
+
+/** Map a live activity record (free-text title, already localized) into the
+ *  module's ActivityEvent shape. Uses the record's module/severity when present,
+ *  else infers them from the kind. `nowMs` grounds the relative age. Pure. */
+export function recordToEvent(r: ActivityRecord, nowMs: number): ActivityEvent {
+  return {
+    id: r.id,
+    module: r.module ?? MODULE_FOR_KIND[r.kind] ?? "kampane",
+    tmpl: "",
+    severity: r.severity ?? SEVERITY_FOR_KIND[r.kind] ?? "info",
+    actor: actorFor(r.actor),
+    daysAgo: Math.max(0, Math.floor((nowMs - Date.parse(r.at)) / DAY_MS)),
+    params: {},
+    text: r.detail ? `${r.title} — ${r.detail}` : r.title,
+  };
 }

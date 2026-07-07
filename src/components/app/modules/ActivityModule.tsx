@@ -21,7 +21,8 @@ const T = {
     today: "dnes", daysAgo: "před {n} dny",
     actorAi: "AI", actorSystem: "Systém", actorYou: "Vy",
     colWhen: "Kdy", colModule: "Modul", colSeverity: "Závažnost", colEvent: "Událost",
-    footer: "Sjednocená aktivita napříč moduly. Seam: recordActivity() z každé změny, synchronizace a upozornění.",
+    footer: "Ilustrativní aktivita napříč moduly. Živá verze čte feed tenantu (recordActivity z každé změny, synchronizace a upozornění).",
+    footerLive: "Živá aktivita tohoto projektu (recordActivity z každé změny, synchronizace a upozornění).",
   },
   en: {
     info: "Info", success: "Success", warning: "Warning", critical: "Critical",
@@ -30,7 +31,8 @@ const T = {
     today: "today", daysAgo: "{n} days ago",
     actorAi: "AI", actorSystem: "System", actorYou: "You",
     colWhen: "When", colModule: "Module", colSeverity: "Severity", colEvent: "Event",
-    footer: "Unified activity across modules. Seam: recordActivity() from every change, sync and alert.",
+    footer: "Illustrative activity across modules. The live version reads the tenant feed (recordActivity from every change, sync and alert).",
+    footerLive: "Live activity for this project (recordActivity from every change, sync and alert).",
   },
 } as const;
 
@@ -73,7 +75,7 @@ const DOT: Record<ActivitySeverity, string> = {
   critical: "bg-negative",
 };
 
-export default function ActivityModule({ events }: { events: ActivityEvent[] }) {
+export default function ActivityModule({ events, isLive = false }: { events: ActivityEvent[]; isLive?: boolean }) {
   const t = useT(T);
   const { locale } = useLocale();
   const [filter, setFilter] = useState<ActivityFilter>({ module: "all", severity: "all", windowDays: 30 });
@@ -83,7 +85,8 @@ export default function ActivityModule({ events }: { events: ActivityEvent[] }) 
   const counts = useMemo(() => severityCounts(visible), [visible]);
 
   const tmpl = TEMPLATES[locale === "en" ? "en" : "cs"];
-  const title = (e: ActivityEvent) => interpolate(tmpl[e.tmpl] ?? e.tmpl, e.params as Record<string, string | number>);
+  const title = (e: ActivityEvent) =>
+    e.text ?? interpolate(tmpl[e.tmpl] ?? e.tmpl, e.params as Record<string, string | number>);
   const rel = (d: number) => (d <= 0 ? t("today") : t("daysAgo", { n: d }));
   const modLabel = (key: string) => {
     const m = MODULES.find((x) => x.key === key);
@@ -189,7 +192,7 @@ export default function ActivityModule({ events }: { events: ActivityEvent[] }) 
             ))}
           </ul>
         )}
-        <div className="border-t border-line px-5 py-3 text-xs text-muted">{t("footer")}</div>
+        <div className="border-t border-line px-5 py-3 text-xs text-muted">{isLive ? t("footerLive") : t("footer")}</div>
       </div>
     </div>
   );
