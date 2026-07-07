@@ -92,8 +92,15 @@ phase per commit:
 4. **Account session revocation + metadata** — ✅ **done (phase 4).** `revokeAllSessions` (batch-
    delete the user's Firestore adapter session docs) behind a working "sign out everywhere" action;
    active-session count + current-session expiry surfaced. Firestore-only (no-op in local/dev).
-5. **Monthly report per-type grounding** — ⏳ **phase 5 (next).** A structured recap op on
-   `getProjectDataset(project)` so tiles/narrative fit non-eshop types. ⚠ new LLM operation →
-   triggers the ~10-min real-model gate + a new golden.
-6. **reviews / content-schedule / map persistence** — ⏳ **phase 6.** Build real stores + routes for
-   the client-only modules, wire the clients, then add their activity emitters.
+5. **Monthly report per-type grounding** — ✅ **done (phase 5).** New `monthly-recap` LLM op
+   grounded on `getProjectDataset(project)` + a business-type framing line (per `ProjectType`), with
+   a metric-neutral result shape (highlights/watchouts/priorities) so it fits non-eshop types; the
+   KPI tiles are grounded per-project too. New golden + registry + HASHED_FILES; passed the
+   real-model gate.
+6. **reviews / content-schedule / map persistence** — ✅ **done (phase 6).** A generic
+   per-(user, project, key) store (`project-state`, sqlite+Firestore) behind an ownership-checked
+   `/api/projects/[id]/state/[key]` route backs both the content schedule and review triage
+   (off a *global* localStorage key); meaningful transitions post to the activity feed. `map` has no
+   user mutation → intentionally out of scope.
+
+**Backlog cleanup complete — all six follow-up phases shipped.**
