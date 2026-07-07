@@ -14,6 +14,7 @@ import {
   publicConnection,
   saveConnection,
 } from "@/lib/inventory/connection-store";
+import { emitProjectActivity } from "@/lib/activity/emit";
 
 type Owned = { ok: true; uid: string } | { ok: false; res: Response };
 
@@ -91,6 +92,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     connectedAt: new Date().toISOString(),
   };
   await saveConnection(auth.uid, id, conn);
+  await emitProjectActivity(auth.uid, id, {
+    kind: "update",
+    module: "integrace",
+    severity: "success",
+    title: "Datový sklad napojen",
+    detail: meta.label,
+    actor: "Vy",
+  });
   return Response.json({ connection: publicConnection(conn) });
 }
 
@@ -99,5 +108,13 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const auth = await ownedProject(id);
   if (!auth.ok) return auth.res;
   await deleteConnection(auth.uid, id);
+  await emitProjectActivity(auth.uid, id, {
+    kind: "update",
+    module: "integrace",
+    severity: "warning",
+    title: "Datový sklad odpojen",
+    detail: "",
+    actor: "Vy",
+  });
   return Response.json({ ok: true });
 }

@@ -6,6 +6,7 @@ import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import { saveOfferings } from "@/lib/catalog/store";
 import { defaultNatureFor, starterCatalog } from "@/lib/catalog/starter";
 import type { OfferingNature } from "@/lib/catalog/offering";
+import { emitProjectActivity } from "@/lib/activity/emit";
 
 const NATURES: OfferingNature[] = ["online", "local", "hybrid"];
 
@@ -62,6 +63,15 @@ export async function POST(req: Request) {
   } catch {
     /* starter seed failed — modules fall back to the seed until the user saves */
   }
+
+  await emitProjectActivity(uid, project.id, {
+    kind: "update",
+    module: "nastaveni",
+    severity: "success",
+    title: "Projekt vytvořen",
+    detail: project.name,
+    actor: "Vy",
+  });
 
   return Response.json({ project }, { status: 201 });
 }

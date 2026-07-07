@@ -2,8 +2,7 @@
 import { auth } from "@/auth";
 import { deleteProject, updateProject } from "@/lib/projects/store";
 import { PROJECT_TYPES, type ProjectPatch, type ProjectType } from "@/lib/projects/types";
-import { resolveTenant } from "@/lib/campaigns/connector";
-import { recordActivity } from "@/lib/campaigns/activity";
+import { emitProjectActivity } from "@/lib/activity/emit";
 
 
 async function userId(): Promise<string | null> {
@@ -36,16 +35,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Surface the change on the project-wide activity feed (best-effort, never throws).
   const changed = Object.keys(patch);
   if (changed.length > 0) {
+    const adsLinked = "adsCustomerId" in patch && Boolean(patch.adsCustomerId);
     const brandingOnly = changed.every((k) => k === "accentColor" || k === "logoUrl");
-    const tenant = await resolveTenant(uid, id);
-    await recordActivity(tenant, {
-      kind: "update",
-      module: brandingOnly ? "branding" : "nastaveni",
-      severity: "info",
-      title: brandingOnly ? "Branding upraven" : "Nastavení projektu upraveno",
-      detail: `Změněno: ${changed.join(", ")}`,
-      actor: "Vy",
-    });
+    await emitProjectActivity(
+      uid,
+      id,
+      adsLinked
+        ? { kind: "update", module: "integrace", severity: "success", title: "Google Ads napojen", detail: `Účet ${patch.adsCustomerId}`, actor: "Vy" }
+        : {
+            kind: "update",
+            module: brandingOnly ? "branding" : "nastaveni",
+            severity: "info",
+            title: brandingOnly ? "Branding upraven" : "Nastavení projektu upraveno",
+            detail: `Změněno: ${changed.join(", ")}`,
+            actor: "Vy",
+          }
+    );
   }
 
   return Response.json({ project });
