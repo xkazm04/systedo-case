@@ -71,27 +71,29 @@ Non-negotiable for "production quality" — an epic is not done until all hold:
 
 ---
 
-## What's left (follow-ups, not blocking)
+## What's left — backlog cleanup (phased)
 
-All six modules ship and are wired into the sidebar (system section, every project type). What
-remains is turning seeded/gated surfaces into fully live ones — captured per-epic above and summed
-here:
+All six modules ship and are wired into the sidebar. The follow-up cleanup is being worked one
+phase per commit:
 
-1. **Real data emission** — ✅ **done (live-read with seed fallback).** Usage: `llmTelemetry`
-   now carries `userId`/`projectId` (attributed at the chokepoint via an AsyncLocalStorage request
-   context set by the AI route); the Usage page reads the live per-project rollup, seed fallback
-   when empty. Activity: `recordActivity()` now fires on project settings/branding changes (the
-   project PATCH route); the Activity page reads the live tenant feed, seed fallback when empty.
-   Both are Firestore-only, so "live" is visible in production, not local/dev. Activity emitters now
-   fire on project **create**, **settings/branding**, **Google Ads link**, **catalog** save +
-   **feed import**, **warehouse** connect/disconnect, **keyword list** save, **A/B variant** save,
-   **social** post schedule/publish, and **client microsite** publish/offline — spanning nastaveni,
-   branding, integrace, katalog, klicova-slova, experimenty-lp, socialni and reporty (campaigns
-   already emitted). *Remaining:* the modules without a server-side mutation seam (reviews / content
-   schedule / map are client/demo-only today), and a `projectId` on more AI call payloads so
-   per-project spend covers every operation, not just the grounded ones.
-2. **Monthly report per-type grounding** — a structured recap op on `getProjectDataset(project)`
-   (this one *would* trigger the ~10-min LLM gate) so tiles/narrative fit non-eshop types.
-3. **Account** — true session-revocation + persisted sign-in metadata (NextAuth adapter reads).
-4. **Branding** — logo *upload* (storage) beyond the hosted-URL field.
-5. **Integration status** — live probes for connectors that currently report from env presence only.
+1. **Real data emission** — ✅ **done.** Usage: `llmTelemetry` carries `userId`/`projectId`
+   (chokepoint request context); the Usage page reads the live per-project rollup, seed fallback.
+   Activity: `recordActivity()` fires across nastaveni, branding, integrace, katalog, klicova-slova,
+   experimenty-lp, socialni, reporty (+ campaigns); the page reads the live tenant feed, seed
+   fallback. **Phase 1** then threaded the active `projectId` into *every* `useAiTool` call (via
+   `useOptionalProject`), so per-project spend now covers all operations, not just chat. Both stores
+   are Firestore-only → "live" shows in production, seed in local/dev. *Remaining:* reviews /
+   content-schedule / map have no server mutation seam yet (see phase 6).
+2. **Branding logo upload** — ✅ **done (phase 2).** File → downscaled (≤256px WebP) / capped-SVG
+   data URL into the persisted `logoUrl`; no storage backend needed.
+3. **Integration status live probes** — ✅ **done (phase 3).** Best-effort per-user/project probes:
+   validated BYOM key upgrades AI; linked Ads account; a new warehouse-connection row. Env presence
+   for the rest.
+4. **Account session revocation + metadata** — ✅ **done (phase 4).** `revokeAllSessions` (batch-
+   delete the user's Firestore adapter session docs) behind a working "sign out everywhere" action;
+   active-session count + current-session expiry surfaced. Firestore-only (no-op in local/dev).
+5. **Monthly report per-type grounding** — ⏳ **phase 5 (next).** A structured recap op on
+   `getProjectDataset(project)` so tiles/narrative fit non-eshop types. ⚠ new LLM operation →
+   triggers the ~10-min real-model gate + a new golden.
+6. **reviews / content-schedule / map persistence** — ⏳ **phase 6.** Build real stores + routes for
+   the client-only modules, wire the clients, then add their activity emitters.
