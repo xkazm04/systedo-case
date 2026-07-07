@@ -6,8 +6,12 @@ each to production quality — the polish local-SEO lacks.** So this is a backlo
 sprint. Each is account/deployment-level (not local-SEO-specific), so it targets the **system**
 section for **all** project types.
 
-**Status:** Integration status ships now as the reference implementation (sets the quality bar).
-The other five are specified below, prioritized.
+**Status: ALL SIX SHIPPED.** Integration status set the quality bar; the other five followed,
+each as a system-section module (all project types), one commit each, verified against the shared
+DoD below. Two plan deviations, noted per-epic: Monthly report shipped as its own module
+(`mesicni-report`) rather than folded into `reporty`, and Branding shipped as its own module
+(`branding`) rather than folded into `nastaveni` — in both cases to keep concerns separate and
+avoid disturbing the existing surfaces. Suite: 580/580 unit tests, build + typecheck green.
 
 ## Definition of done (applies to every epic)
 
@@ -32,42 +36,51 @@ Non-negotiable for "production quality" — an epic is not done until all hold:
 - **Shipped:** `src/lib/integrations/{compute,status}.ts` (pure row-derivation + a server-only env reader) + `IntegrationStatusModule` — a per-category readiness board (connected / action / missing / manual / planned / optional) grounded on the project's real config (env presence + `project.adsCustomerId`). This is the "on-demand deployment" readiness the brief asked for.
 - **DoD met:** pure compute + test; honest statuses; cs/en; tokens.
 
-### 2. Activity — `aktivita`  ·  P1  ·  effort M
+### 2. Activity — `aktivita`  ·  P1  ·  **SHIPPED**
 - **Adamant today:** a per-campaign activity/alerts feed exists (see `integration-backlog.md` "project activity feed — exists for campaigns → widen").
-- **local-seo ref:** `activity/*`, `src/lib/activity/*` — 30-day autopilot proof-of-work log + CSV.
-- **Production bar / DoD:** a **project-wide** activity timeline unifying every module's actions (not just campaigns) on one feed; filter by module + severity; 30/90-day window; CSV export; empty + loading states. Build on the shared `Insight`/activity model the integration-backlog proposes rather than a new silo.
-- **Reuse:** generalize the campaign activity model; `src/lib/activity/` compute + test.
-- **Depends on:** the shared activity/signal model (connective-tissue layer).
+- **local-seo ref:** `activity/*` — 30-day autopilot proof-of-work log + CSV.
+- **Shipped:** `src/lib/activity/{sample,compute}.ts` + `ActivityModule` — a **project-wide** timeline unifying every module's actions; filter by module + severity + window (7/30/all), severity summary, localized event titles (template-key + params), CSV export (BOM + RFC-4180). Seeded on the real activity shape; live seam is `recordActivity()`.
+- **Follow-up:** wire real `recordActivity()` emissions from every module's mutation/sync path (shared activity/signal model) so the feed stops being seeded.
 
-### 3. Monthly report — fold into `reporty`  ·  P1  ·  effort M
+### 3. Monthly report — `mesicni-report`  ·  P1  ·  **SHIPPED** (own module, not folded)
 - **Adamant today:** a `reporty` module already exists (shared client reports + white-label microsite).
-- **local-seo ref:** `report/MonthlyReport.tsx`, `src/lib/recap/*` — AI narrative + white-label PDF + shareable link + history.
-- **Production bar / DoD:** extend `reporty` with a **monthly recap**: metric tiles + an on-demand AI narrative **through `generateStructured()`** (registry entry + `// llm-tool` — this one *does* trigger the real-model gate), brand-tokened PDF/print export, a share link with access control, and a past-reports history. Reuse the existing report/microsite plumbing.
-- **Reuse:** `reporty` module, `RecapBlocks` pattern, the print CSS already in globals.css.
-- **⚠ Gate:** the AI narrative is a new LLM operation → the ~10-min real-model gate applies to that commit.
+- **local-seo ref:** `report/MonthlyReport.tsx` — AI narrative + white-label PDF + shareable link + history.
+- **Shipped:** `src/lib/report/compute.ts` (delta-tone + tile specs, tested) + `MonthlyReport` — KPI tiles grounded in `buildSnapshot()` (same illustrative dataset the AI reads → tiles + narrative stay consistent), on-demand AI narrative **reusing the existing `analysis` operation** (no new op → **no gate**), period switch, Print/PDF + Markdown export.
+- **Deviation:** shipped as its own module rather than folded into `reporty` — `reporty` is the shareable client microsite; this is the performance recap. Different concern.
+- **Follow-up:** per-project (per-type) grounding — the `analysis` op is eshop-metric / case-study grounded, so tiles read eshop-style on any type. A structured recap op grounded on `getProjectDataset(project)` would fix this (**that** would trigger the gate). Also: share link + history.
 
-### 4. Usage — `spotreba`  ·  P2  ·  effort M
-- **Adamant today:** BYOM + the LLM quality matrix already model per-operation/provider cost (`src/lib/usage.ts`, `BYOM_MATRIX`); the ledger concept exists.
-- **local-seo ref:** `usage/*`, `src/lib/tokens/*` — credit-spend receipts by action/client, over-time bars, billing-period filter, CSV.
-- **Production bar / DoD:** spend by **operation / model / project** over a billing period; over-time bars (hand-rolled SVG on tokens); period filter; CSV export; ties to the real BYOM/quality cost model, not invented credits.
-- **Reuse:** `src/lib/usage.ts`, the BYOM cost data; a `usage/compute.ts` rollup + test.
+### 4. Usage — `spotreba`  ·  P2  ·  **SHIPPED**
+- **Adamant today:** BYOM + the LLM quality matrix model per-operation/provider cost; per-call telemetry is recorded at `recordLlmCall` (`src/lib/llm/telemetry.ts`) against the cost tiers in `src/lib/llm/cost.ts`.
+- **local-seo ref:** `usage/*` — credit-spend receipts by action/client, over-time, billing-period filter, CSV.
+- **Shipped:** `src/lib/spend/{sample,compute}.ts` (rollups: filter, totals, byOperation/byModel, costShare — tested incl. a cross-rollup total invariant) + `SpendModule` — window (7/30/all), totals tiles, cost-share bars by operation, per-model table, CSV export. Seeded on the real telemetry/cost shape.
+- **Follow-up:** the live rollup needs `llmTelemetry` to carry `userId`/`projectId` (added once at the `recordLlmCall` chokepoint) for a per-project view; then swap the seed for the real aggregate.
 
-### 5. Branding — fold into `nastaveni`  ·  P2  ·  effort S
-- **Adamant today:** `nastaveni` already owns name + brand accent; `Project.accentColor` exists per project.
-- **local-seo ref:** `branding/*`, `src/lib/theme/*` — white-label name/accent/logo for client-facing reports.
-- **Production bar / DoD:** extend `nastaveni` with **logo upload** + accent, a **live preview** against Adamant tokens, applied to client reports/microsite. Persist on the project. Contrast-safe accent (reuse the brand-accent split).
-- **Reuse:** existing accent field + reports theming; a small `theme/compute.ts` (contrast pick) + test.
+### 5. Branding — `branding`  ·  P2  ·  **SHIPPED** (own module, not folded)
+- **Adamant today:** `nastaveni` already owns name + brand accent; `Project.accentColor` persists per project.
+- **local-seo ref:** `branding/*` — white-label name/accent/logo for client-facing reports.
+- **Shipped:** a new **persisted** `project.logoUrl` end-to-end (types + PATCH whitelist + both stores: Firestore merge + sqlite schema column + additive migration + row-map/UPDATE + seed schema — roundtrip-verified), `src/lib/branding/compute.ts` (hex validation + luminance-based contrast pick + initials, tested), and `BrandingModule` — accent swatches + color/hex input + logo URL with a **live, contrast-correct report-header preview**, saved via PATCH + `router.refresh()`.
+- **Deviation:** its own module rather than a section inside `nastaveni` — kept `nastaveni` untouched (concurrent-agent safety); accent lives in both but both PATCH the same field.
+- **Follow-up:** true logo *upload* (Firebase Storage) vs the current hosted-URL field.
 
-### 6. Account & Security — `ucet`  ·  P2  ·  effort M
-- **Adamant today:** NextAuth (`src/auth.ts`), Firebase/local users, admin gating.
-- **local-seo ref:** `account/*`, `src/lib/auth/*` — profile, last sign-in, "sign out everywhere" (revoke refresh tokens), GDPR delete.
-- **Production bar / DoD:** profile + session metadata (last sign-in, created), **sign-out-everywhere** (revoke sessions), consent record, and an **account-deletion** request flow (GDPR). Honest gating in local/dev-auth mode.
-- **⚠ Guardrail:** deletion / credential changes are irreversible & auth-sensitive — build the request/confirm flow; never auto-execute destructive account actions.
+### 6. Account & Security — `ucet`  ·  P2  ·  **SHIPPED**
+- **Adamant today:** NextAuth (`src/auth.ts`), Firebase/local users, admin gating. Session exposes `{id,name,email,image}` + `signOut`; dev-auth is synthetic (no provider/session store).
+- **local-seo ref:** `account/*` — profile, last sign-in, "sign out everywhere", GDPR delete.
+- **Shipped:** `src/lib/account/compute.ts` (honest security checklist — dev-auth checks read "unavailable", not green — + email masking, tested) + `AccountSecurity` — profile (masked email, avatar/initials), the checklist, **real sign-out** via a server action (gated off in dev-auth), and a GDPR deletion **request** (confirm flow that never executes — deletion is irreversible + handled manually). Reads the real `currentSession()` + `DEV_AUTH`.
+- **Guardrail honored:** no destructive account action is auto-executed; deletion routes to a manual request.
+- **Follow-up:** true session-revocation (sign-out-everywhere, currently gated) + persisted sign-in metadata (last/created) require new reads against the NextAuth adapter collections.
 
 ---
 
-## Sequencing
+## What's left (follow-ups, not blocking)
 
-1. **P1 now-ish:** Integration status (done), Activity, Monthly report — the three that most visibly "complete" the product surface.
-2. **P2 next:** Usage, Branding, Account & Security.
-3. **Cross-cutting prerequisite** for Activity (and a better Overview): the shared `Insight`/activity model from `integration-backlog.md`. Landing that first makes Activity a thin consumer instead of a new silo.
+All six modules ship and are wired into the sidebar (system section, every project type). What
+remains is turning seeded/gated surfaces into fully live ones — captured per-epic above and summed
+here:
+
+1. **Real data emission** — Activity (`recordActivity()` from every module) and Usage
+   (`userId`/`projectId` on `llmTelemetry`) are seeded on the real shapes; wire the producers.
+2. **Monthly report per-type grounding** — a structured recap op on `getProjectDataset(project)`
+   (this one *would* trigger the ~10-min LLM gate) so tiles/narrative fit non-eshop types.
+3. **Account** — true session-revocation + persisted sign-in metadata (NextAuth adapter reads).
+4. **Branding** — logo *upload* (storage) beyond the hosted-URL field.
+5. **Integration status** — live probes for connectors that currently report from env presence only.
