@@ -181,7 +181,10 @@ export default function WeekPlanner() {
             tone,
             platforms: [platform],
             ai: true,
-            brand: brand.trim() || undefined,
+            // Fall back to the project's own name so posts carry the user's brand,
+            // never a placeholder company; projectId grounds "what's working".
+            brand: brand.trim() || project?.name || undefined,
+            ...(pid ? { projectId: pid } : {}),
           }),
         });
         const draftJson = await draftRes.json();

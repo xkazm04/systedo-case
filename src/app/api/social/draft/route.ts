@@ -10,6 +10,10 @@ import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { buildSnapshot } from "@/lib/snapshot";
+import type { PerformanceData } from "@/lib/types";
+import { getProject } from "@/lib/projects/store";
+import { getProjectDataset } from "@/lib/project-data/dataset";
+import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
 import { TONES, isSocialPlatform, type SocialPlatform, type Tone } from "@/lib/social/types";
@@ -27,11 +31,28 @@ import { durableGuard } from "@/lib/ai/durable-limit";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-/** Compact "what's actually working" grounding from the dashboard data, so AI
+/** Resolve the caller's own dataset for grounding, tenancy-checked (a demo id is
+ *  public; a real id must belong to the caller) — so "what's working" reflects
+ *  THIS project, not the shared case-study tenant. Undefined → base fallback. */
+async function resolveDataset(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<PerformanceData | undefined> {
+  if (!projectId) return undefined;
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return getProjectDataset(demo);
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return getProjectDataset(project);
+  }
+  return undefined;
+}
+
+/** Compact "what's actually working" grounding from the project's data, so AI
  *  social posts lean into the brand's proven channels + trend instead of generic
  *  ideas (the tool previously got only topic/tone/platforms — no performance signal). */
-function perfGrounding(): string {
-  const snap = buildSnapshot("90d");
+function perfGrounding(data?: PerformanceData): string {
+  const snap = buildSnapshot("90d", "previous", data);
   const top = [...snap.channels]
     .filter((c) => c.roas > 0)
     .sort((a, b) => b.roas - a.roas)
@@ -65,7 +86,7 @@ function parse(body: { topic?: unknown; tone?: unknown; platforms?: unknown }):
 export async function POST(request: Request) {
   if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
 
-  let body: { topic?: unknown; tone?: unknown; platforms?: unknown; ai?: unknown; brand?: unknown };
+  let body: { topic?: unknown; tone?: unknown; platforms?: unknown; ai?: unknown; brand?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -75,10 +96,13 @@ export async function POST(request: Request) {
   const parsed = parse(body);
   if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status });
   const { topic, tone, platforms } = parsed;
+  const brand = str(body.brand) || undefined;
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
 
-  // Template mode — deterministic, instant, no quota.
+  // Template mode — deterministic, instant, no quota. Carry the project brand so
+  // captions never sign off as a placeholder company.
   if (body.ai !== true) {
-    return Response.json({ drafts: draftPosts(topic, tone, platforms), source: "template" });
+    return Response.json({ drafts: draftPosts(topic, tone, platforms, brand), source: "template" });
   }
 
   // AI mode — a paid model call: throttle + per-user daily quota.
@@ -112,12 +136,12 @@ export async function POST(request: Request) {
       }
     }
 
-    const brand = str(body.brand) || undefined;
+    const dataset = await resolveDataset(projectId, userId);
     const response = await generateSocialPosts({
       topic,
       tone,
       platforms,
-      grounding: perfGrounding(),
+      grounding: perfGrounding(dataset),
       brand,
       locale: await getServerLocale(),
       // Client abort propagation: a closed tab / re-run stops the provider work.

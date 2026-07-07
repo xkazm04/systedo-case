@@ -32,7 +32,10 @@ function cap(s: string): string {
   return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
-function hashtags(topic: string): string {
+/** Slugified brand hashtag + up-to-3 topic hashtags. No hardcoded brand — a
+ *  caption must never sign off as someone else's company. */
+function hashtags(topic: string, brand?: string): string {
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9á-ž]/gi, "");
   const base = topic
     .toLowerCase()
     .replace(/[^a-z0-9á-ž ]/gi, "")
@@ -40,46 +43,57 @@ function hashtags(topic: string): string {
     .filter(Boolean)
     .slice(0, 3)
     .map((w) => `#${w}`);
-  return ["#mionelo", ...base, "#zdravě"].join(" ");
+  const brandTag = brand && slug(brand) ? [`#${slug(brand)}`] : [];
+  return [...brandTag, ...base].join(" ") || "#novinky";
 }
 
-/** One draft caption per requested platform, tailored to its conventions. */
+/** One draft caption per requested platform, tailored to its conventions. The
+ *  optional `brand` is the active project's name — used so captions carry the
+ *  user's OWN brand; absent, the copy stays brand-neutral (never a placeholder
+ *  company). */
 export function draftPosts(
   topic: string,
   tone: Tone,
-  platforms: SocialPlatform[]
+  platforms: SocialPlatform[],
+  brand?: string
 ): { platform: SocialPlatform; content: string }[] {
   const t = topic.trim() || "naše novinky";
   const opener = TONE_OPENER[tone](t);
   const cta = TONE_CTA[tone];
+  const b = brand?.trim();
 
   return platforms.map((platform) => {
     let content: string;
     if (platform === "linkedin") {
+      const lead = b
+        ? `Ve značce ${b} se dlouhodobě věnujeme tématu „${t}".`
+        : `Dlouhodobě se věnujeme tématu „${t}".`;
       content =
         `${opener}\n\n` +
-        `V Mionelo se dlouhodobě věnujeme tématu „${t}". Přinášíme kvalitu, na kterou se zákazníci spolehnou, ` +
+        `${lead} Přinášíme kvalitu, na kterou se zákazníci spolehnou, ` +
         `a sdílíme, co nás na téhle oblasti baví.\n\n${cta}`;
     } else if (platform === "instagram") {
-      content = `${opener}\n\n${cap(t)} jak má být. ${cta}\n\n${hashtags(t)}`;
+      content = `${opener}\n\n${cap(t)} jak má být. ${cta}\n\n${hashtags(t, b)}`;
     } else {
-      content = `${opener}\n\n${cap(t)} od Mionelo — ${cta}\n\n${hashtags(t)}`;
+      content = `${opener}\n\n${cap(t)}${b ? ` od ${b}` : ""} — ${cta}\n\n${hashtags(t, b)}`;
     }
     return { platform, content: clamp(content, PLATFORM_LIMITS[platform]) };
   });
 }
 
-/** A deterministic suggested reply for an inbound comment/DM. */
-export function draftReply(message: SocialMessage): string {
+/** A deterministic suggested reply for an inbound comment/DM. `domain` is the
+ *  project's own site (absent → a neutral "our site") — never a hardcoded one. */
+export function draftReply(message: SocialMessage, domain?: string): string {
   const name = message.author.split(" ")[0] || "díky";
   const lower = message.text.toLowerCase();
   const platform = SOCIAL_PLATFORM_LABELS[message.platform];
+  const site = domain?.trim() || "našem webu";
 
   if (/cena|kolik|stojí|sleva/.test(lower)) {
-    return `Dobrý den ${name}, díky za zájem! Aktuální ceny i probíhající akce najdete na našem e-shopu mionelo.cz. Rádi poradíme s výběrem. 🙂`;
+    return `Dobrý den ${name}, díky za zájem! Aktuální ceny i probíhající akce najdete na ${site}. Rádi poradíme s výběrem. 🙂`;
   }
   if (/dostupn|skladem|máte|kdy/.test(lower)) {
-    return `Ahoj ${name}, díky za dotaz! Dostupnost vidíte vždy u produktu na mionelo.cz; pokud něco chybí, napište nám do DM a vyřešíme to.`;
+    return `Ahoj ${name}, díky za dotaz! Dostupnost vidíte vždy u produktu na ${site}; pokud něco chybí, napište nám do DM a vyřešíme to.`;
   }
   if (/díky|super|skvěl|paráda|doporuč/.test(lower)) {
     return `Moc děkujeme, ${name}! 🙌 Vážíme si toho — a budeme se snažit držet laťku i dál.`;
