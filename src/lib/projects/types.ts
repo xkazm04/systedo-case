@@ -12,9 +12,9 @@ import type { SupportedLocale } from "@/lib/format";
 /** The kinds of business the product adapts to. Adding one here flows through
  *  the module registry + onboarding automatically (a missing preset is a type
  *  error). */
-export type ProjectType = "eshop" | "app" | "leadgen" | "content";
+export type ProjectType = "eshop" | "app" | "leadgen" | "content" | "local";
 
-export const PROJECT_TYPES: ProjectType[] = ["eshop", "app", "leadgen", "content"];
+export const PROJECT_TYPES: ProjectType[] = ["eshop", "app", "leadgen", "content", "local"];
 
 export interface ProjectTypeMeta {
   type: ProjectType;
@@ -108,6 +108,22 @@ export const PROJECT_TYPE_META: Record<ProjectType, ProjectTypeMeta> = {
       "Cíl: růst publika a engagementu. Stavte na obsahu, SEO a sociálních sítích; placené kampaně používejte na zesílení dosahu.",
     overviewLeadEn:
       "Goal: grow your audience and engagement. Build on content, SEO and social media; use paid campaigns to amplify reach.",
+  },
+  local: {
+    type: "local",
+    label: "Lokální SEO",
+    labelEn: "Local SEO",
+    tagline: "Místní firmy — pozice v mapě, recenze a pobočky na jednom místě.",
+    icon: "local",
+    defaultAccent: "#0891b2",
+    primaryGoal: "Pozice v mapě & recenze",
+    primaryGoalEn: "Map rank & reviews",
+    overviewLead:
+      "Cíl: dominovat v místním vyhledávání. Zlepšujte pozice v mapovém balíčku, pečujte o recenze a Google Business Profil napříč pobočkami.",
+    overviewLeadEn:
+      "Goal: dominate local search. Improve map-pack rankings, nurture reviews and your Google Business Profile across locations.",
+    channelFocus: "Google Business Profile a lokální Search",
+    channelFocusEn: "Google Business Profile and local Search",
   },
 };
 

@@ -15,7 +15,7 @@ export function seed01(id: string): number {
 }
 
 /** Type baseline so an e-shop reads larger than a content project. */
-const TYPE_BASE: Record<ProjectType, number> = { eshop: 1, app: 0.7, leadgen: 0.5, content: 0.45 };
+const TYPE_BASE: Record<ProjectType, number> = { eshop: 1, app: 0.7, leadgen: 0.5, content: 0.45, local: 0.5 };
 
 /** Public accessor for the per-type baseline magnitude, so other seeded modules
  *  (see project-data/vary.ts) scale consistently with the dataset spine. */

@@ -208,6 +208,7 @@ const PRIMARY_KIND: Record<ProjectType, OfferingKind> = {
   app: "plan",
   leadgen: "service",
   content: "service",
+  local: "service",
 };
 
 export default function CatalogManagerModule({

@@ -46,7 +46,7 @@ export interface ModuleDef {
   blurbEn: string;
 }
 
-const ALL: ProjectType[] = ["eshop", "app", "leadgen", "content"];
+const ALL: ProjectType[] = ["eshop", "app", "leadgen", "content", "local"];
 
 /** The full registry. `availableFor` is what differentiates the four types — see
  *  the matrix in the redesign plan. */
@@ -77,7 +77,7 @@ export const MODULES: ModuleDef[] = [
     labelEn: "Campaigns",
     icon: "campaigns",
     section: "growth",
-    availableFor: ["eshop", "app", "leadgen"],
+    availableFor: ["eshop", "app", "leadgen", "local"],
     blurb: "Google Ads kampaně, triáž, AI vyhodnocení a přesuny rozpočtu.",
     blurbEn: "Google Ads campaigns, triage, AI evaluation and budget shifts.",
   },
@@ -107,7 +107,7 @@ export const MODULES: ModuleDef[] = [
     labelEn: "Social media",
     icon: "social",
     section: "studio",
-    availableFor: ["eshop", "app", "content"],
+    availableFor: ["eshop", "app", "content", "local"],
     blurb: "Návrh příspěvků, plánování publikace a schránka zpráv.",
     blurbEn: "Post drafting, publication scheduling and message inbox.",
   },
@@ -229,7 +229,7 @@ export const MODULES: ModuleDef[] = [
     labelEn: "Local dominance",
     icon: "local",
     section: "growth",
-    availableFor: ["leadgen"],
+    availableFor: ["leadgen", "local"],
     blurb: "Pokrytí služba×lokalita, mezery ve stránkách a reputace z recenzí.",
     blurbEn: "Service × location coverage, page gaps and reputation from reviews.",
   },
@@ -340,6 +340,12 @@ export const KPI_PRESETS: Record<ProjectType, KpiDef[]> = {
     { label: "Konverze", labelEn: "Conversions", metric: "conversions", format: "int" },
     { label: "Konverzní poměr", labelEn: "Conversion rate", metric: "convRate", format: "pct" },
     { label: "Náklady", labelEn: "Cost", metric: "cost", format: "czk" },
+  ],
+  local: [
+    { label: "Poptávky & hovory", labelEn: "Enquiries & calls", metric: "conversions", format: "int" },
+    { label: "Cena za poptávku", labelEn: "Cost per enquiry", metric: "cpa", format: "czk" },
+    { label: "Konverzní poměr", labelEn: "Conversion rate", metric: "convRate", format: "pct" },
+    { label: "Návštěvy", labelEn: "Visits", metric: "visits", format: "int" },
   ],
 };
 

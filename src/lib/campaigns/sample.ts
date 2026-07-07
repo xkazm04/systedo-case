@@ -109,6 +109,7 @@ const SPECS_BY_TYPE: Record<ProjectType, Spec[]> = {
   app: APP_SPECS,
   leadgen: LEADGEN_SPECS,
   content: CONTENT_SPECS,
+  local: LEADGEN_SPECS,
 };
 
 /** Default seed key keeps e-shop output byte-for-byte identical to before. */

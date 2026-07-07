@@ -120,5 +120,7 @@ export function starterCatalog(
       return leadgenStarter(projectId, nature, ts);
     case "content":
       return contentStarter(projectId, nature, ts);
+    case "local":
+      return leadgenStarter(projectId, nature, ts);
   }
 }

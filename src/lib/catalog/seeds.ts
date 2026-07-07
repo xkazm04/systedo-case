@@ -126,6 +126,49 @@ export function leadgenCatalog(projectId: string): ServiceOffering[] {
   ];
 }
 
+/** local SEO (multi-location services × areas). `demo-local` = Dentalis, a dental clinic
+ *  chain. Like lead-gen it is `nature: "local"` and keys off `LOCALITIES`, but the business
+ *  is a brick-and-mortar chain whose growth lever is map-pack rank + reviews per branch,
+ *  not paid-lead CPL. Service names feed the Lokální module's coverage matrix. */
+export function localSeoCatalog(projectId: string): ServiceOffering[] {
+  const allAreas = LOCALITIES.map((l) => l.id);
+  const base = {
+    projectId,
+    currency: "CZK",
+    active: true,
+    nature: "local" as const,
+    source: "manual" as const,
+    updatedAt: SEED_TS,
+    channels: ["Google Business Profile", "Organic", "Google Ads"],
+  };
+  return [
+    {
+      kind: "service", id: `${projectId}:dentalni-hygiena`, name: "Dentální hygiena",
+      category: "Prevence", price: 1290, priceModel: "from", margin: 0.6,
+      serviceAreas: allAreas, capacityPerWeek: 40,
+      tags: ["Objednání online", "Recall po 6 měsících"], ...base,
+    },
+    {
+      kind: "service", id: `${projectId}:zubni-implantaty`, name: "Zubní implantáty",
+      category: "Implantologie", price: 18900, priceModel: "from", margin: 0.42,
+      serviceAreas: ["praha", "brno"], capacityPerWeek: 6,
+      tags: ["3D plánování", "Záruka na implantát"], ...base,
+    },
+    {
+      kind: "service", id: `${projectId}:ortodoncie-rovnatka`, name: "Ortodoncie a rovnátka",
+      category: "Ortodoncie", price: 34900, priceModel: "quote", margin: 0.38,
+      serviceAreas: ["praha", "brno", "ostrava"], capacityPerWeek: 5,
+      tags: ["Neviditelná rovnátka", "Splátky bez navýšení"], ...base,
+    },
+    {
+      kind: "service", id: `${projectId}:pohotovost-zubar`, name: "Zubní pohotovost",
+      category: "Akutní péče", price: 990, priceModel: "from", margin: 0.55,
+      serviceAreas: allAreas, capacityPerWeek: 25,
+      tags: ["Ošetření týž den", "Otevřeno o víkendu"], ...base,
+    },
+  ];
+}
+
 /** content / media (monetized offerings — membership + placements). `demo-content` = Reflektor. */
 export function contentCatalog(projectId: string): Offering[] {
   const base = {

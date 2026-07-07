@@ -21,6 +21,7 @@ const DEMO_SEEDS: Record<ProjectType, { name: string; domain: string }> = {
   app: { name: "Flowbase", domain: "flowbase.io" },
   leadgen: { name: "Klimatherm", domain: "klimatherm.cz" },
   content: { name: "Reflektor", domain: "reflektor.cz" },
+  local: { name: "Dentalis", domain: "dentalis.cz" },
 };
 
 function toProject(type: ProjectType): Project {

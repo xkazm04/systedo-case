@@ -20,6 +20,7 @@ export const PROPOSED_ADDS: Record<ProjectType, string[]> = {
   app: ["kreativa"],
   leadgen: ["socialni", "kreativa", "experimenty-lp", "ltv"],
   content: ["kampane", "knihovna"],
+  local: ["kreativa", "knihovna"],
 };
 
 export function moduleStatus(m: ModuleDef, type: ProjectType): ModuleStatus {
