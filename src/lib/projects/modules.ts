@@ -244,6 +244,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Service × location coverage, page gaps and reputation from reviews.",
   },
   {
+    key: "mapa",
+    label: "Mapa & pozice",
+    labelEn: "Map & rankings",
+    icon: "map",
+    section: "growth",
+    availableFor: ["local"],
+    blurb: "Mapový balíček (vy vs. konkurence) na reálné mapě, podíl na proklicích a žebříček pozic klíčových slov.",
+    blurbEn: "Map pack (you vs. competitors) on a real map, share of clicks and a keyword ranking ladder.",
+  },
+  {
     key: "distribuce",
     label: "Distribuce",
     labelEn: "Distribution",

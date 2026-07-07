@@ -30,6 +30,7 @@ import {
   Pulse,
   Search,
   Store,
+  Target,
   Users,
 } from "@/components/icons";
 
@@ -61,6 +62,7 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   speed: Bolt,
   local: Pin,
   locations: Layers,
+  map: Target,
   clusters: Network,
   distribute: Broadcast,
   audience: Users,

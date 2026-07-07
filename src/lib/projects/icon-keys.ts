@@ -28,6 +28,7 @@ export type IconKey =
   | "speed"
   | "local"
   | "locations"
+  | "map"
   | "clusters"
   | "distribute"
   | "audience";
