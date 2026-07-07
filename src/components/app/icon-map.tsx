@@ -63,6 +63,8 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   local: Pin,
   locations: Layers,
   map: Target,
+  reviews: Inbox,
+  schedule: Calendar,
   clusters: Network,
   distribute: Broadcast,
   audience: Users,

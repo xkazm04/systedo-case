@@ -29,6 +29,8 @@ export type IconKey =
   | "local"
   | "locations"
   | "map"
+  | "reviews"
+  | "schedule"
   | "clusters"
   | "distribute"
   | "audience";
