@@ -3,8 +3,9 @@
  *  no provider/session store, so the checklist is honest about it. Account-level,
  *  available for every project type. */
 import { requireProjectModule } from "@/lib/projects/guard";
-import { currentSession } from "@/lib/session";
+import { currentSession, currentUserId } from "@/lib/session";
 import { DEV_AUTH, signOut } from "@/auth";
+import { activeSessionCount, revokeAllSessions } from "@/lib/account/sessions";
 import ModulePage from "@/components/app/ModulePage";
 import AccountSecurity from "@/components/app/modules/AccountSecurity";
 
@@ -25,15 +26,32 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     oauth: !DEV_AUTH && Boolean(su),
     devMode: DEV_AUTH,
   };
+  // Real session metadata (only meaningful for a real DB session — dev-auth is synthetic).
+  const expiresDate = !DEV_AUTH && session?.expires ? session.expires.slice(0, 10) : null;
+  const sessionCount = !DEV_AUTH && su?.id ? await activeSessionCount(su.id) : 0;
 
   async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/" });
   }
 
+  async function signOutEverywhereAction() {
+    "use server";
+    const uid = await currentUserId();
+    if (uid) await revokeAllSessions(uid);
+    await signOut({ redirectTo: "/" });
+  }
+
   return (
     <ModulePage moduleKey="ucet">
-      <AccountSecurity user={user} facts={facts} signOutAction={signOutAction} />
+      <AccountSecurity
+        user={user}
+        facts={facts}
+        expiresDate={expiresDate}
+        sessionCount={sessionCount}
+        signOutAction={signOutAction}
+        signOutEverywhereAction={signOutEverywhereAction}
+      />
     </ModulePage>
   );
 }

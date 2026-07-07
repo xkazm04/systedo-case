@@ -21,7 +21,8 @@ const T = {
     st_ok: "Aktivní", st_action: "Vyžaduje akci", st_unavailable: "Nedostupné",
     twofaNote: "Dvoufaktorové ověření spravuje poskytovatel identity (Google).",
     sessions: "Relace", signOut: "Odhlásit se", signOutAll: "Odhlásit se všude",
-    signOutAllNote: "Odvolání všech relací zatím není napojeno.",
+    signOutAllNote: "Odhlásí tebe ze všech zařízení a odvolá všechny aktivní relace.",
+    activeSessions: "Aktivních relací: {n}", validUntil: "Aktuální relace platná do {d}",
     devNote: "Vývojové přihlášení (DEV_AUTH) — správa relací a odhlášení jsou dostupné jen v produkčním režimu.",
     danger: "Nebezpečná zóna", deleteTitle: "Smazání účtu",
     deleteBody: "Smazání účtu je nevratné — odstraní všechny projekty a data. Zpracováváme ho ručně.",
@@ -37,7 +38,8 @@ const T = {
     st_ok: "Active", st_action: "Needs action", st_unavailable: "Unavailable",
     twofaNote: "Two-factor auth is managed by the identity provider (Google).",
     sessions: "Sessions", signOut: "Sign out", signOutAll: "Sign out everywhere",
-    signOutAllNote: "Revoking all sessions isn't wired up yet.",
+    signOutAllNote: "Signs you out on every device and revokes all active sessions.",
+    activeSessions: "Active sessions: {n}", validUntil: "Current session valid until {d}",
     devNote: "Dev sign-in (DEV_AUTH) — session management and sign-out are available only in production mode.",
     danger: "Danger zone", deleteTitle: "Delete account",
     deleteBody: "Deleting your account is irreversible — it removes all projects and data. We handle it manually.",
@@ -57,11 +59,17 @@ const STATE_TONE: Record<CheckState, string> = {
 export default function AccountSecurity({
   user,
   facts,
+  expiresDate,
+  sessionCount,
   signOutAction,
+  signOutEverywhereAction,
 }: {
   user: { id: string; name: string; email: string; image?: string | null };
   facts: AccountFacts;
+  expiresDate: string | null;
+  sessionCount: number;
   signOutAction: () => void;
+  signOutEverywhereAction: () => void;
 }) {
   const t = useT(T);
   const [confirming, setConfirming] = useState(false);
@@ -125,18 +133,28 @@ export default function AccountSecurity({
         {facts.devMode ? (
           <p className="rounded-lg bg-canvas px-4 py-3 text-sm text-muted">{t("devNote")}</p>
         ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <form action={signOutAction}>
-              <button type="submit" className="rounded-pill bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900">
-                {t("signOut")}
-              </button>
-            </form>
-            <button type="button" disabled title={t("signOutAllNote")} className="cursor-not-allowed rounded-pill border border-line px-4 py-2 text-sm font-semibold text-muted opacity-60">
-              {t("signOutAll")}
-            </button>
-          </div>
+          <>
+            {(sessionCount > 0 || expiresDate) && (
+              <div className="mb-4 space-y-1 text-sm text-muted">
+                {sessionCount > 0 && <p>{t("activeSessions", { n: sessionCount })}</p>}
+                {expiresDate && <p className="tnum">{t("validUntil", { d: expiresDate })}</p>}
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <form action={signOutAction}>
+                <button type="submit" className="rounded-pill bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900">
+                  {t("signOut")}
+                </button>
+              </form>
+              <form action={signOutEverywhereAction}>
+                <button type="submit" className="rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-negative/50 hover:text-negative">
+                  {t("signOutAll")}
+                </button>
+              </form>
+            </div>
+            <p className="mt-2 text-xs text-muted">{t("signOutAllNote")}</p>
+          </>
         )}
-        {!facts.devMode && <p className="mt-2 text-xs text-muted">{t("signOutAllNote")}</p>}
       </div>
 
       {/* Danger zone */}
