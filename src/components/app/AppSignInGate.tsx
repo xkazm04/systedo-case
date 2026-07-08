@@ -2,43 +2,77 @@
 
 import Link from "next/link";
 import { signIn } from "next-auth/react";
-import { Logo } from "@/components/icons";
+import { Check, Logo } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+
+/** The eval value props — kept out of the {cs,en} string table because the
+ *  translator interpolates strings, not arrays. */
+const PERKS: Record<string, string[]> = {
+  cs: [
+    "Reálné moduly s ukázkovými daty — prozkoumáte je hned, bez čekání",
+    "Svoje čísla připojíte, až budete chtít (Google Ads, marže, pozice)",
+    "Vaše data zůstávají soukromá jen ve vašem prostoru",
+  ],
+  en: [
+    "Real modules with sample data — explore immediately, no waiting",
+    "Connect your own numbers when you're ready (Google Ads, margins, ranks)",
+    "Your data stays private to your workspace only",
+  ],
+};
 
 const T = {
   cs: {
-    heading: "Otevřít pracovní prostor",
-    body: "Přihlaste se přes Google a založte projekt — e-shop, aplikaci, generování leadů nebo obsahový web. Každý projekt si poskládá vlastní moduly podle svého typu.",
+    kicker: "Zkušební prostor zdarma",
+    heading: "Spusťte si vlastní Adamant",
+    body: "Přihlášením přes Google si založíte skutečný pracovní prostor — ne ukázku. Vytvořte projekt (e-shop, aplikace, leady nebo obsah) a hned si projdete celý živý produkt.",
     signIn: "Přihlásit přes Google",
-    footer: "Marketingové stránky case study zůstávají veřejné —",
-    backToWeb: "zpět na web",
+    trust: "Bez platební karty · založení trvá minutu · kdykoli smažete",
+    footer: "Jen se rozhlížíte?",
+    backToDemo: "Otevřít živou ukázku",
   },
   en: {
-    heading: "Open workspace",
-    body: "Sign in with Google and create a project — e-shop, app, lead generation, or content site. Each project assembles its own modules based on its type.",
+    kicker: "Free trial workspace",
+    heading: "Start your own Adamant",
+    body: "Sign in with Google to open a real workspace — not a demo. Create a project (e-shop, app, leads, or content) and explore the whole live product right away.",
     signIn: "Sign in with Google",
-    footer: "The case study marketing pages remain public —",
-    backToWeb: "back to website",
+    trust: "No payment card · takes a minute to set up · delete anytime",
+    footer: "Just looking around?",
+    backToDemo: "Open the live demo",
   },
 } as const;
 
-/** Shown when an anonymous visitor lands on /app. The product is per-user, so we
- *  ask for Google sign-in (the same provider the campaign connector needs for the
- *  Ads scope) before opening the workspace. */
+/** Shown when an anonymous visitor lands on /app — the conversion wall a prospect
+ *  hits after the public demo. Frames the product as a real free-trial workspace
+ *  (not a portfolio) and asks for Google sign-in (the same provider the campaign
+ *  connector needs for the Ads scope) before opening it. */
 export default function AppSignInGate() {
   const t = useT(T);
+  const { locale } = useLocale();
+  const perks = PERKS[locale] ?? PERKS.cs!;
   return (
     <div className="grid min-h-[78vh] place-items-center bg-dotgrid px-4">
       <div className="card w-full max-w-md p-8 text-center sm:p-10">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-onyx text-brand-400">
           <Logo width={26} height={26} />
         </span>
-        <h1 className="mt-6 text-2xl font-semibold tracking-tight text-navy-800">
+        <span className="mt-6 inline-block rounded-pill bg-positive-soft px-3 py-1 text-xs font-semibold text-positive">
+          {t("kicker")}
+        </span>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800">
           {t("heading")}
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-muted">
           {t("body")}
         </p>
+        <ul className="mt-5 space-y-2 text-left">
+          {perks.map((perk) => (
+            <li key={perk} className="flex items-start gap-2.5 text-sm text-navy-700">
+              <Check className="mt-0.5 shrink-0 text-positive" width={16} height={16} />
+              <span>{perk}</span>
+            </li>
+          ))}
+        </ul>
         <button
           type="button"
           onClick={() => signIn("google", { callbackUrl: "/app" })}
@@ -47,10 +81,11 @@ export default function AppSignInGate() {
           <GoogleGlyph />
           {t("signIn")}
         </button>
+        <p className="mt-3 text-xs text-muted">{t("trust")}</p>
         <p className="mt-5 text-xs text-muted">
           {t("footer")}{" "}
-          <Link href="/" className="link-inline">
-            {t("backToWeb")}
+          <Link href="/dashboard" className="link-inline">
+            {t("backToDemo")}
           </Link>
           .
         </p>

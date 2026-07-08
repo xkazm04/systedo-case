@@ -22,6 +22,8 @@ const T = {
     headingList: "Vaše projekty",
     bodyForm: "Projekt je pracovní prostor pro jednoho klienta nebo značku. Jeho typ určí, které moduly a metriky uvidíte.",
     bodyList: "Vyberte projekt, nebo založte nový. Každý si poskládá vlastní moduly podle svého typu.",
+    trialKicker: "Zkušební prostor je připravený",
+    trialWelcome: "Založte první projekt — načte se s ukázkovými daty, takže hned uvidíte celý živý produkt v akci. Svoje reálné údaje (Google Ads, marže, pozice) připojíte, až budete chtít. Bez karty, kdykoli smažete.",
     newProject: "Nový projekt",
     modules: "modulů",
   },
@@ -33,6 +35,8 @@ const T = {
     headingList: "Your projects",
     bodyForm: "A project is a workspace for a single client or brand. Its type determines which modules and metrics you see.",
     bodyList: "Select a project, or create a new one. Each assembles its own modules based on its type.",
+    trialKicker: "Your trial workspace is ready",
+    trialWelcome: "Create your first project — it loads with sample data so you see the whole live product in action right away. Connect your real data (Google Ads, margins, ranks) whenever you're ready. No card, delete anytime.",
     newProject: "New project",
     modules: "modules",
   },
@@ -71,6 +75,15 @@ export default function ProjectsHome({ projects }: { projects: Project[] }) {
 
       <Container className="py-12 sm:py-16">
         <div className="mx-auto max-w-[62rem]">
+          {/* B3: a first-run visitor (no projects) is a prospective buyer fresh off
+              the public demo — frame the empty state as a real, free trial workspace. */}
+          {empty && (
+            <div className="mb-6 rounded-xl border border-positive/25 bg-positive-soft px-5 py-4">
+              <p className="text-sm font-semibold text-positive">{t("trialKicker")}</p>
+              <p className="mt-1 text-sm leading-relaxed text-navy-700">{t("trialWelcome")}</p>
+            </div>
+          )}
+
           <header className="mb-8">
             <h1 className="text-3xl font-semibold tracking-tight text-navy-800 sm:text-4xl">
               {showForm ? (empty ? t("headingFirst") : t("headingNew")) : t("headingList")}
