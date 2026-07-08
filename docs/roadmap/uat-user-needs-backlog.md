@@ -130,6 +130,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **Med** — single persona, but central to her only journey.
 - **First-cut direction:** Compose the existing multi-platform Composer path with the batch scheduler so one topic fans out to differentiated per-channel captions.
 
+> **✅ D4 shipped**: `lp-variant-ideas` now threads the account's lead-quality / CVR grounding (C2's `leadSignalsPromptText`, tenancy-checked) into the challenger prompt, so variants target a real weakness (junk source, slow response) instead of generic "add a testimonial". USER-prompt only → tool fingerprint unchanged. The panel sends `projectId`; the route grounds + caches by the effective project. Grounding source verified for demo-leadgen.
+
 **D4. Hana: LP-experiment variants grounded as real hypotheses**
 - **The need:** Beyond the report, her job includes `experimenty-lp` variants that are genuine, testable hypotheses grounded in the account — not generic "add a testimonial."
 - **Who:** Hana (character JTBD + "what's the hypothesis?" — `hana-leadgen-cro.md`); not deeply traced this run but named as core to her senior bar.

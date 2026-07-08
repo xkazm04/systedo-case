@@ -592,6 +592,8 @@ export function validateLpVariantIdeasRequest(input: unknown, locale: SupportedL
   }
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
   return { valid: true, value };
 }
 

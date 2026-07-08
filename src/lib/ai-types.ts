@@ -721,6 +721,9 @@ export interface LpVariantIdeasRequest {
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
+  /** D4: the project whose lead-quality/CVR data grounds the hypotheses (tenancy-
+   *  checked server-side; replaced with the effective keyId for cache tenancy) */
+  projectId?: string;
 }
 
 /** One AI-drafted challenger concept: a testable angle for a landing-page variant.

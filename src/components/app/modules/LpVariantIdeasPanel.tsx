@@ -13,6 +13,7 @@ import { Pill } from "@/components/ui";
 import { Beaker, Sparkles, Bulb, Target } from "@/components/icons";
 import type { LpVariantIdeasRequest, LpVariantIdeasResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { useOptionalProject } from "@/lib/projects/context";
 import {
   LoadingTimer,
   PromptDisclosure,
@@ -68,7 +69,7 @@ export interface LpVariantSeed {
 }
 
 /** Build the request from the picked seed at click time (never during render). */
-function buildRequest(seed: LpVariantSeed, controlDescription: string): LpVariantIdeasRequest {
+function buildRequest(seed: LpVariantSeed, controlDescription: string, projectId?: string): LpVariantIdeasRequest {
   const req: LpVariantIdeasRequest = {
     topic: seed.cluster,
     controlLabel: seed.controlLabel,
@@ -77,6 +78,8 @@ function buildRequest(seed: LpVariantSeed, controlDescription: string): LpVarian
   if (seed.keywords && seed.keywords.length > 0) req.keywords = seed.keywords;
   if (typeof seed.controlCvr === "number") req.controlCvr = seed.controlCvr;
   if (seed.losers && seed.losers.length > 0) req.losers = seed.losers;
+  // D4: carry the project so the server can ground the hypotheses in its lead data.
+  if (projectId) req.projectId = projectId;
   return req;
 }
 
@@ -84,6 +87,7 @@ export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] 
   const t = useT(T);
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine, expectedMs } =
     useAiTool<LpVariantIdeasResult>("lp-variant-ideas");
+  const project = useOptionalProject();
   const [selectedId, setSelectedId] = useState(seeds[0]?.id ?? "");
   const selected = seeds.find((s) => s.id === selectedId) ?? seeds[0];
   const r = data?.result;
@@ -119,7 +123,7 @@ export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] 
             onClick={() => {
               if (status !== "loading" && selected) {
                 const desc = t("controlDescription", { label: selected.controlLabel, cluster: selected.cluster });
-                run(buildRequest(selected, desc) as unknown as Record<string, unknown>);
+                run(buildRequest(selected, desc, project?.id) as unknown as Record<string, unknown>);
               }
             }}
             disabled={status === "loading" || !selected}

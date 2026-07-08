@@ -38,7 +38,7 @@ import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, ChatRequest, MonthlyRecapRequest } from "@/lib/ai-types";
+import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest } from "@/lib/ai-types";
 import type { PerformanceData } from "@/lib/types";
 import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
@@ -182,6 +182,23 @@ async function mergeGrounding(
   return { text: merged || undefined, keySuffix: keySuffix || undefined };
 }
 
+/** D4: the account's lead-quality / CVR grounding for LP-experiment hypotheses,
+ *  tenancy-checked (demo public, real id owner-only). Leadgen/local only (else the
+ *  summary is null). keyId keys the cache by the effective project. */
+async function resolveLeadGrounding(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<{ text?: string; keyId: string }> {
+  if (!projectId) return { keyId: "base" };
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return { text: leadSignalsPromptText(demo) ?? undefined, keyId: demo.id };
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return { text: leadSignalsPromptText(project) ?? undefined, keyId: project.id };
+  }
+  return { keyId: "base" };
+}
+
 export async function POST(request: Request) {
   // Abuse guards first — this endpoint is a public, unauthenticated POST that
   // shells out to a paid provider, so it must be throttled before any work.
@@ -301,7 +318,15 @@ export async function POST(request: Request) {
       }
       case "lp-variant-ideas": {
         const p = validateLpVariantIdeasRequest(body, locale);
-        return p.valid ? cachedRespond("lp-variant-ideas", p.value, locale, userId, () => generateLpVariantIdeas(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // D4: ground the challenger hypotheses in the account's lead-quality / CVR
+        // picture (tenancy-checked), cache by the effective project so an unowned id
+        // degrades to base and can't serve another tenant's grounded variants.
+        const { text, keyId } = await resolveLeadGrounding(p.value.projectId, userId);
+        const value: LpVariantIdeasRequest = { ...p.value, projectId: keyId };
+        return cachedRespond("lp-variant-ideas", value, locale, userId, () =>
+          generateLpVariantIdeas(p.value, locale, request.signal, text)
+        );
       }
       case "lead-source-diagnosis": {
         const p = validateLeadSourceDiagnosisRequest(body, locale);

@@ -35,7 +35,7 @@ Pravidla:
 - Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných marketingových frází.
 - Vrať POUZE jeden validní JSON objekt dle schématu — žádný text okolo, žádné markdown bloky, žádné komentáře.`;
 
-function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest): string {
+function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest, grounding?: string): string {
   const keywords = (req.keywords ?? []).filter((k) => k.trim().length > 0);
   const losers = (req.losers ?? []).filter((l) => l.trim().length > 0);
   return [
@@ -51,6 +51,12 @@ function buildLpVariantIdeasPrompt(req: LpVariantIdeasRequest): string {
     losers.length > 0
       ? `Už otestováno a NEPORAZILO kontrolu (tyto úhly NENAVRHUJ znovu, jsou vyvrácené): ${losers.join(", ")}`
       : "",
+    // D4: ground the hypotheses in the account's real lead-quality / CVR picture, so
+    // challengers target a real weakness (bad source, slow response) — not "add a
+    // testimonial". Data only; the model must not invent numbers.
+    ...(grounding
+      ? ["", "SKUTEČNÁ DATA ÚČTU (opři hypotézy o ně, ale nevymýšlej vlastní čísla):", grounding]
+      : []),
     "",
     "Vrať pole „variants“ se 2–3 odlišnými koncepty. Každý koncept je objekt { label, hypothesis, headline, primaryCTA, rationale }. Každá varianta ať testuje jinou hypotézu, liší se od kontroly a nepoužívá už vyvrácený úhel. Nevymýšlej žádná čísla.",
     ...refineLines(req.refine),
@@ -166,12 +172,16 @@ function demoLpVariantIdeas(req: LpVariantIdeasRequest): LpVariantIdeasResult {
 export function generateLpVariantIdeas(
   req: LpVariantIdeasRequest,
   locale?: SupportedLocale,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  /** D4: the account's lead-quality / CVR grounding (leadgen/local), appended to the
+   *  USER prompt so hypotheses target a real weakness. Fingerprint = system+schema,
+   *  so this runtime data leaves the contract unchanged. */
+  grounding?: string
 ): Promise<AiResponse<LpVariantIdeasResult>> {
   return generateStructured({
     // llm-tool: lp-variant-ideas
     id: "lp-variant-ideas",
-    prompt: buildLpVariantIdeasPrompt(req),
+    prompt: buildLpVariantIdeasPrompt(req, grounding),
     system: LP_VARIANT_IDEAS_SYSTEM,
     schema: LP_VARIANT_IDEAS_SCHEMA,
     temperature: 0.8,
