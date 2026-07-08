@@ -8,6 +8,7 @@ This is the **forward-looking product backlog** distilled from the 2026-07-07 **
 
 - **A1 · Live Google Ads data as the report's source of truth** — ✅ `7450a27`. Report + AI recap run on a project's synced Ads data when present (else the scaled sample, labelled illustrative); `resolveReportDataset` seam, per-project metrics store, credential-gated sync reusing the existing OAuth/REST client. L2-verified.
 - **C2 · Lead-source quality / CPQL / velocity into the grounding** — ✅ `2ba6784`. The recap for leadgen & local now grounds on junk sources, CPL/CPQL, best source and lead velocity (USER-prompt appendix; recap fingerprint unchanged).
+- **A3 · Real COGS / margin / overhead → true net profit** — ✅ `76926e2`. E-shop owners enter a blended gross margin + monthly overhead + per-order cost (persisted server-side); the report's profit tile becomes "Zisk" (net after COGS+overhead), adds a net-margin tile, and POAS turns margin-aware. Without a model it keeps the labelled pre-COGS contribution + a CTA. `cost-model` store/compute/route + inline editor. L2-verified.
 - **A2 · Real keyword-rank ladder as the map's source of truth** — ✅ `488e133`. The map's ranking ladder runs on imported real ranks when present (else sample, illustrative); `resolveLocalLadder` seam + `local_signals` store + tolerant CSV import route. The competitor map-pack stays honestly illustrative (map-pack rank has no clean API). L2-verified. *Follow-up: a live rank-provider / GBP-reviews connector.*
 
 ## 2. The panel's core message
