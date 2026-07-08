@@ -58,6 +58,9 @@ export async function GET(request: Request) {
       const token = await createSharedReport(tenant, accountName, {
         name: project?.name,
         accent: project?.accentColor,
+        // R08: carry the client logo so a cron-generated report is branded like the
+        // manual share (which already captures it).
+        logo: project?.logoUrl,
       });
       if (!token) {
         results.push({ userId, projectId: project?.id, ok: true, sent: false, reason: "no-evaluation" });

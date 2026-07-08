@@ -26,6 +26,8 @@ export interface MicrositeConfig {
   brandName: string;
   /** white-label accent (hex or CSS color) */
   accentColor: string;
+  /** white-label logo URL, rendered in the microsite header (R08) */
+  logoUrl?: string;
   /** trailing window in days */
   periodDays: number;
   enabled: boolean;
@@ -106,7 +108,7 @@ export async function listEnabledSlugs(): Promise<string[]> {
 /** Create or update a tenant's microsite. The slug is stable once set. */
 export async function enableMicrosite(
   tenant: string,
-  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; periodDays?: number }
+  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number }
 ): Promise<MicrositeConfig> {
   const cfg: MicrositeConfig = {
     slug: input.slug,
@@ -115,6 +117,7 @@ export async function enableMicrosite(
     segment: input.segment || "",
     brandName: input.brandName || input.clientName,
     accentColor: input.accentColor || "#0f766e",
+    ...(input.logoUrl ? { logoUrl: input.logoUrl } : {}),
     periodDays: input.periodDays && [30, 90, 365].includes(input.periodDays) ? input.periodDays : 30,
     enabled: true,
     updatedAt: new Date().toISOString(),

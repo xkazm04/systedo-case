@@ -11,7 +11,7 @@ import { reportTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/
 import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
-import { ESHOP_COHORTS } from "@/lib/ltv/sample";
+import { cohortsForProject } from "@/lib/ltv/sample";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { loadProductsFor } from "@/lib/catalog/load";
 import { stockRows, monthlySeasonality } from "@/lib/inventory/compute";
@@ -34,7 +34,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // e-shop report, so Robert's weekly job (marketing + LTV + stock) lives in one place.
   let beyond: ReportBeyondData | null = null;
   if (project.type === "eshop") {
-    const ltv = ltvSummary(ESHOP_COHORTS);
+    const ltv = ltvSummary(cohortsForProject(project));
     const lastDate = dataset.daily.at(-1)?.date;
     const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
     const products = await loadProductsFor(project, now);
@@ -134,6 +134,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         snaps={snaps}
         projectName={project.name}
         logoUrl={project.logoUrl}
+        accentColor={project.accentColor}
         projectId={project.id}
         live={resolved.live}
         syncedAt={resolved.syncedAt}

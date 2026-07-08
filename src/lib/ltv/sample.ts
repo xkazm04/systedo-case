@@ -3,6 +3,9 @@
  *  retention curve. Real-integration seam: product-analytics events
  *  (Segment / PostHog / Stripe). */
 
+import type { Project } from "@/lib/projects/types";
+import { projectVary } from "@/lib/project-data/vary";
+
 /** A single acquisition channel's contribution to a cohort. Per-cohort sums of
  *  `spend`/`signups` across channels equal the cohort's blended totals. */
 export interface CohortChannel {
@@ -170,3 +173,33 @@ export const ESHOP_COHORTS: Cohort[] = [
   { month: "Kvě 2026", signups: 805, spend: 282_555, arpu: 915, retention: [1, 0.31, 0.23, 0.18, 0.15] },
   { month: "Čvn 2026", signups: 768, spend: 276_480, arpu: 900, retention: [1, 0.29, 0.21, 0.16] },
 ];
+
+/** R07: the eshop cohorts scaled to a specific project, so the report's LTV block is
+ *  project-specific illustrative data — like every other spine (projectScale) — not a
+ *  global constant identical across every eshop client. Size (signups/spend) scales by
+ *  the project magnitude; cohort totals are DERIVED from the scaled channels so the
+ *  blended = per-channel invariant holds; a small independent ARPU wobble shifts each
+ *  project's LTV:CAC / payback so they're not just scaled copies. Still illustrative
+ *  (no real cohort/retention data — that's the honest ceiling), now project-grounded. */
+export function cohortsForProject(project: Project): Cohort[] {
+  const v = projectVary(project, "ltv");
+  // One per-project spend shift so CAC (spend/signups) — not just LTV — differs
+  // between projects, rather than magnitude cancelling out in the ratio.
+  const spendW = v.wobble(0.12);
+  return ESHOP_COHORTS.map((c) => {
+    const channels = c.channels?.map((ch) => ({
+      ...ch,
+      signups: Math.max(0, v.int(ch.signups)),
+      spend: Math.round(v.money(ch.spend) * spendW),
+    }));
+    const signups = channels ? channels.reduce((a, ch) => a + ch.signups, 0) : Math.max(1, v.int(c.signups));
+    const spend = channels ? channels.reduce((a, ch) => a + ch.spend, 0) : Math.round(v.money(c.spend) * spendW);
+    return {
+      ...c,
+      signups: Math.max(1, signups),
+      spend,
+      arpu: Math.round(c.arpu * v.wobble(0.08)),
+      ...(channels ? { channels } : {}),
+    };
+  });
+}

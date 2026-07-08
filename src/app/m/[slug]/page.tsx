@@ -117,6 +117,10 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
       <Container className="py-12 sm:py-16">
         <header className="border-b border-line pb-8">
           <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: accent }}>
+            {config.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={config.logoUrl} alt={config.brandName} className="h-8 w-auto max-w-[140px] object-contain" />
+            )}
             {config.brandName}
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-navy-800 sm:text-4xl">

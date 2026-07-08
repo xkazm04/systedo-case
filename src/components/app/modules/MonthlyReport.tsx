@@ -51,6 +51,7 @@ export default function MonthlyReport({
   snaps,
   projectName,
   logoUrl,
+  accentColor,
   projectId,
   live = false,
   syncedAt,
@@ -64,6 +65,8 @@ export default function MonthlyReport({
   snaps: Record<AnalysisPeriod, ReportSnap>;
   projectName: string;
   logoUrl?: string;
+  /** R08: white-label accent band on the report header, matching the shared report */
+  accentColor?: string;
   /** the project whose /metrics/sync endpoint the "sync" control hits (omit to hide it) */
   projectId?: string;
   /** true when the tiles are the client's own synced Ads data, not the sample series */
@@ -143,6 +146,11 @@ export default function MonthlyReport({
 
   return (
     <div id="monthly-report" className="space-y-6">
+      {/* R08: white-label accent band — matches the client-facing shared report so
+          the branded header is consistent across the module, the share and print. */}
+      {accentColor && (
+        <div style={{ backgroundColor: accentColor }} className="-mt-1 h-1.5 w-full rounded-full" aria-hidden />
+      )}
       {/* header + controls */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex items-center gap-3">
