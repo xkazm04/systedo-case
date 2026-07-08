@@ -124,6 +124,16 @@ const SCHEMA = `
     PRIMARY KEY (user_id, project_id, key)
   );
 
+  -- A1: live report metrics synced from an ad platform (Google Ads). One blob per
+  -- project holding {meta, rows[]} — project-scoped (the synced data belongs to the
+  -- project, not the user who triggered the sync). Absent → the report falls back
+  -- to the scaled sample dataset (illustrative). See src/lib/report-metrics/.
+  CREATE TABLE IF NOT EXISTS report_metrics (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.

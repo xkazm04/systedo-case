@@ -5,14 +5,16 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
-import { getProjectDataset } from "@/lib/project-data/dataset";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, type ReportSnap } from "@/lib/report/compute";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "mesicni-report");
-  const dataset = getProjectDataset(project);
+  // A1 seam: live Ads data when the project has synced it, else the scaled sample.
+  const resolved = await resolveReportDataset(project);
+  const dataset = resolved.data;
 
   // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
   // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
@@ -60,7 +62,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
 
   return (
     <ModulePage moduleKey="mesicni-report">
-      <MonthlyReport tiles={tiles} snaps={snaps} projectName={project.name} logoUrl={project.logoUrl} />
+      <MonthlyReport
+        tiles={tiles}
+        snaps={snaps}
+        projectName={project.name}
+        logoUrl={project.logoUrl}
+        projectId={project.id}
+        live={resolved.live}
+        syncedAt={resolved.syncedAt}
+        customerId={resolved.customerId}
+      />
     </ModulePage>
   );
 }

@@ -6,6 +6,7 @@
  *  and framed to its business type, so it fits non-eshop projects. Print +
  *  Markdown export. Account epic. */
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bolt, Check, Document, Download, Gauge, Target, TrendDown } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -18,6 +19,9 @@ const T = {
   cs: {
     heading: "Měsíční report", periodLabel: "Období", print: "Tisk / PDF", downloadMd: "Stáhnout .md",
     note: "Ilustrativní data klienta (stejná jako v dashboardu). AI dostává jen reálná čísla a nesmí si žádná vymýšlet.",
+    liveData: "Živá data · Google Ads", syncedAt: "synchronizováno {date}",
+    syncCta: "Synchronizovat z Google Ads", resync: "Synchronizovat znovu", syncing: "Synchronizuji…",
+    syncFailed: "Synchronizace se nezdařila.",
     narrativeHeading: "Souhrn od AI", generate: "Vygenerovat souhrn", regenerate: "Vygenerovat znovu", generating: "Generuji…",
     idle: "Nech AI sestavit shrnutí výkonu za období na základě čísel výše.",
     error: "Souhrn se nepodařilo vygenerovat.", retry: "Zkusit znovu",
@@ -27,6 +31,9 @@ const T = {
   en: {
     heading: "Monthly report", periodLabel: "Period", print: "Print / PDF", downloadMd: "Download .md",
     note: "Illustrative client data (the same you see in the dashboard). The AI only receives real numbers and must not invent any.",
+    liveData: "Live data · Google Ads", syncedAt: "synced {date}",
+    syncCta: "Sync from Google Ads", resync: "Re-sync", syncing: "Syncing…",
+    syncFailed: "Sync failed.",
     narrativeHeading: "AI summary", generate: "Generate summary", regenerate: "Regenerate", generating: "Generating…",
     idle: "Let the AI compile a performance summary for the period based on the figures above.",
     error: "Could not generate the summary.", retry: "Try again",
@@ -40,17 +47,48 @@ export default function MonthlyReport({
   snaps,
   projectName,
   logoUrl,
+  projectId,
+  live = false,
+  syncedAt,
+  customerId,
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
   projectName: string;
   logoUrl?: string;
+  /** the project whose /metrics/sync endpoint the "sync" control hits (omit to hide it) */
+  projectId?: string;
+  /** true when the tiles are the client's own synced Ads data, not the sample series */
+  live?: boolean;
+  /** ISO timestamp of the last live sync */
+  syncedAt?: string;
+  /** the ad account behind the live data */
+  customerId?: string;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
+  const router = useRouter();
   const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct } = useFormatters();
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
+  const [syncing, setSyncing] = useState(false);
+  const [syncErr, setSyncErr] = useState<string | null>(null);
   const { status, data, run, reset } = useAiTool<MonthlyRecapResult>("monthly-recap", period);
+
+  async function syncNow() {
+    if (!projectId || syncing) return;
+    setSyncing(true);
+    setSyncErr(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/metrics/sync`, { method: "POST" });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (res.ok && json.ok) router.refresh();
+      else setSyncErr(json.error || t("syncFailed"));
+    } catch {
+      setSyncErr(t("syncFailed"));
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   const en = locale === "en";
   const snap = snaps[period];
@@ -142,7 +180,44 @@ export default function MonthlyReport({
         })}
       </div>
 
-      <p className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">{t("note")}</p>
+      {/* Data source — honest about live vs illustrative, with a sync affordance. */}
+      {live ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-positive-soft px-4 py-3 text-xs leading-relaxed">
+          <span className="font-medium text-positive">
+            <Check width={12} height={12} className="mb-0.5 mr-1 inline" />
+            {t("liveData")}
+            {customerId ? ` · ${customerId}` : ""}
+            {syncedAt ? ` · ${t("syncedAt", { date: syncedAt.slice(0, 10) })}` : ""}
+          </span>
+          {projectId && (
+            <button
+              type="button"
+              onClick={syncNow}
+              disabled={syncing}
+              className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50 print:hidden"
+            >
+              {syncing ? t("syncing") : t("resync")}
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{t("note")}</span>
+            {projectId && (
+              <button
+                type="button"
+                onClick={syncNow}
+                disabled={syncing}
+                className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50 print:hidden"
+              >
+                {syncing ? t("syncing") : t("syncCta")}
+              </button>
+            )}
+          </div>
+          {syncErr && <p className="mt-2 text-negative">{syncErr}</p>}
+        </div>
+      )}
 
       {/* AI narrative */}
       <div className="card p-5">

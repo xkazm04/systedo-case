@@ -232,6 +232,30 @@ export async function fetchDailySeries(
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** Account-level daily rows for the last `days` — the series the monthly report's
+ *  live seam (A1) ingests. Date-segmented over `campaign` (so one row per campaign
+ *  per day; the caller sums per date) and, unlike `fetchDailySeries`, selects
+ *  `metrics.clicks` too (→ visits). Returns raw searchStream rows; the pure mapper
+ *  in report-metrics/map.ts turns them into daily totals with no credentials needed. */
+export async function fetchAccountDailyRows(
+  accessToken: string,
+  customerId: string,
+  days: number
+): Promise<SearchRow[]> {
+  const { start, end } = dateRange(days);
+  const query = `
+    SELECT
+      segments.date,
+      metrics.clicks,
+      metrics.cost_micros,
+      metrics.conversions,
+      metrics.conversions_value
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+  `;
+  return searchStream(accessToken, customerId.replace(/\D/g, ""), query);
+}
+
 /** Per-campaign daily series for the period — the same date-segmented metrics as
  *  `fetchDailySeries`, kept per `campaign.id` instead of summed, so each table row
  *  can show its own trend sparkline. One extra GAQL query per sync. */

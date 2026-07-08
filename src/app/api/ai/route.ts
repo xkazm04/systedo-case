@@ -43,6 +43,7 @@ import type { PerformanceData } from "@/lib/types";
 import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import {
@@ -124,7 +125,16 @@ async function resolveGrounding(
   if (demo) return { data: getProjectDataset(demo), keyId: demo.id, businessType: BUSINESS_TYPE[demo.type] };
   if (userId) {
     const project = await getProject(userId, projectId);
-    if (project) return { data: getProjectDataset(project), keyId: project.id, businessType: BUSINESS_TYPE[project.type] };
+    if (project) {
+      // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
+      // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
+      const resolved = await resolveReportDataset(project);
+      return {
+        data: resolved.data,
+        keyId: resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id,
+        businessType: BUSINESS_TYPE[project.type],
+      };
+    }
   }
   return { keyId: "base" };
 }
