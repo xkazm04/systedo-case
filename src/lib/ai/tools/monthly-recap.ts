@@ -11,6 +11,7 @@ import {
 } from "../../ai-types";
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapshot";
 import type { PerformanceData } from "../../types";
+import type { ProjectType } from "../../projects/types";
 import { fmtCZK, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
@@ -148,13 +149,16 @@ export function generateMonthlyRecap(
   data?: PerformanceData,
   businessType?: string,
   // C2: lead/local signal grounding for the DATA block (undefined for e-shop/base).
-  groundingContext?: string
+  groundingContext?: string,
+  // R01: the project type shapes the DATA block's metric vocabulary (a leadgen/local
+  // recap must not be fed e-shop Obrat/ROAS). Undefined → e-shop default.
+  projectType?: ProjectType
 ): Promise<AiResponse<MonthlyRecapResult>> {
   const snapshot = buildSnapshot(req.period, "previous", data);
   return generateStructured({
     // llm-tool: monthly-recap
     id: "monthly-recap",
-    prompt: buildRecapPrompt(snapshotToPromptText(snapshot), businessType, req.refine, groundingContext),
+    prompt: buildRecapPrompt(snapshotToPromptText(snapshot, projectType), businessType, req.refine, groundingContext),
     system: MONTHLY_RECAP_SYSTEM,
     schema: MONTHLY_RECAP_SCHEMA,
     // Strictly-grounded numeric read: keep temperature low so the recap stays

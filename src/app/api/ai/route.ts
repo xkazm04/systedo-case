@@ -125,7 +125,7 @@ async function resolveGrounding(
   projectId: string | undefined,
   userId: string | null,
   locale: SupportedLocale
-): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; groundingContext?: string }> {
+): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; projectType?: ProjectType; groundingContext?: string }> {
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
   if (demo) {
@@ -136,6 +136,8 @@ async function resolveGrounding(
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
       keyId: comp.keySuffix ? `${demo.id}#${comp.keySuffix}` : demo.id,
       businessType: BUSINESS_TYPE[demo.type],
+      // R01: raw type shapes the recap DATA block's metric vocabulary.
+      projectType: demo.type,
       // C2 lead-source + C3 competitors + profit/history → deeper recap grounding.
       groundingContext: comp.text,
     };
@@ -152,6 +154,7 @@ async function resolveGrounding(
         data: resolved.data,
         keyId: comp.keySuffix ? `${base}#${comp.keySuffix}` : base,
         businessType: BUSINESS_TYPE[project.type],
+        projectType: project.type,
         groundingContext: comp.text,
       };
     }
@@ -271,10 +274,10 @@ export async function POST(request: Request) {
         if (!p.valid) return bad(p.error);
         // Tenancy-checked per-project grounding + business-type framing; cache by
         // the EFFECTIVE project (keyId) so an unowned id degrades to base.
-        const { data, keyId, businessType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale);
+        const { data, keyId, businessType, projectType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale);
         const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
         return cachedRespond("monthly-recap", value, locale, userId, () =>
-          generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext)
+          generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext, projectType)
         );
       }
       case "chat": {

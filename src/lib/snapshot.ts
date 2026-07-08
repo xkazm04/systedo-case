@@ -23,6 +23,28 @@ import {
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "./format";
 import { ANALYSIS_PERIOD_LABELS, type AnalysisPeriod } from "./ai-types";
 import type { MetricKey } from "./types";
+import type { ProjectType } from "./projects/types";
+
+/** Per-type vocabulary for the recap DATA block. E-shops read revenue/ROAS/PNO;
+ *  a leadgen or local client's conversions ARE leads/enquiries, and revenue/ROAS
+ *  are e-shop concepts that don't apply — feeding them Obrat/ROAS makes the recap
+ *  speak the wrong business (UAT-L1-07 / R01). Conversion-shaped types get a
+ *  leads + cost-per-lead block instead; the deeper lead-quality detail arrives
+ *  separately via the grounding context (leadSignalsPromptText). */
+const CONVERSION_LABEL: Record<ProjectType, string> = {
+  eshop: "Konverze",
+  leadgen: "Leady",
+  local: "Poptávky & hovory",
+  content: "Konverzní cíle",
+  app: "Registrace",
+};
+const COST_PER_CONVERSION_LABEL: Record<ProjectType, string> = {
+  eshop: "Cena za konverzi",
+  leadgen: "Cena za lead (CPL)",
+  local: "Cena za poptávku",
+  content: "Cena za konverzi",
+  app: "Cena za registraci",
+};
 
 const PERIOD_DAYS: Record<AnalysisPeriod, number> = { "30d": 30, "90d": 90, "12m": 365 };
 
@@ -96,9 +118,13 @@ const ddmm = (iso: string): string => {
   return `${Number(d)}.${Number(m)}.`;
 };
 
-export function snapshotToPromptText(s: Snapshot): string {
+export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): string {
   const c = s.current;
   const sig = (k: MetricKey) => SIG_NOTE[s.significance[k]];
+  // E-shop (or unknown) reads revenue/ROAS/PNO/AOV; conversion-first businesses
+  // (leadgen/local/…) get a leads + cost-per-lead block so the recap never quotes
+  // fabricated Obrat/ROAS for them (R01).
+  const isEshop = !projectType || projectType === "eshop";
 
   const lines: string[] = [
     `Klient: ${s.client.name} (${s.client.domain}) — ${s.client.segment}`,
@@ -113,21 +139,50 @@ export function snapshotToPromptText(s: Snapshot): string {
     "Souhrn metrik (hodnota | meziobdobní změna | spolehlivost změny):",
     `- Návštěvy: ${fmtInt(c.visits)} | ${fmtSignedPct(s.delta.visits)}${sig("visits")}`,
     `- Náklady: ${fmtCZK(c.cost)} | ${fmtSignedPct(s.delta.cost)}${sig("cost")}`,
-    `- Konverze: ${fmtInt(c.conversions)} | ${fmtSignedPct(s.delta.conversions)}${sig("conversions")}`,
-    `- Obrat (hodnota konverzí): ${fmtCZK(c.revenue)} | ${fmtSignedPct(s.delta.revenue)}${sig("revenue")}`,
-    `- PNO: ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) | ${fmtSignedPct(s.delta.pno)}${sig("pno")}`,
-    `- ROAS: ${fmtMultiple(c.roas)}`,
-    `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
-    `- Průměrná hodnota objednávky: ${fmtCZK(c.aov)}`,
-    "",
-    "Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):",
-    ...s.channels.map(
-      (ch) =>
-        `- ${ch.channel}: ${fmtCZK(ch.revenue)} | ${fmtPct(ch.revenueShare, 0)} | ` +
-        `${ch.pno > 0 ? fmtPct(ch.pno) : "—"} | ${ch.roas > 0 ? fmtMultiple(ch.roas) : "—"} | ` +
-        `${ch.delta ? fmtSignedPct(ch.delta.revenue) : "—"}`
-    ),
   ];
+
+  if (isEshop) {
+    lines.push(
+      `- Konverze: ${fmtInt(c.conversions)} | ${fmtSignedPct(s.delta.conversions)}${sig("conversions")}`,
+      `- Obrat (hodnota konverzí): ${fmtCZK(c.revenue)} | ${fmtSignedPct(s.delta.revenue)}${sig("revenue")}`,
+      `- PNO: ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) | ${fmtSignedPct(s.delta.pno)}${sig("pno")}`,
+      `- ROAS: ${fmtMultiple(c.roas)}`,
+      `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
+      `- Průměrná hodnota objednávky: ${fmtCZK(c.aov)}`,
+      "",
+      "Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):",
+      ...s.channels.map(
+        (ch) =>
+          `- ${ch.channel}: ${fmtCZK(ch.revenue)} | ${fmtPct(ch.revenueShare, 0)} | ` +
+          `${ch.pno > 0 ? fmtPct(ch.pno) : "—"} | ${ch.roas > 0 ? fmtMultiple(ch.roas) : "—"} | ` +
+          `${ch.delta ? fmtSignedPct(ch.delta.revenue) : "—"}`
+      )
+    );
+  } else {
+    const t = projectType;
+    const convLabel = CONVERSION_LABEL[t];
+    const cpcLabel = COST_PER_CONVERSION_LABEL[t];
+    const cpc = c.conversions > 0 ? c.cost / c.conversions : 0;
+    const totalConv = s.channels.reduce((sum, ch) => sum + ch.conversions, 0);
+    lines.push(
+      `- ${convLabel}: ${fmtInt(c.conversions)} | ${fmtSignedPct(s.delta.conversions)}${sig("conversions")}`,
+      `- ${cpcLabel}: ${fmtCZK(cpc)}`,
+      `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
+      // Revenue/ROAS/PNO/AOV are e-shop concepts — omitted so the recap doesn't
+      // present them as this client's reality.
+      "",
+      `Výkon podle kanálů (${convLabel.toLowerCase()} | podíl | ${cpcLabel.toLowerCase()} | změna):`,
+      ...s.channels.map((ch) => {
+        const share = totalConv > 0 ? ch.conversions / totalConv : 0;
+        const chCpc = ch.conversions > 0 ? ch.cost / ch.conversions : 0;
+        return (
+          `- ${ch.channel}: ${fmtInt(ch.conversions)} | ${fmtPct(share, 0)} | ` +
+          `${ch.conversions > 0 ? fmtCZK(chCpc) : "—"} | ` +
+          `${ch.delta ? fmtSignedPct(ch.delta.conversions) : "—"}`
+        );
+      })
+    );
+  }
 
   if (s.pacing && !s.pacing.complete) {
     const p = s.pacing;
