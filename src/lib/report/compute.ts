@@ -18,7 +18,9 @@ export type ReportMetric =
   /** contribution = revenue − ad cost (NOT after-COGS; margin data is a separate seam) */
   | "profit"
   /** profit on ad spend = contribution / ad cost */
-  | "poas";
+  | "poas"
+  /** net profit margin = net profit / revenue (A3, only with a cost model) */
+  | "profitMargin";
 export type ReportFormat = "czk" | "multiple" | "pct" | "int";
 export type DeltaTone = "positive" | "negative" | "neutral";
 

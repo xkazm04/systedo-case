@@ -143,6 +143,15 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- A3: a project's real cost model (blended gross margin, monthly overhead,
+  -- per-order cost) so the report shows true net profit after COGS. One blob per
+  -- project; absent → the report stays on pre-COGS contribution. See src/lib/cost-model/.
+  CREATE TABLE IF NOT EXISTS cost_model (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.

@@ -7,7 +7,9 @@ import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
-import { reportTilesForType, type ReportSnap } from "@/lib/report/compute";
+import { reportTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import { getCostModel } from "@/lib/cost-model/store";
+import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -16,9 +18,24 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const resolved = await resolveReportDataset(project);
   const dataset = resolved.data;
 
+  // A3: a saved cost model turns the pre-COGS contribution into TRUE net profit
+  // after margin + overhead. Only e-shop reports carry a profit line.
+  const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+
   // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
   // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
-  const tiles = reportTilesForType(project.type);
+  let tiles = reportTilesForType(project.type);
+  if (costModel) {
+    // Relabel the contribution tile to "Zisk" (net after COGS) and add a margin tile.
+    tiles = tiles.flatMap((t): ReportTileSpec[] =>
+      t.metric === "profit"
+        ? [
+            { ...t, label: "Zisk", labelEn: "Net profit" },
+            { metric: "profitMargin", label: "Zisková marže", labelEn: "Net margin", format: "pct", goodWhenDown: false, hasDelta: false },
+          ]
+        : [t]
+    );
+  }
 
   const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
   for (const p of ANALYSIS_PERIODS) {
@@ -30,9 +47,28 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     const prevCost = c.cost / (1 + (s.delta.cost ?? 0));
     const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
     const cpaDelta = prevCpa > 0 ? cpa / prevCpa - 1 : 0;
-    // Contribution (revenue − ad cost) + profit-on-ad-spend. NOT after-COGS —
-    // true net profit needs per-SKU margin (a separate seam).
-    const poas = c.cost > 0 ? c.profit / c.cost : 0;
+
+    // Profit line: with a cost model → true net profit after COGS + overhead and a
+    // margin-aware POAS; without → pre-COGS contribution (revenue − ad cost).
+    let profit: number;
+    let poas: number;
+    let profitMargin: number | undefined;
+    let profitDelta = s.delta.profit;
+    if (costModel) {
+      const pp = periodProfit(
+        { revenue: c.revenue, adCost: c.cost, conversions: c.conversions, months: PERIOD_MONTHS[p] },
+        costModel
+      );
+      profit = pp.netProfit;
+      poas = pp.poas;
+      profitMargin = pp.profitMargin;
+      // Delta of net profit ≈ delta of gross contribution (fixed margin), a good proxy.
+      profitDelta = s.delta.profit;
+    } else {
+      profit = c.profit;
+      poas = c.cost > 0 ? c.profit / c.cost : 0;
+    }
+
     snaps[p] = {
       label: s.periodLabel,
       current: {
@@ -44,8 +80,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         visits: c.visits,
         cpa,
         convRate: c.cr,
-        profit: c.profit,
+        profit,
         poas,
+        ...(profitMargin !== undefined ? { profitMargin } : {}),
       },
       delta: {
         revenue: s.delta.revenue,
@@ -55,7 +92,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         visits: s.delta.visits,
         convRate: s.delta.cr,
         cpa: cpaDelta,
-        profit: s.delta.profit,
+        profit: profitDelta,
       },
     };
   }
@@ -71,6 +108,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         live={resolved.live}
         syncedAt={resolved.syncedAt}
         customerId={resolved.customerId}
+        showCostModel={project.type === "eshop"}
+        costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
       />
     </ModulePage>
   );

@@ -14,6 +14,7 @@ import { downloadText } from "@/lib/export";
 import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
 
 const T = {
   cs: {
@@ -51,6 +52,8 @@ export default function MonthlyReport({
   live = false,
   syncedAt,
   customerId,
+  showCostModel = false,
+  costModel = null,
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
@@ -64,6 +67,10 @@ export default function MonthlyReport({
   syncedAt?: string;
   /** the ad account behind the live data */
   customerId?: string;
+  /** A3: show the cost-model control (e-shop only) so profit reflects real margin */
+  showCostModel?: boolean;
+  /** the saved cost model, or null when profit is still pre-COGS contribution */
+  costModel?: CostModelView | null;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -218,6 +225,9 @@ export default function MonthlyReport({
           {syncErr && <p className="mt-2 text-negative">{syncErr}</p>}
         </div>
       )}
+
+      {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
+      {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} />}
 
       {/* AI narrative */}
       <div className="card p-5">
