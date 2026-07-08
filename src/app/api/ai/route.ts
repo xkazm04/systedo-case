@@ -47,6 +47,8 @@ import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
 import { competitorGroundingText } from "@/lib/competitors/grounding";
+import { getCostModel } from "@/lib/cost-model/store";
+import { profitGroundingText, historyGroundingText } from "@/lib/report/recap-context";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import {
@@ -127,13 +129,14 @@ async function resolveGrounding(
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
   if (demo) {
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo), locale);
+    const data = getProjectDataset(demo);
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo), data, locale);
     return {
-      data: getProjectDataset(demo),
-      // C3: the competitor set's version enters the cache key so edits re-generate.
+      data,
+      // C3: the grounding inputs' versions enter the cache key so edits re-generate.
       keyId: comp.keySuffix ? `${demo.id}#${comp.keySuffix}` : demo.id,
       businessType: BUSINESS_TYPE[demo.type],
-      // C2 lead-source quality + C3 competitive set → comparative recap grounding.
+      // C2 lead-source + C3 competitors + profit/history → deeper recap grounding.
       groundingContext: comp.text,
     };
   }
@@ -143,7 +146,7 @@ async function resolveGrounding(
       // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project), locale);
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project), resolved.data, locale);
       const base = resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id;
       return {
         data: resolved.data,
@@ -156,18 +159,27 @@ async function resolveGrounding(
   return { keyId: "base" };
 }
 
-/** Combine the lead-signal grounding (C2) with the project's competitor set (C3)
- *  into one grounding block. `keySuffix` carries the competitor set's version so an
- *  edit invalidates the recap cache. */
+/** Combine the recap grounding inputs into one block: lead-signals (C2), the
+ *  competitor set (C3), true net profit (A3 cost model) and the 12-month history.
+ *  `keySuffix` carries the competitor + cost-model versions so an edit invalidates
+ *  the recap cache. */
 async function mergeGrounding(
   projectId: string,
   leadText: string | null,
+  data: PerformanceData | undefined,
   locale: SupportedLocale
 ): Promise<{ text?: string; keySuffix?: string }> {
-  const set = await getCompetitors(projectId);
-  const competitors = competitorGroundingText(set, locale);
-  const merged = [leadText, competitors].filter(Boolean).join(" ");
-  return { text: merged || undefined, keySuffix: set?.updatedAt };
+  const [set, costModel] = await Promise.all([getCompetitors(projectId), getCostModel(projectId)]);
+  const merged = [
+    leadText,
+    competitorGroundingText(set, locale),
+    profitGroundingText(data, costModel, locale),
+    historyGroundingText(data, locale),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const keySuffix = [set?.updatedAt, costModel?.updatedAt].filter(Boolean).join("|");
+  return { text: merged || undefined, keySuffix: keySuffix || undefined };
 }
 
 export async function POST(request: Request) {

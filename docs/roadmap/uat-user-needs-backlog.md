@@ -98,6 +98,7 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Why it matters:** Senior-grade analysis is comparative; "you grew 12%" means little without "vs. the market." Deepens every narrative from descriptive to strategic.
 - **Leverage:** **Med** — improves quality for all analytical surfaces; not a hard blocker.
 - **First-cut direction:** Optional competitor set on the project; feed into recap + social prompts.
+- **✅ Follow-ups resolved**: recap-profit grounding (the A3 cost model → the recap comments TRUE net profit, not just revenue/ROAS) + the C3 **history** dimension (a 12-month horizon + YoY, only when the data spans a year) both flow through the same recap `groundingContext` channel (`src/lib/report/recap-context.ts`); the cost-model version joins the recap cache key. Also: Composer brand field unified with C1's auto-voice; A2 gained URL-fetch ingestion (`fetchFeed` a hosted CSV, refreshable). All L2-verified.
 - **✅ Shipped**: a per-project competitor store (`src/lib/competitors/`, new `competitors` table, POST/DELETE route, `CompetitorEditor` on the report) + `competitorGroundingText` folded into the recap grounding (via the C2 `groundingContext` channel — competitor set's `updatedAt` enters the recap cache key) and the social "what's working" grounding. User-entered names only — never invented, never fabricated numbers. History (longer-horizon) deferred as a lighter follow-up. No LLM fingerprint change. L2-verified.
 
 ### Theme D — Per-persona job completion (the specific missing pieces each role named)
