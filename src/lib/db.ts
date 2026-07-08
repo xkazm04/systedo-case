@@ -134,6 +134,15 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- A2: live local signals (imported/synced keyword-rank ladder) per local project.
+  -- One blob per project holding {meta, ladder[]}; absent → the map falls back to
+  -- the sample ladder (illustrative). See src/lib/local-signals/.
+  CREATE TABLE IF NOT EXISTS local_signals (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.
