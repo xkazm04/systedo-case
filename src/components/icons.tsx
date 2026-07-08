@@ -514,6 +514,16 @@ export function Network(props: IconProps) {
   );
 }
 
+/** Insights / analysis — bar chart. */
+export function Chart(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20h16" />
+      <path d="M8 17v-5M12 17v-9M16 17v-3" />
+    </svg>
+  );
+}
+
 /** Distribution — broadcast waves. */
 export function Broadcast(props: IconProps) {
   return (

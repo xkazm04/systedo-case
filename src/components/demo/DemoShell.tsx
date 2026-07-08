@@ -9,19 +9,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { External, Logo, Menu } from "@/components/icons";
-import { ModuleIcon } from "@/components/app/icon-map";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
+import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
 import { ProjectProvider } from "@/lib/projects/context";
-import {
-  MODULES,
-  moduleBlurb,
-  moduleLabel,
-  sectionLabel,
-  SECTION_ORDER,
-  type ModuleDef,
-  type ModuleSection,
-} from "@/lib/projects/modules";
+import { MODULES, moduleLabel, sectionLabel, SECTION_ORDER } from "@/lib/projects/modules";
+import type { ModuleDef } from "@/lib/projects/modules";
 import { projectTypeMeta, type Project } from "@/lib/projects/types";
 import { demoHref } from "@/lib/demo/projects";
 import { useT } from "@/lib/i18n/client";
@@ -36,6 +29,7 @@ const T = {
     startFree: "Vyzkoušet zdarma",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
+    system: "Systém",
   },
   en: {
     demo: "Live demo",
@@ -44,45 +38,11 @@ const T = {
     startFree: "Start free",
     openMenu: "Open menu",
     closeMenu: "Close menu",
+    system: "System",
   },
 } as const;
 
 type TFn = (key: keyof typeof T.cs) => string;
-
-function DemoNavLink({
-  module,
-  active,
-  locale,
-  onNavigate,
-}: {
-  module: ModuleDef;
-  active: boolean;
-  locale: SupportedLocale;
-  onNavigate?: () => void;
-}) {
-  return (
-    <Link
-      href={demoHref(module.key)}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      title={moduleBlurb(module, locale)}
-      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        active ? "bg-brand-50 text-brand-800" : "text-muted hover:bg-navy-50 hover:text-navy-700"
-      }`}
-    >
-      {active && (
-        <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand-500" aria-hidden />
-      )}
-      <ModuleIcon
-        icon={module.icon}
-        width={18}
-        height={18}
-        className={active ? "text-brand-accent" : "text-muted group-hover:text-navy-600"}
-      />
-      <span className="truncate">{moduleLabel(module, locale)}</span>
-    </Link>
-  );
-}
 
 function SidebarBody({
   activeKey,
@@ -97,95 +57,65 @@ function SidebarBody({
   t: TFn;
   onNavigate?: () => void;
 }) {
-  const topSections = SECTION_ORDER.filter((s) => s !== "system");
-  const systemModules = MODULES.filter((m) => m.section === "system");
-  const bySection = (section: ModuleSection) => MODULES.filter((m) => m.section === section);
   const typeLabel = projectTypeMeta(project.type, locale).label;
 
+  // The demo shows every module (not filtered by type), grouped by section.
+  const groups: NavGroup[] = SECTION_ORDER.map((section) => ({
+    section,
+    label: sectionLabel(section, locale) || t("system"),
+    items: MODULES.filter((m) => m.section === section),
+  })).filter((g) => g.items.length > 0);
+
   return (
-    <div className="flex h-full flex-col">
-      {/* brand + demo badge */}
-      <div className="flex items-center gap-2.5 border-b border-line p-4">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-onyx text-brand-300">
-          <Logo width={18} height={18} />
-        </span>
-        <div className="min-w-0 leading-tight">
-          <p className="truncate text-[15px] font-semibold tracking-tight text-navy-800">Adamant</p>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent">
+    <SectionRailNav
+      groups={groups}
+      activeKey={activeKey}
+      locale={locale}
+      hrefFor={(key) => demoHref(key)}
+      isActive={(m: ModuleDef) => m.key === activeKey}
+      onNavigate={onNavigate}
+      railTop={
+        <Link href="/" onClick={onNavigate} title="Adamant" className="mb-1 flex justify-center rounded-xl py-1.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-300">
+            <Logo width={18} height={18} />
+          </span>
+        </Link>
+      }
+      panelHeader={
+        <div className="border-b border-line p-3">
+          <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-accent">
             {t("demo")}
           </p>
-        </div>
-      </div>
-
-      {/* active demo project (reflects the current module's fitting business type) */}
-      <div className="border-b border-line px-3 py-3">
-        <div className="flex items-center gap-2.5 rounded-lg bg-canvas px-3 py-2">
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: project.accentColor }}
-            aria-hidden
-          />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-navy-800">{project.name}</p>
-            <p className="truncate text-xs text-muted">
-              {typeLabel}
-              {project.domain ? ` · ${project.domain}` : ""}
-            </p>
-          </div>
-        </div>
-        <p className="mt-2 px-1 text-[11px] leading-snug text-muted/80">{t("demoNote")}</p>
-      </div>
-
-      {/* grouped module nav (all modules, not filtered by type) */}
-      <nav className="scrollbar-slim flex-1 space-y-6 overflow-y-auto p-3">
-        {topSections.map((section) => {
-          const items = bySection(section);
-          if (items.length === 0) return null;
-          const heading = sectionLabel(section, locale);
-          return (
-            <div key={section}>
-              {heading && (
-                <p className="px-3 pb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted/80">
-                  {heading}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {items.map((m) => (
-                  <DemoNavLink
-                    key={m.key || "overview"}
-                    module={m}
-                    active={m.key === activeKey}
-                    locale={locale}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </div>
+          <div className="flex items-center gap-2.5 rounded-lg bg-canvas px-3 py-2">
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: project.accentColor }}
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-navy-800">{project.name}</p>
+              <p className="truncate text-xs text-muted">
+                {typeLabel}
+                {project.domain ? ` · ${project.domain}` : ""}
+              </p>
             </div>
-          );
-        })}
-      </nav>
-
-      {/* settings + back to the marketing site */}
-      <div className="space-y-0.5 border-t border-line p-3">
-        {systemModules.map((m) => (
-          <DemoNavLink
-            key={m.key}
-            module={m}
-            active={m.key === activeKey}
-            locale={locale}
-            onNavigate={onNavigate}
-          />
-        ))}
-        <Link
-          href="/"
-          onClick={onNavigate}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-navy-50 hover:text-navy-700"
-        >
-          <External width={18} height={18} className="text-muted" />
-          <span>{t("backToWeb")}</span>
-        </Link>
-      </div>
-    </div>
+          </div>
+          <p className="mt-2 px-1 text-[11px] leading-snug text-muted/80">{t("demoNote")}</p>
+        </div>
+      }
+      panelFooter={
+        <div className="border-t border-line p-2">
+          <Link
+            href="/"
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-navy-50 hover:text-navy-700"
+          >
+            <External width={18} height={18} className="text-muted" />
+            <span>{t("backToWeb")}</span>
+          </Link>
+        </div>
+      }
+    />
   );
 }
 
@@ -211,7 +141,7 @@ export default function DemoShell({
     <ProjectProvider project={project} projects={projects}>
       <div className="flex min-h-screen bg-canvas">
         {/* desktop rail */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface md:flex md:flex-col">
+        <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 border-r border-line bg-surface md:block">
           <SidebarBody activeKey={activeKey} project={project} locale={locale} t={t} />
         </aside>
 
@@ -224,7 +154,7 @@ export default function DemoShell({
               onClick={() => setMobileOpen(false)}
               className="fixed inset-0 z-40 bg-onyx/40 backdrop-blur-sm"
             />
-            <aside className="animate-drop fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-surface">
+            <aside className="animate-drop fixed inset-y-0 left-0 z-50 w-[300px] border-r border-line bg-surface">
               <SidebarBody
                 activeKey={activeKey}
                 project={project}

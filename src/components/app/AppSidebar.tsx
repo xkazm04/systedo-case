@@ -3,32 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { External } from "@/components/icons";
-import { ModuleIcon } from "@/components/app/icon-map";
+import { External, Logo } from "@/components/icons";
 import ProjectSwitcher from "@/components/app/ProjectSwitcher";
+import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
 import { useShell } from "@/components/app/shell-context";
 import { useProject } from "@/lib/projects/context";
-import {
-  modulesFor,
-  moduleLabel,
-  sectionLabel,
-  SECTION_ORDER,
-  type ModuleDef,
-  type ModuleSection,
-} from "@/lib/projects/modules";
-import type { Project } from "@/lib/projects/types";
+import { modulesFor, sectionLabel, SECTION_ORDER } from "@/lib/projects/modules";
+import type { ModuleDef } from "@/lib/projects/modules";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
-  cs: {
-    backToWeb: "Zpět na web",
-    closeMenu: "Zavřít menu",
-  },
-  en: {
-    backToWeb: "Back to website",
-    closeMenu: "Close menu",
-  },
+  cs: { backToWeb: "Zpět na web", closeMenu: "Zavřít menu", system: "Systém" },
+  en: { backToWeb: "Back to website", closeMenu: "Close menu", system: "System" },
 } as const;
 
 /** Href for a module within a project ("" key = the overview/home). */
@@ -41,116 +28,65 @@ function isModuleActive(pathname: string, base: string, key: string): boolean {
   return key ? pathname === href || pathname.startsWith(`${href}/`) : pathname === base;
 }
 
-function NavLink({
-  project,
-  module,
-  pathname,
-  locale,
-  onNavigate,
-}: {
-  project: Project;
-  module: ModuleDef;
-  pathname: string;
-  locale: import("@/lib/format").SupportedLocale;
-  onNavigate?: () => void;
-}) {
-  const base = `/app/${project.id}`;
-  const active = isModuleActive(pathname, base, module.key);
-  return (
-    <Link
-      href={moduleHref(project.id, module.key)}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      title={module.blurb}
-      className={`group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-        active
-          ? "bg-brand-50 text-brand-800"
-          : "text-muted hover:bg-navy-50 hover:text-navy-700"
-      }`}
-    >
-      {active && (
-        <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-brand-500" aria-hidden />
-      )}
-      <ModuleIcon
-        icon={module.icon}
-        width={18}
-        height={18}
-        className={active ? "text-brand-accent" : "text-muted group-hover:text-navy-600"}
-      />
-      <span className="truncate">{moduleLabel(module, locale)}</span>
-    </Link>
-  );
-}
-
-/** The full sidebar content (switcher + grouped nav + footer), shared by the
- *  desktop rail and the mobile drawer. */
+/** The full sidebar content (icon rail + item panel), shared by the desktop rail
+ *  and the mobile drawer. */
 function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   const project = useProject();
   const pathname = usePathname();
-  const modules = modulesFor(project.type);
   const t = useT(T);
   const { locale } = useLocale();
 
-  // System section (settings) is pinned to the bottom; everything else scrolls.
-  const topSections = SECTION_ORDER.filter((s) => s !== "system");
-  const systemModules = modules.filter((m) => m.section === "system");
-  const bySection = (section: ModuleSection) => modules.filter((m) => m.section === section);
+  const modules = modulesFor(project.type);
+  const base = `/app/${project.id}`;
+  // The active module key from the path ("" = overview / project home).
+  const activeKey = pathname.startsWith(`${base}/`)
+    ? pathname.slice(base.length + 1).split("/")[0]!
+    : "";
+
+  const groups: NavGroup[] = SECTION_ORDER.map((section) => ({
+    section,
+    label: sectionLabel(section, locale) || t("system"),
+    items: modules.filter((m) => m.section === section),
+  })).filter((g) => g.items.length > 0);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="border-b border-line p-3">
-        <ProjectSwitcher onNavigate={onNavigate} />
-      </div>
-
-      <nav className="scrollbar-slim flex-1 space-y-6 overflow-y-auto p-3">
-        {topSections.map((section) => {
-          const items = bySection(section);
-          if (items.length === 0) return null;
-          const heading = sectionLabel(section, locale);
-          return (
-            <div key={section}>
-              {heading && (
-                <p className="px-3 pb-1.5 text-[13px] font-semibold uppercase tracking-[0.12em] text-muted/80">
-                  {heading}
-                </p>
-              )}
-              <div className="space-y-0.5">
-                {items.map((m) => (
-                  <NavLink
-                    key={m.key || "overview"}
-                    project={project}
-                    module={m}
-                    pathname={pathname}
-                    locale={locale}
-                    onNavigate={onNavigate}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </nav>
-
-      <div className="space-y-0.5 border-t border-line p-3">
-        {systemModules.map((m) => (
-          <NavLink
-            key={m.key}
-            project={project}
-            module={m}
-            pathname={pathname}
-            locale={locale}
-            onNavigate={onNavigate}
-          />
-        ))}
+    <SectionRailNav
+      groups={groups}
+      activeKey={activeKey}
+      locale={locale}
+      hrefFor={(key) => moduleHref(project.id, key)}
+      isActive={(m: ModuleDef) => isModuleActive(pathname, base, m.key)}
+      onNavigate={onNavigate}
+      railTop={
         <Link
-          href="/"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-navy-50 hover:text-navy-700"
+          href="/app"
+          onClick={onNavigate}
+          title="Adamant"
+          className="mb-1 flex justify-center rounded-xl py-1.5"
         >
-          <External width={18} height={18} className="text-muted" />
-          <span>{t("backToWeb")}</span>
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-300">
+            <Logo width={18} height={18} />
+          </span>
         </Link>
-      </div>
-    </div>
+      }
+      panelHeader={
+        <div className="border-b border-line p-3">
+          <ProjectSwitcher onNavigate={onNavigate} />
+        </div>
+      }
+      panelFooter={
+        <div className="border-t border-line p-2">
+          <Link
+            href="/"
+            onClick={onNavigate}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-navy-50 hover:text-navy-700"
+          >
+            <External width={18} height={18} className="text-muted" />
+            <span>{t("backToWeb")}</span>
+          </Link>
+        </div>
+      }
+    />
   );
 }
 
@@ -167,7 +103,7 @@ export default function AppSidebar() {
   return (
     <>
       {/* Desktop rail */}
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-line bg-surface md:flex md:flex-col">
+      <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 border-r border-line bg-surface md:block">
         <SidebarBody />
       </aside>
 
@@ -180,7 +116,7 @@ export default function AppSidebar() {
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-onyx/40 backdrop-blur-sm"
           />
-          <aside className="animate-drop fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-line bg-surface">
+          <aside className="animate-drop fixed inset-y-0 left-0 z-50 w-[300px] border-r border-line bg-surface">
             <SidebarBody onNavigate={() => setMobileOpen(false)} />
           </aside>
         </div>
