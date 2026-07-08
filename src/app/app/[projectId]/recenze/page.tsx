@@ -30,7 +30,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       <ReviewInbox
         reviews={reviews}
         areas={localities.map((l) => l.name)}
-        businessName={project.name.replace(/\s*\((?:demo|ukázka)\)\s*$/i, "")}
+        businessName={project.name}
         businessType={services[0]?.category}
         projectId={projectId}
         initialState={initialState ?? undefined}

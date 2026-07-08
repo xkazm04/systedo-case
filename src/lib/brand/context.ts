@@ -7,6 +7,7 @@
 import type { Project } from "@/lib/projects/types";
 import type { Offering } from "@/lib/catalog/offering";
 import { isPlan } from "@/lib/catalog/offering";
+import { promptSafeName } from "@/lib/projects/name";
 import type { SupportedLocale } from "@/lib/format";
 
 const NATURE_CS: Record<string, string> = {
@@ -63,16 +64,20 @@ export function deriveBrandContext(
 
   const nature = active[0]?.nature ?? "online";
 
+  // Grounds public-facing captions/articles — feed the clean brand only, never
+  // "Dentalis (demo)" (L1-19); the canonical resolver strips the marker.
+  const brandName = promptSafeName(project.name);
+
   const parts: string[] = [];
   if (cs) {
-    parts.push(`Značka: ${project.name}.`);
+    parts.push(`Značka: ${brandName}.`);
     parts.push(`Sortiment: ${cats.join(", ")} (${active.length} položek${band ? `, ${band}` : ""}).`);
     parts.push(`Prodává ${NATURE_CS[nature] ?? "online"}.`);
     if (points.length) parts.push(`Čím se liší: ${points.join(", ")}.`);
     if (channels.length) parts.push(`Kanály: ${channels.join(", ")}.`);
     parts.push("Drž se tohoto sortimentu a slovníku značky — nevymýšlej jiný sortiment.");
   } else {
-    parts.push(`Brand: ${project.name}.`);
+    parts.push(`Brand: ${brandName}.`);
     parts.push(`Sells: ${cats.join(", ")} (${active.length} items${band ? `, ${band}` : ""}).`);
     parts.push(`Sold ${NATURE_EN[nature] ?? "online"}.`);
     if (points.length) parts.push(`Differentiators: ${points.join(", ")}.`);

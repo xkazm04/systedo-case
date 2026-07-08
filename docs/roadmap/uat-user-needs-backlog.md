@@ -159,6 +159,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **Med** — affects every cs visitor's first impression.
 - **First-cut direction:** Route hero copy through the `T()` dictionary; complete the pending UI-string/currency localization sweep (`BrandLanding.tsx:115-145`).
 
+> **✅ E3 shipped**: a single canonical resolver `promptSafeName()` (`src/lib/projects/name.ts`) strips a trailing `(demo)`/`(ukázka)`/`(sample)` marker from any name that becomes public-looking content. Applied at every name→prompt boundary: both review components (`LocalReviews` at the `run()` chokepoint — covers lokalni/DemoModule/LocalModule; `ReviewInbox` for the reply prompt **and** the `{business}` saved-reply macro) and the C1 brand grounding (`deriveBrandContext`). The duplicated inline regex in `recenze/page.tsx` was replaced by the component chokepoint. Unit-tested (trailing-only, case-insensitive, nullish-safe). A demo-named account can no longer emit "Dentalis (demo)" in a sendable reply (L1-19). typecheck + build + tests green.
+
 **E3. Clean identifiers into prompts (no "(demo)" / no foreign brand)**
 - **The need:** One metric/name defined consistently — a published-looking reply shouldn't carry "Dentalis (demo)" and no surface should emit a competitor brand.
 - **Who:** Marta — "'(demo)' bych nad recenzí nechtěla vidět, působí to jako testovací účet" (`marta-local:16`); finding `UAT-L1-19`. (The Mionelo leak, `UAT-L1-05`, is fixed.)

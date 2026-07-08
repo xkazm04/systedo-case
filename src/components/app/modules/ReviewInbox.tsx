@@ -16,6 +16,7 @@ import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { ReviewItem } from "@/lib/reviews/sample";
+import { promptSafeName } from "@/lib/projects/name";
 import {
   expandMacro,
   filterReviews,
@@ -153,6 +154,10 @@ export default function ReviewInbox({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [appliedFor, setAppliedFor] = useState<string | null>(null);
 
+  // The clean brand only — used both in the prompt and in {business} macros, so
+  // neither the AI reply nor a saved-reply draft ever carries "(demo)" (L1-19).
+  const cleanBusinessName = promptSafeName(businessName);
+
   const aiReply = status === "done" && activeId ? data?.result?.reply ?? null : null;
   const applyTag = activeId && aiReply ? `${activeId}:${aiReply}` : null;
   if (applyTag && activeId && aiReply && applyTag !== appliedFor) {
@@ -178,7 +183,7 @@ export default function ReviewInbox({
       rating: r.rating,
       area: r.area,
       ...(businessType ? { businessType } : {}),
-      ...(businessName ? { businessName } : {}),
+      ...(cleanBusinessName ? { businessName: cleanBusinessName } : {}),
     });
   }
 
@@ -380,7 +385,7 @@ export default function ReviewInbox({
                           <button
                             key={mac.id}
                             type="button"
-                            onClick={() => setDraft(r.id, expandMacro(mac.template, { author: r.author, business: businessName, area: r.area }))}
+                            onClick={() => setDraft(r.id, expandMacro(mac.template, { author: r.author, business: cleanBusinessName, area: r.area }))}
                             className="rounded-pill border border-line bg-surface px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
                           >
                             {mac.label}

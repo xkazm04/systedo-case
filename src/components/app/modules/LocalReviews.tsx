@@ -7,6 +7,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import type { RecentReview } from "@/lib/local/sample";
+import { promptSafeName } from "@/lib/projects/name";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -104,12 +105,15 @@ export default function LocalReviews({
     setActiveId(review.id);
     reset();
     setAppliedFor(null);
+    // Feed the prompt the clean brand only — never "Dentalis (demo)", which the
+    // model would echo into a public-looking reply (UAT-L1-19).
+    const cleanName = promptSafeName(businessName);
     run({
       reviewText: review.text,
       rating: review.rating,
       area: review.area,
       ...(businessType ? { businessType } : {}),
-      ...(businessName ? { businessName } : {}),
+      ...(cleanName ? { businessName: cleanName } : {}),
     });
   }
 
