@@ -390,7 +390,7 @@ export default function DashboardClient({
       csvNum(c.roas, 2, locale),
       fmt.fmtSignedPct(result.delta.revenue),
     ]);
-    downloadText(`systedo-kanaly-${period.key}.csv`, toCsv(headers, rows));
+    downloadText(`adamant-kanaly-${period.key}.csv`, toCsv(headers, rows));
   };
 
   // Export the chart's underlying time series — the dataset an analyst re-plots
@@ -420,7 +420,7 @@ export default function DashboardClient({
         ...(hasCompare ? TREND_CSV_METRICS.map((m) => (prev ? cell(prev, m) : "")) : []),
       ];
     });
-    downloadText(`systedo-vyvoj-${period.key}.csv`, toCsv(headers, rows));
+    downloadText(`adamant-vyvoj-${period.key}.csv`, toCsv(headers, rows));
   };
 
   return (

@@ -547,7 +547,7 @@ export default function AdGenerator({
     if (r.longHeadline) rows.push([t("csvLongHeadlineType"), r.longHeadline, r.longHeadline.length]);
     r.keywords.forEach((k) => rows.push([t("csvKeywordType"), k, k.length]));
     downloadText(
-      `systedo-inzeraty-${slugify(form.product) || "kampan"}.csv`,
+      `adamant-inzeraty-${slugify(form.product) || "kampan"}.csv`,
       toCsv([t("csvColType"), t("csvColText"), t("csvColCharCount")], rows)
     );
   };
@@ -569,10 +569,10 @@ export default function AdGenerator({
     };
     const fileSeed = slugify(form.product) || "kampan";
     const ad = buildAdsEditorAdSheet(r, seed);
-    downloadText(`systedo-ads-editor-${fileSeed}.csv`, toCsv(ad.headers, ad.rows));
+    downloadText(`adamant-ads-editor-${fileSeed}.csv`, toCsv(ad.headers, ad.rows));
     const kw = buildAdsEditorKeywordSheet(r.keywords, seed);
     if (kw.rows.length > 0) {
-      downloadText(`systedo-ads-editor-${fileSeed}-klicova-slova.csv`, toCsv(kw.headers, kw.rows));
+      downloadText(`adamant-ads-editor-${fileSeed}-klicova-slova.csv`, toCsv(kw.headers, kw.rows));
     }
   };
 

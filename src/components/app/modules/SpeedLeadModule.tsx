@@ -29,6 +29,7 @@ import {
 import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
+import { promptSafeName } from "@/lib/projects/name";
 import type { LeadReplyResult } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
@@ -385,7 +386,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
       channel: selected.channel,
       projectType: projectTypeFor(selected),
       name: selected.name,
-      brand: project.name,
+      brand: promptSafeName(project.name),
       ...(qualification ? { qualification } : {}),
     });
   }

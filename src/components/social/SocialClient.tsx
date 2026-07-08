@@ -328,6 +328,9 @@ function Composer() {
           platforms: [...draftPlatforms],
           ai,
           brand: brand.trim() || undefined,
+          // R03: carry the project so the server can apply the auto-brand / perf /
+          // competitor grounding the "Píše na značku" hint advertises (Composer↔WeekPlanner parity).
+          projectId: pid,
         }),
       });
       const json = await res.json();

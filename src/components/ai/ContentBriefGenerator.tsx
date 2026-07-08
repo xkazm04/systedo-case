@@ -420,7 +420,7 @@ export default function ContentBriefGenerator({
       r.internalLinks.map((l) => `- ${l}`).join("\n"),
       ...(r.rationale ? ["", "---", `_${r.rationale}_`] : []),
     ].join("\n");
-    downloadText(`systedo-brief-${r.slug || "obsah"}.md`, md, "text/markdown;charset=utf-8");
+    downloadText(`adamant-brief-${r.slug || "obsah"}.md`, md, "text/markdown;charset=utf-8");
   };
 
   return (

@@ -122,7 +122,7 @@ export default function PerformanceAnalyst() {
       `## ${t("groupActions")}`,
       ...r.actions.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`),
     ].join("\n");
-    downloadText(`systedo-analyza-${period}.md`, md, "text/markdown;charset=utf-8");
+    downloadText(`adamant-analyza-${period}.md`, md, "text/markdown;charset=utf-8");
   };
 
   return (

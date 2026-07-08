@@ -515,7 +515,7 @@ export default function CampaignTable({
       tr.primary ? triageReasonLabel(tr.primary, locale) : "",
       reports[c.id]?.result.score ?? "",
     ]);
-    downloadText("systedo-kampane.csv", toCsv(headers, rows));
+    downloadText("adamant-kampane.csv", toCsv(headers, rows));
   };
 
   return (

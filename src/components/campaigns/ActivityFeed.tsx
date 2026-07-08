@@ -15,7 +15,7 @@ const T = {
     heading: "Historie aktivity",
     exportCsv: "Export CSV",
     empty: "Zatím žádná aktivita. Přesuny rozpočtu, synchronizace a upozornění se zde objeví.",
-    csvFilename: "systedo-aktivita.csv",
+    csvFilename: "adamant-aktivita.csv",
     csvTime: "Čas",
     csvType: "Typ",
     csvAction: "Akce",

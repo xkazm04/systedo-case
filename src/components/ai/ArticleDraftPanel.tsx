@@ -358,7 +358,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const exportMarkdown = () => {
     if (!draft) return;
     downloadText(
-      `systedo-clanek-${slug}.md`,
+      `adamant-clanek-${slug}.md`,
       draftToMarkdown(brief, composed, draft.faq, { calloutTitle: t("calloutTip"), faqHeading: t("mdFaqHeading") }),
       "text/markdown;charset=utf-8"
     );
@@ -367,7 +367,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const exportJson = () => {
     if (!draft) return;
     downloadText(
-      `systedo-clanek-${slug}.json`,
+      `adamant-clanek-${slug}.json`,
       JSON.stringify(
         draftToArticle(brief, composed, draft.faq, t("articleAuthor"), t("articleRole"), t("articleCategory")),
         null,

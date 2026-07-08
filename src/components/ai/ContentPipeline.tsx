@@ -311,7 +311,7 @@ export default function ContentPipeline() {
   const exportDraftMd = () => {
     if (!briefR || !draftR) return;
     downloadText(
-      `systedo-clanek-${briefR.slug || "obsah"}.md`,
+      `adamant-clanek-${briefR.slug || "obsah"}.md`,
       draftToMarkdownDoc(briefR, draftR),
       "text/markdown;charset=utf-8"
     );

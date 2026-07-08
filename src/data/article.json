@@ -219,7 +219,7 @@
       "variant": "info",
       "title": "Jak tenhle článek souvisí se zbytkem webu",
       "content": [
-        "Je součástí ukázkové case study pro Systedo. Sezónní poptávku po tomhle sortimentu sledujeme ve ",
+        "Je součástí ukázkové case study pro Adamant. Sezónní poptávku po tomhle sortimentu sledujeme ve ",
         { "text": "výkonnostním dashboardu", "href": "/dashboard", "kind": "internal" },
         " a inzeráty na konkrétní produkty pomáhá psát náš ",
         { "text": "AI asistent", "href": "/ai-asistent", "kind": "internal" },
