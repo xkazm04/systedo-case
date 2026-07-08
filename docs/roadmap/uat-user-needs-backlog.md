@@ -62,6 +62,9 @@ The AI is honest, but users still self-audit because they can't see the provenan
 - **Leverage:** **Med** — Lucia is one persona but it's her entire adoption gate; also protects every white-label buyer.
 - **First-cut direction:** Extend the `clientSafe` flag to the print/PDF path; branded print mode (logo + accent, suppress AI-disclosure section) — `MonthlyReport.tsx:84-212`.
 
+> **✅ B3 shipped** (`c26abb1`): the /app sign-in gate — the conversion wall after the public demo — was reframed from a "case study / open workspace" wall into a credible **free-trial live-product entry** (Zkušební prostor zdarma kicker, "Spusťte si vlastní Adamant", three value props, "no card · a minute · delete anytime", back-to-live-demo fallback); the first-run empty state gained a "your trial workspace is ready" welcome. Portfolio smell removed; pricing/Stripe still deferred (§5). L2-verified.
+> **✅ zisk↔report unified** (`a65111c`): the profit module and monthly report now share one server cost model — zisk seeds its overhead from it and publishes its blended margin + overhead back via "Použít v reportu". (Follow-up to A3.)
+
 **B3. A live-product evaluation path a skeptical buyer trusts**
 - **The need:** Marek needs the public surfaces to *read as a live product he could actually buy* and to let him inspect the trust-critical modules (cost/integrations/security) hands-on. Demo exposure of those three is now shipped; the remaining need is the "this is real, not a portfolio" confidence.
 - **Who:** Marek — "produkt mi sám říká, že se nedá koupit… peněženku nevytáhnu" (`marek:16,20`); findings `UAT-L1-09` (demo swallowed the trust modules — fixed) and the residual "portfolio smell."
