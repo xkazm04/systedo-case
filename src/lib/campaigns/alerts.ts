@@ -5,6 +5,7 @@
  *  on the hourly cron and on a manual sync, so the inbox always reflects reality.
  *  Server-only. */
 import { firestore } from "@/lib/firebase";
+import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
@@ -111,7 +112,7 @@ export async function evaluateAndAlert(
   });
 
   // Outbound webhook (Slack/Teams/…), best-effort.
-  await sendWebhook(`Systedo: ${title}\n${body}`);
+  await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
 
   // Email, best-effort (needs the user's address).
   const email = await getUserEmail(userId);
@@ -129,9 +130,9 @@ export async function evaluateAndAlert(
   const html =
     `<p>Při poslední synchronizaci se objevily nové kritické kampaně:</p>` +
     `<ul>${li}</ul>` +
-    `<p>Otevřete přehled v Systedo pro detail, doporučené přesuny rozpočtu a AI vyhodnocení.</p>`;
+    `<p>Otevřete přehled v ${SITE_NAME} pro detail, doporučené přesuny rozpočtu a AI vyhodnocení.</p>`;
 
-  await sendEmail(email, `Systedo: ${title}`, html);
+  await sendEmail(email, `${SITE_NAME}: ${title}`, html);
   return fresh.length;
 }
 

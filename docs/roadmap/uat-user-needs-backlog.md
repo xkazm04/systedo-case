@@ -141,6 +141,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 
 ### Theme E — Cross-surface consistency (one brand / metric / currency, defined once)
 
+> **✅ E1 shipped**: every user-facing "Systedo" is now "Adamant", routed through `site.ts` (added `SUPPORT_EMAIL`/`SALES_EMAIL`): alert webhooks/emails + sender name (via `SITE_NAME`), article author bylines, the `/mapa` metadata title, and the `/cena` contact (`obchod@systedo.cz` → `SALES_EMAIL` `obchod@adamant.app`). localStorage `systedo.*` key namespaces left untouched (internal, no migration). Audit: 0 user-facing Systedo remain; typecheck + build green.
+
 **E1. One brand identity & domain everywhere**
 - **The need:** A buyer doing due diligence sees both "Systedo" (`cena` contact `obchod@systedo.cz`) and "Adamant" (`AccountSecurity.tsx:14` `podpora@adamant.app`).
 - **Who:** Marek — "brand se jmenuje jednou Adamant, jednou Systedo. Dvě firmy?" (`marek:16`); finding `UAT-L1-12`.

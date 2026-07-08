@@ -5,6 +5,7 @@
  *  dashboard. Now the hourly cron sync surfaces them proactively, with the same
  *  "already alerted" de-dupe discipline as `evaluateAndAlert`. Server-only. */
 import { firestore } from "@/lib/firebase";
+import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { detectAnomalies, anomalyImpact, type Anomaly } from "@/lib/metrics/anomalies";
 import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact } from "@/lib/format";
@@ -117,7 +118,7 @@ export async function evaluateAnomalyAlerts(
     detail: body,
     actor: "Automatická synchronizace",
   });
-  await sendWebhook(`Systedo: ${title}\n${body}`);
+  await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
 
   const email = await getUserEmail(userId);
   if (email) {
@@ -128,8 +129,8 @@ export async function evaluateAnomalyAlerts(
       `<p>Při poslední synchronizaci se objevily nové anomálie ve výkonu kampaní:</p>` +
       `<ul>${li}</ul>` +
       (impact.count > 0 ? `<p>Odhadovaný dopad: <strong>${escapeHtml(fmtSignedCZKCompact(impact.net))}</strong>.</p>` : "") +
-      `<p>Otevřete dashboard v Systedo pro detail a doporučené kroky.</p>`;
-    await sendEmail(email, `Systedo: ${title}`, html);
+      `<p>Otevřete dashboard v ${SITE_NAME} pro detail a doporučené kroky.</p>`;
+    await sendEmail(email, `${SITE_NAME}: ${title}`, html);
   }
 
   return fresh.length;

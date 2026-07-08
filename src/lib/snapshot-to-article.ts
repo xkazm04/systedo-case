@@ -233,7 +233,7 @@ export function snapshotToArticle(
       meta: {
         title,
         perex,
-        author: "Systedo · marketingová analytika",
+        author: "Adamant · marketingová analytika",
         role: "Automaticky generovaný report",
         dateISO: asOf,
         readingMinutes: 2,

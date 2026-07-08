@@ -19,6 +19,11 @@ export function canonical(path = "/"): string {
  *  an installed/pinned instance can never drift from the browser tab. */
 export const SITE_NAME = "Adamant";
 
+/** Canonical contact addresses — one brand, one domain, everywhere (E1). A buyer
+ *  doing due diligence must never see two company names or two support domains. */
+export const SUPPORT_EMAIL = "podpora@adamant.app";
+export const SALES_EMAIL = "obchod@adamant.app";
+
 /** One-line product description — the root metadata and the manifest read the
  *  same string. */
 export const SITE_DESCRIPTION =

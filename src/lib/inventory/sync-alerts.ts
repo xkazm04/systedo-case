@@ -10,6 +10,7 @@ import { recordActivity } from "@/lib/campaigns/activity";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { SITE_NAME } from "@/lib/site";
 import { syncProvider } from "./providers";
 
 function escapeHtml(s: string): string {
@@ -40,7 +41,7 @@ export async function alertSyncFailed(
     const body = `${providerLabel} · ${projectName}: ${message}`;
     await recordAlert(tenant, { type: "critical", title, body, items: [] });
     await recordActivity(tenant, { kind: "alert", title, detail: body, actor: "Plánovaná synchronizace" });
-    await sendWebhook(`Systedo: ${title}\n${body}`);
+    await sendWebhook(`${SITE_NAME}: ${title}\n${body}`);
     const email = await getUserEmail(userId);
     if (email) {
       const html =
@@ -48,7 +49,7 @@ export async function alertSyncFailed(
         `(${escapeHtml(providerLabel)}).</p>` +
         `<p style="color:#b3261e">${escapeHtml(message)}</p>` +
         `<p>Katalog se zatím neaktualizoval. Zkontrolujte připojení v modulu Katalog → Sklad.</p>`;
-      await sendEmail(email, `Systedo: ${title}`, html);
+      await sendEmail(email, `${SITE_NAME}: ${title}`, html);
     }
   } catch (err) {
     console.error(`[sync-alert] failure alert for ${userId}/${projectId}:`, err);

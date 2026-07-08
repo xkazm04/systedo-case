@@ -79,7 +79,7 @@ export default async function MapaPage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Mapa případové studie Systedo",
+    name: "Mapa případové studie Adamant",
     itemListElement: journey.map((item, i) => ({
       "@type": "SiteNavigationElement",
       position: i + 1,

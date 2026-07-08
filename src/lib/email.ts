@@ -1,3 +1,5 @@
+import { SITE_NAME } from "@/lib/site";
+
 /** Best-effort outbound webhook (server-only). Posts a Slack-compatible
  *  `{ text }` payload to ALERT_WEBHOOK_URL when set (Slack/Teams/Discord-style
  *  incoming webhooks all accept this), so a team can get alerts where they live.
@@ -27,7 +29,7 @@ export async function sendWebhook(text: string): Promise<boolean> {
  *  works (visibly) in dev / unconfigured environments. */
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.ALERT_FROM_EMAIL ?? "Systedo <onboarding@resend.dev>";
+  const from = process.env.ALERT_FROM_EMAIL ?? `${SITE_NAME} <onboarding@resend.dev>`;
 
   if (!key) {
     console.log(`[email] (no RESEND_API_KEY) would send to ${to}: "${subject}"`);

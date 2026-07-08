@@ -1,5 +1,5 @@
 /** Shared contract between the AI route, the Gemini module and the client UI.
- *  Three tools, one envelope. Each tool maps to a Systedo service pillar:
+ *  Three tools, one envelope. Each tool maps to an Adamant service pillar:
  *    ads      → Výkonnostní reklama
  *    brief    → Tvorba obsahu
  *    analysis → Analýzy a strategie

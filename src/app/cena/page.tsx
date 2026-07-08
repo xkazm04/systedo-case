@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button, buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Check } from "@/components/icons";
 import { PLAN_INFO, type Plan } from "@/lib/plans";
+import { SALES_EMAIL } from "@/lib/site";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -186,8 +187,8 @@ export default async function PricingPage() {
                 <Button
                   href={
                     plan.id === "byom"
-                      ? "mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Vlastn%C3%AD%20kl%C3%AD%C4%8D"
-                      : "mailto:obchod@systedo.cz?subject=Z%C3%A1jem%20o%20Adamant%20Pro"
+                      ? `mailto:${SALES_EMAIL}?subject=Z%C3%A1jem%20o%20Adamant%20Vlastn%C3%AD%20kl%C3%AD%C4%8D`
+                      : `mailto:${SALES_EMAIL}?subject=Z%C3%A1jem%20o%20Adamant%20Pro`
                   }
                   variant={plan.featured ? "primary" : "secondary"}
                   size="lg"
