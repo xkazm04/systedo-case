@@ -15,6 +15,8 @@ import type { PerformanceData } from "@/lib/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { loadBrandContext } from "@/lib/brand/load";
+import { getCompetitors } from "@/lib/competitors/store";
+import { competitorGroundingText } from "@/lib/competitors/grounding";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
@@ -66,6 +68,23 @@ async function resolveBrandFallback(
     if (project) return (await loadBrandContext(project, locale)) || undefined;
   }
   return undefined;
+}
+
+/** C3 — the project's competitor grounding for social copy, tenancy-checked (demo
+ *  public, real id owner-only). "" when no competitor set. */
+async function resolveCompetitorGrounding(
+  projectId: string | undefined,
+  userId: string | null,
+  locale: SupportedLocale
+): Promise<string> {
+  if (!projectId) return "";
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return competitorGroundingText(await getCompetitors(demo.id), locale);
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return competitorGroundingText(await getCompetitors(project.id), locale);
+  }
+  return "";
 }
 
 /** Compact "what's actually working" grounding from the project's data, so AI
@@ -161,11 +180,14 @@ export async function POST(request: Request) {
     // On-brand by default (C1): an empty brand field falls back to the project's
     // auto-derived catalogue voice, so posts never default to a generic sortiment.
     const effectiveBrand = brand ?? (await resolveBrandFallback(projectId, userId, locale));
+    // C3: fold the competitor set into "what's working" so copy can lean on real
+    // differentiators vs. the market instead of generic claims.
+    const competitors = await resolveCompetitorGrounding(projectId, userId, locale);
     const response = await generateSocialPosts({
       topic,
       tone,
       platforms,
-      grounding: perfGrounding(dataset),
+      grounding: [perfGrounding(dataset), competitors].filter(Boolean).join(" "),
       brand: effectiveBrand,
       locale,
       // Client abort propagation: a closed tab / re-run stops the provider work.

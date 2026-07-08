@@ -15,6 +15,8 @@ import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type Monthl
 import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
+import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
+import type { Competitor } from "@/lib/competitors/types";
 
 const T = {
   cs: {
@@ -54,6 +56,7 @@ export default function MonthlyReport({
   customerId,
   showCostModel = false,
   costModel = null,
+  competitors = [],
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
@@ -71,6 +74,8 @@ export default function MonthlyReport({
   showCostModel?: boolean;
   /** the saved cost model, or null when profit is still pre-COGS contribution */
   costModel?: CostModelView | null;
+  /** C3: the project's competitor set — grounds the AI narrative "vs. the market" */
+  competitors?: Competitor[];
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -228,6 +233,9 @@ export default function MonthlyReport({
 
       {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
       {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} />}
+
+      {/* C3: competitor set — grounds the AI narrative "vs. the market". */}
+      {projectId && <CompetitorEditor projectId={projectId} initial={competitors} />}
 
       {/* AI narrative */}
       <div className="card p-5">

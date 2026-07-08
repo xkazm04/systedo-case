@@ -10,6 +10,7 @@ import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
+import { getCompetitors } from "@/lib/competitors/store";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -21,6 +22,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // A3: a saved cost model turns the pre-COGS contribution into TRUE net profit
   // after margin + overhead. Only e-shop reports carry a profit line.
   const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+  // C3: the project's competitor set grounds the AI narrative "vs. the market".
+  const competitorSet = await getCompetitors(project.id);
 
   // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
   // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
@@ -110,6 +113,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         customerId={resolved.customerId}
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
+        competitors={competitorSet?.competitors ?? []}
       />
     </ModulePage>
   );

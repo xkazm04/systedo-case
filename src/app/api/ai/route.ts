@@ -45,6 +45,8 @@ import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
+import { getCompetitors } from "@/lib/competitors/store";
+import { competitorGroundingText } from "@/lib/competitors/grounding";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import {
@@ -119,33 +121,53 @@ const BUSINESS_TYPE: Record<ProjectType, string> = {
  *  `businessType` frames per-type recaps (undefined for the base fallback). */
 async function resolveGrounding(
   projectId: string | undefined,
-  userId: string | null
+  userId: string | null,
+  locale: SupportedLocale
 ): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; groundingContext?: string }> {
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo)
+  if (demo) {
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo), locale);
     return {
       data: getProjectDataset(demo),
-      keyId: demo.id,
+      // C3: the competitor set's version enters the cache key so edits re-generate.
+      keyId: comp.keySuffix ? `${demo.id}#${comp.keySuffix}` : demo.id,
       businessType: BUSINESS_TYPE[demo.type],
-      // C2: lead-source quality / CPQL / velocity for leadgen & local recaps.
-      groundingContext: leadSignalsPromptText(demo) ?? undefined,
+      // C2 lead-source quality + C3 competitive set → comparative recap grounding.
+      groundingContext: comp.text,
     };
+  }
   if (userId) {
     const project = await getProject(userId, projectId);
     if (project) {
       // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project), locale);
+      const base = resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id;
       return {
         data: resolved.data,
-        keyId: resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id,
+        keyId: comp.keySuffix ? `${base}#${comp.keySuffix}` : base,
         businessType: BUSINESS_TYPE[project.type],
-        groundingContext: leadSignalsPromptText(project) ?? undefined,
+        groundingContext: comp.text,
       };
     }
   }
   return { keyId: "base" };
+}
+
+/** Combine the lead-signal grounding (C2) with the project's competitor set (C3)
+ *  into one grounding block. `keySuffix` carries the competitor set's version so an
+ *  edit invalidates the recap cache. */
+async function mergeGrounding(
+  projectId: string,
+  leadText: string | null,
+  locale: SupportedLocale
+): Promise<{ text?: string; keySuffix?: string }> {
+  const set = await getCompetitors(projectId);
+  const competitors = competitorGroundingText(set, locale);
+  const merged = [leadText, competitors].filter(Boolean).join(" ");
+  return { text: merged || undefined, keySuffix: set?.updatedAt };
 }
 
 export async function POST(request: Request) {
@@ -220,7 +242,7 @@ export async function POST(request: Request) {
         if (!p.valid) return bad(p.error);
         // Tenancy-checked per-project grounding + business-type framing; cache by
         // the EFFECTIVE project (keyId) so an unowned id degrades to base.
-        const { data, keyId, businessType, groundingContext } = await resolveGrounding(p.value.projectId, userId);
+        const { data, keyId, businessType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale);
         const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
         return cachedRespond("monthly-recap", value, locale, userId, () =>
           generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext)
@@ -231,7 +253,7 @@ export async function POST(request: Request) {
         if (!p.valid) return bad(p.error);
         // Tenancy-checked grounding; cache by the EFFECTIVE project (keyId), so an
         // unowned id degrades to base and never serves another tenant's answer.
-        const { data, keyId } = await resolveGrounding(p.value.projectId, userId);
+        const { data, keyId } = await resolveGrounding(p.value.projectId, userId, locale);
         const value: ChatRequest = { ...p.value, projectId: keyId };
         return cachedRespond("chat", value, locale, userId, () =>
           generateChat(p.value, locale, request.signal, data)

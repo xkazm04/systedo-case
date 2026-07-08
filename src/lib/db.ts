@@ -152,6 +152,14 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- C3: a project's optional competitor set (user-entered names + notes), fed into
+  -- the recap + social grounding so the narrative is comparative, not just self-referential.
+  CREATE TABLE IF NOT EXISTS competitors (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.

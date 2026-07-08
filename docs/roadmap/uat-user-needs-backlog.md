@@ -90,12 +90,15 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **High** — Hana + Marta both blocked on the same missing lead/local data spine.
 - **First-cut direction:** Flow the `kvalita-leadu` / `rychla-reakce` series into `snapshotToPromptText`; add a lead-source-quality series to the dataset.
 
+> **✅ C1 shipped** (`20ebefc`): `deriveBrandContext` turns the Offering spine into an on-brand grounding block (sortiment, price band, differentiators, channels); a blank brand-voice field now falls back to it, and the WeekPlanner shows a "Píše na značku" strip proving the tool knows the brand. No LLM fingerprint change. L2-verified.
+
 **C3. Competitor & history context for the narrative**
 - **The need:** Recaps and social "what's working" should know the competitive set and longer history, not just period-over-period on the tenant's own scaled data.
 - **Who:** Robert (competitors absent from grounding — `robert:52`); Sofie ("opři to o to, co funguje" grounded on the wrong tenant, now fixed, but true competitor grounding still absent — `UAT-L1-06`).
 - **Why it matters:** Senior-grade analysis is comparative; "you grew 12%" means little without "vs. the market." Deepens every narrative from descriptive to strategic.
 - **Leverage:** **Med** — improves quality for all analytical surfaces; not a hard blocker.
 - **First-cut direction:** Optional competitor set on the project; feed into recap + social prompts.
+- **✅ Shipped**: a per-project competitor store (`src/lib/competitors/`, new `competitors` table, POST/DELETE route, `CompetitorEditor` on the report) + `competitorGroundingText` folded into the recap grounding (via the C2 `groundingContext` channel — competitor set's `updatedAt` enters the recap cache key) and the social "what's working" grounding. User-entered names only — never invented, never fabricated numbers. History (longer-horizon) deferred as a lighter follow-up. No LLM fingerprint change. L2-verified.
 
 ### Theme D — Per-persona job completion (the specific missing pieces each role named)
 
