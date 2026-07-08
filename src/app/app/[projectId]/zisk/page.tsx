@@ -10,6 +10,7 @@ import { categoryMixFromCatalog } from "@/lib/profit/products";
 import { loadProductsFor } from "@/lib/catalog/load";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
+import { getCostModel } from "@/lib/cost-model/store";
 
 
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
@@ -32,6 +33,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Anchor "now" to the latest day in the series — derived server-side so the
   // client never reaches for Date.now() during render (react-compiler safe).
   const anchorIso = data.daily.length > 0 ? data.daily[data.daily.length - 1]!.date : undefined;
+
+  // Shared cost model (A3): seeds the overhead panel and receives this module's
+  // blended margin + overhead via "apply to report" — one profit source of truth.
+  const costModel = await getCostModel(project.id);
 
   // Precompute the channel mix per period on the server; the client only re-applies
   // the (live-editable) margin model on top — no recompute of the underlying mix.
@@ -69,6 +74,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         channels={data.channels}
         products={products}
         defaults={margins}
+        costModel={
+          costModel
+            ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost }
+            : null
+        }
       />
     </ModulePage>
   );

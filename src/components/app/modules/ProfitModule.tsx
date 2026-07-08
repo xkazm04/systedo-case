@@ -31,6 +31,13 @@ const T = {
     byChannels: "Podle kanálů",
     byProducts: "Podle produktů",
     resetMargins: "Obnovit výchozí marže",
+    reportSyncActive: "Měsíční report počítá zisk z těchto hodnot (marže {m} · režie {o}/měs · {f}/obj.).",
+    reportSyncInactive: "Použijte tuto marži a režii v měsíčním reportu, aby počítal skutečný zisk po nákladech.",
+    applyToReport: "Použít v reportu",
+    applyUpdate: "Aktualizovat report",
+    applied: "Uloženo do reportu ✓",
+    applying: "Ukládám…",
+    applyFailed: "Uložení selhalo.",
     realNumbersTitle: "Vaše reálná čísla (za zvolené období)",
     realNumbersDesc: "Zadejte skutečný obrat a útratu za reklamu za {period} — tabulka, souhrn i přerozdělení se přepočítají na vaši realitu (kanálový mix zůstává). Ne jen marže.",
     revenue: "Obrat",
@@ -141,6 +148,13 @@ const T = {
     byChannels: "By channel",
     byProducts: "By product",
     resetMargins: "Reset margins",
+    reportSyncActive: "The monthly report computes profit from these (margin {m} · overhead {o}/mo · {f}/order).",
+    reportSyncInactive: "Use this margin & overhead in the monthly report so it computes true profit after costs.",
+    applyToReport: "Use in report",
+    applyUpdate: "Update report",
+    applied: "Saved to report ✓",
+    applying: "Saving…",
+    applyFailed: "Save failed.",
     realNumbersTitle: "Your actual numbers (for selected period)",
     realNumbersDesc: "Enter your real revenue and ad spend for {period} — the table, summary and reallocation will recalculate against your books (channel mix is preserved). Not just margin.",
     revenue: "Revenue",
@@ -404,6 +418,7 @@ export default function ProfitModule({
   channels,
   products,
   defaults,
+  costModel = null,
 }: {
   projectId: string;
   rowsByPeriod: Record<string, ChannelRow[]>;
@@ -411,6 +426,9 @@ export default function ProfitModule({
   channels: ChannelShare[];
   products: ProductCategory[];
   defaults: ChannelMargin[];
+  /** the shared server cost model (A3) — seeds overhead here and receives this
+   *  module's blended margin + overhead via "apply to report". null = none saved. */
+  costModel?: { grossMarginPct: number; monthlyOverhead: number; perOrderCost: number } | null;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -460,11 +478,12 @@ export default function ProfitModule({
   const netDelta = useMemo(() => trendDelta(trend, "netProfit"), [trend]);
   const poasDelta = useMemo(() => trendDelta(trend, "poas"), [trend]);
 
-  // #5 overhead toggle.
+  // #5 overhead toggle. Seeded from the shared server cost model (A3) when saved, so
+  // overhead is no longer ephemeral and agrees with the monthly report.
   const [overhead, setOverhead] = useState<OverheadOptions>({
-    enabled: false,
-    monthlyOverhead: 120_000,
-    perOrderCost: 60,
+    enabled: Boolean(costModel),
+    monthlyOverhead: costModel?.monthlyOverhead ?? 120_000,
+    perOrderCost: costModel?.perOrderCost ?? 60,
     months: 1,
   });
   const months = useMemo(() => Math.max(1, (rowsByPeriod[period]?.length ?? 0) > 0 ? Number(period) / 30 : 1), [rowsByPeriod, period]);
@@ -488,6 +507,28 @@ export default function ProfitModule({
     () => reallocateBudget(rows, { totalBudget: budget, strategy }),
     [rows, budget, strategy]
   );
+
+  // Unify with the report: publish this module's blended margin + overhead to the
+  // shared server cost model (A3), so the monthly report's Zisk uses the same
+  // numbers. The overhead above is seeded from the same model on load.
+  const [applyState, setApplyState] = useState<"idle" | "busy" | "done" | "error">("idle");
+  async function applyToReport() {
+    setApplyState("busy");
+    try {
+      const res = await fetch(`/api/projects/${projectId}/cost-model`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          grossMarginPct: summary.blendedMargin,
+          monthlyOverhead: overhead.monthlyOverhead,
+          perOrderCost: overhead.perOrderCost,
+        }),
+      });
+      setApplyState(res.ok ? "done" : "error");
+    } catch {
+      setApplyState("error");
+    }
+  }
 
   // #4 scenarios — per-project localStorage.
   const [scenarios, setScenarios] = useState<MarginScenario[]>(() => loadScenarios(projectId));
@@ -610,6 +651,36 @@ export default function ProfitModule({
               {t("resetMargins")}
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Unify with the monthly report: this module's blended margin + overhead
+          publish to the shared server cost model, so the report's Zisk agrees. */}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs leading-relaxed ${
+          costModel ? "bg-positive-soft text-positive" : "bg-canvas text-muted"
+        }`}
+      >
+        <span className="font-medium">
+          {costModel
+            ? t("reportSyncActive", {
+                m: fmt.fmtPct(costModel.grossMarginPct, 0),
+                o: fmt.fmtCZK(costModel.monthlyOverhead),
+                f: fmt.fmtCZK(costModel.perOrderCost),
+              })
+            : t("reportSyncInactive")}
+        </span>
+        <div className="flex items-center gap-2">
+          {applyState === "done" && <span className="font-medium text-positive">{t("applied")}</span>}
+          {applyState === "error" && <span className="font-medium text-negative">{t("applyFailed")}</span>}
+          <button
+            type="button"
+            onClick={applyToReport}
+            disabled={applyState === "busy"}
+            className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
+          >
+            {applyState === "busy" ? t("applying") : costModel ? t("applyUpdate") : t("applyToReport")}
+          </button>
         </div>
       </div>
 
