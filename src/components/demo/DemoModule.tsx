@@ -29,6 +29,12 @@ import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
 import LeadQualityModule from "@/components/app/modules/LeadQualityModule";
 import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
 import LocalModule from "@/components/app/modules/LocalModule";
+import MapPackModule from "@/components/app/modules/MapPackModule";
+import ReviewInbox from "@/components/app/modules/ReviewInbox";
+import ContentSchedule from "@/components/app/modules/ContentSchedule";
+import BrandingModule from "@/components/app/modules/BrandingModule";
+import MonthlyReport from "@/components/app/modules/MonthlyReport";
+import ActivityModule from "@/components/app/modules/ActivityModule";
 import ContentEngine from "@/components/app/modules/ContentEngine";
 import DistributionModule from "@/components/app/modules/DistributionModule";
 import AudienceModule from "@/components/app/modules/AudienceModule";
@@ -65,6 +71,13 @@ import { sourcesForProject } from "@/lib/lead-quality/sample";
 import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
 import { SAMPLE_RECENT_REVIEWS, reviewsForProject, targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
+import { keywordLadder, packsForProject } from "@/lib/mappack/sample";
+import { reviewsForProject as inboxReviewsForProject } from "@/lib/reviews/sample";
+import { initialPosts } from "@/lib/content-schedule/sample";
+import { activityForProject } from "@/lib/activity/sample";
+import { buildSnapshot } from "@/lib/snapshot";
+import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
+import { reportTilesForType, type ReportSnap } from "@/lib/report/compute";
 import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
 import { audienceForProject } from "@/lib/audience/sample";
@@ -221,6 +234,24 @@ export default async function DemoModule({
         </ModulePage>
       );
     }
+    case "mapa": {
+      // Mirrors the authed /mapa page, minus the live-ladder seam + import control
+      // (projectId omitted, so LocalLadderSource stays hidden): the competitor map
+      // pack + keyword ladder run on the project's localities × service catalog.
+      const localities = localitiesFor(project);
+      const services = servicesFor(project);
+      return (
+        <ModulePage moduleKey="mapa">
+          {noted(
+            <MapPackModule
+              packs={packsForProject(project, localities, project.name)}
+              ladder={keywordLadder(project, localities, services)}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+
     /* ----------------------------------------------------------------- Studio */
     case "obsahovy-engine":
       return (
@@ -263,6 +294,34 @@ export default async function DemoModule({
         <ModulePage moduleKey="distribuce">
           {noted(
             <DistributionModule source={SAMPLE_SOURCE} attribution={attributionForProject(project)} />
+          )}
+        </ModulePage>
+      );
+    case "recenze": {
+      const localities = localitiesFor(project);
+      const services = servicesFor(project);
+      return (
+        <ModulePage moduleKey="recenze">
+          {noted(
+            <ReviewInbox
+              reviews={inboxReviewsForProject(project, localities)}
+              areas={localities.map((l) => l.name)}
+              businessName={project.name}
+              businessType={services[0]?.category}
+              projectId={project.id}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "obsah-plan":
+      return (
+        <ModulePage moduleKey="obsah-plan">
+          {noted(
+            <ContentSchedule
+              posts={initialPosts(project, servicesFor(project), localitiesFor(project))}
+              projectId={project.id}
+            />
           )}
         </ModulePage>
       );
@@ -429,6 +488,67 @@ export default async function DemoModule({
               signOutEverywhereAction={demoAccountAction}
             />
           )}
+        </ModulePage>
+      );
+
+    case "branding":
+      // Live brand-accent + logo preview. Persistence targets an authed route, so
+      // saving is a no-op in the public demo — the preview itself is the point.
+      return (
+        <ModulePage moduleKey="branding">
+          <BrandingModule
+            projectId={project.id}
+            name={project.name}
+            accentColor={project.accentColor}
+            logoUrl={project.logoUrl}
+          />
+        </ModulePage>
+      );
+    case "mesicni-report": {
+      // Mirrors the authed report minus the e-shop-only extras (cost model,
+      // competitors, LTV/stock spine) and the live-sync seam: type-aware KPI tiles
+      // over this project's dataset. projectId omitted → the sync control is hidden.
+      const dataset = getProjectDataset(project);
+      const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
+      for (const p of ANALYSIS_PERIODS) {
+        const s = buildSnapshot(p, "previous", dataset);
+        const c = s.current;
+        const cpa = c.conversions > 0 ? c.cost / c.conversions : 0;
+        const prevConv = c.conversions / (1 + (s.delta.conversions ?? 0));
+        const prevCost = c.cost / (1 + (s.delta.cost ?? 0));
+        const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
+        snaps[p] = {
+          label: s.periodLabel,
+          current: {
+            revenue: c.revenue, roas: c.roas, pno: c.pno, conversions: c.conversions,
+            cost: c.cost, visits: c.visits, cpa, convRate: c.cr, profit: c.profit,
+            poas: c.cost > 0 ? c.profit / c.cost : 0,
+          },
+          delta: {
+            revenue: s.delta.revenue, pno: s.delta.pno, conversions: s.delta.conversions,
+            cost: s.delta.cost, visits: s.delta.visits, convRate: s.delta.cr,
+            cpa: prevCpa > 0 ? cpa / prevCpa - 1 : 0, profit: s.delta.profit,
+          },
+        };
+      }
+      return (
+        <ModulePage moduleKey="mesicni-report">
+          {noted(
+            <MonthlyReport
+              tiles={reportTilesForType(project.type)}
+              snaps={snaps}
+              projectName={project.name}
+              logoUrl={project.logoUrl}
+              accentColor={project.accentColor}
+            />
+          )}
+        </ModulePage>
+      );
+    }
+    case "aktivita":
+      return (
+        <ModulePage moduleKey="aktivita">
+          {noted(<ActivityModule events={activityForProject(project, localitiesFor(project))} />)}
         </ModulePage>
       );
 
