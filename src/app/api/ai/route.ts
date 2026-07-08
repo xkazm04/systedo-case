@@ -38,7 +38,8 @@ import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest } from "@/lib/ai-types";
+import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest, AnalysisPeriod } from "@/lib/ai-types";
+import { buildSnapshot } from "@/lib/snapshot";
 import type { PerformanceData } from "@/lib/types";
 import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
@@ -124,13 +125,20 @@ const BUSINESS_TYPE: Record<ProjectType, string> = {
 async function resolveGrounding(
   projectId: string | undefined,
   userId: string | null,
-  locale: SupportedLocale
+  locale: SupportedLocale,
+  // R02: the recap period, so the lead-signals breakdown scales to the SAME period
+  // lead total the report tile shows (reconciled tile ↔ narrative). Undefined → the
+  // sample totals are left unscaled (callers that don't render a report tile).
+  period?: AnalysisPeriod
 ): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; projectType?: ProjectType; groundingContext?: string }> {
   if (!projectId) return { keyId: "base" };
+  // The period lead total = the tile's conversion figure (buildSnapshot drives both).
+  const targetLeads = (data: PerformanceData) =>
+    period ? buildSnapshot(period, "previous", data).current.conversions : undefined;
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
   if (demo) {
     const data = getProjectDataset(demo);
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo), data, locale);
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), data, locale);
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -148,7 +156,7 @@ async function resolveGrounding(
       // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project), resolved.data, locale);
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), resolved.data, locale);
       const base = resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id;
       return {
         data: resolved.data,
@@ -274,7 +282,7 @@ export async function POST(request: Request) {
         if (!p.valid) return bad(p.error);
         // Tenancy-checked per-project grounding + business-type framing; cache by
         // the EFFECTIVE project (keyId) so an unowned id degrades to base.
-        const { data, keyId, businessType, projectType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale);
+        const { data, keyId, businessType, projectType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale, p.value.period);
         const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
         return cachedRespond("monthly-recap", value, locale, userId, () =>
           generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext, projectType)

@@ -5,15 +5,51 @@
  *  system+schema fingerprint is unchanged). Czech, matching snapshotToPromptText.
  *  Pure & testable; null for types without a lead funnel. */
 import type { Project } from "@/lib/projects/types";
-import { sourcesForProject } from "@/lib/lead-quality/sample";
+import { sourcesForProject, type LeadSource } from "@/lib/lead-quality/sample";
 import { summarize, withMetrics, avgVelocity } from "@/lib/lead-quality/compute";
 import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
 
-/** A lead-quality grounding block for a leadgen/local project, or null otherwise. */
-export function leadSignalsPromptText(project: Project): string | null {
+/** R02: reconcile the lead-quality source breakdown with the report tile. The tile
+ *  reads the dataset's period conversions; this block sums an independent sample
+ *  spine — so "Leady: X" (tile) and "Leadů: Y" (narrative) diverged. Scaling every
+ *  count/spend/revenue field by one factor makes the totals match the tile while
+ *  leaving all RATIOS (CPL, CPQL, qualification rate, junk flag, velocity) untouched.
+ *  `targetLeads` = the period-scoped conversion total; absent → unscaled sample. */
+function scaleSourcesToLeads(sources: LeadSource[], targetLeads: number): LeadSource[] {
+  const rawLeads = sources.reduce((a, s) => a + s.leads, 0);
+  if (rawLeads <= 0) return sources;
+  const f = targetLeads / rawLeads;
+  const sc = (n: number) => Math.round(n * f);
+  const scaled = sources.map((s) => ({
+    ...s,
+    leads: sc(s.leads),
+    qualified: sc(s.qualified),
+    won: sc(s.won),
+    spend: sc(s.spend),
+    revenue: sc(s.revenue),
+    ...(s.opportunities != null ? { opportunities: sc(s.opportunities) } : {}),
+    ...(s.prior
+      ? { prior: { leads: sc(s.prior.leads), qualified: sc(s.prior.qualified), won: sc(s.prior.won), spend: sc(s.prior.spend) } }
+      : {}),
+  }));
+  // Rounding per source can drift the sum ±1–2 from the target; assign the residual
+  // to the largest source so the narrative total matches the tile EXACTLY.
+  const residual = targetLeads - scaled.reduce((a, s) => a + s.leads, 0);
+  if (residual !== 0) {
+    const largest = scaled.reduce((max, s) => (s.leads > max.leads ? s : max), scaled[0]);
+    largest.leads += residual;
+  }
+  return scaled;
+}
+
+/** A lead-quality grounding block for a leadgen/local project, or null otherwise.
+ *  `targetLeads` (the report's period lead total) reconciles the counts with the
+ *  tile (R02); omit it to keep the raw sample totals. */
+export function leadSignalsPromptText(project: Project, targetLeads?: number): string | null {
   if (project.type !== "leadgen" && project.type !== "local") return null;
-  const sources = sourcesForProject(project);
-  if (sources.length === 0) return null;
+  const raw = sourcesForProject(project);
+  if (raw.length === 0) return null;
+  const sources = targetLeads != null && targetLeads > 0 ? scaleSourcesToLeads(raw, targetLeads) : raw;
 
   const rows = sources.map(withMetrics);
   const sum = summarize(sources);
