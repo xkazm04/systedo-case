@@ -30,6 +30,7 @@ const T = {
     topicCount: "{n}/7 témat · vznikne {n} naplánovaný příspěvek",
     topicCountPlural: "{n}/7 témat · vznikne {n} naplánovaných příspěvků",
     topicCountZero: "0/7 témat · vznikne 0 naplánovaných příspěvků",
+    batchSummary: "{topics}/7 témat × {plats} sítě = {posts} příspěvků v jednom běhu (na síť jiná verze)",
     platformLabel: "Platforma",
     toneLabel: "Tón",
     timeLabel: "Čas",
@@ -48,6 +49,7 @@ const T = {
     topicCount: "{n}/7 topics · will create {n} scheduled post",
     topicCountPlural: "{n}/7 topics · will create {n} scheduled posts",
     topicCountZero: "0/7 topics · will create 0 scheduled posts",
+    batchSummary: "{topics}/7 topics × {plats} networks = {posts} posts in one run (a distinct version per network)",
     platformLabel: "Platform",
     toneLabel: "Tone",
     timeLabel: "Time",
@@ -114,7 +116,17 @@ export default function WeekPlanner() {
   const [week, setWeek] = useState<Day[]>([]);
 
   const [topics, setTopics] = useState("");
-  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  // D3: fan each topic across every selected platform in ONE run, so IG/FB/TikTok
+  // get differentiated captions from a single pass — no 3× rerun over shared topics.
+  const [platforms, setPlatforms] = useState<Set<SocialPlatform>>(new Set(["instagram"]));
+  const togglePlatform = (p: SocialPlatform) =>
+    setPlatforms((s) => {
+      const next = new Set(s);
+      if (next.has(p)) {
+        if (next.size > 1) next.delete(p); // keep at least one selected
+      } else next.add(p);
+      return next;
+    });
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
   const [brand] = useState(readSocialBrand);
@@ -177,11 +189,14 @@ export default function WeekPlanner() {
     .filter(Boolean)
     .slice(0, 7);
 
-  const topicCountLabel = (() => {
-    if (topicLines.length === 0) return t("topicCountZero");
-    if (topicLines.length === 1) return t("topicCount", { n: topicLines.length });
-    return t("topicCountPlural", { n: topicLines.length });
-  })();
+  const topicCountLabel =
+    topicLines.length === 0
+      ? t("topicCountZero")
+      : t("batchSummary", {
+          topics: topicLines.length,
+          plats: platforms.size,
+          posts: topicLines.length * platforms.size,
+        });
 
   async function planWeek() {
     if (topicLines.length === 0 || running) return;
@@ -201,7 +216,7 @@ export default function WeekPlanner() {
           body: JSON.stringify({
             topic: topicLines[i],
             tone,
-            platforms: [platform],
+            platforms: [...platforms],
             ai: true,
             // On-brand by default (C1): a manual voice wins, else the auto-derived
             // catalogue voice, else the project name — never a placeholder company.
@@ -215,15 +230,17 @@ export default function WeekPlanner() {
           setError(draftJson?.error ?? t("genFailed"));
           break;
         }
+        // One topic → a differentiated caption per selected platform, all scheduled on
+        // the topic's day (the topic runs across every channel that day).
         const drafts: { platform: SocialPlatform; content: string }[] = draftJson.drafts ?? [];
-        const post = drafts.find((d) => d.platform === platform) ?? drafts[0];
-        if (post?.content) {
-          const when = new Date(first);
-          when.setDate(first.getDate() + i);
+        const when = new Date(first);
+        when.setDate(first.getDate() + i);
+        for (const d of drafts) {
+          if (!d?.content || !platforms.has(d.platform)) continue;
           await fetch("/api/social/posts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform, content: post.content, scheduledAt: when.toISOString(), projectId: pid }),
+            body: JSON.stringify({ platform: d.platform, content: d.content, scheduledAt: when.toISOString(), projectId: pid }),
           });
         }
         setProgress({ done: i + 1, total: topicLines.length });
@@ -280,20 +297,27 @@ export default function WeekPlanner() {
         </div>
 
         <div className="space-y-3">
-          <label className="block">
+          <div>
             <span className="mb-1 block text-xs font-medium text-navy-700">{t("platformLabel")}</span>
-            <select
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
-              className="w-full rounded-lg border border-line bg-canvas px-2.5 py-2 text-sm outline-none focus:border-brand-400"
-            >
-              {SOCIAL_PLATFORMS.map((p) => (
-                <option key={p} value={p}>
-                  {SOCIAL_PLATFORM_LABELS[p]}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div className="flex flex-wrap gap-1.5">
+              {SOCIAL_PLATFORMS.map((p) => {
+                const on = platforms.has(p);
+                return (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => togglePlatform(p)}
+                    aria-pressed={on}
+                    className={`rounded-pill border px-2.5 py-1 text-xs font-medium transition-colors ${
+                      on ? "border-brand-400 bg-brand-50 text-brand-800" : "border-line text-navy-700 hover:border-brand-300"
+                    }`}
+                  >
+                    {SOCIAL_PLATFORM_LABELS[p]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-navy-700">{t("toneLabel")}</span>

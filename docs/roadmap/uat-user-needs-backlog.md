@@ -121,6 +121,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **Med-High** — core to the `local` type she and future local clients live in.
 - **First-cut direction:** Make `rychla-reakce` available for `local`, or add a local enquiry inbox with the response clock.
 
+> **✅ D3 shipped**: the WeekPlanner's single-platform dropdown became a multi-select chip group; one run now fans each topic across every selected platform, scheduling a differentiated caption per channel (reusing the social route's per-platform styling) on the topic's day — no 3× rerun over shared topics. Count label reads "{topics} × {networks} = {posts} in one run". L2-verified: chips render + multi-select.
+
 **D3. Sofie: cross-channel-per-topic batch in one run**
 - **The need:** One week-planner run drafts one platform; to cover IG/FB/TikTok she reruns 3× over shared topics, risking interchangeable captions — exactly what she rejects.
 - **Who:** Sofie — "jeden běh = jedna platforma… hrozí, že to bude znít stejně napříč sítěmi" (`sofie:20`); finding `UAT-L1-17`.
