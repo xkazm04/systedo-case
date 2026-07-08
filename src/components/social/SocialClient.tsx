@@ -33,6 +33,7 @@ const T = {
     brandVoice: "Hlas značky (volitelné)",
     brandPlaceholder: "Co prodáváte + jak mluvíte — např. Mionelo: ořechy a superpotraviny, přátelsky a autenticky",
     brandHint: "AI píše v hlase vaší značky, ne genericky.",
+    brandAuto: "Píše na značku podle katalogu:",
     draftPlatforms: "Platformy pro návrh",
     templateBtn: "Šablona",
     drafting: "Navrhuji…",
@@ -82,6 +83,7 @@ const T = {
     brandVoice: "Brand voice (optional)",
     brandPlaceholder: "What you sell + how you talk — e.g. Mionelo: nuts & superfoods, friendly and authentic",
     brandHint: "AI writes in your brand voice, not generically.",
+    brandAuto: "Writing on-brand from your catalogue:",
     draftPlatforms: "Platforms to draft for",
     templateBtn: "Template",
     drafting: "Drafting…",
@@ -281,6 +283,22 @@ function Composer() {
       /* storage unavailable — non-fatal */
     }
   }, [brand]);
+  // C1 unify: the project's auto-derived catalogue voice — used by the server when
+  // this field is blank, so show it here too (parity with the WeekPlanner strip).
+  const [autoBrand, setAutoBrand] = useState("");
+  useEffect(() => {
+    if (!pid) return;
+    let live = true;
+    fetch(`/api/projects/${encodeURIComponent(pid)}/brand-context`)
+      .then((r) => (r.ok ? r.json() : { context: "" }))
+      .then((j: { context?: string }) => {
+        if (live) setAutoBrand(j.context ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pid]);
 
   const [platform, setPlatform] = useState<SocialPlatform>("instagram");
   const [content, setContent] = useState("");
@@ -395,7 +413,16 @@ function Composer() {
           placeholder={t("brandPlaceholder")}
           className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
         />
-        <span className="mt-1 block text-xs text-muted">{t("brandHint")}</span>
+        {!brand.trim() && autoBrand ? (
+          <span className="mt-1 flex items-start gap-1 text-xs text-positive">
+            <Check width={13} height={13} className="mt-0.5 shrink-0" />
+            <span>
+              <span className="font-semibold">{t("brandAuto")}</span> {autoBrand}
+            </span>
+          </span>
+        ) : (
+          <span className="mt-1 block text-xs text-muted">{t("brandHint")}</span>
+        )}
       </label>
 
       <div>
