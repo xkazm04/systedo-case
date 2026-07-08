@@ -25,7 +25,14 @@ Pravidla:
 - Piš česky, věcně, bez vaty a marketingových frází.
 - Drž se zadaného JSON schématu.`;
 
-function buildRecapPrompt(snapshotText: string, businessType?: string, refine?: string): string {
+function buildRecapPrompt(
+  snapshotText: string,
+  businessType?: string,
+  refine?: string,
+  // C2: extra grounding (e.g. lead-source quality / CPQL / velocity for leadgen &
+  // local) appended to the DATA block. USER-prompt only → fingerprint unchanged.
+  groundingContext?: string
+): string {
   return [
     "Níže je měsíční přehled výkonu klienta z marketingových kampaní.",
     ...(businessType ? [`Typ podnikání klienta: ${businessType}.`] : []),
@@ -33,6 +40,7 @@ function buildRecapPrompt(snapshotText: string, businessType?: string, refine?: 
     "",
     "DATA:",
     snapshotText,
+    ...(groundingContext ? ["", groundingContext] : []),
     "",
     "Na základě těchto čísel urči: jednovětý verdikt (headline), odstavec shrnutí (summary), 3–4 hlavní úspěchy (highlights), 2–3 věci k hlídání (watchouts) a 3–4 priority na příští měsíc (priorities). Vycházej pouze z uvedených dat.",
     // Refine note (re-run steering) rides on the USER prompt only — the system
@@ -138,13 +146,15 @@ export function generateMonthlyRecap(
   // The project's dataset + business-type label, resolved + tenancy-checked by the
   // route (undefined → base case-study grounding, no type framing).
   data?: PerformanceData,
-  businessType?: string
+  businessType?: string,
+  // C2: lead/local signal grounding for the DATA block (undefined for e-shop/base).
+  groundingContext?: string
 ): Promise<AiResponse<MonthlyRecapResult>> {
   const snapshot = buildSnapshot(req.period, "previous", data);
   return generateStructured({
     // llm-tool: monthly-recap
     id: "monthly-recap",
-    prompt: buildRecapPrompt(snapshotToPromptText(snapshot), businessType, req.refine),
+    prompt: buildRecapPrompt(snapshotToPromptText(snapshot), businessType, req.refine, groundingContext),
     system: MONTHLY_RECAP_SYSTEM,
     schema: MONTHLY_RECAP_SCHEMA,
     // Strictly-grounded numeric read: keep temperature low so the recap stays

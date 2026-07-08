@@ -44,6 +44,7 @@ import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import {
@@ -119,10 +120,17 @@ const BUSINESS_TYPE: Record<ProjectType, string> = {
 async function resolveGrounding(
   projectId: string | undefined,
   userId: string | null
-): Promise<{ data?: PerformanceData; keyId: string; businessType?: string }> {
+): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; groundingContext?: string }> {
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return { data: getProjectDataset(demo), keyId: demo.id, businessType: BUSINESS_TYPE[demo.type] };
+  if (demo)
+    return {
+      data: getProjectDataset(demo),
+      keyId: demo.id,
+      businessType: BUSINESS_TYPE[demo.type],
+      // C2: lead-source quality / CPQL / velocity for leadgen & local recaps.
+      groundingContext: leadSignalsPromptText(demo) ?? undefined,
+    };
   if (userId) {
     const project = await getProject(userId, projectId);
     if (project) {
@@ -133,6 +141,7 @@ async function resolveGrounding(
         data: resolved.data,
         keyId: resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id,
         businessType: BUSINESS_TYPE[project.type],
+        groundingContext: leadSignalsPromptText(project) ?? undefined,
       };
     }
   }
@@ -211,10 +220,10 @@ export async function POST(request: Request) {
         if (!p.valid) return bad(p.error);
         // Tenancy-checked per-project grounding + business-type framing; cache by
         // the EFFECTIVE project (keyId) so an unowned id degrades to base.
-        const { data, keyId, businessType } = await resolveGrounding(p.value.projectId, userId);
+        const { data, keyId, businessType, groundingContext } = await resolveGrounding(p.value.projectId, userId);
         const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
         return cachedRespond("monthly-recap", value, locale, userId, () =>
-          generateMonthlyRecap(p.value, locale, request.signal, data, businessType)
+          generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext)
         );
       }
       case "chat": {
