@@ -31,6 +31,7 @@ const T = {
     shareTitle: "Podíl na proklicích",
     reviewsShort: "recenzí",
     liveNote: "Reálné dlaždice OpenStreetMap · jeden marker na konkurenta, podle souřadnic. Ilustrativní data.",
+    mapAria: "Mapa místních výsledků",
   },
   en: {
     searchArea: "Search area",
@@ -44,6 +45,7 @@ const T = {
     shareTitle: "Share of clicks",
     reviewsShort: "reviews",
     liveNote: "Real OpenStreetMap tiles · one marker per competitor, keyed on coordinates. Illustrative data.",
+    mapAria: "Local map pack",
   },
 } as const;
 
@@ -65,6 +67,7 @@ function markerHtml(rank: number, you: boolean): string {
 }
 
 function LeafletMap({ points, label }: { points: MapListing[]; label: string }) {
+  const t = useT(T);
   const ref = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -131,7 +134,7 @@ function LeafletMap({ points, label }: { points: MapListing[]; label: string }) 
       </div>
     );
   }
-  return <div ref={ref} className="h-full w-full bg-surface" role="img" aria-label="Local map pack" />;
+  return <div ref={ref} className="h-full w-full bg-surface" role="img" aria-label={t("mapAria")} />;
 }
 
 export default function MapPackClient({ areas }: { areas: AreaPack[] }) {
