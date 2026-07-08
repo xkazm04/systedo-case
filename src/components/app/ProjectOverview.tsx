@@ -11,6 +11,7 @@ import { ArrowRight, Bulb } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import PortfolioCompare from "@/components/app/overview/PortfolioCompare";
 import type { CompareRow } from "@/components/app/overview/compare";
+import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
 import { projectDataSource } from "@/lib/project-data/source";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations } from "@/lib/insights/aggregate";
@@ -34,6 +35,7 @@ const T = {
     revenue30: "Obrat za posledních 30 dní",
     dataAsOf: "Data k",
     needsAttention: "Vyžaduje pozornost",
+    locations: "Pobočky",
     allGood: "Vše vypadá v pořádku — žádná upozornění napříč projekty.",
     priority: "Priorita",
     portfolioEyebrow: "Portfolio",
@@ -44,6 +46,7 @@ const T = {
     revenue30: "Revenue — last 30 days",
     dataAsOf: "Data as of",
     needsAttention: "Needs attention",
+    locations: "Locations",
     allGood: "Everything looks good — no alerts across projects.",
     priority: "Priority",
     portfolioEyebrow: "Portfolio",
@@ -287,6 +290,9 @@ export default async function ProjectOverview({
           />
         </div>
 
+        {/* locations roster — folded in for local projects (descoped Pobočky module) */}
+        <LocationsOverviewSection project={project} heading={t("locations")} />
+
         <NeedsAttention
           recs={recs}
           count={recs.length}
@@ -354,6 +360,15 @@ export default async function ProjectOverview({
       <div className="mt-6">
         <PortfolioCompare rows={rows} activeProjectId={activeProjectId} />
       </div>
+
+      {/* active project's locations roster, when it is a local project — folds in
+          the descoped Pobočky module so the overview stays the one home per type */}
+      {activeProjectId && (
+        <LocationsOverviewSection
+          project={projects.find((p) => p.id === activeProjectId) ?? projects[0]!}
+          heading={t("locations")}
+        />
+      )}
 
       {/* combined cross-project needs-attention */}
       <NeedsAttention

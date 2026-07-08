@@ -51,7 +51,7 @@ const RECIPES: Recipe[] = [
   { module: "obsah-plan", tmpl: "post_published", severity: "info", actor: "system", names: POST_NAMES },
   { module: "kampane", tmpl: "budget_shift", severity: "info", actor: "ai", names: CAMPAIGN_NAMES },
   { module: "kampane", tmpl: "sync", severity: "info", actor: "system" },
-  { module: "pobocky", tmpl: "location_needs", severity: "critical", actor: "system", needsArea: true },
+  { module: "lokalni", tmpl: "location_needs", severity: "critical", actor: "system", needsArea: true },
   { module: "lokalni", tmpl: "coverage_gap", severity: "warning", actor: "ai", needsArea: true },
   { module: "integrace", tmpl: "integration_action", severity: "warning", actor: "system", names: INTEGRATION_NAMES },
 ];

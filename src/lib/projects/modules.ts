@@ -72,16 +72,6 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Visits, cost, conversions, revenue and PNO with history and channels.",
   },
   {
-    key: "pobocky",
-    label: "Pobočky",
-    labelEn: "Locations",
-    icon: "locations",
-    section: "main",
-    availableFor: ["local"],
-    blurb: "Správa poboček — stav Google profilu, recenze, pozice v mapě a úkoly na jednom místě.",
-    blurbEn: "Manage your locations — Google profile status, reviews, map rank and tasks in one place.",
-  },
-  {
     key: "kampane",
     label: "Kampaně",
     labelEn: "Campaigns",
