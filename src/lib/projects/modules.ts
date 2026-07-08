@@ -249,7 +249,9 @@ export const MODULES: ModuleDef[] = [
     labelEn: "Quick response",
     icon: "speed",
     section: "studio",
-    availableFor: ["leadgen"],
+    // D2: local businesses (Marta's clinic) live and die by speed-to-lead too — a
+    // missed enquiry is a lost patient. The response-clock inbox is core to them.
+    availableFor: ["leadgen", "local"],
     blurb: "Schránka poptávek s AI návrhem odpovědi, kvalifikací a SLA časovačem.",
     blurbEn: "Enquiry inbox with AI reply suggestion, qualification and SLA timer.",
   },

@@ -110,6 +110,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **Med** — high job-centrality for eshop, single persona.
 - **First-cut direction:** Compose `/ltv` + `/sklad-sezonnost` spines into the report the way POAS now is.
 
+> **✅ D2 shipped**: `rychla-reakce` is now `availableFor: ["leadgen", "local"]` — the response-clock enquiry inbox exists on `local` projects, with a clinic-flavoured `LOCAL_SAMPLE_LEADS` set (booking/availability/new-patient enquiries) so it fits the segment instead of showing B2B service leads. L2-verified on demo-local (Dentalis): sidebar item + SLA timer + AI reply + qualification all render.
+
 **D2. Marta: a speed-to-lead / enquiry inbox that exists on `local`**
 - **The need:** "Aby žádná poptávka nečekala" — the response-clock inbox — has no home on a `local` project (`rychla-reakce`/`kvalita-leadu` are leadgen-only, `modules.ts:254,242`). ~⅓ of her JTBD is unreachable.
 - **Who:** Marta — "tady na klinice tu schránku poptávek s časovačem vůbec nemám… to je půlka důvodu, proč jsem přišla" (`marta-local:18`); finding `UAT-L1-15`.
