@@ -7,7 +7,7 @@
  *  posts (POST /api/social/posts). No new backend — it orchestrates the existing
  *  draft + posts routes, then the calendar reflects them. */
 import { useCallback, useEffect, useState } from "react";
-import { Calendar, Clock, Sparkles } from "@/components/icons";
+import { Calendar, Check, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { Formatters } from "@/lib/format";
@@ -37,6 +37,8 @@ const T = {
     generating: "Generuji… {done}/{total}",
     genFailed: "Generování se nezdařilo.",
     serverError: "Nepodařilo se spojit se serverem.",
+    voiceLabel: "Píše na značku",
+    voiceHint: "Odvozeno z vašeho katalogu — příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
   },
   en: {
     title: "Week plan",
@@ -53,6 +55,8 @@ const T = {
     generating: "Generating… {done}/{total}",
     genFailed: "Generation failed.",
     serverError: "Could not reach the server.",
+    voiceLabel: "Writing on-brand",
+    voiceHint: "Derived from your catalogue — posts stay in your range and vocabulary. Edit in Catalog.",
   },
 } as const;
 
@@ -114,6 +118,9 @@ export default function WeekPlanner() {
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
   const [brand] = useState(readSocialBrand);
+  // C1: the project's auto-derived brand voice (what it sells + how it talks), so the
+  // batch is on-brand BY DEFAULT — shown here, not buried in the Composer.
+  const [autoBrand, setAutoBrand] = useState("");
 
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -138,6 +145,21 @@ export default function WeekPlanner() {
     window.addEventListener("social:posts-changed", handler);
     return () => window.removeEventListener("social:posts-changed", handler);
   }, [loadPosts, fmt]);
+
+  // Fetch the derived brand voice for this project (empty for an empty catalogue).
+  useEffect(() => {
+    if (!pid) return;
+    let live = true;
+    fetch(`/api/projects/${encodeURIComponent(pid)}/brand-context`)
+      .then((r) => (r.ok ? r.json() : { context: "" }))
+      .then((j: { context?: string }) => {
+        if (live) setAutoBrand(j.context ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [pid]);
 
   // Scheduled posts grouped by their day (YYYY-MM-DD), for the calendar cells.
   const byDay = new Map<string, SocialPost[]>();
@@ -181,9 +203,10 @@ export default function WeekPlanner() {
             tone,
             platforms: [platform],
             ai: true,
-            // Fall back to the project's own name so posts carry the user's brand,
-            // never a placeholder company; projectId grounds "what's working".
-            brand: brand.trim() || project?.name || undefined,
+            // On-brand by default (C1): a manual voice wins, else the auto-derived
+            // catalogue voice, else the project name — never a placeholder company.
+            // projectId grounds "what's working" and the server-side voice fallback.
+            brand: brand.trim() || autoBrand || project?.name || undefined,
             ...(pid ? { projectId: pid } : {}),
           }),
         });
@@ -224,6 +247,19 @@ export default function WeekPlanner() {
       <p className="mt-1 text-sm text-muted">
         {t("subtitle")}
       </p>
+
+      {/* C1: prove the tool knows the brand — the auto-derived catalogue voice the
+          batch will use by default (a manual voice, when set, overrides it). */}
+      {!brand.trim() && autoBrand && (
+        <div className="mt-3 rounded-lg border border-positive/25 bg-positive-soft px-4 py-3">
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-positive">
+            <Check width={14} height={14} className="shrink-0" />
+            {t("voiceLabel")}
+          </p>
+          <p className="mt-1 text-sm leading-relaxed text-navy-700">{autoBrand}</p>
+          <p className="mt-1.5 text-xs text-muted">{t("voiceHint")}</p>
+        </div>
+      )}
 
       {/* batch generator */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_220px]">

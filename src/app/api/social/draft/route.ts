@@ -9,10 +9,12 @@ import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import { getServerLocale } from "@/lib/i18n/locale";
+import type { SupportedLocale } from "@/lib/format";
 import { buildSnapshot } from "@/lib/snapshot";
 import type { PerformanceData } from "@/lib/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
+import { loadBrandContext } from "@/lib/brand/load";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
@@ -44,6 +46,24 @@ async function resolveDataset(
   if (userId) {
     const project = await getProject(userId, projectId);
     if (project) return getProjectDataset(project);
+  }
+  return undefined;
+}
+
+/** C1 — when the caller left the brand-voice field blank, fall back to the project's
+ *  auto-derived brand context (what it sells + how it talks) so AI posts are on-brand
+ *  by default. Tenancy-checked like resolveDataset; undefined when nothing real. */
+async function resolveBrandFallback(
+  projectId: string | undefined,
+  userId: string | null,
+  locale: SupportedLocale
+): Promise<string | undefined> {
+  if (!projectId) return undefined;
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return (await loadBrandContext(demo, locale)) || undefined;
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return (await loadBrandContext(project, locale)) || undefined;
   }
   return undefined;
 }
@@ -136,14 +156,18 @@ export async function POST(request: Request) {
       }
     }
 
+    const locale = await getServerLocale();
     const dataset = await resolveDataset(projectId, userId);
+    // On-brand by default (C1): an empty brand field falls back to the project's
+    // auto-derived catalogue voice, so posts never default to a generic sortiment.
+    const effectiveBrand = brand ?? (await resolveBrandFallback(projectId, userId, locale));
     const response = await generateSocialPosts({
       topic,
       tone,
       platforms,
       grounding: perfGrounding(dataset),
-      brand,
-      locale: await getServerLocale(),
+      brand: effectiveBrand,
+      locale,
       // Client abort propagation: a closed tab / re-run stops the provider work.
       signal: request.signal,
     });
