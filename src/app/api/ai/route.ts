@@ -46,6 +46,7 @@ import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
+import { localSignalsPromptText } from "@/lib/local-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
 import { competitorGroundingText } from "@/lib/competitors/grounding";
 import { getCostModel } from "@/lib/cost-model/store";
@@ -138,7 +139,8 @@ async function resolveGrounding(
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
   if (demo) {
     const data = getProjectDataset(demo);
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), data, locale);
+    const localText = await localSignalsPromptText(demo, locale);
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale);
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -156,7 +158,8 @@ async function resolveGrounding(
       // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), resolved.data, locale);
+      const localText = await localSignalsPromptText(project, locale);
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale);
       const base = resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id;
       return {
         data: resolved.data,
@@ -177,12 +180,16 @@ async function resolveGrounding(
 async function mergeGrounding(
   projectId: string,
   leadText: string | null,
+  // R06: map-pack coverage + review sentiment for a local project (null otherwise),
+  // resolved by the caller (it needs the project object, not just the id).
+  localText: string | null,
   data: PerformanceData | undefined,
   locale: SupportedLocale
 ): Promise<{ text?: string; keySuffix?: string }> {
   const [set, costModel] = await Promise.all([getCompetitors(projectId), getCostModel(projectId)]);
   const merged = [
     leadText,
+    localText,
     competitorGroundingText(set, locale),
     profitGroundingText(data, costModel, locale),
     historyGroundingText(data, locale),
