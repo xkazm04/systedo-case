@@ -14,6 +14,8 @@ export interface ResolvedLadder {
   source: "sample" | LocalSignalsSource;
   live: boolean;
   syncedAt?: string;
+  /** for source "url": the hosted CSV to refresh from */
+  sourceUrl?: string;
 }
 
 /** The active ranking ladder for a project: live when synced rows exist, else the
@@ -30,7 +32,13 @@ export async function resolveLocalLadder(
     signals = null; // store hiccup → sample, never break the map
   }
   if (signals && signals.ladder.length > 0) {
-    return { ladder: signals.ladder, source: signals.meta.source, live: true, syncedAt: signals.meta.syncedAt };
+    return {
+      ladder: signals.ladder,
+      source: signals.meta.source,
+      live: true,
+      syncedAt: signals.meta.syncedAt,
+      sourceUrl: signals.meta.sourceUrl,
+    };
   }
   return { ladder: sample, source: "sample", live: false };
 }

@@ -27,6 +27,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         ladderLive={ladder.live}
         ladderSource={ladder.source}
         ladderSyncedAt={ladder.syncedAt}
+        ladderSourceUrl={ladder.sourceUrl}
       />
     </ModulePage>
   );

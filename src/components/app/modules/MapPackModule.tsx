@@ -13,7 +13,9 @@ export default function MapPackModule({
   ladder,
   projectId,
   ladderLive = false,
+  ladderSource,
   ladderSyncedAt,
+  ladderSourceUrl,
 }: {
   packs: AreaPack[];
   ladder: KeywordRank[];
@@ -21,15 +23,25 @@ export default function MapPackModule({
   projectId?: string;
   /** true when the ladder is imported/synced real ranks, not the sample */
   ladderLive?: boolean;
-  /** provenance of a live ladder (reserved for a future GBP/provider label) */
+  /** provenance of a live ladder (import | url | gbp) */
   ladderSource?: "sample" | LocalSignalsSource;
   /** ISO timestamp of the last ladder import/sync */
   ladderSyncedAt?: string;
+  /** for source "url": the hosted CSV to refresh from */
+  ladderSourceUrl?: string;
 }) {
   return (
     <div className="stagger space-y-6">
       <MapPackClient areas={packs} />
-      {projectId && <LocalLadderSource projectId={projectId} live={ladderLive} syncedAt={ladderSyncedAt} />}
+      {projectId && (
+        <LocalLadderSource
+          projectId={projectId}
+          live={ladderLive}
+          source={ladderSource}
+          syncedAt={ladderSyncedAt}
+          sourceUrl={ladderSourceUrl}
+        />
+      )}
       <RankLadder rows={ladder} />
     </div>
   );

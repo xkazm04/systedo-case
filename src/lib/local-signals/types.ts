@@ -6,7 +6,7 @@
  *  it falls back to the sample ladder, honestly marked. */
 import type { KeywordRank } from "@/lib/mappack/sample";
 
-export type LocalSignalsSource = "import" | "gbp";
+export type LocalSignalsSource = "import" | "url" | "gbp";
 
 export interface LocalSignalsMeta {
   source: LocalSignalsSource;
@@ -14,6 +14,8 @@ export interface LocalSignalsMeta {
   syncedAt: string;
   /** number of ranked keyword×area rows */
   rowCount: number;
+  /** for source "url": the hosted CSV the ladder was fetched from (enables refresh) */
+  sourceUrl?: string;
 }
 
 /** Persisted per project: provenance + the live keyword-rank ladder. */
