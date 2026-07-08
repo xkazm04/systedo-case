@@ -150,6 +150,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 - **Leverage:** **Med** — cheap, buyer-facing trust win.
 - **First-cut direction:** Unify brand + support domain across all contact points.
 
+> **◑ E2 in progress — homepage shipped**: the marquee first-impression surface (`BrandLanding` + `Crossroad`) is now fully `T()`-routed — hero eyebrow/headline/subhead/CTAs/channels label, the proof band, the closing CTA, and the crossroad section headers all render Czech for a `cs` visitor (driver-verified: 0 residual English on `/`). Marek's "je to celé anglicky" first-impression scratch is closed for the homepage. **Remaining**: the deeper app-wide UI-string + currency sweep (~199 sites across the authed `/app` product) — larger mechanical effort, tracked separately.
+
 **E2. Full locale consistency (UI strings + currency), not just AI output**
 - **The need:** AI output already follows locale, but the homepage hero is hardcoded English for a `cs` visitor, and a UI-string + currency sweep (~199 sites) is still pending.
 - **Who:** Marek — "je to celé anglicky… první dojem 'je to lokalizované pro mě?' dostane škrábanec" (`marek:14`); finding `UAT-L1-13`.

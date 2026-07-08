@@ -34,12 +34,38 @@ const T = {
     proofPno: "PNO · cíl {goal}",
     proofRevenue: "obrat připsaný marketingu",
     proofRevenueDelta: "obrat vs. předchozí období",
+    heroTagline: "AI inteligence pro reklamu",
+    heroEyebrow: "Vzácný druh v adtech",
+    heroTitle1: "Stůjte pevně.",
+    heroTitle2: "Reklamy, které nepovolí.",
+    heroSubhead:
+      "AI inteligence pro reklamu pro e-shopy a agentury — měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
+    heroSeeItWork: "Podívejte se, jak to funguje",
+    heroStartFree: "Začít zdarma",
+    heroWorksAcross: "Funguje napříč",
+    proofLabel: "Důkaz",
+    proofHeadline: "Na case-study účtu, posledních 90 dní",
+    proofNote: "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}) — výsledky, ne sliby. Ilustrativní case-study data.",
+    closingTitle: "Buďte ve své reklamě neoblomní.",
   },
   en: {
     proofRoas: "Portfolio ROAS",
     proofPno: "PNO · target {goal}",
     proofRevenue: "revenue attributed to marketing",
     proofRevenueDelta: "revenue vs. prior period",
+    heroTagline: "AI ad intelligence",
+    heroEyebrow: "A rare breed in adtech",
+    heroTitle1: "Stand adamant.",
+    heroTitle2: "Ads that never crack.",
+    heroSubhead:
+      "AI ad intelligence for e-shops and agencies — measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
+    heroSeeItWork: "See it work",
+    heroStartFree: "Start free",
+    heroWorksAcross: "Works across",
+    proofLabel: "Proof",
+    proofHeadline: "On the case-study account, last 90 days",
+    proofNote: "The same numbers the dashboard renders for {client} ({domain}) — outcomes, not claims. Illustrative case-study data.",
+    closingTitle: "Be adamant about your ads.",
   },
 } as const;
 
@@ -103,24 +129,23 @@ export default async function BrandLanding() {
               <div className="leading-none">
                 <p className="text-xl font-semibold tracking-tight text-white">Adamant</p>
                 <p className="mt-1 text-[12px] font-medium uppercase tracking-[0.18em] text-onyx-muted">
-                  AI ad intelligence
+                  {t("heroTagline")}
                 </p>
               </div>
             </div>
 
             <span className="mt-7 inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/60 px-3 py-1.5 text-xs font-semibold text-brand-300">
-              <Sparkles width={13} height={13} />A rare breed in adtech
+              <Sparkles width={13} height={13} />{t("heroEyebrow")}
             </span>
 
             <h1 className="mt-5 text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Stand adamant.
+              {t("heroTitle1")}
               <br />
-              <span className="text-brand-300">Ads that never crack.</span>
+              <span className="text-brand-300">{t("heroTitle2")}</span>
             </h1>
 
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-onyx-muted">
-              AI ad intelligence for e-shops and agencies — measure performance, triage campaigns
-              and generate the ads, grounded in your live Google Ads data.
+              {t("heroSubhead")}
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -130,19 +155,19 @@ export default async function BrandLanding() {
                 href="/dashboard"
                 className="inline-flex items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 shadow-card transition-[background-color,transform] hover:bg-brand-400 active:scale-[0.99]"
               >
-                See it work
+                {t("heroSeeItWork")}
                 <ArrowRight width={17} height={17} />
               </Link>
               <Link
                 href="/app"
                 className="inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/40 px-5 py-3 text-sm font-semibold text-onyx-ink transition-colors hover:border-brand-400 hover:text-brand-200"
               >
-                Start free
+                {t("heroStartFree")}
               </Link>
             </div>
 
             <div className="mt-8 flex flex-wrap items-center gap-2 text-sm text-onyx-muted">
-              <span className="font-medium">Works across</span>
+              <span className="font-medium">{t("heroWorksAcross")}</span>
               {CHANNELS.map((c) => (
                 <span
                   key={c.name}
@@ -166,15 +191,14 @@ export default async function BrandLanding() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-accent">
-                Proof
+                {t("proofLabel")}
               </p>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
-                On the case-study account, last 90 days
+                {t("proofHeadline")}
               </h2>
             </div>
             <p className="max-w-md text-sm text-muted">
-              The same numbers the dashboard renders for {snap.client.name} ({snap.client.domain}) —
-              outcomes, not claims. Illustrative case-study data.
+              {t("proofNote", { client: snap.client.name, domain: snap.client.domain })}
             </p>
           </div>
           <dl className="mt-9 grid grid-cols-2 gap-6 sm:grid-cols-4">
@@ -195,13 +219,13 @@ export default async function BrandLanding() {
         <Container className="py-14">
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="max-w-xl text-2xl font-semibold leading-snug tracking-tight text-white">
-              Be adamant about your ads.
+              {t("closingTitle")}
             </h2>
             <Link
               href="/dashboard"
               className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
             >
-              See it work
+              {t("heroSeeItWork")}
               <ArrowRight width={17} height={17} />
             </Link>
           </div>

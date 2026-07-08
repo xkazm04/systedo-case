@@ -12,21 +12,35 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container, Eyebrow } from "@/components/ui";
 import { ArrowRight } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
 import { CROSSROAD_META, type CrossroadItem } from "./meta";
 
+const T = {
+  cs: {
+    eyebrow: "Pracovní prostor",
+    heading: "Vyberte si cíl",
+    note: "Případová studie ve čtyřech zastávkách — každá je reálná část produktu, opřená o stejná klientská data.",
+  },
+  en: {
+    eyebrow: "The workspace",
+    heading: "Pick a destination",
+    note: "The case study in four stops — each a real product surface, grounded in the same client data.",
+  },
+} as const;
+
 export default function Crossroad({ items }: { items: CrossroadItem[] }) {
+  const t = useT(T);
   return (
     <Container className="py-16 sm:py-20">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Eyebrow>The workspace</Eyebrow>
+          <Eyebrow>{t("eyebrow")}</Eyebrow>
           <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
-            Pick a destination
+            {t("heading")}
           </h2>
         </div>
         <p className="max-w-md text-sm text-muted">
-          The case study in four stops — each a real product surface, grounded in the same client
-          data.
+          {t("note")}
         </p>
       </div>
 
