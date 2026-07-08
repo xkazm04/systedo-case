@@ -11,6 +11,11 @@ import { reportTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/
 import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
+import { ESHOP_COHORTS } from "@/lib/ltv/sample";
+import { ltvSummary } from "@/lib/ltv/compute";
+import { loadProductsFor } from "@/lib/catalog/load";
+import { stockRows, monthlySeasonality } from "@/lib/inventory/compute";
+import type { ReportBeyondData } from "@/components/app/modules/ReportBeyond";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -24,6 +29,28 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
   // C3: the project's competitor set grounds the AI narrative "vs. the market".
   const competitorSet = await getCompetitors(project.id);
+
+  // D1: compose the customer-economics (LTV) + stock/seasonality spines into the
+  // e-shop report, so Robert's weekly job (marketing + LTV + stock) lives in one place.
+  let beyond: ReportBeyondData | null = null;
+  if (project.type === "eshop") {
+    const ltv = ltvSummary(ESHOP_COHORTS);
+    const lastDate = dataset.daily.at(-1)?.date;
+    const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
+    const products = await loadProductsFor(project, now);
+    const stock = stockRows(products, now);
+    const atRiskCount = stock.filter((s) => s.status === "pause" || s.status === "low").length;
+    const season = monthlySeasonality(dataset.daily);
+    const seasonNow = season[now.getUTCMonth()];
+    beyond = {
+      ltvCac: ltv.avgLtvCac,
+      payback: ltv.avgPayback,
+      paidCac: ltv.paidCac,
+      atRiskCount,
+      seasonIndex: seasonNow?.index ?? 1,
+      seasonLabel: seasonNow?.label ?? "",
+    };
+  }
 
   // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
   // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
@@ -114,6 +141,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
         competitors={competitorSet?.competitors ?? []}
+        beyond={beyond}
       />
     </ModulePage>
   );

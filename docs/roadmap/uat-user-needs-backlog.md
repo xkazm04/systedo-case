@@ -103,6 +103,8 @@ Grounding scores were low precisely where the user's own context (voice, catalog
 
 ### Theme D — Per-persona job completion (the specific missing pieces each role named)
 
+> **✅ D1 shipped**: a "Nad rámec období" section on the e-shop report composes the `/ltv` (LTV:CAC, CAC payback, paid CAC) and `/sklad-sezonnost` (at-risk SKU count, current-month seasonality index) spines into two compact, clickable cards — so Robert's weekly marketing+LTV+stock job lives in one view. `ReportBeyond` component; page computes the summaries (e-shop only). L2-verified on demo-eshop.
+
 **D1. Robert: LTV/cohort + inventory-vs-seasonality in the report**
 - **The need:** His weekly job spans marketing + LTV + stock; the report is a single-period performance recap. `/ltv` and `/sklad-sezonnost` exist but aren't composed in.
 - **Who:** Robert — "zisk, LTV ani sklad tam nejsou" (`robert:17`); finding R5 (`robert-eshop-owner:63`).

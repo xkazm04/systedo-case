@@ -17,6 +17,7 @@ import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } fr
 import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
 import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
 import type { Competitor } from "@/lib/competitors/types";
+import ReportBeyond, { type ReportBeyondData } from "@/components/app/modules/ReportBeyond";
 
 const T = {
   cs: {
@@ -57,6 +58,7 @@ export default function MonthlyReport({
   showCostModel = false,
   costModel = null,
   competitors = [],
+  beyond = null,
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
@@ -76,6 +78,8 @@ export default function MonthlyReport({
   costModel?: CostModelView | null;
   /** C3: the project's competitor set — grounds the AI narrative "vs. the market" */
   competitors?: Competitor[];
+  /** D1: LTV + stock/seasonality headline numbers composed into the report (e-shop) */
+  beyond?: ReportBeyondData | null;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -312,6 +316,9 @@ export default function MonthlyReport({
           </div>
         )}
       </div>
+
+      {/* D1: compose the LTV + stock/seasonality spines into the report (e-shop). */}
+      {beyond && projectId && <ReportBeyond projectId={projectId} data={beyond} />}
     </div>
   );
 }
