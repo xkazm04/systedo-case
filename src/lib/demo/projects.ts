@@ -56,6 +56,8 @@ export function demoProjectForModule(m: ModuleDef): Project {
 const MODULE_ALIASES: Record<string, string> = {
   // "Obsah & SEO" was merged into the unified "Obsahový engine" (Tvorba).
   obsah: "obsahovy-engine",
+  // "Rychlá reakce" was absorbed as the `leads` channel of the twin's Schránka zpráv.
+  "rychla-reakce": "schranka",
 };
 
 /** Resolve a `?m=` value (possibly an array) to a real module — defaults to the

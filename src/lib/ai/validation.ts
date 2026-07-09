@@ -11,6 +11,7 @@ import {
   TONES,
   type AdRequest,
   type ChannelResearchRequest,
+  type OnboardingScanRequest,
   type AnalysisPeriod,
   type AnalysisRequest,
   type ArticleDraftRequest,
@@ -28,8 +29,11 @@ import {
   type KeywordClusterInput,
   type KeywordClustersRequest,
   type MonthlyRecapRequest,
-  type LeadReplyChannel,
-  type LeadReplyRequest,
+  type TwinReplyRequest,
+  type TwinReplyTurn,
+  type TwinReplyVoice,
+  type TwinStyleAnswer,
+  type TwinStyleRequest,
   type LeadSourceDiagnosisRequest,
   type LeadSourcePeer,
   type LocalReviewReplyRequest,
@@ -41,6 +45,7 @@ import {
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
 import { PROJECT_TYPES } from "../projects/types";
+import { TONE_SCOPES, TWIN_CHANNELS } from "../twin/types";
 import { digest } from "./tools/_shared";
 import { REFINE_MAX } from "./tools/refine";
 import type { SupportedLocale } from "../format";
@@ -51,6 +56,11 @@ function t(locale: SupportedLocale, cs: string, en: string): string {
 }
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+/** Twin channel + tone-scope membership. `const` (not hoisted), so these sit above
+ *  the twin validators that read them. */
+const TWIN_CHANNEL_SET = new Set<string>(TWIN_CHANNELS);
+const TONE_SCOPE_SET = new Set<string>(TONE_SCOPES);
 
 /** Optional free-text refine note carried by a re-run ("kratší", "vynech ceny").
  *  Length-capped here so the prompt stays bounded; the prompt builders append it
@@ -222,35 +232,132 @@ export function validateChatRequest(input: unknown, locale: SupportedLocale = "c
   return { valid: true, value };
 }
 
-export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LeadReplyRequest> {
+/** The trained voice, off the wire. Every field optional — an untrained twin sends
+ *  no voice at all and the tool falls back to plain, on-brand prose. */
+function parseTwinVoice(v: unknown): TwinReplyVoice | undefined {
+  if (typeof v !== "object" || v === null) return undefined;
+  const o = v as Record<string, unknown>;
+  const voice: TwinReplyVoice = {};
+  const directives = str(o.directives);
+  if (directives) voice.directives = directives.slice(0, 2000);
+  const traits = parseGroundingList(o.traits, 8, 40);
+  if (traits.length > 0) voice.traits = traits;
+  const lengthHint = str(o.lengthHint);
+  if (lengthHint) voice.lengthHint = lengthHint.slice(0, 60);
+  const always = parseGroundingList(o.always, 12, 200);
+  if (always.length > 0) voice.always = always;
+  const never = parseGroundingList(o.never, 12, 200);
+  if (never.length > 0) voice.never = never;
+  return Object.keys(voice).length > 0 ? voice : undefined;
+}
+
+/** Conversation history, oldest first. Anything that isn't a recognised direction
+ *  is dropped rather than coerced — mislabelling who said what would poison the
+ *  draft far more subtly than losing a turn. */
+function parseThread(v: unknown): TwinReplyTurn[] {
+  if (!Array.isArray(v)) return [];
+  const out: TwinReplyTurn[] = [];
+  for (const raw of v.slice(0, 16)) {
+    if (typeof raw !== "object" || raw === null) continue;
+    const o = raw as Record<string, unknown>;
+    const content = str(o.content);
+    if (!content) continue;
+    if (o.direction !== "in" && o.direction !== "out") continue;
+    out.push({ direction: o.direction, content: content.slice(0, 2000) });
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+export function validateTwinReplyRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<TwinReplyRequest> {
   if (typeof input !== "object" || input === null) {
     return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
   }
   const o = input as Record<string, unknown>;
-  const message = str(o.message);
+  const inbound = str(o.inbound);
   const projectType = str(o.projectType);
-  const channel = o.channel as LeadReplyChannel;
-  const name = str(o.name);
+  const channel = str(o.channel);
 
-  if (message.length < 2 || message.length > 1200) {
-    return { valid: false, error: t(locale, "Zadejte zprávu od leadu (2–1200 znaků).", "Please enter the lead’s message (2–1200 characters).") };
+  if (inbound.length < 2 || inbound.length > 4000) {
+    return { valid: false, error: t(locale, "Zadejte příchozí zprávu (2–4000 znaků).", "Please enter the inbound message (2–4000 characters).") };
   }
-  if (!LEAD_CHANNELS.includes(channel)) {
-    return { valid: false, error: t(locale, "Neplatný kanál poptávky.", "Invalid enquiry channel.") };
+  if (!TWIN_CHANNEL_SET.has(channel)) {
+    return { valid: false, error: t(locale, "Neplatný kanál.", "Invalid channel.") };
   }
   if (projectType.length < 2 || projectType.length > 200) {
     return { valid: false, error: t(locale, "Vyplňte typ zakázky (2–200 znaků).", "Please fill in the project type (2–200 characters).") };
   }
-  const value: LeadReplyRequest = { message: message.slice(0, 1200), channel, projectType: projectType.slice(0, 200) };
-  if (name) value.name = name.slice(0, 120);
-  // qualification (BANT) + brand were both read by the prompt but never copied
-  // here, so the reply was neither BANT-aware nor on-brand. Thread them through.
+  const value: TwinReplyRequest = {
+    inbound: inbound.slice(0, 4000),
+    channel,
+    projectType: projectType.slice(0, 200),
+  };
+  // How the enquiry arrived is a sub-kind of the `leads` channel; an unrecognised
+  // value is simply dropped (the prompt then omits the arrival line).
+  const arrival = str(o.arrival);
+  if ((LEAD_CHANNELS as readonly string[]).includes(arrival)) value.arrival = arrival;
+  const contact = str(o.contact);
+  if (contact) value.contact = contact.slice(0, 120);
+  const voice = parseTwinVoice(o.voice);
+  if (voice) value.voice = voice;
+  const thread = parseThread(o.thread);
+  if (thread.length > 0) value.thread = thread;
+  const examples = parseGroundingList(o.examples, 4, 1200);
+  if (examples.length > 0) value.examples = examples;
+  const avoid = parseGroundingList(o.avoid, 3, 300);
+  if (avoid.length > 0) value.avoid = avoid;
   const qualification = str(o.qualification);
   if (qualification) value.qualification = qualification.slice(0, 600);
   const brand = str(o.brand);
   if (brand) value.brand = brand.slice(0, 120);
   const projectId = str(o.projectId);
-  if (projectId) value.projectId = projectId;
+  if (projectId) value.projectId = projectId.slice(0, 128);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+/** Answered training questions, fed back into the next distillation. */
+function parseStyleAnswers(v: unknown): TwinStyleAnswer[] {
+  if (!Array.isArray(v)) return [];
+  const out: TwinStyleAnswer[] = [];
+  for (const raw of v.slice(0, 20)) {
+    if (typeof raw !== "object" || raw === null) continue;
+    const o = raw as Record<string, unknown>;
+    const question = str(o.question);
+    const answer = str(o.answer);
+    if (!question || !answer) continue;
+    out.push({ question: question.slice(0, 400), answer: answer.slice(0, 2000) });
+    if (out.length >= 10) break;
+  }
+  return out;
+}
+
+export function validateTwinStyleRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<TwinStyleRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const scope = str(o.scope);
+  const projectType = str(o.projectType);
+
+  if (!TONE_SCOPE_SET.has(scope)) {
+    return { valid: false, error: t(locale, "Neplatný kanál hlasu.", "Invalid voice channel.") };
+  }
+  if (projectType.length < 2 || projectType.length > 200) {
+    return { valid: false, error: t(locale, "Vyplňte typ zakázky (2–200 znaků).", "Please fill in the project type (2–200 characters).") };
+  }
+  const value: TwinStyleRequest = { scope, projectType: projectType.slice(0, 200) };
+  const samples = parseGroundingList(o.samples, 10, 2000);
+  if (samples.length > 0) value.samples = samples;
+  const answers = parseStyleAnswers(o.answers);
+  if (answers.length > 0) value.answers = answers;
+  const current = str(o.current);
+  if (current) value.current = current.slice(0, 2000);
+  const brand = str(o.brand);
+  if (brand) value.brand = brand.slice(0, 120);
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };
@@ -296,6 +403,11 @@ export function validateRepurposeRequest(input: unknown, locale: SupportedLocale
   const value: RepurposeRequest = digestedBody
     ? { title, url, tone, channels, body: digestedBody }
     : { title, url, tone, channels };
+  // `projectId` only — `voice` is resolved server-side from the project's twin and
+  // is deliberately NOT read off the wire (a client could otherwise dictate another
+  // tenant's brand voice).
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };
@@ -714,6 +826,39 @@ export function validateChannelResearchRequest(input: unknown, locale: Supported
   if (competitors.length > 0) value.competitors = competitors;
   const keywords = parseGroundingList(o.keywords, 20, 120);
   if (keywords.length > 0) value.keywords = keywords;
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+export function validateOnboardingScanRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<OnboardingScanRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const raw = str(o.url);
+  if (!raw || raw.length > 2048) {
+    return { valid: false, error: t(locale, "Zadejte adresu webu.", "Please enter a website address.") };
+  }
+  // Accept a bare domain ("mionelo.cz") — prepend a scheme, then require a parseable
+  // http(s) URL. The route re-validates against SSRF before fetching.
+  const candidate = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  let url: URL;
+  try {
+    url = new URL(candidate);
+  } catch {
+    return { valid: false, error: t(locale, "Neplatná adresa webu.", "Invalid website address.") };
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return { valid: false, error: t(locale, "Povoleny jsou jen adresy http a https.", "Only http and https addresses are allowed.") };
+  }
+  // pageText/siteTitle/siteDescription are NEVER trusted from the client — the route
+  // fetches the page and injects them. Only url/projectType/brand come from the wire.
+  const value: OnboardingScanRequest = { url: url.toString() };
+  const projectType = str(o.projectType);
+  if (PROJECT_TYPE_SET.has(projectType)) value.projectType = projectType;
+  const brand = str(o.brand);
+  if (brand) value.brand = brand.slice(0, 120);
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

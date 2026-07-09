@@ -15,7 +15,8 @@ export type AiMode =
   | "ads"
   | "brief"
   | "analysis"
-  | "lead-reply"
+  | "twin-reply"
+  | "twin-style"
   | "repurpose"
   | "local-review-reply"
   | "article-draft"
@@ -24,12 +25,14 @@ export type AiMode =
   | "comparison-outline"
   | "lp-variant-ideas"
   | "lead-source-diagnosis"
-  | "channel-research";
+  | "channel-research"
+  | "onboarding-scan";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
   "analysis",
-  "lead-reply",
+  "twin-reply",
+  "twin-style",
   "repurpose",
   "local-review-reply",
   "article-draft",
@@ -39,6 +42,7 @@ export const AI_MODES: AiMode[] = [
   "lp-variant-ideas",
   "lead-source-diagnosis",
   "channel-research",
+  "onboarding-scan",
 ];
 
 export interface AiMeta {
@@ -393,25 +397,57 @@ export interface EvaluationRequest {
 // Tool 5 — speed-to-lead reply (on-brand AI reply for the Rychlá reakce inbox)
 // ===========================================================================
 
-/** Inbound channel a lead arrived through — mirrors LeadChannel in
- *  lib/speed-lead/sample without importing client-adjacent sample data. */
+/** How an enquiry physically arrived — mirrors LeadChannel in lib/speed-lead/sample
+ *  without importing client-adjacent sample data. This is a SUB-kind of the twin's
+ *  `leads` channel: it changes the phrasing (a missed call earns a callback offer,
+ *  a form earns a written answer) but not the voice. */
 export const LEAD_CHANNELS = ["form", "call", "email", "chat"] as const;
-export type LeadReplyChannel = (typeof LEAD_CHANNELS)[number];
+export type LeadArrivalChannel = (typeof LEAD_CHANNELS)[number];
 
-export interface LeadReplyRequest {
-  /** the lead's inbound message we're replying to */
-  message: string;
-  /** channel the lead came in through (tailors phrasing — e.g. callback vs e-mail) */
-  channel: LeadReplyChannel;
+/** The trained voice, flattened for the wire. Mirrors `TwinVoice` in lib/twin/types
+ *  minus the storage bookkeeping — `always`/`never` are the two halves of that
+ *  type's `constraints` list, split so the request validates without object parsing. */
+export interface TwinReplyVoice {
+  /** the style guide, injected verbatim into the user prompt */
+  directives?: string;
+  traits?: string[];
+  lengthHint?: string;
+  /** hard rules the reply must obey */
+  always?: string[];
+  /** hard rules the reply must never break */
+  never?: string[];
+}
+
+/** One past turn of the conversation, oldest first. */
+export interface TwinReplyTurn {
+  direction: "in" | "out";
+  content: string;
+}
+
+export interface TwinReplyRequest {
+  /** the message we're replying to */
+  inbound: string;
+  /** the twin channel this reply goes out on (leads | email | chat | social | …) */
+  channel: string;
+  /** for `leads`, how the enquiry arrived (form | call | email | chat) */
+  arrival?: string;
   /** the project / service type, used to keep the reply on-brand */
   projectType: string;
-  /** optional lead name, for a personal greeting */
-  name?: string;
-  /** captured BANT qualification (Czech summary of the known fields) so the reply
+  /** who we're writing to, for a personal greeting */
+  contact?: string;
+  /** the voice trained for this channel (falls back to the generic register) */
+  voice?: TwinReplyVoice;
+  /** the last few turns with this contact, oldest first */
+  thread?: TwinReplyTurn[];
+  /** real messages in the brand's voice, for the model to imitate */
+  examples?: string[];
+  /** directives distilled from drafts a human REJECTED — the feedback loop that
+   *  stops the twin repeating a mistake it has already been corrected on */
+  avoid?: string[];
+  /** captured BANT qualification (Czech summary of the known fields) so a lead reply
    *  doesn't re-ask what's already known and matches the lead's disposition */
   qualification?: string;
-  /** the business / brand name, so the reply signs off as the business and reads
-   *  on-brand instead of generic. The route upgrades this to the full derived brand
+  /** the business / brand name. The route upgrades this to the full derived brand
    *  context (what they sell + how they talk) when a projectId is present, so the
    *  reply speaks the business's real offering — injected into the USER prompt only,
    *  so the golden (system + schema) holds. */
@@ -423,14 +459,82 @@ export interface LeadReplyRequest {
   refine?: string;
 }
 
-export interface LeadReplyResult {
-  /** the full, ready-to-send reply (greeting + acknowledgement + sign-off) */
+export interface TwinReplyResult {
+  /** the full, ready-to-send reply */
   reply: string;
-  /** 2–3 qualification questions to move the lead forward */
+  /** follow-up questions that move the conversation forward (lead qualification) */
   questions: string[];
+  /** the model's own 0–100 read of how send-ready this is. Drives the autonomy
+   *  gate: under `auto`, a draft self-approves only above the channel's threshold. */
+  confidence: number;
+  /** anything a human should check before sending (a promise, a price, a claim the
+   *  grounding doesn't support). A non-empty list always forces human review. */
+  risks: string[];
+  /** one line on how the voice was applied — shown in the outbox, not sent */
+  toneNotes: string;
 }
 
-export type LeadReplyResponse = AiResponse<LeadReplyResult>;
+export type TwinReplyResponse = AiResponse<TwinReplyResult>;
+
+// ===========================================================================
+// Tool 17 — twin style training (Twin: from REAL past messages the brand has
+// sent, plus the brand's answers to the twin's own follow-up questions, distil a
+// reusable per-channel VOICE: the style directives, the traits, a length hint,
+// the always/never guardrails and a few exemplar lines. The model also returns
+// what it still cannot tell — `gapQuestions` — which the user answers to feed
+// the next distillation. That question→answer→re-distil cycle IS the training
+// loop; there is no separate interview operation.)
+// ===========================================================================
+
+/** One answered training question, fed back into the next distillation. */
+export interface TwinStyleAnswer {
+  question: string;
+  answer: string;
+}
+
+/** A distilled always/never rule. */
+export interface TwinStyleConstraint {
+  kind: "do" | "dont";
+  rule: string;
+}
+
+export interface TwinStyleRequest {
+  /** the tone scope being trained: `generic` or one twin channel */
+  scope: string;
+  /** the project / service type */
+  projectType: string;
+  /** real past messages written in this brand's voice — the primary evidence */
+  samples?: string[];
+  /** the brand's answers to questions the twin asked in an earlier pass */
+  answers?: TwinStyleAnswer[];
+  /** the directives already in place, when refining rather than starting cold */
+  current?: string;
+  /** the brand name; upgraded to the derived brand context by the route */
+  brand?: string;
+  /** the caller's project, so the route can ground the voice in its catalog */
+  projectId?: string;
+  /** optional free-text refinement note from a re-run */
+  refine?: string;
+}
+
+export interface TwinStyleResult {
+  /** one line on what characterises this voice */
+  summary: string;
+  /** the style guide, second person, injected verbatim into every draft prompt */
+  directives: string;
+  /** short adjectives describing the register */
+  traits: string[];
+  /** e.g. "2–4 věty" */
+  lengthHint: string;
+  /** the always/never rules the samples imply */
+  constraints: TwinStyleConstraint[];
+  /** exemplar lines in this voice, for few-shot imitation at draft time */
+  examples: string[];
+  /** what the model still cannot tell about the voice — the next training round */
+  gapQuestions: string[];
+}
+
+export type TwinStyleResponse = AiResponse<TwinStyleResult>;
 
 // ===========================================================================
 // Tool 6 — content repurposing (Distribuce: one article → channel-native variants)
@@ -447,6 +551,13 @@ export interface RepurposeRequest {
   channels: string[];
   /** tone of voice, shared with the other tools */
   tone: Tone;
+  /** the caller's project, so the route can resolve its trained twin voice */
+  projectId?: string;
+  /** the twin's trained voice for this channel. Resolved SERVER-SIDE from the
+   *  project's twin (lib/twin/load) and injected into the USER prompt only, so the
+   *  golden holds — never accepted from the client, which could otherwise put words
+   *  in another tenant's mouth. Absent for an untrained twin. */
+  voice?: TwinReplyVoice;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -901,3 +1012,54 @@ export interface ChannelResearchResult {
 }
 
 export type ChannelResearchResponse = AiResponse<ChannelResearchResult>;
+
+// ===========================================================================
+// Tool 15 — onboarding website scan (Start: from the text of a new user's own
+// homepage, extract a structured BUSINESS PROFILE — what they sell, to whom, in
+// what voice, plus seed keywords and likely competitors — so one click can seed
+// the whole app (competitor set + the profile every grounded module reads) with
+// the real business instead of the Mionelo/Dentalis sample. The page text is
+// fetched + injected server-side (SSRF-guarded); the model reads ONLY that text
+// and must not invent facts the page doesn't support. Competitors are explicitly
+// suggestions the user confirms before applying.)
+// ===========================================================================
+
+export interface OnboardingScanRequest {
+  /** the homepage URL to scan (client-supplied) */
+  url: string;
+  /** the project type, when known — steers the profile + the demo fallback */
+  projectType?: string;
+  /** the project / brand name, when known */
+  brand?: string;
+  /** the extracted homepage text — INJECTED server-side by the route (never trusted
+   *  from the client); the prompt is built from it */
+  pageText?: string;
+  /** the page <title>, injected server-side */
+  siteTitle?: string;
+  /** the page meta description, injected server-side */
+  siteDescription?: string;
+  /** optional free-text refinement note from a re-run — appended to the user prompt
+   *  only and naturally busts the input-hash cache */
+  refine?: string;
+}
+
+export interface OnboardingScanResult {
+  /** the detected business / brand name */
+  businessName: string;
+  /** a one-paragraph read of what the business does, from the page */
+  summary: string;
+  /** what they sell — top categories / offering summary */
+  offering: string;
+  /** the target audience */
+  audience: string;
+  /** the brand's tone of voice (a short descriptor) */
+  toneOfVoice: string;
+  /** seed keywords the audience searches for */
+  keywords: string[];
+  /** suggested competitors (speculative — the user confirms before applying) */
+  competitors: string[];
+  /** best-fit project type, when the page makes it clear (eshop|app|leadgen|content|local) */
+  suggestedType?: string;
+}
+
+export type OnboardingScanResponse = AiResponse<OnboardingScanResult>;

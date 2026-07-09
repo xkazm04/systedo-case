@@ -68,7 +68,9 @@ export function useProjectDraft() {
       });
       const json = (await res.json()) as { project?: { id: string }; error?: string };
       if (!res.ok || !json.project) throw new Error(json.error ?? t("errorCreate"));
-      router.push(`/app/${json.project.id}`);
+      // New projects land on the Start module — scan the site + connect data before
+      // dropping into the (sample-filled) overview.
+      router.push(`/app/${json.project.id}/start`);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errorGeneric"));
       setSubmitting(false);

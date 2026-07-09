@@ -160,6 +160,36 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- The Kanály module's organic (zero ad-spend) visibility plan: per-project tracked
+  -- channel status (the checklist) + an optional pinned AI plan, as one {statuses,
+  -- plan?} blob. Absent → the module runs on the seeded per-type sample with no
+  -- statuses. See src/lib/organic-channels/.
+  CREATE TABLE IF NOT EXISTS organic_channels (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  -- The Twin module's communication double: the per-channel trained voice, the
+  -- style facts it was trained on, the channel/autonomy config and the draft
+  -- outbox, as one blob. Absent → the seeded per-type sample (an untrained twin
+  -- with a generic register and an empty outbox). See src/lib/twin/.
+  CREATE TABLE IF NOT EXISTS twin (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  -- The Start module's onboarding state: the applied website-scan business profile
+  -- + a couple of flags (scanApplied, dismissed), as one blob. Absent → a fresh
+  -- project (nothing scanned yet); the connector checklist's per-step "done" is
+  -- derived live from the real stores, never stored here. See src/lib/onboarding/.
+  CREATE TABLE IF NOT EXISTS onboarding (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a project's persisted warehouse/ERP connection. token_enc is
   -- the AES-GCM-encrypted API token (see token-crypto.ts) — never stored plaintext,
   -- never returned to the client. Mirrors the Firestore projectConnections doc.

@@ -4,9 +4,11 @@
  *  map in `@/components/app/icon-map`. */
 export type IconKey =
   | "overview"
+  | "start"
   | "dashboard"
   | "campaigns"
   | "keywords"
+  | "channels"
   | "content"
   | "social"
   | "creative"
@@ -32,6 +34,9 @@ export type IconKey =
   | "reviews"
   | "schedule"
   | "clusters"
+  | "twin"
+  | "autonomy"
+  | "inbox"
   | "distribute"
   | "audience"
   | "integrations"

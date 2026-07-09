@@ -5,6 +5,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import { currentUserId } from "@/lib/session";
 import { listProjects } from "@/lib/projects/store";
 import ProjectOverview from "@/components/app/ProjectOverview";
+import OnboardingProgressCard from "@/components/app/OnboardingProgressCard";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -15,5 +16,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // adds no extra Firestore round-trips on top of the shell the layout resolved.
   const userId = await currentUserId();
   const projects = userId ? await listProjects(userId) : [project];
-  return <ProjectOverview projects={projects} activeProjectId={project.id} />;
+  return (
+    <>
+      {/* Guides a new project through setup until every step is done or dismissed. */}
+      <OnboardingProgressCard project={project} userId={userId} />
+      <ProjectOverview projects={projects} activeProjectId={project.id} />
+    </>
+  );
 }

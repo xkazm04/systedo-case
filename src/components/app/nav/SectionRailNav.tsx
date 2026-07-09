@@ -1,7 +1,7 @@
 "use client";
 
 /** Two-level sidebar navigation (design "Variant B"): a narrow icon rail holding
- *  the first-level groups (Přehled, Akvizice, Tvorba, Analýza, Systém) and a
+ *  the first-level groups (Přehled, Akvizice, Tvorba, Komunikace, Analýza, Systém) and a
  *  second panel that shows only the selected group's modules — so a workspace
  *  with ~20 modules never stacks them into one tall column.
  *
@@ -12,7 +12,7 @@
  *  own groups, link builder, active test and header/footer chrome. */
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Chart, Cog, Grid, Megaphone, Palette } from "@/components/icons";
+import { Chart, Chat, Cog, Grid, Megaphone, Palette } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import { moduleLabel, type ModuleDef, type ModuleSection } from "@/lib/projects/modules";
 import type { SupportedLocale } from "@/lib/format";
@@ -24,6 +24,7 @@ const SECTION_ICON: Record<ModuleSection, IconComp> = {
   main: Grid,
   growth: Megaphone,
   studio: Palette,
+  comms: Chat,
   insights: Chart,
   system: Cog,
 };

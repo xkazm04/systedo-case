@@ -6,13 +6,13 @@
     },
     {
       "type": "p",
-      "text": "Špatně skladované ořechy rychle ztrácejí chuť i kvalitu. Za vinu můžou dva hlavní procesy."
+      "text": "Ořechy a semínka obsahují velké množství tuků, které na vzduchu a světle postupně žluknou. Špatné skladování navíc zvyšuje vlhkost, což chuti ani trvanlivosti neprospívá."
     },
     {
       "type": "ul",
       "items": [
-        "Žluknutí – tuky v ořeších oxidují a chuť zhořkne",
-        "Vlhkost – podporuje plíseň a ztrátu křupavosti"
+        "Žluknutí: tuky oxidují a ořechy získávají hořkou, nepříjemnou chuť.",
+        "Vlhkost: podporuje plesnivění a rychlou ztrátu čerstvosti."
       ]
     },
     {
@@ -21,39 +21,38 @@
     },
     {
       "type": "p",
-      "text": "Základem je omezit přístup světla, tepla a vzduchu."
+      "text": "Klíčem je chránit ořechy před teplem, světlem a vzduchem – tři hlavní příčiny rychlého kažení."
     },
     {
       "type": "ul",
       "items": [
-        "Skladujte v chladu a tmě, ideálně ve spíži nebo lednici",
-        "Používejte vzduchotěsné nádoby, které zabrání vlhkosti a pachům"
+        "Chlad a tma: skladujte v lednici nebo mrazáku, mimo dosah přímého slunce.",
+        "Vzduchotěsné nádoby: zabraňují kontaktu s kyslíkem a vlhkostí ze vzduchu."
       ]
     },
     {
       "type": "callout",
       "variant": "tip",
-      "title": "Tip na delší trvanlivost",
-      "text": "Pro dlouhodobé skladování dejte ořechy do mrazáku – vydrží čerstvé i několik měsíců."
+      "title": "Tip na závěr",
+      "text": "Kupujte ořechy v menším množství a doplňujte zásoby průběžně – čerstvost tak vydrží déle."
     },
     {
       "type": "cta",
-      "text": "Chcete další praktické tipy na skladování potravin?",
-      "cta": "Přihlaste se k odběru newsletteru"
+      "cta": "Vyzkoušejte tyto zásady doma a užijte si ořechy vždy čerstvé."
     }
   ],
   "faq": [
     {
-      "question": "Jak dlouho vydrží ořechy čerstvé?",
-      "answer": "Při správném skladování v chladu a vzduchotěsné nádobě vydrží ořechy čerstvé zhruba 3–6 měsíců, v mrazáku i déle."
+      "question": "Jak dlouho vydrží ořechy v lednici?",
+      "answer": "Ve vzduchotěsné nádobě v lednici vydrží ořechy čerstvé zpravidla několik měsíců, u některých druhů i déle."
     },
     {
-      "question": "Poznám, že ořechy začaly žluknout?",
-      "answer": "Žluklé ořechy mají hořkou nebo mýdlovou chuť a nepříjemnou vůni – v takovém případě je lepší je vyhodit."
+      "question": "Je možné ořechy zamrazit?",
+      "answer": "Ano, mrazení výrazně prodlužuje trvanlivost, ořechy stačí před spotřebou nechat pár minut rozmrznout."
     },
     {
-      "question": "Můžu ořechy skladovat v mrazáku?",
-      "answer": "Ano, mrazák je ideální pro dlouhodobé skladování – zpomaluje žluknutí a udrží ořechy čerstvé i několik měsíců."
+      "question": "Jak poznám, že ořechy už žluknou?",
+      "answer": "Zežloutlé ořechy mají hořkou nebo štiplavou chuť a nepříjemný zápach připomínající starý olej."
     }
   ]
 }

@@ -161,22 +161,73 @@ export const LLM_TOOLS = [
       r && Array.isArray(r.posts) && r.posts.length >= 1 && isStr(r.posts[0]?.platform) && isStr(r.posts[0]?.content),
   },
   {
-    id: "lead-reply",
+    id: "twin-reply",
     tier: "fast",
-    label: "Rychlá reakce na poptávku",
+    label: "Odpověď komunikačního dvojčete",
     system:
-      "Jsi český obchodník specializovaný na rychlou reakci na poptávky. Piš česky, lidsky a profesionálně a vracej pouze validní JSON dle schématu.",
+      "Jsi komunikační dvojče firmy — píšeš odchozí zprávy jejím vlastním hlasem. Dodržuj zadaná pravidla „VŽDY“ a „NIKDY“, neslibuj ceny ani termíny mimo podklady, buď střízlivý v poli confidence a vypiš do risks vše, co má člověk zkontrolovat. Piš česky a vracej pouze validní JSON dle schématu.",
     prompt:
-      "Napiš první on-brand odpověď na poptávku. Kanál: Formulář. Typ zakázky: revize elektroinstalace. Zpráva od leadu: „Dobrý den, potřebovali bychom revizi elektroinstalace v kanceláři (cca 200 m²). Kdy máte volno?“ Vrať pole reply (celá odpověď k odeslání) a pole questions (2–3 kvalifikační otázky).",
+      "Napiš další odchozí zprávu na kanálu: poptávka. Typ podnikání: leadgen. Hlas značky — piš přesně takto: Oslovuj příjmením a vykej. Odpověz na dotaz hned v první větě. NIKDY: - Neslibuj termín ani cenu, které nemáš v podkladech. Zpráva, na kterou odpovídáš: „Dobrý den, potřebovali bychom revizi elektroinstalace v kanceláři (cca 200 m²). Kdy máte volno?“ Vrať reply (celá zpráva k odeslání), questions (1–3 doplňující otázky), confidence (0–100), risks (co zkontrolovat před odesláním) a toneNotes (jak byl hlas uplatněn).",
     schema: {
       type: Type.OBJECT,
       properties: {
         reply: { type: Type.STRING },
         questions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        confidence: { type: Type.NUMBER },
+        risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+        toneNotes: { type: Type.STRING },
       },
-      required: ["reply", "questions"],
+      required: ["reply", "questions", "confidence", "risks", "toneNotes"],
     },
-    validate: (r) => r && isStr(r.reply) && isStrArr(r.questions, 1),
+    // Lenient on purpose: `risks` may legitimately be empty (a safe message), and
+    // confidence is a judgement call — assert shape + range, never exact wording.
+    validate: (r) =>
+      r &&
+      isStr(r.reply) &&
+      isStrArr(r.questions, 1) &&
+      Number.isFinite(num(r.confidence)) &&
+      num(r.confidence) >= 0 &&
+      num(r.confidence) <= 100 &&
+      Array.isArray(r.risks) &&
+      isStr(r.toneNotes),
+  },
+  {
+    id: "twin-style",
+    label: "Trénink hlasu dvojčete",
+    system:
+      "Jsi lingvista a stratég značky. Z reálných zpráv firmy vytáhneš její komunikační styl a zapíšeš ho jako návod pro jazykový model. Popisuj jen to, co je v ukázkách vidět; co nevíš, vyžádej si v poli gapQuestions. Pole kind smí být pouze „do“ nebo „dont“. Piš česky a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Vytáhni komunikační styl značky pro kanál: e-mail. Typ podnikání: leadgen. Reálné zprávy, které firma poslala (2): --- Ukázka 1 --- Dobrý den, pane Nováku, díky za poptávku. Revizi zvládneme do 14 dnů, přesný termín potvrdím zítra po obhlídce. --- Ukázka 2 --- Dobrý den, paní Dvořáková, cenu za servis čtyř jednotek pošlu do pátku. Kdyby cokoliv, volejte. Vrať summary, directives, traits, lengthHint, constraints, examples a gapQuestions.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        directives: { type: Type.STRING },
+        traits: { type: Type.ARRAY, items: { type: Type.STRING } },
+        lengthHint: { type: Type.STRING },
+        constraints: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: { kind: { type: Type.STRING }, rule: { type: Type.STRING } },
+            required: ["kind", "rule"],
+          },
+        },
+        examples: { type: Type.ARRAY, items: { type: Type.STRING } },
+        gapQuestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+      },
+      required: ["summary", "directives", "traits", "lengthHint", "constraints", "examples", "gapQuestions"],
+    },
+    validate: (r) =>
+      r &&
+      isStr(r.summary) &&
+      isStr(r.directives) &&
+      isStrArr(r.traits, 1) &&
+      isStr(r.lengthHint) &&
+      Array.isArray(r.constraints) &&
+      r.constraints.every((c) => c && isStr(c.rule) && (c.kind === "do" || c.kind === "dont")) &&
+      isStrArr(r.examples, 1) &&
+      isStrArr(r.gapQuestions, 1),
   },
   {
     id: "repurpose",
@@ -525,5 +576,83 @@ export const LLM_TOOLS = [
       isStrArr(r.watchouts, 1) &&
       Array.isArray(r.priorities) &&
       isStr(r.priorities[0]?.title),
+  },
+  {
+    id: "channel-research",
+    label: "Výzkum bezplatných kanálů viditelnosti",
+    system:
+      "Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit zdarma, bez rozpočtu na reklamu. Vycházej jen z předaného kontextu, nevymýšlej si čísla ani fakta o konkurenci, a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Sestav plán bezplatných (organických) kanálů viditelnosti pro tuto firmu. Typ podnikání: lokální podnik / služby s provozovnou. Značka / firma: Dentalis. Nabídka: zubní ordinace, dentální hygiena, implantáty. Lokality: Brno. Klíčová slova, která publikum hledá: zubař Brno, dentální hygiena Brno, zubní implantáty. Vrať summary (jedna věta o největší bezplatné příležitosti) a channels — 6–9 kanálů seřazených podle fit sestupně, každý s poli name (název kanálu), category (jedna z: directory | marketplace | community | content | social | pr | partnership), fit (0–100), effort (low | medium | high), rationale (proč sedí právě této firmě), payoff (co přinese) a firstActions (2–4 konkrétní první kroky). Vrať POUZE jeden JSON objekt.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        channels: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              category: { type: Type.STRING },
+              fit: { type: Type.NUMBER },
+              effort: { type: Type.STRING },
+              rationale: { type: Type.STRING },
+              payoff: { type: Type.STRING },
+              firstActions: { type: Type.ARRAY, items: { type: Type.STRING } },
+              url: { type: Type.STRING },
+              contentAngle: { type: Type.STRING },
+            },
+            required: ["name", "category", "fit", "effort", "rationale", "payoff", "firstActions"],
+          },
+        },
+      },
+      required: ["summary", "channels"],
+    },
+    // Lenient/structural: a non-empty summary and at least three named channels,
+    // each with a non-empty name + rationale + at least one first action. category
+    // and effort are COERCED to known sets in production (unknowns map to a default,
+    // never a hard fail), so we don't assert their exact values under model variance.
+    validate: (r) => {
+      if (!r || !isStr(r.summary) || !Array.isArray(r.channels)) return false;
+      const ok = r.channels.filter(
+        (c) => c && typeof c === "object" && isStr(c.name) && isStr(c.rationale) && isStrArr(c.firstActions, 1)
+      );
+      return ok.length >= 3;
+    },
+  },
+  {
+    id: "onboarding-scan",
+    label: "Sken webu na profil firmy",
+    system:
+      "Jsi český business analytik pro marketingový nástroj. Z textu domovské stránky webu vytáhneš stručný, věcný profil firmy. Vycházej jen z předaného textu, nevymýšlej si nic, co v textu není, a vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Vytáhni profil firmy z textu její domovské stránky. URL: https://dentalis.cz. Titulek stránky: Dentalis — zubní ordinace Brno. TEXT STRÁNKY: Vítejte v ordinaci Dentalis v Brně. Poskytujeme komplexní zubní péči: dentální hygienu, záchovnou stomatologii, zubní implantáty a bělení zubů. Objednejte se online, ošetříme děti i dospělé. Moderní vybavení, příjemné prostředí, individuální přístup. Vrať profil firmy dle schématu: businessName, summary, offering, audience, toneOfVoice, keywords (4–8), competitors (0–5 návrhů k potvrzení; když si nejsi jistý, prázdné pole) a suggestedType (eshop | app | leadgen | content | local). Vrať POUZE jeden JSON objekt.",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        businessName: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        offering: { type: Type.STRING },
+        audience: { type: Type.STRING },
+        toneOfVoice: { type: Type.STRING },
+        keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        competitors: { type: Type.ARRAY, items: { type: Type.STRING } },
+        suggestedType: { type: Type.STRING },
+      },
+      required: ["businessName", "summary", "offering", "audience", "toneOfVoice", "keywords", "competitors"],
+    },
+    // Lenient/structural: the core fields are present and keywords is a non-empty
+    // list. competitors may legitimately be empty (the model was unsure), and
+    // suggestedType is coerced/optional — so we don't assert either here.
+    validate: (r) =>
+      r &&
+      isStr(r.businessName) &&
+      isStr(r.summary) &&
+      isStr(r.offering) &&
+      isStr(r.audience) &&
+      isStr(r.toneOfVoice) &&
+      isStrArr(r.keywords, 1) &&
+      Array.isArray(r.competitors),
   },
 ];

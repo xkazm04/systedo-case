@@ -524,6 +524,38 @@ export function Chart(props: IconProps) {
   );
 }
 
+/** Send — paper plane. */
+export function Send(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M20.5 3.5 11 13" />
+      <path d="M20.5 3.5 14.5 20.5l-3.5-7.5-7.5-3.5z" />
+    </svg>
+  );
+}
+
+/** Communication — two overlapping speech bubbles. */
+export function Chat(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M8.5 15.5H6l-2.5 2.2V8.2A2.2 2.2 0 0 1 5.7 6h8.1a2.2 2.2 0 0 1 2.2 2.2v5.1a2.2 2.2 0 0 1-2.2 2.2z" />
+      <path d="M16.8 9.6h1.5a2.2 2.2 0 0 1 2.2 2.2v7.4L18 17h-4.4a2.2 2.2 0 0 1-2.2-2.2" />
+    </svg>
+  );
+}
+
+/** Twin — a speaker and their mirrored, machine-drafted double. */
+export function Twin(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="8.5" cy="7.5" r="3" />
+      <path d="M3.5 19a5 5 0 0 1 10 0" />
+      <circle cx="16.8" cy="7.5" r="2.4" strokeDasharray="1.6 1.7" />
+      <path d="M13.4 18.4a4.2 4.2 0 0 1 7.1-3" strokeDasharray="1.6 1.7" />
+    </svg>
+  );
+}
+
 /** Distribution — broadcast waves. */
 export function Broadcast(props: IconProps) {
   return (

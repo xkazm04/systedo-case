@@ -25,6 +25,7 @@ import { SAMPLE_TARGETS } from "@/lib/local/sample";
 import { gaps } from "@/lib/local/compute";
 import { SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { decayingPosts } from "@/lib/content-engine/compute";
+import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { byImpact, type Recommendation, type Severity } from "./types";
 
 const moduleLabel = (key: string) => MODULES.find((m) => m.key === key)?.label ?? key;
@@ -184,7 +185,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
-    out.push(rec("rychla-reakce", "critical",
+    out.push(rec("schranka", "critical",
       locale === "en"
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
@@ -222,10 +223,30 @@ function contentRecs(locale: SupportedLocale): Recommendation[] {
   return out;
 }
 
+/** The single best zero-ad-spend visibility opportunity, surfaced across every
+ *  project type — the fastest free channel to get seen (low effort, high fit).
+ *  Points at the Kanály module, where the full plan + first steps live. */
+function channelRecs(project: Project, locale: SupportedLocale): Recommendation[] {
+  const plan = channelPlanForProject(project);
+  const quickWin = plan.find((c) => c.effort === "low" && c.fit >= 70) ?? plan[0];
+  if (!quickWin) return [];
+  return [
+    rec(
+      "kanaly",
+      "opportunity",
+      locale === "en" ? `Free channel: ${quickWin.name}` : `Kanál zdarma: ${quickWin.name}`,
+      locale === "en"
+        ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}) — get visible without an ad budget. Open the plan for the first steps.`
+        : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}) — viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
+      `fit ${quickWin.fit}`
+    ),
+  ];
+}
+
 /** All recommendations for a project, ranked by impact (severity bucket, then
  *  money at stake) so the highest-leverage items lead — see {@link byImpact}. */
 export function collectRecommendations(project: Project, locale: SupportedLocale = "cs"): Recommendation[] {
-  const recs =
+  const typeRecs =
     project.type === "eshop"
       ? eshopRecs(project, locale)
       : project.type === "app"
@@ -233,5 +254,5 @@ export function collectRecommendations(project: Project, locale: SupportedLocale
         : project.type === "leadgen"
           ? leadgenRecs(locale)
           : contentRecs(locale);
-  return recs.sort(byImpact);
+  return [...typeRecs, ...channelRecs(project, locale)].sort(byImpact);
 }

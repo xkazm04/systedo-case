@@ -30,7 +30,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
 import { promptSafeName } from "@/lib/projects/name";
-import type { LeadReplyResult } from "@/lib/ai-types";
+import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -57,6 +57,8 @@ const T = {
     remaining: "zbývá {time}",
     draftReply: "Návrh odpovědi",
     aiReply: "AI odpověď",
+    confidence: "Jistota",
+    noRisks: "Bez rizik",
     generating: "Generuji…",
     regenerate: "Vygenerovat znovu",
     generateAi: "Vygenerovat AI odpověď",
@@ -123,6 +125,8 @@ const T = {
     remaining: "{time} left",
     draftReply: "Draft reply",
     aiReply: "AI reply",
+    confidence: "Confidence",
+    noRisks: "No risks",
     generating: "Generating…",
     regenerate: "Regenerate",
     generateAi: "Generate AI reply",
@@ -273,10 +277,20 @@ function slaState(lead: InboundLead, nowMs: number, arrivalMs: number): SlaState
 export default function SpeedLeadModule({
   leads,
   serviceHints = [],
+  voice,
+  examples = [],
+  avoid = [],
 }: {
   leads: InboundLead[];
   /** the business's real catalog service names, grounding the reply's type hint */
   serviceHints?: string[];
+  /** the twin's voice for the `leads` channel — absent on an untrained twin, in
+   *  which case the reply falls back to plain on-brand prose */
+  voice?: TwinReplyVoice;
+  /** exemplar lines in that voice, for few-shot imitation */
+  examples?: string[];
+  /** directives distilled from drafts a human rejected on this channel */
+  avoid?: string[];
 }) {
   const project = useProject();
   const fmt = useFormatters();
@@ -348,10 +362,12 @@ export default function SpeedLeadModule({
   const selected = leads.find((l) => l.id === selectedId) ?? leads[0];
   const draft = useMemo(() => (selected ? draftReply(selected) : null), [selected]);
 
-  // AI reply generator (lead-reply tool, via /api/ai). The deterministic draft is
+  // AI reply generator (twin-reply tool, via /api/ai). The deterministic draft is
   // the initial value and the fallback; on success we swap in the model's reply.
+  // `leads` is one channel of the twin, so this inbox speaks in the SAME trained
+  // voice as every other surface — the voice/examples/avoid props carry it in.
   const { status, data, error, timedOut, run, reset, refine, canRefine } =
-    useAiTool<LeadReplyResult>("lead-reply");
+    useAiTool<TwinReplyResult>("twin-reply");
   /** The lead id the current AI result belongs to — results persist by mode only,
    *  so we pin them to a lead and ignore output meant for a different one. */
   const [aiLeadId, setAiLeadId] = useState<string | null>(null);
@@ -387,12 +403,18 @@ export default function SpeedLeadModule({
     setAiLeadId(selected.id);
     const qualification = describeQualification(qualById.get(selected.id) ?? EMPTY_QUALIFICATION);
     run({
-      message: selected.message,
-      channel: selected.channel,
+      inbound: selected.message,
+      // The enquiry's arrival kind (form/call/…) is a sub-kind of the `leads`
+      // channel: it steers phrasing, the channel steers the voice.
+      channel: "leads",
+      arrival: selected.channel,
       projectType: projectTypeFor(selected, serviceHints),
-      name: selected.name,
+      contact: selected.name,
       brand: promptSafeName(project.name),
       ...(qualification ? { qualification } : {}),
+      ...(voice ? { voice } : {}),
+      ...(examples.length > 0 ? { examples } : {}),
+      ...(avoid.length > 0 ? { avoid } : {}),
     });
   }
 
@@ -687,6 +709,37 @@ export default function SpeedLeadModule({
               rows={7}
               className="mt-2 w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
+
+            {/* The twin's own read of the draft: how send-ready it thinks it is, and
+                what it wants a human to check. A flagged risk is exactly what blocks
+                an `auto` channel from self-approving (see lib/twin/types decideDraft),
+                so it is shown here rather than buried. */}
+            {aiReply ? (
+              <div className="mt-2 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="font-semibold uppercase tracking-wide text-muted">{t("confidence")}</span>
+                  <span className="h-1.5 w-24 overflow-hidden rounded-full bg-navy-50" aria-hidden>
+                    <span
+                      className={`block h-full rounded-full ${aiReply.confidence >= 80 ? "bg-positive" : aiReply.confidence >= 50 ? "bg-coral-500" : "bg-negative"}`}
+                      style={{ width: `${aiReply.confidence}%` }}
+                    />
+                  </span>
+                  <span className="tnum font-semibold text-navy-800">{aiReply.confidence}</span>
+                  {aiReply.risks.length === 0 ? (
+                    <Pill tone="positive">{t("noRisks")}</Pill>
+                  ) : null}
+                </div>
+                {aiReply.risks.length > 0 ? (
+                  <ul className="space-y-1 rounded-lg bg-coral-soft px-3 py-2">
+                    {aiReply.risks.map((r, i) => (
+                      <li key={i} className="text-xs leading-relaxed text-navy-700">
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            ) : null}
 
             {/* snippet library — named templates with {jméno} / {kanál} filled
                 from the selected lead; inserting replaces an untouched draft. */}

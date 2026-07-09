@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos",
-      "hypothesis": "Nahrazení obecného popisu produktu konkrétním slibem výsledku (přehled, bez chaosu) zvýší konverzní poměr oproti kontrolní variantě.",
-      "headline": "Všechny úkoly a projekty na jednom místě – bez tabulek a chaosu",
+      "label": "Rychlé nasazení",
+      "hypothesis": "Pokud headline nahradí obecný popis produktu konkrétním příslibem rychlého nasazení, návštěvníci vnímají nižší riziko a bariéru vstupu, což zvýší konverzní poměr oproti kontrole.",
+      "headline": "Projekty pod kontrolou za 5 minut, ne za týden",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní vyjádření výsledku oslovuje návštěvníka rychleji a srozumitelněji než obecný popis funkcí produktu."
+      "rationale": "Konkrétní časový příslib snižuje vnímané riziko implementace a odlišuje se od obecného popisu kontrolní varianty."
     },
     {
-      "label": "Sociální důkaz a důvěra",
-      "hypothesis": "Zdůraznění důvěryhodnosti nástroje mezi týmy namísto obecného popisu zvýší ochotu vyzkoušet produkt.",
-      "headline": "Nástroj pro řízení projektů, kterému týmy věří",
-      "primaryCTA": "Vyzkoušet nástroj",
-      "rationale": "Budování důvěry přes sociální důkaz snižuje vnímané riziko vyzkoušení nového nástroje lépe než neutrální popis."
+      "label": "Pojmenovaná bolest",
+      "hypothesis": "Pokud headline pojmenuje konkrétní problém cílové skupiny (rozházené úkoly, zmeškané termíny) místo obecného popisu produktu, návštěvník se s ním ztotožní a konverze vzroste.",
+      "headline": "Konec zmeškaných termínů a rozházených úkolů v tabulkách",
+      "primaryCTA": "Zjistit, jak to funguje",
+      "rationale": "Pojmenování konkrétní bolesti cílí na emoční spouštěč, který obecný popis produktu v kontrole nevyužívá."
     },
     {
-      "label": "Zaměření na konkrétní bolest",
-      "hypothesis": "Pojmenování konkrétního problému cílové skupiny (zmeškané termíny, roztříštěné úkoly) v nadpisu zvýší relevanci sdělení a konverzi oproti obecnému popisu.",
-      "headline": "Konec zapomenutým úkolům a zmeškaným termínům",
-      "primaryCTA": "Získat přehled nad projekty",
-      "rationale": "Pojmenování konkrétní bolesti vytváří okamžitou relevanci a silnější motivaci k akci než obecné sdělení."
+      "label": "Frikce na minimum",
+      "hypothesis": "Pokud sníží vstupní bariéru na jediný krok bez nutnosti platební karty místo obecného popisu produktu, konverze vzroste díky nižšímu vnímanému závazku.",
+      "headline": "Nastavte si první projekt jedním klikem",
+      "primaryCTA": "Založit projekt zdarma",
+      "rationale": "Nízké tření cílí na jinou bariéru než sleva nebo dlouhý formulář, které konverzi u předchozích variant naopak snížily."
     }
   ]
 }

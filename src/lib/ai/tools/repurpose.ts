@@ -13,6 +13,7 @@ import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { clamp, digest, txt } from "./_shared";
 import { refineLines } from "./refine";
+import { voiceLines } from "./voice";
 
 const REPURPOSE_SYSTEM = `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
 
@@ -43,6 +44,9 @@ function buildRepurposePrompt(req: RepurposeRequest, channels: string[]): string
     "",
     "Kanály (limit znaků):",
     ...channels.map((c) => `- ${c} | max ${CHANNEL_LIMITS[c as keyof typeof CHANNEL_LIMITS] ?? 1000} znaků`),
+    // The trained twin voice, when the project has one. Beats the generic `tone`
+    // label above: `tone` says "friendly", the voice says how THIS brand is friendly.
+    ...voiceLines(req.voice, "Hlas značky — piš přesně takto (má přednost před obecným tónem výše):"),
     "",
     `Vrať pole „variants", jeden objekt { channel, text } pro každý kanál. channel musí být přesně jeden z: ${channels.join(", ")}.`,
     ...refineLines(req.refine),

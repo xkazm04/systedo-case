@@ -1,0 +1,46 @@
+{
+  "id": "twin-reply",
+  "label": "Odpověď komunikačního dvojčete",
+  "promptHash": "225f2ca6b263e1ee",
+  "schemaKeys": [
+    "confidence",
+    "questions",
+    "reply",
+    "risks",
+    "toneNotes"
+  ],
+  "system": "Jsi komunikační dvojče firmy — píšeš odchozí zprávy jejím vlastním hlasem. Dodržuj zadaná pravidla „VŽDY“ a „NIKDY“, neslibuj ceny ani termíny mimo podklady, buď střízlivý v poli confidence a vypiš do risks vše, co má člověk zkontrolovat. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "confidence": {
+        "type": "NUMBER"
+      },
+      "questions": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "reply": {
+        "type": "STRING"
+      },
+      "risks": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "toneNotes": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "reply",
+      "questions",
+      "confidence",
+      "risks",
+      "toneNotes"
+    ],
+    "type": "OBJECT"
+  }
+}

@@ -31,8 +31,10 @@ import {
   Plus,
   Pulse,
   Search,
+  Sparkles,
   Store,
   Target,
+  Twin,
   Users,
 } from "@/components/icons";
 
@@ -40,9 +42,11 @@ type Icon = (props: SVGProps<SVGSVGElement>) => React.ReactElement;
 
 export const MODULE_ICONS: Record<IconKey, Icon> = {
   overview: Grid,
+  start: Sparkles,
   dashboard: Gauge,
   campaigns: Megaphone,
   keywords: Search,
+  channels: Broadcast,
   content: Edit,
   social: Users,
   creative: Palette,
@@ -68,6 +72,9 @@ export const MODULE_ICONS: Record<IconKey, Icon> = {
   reviews: Inbox,
   schedule: Calendar,
   clusters: Network,
+  twin: Twin,
+  autonomy: Gauge,
+  inbox: Inbox,
   distribute: Broadcast,
   audience: Users,
   integrations: Link,

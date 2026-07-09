@@ -14,6 +14,9 @@ import ProjectOverview from "@/components/app/ProjectOverview";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import CampaignsClient from "@/components/campaigns/CampaignsClient";
 import KeywordsModule from "@/components/app/modules/KeywordsModule";
+import OrganicChannels from "@/components/app/modules/OrganicChannels";
+import OnboardingModule from "@/components/app/modules/OnboardingModule";
+import { stepsForType } from "@/lib/onboarding/steps";
 import SocialClient from "@/components/social/SocialClient";
 import CreativeStudio from "@/components/ai/CreativeStudio";
 import PatternsLibrary from "@/components/patterns/PatternsLibrary";
@@ -27,7 +30,9 @@ import LtvModule from "@/components/app/modules/LtvModule";
 import LpExperimentsModule from "@/components/app/modules/LpExperimentsModule";
 import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
 import LeadQualityModule from "@/components/app/modules/LeadQualityModule";
-import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
+import TwinModule from "@/components/app/modules/TwinModule";
+import TwinChannelsModule from "@/components/app/modules/TwinChannelsModule";
+import TwinInboxModule from "@/components/app/modules/TwinInboxModule";
 import LocalModule from "@/components/app/modules/LocalModule";
 import MapPackModule from "@/components/app/modules/MapPackModule";
 import ReviewInbox from "@/components/app/modules/ReviewInbox";
@@ -54,6 +59,7 @@ import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 import { SAMPLE_PRODUCTS as CATALOG_PRODUCTS } from "@/lib/catalog/sample";
 import { getProjectCatalog, localitiesFor, plansFor, productsFor, servicesFor } from "@/lib/catalog/resolve";
+import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import {
   budgetChangeSet,
   monthlySeasonality,
@@ -68,7 +74,9 @@ import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { sourcesForProject } from "@/lib/lead-quality/sample";
-import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
+import { LOCAL_SAMPLE_LEADS, SAMPLE_LEADS } from "@/lib/speed-lead/sample";
+import { sampleTwin } from "@/lib/twin/sample";
+import { connectorInfo } from "@/lib/twin/connectors";
 import { SAMPLE_RECENT_REVIEWS, reviewsForProject, targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { keywordLadder, packsForProject } from "@/lib/mappack/sample";
@@ -148,6 +156,18 @@ export default async function DemoModule({
           <DashboardClient data={getProjectDataset(project)} reportHref="/dashboard/report" />
         </ModulePage>
       );
+    case "start": {
+      const steps = stepsForType(project.type).map((d) => ({ ...d, done: false }));
+      return (
+        <ModulePage moduleKey="start">
+          <OnboardingModule
+            projectType={project.type}
+            defaultUrl={project.domain ?? ""}
+            progress={{ steps, done: 0, total: steps.length, scanApplied: false, dismissed: false, complete: false }}
+          />
+        </ModulePage>
+      );
+    }
 
     /* ------------------------------------------------------------ Acquisition */
     case "kampane": {
@@ -165,6 +185,29 @@ export default async function DemoModule({
           <KeywordsModule />
         </ModulePage>
       );
+    case "kanaly": {
+      const catalog = getProjectCatalog(project);
+      const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
+      const localities = localitiesFor(project).map((l) => l.name);
+      const sample = channelPlanForProject(project, { category: categories[0], locality: localities[0] });
+      return (
+        <ModulePage moduleKey="kanaly">
+          <OrganicChannels
+            channels={sample}
+            statuses={{}}
+            source="sample"
+            projectType={project.type}
+            grounding={{
+              ...(categories.length ? { offering: categories.slice(0, 4).join(", ") } : {}),
+              ...(localities.length ? { localities } : {}),
+              ...(catalog.length
+                ? { keywords: [...new Set(catalog.map((o) => o.name).filter(Boolean))].slice(0, 8) }
+                : {}),
+            }}
+          />
+        </ModulePage>
+      );
+    }
     case "sklad-sezonnost": {
       const data = getProjectDataset(project);
       const season = monthlySeasonality(data.daily);
@@ -283,12 +326,54 @@ export default async function DemoModule({
           {noted(<LpExperimentsModule experiments={experimentsForProject(project)} />)}
         </ModulePage>
       );
-    case "rychla-reakce":
+    // The three twin modules all render the seeded (untrained) twin, so the readiness
+    // ribbon reads honestly in the demo instead of implying a trained voice.
+    case "twin":
       return (
-        <ModulePage moduleKey="rychla-reakce">
-          {noted(<SpeedLeadModule leads={SAMPLE_LEADS} />)}
+        <ModulePage moduleKey="twin">
+          {noted(
+            <TwinModule
+              state={sampleTwin(project.type)}
+              source="sample"
+              projectType={project.type}
+              offerings={getProjectCatalog(project).length}
+            />
+          )}
         </ModulePage>
       );
+    case "sprava-kanalu":
+      return (
+        <ModulePage moduleKey="sprava-kanalu">
+          {noted(
+            <TwinChannelsModule
+              state={sampleTwin(project.type)}
+              source="sample"
+              projectType={project.type}
+              offerings={getProjectCatalog(project).length}
+              connectors={connectorInfo()}
+            />
+          )}
+        </ModulePage>
+      );
+    case "schranka": {
+      // `leads` is the absorbed speed-to-lead inbox — a `local` provider sees
+      // booking enquiries, everyone else B2B service leads.
+      const leads = project.type === "local" ? LOCAL_SAMPLE_LEADS : SAMPLE_LEADS;
+      const services = servicesFor(project);
+      return (
+        <ModulePage moduleKey="schranka">
+          {noted(
+            <TwinInboxModule
+              state={sampleTwin(project.type)}
+              source="sample"
+              projectType={project.type}
+              leads={leads}
+              serviceHints={[...new Set(services.map((s) => s.name).filter(Boolean))].slice(0, 12)}
+            />
+          )}
+        </ModulePage>
+      );
+    }
     case "distribuce":
       return (
         <ModulePage moduleKey="distribuce">

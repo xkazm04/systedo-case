@@ -9,17 +9,20 @@ import {
   generateCohortDiagnosis,
   generateComparisonOutline,
   generateKeywordClusters,
-  generateLeadReply,
+  generateTwinReply,
+  generateTwinStyle,
   generateLeadSourceDiagnosis,
   generateLocalReviewReply,
   generateLpVariantIdeas,
   generateMonthlyRecap,
+  generateOnboardingScan,
   generateRepurpose,
 } from "@/lib/ai/tools";
 import {
   validateAdRequest,
   validateAnalysisRequest,
   validateChannelResearchRequest,
+  validateOnboardingScanRequest,
   validateMonthlyRecapRequest,
   validateChatRequest,
   validateArticleDraftRequest,
@@ -27,7 +30,8 @@ import {
   validateCohortDiagnosisRequest,
   validateComparisonOutlineRequest,
   validateKeywordClustersRequest,
-  validateLeadReplyRequest,
+  validateTwinReplyRequest,
+  validateTwinStyleRequest,
   validateLeadSourceDiagnosisRequest,
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
@@ -40,12 +44,14 @@ import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest, AnalysisPeriod } from "@/lib/ai-types";
+import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest, AnalysisPeriod, OnboardingScanRequest } from "@/lib/ai-types";
+import { fetchSiteText, FeedFetchError } from "@/lib/onboarding/site-fetch";
 import { buildSnapshot } from "@/lib/snapshot";
 import type { PerformanceData } from "@/lib/types";
 import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
 import { loadBrandContext } from "@/lib/brand/load";
+import { resolveTwinVoice } from "@/lib/twin/load";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
@@ -335,18 +341,36 @@ export async function POST(request: Request) {
           generateChat(p.value, locale, request.signal, data)
         );
       }
-      case "lead-reply": {
-        const p = validateLeadReplyRequest(body, locale);
+      case "twin-reply": {
+        const p = validateTwinReplyRequest(body, locale);
         if (p.valid) {
           // Ground the reply in the project's real offering (what they sell + how
           // they talk), upgrading the plain brand name the client sends. Falls back
           // to that name when there's no catalog. USER-prompt only → golden holds.
           p.value.brand = (await resolveBrandContext(p.value.projectId, userId, locale)) || p.value.brand;
         }
-        return p.valid ? cachedRespond("lead-reply", p.value, locale, userId, () => generateLeadReply(p.value, locale, request.signal)) : bad(p.error);
+        return p.valid ? cachedRespond("twin-reply", p.value, locale, userId, () => generateTwinReply(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "twin-style": {
+        const p = validateTwinStyleRequest(body, locale);
+        if (p.valid) {
+          // Same brand grounding: a voice distilled with no idea what the business
+          // sells drifts into generic "be friendly and professional" advice.
+          p.value.brand = (await resolveBrandContext(p.value.projectId, userId, locale)) || p.value.brand;
+        }
+        return p.valid ? cachedRespond("twin-style", p.value, locale, userId, () => generateTwinStyle(p.value, locale, request.signal)) : bad(p.error);
       }
       case "repurpose": {
         const p = validateRepurposeRequest(body, locale);
+        if (p.valid) {
+          // Write the variant in the twin's trained voice. A newsletter is an email,
+          // everything else is a social post — so the scope follows the channel and
+          // falls back to the generic register. Resolved server-side (tenancy-checked)
+          // and injected into the USER prompt only, so the golden holds. Because the
+          // voice enters `p.value`, retraining it naturally busts the response cache.
+          const scope = p.value.channels.includes("Newsletter") ? "email" : "social";
+          p.value.voice = await resolveTwinVoice(p.value.projectId, userId, scope);
+        }
         return p.valid ? cachedRespond("repurpose", p.value, locale, userId, () => generateRepurpose(p.value, locale, request.signal)) : bad(p.error);
       }
       case "local-review-reply": {
@@ -391,6 +415,33 @@ export async function POST(request: Request) {
       case "channel-research": {
         const p = validateChannelResearchRequest(body, locale);
         return p.valid ? cachedRespond("channel-research", p.value, locale, userId, () => generateChannelResearch(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "onboarding-scan": {
+        const p = validateOnboardingScanRequest(body, locale);
+        if (!p.valid) return bad(p.error);
+        // Fetch the user's OWN homepage server-side (SSRF-guarded) and inject the
+        // extracted text — the client never supplies page content. A fetch failure is
+        // a clear 422 (bad/unreachable URL), not a generic generation error. Cache by
+        // the client value (url/type/brand), not the fetched text.
+        let site: { title: string; description: string; text: string };
+        try {
+          site = await fetchSiteText(p.value.url);
+        } catch (err) {
+          const msg = err instanceof FeedFetchError ? err.message : "Web se nepodařilo načíst.";
+          return Response.json({ error: msg, code: "invalid" }, { status: 422 });
+        }
+        if (site.text.length < 40) {
+          return bad("Na webu jsem nenašel dost textu ke skenu. Zkuste jinou stránku (např. hlavní).");
+        }
+        const full: OnboardingScanRequest = {
+          ...p.value,
+          pageText: site.text,
+          ...(site.title ? { siteTitle: site.title } : {}),
+          ...(site.description ? { siteDescription: site.description } : {}),
+        };
+        return cachedRespond("onboarding-scan", p.value, locale, userId, () =>
+          generateOnboardingScan(full, locale, request.signal)
+        );
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });

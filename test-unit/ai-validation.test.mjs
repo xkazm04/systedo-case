@@ -11,7 +11,8 @@ import {
   validateAdRequest,
   validateBriefRequest,
   validateAnalysisRequest,
-  validateLeadReplyRequest,
+  validateTwinReplyRequest,
+  validateTwinStyleRequest,
   validateRepurposeRequest,
   validateLocalReviewReplyRequest,
   validateArticleDraftRequest,
@@ -30,7 +31,8 @@ test("every validator rejects a non-object input with the localized 'missing dat
     validateAdRequest,
     validateBriefRequest,
     validateAnalysisRequest,
-    validateLeadReplyRequest,
+    validateTwinReplyRequest,
+    validateTwinStyleRequest,
     validateRepurposeRequest,
     validateLocalReviewReplyRequest,
     validateArticleDraftRequest,
@@ -127,31 +129,82 @@ test("validateAnalysisRequest gates on the period enum", () => {
   assert.equal(validateAnalysisRequest({ period: "7d" }, "en").error, "Invalid analysis period.");
 });
 
-// --- validateLeadReplyRequest ---------------------------------------------
+// --- validateTwinReplyRequest ----------------------------------------------
 
-test("validateLeadReplyRequest threads optional BANT qualification + brand through", () => {
-  const r = validateLeadReplyRequest({
-    message: "Mám zájem o vaše služby",
-    channel: "form",
+test("validateTwinReplyRequest threads optional BANT qualification + brand through", () => {
+  const r = validateTwinReplyRequest({
+    inbound: "Mám zájem o vaše služby",
+    channel: "leads",
+    arrival: "form",
     projectType: "e-shop",
-    name: "Jana",
+    contact: "Jana",
     qualification: "Rozpočet 50k, rozhoduje do měsíce",
     brand: "Adamant",
   });
   assert.equal(r.valid, true);
-  assert.equal(r.value.name, "Jana");
+  assert.equal(r.value.contact, "Jana");
+  assert.equal(r.value.arrival, "form");
   assert.equal(r.value.qualification, "Rozpočet 50k, rozhoduje do měsíce");
   assert.equal(r.value.brand, "Adamant");
 });
 
-test("validateLeadReplyRequest omits optional fields when blank and gates channel", () => {
-  const minimal = validateLeadReplyRequest({ message: "Dobrý den", channel: "email", projectType: "služby" });
+test("validateTwinReplyRequest omits optional fields when blank and gates the channel", () => {
+  const minimal = validateTwinReplyRequest({ inbound: "Dobrý den", channel: "email", projectType: "služby" });
   assert.equal(minimal.valid, true);
-  assert.equal("name" in minimal.value, false, "blank name not copied");
+  assert.equal("contact" in minimal.value, false, "blank contact not copied");
   assert.equal("qualification" in minimal.value, false);
   assert.equal("brand" in minimal.value, false);
-  assert.equal(validateLeadReplyRequest({ message: "x", channel: "form", projectType: "s" }).valid, false, "message too short");
-  assert.equal(validateLeadReplyRequest({ message: "hello", channel: "pigeon", projectType: "s" }).valid, false, "unknown channel");
+  assert.equal("voice" in minimal.value, false);
+  assert.equal(validateTwinReplyRequest({ inbound: "x", channel: "email", projectType: "s" }).valid, false, "inbound too short");
+  assert.equal(validateTwinReplyRequest({ inbound: "hello", channel: "pigeon", projectType: "s" }).valid, false, "unknown channel");
+});
+
+test("validateTwinReplyRequest drops an unrecognised arrival kind rather than passing it on", () => {
+  const r = validateTwinReplyRequest({ inbound: "Dobrý den", channel: "leads", arrival: "pigeon", projectType: "služby" });
+  assert.equal(r.valid, true);
+  assert.equal("arrival" in r.value, false);
+});
+
+test("validateTwinReplyRequest splits the voice into always/never and bounds the thread", () => {
+  const r = validateTwinReplyRequest({
+    inbound: "Dobrý den, kolik to stojí?",
+    channel: "chat",
+    projectType: "e-shop",
+    voice: { directives: "Vykej.", traits: ["věcný"], lengthHint: "2 věty", always: ["Poděkuj"], never: ["Neslibuj cenu"] },
+    thread: [
+      { direction: "in", content: "první" },
+      { direction: "sideways", content: "podvržený směr" },
+      { direction: "out", content: "druhá" },
+    ],
+  });
+  assert.equal(r.valid, true);
+  assert.deepEqual(r.value.voice.always, ["Poděkuj"]);
+  assert.deepEqual(r.value.voice.never, ["Neslibuj cenu"]);
+  // A turn with an unknown direction is dropped, never coerced — mislabelling who
+  // said what would poison the draft more subtly than losing the turn.
+  assert.equal(r.value.thread.length, 2);
+  assert.deepEqual(r.value.thread.map((t) => t.direction), ["in", "out"]);
+});
+
+// --- validateTwinStyleRequest ----------------------------------------------
+
+test("validateTwinStyleRequest gates the tone scope and keeps samples + answers", () => {
+  const r = validateTwinStyleRequest({
+    scope: "email",
+    projectType: "leadgen",
+    samples: ["Dobrý den, pane Nováku, díky za poptávku.", "  ", "Cenu pošlu do pátku."],
+    answers: [
+      { question: "Tykáte?", answer: "Vykáme." },
+      { question: "", answer: "zahozeno" },
+    ],
+  });
+  assert.equal(r.valid, true);
+  assert.equal(r.value.samples.length, 2, "blank sample dropped");
+  assert.equal(r.value.answers.length, 1, "answer without a question dropped");
+  assert.equal(r.value.answers[0].answer, "Vykáme.");
+
+  assert.equal(validateTwinStyleRequest({ scope: "generic", projectType: "leadgen" }).valid, true, "generic is a scope");
+  assert.equal(validateTwinStyleRequest({ scope: "carrier-pigeon", projectType: "s" }).valid, false, "unknown scope");
 });
 
 // --- validateRepurposeRequest ---------------------------------------------

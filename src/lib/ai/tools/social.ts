@@ -5,6 +5,8 @@
 import { Type } from "@google/genai";
 import type { AiResponse } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
+import type { TwinReplyVoice } from "../../ai-types";
+import { voiceLines } from "./voice";
 import {
   PLATFORM_LIMITS,
   SOCIAL_PLATFORM_LABELS,
@@ -42,7 +44,8 @@ function buildSocialPrompt(
   topic: string,
   tone: Tone,
   platforms: SocialPlatform[],
-  grounding?: string
+  grounding?: string,
+  voice?: TwinReplyVoice
 ): string {
   return [
     "Napiš příspěvky na sociální sítě pro tyto platformy.",
@@ -50,6 +53,9 @@ function buildSocialPrompt(
     `Téma: ${topic}`,
     `Tón: ${TONE_LABELS[tone]}`,
     ...(grounding ? ["", "CO TEĎ FUNGUJE (opři se o to, ne o generické nápady):", grounding] : []),
+    // The trained twin voice, when the project has one. Beats the generic `tone`
+    // label above: `tone` says "friendly", the voice says how THIS brand is friendly.
+    ...voiceLines(voice, "Hlas značky — piš přesně takto (má přednost před obecným tónem výše):"),
     "",
     "Platformy (styl | limit znaků):",
     ...platforms.map(
@@ -91,6 +97,10 @@ export function generateSocialPosts(req: {
   /** Optional brand voice (what they sell + how they talk) so the copy fits the
    *  project's brand instead of a hardcoded one. */
   brand?: string;
+  /** The twin's TRAINED voice for the `social` scope — how this brand actually
+   *  writes. Resolved server-side from the project's twin (lib/twin/load) and
+   *  injected into the USER prompt only, so the golden holds. */
+  voice?: TwinReplyVoice;
   /** output language (defaults to Czech) */
   locale?: SupportedLocale;
   /** client abort propagation (stops the provider work when the caller is gone) */
@@ -143,7 +153,7 @@ export function generateSocialPosts(req: {
   return generateStructured({
     // llm-tool: social
     id: "social",
-    prompt: buildSocialPrompt(req.topic, req.tone, requested, req.grounding),
+    prompt: buildSocialPrompt(req.topic, req.tone, requested, req.grounding, req.voice),
     system: socialSystem(req.brand),
     schema: SOCIAL_SCHEMA,
     temperature: 0.9,

@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň výrazně překonává cílové PNO 18 % (aktuálně 5,3 %) při ROAS 18,9×, což ukazuje na prostor pro škálování bez ztráty efektivity.",
+  "verdict": "Kampaň Search · Brand výrazně překonává cílovou PNO 18 % (aktuálně 5,3 % při ROAS 18,9×), což ukazuje na silně poddimenzovaný rozpočet vůči dostupné poptávce.",
   "score": 93,
   "recommendations": [
     {
-      "title": "Navýšit rozpočet kampaně",
-      "detail": "Při PNO 5,3 % oproti cíli 18 % je značná rezerva – postupně navyšujte denní rozpočet (např. o 20–30 % týdně) a sledujte, zda ROAS zůstává nad 8–10×, aby se PNO přiblížilo cílové hranici a maximalizoval objem konverzí.",
+      "title": "Navýšit denní rozpočet kampaně",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % zůstává výrazný prostor pro škálování útrat, aniž by byla ohrožena efektivita – doporučuji postupně navyšovat rozpočet (např. o 50–100 %) a sledovat, zda se PNO drží pod cílovou hranicí.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit pokrytí značkových a příbuzných výrazů",
-      "detail": "Otestujte rozšíření o brand variace, překlepy a úzce související frázové/volné shody, abyste zachytili další poptávku, dokud efektivita zůstává hluboko pod cílovým PNO.",
+      "title": "Rozšířit pokrytí brandových a blízkých výrazů",
+      "detail": "Přidat brand+produkt kombinace a blízké variace (překlepy, konkurenční brand modifikátory) do skupiny, aby kampaň zachytila i dosud nepokrytou brandovou poptávku a maximalizovala objem konverzí při stále nízké PNO.",
       "priority": "medium"
     }
   ]

@@ -1,0 +1,46 @@
+{
+  "summary": "Krátké, věcné e-maily s osobním oslovením jménem a titulem (pane/paní), stručnou reakcí na dotaz a konkrétním závazkem (termín, cena). Tón je klidný, zdvořilý a důvěryhodný, bez zdobných frází.",
+  "directives": "Piš stručně, v jedné až dvou větách navíc k oslovení. Vždy oslov příjemce jménem s 'pane'/'paní' a příjmením. Uveď konkrétní, ověřitelný údaj (termín, počet dní, cenu, datum) místo obecného slibu. Pokud je vhodné, nabídni telefonický kontakt jako rezervní možnost. Nepoužívej okrasné fráze, emoce ani omluvy navíc.",
+  "traits": [
+    "zdvořilý",
+    "věcný",
+    "stručný",
+    "osobní oslovení jménem a titulem",
+    "konkrétní termíny a čísla místo obecných slibů",
+    "klidný, jistý tón",
+    "žádné výplňové fráze"
+  ],
+  "lengthHint": "Velmi krátké – zpravidla 2 až 3 věty.",
+  "constraints": [
+    {
+      "kind": "do",
+      "rule": "Oslovuj příjemce jménem s 'pane'/'paní' a příjmením hned v úvodu."
+    },
+    {
+      "kind": "do",
+      "rule": "Uváděj konkrétní termín, datum, počet dní nebo cenu místo vágního slibu."
+    },
+    {
+      "kind": "do",
+      "rule": "Pokud je potřeba, nabídni jednoduchý kontakt navíc (např. 'Kdyby cokoliv, volejte.')."
+    },
+    {
+      "kind": "dont",
+      "rule": "Nepoužívej emotikony ani neformální oslovení (tykání)."
+    },
+    {
+      "kind": "dont",
+      "rule": "Nepřidávej omluvy nebo výplňové zdvořilostní fráze nad rámec věcného sdělení."
+    }
+  ],
+  "examples": [
+    "Dobrý den, paní Nováková, děkuji za zprávu. Nabídku pošlu do středy.",
+    "Dobrý den, pane Svobodo, termín instalace potvrdím do zítřka. Kdyby cokoliv, volejte."
+  ],
+  "gapQuestions": [
+    "Jak firma e-mail podepisuje (jméno, pozice, firma, kontakt)?",
+    "Používá firma oslovení 'Vážený/á' nebo jen 'Dobrý den'?",
+    "Jak firma komunikuje zpoždění nebo negativní zprávy (reklamace, posun termínu)?",
+    "Používá firma v e-mailech odkazy, přílohy nebo strukturované formátování (odrážky, tučné písmo)?"
+  ]
+}

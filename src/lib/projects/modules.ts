@@ -7,15 +7,23 @@ import type { ProjectType } from "./types";
 import type { SupportedLocale } from "@/lib/format";
 
 /** Sidebar grouping. Order here defines render order. */
-export type ModuleSection = "main" | "growth" | "studio" | "insights" | "system";
+export type ModuleSection = "main" | "growth" | "studio" | "comms" | "insights" | "system";
 
-export const SECTION_ORDER: ModuleSection[] = ["main", "growth", "studio", "insights", "system"];
+export const SECTION_ORDER: ModuleSection[] = [
+  "main",
+  "growth",
+  "studio",
+  "comms",
+  "insights",
+  "system",
+];
 
 /** Section headers (cs). `system` is unlabeled — it sits pinned at the bottom. */
 export const SECTION_LABELS: Record<ModuleSection, string> = {
   main: "Přehled",
   growth: "Akvizice",
   studio: "Tvorba",
+  comms: "Komunikace",
   insights: "Analýza",
   system: "",
 };
@@ -25,6 +33,7 @@ export const SECTION_LABELS_EN: Record<ModuleSection, string> = {
   main: "Overview",
   growth: "Acquisition",
   studio: "Studio",
+  comms: "Communication",
   insights: "Insights",
   system: "",
 };
@@ -72,6 +81,16 @@ export const MODULES: ModuleDef[] = [
     blurbEn: "Visits, cost, conversions, revenue and PNO with history and channels.",
   },
   {
+    key: "start",
+    label: "Start",
+    labelEn: "Get started",
+    icon: "start",
+    section: "main",
+    availableFor: ALL,
+    blurb: "Naskenujte svůj web, naplňte aplikaci vaší firmou a připojte data.",
+    blurbEn: "Scan your website, seed the app with your business and connect your data.",
+  },
+  {
     key: "kampane",
     label: "Kampaně",
     labelEn: "Campaigns",
@@ -90,6 +109,16 @@ export const MODULES: ModuleDef[] = [
     availableFor: ALL,
     blurb: "Výzkum klíčových slov se záměrem a uloženými seznamy.",
     blurbEn: "Keyword research with intent classification and saved lists.",
+  },
+  {
+    key: "kanaly",
+    label: "Kanály zdarma",
+    labelEn: "Free channels",
+    icon: "channels",
+    section: "comms",
+    availableFor: ALL,
+    blurb: "Kde se zviditelnit bez rozpočtu na reklamu — katalogy, komunity, obsah a partnerství s plánem prvních kroků.",
+    blurbEn: "Where to get seen without an ad budget — directories, communities, content and partnerships with a first-steps playbook.",
   },
   {
     key: "obsahovy-engine",
@@ -126,7 +155,7 @@ export const MODULES: ModuleDef[] = [
     label: "Sociální sítě",
     labelEn: "Social media",
     icon: "social",
-    section: "studio",
+    section: "comms",
     availableFor: ["eshop", "app", "content", "local"],
     blurb: "Návrh příspěvků, plánování publikace a schránka zpráv.",
     blurbEn: "Post drafting, publication scheduling and message inbox.",
@@ -233,17 +262,47 @@ export const MODULES: ModuleDef[] = [
     blurb: "Zpětná vazba z CRM: cena za kvalifikovaný lead, ne za levný lead.",
     blurbEn: "CRM feedback: cost per qualified lead, not just the cheapest lead.",
   },
+  // The twin is three modules, not one module with three tabs: you TRAIN it (twin),
+  // you decide where it may speak and how autonomously (sprava-kanalu), and you
+  // review what it wrote (schranka). All three read and write one persisted blob.
   {
-    key: "rychla-reakce",
-    label: "Rychlá reakce",
-    labelEn: "Quick response",
-    icon: "speed",
-    section: "studio",
-    // D2: local businesses (Marta's clinic) live and die by speed-to-lead too — a
-    // missed enquiry is a lost patient. The response-clock inbox is core to them.
-    availableFor: ["leadgen", "local"],
-    blurb: "Schránka poptávek s AI návrhem odpovědi, kvalifikací a SLA časovačem.",
-    blurbEn: "Enquiry inbox with AI reply suggestion, qualification and SLA timer.",
+    key: "twin",
+    label: "Twin",
+    labelEn: "Twin",
+    icon: "twin",
+    section: "comms",
+    availableFor: ALL,
+    blurb:
+      "Komunikační dvojče firmy: natrénujte hlas z reálných zpráv, které jste poslali. Tímto hlasem pak píše ve schránce, na sítích i v distribuci.",
+    blurbEn:
+      "Your business's communication double: train a voice from the real messages you've sent. It then writes in that voice in the outbox, on social and in distribution.",
+  },
+  {
+    key: "sprava-kanalu",
+    label: "Správa kanálů",
+    labelEn: "Channel management",
+    icon: "autonomy",
+    section: "comms",
+    availableFor: ALL,
+    blurb:
+      "Kde smí twin mluvit, jak samostatně a čím se zpráva doručí — včetně hranice jistoty, nad kterou schvaluje sám.",
+    blurbEn:
+      "Where the twin may speak, how autonomously, and what delivers the message — including the confidence bar above which it self-approves.",
+  },
+  {
+    key: "schranka",
+    label: "Schránka zpráv",
+    labelEn: "Message box",
+    icon: "inbox",
+    section: "comms",
+    // The old `rychla-reakce` speed-to-lead inbox lives on here as the `leads`
+    // channel (SLA clock + BANT qualification intact), and the Socials inbox hands
+    // its replies in too — one review surface for everything the twin writes.
+    availableFor: ALL,
+    blurb:
+      "Jedno místo, kde schvalujete vše, co twin napsal — poptávky se SLA, e-maily, chaty i odpovědi ze sítí.",
+    blurbEn:
+      "One place to approve everything the twin wrote — enquiries with an SLA clock, emails, chats and social replies.",
   },
   {
     key: "lokalni",
@@ -270,7 +329,7 @@ export const MODULES: ModuleDef[] = [
     label: "Distribuce",
     labelEn: "Distribution",
     icon: "distribute",
-    section: "studio",
+    section: "comms",
     availableFor: ["content"],
     blurb: "Jeden článek → varianty na sítě a newsletter s atribucí podle kanálu.",
     blurbEn: "One article → variants for social networks and newsletter with channel attribution.",

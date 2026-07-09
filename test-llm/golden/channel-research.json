@@ -1,0 +1,69 @@
+{
+  "id": "channel-research",
+  "label": "Výzkum bezplatných kanálů viditelnosti",
+  "promptHash": "3ebb6e442c386bcb",
+  "schemaKeys": [
+    "channels",
+    "summary"
+  ],
+  "system": "Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit zdarma, bez rozpočtu na reklamu. Vycházej jen z předaného kontextu, nevymýšlej si čísla ani fakta o konkurenci, a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "channels": {
+        "items": {
+          "properties": {
+            "category": {
+              "type": "STRING"
+            },
+            "contentAngle": {
+              "type": "STRING"
+            },
+            "effort": {
+              "type": "STRING"
+            },
+            "firstActions": {
+              "items": {
+                "type": "STRING"
+              },
+              "type": "ARRAY"
+            },
+            "fit": {
+              "type": "NUMBER"
+            },
+            "name": {
+              "type": "STRING"
+            },
+            "payoff": {
+              "type": "STRING"
+            },
+            "rationale": {
+              "type": "STRING"
+            },
+            "url": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "name",
+            "category",
+            "fit",
+            "effort",
+            "rationale",
+            "payoff",
+            "firstActions"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "summary": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "summary",
+      "channels"
+    ],
+    "type": "OBJECT"
+  }
+}

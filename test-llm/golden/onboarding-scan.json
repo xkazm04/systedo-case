@@ -1,0 +1,60 @@
+{
+  "id": "onboarding-scan",
+  "label": "Sken webu na profil firmy",
+  "promptHash": "f732dcc52a0de832",
+  "schemaKeys": [
+    "audience",
+    "businessName",
+    "competitors",
+    "keywords",
+    "offering",
+    "suggestedType",
+    "summary",
+    "toneOfVoice"
+  ],
+  "system": "Jsi český business analytik pro marketingový nástroj. Z textu domovské stránky webu vytáhneš stručný, věcný profil firmy. Vycházej jen z předaného textu, nevymýšlej si nic, co v textu není, a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "audience": {
+        "type": "STRING"
+      },
+      "businessName": {
+        "type": "STRING"
+      },
+      "competitors": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "keywords": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "offering": {
+        "type": "STRING"
+      },
+      "suggestedType": {
+        "type": "STRING"
+      },
+      "summary": {
+        "type": "STRING"
+      },
+      "toneOfVoice": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "businessName",
+      "summary",
+      "offering",
+      "audience",
+      "toneOfVoice",
+      "keywords",
+      "competitors"
+    ],
+    "type": "OBJECT"
+  }
+}

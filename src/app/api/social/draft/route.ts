@@ -15,6 +15,7 @@ import type { PerformanceData } from "@/lib/types";
 import { getProject } from "@/lib/projects/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { loadBrandContext } from "@/lib/brand/load";
+import { resolveTwinVoice } from "@/lib/twin/load";
 import { getCompetitors } from "@/lib/competitors/store";
 import { competitorGroundingText } from "@/lib/competitors/grounding";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
@@ -180,6 +181,10 @@ export async function POST(request: Request) {
     // On-brand by default (C1): an empty brand field falls back to the project's
     // auto-derived catalogue voice, so posts never default to a generic sortiment.
     const effectiveBrand = brand ?? (await resolveBrandFallback(projectId, userId, locale));
+    // The twin's trained `social` voice, resolved server-side (tenancy-checked) so a
+    // client can never dictate another tenant's brand voice. Undefined = untrained,
+    // in which case the tool's own "write plainly, on brand" rules govern.
+    const voice = await resolveTwinVoice(projectId, userId, "social");
     // C3: fold the competitor set into "what's working" so copy can lean on real
     // differentiators vs. the market instead of generic claims.
     const competitors = await resolveCompetitorGrounding(projectId, userId, locale);
@@ -189,6 +194,7 @@ export async function POST(request: Request) {
       platforms,
       grounding: [perfGrounding(dataset), competitors].filter(Boolean).join(" "),
       brand: effectiveBrand,
+      voice,
       locale,
       // Client abort propagation: a closed tab / re-run stops the provider work.
       signal: request.signal,

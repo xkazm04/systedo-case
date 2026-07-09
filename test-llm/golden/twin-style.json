@@ -1,0 +1,74 @@
+{
+  "id": "twin-style",
+  "label": "Trénink hlasu dvojčete",
+  "promptHash": "ad3168196ab640e4",
+  "schemaKeys": [
+    "constraints",
+    "directives",
+    "examples",
+    "gapQuestions",
+    "lengthHint",
+    "summary",
+    "traits"
+  ],
+  "system": "Jsi lingvista a stratég značky. Z reálných zpráv firmy vytáhneš její komunikační styl a zapíšeš ho jako návod pro jazykový model. Popisuj jen to, co je v ukázkách vidět; co nevíš, vyžádej si v poli gapQuestions. Pole kind smí být pouze „do“ nebo „dont“. Piš česky a vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "constraints": {
+        "items": {
+          "properties": {
+            "kind": {
+              "type": "STRING"
+            },
+            "rule": {
+              "type": "STRING"
+            }
+          },
+          "required": [
+            "kind",
+            "rule"
+          ],
+          "type": "OBJECT"
+        },
+        "type": "ARRAY"
+      },
+      "directives": {
+        "type": "STRING"
+      },
+      "examples": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "gapQuestions": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "lengthHint": {
+        "type": "STRING"
+      },
+      "summary": {
+        "type": "STRING"
+      },
+      "traits": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      }
+    },
+    "required": [
+      "summary",
+      "directives",
+      "traits",
+      "lengthHint",
+      "constraints",
+      "examples",
+      "gapQuestions"
+    ],
+    "type": "OBJECT"
+  }
+}

@@ -18,7 +18,7 @@ export interface SpendEntry {
 
 const OPS = [
   "analysis", "ads", "brief", "article-draft", "local-review-reply",
-  "keyword-clusters", "chat", "repurpose", "lead-reply",
+  "keyword-clusters", "chat", "repurpose", "twin-reply",
 ];
 
 /** blended $/1M-token rate, mirroring the tiers in src/lib/llm/cost.ts */

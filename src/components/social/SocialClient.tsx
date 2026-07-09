@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Bolt, Check, Clock, Close, Info, Refresh, Share, Sparkles } from "@/components/icons";
+import { usePathname, useRouter } from "next/navigation";
 import { useOptionalProject } from "@/lib/projects/context";
+import { replySeedKey, type ReplySeed } from "@/lib/twin/reply-seed";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import {
   PLATFORM_LIMITS,
@@ -65,6 +67,8 @@ const T = {
     comment: "comment",
     replied: "Replied",
     replyHint: "Suggested reply — edit and approve",
+    replyInTwin: "Odpovědět v twinu",
+    handoffHint: "Odpověď připraví twin ve Schránce zpráv",
     sending: "Sending…",
     approveAndSend: "Approve & send",
     draftFailed: "Draft failed.",
@@ -115,6 +119,8 @@ const T = {
     comment: "comment",
     replied: "Replied",
     replyHint: "Suggested reply — edit and approve",
+    replyInTwin: "Reply in the twin",
+    handoffHint: "The twin drafts the reply in your Message box",
     sending: "Sending…",
     approveAndSend: "Approve & send",
     draftFailed: "Draft failed.",
@@ -663,10 +669,32 @@ function Inbox() {
   const project = useOptionalProject();
   const pid = project?.id;
   const t = useT(T);
+  const router = useRouter();
+  const pathname = usePathname();
   const [messages, setMessages] = useState<InboxMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+
+  /** Inside the authed shell a reply is NOT drafted here — it is handed to Schránka
+   *  zpráv, so every outbound message the twin writes passes one voice, one autonomy
+   *  gate and one approve/reject record. The public demo (and the marketing page)
+   *  have no `/app/:id` routes and no twin, so they keep the deterministic inline
+   *  reply rather than dead-ending on a button that can't navigate anywhere. */
+  const canHandOff = Boolean(pid) && pathname.startsWith("/app/");
+
+  const replyInTwin = (m: InboxMessage) => {
+    if (!pid) return;
+    try {
+      sessionStorage.setItem(
+        replySeedKey(pid),
+        JSON.stringify({ channel: "social", contact: m.author, inbound: m.text } satisfies ReplySeed)
+      );
+    } catch {
+      /* storage unavailable — the outbox still opens, just unseeded */
+    }
+    router.push(`/app/${pid}/schranka`);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -737,6 +765,18 @@ function Inbox() {
                     {t("replied")}
                   </span>
                   <p className="mt-1 text-navy-700">{m.reply}</p>
+                </div>
+              ) : canHandOff ? (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[13px] text-muted">{t("handoffHint")}</span>
+                  <button
+                    type="button"
+                    onClick={() => replyInTwin(m)}
+                    className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    <Sparkles width={13} height={13} />
+                    {t("replyInTwin")}
+                  </button>
                 </div>
               ) : (
                 <div className="mt-3">
