@@ -68,7 +68,7 @@ const ACCENTS = ["#14b8b1", "#0e9c97", "#6366f1", "#8b5cf6", "#fb7141", "#d4503e
 const inputClass =
   "w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm text-navy-800 placeholder:text-muted/70 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
 
-export default function ProjectSettings() {
+export default function ProjectSettings({ live }: { live: boolean }) {
   const t = useT(T);
   const project = useProject();
   const router = useRouter();
@@ -126,7 +126,7 @@ export default function ProjectSettings() {
     }
   }
 
-  const ds = projectDataSource(project);
+  const ds = projectDataSource(live);
 
   return (
     <div className="stagger max-w-2xl space-y-8">

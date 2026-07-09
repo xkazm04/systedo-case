@@ -36,3 +36,13 @@ export interface ReportMetrics {
   meta: MetricsSyncMeta;
   rows: MetricRow[];
 }
+
+/** The single, honest definition of "live data": a project is live once it has
+ *  actually SYNCED rows — not the moment an Ads account is linked (linking and
+ *  syncing are separate, non-atomic actions). Both the report resolver and the
+ *  lighter `hasSyncedMetrics` accessor derive "live" from this one rule so the
+ *  Monthly Report, the AI recap and the Settings/Overview labels never disagree.
+ *  Framework-free; the type predicate lets the resolver narrow after the check. */
+export function isLiveMetrics(metrics: ReportMetrics | null): metrics is ReportMetrics {
+  return !!metrics && metrics.rows.length > 0;
+}

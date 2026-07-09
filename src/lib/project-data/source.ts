@@ -1,25 +1,16 @@
-/** Data-source seam for the per-project spine. Today every project reads scaled
- *  sample data (`getProjectDataset`). A project linked to a Google Ads account is
- *  a *live* source; wiring its synced series into the PerformanceData shape is the
- *  remaining (credential-gated) integration — at which point only the resolver
- *  below changes, not the modules that consume the spine.
+/** Pure data-source LABEL mapper for the per-project surfaces. Given the honest
+ *  `live` signal — the project has actually SYNCED rows, resolved server-side by
+ *  `hasSyncedMetrics` / `resolveReportDataset` (see report-metrics) — this returns
+ *  the source + human label to render. It deliberately does NOT derive "live"
+ *  itself: linking an Ads account is not the same as having synced data, and the
+ *  label must never claim "živá data" before the Monthly Report actually shows it.
  *
- *  Live wiring sketch (needs the Ads API + a connected account, hence not active
- *  in the demo):
- *
- *    export async function resolveProjectDataset(project, userId) {
- *      const ctx = await resolveCampaignContext(userId);        // existing connector
- *      if (project.adsCustomerId && ctx.connector.source === "google-ads") {
- *        const series = await ctx.connector.fetchSeries(period); // live daily totals
- *        return anchorSampleToLive(getProjectDataset(project), series);
- *      }
- *      return getProjectDataset(project);                       // sample fallback
- *    }
+ *  Framework-free (takes a boolean, touches no DB) so the client Settings/Content
+ *  modules can import it while the server owner passes `live` down as a prop.
  *
  *  The other modules' live sources (Merchant Center, CRM, Search Console, ESP,
  *  GBP) follow the same sample→live adapter pattern — see
  *  docs/roadmap/integration-backlog.md. */
-import type { Project } from "@/lib/projects/types";
 
 export interface ProjectDataSource {
   source: "sample" | "google-ads";
@@ -27,10 +18,11 @@ export interface ProjectDataSource {
   live: boolean;
 }
 
-/** The active data source for a project: live once an Ads account is linked,
- *  sample otherwise. Used to label surfaces honestly (živá vs ukázková data). */
-export function projectDataSource(project: Project): ProjectDataSource {
-  if (project.adsCustomerId) {
+/** Map the honest `live` signal to a source descriptor + label. `live` must come
+ *  from synced-rows detection (`hasSyncedMetrics`), never from `adsCustomerId`,
+ *  so every surface labels itself consistently (živá vs ukázková data). */
+export function projectDataSource(live: boolean): ProjectDataSource {
+  if (live) {
     return { source: "google-ads", label: "Živá data · Google Ads", live: true };
   }
   return { source: "sample", label: "Ukázková data", live: false };

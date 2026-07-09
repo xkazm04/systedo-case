@@ -175,14 +175,18 @@ function seedFromDecay(post: DecayingPost): BriefSeed {
 export default function ContentEngine({
   clusters,
   decay,
+  live,
 }: {
   clusters: TopicCluster[];
   decay: DecayingPost[];
+  /** Honest "živá data" signal — synced rows, resolved server-side and passed down
+   *  (not derived from a linked Ads account). */
+  live: boolean;
 }) {
   const project = useProject();
   const t = useT(T);
   const fmt = useFormatters();
-  const ds = projectDataSource(project);
+  const ds = projectDataSource(live);
 
   const stats = useMemo(() => rankedClusterStats(clusters), [clusters]);
   const decaying = useMemo(() => decayingPosts(decay), [decay]);

@@ -9,7 +9,7 @@ import type { PerformanceData } from "@/lib/types";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { getReportMetrics } from "./store";
 import { buildLiveDataset } from "./build";
-import type { ReportMetrics } from "./types";
+import { isLiveMetrics, type ReportMetrics } from "./types";
 
 export interface ResolvedDataset {
   data: PerformanceData;
@@ -31,7 +31,7 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
   } catch {
     metrics = null; // store hiccup → degrade to sample, never break the report
   }
-  if (metrics && metrics.rows.length > 0) {
+  if (isLiveMetrics(metrics)) {
     return {
       data: buildLiveDataset(project, metrics.rows),
       source: metrics.meta.source,

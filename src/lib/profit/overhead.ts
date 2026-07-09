@@ -38,6 +38,10 @@ export function applyOverhead(
     const allocatedOverhead = periodOverhead * revShare;
     const fulfilmentCost = perOrder * r.conversions;
     const contributionProfit = grossProfit - allocatedOverhead - fulfilmentCost;
+    // Single "unprofitable once overhead is loaded in" verdict: contribution
+    // can't cover the channel's own ad spend. unprofitableCount and the row
+    // colour both read this so they can never disagree.
+    const contributionProfitable = contributionProfit >= r.cost;
     // POAS mirrors the gross-margin definition (profit per koruna of ad spend),
     // so the raw and contribution POAS are directly comparable side by side.
     const contributionPoas = r.cost > 0 ? contributionProfit / r.cost : 0;
@@ -67,6 +71,7 @@ export function applyOverhead(
       allocatedOverhead,
       fulfilmentCost,
       contributionProfit,
+      contributionProfitable,
       contributionPoas,
       adjustedBreakEvenRoas,
     };
@@ -86,7 +91,7 @@ export function applyOverhead(
       contributionPoas: cost > 0 ? contributionProfit / cost : 0,
       // Unprofitable once overhead is loaded in = contribution can't cover the
       // channel's own ad spend (net loss after spend), mirroring the gross view.
-      unprofitableCount: out.filter((r) => r.contributionProfit < r.cost).length,
+      unprofitableCount: out.filter((r) => !r.contributionProfitable).length,
     },
   };
 }

@@ -1011,7 +1011,7 @@ export default function ProfitModule({
                           <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.adjustedBreakEvenRoas)}</td>
                           <td
                             className={`tnum px-4 py-3 text-right font-semibold ${
-                              r.contributionProfit >= 0 ? "text-positive" : "text-negative"
+                              r.contributionProfitable ? "text-positive" : "text-negative"
                             }`}
                           >
                             {fmt.fmtCZK(r.contributionProfit)}

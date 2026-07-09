@@ -3,7 +3,7 @@
  *  Overview command center. Server-safe (pure compute over the spine + samples).
  *  As modules move onto live data (Phase D), only the producers below change. */
 import type { Project } from "@/lib/projects/types";
-import { MODULES } from "@/lib/projects/modules";
+import { MODULES, moduleLabel } from "@/lib/projects/modules";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { createFormatters, type SupportedLocale } from "@/lib/format";
@@ -28,9 +28,8 @@ import { decayingPosts } from "@/lib/content-engine/compute";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { byImpact, type Recommendation, type Severity } from "./types";
 
-const moduleLabel = (key: string) => MODULES.find((m) => m.key === key)?.label ?? key;
-
 function rec(
+  locale: SupportedLocale,
   module: string,
   severity: Severity,
   title: string,
@@ -38,7 +37,16 @@ function rec(
   metric?: string,
   impactCzk?: number
 ): Recommendation {
-  return { id: `${module}:${title}`, module, moduleLabel: moduleLabel(module), severity, title, detail, metric, impactCzk };
+  return {
+    id: `${module}:${title}`,
+    module,
+    moduleLabel: moduleLabel(MODULES.find((m) => m.key === module)!, locale) ?? module,
+    severity,
+    title,
+    detail,
+    metric,
+    impactCzk,
+  };
 }
 
 function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] {
@@ -52,7 +60,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   const rows = channelRows(data.channels, totalsOf(data.daily.slice(-90)));
   const { rows: profit } = computeProfit(rows, defaultMargins(data.channels));
   for (const r of profit.filter((p) => !p.profitable)) {
-    out.push(rec("zisk", "critical",
+    out.push(rec(locale, "zisk", "critical",
       locale === "en"
         ? `${r.channel} loses money after margin`
         : `${r.channel} prodělává po marži`,
@@ -69,7 +77,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
 
   // Stock → items about to run out
   for (const s of stock.filter((s) => s.status === "pause")) {
-    out.push(rec("sklad-sezonnost", "warning",
+    out.push(rec(locale, "sklad-sezonnost", "warning",
       locale === "en"
         ? `${s.product.title} runs out soon`
         : `${s.product.title} brzy dojde`,
@@ -81,7 +89,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
 
   // Stock → early warning: SKUs trending toward stockout (< 14 dní), not yet a hard pauza.
   for (const s of stock.filter((s) => s.atRisk)) {
-    out.push(rec("sklad-sezonnost", "opportunity",
+    out.push(rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `${s.product.title} approaching stockout`
         : `${s.product.title} se blíží vyprodání`,
@@ -93,7 +101,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
 
   // Stock → paused SKU with a scheduled restock inside the horizon (resuming).
   for (const s of stock.filter((s) => s.status === "resuming")) {
-    out.push(rec("sklad-sezonnost", "info",
+    out.push(rec(locale, "sklad-sezonnost", "info",
       locale === "en"
         ? `Refresh: ${s.product.title}`
         : `${s.product.title} se brzy obnoví`,
@@ -107,7 +115,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   // same category (top proposed move only, to keep the command center concise).
   const topMove = budgetChangeSet(stock).moves[0];
   if (topMove) {
-    out.push(rec("sklad-sezonnost", "opportunity",
+    out.push(rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `Shift budget: ${topMove.fromTitle} → ${topMove.toTitle}`
         : `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
@@ -122,7 +130,7 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   const cur = now.getUTCMonth();
   const next = season[(cur + 1) % 12]!;
   if (next.index >= 1.15) {
-    out.push(rec("sklad-sezonnost", "opportunity",
+    out.push(rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `${next.label} is a seasonal peak`
         : `${next.label} bývá sezónní špička`,
@@ -139,7 +147,7 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
   const out: Recommendation[] = [];
   const ltv = ltvSummary(SAMPLE_COHORTS);
   if (ltv.avgLtvCac < 3) {
-    out.push(rec("ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
+    out.push(rec(locale, "ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
       locale === "en"
         ? "LTV:CAC below target"
         : "LTV:CAC pod cílem",
@@ -149,7 +157,7 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
       f.fmtMultiple(ltv.avgLtvCac)));
   }
   for (const w of SAMPLE_EXPERIMENTS.map(evaluate).filter((r) => r.significant)) {
-    out.push(rec("experimenty-lp", "opportunity",
+    out.push(rec(locale, "experimenty-lp", "opportunity",
       locale === "en"
         ? `Ship the winner: ${w.cluster}`
         : `Nasadit vítěze: ${w.cluster}`,
@@ -159,7 +167,7 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
   }
   const top = scoreQueries(SAMPLE_QUERIES).find((q) => q.opportunity === "high");
   if (top) {
-    out.push(rec("srovnani-seo", "opportunity",
+    out.push(rec(locale, "srovnani-seo", "opportunity",
       locale === "en"
         ? `Content for query ${top.query}`
         : `Obsah pro dotaz ${top.query}`,
@@ -174,7 +182,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
   for (const s of SAMPLE_SOURCES.map(leadMetrics).filter((s) => s.junk)) {
-    out.push(rec("kvalita-leadu", "warning",
+    out.push(rec(locale, "kvalita-leadu", "warning",
       locale === "en"
         ? `${s.source}: cheap but low-quality leads`
         : `${s.source}: levné, ale nekvalitní leady`,
@@ -185,7 +193,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
-    out.push(rec("schranka", "critical",
+    out.push(rec(locale, "schranka", "critical",
       locale === "en"
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
@@ -196,7 +204,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   }
   const gap = gaps(SAMPLE_TARGETS)[0];
   if (gap) {
-    out.push(rec("lokalni", "opportunity",
+    out.push(rec(locale, "lokalni", "opportunity",
       locale === "en"
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
@@ -211,7 +219,7 @@ function contentRecs(locale: SupportedLocale): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
   for (const p of decayingPosts(SAMPLE_DECAY)) {
-    out.push(rec("obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
+    out.push(rec(locale, "obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
       locale === "en"
         ? `Refresh: ${p.title}`
         : `Obnovit: ${p.title}`,
@@ -232,6 +240,7 @@ function channelRecs(project: Project, locale: SupportedLocale): Recommendation[
   if (!quickWin) return [];
   return [
     rec(
+      locale,
       "kanaly",
       "opportunity",
       locale === "en" ? `Free channel: ${quickWin.name}` : `Kanál zdarma: ${quickWin.name}`,

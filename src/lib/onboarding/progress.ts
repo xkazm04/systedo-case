@@ -10,6 +10,7 @@ import type { OnboardingScanProfile } from "./types";
 import { listOfferings } from "@/lib/catalog/store";
 import { getLocalSignals } from "@/lib/local-signals/store";
 import { getOrganicChannels } from "@/lib/organic-channels/store";
+import { getAdsConnection } from "@/lib/campaigns/connection";
 
 export interface ResolvedStep extends OnboardingStepDef {
   done: boolean;
@@ -37,18 +38,24 @@ export async function resolveOnboardingProgress(
   const defs = stepsForType(project.type);
   const need = new Set(defs.map((d) => d.key));
 
-  const [state, offerings, ranks, channels] = await Promise.all([
+  const [state, offerings, ranks, channels, adsConn] = await Promise.all([
     getOnboarding(project.id).catch(() => null),
     userId && need.has("catalog")
       ? listOfferings(userId, project.id).catch(() => null)
       : Promise.resolve(null),
     need.has("ranks") ? getLocalSignals(project.id).catch(() => null) : Promise.resolve(null),
     need.has("channels") ? getOrganicChannels(project.id).catch(() => null) : Promise.resolve(null),
+    // Ads is "connected" via the project's linked customer id OR the user's active
+    // connected account — the same fallback integrations/status.ts and report-metrics/sync.ts
+    // use. Skip the read when a project-level id already settles it.
+    userId && need.has("ads") && !project.adsCustomerId
+      ? getAdsConnection(userId).catch(() => null)
+      : Promise.resolve(null),
   ]);
 
   const scanApplied = !!state?.scanApplied;
   const catalogDone = Array.isArray(offerings) && offerings.length > 0;
-  const adsDone = !!project.adsCustomerId;
+  const adsDone = !!project.adsCustomerId || !!adsConn?.customerId;
   const ranksDone = !!ranks && ranks.ladder.length > 0;
   const channelsDone =
     !!channels && (Object.keys(channels.statuses ?? {}).length > 0 || (channels.plan?.length ?? 0) > 0);

@@ -14,7 +14,10 @@ test("isHexColor accepts #rrggbb only", () => {
 
 test("readableOn: dark text on light accents, white text on dark accents", () => {
   assert.equal(readableOn("#ffffff"), "#111111");
-  assert.equal(readableOn("#f59e0b"), "#111111");
+  // #f59e0b (amber) has WCAG relative luminance ~0.44 (< 0.45) → white ink is
+  // the accessible choice. The old plain-weighted-average formula wrongly put
+  // it ~0.66 and picked dark ink; unifying on the shared WCAG helper flips it.
+  assert.equal(readableOn("#f59e0b"), "#ffffff");
   assert.equal(readableOn("#000000"), "#ffffff");
   assert.equal(readableOn("#0891b2"), "#ffffff");
 });

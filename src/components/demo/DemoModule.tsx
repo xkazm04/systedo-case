@@ -299,7 +299,7 @@ export default async function DemoModule({
     case "obsahovy-engine":
       return (
         <ModulePage moduleKey="obsahovy-engine">
-          <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} />
+          <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} live={false} />
         </ModulePage>
       );
     case "socialni":
@@ -533,7 +533,7 @@ export default async function DemoModule({
     case "nastaveni":
       return (
         <ModulePage moduleKey="nastaveni">
-          <ProjectSettings />
+          <ProjectSettings live={false} />
         </ModulePage>
       );
     case "spotreba":

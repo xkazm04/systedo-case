@@ -9,6 +9,8 @@
  *  would route through the ad-ops control plane (simulate → approve → audited
  *  mutation → revert), the same governance envelope the Kampaně module uses. */
 import type { BudgetChangeSet, StockRow, StockStatus } from "./compute";
+import { DEFAULT_POLICY, checkPolicy, type ControlPolicy } from "@/lib/campaigns/control-plane-types";
+import type { BudgetMove } from "@/lib/campaigns/simulate";
 
 export interface AdChannel {
   name: string;
@@ -54,12 +56,8 @@ export interface InventoryActionPlan {
   valueProtected: number;
   /** true when the plan is inside the ad-ops guardrails (blast-radius + per-move cap) */
   withinGuardrails: boolean;
-  policy: { maxMoveAmountCzk: number; maxMoves: number };
+  policy: ControlPolicy;
 }
-
-/** Reuse the ad-ops control-plane guardrail shape so the inventory plan is governed
- *  by the same policy as campaign moves. */
-const INVENTORY_POLICY = { maxMoveAmountCzk: 50_000, maxMoves: 5 };
 
 /** Build the executable plan by joining the proposed moves back to their stock
  *  rows (for the forecast + margin context). Pure & deterministic. */
@@ -93,15 +91,28 @@ export function buildActionPlan(stock: StockRow[], changeSet: BudgetChangeSet): 
     return sum + (donor?.coverValue ?? 0);
   }, 0);
 
-  const withinGuardrails =
-    actions.length <= INVENTORY_POLICY.maxMoves &&
-    actions.every((a) => a.amountCzk <= INVENTORY_POLICY.maxMoveAmountCzk);
+  // Govern the plan with the EXACT ControlPolicy the ad-ops control plane enforces
+  // (DEFAULT_POLICY, via the same checkPolicy), mapping each inventory move to the
+  // campaigns BudgetMove shape checkPolicy expects (amountCzk → amount, titles →
+  // names) so the "within guardrails" badge honestly reflects what a real apply
+  // would gate — instead of a hand-rolled copy that had drifted to a laxer maxMoves.
+  const guardrailMoves: BudgetMove[] = actions.map((a) => ({
+    fromId: a.fromSku,
+    fromName: a.fromTitle,
+    toId: a.toSku,
+    toName: a.toTitle,
+    amount: a.amountCzk,
+    fromRoas: 0,
+    toRoas: 0,
+    estValueGain: 0,
+  }));
+  const withinGuardrails = checkPolicy(guardrailMoves, DEFAULT_POLICY).length === 0;
 
   return {
     actions,
     totalShifted: changeSet.totalShifted,
     valueProtected,
     withinGuardrails,
-    policy: INVENTORY_POLICY,
+    policy: DEFAULT_POLICY,
   };
 }

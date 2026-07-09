@@ -87,6 +87,9 @@ export interface OverheadRow extends ProfitRow {
   fulfilmentCost: number;
   /** grossProfit − allocatedOverhead − fulfilmentCost */
   contributionProfit: number;
+  /** contributionProfit ≥ cost — the single "profitable once overhead is loaded
+   *  in" verdict the unprofitableCount and the row colour both read */
+  contributionProfitable: boolean;
   /** contributionProfit / cost — the overhead-adjusted POAS */
   contributionPoas: number;
   /** the ROAS at which the channel breaks even once overhead is loaded in */

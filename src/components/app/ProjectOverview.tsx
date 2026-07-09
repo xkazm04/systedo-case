@@ -13,6 +13,7 @@ import PortfolioCompare from "@/components/app/overview/PortfolioCompare";
 import type { CompareRow } from "@/components/app/overview/compare";
 import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
 import { projectDataSource } from "@/lib/project-data/source";
+import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations } from "@/lib/insights/aggregate";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
@@ -211,7 +212,9 @@ export default async function ProjectOverview({
     }));
     const meta = projectTypeMeta(project.type, locale);
     const typeIcon = PROJECT_TYPE_META[project.type].icon;
-    const ds = projectDataSource(project);
+    // Honest label: "živá data" only once the project has SYNCED rows (not merely
+    // linked an Ads account) — the same signal the Monthly Report/AI recap use.
+    const ds = projectDataSource(await hasSyncedMetrics(project.id));
     const last30 = totalsOf(data.daily.slice(-30));
     const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
     const lastDate = data.daily.at(-1)?.date;
