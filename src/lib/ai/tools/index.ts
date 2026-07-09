@@ -28,3 +28,4 @@ export { generateKeywordClusters } from "./keyword-clusters";
 export { generateComparisonOutline } from "./comparison-outline";
 export { generateLpVariantIdeas } from "./lp-variant-ideas";
 export { generateLeadSourceDiagnosis } from "./lead-source-diagnosis";
+export { generateChannelResearch } from "./channel-research";
