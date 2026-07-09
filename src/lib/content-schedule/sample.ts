@@ -17,6 +17,9 @@ export interface ContentPost {
   status: PostStatus;
   /** day index 0–27 in the 4-week window; null while still an idea */
   day: number | null;
+  /** AI-drafted GBP post copy (grounded on the service via the social tool). Absent
+   *  until the maker drafts it; persisted with the board so it survives a reload. */
+  body?: string;
 }
 
 /** GBP-post idea templates ({service}/{area} are filled from the catalog). */
