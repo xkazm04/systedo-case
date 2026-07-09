@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc s vysokou návratností a rostoucí poptávkou, náklady zůstávají pod kontrolou.",
-  "summary": "Podnik dosáhl obratu 1 200 000 Kč při nákladech 220 000 Kč, což při PNO 18,3 % a ROAS 5,4× ukazuje na velmi efektivní hospodaření s marketingovým rozpočtem. Meziměsíční růst konverzí o 12 % potvrzuje, že poptávka nejen roste, ale i lépe konvertuje.",
+  "headline": "Silný měsíc: obrat přes milion s PNO pod 20 % a rostoucí konverzí.",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená PNO 18,3 % a ROAS 5,4×, což je zdravý poměr pro lokální podnik. Konverze navíc meziměsíčně vzrostly o 12 %, což ukazuje na zlepšující se kvalitu poptávky i webu.",
   "highlights": [
-    "ROAS 5,4× výrazně převyšuje běžný standard pro lokální podnik/služby, každá investovaná koruna se vrací s vysokým násobkem.",
-    "PNO 18,3 % drží podíl nákladů na obratu na zdravé úrovni a nechává prostor pro další růst bez ztráty ziskovosti.",
-    "Konverze vzrostly o 12 %, což signalizuje zlepšující se kvalitu poptávky a/nebo výkon webu a kampaní."
+    "ROAS 5,4× potvrzuje efektivní využití reklamního rozpočtu vůči obratu.",
+    "PNO 18,3 % drží náklady na obrat na zdravé úrovni pro lokální segment.",
+    "Konverze meziměsíčně vzrostly o 12 %, tedy více zákazníků dokončuje objednávku či poptávku."
   ],
   "watchouts": [
-    "Silná závislost na placené akvizici – bez sledování podílu organických a lokálních poptávek hrozí, že růst je tažen jen rozpočtem, ne značkou.",
-    "Růst konverzí o 12 % je třeba ověřit v čase – může jít o sezónní výkyv, nikoli trvalý trend."
+    "Při dalším škálování rozpočtu může PNO začít růst, pokud poptávka po klíčových službách nebude stejně silná.",
+    "Růst konverzí je třeba ověřit i v kvalitě poptávek (skutečné objednávky/zakázky), ne jen v počtu."
   ],
   "priorities": [
     {
-      "title": "Navýšit rozpočet na nejvýkonnější kampaně",
-      "detail": "Vzhledem k ROAS 5,4× a bezpečné PNO je prostor postupně navýšit investice do nejlépe konvertujících kampaní a otestovat, do jaké míry se výkon udrží při větším objemu."
+      "title": "Postupně navýšit rozpočet na nejvýkonnější kampaně",
+      "detail": "Vzhledem k ROAS 5,4× je prostor opatrně zvýšit investice do kampaní s nejlepší návratností a sledovat, zda PNO zůstane pod 20 %."
     },
     {
-      "title": "Posílit lokální viditelnost mimo placenou reklamu",
-      "detail": "Doplnit placenou akvizici o silnější přítomnost v Google Business Profile a lokálních výsledcích, aby růst poptávky nebyl závislý jen na reklamním rozpočtu."
+      "title": "Ověřit kvalitu nových konverzí",
+      "detail": "Zkontrolovat, zda nárůst konverzí o 12 % odpovídá i reálným tržbám a spokojenosti zákazníků, případně doladit cílení podle typu poptávky."
     }
   ]
 }

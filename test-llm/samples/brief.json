@@ -1,29 +1,29 @@
 {
-  "titleTag": "Skladování ořechů: tipy pro čerstvost a trvanlivost",
-  "metaDescription": "Jak správně skladovat ořechy, aby si zachovaly chuť a čerstvost co nejdéle. Praktické tipy na teplotu, vlhkost a obaly.",
+  "titleTag": "Skladování ořechů: jak zachovat čerstvost a chuť",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si dlouho udržely čerstvost, chuť i nutriční hodnotu. Praktické tipy na teplotu, vlhkost a obaly.",
   "outline": [
     {
-      "heading": "Ideální podmínky pro skladování",
+      "heading": "Základní podmínky pro skladování ořechů",
       "points": [
-        "Teplota do 18 °C, chladné a stálé prostředí",
-        "Nízká vlhkost vzduchu, sucho",
-        "Tma, ochrana před UV zářením a přímým sluncem"
+        "Skladujte na chladném a tmavém místě mimo přímé sluneční záření",
+        "Udržujte nízkou vlhkost vzduchu, aby ořechy nezplesnivěly",
+        "Používejte vzduchotěsné obaly nebo dózy s víčkem"
       ]
     },
     {
-      "heading": "Vhodné obaly a metody",
+      "heading": "Skladování podle druhu ořechu",
       "points": [
-        "Vzduchotěsné sklenice nebo dózy s těsným víčkem",
-        "Skladování v lednici či mrazáku pro delší trvanlivost",
-        "Oddělené skladování loupaných a neloupaných ořechů"
+        "Vlašské a lískové ořechy jsou náchylnější na žluknutí a vyžadují chladnější prostředí",
+        "Mandle a kešu vydrží déle díky nižšímu obsahu tuku",
+        "Neloupané ořechy mají delší trvanlivost než loupané"
       ]
     },
     {
-      "heading": "Jak poznat zkažené ořechy a doba trvanlivosti",
+      "heading": "Jak poznat zkažené ořechy a prodloužit trvanlivost",
       "points": [
-        "Žluklá, hořká chuť jako první varovný signál",
-        "Vizuální kontrola: plíseň nebo změna barvy",
-        "Orientační trvanlivost podle druhu (mandle, vlašské, lískové ořechy)"
+        "Žluklé ořechy poznáte podle nahořklé chuti a nepříjemného zápachu",
+        "Pro dlouhodobé skladování ořechy zamrazte v uzavíratelném sáčku",
+        "Spotřebujte loupané ořechy nejlépe do 3–6 měsíců od otevření obalu"
       ]
     }
   ]

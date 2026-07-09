@@ -1,15 +1,15 @@
 {
-  "reply": "Dobrý den, díky za Vaši poptávku. Rádi Vám s revizí elektroinstalace pomůžeme, pro upřesnění kapacity si musíme položit několik otázek. Mohl bych Vás poprosit o krátké informace — jedná se o revizi a protokolování stávajícího stavu, nebo o projekční práce? A máte nějaký preferovaný termín, kdy byste chtěl, aby se na místě specialista objevil? Na základě Vašich údajů Vám pak sdělíme, kdy se můžeme domluvit.",
+  "reply": "Dobrý den, revizi elektroinstalace rádi zorganizujeme. Abych Vám připravil přesný odhad a dostupné termíny, potřebuji upřesnit pár detailů — brzy se Vám ozveme s konkrétní nabídkou. Děkuji za důvěru.",
   "questions": [
-    "Jde pouze o revizi a protokolování, nebo o návrh nové instalace / modernizace?",
-    "Máte preferovaný termín nebo flexibilitu ohledně času?",
-    "Je kontakt na stavbyvedoucího nebo technického zástupce, s nímž bychom se měli domluvit?"
+    "V jakém časovém rámci plánujete revizi realizovat (např. během prázdnin, nebo je to urgentní)?",
+    "Jedná se o generální kontrolu nebo řešíte konkrétní problémy s elektroinstalací?",
+    "Jsou prostory přístupné během pracovní doby, nebo máme počítat s omezeními?"
   ],
-  "confidence": 65,
+  "confidence": 62,
   "risks": [
-    "Nemáte v podkladech, zda firma vůbec poskytuje služby elektroinstalace nebo revizí — ověřte, aby se lead nekvalifikoval špatně",
-    "Neznáte aktuální kapacitu týmu — neobjevuje se žádná termínová dostupnost v materiálech",
-    "Vedoucí podnikání by měl ověřit, jestli jde o skutečný lead pro Vaši službu nebo o spam/špatný kanál"
+    "Ověřit skutečnou dostupnost týmu před odesláním — slovo 'brzy' musí být splnitelné",
+    "Konfirmovat, že prodejní proces zvládne personalizované follow-up s nabídkou",
+    "Zkontrolovat, zda máte v systému šablonu pro odhad revize 200 m² kancelářního prostoru"
   ],
-  "toneNotes": "Použit formální tykání (vykání, vy/Vás), oslovení bez příjmení (standardní pro první kontakt). Odpověď na hlavní otázku v první části ('rádi pomůžeme'). Tón: profesionální, empatický, s jasným pokračováním – kvalifikace přes otázky místo slibu termínu. Neuváděny ceny ani data, pouze žádost o doplnění informací."
+  "toneNotes": "Formální vykání, rychlá odpověď na primární otázku, ale bez konkrétního slibku termínu; otázky sbírají detaily pro personalizované follow-up; zaměření na budování důvěry než agresivní prodej (typické pro leadgen ve stavebnictví)."
 }

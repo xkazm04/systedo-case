@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Rychlé nasazení",
-      "hypothesis": "Pokud headline nahradí obecný popis produktu konkrétním příslibem rychlého nasazení, návštěvníci vnímají nižší riziko a bariéru vstupu, což zvýší konverzní poměr oproti kontrole.",
-      "headline": "Projekty pod kontrolou za 5 minut, ne za týden",
+      "label": "Konkrétní přínos",
+      "hypothesis": "Popis konkrétního přínosu (přehled nad projekty a dodržování termínů) přesvědčí návštěvníka lépe než obecný popis produktu.",
+      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní časový příslib snižuje vnímané riziko implementace a odlišuje se od obecného popisu kontrolní varianty."
+      "rationale": "Konkrétní benefit místo obecného popisu produktu snižuje nejistotu, co nástroj řeší, a tím zvyšuje ochotu kliknout."
     },
     {
-      "label": "Pojmenovaná bolest",
-      "hypothesis": "Pokud headline pojmenuje konkrétní problém cílové skupiny (rozházené úkoly, zmeškané termíny) místo obecného popisu produktu, návštěvník se s ním ztotožní a konverze vzroste.",
-      "headline": "Konec zmeškaných termínů a rozházených úkolů v tabulkách",
-      "primaryCTA": "Zjistit, jak to funguje",
-      "rationale": "Pojmenování konkrétní bolesti cílí na emoční spouštěč, který obecný popis produktu v kontrole nevyužívá."
+      "label": "Sociální důkaz",
+      "hypothesis": "Zdůraznění, že nástroj běžně používají jiné projektové týmy, sníží obavu z přechodu na nový systém řízení projektů.",
+      "headline": "Nástroj pro řízení projektů, který týmy skutečně používají každý den",
+      "primaryCTA": "Podívat se, jak to funguje",
+      "rationale": "Řeší nedůvěru k neznámému nástroji jinak než sleva nebo obecná kontrola, které tuto obavu neadresovaly."
     },
     {
-      "label": "Frikce na minimum",
-      "hypothesis": "Pokud sníží vstupní bariéru na jediný krok bez nutnosti platební karty místo obecného popisu produktu, konverze vzroste díky nižšímu vnímanému závazku.",
-      "headline": "Nastavte si první projekt jedním klikem",
-      "primaryCTA": "Založit projekt zdarma",
-      "rationale": "Nízké tření cílí na jinou bariéru než sleva nebo dlouhý formulář, které konverzi u předchozích variant naopak snížily."
+      "label": "Rychlé zapojení bez tření",
+      "hypothesis": "Odstranění bariéry vstupu a slib okamžitého vyzkoušení zvýší konverzi víc než dlouhý formulář i obecný popis produktu.",
+      "headline": "Začněte řídit projekty hned – bez zdlouhavého vyplňování",
+      "primaryCTA": "Spustit nástroj zdarma",
+      "rationale": "Přímo cílí na příčinu propadu varianty s dlouhým formulářem tím, že nabízí opačný, bezproblémový start."
     }
   ]
 }
