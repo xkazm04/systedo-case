@@ -8,6 +8,7 @@
  *  top — not included here. The plan catalogue + usage shapes live in the pure
  *  `plans.ts` so the UI can import them without firebase-admin. */
 import { firestore } from "@/lib/firebase";
+import { LOCAL_DB } from "@/lib/local-mode";
 import { PLANS, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
 
 export { PLANS, planHasByom };
@@ -35,6 +36,10 @@ function statusFrom(data: UsageDoc, day: string): UsageStatus {
 
 /** Current usage + limits for a user (no increment). */
 export async function getUsage(userId: string): Promise<UsageStatus> {
+  // Offline dev (LOCAL_DB) has no Firestore/Google ADC — metering would throw and
+  // silently drop every AI generation to its template (BM-L2-01). Serve a local
+  // free-plan status instead; the per-IP rate limiter still bounds abuse.
+  if (LOCAL_DB) return statusFrom({ plan: "free" }, dayKey());
   const snap = await firestore.collection("usage").doc(userId).get();
   return statusFrom((snap.data() as UsageDoc) ?? {}, dayKey());
 }
@@ -42,6 +47,7 @@ export async function getUsage(userId: string): Promise<UsageStatus> {
 /** Just the user's plan (one read), for entitlement checks that don't need the
  *  full usage status — e.g. gating BYOM on the byom plan. Defaults to "free". */
 export async function getUserPlan(userId: string): Promise<Plan> {
+  if (LOCAL_DB) return "free";
   const snap = await firestore.collection("usage").doc(userId).get();
   return (snap.data() as UsageDoc)?.plan ?? "free";
 }
@@ -67,9 +73,16 @@ export async function consume(
   kind: UsageKind,
   amount = 1
 ): Promise<{ ok: boolean; status: UsageStatus }> {
-  const ref = firestore.collection("usage").doc(userId);
   const day = dayKey();
   const charge = Math.max(1, Math.floor(amount));
+
+  // Offline dev (LOCAL_DB): no Firestore transaction — grant the charge so AI
+  // surfaces actually generate locally (the per-IP limiter still applies). Without
+  // this, the metering read throws on missing ADC and the UI silently keeps its
+  // non-AI template, which reads like success (BM-L2-01).
+  if (LOCAL_DB) return { ok: true, status: statusFrom({ plan: "free" }, day) };
+
+  const ref = firestore.collection("usage").doc(userId);
 
   return firestore.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
