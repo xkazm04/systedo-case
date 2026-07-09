@@ -249,6 +249,8 @@ export function validateLeadReplyRequest(input: unknown, locale: SupportedLocale
   if (qualification) value.qualification = qualification.slice(0, 600);
   const brand = str(o.brand);
   if (brand) value.brand = brand.slice(0, 120);
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

@@ -411,8 +411,13 @@ export interface LeadReplyRequest {
    *  doesn't re-ask what's already known and matches the lead's disposition */
   qualification?: string;
   /** the business / brand name, so the reply signs off as the business and reads
-   *  on-brand instead of generic */
+   *  on-brand instead of generic. The route upgrades this to the full derived brand
+   *  context (what they sell + how they talk) when a projectId is present, so the
+   *  reply speaks the business's real offering — injected into the USER prompt only,
+   *  so the golden (system + schema) holds. */
   brand?: string;
+  /** the caller's project, so the route can ground the reply in its catalog/brand */
+  projectId?: string;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;

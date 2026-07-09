@@ -168,16 +168,14 @@ const T = {
   },
 } as const;
 
-/** Map a lead's channel + message to a short project-type hint, so the AI reply
- *  stays on-brand without a separate field. Best-effort keyword match over the
- *  message; falls back to a generic label. */
-function projectTypeFor(lead: InboundLead): string {
+/** A short project-type hint for the AI reply, grounded in the business's REAL
+ *  catalog: prefer a service the lead names in their message, else the primary
+ *  service, else a neutral label. No hardcoded industry — the old klimatizace /
+ *  elektroinstalace guesses mislabelled every non-HVAC maker (BM-L1 cross-niche). */
+function projectTypeFor(lead: InboundLead, hints: string[]): string {
   const m = lead.message.toLowerCase();
-  if (m.includes("klimatiz")) return "montáž klimatizace";
-  if (m.includes("elektroinstal") || m.includes("rozvod")) return "elektroinstalace a rozvody";
-  if (m.includes("servis") || m.includes("smlouv")) return "pravidelný servis";
-  if (m.includes("rekonstr")) return "rekonstrukce";
-  return "poptávaná služba";
+  const named = hints.find((h) => h && m.includes(h.toLowerCase()));
+  return named || hints[0] || "poptávaná služba";
 }
 
 const SLA_TARGET_SEC = SLA_TARGET_MIN * 60;
@@ -272,7 +270,14 @@ function slaState(lead: InboundLead, nowMs: number, arrivalMs: number): SlaState
   return { remaining, phase };
 }
 
-export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
+export default function SpeedLeadModule({
+  leads,
+  serviceHints = [],
+}: {
+  leads: InboundLead[];
+  /** the business's real catalog service names, grounding the reply's type hint */
+  serviceHints?: string[];
+}) {
   const project = useProject();
   const fmt = useFormatters();
   const t = useT(T);
@@ -384,7 +389,7 @@ export default function SpeedLeadModule({ leads }: { leads: InboundLead[] }) {
     run({
       message: selected.message,
       channel: selected.channel,
-      projectType: projectTypeFor(selected),
+      projectType: projectTypeFor(selected, serviceHints),
       name: selected.name,
       brand: promptSafeName(project.name),
       ...(qualification ? { qualification } : {}),

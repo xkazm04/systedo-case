@@ -337,6 +337,12 @@ export async function POST(request: Request) {
       }
       case "lead-reply": {
         const p = validateLeadReplyRequest(body, locale);
+        if (p.valid) {
+          // Ground the reply in the project's real offering (what they sell + how
+          // they talk), upgrading the plain brand name the client sends. Falls back
+          // to that name when there's no catalog. USER-prompt only → golden holds.
+          p.value.brand = (await resolveBrandContext(p.value.projectId, userId, locale)) || p.value.brand;
+        }
         return p.valid ? cachedRespond("lead-reply", p.value, locale, userId, () => generateLeadReply(p.value, locale, request.signal)) : bad(p.error);
       }
       case "repurpose": {
