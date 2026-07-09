@@ -20,6 +20,7 @@ import type { Formatters } from "@/lib/format";
 import {
   KPI_PRESETS,
   kpiLabel,
+  kpiHint,
   type KpiFormat,
   type KpiMetric,
 } from "@/lib/projects/modules";
@@ -253,16 +254,22 @@ export default async function ProjectOverview({
 
         {/* KPI band */}
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
+          {kpis.map((kpi) => {
+            const hint = kpiHint(kpi, locale);
+            return (
             <div key={kpi.metric} className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              <p
+                className={`text-xs font-medium uppercase tracking-wide text-muted${hint ? " cursor-help" : ""}`}
+                title={hint || undefined}
+              >
                 {kpiLabel(kpi, locale)}
               </p>
               <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
                 {fmtKpi(kpiValue(last30, kpi.metric), kpi.format, fmt)}
               </p>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* trend strip */}

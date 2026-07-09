@@ -464,3 +464,32 @@ export function sectionLabel(s: ModuleSection, locale: SupportedLocale): string 
 export function kpiLabel(k: KpiDef, locale: SupportedLocale): string {
   return locale === "en" ? k.labelEn : k.label;
 }
+
+/** Plain-language gloss for the jargon KPI abbreviations, so a non-marketer isn't
+ *  lost on screen one (BM-L1-09). Keyed by metric — only the acronyms need it;
+ *  plain metrics (revenue, visits, conversions…) resolve to "". */
+const KPI_HINTS: Partial<Record<KpiMetric, { cs: string; en: string }>> = {
+  roas: {
+    cs: "ROAS = kolik korun tržeb připadá na 1 Kč výdajů na reklamu (vyšší je lepší).",
+    en: "ROAS = revenue earned for every 1 unit spent on ads (higher is better).",
+  },
+  pno: {
+    cs: "PNO = podíl nákladů na obratu: kolik % z tržeb padne na reklamu (nižší je lepší).",
+    en: "Cost-to-revenue ratio: what share of revenue goes to ads (lower is better).",
+  },
+  cpa: {
+    cs: "Kolik v průměru zaplatíte za jednu konverzi — získání zákazníka nebo leadu.",
+    en: "The average cost to win one conversion — a customer or a lead.",
+  },
+  convRate: {
+    cs: "Konverzní poměr = kolik procent návštěv skončí konverzí.",
+    en: "Conversion rate = the share of visits that end in a conversion.",
+  },
+};
+
+/** Resolve a KPI's plain-language hint for the active locale, or "" if the metric
+ *  needs no gloss. Render as a tooltip so the abbreviation teaches on hover. */
+export function kpiHint(k: KpiDef, locale: SupportedLocale): string {
+  const h = KPI_HINTS[k.metric];
+  return h ? (locale === "en" ? h.en : h.cs) : "";
+}
