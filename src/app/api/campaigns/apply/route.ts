@@ -2,14 +2,14 @@
  *  campaign and applying a recommended budget shift between two campaigns.
  *  Requires a signed-in user with a connected live account; the mutation is
  *  audited server-side. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { applyBudgetShift, applyPause } from "@/lib/campaigns/mutations";
 
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
 export async function POST(request: Request) {
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: {

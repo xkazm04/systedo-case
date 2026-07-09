@@ -2,8 +2,7 @@
  *  server-only. Accepts pasted/uploaded feed CONTENT (Heureka / Zboží.cz / Google
  *  XML or CSV) — a URL-fetch path (SSRF-guarded) is a deliberate follow-up. Two
  *  modes: "preview" returns the diff without saving; "apply" merges + persists. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { listOfferings, saveOfferings } from "@/lib/catalog/store";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
 import { isProduct, type ProductOffering } from "@/lib/catalog/offering";
@@ -20,12 +19,10 @@ const FORMATS: FeedFormat[] = ["heureka", "google", "csv"];
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
-
   const { id } = await params;
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id);
+  if ("error" in g) return g.error;
+  const { uid } = g;
 
   // Reject an oversized body up front, then throttle before the fetch/parse work.
   if (tooLarge(req, CATALOG_MAX_BODY_BYTES)) return payloadTooLarge("Feed je příliš velký.");

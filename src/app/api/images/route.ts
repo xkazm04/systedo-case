@@ -6,7 +6,7 @@
  *
  *  Image generation is a paid call: IP-throttled + a per-user daily `image` quota.
  *  Node runtime, long maxDuration for Leonardo polling. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { consume } from "@/lib/usage";
 import { generateImageSet } from "@/lib/images/studio";
@@ -33,10 +33,6 @@ import { durableGuard } from "@/lib/ai/durable-limit";
 export const maxDuration = 120;
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
-
-async function userId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 export async function POST(request: Request) {
   if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
@@ -73,7 +69,7 @@ export async function POST(request: Request) {
     const fidelityRaw = Number(body.fidelity);
     const projectId = str(body.projectId) || undefined;
 
-    const uid = await userId();
+    const uid = await currentUserId();
 
     // Style prior from creative→revenue attribution: bias generation toward the
     // look that historically earns (signed-in tenants with attribution data).
@@ -170,7 +166,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ creatives: [] });
   const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
   const creatives = await listCreatives(await resolveTenant(uid, projectId));
@@ -178,7 +174,7 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   let id = "";
   let projectId: string | undefined;

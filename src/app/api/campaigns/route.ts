@@ -1,8 +1,7 @@
 /** Campaigns API: list the synced state (GET) and sync from the Ads connector
  *  (POST), per-tenant in Firestore. Each signed-in user reads/writes their own
  *  tenant; anonymous visitors share a `sample` tenant. Node runtime. */
-import type { Session } from "next-auth";
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
 import {
@@ -29,10 +28,6 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
-
-function userIdOf(session: Session | null): string | null {
-  return (session?.user as { id?: string } | undefined)?.id ?? null;
-}
 
 /** Everything the page needs in one payload: campaigns, sync metadata, the latest
  *  stored reports for the period (plus which of them are stale), the per-scope
@@ -98,7 +93,7 @@ export async function GET(request: Request) {
     // when it was never synced — the client then falls back to a real sync).
     const rawPeriod = url.searchParams.get("period");
     const period = isCampaignPeriod(rawPeriod) ? rawPeriod : undefined;
-    const tenant = await resolveTenant(userIdOf(await auth()), projectId);
+    const tenant = await resolveTenant(await currentUserId(), projectId);
     return Response.json(await loadState(tenant, period));
   } catch (err) {
     console.error("[campaigns] loadState failed:", err);
@@ -132,7 +127,7 @@ export async function POST(request: Request) {
   const projectId = typeof rawProjectId === "string" ? rawProjectId : undefined;
   const preferStored = Boolean((body as { preferStored?: unknown } | null)?.preferStored);
 
-  const userId = userIdOf(await auth());
+  const userId = await currentUserId();
 
   // Period toggle fast path: when the requested period's stored state is warm
   // (it has been synced before), flip the tenant's active pointer and serve it

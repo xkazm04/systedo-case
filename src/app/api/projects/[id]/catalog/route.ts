@@ -1,19 +1,16 @@
 /** Persist a project's business catalog (offerings). Per-user, ownership-checked,
  *  server-only. The Katalog module's "Save changes" calls this; the payload is
  *  sanitized before it's stored. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { saveOfferings } from "@/lib/catalog/store";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
-
   const { id } = await params;
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id);
+  if ("error" in g) return g.error;
+  const { uid } = g;
 
   const body = (await req.json().catch(() => null)) as { offerings?: unknown } | null;
   const offerings = sanitizeOfferings(body?.offerings, id);

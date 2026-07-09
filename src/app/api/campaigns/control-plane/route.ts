@@ -6,7 +6,7 @@
  *  Live budget mutations require a connected account; on sample data each move
  *  returns a clear non-destructive error but the governance trail is still kept.
  *  Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
   createChangeSet,
@@ -17,12 +17,8 @@ import {
 import { GuardrailError } from "@/lib/campaigns/control-plane-types";
 
 
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ changeSets: [] });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);
@@ -30,7 +26,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: { action?: unknown; id?: unknown; override?: unknown; projectId?: unknown };

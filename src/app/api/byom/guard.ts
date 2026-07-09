@@ -1,12 +1,8 @@
 /** Shared auth + entitlement gate for the BYOM settings routes. Not a route file
  *  (app router only mounts `route.ts`), just a helper the sibling routes import.
  *  Server-only. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { byomUnlocked, getUserPlan } from "@/lib/usage";
-
-async function currentUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 /** The signed-in user's id, or a 401 Response to return. */
 export async function requireUser(): Promise<{ userId: string } | Response> {

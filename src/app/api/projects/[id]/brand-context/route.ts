@@ -2,7 +2,7 @@
  *  so content surfaces (WeekPlanner) can show "the tool knows your brand" and offer
  *  it as the default voice instead of a blank field. Tenancy-checked: a demo id is
  *  public; a real id must belong to the caller. GET → { context }. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -17,7 +17,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ context: await loadBrandContext(demo, locale) });
   }
 
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const project = await getProject(userId, id);
   if (!project) return Response.json({ error: "Not found" }, { status: 404 });

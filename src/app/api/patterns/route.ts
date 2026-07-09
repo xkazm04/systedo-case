@@ -2,7 +2,7 @@
  *   GET    → auto-derived + saved patterns for the tenant
  *   POST   → save (pin / hand-write) a pattern  (signed-in)
  *   DELETE → remove a saved pattern by id        (signed-in) */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { deletePattern, getLibrary, savePattern } from "@/lib/patterns/store";
 import { isPatternCategory } from "@/lib/patterns/types";
@@ -10,13 +10,9 @@ import { isPatternCategory } from "@/lib/patterns/types";
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-async function userId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function GET(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId");
-  const tenant = await resolveTenant(await userId(), projectId);
+  const tenant = await resolveTenant(await currentUserId(), projectId);
   try {
     return Response.json(await getLibrary(tenant));
   } catch (err) {
@@ -26,7 +22,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: Record<string, unknown>;
@@ -51,7 +47,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   let id = "";
   let projectId: string | null = null;

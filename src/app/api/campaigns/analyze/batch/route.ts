@@ -10,7 +10,7 @@
  *  A NEW sibling of the gate-hashed analyze route: reuses the identical
  *  hash/cache/save seams from the store, so neither the hashed route nor the
  *  LLM chokepoint is touched. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { getPatternLines } from "@/lib/patterns/store";
 import { consume, getUserPlan } from "@/lib/usage";
@@ -56,8 +56,7 @@ export async function POST(request: Request) {
     return payloadTooLarge("Požadavek je příliš velký.");
   }
 
-  const session = await auth();
-  const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+  const userId = await currentUserId();
   if (!userId) {
     return Response.json(
       { error: "Hromadné vyhodnocení je dostupné jen přihlášeným uživatelům." },

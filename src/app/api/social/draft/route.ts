@@ -3,7 +3,7 @@
  *   - template (default): deterministic, instant, free.
  *   - ai:true: the LLM social tool (richer copy), IP-throttled + per-user AI quota,
  *     with the deterministic templates as the demo fallback. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { generateSocialPosts } from "@/lib/ai/tools";
 import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
@@ -158,7 +158,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+    const userId = await currentUserId();
     const plan = userId ? await getUserPlan(userId) : "free";
     // BYOM: an entitled caller runs "social" on their assigned provider (matrix
     // override or global active); BYOM-served calls skip the per-user quota.

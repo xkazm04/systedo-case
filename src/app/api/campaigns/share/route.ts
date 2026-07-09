@@ -2,7 +2,7 @@
  *   POST   → create a link for the current portfolio evaluation (returns URL)
  *   GET    → list the user's links (copy / revoke / expiry / views)
  *   DELETE → revoke one link by token */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { getAdsConnection } from "@/lib/campaigns/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
@@ -14,12 +14,8 @@ import { getProject } from "@/lib/projects/store";
 import { canonical } from "@/lib/site";
 
 
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let projectId: string | undefined;
@@ -51,7 +47,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ reports: [] });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
@@ -64,7 +60,7 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let token = "";

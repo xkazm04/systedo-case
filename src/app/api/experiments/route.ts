@@ -4,7 +4,7 @@
  *   PATCH  → set a variant's metrics {experimentId, variantId, metrics}
  *   DELETE → remove an experiment {experimentId}
  *  Requires an account (anonymous generation stays transient). Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { recordActivity } from "@/lib/campaigns/activity";
 import {
@@ -16,10 +16,6 @@ import {
 import type { AdResult } from "@/lib/ai-types";
 import type { AdVariantMetrics } from "@/lib/ai/experiment-types";
 
-
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
 const strArr = (v: unknown): string[] =>
@@ -42,7 +38,7 @@ function toAdResult(raw: unknown): AdResult | null {
 }
 
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ experiments: [] });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);
@@ -50,7 +46,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Pro uložení varianty se přihlaste." }, { status: 401 });
 
   let body: { name?: unknown; label?: unknown; ad?: unknown; strength?: unknown; projectId?: unknown };
@@ -83,7 +79,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: { experimentId?: unknown; variantId?: unknown; metrics?: unknown; projectId?: unknown };
@@ -114,7 +110,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id = "";

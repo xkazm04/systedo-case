@@ -1,7 +1,7 @@
 /** Evaluate a single campaign or the whole portfolio with the LLM, persist the
  *  report to SQLite and return it. The period is taken from the synced metadata
  *  so a stored report always matches the data currently on screen. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
@@ -60,8 +60,7 @@ export async function POST(request: Request) {
     const parsed = validateEvaluationRequest(body);
     if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
 
-    const session = await auth();
-    const userId = (session?.user as { id?: string } | undefined)?.id ?? null;
+    const userId = await currentUserId();
     const rawProjectId = (body as { projectId?: unknown } | null)?.projectId;
     const projectId = typeof rawProjectId === "string" ? rawProjectId : undefined;
     const tenant = await resolveTenant(userId, projectId);

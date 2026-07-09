@@ -1,7 +1,7 @@
 /** Read/update the signed-in tenant's client-report configuration (white-label
  *  branding + recipients + cadence). Drives the branded report page and the daily
  *  report cron. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
   REPORT_CADENCES,
@@ -11,22 +11,18 @@ import {
 } from "@/lib/campaigns/report-config";
 
 
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   return Response.json(await getReportConfig(await resolveTenant(userId, projectId)));
 }
 
 export async function PUT(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: Record<string, unknown>;

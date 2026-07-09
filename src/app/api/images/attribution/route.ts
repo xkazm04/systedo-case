@@ -4,7 +4,7 @@
  *   PATCH  → set a link's metrics {linkId, metrics}
  *   DELETE → remove a link {linkId}
  *  Requires an account. Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
   listCreativeLinks,
@@ -19,10 +19,6 @@ import {
 } from "@/lib/images/attribution-types";
 import { isImageStyle } from "@/lib/images/types";
 
-
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
 
@@ -39,7 +35,7 @@ function toMetrics(raw: unknown): CreativeMetrics | null {
 }
 
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ links: [], leaderboard: [], prior: { style: null, hint: "" } });
   const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
   const tenant = await resolveTenant(userId, projectId);
@@ -49,7 +45,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Pro uložení se přihlaste." }, { status: 401 });
 
   let body: Record<string, unknown>;
@@ -75,7 +71,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: { linkId?: unknown; metrics?: unknown; projectId?: unknown };
@@ -95,7 +91,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let linkId = "";

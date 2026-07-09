@@ -1,13 +1,13 @@
 /** Stream a stored creative's bytes from Firebase Storage, scoped to the signed-in
  *  user's tenant so library images stay private (no public bucket URLs). Used as
  *  the <img src> for the asset-library thumbnails. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getCreativeFile } from "@/lib/images/store";
 
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const uid = await currentUserId();
   if (!uid) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;

@@ -4,7 +4,7 @@
  *   DELETE → take it offline
  *  The slug is derived from the client name; a slug already owned by another
  *  tenant is rejected. Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { slugify } from "@/lib/nav";
@@ -16,12 +16,8 @@ import {
 } from "@/lib/microsite";
 
 
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ microsite: null });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);
@@ -29,7 +25,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Pro publikování se přihlaste." }, { status: 401 });
 
   let body: {
@@ -78,7 +74,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);

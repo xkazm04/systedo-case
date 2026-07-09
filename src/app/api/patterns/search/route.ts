@@ -3,7 +3,7 @@
  *  unavailable. IP-throttled (embeds N+1 texts per call) for everyone, plus a
  *  per-user daily quota for signed-in users — the embedding call is paid, so it's
  *  metered like the other AI routes (anonymous stays IP-limited only). */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { searchPatterns } from "@/lib/patterns/store";
 import { consume } from "@/lib/usage";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Zadejte dotaz (min. 2 znaky)." }, { status: 422 });
   }
 
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
 
   // Per-user daily quota for signed-in users (the embedding call is paid).
   if (userId) {

@@ -1,6 +1,6 @@
 /** Connected social accounts for the signed-in user (demo connect until real
  *  Meta/LinkedIn OAuth credentials exist). GET list / POST connect / DELETE. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import {
   connectAccount,
   disconnectAccount,
@@ -10,18 +10,14 @@ import {
 import { isSocialPlatform } from "@/lib/social/types";
 
 
-async function userId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function GET() {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ configured: socialConfigured(), accounts: [] });
   return Response.json({ configured: socialConfigured(), accounts: await listAccounts(uid) });
 }
 
 export async function POST(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const platform = (await request.json().catch(() => ({})))?.platform;
   if (!isSocialPlatform(platform)) return Response.json({ error: "Neplatná platforma." }, { status: 422 });
@@ -30,7 +26,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const platform = (await request.json().catch(() => ({})))?.platform;
   if (!isSocialPlatform(platform)) return Response.json({ error: "Neplatná platforma." }, { status: 422 });

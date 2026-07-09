@@ -1,8 +1,7 @@
 /** Manage a project's persisted warehouse/ERP connection. Per-user, ownership-checked,
  *  server-only. GET returns the client-safe status (no token); PUT connects (encrypting
  *  the API token at rest); DELETE disconnects. The token is never returned to the client. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { syncProvider } from "@/lib/inventory/providers";
 import { encryptToken, hasTokenCrypto } from "@/lib/inventory/token-crypto";
 import { ErpError, parseErpConfig, type ErpAdapterConfig } from "@/lib/inventory/erp";
@@ -16,28 +15,18 @@ import {
 } from "@/lib/inventory/connection-store";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
-type Owned = { ok: true; uid: string } | { ok: false; res: Response };
-
-async function ownedProject(id: string): Promise<Owned> {
-  const uid = await currentUserId();
-  if (!uid) return { ok: false, res: Response.json({ error: "Nepřihlášeno." }, { status: 401 }) };
-  const project = await getProject(uid, id);
-  if (!project) return { ok: false, res: Response.json({ error: "Projekt nenalezen." }, { status: 404 }) };
-  return { ok: true, uid };
-}
-
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await ownedProject(id);
-  if (!auth.ok) return auth.res;
+  const auth = await requireOwnedProject(id);
+  if ("error" in auth) return auth.error;
   const conn = await getConnection(auth.uid, id);
   return Response.json({ connection: conn ? publicConnection(conn) : null });
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await ownedProject(id);
-  if (!auth.ok) return auth.res;
+  const auth = await requireOwnedProject(id);
+  if ("error" in auth) return auth.error;
 
   const limited = enforceCatalogRate(auth.uid, CATALOG_RATE.connect());
   if (limited) return limited;
@@ -105,8 +94,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const auth = await ownedProject(id);
-  if (!auth.ok) return auth.res;
+  const auth = await requireOwnedProject(id);
+  if ("error" in auth) return auth.error;
   await deleteConnection(auth.uid, id);
   await emitProjectActivity(auth.uid, id, {
     kind: "update",

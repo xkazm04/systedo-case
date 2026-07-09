@@ -1,17 +1,13 @@
 /** In-app alert inbox for the signed-in user's tenant:
  *   GET  → newest alerts + unread count
  *   POST → mark one alert (by id) or all as read */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listAlerts, markAlertsRead } from "@/lib/campaigns/alerts";
 
 
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
-
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ alerts: [], unread: 0 });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
@@ -22,7 +18,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id: string | undefined;

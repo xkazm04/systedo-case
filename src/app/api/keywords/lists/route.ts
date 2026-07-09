@@ -4,7 +4,7 @@
  *   PATCH  → re-tag keywords in a list {id, tags}
  *   DELETE → remove a list {id}
  *  Saving requires an account (anonymous research stays transient). Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { recordActivity } from "@/lib/campaigns/activity";
 import {
@@ -15,10 +15,6 @@ import {
 } from "@/lib/keywords/store";
 import { aggregateNegatives, type KeywordTag, type SavedKeyword } from "@/lib/keywords/types";
 
-
-async function requireUserId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 const TAGS: KeywordTag[] = ["core", "negative", "watch"];
 const isTag = (v: unknown): v is KeywordTag => typeof v === "string" && TAGS.includes(v as KeywordTag);
@@ -44,7 +40,7 @@ function toSavedKeyword(raw: unknown): SavedKeyword | null {
 }
 
 export async function GET(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ lists: [], negatives: [] });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId);
@@ -53,7 +49,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Pro uložení seznamu se přihlaste." }, { status: 401 });
 
   let body: { name?: unknown; seed?: unknown; source?: unknown; keywords?: unknown; projectId?: unknown };
@@ -88,7 +84,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let body: { id?: unknown; tags?: unknown; projectId?: unknown };
@@ -114,7 +110,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = await requireUserId();
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   let id = "";

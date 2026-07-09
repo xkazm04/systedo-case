@@ -1,6 +1,6 @@
 /** Project CRUD for the signed-in user — list + create. Per-user, server-only.
  *  The onboarding flow and the project switcher call this. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { createProject, listProjects } from "@/lib/projects/store";
 import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import { saveOfferings } from "@/lib/catalog/store";
@@ -9,10 +9,6 @@ import type { OfferingNature } from "@/lib/catalog/offering";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
 const NATURES: OfferingNature[] = ["online", "local", "hybrid"];
-
-async function userId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 function isProjectType(v: unknown): v is ProjectType {
   return typeof v === "string" && (PROJECT_TYPES as string[]).includes(v);
@@ -23,13 +19,13 @@ function isNature(v: unknown): v is OfferingNature {
 }
 
 export async function GET() {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   return Response.json({ projects: await listProjects(uid) });
 }
 
 export async function POST(req: Request) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   const body = (await req.json().catch(() => null)) as

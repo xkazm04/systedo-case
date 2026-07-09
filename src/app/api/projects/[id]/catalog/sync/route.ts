@@ -3,8 +3,7 @@
  *  back to the project's persisted connection (whose token is decrypted here only).
  *  The actual sync runs through the shared runCatalogSync (same as the cron re-sync);
  *  this route just resolves credentials and maps the result to an HTTP status. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getConnection } from "@/lib/inventory/connection-store";
 import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
@@ -14,12 +13,10 @@ import type { ImportStrategy } from "@/lib/catalog/import";
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
-
   const { id } = await params;
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id);
+  if ("error" in g) return g.error;
+  const { uid } = g;
 
   // Throttle before any provider round-trip (each sync hits an external ERP/API).
   const limited = enforceCatalogRate(uid, CATALOG_RATE.sync());

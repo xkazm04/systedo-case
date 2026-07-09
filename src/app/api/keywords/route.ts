@@ -2,7 +2,7 @@
  *  a seed term, from the user's Google Ads Keyword Planner (live) or the
  *  deterministic sample (keyless/anonymous). Throttled per IP — it can hit the
  *  Ads API — but it isn't a paid LLM call, so no per-user AI quota. Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { researchKeywords } from "@/lib/keywords/engine";
 import {
   RATE_RULES,
@@ -41,7 +41,7 @@ export async function POST(request: Request) {
   }
   const url = str(body.url) || undefined;
 
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
 
   try {
     const result = await researchKeywords(userId, seed, url);

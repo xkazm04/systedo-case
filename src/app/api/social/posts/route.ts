@@ -1,7 +1,7 @@
 /** Social posts: list, create (schedule for later or publish now), delete.
  *  Per-tenant; anonymous visitors use the shared sample tenant so the flow demos
  *  without sign-in. Publishing is simulated in demo mode (see lib/social/publish). */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
@@ -12,7 +12,7 @@ import { PLATFORM_LIMITS, isSocialPlatform } from "@/lib/social/types";
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 async function tenantOf(projectId?: string | null): Promise<string> {
-  const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const uid = await currentUserId();
   return resolveTenant(uid, projectId);
 }
 

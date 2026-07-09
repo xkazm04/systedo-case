@@ -1,20 +1,16 @@
 /** Single-project update + delete for the signed-in user. Server-only. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { deleteProject, updateProject } from "@/lib/projects/store";
 import { PROJECT_TYPES, type ProjectPatch, type ProjectType } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
-
-async function userId(): Promise<string | null> {
-  return (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
-}
 
 function isProjectType(v: unknown): v is ProjectType {
   return typeof v === "string" && (PROJECT_TYPES as string[]).includes(v);
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
 
@@ -57,7 +53,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await userId();
+  const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
   await deleteProject(uid, id);

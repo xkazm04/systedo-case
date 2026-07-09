@@ -1,6 +1,6 @@
 /** Social comms inbox: list inbound comments/DMs (sample-seeded) and send an
  *  (approved) reply. Per-tenant; replies are simulated in demo mode. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listMessages, markReplied } from "@/lib/social/store";
 import { publishReply } from "@/lib/social/publish";
@@ -11,7 +11,7 @@ import { isSocialPlatform } from "@/lib/social/types";
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 async function tenantOf(projectId?: string | null): Promise<string> {
-  const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const uid = await currentUserId();
   return resolveTenant(uid, projectId);
 }
 

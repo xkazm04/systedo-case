@@ -4,8 +4,7 @@
  *   PATCH  → switch which connected account is active
  *   DELETE → disconnect one account
  *  Stored per-user in Firestore; the active account drives the connector + tenant. */
-import type { Session } from "next-auth";
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { getUserAccessToken } from "@/lib/google/token";
 import {
   adsConfigured,
@@ -21,10 +20,6 @@ import {
 } from "@/lib/campaigns/connection";
 
 
-function userIdOf(session: Session | null): string | null {
-  return (session?.user as { id?: string } | undefined)?.id ?? null;
-}
-
 async function readBody(request: Request): Promise<{ customerId?: unknown; customerName?: unknown }> {
   try {
     return await request.json();
@@ -34,7 +29,7 @@ async function readBody(request: Request): Promise<{ customerId?: unknown; custo
 }
 
 export async function GET() {
-  const userId = userIdOf(await auth());
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   const { accounts: connected, activeCustomerId } = await listConnectedAccounts(userId);
@@ -66,7 +61,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const userId = userIdOf(await auth());
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   const body = await readBody(request);
@@ -79,7 +74,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const userId = userIdOf(await auth());
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   const body = await readBody(request);
@@ -91,7 +86,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const userId = userIdOf(await auth());
+  const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
   const body = await readBody(request);

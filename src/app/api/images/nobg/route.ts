@@ -1,7 +1,7 @@
 /** Background removal for a generated Creative Studio image — Leonardo nobg
  *  variation by image id, returning a transparent PNG (data URL). Requires
  *  LEONARDO_API_KEY; IP-throttled + per-user daily image quota. Node runtime. */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { consume } from "@/lib/usage";
 import { leonardoConfigured, removeBackground } from "@/lib/leonardo/client";
 import {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
     if (!imageId) return Response.json({ error: "Chybí ID obrázku." }, { status: 422 });
 
-    const uid = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+    const uid = await currentUserId();
     if (uid) {
       const quota = await consume(uid, "image");
       if (!quota.ok) {
