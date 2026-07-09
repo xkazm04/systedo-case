@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { ArrowRight, Bolt, Check, Gauge, Network, Search } from "@/components/icons";
@@ -132,16 +132,20 @@ const COMP_COLOR: Record<string, string> = {
 export default function KeywordResearch({
   onCreateBrief,
   onSaved,
+  initialSeed,
 }: {
   onCreateBrief: (seed: BriefSeed) => void;
   onSaved?: () => void;
+  /** Prefill + auto-run for a seed handed in from elsewhere (e.g. a Lokální
+   *  coverage gap → "prozkoumat klíčová slova"), so the bridge lands on results. */
+  initialSeed?: string;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
-  const [seed, setSeed] = useState("");
+  const [seed, setSeed] = useState(initialSeed ?? "");
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [result, setResult] = useState<KeywordResult | null>(null);
@@ -155,8 +159,8 @@ export default function KeywordResearch({
 
   const canSubmit = seed.trim().length >= 2 && status !== "loading";
 
-  async function run(e: React.FormEvent) {
-    e.preventDefault();
+  async function run(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!canSubmit) return;
     setStatus("loading");
     setError(null);
@@ -183,6 +187,17 @@ export default function KeywordResearch({
       setStatus("error");
     }
   }
+
+  // Auto-run once when a seed was handed in (the Lokální-gap bridge), so the maker
+  // lands straight on the demand for that service×area instead of an empty field.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (initialSeed && !autoRan.current) {
+      autoRan.current = true;
+      void run();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggle = (kw: string) =>
     setSelected((s) => {

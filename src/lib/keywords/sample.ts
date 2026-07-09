@@ -26,6 +26,11 @@ const MODIFIERS: { make: (s: string) => string; volume: number; comp: number }[]
   { make: (s) => `${s} pro děti`, volume: 0.26, comp: 0.6 },
   { make: (s) => `bio ${s}`, volume: 0.31, comp: 0.65 },
   { make: (s) => `${s} účinky`, volume: 0.29, comp: 0.35 },
+  // Near-me / booking variants — so a local-service seed surfaces its local-intent
+  // demand (classified as "local"), not just informational/transactional tail.
+  { make: (s) => `${s} v okolí`, volume: 0.34, comp: 0.5 },
+  { make: (s) => `${s} poblíž`, volume: 0.3, comp: 0.45 },
+  { make: (s) => `${s} objednání`, volume: 0.24, comp: 0.55 },
 ];
 
 function competitionBand(index: number): Competition {

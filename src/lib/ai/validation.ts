@@ -625,7 +625,7 @@ export function validateEvaluationRequest(input: unknown, locale: SupportedLocal
   return { valid: true, value: { scope, period: o.period } };
 }
 
-const CLUSTER_INTENTS = new Set(["informational", "transactional", "brand"]);
+const CLUSTER_INTENTS = new Set(["informational", "transactional", "brand", "local"]);
 
 /** Sanitize one supplied keyword into the clustering input, or null to drop it.
  *  A row needs a non-empty keyword; volume/intent are optional and coerced. */

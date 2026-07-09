@@ -19,6 +19,7 @@ import type {
   KeywordClustersResult,
   KeywordClusterInput,
 } from "../../ai-types";
+import type { KeywordIntent } from "@/lib/keywords/types";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
@@ -91,7 +92,7 @@ const KEYWORD_CLUSTERS_SCHEMA = {
   propertyOrdering: ["clusters"],
 };
 
-const INTENTS: ReadonlySet<string> = new Set(["informational", "transactional", "brand"]);
+const INTENTS: ReadonlySet<string> = new Set(["informational", "transactional", "brand", "local"]);
 
 /** A case-insensitive lookup from the supplied keywords back to their canonical
  *  text + volume, so the model's regrouping is anchored to the real input set
@@ -115,6 +116,27 @@ const volumeOf = (index: Map<string, KeywordClusterInput>, keyword: string): num
  *  diacritics left intact (we only compare keys, never render them). */
 const headTerm = (keyword: string): string =>
   keyword.trim().toLowerCase().split(/\s+/)[0] ?? "";
+
+/** Most common classified intent among a bucket's keywords (undefined if none
+ *  carried one) — lets a near-me-dominated bucket surface as a "local" cluster in
+ *  the keyless demo, matching how the input keywords were classified. */
+function dominantIntent(items: KeywordClusterInput[]): KeywordIntent | undefined {
+  const counts = new Map<string, number>();
+  for (const k of items) {
+    if (!k.intent || !INTENTS.has(k.intent)) continue;
+    counts.set(k.intent, (counts.get(k.intent) ?? 0) + 1);
+  }
+  let best: string | undefined;
+  let bestN = 0;
+  for (const [intent, n] of counts) {
+    if (n > bestN) {
+      best = intent;
+      bestN = n;
+    }
+  }
+  // Only INTENTS members were counted, so the cast is sound.
+  return best as KeywordIntent | undefined;
+}
 
 /** Deterministic clustering from the keywords alone — the keyless demo and the
  *  floor when the model returns nothing usable. Buckets by shared head term, then
@@ -141,6 +163,7 @@ function demoKeywordClusters(req: KeywordClustersRequest): KeywordClustersResult
     const all = [pillar, ...supporting];
     clusters.push({
       topic: head,
+      intent: dominantIntent(items),
       pillar,
       supporting,
       totalVolume: all.reduce((s, kw) => s + volumeOf(index, kw), 0),

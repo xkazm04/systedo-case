@@ -40,6 +40,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         recentReviews={SAMPLE_RECENT_REVIEWS}
         businessName={project.name}
         businessType={businessType}
+        projectId={projectId}
       />
     </ModulePage>
   );

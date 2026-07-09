@@ -30,7 +30,8 @@ function toSavedKeyword(raw: unknown): SavedKeyword | null {
   const keyword = typeof r.keyword === "string" ? r.keyword.trim() : "";
   if (!keyword) return null;
   const num = (v: unknown, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
-  const intent = r.intent === "transactional" || r.intent === "brand" ? r.intent : "informational";
+  const intent =
+    r.intent === "transactional" || r.intent === "brand" || r.intent === "local" ? r.intent : "informational";
   const competition = r.competition === "low" || r.competition === "high" ? r.competition : "medium";
   return {
     keyword,

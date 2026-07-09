@@ -10,7 +10,7 @@ import { briefSeedKey } from "@/lib/projects/brief-seed";
 /** Keywords module = research + saved lists, wired exactly like the AI workspace:
  *  saving a list refreshes the list panel, and "create brief" hands the selected
  *  keywords to the content module via session storage + a route change. */
-export default function KeywordsModule() {
+export default function KeywordsModule({ initialSeed }: { initialSeed?: string }) {
   const project = useProject();
   const router = useRouter();
   const [savedNonce, setSavedNonce] = useState(0);
@@ -26,7 +26,7 @@ export default function KeywordsModule() {
 
   return (
     <div className="stagger space-y-8">
-      <KeywordResearch onCreateBrief={onCreateBrief} onSaved={() => setSavedNonce((n) => n + 1)} />
+      <KeywordResearch initialSeed={initialSeed} onCreateBrief={onCreateBrief} onSaved={() => setSavedNonce((n) => n + 1)} />
       <SavedKeywordLists refreshKey={savedNonce} />
     </div>
   );

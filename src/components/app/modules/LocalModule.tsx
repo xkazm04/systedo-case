@@ -1,4 +1,5 @@
 /** Lokální dominance — service×area coverage gaps + review reputation. Server. */
+import Link from "next/link";
 import { Pill } from "@/components/ui";
 import type { PillTone } from "@/components/ui";
 import { Pin } from "@/components/icons";
@@ -32,6 +33,8 @@ const T = {
     volumeCol: "Objem/měs.",
     statusCol: "Stav",
     missingPage: "Chybí stránka",
+    gapActionCol: "Akce",
+    exploreGap: "Prozkoumat klíčová slova",
     gapsNote: "Pro každou mezeru nasaďte lokální microsite (/m/…) + Google Business profil. Seam: rank tracker + reviews API + call tracking.",
     reputationTitle: "Reputace podle lokality",
     reviewCount: "{n} recenzí",
@@ -60,6 +63,8 @@ const T = {
     volumeCol: "Volume/mo.",
     statusCol: "Status",
     missingPage: "No page",
+    gapActionCol: "Action",
+    exploreGap: "Explore keywords",
     gapsNote: "For each gap, deploy a local microsite (/m/…) + Google Business Profile. Seam: rank tracker + reviews API + call tracking.",
     reputationTitle: "Reputation by location",
     reviewCount: "{n} reviews",
@@ -86,11 +91,15 @@ export default async function LocalModule({
   recentReviews,
   businessName,
   businessType,
+  projectId,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
   recentReviews: RecentReview[];
   businessName?: string;
+  /** the project id, so a coverage gap can link into keyword research for it.
+   *  Optional: the marketing demo renders this module without a live project route. */
+  projectId?: string;
   /** what this business actually does, derived from the catalog — grounds the AI
    *  review replies instead of a hardcoded industry (BM-L1-07). */
   businessType?: string;
@@ -192,6 +201,7 @@ export default async function LocalModule({
                 <th className="px-4 py-3 font-medium">{t("serviceColGap")}</th>
                 <th className="px-4 py-3 text-right font-medium">{t("volumeCol")}</th>
                 <th className="px-4 py-3 font-medium">{t("statusCol")}</th>
+                {projectId && <th className="px-4 py-3 font-medium">{t("gapActionCol")}</th>}
               </tr>
             </thead>
             <tbody>
@@ -203,6 +213,16 @@ export default async function LocalModule({
                   <td className="px-4 py-3">
                     <Pill tone="coral">{t("missingPage")}</Pill>
                   </td>
+                  {projectId && (
+                    <td className="px-4 py-3">
+                      <Link
+                        href={`/app/${projectId}/klicova-slova?seed=${encodeURIComponent(`${tgt.service} ${tgt.area}`)}`}
+                        className="text-xs font-semibold text-brand-accent hover:underline"
+                      >
+                        {t("exploreGap")} →
+                      </Link>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

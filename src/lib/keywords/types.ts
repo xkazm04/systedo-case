@@ -10,12 +10,13 @@ export const COMPETITION_LABELS: Record<Competition, string> = {
   high: "Vysoká",
 };
 
-export type KeywordIntent = "informational" | "transactional" | "brand";
+export type KeywordIntent = "informational" | "transactional" | "brand" | "local";
 
 export const KEYWORD_INTENT_LABELS: Record<KeywordIntent, string> = {
   informational: "Informační",
   transactional: "Transakční",
   brand: "Značkové",
+  local: "Lokální",
 };
 
 /** What a provider (Ads Keyword Planner or the sample generator) returns before
@@ -111,12 +112,24 @@ const INFORMATIONAL = [
   "jak", "co", "proč", "kdy", "kde", "návod", "recenze", "nejlepší", "srovnání",
   "test", "rozdíl", "vs", "druhy", "typy", "význam", "zdravé", "benefit",
 ];
+// Near-me / booking markers — the way people search for a local service (find a
+// provider nearby, get an appointment). A geo/"near me" query is its own intent:
+// high commercial value but won by local presence (GBP + a locality page), not a
+// generic transactional page — so it deserves its own bucket, not "transactional".
+const LOCAL = [
+  "v okolí", "poblíž", "poblíž mě", "nedaleko", "v okolí mě", "blízko", "u nás",
+  "rezervace", "rezervovat", "objednání", "objednat se", "otevírací doba",
+  "kontakt", "adresa", "pobočka", "provozovna",
+];
 
-/** Classify a keyword's search intent. Brand match wins, then transactional
- *  markers, then informational; defaults to informational. */
+/** Classify a keyword's search intent. Brand match wins, then local (near-me /
+ *  booking), then transactional, then informational; defaults to informational.
+ *  Local is checked before transactional so "…objednat se poblíž" reads as local,
+ *  not a generic buy query. */
 export function classifyIntent(keyword: string, brand?: string): KeywordIntent {
   const k = keyword.toLowerCase();
   if (brand && k.includes(brand.toLowerCase())) return "brand";
+  if (LOCAL.some((t) => k.includes(t))) return "local";
   if (TRANSACTIONAL.some((t) => k.includes(t))) return "transactional";
   if (INFORMATIONAL.some((t) => k.includes(t))) return "informational";
   return "informational";
