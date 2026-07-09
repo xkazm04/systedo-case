@@ -6,7 +6,28 @@
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { saveTwin, clearTwin } from "@/lib/twin/store";
-import { sanitizeTwinState } from "@/lib/twin/types";
+import { channelConfig, decideDraft, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
+
+/** Re-derive the autonomy gate server-side. `decideDraft` is "the one rule, in one
+ *  place", but the client is the only caller, so a POSTed blob could otherwise claim
+ *  `autoApproved: true` for a draft the gate would never clear (a review channel, a
+ *  risky claim, low confidence) and `send/route.ts` would then treat it as vetted.
+ *  A machine auto-approval must be independently re-derivable or it is not one — so
+ *  any `autoApproved: true` that the gate rejects falls back to the gate's real
+ *  verdict. Human approvals (`autoApproved: false`, owner-authenticated above) keep
+ *  their lifecycle. Kept here, not in the client-imported `types.ts`. */
+function enforceAutonomy(state: TwinState): TwinState {
+  return {
+    ...state,
+    drafts: state.drafts.map((d) => {
+      if (!d.autoApproved) return d;
+      const verdict = decideDraft(channelConfig(state.channels, d.channel), d);
+      return verdict.autoApproved
+        ? { ...d, status: "approved" as const, autoApproved: true }
+        : { ...d, status: verdict.status, autoApproved: false };
+    }),
+  };
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -16,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  const state = sanitizeTwinState(body);
+  const state = enforceAutonomy(sanitizeTwinState(body));
   await saveTwin(project.id, { ...state, updatedAt: new Date().toISOString() });
   return Response.json({ ok: true });
 }

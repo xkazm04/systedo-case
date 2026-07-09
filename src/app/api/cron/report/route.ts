@@ -13,14 +13,9 @@ import { getReportConfig, markReportSent, type ReportCadence } from "@/lib/campa
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { canonical } from "@/lib/site";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const maxDuration = 300;
-
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
-}
 
 /** Is a cadence due on this date? weekly → Monday, monthly → the 1st (UTC). */
 function isDue(cadence: ReportCadence, now: Date): boolean {
@@ -30,7 +25,7 @@ function isDue(cadence: ReportCadence, now: Date): boolean {
 }
 
 export async function GET(request: Request) {
-  if (!authorized(request)) {
+  if (!cronAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

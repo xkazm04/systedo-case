@@ -6,17 +6,12 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
 import { listDueScheduled, updatePost } from "@/lib/social/store";
 import { publishPost } from "@/lib/social/publish";
+import { cronAuthorized } from "@/lib/cron-auth";
 
 export const maxDuration = 300;
 
-function authorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
-}
-
 export async function GET(request: Request) {
-  if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  if (!cronAuthorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const nowIso = new Date().toISOString();
   const userIds = await listConnectedSocialUserIds();
