@@ -1,0 +1,2035 @@
+[
+ {
+  "name": "App Shell & Shared Chrome",
+  "description": "The authenticated product frame: AppShell composes AppSidebar's two-level rail nav (SectionRailNav) and AppTopbar around each module page, with shell-context syncing the mobile drawer and icon-map resolving module icons. Modal, ModulePage, SectionSkeleton, AppShellSkeleton and NextSteps are the shared dialog/page-header/skeleton/cross-module-link primitives every module reuses; AppSignInGate is the conversion wall shown to anonymous visitors on /app.",
+  "suggestedGroup": "App Layout & Navigation",
+  "category": "ui",
+  "businessFeature": "authenticated app shell and navigation chrome",
+  "keywords": [
+   "app-shell",
+   "sidebar",
+   "navigation",
+   "modal",
+   "skeleton",
+   "layout"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/AppShell.tsx",
+   "src/components/app/AppShellSkeleton.tsx",
+   "src/components/app/AppSidebar.tsx",
+   "src/components/app/AppSignInGate.tsx",
+   "src/components/app/AppTopbar.tsx",
+   "src/components/app/Modal.tsx",
+   "src/components/app/ModulePage.tsx",
+   "src/components/app/NextSteps.tsx",
+   "src/components/app/SectionSkeleton.tsx",
+   "src/components/app/icon-map.tsx",
+   "src/components/app/nav/SectionRailNav.tsx",
+   "src/components/app/shell-context.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "Project Lifecycle, Onboarding & Overview",
+  "description": "Creating, switching between, onboarding into, and getting a KPI overview of a project: ProjectsHome (the /app landing/list) and CreateProjectForm's module-package matrix (with create-project-packages/create-project-shared helpers), ProjectSwitcher, the OnboardingModule 'Start' wizard (site scan to catalog to connected data) plus OnboardingProgressCard/DismissOnboarding, and ProjectOverview which renders a single project's KPI band or, with 2+ projects, the cross-project PortfolioCompare table (via overview/compare.ts) with LocationsOverviewSection folded in. SampleDataNote is the shared 'illustrative sample data' trust banner reused across these and other modules.",
+  "suggestedGroup": "Project Management",
+  "category": "ui",
+  "businessFeature": "project creation, onboarding, and portfolio dashboard",
+  "keywords": [
+   "project",
+   "onboarding",
+   "portfolio",
+   "overview",
+   "create-project",
+   "kpi"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/CreateProjectForm.tsx",
+   "src/components/app/DismissOnboarding.tsx",
+   "src/components/app/OnboardingProgressCard.tsx",
+   "src/components/app/ProjectOverview.tsx",
+   "src/components/app/ProjectSwitcher.tsx",
+   "src/components/app/ProjectsHome.tsx",
+   "src/components/app/SampleDataNote.tsx",
+   "src/components/app/create-project-packages.ts",
+   "src/components/app/create-project-shared.tsx",
+   "src/components/app/modules/OnboardingModule.tsx",
+   "src/components/app/overview/LocationsOverviewSection.tsx",
+   "src/components/app/overview/PortfolioCompare.tsx",
+   "src/components/app/overview/compare.ts"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "Account, Settings & AI Model Configuration",
+  "description": "The project Nastaveni (settings) surface and account-level admin: ProjectSettings, AccountSecurity (profile, honest security checklist, GDPR deletion request), ActivityModule (project-wide audit timeline), IntegrationStatusModule (per-category connector readiness board), and the BYOM (bring-your-own-model) trio ByomKeys/ByomMatrix plus the read-only ByomQualityMatrix/ByomQualityOverview quality scoreboard, which is also reused on the public /kvalita-modelu page.",
+  "suggestedGroup": "Account & Settings",
+  "category": "ui",
+  "businessFeature": "account security, project settings, integration status, and BYOM model quality",
+  "keywords": [
+   "settings",
+   "account",
+   "security",
+   "integrations",
+   "byom",
+   "model-quality"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/modules/AccountSecurity.tsx",
+   "src/components/app/modules/ActivityModule.tsx",
+   "src/components/app/modules/ByomKeys.tsx",
+   "src/components/app/modules/ByomMatrix.tsx",
+   "src/components/app/modules/ByomQualityMatrix.tsx",
+   "src/components/app/modules/ByomQualityOverview.tsx",
+   "src/components/app/modules/IntegrationStatusModule.tsx",
+   "src/components/app/modules/ProjectSettings.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "SEO, Keyword & Content Workspace",
+  "description": "The organic-growth content pipeline: KeywordsModule (research + saved lists, hands selections to Content via a session brief-seed) and ClusterBuilder; CompareSeoModule/CompareSeoTable (comparison-query opportunity scoring with a live client-side weight-tuning panel); ContentEngine (topic clusters + decaying-post alerts) and ContentSchedule (a Google Business Profile post calendar); OrganicChannels (channel research); and LpExperimentsModule/LpVariantIdeasPanel (landing-page A/B results plus AI-suggested challenger variants).",
+  "suggestedGroup": "SEO & Content",
+  "category": "ui",
+  "businessFeature": "keyword research, comparison-SEO scoring, content planning, and landing-page experiments",
+  "keywords": [
+   "seo",
+   "keywords",
+   "content",
+   "clusters",
+   "landing-page",
+   "experiments"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/modules/ClusterBuilder.tsx",
+   "src/components/app/modules/CompareSeoModule.tsx",
+   "src/components/app/modules/CompareSeoTable.tsx",
+   "src/components/app/modules/ContentEngine.tsx",
+   "src/components/app/modules/ContentSchedule.tsx",
+   "src/components/app/modules/KeywordsModule.tsx",
+   "src/components/app/modules/LpExperimentsModule.tsx",
+   "src/components/app/modules/LpVariantIdeasPanel.tsx",
+   "src/components/app/modules/OrganicChannels.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "Local SEO, Map Pack, Leads & Reviews",
+  "description": "The location-based growth cluster: LocalModule (service x area coverage gaps and review reputation) with LocalLadderSource/LocalReviews; LocationsModule (multi-location roster with attention-sorted tasks); MapPackModule composing the Leaflet-based MapPackClient with RankLadder's SVG ranking history; LeadQualityModule (cost-per-qualified-lead + source/campaign funnel) with LeadSourceDiagnosisPanel; SpeedLeadModule (inbound-lead SLA and BANT-qualification inbox); and ReviewInbox (a fuller review-reputation triage + AI reply surface reusing the same local-review-reply AI operation as LocalReviews).",
+  "suggestedGroup": "Local SEO & Lead Response",
+  "category": "ui",
+  "businessFeature": "local search dominance, map-pack ranking, lead-quality funnels, and review reputation",
+  "keywords": [
+   "local-seo",
+   "map-pack",
+   "locations",
+   "leads",
+   "reviews",
+   "ranking"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss",
+   "leaflet"
+  ],
+  "filePaths": [
+   "src/components/app/modules/LeadQualityModule.tsx",
+   "src/components/app/modules/LeadSourceDiagnosisPanel.tsx",
+   "src/components/app/modules/LocalLadderSource.tsx",
+   "src/components/app/modules/LocalModule.tsx",
+   "src/components/app/modules/LocalReviews.tsx",
+   "src/components/app/modules/LocationsModule.tsx",
+   "src/components/app/modules/MapPackClient.tsx",
+   "src/components/app/modules/MapPackModule.tsx",
+   "src/components/app/modules/RankLadder.tsx",
+   "src/components/app/modules/ReviewInbox.tsx",
+   "src/components/app/modules/SpeedLeadModule.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "Finance: LTV, Profit, Spend & Client Reporting",
+  "description": "LtvModule (CAC-to-LTV cohort economics, project-type-aware framing) with LtvDiagnosisPanel/LtvProjectionPanel/LtvReportButton; ProfitModule (channel/product margin and budget reallocation); SpendModule (LLM usage cost tracking by operation/model); and MonthlyReport, the client-ready recap that composes CostModelEditor, CompetitorEditor and ReportBeyond (LTV + inventory summary cards) into one AI-narrated monthly report.",
+  "suggestedGroup": "Finance & Reporting",
+  "category": "ui",
+  "businessFeature": "CAC/LTV cohort economics, profit/margin modeling, LLM spend tracking, and the monthly client report",
+  "keywords": [
+   "ltv",
+   "profit",
+   "spend",
+   "cost-model",
+   "monthly-report",
+   "cohort"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/modules/CompetitorEditor.tsx",
+   "src/components/app/modules/CostModelEditor.tsx",
+   "src/components/app/modules/LtvDiagnosisPanel.tsx",
+   "src/components/app/modules/LtvModule.tsx",
+   "src/components/app/modules/LtvProjectionPanel.tsx",
+   "src/components/app/modules/LtvReportButton.tsx",
+   "src/components/app/modules/MonthlyReport.tsx",
+   "src/components/app/modules/ProfitModule.tsx",
+   "src/components/app/modules/ReportBeyond.tsx",
+   "src/components/app/modules/SpendModule.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "Catalog, Inventory, Audience & Distribution",
+  "description": "CatalogManagerModule (the type-aware offering editor other modules read from: products/plans/services with pricing and margin) and CatalogModule (Google Ads asset-group/creative generator); InventorySeasonModule (seasonality + stock-cover pacing) with InventoryBudgetActions (executable inventory-aware budget change-sets) and WarehouseSourceBar (ERP/3PL connector picker); AudienceModule (funnel, segments and revenue); BrandingModule (report/microsite brand accent and logo); and DistributionModule (repurposing one article across channels with UTM tracking and newsletter handoff).",
+  "suggestedGroup": "Catalog & Distribution",
+  "category": "ui",
+  "businessFeature": "product/offering catalog management, inventory-aware budget actions, audience funnel, branding, and content distribution",
+  "keywords": [
+   "catalog",
+   "inventory",
+   "audience",
+   "branding",
+   "distribution",
+   "warehouse"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/modules/AudienceModule.tsx",
+   "src/components/app/modules/BrandingModule.tsx",
+   "src/components/app/modules/CatalogManagerModule.tsx",
+   "src/components/app/modules/CatalogModule.tsx",
+   "src/components/app/modules/DistributionModule.tsx",
+   "src/components/app/modules/InventoryBudgetActions.tsx",
+   "src/components/app/modules/InventorySeasonModule.tsx",
+   "src/components/app/modules/WarehouseSourceBar.tsx"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "AI Digital Twin (Communication Autopilot)",
+  "description": "The three-route Twin feature sharing one persisted blob via useTwinState: TwinModule trains a per-channel voice from real messages and shows the ReadinessRibbon score; TwinChannelsModule sets per-channel autonomy and connector config via TwinChannels; TwinInboxModule is the draft-review-send queue via TwinOutbox, folding in SpeedLeadModule for the dedicated leads inbox. TwinVoiceStudio is the training screen used by TwinModule.",
+  "suggestedGroup": "AI Digital Twin",
+  "category": "ui",
+  "businessFeature": "training and operating an AI communication twin across channels",
+  "keywords": [
+   "twin",
+   "autonomy",
+   "outbox",
+   "voice-training",
+   "readiness",
+   "channels"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "tailwindcss"
+  ],
+  "filePaths": [
+   "src/components/app/modules/TwinChannelsModule.tsx",
+   "src/components/app/modules/TwinInboxModule.tsx",
+   "src/components/app/modules/TwinModule.tsx",
+   "src/components/app/twin/ReadinessRibbon.tsx",
+   "src/components/app/twin/TwinChannels.tsx",
+   "src/components/app/twin/TwinOutbox.tsx",
+   "src/components/app/twin/TwinVoiceStudio.tsx",
+   "src/components/app/twin/useTwinState.ts"
+  ],
+  "_chunk": "A"
+ },
+ {
+  "name": "AI Content & Marketing Tools",
+  "description": "Client panels that call the app's AI backend to generate/analyze marketing content: ad copy and experiments, article drafts and content briefs/pipeline, keyword research, creative studio/attribution, performance analysis, and a semantic pattern library derived from campaign results that tunes AI portfolio evaluation. Shares a common primitives.tsx (Field, LoadingTimer, RefineBar, ResultMeta, ToolError) and useAiTool/useAiStatus/usePersistedForm hooks for consistent generate/retry/timeout/history behavior. Feature-specific UI, not a design system.",
+  "suggestedGroup": "ai",
+  "category": "ui",
+  "businessFeature": "AI-assisted marketing content generation",
+  "keywords": [
+   "ai",
+   "content generation",
+   "keyword research",
+   "ad copy",
+   "creative studio",
+   "patterns",
+   "semantic search"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript"
+  ],
+  "filePaths": [
+   "src/components/ai/AdExperiments.tsx",
+   "src/components/ai/AdGenerator.tsx",
+   "src/components/ai/AiAssistant.tsx",
+   "src/components/ai/AiPreflight.tsx",
+   "src/components/ai/ArticleDraftPanel.tsx",
+   "src/components/ai/ContentBriefGenerator.tsx",
+   "src/components/ai/ContentPipeline.tsx",
+   "src/components/ai/CreativeAttribution.tsx",
+   "src/components/ai/CreativeStudio.tsx",
+   "src/components/ai/KeywordResearch.tsx",
+   "src/components/ai/PerformanceAnalyst.tsx",
+   "src/components/ai/SavedKeywordLists.tsx",
+   "src/components/ai/primitives.tsx",
+   "src/components/ai/useAiStatus.ts",
+   "src/components/ai/useAiTool.ts",
+   "src/components/ai/usePersistedForm.ts",
+   "src/components/patterns/PatternsLibrary.tsx"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Article Reading Experience",
+  "description": "Long-form blog/case-study article UI: body renderer with UTM-tagged links, table of contents (desktop + mobile), heading anchors, FAQ permalinks, author bio, breadcrumbs, reading progress bar, print-expand, share bar, markdown copy button and toast, plus small state helpers (permalink, reading-resume, section-store). Feature-specific UI for the /clanek article routes.",
+  "suggestedGroup": "article",
+  "category": "ui",
+  "businessFeature": "Content marketing / article reading UX",
+  "keywords": [
+   "article",
+   "toc",
+   "reading progress",
+   "faq",
+   "share",
+   "markdown"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript"
+  ],
+  "filePaths": [
+   "src/components/article/ArticleBody.tsx",
+   "src/components/article/ArticleToc.tsx",
+   "src/components/article/AuthorBio.tsx",
+   "src/components/article/Breadcrumbs.tsx",
+   "src/components/article/CopyMarkdownButton.tsx",
+   "src/components/article/CopyToast.tsx",
+   "src/components/article/FaqHashOpen.tsx",
+   "src/components/article/FaqPermalink.tsx",
+   "src/components/article/HeadingAnchor.tsx",
+   "src/components/article/MobileToc.tsx",
+   "src/components/article/PrintExpand.tsx",
+   "src/components/article/ReadingProgress.tsx",
+   "src/components/article/ShareBar.tsx",
+   "src/components/article/permalink.ts",
+   "src/components/article/reading-resume.ts",
+   "src/components/article/section-store.ts"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Campaigns / Ad Ops Control Plane",
+  "description": "Ad-campaign management feature for the /kampane surface: campaign table with triage/aggregation, budget-move control plane (propose/approve/revert change packages with guardrails), health and score timelines, activity feed, alerts inbox, ads-account picker, microsite cards, shareable/printable reports, and the useCampaigns data hook. Feature-specific UI wired to lib/campaigns/*.",
+  "suggestedGroup": "campaigns",
+  "category": "ui",
+  "businessFeature": "Ad campaign management and budget control",
+  "keywords": [
+   "campaigns",
+   "budget",
+   "control plane",
+   "triage",
+   "reports",
+   "ads"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript"
+  ],
+  "filePaths": [
+   "src/components/campaigns/ActivityFeed.tsx",
+   "src/components/campaigns/AdsAccountPicker.tsx",
+   "src/components/campaigns/AlertsInbox.tsx",
+   "src/components/campaigns/BudgetMoves.tsx",
+   "src/components/campaigns/CampaignTable.tsx",
+   "src/components/campaigns/CampaignsClient.tsx",
+   "src/components/campaigns/ChangeStrip.tsx",
+   "src/components/campaigns/ControlPlane.tsx",
+   "src/components/campaigns/HealthTimeline.tsx",
+   "src/components/campaigns/MicrositeCard.tsx",
+   "src/components/campaigns/PrintButton.tsx",
+   "src/components/campaigns/ReportSettings.tsx",
+   "src/components/campaigns/ReportView.tsx",
+   "src/components/campaigns/ScoreTimeline.tsx",
+   "src/components/campaigns/SharedReportsList.tsx",
+   "src/components/campaigns/TriageBanner.tsx",
+   "src/components/campaigns/TypeBreakdown.tsx",
+   "src/components/campaigns/useCampaigns.ts"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Performance Dashboard & Reporting",
+  "description": "The 'Výkon' (performance) dashboard: period-scoped KPI grid, trend chart, channel breakdown, goal pacing, weekday profile, anomaly alerts and auto-generated insights (dashboard/vykon/* subpanels), plus a report-to-chat surface that lets a user question a data snapshot via the AI backend. DashboardClient owns shared state and composes the self-contained vykon/ panels. Feature-specific UI for the /dashboard and /app/[id]/vykon routes.",
+  "suggestedGroup": "dashboard",
+  "category": "ui",
+  "businessFeature": "Marketing performance dashboard",
+  "keywords": [
+   "dashboard",
+   "kpi",
+   "trend chart",
+   "anomalies",
+   "insights",
+   "report chat"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript"
+  ],
+  "filePaths": [
+   "src/components/dashboard/ChannelTable.tsx",
+   "src/components/dashboard/DashboardClient.tsx",
+   "src/components/dashboard/DeltaBadge.tsx",
+   "src/components/dashboard/GoalPacing.tsx",
+   "src/components/dashboard/KpiCard.tsx",
+   "src/components/dashboard/ReportChat.tsx",
+   "src/components/dashboard/TrendChart.tsx",
+   "src/components/dashboard/WeekdayProfileCard.tsx",
+   "src/components/dashboard/vykon/AlertsPanel.tsx",
+   "src/components/dashboard/vykon/ChannelsSection.tsx",
+   "src/components/dashboard/vykon/InsightsPanel.tsx",
+   "src/components/dashboard/vykon/KpiGrid.tsx",
+   "src/components/dashboard/vykon/PeriodHeader.tsx",
+   "src/components/dashboard/vykon/PnoGauge.tsx",
+   "src/components/dashboard/vykon/Segmented.tsx",
+   "src/components/dashboard/vykon/TrendCard.tsx",
+   "src/components/dashboard/vykon/plural.ts"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Site Chrome, Auth & Demo Shell",
+  "description": "Global site chrome shared across every page: header nav (with journey-aware mobile menu), footer, Cmd/Ctrl+K command palette, locale/theme switchers, doc-style task pager with keyboard hotkeys and visited-journey beacon, Google sign-in/out button, session provider, and a header AI-usage-quota chip. Also includes the public no-auth DemoShell/DemoModule/DemoShellSkeleton, a visual twin of the authed app shell that dispatches to real feature modules for the /dashboard public demo. Shared chrome/shell infrastructure, not a single feature.",
+  "suggestedGroup": "site",
+  "category": "ui",
+  "businessFeature": "Site navigation, authentication and public demo shell",
+  "keywords": [
+   "navigation",
+   "header",
+   "footer",
+   "command palette",
+   "auth",
+   "session",
+   "demo shell"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "next-auth"
+  ],
+  "filePaths": [
+   "src/components/site/ChromeGate.tsx",
+   "src/components/site/CommandPalette.tsx",
+   "src/components/site/Footer.tsx",
+   "src/components/site/JourneyBeacon.tsx",
+   "src/components/site/LocaleSwitcher.tsx",
+   "src/components/site/Nav.tsx",
+   "src/components/site/PagerHotkeys.tsx",
+   "src/components/site/TaskPager.tsx",
+   "src/components/site/ThemeToggle.tsx",
+   "src/components/auth/AuthButton.tsx",
+   "src/components/auth/Providers.tsx",
+   "src/components/usage/UsageMeter.tsx",
+   "src/components/demo/DemoModule.tsx",
+   "src/components/demo/DemoShell.tsx",
+   "src/components/demo/DemoShellSkeleton.tsx"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Design System Primitives",
+  "description": "Shared, dependency-light design-system building blocks used app-wide: Container/Eyebrow/Pill/Button primitives (ui.tsx) documented as the centralisation of ~185 hand-rolled buttons, an inline SVG icon set (icons.tsx), a pure server-renderable Sparkline chart primitive, the framer-motion LazyMotion provider and Kinetics animation primitives (ChartReveal/Tally/Kinetic/Marquee) for marketing surfaces, and a live locale-formatting showcase page component. This is a genuine shared design system, not feature-specific UI; rendered together on /design-system.",
+  "suggestedGroup": "design-system",
+  "category": "ui",
+  "businessFeature": "Design system / shared UI primitives",
+  "keywords": [
+   "design system",
+   "button",
+   "icons",
+   "sparkline",
+   "motion",
+   "primitives",
+   "locale"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "framer-motion"
+  ],
+  "filePaths": [
+   "src/components/ui.tsx",
+   "src/components/icons.tsx",
+   "src/components/charts/Sparkline.tsx",
+   "src/components/motion/Kinetics.tsx",
+   "src/components/motion/MotionProvider.tsx",
+   "src/components/LocaleShowcase.tsx"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Marketing Landing Pages",
+  "description": "Public top-of-funnel marketing pages: the Adamant homepage (BrandLanding, its Crossroad case-study directory and meta data) and the standalone local-SEO showcase page (LocalSeoShowcase with its RankClimbDemo, RankClimbChart, VisibilityGauge and CompetitorBars charts). Feature-specific marketing/landing UI, several pieces using the shared motion Kinetics primitives for scroll-triggered reveals.",
+  "suggestedGroup": "marketing",
+  "category": "ui",
+  "businessFeature": "Marketing landing pages",
+  "keywords": [
+   "landing page",
+   "homepage",
+   "local seo",
+   "marketing",
+   "charts"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript",
+   "framer-motion"
+  ],
+  "filePaths": [
+   "src/components/brand/BrandLanding.tsx",
+   "src/components/brand/crossroad/Crossroad.tsx",
+   "src/components/brand/crossroad/meta.tsx",
+   "src/components/marketing/LocalSeoShowcase.tsx",
+   "src/components/marketing/RankClimbDemo.tsx",
+   "src/components/marketing/charts/CompetitorBars.tsx",
+   "src/components/marketing/charts/RankClimbChart.tsx",
+   "src/components/marketing/charts/VisibilityGauge.tsx"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "Social Media Planning",
+  "description": "Organic social-media feature at /socialni: SocialClient (account connection, AI-assisted post drafting with brand voice/tone, publishing) and WeekPlanner (a 7-day calendar that batch-generates and schedules AI-drafted posts by orchestrating the existing draft + posts API routes). Feature-specific UI, small and self-contained.",
+  "suggestedGroup": "social",
+  "category": "ui",
+  "businessFeature": "Social media content planning",
+  "keywords": [
+   "social media",
+   "scheduling",
+   "calendar",
+   "ai drafting"
+  ],
+  "techStack": [
+   "react",
+   "nextjs",
+   "typescript"
+  ],
+  "filePaths": [
+   "src/components/social/SocialClient.tsx",
+   "src/components/social/WeekPlanner.tsx"
+  ],
+  "_chunk": "B"
+ },
+ {
+  "name": "LLM Provider Wrapper, Telemetry & Quality Scoring",
+  "description": "The single generateStructured chokepoint (llm/index.ts) that switches between the Claude Code CLI provider (dev) and Gemini API (prod) with bounded retries, one self-repair re-prompt on domain-limit violations, and a deterministic demo fallback, plus its model-tag registry (models.ts), cost estimator (cost.ts), BYOM HTTP-status error classifier (errors.ts), per-request identity AsyncLocalStorage context (request-context.ts), and the eval telemetry/LightTrack mirror/quality-comparison matrix that observe every call. index.ts, claude.ts, gemini.ts and models.ts are exactly the files scripts/llm-gate.mjs hashes in HASHED_FILES to decide whether any tool needs re-proving against the real model.",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "AI generation infrastructure",
+  "keywords": [
+   "generateStructured",
+   "provider wrapper",
+   "Claude CLI",
+   "Gemini API",
+   "retry",
+   "self-repair",
+   "telemetry",
+   "cost estimate",
+   "quality matrix",
+   "llm-gate"
+  ],
+  "techStack": [
+   "typescript",
+   "claude",
+   "gemini",
+   "node:child_process"
+  ],
+  "filePaths": [
+   "src/lib/llm/claude.ts",
+   "src/lib/llm/cost.ts",
+   "src/lib/llm/errors.ts",
+   "src/lib/llm/gemini.ts",
+   "src/lib/llm/index.ts",
+   "src/lib/llm/lighttrack.ts",
+   "src/lib/llm/models.ts",
+   "src/lib/llm/quality-scores.ts",
+   "src/lib/llm/quality.ts",
+   "src/lib/llm/request-context.ts",
+   "src/lib/llm/telemetry-ops.ts",
+   "src/lib/llm/telemetry.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "BYOM (Bring-Your-Own-Model) Keys & Provider Adapters",
+  "description": "Per-user 'bring your own API key' subsystem: AES-256-GCM key encryption/decryption and the store dispatcher (Firestore or local sqlite backend) behind put/delete/resolve-key and the per-operation matrix (keys/*), plus the four vendor HTTP adapters — OpenAI, Anthropic, Gemini, OpenRouter — that each try native structured output and fall back once to a prompt-embedded schema (byom/adapters.ts), the per-provider reasoning-level mapping (byom/reasoning.ts), the Google-Type→strict-JSON-Schema converter (byom/schema.ts), and the AsyncLocalStorage BYOM request context that generateStructured's resolveProviders() reads to put a configured BYOM key FIRST in the provider order.",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "Bring-your-own-model settings",
+  "keywords": [
+   "BYOM",
+   "API key encryption",
+   "AES-256-GCM",
+   "OpenAI adapter",
+   "Anthropic adapter",
+   "OpenRouter adapter",
+   "reasoning level",
+   "resolveProviders"
+  ],
+  "techStack": [
+   "typescript",
+   "openai",
+   "anthropic",
+   "gemini",
+   "openrouter",
+   "node:crypto"
+  ],
+  "filePaths": [
+   "src/lib/llm/byom-context.ts",
+   "src/lib/llm/byom/adapters.ts",
+   "src/lib/llm/byom/reasoning.ts",
+   "src/lib/llm/byom/request.ts",
+   "src/lib/llm/byom/schema.ts",
+   "src/lib/llm/keys/crypto.ts",
+   "src/lib/llm/keys/store.firestore.ts",
+   "src/lib/llm/keys/store.local.ts",
+   "src/lib/llm/keys/store.ts",
+   "src/lib/llm/keys/types.ts",
+   "src/lib/llm/keys/validate.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "Core Marketing AI Tools & Skill SDK (gate-tracked)",
+  "description": "Ten of the app's 19 gate-tracked generateStructured tools — ads, brief, analysis, campaign-eval, monthly-recap, chat, social, repurpose, local-review-reply, article-draft — plus their shared prompt-fragment helpers (_shared.ts string/list utilities, refine.ts re-run steering notes, voice.ts trained-brand-voice injection shared by twin-reply/social/repurpose) and the tools barrel (tools/index.ts). Also includes the Skill SDK (skills/types.ts: the Skill<I,O> contract + skillToGenerateArgs) and its registry (skills/registry.ts), which wraps ads.ts as the reference plugin and REFUSES to register any skill whose id isn't in GATE_COVERED_SKILL_IDS. Every tool file carries a `// llm-tool: <id>` tag that scripts/llm-gate.mjs cross-checks against test-llm/registry.mjs's LLM_TOOLS array and re-proves incrementally (only the affected tool ids, via --test-name-pattern) through the committed .llm-gate-cache.json whenever that tool's own hashed file changes.",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "Marketing content generation tools",
+  "keywords": [
+   "llm-tool tag",
+   "generateStructured",
+   "PPC ads",
+   "SEO brief",
+   "campaign evaluation",
+   "skill SDK",
+   "gate-covered",
+   "structured output schema",
+   "self-repair validate"
+  ],
+  "techStack": [
+   "typescript",
+   "gemini",
+   "claude",
+   "@google/genai"
+  ],
+  "filePaths": [
+   "src/lib/ai/tools/_shared.ts",
+   "src/lib/ai/tools/ads.ts",
+   "src/lib/ai/tools/analysis.ts",
+   "src/lib/ai/tools/article-draft.ts",
+   "src/lib/ai/tools/brief.ts",
+   "src/lib/ai/tools/campaign-eval.ts",
+   "src/lib/ai/tools/chat.ts",
+   "src/lib/ai/tools/index.ts",
+   "src/lib/ai/tools/local-review-reply.ts",
+   "src/lib/ai/tools/monthly-recap.ts",
+   "src/lib/ai/tools/refine.ts",
+   "src/lib/ai/tools/repurpose.ts",
+   "src/lib/ai/tools/social.ts",
+   "src/lib/ai/tools/voice.ts",
+   "src/lib/skills/registry.ts",
+   "src/lib/skills/types.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "Diagnostic, Growth & Twin-Voice AI Tools (gate-tracked)",
+  "description": "The remaining 9 gate-tracked generateStructured tools: data-grounded diagnostic tools (cohort-diagnosis, lead-source-diagnosis) that read real computed metrics and must not invent figures, SEO/growth generators (keyword-clusters, comparison-outline, lp-variant-ideas, channel-research, onboarding-scan), and the two twin-voice tools (twin-reply drafts an on-brand outbound reply with a confidence/risk autonomy signal, twin-style distils a channel's voice from real message samples plus gap-questions). Each file carries the `// llm-tool: <id>` tag the llm-gate coverage check (findCallSites/checkChokepoint in test-llm/callsites.mjs) and .llm-gate-cache.json enforce.",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "Marketing diagnostics & growth generation tools",
+  "keywords": [
+   "cohort diagnosis",
+   "lead source diagnosis",
+   "keyword clustering",
+   "comparison outline",
+   "LP variant ideas",
+   "channel research",
+   "onboarding scan",
+   "twin reply",
+   "twin style",
+   "llm-tool tag"
+  ],
+  "techStack": [
+   "typescript",
+   "gemini",
+   "claude",
+   "@google/genai"
+  ],
+  "filePaths": [
+   "src/lib/ai/tools/channel-research.ts",
+   "src/lib/ai/tools/cohort-diagnosis.ts",
+   "src/lib/ai/tools/comparison-outline.ts",
+   "src/lib/ai/tools/keyword-clusters.ts",
+   "src/lib/ai/tools/lead-source-diagnosis.ts",
+   "src/lib/ai/tools/lp-variant-ideas.ts",
+   "src/lib/ai/tools/onboarding-scan.ts",
+   "src/lib/ai/tools/twin-reply.ts",
+   "src/lib/ai/tools/twin-style.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "AI Workspace Contracts, Pipeline & Ad Experiments",
+  "description": "The shared client+server contract for all 15 AiMode tools (ai-types.ts: every request/result interface plus the AiResponse/AiMeta/AiError envelopes) and its server-only request validators (validation.ts, one validateXRequest per tool with shared length/enum caps), the pure step-mappers that chain tools into the one-click content pipeline (pipeline.ts: keywords→clusters→brief→article-draft→distribution), the cross-tool handoff mapper (handoff.ts: brief→PPC-ad seed), the per-tool bounded localStorage generation history (history.ts), and the Firestore-backed A/B ad-experiment model plus ROAS/strength-based winner scoring (experiment-types.ts pure model, experiments.ts persistence).",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "AI workspace contracts & tool chaining",
+  "keywords": [
+   "AiResponse envelope",
+   "request validation",
+   "content pipeline",
+   "cross-tool handoff",
+   "generation history",
+   "A/B ad experiments",
+   "AdVariant winner"
+  ],
+  "techStack": [
+   "typescript",
+   "firestore"
+  ],
+  "filePaths": [
+   "src/lib/ai-types.ts",
+   "src/lib/ai/experiment-types.ts",
+   "src/lib/ai/experiments.ts",
+   "src/lib/ai/handoff.ts",
+   "src/lib/ai/history.ts",
+   "src/lib/ai/pipeline.ts",
+   "src/lib/ai/validation.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "AI Abuse Guards & Response Governance",
+  "description": "Per-IP throttling and spend protection for the unauthenticated, paid AI endpoints: a fixed-window sqlite rate limiter plus a process-level concurrency cap and spoof-resistant client-IP resolution (rate-limit.ts), its Firestore-backed cross-instance twin with a global daily spend ceiling in one transaction (durable-limit.ts) built on framework-free pure decision helpers (durable-limit-core.ts), an in-memory input-hash response cache that dedupes identical /api/ai submits within a TTL window (response-cache.ts), and the pure decision helpers behind the /api/ai/status preflight banner — which provider would serve, demo/exhausted/degraded/low-budget notice kind (status-core.ts).",
+  "suggestedGroup": "AI / LLM Core",
+  "category": "logic",
+  "businessFeature": "AI abuse prevention & budget governance",
+  "keywords": [
+   "rate limiting",
+   "Firestore durable guard",
+   "global spend ceiling",
+   "response cache",
+   "preflight status",
+   "x-forwarded-for spoofing"
+  ],
+  "techStack": [
+   "typescript",
+   "firestore",
+   "sqlite"
+  ],
+  "filePaths": [
+   "src/lib/ai/durable-limit-core.ts",
+   "src/lib/ai/durable-limit.ts",
+   "src/lib/ai/rate-limit.ts",
+   "src/lib/ai/response-cache.ts",
+   "src/lib/ai/status-core.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "Twin — Brand Communication Double",
+  "description": "The project's per-channel trained-voice + reply-outbox domain module: the TwinState model, autonomy-gate decision rule and client-payload sanitizers (types.ts), the sample↔trained resolution seam that merges a saved voice over the seeded default per scope (resolve.ts) with the untrained per-project-type seed (sample.ts), the six-milestone readiness scorer with prioritized gap hints (readiness.ts), the delivery-connector registry (connectors.ts — currently only a manual no-op sender plus an unimplemented SMTP placeholder), the store dispatcher and its Firestore/local sqlite backends (store.ts, store.firestore.ts, store.local.ts), the tenancy-checked AI-request voice loader consumed by twin-reply/repurpose (load.ts), the stored-voice→wire-shape mapper (wire.ts), and the sessionStorage bridge that carries an inbound message into the reply editor across a route change (reply-seed.ts).",
+  "suggestedGroup": "Twin (Brand Voice)",
+  "category": "logic",
+  "businessFeature": "Trained brand voice & auto-reply outbox",
+  "keywords": [
+   "twin voice",
+   "brand voice training",
+   "readiness milestones",
+   "autonomy gate",
+   "outbox drafts",
+   "connector",
+   "reply seed"
+  ],
+  "techStack": [
+   "typescript",
+   "firestore",
+   "sqlite"
+  ],
+  "filePaths": [
+   "src/lib/twin/connectors.ts",
+   "src/lib/twin/load.ts",
+   "src/lib/twin/readiness.ts",
+   "src/lib/twin/reply-seed.ts",
+   "src/lib/twin/resolve.ts",
+   "src/lib/twin/sample.ts",
+   "src/lib/twin/store.firestore.ts",
+   "src/lib/twin/store.local.ts",
+   "src/lib/twin/store.ts",
+   "src/lib/twin/types.ts",
+   "src/lib/twin/wire.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "Creative Studio — Image Generation & Revenue Attribution",
+  "description": "The generate→recognize→rank image pipeline (images/studio.ts) that calls the Leonardo REST client (leonardo/client.ts: Lucid-Origin txt2img, an SDXL init-image img2img path for product-faithful generation, and background removal) and Gemini vision scoring (leonardo/rate.ts, 1–10 + defects), falling back to deterministic SVG placeholders when LEONARDO_API_KEY is absent; the Firestore-backed creative asset library (images/store.ts: upload bytes to Storage + metadata doc); and the creative-to-ad-revenue attribution model that ranks visual styles by ROAS/vision-score and derives a style prior fed back into the next generation prompt (images/attribution.ts persistence, attribution-types.ts pure scoring, types.ts domain model).",
+  "suggestedGroup": "Creative Studio",
+  "category": "logic",
+  "businessFeature": "AI image generation & creative attribution",
+  "keywords": [
+   "Leonardo AI",
+   "image generation",
+   "Gemini vision scoring",
+   "creative attribution",
+   "style prior",
+   "ROAS",
+   "background removal"
+  ],
+  "techStack": [
+   "typescript",
+   "leonardo-ai",
+   "gemini",
+   "firestore"
+  ],
+  "filePaths": [
+   "src/lib/images/attribution-types.ts",
+   "src/lib/images/attribution.ts",
+   "src/lib/images/store.ts",
+   "src/lib/images/studio.ts",
+   "src/lib/images/types.ts",
+   "src/lib/leonardo/client.ts",
+   "src/lib/leonardo/rate.ts"
+  ],
+  "_chunk": "C"
+ },
+ {
+  "name": "Auth & BYOM entitlements",
+  "description": "NextAuth.js v5 config (Google OAuth + Firestore adapter, with a hard-gated DEV_AUTH bypass that only works outside production) and the BYOM (bring-your-own-model) settings API. guard.ts centralizes requireUser/requireByomUser, which keys/matrix/route/validate all import. Every route requires a signed-in user; mutating BYOM key/vendor config additionally requires the BYOM plan entitlement.",
+  "suggestedGroup": "Auth & Entitlements",
+  "category": "api",
+  "businessFeature": "Sign-in and bring-your-own-model key management",
+  "keywords": [
+   "auth",
+   "next-auth",
+   "google-oauth",
+   "firestore-adapter",
+   "byom",
+   "entitlement",
+   "dev-auth"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "next-auth",
+   "firebase-admin"
+  ],
+  "apiRoutes": [
+   "/api/auth/[...nextauth]",
+   "/api/byom",
+   "/api/byom/keys",
+   "/api/byom/matrix",
+   "/api/byom/validate"
+  ],
+  "filePaths": [
+   "src/auth.ts",
+   "src/app/api/auth/[...nextauth]/route.ts",
+   "src/app/api/byom/guard.ts",
+   "src/app/api/byom/route.ts",
+   "src/app/api/byom/keys/route.ts",
+   "src/app/api/byom/matrix/route.ts",
+   "src/app/api/byom/validate/route.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Scheduled cron jobs",
+  "description": "Six Vercel Cron endpoints (catalog-sync, digest, microsite, report, social, sync) that fan out scheduled work across every connected user/tenant: Ads re-sync with change-aware anomaly alerts, a weekly performance digest (email + webhook + AI-ops rollup), and microsite/report regeneration. All six are guarded by cronAuthorized()/CRON_SECRET checked as a Bearer token — a distinct auth mechanism from the session-based auth() used everywhere else in the API surface.",
+  "suggestedGroup": "Scheduled Jobs",
+  "category": "api",
+  "businessFeature": "Automated portfolio sync, alerting and digesting",
+  "keywords": [
+   "cron",
+   "vercel-cron",
+   "cron-secret",
+   "scheduled-sync",
+   "digest",
+   "alerts"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "vercel-cron"
+  ],
+  "apiRoutes": [
+   "/api/cron/catalog-sync",
+   "/api/cron/digest",
+   "/api/cron/microsite",
+   "/api/cron/report",
+   "/api/cron/social",
+   "/api/cron/sync"
+  ],
+  "filePaths": [
+   "src/app/api/cron/catalog-sync/route.ts",
+   "src/app/api/cron/digest/route.ts",
+   "src/app/api/cron/microsite/route.ts",
+   "src/app/api/cron/report/route.ts",
+   "src/app/api/cron/social/route.ts",
+   "src/app/api/cron/sync/route.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Campaign ops & tenant utility/research",
+  "description": "The campaign sync/read API and the ad-ops control-plane (create/approve/revert budget change-sets with a guardrail-violation path), plus a cluster of small per-tenant utility and research endpoints: activity feed, alert inbox, usage/plan limits, saved keyword lists, the auto-derived + saved patterns library, and A/B ad experiments. All routes resolve the caller via auth() and degrade gracefully (empty list / sample tenant) for anonymous GETs rather than 401ing, while mutating POSTs require a session.",
+  "suggestedGroup": "Campaign Operations",
+  "category": "api",
+  "businessFeature": "Ad campaign sync, budget governance and per-tenant utility feeds",
+  "keywords": [
+   "campaigns",
+   "google-ads",
+   "control-plane",
+   "budget-moves",
+   "keywords",
+   "patterns",
+   "experiments",
+   "activity",
+   "alerts",
+   "usage"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "firestore"
+  ],
+  "apiRoutes": [
+   "/api/campaigns",
+   "/api/campaigns/accounts",
+   "/api/campaigns/analyze",
+   "/api/campaigns/analyze/batch",
+   "/api/campaigns/apply",
+   "/api/campaigns/control-plane",
+   "/api/campaigns/report-config",
+   "/api/activity",
+   "/api/alerts",
+   "/api/usage",
+   "/api/keywords",
+   "/api/keywords/lists",
+   "/api/patterns",
+   "/api/patterns/search",
+   "/api/experiments"
+  ],
+  "filePaths": [
+   "src/app/api/campaigns/accounts/route.ts",
+   "src/app/api/campaigns/analyze/batch/route.ts",
+   "src/app/api/campaigns/analyze/route.ts",
+   "src/app/api/campaigns/apply/route.ts",
+   "src/app/api/campaigns/control-plane/route.ts",
+   "src/app/api/campaigns/report-config/route.ts",
+   "src/app/api/campaigns/route.ts",
+   "src/app/api/activity/route.ts",
+   "src/app/api/alerts/route.ts",
+   "src/app/api/usage/route.ts",
+   "src/app/api/keywords/lists/route.ts",
+   "src/app/api/keywords/route.ts",
+   "src/app/api/patterns/route.ts",
+   "src/app/api/patterns/search/route.ts",
+   "src/app/api/experiments/route.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Project & tenant workspace: CRUD, data connections, distribution & social publishing",
+  "description": "Per-project CRUD (list/create/update/delete) and its many sub-resources — brand-context, catalog + import/sync, competitors, cost-model, local-signals import, metrics sync, onboarding, organic-channels, a generic keyed state store, AI twin voice training, and a warehouse/ERP connection (token encrypted at rest, never returned to the client) — plus tenant-level client-facing distribution (shareable report links, the public microsite toggle) and social account/draft/message/post management. Every route checks ownership via currentUserId()/getProject() or an auth()-derived userId before reading or writing.",
+  "suggestedGroup": "Project Workspace",
+  "category": "api",
+  "businessFeature": "Project settings, connected data sources, client sharing and social publishing",
+  "keywords": [
+   "projects",
+   "catalog",
+   "warehouse",
+   "erp",
+   "twin",
+   "brand-context",
+   "competitors",
+   "cost-model",
+   "microsite",
+   "shared-report",
+   "social"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "firestore"
+  ],
+  "apiRoutes": [
+   "/api/projects",
+   "/api/projects/[id]",
+   "/api/projects/[id]/brand-context",
+   "/api/projects/[id]/catalog",
+   "/api/projects/[id]/catalog/import",
+   "/api/projects/[id]/catalog/sync",
+   "/api/projects/[id]/competitors",
+   "/api/projects/[id]/cost-model",
+   "/api/projects/[id]/local-signals/import",
+   "/api/projects/[id]/metrics/sync",
+   "/api/projects/[id]/onboarding",
+   "/api/projects/[id]/organic-channels",
+   "/api/projects/[id]/state/[key]",
+   "/api/projects/[id]/twin",
+   "/api/projects/[id]/twin/send",
+   "/api/projects/[id]/warehouse",
+   "/api/campaigns/share",
+   "/api/microsite",
+   "/api/social/accounts",
+   "/api/social/draft",
+   "/api/social/messages",
+   "/api/social/posts"
+  ],
+  "filePaths": [
+   "src/app/api/projects/[id]/brand-context/route.ts",
+   "src/app/api/projects/[id]/catalog/import/route.ts",
+   "src/app/api/projects/[id]/catalog/route.ts",
+   "src/app/api/projects/[id]/catalog/sync/route.ts",
+   "src/app/api/projects/[id]/competitors/route.ts",
+   "src/app/api/projects/[id]/cost-model/route.ts",
+   "src/app/api/projects/[id]/local-signals/import/route.ts",
+   "src/app/api/projects/[id]/metrics/sync/route.ts",
+   "src/app/api/projects/[id]/onboarding/route.ts",
+   "src/app/api/projects/[id]/organic-channels/route.ts",
+   "src/app/api/projects/[id]/route.ts",
+   "src/app/api/projects/[id]/state/[key]/route.ts",
+   "src/app/api/projects/[id]/twin/route.ts",
+   "src/app/api/projects/[id]/twin/send/route.ts",
+   "src/app/api/projects/[id]/warehouse/route.ts",
+   "src/app/api/projects/route.ts",
+   "src/app/api/campaigns/share/route.ts",
+   "src/app/api/microsite/route.ts",
+   "src/app/api/social/accounts/route.ts",
+   "src/app/api/social/draft/route.ts",
+   "src/app/api/social/messages/route.ts",
+   "src/app/api/social/posts/route.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "AI generation, creative studio & ops telemetry",
+  "description": "The core `/api/ai` multi-tool generation endpoint (17 LLM tool modes: ads, chat, brief, monthly recap, twin voice, etc — BYOM-aware, cache-then-quota gated) and its `/api/ai/status` preflight, the Leonardo-backed Creative Studio image endpoints (generate/list/delete, style-prior attribution, background removal, reference upload), the skills marketplace catalog, and the LLM eval telemetry feed. Auth posture is notably mixed: `/api/ai` and `/api/images/upload-ref` are deliberately public/unauthenticated (IP rate-limited only, despite calling paid providers), `/api/skills` is public read-only, `/api/images` requires a session only to persist results, and `/api/eval/telemetry` fails closed to an ADMIN_EMAILS allowlist (platform-wide spend data, not per-tenant).",
+  "suggestedGroup": "AI & Creative Studio",
+  "category": "api",
+  "businessFeature": "AI copy/analysis generation, AI image creative studio, and LLM ops visibility",
+  "keywords": [
+   "ai",
+   "llm",
+   "byom",
+   "leonardo",
+   "gemini",
+   "claude",
+   "creative-studio",
+   "telemetry",
+   "skills",
+   "rate-limit"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "leonardo-ai",
+   "gemini",
+   "claude"
+  ],
+  "apiRoutes": [
+   "/api/ai",
+   "/api/ai/status",
+   "/api/eval/telemetry",
+   "/api/skills",
+   "/api/images",
+   "/api/images/attribution",
+   "/api/images/file/[id]",
+   "/api/images/nobg",
+   "/api/images/upload-ref"
+  ],
+  "filePaths": [
+   "src/app/api/ai/route.ts",
+   "src/app/api/ai/status/route.ts",
+   "src/app/api/eval/telemetry/route.ts",
+   "src/app/api/skills/route.ts",
+   "src/app/api/images/attribution/route.ts",
+   "src/app/api/images/file/[id]/route.ts",
+   "src/app/api/images/nobg/route.ts",
+   "src/app/api/images/route.ts",
+   "src/app/api/images/upload-ref/route.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "App shell, dev tooling, design system & site metadata infrastructure",
+  "description": "Root Next.js special files that wrap every route (layout, loading, error, global-error, not-found, template), the in-browser DevInspector overlay (dev-only, mounted from the root layout when NODE_ENV=development), the internal design-system swatch/showcase page, and the SEO/metadata generators (manifest.ts, robots.ts, sitemap.ts, opengraph-image.tsx). Cross-cutting app infrastructure rather than product-facing pages.",
+  "suggestedGroup": "App Infrastructure",
+  "category": "ui",
+  "businessFeature": "Site shell, error boundaries, developer tooling and SEO metadata",
+  "keywords": [
+   "layout",
+   "error-boundary",
+   "dev-inspector",
+   "design-system",
+   "metadata",
+   "seo",
+   "manifest",
+   "sitemap",
+   "robots"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/_dev-inspector/DevInspector.tsx",
+   "src/app/_dev-inspector/devInspectorUi.tsx",
+   "src/app/_dev-inspector/devLocate.ts",
+   "src/app/design-system/Swatch.tsx",
+   "src/app/design-system/page.tsx",
+   "src/app/error.tsx",
+   "src/app/global-error.tsx",
+   "src/app/layout.tsx",
+   "src/app/loading.tsx",
+   "src/app/manifest.ts",
+   "src/app/not-found.tsx",
+   "src/app/opengraph-image.tsx",
+   "src/app/robots.ts",
+   "src/app/sitemap.ts",
+   "src/app/template.tsx"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Public marketing & demo pages",
+  "description": "Unauthenticated marketing/case-study pages that showcase each product capability with sample data (home, ai-asistent, cena/pricing, and root-level kampane/knihovna/kvalita-modelu/lokalni-seo/mapa/socialni feature pages), the no-login `/dashboard` full-product demo (reuses real module components with mock projects), the public SEO-indexable client microsite (`/m/[slug]`), the public shared-report viewer (`/report/[token]`), and the `/clanek` article/case-study pages including their markdown export route and OG-image generators. All server-rendered; none require a session.",
+  "suggestedGroup": "Marketing Site",
+  "category": "ui",
+  "businessFeature": "Public marketing, product demo and client-facing report/microsite viewing",
+  "keywords": [
+   "marketing",
+   "landing-page",
+   "demo",
+   "microsite",
+   "shared-report",
+   "article",
+   "pricing",
+   "seo"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/page.tsx",
+   "src/app/ai-asistent/page.tsx",
+   "src/app/cena/page.tsx",
+   "src/app/kampane/page.tsx",
+   "src/app/knihovna/page.tsx",
+   "src/app/kvalita-modelu/page.tsx",
+   "src/app/lokalni-seo/page.tsx",
+   "src/app/lokalni-seo/loading.tsx",
+   "src/app/mapa/page.tsx",
+   "src/app/socialni/page.tsx",
+   "src/app/dashboard/page.tsx",
+   "src/app/dashboard/report/page.tsx",
+   "src/app/m/[slug]/page.tsx",
+   "src/app/report/[token]/page.tsx",
+   "src/app/clanek/page.tsx",
+   "src/app/clanek/markdown/route.ts",
+   "src/app/clanek/opengraph-image.tsx",
+   "src/app/clanek/vykon/page.tsx",
+   "src/app/clanek/vykon/opengraph-image.tsx",
+   "src/app/clanek/vykon/report-article.ts"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Project shell, settings & onboarding",
+  "description": "The `/app` and `/app/[projectId]` layout/loading/error shells — the former gates on a signed-in session (AppSignInGate otherwise), the latter additionally resolves and owns-checks the project (404 via notFound()) and seeds the client ProjectProvider/AppShell — plus the project home/overview page and its settings surfaces: nastaveni (settings), ucet (account), integrace (integrations), start (onboarding), branding.",
+  "suggestedGroup": "Project Shell & Settings",
+  "category": "ui",
+  "businessFeature": "Authenticated app entry, project shell and account/integration settings",
+  "keywords": [
+   "app-shell",
+   "project-layout",
+   "auth-gate",
+   "settings",
+   "onboarding",
+   "branding",
+   "integrations"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/app/layout.tsx",
+   "src/app/app/page.tsx",
+   "src/app/app/[projectId]/layout.tsx",
+   "src/app/app/[projectId]/loading.tsx",
+   "src/app/app/[projectId]/error.tsx",
+   "src/app/app/[projectId]/page.tsx",
+   "src/app/app/[projectId]/nastaveni/page.tsx",
+   "src/app/app/[projectId]/ucet/page.tsx",
+   "src/app/app/[projectId]/integrace/page.tsx",
+   "src/app/app/[projectId]/start/page.tsx",
+   "src/app/app/[projectId]/branding/page.tsx"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Campaign performance & ads operations modules",
+  "description": "Authenticated `/app/[projectId]` pages for Google Ads campaign management and performance analysis: kampane (campaigns), vykon (performance), zisk (profit), spotreba (spend), ltv, kvalita-leadu (lead quality), rychla-reakce (quick-reaction/control-plane UI), aktivita (activity feed), sprava-kanalu (channel management), kanaly (channels). All render inside the parent layout's session + project-ownership gate.",
+  "suggestedGroup": "Campaign Performance",
+  "category": "ui",
+  "businessFeature": "In-app campaign performance dashboards and ad operations",
+  "keywords": [
+   "campaigns",
+   "performance",
+   "profit",
+   "ltv",
+   "lead-quality",
+   "channels",
+   "activity"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/app/[projectId]/aktivita/page.tsx",
+   "src/app/app/[projectId]/kampane/page.tsx",
+   "src/app/app/[projectId]/kanaly/page.tsx",
+   "src/app/app/[projectId]/kvalita-leadu/page.tsx",
+   "src/app/app/[projectId]/ltv/page.tsx",
+   "src/app/app/[projectId]/rychla-reakce/page.tsx",
+   "src/app/app/[projectId]/spotreba/page.tsx",
+   "src/app/app/[projectId]/sprava-kanalu/page.tsx",
+   "src/app/app/[projectId]/vykon/page.tsx",
+   "src/app/app/[projectId]/zisk/page.tsx"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Content, creative & keyword tooling modules",
+  "description": "Authenticated `/app/[projectId]` pages for content and creative production: obsah/obsah-plan/obsahovy-engine (content, content plan, content engine), kreativa/produktova-kreativa (creative studio, product creative), knihovna (winning-patterns library), klicova-slova (keyword research), distribuce (distribution), experimenty-lp (landing-page A/B experiments). All render inside the parent layout's session + project-ownership gate.",
+  "suggestedGroup": "Content & Creative",
+  "category": "ui",
+  "businessFeature": "In-app content planning, creative generation and keyword research",
+  "keywords": [
+   "content",
+   "creative-studio",
+   "keywords",
+   "patterns-library",
+   "lp-experiments",
+   "distribution"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/app/[projectId]/distribuce/page.tsx",
+   "src/app/app/[projectId]/experimenty-lp/page.tsx",
+   "src/app/app/[projectId]/klicova-slova/page.tsx",
+   "src/app/app/[projectId]/knihovna/page.tsx",
+   "src/app/app/[projectId]/kreativa/page.tsx",
+   "src/app/app/[projectId]/obsah-plan/page.tsx",
+   "src/app/app/[projectId]/obsah/page.tsx",
+   "src/app/app/[projectId]/obsahovy-engine/page.tsx",
+   "src/app/app/[projectId]/produktova-kreativa/page.tsx"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Local SEO, social, reviews, reporting & catalog modules",
+  "description": "The remaining authenticated `/app/[projectId]` pages: lokalni/mapa/srovnani-seo (local SEO, map-pack, SEO comparison), socialni/recenze/schranka (social, reviews, message inbox), mesicni-report/report/reporty (monthly recap, client report, reports), twin (AI persona voice), publikum (audience), katalog/sklad-sezonnost (product catalog + inventory seasonality). All render inside the parent layout's session + project-ownership gate.",
+  "suggestedGroup": "Local, Social & Reporting",
+  "category": "ui",
+  "businessFeature": "In-app local SEO, social/review management, client reporting and catalog/inventory",
+  "keywords": [
+   "local-seo",
+   "social",
+   "reviews",
+   "reporting",
+   "twin",
+   "audience",
+   "catalog",
+   "inventory"
+  ],
+  "techStack": [
+   "nextjs",
+   "typescript",
+   "react"
+  ],
+  "apiRoutes": [],
+  "filePaths": [
+   "src/app/app/[projectId]/katalog/page.tsx",
+   "src/app/app/[projectId]/lokalni/page.tsx",
+   "src/app/app/[projectId]/mapa/page.tsx",
+   "src/app/app/[projectId]/mesicni-report/page.tsx",
+   "src/app/app/[projectId]/publikum/page.tsx",
+   "src/app/app/[projectId]/recenze/page.tsx",
+   "src/app/app/[projectId]/report/page.tsx",
+   "src/app/app/[projectId]/reporty/page.tsx",
+   "src/app/app/[projectId]/schranka/page.tsx",
+   "src/app/app/[projectId]/sklad-sezonnost/page.tsx",
+   "src/app/app/[projectId]/socialni/page.tsx",
+   "src/app/app/[projectId]/srovnani-seo/page.tsx",
+   "src/app/app/[projectId]/twin/page.tsx"
+  ],
+  "_chunk": "D"
+ },
+ {
+  "name": "Campaign Sync & Google Ads Connector",
+  "description": "The Google Ads campaign model (types.ts, aggregate/deriveMetrics), the per-tenant Firestore store (campaigns/series/snapshots, sync-over-sync change diff, period-keyed docs), the two-provider connector (sample vs live googleAdsProvider) and the shared sync pipeline used by both the manual and cron sync routes. google/ads.ts is the dependency-free REST client (searchStream, listAccessibleCustomers) these depend on directly; keyword-planner.ts and token.ts are the other Google Ads API surfaces (keyword ideas, OAuth access-token exchange). Persistence is Firestore-only (`tenants/{tenant}` campaigns/series/snapshots subcollections, `adsConnections/{userId}` for connected accounts) — campaigns has no local/SQLite backend variant, unlike most other domains.",
+  "suggestedGroup": "campaigns",
+  "category": "logic",
+  "businessFeature": "Google Ads campaign performance sync",
+  "keywords": [
+   "google-ads",
+   "campaign-sync",
+   "firestore",
+   "connector",
+   "oauth",
+   "tenant"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase-admin",
+   "google-ads-rest-api"
+  ],
+  "dbTables": [
+   "tenants/{tenant}/campaigns",
+   "tenants/{tenant}/series",
+   "tenants/{tenant}/snapshots",
+   "adsConnections"
+  ],
+  "filePaths": [
+   "src/lib/campaigns/types.ts",
+   "src/lib/campaigns/store.ts",
+   "src/lib/campaigns/store-keys.ts",
+   "src/lib/campaigns/connector.ts",
+   "src/lib/campaigns/sync.ts",
+   "src/lib/campaigns/connection.ts",
+   "src/lib/campaigns/sample.ts",
+   "src/lib/campaigns/envelope.ts",
+   "src/lib/google/ads.ts",
+   "src/lib/google/keyword-planner.ts",
+   "src/lib/google/token.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Campaign Triage, Ad-Ops Control Plane & AI Reporting",
+  "description": "Rule-based portfolio triage (triage.ts) driving critical-campaign alerts (alerts.ts) and anomaly alerts (anomaly-alerts.ts) into the durable alert inbox, plus the per-tenant activity timeline (activity.ts). Downstream: deterministic budget-move recommendations (budget-moves.ts, budget-math.ts, simulate.ts) that feed the human-approved, reversible ad-ops control-plane lifecycle (control-plane.ts/-types.ts) which applies moves through the audited mutation path (mutations.ts). Also includes the AI-report support layer: per-tenant white-label report config (report-config.ts/-types.ts), prompt-input formatting for the AI evaluation (report-input.ts), and shareable read-only report links (shared-report.ts, Firestore `sharedReports` collection). NOTE: campaigns/store.ts (context above) locally reimplements `roas = (cost, value) => value/cost` at line 602 instead of importing the shared `roas()` from metrics/ratios.ts (which even has the opposite argument order) — a duplicate ROAS calculator worth consolidating.",
+  "suggestedGroup": "campaigns",
+  "category": "logic",
+  "businessFeature": "Campaign health monitoring, budget reallocation and client reporting",
+  "keywords": [
+   "triage",
+   "alerts",
+   "budget-moves",
+   "control-plane",
+   "mutations",
+   "ai-report",
+   "share-link"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "tenants/{tenant}/mutations",
+   "tenants/{tenant}/changeSets",
+   "tenants/{tenant}/config/report",
+   "tenants/{tenant}/reports",
+   "sharedReports"
+  ],
+  "filePaths": [
+   "src/lib/campaigns/activity.ts",
+   "src/lib/campaigns/alerts.ts",
+   "src/lib/campaigns/anomaly-alerts.ts",
+   "src/lib/campaigns/budget-math.ts",
+   "src/lib/campaigns/budget-moves.ts",
+   "src/lib/campaigns/control-plane-types.ts",
+   "src/lib/campaigns/control-plane.ts",
+   "src/lib/campaigns/mutations.ts",
+   "src/lib/campaigns/report-config-types.ts",
+   "src/lib/campaigns/report-config.ts",
+   "src/lib/campaigns/report-input.ts",
+   "src/lib/campaigns/shared-report.ts",
+   "src/lib/campaigns/simulate.ts",
+   "src/lib/campaigns/triage.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Product Catalog: Model, Feed Import & Ad-Copy Generation",
+  "description": "The catalog/offering domain: the polymorphic Offering union (product/plan/service, offering.ts), the seed/starter/sample data layers (seeds.ts, starter.ts, sample.ts), the resolve/load seam that picks persisted-vs-seeded data (resolve.ts, load.ts), the local/Firestore store dispatcher pair (store.ts → store.local.ts | store.firestore.ts), and client-input sanitization (validate.ts). Also the feed pipeline: SSRF-guarded feed fetch (feed-fetch.ts), Heureka/Google-Merchant/CSV parsing (feed.ts), import-diff merge (import.ts), a deterministic RSA/PMax asset-group generator (generate.ts) and its CSV/text exporters (export.ts), plus a per-user rate limiter for the write endpoints (rate-limit.ts).",
+  "suggestedGroup": "catalog",
+  "category": "logic",
+  "businessFeature": "Product catalog management and Google Ads asset generation",
+  "keywords": [
+   "catalog",
+   "offering",
+   "product-feed",
+   "asset-group",
+   "ssrf-guard",
+   "sqlite",
+   "firestore"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "project_catalog",
+   "users/{userId}/projectCatalogs/{projectId}"
+  ],
+  "filePaths": [
+   "src/lib/catalog/export.ts",
+   "src/lib/catalog/feed-fetch.ts",
+   "src/lib/catalog/feed.ts",
+   "src/lib/catalog/generate.ts",
+   "src/lib/catalog/import.ts",
+   "src/lib/catalog/load.ts",
+   "src/lib/catalog/offering.ts",
+   "src/lib/catalog/rate-limit.ts",
+   "src/lib/catalog/resolve.ts",
+   "src/lib/catalog/sample.ts",
+   "src/lib/catalog/seeds.ts",
+   "src/lib/catalog/starter.ts",
+   "src/lib/catalog/store.firestore.ts",
+   "src/lib/catalog/store.local.ts",
+   "src/lib/catalog/store.ts",
+   "src/lib/catalog/validate.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Inventory & Warehouse Sync",
+  "description": "Stock-pacing math (compute.ts: seasonality index + velocity/on-hand → days-of-cover + run/trim/pause action), the warehouse connector hub (warehouse.ts, providers.ts) fronting three provider integrations — Baselinker (baselinker.ts), generic multichannel/3PL, and ERP systems like POHODA/Money S3/HELIOS (erp.ts) — plus AES-encrypted provider-token storage (token-crypto.ts), the connection store dispatcher (connection-store.ts → .local/.firestore), sync orchestration (sync.ts, sync-health.ts) and sync-failure alerting (sync-alerts.ts) into the action-plan output (action-plan.ts).",
+  "suggestedGroup": "inventory",
+  "category": "logic",
+  "businessFeature": "Warehouse/ERP-connected stock pacing and budget actions",
+  "keywords": [
+   "inventory",
+   "warehouse",
+   "erp",
+   "baselinker",
+   "stock-pacing",
+   "token-encryption"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "warehouse_connection",
+   "users/{uid}/projectConnections/{projectId}"
+  ],
+  "filePaths": [
+   "src/lib/inventory/action-plan.ts",
+   "src/lib/inventory/baselinker.ts",
+   "src/lib/inventory/compute.ts",
+   "src/lib/inventory/connection-store.firestore.ts",
+   "src/lib/inventory/connection-store.local.ts",
+   "src/lib/inventory/connection-store.ts",
+   "src/lib/inventory/erp.ts",
+   "src/lib/inventory/providers.ts",
+   "src/lib/inventory/sync-alerts.ts",
+   "src/lib/inventory/sync-health.ts",
+   "src/lib/inventory/sync.ts",
+   "src/lib/inventory/token-crypto.ts",
+   "src/lib/inventory/warehouse.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Cost Model & Profit Analytics",
+  "description": "Two independent profit-margin engines: cost-model/compute.ts (`periodProfit`) turns revenue/adCost/conversions into TRUE net profit after COGS + overhead + per-order fulfilment for the monthly report's cost model (persisted per-project via store.ts → store.local/.firestore, SQLite table `cost_model`), while profit/compute.ts applies a per-channel margin model to the channel mix for gross/net profit, POAS and break-even ROAS (overhead.ts, products.ts, trend.ts, types.ts, sample.ts). Both independently compute the same POAS shape (`grossProfit / cost`, gross = revenue × margin) — a duplicate profit-margin calculator worth consolidating into one shared module.",
+  "suggestedGroup": "profit",
+  "category": "logic",
+  "businessFeature": "True net-profit and per-channel margin analytics",
+  "keywords": [
+   "cost-model",
+   "profit",
+   "margin",
+   "poas",
+   "cogs",
+   "overhead"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "cost_model"
+  ],
+  "filePaths": [
+   "src/lib/cost-model/compute.ts",
+   "src/lib/cost-model/store.firestore.ts",
+   "src/lib/cost-model/store.local.ts",
+   "src/lib/cost-model/store.ts",
+   "src/lib/cost-model/types.ts",
+   "src/lib/profit/compute.ts",
+   "src/lib/profit/overhead.ts",
+   "src/lib/profit/products.ts",
+   "src/lib/profit/sample.ts",
+   "src/lib/profit/trend.ts",
+   "src/lib/profit/types.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Metrics & Analytics Engine",
+  "description": "The pure analytics layer over a project's daily series — the single source of truth every KPI, chart and channel table derives from. ratios.ts holds the shared divide-guarded ratio primitives (roas, pno, aov, cr, cpa, cpc, ctr) explicitly designed so both the dashboard (revenue/visits naming) and the campaigns domain (conversionValue/clicks naming) compute identical numbers — campaigns/types.ts correctly imports from here, but campaigns/store.ts's local `roas()` (see context 1) bypasses it. totals.ts/series.ts/trends.ts/pacing.ts/seasonality.ts/channels.ts/anomalies.ts/meta.ts/snapshot.ts round out the engine; index.ts is the barrel re-export.",
+  "suggestedGroup": "metrics",
+  "category": "logic",
+  "businessFeature": "Dashboard KPI and trend computation",
+  "keywords": [
+   "metrics",
+   "ratios",
+   "roas",
+   "pacing",
+   "anomalies",
+   "seasonality",
+   "trends"
+  ],
+  "techStack": [
+   "typescript"
+  ],
+  "dbTables": [],
+  "filePaths": [
+   "src/lib/metrics/anomalies.ts",
+   "src/lib/metrics/channels.ts",
+   "src/lib/metrics/index.ts",
+   "src/lib/metrics/meta.ts",
+   "src/lib/metrics/pacing.ts",
+   "src/lib/metrics/ratios.ts",
+   "src/lib/metrics/seasonality.ts",
+   "src/lib/metrics/series.ts",
+   "src/lib/metrics/snapshot.ts",
+   "src/lib/metrics/totals.ts",
+   "src/lib/metrics/trends.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Monthly Report: Live Metrics Ingestion & Tile Model",
+  "description": "The account-level (not per-campaign) Ads-data path feeding the monthly report/AI recap: build.ts turns synced daily rows into the PerformanceData shape, map.ts maps Google Ads searchStream rows into MetricRow (reusing google/ads.ts), resolve.ts is the data-source seam picking live-synced-vs-sample data, sync.ts pulls + persists a project's account totals (SQLite table `report_metrics` via store.ts → store.local/.firestore). report/compute.ts defines the per-project-type report tile spec (which metrics show, delta direction) and report/recap-context.ts builds AI-recap grounding text from the cost model and 12-month history — both consume this ingestion layer's output.",
+  "suggestedGroup": "report-metrics",
+  "category": "logic",
+  "businessFeature": "Monthly client report data sourcing and tile presentation",
+  "keywords": [
+   "report-metrics",
+   "google-ads-sync",
+   "monthly-report",
+   "ai-recap",
+   "tile-spec"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "report_metrics"
+  ],
+  "filePaths": [
+   "src/lib/report-metrics/build.ts",
+   "src/lib/report-metrics/map.ts",
+   "src/lib/report-metrics/resolve.ts",
+   "src/lib/report-metrics/store.firestore.ts",
+   "src/lib/report-metrics/store.local.ts",
+   "src/lib/report-metrics/store.ts",
+   "src/lib/report-metrics/sync.ts",
+   "src/lib/report-metrics/types.ts",
+   "src/lib/report/compute.ts",
+   "src/lib/report/recap-context.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "LTV, Spend & Cross-Module Insights",
+  "description": "Three smaller pure-compute analytics domains: ltv/compute.ts (CAC/LTV/payback math over acquisition cohorts, geometric retention extrapolation) with its sample cohort generator; spend/{aggregate,compute,live,sample}.ts (spend rollups, no dedicated persistence found in this chunk); and insights/aggregate.ts, the cross-module signal hub that gathers and ranks Recommendations emitted by every project-type module (reads projects/modules.ts and project-data/dataset.ts) for the Overview command center.",
+  "suggestedGroup": "insights",
+  "category": "logic",
+  "businessFeature": "Customer lifetime value and cross-module recommendation aggregation",
+  "keywords": [
+   "ltv",
+   "cac",
+   "spend",
+   "insights",
+   "recommendations",
+   "cohorts"
+  ],
+  "techStack": [
+   "typescript"
+  ],
+  "dbTables": [],
+  "filePaths": [
+   "src/lib/ltv/compute.ts",
+   "src/lib/ltv/sample.ts",
+   "src/lib/spend/aggregate.ts",
+   "src/lib/spend/compute.ts",
+   "src/lib/spend/live.ts",
+   "src/lib/spend/sample.ts",
+   "src/lib/insights/aggregate.ts",
+   "src/lib/insights/types.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Projects, Project State & Project Data Spine",
+  "description": "The Project domain model (types.ts: workspace with a `type` driving sidebar modules + KPI preset) and its CRUD store dispatcher (store.ts → store.local/.firestore, SQLite table `projects`); the module registry (modules.ts, 554 lines — declarative per-project-type module/KPI composition) plus guard.ts (auth/type gate for module pages), context.tsx (client active-project provider), icon-keys.ts, name.ts, brief-seed.ts. project-state/ is a small generic per-project/per-key KV store (SQLite `project_state`). project-data/ is the per-project deterministic data spine (dataset.ts derives one PerformanceData from project id/type/name; seed.ts, source.ts the live-vs-sample seam, vary.ts).",
+  "suggestedGroup": "projects",
+  "category": "logic",
+  "businessFeature": "Project/workspace model, module registry and per-project data spine",
+  "keywords": [
+   "projects",
+   "module-registry",
+   "project-state",
+   "project-data",
+   "kpi-presets"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin",
+   "react"
+  ],
+  "dbTables": [
+   "projects",
+   "project_state"
+  ],
+  "filePaths": [
+   "src/lib/projects/brief-seed.ts",
+   "src/lib/projects/context.tsx",
+   "src/lib/projects/guard.ts",
+   "src/lib/projects/icon-keys.ts",
+   "src/lib/projects/modules.ts",
+   "src/lib/projects/name.ts",
+   "src/lib/projects/store.firestore.ts",
+   "src/lib/projects/store.local.ts",
+   "src/lib/projects/store.ts",
+   "src/lib/projects/types.ts",
+   "src/lib/project-state/store.firestore.ts",
+   "src/lib/project-state/store.local.ts",
+   "src/lib/project-state/store.ts",
+   "src/lib/project-data/dataset.ts",
+   "src/lib/project-data/seed.ts",
+   "src/lib/project-data/source.ts",
+   "src/lib/project-data/vary.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Account, Activity Feed, Demo Data, Users & Usage Metering",
+  "description": "Account security checklist (account/compute.ts, pure) and session revocation against the NextAuth Firestore `sessions` collection (account/sessions.ts). The project-wide activity feed (activity/compute.ts filtering/rollups, sample.ts illustrative events) is a thin wrapper around the campaigns domain's tenant activity store: emit.ts and live.ts both import recordActivity/listActivity from `@/lib/campaigns/activity` via resolveTenant — i.e. this 'account-level' activity feed has no persistence of its own, it piggybacks on context 1's per-tenant Firestore collection. demo/projects.ts holds in-memory mock Project objects for the public no-auth demo. users/local.ts is the SQLite `users` table (LOCAL_DB mode only, mirrors the Firestore-adapter user). usage.ts meters per-user daily AI-eval/sync quota by plan at Firestore `usage/{userId}`.",
+  "suggestedGroup": "account",
+  "category": "logic",
+  "businessFeature": "Account security, activity timeline, demo data and usage metering",
+  "keywords": [
+   "account",
+   "activity-feed",
+   "sessions",
+   "demo-data",
+   "users",
+   "usage-metering",
+   "plan-limits"
+  ],
+  "techStack": [
+   "typescript",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "dbTables": [
+   "sessions",
+   "users",
+   "usage/{userId}"
+  ],
+  "filePaths": [
+   "src/lib/account/compute.ts",
+   "src/lib/account/sessions.ts",
+   "src/lib/activity/compute.ts",
+   "src/lib/activity/emit.ts",
+   "src/lib/activity/live.ts",
+   "src/lib/activity/sample.ts",
+   "src/lib/demo/projects.ts",
+   "src/lib/users/local.ts",
+   "src/lib/usage.ts"
+  ],
+  "_chunk": "E1"
+ },
+ {
+  "name": "Core Platform Infrastructure",
+  "description": "Cross-cutting server infrastructure the whole app depends on: the locale-aware number/date/currency formatter factory (format.ts) whose default cs-CZ instance ~199 call sites import; the dashboard's PerformanceData/MetricKey type contracts (types.ts) and its static JSON dataset loader (data.ts); the node:sqlite rate-limiter + LOCAL_DB offline persistence (db.ts) gated by the local-mode.ts flag; the Firebase Admin/Firestore singleton (firebase.ts); request-memoized auth session accessors (session.ts) and the ADMIN_EMAILS allowlist (admin.ts); the constant-time Vercel Cron bearer-token guard (cron-auth.ts); and best-effort outbound email/webhook alerting (email.ts) plus CSV/download export helpers (export.ts).",
+  "suggestedGroup": "Core Platform Infrastructure",
+  "category": "logic",
+  "businessFeature": "Shared server infrastructure (data, auth, formatting, ops)",
+  "keywords": [
+   "format",
+   "sqlite",
+   "firestore",
+   "session",
+   "admin",
+   "cron",
+   "export",
+   "email",
+   "types"
+  ],
+  "techStack": [
+   "typescript",
+   "next.js",
+   "node:sqlite",
+   "firebase-admin"
+  ],
+  "filePaths": [
+   "src/lib/data.ts",
+   "src/lib/db.ts",
+   "src/lib/types.ts",
+   "src/lib/format.ts",
+   "src/lib/firebase.ts",
+   "src/lib/local-mode.ts",
+   "src/lib/session.ts",
+   "src/lib/admin.ts",
+   "src/lib/cron-auth.ts",
+   "src/lib/export.ts",
+   "src/lib/email.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "UI Shell: Navigation, i18n & Design Tokens",
+  "description": "The cs/en locale system (cookie-backed LocaleProvider + client/server hooks + the typed Messages dictionary + {placeholder} interpolation) paired with the site's navigation/identity model: the single NAV_ITEMS source shared by header/footer/sitemap/quick-nav (nav.ts, with its own slugify/diacritics-normalize helpers), canonical site URL/brand constants (site.ts), the @theme-parsed design-token reader plus its pure WCAG-luminance color math (design-tokens.ts / design-tokens-color.ts), Framer Motion easing presets (motion.ts), and localStorage journey-progress tracking for the case-study walkthrough (journey.ts).",
+  "suggestedGroup": "UI Shell: Navigation, i18n & Design Tokens",
+  "category": "ui",
+  "businessFeature": "Site navigation, localization and design system",
+  "keywords": [
+   "i18n",
+   "locale",
+   "navigation",
+   "design-tokens",
+   "motion",
+   "journey"
+  ],
+  "techStack": [
+   "typescript",
+   "react",
+   "next.js",
+   "framer-motion"
+  ],
+  "filePaths": [
+   "src/lib/design-tokens-color.ts",
+   "src/lib/design-tokens.ts",
+   "src/lib/nav.ts",
+   "src/lib/site.ts",
+   "src/lib/motion.ts",
+   "src/lib/journey.ts",
+   "src/lib/i18n/LocaleProvider.tsx",
+   "src/lib/i18n/client.ts",
+   "src/lib/i18n/interpolate.ts",
+   "src/lib/i18n/locale.ts",
+   "src/lib/i18n/messages.ts",
+   "src/lib/i18n/server.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Article & Reporting Publishing Pipeline",
+  "description": "The headless-CMS Article content model (typed blocks/FAQ loaded from JSON) and everything that produces or renders it: the shared load-time validator (article-validate.ts) every Article producer runs, the Markdown serializer and the OG share-card renderer, the dashboard-to-AI-prompt snapshot builder (snapshot.ts) and its deterministic, no-AI snapshot-to-Article bridge (snapshot-to-article.ts) that also powers the white-label /m/{slug} microsites (microsite.ts) and the \"report to chat\" opening summary/chips (report-chat.ts).",
+  "suggestedGroup": "Article & Reporting Publishing Pipeline",
+  "category": "logic",
+  "businessFeature": "Content publishing and automated performance reporting",
+  "keywords": [
+   "article",
+   "markdown",
+   "json-ld",
+   "snapshot",
+   "microsite",
+   "report"
+  ],
+  "techStack": [
+   "typescript",
+   "next.js",
+   "next/og"
+  ],
+  "filePaths": [
+   "src/lib/article-markdown.ts",
+   "src/lib/article-og.tsx",
+   "src/lib/article-validate.ts",
+   "src/lib/article.ts",
+   "src/lib/microsite.ts",
+   "src/lib/report-chat.ts",
+   "src/lib/snapshot-to-article.ts",
+   "src/lib/snapshot.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "PPC/Ads Creative Tools, Winning-Pattern Mining & Profitability Targets",
+  "description": "PPC/RSA creative tooling plus the business-assumption constants campaign performance is judged against: the client-side \"Ad Strength\" heuristic and RSA combination sampler/preview, the Google Ads Editor CSV row builders, the single-source channel/category gross-margin tables (margins.ts) and blended-vs-paid PNO/ROAS targets (targets.ts), the SaaS plan/usage-limit catalogue (plans.ts), and the \"winning patterns\" domain model plus deterministic extractor that mines a tenant's synced campaigns and AI-score history for reusable structure/budget/creative lessons.",
+  "suggestedGroup": "PPC/Ads Creative Tools, Winning-Pattern Mining & Profitability Targets",
+  "category": "logic",
+  "businessFeature": "PPC ad creative quality, campaign-derived insights, and profitability assumptions",
+  "keywords": [
+   "ad-strength",
+   "rsa",
+   "ads-editor",
+   "margins",
+   "targets",
+   "plans",
+   "patterns"
+  ],
+  "techStack": [
+   "typescript"
+  ],
+  "filePaths": [
+   "src/lib/ad-strength.ts",
+   "src/lib/ads-editor.ts",
+   "src/lib/margins.ts",
+   "src/lib/patterns/embeddings.ts",
+   "src/lib/patterns/extract.ts",
+   "src/lib/patterns/store.ts",
+   "src/lib/patterns/types.ts",
+   "src/lib/plans.ts",
+   "src/lib/rsa-combos.ts",
+   "src/lib/targets.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Local SEO & Map Pack",
+  "description": "The local-SEO product surface: map-pack share-of-voice and ranking-ladder math (mappack), the live-vs-sample keyword-rank ladder store/resolver with its Firestore+local dual-store pattern (local-signals), catalog-grounded service-times-locality coverage targets (local/catalog.ts), the review-inbox filter/sort/sentiment engine with saved-reply macros (reviews), and multi-location fleet rollups plus attention-ranking for agencies managing many locations (locations).",
+  "suggestedGroup": "Local SEO & Map Pack",
+  "category": "logic",
+  "businessFeature": "Local SEO, map-pack ranking, reviews and multi-location management",
+  "keywords": [
+   "local-seo",
+   "map-pack",
+   "reviews",
+   "locations",
+   "rank-tracking"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase"
+  ],
+  "filePaths": [
+   "src/lib/local-signals/import.ts",
+   "src/lib/local-signals/resolve.ts",
+   "src/lib/local-signals/store.firestore.ts",
+   "src/lib/local-signals/store.local.ts",
+   "src/lib/local-signals/store.ts",
+   "src/lib/local-signals/summary.ts",
+   "src/lib/local-signals/types.ts",
+   "src/lib/local/catalog.ts",
+   "src/lib/local/compute.ts",
+   "src/lib/local/sample.ts",
+   "src/lib/locations/compute.ts",
+   "src/lib/locations/sample.ts",
+   "src/lib/mappack/compute.ts",
+   "src/lib/mappack/sample.ts",
+   "src/lib/reviews/compute.ts",
+   "src/lib/reviews/sample.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Organic Visibility, Content Distribution & Brand Voice",
+  "description": "Zero-ad-spend growth machinery: the organic-channel visibility plan plus tracked checklist (organic-channels), deterministic article-repurposing into channel-native variants with shared UTM stamping (distribution), content-calendar/idea-queue rollups (content-schedule) and topic-cluster coverage/internal-link-debt tracking (content-engine), the pixel-accurate SERP-truncation plus readability/E-E-A-T scorer for AI content briefs (content/seo-score.ts), and the brand-voice/catalog grounding text fed to content & social AI tools (brand) alongside client-report white-label accent-color helpers (branding).",
+  "suggestedGroup": "Organic Visibility, Content Distribution & Brand Voice",
+  "category": "logic",
+  "businessFeature": "Organic growth: free-channel visibility, content distribution/scheduling, and brand voice grounding",
+  "keywords": [
+   "organic-channels",
+   "distribution",
+   "utm",
+   "content-schedule",
+   "seo-score",
+   "brand"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase"
+  ],
+  "filePaths": [
+   "src/lib/brand/context.ts",
+   "src/lib/brand/load.ts",
+   "src/lib/branding/compute.ts",
+   "src/lib/content-engine/compute.ts",
+   "src/lib/content-engine/sample.ts",
+   "src/lib/content-schedule/compute.ts",
+   "src/lib/content-schedule/sample.ts",
+   "src/lib/content/seo-score.ts",
+   "src/lib/distribution/generate.ts",
+   "src/lib/distribution/handoff.ts",
+   "src/lib/distribution/learnings.ts",
+   "src/lib/distribution/newsletter.ts",
+   "src/lib/distribution/sample.ts",
+   "src/lib/distribution/utm.ts",
+   "src/lib/organic-channels/resolve.ts",
+   "src/lib/organic-channels/sample.ts",
+   "src/lib/organic-channels/store.firestore.ts",
+   "src/lib/organic-channels/store.local.ts",
+   "src/lib/organic-channels/store.ts",
+   "src/lib/organic-channels/types.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Onboarding, Integrations & Growth Funnel",
+  "description": "New-project setup and funnel-health analytics: the type-aware onboarding connector checklist that deep-links into each module and self-completes from real store state (onboarding/steps.ts + progress.ts), the homepage-scan-to-business-profile bridge (site-fetch.ts) with its Firestore/local dual store, the environment- and per-project integration-readiness probes (integrations), newsletter/publisher audience funnel plus revenue-mix and sponsorship rate-card math (audience), and lead-quality/CPL-CPQL funnel scoring with period-over-period drift alerts (lead-quality) plus its AI-recap grounding text (lead-signals).",
+  "suggestedGroup": "Onboarding, Integrations & Growth Funnel",
+  "category": "logic",
+  "businessFeature": "Project onboarding, integration readiness, and audience/lead funnel health",
+  "keywords": [
+   "onboarding",
+   "integrations",
+   "audience",
+   "lead-quality",
+   "funnel"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase"
+  ],
+  "filePaths": [
+   "src/lib/audience/compute.ts",
+   "src/lib/audience/sample.ts",
+   "src/lib/integrations/compute.ts",
+   "src/lib/integrations/status.ts",
+   "src/lib/lead-quality/compute.ts",
+   "src/lib/lead-quality/sample.ts",
+   "src/lib/lead-signals/summary.ts",
+   "src/lib/onboarding/progress.ts",
+   "src/lib/onboarding/site-fetch.ts",
+   "src/lib/onboarding/steps.ts",
+   "src/lib/onboarding/store.firestore.ts",
+   "src/lib/onboarding/store.local.ts",
+   "src/lib/onboarding/store.ts",
+   "src/lib/onboarding/types.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Social Command Center & Speed-to-Lead Response",
+  "description": "Two customer-engagement modules: the social command center's domain model, connection/publish flow and deterministic per-platform caption/reply drafting (social), and the speed-to-lead inbox's BANT-style qualification scoring, SLA-timed reply drafting, canned-snippet expansion and response-time analytics (speed-lead).",
+  "suggestedGroup": "Social Command Center & Speed-to-Lead Response",
+  "category": "logic",
+  "businessFeature": "Social media publishing and rapid inbound-lead response",
+  "keywords": [
+   "social",
+   "speed-to-lead",
+   "qualification",
+   "drafting",
+   "sla"
+  ],
+  "techStack": [
+   "typescript"
+  ],
+  "filePaths": [
+   "src/lib/social/connection.ts",
+   "src/lib/social/draft.ts",
+   "src/lib/social/publish.ts",
+   "src/lib/social/store.ts",
+   "src/lib/social/types.ts",
+   "src/lib/speed-lead/analytics.ts",
+   "src/lib/speed-lead/draft.ts",
+   "src/lib/speed-lead/qualification.ts",
+   "src/lib/speed-lead/sample.ts",
+   "src/lib/speed-lead/snippets.ts"
+  ],
+  "_chunk": "E2"
+ },
+ {
+  "name": "Competitive Intelligence: Keywords, SEO Compare & LP Experiments",
+  "description": "Keyword research (opportunity scoring, intent classification, saved keyword lists with negative-keyword aggregation), the \"vs./alternative\" comparison-query catalog plus acquisition-channel scoring for competitor-comparison SEO pages (seo-compare), the tracked competitor set with its Firestore/local store and AI grounding text (competitors), and landing-page A/B experiment statistics — required sample size, multiple-comparison-corrected significance (lp-exp).",
+  "suggestedGroup": "Competitive Intelligence: Keywords, SEO Compare & LP Experiments",
+  "category": "logic",
+  "businessFeature": "Keyword research, competitive comparison SEO, and landing-page experimentation",
+  "keywords": [
+   "keywords",
+   "seo-compare",
+   "competitors",
+   "ab-testing",
+   "lp-exp"
+  ],
+  "techStack": [
+   "typescript",
+   "firebase"
+  ],
+  "filePaths": [
+   "src/lib/competitors/grounding.ts",
+   "src/lib/competitors/store.firestore.ts",
+   "src/lib/competitors/store.local.ts",
+   "src/lib/competitors/store.ts",
+   "src/lib/competitors/types.ts",
+   "src/lib/keywords/engine.ts",
+   "src/lib/keywords/sample.ts",
+   "src/lib/keywords/store.ts",
+   "src/lib/keywords/types.ts",
+   "src/lib/lp-exp/compute.ts",
+   "src/lib/lp-exp/sample.ts",
+   "src/lib/seo-compare/catalog.ts",
+   "src/lib/seo-compare/compute.ts",
+   "src/lib/seo-compare/sample.ts"
+  ],
+  "_chunk": "E2"
+ }
+]
