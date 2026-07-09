@@ -8,6 +8,7 @@
 import type { CampaignPeriod } from "./campaigns/types";
 import type { Block, FaqItem } from "./article";
 import type { KeywordIntent } from "./keywords/types";
+import type { OrganicChannel } from "./organic-channels/types";
 import type { SupportedLocale } from "./format";
 
 export type AiMode =
@@ -22,7 +23,8 @@ export type AiMode =
   | "keyword-clusters"
   | "comparison-outline"
   | "lp-variant-ideas"
-  | "lead-source-diagnosis";
+  | "lead-source-diagnosis"
+  | "channel-research";
 export const AI_MODES: AiMode[] = [
   "ads",
   "brief",
@@ -36,6 +38,7 @@ export const AI_MODES: AiMode[] = [
   "comparison-outline",
   "lp-variant-ideas",
   "lead-source-diagnosis",
+  "channel-research",
 ];
 
 export interface AiMeta {
@@ -179,6 +182,14 @@ export interface BriefRequest {
   contentType: ContentType;
   /** optional real keyword data carried over from the keyword-research tool */
   keywords?: BriefKeyword[];
+  /** the calling project's id (injected by useAiTool) — used server-side to derive
+   *  the brand grounding below; never trusted for tenancy on its own */
+  projectId?: string;
+  /** server-derived brand grounding (what the project sells + how it talks). Injected
+   *  into the USER prompt only — like `refine` — so the system prompt + schema stay
+   *  byte-identical and the LLM-gate golden holds. Grounds the draft in the real
+   *  product instead of a generic keyword piece. */
+  brand?: string;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -506,6 +517,13 @@ export interface ArticleDraftRequest {
   audience?: string;
   /** content type (blog / category / product), when known */
   contentType?: ContentType;
+  /** the calling project's id (injected by useAiTool) — used server-side to derive
+   *  the brand grounding below */
+  projectId?: string;
+  /** server-derived brand grounding (what the project sells + how it talks). Injected
+   *  into the USER prompt only — like `refine` — so system + schema stay byte-identical
+   *  and the LLM-gate golden holds. Keeps the article on-brand, not generic. */
+  brand?: string;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -839,3 +857,42 @@ export interface LeadSourceDiagnosisResult {
 }
 
 export type LeadSourceDiagnosisResponse = AiResponse<LeadSourceDiagnosisResult>;
+
+// ===========================================================================
+// Tool 14 — organic channel research (Kanály: from the project's business
+// context — type, brand, offering, localities, competitors, seed keywords —
+// produce a RANKED plan of zero-ad-spend visibility channels (directories,
+// marketplaces, communities, owned content, PR, partnerships), each with a fit
+// score, effort, why it fits THIS business and the concrete first actions.
+// Grounded strictly in the supplied context; the model invents no metrics and
+// no competitor facts. The OrganicChannel shape is shared with the Kanály module
+// so a generated plan can be pinned as the module's source of truth.)
+// ===========================================================================
+
+export interface ChannelResearchRequest {
+  /** the project type (eshop | app | leadgen | content | local) — steers the channel
+   *  mix and the deterministic demo fallback; framed into Czech in the prompt */
+  projectType: string;
+  /** the brand / business name — grounds the plan in the real business (no invented one) */
+  brand: string;
+  /** what the business offers (top categories / short offering summary), when known */
+  offering?: string;
+  /** localities the business serves (local / leadgen) — enables map/directory channels */
+  localities?: string[];
+  /** named competitors, for gap framing — the model never invents rivals or their numbers */
+  competitors?: string[];
+  /** seed keywords the audience searches for — grounds content/SEO channels */
+  keywords?: string[];
+  /** optional free-text refinement note from a re-run („méně kanálů", „víc lokálních") —
+   *  appended to the user prompt only and naturally busts the input-hash cache */
+  refine?: string;
+}
+
+export interface ChannelResearchResult {
+  /** one-line strategic read of where the free attention is for this business */
+  summary: string;
+  /** the ranked organic channels (fit descending), each a ready playbook */
+  channels: OrganicChannel[];
+}
+
+export type ChannelResearchResponse = AiResponse<ChannelResearchResult>;

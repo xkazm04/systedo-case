@@ -344,13 +344,16 @@ function VariantCard({
   // Trim the text down to the channel's soft budget.
   const trim = () => setText((t) => t.slice(0, max));
 
-  // Ask the model for a fresh, channel-native variant of this article.
+  // Ask the model for a fresh, channel-native variant of this article. Pass the
+  // article BODY (not just the headline) so the variant repurposes the real content
+  // — the tool digests + grounds on it (BM-L1-04).
   const regenerate = () => {
     if (ai.status === "loading") return;
     setAppliedAiText(null);
     ai.run({
       title: source.title,
       url: source.url,
+      ...(source.body ? { body: source.body } : {}),
       channels: [channel],
       tone: REPURPOSE_TONE,
     });

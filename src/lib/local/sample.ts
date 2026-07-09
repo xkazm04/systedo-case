@@ -67,33 +67,37 @@ export function reviewsForProject(project: Project): ReviewProfile[] {
   return SAMPLE_REVIEWS.map((r) => ({ ...r, reviews: v.int(r.reviews) }));
 }
 
+// Service-agnostic recent reviews (punctuality, communication, quality, price) so
+// the reputation panel + AI reply drafts fit ANY local business — not a single
+// hardcoded industry (BM-L1-07). The business's actual field is supplied separately
+// via `businessType`, derived from its catalogue.
 export const SAMPLE_RECENT_REVIEWS: RecentReview[] = [
   {
     id: "rev-praha-1",
     area: "Praha",
     author: "Jana K.",
     rating: 5,
-    text: "Rychlá montáž klimatizace, technici dorazili na čas a vše po sobě uklidili. Můžu jen doporučit.",
+    text: "Skvělý přístup, objednali mě rychle a personál byl moc příjemný. Vše proběhlo na čas. Můžu jen doporučit.",
   },
   {
     id: "rev-brno-1",
     area: "Brno",
     author: "Petr M.",
     rating: 4,
-    text: "Spokojenost, jen objednací termín byl o něco delší, než jsem čekal. Práce ale odvedená dobře.",
+    text: "Spokojenost, jen objednací termín byl o něco delší, než jsem čekal. Výsledek ale za to stál.",
   },
   {
     id: "rev-ostrava-1",
     area: "Ostrava",
     author: "Lukáš V.",
     rating: 2,
-    text: "Technik přijel o dvě hodiny později a nezavolal předem. Samotná oprava nakonec dopadla v pořádku, ale komunikace vázla.",
+    text: "Termín se posunul o dvě hodiny a nikdo mi nezavolal předem. Nakonec vše dopadlo v pořádku, ale komunikace vázla.",
   },
   {
     id: "rev-plzen-1",
     area: "Plzeň",
     author: "Markéta S.",
     rating: 1,
-    text: "Domluvený termín servisu nikdo nedodržel a na telefonu se nikdo neozval. Velké zklamání.",
+    text: "Domluvený termín nikdo nedodržel a na telefonu se nikdo neozval. Velké zklamání.",
   },
 ];

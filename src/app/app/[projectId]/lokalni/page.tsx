@@ -21,6 +21,14 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const services = await loadServicesFor(project);
   const targets =
     services.length > 0 ? targetsFromCatalog(services, localitiesFor(project)) : targetsForProject(project);
+  // Derive what the business does from its catalogue (distinct service categories),
+  // so the AI review replies match THIS business instead of a hardcoded industry
+  // (BM-L1-07). Falls back to a generic label when the catalogue is empty.
+  const businessType =
+    [...new Set(services.map((s) => s.category).filter(Boolean))]
+      .slice(0, 2)
+      .join(" a ")
+      .toLowerCase() || undefined;
   return (
     <ModulePage moduleKey="lokalni">
       <div className="mb-5">
@@ -31,6 +39,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         reviews={reviewsForProject(project)}
         recentReviews={SAMPLE_RECENT_REVIEWS}
         businessName={project.name}
+        businessType={businessType}
       />
     </ModulePage>
   );

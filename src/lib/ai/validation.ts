@@ -10,6 +10,7 @@ import {
   PLATFORMS,
   TONES,
   type AdRequest,
+  type ChannelResearchRequest,
   type AnalysisPeriod,
   type AnalysisRequest,
   type ArticleDraftRequest,
@@ -39,6 +40,7 @@ import {
 } from "../ai-types";
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
 import { isCampaignPeriod } from "../campaigns/types";
+import { PROJECT_TYPES } from "../projects/types";
 import { digest } from "./tools/_shared";
 import { REFINE_MAX } from "./tools/refine";
 import type { SupportedLocale } from "../format";
@@ -115,6 +117,8 @@ export function validateBriefRequest(input: unknown, locale: SupportedLocale = "
     return { valid: false, error: t(locale, "Neplatný typ obsahu.", "Invalid content type.") };
   }
   const value: BriefRequest = { topic, primaryKeyword, audience, contentType, keywords: parseKeywords(o.keywords) };
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };
@@ -390,6 +394,8 @@ export function validateArticleDraftRequest(input: unknown, locale: SupportedLoc
   };
   if (audience) value.audience = audience.slice(0, 300);
   if (CONTENT_TYPES.includes(contentType)) value.contentType = contentType;
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };
@@ -659,6 +665,53 @@ export function validateKeywordClustersRequest(input: unknown, locale: Supported
   const value: KeywordClustersRequest = { keywords };
   const topic = str(o.topic);
   if (topic) value.topic = topic.slice(0, 200);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+const PROJECT_TYPE_SET = new Set<string>(PROJECT_TYPES);
+
+/** Sanitize a short string list carried as grounding (localities / competitors /
+ *  keywords) — trim, drop empties, cap length + count so the prompt stays bounded. */
+function parseGroundingList(v: unknown, maxCount: number, maxLen: number): string[] {
+  if (!Array.isArray(v)) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of v.slice(0, maxCount * 2)) {
+    const s = str(item).slice(0, maxLen);
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= maxCount) break;
+  }
+  return out;
+}
+
+export function validateChannelResearchRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<ChannelResearchRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectType = str(o.projectType);
+  if (!PROJECT_TYPE_SET.has(projectType)) {
+    return { valid: false, error: t(locale, "Neplatný typ projektu.", "Invalid project type.") };
+  }
+  const brand = str(o.brand);
+  if (brand.length < 1 || brand.length > 120) {
+    return { valid: false, error: t(locale, "Vyplňte název firmy (1–120 znaků).", "Please fill in the business name (1–120 characters).") };
+  }
+  const value: ChannelResearchRequest = { projectType, brand: brand.slice(0, 120) };
+  const offering = str(o.offering);
+  if (offering) value.offering = offering.slice(0, 300);
+  const localities = parseGroundingList(o.localities, 8, 80);
+  if (localities.length > 0) value.localities = localities;
+  const competitors = parseGroundingList(o.competitors, 8, 80);
+  if (competitors.length > 0) value.competitors = competitors;
+  const keywords = parseGroundingList(o.keywords, 20, 120);
+  if (keywords.length > 0) value.keywords = keywords;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

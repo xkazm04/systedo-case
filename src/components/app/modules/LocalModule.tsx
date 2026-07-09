@@ -85,11 +85,15 @@ export default async function LocalModule({
   reviews,
   recentReviews,
   businessName,
+  businessType,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
   recentReviews: RecentReview[];
   businessName?: string;
+  /** what this business actually does, derived from the catalog — grounds the AI
+   *  review replies instead of a hardcoded industry (BM-L1-07). */
+  businessType?: string;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -226,7 +230,7 @@ export default async function LocalModule({
 
       <LocalReviews
         reviews={recentReviews}
-        businessType="montáž a servis klimatizací a elektroinstalací"
+        businessType={businessType || "místní služby"}
         businessName={businessName}
       />
     </div>

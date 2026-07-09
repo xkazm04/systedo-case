@@ -114,10 +114,10 @@ const toAsset = (text: string, max: number): Asset => ({ text, len: text.length,
 
 /** Fold a flat AdResult from the `ads` AI tool into the AssetGroup shape the UI
  *  already renders, mapping each list to the matching Google Ads limit. */
-function adResultToGroup(r: AdResult, product: Product): AssetGroup {
+function adResultToGroup(r: AdResult, product: Product, domain = ""): AssetGroup {
   return {
     sku: product.sku,
-    finalUrl: `https://mionelo.cz/p/${product.sku.toLowerCase()}`,
+    finalUrl: `https://${domain || "www.example.com"}/p/${product.sku.toLowerCase()}`,
     headlines: r.headlines.map((h) => toAsset(h, AD_LIMITS.headline)),
     longHeadlines: r.longHeadline ? [toAsset(r.longHeadline, AD_LIMITS.longHeadline)] : [],
     descriptions: r.descriptions.map((d) => toAsset(d, AD_LIMITS.description)),
@@ -169,7 +169,17 @@ function ExportActions({
   );
 }
 
-export default function CatalogModule({ products }: { products: Product[] }) {
+export default function CatalogModule({
+  products,
+  brand = "",
+  domain = "",
+}: {
+  products: Product[];
+  /** clean project name + domain, so the demo copy / final URL aren't hardcoded to
+   *  one shop (BM-L1-02) */
+  brand?: string;
+  domain?: string;
+}) {
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -178,7 +188,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
 
   // Deterministic, offline-always asset group — the floor that renders on a clean
   // checkout and serves as the loading / error / not-yet-generated fallback.
-  const deterministic = useMemo(() => (product ? buildAssetGroup(product) : null), [product]);
+  const deterministic = useMemo(() => (product ? buildAssetGroup(product, brand, domain) : null), [product, brand, domain]);
 
   // AI ad-copy generator (existing `ads` tool, via /api/ai). Additive: we only
   // swap the deterministic group for the model output once it arrives.
@@ -200,7 +210,9 @@ export default function CatalogModule({ products }: { products: Product[] }) {
     run({
       product: product.title,
       benefits: product.usps.join(", "),
-      audience: "Rodiče a budoucí rodiče hledající kvalitní dětské vybavení",
+      // Grounded in the actual catalog category instead of a hardcoded baby-gear
+      // audience that mismatches most shops (BM-L1-02).
+      audience: `Zákazníci se zájmem o ${product.category.toLowerCase()}`,
       platform: "google",
       tone: "pratelsky",
     });
@@ -208,7 +220,7 @@ export default function CatalogModule({ products }: { products: Product[] }) {
 
   // Use the model output only when it exists, finished, and belongs to this SKU.
   const aiResult = status === "done" && aiSku === sku ? data?.result ?? null : null;
-  const group = aiResult && product ? adResultToGroup(aiResult, product) : deterministic;
+  const group = aiResult && product ? adResultToGroup(aiResult, product, domain) : deterministic;
   const usingAi = Boolean(aiResult);
 
   if (!product || !group) return null;

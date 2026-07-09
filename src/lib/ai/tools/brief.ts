@@ -38,6 +38,11 @@ function buildBriefPrompt(req: BriefRequest): string {
         "Upřednostni v osnově a klíčových slovech témata s vysokou hledaností a nižší konkurencí.",
       ]
     : [];
+  // Brand grounding rides on the USER prompt only (like the refine note), so the
+  // system prompt + schema stay byte-identical and the gate/golden fingerprint holds.
+  const brandBlock = req.brand
+    ? ["", "Kontext značky (drž se tohoto sortimentu a slovníku, nevymýšlej jiný):", req.brand]
+    : [];
   return [
     "Připrav SEO obsahový brief pro tuto stránku.",
     "",
@@ -45,6 +50,7 @@ function buildBriefPrompt(req: BriefRequest): string {
     `Téma: ${req.topic}`,
     `Hlavní klíčové slovo: ${req.primaryKeyword}`,
     `Cílová skupina: ${req.audience}`,
+    ...brandBlock,
     ...keywordBlock,
     "",
     "Vygeneruj:",
@@ -152,7 +158,7 @@ function demoBrief(req: BriefRequest): BriefResult {
   const kw = req.primaryKeyword.trim();
   const aud = req.audience.trim().toLowerCase();
   return {
-    titleTag: clamp(`${cap(topic)} | Mionelo`, SEO_LIMITS.titleTag),
+    titleTag: clamp(cap(topic), SEO_LIMITS.titleTag),
     metaDescription: clamp(
       `${cap(topic)}: praktické tipy a doporučení pro ${aud}. Přehledný průvodce krok za krokem.`,
       SEO_LIMITS.metaDescription
@@ -163,7 +169,7 @@ function demoBrief(req: BriefRequest): BriefResult {
       { heading: `Proč na tématu „${topic}“ záleží`, points: ["Hlavní přínosy", "Pro koho je obsah určený"] },
       { heading: "Na co se zaměřit", points: ["Klíčová kritéria výběru", "Časté chyby"] },
       { heading: "Praktické tipy krok za krokem", points: ["Doporučený postup", "Tipy do praxe"] },
-      { heading: "Doporučené produkty", points: ["Tipy z nabídky", "Na co se zaměřit"] },
+      { heading: "Doporučení a další kroky", points: ["Na co navázat", "Nejčastější rozhodnutí"] },
       { heading: "Časté dotazy", points: ["Odpovědi na nejčastější otázky"] },
     ],
     faq: [
@@ -172,7 +178,7 @@ function demoBrief(req: BriefRequest): BriefResult {
       { question: "Jak často téma řešit?", answer: "Záleží na potřebách čtenáře — brief slouží jako kostra." },
     ],
     keywords: [kw, `${kw} tipy`, `${kw} návod`, `jak na ${kw}`, `${kw} doporučení`].filter(Boolean),
-    internalLinks: ["Související kategorie", "Doporučené produkty", "Další články na blogu", "Bestsellery"],
+    internalLinks: ["Související téma", "Podrobný návod", "Další články na blogu", "Nejčtenější obsah"],
     rationale:
       "Ukázkový brief: title a meta v SEO limitech, osnova H2 a FAQ. Připojte LLM (Claude Code v devu, Gemini v produkci) pro plnou verzi od modelu.",
   };

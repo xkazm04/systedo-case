@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import {
   generateAds,
   generateAnalysis,
+  generateChannelResearch,
   generateChat,
   generateArticleDraft,
   generateBrief,
@@ -18,6 +19,7 @@ import {
 import {
   validateAdRequest,
   validateAnalysisRequest,
+  validateChannelResearchRequest,
   validateMonthlyRecapRequest,
   validateChatRequest,
   validateArticleDraftRequest,
@@ -43,6 +45,7 @@ import { buildSnapshot } from "@/lib/snapshot";
 import type { PerformanceData } from "@/lib/types";
 import type { ProjectType } from "@/lib/projects/types";
 import { getProject } from "@/lib/projects/store";
+import { loadBrandContext } from "@/lib/brand/load";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
@@ -173,6 +176,27 @@ async function resolveGrounding(
   return { keyId: "base" };
 }
 
+/** B1 — resolve a project's brand grounding (what it sells + how it talks) for the
+ *  content tools (brief, article-draft), with the same demo-public / user-owned
+ *  tenancy as resolveGrounding. Returns "" when there's no project or no catalogue,
+ *  so the prompt stays byte-identical to the ungrounded path. Reuses the shared
+ *  loadBrandContext the social/WeekPlanner endpoints already use, so all content
+ *  surfaces ground from one derivation. */
+async function resolveBrandContext(
+  projectId: string | undefined,
+  userId: string | null,
+  locale: SupportedLocale
+): Promise<string> {
+  if (!projectId) return "";
+  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
+  if (demo) return loadBrandContext(demo, locale);
+  if (userId) {
+    const project = await getProject(userId, projectId);
+    if (project) return loadBrandContext(project, locale);
+  }
+  return "";
+}
+
 /** Combine the recap grounding inputs into one block: lead-signals (C2), the
  *  competitor set (C3), true net profit (A3 cost model) and the 12-month history.
  *  `keySuffix` carries the competitor + cost-model versions so an edit invalidates
@@ -278,7 +302,12 @@ export async function POST(request: Request) {
       }
       case "brief": {
         const p = validateBriefRequest(body, locale);
-        return p.valid ? cachedRespond("brief", p.value, locale, userId, () => generateBrief(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // Ground the brief in the project's real product/voice (B1). Server-derived
+        // so the client can't spoof it; enters the cache key so different brands
+        // don't collide. Empty for public/demo-less calls → prompt unchanged.
+        p.value.brand = await resolveBrandContext(p.value.projectId, userId, locale);
+        return cachedRespond("brief", p.value, locale, userId, () => generateBrief(p.value, locale, request.signal));
       }
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
@@ -320,7 +349,10 @@ export async function POST(request: Request) {
       }
       case "article-draft": {
         const p = validateArticleDraftRequest(body, locale);
-        return p.valid ? cachedRespond("article-draft", p.value, locale, userId, () => generateArticleDraft(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // Same brand grounding as the brief so the drafted article stays on-brand (B1).
+        p.value.brand = await resolveBrandContext(p.value.projectId, userId, locale);
+        return cachedRespond("article-draft", p.value, locale, userId, () => generateArticleDraft(p.value, locale, request.signal));
       }
       case "cohort-diagnosis": {
         const p = validateCohortDiagnosisRequest(body, locale);
@@ -349,6 +381,10 @@ export async function POST(request: Request) {
       case "lead-source-diagnosis": {
         const p = validateLeadSourceDiagnosisRequest(body, locale);
         return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, userId, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "channel-research": {
+        const p = validateChannelResearchRequest(body, locale);
+        return p.valid ? cachedRespond("channel-research", p.value, locale, userId, () => generateChannelResearch(p.value, locale, request.signal)) : bad(p.error);
       }
       default:
         return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });

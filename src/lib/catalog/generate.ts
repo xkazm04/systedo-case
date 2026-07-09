@@ -70,9 +70,13 @@ function clampList(texts: string[], max: number, limit: number): Asset[] {
   return out;
 }
 
-export function buildAssetGroup(p: Product): AssetGroup {
+/** Deterministic keyless demo / fallback ad copy. `brand` + `domain` come from the
+ *  project so the copy + final URL aren't hardcoded to one shop (BM-L1-02); both
+ *  default to empty (brand dropped, neutral host) when unknown. */
+export function buildAssetGroup(p: Product, brand = "", domain = ""): AssetGroup {
   const price = fmtCZK(p.price);
   const inStock = p.stock > 0;
+  const withBrand = (s: string) => (brand ? `${s} ${brand}` : s);
 
   const headlines = clampList(
     [
@@ -81,8 +85,8 @@ export function buildAssetGroup(p: Product): AssetGroup {
       inStock ? "Skladem, expedice 24 h" : "Předobjednejte ihned",
       "Doprava zdarma nad 1 500 Kč",
       p.usps[0] ?? "Ověřená kvalita",
-      p.usps[1] ?? "Oblíbená volba rodičů",
-      `${p.category} Mionelo`,
+      p.usps[1] ?? "Oblíbená volba zákazníků",
+      withBrand(p.category),
       "Hodnocení 4,8/5 ★",
     ],
     RSA_HEADLINE_MAX,
@@ -92,7 +96,7 @@ export function buildAssetGroup(p: Product): AssetGroup {
   const longHeadlines = clampList(
     [
       `${p.title} — ${p.usps.slice(0, 2).join(", ")}`,
-      `${p.category} Mionelo za ${price} s dopravou zdarma`,
+      `${withBrand(p.category)} za ${price} s dopravou zdarma`,
     ],
     PMAX_LONG_HEADLINE_MAX,
     2
@@ -115,7 +119,7 @@ export function buildAssetGroup(p: Product): AssetGroup {
 
   return {
     sku: p.sku,
-    finalUrl: `https://mionelo.cz/p/${p.sku.toLowerCase()}`,
+    finalUrl: `https://${domain || "www.example.com"}/p/${p.sku.toLowerCase()}`,
     headlines,
     longHeadlines,
     descriptions,

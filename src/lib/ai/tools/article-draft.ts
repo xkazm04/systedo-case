@@ -61,6 +61,11 @@ function buildArticleDraftPrompt(req: ArticleDraftRequest): string {
   const faqBlock = req.faq.length
     ? req.faq.map((f) => `- ${f.question}`)
     : [];
+  // Brand grounding rides on the USER prompt only (like the refine note) so system +
+  // schema stay byte-identical and the gate/golden fingerprint holds.
+  const brandLine = req.brand
+    ? `Kontext značky (piš v jejím světě, drž se sortimentu a slovníku): ${req.brand}`
+    : "";
   return [
     "Rozepiš tento hotový brief do plnohodnotného konceptu článku.",
     "",
@@ -69,6 +74,7 @@ function buildArticleDraftPrompt(req: ArticleDraftRequest): string {
     `Meta description: ${req.metaDescription}`,
     req.audience ? `Cílová skupina: ${req.audience}` : "",
     req.contentType ? `Typ obsahu: ${CONTENT_TYPE_LABELS[req.contentType]}` : "",
+    brandLine,
     "",
     "Osnova, kterou článek dodrží (každý nadpis = jedna sekce H2):",
     ...outlineBlock,
