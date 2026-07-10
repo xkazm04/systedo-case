@@ -19,33 +19,19 @@ import {
   type GeneratedImage,
   type ImageGenResult,
 } from "@/lib/images/types";
-import {
-  RATE_RULES,
-  acquireSlot,
-  clientIp,
-  payloadTooLarge,
-  releaseSlot,
-  tooLarge,
-  tooManyRequests,
-} from "@/lib/ai/rate-limit";
-import { durableGuard } from "@/lib/ai/durable-limit";
+import { releaseSlot } from "@/lib/ai/rate-limit";
+import { guardPaidGeneration } from "@/lib/ai/paid-guard";
 
 export const maxDuration = 120;
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 export async function POST(request: Request) {
-  if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
-  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()], { spendUnits: 1 });
-  if (!limited.ok) {
-    return tooManyRequests(
-      limited.retryAfter,
-      `Příliš mnoho generování. Zkuste to prosím znovu za ${limited.retryAfter} s.`
-    );
-  }
-  if (!acquireSlot()) {
-    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
-  }
+  const guard = await guardPaidGeneration(
+    request,
+    (s) => `Příliš mnoho generování. Zkuste to prosím znovu za ${s} s.`
+  );
+  if (guard) return guard;
 
   try {
     let body: Record<string, unknown>;

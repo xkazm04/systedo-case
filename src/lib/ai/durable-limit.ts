@@ -43,16 +43,14 @@ import {
   secondsUntilUtcMidnight,
   windowStartFor,
 } from "./durable-limit-core";
+import { envInt } from "@/lib/env";
 
 const DAY = 86_400_000;
 const COLL = "ratelimits";
 
-const envInt = (name: string, fallback: number): number => {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
-};
-
-const globalDailyCeiling = (): number => envInt("AI_GLOBAL_DAILY_CEILING", 2000);
+// allowZero: a ceiling of 0 means "disabled" (see ceilingExceeded), so 0 is a valid
+// configured value here — unlike the rate/byte/concurrency knobs, where 0 falls back.
+const globalDailyCeiling = (): number => envInt("AI_GLOBAL_DAILY_CEILING", 2000, { allowZero: true });
 const ceilingFailClosed = (): boolean => process.env.AI_CEILING_FAIL_CLOSED === "1";
 
 /** Durable fixed-window rate limit + optional global daily spend ceiling.

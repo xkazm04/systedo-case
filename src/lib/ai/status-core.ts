@@ -11,6 +11,7 @@
 
 import { AI_DEMO_RATE_WARN } from "@/lib/llm/telemetry-ops";
 import type { LlmTelemetryEntry } from "@/lib/llm/telemetry";
+import { providerOrder, type ProviderName } from "@/lib/llm/provider-order";
 
 /** Which path a generation would take right now. Mirrors the provider order in
  *  the LLM wrapper: Claude→Gemini in dev, Gemini→Claude in prod, demo when
@@ -55,15 +56,11 @@ export function resolveWouldServe(
   claudeOk: boolean,
   geminiOk: boolean
 ): AiServePath {
-  const order: [AiServePath, boolean][] = dev
-    ? [
-        ["claude", claudeOk],
-        ["gemini", geminiOk],
-      ]
-    : [
-        ["gemini", geminiOk],
-        ["claude", claudeOk],
-      ];
+  const available: Record<ProviderName, boolean> = { claude: claudeOk, gemini: geminiOk };
+  const order: [AiServePath, boolean][] = providerOrder(dev).map((name): [AiServePath, boolean] => [
+    name,
+    available[name],
+  ]);
   return order.find(([, ok]) => ok)?.[0] ?? "demo";
 }
 

@@ -8,11 +8,14 @@ import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapsh
 import type { PerformanceData } from "../../types";
 import { fmtCZK, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
-import { ANALYSIS_SYSTEM } from "./analysis";
+import { ANALYST_PERSONA } from "./persona";
 
-/** The analyst persona, plus the rules a chat turn needs on top of the one-shot
- *  analysis (conversational, plain text, admit when the data can't answer). */
-const CHAT_SYSTEM = `${ANALYSIS_SYSTEM}
+/** The analyst persona (shared with the one-shot `analysis` tool via ./persona),
+ *  plus the rules a chat turn needs on top of it (conversational, plain text,
+ *  admit when the data can't answer). Importing the persona from ./persona — not
+ *  from ./analysis — keeps this live prompt out of the gate's single-tool
+ *  attribution for analysis.ts, so a persona change re-proves chat too. */
+const CHAT_SYSTEM = `${ANALYST_PERSONA}
 
 Teď vedeš navazující konverzaci nad tímto reportem. Navíc platí:
 - Odpovídej konverzačně a stručně (2–5 vět), jako v chatu — žádné markdown nadpisy ani odrážkové seznamy, pokud o ně klient výslovně nepožádá.

@@ -11,17 +11,14 @@ import {
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapshot";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
-import { txt, cleanList } from "./_shared";
+import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
+import { ANALYST_PERSONA } from "./persona";
 import { refineLines } from "./refine";
 
-export const ANALYSIS_SYSTEM = `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
-
-Pravidla:
-- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
-- Odkazuj se na konkrétní kanály a čísla z dat (např. PNO daného kanálu, ROAS, podíl na obratu).
-- Buď konkrétní a akční: doporučení musí být něco, co PPC specialista reálně udělá (úprava rozpočtů a nabídek, řízení PNO, škálování nejlepších kanálů, oprava nejslabších).
-- Piš česky, věcně, bez vaty a marketingových frází.
-- Drž se zadaného JSON schématu.`;
+// The whole analysis system prompt IS the shared analyst persona (also used by
+// `chat`). Kept as its own untagged module (./persona) so the gate re-proves both
+// tools when it changes, instead of attributing an edit here to "analysis" only.
+export const ANALYSIS_SYSTEM = ANALYST_PERSONA;
 
 function buildAnalysisPrompt(snapshotText: string, refine?: string): string {
   return [
@@ -62,19 +59,12 @@ const ANALYSIS_SCHEMA = {
 
 function normalizeAnalysisResult(parsed: unknown): AnalysisResult {
   const o = parsed as Record<string, unknown>;
-  const actions = Array.isArray(o.actions)
-    ? o.actions
-        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
-        .map((x) => ({ title: txt(x.title), detail: txt(x.detail) }))
-        .filter((x) => x.title)
-        .slice(0, 6)
-    : [];
   return {
     headline: txt(o.headline),
     summary: txt(o.summary),
     wins: cleanList(o.wins, 6),
     risks: cleanList(o.risks, 6),
-    actions,
+    actions: cleanTitledList(o.actions, 6),
   };
 }
 
@@ -88,12 +78,7 @@ function validateAnalysis(parsed: unknown): string[] {
   if (!txt(o.headline)) v.push("Chybí jednovětý verdikt (headline).");
   if (cleanList(o.wins, 6).length === 0) v.push("Chybí body „co se daří“ (wins).");
   if (cleanList(o.risks, 6).length === 0) v.push("Chybí rizika (risks).");
-  const actions = Array.isArray(o.actions)
-    ? o.actions.filter(
-        (x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)
-      ).length
-    : 0;
-  if (actions === 0) v.push("Chybí konkrétní doporučené kroky (actions).");
+  if (countTitled(o.actions) === 0) v.push("Chybí konkrétní doporučené kroky (actions).");
   return v;
 }
 

@@ -18,6 +18,7 @@ import { estimateCostUsd, type TokenUsage } from "./cost";
 import { byomModel, claudeModelTag, geminiModelTag, type ModelTier } from "./models";
 import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
 import { runByom } from "./byom/adapters";
+import { providerOrder, type ProviderName } from "./provider-order";
 import { getByomContext } from "./byom-context";
 import { getLlmRequestContext } from "./request-context";
 import { ByomUserError } from "./errors";
@@ -150,9 +151,10 @@ function byomProvider(byom: ResolvedByomKey): Provider {
  *  ByomUserError and never reaches them). Without BYOM this is exactly the
  *  environment-preferred order the app has always used. */
 export function resolveProviders(dev: boolean, byom: ResolvedByomKey | undefined): Provider[] {
-  const env = (dev ? [claudeProvider, geminiProvider] : [geminiProvider, claudeProvider]).filter((p) =>
-    p.available()
-  );
+  const byName: Record<ProviderName, Provider> = { claude: claudeProvider, gemini: geminiProvider };
+  const env = providerOrder(dev)
+    .map((name) => byName[name])
+    .filter((p) => p.available());
   return byom ? [byomProvider(byom), ...env] : env;
 }
 

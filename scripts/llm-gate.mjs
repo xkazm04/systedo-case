@@ -45,6 +45,16 @@ const HASHED_FILES = [
   "src/lib/ai/tools/_shared.ts",
   // Shared by twin-reply, social and repurpose — a change here rewrites three prompts.
   "src/lib/ai/tools/voice.ts",
+  // The analyst persona shared by analysis + chat (chat's live system prompt is
+  // built from it). Untagged on purpose ⇒ a change here forces a full re-run,
+  // so editing the persona re-proves BOTH tools, not just "analysis".
+  "src/lib/ai/tools/persona.ts",
+  // refineLines() rewrites the re-run prompt of ~16 tools (analysis, brief, ads,
+  // article-draft, local-review-reply, monthly-recap, repurpose, twin-reply,
+  // twin-style, cohort-diagnosis, keyword-clusters, comparison-outline,
+  // lp-variant-ideas, lead-source-diagnosis, channel-research, onboarding-scan).
+  // Untagged ⇒ a change here forces a full re-run.
+  "src/lib/ai/tools/refine.ts",
   // social.ts + its dedicated route were never hash-tracked, so prompt/schema edits
   // shipped without the gate re-proving the tool. They are now.
   "src/lib/ai/tools/social.ts",

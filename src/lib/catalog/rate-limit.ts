@@ -5,13 +5,9 @@
  *  sqlite limiter (ai/rate-limit) — but keyed by the user id, since these are authed,
  *  not by IP. Env-tunable; server-only. */
 import { rateLimit, tooManyRequests, type RateRule } from "@/lib/ai/rate-limit";
+import { envInt } from "@/lib/env";
 
 const MIN = 60_000;
-
-const envInt = (name: string, fallback: number): number => {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-};
 
 /** Per-minute caps (per user), built lazily so env overrides are read at call time.
  *  Import is tightest (largest payload + a full parse); connect is loosest (validation

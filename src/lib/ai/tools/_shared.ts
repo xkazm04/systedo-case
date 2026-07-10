@@ -43,6 +43,33 @@ export const lenViolations = (label: string, items: string[], max: number): stri
 
 export const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
+/** Parse the recurring "titled items" model-output shape — an array of
+ *  `{ title, detail }` objects, dropping non-objects and entries with an empty
+ *  title, capped at `max`. Shared by analysis (actions), monthly-recap
+ *  (priorities) and campaign-eval (recommendations). `extra` adds tool-specific
+ *  fields (e.g. campaign-eval's coerced `priority`) computed from the raw object. */
+export const cleanTitledList = <E extends object = Record<never, never>>(
+  v: unknown,
+  max: number,
+  extra?: (x: Record<string, unknown>) => E
+): ({ title: string; detail: string } & E)[] =>
+  Array.isArray(v)
+    ? v
+        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
+        .map((x) => ({ title: txt(x.title), detail: txt(x.detail), ...(extra ? extra(x) : ({} as E)) }))
+        .filter((x) => x.title)
+        .slice(0, max)
+    : [];
+
+/** Count the entries of a `{ title }[]`-shaped value that are objects carrying a
+ *  non-empty title — the "is there at least one usable titled item?" check the
+ *  analysis / monthly-recap / campaign-eval validators share (each keeps its own
+ *  Czech message). */
+export const countTitled = (v: unknown): number =>
+  Array.isArray(v)
+    ? v.filter((x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)).length
+    : 0;
+
 // Diacritics -> ASCII for slugs, keyed by numeric code point. An explicit map is
 // dependency-free and predictable (no String.normalize or locale assumptions).
 export const DIACRITICS: Record<number, string> = {

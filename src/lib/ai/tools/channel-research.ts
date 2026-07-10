@@ -19,7 +19,7 @@ import type {
   ChannelResearchResult,
 } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
-import type { ProjectType } from "@/lib/projects/types";
+import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import {
   CHANNEL_CATEGORIES,
   type ChannelCategory,
@@ -29,6 +29,7 @@ import {
 import { baseChannelPlan } from "@/lib/organic-channels/sample";
 import { generateStructured } from "../../llm";
 import { cleanList, slugify, txt } from "./_shared";
+import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
 
 const CHANNEL_RESEARCH_SYSTEM = `Jsi český stratég pro organickou (bezplatnou) viditelnost. Firmě sestavuješ plán kanálů, kde se může zviditelnit ZDARMA — bez rozpočtu na reklamu (placené PPC řeší jiný modul).
@@ -61,7 +62,7 @@ const TYPE_FRAMING: Record<ProjectType, string> = {
   local: "lokální podnik / služby s provozovnou",
 };
 
-const KNOWN_TYPES = new Set<string>(["eshop", "app", "leadgen", "content", "local"]);
+const KNOWN_TYPES = new Set<string>(PROJECT_TYPES);
 
 /** Resolve the request's project type to a known ProjectType, defaulting to eshop
  *  (the broadest channel mix) when the caller sends something unexpected. */
@@ -147,18 +148,8 @@ const CHANNEL_RESEARCH_SCHEMA = {
   propertyOrdering: ["summary", "channels"],
 };
 
-const CATEGORY_SET = new Set<string>(CHANNEL_CATEGORIES);
-const EFFORT_SET = new Set<string>(["low", "medium", "high"]);
-
-const coerceCategory = (v: unknown): ChannelCategory => {
-  const c = txt(v).toLowerCase();
-  return (CATEGORY_SET.has(c) ? c : "content") as ChannelCategory;
-};
-
-const coerceEffort = (v: unknown): ChannelEffort => {
-  const e = txt(v).toLowerCase();
-  return (EFFORT_SET.has(e) ? e : "medium") as ChannelEffort;
-};
+const coerceCategory = coerceEnum<ChannelCategory, ChannelCategory>(CHANNEL_CATEGORIES, "content");
+const coerceEffort = coerceEnum<ChannelEffort, ChannelEffort>(["low", "medium", "high"], "medium");
 
 const clampFit = (v: unknown): number => {
   const n = Math.round(Number(v));

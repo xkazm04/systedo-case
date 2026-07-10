@@ -20,6 +20,7 @@
  *  unreachable, and the source of the shared RateRule/RateResult contract.
  */
 import { getDb } from "../db";
+import { envInt } from "@/lib/env";
 
 export interface RateRule {
   /** logical bucket so different endpoints don't share one budget */
@@ -38,11 +39,6 @@ export interface RateResult {
 
 const MIN = 60_000;
 const DAY = 86_400_000;
-
-const envInt = (name: string, fallback: number): number => {
-  const n = Number(process.env[name]);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
-};
 
 /** Max bytes we'll accept in a request body before parsing it. */
 export const MAX_BODY_BYTES = envInt("AI_MAX_BODY_BYTES", 16_384);

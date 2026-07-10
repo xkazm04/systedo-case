@@ -18,6 +18,7 @@ import type {
   OnboardingScanResult,
 } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
+import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import { generateStructured } from "../../llm";
 import { cleanList, digest, txt } from "./_shared";
 import { refineLines } from "./refine";
@@ -37,7 +38,7 @@ Pravidla:
   - „suggestedType" = nejvhodnější typ projektu, jedna z hodnot: eshop (prodej fyzického zboží), app (SaaS / aplikace), leadgen (poptávky po službách), content (obsahový web), local (lokální podnik s provozovnou).
 - Piš česky, věcně, bez marketingových frází, a vracej POUZE jeden validní JSON objekt dle schématu — žádný text okolo.`;
 
-const TYPE_HINT: Record<string, string> = {
+const TYPE_HINT: Record<ProjectType, string> = {
   eshop: "e-shop (prodej fyzického zboží)",
   app: "digitální produkt / SaaS aplikace",
   leadgen: "generování poptávek (leadgen) pro služby",
@@ -54,8 +55,8 @@ function buildOnboardingScanPrompt(req: OnboardingScanRequest): string {
   if (req.siteTitle) lines.push(`Titulek stránky: ${req.siteTitle}`);
   if (req.siteDescription) lines.push(`Popis stránky: ${req.siteDescription}`);
   if (req.brand) lines.push(`Název projektu (nápověda): ${req.brand}`);
-  if (req.projectType && TYPE_HINT[req.projectType]) {
-    lines.push(`Typ projektu (nápověda): ${TYPE_HINT[req.projectType]}`);
+  if (req.projectType && KNOWN_TYPES.has(req.projectType)) {
+    lines.push(`Typ projektu (nápověda): ${TYPE_HINT[req.projectType as ProjectType]}`);
   }
   lines.push(
     "",
@@ -104,7 +105,7 @@ const ONBOARDING_SCAN_SCHEMA = {
   ],
 };
 
-const KNOWN_TYPES = new Set(["eshop", "app", "leadgen", "content", "local"]);
+const KNOWN_TYPES = new Set<string>(PROJECT_TYPES);
 
 /** Best-effort host name from a URL, for the demo's business-name fallback. */
 function hostOf(url: string): string {

@@ -62,16 +62,8 @@ import { getCostModel } from "@/lib/cost-model/store";
 import { profitGroundingText, historyGroundingText } from "@/lib/report/recap-context";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
-import {
-  RATE_RULES,
-  acquireSlot,
-  clientIp,
-  payloadTooLarge,
-  releaseSlot,
-  tooLarge,
-  tooManyRequests,
-} from "@/lib/ai/rate-limit";
-import { durableGuard } from "@/lib/ai/durable-limit";
+import { releaseSlot } from "@/lib/ai/rate-limit";
+import { guardPaidGeneration } from "@/lib/ai/paid-guard";
 
 
 /** Cache-then-quota-then-generate for one tool call. An identical (mode, locale,
@@ -249,20 +241,11 @@ async function resolveLeadGrounding(
 
 export async function POST(request: Request) {
   // Abuse guards first — this endpoint is a public, unauthenticated POST that
-  // shells out to a paid provider, so it must be throttled before any work.
-  if (tooLarge(request)) {
-    return payloadTooLarge("Požadavek je příliš velký.");
-  }
-  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()], { spendUnits: 1 });
-  if (!limited.ok) {
-    return tooManyRequests(
-      limited.retryAfter,
-      `Příliš mnoho požadavků. Zkuste to prosím znovu za ${limited.retryAfter} s.`
-    );
-  }
-  if (!acquireSlot()) {
-    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
-  }
+  // shells out to a paid provider, so it must be throttled before any work. The
+  // full tooLarge → durableGuard → acquireSlot sequence lives in guardPaidGeneration;
+  // releaseSlot() below pairs with the slot it took on a null (proceed) return.
+  const guard = await guardPaidGeneration(request);
+  if (guard) return guard;
 
   let mode: unknown;
   try {

@@ -22,6 +22,7 @@ import {
 import { fmtCZK, fmtInt, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
 
 const LEAD_SOURCE_DIAGNOSIS_SYSTEM = `Jsi zkušený český analytik akvizice a kvality leadů pro B2B a lead-gen firmy. Děláš stručnou diagnostiku JEDNOHO podvýkonného zdroje leadů.
@@ -112,20 +113,12 @@ const LEAD_SOURCE_DIAGNOSIS_SCHEMA = {
   propertyOrdering: ["summary", "likelyCause", "recommendation", "severity"],
 };
 
-const CAUSE_SET = new Set<string>(LEAD_SOURCE_CAUSES);
-const SEVERITY_SET = new Set<string>(["high", "medium", "low"]);
-
 /** Coerce the model's likelyCause to a known cause, defaulting unknowns to
  *  „mis-targeting" (a safe, non-accusatory catch-all) rather than failing. */
-function coerceCause(v: unknown): LeadSourceCause {
-  const c = txt(v).toLowerCase();
-  return (CAUSE_SET.has(c) ? c : "mis-targeting") as LeadSourceCause;
-}
+const coerceCause = coerceEnum<LeadSourceCause, LeadSourceCause>(LEAD_SOURCE_CAUSES, "mis-targeting");
 
-function coerceSeverity(v: unknown): LeadSourceSeverity | undefined {
-  const s = txt(v).toLowerCase();
-  return SEVERITY_SET.has(s) ? (s as LeadSourceSeverity) : undefined;
-}
+/** Coerce the model's severity to a known level, or undefined when it isn't one. */
+const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "medium", "low"], undefined);
 
 /** Deterministic, data-driven cause from the metrics alone — the demo's pick and
  *  the floor when the model leaves likelyCause empty. Mirrors the prompt's rules:

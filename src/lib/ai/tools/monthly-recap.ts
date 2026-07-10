@@ -14,7 +14,7 @@ import type { PerformanceData } from "../../types";
 import type { ProjectType } from "../../projects/types";
 import { fmtCZK, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
-import { txt, cleanList } from "./_shared";
+import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
 import { refineLines } from "./refine";
 
 export const MONTHLY_RECAP_SYSTEM = `Jsi zkušený český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu pro klienta.
@@ -74,19 +74,12 @@ const MONTHLY_RECAP_SCHEMA = {
 
 function normalizeRecap(parsed: unknown): MonthlyRecapResult {
   const o = parsed as Record<string, unknown>;
-  const priorities = Array.isArray(o.priorities)
-    ? o.priorities
-        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
-        .map((x) => ({ title: txt(x.title), detail: txt(x.detail) }))
-        .filter((x) => x.title)
-        .slice(0, 6)
-    : [];
   return {
     headline: txt(o.headline),
     summary: txt(o.summary),
     highlights: cleanList(o.highlights, 6),
     watchouts: cleanList(o.watchouts, 6),
-    priorities,
+    priorities: cleanTitledList(o.priorities, 6),
   };
 }
 
@@ -99,12 +92,7 @@ function validateRecap(parsed: unknown): string[] {
   if (!txt(o.headline)) v.push("Chybí jednovětý verdikt (headline).");
   if (cleanList(o.highlights, 6).length === 0) v.push("Chybí hlavní úspěchy (highlights).");
   if (cleanList(o.watchouts, 6).length === 0) v.push("Chybí věci k hlídání (watchouts).");
-  const priorities = Array.isArray(o.priorities)
-    ? o.priorities.filter(
-        (x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)
-      ).length
-    : 0;
-  if (priorities === 0) v.push("Chybí priority na příští měsíc (priorities).");
+  if (countTitled(o.priorities) === 0) v.push("Chybí priority na příští měsíc (priorities).");
   return v;
 }
 

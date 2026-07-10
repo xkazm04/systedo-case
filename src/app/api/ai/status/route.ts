@@ -23,6 +23,7 @@ import { getUsage } from "@/lib/usage";
 import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
 import { peekDurableRemaining } from "@/lib/ai/durable-limit";
 import { latencyByTool, resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
+import { providerOrder, type ProviderName } from "@/lib/llm/provider-order";
 
 
 export async function GET(request: Request) {
@@ -36,21 +37,24 @@ export async function GET(request: Request) {
   const rules = [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()];
   const [perMin, perDay] = await peekDurableRemaining(clientIp(request), rules);
 
+  // Per-provider health keyed by name, so the diagnostic list below renders in
+  // the same environment-preferred order the wrapper actually tries.
+  const modelTag: Record<ProviderName, string> = {
+    claude: claudeModelTag(),
+    gemini: geminiModelTag(),
+  };
+  const available: Record<ProviderName, boolean> = { claude: claudeOk, gemini: geminiOk };
+
   const payload: AiStatusPayload = {
     dev,
     demo: wouldServe === "demo",
     wouldServe,
     // Per-provider health, in the wrapper's environment-preferred order — the
     // operator's one-call diagnosis of "why is everything demo?".
-    providers: dev
-      ? [
-          { model: claudeModelTag(), available: claudeOk },
-          { model: geminiModelTag(), available: geminiOk },
-        ]
-      : [
-          { model: geminiModelTag(), available: geminiOk },
-          { model: claudeModelTag(), available: claudeOk },
-        ],
+    providers: providerOrder(dev).map((name) => ({
+      model: modelTag[name],
+      available: available[name],
+    })),
     remaining: { perMin, perDay },
     limits: { perMin: rules[0].limit, perDay: rules[1].limit },
   };

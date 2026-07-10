@@ -3,7 +3,7 @@
  *  active project's `type`; the overview reads `KPI_PRESETS` for the same type.
  *  Adding/retargeting a module is one edit here. Framework-free (no React). */
 import type { IconKey } from "./icon-keys";
-import type { ProjectType } from "./types";
+import { PROJECT_TYPES, type ProjectType } from "./types";
 import type { SupportedLocale } from "@/lib/format";
 
 /** Sidebar grouping. Order here defines render order. */
@@ -55,7 +55,11 @@ export interface ModuleDef {
   blurbEn: string;
 }
 
-const ALL: ProjectType[] = ["eshop", "app", "leadgen", "content", "local"];
+/** Every project type — the canonical list from `types.ts`, not a local copy, so
+ *  a new ProjectType (already a compile error in the exhaustive `PROJECT_TYPE_META`
+ *  / `KPI_PRESETS` records) flows into every all-types module instead of silently
+ *  dropping out of the sidebar. */
+const ALL: ProjectType[] = PROJECT_TYPES;
 
 /** The full registry. `availableFor` is what differentiates the four types — see
  *  the matrix in the redesign plan. */

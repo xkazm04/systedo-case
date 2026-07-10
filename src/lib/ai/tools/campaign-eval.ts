@@ -26,7 +26,7 @@ import {
 import { buildCampaignPrompt, buildOverallPrompt } from "../../campaigns/report-input";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "../../format";
 import { generateStructured } from "../../llm";
-import { txt, cleanList } from "./_shared";
+import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
 
 const EVAL_SYSTEM = `Jsi zkušený český PPC stratég a specialista na Google Ads v marketingové agentuře. Vyhodnocuješ výkon reklamních kampaní a připravuješ klientovi stručný hodnoticí report s konkrétními dalšími kroky.
 
@@ -71,13 +71,9 @@ function normalizePriority(v: unknown): EvalPriority {
 
 function normalizeReport(parsed: unknown): CampaignReportResult {
   const o = parsed as Record<string, unknown>;
-  const recommendations: EvalRecommendation[] = Array.isArray(o.recommendations)
-    ? o.recommendations
-        .filter((x): x is Record<string, unknown> => Boolean(x) && typeof x === "object")
-        .map((x) => ({ title: txt(x.title), detail: txt(x.detail), priority: normalizePriority(x.priority) }))
-        .filter((x) => x.title)
-        .slice(0, 6)
-    : [];
+  const recommendations: EvalRecommendation[] = cleanTitledList(o.recommendations, 6, (x) => ({
+    priority: normalizePriority(x.priority),
+  }));
   const raw = typeof o.score === "number" ? o.score : Number(o.score);
   const score = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
   return {
@@ -103,12 +99,7 @@ function validateReport(parsed: unknown): string[] {
   }
   if (!txt(o.verdict)) v.push("Chybí jednovětý verdikt.");
   if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
-  const recs = Array.isArray(o.recommendations)
-    ? o.recommendations.filter(
-        (x) => Boolean(x) && typeof x === "object" && txt((x as Record<string, unknown>).title)
-      ).length
-    : 0;
-  if (recs === 0) v.push("Chybí doporučené kroky (recommendations).");
+  if (countTitled(o.recommendations) === 0) v.push("Chybí doporučené kroky (recommendations).");
   return v;
 }
 
