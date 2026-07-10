@@ -20,6 +20,7 @@ import {
   seriesDocId,
 } from "./store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "./triage";
+import { roas } from "@/lib/metrics/ratios";
 import type {
   AiResponse,
   CampaignReport,
@@ -599,7 +600,6 @@ export async function getLatestChanges(
   const names = new Map((await listCampaigns(tenant, requested ?? undefined)).map((c) => [c.id, c.name]));
 
   const valueOf = (e: SnapshotEntry) => e.conversionValue ?? e.conversion_value ?? 0;
-  const roas = (cost: number, value: number) => (cost > 0 ? value / cost : 0);
   const rel = (a: number, b: number) => (b > 0 ? (a - b) / b : a > 0 ? 1 : 0);
 
   let added = 0;
@@ -615,7 +615,7 @@ export async function getLatestChanges(
       items.push({
         campaignId: id, name, kind: "added",
         costBefore: 0, costAfter: c.cost, costDelta: 1, valueDelta: 1,
-        roasBefore: 0, roasAfter: roas(c.cost, valueOf(c)),
+        roasBefore: 0, roasAfter: roas(valueOf(c), c.cost),
       });
       continue;
     }
@@ -626,7 +626,7 @@ export async function getLatestChanges(
       items.push({
         campaignId: id, name, kind: "changed",
         costBefore: p.cost, costAfter: c.cost, costDelta, valueDelta,
-        roasBefore: roas(p.cost, valueOf(p)), roasAfter: roas(c.cost, valueOf(c)),
+        roasBefore: roas(valueOf(p), p.cost), roasAfter: roas(valueOf(c), c.cost),
       });
     }
   }
@@ -636,7 +636,7 @@ export async function getLatestChanges(
     items.push({
       campaignId: id, name: names.get(id) ?? id, kind: "removed",
       costBefore: p.cost, costAfter: 0, costDelta: -1, valueDelta: -1,
-      roasBefore: roas(p.cost, valueOf(p)), roasAfter: 0,
+      roasBefore: roas(valueOf(p), p.cost), roasAfter: 0,
     });
   }
 

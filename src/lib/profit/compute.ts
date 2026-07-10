@@ -12,6 +12,31 @@ import type {
   ReallocPlan,
 } from "./types";
 
+/** The shared per-row margin core: gross/net profit, POAS and break-even ROAS
+ *  from revenue, ad cost and a margin fraction. `computeProfit`, `applyOverhead`
+ *  (profit/overhead) and `computeProductProfit` (profit/products) all layer their
+ *  own fields on top of this — one formula, one place, so the `profitable`
+ *  definition can't drift between them. */
+export function computeMarginRow(
+  revenue: number,
+  cost: number,
+  marginPct: number
+): { grossProfit: number; netProfit: number; poas: number; breakEvenRoas: number; profitable: boolean } {
+  const grossProfit = revenue * marginPct;
+  const netProfit = grossProfit - cost;
+  return {
+    grossProfit,
+    netProfit,
+    poas: cost > 0 ? grossProfit / cost : 0,
+    breakEvenRoas: marginPct > 0 ? 1 / marginPct : Infinity,
+    // Profitable ⇔ netProfit ≥ 0 (revenue·margin ≥ cost). This equals the
+    // ROAS ≥ break-even test for paid channels, but stays correct for a
+    // zero-cost channel (organic/direct), whose guarded roas=0 would
+    // otherwise read as a false "loses money after margin".
+    profitable: netProfit >= 0,
+  };
+}
+
 export function computeProfit(
   rows: ChannelRow[],
   margins: ChannelMargin[]
@@ -20,10 +45,6 @@ export function computeProfit(
 
   const out: ProfitRow[] = rows.map((r) => {
     const marginPct = marginByChannel.get(r.channel) ?? FALLBACK_MARGIN;
-    const grossProfit = r.revenue * marginPct;
-    const netProfit = grossProfit - r.cost;
-    const poas = r.cost > 0 ? grossProfit / r.cost : 0;
-    const breakEvenRoas = marginPct > 0 ? 1 / marginPct : Infinity;
     return {
       channel: r.channel,
       color: r.color,
@@ -31,15 +52,7 @@ export function computeProfit(
       cost: r.cost,
       roas: r.roas,
       marginPct,
-      grossProfit,
-      netProfit,
-      poas,
-      breakEvenRoas,
-      // Profitable ⇔ netProfit ≥ 0 (revenue·margin ≥ cost). This equals the
-      // ROAS ≥ break-even test for paid channels, but stays correct for a
-      // zero-cost channel (organic/direct), whose guarded roas=0 would
-      // otherwise read as a false "loses money after margin".
-      profitable: netProfit >= 0,
+      ...computeMarginRow(r.revenue, r.cost, marginPct),
     };
   });
 

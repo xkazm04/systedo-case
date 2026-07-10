@@ -6,6 +6,7 @@
 import type { ImageStyle } from "./types";
 import { IMAGE_STYLE_LABELS } from "./types";
 import { fmtMultiple } from "@/lib/format";
+import { roas } from "@/lib/metrics/ratios";
 
 /** Real (or entered) performance for one creative over its run. */
 export interface CreativeMetrics {
@@ -48,10 +49,8 @@ export interface StyleStat {
   conversions: number;
 }
 
-const safeRatio = (a: number, b: number): number => (b > 0 ? a / b : 0);
-
 export function creativeRoas(m: CreativeMetrics): number {
-  return safeRatio(m.convValue, m.cost);
+  return roas(m.convValue, m.cost);
 }
 
 /** Per-style leaderboard, ranked by ROAS (then by vision score), so "which look
@@ -79,7 +78,7 @@ export function styleLeaderboard(links: CreativeLink[]): StyleStat[] {
       label: IMAGE_STYLE_LABELS[style],
       count: group.length,
       avgVisionScore,
-      roas: safeRatio(totalConvValue, totalCost),
+      roas: roas(totalConvValue, totalCost),
       totalCost,
       totalConvValue,
       conversions,

@@ -7,6 +7,7 @@
  *  No I/O, no React. */
 import type { ChannelRow } from "@/lib/metrics";
 import { FALLBACK_MARGIN } from "./sample";
+import { computeMarginRow } from "./compute";
 import type {
   ChannelMargin,
   OverheadOptions,
@@ -29,15 +30,12 @@ export function applyOverhead(
 
   const out: OverheadRow[] = rows.map((r) => {
     const marginPct = marginByChannel.get(r.channel) ?? FALLBACK_MARGIN;
-    const grossProfit = r.revenue * marginPct;
-    const netProfit = grossProfit - r.cost;
-    const poas = r.cost > 0 ? grossProfit / r.cost : 0;
-    const breakEvenRoas = marginPct > 0 ? 1 / marginPct : Infinity;
+    const core = computeMarginRow(r.revenue, r.cost, marginPct);
 
     const revShare = totalRevenue > 0 ? r.revenue / totalRevenue : 0;
     const allocatedOverhead = periodOverhead * revShare;
     const fulfilmentCost = perOrder * r.conversions;
-    const contributionProfit = grossProfit - allocatedOverhead - fulfilmentCost;
+    const contributionProfit = core.grossProfit - allocatedOverhead - fulfilmentCost;
     // Single "unprofitable once overhead is loaded in" verdict: contribution
     // can't cover the channel's own ad spend. unprofitableCount and the row
     // colour both read this so they can never disagree.
@@ -60,13 +58,7 @@ export function applyOverhead(
       cost: r.cost,
       roas: r.roas,
       marginPct,
-      grossProfit,
-      netProfit,
-      poas,
-      breakEvenRoas,
-      // netProfit ≥ 0 rather than roas ≥ break-even, so a zero-cost channel
-      // (guarded roas=0) isn't falsely flagged as a loss. See profit/compute.ts.
-      profitable: netProfit >= 0,
+      ...core,
       conversions: r.conversions,
       allocatedOverhead,
       fulfilmentCost,

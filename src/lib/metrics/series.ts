@@ -4,6 +4,7 @@
 import type { DailyPoint, MetricKey } from "../types";
 import type { SupportedLocale } from "../format";
 import { rel, totalsOf, type Totals } from "./totals";
+import { pno, aov, cr, roas, ctr, cpc } from "./ratios";
 
 // --- periods ----------------------------------------------------------------
 
@@ -81,12 +82,12 @@ function dailyValue(p: DailyPoint, key: MetricKey): number {
     case "conversions": return p.conversions;
     case "revenue": return p.revenue;
     case "profit": return p.revenue - p.cost;
-    case "pno": return p.revenue > 0 ? p.cost / p.revenue : 0;
-    case "aov": return p.conversions > 0 ? p.revenue / p.conversions : 0;
-    case "cr": return p.visits > 0 ? p.conversions / p.visits : 0;
-    case "roas": return p.cost > 0 ? p.revenue / p.cost : 0;
-    case "ctr": return (p.impressions ?? 0) > 0 ? (p.clicks ?? 0) / (p.impressions ?? 0) : 0;
-    case "cpc": return (p.clicks ?? 0) > 0 ? p.cost / (p.clicks ?? 0) : 0;
+    case "pno": return pno(p.cost, p.revenue);
+    case "aov": return aov(p.revenue, p.conversions);
+    case "cr": return cr(p.conversions, p.visits);
+    case "roas": return roas(p.revenue, p.cost);
+    case "ctr": return ctr(p.clicks ?? 0, p.impressions ?? 0);
+    case "cpc": return cpc(p.cost, p.clicks ?? 0);
   }
 }
 

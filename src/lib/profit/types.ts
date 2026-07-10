@@ -24,7 +24,8 @@ export interface ProfitRow {
   poas: number;
   /** the ROAS at which a channel breaks even given its margin (= 1 / margin) */
   breakEvenRoas: number;
-  /** roas ≥ breakEvenRoas */
+  /** netProfit ≥ 0 — not roas ≥ breakEvenRoas, so a zero-cost channel isn't a
+   *  false loss (see computeMarginRow in profit/compute.ts) */
   profitable: boolean;
 }
 

@@ -4,6 +4,7 @@
  *  experiment pits 2+ against each other and declares a winner by real
  *  performance when metrics exist, otherwise by predicted ad strength. */
 import type { AdResult } from "@/lib/ai-types";
+import { ctr, cr, cpa, roas } from "@/lib/metrics/ratios";
 
 /** Real (or entered) performance for one variant over the test window. */
 export interface AdVariantMetrics {
@@ -36,26 +37,24 @@ export interface Experiment {
   winnerVariantId: string | null;
 }
 
-const safeRatio = (a: number, b: number): number => (b > 0 ? a / b : 0);
-
 /** Click-through rate (clicks / impressions). */
 export function variantCtr(m: AdVariantMetrics): number {
-  return safeRatio(m.clicks, m.impressions);
+  return ctr(m.clicks, m.impressions);
 }
 
 /** Conversion rate (conversions / clicks). */
 export function variantCr(m: AdVariantMetrics): number {
-  return safeRatio(m.conversions, m.clicks);
+  return cr(m.conversions, m.clicks);
 }
 
 /** Cost per acquisition (cost / conversions), CZK. */
 export function variantCpa(m: AdVariantMetrics): number {
-  return safeRatio(m.cost, m.conversions);
+  return cpa(m.cost, m.conversions);
 }
 
 /** Return on ad spend (convValue / cost). */
 export function variantRoas(m: AdVariantMetrics): number {
-  return safeRatio(m.convValue, m.cost);
+  return roas(m.convValue, m.cost);
 }
 
 /** Whether a winner can be decided on real performance: every variant has spend.

@@ -5,6 +5,8 @@
 import type { ProductCategory, ProductRow, ProductSummary } from "./types";
 import type { Product } from "@/lib/catalog/sample";
 import { CATEGORY_FALLBACK_MARGIN, CATEGORY_MARGINS } from "@/lib/margins";
+import { computeMarginRow } from "./compute";
+import { roas as roasOf } from "@/lib/metrics/ratios";
 
 /** Palette for catalog-derived categories (deterministic by revenue rank). */
 const CATEGORY_COLORS = ["#1f8f88", "#2dd4ce", "#fb7141", "#f59e0b", "#15324b", "#6366f1"];
@@ -54,11 +56,6 @@ export function computeProductProfit(
     const revenue = totals.revenue * share;
     const cost = totals.cost * share;
     const marginPct = Math.max(0, Math.min(1, 1 - p.cogsPct));
-    const grossProfit = revenue * marginPct;
-    const netProfit = grossProfit - cost;
-    const poas = cost > 0 ? grossProfit / cost : 0;
-    const roas = cost > 0 ? revenue / cost : 0;
-    const breakEvenRoas = marginPct > 0 ? 1 / marginPct : Infinity;
     return {
       category: p.category,
       color: p.color,
@@ -66,14 +63,8 @@ export function computeProductProfit(
       cost,
       revenueShare: share,
       marginPct,
-      grossProfit,
-      netProfit,
-      poas,
-      breakEvenRoas,
-      roas,
-      // netProfit ≥ 0 rather than roas ≥ break-even, so a zero-cost row
-      // (guarded roas=0) isn't falsely flagged as a loss. See profit/compute.ts.
-      profitable: netProfit >= 0,
+      ...computeMarginRow(revenue, cost, marginPct),
+      roas: roasOf(revenue, cost),
     };
   });
 
