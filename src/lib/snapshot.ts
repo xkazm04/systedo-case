@@ -53,6 +53,10 @@ export interface Snapshot {
   periodLabel: string;
   /** the comparison baseline the deltas were computed against */
   baseline: PeriodBaseline;
+  /** true when the series couldn't fill the requested window (span < period days)
+   *  — current totals cover fewer days than the label and the delta isn't a true
+   *  full-period comparison. See MetricsSnapshot.truncated. */
+  truncated: boolean;
   current: Totals;
   delta: Record<MetricKey, number>;
   significance: Record<MetricKey, Significance>;
@@ -83,6 +87,7 @@ export function buildSnapshot(
     period,
     periodLabel: ANALYSIS_PERIOD_LABELS[period],
     baseline: snap.baseline,
+    truncated: snap.truncated,
     current: snap.current,
     delta: snap.delta,
     significance: snap.significance,
