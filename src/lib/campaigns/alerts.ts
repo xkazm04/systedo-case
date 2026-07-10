@@ -7,6 +7,7 @@
 import { firestore } from "@/lib/firebase";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { escapeHtml } from "@/lib/html";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
@@ -134,10 +135,4 @@ export async function evaluateAndAlert(
 
   await sendEmail(email, `${SITE_NAME}: ${title}`, html);
   return fresh.length;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) =>
-    ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch === '"' ? "&quot;" : "&#39;"
-  );
 }

@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n/client";
 import { useFormatters } from "@/lib/i18n/client";
 import type { SpendEntry } from "@/lib/spend/sample";
 import { byModel, byOperation, costShare, filterSpend, totals } from "@/lib/spend/compute";
+import { toCsv, downloadText } from "@/lib/export";
 
 const T = {
   cs: {
@@ -33,7 +34,6 @@ const T = {
 } as const;
 
 const usd = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
-const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
 export default function SpendModule({ entries, isLive = false }: { entries: SpendEntry[]; isLive?: boolean }) {
   const t = useT(T);
@@ -55,14 +55,7 @@ export default function SpendModule({ entries, isLive = false }: { entries: Spen
   function exportCsv() {
     const header = ["operation", t("colCalls"), t("colTokens"), t("colCost")];
     const rows = ops.map((o) => [o.key, String(o.calls), String(o.tokens), o.costUsd.toFixed(4)]);
-    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
-    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "usage.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadText("usage.csv", toCsv(header, rows));
   }
 
   return (

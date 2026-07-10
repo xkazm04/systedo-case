@@ -7,6 +7,7 @@
 import { firestore } from "@/lib/firebase";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { escapeHtml } from "@/lib/html";
 import { detectAnomalies, anomalyImpact, type Anomaly } from "@/lib/metrics/anomalies";
 import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact } from "@/lib/format";
 import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
@@ -134,10 +135,4 @@ export async function evaluateAnomalyAlerts(
   }
 
   return fresh.length;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) =>
-    ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch === '"' ? "&quot;" : "&#39;"
-  );
 }

@@ -33,10 +33,11 @@ export function activeModules(events: ActivityEvent[]): string[] {
   return seen;
 }
 
-/** RFC-4180-safe CSV cell (quote when it contains a comma, quote or newline). */
-export function csvCell(value: string): string {
-  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
-}
+/** RFC-4180 CSV cell escaping — re-exported from the shared `@/lib/export` so the
+ *  activity feed and the rest of the app share one escaping rule (now including
+ *  bare-CR handling the local copy was missing); consumers still resolve it from
+ *  this module path. */
+export { csvCell } from "@/lib/export";
 
 const DAY_MS = 86_400_000;
 

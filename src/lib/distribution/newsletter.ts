@@ -4,6 +4,7 @@
  *  separately from the body, and assembles a minimal, paste-ready HTML email
  *  (subject + body + the UTM'd CTA). Pure — no DOM, no I/O; the Blob download
  *  lives in the component. Seam: a real ESP (Mailchimp / Ecomail) template. */
+import { escapeHtml } from "@/lib/html";
 
 /** The „Předmět:" prefix the deterministic + AI Newsletter variant emits. The
  *  trailing space is optional, so we match it case-insensitively and trim. */
@@ -62,15 +63,6 @@ export function checkSubject(subject: string, max: number = NEWSLETTER_SUBJECT_M
   const length = trimmed.length;
   const status: SubjectStatus = length === 0 ? "empty" : length > max ? "tooLong" : "ok";
   return { length, max, status, valid: status === "ok" };
-}
-
-/** Minimal HTML escaping for text interpolated into the email body. */
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 export interface NewsletterHtmlInput {

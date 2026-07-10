@@ -5,6 +5,9 @@
 import { generateCandidates, leonardoConfigured } from "@/lib/leonardo/client";
 import { rateImage } from "@/lib/leonardo/rate";
 import { recordLlmCall } from "@/lib/llm/telemetry";
+// Shared demo core — the same FNV-1a hash as the other demo generators
+// (one implementation instead of copies), keeping the placeholder hue stable.
+import { hashStr } from "@/lib/demo/prng.mjs";
 
 // Coarse per-image cost estimates so the priciest calls in the app stop being
 // invisible — refine once real Leonardo-credit / Gemini-vision rates are wired.
@@ -145,17 +148,8 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
 
 // --- deterministic demo fallback (no LEONARDO_API_KEY) -----------------------
 
-function hash(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
 function demoSvg(prompt: string, preset: { width: number; height: number; label: string }, i: number): string {
-  const hue = hash(`${prompt}:${i}`) % 360;
+  const hue = hashStr(`${prompt}:${i}`) % 360;
   const hue2 = (hue + 40) % 360;
   const { width, height } = preset;
   const esc = (s: string) =>

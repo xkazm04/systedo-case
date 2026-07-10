@@ -15,18 +15,13 @@ import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
 import { triage } from "@/lib/campaigns/triage";
 import { getUserEmail, recordAlert, type AlertItem } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook } from "@/lib/email";
+import { escapeHtml } from "@/lib/html";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedCZK } from "@/lib/format";
 import { aggregateTelemetry, listLlmTelemetrySince } from "@/lib/llm/telemetry";
 import { aiOpsLines, summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { cronAuthorized } from "@/lib/cron-auth";
 
 export const maxDuration = 300;
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) =>
-    ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch === '"' ? "&quot;" : "&#39;"
-  );
-}
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) {

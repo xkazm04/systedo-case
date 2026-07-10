@@ -1,21 +1,17 @@
 /** Pure exporters that turn an assembled {@link AssetGroup} into shareable text —
  *  a Google Ads Editor-style CSV and a plain-text dump for the clipboard. Pure
- *  and dependency-free; the browser-only blob download lives in `@/lib/export`.
- *  Lets the user get the headlines/descriptions out of the screen and into
- *  Google Ads instead of the asset group being display-only. */
+ *  and framework-free: it shares the one RFC-4180 cell escaper (`csvCell`) with
+ *  `@/lib/export` but never touches the DOM; the browser-only blob download lives
+ *  in `@/lib/export`. Lets the user get the headlines/descriptions out of the
+ *  screen and into Google Ads instead of the asset group being display-only. */
 import type { AssetGroup } from "./generate";
+import { csvCell } from "@/lib/export";
 
 export interface AssetGroupExportMeta {
   /** Google Ads campaign name the asset group belongs to. */
   campaign: string;
   /** the asset group's name within that campaign. */
   assetGroupName: string;
-}
-
-/** Quote a single CSV field iff it contains a comma, quote, CR or LF, doubling
- *  embedded quotes per RFC 4180. */
-function csvField(value: string): string {
-  return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 /** Build a Google Ads Editor **Responsive Search Ad** CSV: the standard wide
@@ -39,7 +35,7 @@ export function assetGroupCsv(group: AssetGroup, meta: AssetGroupExportMeta): st
     ...group.descriptions.map((a) => a.text),
     group.finalUrl,
   ];
-  return [headers.map(csvField).join(","), row.map(csvField).join(",")].join("\r\n");
+  return [headers.map(csvCell).join(","), row.map(csvCell).join(",")].join("\r\n");
 }
 
 /** Build a plain-text dump of every asset, grouped by section, for "copy all".

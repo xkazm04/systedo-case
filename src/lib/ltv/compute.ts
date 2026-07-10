@@ -3,7 +3,7 @@
  *  LTV:CAC ratio and the payback month. Pure. */
 import type { Cohort, CohortChannel } from "./sample";
 import { isPaidChannel } from "./sample";
-import { csvNum } from "@/lib/export";
+import { csvNum, csvCell } from "@/lib/export";
 
 export const LTV_HORIZON = 12;
 
@@ -303,12 +303,10 @@ export function cohortTrend(rows: CohortMetrics[]): CohortTrend | null {
   };
 }
 
-/** A single field escaped for RFC-4180 CSV: wrap in double quotes and double any
- *  embedded quote whenever the value contains a quote, comma, or newline. */
-export function csvCell(value: string | number): string {
-  const s = String(value);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+/** RFC-4180 CSV cell escaping now lives in `@/lib/export` (the single source of
+ *  truth); re-exported here so `buildCohortCsv`'s consumers and tests keep
+ *  importing it from this module path. */
+export { csvCell };
 
 /** Build a CSV of the cohort table (header + one row per cohort). Integer cells
  *  stay raw; the ratio cells (M3 retention, LTV:CAC) render via `csvNum` so a

@@ -11,13 +11,8 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { SITE_NAME } from "@/lib/site";
+import { escapeHtml } from "@/lib/html";
 import { syncProvider } from "./providers";
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (ch) =>
-    ch === "&" ? "&amp;" : ch === "<" ? "&lt;" : ch === ">" ? "&gt;" : ch === '"' ? "&quot;" : "&#39;"
-  );
-}
 
 async function context(userId: string, projectId: string, providerId: string) {
   const [project, tenant] = await Promise.all([getProject(userId, projectId), resolveTenant(userId, projectId)]);

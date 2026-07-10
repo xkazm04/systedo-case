@@ -4,16 +4,22 @@
 
 import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 
-/** Quote a CSV field when it contains the delimiter, a quote, or a newline. */
-function csvField(v: string | number): string {
-  const s = String(v ?? "");
-  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/** A single field escaped for RFC-4180 CSV: wrapped in double quotes with any
+ *  embedded quote doubled, whenever it contains a quote, a comma, a newline
+ *  (LF **or** CR), or the semicolon `toCsv` uses as its cs-CZ delimiter. Quoting
+ *  the union of both delimiters is always RFC-4180-valid, so this one helper is
+ *  the single source of truth for CSV cell escaping across the app — it serves
+ *  both the semicolon-delimited `toCsv` documents and the comma-delimited
+ *  exporters (LTV cohorts, catalog RSA CSV) that import it. */
+export function csvCell(value: string | number): string {
+  const s = String(value ?? "");
+  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /** Build a CSV document from a header row + data rows. Uses a semicolon
  *  delimiter — the separator Czech Excel (cs-CZ) expects — and CRLF line ends. */
 export function toCsv(headers: string[], rows: (string | number)[][]): string {
-  return [headers, ...rows].map((r) => r.map(csvField).join(";")).join("\r\n");
+  return [headers, ...rows].map((r) => r.map(csvCell).join(";")).join("\r\n");
 }
 
 /** A numeric cell in the locale the export targets: "0,85" for cs (the decimal

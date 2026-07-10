@@ -2,16 +2,14 @@
  *  need a deterministic per-project factor (see vary.ts) don't transitively pull
  *  in the base performance dataset. dataset.ts re-exports these for back-compat. */
 import type { Project, ProjectType } from "@/lib/projects/types";
+// Shared demo core — the same FNV-1a hash the campaign/keyword samples and the
+// dashboard seed script use (one implementation instead of copies).
+import { hashStr } from "@/lib/demo/prng.mjs";
 
 /** Stable 0..1 hash of a seed string (FNV-1a), so derived numbers are distinct
  *  but don't change between requests. */
 export function seed01(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 10_000) / 10_000;
+  return (hashStr(id) % 10_000) / 10_000;
 }
 
 /** Type baseline so an e-shop reads larger than a content project. */

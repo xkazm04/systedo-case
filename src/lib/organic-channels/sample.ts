@@ -7,6 +7,9 @@
  *  the module chrome localizes. Framework-free apart from the Project type. */
 import type { Project, ProjectType } from "@/lib/projects/types";
 import type { ChannelCategory, ChannelEffort, OrganicChannel } from "./types";
+// Shared demo core — the same seeded PRNG (mulberry32) + FNV-1a hash the other
+// demo generators use (one implementation instead of copies).
+import { mulberry32, hashStr } from "@/lib/demo/prng.mjs";
 
 /** Light grounding the page threads in from the catalog so the seeded plan names
  *  the real business (brand, its category, its first locality) instead of "vaše
@@ -438,24 +441,12 @@ function fill(s: string, ctx: ChannelContext): string {
     .replace(/\{category\}/g, ctx.category || "vaší nabídky");
 }
 
-/** A tiny self-contained deterministic ±jit wobble seeded off a string (FNV-1a +
- *  a small PRNG), so the seeded plan varies per project/brand without pulling in
- *  the project-data variance toolkit (this module has no Project in the demo path).
+/** A tiny deterministic ±jit wobble seeded off a string (FNV-1a hash → mulberry32
+ *  from the shared demo core), so the seeded plan varies per project/brand.
  *  Returns a factor ≈ 1, consumed in call order. */
 function seededWobble(key: string): (jit?: number) => number {
-  let a = 2166136261 >>> 0;
-  for (let i = 0; i < key.length; i++) {
-    a ^= key.charCodeAt(i);
-    a = Math.imul(a, 16777619);
-  }
-  return (jit = 0.05) => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    const r = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    return 1 + (r * 2 - 1) * jit;
-  };
+  const rnd = mulberry32(hashStr(key));
+  return (jit = 0.05) => 1 + (rnd() * 2 - 1) * jit;
 }
 
 /** Build the curated per-type channel plan from a type + grounding context, nudged

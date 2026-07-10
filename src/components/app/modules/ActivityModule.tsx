@@ -11,7 +11,8 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { interpolate } from "@/lib/i18n/interpolate";
 import { MODULES, moduleLabel } from "@/lib/projects/modules";
 import type { ActivityEvent, ActivitySeverity } from "@/lib/activity/sample";
-import { activeModules, csvCell, filterActivity, severityCounts, type ActivityFilter } from "@/lib/activity/compute";
+import { activeModules, filterActivity, severityCounts, type ActivityFilter } from "@/lib/activity/compute";
+import { toCsv, downloadText } from "@/lib/export";
 
 const T = {
   cs: {
@@ -98,14 +99,7 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
   function exportCsv() {
     const header = [t("colWhen"), t("colModule"), t("colSeverity"), t("colEvent")];
     const rows = visible.map((e) => [rel(e.daysAgo), modLabel(e.module), sevLabel(e.severity), title(e)]);
-    const csv = [header, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
-    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "activity.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadText("activity.csv", toCsv(header, rows));
   }
 
   const windows: { label: string; days: number }[] = [

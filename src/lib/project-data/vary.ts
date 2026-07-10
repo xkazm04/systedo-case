@@ -13,6 +13,9 @@
  *  `wobble()` only for an independent field that should vary but not scale. */
 import type { Project } from "@/lib/projects/types";
 import { seedScale, TYPE_BASE_FOR } from "./seed";
+// Shared demo core — the same seeded PRNG (mulberry32) + FNV-1a hash the other
+// demo generators use (one implementation instead of copies).
+import { mulberry32, hashStr } from "@/lib/demo/prng.mjs";
 
 export interface ProjectVary {
   /** the module's overall magnitude factor (≈ type baseline × 0.7–1.8) */
@@ -33,14 +36,7 @@ export function projectVary(project: Project, label: string): ProjectVary {
   const magnitude = seedScale(key, TYPE_BASE_FOR(project.type));
 
   // Seeded PRNG for the optional independent-field wobble, consumed in call order.
-  let a = hash32(key) >>> 0;
-  const rnd = () => {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+  const rnd = mulberry32(hashStr(key));
 
   return {
     magnitude,
@@ -51,14 +47,4 @@ export function projectVary(project: Project, label: string): ProjectVary {
     },
     wobble: (jit = 0.06) => 1 + (rnd() * 2 - 1) * jit,
   };
-}
-
-/** FNV-1a 32-bit hash (same constants as seed01) — a numeric seed for the PRNG. */
-function hash32(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
 }
