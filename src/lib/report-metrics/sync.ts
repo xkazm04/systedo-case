@@ -8,7 +8,6 @@ import "server-only";
 import type { Project } from "@/lib/projects/types";
 import { adsConfigured, fetchAccountDailyRows } from "@/lib/google/ads";
 import { getUserAccessToken, hasAdsScope } from "@/lib/google/token";
-import { getAdsConnection } from "@/lib/campaigns/connection";
 import { mapAdsRowsToMetrics } from "./map";
 import { saveReportMetrics } from "./store";
 
@@ -23,17 +22,13 @@ export interface SyncResult {
   error?: string;
 }
 
-/** The ad account for this project: its own linked customer id, else the user's
- *  active connected account. Digits only, or null when neither is present. */
-async function resolveCustomerId(project: Project, userId: string): Promise<string | null> {
-  const own = project.adsCustomerId?.replace(/\D/g, "");
-  if (own) return own;
-  try {
-    const conn = await getAdsConnection(userId);
-    return conn?.customerId?.replace(/\D/g, "") || null;
-  } catch {
-    return null;
-  }
+/** The ad account for this project: its OWN explicitly-linked customer id (digits),
+ *  or null. Deliberately NO fallback to the user's active connected account — in a
+ *  multi-client workspace, resolving an unlinked project to whichever account the user
+ *  last activated stored one client's real Ads spend/revenue under a different client's
+ *  report (a data-isolation breach). A project must be explicitly linked to sync. */
+function resolveCustomerId(project: Project): string | null {
+  return project.adsCustomerId?.replace(/\D/g, "") || null;
 }
 
 /** Sync `project`'s live report metrics from Google Ads. Idempotent (replaces the
@@ -44,7 +39,7 @@ export async function syncReportMetricsFromAds(project: Project, userId: string 
   }
   if (!userId) return { ok: false, error: "Nejste přihlášeni." };
 
-  const customerId = await resolveCustomerId(project, userId);
+  const customerId = resolveCustomerId(project);
   if (!customerId) return { ok: false, error: "K projektu není napojený účet Google Ads." };
 
   const token = await getUserAccessToken(userId);
