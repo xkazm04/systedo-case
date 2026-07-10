@@ -102,3 +102,32 @@ export async function consume(
     return { ok: true, status: statusFrom(next, day) };
   });
 }
+
+/**
+ * Compensating reverse of `consume`: atomically decrement the day's `kind` counter
+ * by `amount`, floored at 0. Use it to keep the ledger honest when a charge was
+ * taken up front but the paid work then failed or silently degraded to a free
+ * deterministic fallback (a provider outage, a demo/no-key result, a placeholder
+ * image set) — so a user is never billed daily quota for output that cost the app
+ * nothing. Best-effort and never throws to the caller: a refund failing must not
+ * turn a already-degraded response into a 500. No-op in LOCAL_DB (consume grants
+ * freely there) and when `amount <= 0`.
+ */
+export async function refund(userId: string, kind: UsageKind, amount = 1): Promise<void> {
+  const credit = Math.max(0, Math.floor(amount));
+  if (LOCAL_DB || credit === 0) return;
+  const day = dayKey();
+  const ref = firestore.collection("usage").doc(userId);
+  try {
+    await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const data = (snap.data() as UsageDoc) ?? {};
+      const current = data.days?.[day]?.[kind] ?? 0;
+      const next = Math.max(0, current - credit);
+      if (next === current) return;
+      tx.set(ref, { days: { [day]: { [kind]: next } } }, { merge: true });
+    });
+  } catch (err) {
+    console.error(`[usage] refund(${kind}, ${credit}) failed for ${userId}:`, err);
+  }
+}
