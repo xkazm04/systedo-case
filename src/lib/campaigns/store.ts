@@ -77,6 +77,11 @@ export async function upsertCampaigns(
     /** live sync fell back to sample data (see connector.SyncDegradation) */
     degraded?: boolean;
     degradedReason?: string | null;
+    /** append this sync to the change-diff snapshot history. Default true; pass
+     *  false for a degraded (sample-fallback) sync so getLatestChanges never
+     *  diffs sample campaigns against the prior live snapshot (which would show
+     *  every real campaign as removed + every sample one as added). */
+    appendSnapshot?: boolean;
   }
 ): Promise<void> {
   const t = tenantDoc(tenant);
@@ -102,18 +107,21 @@ export async function upsertCampaigns(
 
   // Append-only snapshot of this sync (one doc per sync) for change diffing,
   // tagged with its period so diffs and the health timeline never compare a
-  // 7-day window against a 90-day one.
-  batch.set(t.collection("snapshots").doc(syncedAt), {
-    syncedAt,
-    period: meta.period,
-    campaigns: campaigns.map((c) => ({
-      campaignId: c.id,
-      status: c.status,
-      cost: c.cost,
-      conversions: c.conversions,
-      conversionValue: c.conversionValue,
-    })),
-  });
+  // 7-day window against a 90-day one. Skipped for a degraded sample-fallback
+  // sync so the diff history stays live-only.
+  if (meta.appendSnapshot !== false) {
+    batch.set(t.collection("snapshots").doc(syncedAt), {
+      syncedAt,
+      period: meta.period,
+      campaigns: campaigns.map((c) => ({
+        campaignId: c.id,
+        status: c.status,
+        cost: c.cost,
+        conversions: c.conversions,
+        conversionValue: c.conversionValue,
+      })),
+    });
+  }
 
   // Sync metadata on the tenant root doc. Firestore rejects `undefined`, so the
   // optional degradation fields are normalised (and cleared on a healthy sync).
