@@ -21,7 +21,13 @@ const STYLE_UUIDS: Record<ImageStyle, string> = {
 };
 
 const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 40;
+// Poll budget must stay STRICTLY BELOW the calling route's maxDuration (120s), with
+// headroom for the rest of the request that shares that wall-clock: the submit, the
+// per-candidate image downloads, and the N Gemini vision scores. 40×3s = 120s left
+// zero headroom, so a generation completing near the tail (~100s under provider load)
+// got the function killed mid-download after quota was already charged. 30×3s = 90s
+// leaves ~30s for submit + downloads + scoring.
+const MAX_POLL_ATTEMPTS = 30;
 
 export function leonardoConfigured(): boolean {
   return Boolean(process.env.LEONARDO_API_KEY);
