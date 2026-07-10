@@ -8,7 +8,7 @@
  *  debounced, a flag / mark-answered saves immediately and posts to the activity
  *  feed. Ported in spirit from the local-SEO app's ReviewInbox. */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pill } from "@/components/ui";
+import { Pill, TONE_TEXT } from "@/components/ui";
 import { Bolt, Bookmark, Check, Copy, Info, Refresh, Search, Sparkles } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
@@ -422,7 +422,7 @@ function Stat({ label, value, tone }: { label: string; value: string; tone?: "po
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={"tnum mt-1 text-xl font-semibold " + (tone === "positive" ? "text-positive" : tone === "coral" ? "text-coral-600" : "text-navy-800")}>{value}</p>
+      <p className={"tnum mt-1 text-xl font-semibold " + (tone ? TONE_TEXT[tone] : "text-navy-800")}>{value}</p>
     </div>
   );
 }

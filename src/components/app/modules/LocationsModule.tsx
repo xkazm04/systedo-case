@@ -4,7 +4,7 @@
  *  human. Server component. Controls are honestly gated: the data is illustrative
  *  until a Google Business Profile + live sources are connected. */
 import Link from "next/link";
-import { Pill } from "@/components/ui";
+import { Pill, TONE_TEXT } from "@/components/ui";
 import type { PillTone } from "@/components/ui";
 import { Layers, Pin } from "@/components/icons";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
@@ -269,7 +269,7 @@ function FocusStat({
   return (
     <div className="rounded-card border border-line bg-canvas/40 p-4">
       <dt className="text-xs font-medium uppercase tracking-wide text-muted">{label}</dt>
-      <dd className={"tnum mt-1 text-lg font-semibold " + (tone === "coral" ? "text-coral-600" : "text-navy-800")}>
+      <dd className={"tnum mt-1 text-lg font-semibold " + (tone ? TONE_TEXT[tone] : "text-navy-800")}>
         {value}
       </dd>
     </div>

@@ -36,6 +36,19 @@ const PILL_TONES: Record<PillTone, string> = {
  *  straight from the source of truth instead of hard-coding the list. */
 export const PILL_TONE_NAMES = Object.keys(PILL_TONES) as PillTone[];
 
+/** The text-color half of each Pill tone, for stat/summary labels that want the
+ *  semantic tone color WITHOUT the pill chip background. Derived from PILL_TONES
+ *  so a tone rebrand (e.g. `text-coral-600` → a new class) updates both the
+ *  <Pill> chip and every bare-label consumer in lock-step, instead of leaving
+ *  hand-rolled ternaries to drift. Values are byte-identical to the text-* class
+ *  inside each PILL_TONES entry. */
+export const TONE_TEXT: Record<PillTone, string> = Object.fromEntries(
+  (Object.entries(PILL_TONES) as [PillTone, string][]).map(([tone, cls]) => [
+    tone,
+    cls.split(" ").find((c) => c.startsWith("text-")) ?? cls,
+  ])
+) as Record<PillTone, string>;
+
 export function Pill({
   children,
   tone = "brand",

@@ -2,7 +2,7 @@
  *  by category, each with an honest status (connected / action / missing /
  *  manual / planned / optional) derived from the real environment + project.
  *  The "on-demand deployment" readiness view. Server component. */
-import { Pill } from "@/components/ui";
+import { Pill, TONE_TEXT } from "@/components/ui";
 import type { PillTone } from "@/components/ui";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { statusSummary, type IntCategory, type IntegrationRow, type IntStatus } from "@/lib/integrations/compute";
@@ -99,7 +99,7 @@ export default async function IntegrationStatusModule({ rows }: { rows: Integrat
 }
 
 function Sum({ label, value, tone }: { label: string; value: number; tone: "positive" | "coral" | "negative" }) {
-  const color = tone === "positive" ? "text-positive" : tone === "coral" ? "text-coral-600" : "text-negative";
+  const color = TONE_TEXT[tone];
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
