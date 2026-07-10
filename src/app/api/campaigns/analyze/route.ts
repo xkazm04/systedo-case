@@ -34,22 +34,23 @@ import { durableGuard } from "@/lib/ai/durable-limit";
 
 
 export async function POST(request: Request) {
-  // Abuse guards first — evaluation is a paid LLM call on a public endpoint.
   if (tooLarge(request)) {
     return payloadTooLarge("Požadavek je příliš velký.");
   }
-  const limited = await durableGuard(clientIp(request), [RATE_RULES.evalPerMin(), RATE_RULES.evalPerDay()], { spendUnits: 1 });
-  if (!limited.ok) {
+  // Free-path throttle: a per-minute cap guards the cache lookup + DB reads for
+  // anonymous callers, but deliberately does NOT touch the daily eval budget or the
+  // global spend ceiling. A cache hit is a free repeat, not a paid evaluation — the
+  // daily budget + ceiling are charged below only on a real cache-miss generation
+  // (matching the batch sibling's cache-first-then-charge order).
+  const throttle = await durableGuard(clientIp(request), [RATE_RULES.evalPerMin()]);
+  if (!throttle.ok) {
     return tooManyRequests(
-      limited.retryAfter,
-      `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${limited.retryAfter} s.`
+      throttle.retryAfter,
+      `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${throttle.retryAfter} s.`
     );
   }
-  if (!acquireSlot()) {
-    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
-  }
 
-  try {
+  {
     let body: unknown;
     try {
       body = await request.json();
@@ -108,6 +109,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // Cache miss → a real, paid evaluation. Take the concurrency slot and charge the
+    // daily eval budget + global spend ceiling now — never before the cache lookup, so
+    // a cached repeat costs neither the daily budget nor the ceiling.
+    if (!acquireSlot()) {
+      return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
+    }
+    const limited = await durableGuard(
+      clientIp(request),
+      [RATE_RULES.evalPerDay()],
+      { spendUnits: 1 }
+    );
+    if (!limited.ok) {
+      releaseSlot(); // no provider work will run — don't hold the slot for a 429.
+      return tooManyRequests(
+        limited.retryAfter,
+        `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${limited.retryAfter} s.`
+      );
+    }
+
+    try {
     // BYOM: run "campaign-eval" on the caller's assigned provider (matrix override
     // or global active); BYOM-served calls skip the per-user quota.
     const byomPlan = userId ? await getUserPlan(userId) : "free";
@@ -179,7 +200,8 @@ export async function POST(request: Request) {
         { status: 502 }
       );
     }
-  } finally {
-    releaseSlot();
+    } finally {
+      releaseSlot();
+    }
   }
 }
