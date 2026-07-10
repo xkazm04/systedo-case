@@ -2,7 +2,7 @@
  *  variation by image id, returning a transparent PNG (data URL). Requires
  *  LEONARDO_API_KEY; IP-throttled + per-user daily image quota. Node runtime. */
 import { currentUserId } from "@/lib/session";
-import { consume } from "@/lib/usage";
+import { consume, refund } from "@/lib/usage";
 import { leonardoConfigured, removeBackground } from "@/lib/leonardo/client";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
@@ -15,6 +15,8 @@ export async function POST(request: Request) {
   const guard = await guardPaidGeneration(request);
   if (guard) return guard;
 
+  let uid: string | null = null;
+  let charged = false;
   try {
     if (!leonardoConfigured()) {
       return Response.json({ error: "Odebrání pozadí vyžaduje LEONARDO_API_KEY." }, { status: 400 });
@@ -27,7 +29,7 @@ export async function POST(request: Request) {
     }
     if (!imageId) return Response.json({ error: "Chybí ID obrázku." }, { status: 422 });
 
-    const uid = await currentUserId();
+    uid = await currentUserId();
     if (uid) {
       const quota = await consume(uid, "image");
       if (!quota.ok) {
@@ -39,12 +41,16 @@ export async function POST(request: Request) {
           { status: 429 }
         );
       }
+      charged = true;
     }
 
     const { buffer, mime } = await removeBackground(imageId);
     return Response.json({ dataUrl: `data:${mime};base64,${buffer.toString("base64")}`, mime });
   } catch (err) {
     console.error("[images] nobg failed:", err);
+    // removeBackground threw after the quota was charged — reclaim it so a provider
+    // failure (and any retry-on-502) can't drain the daily image limit.
+    if (uid && charged) await refund(uid, "image");
     return Response.json(
       { error: "Odebrání pozadí se nezdařilo. Zkuste to prosím za chvíli znovu." },
       { status: 502 }
