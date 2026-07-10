@@ -6,7 +6,7 @@
  *  board persists to the project (per-user, server-side). AI drafting (via the content
  *  engine) is a documented next step — this establishes the scheduling spine
  *  (consolidation phase 5). */
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Calendar, Check, Plus, Sparkles } from "@/components/icons";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
@@ -67,6 +67,12 @@ export default function ContentSchedule({
   const { locale } = useLocale();
   const weekdays = WEEKDAYS[locale === "en" ? "en" : "cs"];
   const [posts, setPosts] = useState<ContentPost[]>(initial);
+  // Latest posts, readable outside the render closure. draftCopy awaits a multi-second
+  // AI call and then setBody()s; without this, its handlers would map over the `posts`
+  // captured at invocation time and discard (and re-persist over) any scheduling/edit
+  // the user made during the await — silent data loss on a whole-board PUT.
+  const postsRef = useRef(posts);
+  postsRef.current = posts;
   const [draftingId, setDraftingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
 
@@ -85,19 +91,22 @@ export default function ContentSchedule({
     }).catch(() => {});
   }
 
+  // All mutators derive `next` from postsRef.current (the latest state), never the
+  // render closure, so concurrent/deferred handlers compose instead of clobbering.
   function schedule(id: string) {
-    const day = nextFreeDay(posts);
-    const next = posts.map((p) => (p.id === id ? { ...p, status: "scheduled" as PostStatus, day } : p));
+    const cur = postsRef.current;
+    const day = nextFreeDay(cur);
+    const next = cur.map((p) => (p.id === id ? { ...p, status: "scheduled" as PostStatus, day } : p));
     setPosts(next);
     persist(next, "scheduled");
   }
   function setStatus(id: string, status: PostStatus, day: number | null, event?: string) {
-    const next = posts.map((p) => (p.id === id ? { ...p, status, day } : p));
+    const next = postsRef.current.map((p) => (p.id === id ? { ...p, status, day } : p));
     setPosts(next);
     persist(next, event);
   }
   function setBody(id: string, body: string, persistIt = false) {
-    const next = posts.map((p) => (p.id === id ? { ...p, body } : p));
+    const next = postsRef.current.map((p) => (p.id === id ? { ...p, body } : p));
     setPosts(next);
     if (persistIt) persist(next);
   }
