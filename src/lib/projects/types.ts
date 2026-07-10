@@ -16,6 +16,19 @@ export type ProjectType = "eshop" | "app" | "leadgen" | "content" | "local";
 
 export const PROJECT_TYPES: ProjectType[] = ["eshop", "app", "leadgen", "content", "local"];
 
+/** Coerce a stored `type` to a valid ProjectType. `?? "eshop"` only catches
+ *  null/undefined, but the store is schemaless — a legacy/retired/seed-script value
+ *  ("shop", an old app version's type) is an *unrecognized string* that sails through
+ *  and then poisons the total `Record<ProjectType, …>` lookups (TYPE_BASE → NaN
+ *  dashboard; PROJECT_TYPE_META/KPI_PRESETS → thrown TypeError). Validate against the
+ *  known set so both store backends are honest and the "tolerating legacy docs" promise
+ *  is actually true. */
+export function coerceProjectType(v: unknown): ProjectType {
+  return typeof v === "string" && (PROJECT_TYPES as string[]).includes(v)
+    ? (v as ProjectType)
+    : "eshop";
+}
+
 export interface ProjectTypeMeta {
   type: ProjectType;
   /** short label shown in the picker + switcher (cs) */

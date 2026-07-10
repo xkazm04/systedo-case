@@ -9,6 +9,7 @@
 import { firestore } from "@/lib/firebase";
 import {
   PROJECT_TYPE_META,
+  coerceProjectType,
   type NewProjectInput,
   type Project,
   type ProjectPatch,
@@ -24,7 +25,7 @@ function toProject(id: string, data: FirebaseFirestore.DocumentData): Project {
   return {
     id,
     name: typeof data.name === "string" ? data.name : "Projekt",
-    type: data.type ?? "eshop",
+    type: coerceProjectType(data.type),
     accentColor: data.accentColor ?? PROJECT_TYPE_META.eshop.defaultAccent,
     logoUrl: data.logoUrl || undefined,
     domain: data.domain || undefined,
