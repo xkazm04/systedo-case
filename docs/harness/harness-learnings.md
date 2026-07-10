@@ -176,3 +176,30 @@ on branch `vibeman/bughunt-refactor-2026-07-10` (unmerged).
   D customerId tenant-key orphaning + cross-client leak, E global-1000-cap under-report,
   F localStorage hydration/persistence loss, G signed-profit math, H time/cron,
   I trust-boundary tail (CSV formula injection, onboarding SSRF public path), J success-theater.
+
+## Structural facts (Waves 3-8, 2026-07-10)
+- **BYOM store is now transactional** — `mutateByomConfig(userId, fn)` on both backends
+  (Firestore runTransaction / local BEGIN IMMEDIATE); every mutation op routes through it.
+  `latestValidationFailed` + `flagUndecryptableKey` down-rank a broken/undecryptable key so
+  the generation resolve paths skip it (the test-connection path `resolveByomKey` does NOT).
+- **Tenant key is domain-split** — `resolveTenant(userId, projectId, { accountScoped })`:
+  Ads data keeps the customerId suffix; account-agnostic domains (social, microsite, share,
+  activity) pass `accountScoped:false` for a stable `u_{uid}_proj_{pid}` key.
+  `resolveTenantForAccount` is the read-side per-account fan-out helper (digest/report crons).
+- **Compensating-reclaim helpers exist**: `usage.refund` (per-user quota) and
+  `durable-limit.refundGlobalSpend` (the shared ceiling). Reuse for any charge-then-fail path.
+- **`ChangeSetStatus`/`PostStatus` carry transient claim states** (`applying`/`reverting`,
+  `publishing`) — a claim transaction flips into them before the side-effect so overlapping
+  runs can't double-apply/double-publish. Any `Record<Status,…>` map needs those keys.
+- **`metrics/totals.relSigned`** is the signed-metric relative change (use for `profit`, not `rel`).
+
+## Anti-patterns to avoid (Waves 3-8)
+- **Reading a browser store in a lazy `useState` initializer** in an SSR'd `"use client"`
+  component → hydration mismatch. Init empty, hydrate in an effect, and gate persist-on-change
+  effects behind a `hydrated` STATE flag (a ref runs too early on the mount pass).
+- **`x || default` for a numeric input** (0 is valid) and **`?? default` as validation** (an
+  out-of-union string survives) — parse/coerce against the known set instead.
+- **A resolved `fetch` treated as HTTP success** — check `res.ok` before optimistic UI; a
+  batch/loop writer must stop + report per call.
+- **Backticks in `git commit -m` bodies get shell-substituted** (bash command substitution),
+  silently dropping the word. Avoid backticks in `-m` strings.
