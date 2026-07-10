@@ -37,7 +37,8 @@ import {
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
 } from "@/lib/ai/validation";
-import { consume, getUserPlan } from "@/lib/usage";
+import { consume, refund, getUserPlan } from "@/lib/usage";
+import { refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getByomContext } from "@/lib/llm/byom-context";
 import { enterLlmRequestContext } from "@/lib/llm/request-context";
@@ -82,17 +83,26 @@ async function cachedRespond(
   const byom = getByomContext();
   const providerTag = byom ? `byom:${byom.vendor}:${byom.model ?? ""}:${byom.fastModel ?? ""}` : "app";
   const key = hashAiInput(mode, locale, value, providerTag);
+
+  // The caller (guardPaidGeneration) has ALREADY charged one global spend unit on the
+  // daily ceiling for this request. A cache hit does zero provider work, so hand that
+  // unit back before returning — otherwise a hot key drains the ceiling on repeats.
   const cached = getCachedAi(key);
-  if (cached) return Response.json(cached);
+  if (cached) {
+    await refundGlobalSpend(1);
+    return Response.json(cached);
+  }
 
   // Per-user daily AI quota (signed-in users) — charged only on a real generation,
   // and SKIPPED for BYOM-served calls: the BYOM plan is unlimited by design (the
   // user pays their own tokens), and the per-IP durable guard above still bounds
   // abuse. A recoverable BYOM fallback to the app provider is rare (our fault /
   // outage) and stays within that per-IP cap.
+  let charged = false;
   if (userId && !byom) {
     const quota = await consume(userId, "aiEval");
     if (!quota.ok) {
+      await refundGlobalSpend(1); // no generation will run — release the ceiling unit.
       return Response.json(
         {
           error: `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
@@ -102,9 +112,33 @@ async function cachedRespond(
         { status: 429 }
       );
     }
+    charged = true;
   }
 
-  const result = await gen();
+  let result: AiResponse<unknown>;
+  try {
+    result = await gen();
+  } catch (err) {
+    // The generation threw — no billable provider work landed. Hand back both the
+    // per-user quota unit and the global ceiling unit so a provider outage doesn't
+    // silently bill the caller.
+    if (charged && userId) await refund(userId, "aiEval");
+    await refundGlobalSpend(1);
+    throw err;
+  }
+
+  // A demo / no-provider degradation (result.meta.demo) served canned text without
+  // touching a paid provider: refund the ceiling unit, and the per-user quota unit
+  // if we charged one — the caller didn't actually consume paid AI.
+  if (result.meta?.demo) {
+    await refundGlobalSpend(1);
+    if (charged && userId) await refund(userId, "aiEval");
+  } else if (byom) {
+    // BYOM served real work on the user's own tokens — the app ceiling shouldn't
+    // count it (we never charged the per-user quota for BYOM above).
+    await refundGlobalSpend(1);
+  }
+
   setCachedAi(key, result);
   return Response.json(result);
 }
@@ -400,6 +434,15 @@ export async function POST(request: Request) {
         return p.valid ? cachedRespond("channel-research", p.value, locale, userId, () => generateChannelResearch(p.value, locale, request.signal)) : bad(p.error);
       }
       case "onboarding-scan": {
+        // This mode makes the server fetch a caller-supplied URL. Even behind the
+        // SSRF guard, only signed-in users may drive that outbound fetch — an
+        // anonymous caller must not be able to use us as a fetch proxy.
+        if (!userId) {
+          return Response.json(
+            { error: "Pro sken webu se přihlaste.", code: "auth" },
+            { status: 401 }
+          );
+        }
         const p = validateOnboardingScanRequest(body, locale);
         if (!p.valid) return bad(p.error);
         // Fetch the user's OWN homepage server-side (SSRF-guarded) and inject the
