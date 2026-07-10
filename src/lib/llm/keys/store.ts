@@ -157,6 +157,20 @@ function latestValidationFailed(k: StoredByomConfig["keys"][ByomVendor]): boolea
   return !k.lastValidatedAt || (k.lastErrorAt ?? "") > k.lastValidatedAt;
 }
 
+/** A stored key that is PRESENT but won't decrypt (a rotated AUTH_SECRET/BYOM_KEY_SECRET
+ *  changes the derived AES key, so decryptByomKey returns null). Generation would then
+ *  silently fall back to the app's OWN providers — spending the app's money — while the
+ *  settings UI still shows the vendor "active". Mark it failed (best-effort) so
+ *  publicByomConfig / latestValidationFailed down-rank it to "needs re-entry" and stop
+ *  the silent status-lie, and log distinctly for a bill audit. */
+function flagUndecryptableKey(userId: string, vendor: ByomVendor): void {
+  console.error(`[byom] ${vendor} key present but undecryptable — secret rotated? Flagging for re-entry.`);
+  void markByomValidation(userId, vendor, {
+    ok: false,
+    error: "Uložený klíč nelze dešifrovat (změna serverového tajemství) — zadejte jej prosím znovu.",
+  });
+}
+
 /** Decrypt one vendor's key from an already-loaded config. The only place
  *  plaintext is produced — server-only, never serialized to a client. */
 function resolveFromConfig(cfg: StoredByomConfig, vendor: ByomVendor): ResolvedByomKey | null {
@@ -181,7 +195,10 @@ export async function resolveActiveByomKey(userId: string): Promise<ResolvedByom
   // Skip a key whose latest validation failed → generation falls back to the app's
   // own providers rather than dispatching through a key known to be broken.
   if (latestValidationFailed(cfg.keys[cfg.activeVendor])) return null;
-  return resolveFromConfig(cfg, cfg.activeVendor);
+  const resolved = resolveFromConfig(cfg, cfg.activeVendor);
+  // Present but undecryptable → flag it instead of silently downgrading to app providers.
+  if (!resolved && cfg.keys[cfg.activeVendor]) flagUndecryptableKey(userId, cfg.activeVendor);
+  return resolved;
 }
 
 /** Decrypt a SPECIFIC vendor's key regardless of which is active — the "test
@@ -208,11 +225,16 @@ export async function resolveByomForOperation(userId: string, toolId: string): P
           reasoning: op.reasoning,
         };
       }
+      // Override key present but undecryptable — flag, then fall through to the active
+      // vendor (which is itself checked below).
+      flagUndecryptableKey(userId, op.vendor);
     }
   }
   if (!cfg.activeVendor) return null;
   if (latestValidationFailed(cfg.keys[cfg.activeVendor])) return null;
-  return resolveFromConfig(cfg, cfg.activeVendor);
+  const resolved = resolveFromConfig(cfg, cfg.activeVendor);
+  if (!resolved && cfg.keys[cfg.activeVendor]) flagUndecryptableKey(userId, cfg.activeVendor);
+  return resolved;
 }
 
 /** Assign an operation to a vendor + model + reasoning in the matrix. The vendor
