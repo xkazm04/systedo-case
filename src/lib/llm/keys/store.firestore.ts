@@ -51,6 +51,24 @@ export async function saveByomConfig(userId: string, cfg: StoredByomConfig): Pro
   await byomDoc(userId).set(clean(cfg));
 }
 
+/** Atomic read-modify-write of a user's config. `fn` mutates the loaded config (or
+ *  returns a replacement) SYNCHRONOUSLY inside a Firestore transaction, so two
+ *  concurrent BYOM mutations for the same user can't each read the same base doc and
+ *  have the second `.set()` clobber the first's just-stored key/matrix change. */
+export async function mutateByomConfig(
+  userId: string,
+  fn: (cfg: StoredByomConfig) => StoredByomConfig
+): Promise<StoredByomConfig> {
+  const ref = byomDoc(userId);
+  return firestore.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    const cfg = doc.exists ? toStored(doc.data()!) : { keys: {} };
+    const next = fn(cfg);
+    tx.set(ref, clean(next));
+    return next;
+  });
+}
+
 export async function deleteByomConfig(userId: string): Promise<void> {
   await byomDoc(userId).delete();
 }

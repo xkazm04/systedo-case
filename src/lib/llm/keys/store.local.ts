@@ -42,6 +42,36 @@ export async function saveByomConfig(userId: string, cfg: StoredByomConfig): Pro
     .run(userId, JSON.stringify(cfg), new Date().toISOString());
 }
 
+/** Atomic read-modify-write of a user's config, mirroring the Firestore backend.
+ *  node:sqlite is synchronous (so the read→mutate→write can't interleave within a
+ *  process), and BEGIN IMMEDIATE guards against a second process (a concurrent dev
+ *  worker / the cron) racing the same row. `fn` must be synchronous. */
+export async function mutateByomConfig(
+  userId: string,
+  fn: (cfg: StoredByomConfig) => StoredByomConfig
+): Promise<StoredByomConfig> {
+  ensureLocalUser(userId);
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const r = db.prepare("SELECT data FROM byom_config WHERE user_id = ?").get(userId) as Row | undefined;
+    const cfg = r ? parse(r.data) : { keys: {} };
+    const next = fn(cfg);
+    db.prepare(
+      `INSERT INTO byom_config (user_id, data, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (user_id) DO UPDATE SET
+         data = excluded.data,
+         updated_at = excluded.updated_at`
+    ).run(userId, JSON.stringify(next), new Date().toISOString());
+    db.exec("COMMIT");
+    return next;
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+}
+
 export async function deleteByomConfig(userId: string): Promise<void> {
   getDb().prepare("DELETE FROM byom_config WHERE user_id = ?").run(userId);
 }
