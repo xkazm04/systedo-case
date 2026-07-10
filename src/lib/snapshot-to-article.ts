@@ -176,9 +176,19 @@ export function snapshotToArticle(
     );
   }
 
-  // Optional anomalies section, only when the detector flagged something.
-  if (snapshot.anomalies.length > 0) {
-    const top = [...snapshot.anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 5);
+  // Optional anomalies section, only when the detector flagged something IN the
+  // reported window. detectAnomalies scans the whole daily series, but this section
+  // is titled "v období" and sits under a "za {period.label}" report, and ddmm()
+  // drops the year — so an out-of-window spike would render as e.g. "14.5." next to
+  // a last-30-days headline. Restrict to [asOf − (period.days − 1), asOf].
+  const windowStart = new Date(
+    new Date(`${asOf}T00:00:00Z`).getTime() - (snapshot.period.days - 1) * 86_400_000
+  )
+    .toISOString()
+    .slice(0, 10);
+  const inPeriodAnomalies = snapshot.anomalies.filter((a) => a.date >= windowStart && a.date <= asOf);
+  if (inPeriodAnomalies.length > 0) {
+    const top = [...inPeriodAnomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 5);
     blocks.push(
       { type: "h2", id: "udalosti", text: "Významné události v období" },
       { type: "ul", items: top.map((a) => [anomalySentence(a)] as Inline[]) }
