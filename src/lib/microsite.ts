@@ -120,6 +120,12 @@ export async function enableMicrosite(
     ...(input.logoUrl ? { logoUrl: input.logoUrl } : {}),
     periodDays: input.periodDays && [30, 90, 365].includes(input.periodDays) ? input.periodDays : 30,
     enabled: true,
+    // buildMicrositeView() always renders scaledDataset() — the scaled case-study
+    // series — because no live-data substitution path exists yet. Until one does,
+    // every created microsite IS illustrative, so it must default to noindex +
+    // disclosure. Only the code path that actually swaps in synced series may flip
+    // this to false; leaving it unset would publish demo numbers as indexed "proof".
+    illustrative: true,
     updatedAt: new Date().toISOString(),
   };
   await registry().doc(input.slug).set(cfg, { merge: true });
