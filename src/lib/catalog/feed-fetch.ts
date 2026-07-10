@@ -57,13 +57,30 @@ for (const [addr, prefix] of [
   BLOCK.addSubnet(addr, prefix, "ipv6");
 }
 
+/** Extract the embedded IPv4 of a v4-mapped IPv6 address, in BOTH the dotted
+ *  (`::ffff:1.2.3.4`) and the fully-hex (`::ffff:a9fe:a9fe`) notations that
+ *  net.isIP accepts and the kernel routes. Returns null for a non-mapped address. */
+function mappedIpv4(ip: string): string | null {
+  const lower = ip.toLowerCase();
+  const dotted = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(lower);
+  if (dotted) return dotted[1];
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(lower);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+  return null;
+}
+
 /** True only for a routable public IP. A v4-mapped v6 address is validated as its
- *  embedded IPv4; a non-IP string fails closed. */
+ *  embedded IPv4 — in either dotted OR hex form, so `::ffff:a9fe:a9fe` (169.254.169.254)
+ *  can't slip past the IPv6 block-list; a non-IP string fails closed. */
 export function isPublicIp(ip: string): boolean {
   const fam = net.isIP(ip);
   if (fam === 0) return false;
-  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
-  if (mapped) return isPublicIp(mapped[1]);
+  const mapped = mappedIpv4(ip);
+  if (mapped) return isPublicIp(mapped);
   return !BLOCK.check(ip, fam === 4 ? "ipv4" : "ipv6");
 }
 

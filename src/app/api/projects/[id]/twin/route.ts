@@ -20,7 +20,11 @@ function enforceAutonomy(state: TwinState): TwinState {
   return {
     ...state,
     drafts: state.drafts.map((d) => {
-      if (!d.autoApproved) return d;
+      // The gate only governs the pending↔approved transition. `sent`/`rejected` are
+      // terminal states past its jurisdiction — re-deriving them would stomp a sent
+      // draft back to `approved` (it still clears the gate), erasing the send from the
+      // audit trail and making an auto-drafted message re-send-eligible on next commit.
+      if (!d.autoApproved || d.status === "sent" || d.status === "rejected") return d;
       const verdict = decideDraft(channelConfig(state.channels, d.channel), d);
       return verdict.autoApproved
         ? { ...d, status: "approved" as const, autoApproved: true }

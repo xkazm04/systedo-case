@@ -272,7 +272,12 @@ export function feedItemsToOfferings(
       projectId,
       name: (it.title || sku).slice(0, 200),
       category: (it.category || "Import").slice(0, 120),
-      active: it.inStock ?? true,
+      // Tri-state at the feed boundary: it.inStock is undefined when the feed carries
+      // NO availability field. Preserve that (cast) so the merge step can tell "feed
+      // says in-stock" from "feed said nothing" — the latter must not flip a product the
+      // user manually paused back to active. mergeCatalog resolves undefined (keep
+      // existing on overlay, default true for a brand-new product).
+      active: it.inStock as boolean,
       nature: "online",
       price: it.price,
       currency: "CZK",

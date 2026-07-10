@@ -37,7 +37,11 @@ export interface BudgetSnapshot {
   prevMicros: number;
 }
 
-export type ChangeSetStatus = "pending" | "applied" | "reverted";
+// "applying"/"reverting" are transient claim states: approveChangeSet/revertChangeSet
+// flip into them atomically before running the live mutation loop, so a concurrent
+// Approve/Revert (double-click, retry) can't run the loop twice. They settle to
+// "applied"/"reverted" when the loop finishes.
+export type ChangeSetStatus = "pending" | "applying" | "applied" | "reverting" | "reverted";
 
 /** Outcome of applying one move to the live account (best-effort per move). */
 export interface MoveResult {

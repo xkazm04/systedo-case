@@ -181,7 +181,11 @@ export default function TrendChart({
   // Ratio/efficiency metrics (PNO, ROAS, AOV, CR) don't naturally start at zero,
   // so zoom the axis to the data range — otherwise a 3.8×→4.2× ROAS move reads flat.
   const isRatio = RATIO_METRICS.has(metric);
-  const yMin = isRatio ? Math.max(0, dataMin * 0.85) : 0;
+  // Non-ratio metrics anchor at 0 — but `profit` (revenue − cost) goes NEGATIVE on
+  // loss/outage days, and a hard 0 floor drew those points below the plot area, over
+  // the axis labels. Let the floor drop to the data min when it's negative; 0 still
+  // anchors any all-positive series.
+  const yMin = isRatio ? Math.max(0, dataMin * 0.85) : Math.min(0, dataMin);
   const yMax = (isRatio ? dataMax * 1.1 : dataMax * 1.08) || 1;
 
   const x = useCallback(

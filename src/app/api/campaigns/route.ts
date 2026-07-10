@@ -18,7 +18,7 @@ import {
 } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
-import { consume } from "@/lib/usage";
+import { consume, refund } from "@/lib/usage";
 import {
   RATE_RULES,
   clientIp,
@@ -168,6 +168,10 @@ export async function POST(request: Request) {
     await runTenantSync(connector, tenant, { userId, period, actor: "Vy" });
   } catch (err) {
     console.error("[campaigns] sync failed:", err);
+    // The sync threw (true failure — runTenantSync degrades live→sample internally
+    // rather than throwing for provider hiccups), so reclaim the daily sync unit:
+    // a transient failure must not burn the user's sync quota for nothing.
+    if (userId) await refund(userId, "sync");
     return Response.json(
       { error: err instanceof Error ? err.message : "Synchronizace se nezdařila." },
       { status: 502 }

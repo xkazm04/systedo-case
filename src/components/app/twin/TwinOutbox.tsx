@@ -196,6 +196,13 @@ export default function TwinOutbox({
     setSeededReply(result.reply);
     setReplyText(result.reply);
   }
+  // useAiTool rehydrates a persisted result on mount, so `result` can exist after a
+  // reload/navigation while draftContext (set only in runDraft) is still null — which
+  // made Approve/Reject silently no-op (bankDraft bails on !draftContext). Seed it from
+  // the current channel + contact so a restored draft stays bankable.
+  if (result && !draftContext) {
+    setDraftContext({ channel, contact: contact.trim() });
+  }
 
   const runDraft = () => {
     if (!inbound.trim() || ai.status === "loading") return;

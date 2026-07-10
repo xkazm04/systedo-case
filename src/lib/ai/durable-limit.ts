@@ -133,6 +133,32 @@ export async function durableGuard(
   }
 }
 
+/** Reclaim `units` of the global daily spend ceiling, floored at 0 — the
+ *  compensating reverse of a `durableGuard({ spendUnits })` charge. Use it when a
+ *  caller reserved spend up front for planned provider ops that then did not all
+ *  run (a batch that stopped early, a server-busy rejection), so the shared
+ *  `AI_GLOBAL_DAILY_CEILING` reflects calls actually made rather than planned.
+ *  Best-effort and never throws (a refund failing must not fail the response);
+ *  no-op when the ceiling is disabled or `units <= 0`. */
+export async function refundGlobalSpend(units: number): Promise<void> {
+  const credit = Math.max(0, Math.floor(units));
+  if (credit === 0 || globalDailyCeiling() === 0) return;
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const globalRef = firestore.collection(COLL).doc(`_global_${day}`);
+  try {
+    await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(globalRef);
+      const used = (snap.data()?.count as number) ?? 0;
+      const next = Math.max(0, used - credit);
+      if (next === used) return;
+      tx.set(globalRef, { count: next, day, expireAt: new Date(now + 2 * DAY) }, { merge: true });
+    });
+  } catch (err) {
+    console.error(`[durable-limit] refundGlobalSpend(${credit}) failed:`, err);
+  }
+}
+
 /** Read-only peek at the durable counters: how many requests remain per rule for
  *  `ip`, WITHOUT incrementing anything — the data behind the preflight
  *  /api/ai/status endpoint. Reads the same Firestore docs durableGuard writes

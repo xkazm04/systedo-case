@@ -80,6 +80,11 @@ export async function runTenantSync(
     period,
     degraded: degradation.campaigns || degradation.series,
     degradedReason: degradation.reason,
+    // A degraded campaign fetch means `campaigns` are sample data with different
+    // ids/costs than the account's real set. Keeping it out of the snapshot
+    // history stops getLatestChanges from diffing sample-vs-live and reporting
+    // fabricated add/remove churn (which triage would escalate to critical alerts).
+    appendSnapshot: !degradation.campaigns,
   });
   if (seriesOk) await saveSeries(tenant, series, { period });
   if (campaignSeries) await saveCampaignSeries(tenant, campaignSeries, { period });
@@ -90,19 +95,25 @@ export async function runTenantSync(
   let alerted = 0;
   let anomalies = 0;
   if (userId) {
-    try {
-      alerted = await evaluateAndAlert(
-        tenant,
-        userId,
-        campaigns,
-        indexChanges(await getLatestChanges(tenant))
-      );
-    } catch (err) {
-      console.error(`[campaigns] alert evaluation failed for ${tenant}:`, err);
+    // Skip campaign alerting on a degraded sync: `campaigns` are sample data, so
+    // both the criticality check and the (now sample-free) change diff would fire
+    // false critical alerts on numbers that aren't the account's.
+    if (!degradation.campaigns) {
+      try {
+        alerted = await evaluateAndAlert(
+          tenant,
+          userId,
+          campaigns,
+          indexChanges(await getLatestChanges(tenant))
+        );
+      } catch (err) {
+        console.error(`[campaigns] alert evaluation failed for ${tenant}:`, err);
+      }
     }
-    // Only on a successful fetch: an empty fallback series would not just skip
-    // detection, it would clear the anomaly de-dupe memory and cause re-alerts.
-    if (seriesOk) {
+    // Only on a genuinely live series: a fetch that silently fell back to sample
+    // (seriesOk but degradation.series) would raise anomaly alerts on demo numbers;
+    // an empty/failed one would clear the de-dupe memory and cause re-alerts.
+    if (seriesOk && !degradation.series) {
       try {
         anomalies = await evaluateAnomalyAlerts(tenant, userId, series);
       } catch (err) {

@@ -16,13 +16,21 @@ export function telemetryToSpend(
 ): SpendEntry[] {
   return entries
     .filter((e) => (projectId ? e.projectId === projectId : true))
-    .map((e, i) => ({
-      id: `tele-${i}`,
-      toolId: e.toolId,
-      model: e.model,
-      calls: 1,
-      tokens: e.inputTokens + e.outputTokens,
-      costUsd: e.estCostUsd,
-      daysAgo: Math.max(0, Math.floor((nowMs - Date.parse(e.at)) / DAY_MS)),
-    }));
+    .map((e, i) => {
+      // A malformed/absent `at` → Date.parse NaN → daysAgo NaN, which then fails every
+      // windowed filter (NaN <= windowDays is false) and silently drops the row's cost
+      // from the tiles. Fold an unparseable timestamp into the current day so its spend
+      // is still counted, never silently discarded.
+      const t = Date.parse(e.at);
+      const daysAgo = Number.isFinite(t) ? Math.max(0, Math.floor((nowMs - t) / DAY_MS)) : 0;
+      return {
+        id: `tele-${i}`,
+        toolId: e.toolId,
+        model: e.model,
+        calls: 1,
+        tokens: e.inputTokens + e.outputTokens,
+        costUsd: e.estCostUsd,
+        daysAgo,
+      };
+    });
 }

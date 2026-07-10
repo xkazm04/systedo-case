@@ -55,7 +55,10 @@ function overlay(existing: ProductOffering, incoming: ProductOffering, now: stri
     name: incoming.name,
     price: incoming.price,
     category: incoming.category,
-    active: incoming.active,
+    // Preserve the user's active/paused state when the feed is silent on availability
+    // (incoming.active === undefined), mirroring the stock/gtin "keep on unknown" guards
+    // below. Only an explicit feed availability value overrides it.
+    active: incoming.active ?? existing.active,
     gtin: incoming.gtin ?? existing.gtin,
     stock: authoritative ? incoming.stock : incoming.stock > 0 ? incoming.stock : existing.stock,
     dailyVelocity:
@@ -101,7 +104,8 @@ export function mergeCatalog(
     if (!existing) {
       diff.added++;
       if (diff.sampleAdded.length < 5) diff.sampleAdded.push(feed.name);
-      merged.push(feed);
+      // A brand-new product with no feed availability defaults to active.
+      merged.push(feed.active === undefined ? { ...feed, active: true } : feed);
     } else {
       const next = overlay(existing, feed, now);
       if (differs(existing, next)) {

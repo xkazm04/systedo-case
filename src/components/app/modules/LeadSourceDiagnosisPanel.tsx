@@ -142,7 +142,13 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
           {seeds.length > 1 && (
             <select
               value={selectedSource}
-              onChange={(e) => setSelectedSource(e.target.value)}
+              onChange={(e) => {
+                setSelectedSource(e.target.value);
+                // Clear the previous source's diagnosis — otherwise the result body
+                // (cause/summary/recommendation for source A) stays rendered while the
+                // meta line above relabels it with the newly-selected source B.
+                reset();
+              }}
               disabled={status === "loading"}
               aria-label={t("selectAriaLabel")}
               className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"

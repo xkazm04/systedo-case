@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   if (!userId) return Response.json({ activity: [] });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const activity = await listActivity(tenant);
   return Response.json({ activity });
 }

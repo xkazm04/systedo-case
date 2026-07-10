@@ -19,6 +19,8 @@ const T = {
     statusPending: "Čeká na schválení",
     statusApplied: "Aplikováno",
     statusReverted: "Vráceno",
+    statusApplying: "Aplikuje se…",
+    statusReverting: "Vrací se…",
     projectedGain: "Projektovaný přínos ≈",
     convValue: "Hodnota",
     linEst: "hodnoty konverzí (lineární odhad).",
@@ -43,6 +45,8 @@ const T = {
     statusPending: "Pending approval",
     statusApplied: "Applied",
     statusReverted: "Reverted",
+    statusApplying: "Applying…",
+    statusReverting: "Reverting…",
     projectedGain: "Projected gain ≈",
     convValue: "Value",
     linEst: "conversion value (linear estimate).",
@@ -61,7 +65,9 @@ const T = {
 
 const STATUS_STYLE: Record<ChangeSetStatus, string> = {
   pending: "bg-coral-soft text-coral-600",
+  applying: "bg-coral-soft text-coral-600",
   applied: "bg-positive-soft text-positive",
+  reverting: "bg-navy-50 text-muted",
   reverted: "bg-navy-50 text-muted",
 };
 
@@ -81,7 +87,9 @@ export default function ControlPlane() {
 
   const STATUS_LABEL: Record<ChangeSetStatus, string> = {
     pending: t("statusPending"),
+    applying: t("statusApplying"),
     applied: t("statusApplied"),
+    reverting: t("statusReverting"),
     reverted: t("statusReverted"),
   };
 

@@ -36,18 +36,26 @@ export function profitGroundingText(
     : `Skutečný čistý zisk po nákladech (30 dní): ${f.fmtCZK(pp.netProfit)} při čisté marži ${f.fmtPct(pp.profitMargin, 0)}, POAS zohledňující marži ${f.fmtMultiple(pp.poas)}. Zisk komentuj podle tohoto, ne jen podle obratu/ROAS.`;
 }
 
-/** A ~year of history spans this many daily points; below it we don't claim a
- *  12-month trend (honest — the sample spine is shorter). */
-const HISTORY_MIN_DAYS = 300;
+/** Claiming a 12-month total AND a year-over-year delta needs ~2 years of data
+ *  (a full current year plus a full prior year to compare). The live sync caps at
+ *  SYNC_DAYS (400) and evaluatePeriod halves a short series into equal windows, so
+ *  a 300-day gate let a ~200d-vs-200d comparison be narrated as "12 měsíců /
+ *  meziročně". The real guard is snap.truncated below; this floor just short-circuits
+ *  obviously-too-short series (the sample spine is ~730d and clears it). */
+const HISTORY_MIN_DAYS = 700;
 
 /** The 12-month horizon + YoY delta, so the narrative reads the year's trajectory.
- *  "" when the dataset doesn't span roughly a year. */
+ *  "" when the dataset doesn't span roughly a year — i.e. below the day floor OR
+ *  when buildSnapshot had to truncate the window (so the "12 months" total and the
+ *  "meziročně" delta would both be fabricated from a shorter span). */
 export function historyGroundingText(
   data: PerformanceData | undefined,
   locale: SupportedLocale
 ): string {
   if (!data || data.daily.length < HISTORY_MIN_DAYS) return "";
   const snap = buildSnapshot("12m", "previous", data);
+  // Never quote a year's revenue / YoY change the series can't actually cover.
+  if (snap.truncated) return "";
   const f = createFormatters(locale);
   return locale === "en"
     ? `Longer horizon (12 months): revenue ${f.fmtCZK(snap.current.revenue)}, ${f.fmtSignedPct(snap.delta.revenue)} vs. the prior year. Read the year's trajectory, not only the last period.`

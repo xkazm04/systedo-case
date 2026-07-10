@@ -85,15 +85,25 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     let profitMargin: number | undefined;
     let profitDelta = s.delta.profit;
     if (costModel) {
+      const months = PERIOD_MONTHS[p];
       const pp = periodProfit(
-        { revenue: c.revenue, adCost: c.cost, conversions: c.conversions, months: PERIOD_MONTHS[p] },
+        { revenue: c.revenue, adCost: c.cost, conversions: c.conversions, months },
         costModel
       );
       profit = pp.netProfit;
       poas = pp.poas;
       profitMargin = pp.profitMargin;
-      // Delta of net profit ≈ delta of gross contribution (fixed margin), a good proxy.
-      profitDelta = s.delta.profit;
+      // The change badge must describe NET profit, not the pre-COGS contribution
+      // delta (s.delta.profit). Once fixed overhead shrinks the denominator, a +8%
+      // contribution swing can be +35% on net profit — pairing the net koruna figure
+      // with the contribution % is a wrong, client-facing number. Recompute the prior
+      // period's net profit from its reconstructed totals and take the real delta.
+      const prevRevenue = c.revenue / (1 + (s.delta.revenue ?? 0));
+      const prevNet = periodProfit(
+        { revenue: prevRevenue, adCost: prevCost, conversions: prevConv, months },
+        costModel
+      ).netProfit;
+      profitDelta = prevNet !== 0 ? (pp.netProfit - prevNet) / Math.abs(prevNet) : 0;
     } else {
       profit = c.profit;
       poas = c.cost > 0 ? c.profit / c.cost : 0;

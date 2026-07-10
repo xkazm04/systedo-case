@@ -14,7 +14,9 @@ export async function emitProjectActivity(
   entry: ActivityInput
 ): Promise<void> {
   try {
-    const tenant = await resolveTenant(userId, projectId ?? undefined);
+    // Activity is account-agnostic (module + AI actions) — key it without the Ads
+    // customerId so the audit timeline isn't orphaned on an account connect/switch.
+    const tenant = await resolveTenant(userId, projectId ?? undefined, { accountScoped: false });
     await recordActivity(tenant, entry);
   } catch (err) {
     console.error("[activity] emit failed (non-fatal):", err);

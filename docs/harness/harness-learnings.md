@@ -128,3 +128,78 @@ Index + per-context reports + wave ledger: `docs/harness/feature-scout-2026-07-0
 - **42 INDEX leftovers** (none gate-locked); ready-made Wave 10 = campaign console depth (campaign-connector-store #2 #3, campaign-console #2 #3 #5, campaign-model-prompts #3 #4 #5, campaign-sync-api #3 #5). Then design-system/helper sweeps, reader/keyboard tail, AI status/latency, ad-form polish, demo-data + testing remainder.
 - **Playwright e2e specs were extended** (mobile TOC, deep-link, PNO goal line, batch triage) **but not executed** this run; dashboard alert-focus e2e still missing (anomaly-data-dependent).
 - **The main checkout carries unrelated concurrent WIP** (cron `cronAuthorized` refactor, real.test.mjs retry work — the latter now ALSO exists on this branch via W9's independent hardening; expect a merge conflict in `test-llm/real.test.mjs` and `src/app/api/cron/*` when this branch merges).
+
+---
+
+# 2026-07-10 — bug-hunter + code-refactor(deduped) dual-lens scan + Waves 1-2
+
+Dual-lens scan over all 54 contexts (5/ctx, code-refactor lens deduped against the
+2026-07-09 report). 270 findings (2C/55H/118M/95L); INDEX + 54 reports in
+`docs/harness/bughunt-refactor-2026-07-10/`. Waves 1 (Criticals + honesty) and 2
+(money leak) shipped: 13 findings closed, 16 commits, tsc0/unit657/next-build-PASS,
+on branch `vibeman/bughunt-refactor-2026-07-10` (unmerged).
+
+## Structural facts (new)
+- **2026-07-10 — the LLM gate is stale on `master`** before any of this work: `npm run
+  llm:gate:check` reports 7 changed-but-unproven tool files (`_shared`, `voice`,
+  `persona`, `monthly-recap`, `twin-style`, `onboarding-scan`, `chat`). A prior AI-layer
+  change shipped without `node scripts/llm-gate.mjs`. Any gate-hashed edit inherits this.
+- **`durableGuard({spendUnits})` charges ONLY the global `_global_{day}` ceiling**, not
+  the per-IP rate buckets (those always +1/rule/call). So a route passing
+  `spendUnits:N` over-charges only the shared ceiling, never the per-IP window.
+- **`node_modules` install requires `npm ci --legacy-peer-deps`** — `next-auth@5-beta`
+  peer-conflicts the Next 16.3 preview; plain `npm ci`/`npm install` abort. Lockfile
+  untouched by the legacy-peer install.
+- **`refund()` (usage.ts) + `refundGlobalSpend()` (durable-limit.ts)** now exist as the
+  compensating reverses of `consume`/`durableGuard spendUnits` — reuse them for any
+  charge-then-fail path instead of inventing new decrements.
+
+## Anti-patterns to avoid (new)
+- **Adding a v4-mapped IPv6 subnet (`::ffff:0:0/96`) to a dual-stack block-list** — it
+  normalizes to IPv4 `0.0.0.0/0` and blocks the entire public IPv4 space. Validate
+  mapped addresses by unwrapping to the embedded IPv4 and recursing, not by block-listing.
+- **Charging quota/spend before the paid work, cache lookup, or concurrency gate** — a
+  degrade-to-free-fallback (no API key, demo result, placeholder), a 502, or a lost
+  slot race then bills the user/ceiling for nothing; a client retry-on-502 turns it into
+  a drain loop. Charge after a real paid result, or reclaim on failure.
+- **A prior scan's unit test can enshrine the bug** — the 365-day `historyGroundingText`
+  test asserted the exact fabricated "12 měsíců" claim; fixing the bug required fixing
+  the test to assert silence. Re-check tests that "prove" a suspicious behavior.
+
+## Open follow-ups (from the 2026-07-10 run)
+- **Deferred gate-hashed money findings (one batch + one gate run):** `ai/route.ts`
+  charge-after-success/skip-demo, `durable-limit` ceiling-on-cache/BYOM (needs the
+  ai/route coordinating change), `campaigns/analyze/route.ts` cache-first-then-charge.
+  Do these together and pay the ~6-9 min gate once (also clears the pre-existing
+  staleness above). The `refundGlobalSpend`/`chargeGlobalSpend` seam is already in place.
+- **Themes C–J untouched** (245 findings remain, mostly M/L): C non-atomic RMW races,
+  D customerId tenant-key orphaning + cross-client leak, E global-1000-cap under-report,
+  F localStorage hydration/persistence loss, G signed-profit math, H time/cron,
+  I trust-boundary tail (CSV formula injection, onboarding SSRF public path), J success-theater.
+
+## Structural facts (Waves 3-8, 2026-07-10)
+- **BYOM store is now transactional** — `mutateByomConfig(userId, fn)` on both backends
+  (Firestore runTransaction / local BEGIN IMMEDIATE); every mutation op routes through it.
+  `latestValidationFailed` + `flagUndecryptableKey` down-rank a broken/undecryptable key so
+  the generation resolve paths skip it (the test-connection path `resolveByomKey` does NOT).
+- **Tenant key is domain-split** — `resolveTenant(userId, projectId, { accountScoped })`:
+  Ads data keeps the customerId suffix; account-agnostic domains (social, microsite, share,
+  activity) pass `accountScoped:false` for a stable `u_{uid}_proj_{pid}` key.
+  `resolveTenantForAccount` is the read-side per-account fan-out helper (digest/report crons).
+- **Compensating-reclaim helpers exist**: `usage.refund` (per-user quota) and
+  `durable-limit.refundGlobalSpend` (the shared ceiling). Reuse for any charge-then-fail path.
+- **`ChangeSetStatus`/`PostStatus` carry transient claim states** (`applying`/`reverting`,
+  `publishing`) — a claim transaction flips into them before the side-effect so overlapping
+  runs can't double-apply/double-publish. Any `Record<Status,…>` map needs those keys.
+- **`metrics/totals.relSigned`** is the signed-metric relative change (use for `profit`, not `rel`).
+
+## Anti-patterns to avoid (Waves 3-8)
+- **Reading a browser store in a lazy `useState` initializer** in an SSR'd `"use client"`
+  component → hydration mismatch. Init empty, hydrate in an effect, and gate persist-on-change
+  effects behind a `hydrated` STATE flag (a ref runs too early on the mount pass).
+- **`x || default` for a numeric input** (0 is valid) and **`?? default` as validation** (an
+  out-of-union string survives) — parse/coerce against the known set instead.
+- **A resolved `fetch` treated as HTTP success** — check `res.ok` before optimistic UI; a
+  batch/loop writer must stop + report per call.
+- **Backticks in `git commit -m` bodies get shell-substituted** (bash command substitution),
+  silently dropping the word. Avoid backticks in `-m` strings.

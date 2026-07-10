@@ -53,6 +53,10 @@ export interface Snapshot {
   periodLabel: string;
   /** the comparison baseline the deltas were computed against */
   baseline: PeriodBaseline;
+  /** true when the series couldn't fill the requested window (span < period days)
+   *  — current totals cover fewer days than the label and the delta isn't a true
+   *  full-period comparison. See MetricsSnapshot.truncated. */
+  truncated: boolean;
   current: Totals;
   delta: Record<MetricKey, number>;
   significance: Record<MetricKey, Significance>;
@@ -83,6 +87,7 @@ export function buildSnapshot(
     period,
     periodLabel: ANALYSIS_PERIOD_LABELS[period],
     baseline: snap.baseline,
+    truncated: snap.truncated,
     current: snap.current,
     delta: snap.delta,
     significance: snap.significance,
@@ -149,14 +154,21 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
       `- ROAS: ${fmtMultiple(c.roas)}`,
       `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
       `- Průměrná hodnota objednávky: ${fmtCZK(c.aov)}`,
-      "",
-      "Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):",
-      ...s.channels.map(
-        (ch) =>
-          `- ${ch.channel}: ${fmtCZK(ch.revenue)} | ${fmtPct(ch.revenueShare, 0)} | ` +
-          `${ch.pno > 0 ? fmtPct(ch.pno) : "—"} | ${ch.roas > 0 ? fmtMultiple(ch.roas) : "—"} | ` +
-          `${ch.delta ? fmtSignedPct(ch.delta.revenue) : "—"}`
-      )
+      // The channel block is omitted when there is no channel mix (e.g. a live
+      // account-level Ads sync, which has no per-channel data) so the recap never
+      // fabricates a per-channel breakdown from a sample mix.
+      ...(s.channels.length
+        ? [
+            "",
+            "Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):",
+            ...s.channels.map(
+              (ch) =>
+                `- ${ch.channel}: ${fmtCZK(ch.revenue)} | ${fmtPct(ch.revenueShare, 0)} | ` +
+                `${ch.pno > 0 ? fmtPct(ch.pno) : "—"} | ${ch.roas > 0 ? fmtMultiple(ch.roas) : "—"} | ` +
+                `${ch.delta ? fmtSignedPct(ch.delta.revenue) : "—"}`
+            ),
+          ]
+        : [])
     );
   } else {
     const t = projectType;
@@ -170,17 +182,22 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
       `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
       // Revenue/ROAS/PNO/AOV are e-shop concepts — omitted so the recap doesn't
       // present them as this client's reality.
-      "",
-      `Výkon podle kanálů (${convLabel.toLowerCase()} | podíl | ${cpcLabel.toLowerCase()} | změna):`,
-      ...s.channels.map((ch) => {
-        const share = totalConv > 0 ? ch.conversions / totalConv : 0;
-        const chCpc = ch.conversions > 0 ? ch.cost / ch.conversions : 0;
-        return (
-          `- ${ch.channel}: ${fmtInt(ch.conversions)} | ${fmtPct(share, 0)} | ` +
-          `${ch.conversions > 0 ? fmtCZK(chCpc) : "—"} | ` +
-          `${ch.delta ? fmtSignedPct(ch.delta.conversions) : "—"}`
-        );
-      })
+      // Channel block omitted when there is no channel mix (see e-shop branch).
+      ...(s.channels.length
+        ? [
+            "",
+            `Výkon podle kanálů (${convLabel.toLowerCase()} | podíl | ${cpcLabel.toLowerCase()} | změna):`,
+            ...s.channels.map((ch) => {
+              const share = totalConv > 0 ? ch.conversions / totalConv : 0;
+              const chCpc = ch.conversions > 0 ? ch.cost / ch.conversions : 0;
+              return (
+                `- ${ch.channel}: ${fmtInt(ch.conversions)} | ${fmtPct(share, 0)} | ` +
+                `${ch.conversions > 0 ? fmtCZK(chCpc) : "—"} | ` +
+                `${ch.delta ? fmtSignedPct(ch.delta.conversions) : "—"}`
+              );
+            }),
+          ]
+        : [])
     );
   }
 

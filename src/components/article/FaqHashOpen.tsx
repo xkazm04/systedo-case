@@ -13,7 +13,17 @@ export default function FaqHashOpen({ ids }: { ids: string[] }) {
     const idSet = new Set(ids);
 
     const openFromHash = () => {
-      const id = decodeURIComponent(window.location.hash.replace(/^#/, ""));
+      const raw = window.location.hash.replace(/^#/, "");
+      // A malformed percent-escape (a stray "%", e.g. /clanek#50%off or a mangled
+      // campaign link) makes decodeURIComponent throw URIError — synchronously inside
+      // this effect, which React 19 escalates to the error boundary / tears down the
+      // article's client tree. Decode defensively and degrade to a no-op.
+      let id: string;
+      try {
+        id = decodeURIComponent(raw);
+      } catch {
+        return;
+      }
       if (!id || !idSet.has(id)) return;
       const el = document.getElementById(id);
       if (!(el instanceof HTMLDetailsElement)) return;

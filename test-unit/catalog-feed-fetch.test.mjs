@@ -20,7 +20,9 @@ test("isPublicIp blocks private / reserved / metadata addresses", () => {
     "fe80::1",
     "fc00::1",
     "fd12:3456::1",
-    "::ffff:127.0.0.1", // v4-mapped loopback
+    "::ffff:127.0.0.1", // v4-mapped loopback (dotted)
+    "::ffff:7f00:1", // v4-mapped loopback (hex form — must not slip past)
+    "::ffff:a9fe:a9fe", // v4-mapped cloud metadata 169.254.169.254 (hex form)
     "not-an-ip",
   ]) {
     assert.equal(isPublicIp(ip), false, `${ip} must be blocked`);
@@ -28,7 +30,14 @@ test("isPublicIp blocks private / reserved / metadata addresses", () => {
 });
 
 test("isPublicIp allows routable public addresses", () => {
-  for (const ip of ["1.1.1.1", "8.8.8.8", "93.184.216.34", "2606:4700:4700::1111"]) {
+  for (const ip of [
+    "1.1.1.1",
+    "8.8.8.8",
+    "93.184.216.34",
+    "2606:4700:4700::1111",
+    "::ffff:8.8.8.8", // public v4-mapped (dotted) stays allowed
+    "::ffff:808:808", // public v4-mapped (hex) resolves to 8.8.8.8
+  ]) {
     assert.equal(isPublicIp(ip), true, `${ip} must be allowed`);
   }
 });

@@ -2,7 +2,20 @@
  *  Excel CSV exports. Runs the TS source directly via the shared resolve hook. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { csvNum, toCsv } from "@/lib/export";
+import { csvCell, csvNum, toCsv } from "@/lib/export";
+
+test("csvCell neutralizes spreadsheet formula-injection triggers", () => {
+  // A live formula and a DDE vector must be quoted + '-guarded so they render as text.
+  assert.equal(csvCell("=SUM(A1)"), `"'=SUM(A1)"`);
+  assert.equal(csvCell("@cmd"), `"'@cmd"`);
+  assert.equal(csvCell("+420"), `"'+420"`);
+  // Czech promo copy that legitimately starts with '-' is guarded too (it evaluates
+  // as a negative-number/formula on open otherwise).
+  assert.equal(csvCell("-50 % na vše"), `"'-50 % na vše"`);
+  // Non-trigger cells are unchanged; delimiter escaping still applies.
+  assert.equal(csvCell("Doprava zdarma"), "Doprava zdarma");
+  assert.equal(csvCell("a,b"), '"a,b"');
+});
 
 test("csvNum renders cs decimal commas without grouping", () => {
   assert.equal(csvNum(0.85, 2), "0,85");

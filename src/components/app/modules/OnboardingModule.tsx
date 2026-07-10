@@ -134,7 +134,11 @@ export default function OnboardingModule({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const ai = useAiTool<OnboardingScanResult>("onboarding-scan");
+  // Scope the persistence slot to THIS project. The onboarding-scan result is
+  // per-project business data; a global (mode-only) slot let a new project's Start
+  // wizard restore a DIFFERENT project's scanned profile on mount and seed its
+  // competitors / AI grounding with the wrong client's data (cross-project bleed).
+  const ai = useAiTool<OnboardingScanResult>("onboarding-scan", project.id);
 
   // When a fresh scan completes, copy it into the editable review form — once, during
   // render (React's "adjust state on prop change"), rather than in an effect. Doing it

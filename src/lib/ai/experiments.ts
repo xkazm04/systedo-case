@@ -33,15 +33,25 @@ async function findByName(tenant: string, name: string): Promise<Experiment | nu
   return all.find((e) => e.name.trim().toLowerCase() === target) ?? null;
 }
 
+/** Deterministic doc id for an experiment name — injective with findByName's
+ *  trim+lowercase equivalence (so two names that findByName treats as the same map
+ *  to the same id, and distinct names never collide). Lets two concurrent first-saves
+ *  of one name transact on the SAME ref and collapse into one doc, instead of forking
+ *  via `.add()`. Firestore-safe (encodeURIComponent escapes `/`). */
+function expIdForName(name: string): string {
+  return encodeURIComponent(name.trim().toLowerCase() || "a/b test");
+}
+
 /** Add a variant to the experiment with this name (created if absent), so two
- *  ads saved under the same name land in one A/B test. Returns the experiment. */
+ *  ads saved under the same name land in one A/B test. Returns the experiment.
+ *  Atomic: the read-append-write runs in a transaction so concurrent saves compose
+ *  instead of the last writer clobbering the whole variants array. */
 export async function upsertExperimentVariant(
   tenant: string,
   name: string,
   variant: { label?: string; ad: AdResult; strength: number }
 ): Promise<Experiment> {
   const now = new Date().toISOString();
-  const existing = await findByName(tenant, name);
 
   const makeVariant = (count: number): AdVariant => ({
     id: `v_${now.replace(/\D/g, "").slice(-10)}_${count}`,
@@ -51,26 +61,39 @@ export async function upsertExperimentVariant(
     metrics: null,
   });
 
-  if (existing) {
-    const variants = [...existing.variants, makeVariant(existing.variants.length)];
-    const updated: Experiment = { ...existing, variants, updatedAt: now };
-    await expCol(tenant).doc(existing.id).set(persist(updated), { merge: true });
-    return { ...updated, winnerVariantId: pickWinner(updated) };
-  }
+  // Prefer an existing doc (any id scheme — legacy random `.add()` ids stay findable);
+  // otherwise target the deterministic name-derived id so a concurrent create collapses.
+  const existing = await findByName(tenant, name);
+  const ref = expCol(tenant).doc(existing?.id ?? expIdForName(name));
 
-  const draft: Experiment = {
-    id: "",
-    name: name.trim() || "A/B test",
-    createdAt: now,
-    updatedAt: now,
-    variants: [makeVariant(0)],
-    winnerVariantId: null,
-  };
-  const ref = await expCol(tenant).add(persist(draft));
-  return { ...draft, id: ref.id, winnerVariantId: pickWinner(draft) };
+  const saved = await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) {
+      const cur = { id: ref.id, ...(snap.data() as Omit<Experiment, "id">) };
+      const variants = [...cur.variants, makeVariant(cur.variants.length)];
+      const updated: Experiment = { ...cur, variants, updatedAt: now };
+      tx.set(ref, persist(updated), { merge: true });
+      return updated;
+    }
+    const draft: Experiment = {
+      id: ref.id,
+      name: name.trim() || "A/B test",
+      createdAt: now,
+      updatedAt: now,
+      variants: [makeVariant(0)],
+      winnerVariantId: null,
+    };
+    tx.set(ref, persist(draft));
+    return draft;
+  });
+
+  return { ...saved, winnerVariantId: pickWinner(saved) };
 }
 
-/** Set/replace one variant's measured performance and recompute the winner. */
+/** Set/replace one variant's measured performance and recompute the winner.
+ *  Returns null when the experiment is missing OR the variantId matches no variant
+ *  (so the route can 404 instead of reporting a silent no-op success). Transactional
+ *  so a concurrent variant add/metrics write can't clobber the array. */
 export async function updateVariantMetrics(
   tenant: string,
   experimentId: string,
@@ -78,13 +101,16 @@ export async function updateVariantMetrics(
   metrics: AdVariantMetrics
 ): Promise<Experiment | null> {
   const ref = expCol(tenant).doc(experimentId);
-  const snap = await ref.get();
-  if (!snap.exists) return null;
-  const exp = { id: experimentId, ...(snap.data() as Omit<Experiment, "id">) };
-  const variants = exp.variants.map((v) => (v.id === variantId ? { ...v, metrics } : v));
-  const updated: Experiment = { ...exp, variants, updatedAt: new Date().toISOString() };
-  await ref.set(persist(updated), { merge: true });
-  return { ...updated, winnerVariantId: pickWinner(updated) };
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return null;
+    const exp = { id: experimentId, ...(snap.data() as Omit<Experiment, "id">) };
+    if (!exp.variants.some((v) => v.id === variantId)) return null;
+    const variants = exp.variants.map((v) => (v.id === variantId ? { ...v, metrics } : v));
+    const updated: Experiment = { ...exp, variants, updatedAt: new Date().toISOString() };
+    tx.set(ref, persist(updated), { merge: true });
+    return { ...updated, winnerVariantId: pickWinner(updated) };
+  });
 }
 
 export async function deleteExperiment(tenant: string, experimentId: string): Promise<void> {

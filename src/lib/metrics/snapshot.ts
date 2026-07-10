@@ -43,6 +43,12 @@ export interface MetricsSnapshot {
   /** the comparison baseline actually used (a YoY request the series can't
    *  satisfy falls back to "previous" — see PeriodResult.baseline) */
   baseline: PeriodBaseline;
+  /** true when the series was too short to fill the requested window at equal
+   *  current/comparison length (span < requestedDays) — so current totals cover
+   *  fewer days than the period label claims and the delta is not a true
+   *  full-period comparison. Consumers that quote the period as an absolute span
+   *  (e.g. a "12 months / YoY" grounding line) must honor this. */
+  truncated: boolean;
   current: Totals;
   previous: Totals;
   delta: Record<MetricKey, number>;
@@ -68,6 +74,7 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     period: { key: period.key, label: period.label, days: period.days },
     baseline: result.baseline,
+    truncated: result.truncated,
     current: result.current,
     previous: result.previous,
     delta: result.delta,

@@ -144,6 +144,7 @@ interface InboxMessage {
 const STATUS_TONE: Record<PostStatus, string> = {
   draft: "bg-navy-50 text-muted",
   scheduled: "bg-brand-50 text-brand-800",
+  publishing: "bg-brand-50 text-brand-800",
   published: "bg-positive-soft text-positive",
   failed: "bg-negative-soft text-negative",
 };
@@ -363,10 +364,15 @@ function Composer() {
     setPosting(true);
     setError(null);
     try {
+      // The <input type="datetime-local"> value is a timezone-NAIVE local wall-clock
+      // string; convert it to a UTC ISO instant HERE (the browser knows the user's
+      // offset — the server does not) so the stored value and the cron's UTC "due"
+      // comparison agree. Matches WeekPlanner, which already sends toISOString().
+      const scheduledIso = scheduledAt ? new Date(scheduledAt).toISOString() : undefined;
       const res = await fetch("/api/social/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ platform, content, scheduledAt: scheduledAt || undefined, projectId: pid }),
+        body: JSON.stringify({ platform, content, scheduledAt: scheduledIso, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {

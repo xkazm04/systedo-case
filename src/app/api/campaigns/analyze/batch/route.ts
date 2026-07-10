@@ -38,7 +38,7 @@ import {
   tooLarge,
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
-import { durableGuard } from "@/lib/ai/durable-limit";
+import { durableGuard, refundGlobalSpend } from "@/lib/ai/durable-limit";
 
 // A portfolio of sequential model calls takes a while — same budget as the cron.
 export const maxDuration = 300;
@@ -130,21 +130,26 @@ export async function POST(request: Request) {
     return Response.json({ evaluated: [], cached, remaining: [], quotaExhausted: false });
   }
 
-  // Durable abuse/spend ceiling, charged for the whole planned batch up front —
-  // a batch must not be a way around the per-request eval budget.
+  // Take the in-process slot first: a server-busy rejection must not commit the
+  // batch's spend to the ceiling (the old order charged pending.length then bailed).
+  if (!acquireSlot()) {
+    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
+  }
+  // Durable abuse/spend ceiling, reserved for the whole planned batch up front —
+  // a batch must not be a way around the per-request eval budget. Any planned
+  // targets the loop doesn't reach (quota exhaustion / a provider failure that
+  // stops the walk) are reconciled back to the ceiling after the loop.
   const limited = await durableGuard(
     clientIp(request),
     [RATE_RULES.evalPerMin(), RATE_RULES.evalPerDay()],
     { spendUnits: pending.length }
   );
   if (!limited.ok) {
+    releaseSlot(); // no provider work will run — don't hold the slot for a 429.
     return tooManyRequests(
       limited.retryAfter,
       `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${limited.retryAfter} s.`
     );
-  }
-  if (!acquireSlot()) {
-    return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
   }
 
   const evaluated: string[] = [];
@@ -224,6 +229,11 @@ export async function POST(request: Request) {
     }
   } finally {
     releaseSlot();
+    // Reconcile the ceiling: units were reserved for every planned target, but the
+    // loop may have stopped early (quota exhaustion / provider failure). Refund the
+    // difference so the shared spend ceiling counts calls actually made.
+    const overReserved = pending.length - evaluated.length;
+    if (overReserved > 0) await refundGlobalSpend(overReserved);
   }
 
   const doneKeys = new Set([...evaluated, ...cached]);

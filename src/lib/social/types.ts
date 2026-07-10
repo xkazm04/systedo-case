@@ -27,11 +27,15 @@ export function isSocialPlatform(v: unknown): v is SocialPlatform {
   return typeof v === "string" && (SOCIAL_PLATFORMS as readonly string[]).includes(v);
 }
 
-export type PostStatus = "draft" | "scheduled" | "published" | "failed";
+// "publishing" is a transient claim state: the publish cron flips a due post
+// scheduled→publishing atomically before calling the provider, so overlapping runs
+// can't both publish it. It settles to published/failed once the provider returns.
+export type PostStatus = "draft" | "scheduled" | "publishing" | "published" | "failed";
 
 export const POST_STATUS_LABELS: Record<PostStatus, string> = {
   draft: "Koncept",
   scheduled: "Naplánováno",
+  publishing: "Zveřejňuje se…",
   published: "Zveřejněno",
   failed: "Chyba",
 };

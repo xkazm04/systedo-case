@@ -57,6 +57,10 @@ export interface ProfitTrendPoint {
   netProfit: number;
   /** grossProfit / cost (POAS) for the window */
   poas: number;
+  /** false when this is a partial calendar-month bucket (the current month, before
+   *  it ends). trendDelta skips such buckets so a mid-month value with ~1/3 the days
+   *  can't fake a net-profit/POAS collapse. Undefined (treated as complete) for weekly. */
+  complete?: boolean;
 }
 
 export type TrendGranularity = "week" | "month";

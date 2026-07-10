@@ -69,3 +69,29 @@ export function ladderFromRows(rows: ParsedRankRow[]): KeywordRank[] {
     best: r.rank,
   }));
 }
+
+/** Last N points of per-keyword rank history to retain. */
+const HISTORY_CAP = 12;
+
+/** Merge a new import's rows onto the previously-persisted ladder, APPENDING each new
+ *  rank to the matching keyword×area history instead of resetting it to a single point.
+ *  Without this, every import replaced history with `[rank]`, so the module's "climb /
+ *  trend / best position" — its whole point — stayed flat forever on real data. A
+ *  keyword absent from `prev` is a first-time entry (seeded by ladderFromRows); the
+ *  import defines the current tracked set, so a keyword no longer imported drops out. */
+export function mergeLadder(prev: KeywordRank[], rows: ParsedRankRow[]): KeywordRank[] {
+  const byId = new Map(prev.map((k) => [k.id, k]));
+  return ladderFromRows(rows).map((fresh) => {
+    const existing = byId.get(fresh.id);
+    if (!existing) return fresh; // first import for this keyword×area
+    const history = [...existing.history, fresh.current].slice(-HISTORY_CAP);
+    return {
+      ...existing,
+      keyword: fresh.keyword,
+      area: fresh.area,
+      history,
+      current: fresh.current,
+      best: Math.min(...history),
+    };
+  });
+}

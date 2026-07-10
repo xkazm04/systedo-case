@@ -237,7 +237,6 @@ export default function CatalogManagerModule({
     setItemsState(u);
     setSaveState("idle");
   };
-  const nextId = useRef(0);
 
   async function save() {
     setSaveState("saving");
@@ -425,9 +424,12 @@ export default function CatalogManagerModule({
   }
   function add() {
     const kind = PRIMARY_KIND[projectType];
-    const n = ++nextId.current;
+    // A collision-resistant id: the old per-mount counter reset to 0 on every mount,
+    // so after add → save → return → add, the new row reused a persisted id (p:new-1),
+    // and update/remove (keyed by id) then hit BOTH rows + collided React keys.
+    const uid = crypto.randomUUID();
     const base = {
-      id: `${projectId}:new-${n}`,
+      id: `${projectId}:new-${uid}`,
       projectId,
       name: "",
       category: "",
@@ -442,7 +444,7 @@ export default function CatalogManagerModule({
     };
     const fresh: Offering =
       kind === "product"
-        ? { ...base, kind: "product", sku: `NEW-${n}`, stock: 0, dailyVelocity: 0 }
+        ? { ...base, kind: "product", sku: `NEW-${uid.slice(0, 8)}`, stock: 0, dailyVelocity: 0 }
         : kind === "plan"
           ? { ...base, kind: "plan", interval: "month", competitors: [], differentiators: [] }
           : { ...base, kind: "service", priceModel: "from", serviceAreas: [] };

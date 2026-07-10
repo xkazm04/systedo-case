@@ -135,6 +135,13 @@ export default function ReviewInbox({
     }).catch(() => {});
   }
 
+  // Latest triage state, readable inside the debounced timeout. The effect below only
+  // depends on `drafts`, so a flag/answered toggle in the 700 ms window does NOT
+  // reschedule it — reading these off the render closure would fire a stale snapshot
+  // that the whole-document PUT then writes, reverting the just-set flag on the server.
+  const latest = useRef({ answered, flagged, drafts });
+  latest.current = { answered, flagged, drafts };
+
   // Draft edits (typing, macros, an applied AI reply) save debounced — coalesce
   // keystrokes into one write. Skip the initial mount; flag/answered save eagerly.
   const mounted = useRef(false);
@@ -143,7 +150,10 @@ export default function ReviewInbox({
       mounted.current = true;
       return;
     }
-    const id = setTimeout(() => save(answered, flagged, drafts), 700);
+    const id = setTimeout(() => {
+      const l = latest.current;
+      save(l.answered, l.flagged, l.drafts);
+    }, 700);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drafts]);

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ microsite: null });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   return Response.json({ microsite: await getMicrositeForTenant(tenant) });
 }
 
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
   if (!slug) return Response.json({ error: "Z názvu nelze vytvořit URL." }, { status: 422 });
 
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
 
   // Don't let one tenant hijack another's public slug.
   const existing = await getMicrosite(slug);
@@ -77,7 +77,7 @@ export async function DELETE(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   await disableMicrosite(tenant);
   await recordActivity(tenant, {
     kind: "update", module: "reporty", severity: "warning",

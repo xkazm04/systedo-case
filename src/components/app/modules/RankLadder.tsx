@@ -45,7 +45,9 @@ const PAD = 6;
 
 function Sparkline({ history, maxRank }: { history: number[]; maxRank: number }) {
   const n = history.length;
-  const x = (i: number) => PAD + (i / (n - 1)) * (W - 2 * PAD);
+  // A freshly-imported ladder seeds a single-point history; i/(n-1) is 0/0 = NaN for
+  // n===1, which produced "MNaN NaN" paths and cx={NaN}. Center a single point instead.
+  const x = (i: number) => (n <= 1 ? W / 2 : PAD + (i / (n - 1)) * (W - 2 * PAD));
   // inverted: rank 1 at the top, maxRank at the bottom
   const y = (rank: number) => PAD + ((rank - 1) / (maxRank - 1)) * (H - 2 * PAD);
   const line = history.map((r, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(r).toFixed(1)}`).join(" ");

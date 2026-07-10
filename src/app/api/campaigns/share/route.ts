@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     /* empty body is fine — no active project */
   }
 
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const project = projectId ? await getProject(userId, projectId) : null;
   const accountName = (await getAdsConnection(userId))?.customerName ?? project?.name ?? "Ukázkový účet";
 
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
   if (!userId) return Response.json({ reports: [] });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const reports = (await listSharedReports(tenant)).map((r) => ({
     ...r,
     url: canonical(`/report/${r.token}`),
@@ -74,7 +74,7 @@ export async function DELETE(request: Request) {
   }
   if (!token) return Response.json({ error: "Chybí token odkazu." }, { status: 422 });
 
-  const tenant = await resolveTenant(userId, projectId);
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const ok = await revokeSharedReport(tenant, token);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }

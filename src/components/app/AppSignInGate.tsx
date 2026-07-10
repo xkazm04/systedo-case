@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Check, Logo } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
@@ -49,6 +50,10 @@ const T = {
 export default function AppSignInGate() {
   const t = useT(T);
   const { locale } = useLocale();
+  // This gate wraps the ENTIRE authed /app subtree, so an anonymous visitor may hit
+  // it on a deep link (a shared /app/{id}/kampane, a bookmarked module). Return them
+  // to where they actually are after OAuth, not a hardcoded /app root.
+  const pathname = usePathname();
   const perks = PERKS[locale] ?? PERKS.cs!;
   return (
     <div className="grid min-h-[78vh] place-items-center bg-dotgrid px-4">
@@ -75,7 +80,7 @@ export default function AppSignInGate() {
         </ul>
         <button
           type="button"
-          onClick={() => signIn("google", { callbackUrl: "/app" })}
+          onClick={() => signIn("google", { callbackUrl: pathname || "/app" })}
           className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
         >
           <GoogleGlyph />

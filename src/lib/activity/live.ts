@@ -12,7 +12,8 @@ export async function liveActivityForProject(
   userId: string | null,
   projectId: string
 ): Promise<ActivityEvent[]> {
-  const tenant = await resolveTenant(userId, projectId);
+  // Read activity under the account-agnostic key it is written to (see activity/emit).
+  const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const records = await listActivity(tenant, 50);
   const nowMs = Date.now();
   return records.map((r) => recordToEvent(r, nowMs));

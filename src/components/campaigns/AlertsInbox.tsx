@@ -59,11 +59,15 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
 
   const markAllRead = async () => {
     try {
-      await fetch("/api/alerts", {
+      const res = await fetch("/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: pid }),
       });
+      // A resolved fetch is not an HTTP success — a 401/403/500 would otherwise clear
+      // the unread badge and mark every alert read while the server persisted nothing,
+      // so the operator believes critical-campaign alerts were acknowledged.
+      if (!res.ok) return;
       setAlerts((a) => a.map((x) => ({ ...x, read: true })));
       setUnread(0);
     } catch {

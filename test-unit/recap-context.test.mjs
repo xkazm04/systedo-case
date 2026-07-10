@@ -35,11 +35,16 @@ test("profit: names true net profit + margin-aware POAS (cs/en)", () => {
   assert.match(en, /not just revenue\/ROAS/);
 });
 
-test("history: silent below ~a year of data, present above it", () => {
-  assert.equal(historyGroundingText(withDays(90), "cs"), ""); // < 300 days → no year claim
-  const cs = historyGroundingText(withDays(365), "cs");
+test("history: silent until the series can actually cover a 12m + YoY comparison", () => {
+  assert.equal(historyGroundingText(withDays(90), "cs"), ""); // below the day floor
+  // 365 days looks like "a year" but a 12m/YoY comparison needs a full prior year
+  // too; evaluatePeriod halves it to ~182d-vs-182d (truncated), so claiming
+  // "12 měsíců / meziročně" here would fabricate the span — must stay silent.
+  assert.equal(historyGroundingText(withDays(365), "cs"), "");
+  // ~2 years: a genuine last-365d vs prior-365d comparison → the line fires.
+  const cs = historyGroundingText(withDays(730), "cs");
   assert.match(cs, /Delší horizont \(12 měsíců\)/);
   assert.match(cs, /meziročně/);
-  const en = historyGroundingText(withDays(365), "en");
+  const en = historyGroundingText(withDays(730), "en");
   assert.match(en, /Longer horizon \(12 months\)/);
 });

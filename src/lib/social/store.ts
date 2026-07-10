@@ -64,12 +64,34 @@ export async function deletePost(tenant: string, id: string): Promise<boolean> {
   return true;
 }
 
-/** Scheduled posts whose time has come (for the publish cron). */
+/** Scheduled posts whose time has come (for the publish cron). Requires an actual
+ *  scheduledAt in the past — a "scheduled" post with no scheduledAt is malformed and
+ *  must NOT be treated as due-now (the old `?? "" <= nowIso` published it immediately). */
 export async function listDueScheduled(tenant: string, nowIso: string): Promise<SocialPost[]> {
   const snap = await postsCol(tenant).where("status", "==", "scheduled").get();
   return snap.docs
     .map((d) => ({ id: d.id, ...(d.data() as Omit<SocialPost, "id">) }))
-    .filter((p) => (p.scheduledAt ?? "") <= nowIso);
+    .filter((p) => p.scheduledAt != null && p.scheduledAt <= nowIso);
+}
+
+/** Atomically claim a due post for publishing: flip scheduled→publishing only if it
+ *  is still `scheduled`. Returns true for the caller that wins the claim, false if the
+ *  post was already claimed/published (an overlapping cron run) or vanished — so the
+ *  provider is called at most once per post even across concurrent runs. */
+export async function claimScheduledPost(tenant: string, id: string): Promise<boolean> {
+  const ref = postsCol(tenant).doc(id);
+  try {
+    return await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) return false;
+      if ((snap.data() as SocialPost).status !== "scheduled") return false;
+      tx.set(ref, { status: "publishing" satisfies PostStatus }, { merge: true });
+      return true;
+    });
+  } catch (err) {
+    console.error(`[social] claim failed for ${id}:`, err);
+    return false;
+  }
 }
 
 // --- inbox ------------------------------------------------------------------

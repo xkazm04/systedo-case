@@ -8,7 +8,7 @@
  *  Node runtime, long maxDuration for Leonardo polling. */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
-import { consume } from "@/lib/usage";
+import { consume, refund } from "@/lib/usage";
 import { generateImageSet } from "@/lib/images/studio";
 import { deleteCreative, listCreatives, saveCreative } from "@/lib/images/store";
 import { getStylePrior } from "@/lib/images/attribution";
@@ -33,6 +33,11 @@ export async function POST(request: Request) {
   );
   if (guard) return guard;
 
+  // Track the paid units actually charged so a degraded (non-Leonardo) result or a
+  // thrown generation can refund them — the user must not spend daily image quota on
+  // placeholder SVGs or a 502.
+  let uid: string | null = null;
+  let charged = 0;
   try {
     let body: Record<string, unknown>;
     try {
@@ -55,7 +60,7 @@ export async function POST(request: Request) {
     const fidelityRaw = Number(body.fidelity);
     const projectId = str(body.projectId) || undefined;
 
-    const uid = await currentUserId();
+    uid = await currentUserId();
 
     // Style prior from creative→revenue attribution: bias generation toward the
     // look that historically earns (signed-in tenants with attribution data).
@@ -84,6 +89,7 @@ export async function POST(request: Request) {
           { status: 429 }
         );
       }
+      charged = count;
     }
 
     const result = await generateImageSet({
@@ -100,6 +106,14 @@ export async function POST(request: Request) {
       initImageId: referenceImageId && productMode ? referenceImageId : undefined,
       fidelity: Number.isFinite(fidelityRaw) ? fidelityRaw : undefined,
     });
+
+    // No real Leonardo generation happened (no API key / provider error → deterministic
+    // placeholder SVGs). Refund the charged units: the user must not spend daily quota
+    // on placeholders that cost the app nothing.
+    if (uid && charged && result.source !== "leonardo") {
+      await refund(uid, "image", charged);
+      charged = 0;
+    }
 
     // Persist the winner to the tenant's library (signed-in + real generation).
     let savedId: string | undefined;
@@ -142,6 +156,9 @@ export async function POST(request: Request) {
     return Response.json(payload);
   } catch (err) {
     console.error("[images] generation failed:", err);
+    // The paid work threw after the quota was charged — reclaim it so a provider
+    // timeout / error (and any client retry-on-502) can't drain the daily limit.
+    if (uid && charged) await refund(uid, "image", charged);
     return Response.json(
       { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu." },
       { status: 502 }

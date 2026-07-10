@@ -100,7 +100,14 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
   }, [status, load, refreshKey]);
 
   const saveMetrics = async (experimentId: string, variantId: string) => {
-    const metrics = draft[variantId] ?? EMPTY_METRICS;
+    // draft[variantId] is only the fields the user TYPED this session. When they open
+    // the panel and Save without editing, fall back to the row's already-saved metrics
+    // (what the display uses), not EMPTY_METRICS — otherwise a no-op save silently
+    // overwrites real performance with zeros and reverts the ROAS winner to a guess.
+    const existing = experiments
+      .find((e) => e.id === experimentId)
+      ?.variants.find((v) => v.id === variantId)?.metrics;
+    const metrics = draft[variantId] ?? existing ?? EMPTY_METRICS;
     try {
       await fetch("/api/experiments", {
         method: "PATCH",

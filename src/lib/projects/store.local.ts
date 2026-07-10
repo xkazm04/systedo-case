@@ -10,6 +10,7 @@ import { getDb } from "@/lib/db";
 import { ensureLocalUser } from "@/lib/users/local";
 import {
   PROJECT_TYPE_META,
+  coerceProjectType,
   type NewProjectInput,
   type Project,
   type ProjectPatch,
@@ -33,7 +34,7 @@ function toProject(r: ProjectRow): Project {
   return {
     id: r.id,
     name: r.name || "Projekt",
-    type: (r.type as Project["type"]) ?? "eshop",
+    type: coerceProjectType(r.type),
     accentColor: r.accent_color ?? PROJECT_TYPE_META.eshop.defaultAccent,
     logoUrl: r.logo_url || undefined,
     domain: r.domain || undefined,

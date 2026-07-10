@@ -149,11 +149,34 @@ function buildTenantKey(userId: string, projectId?: string | null, customerId?: 
  *  falls back to the per-user key; anonymous visitors share the `sample` tenant. */
 export async function resolveTenant(
   userId: string | null,
-  projectId?: string | null
+  projectId?: string | null,
+  opts: { accountScoped?: boolean } = {}
 ): Promise<string> {
   if (!userId) return "sample";
+  // Account-AGNOSTIC domains (social posts/inbox, microsites, shareable report links,
+  // the activity timeline) pass accountScoped:false so their key never carries the
+  // volatile Ads customerId — otherwise connecting / switching / disconnecting an Ads
+  // account changes the key and orphans that user-created content. Account-SCOPED Ads
+  // data (campaigns/series/snapshots/report-metrics) keeps the default suffix so its
+  // read and sync keys agree.
+  if (opts.accountScoped === false) return buildTenantKey(userId, projectId);
   const connection = await getAdsConnection(userId);
   return buildTenantKey(userId, projectId, connection?.customerId);
+}
+
+/** The tenant key for a SPECIFIC connected account — the read-side counterpart of
+ *  resolveCampaignContext's per-account fan-out. Scheduled readers (digest, report)
+ *  use this to iterate every connected account the same way `sync` writes them,
+ *  instead of collapsing to the single active account via resolveTenant (which reads
+ *  only getAdsConnection). `customerId` must be one the user owns — callers pass ids
+ *  straight from listConnectedAccounts. Computes the exact key resolveCampaignContext
+ *  would for that account, so read and write tenants stay identical. */
+export function resolveTenantForAccount(
+  userId: string,
+  projectId: string | null | undefined,
+  customerId: string
+): string {
+  return buildTenantKey(userId, projectId, customerId);
 }
 
 /** Resolve both the connector and the tenant for a request in one pass: live

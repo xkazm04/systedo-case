@@ -13,7 +13,9 @@ const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 async function tenantOf(projectId?: string | null): Promise<string> {
   const uid = await currentUserId();
-  return resolveTenant(uid, projectId);
+  // Social content is account-agnostic — key it without the Ads customerId so a
+  // later account connect/switch can't orphan a user's scheduled posts + inbox.
+  return resolveTenant(uid, projectId, { accountScoped: false });
 }
 
 export async function GET(request: Request) {
@@ -41,8 +43,16 @@ export async function POST(request: Request) {
   }
 
   const tenant = await tenantOf(str(body.projectId) || null);
-  const scheduledAt = str(body.scheduledAt);
-  const future = scheduledAt && new Date(scheduledAt).getTime() > Date.now();
+  const rawScheduledAt = str(body.scheduledAt);
+  // Parse to an instant and store the CANONICAL UTC ISO, so the cron's UTC "due"
+  // comparison is always against a UTC value. Reject a non-empty but unparseable
+  // value instead of silently falling through to publish-now (NaN > now is false).
+  const scheduledMs = rawScheduledAt ? Date.parse(rawScheduledAt) : NaN;
+  if (rawScheduledAt && Number.isNaN(scheduledMs)) {
+    return Response.json({ error: "Neplatné datum plánování." }, { status: 422 });
+  }
+  const scheduledAt = Number.isNaN(scheduledMs) ? "" : new Date(scheduledMs).toISOString();
+  const future = scheduledAt !== "" && scheduledMs > Date.now();
 
   // Schedule for later → the cron publishes it when due.
   if (future) {
