@@ -3,7 +3,7 @@
 
 import type { DailyPoint, MetricKey } from "../types";
 import type { SupportedLocale } from "../format";
-import { rel, totalsOf, type Totals } from "./totals";
+import { rel, relSigned, totalsOf, type Totals } from "./totals";
 import { pno, aov, cr, roas, ctr, cpc } from "./ratios";
 
 // --- periods ----------------------------------------------------------------
@@ -173,7 +173,9 @@ function compareWindows(
     cost: rel(c.cost, p.cost),
     conversions: rel(c.conversions, p.conversions),
     revenue: rel(c.revenue, p.revenue),
-    profit: rel(c.profit, p.profit),
+    // profit is signed — relSigned so a loss→profit turnaround (or the reverse)
+    // isn't flattened to 0 % by rel's `prev > 0` guard.
+    profit: relSigned(c.profit, p.profit),
     pno: rel(c.pno, p.pno),
     aov: rel(c.aov, p.aov),
     cr: rel(c.cr, p.cr),

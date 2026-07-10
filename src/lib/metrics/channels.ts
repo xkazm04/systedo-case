@@ -3,7 +3,7 @@
 
 import type { ChannelShare, MetricKey } from "../types";
 import { safe } from "./ratios";
-import { rel, type Totals } from "./totals";
+import { rel, relSigned, type Totals } from "./totals";
 
 export interface ChannelRow extends Totals {
   channel: string;
@@ -69,7 +69,7 @@ export function channelRowsCompared(
       cost: rel(row.cost, prev?.cost ?? 0),
       conversions: rel(row.conversions, prev?.conversions ?? 0),
       revenue: rel(row.revenue, prev?.revenue ?? 0),
-      profit: rel(row.profit, prev?.profit ?? 0),
+      profit: relSigned(row.profit, prev?.profit ?? 0), // signed metric — see totals.relSigned
       pno: rel(row.pno, prev?.pno ?? 0),
       aov: rel(row.aov, prev?.aov ?? 0),
       cr: rel(row.cr, prev?.cr ?? 0),

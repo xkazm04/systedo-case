@@ -38,8 +38,18 @@ const EMPTY: Pick<Totals, RawMetric | "impressions" | "clicks"> = {
   clicks: 0,
 };
 
-/** Relative change (fraction), guarding a zero/absent baseline. */
+/** Relative change (fraction) for a NON-NEGATIVE metric, guarding a zero/absent
+ *  baseline. The `prev > 0` guard treats a ≤0 baseline as "no meaningful base" → 0,
+ *  which is right for revenue/cost/visits/conversions but WRONG for the one signed
+ *  metric (`profit`): use `relSigned` there. */
 export const rel = (cur: number, prev: number): number => (prev > 0 ? (cur - prev) / prev : 0);
+
+/** Relative change for a SIGNED metric (profit = revenue − cost), which can be
+ *  negative. Divides by |prev| so a loss→profit turnaround reads as a large positive
+ *  move and a profit→loss collapse as a large negative one, instead of the `rel`
+ *  guard flattening every ≤0-baseline swing to 0 %. Only a true zero baseline → 0. */
+export const relSigned = (cur: number, prev: number): number =>
+  prev !== 0 ? (cur - prev) / Math.abs(prev) : 0;
 
 /** Sum the raw additive metrics and derive the ratios. The optional paid-traffic
  *  pair sums with a graceful 0 fallback, so its derived ratios (CTR/CPC) simply
