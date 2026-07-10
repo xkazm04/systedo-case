@@ -9,7 +9,7 @@
  *  would route through the ad-ops control plane (simulate → approve → audited
  *  mutation → revert), the same governance envelope the Kampaně module uses. */
 import type { BudgetChangeSet, StockRow, StockStatus } from "./compute";
-import { DEFAULT_POLICY, checkPolicy, type ControlPolicy } from "@/lib/campaigns/control-plane-types";
+import { DEFAULT_POLICY, checkPolicy } from "@/lib/campaigns/control-plane-types";
 import type { BudgetMove } from "@/lib/campaigns/simulate";
 
 export interface AdChannel {
@@ -51,12 +51,8 @@ export interface InventoryAction {
 
 export interface InventoryActionPlan {
   actions: InventoryAction[];
-  totalShifted: number;
-  /** margin-weighted cover value the plan protects from being spent into a stockout */
-  valueProtected: number;
   /** true when the plan is inside the ad-ops guardrails (blast-radius + per-move cap) */
   withinGuardrails: boolean;
-  policy: ControlPolicy;
 }
 
 /** Build the executable plan by joining the proposed moves back to their stock
@@ -86,11 +82,6 @@ export function buildActionPlan(stock: StockRow[], changeSet: BudgetChangeSet): 
     };
   });
 
-  const valueProtected = changeSet.moves.reduce((sum, m) => {
-    const donor = bySku.get(m.fromSku);
-    return sum + (donor?.coverValue ?? 0);
-  }, 0);
-
   // Govern the plan with the EXACT ControlPolicy the ad-ops control plane enforces
   // (DEFAULT_POLICY, via the same checkPolicy), mapping each inventory move to the
   // campaigns BudgetMove shape checkPolicy expects (amountCzk → amount, titles →
@@ -110,9 +101,6 @@ export function buildActionPlan(stock: StockRow[], changeSet: BudgetChangeSet): 
 
   return {
     actions,
-    totalShifted: changeSet.totalShifted,
-    valueProtected,
     withinGuardrails,
-    policy: DEFAULT_POLICY,
   };
 }

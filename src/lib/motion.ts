@@ -30,17 +30,6 @@ export const staggerParent: Variants = {
   },
 };
 
-/** pinPlant — a numbered map pin dropping onto the canvas. */
-export const pinPlant: Variants = {
-  hidden: { opacity: 0, y: -8, scale: 0.6 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.5, ease: easeAdamant },
-  },
-};
-
 /** pingPulse — the brand-accent ring radiating from a rank-1 pin. */
 export const pingPulse: Variants = {
   rest: { opacity: 0, scale: 1 },

@@ -83,7 +83,6 @@ export interface Locality {
   id: string;
   name: string;
   region?: string;
-  gbpPlaceId?: string;
 }
 
 export const isProduct = (o: Offering): o is ProductOffering => o.kind === "product";

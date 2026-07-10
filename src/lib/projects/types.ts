@@ -190,5 +190,3 @@ export interface NewProjectInput {
 /** Patchable fields on an existing project. */
 export type ProjectPatch = Partial<Pick<Project, "name" | "type" | "accentColor" | "logoUrl" | "domain" | "adsCustomerId">>;
 
-/** The default home module for a freshly-opened project. */
-export const PROJECT_HOME_SEGMENT = "";

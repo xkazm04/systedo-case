@@ -53,7 +53,6 @@ const nextAuth = NextAuth({
 });
 
 export const handlers = nextAuth.handlers;
-export const signIn = nextAuth.signIn;
 export const signOut = nextAuth.signOut;
 
 /** Session accessor used across the app (server components, API routes, the /app

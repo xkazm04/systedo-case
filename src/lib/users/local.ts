@@ -48,15 +48,3 @@ export function ensureLocalUser(
   ).run(user.id, user.name, user.email, user.image, user.createdAt);
   return user;
 }
-
-export function getLocalUser(id: string): LocalUser | null {
-  const r = getDb().prepare("SELECT * FROM users WHERE id = ?").get(id) as UserRow | undefined;
-  return r ? toUser(r) : null;
-}
-
-export function listLocalUsers(): LocalUser[] {
-  const rows = getDb()
-    .prepare("SELECT * FROM users ORDER BY created_at ASC")
-    .all() as unknown as UserRow[];
-  return rows.map(toUser);
-}

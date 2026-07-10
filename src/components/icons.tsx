@@ -51,14 +51,6 @@ export function ArrowRight(props: IconProps) {
   );
 }
 
-export function ArrowUpRight(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M7 17L17 7M8 7h9v9" />
-    </svg>
-  );
-}
-
 export function TrendUp(props: IconProps) {
   return (
     <svg {...base} {...props}>

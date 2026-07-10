@@ -11,9 +11,6 @@ import { firestore } from "@/lib/firebase";
 import { LOCAL_DB } from "@/lib/local-mode";
 import { PLANS, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
 
-export { PLANS, planHasByom };
-export type { Plan, UsageKind, UsageStatus, PlanLimits } from "@/lib/plans";
-
 interface UsageDoc {
   plan?: Plan;
   days?: Record<string, Partial<Record<UsageKind, number>>>;

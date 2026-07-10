@@ -7,9 +7,9 @@
  *  catalog. That's the depth a product feed (Direction 1) can't give.
  *
  *  Real integration: `warehouseConnectionFor` looks up the project's stored
- *  connection and `warehouseSnapshot` calls the provider API (Baselinker inventory
- *  endpoints / ShipMonk + Skladon REST / an ERP middleware). Here both return a
- *  deterministic demo snapshot so the module renders live-shaped data WITHOUT
+ *  connection and `warehouseCatalog` returns the provider's inventory (Baselinker
+ *  inventory endpoints / ShipMonk + Skladon REST / an ERP middleware). Here both
+ *  return deterministic demo data so the module renders live-shaped data WITHOUT
  *  credentials — the seam is real, the bytes are illustrative. Everything the
  *  module consumes already flows through `Product[]`, so nothing downstream changes. */
 import type { Product } from "@/lib/catalog/sample";
@@ -61,14 +61,6 @@ export interface WarehouseConnection {
   syncedAt: string;
   /** minutes since the last sync, relative to the module's reference `now` */
   syncedMinsAgo: number;
-}
-
-export interface WarehouseSnapshot {
-  connection: WarehouseConnection;
-  /** warehouse-grade catalog — every SKU carries measured velocity, per-SKU
-   *  margin and (where relevant) a real restock ETA from a purchase order */
-  products: Product[];
-  skuCount: number;
 }
 
 /** ISO YYYY-MM-DD `days` after a reference date (UTC). */
@@ -137,10 +129,4 @@ export function demoWarehouseConnection(now: Date): WarehouseConnection {
   const syncedMinsAgo = 6;
   const syncedAt = new Date(now.getTime() - syncedMinsAgo * 60_000).toISOString();
   return { provider: warehouseProvider("baselinker")!, syncedAt, syncedMinsAgo };
-}
-
-/** Assemble the warehouse snapshot for a connected project. */
-export function warehouseSnapshot(connection: WarehouseConnection, now: Date): WarehouseSnapshot {
-  const products = warehouseCatalog(now);
-  return { connection, products, skuCount: products.length };
 }

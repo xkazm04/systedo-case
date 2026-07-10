@@ -10,7 +10,6 @@ import { statusSummary, type IntCategory, type IntegrationRow, type IntStatus } 
 const COPY = {
   cs: {
     lead: "Připravenost napojení pro tento projekt — co je aktivní, co čeká na dokončení a co je zatím manuální. Odvozeno z reálné konfigurace prostředí a projektu.",
-    connected: "Připojeno", action: "Vyžaduje akci", missing: "Nenastaveno",
     sumConnected: "Připojeno", sumAction: "Vyžaduje akci", sumMissing: "Nenastaveno",
     categories: { ads: "Reklama", ai: "AI", content: "Obsah", reviews: "Recenze", reports: "Reporty", infra: "Infrastruktura" },
     status: { connected: "Připojeno", action: "Vyžaduje akci", missing: "Nenastaveno", manual: "Manuálně", planned: "Plánováno", optional: "Volitelné" },
@@ -25,7 +24,6 @@ const COPY = {
   },
   en: {
     lead: "Connector readiness for this project — what's active, what's awaiting a step, and what's still manual. Derived from the real environment + project config.",
-    connected: "Connected", action: "Needs action", missing: "Not configured",
     sumConnected: "Connected", sumAction: "Needs action", sumMissing: "Not configured",
     categories: { ads: "Advertising", ai: "AI", content: "Content", reviews: "Reviews", reports: "Reports", infra: "Infrastructure" },
     status: { connected: "Connected", action: "Needs action", missing: "Not configured", manual: "Manual", planned: "Planned", optional: "Optional" },

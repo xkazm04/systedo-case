@@ -167,8 +167,6 @@ export interface TwinState {
   updatedAt?: string;
 }
 
-export const EMPTY_TWIN_STATE: TwinState = { voices: [], channels: [], facts: [], drafts: [] };
-
 /* -------------------------------------------------------------------------- */
 /*  Pure resolution + policy                                                   */
 /* -------------------------------------------------------------------------- */

@@ -6,13 +6,13 @@
 import { Tally } from "@/components/motion/Kinetics";
 
 export function VisibilityGauge({
-  value = 67,
-  caption = "viditelnost",
-  label = "Map-pack visibility",
+  value,
+  caption,
+  label,
 }: {
-  value?: number;
-  caption?: string;
-  label?: string;
+  value: number;
+  caption: string;
+  label: string;
 }) {
   const v = Math.max(0, Math.min(100, value));
 

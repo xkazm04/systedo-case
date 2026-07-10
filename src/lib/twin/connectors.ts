@@ -86,11 +86,6 @@ export function connectorFor(id: string): TwinConnector {
   return CONNECTORS.find((c) => c.id === id) ?? manual;
 }
 
-/** Connectors that can serve a channel and have their credentials. */
-export function connectorsForChannel(channel: TwinChannel): TwinConnector[] {
-  return CONNECTORS.filter((c) => c.configured && c.channels.includes(channel));
-}
-
 /** The client-safe projection — no `send`, no secrets. */
 export interface ConnectorInfo {
   id: string;

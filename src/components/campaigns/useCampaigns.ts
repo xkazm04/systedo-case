@@ -56,8 +56,6 @@ interface State {
   histories: Record<string, ReportHistoryPoint[]>;
   /** what changed since the prior sync (null until ≥2 syncs exist) */
   changes: ChangesSummary | null;
-  /** per-day portfolio totals for the trend chart */
-  series: DailyPoint[];
   /** per-campaign daily series (campaign id → points) for the table sparklines */
   campaignSeries: Record<string, DailyPoint[]>;
   /** rule-based triage per stored sync snapshot — the deterministic health
@@ -72,7 +70,6 @@ const EMPTY: State = {
   staleKeys: [],
   histories: {},
   changes: null,
-  series: [],
   campaignSeries: {},
   snapshotSummaries: [],
 };
@@ -114,7 +111,6 @@ export function useCampaigns() {
         staleKeys: json.staleKeys ?? [],
         histories: json.histories ?? {},
         changes: json.changes ?? null,
-        series: json.series ?? [],
         campaignSeries: json.campaignSeries ?? {},
         snapshotSummaries: json.snapshotSummaries ?? [],
       });
@@ -158,7 +154,6 @@ export function useCampaigns() {
         staleKeys: json.staleKeys ?? [],
         histories: json.histories ?? {},
         changes: json.changes ?? null,
-        series: json.series ?? [],
         campaignSeries: json.campaignSeries ?? {},
         snapshotSummaries: json.snapshotSummaries ?? [],
       });
@@ -269,7 +264,6 @@ export function useCampaigns() {
     staleKeys: state.staleKeys,
     histories: state.histories,
     changes: state.changes,
-    series: state.series,
     campaignSeries: state.campaignSeries,
     snapshotSummaries: state.snapshotSummaries,
     loading,

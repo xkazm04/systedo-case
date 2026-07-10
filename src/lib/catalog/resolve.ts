@@ -3,7 +3,7 @@
  *  sample→live source pattern (`projectDataSource`, `warehouseConnectionFor`). Phase 2
  *  swaps the seed lookup for a project-scoped store without changing these signatures. */
 import type { Project } from "@/lib/projects/types";
-import type { Locality, Offering, PlanOffering, ProductOffering, ServiceOffering } from "./offering";
+import type { Locality, Offering, PlanOffering, ServiceOffering } from "./offering";
 import { isPlan, isProduct, isService, toProduct } from "./offering";
 import type { Product } from "./sample";
 import { LOCALITIES, appCatalog, contentCatalog, eshopCatalog, leadgenCatalog, localSeoCatalog } from "./seeds";
@@ -28,11 +28,6 @@ export function getProjectCatalog(project: Project, now: Date = new Date()): Off
 /** Product offerings adapted to the legacy `Product` shape (inventory / creative). */
 export function productsFor(project: Project, now: Date = new Date()): Product[] {
   return getProjectCatalog(project, now).filter(isProduct).map(toProduct);
-}
-
-/** Raw product offerings (when a caller needs the richer fields: nature, channels…). */
-export function productOfferingsFor(project: Project, now: Date = new Date()): ProductOffering[] {
-  return getProjectCatalog(project, now).filter(isProduct);
 }
 
 export function plansFor(project: Project): PlanOffering[] {

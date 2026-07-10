@@ -5,10 +5,9 @@ import { createPortal } from "react-dom";
 import { Close } from "@/components/icons";
 
 /** The dialog's max width. `full` is a near-viewport workspace (brief → draft). */
-export type ModalSize = "sm" | "md" | "lg" | "full";
+export type ModalSize = "md" | "lg" | "full";
 
 const SIZES: Record<ModalSize, string> = {
-  sm: "max-w-md",
   md: "max-w-2xl",
   lg: "max-w-4xl",
   full: "max-w-5xl",

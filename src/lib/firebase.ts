@@ -36,7 +36,7 @@ function init(): App {
   return initializeApp({ credential: resolveCredential() });
 }
 
-export const firebaseApp = init();
+const firebaseApp = init();
 export const firestore: Firestore = getFirestore(firebaseApp);
 
 /** The default Storage bucket for the Creative Studio asset library. Configurable

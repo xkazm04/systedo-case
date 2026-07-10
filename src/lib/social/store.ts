@@ -5,7 +5,6 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import {
-  SOCIAL_PLATFORMS,
   type PostStatus,
   type SocialMessage,
   type SocialPlatform,
@@ -113,5 +112,3 @@ export async function markReplied(tenant: string, id: string, reply: string): Pr
   await ref.set({ status: "replied", reply }, { merge: true });
   return true;
 }
-
-export const SOCIAL_PLATFORM_VALUES = SOCIAL_PLATFORMS;
