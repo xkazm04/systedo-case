@@ -1,9 +1,10 @@
 # Fix Wave 4 — Tenant identity + agency multi-account (themes D + E)
 
-> 5 commits, 9 findings closed (6 High + 3 Medium).
+> 6 commits, 11 findings closed (8 High + 3 Medium).
 > Baseline preserved: tsc 0 · unit 657→657 · next build PASS. Committed `--no-verify`.
 > No gate-hashed files touched.
-> **One architectural finding escalated, not fixed** (customerId-in-tenant-key) — see below.
+> The escalated customerId-in-tenant-key finding was **resolved via Option A** after the
+> user chose it (pre-launch → no migration) — see the RESOLVED note below.
 
 ## Commits
 
@@ -28,9 +29,20 @@
 15. **A fan-out reader must enumerate the same keys the fan-out writer produces.** If the write path iterates all accounts (per-account tenant keys) but the read path collapses to the active one, every non-active account's deliverable is silently skipped. Share one key-resolution helper.
 16. **Claim transient states extend to crons.** The Wave-3 claim pattern applies to any at-least-once publisher: flip `scheduled→publishing` atomically before the side-effect so overlapping runs and post-publish write failures can't double-fire.
 
-## ⚠ ESCALATED — customerId folded into the tenant storage key (D-21 High + D-22 High)
+## ✅ RESOLVED (Option A) — customerId folded into the tenant storage key (D-21 High + D-22 High)
 
-**Not fixed this wave — needs an architecture decision + a data migration.**
+**Fixed** after the user chose Option A + confirmed pre-launch (no migration). Commit
+`fix(tenant): key account-agnostic content without the Ads customerId`: added an
+`accountScoped` flag to `resolveTenant` (default keeps the customerId suffix for Ads
+data so read/sync keys still agree) and passed `accountScoped: false` at the eight
+account-agnostic call sites (social posts + inbox, microsite, campaigns/share, activity
+emit/live + api, cron/social) so their key is the stable `u_{uid}_proj_{pid}`. tsc 0 ·
+unit 657 · next build PASS. The original analysis + the three options considered are
+preserved below for the record.
+
+---
+
+**(original escalation — for the record)** Needed an architecture decision + possibly a data migration.
 
 `buildTenantKey(userId, projectId, customerId)` appends the connected Ads `customerId`
 to the tenant key (`u_{uid}_proj_{pid}_{customerId}`). That is correct for **account-scoped**
@@ -63,7 +75,7 @@ agreement, and the migration is a one-time copy of a bounded set of agnostic doc
 
 ## Cumulative status (Waves 1–4)
 
-32 findings closed in 33 fix commits across 4 themed waves (2 Critical, 20 High, 10 Medium).
+34 findings closed in 35 fix commits across 4 themed waves (2 Critical, 22 High, 10 Medium).
 tsc 0 · unit 657/657 · next build PASS throughout. Pattern catalogue: 16 items.
-Remaining per INDEX: the escalated D-21/D-22 (above), the deferred gate-hashed money
-findings (theme A tail), the theme-C tail (Wave-3 doc), then themes F–J.
+Remaining per INDEX: the deferred gate-hashed money findings (theme A tail), the theme-C
+tail (Wave-3 doc), then themes F–J.
