@@ -10,10 +10,22 @@ import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
  *  the union of both delimiters is always RFC-4180-valid, so this one helper is
  *  the single source of truth for CSV cell escaping across the app — it serves
  *  both the semicolon-delimited `toCsv` documents and the comma-delimited
- *  exporters (LTV cohorts, catalog RSA CSV) that import it. */
+ *  exporters (LTV cohorts, catalog RSA CSV) that import it.
+ *
+ *  ALSO neutralizes spreadsheet FORMULA INJECTION: a cell whose first character is
+ *  `=`, `+`, `-`, `@`, TAB or CR is evaluated as a formula when the CSV is opened in
+ *  Excel/Sheets (a live `=…` can trigger DDE / data-exfiltration). AI-generated ad
+ *  copy routinely starts that way (`-50 % na vše`, `+420 …`), so prefix a `'` text
+ *  guard (Excel/Sheets render it as text, hiding the quote) and force-quote. RFC-4180
+ *  delimiter escaping alone does NOT stop this — the app strips the CSV quotes and
+ *  still sees the leading `=`. */
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
 export function csvCell(value: string | number): string {
   const s = String(value ?? "");
-  return /[",\n\r;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const guarded = FORMULA_TRIGGER.test(s) ? `'${s}` : s;
+  return FORMULA_TRIGGER.test(s) || /[",\n\r;]/.test(s)
+    ? `"${guarded.replace(/"/g, '""')}"`
+    : guarded;
 }
 
 /** Build a CSV document from a header row + data rows. Uses a semicolon
