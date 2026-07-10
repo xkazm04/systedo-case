@@ -1,15 +1,16 @@
 {
-  "reply": "Dobrý den,\n\nrevizi elektroinstalace v rozsahu 200 m² jsme schopni zorganizovat. Abychom Vám nabídli přesný termín, potřebujeme vědět, jaká je Vaše preference – zda hledáte kontrolu v nejbližších dnech nebo máte možnost počkat.\n\nZároveň bychom rádi upřesnili, jde-li o běžnou bezpečnostní revizi nebo máte konkrétní obavy ohledně stavu instalace.\n\nSme tu pro Vás.\n\nS pozdravem",
+  "reply": "Pane, děkujeme za poptávku. Revizi elektroinstalace na 200 m² zvládneme – abychom vám mohli potvrdit konkrétní termín, potřebujeme si ověřit dostupnost našeho týmu a získat pár podrobností o projektu. Ozveme se vám s konkrétním návrhem brzy. Jakou máte představu o termínu?",
   "questions": [
-    "Jaký je Váš ideální termín pro provedení revize – kdy máte k dispozici přístup do kanceláře?",
-    "Má revize konkrétní důvod (běžná údržba, nové zařízení, podezření na problém) nebo se jedná o standardní bezpečnostní kontrolu?",
-    "Potřebujete výstup v podobě detailního protokolu nebo stačí ústní zhodnocení?"
+    "Jakou máte představu o časovém rámci – je to urgentní nebo máte času?",
+    "Jedná se o komplexní revizi nebo řešíte konkrétní problém?",
+    "Jaké je místní zaměření – v jakém městě či okrese se kancelář nachází?"
   ],
   "confidence": 65,
   "risks": [
-    "Nemáme v podkladech informaci o skutečné dostupnosti techniko a jejich rozvrhu – termín není závazný bez interního ověření kapacity",
-    "Není specifikován standardní postup pro odhad ceny revize – cenu jsme nezmínili, ale měli bychom ji mít připravenou na další komunikaci",
-    "Není jasné, jaké jsou SLA pro odpověď v leadgen kanálu a zda se reply bude odesílat automaticky či manuálně"
+    "Neznám aktuální dostupnost týmu – slibný termín by měl být ověřen v interním systému.",
+    "Neznám přesnou cenu za tento typ a rozsah – neslibuj konkrétní výši bez kalkulace.",
+    "Chybí informace o povaze stavby (historická budova, panelák apod.), což ovlivní složitost.",
+    "Neznám polohu – travel time má vliv na plánování."
   ],
-  "toneNotes": "Aplikován formální tón s vykáním a oslovením příjmením. Odpověď na otázku je umístěna v první větě ('jsme schopni zorganizovat'). Hlas zůstává profesionální, důvěryhodný, bez slibů termínů/cen. Kvalifikační otázky směřují k objasnění urgence a typu práce bez zbytečného prodlužování komunikace."
+  "toneNotes": "Profesionální a vstřícný tón s bezprostřední odpovědí na dotaz (termín), ale bez slibování konkrétního data. Oslovení příjmením s vykáním. Snaha o rychlou reakci s jasným záměrem pokračovat v komunikaci."
 }

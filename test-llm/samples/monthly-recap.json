@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4× ukazuje zdravou a efektivní akvizici zákazníků.",
-  "summary": "Kampaně vygenerovaly obrat 1 200 000 Kč za náklady 220 000 Kč, což při PNO 18,3 % a ROAS 5,4× patří k nadprůměrným výsledkům pro lokální podnik. Konverzní poměr navíc meziměsíčně vzrostl o 12 %, což potvrzuje, že nejde o náhodný výkyv, ale o zlepšující se trend.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4× potvrzuje, že kampaně táhnou zákazníky efektivně a bez zbytečného utrácení.",
+  "summary": "Za sledované období jste z reklamních nákladů 220 000 Kč vygenerovali obrat 1 200 000 Kč. Poměr nákladů k obratu (PNO) 18,3 % je pro lokální službu velmi zdravý a návratnost 5,4× ukazuje, že vynaložená koruna se vrací víc než pětinásobně. Zároveň roste i počet konverzí, což naznačuje, že poptávka nejde jen z ceny, ale i z kvality nastavení kampaní.",
   "highlights": [
-    "ROAS 5,4× výrazně převyšuje typický cíl 3-4× pro lokální služby",
-    "PNO 18,3 % drží náklady na akvizici na zdravé úrovni vůči obratu",
-    "Konverze meziměsíčně posílily o 12 %, tedy zlepšuje se i kvalita provozu, ne jen jeho objem"
+    "Návratnost investic 5,4× znamená, že z každé investované koruny se vrátilo přes 5 Kč obratu.",
+    "Konverze meziměsíčně vzrostly o 12 %, tedy více poptávek či rezervací při stejném nastavení kampaní.",
+    "PNO 18,3 % drží náklady na získání zákazníka na zdravé úrovni typické pro dobře fungující lokální podnik."
   ],
   "watchouts": [
-    "Bez detailu o rozložení obratu mezi kanály hrozí přehlédnutí přílišné závislosti na jednom zdroji poptávky",
-    "Rostoucí konverze při zachování nízkého PNO je potřeba hlídat, aby nebyla tažena jen sezónní poptávkou, která příští měsíc opadne"
+    "Při pokračujícím růstu konverzí je třeba hlídat kapacitu provozu (obsazenost, personál), aby se poptávka dala reálně obsloužit.",
+    "Aktuální efektivita může být částečně sezónní – bez sledování dalšího měsíce nelze potvrdit, že 5,4× ROAS je dlouhodobě udržitelné."
   ],
   "priorities": [
     {
-      "title": "Ověřit udržitelnost výkonu napříč kanály",
-      "detail": "Rozklíčovat, jaký podíl na obratu 1,2 mil. Kč mají jednotlivé kanály, a případně přesměrovat část rozpočtu tam, kde je efektivita nejvyšší, aby nebyl výsledek závislý na jediném zdroji."
+      "title": "Rozšířit rozpočet na nejvýkonnější kampaně",
+      "detail": "Vzhledem k ROAS 5,4× a nízkému PNO je prostor postupně navýšit investice do kampaní s nejlepší návratností a otestovat, zda se výkon udrží i při vyšším objemu."
     },
     {
-      "title": "Otestovat navýšení rozpočtu při zachování PNO",
-      "detail": "Vzhledem k ROAS 5,4× a rostoucím konverzím zvážit postupné navýšení investice do nejvýkonnějších kampaní a sledovat, zda se PNO drží pod 20 % i při vyšším objemu."
+      "title": "Zavést sledování kapacity a kvality obsluhy poptávky",
+      "detail": "S růstem konverzí o 12 % nastavit jednoduché měření toho, kolik poptávek se skutečně promění v obslouženého zákazníka, aby růst reklamy nebyl brzděn provozními limity."
     }
   ]
 }
