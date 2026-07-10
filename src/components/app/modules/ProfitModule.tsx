@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bulb, Layers } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
@@ -445,7 +445,10 @@ export default function ProfitModule({
   const [view, setView] = useState<ViewMode>("channels");
   // Real-numbers override (#ROB-02): per-period actual revenue + ad spend, so the
   // whole view reflects the user's books, not just the margin lens.
-  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>(() => loadReal(projectId));
+  // Init EMPTY and hydrate from localStorage in an effect below — reading a browser-only
+  // store in a lazy useState initializer makes the first client render differ from the
+  // SSR HTML (React 19 hydration error, torn-down subtree) for any returning user.
+  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>({});
 
   const periodRows = useMemo(() => rowsByPeriod[period] ?? [], [rowsByPeriod, period]);
 
@@ -531,27 +534,39 @@ export default function ProfitModule({
   }
 
   // #4 scenarios — per-project localStorage.
-  const [scenarios, setScenarios] = useState<MarginScenario[]>(() => loadScenarios(projectId));
+  const [scenarios, setScenarios] = useState<MarginScenario[]>([]);
   const [scenarioName, setScenarioName] = useState("");
   const [compareId, setCompareId] = useState<string>("");
 
+  // Hydrate both browser-only stores after mount (see realByPeriod init). `hydrated` is
+  // STATE (not a ref) so the persist effects below read `false` on the mount render and
+  // skip — the empty initial state therefore never clobbers the saved data before the
+  // hydrated values land. (ProfitModule remounts on a project route change, so `hydrated`
+  // starts false per project.)
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    setRealByPeriod(loadReal(projectId));
+    setScenarios(loadScenarios(projectId));
+    setHydrated(true);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydrated) return;
     try {
       window.localStorage.setItem(scenariosKey(projectId), JSON.stringify(scenarios));
     } catch {
       /* storage unavailable — keep the in-memory list */
     }
-  }, [projectId, scenarios]);
+  }, [projectId, scenarios, hydrated]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !hydrated) return;
     try {
       window.localStorage.setItem(realKey(projectId), JSON.stringify(realByPeriod));
     } catch {
       /* storage unavailable — keep the in-memory override */
     }
-  }, [projectId, realByPeriod]);
+  }, [projectId, realByPeriod, hydrated]);
 
   function setMargin(channel: string, pct: number) {
     const clamped = Math.max(0, Math.min(100, pct)) / 100;
