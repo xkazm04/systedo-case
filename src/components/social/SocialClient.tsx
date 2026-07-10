@@ -144,6 +144,7 @@ interface InboxMessage {
 const STATUS_TONE: Record<PostStatus, string> = {
   draft: "bg-navy-50 text-muted",
   scheduled: "bg-brand-50 text-brand-800",
+  publishing: "bg-brand-50 text-brand-800",
   published: "bg-positive-soft text-positive",
   failed: "bg-negative-soft text-negative",
 };
