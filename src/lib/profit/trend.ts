@@ -68,7 +68,26 @@ export function profitTrend(
     });
   }
 
-  return points.sort((a, b) => (a.date < b.date ? -1 : 1));
+  points.sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  // Flag the trailing partial-month bucket incomplete. Monthly buckets are keyed by
+  // calendar month, so the anchor's month is only partial until month-end — comparing
+  // it (via trendDelta) against a full prior month otherwise fakes a ~60% collapse for
+  // the first part of every month. Weekly buckets are fixed windows counted back from
+  // the anchor (the newest are always full), so they stay complete.
+  if (granularity === "month" && points.length > 0) {
+    const anchorMonth = anchor.slice(0, 7);
+    const anchorDate = new Date(`${anchor}T00:00:00Z`);
+    const lastDay = new Date(
+      Date.UTC(anchorDate.getUTCFullYear(), anchorDate.getUTCMonth() + 1, 0)
+    ).getUTCDate();
+    const anchorIsMonthEnd = anchorDate.getUTCDate() === lastDay;
+    for (const pt of points) {
+      pt.complete = !(pt.date.slice(0, 7) === anchorMonth && !anchorIsMonthEnd);
+    }
+  }
+
+  return points;
 }
 
 /**
@@ -112,8 +131,11 @@ export function trendDelta(
   points: ProfitTrendPoint[],
   field: "netProfit" | "poas" | "revenue"
 ): number {
-  if (points.length < 2) return 0;
-  const cur = points[points.length - 1]![field];
-  const prev = points[points.length - 2]![field];
+  // Compare the last two COMPLETE buckets — a trailing partial-month bucket (complete
+  // === false) has a fraction of the month's days and would fake a collapse.
+  const usable = points.filter((p) => p.complete !== false);
+  if (usable.length < 2) return 0;
+  const cur = usable[usable.length - 1]![field];
+  const prev = usable[usable.length - 2]![field];
   return prev !== 0 ? (cur - prev) / Math.abs(prev) : 0;
 }
