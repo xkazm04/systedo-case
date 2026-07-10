@@ -53,9 +53,6 @@ for (const [addr, prefix] of [
   ["fe80::", 10],
   ["ff00::", 8],
   ["64:ff9b::", 96],
-  // IPv4-mapped range — belt-and-suspenders against a mapped address reaching the
-  // block-list un-normalized. isPublicIp() unwraps these to the embedded IPv4 first.
-  ["::ffff:0:0", 96],
 ] as [string, number][]) {
   BLOCK.addSubnet(addr, prefix, "ipv6");
 }
