@@ -156,7 +156,12 @@ function normalizeLeadSourceDiagnosis(
     likelyCause,
     recommendation: txt(o?.recommendation) || fallback.recommendation,
   };
-  const severity = coerceSeverity(o?.severity) ?? fallback.severity ?? severityFor(likelyCause);
+  // Derive severity from the cause we ACTUALLY show when the model omits it. The old
+  // `?? fallback.severity` middle term took the demo's severity (severityFor(pickCause),
+  // a deterministic cause chosen independently of the model), so a model "spam" (high)
+  // cause could render a green "low" pill. severityFor(likelyCause) is total, so the
+  // fallback.severity term was also dead code.
+  const severity = coerceSeverity(o?.severity) ?? severityFor(likelyCause);
   if (severity) result.severity = severity;
   return result;
 }
