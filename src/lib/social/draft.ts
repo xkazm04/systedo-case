@@ -2,6 +2,7 @@
  *  A believable first draft a marketer edits, generated from a topic + tone, so the
  *  command center works out of the box. (An LLM draft is a natural later upgrade.)
  *  Pure. */
+import { cap, clamp } from "@/lib/ai/tools/_shared";
 import {
   PLATFORM_LIMITS,
   SOCIAL_PLATFORM_LABELS,
@@ -9,10 +10,6 @@ import {
   type SocialPlatform,
   type Tone,
 } from "./types";
-
-function clamp(s: string, n: number): string {
-  return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + "…";
-}
 
 const TONE_OPENER: Record<Tone, (t: string) => string> = {
   vecny: (t) => `${cap(t)}: co byste měli vědět.`,
@@ -27,10 +24,6 @@ const TONE_CTA: Record<Tone, string> = {
   premiovy: "Objevte naši kolekci.",
   akcni: "Nakupte se slevou ještě dnes!",
 };
-
-function cap(s: string): string {
-  return s ? s[0].toUpperCase() + s.slice(1) : s;
-}
 
 /** Slugified brand hashtag + up-to-3 topic hashtags. No hardcoded brand — a
  *  caption must never sign off as someone else's company. */
