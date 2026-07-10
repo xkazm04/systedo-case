@@ -264,6 +264,12 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
     signal: args.signal,
   };
 
+  // Set on the first provider that returns a usable parse. normalize() runs AFTER the
+  // loop (see below), not inside the try — a mapper bug in our own normalize is an APP
+  // error and must NOT be caught as a "provider failure" (which would record phantom
+  // success telemetry, then fall through to the next provider = another real paid call).
+  let success: { parsed: unknown; meta: AiMeta } | null = null;
+
   for (let idx = 0; idx < providers.length; idx++) {
     const provider = providers[idx];
     const model = provider.modelFor(args.tier);
@@ -341,7 +347,8 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         recordLlmError(model, toolId, "corrupted/truncated structured output (missing required fields)");
       }
 
-      return { result: args.normalize(parsed), meta };
+      success = { parsed, meta };
+      break;
     } catch (err) {
       // A client abort is a deliberate stop: no cross-provider fallback, no
       // demo degradation — surface it so the route ends quietly (client gone).
@@ -358,6 +365,12 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // Fall through to the next configured provider; if this was the last one,
       // the loop ends and we degrade to the demo below.
     }
+  }
+
+  // A provider succeeded — normalize OUTSIDE the try so a mapper throw propagates to the
+  // caller as an app error rather than masquerading as a provider fallback.
+  if (success) {
+    return { result: args.normalize(success.parsed), meta: success.meta };
   }
 
   // No provider available, or all failed — deterministic demo so the app stays usable.
