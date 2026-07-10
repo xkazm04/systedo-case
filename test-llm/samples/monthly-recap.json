@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat přes milion s PNO pod 20 % a rostoucí konverzí.",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená PNO 18,3 % a ROAS 5,4×, což je zdravý poměr pro lokální podnik. Konverze navíc meziměsíčně vzrostly o 12 %, což ukazuje na zlepšující se kvalitu poptávky i webu.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4× ukazuje zdravou a efektivní akvizici zákazníků.",
+  "summary": "Kampaně vygenerovaly obrat 1 200 000 Kč za náklady 220 000 Kč, což při PNO 18,3 % a ROAS 5,4× patří k nadprůměrným výsledkům pro lokální podnik. Konverzní poměr navíc meziměsíčně vzrostl o 12 %, což potvrzuje, že nejde o náhodný výkyv, ale o zlepšující se trend.",
   "highlights": [
-    "ROAS 5,4× potvrzuje efektivní využití reklamního rozpočtu vůči obratu.",
-    "PNO 18,3 % drží náklady na obrat na zdravé úrovni pro lokální segment.",
-    "Konverze meziměsíčně vzrostly o 12 %, tedy více zákazníků dokončuje objednávku či poptávku."
+    "ROAS 5,4× výrazně převyšuje typický cíl 3-4× pro lokální služby",
+    "PNO 18,3 % drží náklady na akvizici na zdravé úrovni vůči obratu",
+    "Konverze meziměsíčně posílily o 12 %, tedy zlepšuje se i kvalita provozu, ne jen jeho objem"
   ],
   "watchouts": [
-    "Při dalším škálování rozpočtu může PNO začít růst, pokud poptávka po klíčových službách nebude stejně silná.",
-    "Růst konverzí je třeba ověřit i v kvalitě poptávek (skutečné objednávky/zakázky), ne jen v počtu."
+    "Bez detailu o rozložení obratu mezi kanály hrozí přehlédnutí přílišné závislosti na jednom zdroji poptávky",
+    "Rostoucí konverze při zachování nízkého PNO je potřeba hlídat, aby nebyla tažena jen sezónní poptávkou, která příští měsíc opadne"
   ],
   "priorities": [
     {
-      "title": "Postupně navýšit rozpočet na nejvýkonnější kampaně",
-      "detail": "Vzhledem k ROAS 5,4× je prostor opatrně zvýšit investice do kampaní s nejlepší návratností a sledovat, zda PNO zůstane pod 20 %."
+      "title": "Ověřit udržitelnost výkonu napříč kanály",
+      "detail": "Rozklíčovat, jaký podíl na obratu 1,2 mil. Kč mají jednotlivé kanály, a případně přesměrovat část rozpočtu tam, kde je efektivita nejvyšší, aby nebyl výsledek závislý na jediném zdroji."
     },
     {
-      "title": "Ověřit kvalitu nových konverzí",
-      "detail": "Zkontrolovat, zda nárůst konverzí o 12 % odpovídá i reálným tržbám a spokojenosti zákazníků, případně doladit cílení podle typu poptávky."
+      "title": "Otestovat navýšení rozpočtu při zachování PNO",
+      "detail": "Vzhledem k ROAS 5,4× a rostoucím konverzím zvážit postupné navýšení investice do nejvýkonnějších kampaní a sledovat, zda se PNO drží pod 20 % i při vyšším objemu."
     }
   ]
 }

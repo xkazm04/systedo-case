@@ -2,7 +2,6 @@
   "clusters": [
     {
       "topic": "Vlašské ořechy",
-      "intent": "komerční",
       "pillar": "vlašské ořechy",
       "supporting": [
         "vlašské ořechy cena",
@@ -11,7 +10,6 @@
     },
     {
       "topic": "Mandle",
-      "intent": "komerční",
       "pillar": "mandle",
       "supporting": [
         "mandle cena",

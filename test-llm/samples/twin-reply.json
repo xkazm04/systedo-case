@@ -1,15 +1,15 @@
 {
-  "reply": "Dobrý den, revizi elektroinstalace rádi zorganizujeme. Abych Vám připravil přesný odhad a dostupné termíny, potřebuji upřesnit pár detailů — brzy se Vám ozveme s konkrétní nabídkou. Děkuji za důvěru.",
+  "reply": "Dobrý den,\n\nrevizi elektroinstalace v rozsahu 200 m² jsme schopni zorganizovat. Abychom Vám nabídli přesný termín, potřebujeme vědět, jaká je Vaše preference – zda hledáte kontrolu v nejbližších dnech nebo máte možnost počkat.\n\nZároveň bychom rádi upřesnili, jde-li o běžnou bezpečnostní revizi nebo máte konkrétní obavy ohledně stavu instalace.\n\nSme tu pro Vás.\n\nS pozdravem",
   "questions": [
-    "V jakém časovém rámci plánujete revizi realizovat (např. během prázdnin, nebo je to urgentní)?",
-    "Jedná se o generální kontrolu nebo řešíte konkrétní problémy s elektroinstalací?",
-    "Jsou prostory přístupné během pracovní doby, nebo máme počítat s omezeními?"
+    "Jaký je Váš ideální termín pro provedení revize – kdy máte k dispozici přístup do kanceláře?",
+    "Má revize konkrétní důvod (běžná údržba, nové zařízení, podezření na problém) nebo se jedná o standardní bezpečnostní kontrolu?",
+    "Potřebujete výstup v podobě detailního protokolu nebo stačí ústní zhodnocení?"
   ],
-  "confidence": 62,
+  "confidence": 65,
   "risks": [
-    "Ověřit skutečnou dostupnost týmu před odesláním — slovo 'brzy' musí být splnitelné",
-    "Konfirmovat, že prodejní proces zvládne personalizované follow-up s nabídkou",
-    "Zkontrolovat, zda máte v systému šablonu pro odhad revize 200 m² kancelářního prostoru"
+    "Nemáme v podkladech informaci o skutečné dostupnosti techniko a jejich rozvrhu – termín není závazný bez interního ověření kapacity",
+    "Není specifikován standardní postup pro odhad ceny revize – cenu jsme nezmínili, ale měli bychom ji mít připravenou na další komunikaci",
+    "Není jasné, jaké jsou SLA pro odpověď v leadgen kanálu a zda se reply bude odesílat automaticky či manuálně"
   ],
-  "toneNotes": "Formální vykání, rychlá odpověď na primární otázku, ale bez konkrétního slibku termínu; otázky sbírají detaily pro personalizované follow-up; zaměření na budování důvěry než agresivní prodej (typické pro leadgen ve stavebnictví)."
+  "toneNotes": "Aplikován formální tón s vykáním a oslovením příjmením. Odpověď na otázku je umístěna v první větě ('jsme schopni zorganizovat'). Hlas zůstává profesionální, důvěryhodný, bez slibů termínů/cen. Kvalifikační otázky směřují k objasnění urgence a typu práce bez zbytečného prodlužování komunikace."
 }

@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň výrazně překonává cílové PNO (5,3 % vs. 18 %) při ROAS 18,9×, což ukazuje na silnou efektivitu s prostorem pro škálování.",
-  "score": 93,
+  "verdict": "Kampaň Search · Brand výrazně překonává cílové PNO (5,3 % vs. cíl 18 %) při ROAS 18,9×, což ukazuje na velmi efektivní a pravděpodobně poddimenzovanou investici do brandových výkonů.",
+  "score": 94,
   "recommendations": [
     {
-      "title": "Navýšit denní rozpočet",
-      "detail": "Aktuální PNO 5,3 % je hluboko pod cílem 18 %, takže kampaň má výrazný prostor pro zvýšení investice bez ohrožení ziskovosti. Postupně navyšujte rozpočet o 20–30 % a sledujte, zda se PNO drží pod cílovou hranicí.",
+      "title": "Navýšit rozpočet a nabídky",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % je kampaň silně zisková a má prostor absorbovat vyšší rozpočet i CPC bez ohrožení cílové efektivity — doporučuji navýšit denní rozpočet a max. CPC tak, aby se PNO přiblížilo cíli a maximalizoval se objem konverzí.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit pokrytí klíčových frází",
-      "detail": "Vzhledem k vysoké ziskovosti otestujte rozšíření na příbuzné brandové a long-tail fráze nebo přidání dalších match types, abyste zachytili více poptávky při zachování aktuální efektivity.",
+      "title": "Zkontrolovat impression share a rozšířit pokrytí brandových frází",
+      "detail": "Ověřit Impression Share (Lost IS – Budget/Rank) a případně rozšířit klíčová slova o dlouhé brandové varianty a chybové/variantní zápisy značky, aby kampaň nepřicházela o levnou brandovou poptávku.",
       "priority": "medium"
     }
   ]

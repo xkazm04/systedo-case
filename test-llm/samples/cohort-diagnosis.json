@@ -1,9 +1,9 @@
 {
-  "summary": "Kohorty vykazují jasně zhoršující se trend: CAC roste (1 200→1 600→2 100 Kč), LTV klesá (5 400→3 800→2 200 Kč) a M3 retence se propadá (62 %→48 %→31 %). LTV:CAC tak kleslo ze 4,5× na 1,0× a návratnost CAC se z 4 měsíců protáhla na stav, kdy se investice v horizontu vůbec nevrátí. Hlavní hnací silou zhoršení je klesající retence, ne jen dražší akvizice.",
+  "summary": "Akviziční kohorty se v Q1 2025 zhoršují napříč všemi ukazateli: CAC roste (1200→1600→2100 Kč), LTV klesá (5400→3800→2200 Kč) a M3 retence padá (62 %→48 %→31 %). Pokles LTV:CAC (4,5×→2,4×→1,0×) kopíruje pokles retence silněji než růst CAC, což ukazuje, že hlavní příčinou eroze jednotkové ekonomiky je slábnoucí udržení zákazníků, nikoli jen dražší akvizice. Kohorta 2025-03 se prakticky nevrací a je pod hranicí udržitelnosti.",
   "worstCohort": "2025-03",
-  "recommendation": "Prioritně zlepšit M3 retenci u nejnovějších kohort (onboarding a aktivace prvních 90 dní), protože propad retence z 62 % na 31 % je hlavní pákou táhnoucí LTV dolů a bez jejího zastavení se CAC u kohorty 2025-03 nikdy nevrátí.",
+  "recommendation": "Prioritně zlepšit M3 retenci (onboarding a aktivaci) u nových kohort, protože pokles retence z 62 % na 31 % vysvětluje propad LTV mnohem více než nárůst CAC — zvýšení retence zvedne LTV:CAC rychleji než snižování akvizičních nákladů.",
   "risks": [
-    "Pokud se CAC dál zvyšuje bez zlepšení retence, kohorta 2025-03 bude trvale ztrátová.",
-    "Klesající M3 retence napříč třemi po sobě jdoucími kohortami naznačuje systémový problém v produktu/onboardingu, ne jednorázový výkyv."
+    "Bez zásahu se návratnost investice do akvizice u kohorty 2025-03 s vysokou pravděpodobností nikdy nenastane.",
+    "Pokračující trend by mohl srazit LTV:CAC dalších kohort pod 1,0×, tedy do ztrátové akvizice."
   ]
 }
