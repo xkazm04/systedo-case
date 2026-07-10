@@ -9,6 +9,7 @@ import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useAiTool } from "@/components/ai/useAiTool";
+import { usePersistedForm } from "@/components/ai/usePersistedForm";
 import { RefineBar, ResultMeta } from "@/components/ai/primitives";
 import type { ComparisonOutlineResult } from "@/lib/ai-types";
 import {
@@ -173,8 +174,6 @@ const OPP_META: Record<Opportunity, { tone: PillTone; tKey: "oppHigh" | "oppMedi
 /** Intent slider order — buying-stage descending so pricing leads. */
 const INTENT_ORDER: CompareIntent[] = ["pricing", "alternative", "vs", "review"];
 
-const weightsKey = (projectId: string) => `app:seo-weights:${projectId}`;
-
 /** Validate a parsed blob into ScoreWeights, falling back per-field to defaults
  *  (and to defaults entirely on anything malformed) so a corrupt localStorage
  *  entry can never break scoring. */
@@ -196,17 +195,15 @@ function coerceWeights(raw: unknown): ScoreWeights {
   };
 }
 
-/** Lazy initializer: read the per-project saved weights once, guarding SSR. */
-function loadWeights(projectId: string): ScoreWeights {
-  if (typeof window === "undefined") return DEFAULT_SCORE_WEIGHTS;
-  try {
-    const raw = window.localStorage.getItem(weightsKey(projectId));
-    if (!raw) return DEFAULT_SCORE_WEIGHTS;
-    return coerceWeights(JSON.parse(raw));
-  } catch {
-    /* corrupt or unavailable storage — fall back to the defaults */
-    return DEFAULT_SCORE_WEIGHTS;
-  }
+/** Coercing type guard for `usePersistedForm`: narrows an unknown restored blob
+ *  to ScoreWeights and normalizes it in place (the same per-intent / per-cutoff
+ *  fallback `coerceWeights` applied), so a partially-corrupt stored entry keeps
+ *  behaving exactly as before. A non-object (or array) is rejected, leaving the
+ *  hook on the SSR-safe defaults. */
+function isScoreWeights(v: unknown): v is ScoreWeights {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  Object.assign(v, coerceWeights(v));
+  return true;
 }
 
 /** Turn a comparison query into a content topic the brief tool can act on. The
@@ -649,8 +646,14 @@ export default function CompareSeoTable({
   const fmt = useFormatters();
   const t = useT(T);
 
-  // Lazy init from per-project localStorage (SSR-guarded); falls back to default.
-  const [weights, setWeights] = useState<ScoreWeights>(() => loadWeights(project.id));
+  // Per-project persisted weights. The hook restores the saved value in a
+  // post-mount effect (never during the initial render), so the SSR output and
+  // the first client render agree — no hydration mismatch for returning users.
+  const [weights, setWeights] = usePersistedForm<ScoreWeights>(
+    `seo-weights:${project.id}`,
+    defaultWeights,
+    { validate: isScoreWeights },
+  );
 
   // Optional real grounding for the comparison pages (so they don't render a blank
   // placeholder skeleton): the competitor + the user's own positioning, filled once.
@@ -676,15 +679,6 @@ export default function CompareSeoTable({
       cancelled = true;
     };
   }, [pid]);
-
-  // Persist the tuned weights so the panel reopens the way the user left it.
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(weightsKey(project.id), JSON.stringify(weights));
-    } catch {
-      /* storage may be unavailable (e.g. private mode) — non-fatal */
-    }
-  }, [project.id, weights]);
 
   const selectedList = lists.find((l) => l.id === selectedListId);
   const derived = useMemo(
