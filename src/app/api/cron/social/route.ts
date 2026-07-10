@@ -23,7 +23,9 @@ export async function GET(request: Request) {
     const targets = projects.length ? projects : [null];
     for (const project of targets) {
       try {
-        const tenant = await resolveTenant(userId, project?.id);
+        // Social posts are account-agnostic — read them under the same customerId-free
+        // key the social/posts route writes them to (accountScoped:false).
+        const tenant = await resolveTenant(userId, project?.id, { accountScoped: false });
         const due = await listDueScheduled(tenant, nowIso);
         for (const post of due) {
           // Claim before publishing so overlapping cron runs (or a run that started

@@ -149,9 +149,17 @@ function buildTenantKey(userId: string, projectId?: string | null, customerId?: 
  *  falls back to the per-user key; anonymous visitors share the `sample` tenant. */
 export async function resolveTenant(
   userId: string | null,
-  projectId?: string | null
+  projectId?: string | null,
+  opts: { accountScoped?: boolean } = {}
 ): Promise<string> {
   if (!userId) return "sample";
+  // Account-AGNOSTIC domains (social posts/inbox, microsites, shareable report links,
+  // the activity timeline) pass accountScoped:false so their key never carries the
+  // volatile Ads customerId — otherwise connecting / switching / disconnecting an Ads
+  // account changes the key and orphans that user-created content. Account-SCOPED Ads
+  // data (campaigns/series/snapshots/report-metrics) keeps the default suffix so its
+  // read and sync keys agree.
+  if (opts.accountScoped === false) return buildTenantKey(userId, projectId);
   const connection = await getAdsConnection(userId);
   return buildTenantKey(userId, projectId, connection?.customerId);
 }

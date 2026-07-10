@@ -13,7 +13,9 @@ const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 async function tenantOf(projectId?: string | null): Promise<string> {
   const uid = await currentUserId();
-  return resolveTenant(uid, projectId);
+  // Social content is account-agnostic — key it without the Ads customerId so a
+  // later account connect/switch can't orphan a user's scheduled posts + inbox.
+  return resolveTenant(uid, projectId, { accountScoped: false });
 }
 
 export async function GET(request: Request) {
