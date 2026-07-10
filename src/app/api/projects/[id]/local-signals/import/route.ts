@@ -3,8 +3,8 @@
  *  ownership-checked; parses tolerantly and persists. Server-only. */
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
-import { parseRankRows, ladderFromRows } from "@/lib/local-signals/import";
-import { saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
+import { parseRankRows, mergeLadder } from "@/lib/local-signals/import";
+import { getLocalSignals, saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
@@ -49,6 +49,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     );
   }
 
+  // Append to the previously-imported ladder so per-keyword rank history accumulates
+  // across monthly imports (the climb/trend/best the module exists to show), instead of
+  // resetting to a single point on every upload.
+  const prev = await getLocalSignals(project.id);
   await saveLocalSignals(project.id, {
     meta: {
       source,
@@ -56,7 +60,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       rowCount: rows.length,
       ...(source === "url" ? { sourceUrl: url } : {}),
     },
-    ladder: ladderFromRows(rows),
+    ladder: mergeLadder(prev?.ladder ?? [], rows),
   });
   return Response.json({ ok: true, rowCount: rows.length });
 }
