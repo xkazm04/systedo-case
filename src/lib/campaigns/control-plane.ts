@@ -20,12 +20,22 @@ import {
   GuardrailError,
   type BudgetSnapshot,
   type ChangeSet,
+  type ChangeSetStatus,
   type ControlPolicy,
   type MoveResult,
 } from "./control-plane-types";
 
 function changeSetsCol(tenant: string) {
   return firestore.collection("tenants").doc(tenant).collection("changeSets");
+}
+
+/** Thrown inside the approve/revert claim transaction when the set can't be claimed
+ *  (missing, or not in the required source status) — carries the current change-set
+ *  so the caller returns it unchanged instead of a hard error (idempotent no-op). */
+class NotClaimable extends Error {
+  constructor(readonly cs: ChangeSet | null) {
+    super("change-set not claimable");
+  }
 }
 
 /** Build a pending change-set from the current campaigns + recommendation engine,
@@ -87,11 +97,27 @@ export async function approveChangeSet(
   id: string,
   opts: { override?: boolean } = {}
 ): Promise<ChangeSet | null> {
-  const cs = await getChangeSet(tenant, id);
-  if (!cs || cs.status !== "pending") return cs;
-
-  if (cs.violations.length > 0 && !opts.override) {
-    throw new GuardrailError(cs.violations);
+  // Claim the change-set atomically (pending → applying) BEFORE any live mutation,
+  // so a concurrent Approve (double-click / retried POST) can't both pass a
+  // check-then-act guard and each run the whole apply loop → double-shifting budgets.
+  // Only the caller that wins the transaction proceeds; the loser sees a non-pending
+  // status and returns it unchanged (idempotent). Guardrail violations are checked
+  // inside the txn so a claim is never taken for a set that would be rejected.
+  const ref = changeSetsCol(tenant).doc(id);
+  let cs: ChangeSet;
+  try {
+    cs = await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new NotClaimable(null);
+      const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
+      if (cur.status !== "pending") throw new NotClaimable(cur);
+      if (cur.violations.length > 0 && !opts.override) throw new GuardrailError(cur.violations);
+      tx.set(ref, { status: "applying" satisfies ChangeSetStatus }, { merge: true });
+      return cur;
+    });
+  } catch (err) {
+    if (err instanceof NotClaimable) return err.cs; // not pending → idempotent no-op
+    throw err; // GuardrailError (and any real error) propagates unchanged
   }
 
   const results: MoveResult[] = [];
@@ -142,8 +168,23 @@ export async function revertChangeSet(
   userId: string,
   id: string
 ): Promise<ChangeSet | null> {
-  const cs = await getChangeSet(tenant, id);
-  if (!cs || cs.status !== "applied") return cs;
+  // Claim (applied → reverting) atomically so a concurrent Revert can't run the
+  // restore twice, mirroring approveChangeSet's claim.
+  const ref = changeSetsCol(tenant).doc(id);
+  let cs: ChangeSet;
+  try {
+    cs = await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (!snap.exists) throw new NotClaimable(null);
+      const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
+      if (cur.status !== "applied") throw new NotClaimable(cur);
+      tx.set(ref, { status: "reverting" satisfies ChangeSetStatus }, { merge: true });
+      return cur;
+    });
+  } catch (err) {
+    if (err instanceof NotClaimable) return err.cs;
+    throw err;
+  }
 
   const hasSnapshots = (cs.budgetSnapshots?.length ?? 0) > 0;
   let results: MoveResult[];

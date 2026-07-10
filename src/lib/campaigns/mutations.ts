@@ -137,8 +137,49 @@ export async function applyBudgetShift(
     }
     const { fromNew, toNew, movedMicros } = moved;
 
+    // Two independent live writes with no cross-account transaction. Reduce the donor
+    // first, then fund the recipient; if the recipient write fails, the donor has
+    // already been throttled — roll it back to its captured prior value so a real
+    // client campaign isn't silently starved, and record the failed attempt so the
+    // shift is never a zero-trace event.
     await setCampaignBudgetMicros(token, customerId, from.budgetResourceName, fromNew);
-    await setCampaignBudgetMicros(token, customerId, to.budgetResourceName, toNew);
+    try {
+      await setCampaignBudgetMicros(token, customerId, to.budgetResourceName, toNew);
+    } catch (recipErr) {
+      console.error("[mutations] recipient budget write failed; rolling back donor:", recipErr);
+      let rolledBack = false;
+      try {
+        await setCampaignBudgetMicros(token, customerId, from.budgetResourceName, from.amountMicros);
+        rolledBack = true;
+      } catch (rbErr) {
+        console.error("[mutations] donor rollback ALSO failed — donor left throttled:", rbErr);
+      }
+      // Best-effort audit of the failed attempt (never let logging mask the failure).
+      try {
+        await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+          action: "budget_shift_failed",
+          fromId: move.fromId,
+          fromName: move.fromName,
+          toId: move.toId,
+          toName: move.toName,
+          fromPrevMicros: from.amountMicros,
+          fromAttemptedMicros: fromNew,
+          donorRolledBack: rolledBack,
+          customerId,
+          userId,
+          at: new Date().toISOString(),
+        });
+      } catch (logErr) {
+        console.error("[mutations] failed-shift audit write failed:", logErr);
+      }
+      const detail = rolledBack
+        ? "přesun se nezdařil, zdrojový rozpočet byl vrácen na původní hodnotu"
+        : "přesun se nezdařil a vrácení zdrojového rozpočtu selhalo — zkontrolujte rozpočet ručně";
+      return {
+        ok: false,
+        error: `${recipErr instanceof Error ? recipErr.message : "Úprava se nezdařila"} (${detail}).`,
+      };
+    }
 
     await firestore.collection("tenants").doc(tenant).collection("mutations").add({
       action: "budget_shift",
