@@ -156,6 +156,21 @@ export async function resolveTenant(
   return buildTenantKey(userId, projectId, connection?.customerId);
 }
 
+/** The tenant key for a SPECIFIC connected account — the read-side counterpart of
+ *  resolveCampaignContext's per-account fan-out. Scheduled readers (digest, report)
+ *  use this to iterate every connected account the same way `sync` writes them,
+ *  instead of collapsing to the single active account via resolveTenant (which reads
+ *  only getAdsConnection). `customerId` must be one the user owns — callers pass ids
+ *  straight from listConnectedAccounts. Computes the exact key resolveCampaignContext
+ *  would for that account, so read and write tenants stay identical. */
+export function resolveTenantForAccount(
+  userId: string,
+  projectId: string | null | undefined,
+  customerId: string
+): string {
+  return buildTenantKey(userId, projectId, customerId);
+}
+
 /** Resolve both the connector and the tenant for a request in one pass: live
  *  Google Ads when the user is signed in, has selected an account, the developer
  *  token is configured, and a valid OAuth token exists; the deterministic sample

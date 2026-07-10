@@ -6,8 +6,8 @@
  *  AI cost jump or a silently-down provider without opening anything.
  *
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
-import { listConnectedUserIds } from "@/lib/campaigns/connection";
-import { resolveTenant } from "@/lib/campaigns/connector";
+import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
+import { resolveTenant, resolveTenantForAccount } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
@@ -29,7 +29,14 @@ export async function GET(request: Request) {
   }
 
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; projectId?: string; ok: boolean; sent?: boolean; error?: string }[] = [];
+  const results: {
+    userId: string;
+    projectId?: string;
+    customerId?: string;
+    ok: boolean;
+    sent?: boolean;
+    error?: string;
+  }[] = [];
 
   // AI operations rollup over the digest window — global (llmTelemetry is
   // app-wide, not per-tenant), so compute it once per run. Best-effort: the
@@ -49,9 +56,18 @@ export async function GET(request: Request) {
   for (const userId of userIds) {
     const projects = await listProjects(userId);
     const targets = projects.length ? projects : [null];
+    // Fan out over ALL connected accounts, exactly as the sync cron writes them — each
+    // account is a distinct client tenant. Reading only the active account (via
+    // resolveTenant → getAdsConnection) silently skipped every other account's client,
+    // so an MCC agency got a digest for just one of N clients.
+    const { accounts } = await listConnectedAccounts(userId);
+    const accountTargets = accounts.length ? accounts : [null];
+    for (const account of accountTargets) {
     for (const project of targets) {
     try {
-      const tenant = await resolveTenant(userId, project?.id);
+      const tenant = account
+        ? resolveTenantForAccount(userId, project?.id, account.customerId)
+        : await resolveTenant(userId, project?.id);
       const meta = await getSyncMeta(tenant);
       const campaigns = await listCampaigns(tenant);
       if (!meta || campaigns.length === 0) {
@@ -82,7 +98,11 @@ export async function GET(request: Request) {
         reason: `přesunout ${fmtCZK(m.amount)} (${fmtSignedCZK(m.estValueGain)} hodnoty)`,
       }));
 
-      const title = "Týdenní souhrn výkonu";
+      // Name the client account so an agency's per-account digests are distinguishable
+      // (subject/text only — never interpolated into the HTML body).
+      const title = account
+        ? `Týdenní souhrn výkonu — ${account.customerName || account.customerId}`
+        : "Týdenní souhrn výkonu";
       const body =
         `ROAS ${fmtMultiple(totals.roas)} · PNO ${fmtPct(totals.pno)} · ` +
         `${criticals} kritických · ${moves.length} doporučených přesunů` +
@@ -114,10 +134,11 @@ export async function GET(request: Request) {
         await sendEmail(email, `Adamant: ${title}`, html);
       }
 
-      results.push({ userId, projectId: project?.id, ok: true, sent: true });
+      results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: true });
     } catch (err) {
-      console.error(`[cron] digest failed for ${userId}/${project?.id}:`, err);
-      results.push({ userId, projectId: project?.id, ok: false, error: err instanceof Error ? err.message : String(err) });
+      console.error(`[cron] digest failed for ${userId}/${project?.id}/${account?.customerId}:`, err);
+      results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
     }
     }
   }
