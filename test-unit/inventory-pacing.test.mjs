@@ -89,20 +89,27 @@ test("marginOf prefers an explicit margin, then category, then default", () => {
   assert.equal(marginOf(product({ category: "Neznámá" })), 0.3); // default
 });
 
-test("coverValue = daysOfCover × margin × dailyVelocity and orders the table", () => {
+test("coverValue = stock × price × margin (a koruna value, not a unit count) and orders the table", () => {
   const rows = stockRows(
     [
-      product({ sku: "HI", stock: 100, dailyVelocity: 1, margin: 0.5 }), // 100 cover
-      product({ sku: "LO", stock: 50, dailyVelocity: 1, margin: 0.2 }), // 50 cover
+      product({ sku: "HI", stock: 100, price: 1000, dailyVelocity: 1, margin: 0.5 }),
+      product({ sku: "LO", stock: 50, price: 1000, dailyVelocity: 1, margin: 0.2 }),
     ],
     NOW
   );
   const hi = rows.find((r) => r.product.sku === "HI");
   const lo = rows.find((r) => r.product.sku === "LO");
-  // 100 × 0.5 × 1 = 50; 50 × 0.2 × 1 = 10.
-  assert.equal(hi.coverValue, 50);
-  assert.equal(lo.coverValue, 10);
+  // 100 × 1000 × 0.5 = 50 000; 50 × 1000 × 0.2 = 10 000. The price factor is what the
+  // old (velocity-cancelling) formula dropped.
+  assert.equal(hi.coverValue, 50_000);
+  assert.equal(lo.coverValue, 10_000);
   assert.ok(hi.coverValue > lo.coverValue);
+});
+
+test("coverValue includes price: same stock/margin, higher price → higher value", () => {
+  const [cheap] = stockRows([product({ sku: "C", stock: 10, price: 100, dailyVelocity: 1, margin: 0.4 })], NOW);
+  const [dear] = stockRows([product({ sku: "D", stock: 10, price: 500, dailyVelocity: 1, margin: 0.4 })], NOW);
+  assert.ok(dear.coverValue > cheap.coverValue, "price must factor into coverValue");
 });
 
 test("coverValue is zero when velocity is zero (cover is Infinity)", () => {

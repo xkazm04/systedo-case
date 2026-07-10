@@ -51,8 +51,8 @@ export interface StockRow {
   resumeAt: string | null;
   /** gross margin fraction for this SKU (0–1) — illustrative profit weighting */
   margin: number;
-  /** daysOfCover × margin × dailyVelocity — the margin-weighted value still on the
-   *  shelf; the bigger it is, the more profit a stockout puts at risk */
+  /** stock × price × margin — the margin-weighted koruna value still on the shelf;
+   *  the bigger it is, the more profit a stockout puts at risk */
   coverValue: number;
 }
 
@@ -130,9 +130,14 @@ export function stockRows(products: Product[], now: Date = new Date()): StockRow
       const { stockoutDays, stockoutAt, atRisk } = projectStockout(daysOfCover, now);
 
       const margin = marginOf(product);
+      // Margin-weighted koruna value of the shelf: stock × price × margin. The old
+      // formula (daysOfCover × margin × dailyVelocity) algebraically cancelled velocity
+      // to stock × margin — a price-free unit count the UI then rendered as Kč,
+      // understating "value at risk" by a factor of the SKU's price (100–500×). Keep
+      // the velocity>0 guard: a SKU that never sells has no stockout risk (→ 0).
       const coverValue =
         Number.isFinite(daysOfCover) && product.dailyVelocity > 0
-          ? daysOfCover * margin * product.dailyVelocity
+          ? product.stock * product.price * margin
           : 0;
 
       return { product, daysOfCover, status, action, stockoutDays, stockoutAt, atRisk, resumeAt, margin, coverValue };
