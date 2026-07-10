@@ -17,6 +17,7 @@ import {
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
 import BudgetMoves from "./BudgetMoves";
@@ -179,33 +180,28 @@ export default function CampaignsClient() {
   };
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
-  const [shareErr, setShareErr] = useState<string | null>(null);
+  const { busy: sharing, error: shareErr, setError: setShareErr, run: runShare } = useAsyncAction();
   // Bumped after a successful create so the share-management list reloads.
   const [shareRefresh, setShareRefresh] = useState(0);
 
-  const share = async () => {
-    setSharing(true);
-    setShareErr(null);
-    try {
-      const res = await fetch("/api/campaigns/share", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: pid }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setShareErr(json?.error ?? t("shareErr"));
-        return;
-      }
-      setShareUrl(json.url);
-      setShareRefresh((n) => n + 1);
-    } catch {
-      setShareErr(t("shareConnErr"));
-    } finally {
-      setSharing(false);
-    }
-  };
+  const share = () =>
+    runShare(
+      async () => {
+        const res = await fetch("/api/campaigns/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ projectId: pid }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setShareErr(json?.error ?? t("shareErr"));
+          return;
+        }
+        setShareUrl(json.url);
+        setShareRefresh((n) => n + 1);
+      },
+      { serverError: t("shareConnErr") }
+    );
 
   const hasData = Boolean(meta) && campaigns.length > 0;
   // Index the sync-over-sync diff by campaign id so the table's triage can flag

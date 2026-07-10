@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Check, Document } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import {
   REPORT_CADENCES,
   REPORT_CADENCE_LABELS,
@@ -61,9 +62,8 @@ export default function ReportSettings() {
   const project = useOptionalProject();
   const pid = project?.id;
   const [cfg, setCfg] = useState<ReportConfig | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { busy: saving, error, setError, run } = useAsyncAction();
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const t = useT(T);
 
   const load = useCallback(async () => {
@@ -88,34 +88,32 @@ export default function ReportSettings() {
     setSaved(false);
   };
 
-  const save = async () => {
+  const save = () => {
     if (!cfg) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/campaigns/report-config", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          brandName: cfg.brandName,
-          accentColor: cfg.accentColor,
-          recipients: cfg.recipients,
-          cadence: cfg.cadence,
-          projectId: pid,
-        }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json?.error ?? t("errorSave"));
-        return;
-      }
-      setCfg(json as ReportConfig);
-      setSaved(true);
-    } catch {
-      setError(t("errorServer"));
-    } finally {
-      setSaving(false);
-    }
+    const c = cfg;
+    return run(
+      async () => {
+        const res = await fetch("/api/campaigns/report-config", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            brandName: c.brandName,
+            accentColor: c.accentColor,
+            recipients: c.recipients,
+            cadence: c.cadence,
+            projectId: pid,
+          }),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(json?.error ?? t("errorSave"));
+          return;
+        }
+        setCfg(json as ReportConfig);
+        setSaved(true);
+      },
+      { serverError: t("errorServer") }
+    );
   };
 
   return (

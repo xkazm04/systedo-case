@@ -22,32 +22,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { copyTextWithFallback } from "@/lib/clipboard";
 import { buildChain, dedupeChain, pickDefaultIndex, type LocEntry } from "./devLocate";
 import { HighlightBox, InspectorHud, NavHint, SourceLabel, Z } from "./devInspectorUi";
-
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    /* fall through to the legacy path */
-  }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand("copy");
-    document.body.removeChild(ta);
-    return ok;
-  } catch {
-    return false;
-  }
-}
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -78,7 +55,7 @@ export function DevInspector() {
   useEffect(() => setMounted(true), []);
 
   const doCopy = useCallback(async (loc: string) => {
-    const ok = await copyText(loc);
+    const ok = await copyTextWithFallback(loc);
     setCopyOk(ok);
     setCopied(loc);
     clearTimeout(copiedTimer.current);

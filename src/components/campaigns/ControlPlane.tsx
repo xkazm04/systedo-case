@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import { projectedValueGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
 
 const T = {
@@ -73,8 +74,7 @@ export default function ControlPlane() {
   const pid = project?.id;
   const [sets, setSets] = useState<ChangeSet[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, setError, run } = useAsyncAction();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const fmt = useFormatters();
   const t = useT(T);
@@ -103,25 +103,20 @@ export default function ControlPlane() {
     if (status === "authenticated") void load();
   }, [status, load]);
 
-  const act = async (action: "create" | "approve" | "revert", id?: string, override?: boolean) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/campaigns/control-plane", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id, override, projectId: pid }),
-      });
-      const json = await res.json();
-      if (!res.ok) setError(json?.error ?? t("errorFailed"));
-      await load();
-    } catch {
-      setError(t("errorServer"));
-    } finally {
-      setBusy(false);
-      setConfirmId(null);
-    }
-  };
+  const act = (action: "create" | "approve" | "revert", id?: string, override?: boolean) =>
+    run(
+      async () => {
+        const res = await fetch("/api/campaigns/control-plane", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, id, override, projectId: pid }),
+        });
+        const json = await res.json();
+        if (!res.ok) setError(json?.error ?? t("errorFailed"));
+        await load();
+      },
+      { serverError: t("errorServer"), onSettled: () => setConfirmId(null) }
+    );
 
   if (status !== "authenticated" || !loaded) return null;
 

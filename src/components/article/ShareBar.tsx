@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Check, Link, Share } from "@/components/icons";
+import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -117,40 +118,10 @@ const SOCIALS: { labelKey: SocialKey; source: string; icon: Glyph; href: (u: str
  *  stamped with a brand UTM tag so the dashboard can attribute the reach. */
 export default function ShareBar({ url, title }: { url: string; title: string }) {
   const t = useT(T);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopyFeedback();
   const canNativeShare = useCanNativeShare();
-  const timer = useRef<number | undefined>(undefined);
 
-  // Clear any pending toast timer on unmount.
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const flashCopied = () => {
-    setCopied(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2200);
-  };
-
-  const copyLink = async () => {
-    const link = withUtm(url, "copy");
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      // Fallback for browsers without the async clipboard API.
-      const ta = document.createElement("textarea");
-      ta.value = link;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* clipboard unavailable — nothing more we can do */
-      }
-      document.body.removeChild(ta);
-    }
-    flashCopied();
-  };
+  const copyLink = () => copy(withUtm(url, "copy"));
 
   const nativeShare = async () => {
     try {

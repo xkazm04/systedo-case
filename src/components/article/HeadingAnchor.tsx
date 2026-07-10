@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Link } from "@/components/icons";
 import CopyToast from "./CopyToast";
-import { buildSectionPermalink, copyTextWithFallback } from "./permalink";
+import { buildSectionPermalink } from "./permalink";
+import { copyTextWithFallback } from "@/lib/clipboard";
 import { announceSection } from "./section-store";
 import { useT } from "@/lib/i18n/client";
 

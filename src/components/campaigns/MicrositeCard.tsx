@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { External, Check, Layers } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import type { MicrositeConfig } from "@/lib/microsite";
 
 const T = {
@@ -55,8 +56,7 @@ export default function MicrositeCard() {
   const [clientName, setClientName] = useState("");
   const [accentColor, setAccentColor] = useState("#0f766e");
   const [periodDays, setPeriodDays] = useState(30);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, setError, run } = useAsyncAction();
   const [origin, setOrigin] = useState("");
   const t = useT(T);
 
@@ -87,41 +87,33 @@ export default function MicrositeCard() {
     if (status === "authenticated") void load();
   }, [status, load]);
 
-  const publish = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/microsite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientName, accentColor, periodDays, projectId: pid }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setError(json?.error ?? t("errorPublish"));
-        return;
-      }
-      setSite(json.microsite as MicrositeConfig);
-    } catch {
-      setError(t("errorServer"));
-    } finally {
-      setBusy(false);
-    }
-  };
+  const publish = () =>
+    run(
+      async () => {
+        const res = await fetch("/api/microsite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ clientName, accentColor, periodDays, projectId: pid }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json?.error ?? t("errorPublish"));
+          return;
+        }
+        setSite(json.microsite as MicrositeConfig);
+      },
+      { serverError: t("errorServer") }
+    );
 
-  const takeOffline = async () => {
-    setBusy(true);
-    try {
+  // No serverError → the network catch stays silent, matching the original
+  // "take offline" handler that swallowed fetch failures.
+  const takeOffline = () =>
+    run(async () => {
       await fetch(pid ? `/api/microsite?projectId=${encodeURIComponent(pid)}` : "/api/microsite", {
         method: "DELETE",
       });
       setSite(null);
-    } catch {
-      /* ignore */
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   if (status !== "authenticated" || !loaded) return null;
 

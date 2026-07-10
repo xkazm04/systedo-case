@@ -6,7 +6,6 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import { currentUserId } from "@/lib/session";
 import ModulePage from "@/components/app/ModulePage";
 import ActivityModule from "@/components/app/modules/ActivityModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { activityForProject } from "@/lib/activity/sample";
 import { liveActivityForProject } from "@/lib/activity/live";
 import { localitiesFor } from "@/lib/catalog/resolve";
@@ -21,12 +20,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const events = isLive ? live : activityForProject(project, localitiesFor(project));
 
   return (
-    <ModulePage moduleKey="aktivita">
-      {!isLive && (
-        <div className="mb-5">
-          <SampleDataNote />
-        </div>
-      )}
+    <ModulePage moduleKey="aktivita" sample={!isLive}>
       <ActivityModule events={events} isLive={isLive} />
     </ModulePage>
   );

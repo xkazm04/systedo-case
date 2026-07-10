@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import LocalModule from "@/components/app/modules/LocalModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import {
   SAMPLE_RECENT_REVIEWS,
   reviewsForProject,
@@ -30,10 +29,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       .join(" a ")
       .toLowerCase() || undefined;
   return (
-    <ModulePage moduleKey="lokalni">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="lokalni" sample>
       <LocalModule
         targets={targets}
         reviews={reviewsForProject(project)}

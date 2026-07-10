@@ -4,7 +4,7 @@
  *  pre-filled for the matching platform — no retyping. */
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { Bulb, Calendar, Check, Copy, Document, Download, Info, Link, Refresh, Sparkles } from "@/components/icons";
@@ -24,6 +24,7 @@ import { rollupLearnings, type DimensionLeader } from "@/lib/distribution/learni
 import Sparkline from "@/components/charts/Sparkline";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
+import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
@@ -269,12 +270,10 @@ function VariantCard({
   const project = useProject();
   const router = useRouter();
   const [text, setText] = useState(initialText);
-  const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const { copied, copy: copyText } = useCopyFeedback();
+  const { copied: linkCopied, copy: copyLinkText } = useCopyFeedback();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const timer = useRef<number | undefined>(undefined);
-  const linkTimer = useRef<number | undefined>(undefined);
 
   // AI repurposing for this single channel (repurpose tool, via /api/ai). The
   // deterministic variant is the initial value + fallback; on success we swap in
@@ -297,49 +296,8 @@ function VariantCard({
   const platform = channelToPlatform(channel);
   const over = text.length > max;
 
-  // Clear any pending "copied" timers on unmount.
-  useEffect(
-    () => () => {
-      window.clearTimeout(timer.current);
-      window.clearTimeout(linkTimer.current);
-    },
-    []
-  );
-
-  // Copy arbitrary text to the clipboard, with a textarea fallback for browsers
-  // lacking the async clipboard API.
-  const copyToClipboard = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* clipboard unavailable — nothing more we can do */
-      }
-      document.body.removeChild(ta);
-    }
-  };
-
-  const copy = async () => {
-    await copyToClipboard(text);
-    setCopied(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2200);
-  };
-
-  const copyLink = async () => {
-    await copyToClipboard(link);
-    setLinkCopied(true);
-    window.clearTimeout(linkTimer.current);
-    linkTimer.current = window.setTimeout(() => setLinkCopied(false), 2200);
-  };
+  const copy = () => copyText(text);
+  const copyLink = () => copyLinkText(link);
 
   // Trim the text down to the channel's soft budget.
   const trim = () => setText((t) => t.slice(0, max));
@@ -564,36 +522,12 @@ function NewsletterHandoff({
   source: SourceArticle;
   t: TFn;
 }) {
-  const [copied, setCopied] = useState(false);
-  const copyTimer = useRef<number | undefined>(undefined);
+  const { copied, copy } = useCopyFeedback();
 
   const { subject, body } = splitNewsletter(text);
   const subjectCheck = checkSubject(subject);
 
-  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
-
-  const copyNewsletter = async () => {
-    const plain = newsletterPlainText({ subject, body, ctaUrl });
-    try {
-      await navigator.clipboard.writeText(plain);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = plain;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* clipboard unavailable — nothing more we can do */
-      }
-      document.body.removeChild(ta);
-    }
-    setCopied(true);
-    window.clearTimeout(copyTimer.current);
-    copyTimer.current = window.setTimeout(() => setCopied(false), 2200);
-  };
+  const copyNewsletter = () => copy(newsletterPlainText({ subject, body, ctaUrl }));
 
   const downloadHtml = () => {
     const html = newsletterHtml({ subject, body, ctaUrl });

@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import CatalogModule from "@/components/app/modules/CatalogModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { loadProductsFor } from "@/lib/catalog/load";
 
 
@@ -16,10 +15,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // module writes), falling back to the seed only when nothing is saved.
   const products = await loadProductsFor(project);
   return (
-    <ModulePage moduleKey="produktova-kreativa">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="produktova-kreativa" sample>
       <CatalogModule products={products} brand={brand} domain={project.domain ?? ""} />
     </ModulePage>
   );

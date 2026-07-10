@@ -4,7 +4,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import TwinInboxModule from "@/components/app/modules/TwinInboxModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { SAMPLE_LEADS, LOCAL_SAMPLE_LEADS } from "@/lib/speed-lead/sample";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { resolveTwin } from "@/lib/twin/resolve";
@@ -24,10 +23,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   ]);
 
   return (
-    <ModulePage moduleKey="schranka">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="schranka" sample>
       <TwinInboxModule
         state={resolved.state}
         source={resolved.source}

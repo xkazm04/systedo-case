@@ -5,7 +5,6 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import { currentUserId } from "@/lib/session";
 import ModulePage from "@/components/app/ModulePage";
 import ContentSchedule from "@/components/app/modules/ContentSchedule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { initialPosts, type ContentPost } from "@/lib/content-schedule/sample";
 import { getProjectState } from "@/lib/project-state/store";
 import { localitiesFor } from "@/lib/catalog/resolve";
@@ -23,12 +22,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const posts = isStored ? stored! : initialPosts(project, services, localitiesFor(project));
 
   return (
-    <ModulePage moduleKey="obsah-plan">
-      {!isStored && (
-        <div className="mb-5">
-          <SampleDataNote />
-        </div>
-      )}
+    <ModulePage moduleKey="obsah-plan" sample={!isStored}>
       <ContentSchedule posts={posts} projectId={projectId} />
     </ModulePage>
   );

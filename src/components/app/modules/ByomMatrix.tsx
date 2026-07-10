@@ -14,6 +14,7 @@ import {
 } from "@/lib/llm/keys/types";
 import { bestModelForOp, cellComposite, matrixSlug } from "@/lib/llm/quality";
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
+import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 
 const T = {
   cs: {
@@ -52,8 +53,9 @@ type State = { entitled: boolean; config: PublicByomConfig };
 export default function ByomMatrix() {
   const t = useT(T);
   const [state, setState] = useState<State | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // `busy` is a plain boolean here: every select is disabled while any single
+  // mutation is in flight (no per-row keying), so the shared hook fits exactly.
+  const { busy, error, setError, run } = useAsyncAction();
 
   useEffect(() => {
     let alive = true;
@@ -73,37 +75,30 @@ export default function ByomMatrix() {
     };
   }, []);
 
-  async function apply(url: string, opts: RequestInit, action: string): Promise<void> {
-    setBusy(action);
-    setError(null);
-    try {
-      const res = await fetch(url, opts);
-      const json = (await res.json().catch(() => ({}))) as { error?: string; config?: PublicByomConfig };
-      if (!res.ok) {
-        setError(json.error ?? t("errGeneric"));
-        return;
-      }
-      if (json.config) setState((s) => (s ? { ...s, config: json.config! } : s));
-    } catch {
-      setError(t("errNetwork"));
-    } finally {
-      setBusy(null);
-    }
+  function apply(url: string, opts: RequestInit): Promise<void | undefined> {
+    return run(
+      async () => {
+        const res = await fetch(url, opts);
+        const json = (await res.json().catch(() => ({}))) as { error?: string; config?: PublicByomConfig };
+        if (!res.ok) {
+          setError(json.error ?? t("errGeneric"));
+          return;
+        }
+        if (json.config) setState((s) => (s ? { ...s, config: json.config! } : s));
+      },
+      { serverError: t("errNetwork") }
+    );
   }
 
   const setOp = (toolId: string, vendor: ByomVendor, model: string, reasoning: ReasoningLevel) =>
-    apply(
-      "/api/byom/matrix",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ toolId, vendor, model, reasoning }),
-      },
-      toolId
-    );
+    apply("/api/byom/matrix", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ toolId, vendor, model, reasoning }),
+    });
 
   const clearOp = (toolId: string) =>
-    apply(`/api/byom/matrix?toolId=${toolId}`, { method: "DELETE" }, toolId);
+    apply(`/api/byom/matrix?toolId=${toolId}`, { method: "DELETE" });
 
   if (!state || !state.entitled) return null; // ByomKeys renders the upsell for the whole area
 
@@ -139,7 +134,7 @@ export default function ByomMatrix() {
             const vendor = ov?.vendor;
             const models = vendor ? BYOM_MODEL_CATALOG[vendor].models : [];
             const modelOpt = models.find((m) => m.id === ov?.model);
-            const reasoningDisabled = !vendor || Boolean(modelOpt?.noReasoning) || busy !== null;
+            const reasoningDisabled = !vendor || Boolean(modelOpt?.noReasoning) || busy;
             const rec = hasQualityScores() ? bestModelForOp(QUALITY_SCORES, op.id) : null;
 
             return (
@@ -164,7 +159,7 @@ export default function ByomMatrix() {
                   aria-label={`${op.label} — ${t("colProvider")}`}
                   className={selectClass}
                   value={vendor ?? ""}
-                  disabled={busy !== null}
+                  disabled={busy}
                   onChange={(e) => {
                     const v = e.target.value;
                     if (!v) return void clearOp(op.id);
@@ -190,7 +185,7 @@ export default function ByomMatrix() {
                   aria-label={`${op.label} — ${t("colModel")}`}
                   className={selectClass}
                   value={ov?.model ?? ""}
-                  disabled={!vendor || busy !== null}
+                  disabled={!vendor || busy}
                   onChange={(e) => {
                     if (!vendor) return;
                     const model = e.target.value;

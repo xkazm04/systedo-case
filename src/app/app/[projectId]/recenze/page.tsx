@@ -5,7 +5,6 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import { currentUserId } from "@/lib/session";
 import ModulePage from "@/components/app/ModulePage";
 import ReviewInbox, { type ReviewInboxState } from "@/components/app/modules/ReviewInbox";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { reviewsForProject } from "@/lib/reviews/sample";
 import { getProjectState } from "@/lib/project-state/store";
 import { localitiesFor } from "@/lib/catalog/resolve";
@@ -23,10 +22,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const initialState = uid ? await getProjectState<ReviewInboxState>(uid, projectId, "reviews") : null;
 
   return (
-    <ModulePage moduleKey="recenze">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="recenze" sample>
       <ReviewInbox
         reviews={reviews}
         areas={localities.map((l) => l.name)}

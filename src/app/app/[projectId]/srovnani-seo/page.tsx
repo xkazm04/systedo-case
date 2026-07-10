@@ -4,7 +4,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import CompareSeoModule from "@/components/app/modules/CompareSeoModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
@@ -26,10 +25,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const generated = comparisonQueriesFromCatalog(project.name, await loadPlansFor(project));
   const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
   return (
-    <ModulePage moduleKey="srovnani-seo">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="srovnani-seo" sample>
       <CompareSeoModule queries={queries} seoChannel={seoChannel} />
     </ModulePage>
   );

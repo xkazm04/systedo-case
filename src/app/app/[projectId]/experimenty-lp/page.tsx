@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import LpExperimentsModule from "@/components/app/modules/LpExperimentsModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { experimentsForProject } from "@/lib/lp-exp/sample";
 
 
@@ -10,10 +9,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "experimenty-lp");
   return (
-    <ModulePage moduleKey="experimenty-lp">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="experimenty-lp" sample>
       <LpExperimentsModule experiments={experimentsForProject(project)} />
     </ModulePage>
   );

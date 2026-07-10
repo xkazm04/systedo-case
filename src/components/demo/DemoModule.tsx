@@ -9,7 +9,6 @@
  *  anonymous "sample" tenant; locally without a backend they show their own clean
  *  empty/demo state. Everything else renders fully from static sample data. */
 import ModulePage from "@/components/app/ModulePage";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import ProjectOverview from "@/components/app/ProjectOverview";
 import DashboardClient from "@/components/dashboard/DashboardClient";
 import CampaignsClient from "@/components/campaigns/CampaignsClient";
@@ -118,18 +117,6 @@ const REPORTY_T = {
     desc: "Shared reports for clients — create them in the Campaigns module using the “Share report” button. Manage them here: view count and link invalidation.",
   },
 } as const;
-
-/** The illustrative-data banner most static modules carry, in the page gutter. */
-function noted(children: React.ReactNode) {
-  return (
-    <>
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
-      {children}
-    </>
-  );
-}
 
 /** No-op for the public demo's Account surface — there's no real session to end,
  *  so sign-out / revoke do nothing here (the buttons are shown for the tour). */
@@ -255,8 +242,8 @@ export default async function DemoModule({
       const generated = comparisonQueriesFromCatalog(project.name, plansFor(project));
       const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
       return (
-        <ModulePage moduleKey="srovnani-seo">
-          {noted(<CompareSeoModule queries={queries} seoChannel={seoChannel} />)}
+        <ModulePage moduleKey="srovnani-seo" sample>
+          <CompareSeoModule queries={queries} seoChannel={seoChannel} />
         </ModulePage>
       );
     }
@@ -265,15 +252,13 @@ export default async function DemoModule({
       const targets =
         services.length > 0 ? targetsFromCatalog(services, localitiesFor(project)) : targetsForProject(project);
       return (
-        <ModulePage moduleKey="lokalni">
-          {noted(
-            <LocalModule
-              targets={targets}
-              reviews={reviewsForProject(project)}
-              recentReviews={SAMPLE_RECENT_REVIEWS}
-              businessName={project.name}
-            />
-          )}
+        <ModulePage moduleKey="lokalni" sample>
+          <LocalModule
+            targets={targets}
+            reviews={reviewsForProject(project)}
+            recentReviews={SAMPLE_RECENT_REVIEWS}
+            businessName={project.name}
+          />
         </ModulePage>
       );
     }
@@ -284,13 +269,11 @@ export default async function DemoModule({
       const localities = localitiesFor(project);
       const services = servicesFor(project);
       return (
-        <ModulePage moduleKey="mapa">
-          {noted(
-            <MapPackModule
-              packs={packsForProject(project, localities, project.name)}
-              ladder={keywordLadder(project, localities, services)}
-            />
-          )}
+        <ModulePage moduleKey="mapa" sample>
+          <MapPackModule
+            packs={packsForProject(project, localities, project.name)}
+            ladder={keywordLadder(project, localities, services)}
+          />
         </ModulePage>
       );
     }
@@ -316,43 +299,39 @@ export default async function DemoModule({
       );
     case "produktova-kreativa":
       return (
-        <ModulePage moduleKey="produktova-kreativa">
-          {noted(<CatalogModule products={CATALOG_PRODUCTS} />)}
+        <ModulePage moduleKey="produktova-kreativa" sample>
+          <CatalogModule products={CATALOG_PRODUCTS} />
         </ModulePage>
       );
     case "experimenty-lp":
       return (
-        <ModulePage moduleKey="experimenty-lp">
-          {noted(<LpExperimentsModule experiments={experimentsForProject(project)} />)}
+        <ModulePage moduleKey="experimenty-lp" sample>
+          <LpExperimentsModule experiments={experimentsForProject(project)} />
         </ModulePage>
       );
     // The three twin modules all render the seeded (untrained) twin, so the readiness
     // ribbon reads honestly in the demo instead of implying a trained voice.
     case "twin":
       return (
-        <ModulePage moduleKey="twin">
-          {noted(
-            <TwinModule
-              state={sampleTwin(project.type)}
-              source="sample"
-              projectType={project.type}
-              offerings={getProjectCatalog(project).length}
-            />
-          )}
+        <ModulePage moduleKey="twin" sample>
+          <TwinModule
+            state={sampleTwin(project.type)}
+            source="sample"
+            projectType={project.type}
+            offerings={getProjectCatalog(project).length}
+          />
         </ModulePage>
       );
     case "sprava-kanalu":
       return (
-        <ModulePage moduleKey="sprava-kanalu">
-          {noted(
-            <TwinChannelsModule
-              state={sampleTwin(project.type)}
-              source="sample"
-              projectType={project.type}
-              offerings={getProjectCatalog(project).length}
-              connectors={connectorInfo()}
-            />
-          )}
+        <ModulePage moduleKey="sprava-kanalu" sample>
+          <TwinChannelsModule
+            state={sampleTwin(project.type)}
+            source="sample"
+            projectType={project.type}
+            offerings={getProjectCatalog(project).length}
+            connectors={connectorInfo()}
+          />
         </ModulePage>
       );
     case "schranka": {
@@ -361,53 +340,45 @@ export default async function DemoModule({
       const leads = project.type === "local" ? LOCAL_SAMPLE_LEADS : SAMPLE_LEADS;
       const services = servicesFor(project);
       return (
-        <ModulePage moduleKey="schranka">
-          {noted(
-            <TwinInboxModule
-              state={sampleTwin(project.type)}
-              source="sample"
-              projectType={project.type}
-              leads={leads}
-              serviceHints={[...new Set(services.map((s) => s.name).filter(Boolean))].slice(0, 12)}
-            />
-          )}
+        <ModulePage moduleKey="schranka" sample>
+          <TwinInboxModule
+            state={sampleTwin(project.type)}
+            source="sample"
+            projectType={project.type}
+            leads={leads}
+            serviceHints={[...new Set(services.map((s) => s.name).filter(Boolean))].slice(0, 12)}
+          />
         </ModulePage>
       );
     }
     case "distribuce":
       return (
-        <ModulePage moduleKey="distribuce">
-          {noted(
-            <DistributionModule source={SAMPLE_SOURCE} attribution={attributionForProject(project)} />
-          )}
+        <ModulePage moduleKey="distribuce" sample>
+          <DistributionModule source={SAMPLE_SOURCE} attribution={attributionForProject(project)} />
         </ModulePage>
       );
     case "recenze": {
       const localities = localitiesFor(project);
       const services = servicesFor(project);
       return (
-        <ModulePage moduleKey="recenze">
-          {noted(
-            <ReviewInbox
-              reviews={inboxReviewsForProject(project, localities)}
-              areas={localities.map((l) => l.name)}
-              businessName={project.name}
-              businessType={services[0]?.category}
-              projectId={project.id}
-            />
-          )}
+        <ModulePage moduleKey="recenze" sample>
+          <ReviewInbox
+            reviews={inboxReviewsForProject(project, localities)}
+            areas={localities.map((l) => l.name)}
+            businessName={project.name}
+            businessType={services[0]?.category}
+            projectId={project.id}
+          />
         </ModulePage>
       );
     }
     case "obsah-plan":
       return (
-        <ModulePage moduleKey="obsah-plan">
-          {noted(
-            <ContentSchedule
-              posts={initialPosts(project, servicesFor(project), localitiesFor(project))}
-              projectId={project.id}
-            />
-          )}
+        <ModulePage moduleKey="obsah-plan" sample>
+          <ContentSchedule
+            posts={initialPosts(project, servicesFor(project), localitiesFor(project))}
+            projectId={project.id}
+          />
         </ModulePage>
       );
 
@@ -452,17 +423,15 @@ export default async function DemoModule({
         ])
       ) as Record<string, ProfitTrendPoint[]>;
       return (
-        <ModulePage moduleKey="zisk">
-          {noted(
-            <ProfitModule
-              projectId={project.id}
-              rowsByPeriod={rowsByPeriod}
-              trendByPeriod={trendByPeriod}
-              channels={data.channels}
-              products={products}
-              defaults={margins}
-            />
-          )}
+        <ModulePage moduleKey="zisk" sample>
+          <ProfitModule
+            projectId={project.id}
+            rowsByPeriod={rowsByPeriod}
+            trendByPeriod={trendByPeriod}
+            channels={data.channels}
+            products={products}
+            defaults={margins}
+          />
         </ModulePage>
       );
     }
@@ -474,17 +443,15 @@ export default async function DemoModule({
       const connection =
         project.type === "eshop" && warehouse !== "off" ? warehouseConnectionFor(project.id, now) : null;
       return (
-        <ModulePage moduleKey="katalog">
-          {noted(
-            <CatalogManagerModule
-              offerings={offerings}
-              connection={connection}
-              localities={localitiesFor(project)}
-              projectType={project.type}
-              projectName={project.name}
-              projectId={project.id}
-            />
-          )}
+        <ModulePage moduleKey="katalog" sample>
+          <CatalogManagerModule
+            offerings={offerings}
+            connection={connection}
+            localities={localitiesFor(project)}
+            projectType={project.type}
+            projectName={project.name}
+            projectId={project.id}
+          />
         </ModulePage>
       );
     }
@@ -492,39 +459,35 @@ export default async function DemoModule({
       const eshop = project.type === "eshop";
       const cohorts = eshop ? ESHOP_COHORTS : SAMPLE_COHORTS;
       return (
-        <ModulePage moduleKey="ltv">
-          {noted(
-            <LtvModule
-              rows={cohorts.map((c) => withMetrics(c))}
-              summary={ltvSummary(cohorts)}
-              cohorts={cohorts}
-              eshop={eshop}
-            />
-          )}
+        <ModulePage moduleKey="ltv" sample>
+          <LtvModule
+            rows={cohorts.map((c) => withMetrics(c))}
+            summary={ltvSummary(cohorts)}
+            cohorts={cohorts}
+            eshop={eshop}
+          />
         </ModulePage>
       );
     }
     case "kvalita-leadu":
       return (
-        <ModulePage moduleKey="kvalita-leadu">
-          {noted(<LeadQualityModule sources={sourcesForProject(project)} />)}
+        <ModulePage moduleKey="kvalita-leadu" sample>
+          <LeadQualityModule sources={sourcesForProject(project)} />
         </ModulePage>
       );
     case "publikum": {
       const audience = audienceForProject(project);
       return (
-        <ModulePage moduleKey="publikum">
-          {noted(
-            <AudienceModule
-              funnel={audience.funnel}
-              segments={audience.segments}
-              revenue={audience.revenue}
-              subscriberSources={audience.subscriberSources}
-              subscriberHistory={audience.subscriberHistory}
-              rpmHistory={audience.rpmHistory}
-              goals={audience.goals}
-            />
-          )}
+        <ModulePage moduleKey="publikum" sample>
+          <AudienceModule
+            funnel={audience.funnel}
+            segments={audience.segments}
+            revenue={audience.revenue}
+            subscriberSources={audience.subscriberSources}
+            subscriberHistory={audience.subscriberHistory}
+            rpmHistory={audience.rpmHistory}
+            goals={audience.goals}
+          />
         </ModulePage>
       );
     }
@@ -538,41 +501,37 @@ export default async function DemoModule({
       );
     case "spotreba":
       return (
-        <ModulePage moduleKey="spotreba">
-          {noted(<SpendModule entries={spendForProject(project)} isLive={false} />)}
+        <ModulePage moduleKey="spotreba" sample>
+          <SpendModule entries={spendForProject(project)} isLive={false} />
         </ModulePage>
       );
     case "integrace":
       // A representative "mostly connected" readiness board, so a prospect sees
       // what a live deployment looks like (real env probing is per-tenant + authed).
       return (
-        <ModulePage moduleKey="integrace">
-          {noted(
-            <IntegrationStatusModule
-              rows={computeIntegrationRows({
-                googleAdsToken: true, googleAdsCustomer: true, googleOAuth: true,
-                gemini: true, resend: true, cron: true,
-                firestore: true, localDb: false, devAuth: false,
-                lighttrack: false, social: false, leonardo: true,
-                adsLinked: true, byomValidated: false, warehouse: false,
-              })}
-            />
-          )}
+        <ModulePage moduleKey="integrace" sample>
+          <IntegrationStatusModule
+            rows={computeIntegrationRows({
+              googleAdsToken: true, googleAdsCustomer: true, googleOAuth: true,
+              gemini: true, resend: true, cron: true,
+              firestore: true, localDb: false, devAuth: false,
+              lighttrack: false, social: false, leonardo: true,
+              adsLinked: true, byomValidated: false, warehouse: false,
+            })}
+          />
         </ModulePage>
       );
     case "ucet":
       return (
-        <ModulePage moduleKey="ucet">
-          {noted(
-            <AccountSecurity
-              user={{ id: "demo-user", name: "Ukázkový uživatel", email: "demo@adamant.app", image: null }}
-              facts={{ hasEmail: true, oauth: true, devMode: false }}
-              expiresDate={null}
-              sessionCount={2}
-              signOutAction={demoAccountAction}
-              signOutEverywhereAction={demoAccountAction}
-            />
-          )}
+        <ModulePage moduleKey="ucet" sample>
+          <AccountSecurity
+            user={{ id: "demo-user", name: "Ukázkový uživatel", email: "demo@adamant.app", image: null }}
+            facts={{ hasEmail: true, oauth: true, devMode: false }}
+            expiresDate={null}
+            sessionCount={2}
+            signOutAction={demoAccountAction}
+            signOutEverywhereAction={demoAccountAction}
+          />
         </ModulePage>
       );
 
@@ -617,23 +576,21 @@ export default async function DemoModule({
         };
       }
       return (
-        <ModulePage moduleKey="mesicni-report">
-          {noted(
-            <MonthlyReport
-              tiles={reportTilesForType(project.type)}
-              snaps={snaps}
-              projectName={project.name}
-              logoUrl={project.logoUrl}
-              accentColor={project.accentColor}
-            />
-          )}
+        <ModulePage moduleKey="mesicni-report" sample>
+          <MonthlyReport
+            tiles={reportTilesForType(project.type)}
+            snaps={snaps}
+            projectName={project.name}
+            logoUrl={project.logoUrl}
+            accentColor={project.accentColor}
+          />
         </ModulePage>
       );
     }
     case "aktivita":
       return (
-        <ModulePage moduleKey="aktivita">
-          {noted(<ActivityModule events={activityForProject(project, localitiesFor(project))} />)}
+        <ModulePage moduleKey="aktivita" sample>
+          <ActivityModule events={activityForProject(project, localitiesFor(project))} />
         </ModulePage>
       );
 

@@ -5,12 +5,14 @@
 import type { ReactNode } from "react";
 import { MODULES, moduleLabel, moduleBlurb } from "@/lib/projects/modules";
 import { getServerLocale } from "@/lib/i18n/locale";
+import SampleDataNote from "@/components/app/SampleDataNote";
 
 export default async function ModulePage({
   moduleKey,
   title,
   description,
   actions,
+  sample,
   children,
 }: {
   /** registry key used to look up the default title/description */
@@ -19,6 +21,11 @@ export default async function ModulePage({
   description?: string;
   /** optional right-aligned header actions */
   actions?: ReactNode;
+  /** when true, renders the shared "illustrative sample data" gutter note in the
+   *  standard `mb-5` slot directly above the module body (the banner every
+   *  seeded-data module carries). Pages that show it conditionally pass the same
+   *  boolean they used to gate the note (e.g. `sample={!isLive}`). */
+  sample?: boolean;
   children: ReactNode;
 }) {
   const locale = await getServerLocale();
@@ -44,6 +51,11 @@ export default async function ModulePage({
           <span id="module-header-actions" className="contents" />
         </div>
       </div>
+      {sample && (
+        <div className="mb-5">
+          <SampleDataNote />
+        </div>
+      )}
       {children}
     </div>
   );

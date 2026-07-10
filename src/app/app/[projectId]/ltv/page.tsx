@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import LtvModule from "@/components/app/modules/LtvModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { ESHOP_COHORTS, SAMPLE_COHORTS } from "@/lib/ltv/sample";
 import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 
@@ -15,10 +14,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // signup / ARPU / retention model. Both flow through the same CAC/LTV math.
   const cohorts = eshop ? ESHOP_COHORTS : SAMPLE_COHORTS;
   return (
-    <ModulePage moduleKey="ltv">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="ltv" sample>
       <LtvModule
         rows={cohorts.map((c) => withMetrics(c))}
         summary={ltvSummary(cohorts)}

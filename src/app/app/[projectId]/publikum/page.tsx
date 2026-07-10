@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import AudienceModule from "@/components/app/modules/AudienceModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { audienceForProject } from "@/lib/audience/sample";
 
 
@@ -11,10 +10,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "publikum");
   const audience = audienceForProject(project);
   return (
-    <ModulePage moduleKey="publikum">
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+    <ModulePage moduleKey="publikum" sample>
       <AudienceModule
         funnel={audience.funnel}
         segments={audience.segments}

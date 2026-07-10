@@ -5,7 +5,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import SpendModule from "@/components/app/modules/SpendModule";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { spendForProject } from "@/lib/spend/sample";
 import { liveSpendForProject } from "@/lib/spend/live";
 
@@ -18,12 +17,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const entries = isLive ? live : spendForProject(project);
 
   return (
-    <ModulePage moduleKey="spotreba">
-      {!isLive && (
-        <div className="mb-5">
-          <SampleDataNote />
-        </div>
-      )}
+    <ModulePage moduleKey="spotreba" sample={!isLive}>
       <SpendModule entries={entries} isLive={isLive} />
     </ModulePage>
   );

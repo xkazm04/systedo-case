@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Check, Document } from "@/components/icons";
+import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -26,34 +26,9 @@ const T = {
  *  only does the clipboard + toast dance, mirroring the ShareBar pattern. */
 export default function CopyMarkdownButton({ markdown }: { markdown: string }) {
   const t = useT(T);
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
+  const { copied, copy } = useCopyFeedback();
 
-  // Clear any pending toast timer on unmount.
-  useEffect(() => () => window.clearTimeout(timer.current), []);
-
-  const copyMarkdown = async () => {
-    try {
-      await navigator.clipboard.writeText(markdown);
-    } catch {
-      // Fallback for browsers without the async clipboard API.
-      const ta = document.createElement("textarea");
-      ta.value = markdown;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try {
-        document.execCommand("copy");
-      } catch {
-        /* clipboard unavailable — nothing more we can do */
-      }
-      document.body.removeChild(ta);
-    }
-    setCopied(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2200);
-  };
+  const copyMarkdown = () => copy(markdown);
 
   return (
     <>

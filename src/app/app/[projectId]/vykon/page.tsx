@@ -2,7 +2,6 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import DashboardClient from "@/components/dashboard/DashboardClient";
-import SampleDataNote from "@/components/app/SampleDataNote";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 
 
@@ -10,13 +9,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "vykon");
   return (
-    <ModulePage moduleKey="vykon">
+    <ModulePage moduleKey="vykon" sample>
       {/* Výkon renders the seeded sample spine (getProjectDataset), never live Ads
           data — so it carries the same honesty banner as every other numeric module.
-          Its absence here was the most-fabricated, least-labeled surface (BM-L2-REC-02). */}
-      <div className="mb-5">
-        <SampleDataNote />
-      </div>
+          Its absence here was the most-fabricated, least-labeled surface (BM-L2-REC-02).
+          The banner itself renders from ModulePage's `sample` gutter. */}
       <DashboardClient data={getProjectDataset(project)} reportHref={`/app/${projectId}/report`} />
     </ModulePage>
   );
