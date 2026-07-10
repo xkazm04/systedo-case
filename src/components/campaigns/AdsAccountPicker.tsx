@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Check, Close, Info, Layers, Refresh } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
@@ -73,6 +73,13 @@ export default function AdsAccountPicker({ onConnected }: { onConnected?: () => 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const t = useT(T);
+  // useT returns a NEW closure every render (not memoized). Keeping `t` in load's
+  // deps made load a fresh function each render → the mount effect's [load] dep
+  // changed → load() re-fired → setState re-rendered → new t → … an unbounded fetch
+  // storm against /api/campaigns/accounts (which calls Google's listAccessibleCustomers).
+  // Read the latest t off a ref instead so load stays referentially stable ([]).
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -83,11 +90,11 @@ export default function AdsAccountPicker({ onConnected }: { onConnected?: () => 
       setData(json);
       if (!res.ok && json.error) setError(json.error);
     } catch {
-      setError(t("errorServer"));
+      setError(tRef.current("errorServer"));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     // Load the user's accounts once their auth status resolves.
