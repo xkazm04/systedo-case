@@ -205,9 +205,14 @@ export default function WeekPlanner() {
     setProgress({ done: 0, total: topicLines.length });
     // First slot today at the chosen hour; if that's already past, start tomorrow,
     // so every scheduled post lands in the future (the store keeps future-dated ones).
+    // Parse the hour explicitly — `Number(hour) || 10` rewrote a legitimate midnight
+    // (0, falsy) to 10:00.
+    const h = Number(hour);
+    const safeHour = Number.isInteger(h) && h >= 0 && h <= 23 ? h : 10;
     const first = new Date();
-    first.setHours(Number(hour) || 10, 0, 0, 0);
+    first.setHours(safeHour, 0, 0, 0);
     if (first.getTime() <= Date.now()) first.setDate(first.getDate() + 1);
+    let failed = false;
     for (let i = 0; i < topicLines.length; i++) {
       try {
         const draftRes = await fetch("/api/social/draft", {
@@ -228,6 +233,7 @@ export default function WeekPlanner() {
         const draftJson = await draftRes.json();
         if (!draftRes.ok) {
           setError(draftJson?.error ?? t("genFailed"));
+          failed = true;
           break;
         }
         // One topic → a differentiated caption per selected platform, all scheduled on
@@ -235,22 +241,38 @@ export default function WeekPlanner() {
         const drafts: { platform: SocialPlatform; content: string }[] = draftJson.drafts ?? [];
         const when = new Date(first);
         when.setDate(first.getDate() + i);
+        let saveFailed = false;
         for (const d of drafts) {
           if (!d?.content || !platforms.has(d.platform)) continue;
-          await fetch("/api/social/posts", {
+          // Check the save response — a resolved fetch is not an HTTP success (401 on
+          // an expired session, 429 rate-limit, 500). Without this the progress bar
+          // completed while the posts were never persisted (success theater).
+          const saveRes = await fetch("/api/social/posts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ platform: d.platform, content: d.content, scheduledAt: when.toISOString(), projectId: pid }),
           });
+          if (!saveRes.ok) {
+            const j = await saveRes.json().catch(() => null);
+            setError(j?.error ?? t("genFailed"));
+            saveFailed = true;
+            break;
+          }
+        }
+        if (saveFailed) {
+          failed = true;
+          break;
         }
         setProgress({ done: i + 1, total: topicLines.length });
       } catch {
         setError(t("serverError"));
+        failed = true;
         break;
       }
     }
     setRunning(false);
-    setTopics("");
+    // Keep the topics on any failure so the user can retry without retyping them.
+    if (!failed) setTopics("");
     window.dispatchEvent(new CustomEvent("social:posts-changed"));
     void loadPosts();
   }
