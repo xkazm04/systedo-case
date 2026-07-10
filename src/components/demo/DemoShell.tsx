@@ -11,6 +11,7 @@ import Link from "next/link";
 import { External, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
+import JourneyBeacon from "@/components/site/JourneyBeacon";
 import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
 import { ProjectProvider } from "@/lib/projects/context";
 import { MODULES, moduleLabel, sectionLabel, SECTION_ORDER } from "@/lib/projects/modules";
@@ -139,6 +140,10 @@ export default function DemoShell({
 
   return (
     <ProjectProvider project={project} projects={projects}>
+      {/* /dashboard is a task:1 journey stop but renders no TaskPager, so it was never
+          added to the visited set — firstUnvisited() then returned it forever, pinning
+          the mobile "Pokračovat" resume link to Dashboard. Emit the beacon here too. */}
+      <JourneyBeacon current="/dashboard" />
       <div className="flex min-h-screen bg-canvas">
         {/* desktop rail */}
         <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 border-r border-line bg-surface md:block">
