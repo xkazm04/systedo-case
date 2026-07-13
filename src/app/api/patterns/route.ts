@@ -4,6 +4,7 @@
  *   DELETE → remove a saved pattern by id        (signed-in) */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
 import { deletePattern, getLibrary, savePattern } from "@/lib/patterns/store";
 import { isPatternCategory } from "@/lib/patterns/types";
 
@@ -14,7 +15,10 @@ export async function GET(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId");
   const tenant = await resolveTenant(await currentUserId(), projectId);
   try {
-    return Response.json(await getLibrary(tenant));
+    // Mine auto-patterns against the tenant's own agreed PNO target, so the
+    // library judges wins by the same bar the reports/alerts use.
+    const { pnoGoal } = await getClientProfile(tenant);
+    return Response.json(await getLibrary(tenant, pnoGoal));
   } catch (err) {
     console.error("[patterns] library failed:", err);
     return Response.json({ auto: [], saved: [] });

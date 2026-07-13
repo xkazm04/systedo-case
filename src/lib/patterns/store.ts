@@ -46,11 +46,17 @@ export async function deletePattern(tenant: string, id: string): Promise<boolean
 }
 
 /** The library view: live auto-derived patterns + the saved set (deduped by
- *  title, saved winning over auto so a pinned one isn't shown twice). */
+ *  title, saved winning over auto so a pinned one isn't shown twice).
+ *
+ *  `pnoGoal` is threaded to the extractor so auto-patterns are mined against the
+ *  tenant's own agreed target (defaults to the paid-portfolio 0.18 — see
+ *  extractPatterns). Callers that already hold the client profile pass its goal so
+ *  no extra Firestore read is made. */
 export async function getLibrary(
-  tenant: string
+  tenant: string,
+  pnoGoal?: number
 ): Promise<{ auto: Pattern[]; saved: Pattern[] }> {
-  const [auto, saved] = await Promise.all([extractPatterns(tenant), listSavedPatterns(tenant)]);
+  const [auto, saved] = await Promise.all([extractPatterns(tenant, pnoGoal), listSavedPatterns(tenant)]);
   const savedTitles = new Set(saved.map((p) => p.title.toLowerCase()));
   return { auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())), saved };
 }
@@ -60,9 +66,10 @@ export async function getLibrary(
  *  embeddings are unavailable (`semantic: false`). */
 export async function searchPatterns(
   tenant: string,
-  query: string
+  query: string,
+  pnoGoal?: number
 ): Promise<{ results: RankedPattern[]; semantic: boolean }> {
-  const { auto, saved } = await getLibrary(tenant);
+  const { auto, saved } = await getLibrary(tenant, pnoGoal);
   const all = [...saved, ...auto];
   if (all.length === 0) return { results: [], semantic: false };
 
@@ -93,8 +100,13 @@ export async function searchPatterns(
  *  patterns are ranked by *semantic relevance* to that situation (RAG) — so the
  *  model sees the lessons that actually apply now. Falls back to deterministic
  *  order (saved first, then auto) when no query / embeddings are unavailable. */
-export async function getPatternLines(tenant: string, query?: string, limit = 6): Promise<string[]> {
-  const { auto, saved } = await getLibrary(tenant);
+export async function getPatternLines(
+  tenant: string,
+  query?: string,
+  limit = 6,
+  pnoGoal?: number
+): Promise<string[]> {
+  const { auto, saved } = await getLibrary(tenant, pnoGoal);
   const all = [...saved, ...auto];
   if (all.length === 0) return [];
   const line = (p: Pattern) => `- ${p.title}: ${p.insight}`;

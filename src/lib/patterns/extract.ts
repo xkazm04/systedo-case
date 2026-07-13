@@ -6,14 +6,15 @@
 import { createHash } from "node:crypto";
 import {
   CAMPAIGN_TYPE_LABELS,
-  TARGET_PNO,
-  TARGET_ROAS,
   aggregate,
   groupByType,
   withMetrics,
+  type Campaign,
 } from "@/lib/campaigns/types";
 import { getReportHistories, listCampaigns } from "@/lib/campaigns/store";
+import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
 import { fmtCZK, fmtMultiple, fmtPct } from "@/lib/format";
+import type { ReportHistoryPoint } from "@/lib/ai-types";
 import type { Pattern, PatternCategory } from "./types";
 
 /** Stable id from the title so the same derived pattern doesn't duplicate across
@@ -31,11 +32,24 @@ function mk(
   return { id: patternId(title), title, category, insight, evidence, source: "auto", createdAt: "" };
 }
 
-/** Derive patterns from the current campaign set + score history. Deterministic. */
-export async function extractPatterns(tenant: string): Promise<Pattern[]> {
-  const campaigns = await listCampaigns(tenant);
+/** Pure pattern mining over an already-loaded campaign set + score history —
+ *  no I/O, so it is directly unit-testable. `extractPatterns` is the thin store
+ *  wrapper below.
+ *
+ *  `pnoGoal` is the tenant's agreed PNO target (ClientProfile.pnoGoal) — the SAME
+ *  bar the reports, alerts and triage measure against, threaded in so mined
+ *  patterns can't judge a tenant against a different target than the rest of the
+ *  app. Defaults to the paid-portfolio target (0.18) so an unseeded/default tenant
+ *  mines byte-identically to before. The target ROAS is its reciprocal. */
+export function minePatterns(
+  campaigns: Campaign[],
+  histories: Record<string, ReportHistoryPoint[]>,
+  pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO
+): Pattern[] {
   if (campaigns.length === 0) return [];
 
+  const targetPno = pnoGoal;
+  const targetRoas = 1 / pnoGoal;
   const rows = campaigns.map(withMetrics);
   const portfolio = aggregate(campaigns);
   const types = groupByType(campaigns);
@@ -43,7 +57,7 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
 
   // 1. Best-performing channel type (a structural lesson worth repeating).
   const bestType = [...types].filter((t) => t.total.cost > 0).sort((a, b) => b.total.roas - a.total.roas)[0];
-  if (bestType && bestType.total.roas >= TARGET_ROAS) {
+  if (bestType && bestType.total.roas >= targetRoas) {
     out.push(
       mk(
         `${CAMPAIGN_TYPE_LABELS[bestType.type]} je nejefektivnější typ`,
@@ -55,7 +69,7 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
   }
 
   // 2. Top campaign over target — a template for scaling.
-  const winners = rows.filter((c) => c.cost > 0 && c.roas >= TARGET_ROAS).sort((a, b) => b.roas - a.roas);
+  const winners = rows.filter((c) => c.cost > 0 && c.roas >= targetRoas).sort((a, b) => b.roas - a.roas);
   if (winners[0]) {
     const w = winners[0];
     out.push(
@@ -63,15 +77,15 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
         `Vzor pro škálování: „${w.name}"`,
         "budget",
         `Kampaně tohoto střihu (${CAMPAIGN_TYPE_LABELS[w.type]}) nad cílovým ROAS unesou vyšší rozpočet bez ztráty efektivity.`,
-        `ROAS ${fmtMultiple(w.roas)}, PNO ${fmtPct(w.pno)} (cíl ${fmtPct(TARGET_PNO, 0)}).`
+        `ROAS ${fmtMultiple(w.roas)}, PNO ${fmtPct(w.pno)} (cíl ${fmtPct(targetPno, 0)}).`
       )
     );
   }
 
   // 3. Money pit to avoid — what NOT to repeat.
   const losers = rows
-    .filter((c) => c.status === "enabled" && c.cost > 0 && c.roas > 0 && c.roas < TARGET_ROAS)
-    .map((c) => ({ c, waste: c.cost * (1 - c.roas / TARGET_ROAS) }))
+    .filter((c) => c.status === "enabled" && c.cost > 0 && c.roas > 0 && c.roas < targetRoas)
+    .map((c) => ({ c, waste: c.cost * (1 - c.roas / targetRoas) }))
     .sort((a, b) => b.waste - a.waste);
   if (losers[0]) {
     const l = losers[0].c;
@@ -80,7 +94,7 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
         `Past na rozpočet: profil „${l.name}"`,
         "budget",
         `Kampaně s tímto profilem pálí rozpočet pod cílem — hlídejte je a včas utlumte nebo přestavte.`,
-        `ROAS ${fmtMultiple(l.roas)} pod cílem ${fmtMultiple(TARGET_ROAS)}; promrhaný odhad ${fmtCZK(Math.round(losers[0].waste))}.`
+        `ROAS ${fmtMultiple(l.roas)} pod cílem ${fmtMultiple(targetRoas)}; promrhaný odhad ${fmtCZK(Math.round(losers[0].waste))}.`
       )
     );
   }
@@ -101,7 +115,6 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
   }
 
   // 5. Optimization that moved the needle (from score history).
-  const histories = await getReportHistories(tenant);
   for (const [key, points] of Object.entries(histories)) {
     if (points.length < 2) continue;
     const first = points[0]!.score;
@@ -121,16 +134,29 @@ export async function extractPatterns(tenant: string): Promise<Pattern[]> {
   }
 
   // 6. Portfolio hitting target — a baseline worth protecting.
-  if (portfolio.pno > 0 && portfolio.pno <= TARGET_PNO) {
+  if (portfolio.pno > 0 && portfolio.pno <= targetPno) {
     out.push(
       mk(
         "Portfolio plní cílové PNO",
         "trend",
         "Mix kampaní drží dohodnutou efektivitu — hlavní páka je teď objem, ne škrty.",
-        `Celkové PNO ${fmtPct(portfolio.pno)} ≤ cíl ${fmtPct(TARGET_PNO, 0)}, ROAS ${fmtMultiple(portfolio.roas)}.`
+        `Celkové PNO ${fmtPct(portfolio.pno)} ≤ cíl ${fmtPct(targetPno, 0)}, ROAS ${fmtMultiple(portfolio.roas)}.`
       )
     );
   }
 
   return out;
+}
+
+/** Derive patterns from the tenant's current campaign set + score history.
+ *  Loads both from the store, then delegates to the pure `minePatterns`. See it
+ *  for the `pnoGoal` contract (defaults to the paid-portfolio 0.18). Server-only. */
+export async function extractPatterns(
+  tenant: string,
+  pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO
+): Promise<Pattern[]> {
+  const campaigns = await listCampaigns(tenant);
+  if (campaigns.length === 0) return [];
+  const histories = await getReportHistories(tenant);
+  return minePatterns(campaigns, histories, pnoGoal);
 }

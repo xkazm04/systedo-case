@@ -197,7 +197,7 @@ export async function POST(request: Request) {
         ]
           .filter(Boolean)
           .join(" ");
-        patternLines = await getPatternLines(tenant, query);
+        patternLines = await getPatternLines(tenant, query, 6, client.pnoGoal);
       }
 
       try {

@@ -148,8 +148,14 @@ export async function POST(request: Request) {
       }
     }
 
+    // The tenant's client profile grounds the prompt identity + PNO goal AND the
+    // bar its own winning patterns are mined against — resolved once here so the
+    // pattern query and the eval prompt share the read (no redundant Firestore hit).
+    const client = await getClientProfile(tenant);
+
     // Ground the portfolio eval in the account's own winning patterns, ranked by
-    // semantic relevance to the current portfolio situation (RAG).
+    // semantic relevance to the current portfolio situation (RAG). Mined against
+    // the tenant's own PNO target (client.pnoGoal).
     let patternLines: string[] | undefined;
     if (scope === "overall") {
       const totals = aggregate(campaigns);
@@ -163,7 +169,7 @@ export async function POST(request: Request) {
       ]
         .filter(Boolean)
         .join(" ");
-      patternLines = await getPatternLines(tenant, query);
+      patternLines = await getPatternLines(tenant, query, 6, client.pnoGoal);
     }
 
     try {
@@ -175,8 +181,7 @@ export async function POST(request: Request) {
         patternLines,
         changes: changes ?? undefined,
         locale: await getServerLocale(),
-        // The tenant's client profile grounds the prompt identity + PNO goal.
-        client: await getClientProfile(tenant),
+        client,
         // Client abort propagation: a closed tab / re-run stops the provider work.
         signal: request.signal,
       });

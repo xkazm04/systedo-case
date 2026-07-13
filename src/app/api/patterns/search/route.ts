@@ -5,6 +5,7 @@
  *  metered like the other AI routes (anonymous stays IP-limited only). */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
 import { searchPatterns } from "@/lib/patterns/store";
 import { consume } from "@/lib/usage";
 import { RATE_RULES, clientIp, tooManyRequests } from "@/lib/ai/rate-limit";
@@ -54,7 +55,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { results, semantic } = await searchPatterns(await resolveTenant(userId, projectId), query);
+    const tenant = await resolveTenant(userId, projectId);
+    // Rank against auto-patterns mined at the tenant's own PNO target.
+    const { pnoGoal } = await getClientProfile(tenant);
+    const { results, semantic } = await searchPatterns(tenant, query, pnoGoal);
     return Response.json({ results: results.slice(0, 12), semantic });
   } catch (err) {
     console.error("[patterns] search failed:", err);
