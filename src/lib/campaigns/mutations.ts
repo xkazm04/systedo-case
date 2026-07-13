@@ -49,11 +49,26 @@ interface AdsActor {
   token: string;
 }
 
-/** Shared guard for every live mutation: configured + connected + authorized.
- *  Returns the actor, or a ready-to-return error result. */
+/** Shared guard for every live mutation: source is mutable + configured +
+ *  connected + authorized. Returns the actor, or a ready-to-return error result.
+ *
+ *  Mutations are Google-only. A Sklik-sourced tenant (data-in only) must refuse
+ *  cleanly with a clear Czech message rather than hitting the Google guard with a
+ *  misleading "connect Google" error — so the source is checked first, off the
+ *  tenant's persisted sync meta. */
 async function resolveActor(
-  userId: string
+  userId: string,
+  tenant: string
 ): Promise<{ actor: AdsActor } | { error: MutationResult }> {
+  const meta = await getSyncMeta(tenant);
+  if (meta?.source === "sklik") {
+    return {
+      error: {
+        ok: false,
+        error: "Úpravy kampaní pro Sklik zatím nejsou podporované — dostupné jen pro Google Ads.",
+      },
+    };
+  }
   if (!adsConfigured()) {
     return { error: { ok: false, error: "Živé úpravy vyžadují Google Ads developer token." } };
   }
@@ -78,7 +93,7 @@ export async function applyPause(
   campaignId: string,
   campaignName: string
 ): Promise<MutationResult> {
-  const resolved = await resolveActor(userId);
+  const resolved = await resolveActor(userId, tenant);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
 
@@ -115,7 +130,7 @@ export async function applyResume(
   campaignId: string,
   campaignName: string
 ): Promise<MutationResult> {
-  const resolved = await resolveActor(userId);
+  const resolved = await resolveActor(userId, tenant);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
 
@@ -153,7 +168,7 @@ export async function applyBudgetShift(
   tenant: string,
   move: BudgetShiftInput
 ): Promise<MutationResult> {
-  const resolved = await resolveActor(userId);
+  const resolved = await resolveActor(userId, tenant);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
   const customerId = connection.customerId;
@@ -270,7 +285,7 @@ export async function restoreBudgets(
   tenant: string,
   snapshots: BudgetSnapshot[]
 ): Promise<MutationResult> {
-  const resolved = await resolveActor(userId);
+  const resolved = await resolveActor(userId, tenant);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
   const customerId = connection.customerId;

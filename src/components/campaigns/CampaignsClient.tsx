@@ -37,6 +37,7 @@ const T = {
   cs: {
     sourceSample: "Google Ads · ukázková data",
     sourceLive: "Google Ads · živá data",
+    sourceSklik: "Sklik · živá data",
     loading: "Načítám kampaně…",
     emptyHeading: "Zatím žádná data z Google Ads",
     emptyBody:
@@ -74,6 +75,7 @@ const T = {
   en: {
     sourceSample: "Google Ads · sample data",
     sourceLive: "Google Ads · live data",
+    sourceSklik: "Sklik · live data",
     loading: "Loading campaigns…",
     emptyHeading: "No Google Ads data yet",
     emptyBody:
@@ -110,9 +112,10 @@ const T = {
   },
 } as const;
 
-const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive"> = {
+const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive" | "sourceSklik"> = {
   sample: "sourceSample",
   "google-ads": "sourceLive",
+  sklik: "sourceSklik",
 };
 
 export default function CampaignsClient() {

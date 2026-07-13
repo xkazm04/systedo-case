@@ -1,17 +1,24 @@
-/** Google Ads connector — an adapter with two providers behind one interface:
+/** Ads connector — a provider-neutral adapter: several data sources behind ONE
+ *  interface, resolved per request through a small provider registry.
  *
  *   - sampleProvider()    → deterministic sample campaigns, used out of the box and
- *     for anonymous visitors (the case study still works with no Google account).
+ *     for anonymous visitors (the case study still works with no ad account).
  *   - googleAdsProvider() → live Google Ads, used when the signed-in user has
  *     selected an account AND a developer token is configured. It calls the Ads
  *     REST API (GAQL) on the user's behalf via their OAuth token.
+ *   - sklikProvider()     → live Sklik (Seznam's Czech ad platform), used when the
+ *     signed-in user has no Google account connected AND a Sklik API token is
+ *     configured. DATA-IN only (campaigns + daily stats); mutations stay Google-
+ *     only. The per-user credentials flow is a documented follow-up.
  *
+ *  Every LIVE provider shares one degrade-to-sample wrapper (withSampleFallback)
+ *  so the fallback + truthful degradation flags behave identically across sources.
  *  Server-only. `resolveCampaignContext()` picks the provider + tenant per request.
  */
 import { sampleCampaigns, sampleCampaignSeries, sampleSeries } from "./sample";
 import { googleDemoEnvelope, type DemoEnvelope } from "./envelope";
 import { performance } from "@/lib/data";
-import { getAdsConnection, getConnectedAccount } from "./connection";
+import { getAdsConnection, getConnectedAccount, type AdsConnection } from "./connection";
 import {
   adsConfigured,
   fetchCampaigns as adsFetchCampaigns,
@@ -19,9 +26,23 @@ import {
   fetchDailySeries as adsFetchDailySeries,
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
+import {
+  SklikClient,
+  httpSklikTransport,
+} from "@/lib/sklik/client";
+import {
+  fetchSklikCampaigns,
+  fetchSklikCampaignSeries,
+  fetchSklikSeries,
+} from "@/lib/sklik/adapter";
 import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
 import { buildTenantKey } from "./store-keys";
 import type { ProjectType } from "@/lib/projects/types";
+
+/** Stable id of the data source behind a connector, persisted alongside the data
+ *  and surfaced in the UI. An OPEN union: new providers extend it without
+ *  reshaping the seam (the store already types SyncMeta.source as string). */
+export type AdsSource = "sample" | "google-ads" | "sklik";
 
 /** Per-request outcome of the live→sample fallback. The sync route persists it
  *  so degraded data is labeled truthfully — a tenant whose token expired must
@@ -37,7 +58,7 @@ export interface SyncDegradation {
 
 export interface AdsConnector {
   /** stable id persisted alongside the data, surfaced in the UI */
-  source: "sample" | "google-ads";
+  source: AdsSource;
   /** human label for the source */
   label: string;
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
@@ -81,27 +102,45 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
   };
 }
 
-function googleAdsProvider(
-  accessToken: string,
-  customerId: string,
+/** The three raw fetchers a live provider supplies — the neutral data-in surface,
+ *  before the degrade-to-sample wrapping. Google (@/lib/google/ads) and Sklik
+ *  (@/lib/sklik/adapter) each bind their credentials into one of these. */
+interface LiveFetchers {
+  fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
+  fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
+  fetchCampaignSeries(period: CampaignPeriod): Promise<Record<string, DailyPoint[]>>;
+}
+
+/**
+ * Wrap a live provider's fetchers with the shared degrade-to-sample fallback.
+ *
+ * Any live call can fail transiently (expired token, quota, API error). Degrade
+ * to the deterministic sample provider instead of throwing — one hiccup must not
+ * 500 the whole premium dashboard, and the demo path is the documented safe
+ * default. The underlying error is logged server-side AND recorded on
+ * `degradation`, so the sync route can persist a truthful source label instead of
+ * presenting the fallback's demo numbers as live account data.
+ *
+ * This is the ONE seam every live source shares — Google and Sklik get identical
+ * fallback + flag semantics (campaigns fallback → `campaigns`; either series
+ * fallback → `series`; first error's summary → `reason`).
+ */
+function withSampleFallback(
+  source: AdsSource,
+  label: string,
+  live: LiveFetchers,
   fallback: AdsConnector
 ): AdsConnector {
-  // A live Google Ads call can fail transiently (expired token, quota, GAQL error).
-  // Degrade to the deterministic sample provider instead of throwing — one hiccup
-  // must not 500 the whole premium dashboard, and the demo path is the documented
-  // safe default. The underlying error is logged server-side AND recorded on
-  // `degradation`, so the sync route can persist a truthful source label instead
-  // of presenting the fallback's demo numbers as live account data.
   const degradation: SyncDegradation = { campaigns: false, series: false, reason: null };
   return {
-    source: "google-ads",
-    label: "Google Ads · živá data",
+    source,
+    label,
     degradation,
     async fetchCampaigns(period) {
       try {
-        return await adsFetchCampaigns(accessToken, customerId, period);
+        return await live.fetchCampaigns(period);
       } catch (err) {
-        console.error("[campaigns] live fetchCampaigns failed; serving sample data:", err);
+        console.error(`[campaigns] live fetchCampaigns (${source}) failed; serving sample data:`, err);
         degradation.campaigns = true;
         degradation.reason ??= describeError(err);
         return fallback.fetchCampaigns(period);
@@ -109,9 +148,9 @@ function googleAdsProvider(
     },
     async fetchSeries(period) {
       try {
-        return await adsFetchDailySeries(accessToken, customerId, period);
+        return await live.fetchSeries(period);
       } catch (err) {
-        console.error("[campaigns] live fetchSeries failed; serving sample data:", err);
+        console.error(`[campaigns] live fetchSeries (${source}) failed; serving sample data:`, err);
         degradation.series = true;
         degradation.reason ??= describeError(err);
         return fallback.fetchSeries(period);
@@ -119,9 +158,9 @@ function googleAdsProvider(
     },
     async fetchCampaignSeries(period) {
       try {
-        return await adsFetchCampaignDailySeries(accessToken, customerId, period);
+        return await live.fetchCampaignSeries(period);
       } catch (err) {
-        console.error("[campaigns] live fetchCampaignSeries failed; serving sample data:", err);
+        console.error(`[campaigns] live fetchCampaignSeries (${source}) failed; serving sample data:`, err);
         // Trend data degraded to sample — same truth-in-labeling flag as the
         // portfolio series (the sync only persists this fetch on success anyway).
         degradation.series = true;
@@ -131,6 +170,81 @@ function googleAdsProvider(
     },
   };
 }
+
+/** Live Google Ads provider — REST/GAQL calls bound to the user's OAuth token +
+ *  selected customer, behind the shared sample fallback. Behaviour is unchanged
+ *  from the pre-registry connector (byte-identical fallback + flags). */
+function googleAdsProvider(
+  accessToken: string,
+  customerId: string,
+  fallback: AdsConnector
+): AdsConnector {
+  return withSampleFallback(
+    "google-ads",
+    "Google Ads · živá data",
+    {
+      fetchCampaigns: (period) => adsFetchCampaigns(accessToken, customerId, period),
+      fetchSeries: (period) => adsFetchDailySeries(accessToken, customerId, period),
+      fetchCampaignSeries: (period) => adsFetchCampaignDailySeries(accessToken, customerId, period),
+    },
+    fallback
+  );
+}
+
+/** Whether a Sklik API token is configured (env-gated; per-user credentials are a
+ *  documented follow-up). */
+export function sklikConfigured(): boolean {
+  return Boolean(process.env.SKLIK_API_TOKEN);
+}
+
+/** Live Sklik provider — one {@link SklikClient} (env token + HTTP transport) per
+ *  sync, its DATA-IN fetchers behind the same sample fallback as Google. */
+function sklikProvider(fallback: AdsConnector): AdsConnector {
+  const client = new SklikClient(httpSklikTransport(), process.env.SKLIK_API_TOKEN ?? "");
+  return withSampleFallback(
+    "sklik",
+    "Sklik · živá data",
+    {
+      fetchCampaigns: (period) => fetchSklikCampaigns(client, period),
+      fetchSeries: (period) => fetchSklikSeries(client, period),
+      fetchCampaignSeries: (period) => fetchSklikCampaignSeries(client, period),
+    },
+    fallback
+  );
+}
+
+/** One entry in the live-provider registry: given the resolved request context,
+ *  return a connector when this provider's credentials are available, else null
+ *  (so the next provider — ultimately the sample fallback — is tried). Ordered by
+ *  precedence in LIVE_PROVIDERS. */
+interface ResolveCtx {
+  userId: string;
+  /** the user's active/overridden Google Ads connection, if any */
+  connection: AdsConnection | null;
+  /** the deterministic sample connector this request would otherwise serve */
+  fallback: AdsConnector;
+}
+type LiveProviderResolver = (ctx: ResolveCtx) => Promise<AdsConnector | null>;
+
+/** Google wins whenever the user has a connected account + configured dev token +
+ *  a live OAuth token — exactly the pre-registry condition. */
+const resolveGoogle: LiveProviderResolver = async ({ userId, connection, fallback }) => {
+  if (!connection || !adsConfigured()) return null;
+  const token = await getUserAccessToken(userId);
+  return token ? googleAdsProvider(token, connection.customerId, fallback) : null;
+};
+
+/** Sklik applies to a signed-in user with NO Google account connected when a Sklik
+ *  API token is configured. It never overrides a Google connection (Google-first),
+ *  so existing Google/sample behaviour is untouched when SKLIK_API_TOKEN is unset. */
+const resolveSklik: LiveProviderResolver = async ({ connection, fallback }) => {
+  if (connection || !sklikConfigured()) return null;
+  return sklikProvider(fallback);
+};
+
+/** Live providers in precedence order. The first to return a connector wins;
+ *  none → the sample fallback. Adding a provider is a one-line registry change. */
+const LIVE_PROVIDERS: readonly LiveProviderResolver[] = [resolveGoogle, resolveSklik];
 
 /** The tenant a user's data lives under. Now **per-project**: callers that know
  *  the active project pass its id, isolating campaign/social/patterns/report data
@@ -185,23 +299,25 @@ export async function resolveCampaignContext(
   projectType?: ProjectType,
   customerId?: string | null
 ): Promise<{ connector: AdsConnector; tenant: string }> {
-  if (!userId) return { connector: sampleProvider(projectType, projectId ?? undefined), tenant: "sample" };
+  const sample = () => sampleProvider(projectType, projectId ?? undefined);
+  if (!userId) return { connector: sample(), tenant: "sample" };
 
   const override = customerId ? await getConnectedAccount(userId, customerId) : null;
   const connection = override ?? (await getAdsConnection(userId));
+  // Tenant keying is unchanged: it hangs off the Google connection's customerId
+  // when present. A Sklik-sourced user has no Google connection, so it keys on the
+  // per-user/per-project base — which is exactly what resolveTenant computes on the
+  // read side, so read and sync tenants still agree.
   const tenant = buildTenantKey(userId, projectId, connection?.customerId);
 
-  if (connection && adsConfigured()) {
-    const token = await getUserAccessToken(userId);
-    if (token)
-      return {
-        connector: googleAdsProvider(
-          token,
-          connection.customerId,
-          sampleProvider(projectType, projectId ?? undefined)
-        ),
-        tenant,
-      };
+  // Provider registry: try each live provider in precedence order; the first whose
+  // credentials resolve wins, otherwise the deterministic sample provider. This
+  // replaces the old binary Google/sample branch without changing either outcome
+  // when no new provider is configured.
+  const ctx: ResolveCtx = { userId, connection, fallback: sample() };
+  for (const resolve of LIVE_PROVIDERS) {
+    const connector = await resolve(ctx);
+    if (connector) return { connector, tenant };
   }
-  return { connector: sampleProvider(projectType, projectId ?? undefined), tenant };
+  return { connector: sample(), tenant };
 }
