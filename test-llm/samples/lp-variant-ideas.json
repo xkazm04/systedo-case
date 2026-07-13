@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos v čísle úspor času",
-      "hypothesis": "Zaměření headline na konkrétní přínos (úspora času, přehled nad úkoly) místo obecného popisu produktu zvýší konverzi oproti generickému sdělení kontroly.",
-      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
+      "label": "B · Důkaz a jistota",
+      "hypothesis": "Zdůraznění konkrétních referencí a jistoty výsledku zvýší důvěru a konverzi oproti obecnému popisu produktu.",
+      "headline": "Projektové řízení, kterému věří stovky týmů",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní přínos místo obecného popisu produktu lépe komunikuje hodnotu a snižuje kognitivní zátěž návštěvníka."
+      "rationale": "Kontrola stavěla na obecném popisu produktu, tato varianta místo toho staví na sociálním důkazu a snižování vnímaného rizika."
     },
     {
-      "label": "Sociální důkaz a důvěra",
-      "hypothesis": "Přidání důkazu o využívání nástroje jinými týmy (reference, loga, počty uživatelů) posílí důvěru a zvýší konverzi oproti čistě produktovému sdělení kontroly.",
-      "headline": "Nástroj pro řízení projektů, kterému důvěřují stovky týmů",
-      "primaryCTA": "Chci to samé pro svůj tým",
-      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí a funguje jinak než slevová motivace, která u varianty B selhala."
+      "label": "C · Rychlost nasazení",
+      "hypothesis": "Zdůraznění rychlého a jednoduchého zprovoznění nástroje na úkoly sníží vnímanou bariéru vstupu a zvýší konverzi.",
+      "headline": "Řízení projektů, které rozjedete za 5 minut",
+      "primaryCTA": "Spustit nástroj hned",
+      "rationale": "Na rozdíl od kontroly i poražené varianty s dlouhým formulářem tato varianta cílí na rychlost a jednoduchost místo obecného popisu nebo náročného onboardingu."
     },
     {
-      "label": "Jasná úleva od chaosu s úkoly",
-      "hypothesis": "Pojmenování konkrétního problému cílové skupiny (roztříštěné úkoly, ztráta přehledu) v headline namísto obecného popisu produktu zvýší relevanci a konverzi.",
-      "headline": "Konec chaosu v úkolech – jeden nástroj na řízení projektů i týmu",
-      "primaryCTA": "Zobrazit řešení",
-      "rationale": "Formulace okolo bolestivého problému cílí přímo na motivaci uživatele hledat řešení, na rozdíl od generického popisu kontroly i krátkého CTA bez kontextu jako u varianty C."
+      "label": "D · Konkrétní bolest týmu",
+      "hypothesis": "Pojmenování konkrétního problému (chaos v úkolech a termínech) místo obecného popisu produktu zvýší relevanci sdělení a konverzi.",
+      "headline": "Konec chaosu v úkolech a termínech projektů",
+      "primaryCTA": "Zbavit se chaosu",
+      "rationale": "Místo obecného popisu produktu (kontrola) nebo slevy (poražená varianta B) tato varianta cílí přímo na bolest cílové skupiny při řízení projektů."
     }
   ]
 }

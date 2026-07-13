@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při zdravém PNO 18,3 % a ROAS 5,4×",
-  "summary": "Kampaně dosáhly obratu 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že nastavení kampaní i cílení funguje efektivně a přináší rostoucí návratnost investic.",
+  "headline": "Solidní měsíc s bezpečnou ziskovostí a rostoucí poptávkou",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč drží PNO na zdravých 18,3 % a ROAS 5,4×, tedy nad hranicí pro ziskový provoz lokálního podniku. Počet konverzí meziměsíčně vzrostl o 12 %, což ukazuje na rostoucí zájem i lepší práci kampaní s poptávkou.",
   "highlights": [
-    "ROAS 5,4× výrazně převyšuje běžný benchmark pro lokální podniky a služby",
-    "PNO 18,3 % ukazuje efektivní vynakládání rozpočtu vůči celkovému obratu",
-    "Konverze vzrostly o 12 %, což signalizuje zlepšující se kvalitu poptávky"
+    "ROAS 5,4× výrazně převyšuje běžný cíl pro lokální služby (obvykle 3-4×)",
+    "PNO 18,3 % zajišťuje zdravou marži i po odečtení nákladů na marketing",
+    "Konverze vzrostly o 12 %, což signalizuje sílící poptávku po službách"
   ],
   "watchouts": [
-    "Růst konverzí je třeba ověřit i v dalších měsících, aby nešlo o jednorázový výkyv",
-    "Při zvyšování rozpočtu sledovat, zda se PNO nezhorší a ROAS zůstane na podobné úrovni"
+    "Při dalším růstu objemu je třeba hlídat, zda PNO nezačne stoupat kvůli dražším aukcím",
+    "Nárůst konverzí je třeba ověřit i na kvalitu (skutečné zakázky, ne jen leady)"
   ],
   "priorities": [
     {
-      "title": "Postupně navýšit rozpočet na nejvýkonnější kampaně",
-      "detail": "Vzhledem k ROAS 5,4× a nízkému PNO má smysl otestovat mírné navýšení rozpočtu u nejlépe performujících kampaní a sledovat, zda se návratnost udrží."
+      "title": "Škálovat úspěšné kampaně",
+      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO."
     },
     {
-      "title": "Analyzovat zdroj růstu konverzí",
-      "detail": "Zjistit, které kanály nebo kampaně stojí za 12% nárůstem konverzí, a tyto poznatky využít pro optimalizaci ostatních kampaní."
+      "title": "Ověřit kvalitu konverzí",
+      "detail": "Propojit data o konverzích s reálnými uzavřenými zakázkami a vyhodnotit, zda růst objemu odpovídá růstu tržeb."
     }
   ]
 }

@@ -1,15 +1,16 @@
 {
-  "reply": "Dobrý den, děkuji za vaši poptávku — revizi elektroinstalace v rozsahu 200 m² si v pořádku vezmu na seznam. Abych vám mohl připravit přesnější informace, potřebuji si ujasit pár věcí: Jde o rutinní kontrolu nebo řešíte konkrétní problém? Máte preferenci, kdy by měla revize proběhnout? A je to prostředí s běžnou kancelářskou infrastrukturou, nebo jsou tam nějaké specifické technické nárože?",
+  "reply": "Dobrý den,\n\nméně víme, že potřebujete revizi elektroinstalace. Rád bych Vás kontaktoval v nejbližších hodinách, abychom Vám našli volný termín, který Vám vyhovuje.\n\nAbychom to zvládli co nejrychleji, potřeboval bych ještě pár informací:\n- Jak brzy byste revizi potřebovali?\n- Jedná se o konkrétní problém, nebo jde o rutinní kontrolu?\n- Na jaké číslo Vás mohu zavolat?\n\nDěkuji, ozvu se Vám brzy.\n\nS pozdravem",
   "questions": [
-    "Jaký je důvod kontroly — rutinní revize nebo řešení konkrétního problému?",
-    "Máte představu, kdy by byla revize ideální z vašeho pohledu (příští týden, příští měsíc)?",
-    "Jsou v kanceláři nějaké specifické technické instalace, které bychom měli vědět (serverovna, zvýšený výkon, starší rozvodna)?"
+    "Jakou máte časovou disponibilitu pro revizi? (urgence)",
+    "Jsou nějaké konkrétní problémy s elektroinstalací, které řešíte?",
+    "Na jaký kontakt Vás máme zavolat pro konkrétní domluvení termínu?"
   ],
-  "confidence": 75,
+  "confidence": 72,
   "risks": [
-    "Neznáme kapacity a dostupnost techniků — neměli bychom slibovat konkrétní datum bez interního check-u.",
-    "Leadgen model: ověřit, zda tuto poptávku vraciíme partnerům nebo sami realizujeme.",
-    "Není jasné, jestli se odesílá na telefon, email nebo chat — formát komunikace ovlivní percepi professionality."
+    "V podkladech není konkrétní SLA/dostupnost – ověř, v jaké časové lhůtě se firma ozvala operátorům",
+    "Není jasné, zda firma má vlastní elektrikáře nebo partnery – ověř messaging",
+    "Chybí informace o cenách/způsobu oceňování – buď opatrný s jakýmikoliv slibem nákladů",
+    "Tón \"méně víme\" nemusí být adekvátní – ověř, jaký je brand voice pro leadgen komunikaci"
   ],
-  "toneNotes": "Použit formální vy + příjmení (i když nemáme jméno, předpokládáme, že volá osoba oprávněná rozhodovat). Odpověď v první větě řeší jejich dotaz bez nejasností. Tón je profesionální, klidný, nepoddajný — sbíráme informace bez tlaku. Vyhnuli jsme se slibům na termín či cenu, místo toho otevíráme dialog."
+  "toneNotes": "Formální oslovení příjmením a vykání, přímá a profesionální odpověď v úvodní větě, průběžné budování důvěry skrz jasné kroky, kvalifikační otázky orientované na lead-capture proces"
 }
