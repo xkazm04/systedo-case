@@ -19,6 +19,8 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { Pill } from "@/components/ui";
 import { Check, Close, Copy, Send, Sparkles } from "@/components/icons";
+import TwinOutboxHistory from "./TwinOutboxHistory";
+import { REASON_LABELS } from "./labels";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import { promptSafeName } from "@/lib/projects/name";
@@ -128,14 +130,6 @@ const CHANNEL_LABELS: Record<TwinChannel, { cs: string; en: string }> = {
   reviews: { cs: "Recenze", en: "Reviews" },
   sms: { cs: "SMS", en: "SMS" },
   whatsapp: { cs: "WhatsApp", en: "WhatsApp" },
-};
-
-const REASON_LABELS: Record<RejectReason, { cs: string; en: string }> = {
-  off_brand: { cs: "Mimo hlas značky", en: "Off-brand" },
-  inaccurate: { cs: "Nepřesné", en: "Inaccurate" },
-  too_long: { cs: "Příliš dlouhé", en: "Too long" },
-  wrong_tone: { cs: "Špatný tón", en: "Wrong tone" },
-  risky_claim: { cs: "Rizikový slib", en: "Risky claim" },
 };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -645,57 +639,7 @@ export default function TwinOutbox({
       )}
 
       {/* History */}
-      <section>
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("history")}</p>
-        {channelDrafts.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">{t("noHistory")}</p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {channelDrafts.map((d) => (
-              <li key={d.id} className="rounded-card border border-line bg-surface px-3 py-2.5">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Pill
-                    tone={
-                      d.status === "sent" || d.status === "approved"
-                        ? "positive"
-                        : d.status === "rejected"
-                          ? "negative"
-                          : "neutral"
-                    }
-                  >
-                    {d.status === "sent"
-                      ? t("sent")
-                      : d.status === "approved"
-                        ? d.autoApproved
-                          ? t("autoApproved")
-                          : t("approved")
-                        : d.status === "rejected"
-                          ? t("rejected")
-                          : t("needsReview")}
-                  </Pill>
-                  {d.contact && <span className="text-xs font-medium text-navy-800">{d.contact}</span>}
-                  <span className="tnum text-xs text-muted">{d.confidence} %</span>
-                  {d.rejectReason && (
-                    <span className="pill bg-navy-50 text-muted">{REASON_LABELS[d.rejectReason][L]}</span>
-                  )}
-                </div>
-                <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-navy-700">{d.reply}</p>
-                {d.status === "approved" && (
-                  <button
-                    type="button"
-                    onClick={() => send(d.id)}
-                    disabled={sendingId === d.id}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-navy-800 disabled:opacity-50"
-                  >
-                    <Send width={12} height={12} />
-                    {sendingId === d.id ? t("sending") : t("send")}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <TwinOutboxHistory drafts={channelDrafts} locale={L} onSend={send} sendingId={sendingId} />
     </div>
   );
 }
