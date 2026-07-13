@@ -169,6 +169,10 @@ export default function CampaignsClient() {
   // Bumped after each sync so the alert inbox reloads (a sync can mint new alerts).
   const [alertRefresh, setAlertRefresh] = useState(0);
   const refreshAlerts = () => setAlertRefresh((n) => n + 1);
+
+  // Bumped when the BudgetMoves panel proposes a change-set, so the governed
+  // control plane below reloads and surfaces the pending proposal for approval.
+  const [controlPlaneRefresh, setControlPlaneRefresh] = useState(0);
   const syncAndRefresh = (p: CampaignPeriod) => void sync(p).then(refreshAlerts);
 
   const changePeriod = (p: CampaignPeriod) => {
@@ -391,8 +395,12 @@ export default function CampaignsClient() {
         onTypeClick={toggleTypeFilter}
       />
 
-      {/* deterministic budget-reallocation recommendations */}
-      <BudgetMoves campaigns={campaigns} onApplied={() => sync(period)} />
+      {/* deterministic budget-reallocation recommendations — proposes into the
+          governed control plane below rather than mutating the account directly */}
+      <BudgetMoves
+        campaigns={campaigns}
+        onProposed={() => setControlPlaneRefresh((n) => n + 1)}
+      />
 
       {/* portfolio AI evaluation */}
       <section className="card p-5 sm:p-6">
@@ -524,7 +532,7 @@ export default function CampaignsClient() {
       <MicrositeCard />
 
       {/* governed budget control plane: simulate → approve → ledger → revert */}
-      <ControlPlane />
+      <ControlPlane refreshKey={controlPlaneRefresh} />
     </div>
   );
 }

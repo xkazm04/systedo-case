@@ -37,6 +37,17 @@ export interface BudgetSnapshot {
   prevMicros: number;
 }
 
+/** Snapshot of a campaign's status *before* a change-set paused it, so a revert
+ *  can resume it to exactly its prior state. Captured at approval for every pause
+ *  move that actually landed on the live account. */
+export interface StatusSnapshot {
+  campaignId: string;
+  campaignName: string;
+  /** the status the campaign held before the change-set paused it (always
+   *  "enabled" today — pause moves only target enabled donors) */
+  prevStatus: "enabled" | "paused";
+}
+
 // "applying"/"reverting" are transient claim states: approveChangeSet/revertChangeSet
 // flip into them atomically before running the live mutation loop, so a concurrent
 // Approve/Revert (double-click, retry) can't run the loop twice. They settle to
@@ -66,6 +77,9 @@ export interface ChangeSet {
   results: MoveResult[] | null;
   /** prior budget values captured at approval, for an exact revert (live only) */
   budgetSnapshots?: BudgetSnapshot[];
+  /** prior campaign statuses captured at approval for every pause move that
+   *  landed, so a revert resumes exactly what it paused (live only) */
+  statusSnapshots?: StatusSnapshot[];
   /** true if applied despite guardrail violations via an explicit override */
   overridden?: boolean;
 }
@@ -80,7 +94,9 @@ export function checkPolicy(moves: BudgetMove[], policy: ControlPolicy): string[
   for (const m of moves) {
     if (m.amount > policy.maxMoveAmountCzk) {
       v.push(
-        `Přesun ${m.fromName} → ${m.toName} (${Math.round(m.amount)} Kč) překračuje limit ${policy.maxMoveAmountCzk} Kč.`
+        m.kind === "pause"
+          ? `Pozastavení ${m.fromName} (${Math.round(m.amount)} Kč útraty) překračuje limit ${policy.maxMoveAmountCzk} Kč.`
+          : `Přesun ${m.fromName} → ${m.toName} (${Math.round(m.amount)} Kč) překračuje limit ${policy.maxMoveAmountCzk} Kč.`
       );
     }
   }

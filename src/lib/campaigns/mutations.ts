@@ -21,6 +21,7 @@ import {
   adsConfigured,
   fetchCampaignBudgets,
   pauseCampaign,
+  resumeCampaign,
   setCampaignBudgetMicros,
 } from "@/lib/google/ads";
 import { computeDailyMicros, planBudgetMove, dedupeSnapshots } from "./budget-math";
@@ -100,6 +101,43 @@ export async function applyPause(
     return { ok: true };
   } catch (err) {
     console.error("[mutations] pause failed:", err);
+    return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
+  }
+}
+
+/** Resume (re-enable) a campaign a governed change-set previously paused — the
+ *  inverse of {@link applyPause}, used only by the control-plane revert path. Same
+ *  connected-account guard + audit contract as every other live mutation. */
+export async function applyResume(
+  userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
+  campaignId: string,
+  campaignName: string
+): Promise<MutationResult> {
+  const resolved = await resolveActor(userId);
+  if ("error" in resolved) return resolved.error;
+  const { connection, token } = resolved.actor;
+
+  try {
+    await resumeCampaign(token, connection.customerId, campaignId);
+    await firestore.collection("tenants").doc(tenant).collection("mutations").add({
+      action: "resume",
+      campaignId,
+      campaignName,
+      customerId: connection.customerId,
+      userId,
+      at: new Date().toISOString(),
+    });
+    await recordActivity(tenant, {
+      kind: "pause",
+      title: `Obnovena kampaň ${campaignName}`,
+      detail: "Kampaň byla znovu spuštěna v Google Ads (vrácení změnového balíčku).",
+      actor: "Vy",
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("[mutations] resume failed:", err);
     return { ok: false, error: err instanceof Error ? err.message : "Úprava se nezdařila." };
   }
 }

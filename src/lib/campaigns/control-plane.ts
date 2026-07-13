@@ -10,7 +10,7 @@ import { listCampaigns } from "./store";
 import { withMetrics } from "./types";
 import { recommendBudgetMoves } from "./budget-moves";
 import { simulateBudgetShift } from "./simulate";
-import { applyBudgetShift, restoreBudgets } from "./mutations";
+import { applyBudgetShift, applyPause, applyResume, restoreBudgets } from "./mutations";
 import { recordActivity } from "./activity";
 import { fmtCZK } from "@/lib/format";
 import {
@@ -23,6 +23,7 @@ import {
   type ChangeSetStatus,
   type ControlPolicy,
   type MoveResult,
+  type StatusSnapshot,
 } from "./control-plane-types";
 
 function changeSetsCol(tenant: string) {
@@ -48,7 +49,11 @@ export async function createChangeSet(
   const campaigns = await listCampaigns(tenant);
   if (campaigns.length === 0) return null;
   const rows = campaigns.map(withMetrics);
-  const { moves } = recommendBudgetMoves(rows, { maxMoves: policy.maxMoves });
+  // includePauses: zero-return burners enter the SAME governed envelope as budget
+  // shifts (simulate → guardrail → approve → revert), instead of only being
+  // pausable through the ungoverned BudgetMoves panel. A pause carries its own
+  // exact revert via the status snapshot captured at approval.
+  const { moves } = recommendBudgetMoves(rows, { maxMoves: policy.maxMoves, includePauses: true });
   if (moves.length === 0) return null;
 
   const simulation = simulateBudgetShift(campaigns, moves);
@@ -122,7 +127,17 @@ export async function approveChangeSet(
 
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
+  const statusSnapshots: StatusSnapshot[] = [];
   for (const m of cs.moves) {
+if (m.kind === "pause") {
+      // Pause the zero-return donor; on success snapshot its prior status so the
+      // revert resumes exactly what we paused. (Donors are enabled by construction
+      // — recommendBudgetMoves only pauses enabled campaigns.)
+      const r = await applyPause(userId, tenant, m.fromId, m.fromName);
+      results.push({ fromName: m.fromName, toName: m.fromName, ok: r.ok, error: r.error });
+      if (r.ok) statusSnapshots.push({ campaignId: m.fromId, campaignName: m.fromName, prevStatus: "enabled" });
+      continue;
+    }
     // Audit the move under the same project-scoped tenant this change-set (and its
     // campaigns) live under — control-plane already resolved it.
     const r = await applyBudgetShift(userId, tenant, {
@@ -141,6 +156,7 @@ export async function approveChangeSet(
     approvedAt: new Date().toISOString(),
     results,
     budgetSnapshots,
+    statusSnapshots,
     overridden: cs.violations.length > 0,
   };
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
@@ -188,16 +204,33 @@ export async function revertChangeSet(
     throw err;
   }
 
-  const hasSnapshots = (cs.budgetSnapshots?.length ?? 0) > 0;
+  const hasBudgetSnaps = (cs.budgetSnapshots?.length ?? 0) > 0;
+  const hasStatusSnaps = (cs.statusSnapshots?.length ?? 0) > 0;
   let results: MoveResult[];
   let detail: string;
 
-  if (hasSnapshots) {
-    const r = await restoreBudgets(userId, tenant, cs.budgetSnapshots!);
-    results = cs.moves.map((m) => ({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error }));
-    detail = r.ok
-      ? "Rozpočty obnoveny na přesné hodnoty před aplikací (ze snímku)."
-      : `Obnovení selhalo: ${r.error ?? "neznámá chyba"}.`;
+if (hasBudgetSnaps || hasStatusSnaps) {
+    // Exact revert from snapshots: restore every touched budget in one call, and
+    // resume every paused campaign. Per-move results map each move to the outcome
+    // of the operation that undoes it.
+    const budgetResult = hasBudgetSnaps ? await restoreBudgets(userId, tenant, cs.budgetSnapshots!) : null;
+    const resumeById = new Map<string, { ok: boolean; error?: string }>();
+    for (const s of cs.statusSnapshots ?? []) {
+      resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName));
+    }
+    results = cs.moves.map((m) => {
+      if (m.kind === "pause") {
+        const r = resumeById.get(m.fromId);
+        return { fromName: m.fromName, toName: m.fromName, ok: r?.ok ?? false, error: r?.error };
+      }
+      return { fromName: m.fromName, toName: m.toName, ok: budgetResult?.ok ?? true, error: budgetResult?.error };
+    });
+    const budgetOk = !hasBudgetSnaps || (budgetResult?.ok ?? false);
+    const resumeOk = [...resumeById.values()].every((r) => r.ok);
+    detail =
+      budgetOk && resumeOk
+        ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
+        : `Obnovení částečně selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}.`;
   } else {
     results = [];
     for (const m of inverseMoves(cs.moves)) {

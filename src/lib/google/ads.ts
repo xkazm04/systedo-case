@@ -138,6 +138,33 @@ export async function pauseCampaign(
   }
 }
 
+/** Re-enable a campaign — the inverse of {@link pauseCampaign}, used to resume a
+ *  campaign a governed change-set paused (revert path). */
+export async function resumeCampaign(
+  accessToken: string,
+  customerId: string,
+  campaignId: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/customers/${customerId}/campaigns:mutate`, {
+    method: "POST",
+    headers: headers(accessToken),
+    body: JSON.stringify({
+      operations: [
+        {
+          update: {
+            resourceName: `customers/${customerId}/campaigns/${campaignId}`,
+            status: "ENABLED",
+          },
+          updateMask: "status",
+        },
+      ],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Google Ads resumeCampaign ${res.status}: ${await res.text().catch(() => "")}`);
+  }
+}
+
 export interface CampaignBudgetInfo {
   campaignId: string;
   /** the CampaignBudget resource to mutate (campaigns can share one) */

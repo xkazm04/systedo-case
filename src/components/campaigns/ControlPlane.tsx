@@ -74,7 +74,7 @@ const STATUS_STYLE: Record<ChangeSetStatus, string> = {
 /** Ad-ops control plane: bundle recommended budget moves into a simulated,
  *  human-approved change-set with a reversible ledger. The governance envelope
  *  that makes touching real spend safe. Anonymous → hidden. */
-export default function ControlPlane() {
+export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }) {
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -107,9 +107,11 @@ export default function ControlPlane() {
   }, [pid]);
 
   useEffect(() => {
+    // Reload on auth resolve and whenever the BudgetMoves panel proposes a new
+    // change-set (refreshKey bump), so a fresh proposal surfaces here at once.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (status === "authenticated") void load();
-  }, [status, load]);
+  }, [status, load, refreshKey]);
 
   const act = (action: "create" | "approve" | "revert", id?: string, override?: boolean) =>
     run(

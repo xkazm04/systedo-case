@@ -22,30 +22,23 @@ const T = {
     savedCost: "nákladů bez ztráty hodnoty konverzí.",
     convVal: "hodnoty konverzí.",
     signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci.",
-    confirmShift: "Přesunout {amount} v Google Ads?",
-    confirmPause: "Pozastavit „{name}“?",
-    applying: "Aplikuji…",
-    confirm: "Potvrdit",
-    cancel: "Zrušit",
-    shiftApplied: "Přesun aplikován",
-    pausing: "Pozastavuji…",
-    pauseApplied: "Zdroj pozastaven",
-    applyShift: "Aplikovat přesun",
-    pauseSource: "Pozastavit zdroj",
-    applyShiftTitle: "Přesunout rozpočet mezi kampaněmi v Google Ads (živý účet)",
-    pauseSourceTitle: "Pozastavit podvýkonnou kampaň v Google Ads (živý účet)",
+    propose: "Navrhnout do control plane",
+    proposing: "Vytvářím návrh…",
+    proposed: "Návrh vytvořen — schvalte jej v control plane níže.",
+    proposeTitle:
+      "Vytvořit změnový balíček (simulace → schválení → vrácení) v Řízení rozpočtů níže",
     roasPortfolio: "ROAS portfolia",
     pnoPortfolio: "PNO portfolia",
     convValue: "Hodnota konverzí",
     valueChange: "Změna hodnoty",
     footnote:
       "Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří" +
-      " další synchronizace. „Aplikovat přesun“ je <strong>okamžitá jednotlivá úprava</strong>" +
-      " denních rozpočtů v Google Ads (živý účet, s potvrzením a auditem) — bez automatického" +
-      " vrácení. Pro dávku přesunů se simulací, schválením a vrácením použijte" +
-      " <strong>Budget management (control plane)</strong> níže.",
-    errorFailed: "Action failed.",
-    errorServer: "Could not reach the server.",
+      " další synchronizace. Akce se <strong>nespouští přímo</strong> — tlačítko vytvoří" +
+      " <strong>změnový balíček</strong> (přesuny i pozastavení) v sekci" +
+      " <strong>Řízení rozpočtů (control plane)</strong> níže, kde návrh nejdřív uvidíte" +
+      " se simulací a pojistkami, schválíte jej a kdykoli vrátíte zpět.",
+    errorFailed: "Akce se nezdařila.",
+    errorServer: "Nepodařilo se spojit se serverem.",
   },
   en: {
     heading: "Recommended budget moves",
@@ -60,52 +53,47 @@ const T = {
     savedCost: "of spend, with no conversion value lost.",
     convVal: "conversion value.",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
-    confirmShift: "Move {amount} in Google Ads?",
-    confirmPause: "Pause “{name}”?",
-    applying: "Applying…",
-    confirm: "Confirm",
-    cancel: "Cancel",
-    shiftApplied: "Shift applied",
-    pausing: "Pausing…",
-    pauseApplied: "Source paused",
-    applyShift: "Apply shift",
-    pauseSource: "Pause source",
-    applyShiftTitle: "Shift budget between campaigns in Google Ads (live account)",
-    pauseSourceTitle: "Pause underperforming campaign in Google Ads (live account)",
+    propose: "Propose to control plane",
+    proposing: "Creating proposal…",
+    proposed: "Proposal created — approve it in the control plane below.",
+    proposeTitle:
+      "Create a change package (simulate → approve → revert) in Budget management below",
     roasPortfolio: "Portfolio ROAS",
     pnoPortfolio: "Portfolio COS",
     convValue: "Conversion value",
     valueChange: "Value change",
     footnote:
       "Estimate linearly extrapolates current campaign efficiency; the next sync will verify actual impact." +
-      " “Apply shift” is a <strong>single immediate adjustment</strong> to daily budgets in Google Ads" +
-      " (live account, with confirmation and audit) — no automatic rollback. For a batch of shifts with" +
-      " simulation, approval and rollback use <strong>Budget management (control plane)</strong> below.",
+      " Nothing is applied directly — the button creates a <strong>change package</strong> (shifts and" +
+      " pauses) in <strong>Budget management (control plane)</strong> below, where you first see the" +
+      " proposal with its simulation and guardrails, approve it, and can revert it at any time.",
     errorFailed: "Action failed.",
     errorServer: "Could not reach the server.",
   },
 } as const;
 
 /** Deterministic "what to do now" panel: pairs under-target spenders with
- *  over-performers and shows the projected portfolio lift. No AI, instant — the
- *  bridge from the triage diagnosis to a quantified action. Each move can also be
- *  acted on: pause the underperforming source in Google Ads (live accounts only,
- *  human-confirmed, audited via /api/campaigns/apply). */
+ *  over-performers (and surfaces zero-return burners as pauses) and shows the
+ *  projected portfolio lift. No AI, instant — the bridge from the triage
+ *  diagnosis to a quantified action. It does NOT mutate the account directly:
+ *  the single action proposes a governed change-set into the control plane below
+ *  (simulate → guardrail → human approval → reversible ledger). */
 export default function BudgetMoves({
   campaigns,
-  onApplied,
+  onProposed,
 }: {
   campaigns: Campaign[];
-  onApplied?: () => void;
+  onProposed?: () => void;
 }) {
   const { status } = useSession();
   const authed = status === "authenticated";
-  // The active project — sent with every apply so the server audits the mutation
-  // under the same project-scoped tenant the campaigns live under.
-  const pid = useOptionalProject()?.id;
+  const project = useOptionalProject();
+  const pid = project?.id;
   // includePauses: a zero-return spender (the critical no_conversions finding)
   // surfaces here as a pause-first recommendation instead of the panel claiming
-  // "budget is balanced" while the triage banner shows a budget-burner.
+  // "budget is balanced" while the triage banner shows a budget-burner. The
+  // server-side control-plane bundle uses the same option, so the proposal
+  // matches what's shown here.
   const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics), {
     includePauses: true,
   });
@@ -114,38 +102,30 @@ export default function BudgetMoves({
   const fmt = useFormatters();
   const t = useT(T);
 
-  // Confirm/busy are keyed per action ("shift:from:to" or "pause:from") so the two
-  // actions on a row don't share state; `done` records the success label per key.
-  const [confirming, setConfirming] = useState<string | null>(null);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [done, setDone] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
+  const [proposed, setProposed] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const apply = async (
-    key: string,
-    payload: Record<string, unknown>,
-    successLabel: string
-  ) => {
-    setBusy(key);
+  const propose = async () => {
+    setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/campaigns/apply", {
+      const res = await fetch("/api/campaigns/control-plane", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pid ? { ...payload, projectId: pid } : payload),
+        body: JSON.stringify({ action: "create", projectId: pid }),
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok || !json.ok) {
+      if (!res.ok) {
         setError(json?.error ?? t("errorFailed"));
         return;
       }
-      setDone((d) => ({ ...d, [key]: successLabel }));
-      onApplied?.();
+      setProposed(true);
+      onProposed?.();
     } catch {
       setError(t("errorServer"));
     } finally {
-      setBusy(null);
-      setConfirming(null);
+      setBusy(false);
     }
   };
 
@@ -197,136 +177,47 @@ export default function BudgetMoves({
                     </span>
                   </div>
                 )}
-                <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2">
-                  {m.kind === "pause" ? (
-                    <p className="text-xs text-muted">
-                      {t("estSaving")}{" "}
-                      <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.amount)}</span>{" "}
-                      {t("savedCost")}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted">
-                      {t("estGain")}{" "}
-                      <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.estValueGain)}</span>{" "}
-                      {t("convVal")}
-                    </p>
-                  )}
-                  {(() => {
-                    // Actions touch a live Google Ads account — only offered to a
-                    // signed-in user (the server also 401s), so anonymous/sample
-                    // visitors don't see apply/pause buttons that can't work.
-                    if (!authed) {
-                      return (
-                        <span className="text-xs text-muted">{t("signIn")}</span>
-                      );
-                    }
-                    const shiftKey = `shift:${m.fromId}:${m.toId}`;
-                    const pauseKey = `pause:${m.fromId}`;
-                    const resolved = done[shiftKey] ?? done[pauseKey];
-                    if (resolved) {
-                      return (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-positive">
-                          <Check width={13} height={13} />
-                          {resolved}
-                        </span>
-                      );
-                    }
-                    if (confirming === shiftKey) {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 text-xs">
-                          <span className="text-muted">{t("confirmShift", { amount: fmt.fmtCZK(m.amount) })}</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              apply(
-                                shiftKey,
-                                {
-                                  action: "budget_shift",
-                                  fromId: m.fromId,
-                                  fromName: m.fromName,
-                                  toId: m.toId,
-                                  toName: m.toName,
-                                  amount: m.amount,
-                                },
-                                t("shiftApplied")
-                              )
-                            }
-                            disabled={busy === shiftKey}
-                            className="rounded-pill bg-brand-600 px-2.5 py-1 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                          >
-                            {busy === shiftKey ? t("applying") : t("confirm")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirming(null)}
-                            className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
-                          >
-                            {t("cancel")}
-                          </button>
-                        </span>
-                      );
-                    }
-                    if (confirming === pauseKey) {
-                      return (
-                        <span className="inline-flex items-center gap-1.5 text-xs">
-                          <span className="text-muted">{t("confirmPause", { name: m.fromName })}</span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              apply(
-                                pauseKey,
-                                { action: "pause", campaignId: m.fromId, campaignName: m.fromName },
-                                t("pauseApplied")
-                              )
-                            }
-                            disabled={busy === pauseKey}
-                            className="rounded-pill bg-coral-500 px-2.5 py-1 font-semibold text-white hover:bg-coral-600 disabled:opacity-50"
-                          >
-                            {busy === pauseKey ? t("pausing") : t("confirm")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setConfirming(null)}
-                            className="rounded-pill border border-line px-2.5 py-1 font-medium text-navy-700"
-                          >
-                            {t("cancel")}
-                          </button>
-                        </span>
-                      );
-                    }
-                    return (
-                      <span className="inline-flex items-center gap-1.5">
-                        {/* A pause recommendation has no recipient — offering a
-                            budget shift there would move money out of nothing. */}
-                        {m.kind !== "pause" && (
-                          <button
-                            type="button"
-                            onClick={() => setConfirming(shiftKey)}
-                            title={t("applyShiftTitle")}
-                            className="rounded-pill bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
-                          >
-                            {t("applyShift")}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setConfirming(pauseKey)}
-                          title={t("pauseSourceTitle")}
-                          className={
-                            m.kind === "pause"
-                              ? "rounded-pill bg-coral-500 px-2.5 py-1 text-xs font-semibold text-white transition-colors hover:bg-coral-600"
-                              : "rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-coral-400/60 hover:text-coral-600"
-                          }
-                        >
-                          {t("pauseSource")}
-                        </button>
-                      </span>
-                    );
-                  })()}
-                </div>
+                {m.kind === "pause" ? (
+                  <p className="mt-1.5 text-xs text-muted">
+                    {t("estSaving")}{" "}
+                    <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.amount)}</span>{" "}
+                    {t("savedCost")}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-muted">
+                    {t("estGain")}{" "}
+                    <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.estValueGain)}</span>{" "}
+                    {t("convVal")}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
+
+          {/* single governed action: propose the whole bundle into the control plane */}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            {authed ? (
+              proposed ? (
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-positive">
+                  <Check width={15} height={15} />
+                  {t("proposed")}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={propose}
+                  disabled={busy}
+                  title={t("proposeTitle")}
+                  className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+                >
+                  <Bolt width={15} height={15} />
+                  {busy ? t("proposing") : t("propose")}
+                </button>
+              )
+            ) : (
+              <span className="text-xs text-muted">{t("signIn")}</span>
+            )}
+          </div>
 
           {error && <p className="mt-3 text-sm text-negative">{error}</p>}
 
