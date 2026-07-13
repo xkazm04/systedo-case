@@ -2,7 +2,7 @@
 
 import { Bulb, TrendDown, TrendUp } from "@/components/icons";
 import { weekWord } from "./plural";
-import { weekdayName } from "@/components/dashboard/WeekdayProfileCard";
+import { weekdayName } from "@/components/dashboard/vykon/plural";
 import {
   metricShort,
   METRICS,

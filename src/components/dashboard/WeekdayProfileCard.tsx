@@ -5,6 +5,7 @@ import type { WeekdayProfilePoint } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { SupportedLocale } from "@/lib/format";
+import { weekdayName } from "@/components/dashboard/vykon/plural";
 
 const T = {
   cs: {
@@ -25,23 +26,11 @@ const T = {
   },
 } as const;
 
-/** Full weekday names indexed by UTC day-of-week (0 = Sunday), per locale.
- *  Hardcoded (not Intl) so server and client render byte-identically. */
-const DAY_NAMES: Record<SupportedLocale, string[]> = {
-  cs: ["neděle", "pondělí", "úterý", "středa", "čtvrtek", "pátek", "sobota"],
-  en: ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-};
-
-/** Two-letter axis labels, same indexing. */
+/** Two-letter axis labels, indexed by UTC day-of-week (0 = Sunday). */
 const DAY_SHORT: Record<SupportedLocale, string[]> = {
   cs: ["Ne", "Po", "Út", "St", "Čt", "Pá", "So"],
   en: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
 };
-
-/** Localised full weekday name for a UTC day-of-week index. */
-export function weekdayName(day: number, locale: SupportedLocale): string {
-  return (DAY_NAMES[locale] ?? DAY_NAMES.cs)[day] ?? "";
-}
 
 /** Monday-first display order (Czech + European convention). */
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0];

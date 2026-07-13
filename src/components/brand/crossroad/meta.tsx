@@ -16,7 +16,7 @@ export interface CrossroadMeta {
 /** The four destinations moved out of the header, in journey order. */
 export const CROSSROAD_HREFS = ["/dashboard", "/clanek", "/ai-asistent", "/kampane"] as const;
 
-export const CROSSROAD_META: Record<string, CrossroadMeta> = {
+export const CROSSROAD_META: Record<(typeof CROSSROAD_HREFS)[number], CrossroadMeta> = {
   "/dashboard": { icon: Gauge, image: "/brand/crossroad/dashboard.png" },
   "/clanek": { icon: Document, image: "/brand/crossroad/clanek.png" },
   "/ai-asistent": { icon: Sparkles, image: "/brand/crossroad/ai-asistent.png" },

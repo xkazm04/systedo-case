@@ -5,6 +5,7 @@
  *
  *  Requires GOOGLE_ADS_DEVELOPER_TOKEN; without it the connector stays on sample
  *  data and these functions are never called. */
+import "server-only";
 import {
   CAMPAIGN_PERIOD_DAYS,
   type Campaign,

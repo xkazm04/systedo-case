@@ -3,6 +3,7 @@
  *  (their OAuth token + the app's developer token) and maps the result into the
  *  framework-free RawKeywordIdea model. Requires GOOGLE_ADS_DEVELOPER_TOKEN;
  *  without it the engine stays on sample data and this is never called. */
+import "server-only";
 import type { Competition, RawKeywordIdea } from "@/lib/keywords/types";
 
 const API_VERSION = "v18";

@@ -46,7 +46,9 @@ export default function Crossroad({ items }: { items: CrossroadItem[] }) {
 
       <div className="mt-9 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {items.map((item, i) => {
-          const meta = CROSSROAD_META[item.href];
+          // item.href is a general NavItem href; the map only covers the four
+          // crossroad destinations, so look it up as a possibly-absent key.
+          const meta = CROSSROAD_META[item.href as keyof typeof CROSSROAD_META];
           if (!meta) return null;
           const Icon = meta.icon;
           return (
