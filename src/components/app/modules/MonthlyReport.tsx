@@ -18,6 +18,7 @@ import CostModelEditor, { type CostModelView } from "@/components/app/modules/Co
 import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
 import type { Competitor } from "@/lib/competitors/types";
 import ReportBeyond, { type ReportBeyondData } from "@/components/app/modules/ReportBeyond";
+import Modal from "@/components/app/Modal";
 
 const T = {
   cs: {
@@ -26,6 +27,10 @@ const T = {
     liveData: "Živá data · Google Ads", syncedAt: "synchronizováno {date}",
     syncCta: "Synchronizovat z Google Ads", resync: "Synchronizovat znovu", syncing: "Synchronizuji…",
     syncFailed: "Synchronizace se nezdařila.",
+    unlink: "Odpojit živá data", unlinking: "Odpojuji…", unlinkFailed: "Odpojení se nezdařilo.",
+    unlinkTitle: "Odpojit živá data?",
+    unlinkDesc: "Report i AI souhrn se vrátí k ukázkovým datům. Napojený účet Google Ads zůstane zachovaný — data můžete kdykoli znovu synchronizovat.",
+    unlinkConfirm: "Odpojit", cancel: "Zrušit",
     narrativeHeading: "Souhrn od AI", generate: "Vygenerovat souhrn", regenerate: "Vygenerovat znovu", generating: "Generuji…",
     idle: "Nech AI sestavit shrnutí výkonu za období na základě čísel výše.",
     error: "Souhrn se nepodařilo vygenerovat.", retry: "Zkusit znovu",
@@ -38,6 +43,10 @@ const T = {
     liveData: "Live data · Google Ads", syncedAt: "synced {date}",
     syncCta: "Sync from Google Ads", resync: "Re-sync", syncing: "Syncing…",
     syncFailed: "Sync failed.",
+    unlink: "Disconnect live data", unlinking: "Disconnecting…", unlinkFailed: "Disconnect failed.",
+    unlinkTitle: "Disconnect live data?",
+    unlinkDesc: "The report and the AI summary revert to sample data. The linked Google Ads account stays connected — you can re-sync at any time.",
+    unlinkConfirm: "Disconnect", cancel: "Cancel",
     narrativeHeading: "AI summary", generate: "Generate summary", regenerate: "Regenerate", generating: "Generating…",
     idle: "Let the AI compile a performance summary for the period based on the figures above.",
     error: "Could not generate the summary.", retry: "Try again",
@@ -91,6 +100,8 @@ export default function MonthlyReport({
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
   const [syncing, setSyncing] = useState(false);
   const [syncErr, setSyncErr] = useState<string | null>(null);
+  const [unlinkOpen, setUnlinkOpen] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
   const { status, data, run, reset } = useAiTool<MonthlyRecapResult>("monthly-recap", period);
 
   async function syncNow() {
@@ -106,6 +117,26 @@ export default function MonthlyReport({
       setSyncErr(t("syncFailed"));
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function unlinkNow() {
+    if (!projectId || unlinking) return;
+    setUnlinking(true);
+    setSyncErr(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/metrics/sync`, { method: "DELETE" });
+      const json = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+      if (res.ok && json.ok) {
+        setUnlinkOpen(false);
+        router.refresh();
+      } else {
+        setSyncErr(json.error || t("unlinkFailed"));
+      }
+    } catch {
+      setSyncErr(t("unlinkFailed"));
+    } finally {
+      setUnlinking(false);
     }
   }
 
@@ -214,14 +245,24 @@ export default function MonthlyReport({
             {syncedAt ? ` · ${t("syncedAt", { date: syncedAt.slice(0, 10) })}` : ""}
           </span>
           {projectId && (
-            <button
-              type="button"
-              onClick={syncNow}
-              disabled={syncing}
-              className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50 print:hidden"
-            >
-              {syncing ? t("syncing") : t("resync")}
-            </button>
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                type="button"
+                onClick={syncNow}
+                disabled={syncing || unlinking}
+                className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
+              >
+                {syncing ? t("syncing") : t("resync")}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setSyncErr(null); setUnlinkOpen(true); }}
+                disabled={syncing || unlinking}
+                className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-muted transition-colors hover:border-coral-400 hover:text-coral-600 disabled:opacity-50"
+              >
+                {t("unlink")}
+              </button>
+            </div>
           )}
         </div>
       ) : (
@@ -242,6 +283,36 @@ export default function MonthlyReport({
           {syncErr && <p className="mt-2 text-negative">{syncErr}</p>}
         </div>
       )}
+
+      {/* Unlink confirm — reverts the report + recap to sample data. Shared Modal. */}
+      <Modal
+        open={unlinkOpen}
+        onClose={() => !unlinking && setUnlinkOpen(false)}
+        title={t("unlinkTitle")}
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            {syncErr && <p className="mr-auto text-xs text-negative">{syncErr}</p>}
+            <button
+              type="button"
+              onClick={() => setUnlinkOpen(false)}
+              disabled={unlinking}
+              className="rounded-pill border border-line bg-surface px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={unlinkNow}
+              disabled={unlinking}
+              className="rounded-pill bg-coral-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-coral-500 disabled:opacity-50"
+            >
+              {unlinking ? t("unlinking") : t("unlinkConfirm")}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-navy-700">{t("unlinkDesc")}</p>
+      </Modal>
 
       {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
       {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} />}
