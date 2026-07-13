@@ -202,7 +202,34 @@ const PAID_VISIT_SHARE =
 const CTR_START = 0.016; // blended paid CTR at the start of the two years
 const CTR_LIFT = 0.004; // gentle improvement across the trend span
 
+// --- per-day channel mix (time dimension) -------------------------------------
+// The static `channels` constant above is a single snapshot; real accounts shift
+// budget between channels over time. We emit a per-day mix so the engine can show
+// REAL per-channel deltas and detect a mix shift, instead of redistributing the
+// aggregate delta identically to every channel.
+//
+// Story: the agency reallocates toward Sklik (Seznam) and away from Meta as Sklik
+// proves more efficient. The move is RECENT-WEIGHTED (ramp = t^MIX_RAMP_POW) rather
+// than a gentle two-year ramp, because a mix shift is only *detectable* on adjacent
+// windows if it actually accelerates — a smooth 2-year drift barely moves between
+// one 90-day window and the one before it. Sklik gains and Meta loses the SAME
+// per-dimension amount each day, so every dimension's shares still sum to ~1 with
+// no renormalisation. A separate per-day PRNG (seeded off the shared hash, not the
+// main `rnd` stream) keeps the visits/cost/conversions/revenue series byte-identical.
+const SKLIK_IDX = channels.findIndex((c) => c.channel.startsWith("Sklik"));
+const META_IDX = channels.findIndex((c) => c.channel.startsWith("Meta"));
+const MIX_DRIFT = 0.11; // full-span share moved from Meta to Sklik, per dimension
+const MIX_RAMP_POW = 5; // recent-weighting exponent (higher = more concentrated late)
+const CHANNEL_DIMS = [
+  ["visits", "visit"],
+  ["cost", "cost"],
+  ["conversions", "conv"],
+  ["revenue", "rev"],
+];
+const roundShare = (x) => Number(x.toFixed(4));
+
 const daily = [];
+const channelDaily = [];
 
 for (let i = 0; i < DAYS; i++) {
   const date = new Date(asOfDate);
@@ -263,6 +290,29 @@ for (let i = 0; i < DAYS; i++) {
     conversions,
     revenue,
   });
+
+  // Per-day channel mix. Start from the static base shares, then move MIX_DRIFT
+  // (recent-weighted) from Meta to Sklik on every dimension, plus a tiny per-day
+  // jitter applied symmetrically so the two channels stay a zero-sum pair.
+  const ramp = Math.pow(Math.min(1, t), MIX_RAMP_POW);
+  const cj = mulberry32(hashStr(`chan:${dateStr}`) ^ SEED);
+  const dayShares = channels.map((c) => ({
+    visits: c.visit,
+    cost: c.cost,
+    conversions: c.conv,
+    revenue: c.rev,
+  }));
+  if (SKLIK_IDX >= 0 && META_IDX >= 0) {
+    for (const [dimKey, baseKey] of CHANNEL_DIMS) {
+      // Cap the move so Meta's share never dips below a 0.01 floor; the SAME capped
+      // value is added to Sklik and subtracted from Meta, so the dimension sum holds.
+      const wanted = MIX_DRIFT * ramp * (1 + (cj() * 2 - 1) * 0.05);
+      const move = Math.min(wanted, channels[META_IDX][baseKey] - 0.01);
+      dayShares[SKLIK_IDX][dimKey] = roundShare(dayShares[SKLIK_IDX][dimKey] + move);
+      dayShares[META_IDX][dimKey] = roundShare(dayShares[META_IDX][dimKey] - move);
+    }
+  }
+  channelDaily.push({ date: dateStr, shares: dayShares });
 }
 
 // Managing agency shown in the dataset. Kept as a single constant so a rebrand
@@ -300,6 +350,9 @@ const dataset = {
   events: EVENTS.map(({ date, label, kind, days }) =>
     days && days > 1 ? { date, label, kind, days } : { date, label, kind }
   ),
+  // Per-day channel mix (index-parallel to `channels`) — the time dimension that
+  // makes per-channel deltas real and a mix shift detectable.
+  channelDaily,
   daily,
 };
 

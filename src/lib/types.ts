@@ -14,16 +14,33 @@ export interface DailyPoint {
   clicks?: number;
 }
 
+/** Per-dimension channel shares (each dimension sums to ~1 across channels). */
+export interface ChannelShareDims {
+  visits: number;
+  cost: number;
+  conversions: number;
+  revenue: number;
+}
+
 export interface ChannelShare {
   channel: string;
   color: string;
   /** Fraction of the total each channel represents on each dimension (each dim sums to 1). */
-  shares: {
-    visits: number;
-    cost: number;
-    conversions: number;
-    revenue: number;
-  };
+  shares: ChannelShareDims;
+}
+
+/** One day's channel mix — the time dimension the static `channels` constant lacks.
+ *  `shares` is index-parallel to `PerformanceData.channels` (same order, same length),
+ *  so a day carries only four numbers per channel and never repeats the channel name.
+ *  Present ONLY on datasets that emit it (the seeded samples); a live account-level
+ *  sync omits `channelDaily` entirely and the engine falls back to the static mix, so
+ *  every existing dataset stays byte-identical. Chosen over a per-`DailyPoint` nested
+ *  breakdown because it keeps the hot daily series lean and the mix opt-in/removable. */
+export interface ChannelDailyShare {
+  /** ISO date, YYYY-MM-DD — aligned to a `daily` point */
+  date: string;
+  /** per-channel shares for this day, indexed parallel to `channels` */
+  shares: ChannelShareDims[];
 }
 
 /** Kind of an authored story event baked into the demo series by the generator. */
@@ -63,6 +80,9 @@ export interface PerformanceData {
   channels: ChannelShare[];
   /** authored story-event calendar (optional — older datasets lack it) */
   events?: PerformanceEvent[];
+  /** per-day channel mix (optional — enables REAL per-channel deltas and mix-shift
+   *  detection; absent → the engine projects the static `channels` mix as before) */
+  channelDaily?: ChannelDailyShare[];
   daily: DailyPoint[];
 }
 

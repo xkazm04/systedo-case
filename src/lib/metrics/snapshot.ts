@@ -12,7 +12,7 @@ import {
   type PeriodBaseline,
   type Significance,
 } from "./series";
-import { channelRowsCompared, type ChannelRow } from "./channels";
+import { channelRowsCompared, resolveChannelTime, type ChannelRow } from "./channels";
 import { detectAnomalies, type Anomaly } from "./anomalies";
 import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
@@ -21,8 +21,10 @@ import { decomposeRevenueMove, type FunnelAttribution } from "./funnel";
 import { weekdayWeightsBundle } from "./seasonality";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
- *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
-export const SNAPSHOT_SCHEMA_VERSION = 4;
+ *  (and any future /api/snapshot consumer) can detect a schema mismatch.
+ *  v5: channel rows may carry `revenueShareDelta` (real mix-shift) when the dataset
+ *  supplies a per-day channel mix; legacy datasets omit it and read identically. */
+export const SNAPSHOT_SCHEMA_VERSION = 5;
 
 export interface SnapshotPeriod {
   key: string;
@@ -87,6 +89,15 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
   // trend and pacing passes, which each used to re-derive them (~6 redundant
   // passes per build). No global cache — just plumbed through this one build.
   const weights = weekdayWeightsBundle(data.daily);
+  // Time-resolve the channel mix when the dataset carries a per-day breakdown that
+  // covers both comparison windows — else undefined, and channelRowsCompared keeps
+  // its static projection (byte-identical for live/legacy datasets).
+  const channelTime = resolveChannelTime(
+    data.channels.length,
+    data.channelDaily,
+    result.points,
+    result.comparePoints
+  );
   return {
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     period: { key: period.key, label: period.label, days: period.days },
@@ -98,7 +109,7 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     delta: result.delta,
     significance: result.significance,
     buckets: bucketize(result.points, granularity),
-    channels: channelRowsCompared(data.channels, result.current, result.previous),
+    channels: channelRowsCompared(data.channels, result.current, result.previous, channelTime),
     anomalies: detectAnomalies(data.daily, data.goals, { weights }),
     trends: detectTrends(data.daily, { weights }),
     // Attribute the revenue move across the funnel only when it's a real signal —

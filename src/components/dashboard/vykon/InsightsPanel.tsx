@@ -34,6 +34,8 @@ const T = {
     insightWeekday:
       "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
     insightFunnel: "Změnu obratu táhne hlavně {driver} ({share} vlivu).",
+    insightMixUp: "Podíl kanálu {channel} vzrostl o {pp} p.b. za období.",
+    insightMixDown: "Podíl kanálu {channel} klesl o {pp} p.b. za období.",
     funnelTraffic: "návštěvnost",
     funnelConversion: "konverzní poměr",
     funnelAov: "průměrná objednávka",
@@ -55,6 +57,8 @@ const T = {
     insightWeekday:
       "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
     insightFunnel: "The revenue move is driven mainly by {driver} ({share} of the effect).",
+    insightMixUp: "{channel}'s share rose by {pp} pp over the period.",
+    insightMixDown: "{channel}'s share fell by {pp} pp over the period.",
     funnelTraffic: "traffic",
     funnelConversion: "conversion rate",
     funnelAov: "average order value",
@@ -76,6 +80,11 @@ interface Insight {
 
 /** Below ±0.5 % a revenue move is noise, not a story worth surfacing. */
 const MIN_REVENUE_DELTA_TO_REPORT = 0.005;
+/** Report a channel mix shift only at a ≥3-percentage-point move in revenue share
+ *  (current vs previous equal-length window). Below this the composition change is
+ *  within ordinary week-to-week wobble and not worth a headline. Only ever non-zero
+ *  on the time-resolved path (a dataset with a per-day channel mix). */
+const MIX_SHIFT_TO_REPORT = 0.03;
 /** Flag "room to optimise bids" only when the worst channel's PNO is ≥30 % over goal. */
 const WORST_PNO_FLAG_MULTIPLE = 1.3;
 /** Report the day-of-week shape only at a ≥15 pp strongest-vs-weakest spread. */
@@ -128,6 +137,35 @@ function buildInsights(
             metric: metricShort(METRICS[tr.metric], locale),
             weeks: `${tr.weeks} ${weekWord(tr.weeks, locale)}`,
             pct: fmt.fmtSignedPct(tr.cumulativeChange),
+          })}
+        </>
+      ),
+    });
+  }
+
+  // Mix shift: the biggest move in any channel's REVENUE SHARE over the period —
+  // only ever present on the time-resolved path, where each channel is summed from
+  // its own daily mix (the static projection holds every share constant, so
+  // revenueShareDelta is undefined there). Ranked "strong": a move past the
+  // threshold is a real composition change, not aggregate noise redistributed.
+  const mixShift = channels
+    .filter((ch) => ch.revenueShareDelta !== undefined)
+    .reduce<ChannelRow | null>(
+      (top, ch) =>
+        Math.abs(ch.revenueShareDelta ?? 0) > Math.abs(top?.revenueShareDelta ?? 0) ? ch : top,
+      null
+    );
+  if (mixShift && Math.abs(mixShift.revenueShareDelta ?? 0) >= MIX_SHIFT_TO_REPORT) {
+    const d = mixShift.revenueShareDelta ?? 0;
+    out.push({
+      tone: "info",
+      significance: "strong",
+      magnitude: Math.abs(d),
+      text: (
+        <>
+          {t(d > 0 ? "insightMixUp" : "insightMixDown", {
+            channel: mixShift.channel,
+            pp: fmt.fmtInt(Math.abs(d) * 100),
           })}
         </>
       ),

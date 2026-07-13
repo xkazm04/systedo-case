@@ -21,6 +21,7 @@ import {
   monthlyAttainmentHistory,
   monthlyPacing,
   PERIODS,
+  resolveChannelTime,
   seriesCoverage,
   TREND_METRICS,
   weekdayProfile,
@@ -97,7 +98,16 @@ export default function DashboardClient({
   // Bucketize the comparison window too so the chart can overlay it (index-aligned).
   const compareBuckets = bucketize(result.comparePoints, period.granularity);
   const c = result.current;
-  const channels = channelRowsCompared(data.channels, result.current, result.previous);
+  // Time-resolve the channel mix when the dataset carries a per-day breakdown, so
+  // the channel table shows REAL per-channel deltas + a mix-shift insight; falls
+  // back to the static projection otherwise (live/legacy datasets unchanged).
+  const channelTime = resolveChannelTime(
+    data.channels.length,
+    data.channelDaily,
+    result.points,
+    result.comparePoints
+  );
+  const channels = channelRowsCompared(data.channels, result.current, result.previous, channelTime);
   const hasAlerts = topAnomalies.length > 0;
 
   return (
