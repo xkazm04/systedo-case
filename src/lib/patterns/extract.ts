@@ -13,7 +13,10 @@ import {
 } from "@/lib/campaigns/types";
 import { getReportHistories, listCampaigns } from "@/lib/campaigns/store";
 import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
-import { fmtCZK, fmtMultiple, fmtPct } from "@/lib/format";
+import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
+import { evaluate } from "@/lib/lp-exp/compute";
+import { SAMPLE_EXPERIMENTS, type LpExperiment } from "@/lib/lp-exp/sample";
+import { SAMPLE_ATTRIBUTION, type ChannelPerf } from "@/lib/distribution/sample";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
 import type { Pattern, PatternCategory } from "./types";
 
@@ -148,9 +151,128 @@ export function minePatterns(
   return out;
 }
 
+/** The tested angle behind a variant label like "B · Důraz na šablony" → "Důraz na
+ *  šablony" (the part after the "·" prefix). Falls back to the whole label when
+ *  there is no prefix, so a bare hypothesis label still reads sensibly. */
+function variantAngle(label: string): string {
+  const parts = label.split("·");
+  return (parts.length > 1 ? parts.slice(1).join("·") : label).trim();
+}
+
+/** Pure `creative`-category miner: a WON landing-page experiment variant becomes a
+ *  reusable creative angle. Reads the LP-experiment module's OWN verdict (`evaluate`
+ *  from @/lib/lp-exp) so only a statistically significant winner over control is
+ *  mined — a leading-but-unproven arm is not a lesson yet. The control→winner CVR
+ *  jump and the tested hypothesis are rendered from the stored outcome, so the
+ *  pattern reconciles with the experiments module. No I/O → directly unit-testable.
+ *  Empty input (or no proven winner) → no patterns. */
+export function mineCreativePatterns(experiments: LpExperiment[]): Pattern[] {
+  const out: Pattern[] = [];
+  for (const exp of experiments) {
+    const r = evaluate(exp);
+    if (!r.significant || !r.winner) continue;
+    const control = r.variants.find((v) => v.isControl);
+    if (!control) continue;
+    const angle = variantAngle(r.winner.label);
+    out.push(
+      mk(
+        `Vítězný úhel: „${angle}" (${r.cluster})`,
+        "creative",
+        `Hypotéza „${angle}" zvedla konverzi z ${fmtPct(control.cvr)} na ${fmtPct(r.winner.cvr)} — použijte tento úhel i v dalších kreativách a inzerátech.`,
+        `Klastr „${r.cluster}": ${fmtSignedPct(r.winner.uplift)} vs. kontrola, ${fmtPct(r.confidence)} jistota (${fmtInt(r.winner.visitors)} návštěvníků).`
+      )
+    );
+  }
+  return out;
+}
+
+/** Pure `targeting`-category miner: per-channel CTR outliers from the distribution
+ *  learnings become targeting lessons — a channel that clearly beats (or trails)
+ *  the mean CTR of its peers is where budget/cílení should shift. Needs ≥3 channels
+ *  with reach so "peers" is meaningful; emits at most one over- and one
+ *  under-performer, and only when the gap clears the outlier threshold. No I/O →
+ *  directly unit-testable. Fewer than 3 channels, or no clear outlier → no patterns. */
+export function mineTargetingPatterns(channels: ChannelPerf[]): Pattern[] {
+  const rows = channels
+    .filter((c) => c.reach > 0)
+    .map((c) => ({ channel: c.channel, ctr: c.clicks / c.reach }));
+  if (rows.length < 3) return [];
+
+  // Peer mean = the mean CTR of the OTHER channels (excludes the candidate itself),
+  // so an outlier is judged against its peers, not against a benchmark it skews.
+  const peerMean = (idx: number) => {
+    const others = rows.filter((_, i) => i !== idx);
+    return others.reduce((a, r) => a + r.ctr, 0) / others.length;
+  };
+  const withPeer = rows.map((r, i) => ({ ...r, peer: peerMean(i) }));
+  const OUTLIER = 0.25; // ≥25 % above / below the peer mean CTR to count as an outlier
+
+  const out: Pattern[] = [];
+  const over = [...withPeer]
+    .filter((r) => r.peer > 0)
+    .sort((a, b) => b.ctr / b.peer - a.ctr / a.peer)[0];
+  if (over && over.ctr >= over.peer * (1 + OUTLIER)) {
+    out.push(
+      mk(
+        `Nadvýkonný kanál: ${over.channel}`,
+        "targeting",
+        `${over.channel} má výrazně vyšší CTR než ostatní kanály — přesuňte sem víc rozpočtu i cílení a stavte na něm jako na primárním kanálu.`,
+        `CTR ${fmtPct(over.ctr)} vs. ${fmtPct(over.peer)} průměr ostatních kanálů (${fmtMultiple(over.ctr / over.peer)}).`
+      )
+    );
+  }
+  const under = [...withPeer]
+    .filter((r) => r.peer > 0 && r.channel !== over?.channel)
+    .sort((a, b) => a.ctr / a.peer - b.ctr / b.peer)[0];
+  if (under && under.ctr <= under.peer * (1 - OUTLIER)) {
+    out.push(
+      mk(
+        `Podvýkonný kanál: ${under.channel}`,
+        "targeting",
+        `${under.channel} zaostává za ostatními kanály v CTR — přehodnoťte cílení a kreativu, nebo rozpočet přesuňte na silnější kanály.`,
+        `CTR ${fmtPct(under.ctr)} vs. ${fmtPct(under.peer)} průměr ostatních kanálů.`
+      )
+    );
+  }
+  return out;
+}
+
+/** The creative/targeting lessons mined from the LP-experiment + distribution
+ *  modules' resolved data. Both source stores are SAMPLE-ONLY (never persisted —
+ *  each module renders per-project-scaled sample data whose CVR/CTR *rates* are
+ *  project-invariant), so these lessons are demo-derived, not account-derived.
+ *  That is why they are a separate producer from `minePatterns` (which mines the
+ *  tenant's own synced campaigns): the library shows them as illustrative lessons
+ *  for every tenant, but the AI-prompt path must NOT present them as proven wins
+ *  from a live account — see `promptSafePatterns`. The "(ukázková lekce)" suffix
+ *  keeps the rendered insight honest wherever it appears. */
+export function sampleLessonPatterns(): Pattern[] {
+  const mark = (p: Pattern): Pattern => ({ ...p, insight: `${p.insight} (ukázková lekce)` });
+  return [
+    ...mineCreativePatterns(SAMPLE_EXPERIMENTS),
+    ...mineTargetingPatterns(SAMPLE_ATTRIBUTION),
+  ].map(mark);
+}
+
+/** Truth-in-labeling gate for the AI-prompt path (`getPatternLines`): a LIVE
+ *  tenant's prompts must contain only lessons mined from their real data plus
+ *  their own manual saves — never the demo-derived sample lessons above (those
+ *  would be fabricated evidence "from this account"). A sample/demo tenant keeps
+ *  them: there the whole surface is illustrative. Matching is by the stable id
+ *  (sha1 of title), so a manually SAVED copy of a sample lesson gets a random
+ *  store id and is deliberately kept — the user chose to endorse it. Pure. */
+export function promptSafePatterns(patterns: Pattern[], liveTenant: boolean): Pattern[] {
+  if (!liveTenant) return patterns;
+  const sampleIds = new Set(sampleLessonPatterns().map((p) => p.id));
+  return patterns.filter((p) => !sampleIds.has(p.id));
+}
+
 /** Derive patterns from the tenant's current campaign set + score history.
  *  Loads both from the store, then delegates to the pure `minePatterns`. See it
- *  for the `pnoGoal` contract (defaults to the paid-portfolio 0.18). Server-only. */
+ *  for the `pnoGoal` contract (defaults to the paid-portfolio 0.18). Campaign-
+ *  derived ONLY — the sample-derived creative/targeting lessons are composed in by
+ *  `getLibrary` via `sampleLessonPatterns` so the prompt path can tell the two
+ *  producers apart. Server-only. */
 export async function extractPatterns(
   tenant: string,
   pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO

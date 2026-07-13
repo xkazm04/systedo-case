@@ -4,7 +4,8 @@
  *  ones a user chose to keep. Server-only. */
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
-import { extractPatterns } from "./extract";
+import { getSyncMeta } from "@/lib/campaigns/store";
+import { extractPatterns, promptSafePatterns, sampleLessonPatterns } from "./extract";
 import { cosine, embedTexts } from "./embeddings";
 import { isPatternCategory, type Pattern, type PatternCategory, type RankedPattern } from "./types";
 
@@ -56,9 +57,23 @@ export async function getLibrary(
   tenant: string,
   pnoGoal?: number
 ): Promise<{ auto: Pattern[]; saved: Pattern[] }> {
-  const [auto, saved] = await Promise.all([extractPatterns(tenant, pnoGoal), listSavedPatterns(tenant)]);
+  const [mined, saved] = await Promise.all([extractPatterns(tenant, pnoGoal), listSavedPatterns(tenant)]);
+  // Campaign-mined patterns + the demo-derived creative/targeting sample lessons.
+  // The library is a lessons surface, so sample lessons show for every tenant
+  // (their insight says "(ukázková lekce)"); the AI-prompt path filters them out
+  // for live tenants in getPatternLines instead.
+  const auto = [...mined, ...sampleLessonPatterns()];
   const savedTitles = new Set(saved.map((p) => p.title.toLowerCase()));
   return { auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())), saved };
+}
+
+/** Is this tenant's stored campaign set LIVE account data? True only when the
+ *  last sync came from a live source and did NOT degrade to the sample fallback —
+ *  the same truth-in-labeling signal the campaigns UI uses (SyncMeta.source +
+ *  degraded). Never-synced / sample / degraded tenants read as not-live. */
+async function isLiveTenant(tenant: string): Promise<boolean> {
+  const meta = await getSyncMeta(tenant);
+  return Boolean(meta && meta.source !== "sample" && !meta.degraded);
 }
 
 /** Semantic search over the tenant's library (saved + auto): ranks patterns by
@@ -106,8 +121,14 @@ export async function getPatternLines(
   limit = 6,
   pnoGoal?: number
 ): Promise<string[]> {
-  const { auto, saved } = await getLibrary(tenant, pnoGoal);
-  const all = [...saved, ...auto];
+  const [{ auto, saved }, live] = await Promise.all([
+    getLibrary(tenant, pnoGoal),
+    isLiveTenant(tenant),
+  ]);
+  // Prompt integrity: a live tenant's "proven patterns from this account" block
+  // must not carry the demo-derived sample lessons (see promptSafePatterns) —
+  // only lessons mined from their real data and their own manual saves.
+  const all = promptSafePatterns([...saved, ...auto], live);
   if (all.length === 0) return [];
   const line = (p: Pattern) => `- ${p.title}: ${p.insight}`;
 
