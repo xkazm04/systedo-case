@@ -2,7 +2,7 @@
  *  else Firestore) plus the high-level operations the settings API and the LLM
  *  wrapper use. Persists which provider keys a user has connected (ENCRYPTED) and
  *  which vendor is active, so switching provider needs no re-entry of the key. The
- *  decrypted key never leaves the server except through `resolveActiveByomKey`
+ *  decrypted key never leaves the server except through `resolveByomForOperation`
  *  (the call-time seam). Server-only. */
 import { LOCAL_DB } from "@/lib/local-mode";
 import { decryptByomKey, encryptByomKey, hasByomCrypto } from "./crypto";
@@ -184,21 +184,6 @@ function resolveFromConfig(cfg: StoredByomConfig, vendor: ByomVendor): ResolvedB
     ...(k.model ? { model: k.model } : {}),
     ...(k.fastModel ? { fastModel: k.fastModel } : {}),
   };
-}
-
-/** Decrypt the ACTIVE vendor's key for a generation. Returns null when BYOM isn't
- *  set up (no active vendor / no key) or the blob can't be decrypted (missing or
- *  rotated secret). Callers gate this on the user's plan entitlement. */
-export async function resolveActiveByomKey(userId: string): Promise<ResolvedByomKey | null> {
-  const cfg = await get(userId);
-  if (!cfg.activeVendor) return null;
-  // Skip a key whose latest validation failed → generation falls back to the app's
-  // own providers rather than dispatching through a key known to be broken.
-  if (latestValidationFailed(cfg.keys[cfg.activeVendor])) return null;
-  const resolved = resolveFromConfig(cfg, cfg.activeVendor);
-  // Present but undecryptable → flag it instead of silently downgrading to app providers.
-  if (!resolved && cfg.keys[cfg.activeVendor]) flagUndecryptableKey(userId, cfg.activeVendor);
-  return resolved;
 }
 
 /** Decrypt a SPECIFIC vendor's key regardless of which is active — the "test

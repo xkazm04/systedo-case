@@ -68,7 +68,3 @@ export async function mutateByomConfig(
     return next;
   });
 }
-
-export async function deleteByomConfig(userId: string): Promise<void> {
-  await byomDoc(userId).delete();
-}

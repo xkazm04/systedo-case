@@ -605,8 +605,8 @@ export function validateLeadSourceDiagnosisRequest(
   if (spend > 0) {
     value.spend = spend;
     // CPL / CPQL are only meaningful with spend; derive from counts when omitted.
-    const cpql = o.cpql == null ? (leads > 0 ? spend / leads : 0) : fin(o.cpql);
-    if (cpql > 0) value.cpql = cpql;
+    const cpl = o.cpl == null ? (leads > 0 ? spend / leads : 0) : fin(o.cpl);
+    if (cpl > 0) value.cpl = cpl;
     const costPerQualified =
       o.costPerQualified == null ? (qualified > 0 ? spend / qualified : 0) : fin(o.costPerQualified);
     if (costPerQualified > 0) value.costPerQualified = costPerQualified;

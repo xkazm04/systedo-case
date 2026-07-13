@@ -71,7 +71,3 @@ export async function mutateByomConfig(
     throw err;
   }
 }
-
-export async function deleteByomConfig(userId: string): Promise<void> {
-  getDb().prepare("DELETE FROM byom_config WHERE user_id = ?").run(userId);
-}

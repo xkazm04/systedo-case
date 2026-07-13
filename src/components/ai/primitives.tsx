@@ -156,22 +156,6 @@ export function CharCount({ value, limit }: { value: number; limit: number }) {
   );
 }
 
-/** A single generated text line with its character count and a copy button. */
-export function TextRow({ text, limit }: { text: string; limit: number }) {
-  const over = text.length > limit;
-  return (
-    <li
-      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-        over ? "border-negative/40 bg-negative-soft" : "border-line bg-surface"
-      }`}
-    >
-      <span className="min-w-0 flex-1 text-sm text-navy-800">{text}</span>
-      <CharCount value={text.length} limit={limit} />
-      <CopyButton text={text} label="" />
-    </li>
-  );
-}
-
 /** Labelled result section. */
 export function Group({
   title,

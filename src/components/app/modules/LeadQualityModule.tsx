@@ -172,7 +172,7 @@ export default async function LeadQualityModule({ sources }: { sources: LeadSour
     };
     if (r.spend > 0) {
       seed.spend = r.spend;
-      seed.cpql = r.cpl;
+      seed.cpl = r.cpl;
       seed.costPerQualified = r.cpql;
     }
     // Peer sources (best-first by quality score, excluding self) so the diagnosis

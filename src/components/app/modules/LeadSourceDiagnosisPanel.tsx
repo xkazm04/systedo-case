@@ -77,7 +77,7 @@ export interface LeadSourceSeed {
   winRate: number;
   /** only set for paid sources */
   spend?: number;
-  cpql?: number;
+  cpl?: number;
   costPerQualified?: number;
   /** flagged as junk by the module's threshold (drives the badge) */
   junk: boolean;
@@ -96,7 +96,7 @@ function buildRequest(seed: LeadSourceSeed): LeadSourceDiagnosisRequest {
     winRate: seed.winRate,
   };
   if (seed.spend != null && seed.spend > 0) req.spend = seed.spend;
-  if (seed.cpql != null) req.cpql = seed.cpql;
+  if (seed.cpl != null) req.cpl = seed.cpl;
   if (seed.costPerQualified != null) req.costPerQualified = seed.costPerQualified;
   if (seed.peers && seed.peers.length > 0) req.peers = seed.peers;
   return req;

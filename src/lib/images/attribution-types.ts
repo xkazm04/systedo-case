@@ -49,10 +49,6 @@ export interface StyleStat {
   conversions: number;
 }
 
-export function creativeRoas(m: CreativeMetrics): number {
-  return roas(m.convValue, m.cost);
-}
-
 /** Per-style leaderboard, ranked by ROAS (then by vision score), so "which look
  *  earns" is answerable at a glance. Only links with metrics feed the money math;
  *  vision averages use every creative. */

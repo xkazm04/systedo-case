@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { decryptByomKey, encryptByomKey, hasByomCrypto } from "@/lib/llm/keys/crypto";
 import { isByomVendor, publicByomConfig } from "@/lib/llm/keys/types";
-import { deleteByomConfig, getByomConfig, saveByomConfig } from "@/lib/llm/keys/store.local.ts";
+import { getByomConfig, saveByomConfig } from "@/lib/llm/keys/store.local.ts";
 
 test("byom crypto: round-trips, and a tampered blob fails the auth tag", () => {
   process.env.BYOM_KEY_SECRET = "unit-test-byom-secret-please-ignore";
@@ -83,7 +83,7 @@ test("publicByomConfig drops an activeVendor with no stored key", () => {
   assert.equal(pub.keys[0].vendor, "openai");
 });
 
-test("sqlite byom config store round-trips + delete", async () => {
+test("sqlite byom config store round-trips", async () => {
   const uid = "test-byom-user";
   await saveByomConfig(uid, {
     activeVendor: "openai",
@@ -108,7 +108,4 @@ test("sqlite byom config store round-trips + delete", async () => {
   const cfg2 = await getByomConfig(uid);
   assert.equal(cfg2.activeVendor, "anthropic");
   assert.equal(Object.keys(cfg2.keys).length, 2);
-
-  await deleteByomConfig(uid);
-  assert.deepEqual((await getByomConfig(uid)).keys, {});
 });

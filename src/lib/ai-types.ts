@@ -211,7 +211,6 @@ export interface BriefResult {
   rationale: string;
 }
 
-export type BriefResponse = AiResponse<BriefResult>;
 
 // ===========================================================================
 // Tool 3 — performance analysis (grounded in the dashboard dataset)
@@ -251,7 +250,6 @@ export interface AnalysisResult {
   actions: { title: string; detail: string }[];
 }
 
-export type AnalysisResponse = AiResponse<AnalysisResult>;
 
 // ===========================================================================
 // Tool 14 — monthly recap (per-project, per-business-type grounded)
@@ -280,7 +278,6 @@ export interface MonthlyRecapResult {
   priorities: { title: string; detail: string }[];
 }
 
-export type MonthlyRecapResponse = AiResponse<MonthlyRecapResult>;
 
 // ---------------------------------------------------------------------------
 // Report chat — a follow-up conversation grounded in the same performance
@@ -307,7 +304,6 @@ export interface ChatResult {
   reply: string;
 }
 
-export type ChatResponse = AiResponse<ChatResult>;
 
 // ===========================================================================
 // Tool 4 — campaign / portfolio evaluation (grounded in synced Google Ads data)
@@ -354,7 +350,6 @@ export interface CampaignReportResult {
   recommendations: EvalRecommendation[];
 }
 
-export type CampaignReportResponse = AiResponse<CampaignReportResult>;
 
 /** A stored, persisted evaluation — the shape the API returns and the client
  *  renders. Independent of the SQLite layer so the client never imports server
@@ -474,7 +469,6 @@ export interface TwinReplyResult {
   toneNotes: string;
 }
 
-export type TwinReplyResponse = AiResponse<TwinReplyResult>;
 
 // ===========================================================================
 // Tool 17 — twin style training (Twin: from REAL past messages the brand has
@@ -534,7 +528,6 @@ export interface TwinStyleResult {
   gapQuestions: string[];
 }
 
-export type TwinStyleResponse = AiResponse<TwinStyleResult>;
 
 // ===========================================================================
 // Tool 6 — content repurposing (Distribuce: one article → channel-native variants)
@@ -574,7 +567,6 @@ export interface RepurposeResult {
   variants: RepurposeVariant[];
 }
 
-export type RepurposeResponse = AiResponse<RepurposeResult>;
 
 // ===========================================================================
 // Tool 7 — local review reply (Lokální dominance: draft a public reply to a
@@ -604,7 +596,6 @@ export interface LocalReviewReplyResult {
   reply: string;
 }
 
-export type LocalReviewReplyResponse = AiResponse<LocalReviewReplyResult>;
 
 // ===========================================================================
 // Tool 8 — article draft (Obsah & SEO: rozepíše hotový brief do plnohodnotného
@@ -655,7 +646,6 @@ export interface ArticleDraftResult {
   faq: FaqItem[];
 }
 
-export type ArticleDraftResponse = AiResponse<ArticleDraftResult>;
 
 // ===========================================================================
 // Tool 9 — cohort diagnosis (CAC → LTV: an AI read of the computed cohort
@@ -718,7 +708,6 @@ export interface CohortDiagnosisResult {
   risks?: string[];
 }
 
-export type CohortDiagnosisResponse = AiResponse<CohortDiagnosisResult>;
 
 // ===========================================================================
 // Tool 10 — keyword intent-clustering (Klíčová slova: regroup a flat keyword
@@ -768,7 +757,6 @@ export interface KeywordClustersResult {
   clusters: KeywordCluster[];
 }
 
-export type KeywordClustersResponse = AiResponse<KeywordClustersResult>;
 
 // ===========================================================================
 // Tool 11 — comparison-page outline (Srovnání & SEO: from a chosen high-intent
@@ -828,7 +816,6 @@ export interface ComparisonOutlineResult {
   faq: { q: string; a: string }[];
 }
 
-export type ComparisonOutlineResponse = AiResponse<ComparisonOutlineResult>;
 
 // ===========================================================================
 // Tool 12 — LP variant ideas (LP experimenty: from a topic / keyword context
@@ -880,7 +867,6 @@ export interface LpVariantIdeasResult {
   variants: LpVariantIdea[];
 }
 
-export type LpVariantIdeasResponse = AiResponse<LpVariantIdeasResult>;
 
 // ===========================================================================
 // Tool 13 — lead-source diagnosis (Kvalita leadů: an AI root-cause read of a
@@ -938,7 +924,7 @@ export interface LeadSourceDiagnosisRequest {
   /** win rate as a fraction (0–1) = won / qualified */
   winRate: number;
   /** cost per lead (CZK), when the source has spend */
-  cpql?: number;
+  cpl?: number;
   /** ad spend (CZK); absent / 0 for unpaid sources */
   spend?: number;
   /** cost per qualified lead (CZK), when the source has spend */
@@ -972,7 +958,6 @@ export interface LeadSourceDiagnosisResult {
   severity?: LeadSourceSeverity;
 }
 
-export type LeadSourceDiagnosisResponse = AiResponse<LeadSourceDiagnosisResult>;
 
 // ===========================================================================
 // Tool 14 — organic channel research (Kanály: from the project's business
@@ -1011,7 +996,6 @@ export interface ChannelResearchResult {
   channels: OrganicChannel[];
 }
 
-export type ChannelResearchResponse = AiResponse<ChannelResearchResult>;
 
 // ===========================================================================
 // Tool 15 — onboarding website scan (Start: from the text of a new user's own
@@ -1062,4 +1046,3 @@ export interface OnboardingScanResult {
   suggestedType?: string;
 }
 
-export type OnboardingScanResponse = AiResponse<OnboardingScanResult>;

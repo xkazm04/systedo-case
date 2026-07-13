@@ -60,7 +60,7 @@ function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string
   ];
   if (paid) {
     lines.push(`- Náklady (spend): ${fmtCZK(req.spend ?? 0)}`);
-    if (req.cpql != null) lines.push(`- CPL (cena za lead): ${fmtCZK(req.cpql)}`);
+    if (req.cpl != null) lines.push(`- CPL (cena za lead): ${fmtCZK(req.cpl)}`);
     if (req.costPerQualified != null)
       lines.push(`- CPQL (cena za kvalifikovaný lead): ${fmtCZK(req.costPerQualified)}`);
   } else {
@@ -127,7 +127,7 @@ const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "mediu
 export function pickCause(req: LeadSourceDiagnosisRequest): LeadSourceCause {
   if (req.leads < 30) return "volume";
   const paid = (req.spend ?? 0) > 0;
-  const cheap = paid && req.cpql != null && req.cpql <= 200;
+  const cheap = paid && req.cpl != null && req.cpl <= 200;
   if (req.qualRate < 0.35) return cheap ? "spam" : "mis-targeting";
   // Qualifies acceptably from here on.
   if (req.winRate < 0.15) return "mis-targeting";
@@ -187,7 +187,7 @@ export function demoLeadSourceDiagnosis(
   const paid = (req.spend ?? 0) > 0;
   const qual = fmtPct(req.qualRate);
   const win = fmtPct(req.winRate);
-  const cpql = req.cpql != null ? fmtCZK(req.cpql) : "—";
+  const cpl = req.cpl != null ? fmtCZK(req.cpl) : "—";
   const cpq = req.costPerQualified != null ? fmtCZK(req.costPerQualified) : "—";
 
   const DEMO_TAIL =
@@ -197,7 +197,7 @@ export function demoLeadSourceDiagnosis(
   let recommendation: string;
   switch (cause) {
     case "spam":
-      summary = `Zdroj „${req.source}" přináší levné leady (CPL ${cpql}), ale kvalifikuje se jen ${qual} — typický obraz spamu / nezájemců (boti, soutěžící, nerelevantní poptávky).`;
+      summary = `Zdroj „${req.source}" přináší levné leady (CPL ${cpl}), ale kvalifikuje se jen ${qual} — typický obraz spamu / nezájemců (boti, soutěžící, nerelevantní poptávky).`;
       recommendation = `Přitvrďte kvalifikaci hned u formuláře (povinná pole, ověření, vyloučení botů) a optimalizujte na kvalifikované leady, ne na počet odeslání. Pokud kvalita nestoupne, utlumte rozpočet a přesuňte ho ke zdrojům s vyšší mírou kvalifikace.`;
       break;
     case "mis-targeting":

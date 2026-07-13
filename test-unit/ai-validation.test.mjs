@@ -331,7 +331,7 @@ test("validateLeadSourceDiagnosisRequest derives spend-based costs and clamps pe
     ],
   });
   assert.equal(r.value.spend, 20000);
-  assert.equal(r.value.cpql, 20000 / 100, "cpql derived from spend/leads when omitted");
+  assert.equal(r.value.cpl, 20000 / 100, "cpl derived from spend/leads when omitted");
   assert.equal(r.value.costPerQualified, 20000 / 40, "costPerQualified derived from spend/qualified");
   assert.equal(r.value.peers.length, 1, "peers without a source dropped");
   assert.equal(r.value.peers[0].qualRate, 1, "peer qualRate clamped to 1");
@@ -344,7 +344,7 @@ test("validateLeadSourceDiagnosisRequest requires a source and at least one lead
   assert.equal(validateLeadSourceDiagnosisRequest({ source: "X", leads: 0 }, "en").error, "The source has no leads to diagnose.");
   const noSpend = validateLeadSourceDiagnosisRequest({ source: "Organic", leads: 30, qualified: 9, won: 2 });
   assert.equal("spend" in noSpend.value, false, "no spend → no cost fields");
-  assert.equal("cpql" in noSpend.value, false);
+  assert.equal("cpl" in noSpend.value, false);
 });
 
 // --- validateComparisonOutlineRequest -------------------------------------
