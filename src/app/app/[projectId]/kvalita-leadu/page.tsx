@@ -10,7 +10,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const project = await requireProjectModule(projectId, "kvalita-leadu");
   return (
     <ModulePage moduleKey="kvalita-leadu" sample>
-      <LeadQualityModule sources={sourcesForProject(project)} />
+      <LeadQualityModule sources={sourcesForProject(project)} projectId={project.id} />
     </ModulePage>
   );
 }

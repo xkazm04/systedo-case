@@ -170,6 +170,17 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Persisted AI diagnoses (LTV cohort + lead-source root-cause): per-project
+  -- {items[], updatedAt} blob, each item carrying its kind, result payload,
+  -- status lifecycle (new→acknowledged→resolved), created timestamp and the input
+  -- digest it was computed from. Newest-first, capped per kind. Absent → no saved
+  -- diagnoses yet (the panels render their idle hint). See src/lib/diagnoses/.
+  CREATE TABLE IF NOT EXISTS diagnoses (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Twin module's communication double: the per-channel trained voice, the
   -- style facts it was trained on, the channel/autonomy config and the draft
   -- outbox, as one blob. Absent → the seeded per-type sample (an untrained twin

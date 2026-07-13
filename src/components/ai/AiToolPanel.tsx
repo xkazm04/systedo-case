@@ -91,27 +91,54 @@ export function AiRunButton({
   );
 }
 
+/** A persisted result to render on load, before any run this session — the durable
+ *  latest diagnosis (Direction 1). `below` carries the status lifecycle + handoff. */
+export interface AiPanelInitial<T> {
+  result: T;
+  below?: ReactNode;
+}
+
 /** Card shell + the idle / loading / error / done state machine. `renderResult`
  *  runs ONLY when a result is ready (with the typed result + its meta), so a
  *  panel body never dereferences a missing result. The done block always renders
- *  ResultMeta first and the refine bar + prompt disclosure last, identically. */
+ *  ResultMeta first and the refine bar + prompt disclosure last, identically.
+ *
+ *  `initial` renders a persisted result in the idle state (a diagnosis saved on a
+ *  previous visit) instead of the idle hint, so the latest shows on module load —
+ *  a live run then replaces it. `resultFooter` renders under a fresh result (the
+ *  status + handoff bar for the just-run, now-persisted diagnosis). */
 export function AiToolPanel<T>({
   header,
   tool,
   idleHint,
   renderResult,
+  initial,
+  resultFooter,
 }: {
   header: ReactNode;
   tool: AiPanelTool<T>;
   idleHint: ReactNode;
   renderResult: (result: T, meta: AiMeta) => ReactNode;
+  initial?: AiPanelInitial<T> | null;
+  resultFooter?: ReactNode;
 }) {
   const { status, data, error, retryIn, upgradeUrl, timedOut, expectedMs, reset, refine, canRefine } = tool;
+  // Persisted results carry no AiMeta; the panel bodies read only the result, so a
+  // stub meta keeps renderResult's signature satisfied without a live generation.
+  const STUB_META: AiMeta = { model: "", demo: false, prompt: "", tookMs: 0 };
   return (
     <div className="card overflow-hidden">
       {header}
       <div className="p-5">
-        {status === "idle" && <p className="text-sm leading-relaxed text-muted">{idleHint}</p>}
+        {status === "idle" &&
+          (initial ? (
+            <div className="space-y-5">
+              {renderResult(initial.result, STUB_META)}
+              {initial.below}
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed text-muted">{idleHint}</p>
+          ))}
 
         {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
 
@@ -126,6 +153,7 @@ export function AiToolPanel<T>({
           <div className="animate-fade-up space-y-5">
             <ResultMeta meta={data.meta} />
             {renderResult(data.result, data.meta)}
+            {resultFooter}
             {canRefine && <RefineBar onRefine={refine} />}
             <PromptDisclosure prompt={data.meta.prompt} />
           </div>

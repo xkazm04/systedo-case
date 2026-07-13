@@ -8,17 +8,15 @@ import {
   avgVelocity,
   funnelBySource,
   periodAlerts,
-  sourceAlerts,
-  sourceTrend,
   summarize,
   trendBySource,
   withMetrics,
   type LeadQualityAlert,
 } from "@/lib/lead-quality/compute";
 import type { LeadSource } from "@/lib/lead-quality/sample";
-import LeadSourceDiagnosisPanel, {
-  type LeadSourceSeed,
-} from "@/components/app/modules/LeadSourceDiagnosisPanel";
+import LeadSourceDiagnosisPanel from "@/components/app/modules/LeadSourceDiagnosisPanel";
+import { buildLeadSourceSeeds } from "@/lib/diagnoses/lead-source-request";
+import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
 const T = {
   cs: {
@@ -109,10 +107,6 @@ const T = {
   },
 } as const;
 
-/** Win rate below which a source that otherwise qualifies still under-performs
- *  (qualified leads that rarely close → a fit / targeting problem). */
-const WEAK_WIN_RATE = 0.15;
-
 function scoreTone(score: number): PillTone {
   if (score >= 60) return "positive";
   if (score >= 40) return "coral";
@@ -141,7 +135,14 @@ const alertTone: Record<LeadQualityAlert["severity"], PillTone> = {
   critical: "negative",
 };
 
-export default async function LeadQualityModule({ sources }: { sources: LeadSource[] }) {
+export default async function LeadQualityModule({
+  sources,
+  projectId,
+}: {
+  sources: LeadSource[];
+  /** the project the diagnosis persists under — undefined on sample-less surfaces */
+  projectId?: string;
+}) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
 
@@ -155,56 +156,20 @@ export default async function LeadQualityModule({ sources }: { sources: LeadSour
   const trends = trendBySource(sources);
   const alerts = periodAlerts(sources);
 
-  // Under-performing sources the AI diagnosis can read: junk (cheap but low
-  // quality) or sources that qualify yet rarely close. Projected down to the real
-  // numbers the model needs — no compute / sample data ships to the client. If
-  // none stand out, offer the weakest source by quality score so the action is
-  // always available.
-  const underperforming = rows.filter((r) => r.junk || r.winRate < WEAK_WIN_RATE);
-  const diagnosisRows = underperforming.length > 0 ? underperforming : rows.slice(-1);
-  const diagnosisSeeds: LeadSourceSeed[] = diagnosisRows.map((r) => {
-    const seed: LeadSourceSeed = {
-      source: r.source,
-      leads: r.leads,
-      qualified: r.qualified,
-      won: r.won,
-      qualRate: r.qualRate,
-      winRate: r.winRate,
-      junk: r.junk,
-    };
-    if (r.spend > 0) {
-      seed.spend = r.spend;
-      seed.cpl = r.cpl;
-      seed.costPerQualified = r.cpql;
-    }
-    // Period-over-period drift, velocity and any live alerts for THIS source —
-    // computed here and previously dropped, so the diagnosis reads whether the
-    // source is getting worse (CPQL rising, qualification slipping) and how slow
-    // it closes, not only its static snapshot.
-    const tr = sourceTrend(r);
-    if (tr && (tr.cpqlDelta !== null || tr.qualRateDelta !== null || tr.winRateDelta !== null)) {
-      seed.trend = { cpqlDelta: tr.cpqlDelta, qualRateDelta: tr.qualRateDelta, winRateDelta: tr.winRateDelta };
-    }
-    if (r.daysToQualify != null || r.daysToClose != null) {
-      seed.velocityDays = (r.daysToQualify ?? 0) + (r.daysToClose ?? 0);
-    }
-    const rowAlerts = tr ? sourceAlerts(tr).map((a) => a.message) : [];
-    if (rowAlerts.length > 0) seed.alerts = rowAlerts;
-    // Peer sources (best-first by quality score, excluding self) so the diagnosis
-    // can name a concrete better destination for budget instead of "move it".
-    const peers = rows
-      .filter((p) => p.source !== r.source)
-      .sort((a, b) => b.qualityScore - a.qualityScore)
-      .slice(0, 3)
-      .map((p) => ({
-        source: p.source,
-        qualRate: p.qualRate,
-        winRate: p.winRate,
-        ...(p.spend > 0 ? { costPerQualified: p.cpql } : {}),
-      }));
-    if (peers.length > 0) seed.peers = peers;
-    return seed;
-  });
+  // Under-performing sources the AI diagnosis can read (junk, or qualifies-yet-
+  // rarely-closes; the weakest by score as a floor), projected to the REAL numbers
+  // the model needs — drift / velocity / live alerts / peer set threaded — via the
+  // shared server-usable builder the digest cron reuses. No compute / sample data
+  // ships to the client.
+  const diagnosisSeeds = buildLeadSourceSeeds(rows);
+  // The persisted latest lead-source diagnosis + capped history, so the panel
+  // renders the last one on load (not only after a click) and lists the history.
+  const [initialDiagnosis, diagnosisHistory] = projectId
+    ? await Promise.all([
+        latestDiagnosis(projectId, "lead-source"),
+        listDiagnoses(projectId, "lead-source"),
+      ])
+    : [null, []];
 
   const alertSeverityLabel: Record<LeadQualityAlert["severity"], string> = {
     critical: t("alertSeverityCritical"),
@@ -462,7 +427,14 @@ export default async function LeadQualityModule({ sources }: { sources: LeadSour
         </div>
       )}
 
-      {diagnosisSeeds.length > 0 && <LeadSourceDiagnosisPanel seeds={diagnosisSeeds} />}
+      {diagnosisSeeds.length > 0 && (
+        <LeadSourceDiagnosisPanel
+          seeds={diagnosisSeeds}
+          projectId={projectId}
+          initialDiagnosis={initialDiagnosis}
+          history={diagnosisHistory}
+        />
+      )}
 
       <NextSteps steps={[{ to: "kampane", label: t("nextStepLabel"), hint: t("nextStepHint") }]} />
     </div>

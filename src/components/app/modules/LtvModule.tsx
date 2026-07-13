@@ -6,6 +6,7 @@ import NextSteps from "@/components/app/NextSteps";
 import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
 import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
+import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import Sparkline from "@/components/charts/Sparkline";
 import { cohortTrend } from "@/lib/ltv/compute";
@@ -219,6 +220,7 @@ export default async function LtvModule({
   summary,
   cohorts,
   eshop = false,
+  projectId,
 }: {
   rows: CohortMetrics[];
   summary: LtvSummary;
@@ -226,9 +228,17 @@ export default async function LtvModule({
   cohorts: Cohort[];
   /** e-shop project → customer / repeat-purchase framing instead of signup / retention */
   eshop?: boolean;
+  /** the project the diagnosis persists under — undefined on sample-less surfaces */
+  projectId?: string;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
+
+  // The persisted latest cohort diagnosis + capped history, so the panel renders the
+  // last one on module load (not only after a click) and lists the history below.
+  const [initialDiagnosis, diagnosisHistory] = projectId
+    ? await Promise.all([latestDiagnosis(projectId, "cohort"), listDiagnoses(projectId, "cohort")])
+    : [null, []];
 
   // Project-type-aware labels.
   const L = eshop
@@ -304,11 +314,18 @@ export default async function LtvModule({
         </p>
       </div>
 
-      <LtvDiagnosisPanel rows={rows} summary={summary} eshop={eshop} />
+      <LtvDiagnosisPanel
+        rows={rows}
+        summary={summary}
+        eshop={eshop}
+        projectId={projectId}
+        initialDiagnosis={initialDiagnosis}
+        history={diagnosisHistory}
+      />
 
       <LtvProjectionPanel cohorts={cohorts} paidCac={summary.paidCac} />
 
-      <div className="card overflow-hidden">
+      <div id="ltv-kohorty" className="card overflow-hidden scroll-mt-24">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
           <div className="min-w-0">
             <p className="text-sm font-semibold text-navy-800">{t("cohortTableTitle")}</p>
