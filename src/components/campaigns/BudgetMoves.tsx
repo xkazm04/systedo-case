@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { ArrowRight, Bolt, Check } from "@/components/icons";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { withMetrics, type Campaign } from "@/lib/campaigns/types";
+import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -99,6 +100,9 @@ export default function BudgetMoves({
 }) {
   const { status } = useSession();
   const authed = status === "authenticated";
+  // The active project — sent with every apply so the server audits the mutation
+  // under the same project-scoped tenant the campaigns live under.
+  const pid = useOptionalProject()?.id;
   // includePauses: a zero-return spender (the critical no_conversions finding)
   // surfaces here as a pause-first recommendation instead of the panel claiming
   // "budget is balanced" while the triage banner shows a budget-burner.
@@ -128,7 +132,7 @@ export default function BudgetMoves({
       const res = await fetch("/api/campaigns/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(pid ? { ...payload, projectId: pid } : payload),
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json.ok) {

@@ -20,6 +20,7 @@ import {
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
 import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
+import { buildTenantKey } from "./store-keys";
 import type { ProjectType } from "@/lib/projects/types";
 
 /** Per-request outcome of the live→sample fallback. The sync route persists it
@@ -129,16 +130,6 @@ function googleAdsProvider(
       }
     },
   };
-}
-
-/** Build the per-tenant key, sanitizing each component so it can't break out of
- *  the Firestore document path (a "/" in a component would be reinterpreted as a
- *  nested sub-collection). One helper so the read path (resolveTenant) and the sync
- *  path (resolveCampaignContext) can never compute a different key for one request. */
-function buildTenantKey(userId: string, projectId?: string | null, customerId?: string | null): string {
-  const safe = (s: string) => s.replace(/[^A-Za-z0-9_-]/g, "_");
-  const base = projectId ? `u_${safe(userId)}_proj_${safe(projectId)}` : `u_${safe(userId)}`;
-  return customerId ? `${base}_${safe(customerId)}` : base;
 }
 
 /** The tenant a user's data lives under. Now **per-project**: callers that know

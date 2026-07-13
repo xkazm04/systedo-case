@@ -1,11 +1,19 @@
 /** Apply a recommendation back to Google Ads — closing the observe → decide → act
  *  loop. Human-triggered only (never automatic), live-account only, and every
  *  applied change is written to an audit log (`tenants/{tenant}/mutations`).
- *  Server-only. */
+ *
+ *  The audit + activity are written under the SAME project-scoped `tenant` as the
+ *  campaigns and change-sets they act on (the caller passes the tenant it already
+ *  resolved via `resolveTenant`/`resolveCampaignContext`), so a pause/budget-shift
+ *  is auditable next to the data it mutated — not stranded in a project-agnostic
+ *  `u_{userId}_{customerId}` bucket the campaign surfaces never read. Legacy audit
+ *  docs written under that old key stay readable via `listMutationAudit`'s
+ *  dual-read; history is never rewritten. Server-only. */
 import { firestore } from "@/lib/firebase";
 import { getAdsConnection } from "./connection";
 import { getSyncMeta } from "./store";
 import { recordActivity } from "./activity";
+import { buildTenantKey, mutationAuditReadTenants } from "./store-keys";
 import { CAMPAIGN_PERIOD_DAYS } from "./types";
 import { fmtCZK } from "@/lib/format";
 import { getUserAccessToken } from "@/lib/google/token";
@@ -64,6 +72,8 @@ async function resolveActor(
  *  a clear, non-destructive error. */
 export async function applyPause(
   userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
   campaignId: string,
   campaignName: string
 ): Promise<MutationResult> {
@@ -71,7 +81,6 @@ export async function applyPause(
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
 
-  const tenant = `u_${userId}_${connection.customerId}`;
   try {
     await pauseCampaign(token, connection.customerId, campaignId);
     await firestore.collection("tenants").doc(tenant).collection("mutations").add({
@@ -102,13 +111,14 @@ export async function applyPause(
  *  serving, and the actual (floored) reduction is what's moved to the recipient. */
 export async function applyBudgetShift(
   userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
   move: BudgetShiftInput
 ): Promise<MutationResult> {
   const resolved = await resolveActor(userId);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
   const customerId = connection.customerId;
-  const tenant = `u_${userId}_${customerId}`;
 
   const meta = await getSyncMeta(tenant);
   const days = meta ? CAMPAIGN_PERIOD_DAYS[meta.period] : 30;
@@ -218,13 +228,14 @@ export async function applyBudgetShift(
  *  Audited like any other mutation. Live-account only. */
 export async function restoreBudgets(
   userId: string,
+  /** the project-scoped tenant the campaigns live under (resolveTenant/…Context) */
+  tenant: string,
   snapshots: BudgetSnapshot[]
 ): Promise<MutationResult> {
   const resolved = await resolveActor(userId);
   if ("error" in resolved) return resolved.error;
   const { connection, token } = resolved.actor;
   const customerId = connection.customerId;
-  const tenant = `u_${userId}_${customerId}`;
 
   // De-dupe by budget, keeping the first (prior-most) snapshot for each.
   const byBudget = dedupeSnapshots(snapshots);
@@ -246,4 +257,57 @@ export async function restoreBudgets(
     console.error("[mutations] budget restore failed:", err);
     return { ok: false, error: err instanceof Error ? err.message : "Obnovení se nezdařilo." };
   }
+}
+
+/** One audited mutation as stored (the exact doc shape varies by action; `action`
+ *  and `at` are always present). */
+export interface MutationAuditEntry {
+  id: string;
+  action: string;
+  at: string;
+  [key: string]: unknown;
+}
+
+/** The user's per-mutation audit history for a project, newest first. Dual-reads
+ *  the current project-scoped audit tenant AND the legacy project-agnostic one
+ *  (`u_{userId}_{customerId}`) so pauses/budget shifts recorded before the audit
+ *  was co-located with the campaigns are never lost — old docs are unioned in on
+ *  read, never migrated or rewritten. Best-effort: a failed tenant read is
+ *  skipped rather than failing the whole history. */
+export async function listMutationAudit(
+  userId: string,
+  projectId: string | null | undefined,
+  limit = 50
+): Promise<MutationAuditEntry[]> {
+  const connection = await getAdsConnection(userId);
+  const customerId = connection?.customerId ?? null;
+  const tenant = buildTenantKey(userId, projectId, customerId);
+  const tenants = mutationAuditReadTenants(tenant, userId, customerId);
+
+  const entries: MutationAuditEntry[] = [];
+  for (const t of tenants) {
+    try {
+      const snap = await firestore
+        .collection("tenants")
+        .doc(t)
+        .collection("mutations")
+        .orderBy("at", "desc")
+        .limit(limit)
+        .get();
+      for (const d of snap.docs) {
+        const data = d.data() as Record<string, unknown>;
+        entries.push({
+          ...data,
+          id: d.id,
+          action: typeof data.action === "string" ? data.action : "",
+          at: typeof data.at === "string" ? data.at : "",
+        });
+      }
+    } catch (err) {
+      console.error(`[mutations] audit read failed for ${t} (non-fatal):`, err);
+    }
+  }
+  // Merge the two tenants' histories into one newest-first stream.
+  entries.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+  return entries.slice(0, limit);
 }

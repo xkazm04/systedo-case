@@ -14,6 +14,7 @@ import { getSyncMeta } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { planSyncTargets } from "./plan";
 
 // long-running fan-out across users
 export const maxDuration = 300;
@@ -24,31 +25,28 @@ export async function GET(request: Request) {
   }
 
   const userIds = await listConnectedUserIds();
-  const results: { userId: string; projectId?: string; customerId?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
+  const results: { userId: string; projectId?: string; customerId?: string; reason?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
 
-  // Per-project tenancy: sync each of the user's projects into its own tenant.
-  // (A connected account currently mirrors into every project of that user;
-  //  mapping a specific Ads account to a single project via adsCustomerId is a
-  //  follow-up — reads and writes are consistent per project either way.)
+  // Per-project tenancy with account→project mapping: an Ads account is synced
+  // ONLY into the project(s) explicitly linked to it via project.adsCustomerId
+  // (digits-normalised, matching the monthly-report path in report-metrics/sync.ts).
+  // The old cron mirrored every account into every project (N×M), multiplying API
+  // calls and writing one client's spend under another client's project. A
+  // conservative fallback keeps pre-existing single-account/single-project users
+  // (who never set the link) syncing — see planSyncTargets for the exact rule.
   for (const userId of userIds) {
     const [{ accounts }, projects] = await Promise.all([
       listConnectedAccounts(userId),
       listProjects(userId),
     ]);
-    // Fall back to the per-user tenant when a user has no projects yet.
-    const targets = projects.length ? projects : [null];
-    // Fan out over every connected account (an agency's MCC list), not just the
-    // active one — each lands in its own account-keyed tenant. listConnectedUserIds
-    // pre-filters to ≥1 account, but keep a null fallback for safety.
-    const accountIds = accounts.length ? accounts.map((a) => a.customerId) : [null];
-    for (const accountId of accountIds) {
-    for (const project of targets) {
+    const targets = planSyncTargets({ accounts, projects });
+    for (const target of targets) {
     try {
       const { connector, tenant } = await resolveCampaignContext(
         userId,
-        project?.id,
-        project?.type,
-        accountId
+        target.projectId,
+        target.projectType,
+        target.customerId
       );
       const meta = await getSyncMeta(tenant);
       const period: CampaignPeriod = meta?.period ?? "30d";
@@ -63,17 +61,17 @@ export async function GET(request: Request) {
         actor: "Automatická synchronizace",
       });
 
-      results.push({ userId, projectId: project?.id, customerId: accountId ?? undefined, ok: true, alerted, anomalies });
+      results.push({ userId, projectId: target.projectId, customerId: target.customerId ?? undefined, reason: target.reason, ok: true, alerted, anomalies });
     } catch (err) {
-      console.error(`[cron] sync failed for ${userId}/${project?.id}/${accountId}:`, err);
+      console.error(`[cron] sync failed for ${userId}/${target.projectId}/${target.customerId}:`, err);
       results.push({
         userId,
-        projectId: project?.id,
-        customerId: accountId ?? undefined,
+        projectId: target.projectId,
+        customerId: target.customerId ?? undefined,
+        reason: target.reason,
         ok: false,
         error: err instanceof Error ? err.message : String(err),
       });
-    }
     }
     }
   }

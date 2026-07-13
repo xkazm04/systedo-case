@@ -3,6 +3,7 @@
  *  Requires a signed-in user with a connected live account; the mutation is
  *  audited server-side. */
 import { currentUserId } from "@/lib/session";
+import { resolveTenant } from "@/lib/campaigns/connector";
 import { applyBudgetShift, applyPause } from "@/lib/campaigns/mutations";
 
 
@@ -21,6 +22,7 @@ export async function POST(request: Request) {
     toId?: unknown;
     toName?: unknown;
     amount?: unknown;
+    projectId?: unknown;
   };
   try {
     body = await request.json();
@@ -29,12 +31,17 @@ export async function POST(request: Request) {
   }
 
   const action = body.action ?? "pause";
+  // Audit + activity land in the SAME project-scoped tenant the campaigns live
+  // under, so a pause/shift is auditable next to the data it changed. Resolved
+  // here (not inside the mutation) exactly like every other campaign read/write.
+  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const tenant = await resolveTenant(userId, projectId);
 
   if (action === "pause") {
     const campaignId = str(body.campaignId);
     if (!campaignId) return Response.json({ error: "Chybí ID kampaně." }, { status: 422 });
     const campaignName = str(body.campaignName) || campaignId;
-    const result = await applyPause(userId, campaignId, campaignName);
+    const result = await applyPause(userId, tenant, campaignId, campaignName);
     return Response.json(result, { status: result.ok ? 200 : 400 });
   }
 
@@ -46,7 +53,7 @@ export async function POST(request: Request) {
     if (!Number.isFinite(amount) || amount <= 0) {
       return Response.json({ error: "Neplatná částka přesunu." }, { status: 422 });
     }
-    const result = await applyBudgetShift(userId, {
+    const result = await applyBudgetShift(userId, tenant, {
       fromId,
       fromName: str(body.fromName) || fromId,
       toId,

@@ -123,7 +123,9 @@ export async function approveChangeSet(
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
   for (const m of cs.moves) {
-    const r = await applyBudgetShift(userId, {
+    // Audit the move under the same project-scoped tenant this change-set (and its
+    // campaigns) live under — control-plane already resolved it.
+    const r = await applyBudgetShift(userId, tenant, {
       fromId: m.fromId,
       fromName: m.fromName,
       toId: m.toId,
@@ -191,7 +193,7 @@ export async function revertChangeSet(
   let detail: string;
 
   if (hasSnapshots) {
-    const r = await restoreBudgets(userId, cs.budgetSnapshots!);
+    const r = await restoreBudgets(userId, tenant, cs.budgetSnapshots!);
     results = cs.moves.map((m) => ({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error }));
     detail = r.ok
       ? "Rozpočty obnoveny na přesné hodnoty před aplikací (ze snímku)."
@@ -199,7 +201,7 @@ export async function revertChangeSet(
   } else {
     results = [];
     for (const m of inverseMoves(cs.moves)) {
-      const r = await applyBudgetShift(userId, {
+      const r = await applyBudgetShift(userId, tenant, {
         fromId: m.fromId,
         fromName: m.fromName,
         toId: m.toId,
