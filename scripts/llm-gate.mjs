@@ -144,11 +144,19 @@ console.log("");
 const REGISTRY_FILE = "test-llm/registry.mjs";
 const ALL_TOOL_IDS = LLM_TOOLS.map((t) => t.id);
 
+/** Normalize CRLF → LF before hashing so a file's hash reflects its LOGICAL
+ *  content, not the checkout platform's line-ending behavior. Windows'
+ *  core.autocrlf=true checks the same LF-stored git blob out as CRLF locally,
+ *  while Linux CI checks it out as LF — without this, every hashed file would
+ *  show as "changed" the moment the cache is verified cross-platform, with no
+ *  actual code change. */
+function readNormalized(p) {
+  return existsSync(p) ? readFileSync(p, "utf8").replace(/\r\n/g, "\n") : "[missing]";
+}
+
 function hashFile(f) {
   const p = join(ROOT, f);
-  return createHash("sha256")
-    .update(existsSync(p) ? readFileSync(p) : Buffer.from("[missing]"))
-    .digest("hex");
+  return createHash("sha256").update(readNormalized(p)).digest("hex");
 }
 
 /** Legacy (v1) aggregate digest — kept only so an existing proven cache written
@@ -158,7 +166,7 @@ function hashFilesAggregate(files) {
   for (const f of files) {
     const p = join(ROOT, f);
     h.update(f + "\0");
-    h.update(existsSync(p) ? readFileSync(p) : Buffer.from("[missing]"));
+    h.update(readNormalized(p));
     h.update("\0");
   }
   return h.digest("hex");

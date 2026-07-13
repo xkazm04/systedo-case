@@ -6,6 +6,16 @@
  */
 import { createHash } from "node:crypto";
 
+/** Normalize CRLF → LF. `system`/`prompt` are multi-line template-literal string
+ *  VALUES and `validate` is reflected via Function#toString() — both carry the
+ *  exact line-ending bytes of the source file they were parsed from. Windows'
+ *  core.autocrlf=true checks the same LF-stored git blob out as CRLF locally
+ *  while Linux CI checks it out as LF, so without this, every fingerprint would
+ *  differ cross-platform with no actual code change. */
+function eol(s) {
+  return typeof s === "string" ? s.replace(/\r\n/g, "\n") : s;
+}
+
 /** Deterministic key-sorted JSON — must mirror src/lib/llm/telemetry.ts. */
 export function stableStringify(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
@@ -16,7 +26,7 @@ export function stableStringify(value) {
 
 /** Contract fingerprint (system prompt + schema) — what the goldens snapshot. */
 export function fingerprint(system, schema) {
-  return createHash("sha256").update(`${system} ${stableStringify(schema)}`).digest("hex").slice(0, 16);
+  return createHash("sha256").update(`${eol(system)} ${stableStringify(schema)}`).digest("hex").slice(0, 16);
 }
 
 /** Whole-entry fingerprint for the gate: everything that changes what a tool's
@@ -30,10 +40,10 @@ export function toolEntryFingerprint(tool) {
   return createHash("sha256")
     .update(
       stableStringify({
-        system: tool.system,
-        prompt: tool.prompt,
+        system: eol(tool.system),
+        prompt: eol(tool.prompt),
         schema: tool.schema,
-        validate: String(tool.validate),
+        validate: eol(String(tool.validate)),
       })
     )
     .digest("hex")
