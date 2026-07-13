@@ -460,6 +460,10 @@ export default function ProfitModule({
   // starts false per project.)
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    // Post-mount hydration from localStorage; batched by React, and the whole point
+    // is to set these once right after mount without a hydration mismatch (see
+    // comment above).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealByPeriod(loadReal(projectId));
     setScenarios(loadScenarios(projectId));
     setHydrated(true);

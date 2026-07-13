@@ -6,7 +6,7 @@
  *  board persists to the project (per-user, server-side). AI drafting (via the content
  *  engine) is a documented next step — this establishes the scheduling spine
  *  (consolidation phase 5). */
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, Check, Plus, Sparkles } from "@/components/icons";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
@@ -72,7 +72,9 @@ export default function ContentSchedule({
   // captured at invocation time and discard (and re-persist over) any scheduling/edit
   // the user made during the await — silent data loss on a whole-board PUT.
   const postsRef = useRef(posts);
-  postsRef.current = posts;
+  useEffect(() => {
+    postsRef.current = posts;
+  });
   const [draftingId, setDraftingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
 

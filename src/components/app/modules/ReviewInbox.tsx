@@ -140,7 +140,9 @@ export default function ReviewInbox({
   // reschedule it — reading these off the render closure would fire a stale snapshot
   // that the whole-document PUT then writes, reverting the just-set flag on the server.
   const latest = useRef({ answered, flagged, drafts });
-  latest.current = { answered, flagged, drafts };
+  useEffect(() => {
+    latest.current = { answered, flagged, drafts };
+  });
 
   // Draft edits (typing, macros, an applied AI reply) save debounced — coalesce
   // keystrokes into one write. Skip the initial mount; flag/answered save eagerly.

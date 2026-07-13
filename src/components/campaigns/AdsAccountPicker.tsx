@@ -79,7 +79,9 @@ export default function AdsAccountPicker({ onConnected }: { onConnected?: () => 
   // storm against /api/campaigns/accounts (which calls Google's listAccessibleCustomers).
   // Read the latest t off a ref instead so load stays referentially stable ([]).
   const tRef = useRef(t);
-  tRef.current = t;
+  useEffect(() => {
+    tRef.current = t;
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
