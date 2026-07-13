@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bulb, Layers } from "@/components/icons";
+import { Bulb } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
 import NextSteps from "@/components/app/NextSteps";
+import ProfitScenariosPanel from "@/components/app/modules/ProfitScenariosPanel";
+import ProfitReallocationPanel from "@/components/app/modules/ProfitReallocationPanel";
+import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
 import type { ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
 import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
@@ -87,51 +90,7 @@ const T = {
     colAdjBreakeven: "Upravený bod zvratu",
     colContribution: "Příspěvek",
     overheadFooter: "Režie {overhead} + fulfillment {fulfillment} rozpočítáno · ztrátových po režii",
-    scenariosTitle: "Scénáře marží",
-    scenariosDesc: "Uložte si sadu marží pod názvem a porovnejte dva scénáře vedle sebe.",
-    scenarioName: "Název scénáře",
-    scenarioPlaceholder: "např. Konzervativní marže",
-    saveMargins: "Uložit aktuální marže",
-    loadScenario: "Načíst scénář",
-    loadScenarioSelect: "Vyberte…",
-    compareWith: "Porovnat s",
-    compareNone: "Žádný",
     scenarioDefaultName: "Scénář {n}",
-    deleteScenario: "Smazat scénář {name}",
-    colMetric: "Metrika",
-    colCurrentMargin: "Aktuální marže",
-    colDiff: "Rozdíl",
-    rowNetProfit: "Čistý zisk",
-    rowUnprofitableChannels: "Ztrátové kanály",
-    whatIfTitle: "Co kdyby: přerozdělení rozpočtu",
-    whatIfDesc: "Drží ROAS každého kanálu a přesouvá rozpočet do nejziskovějších kanálů.",
-    maxProfit: "Maximalizovat zisk",
-    holdRevenue: "Udržet obrat",
-    totalBudget: "Celkový rozpočet",
-    currentBudgetBtn: "Aktuální",
-    currentCostHint: "výchozí = dnešní náklady {cost}",
-    projectedNetProfit: "Projektovaný čistý zisk",
-    todayValue: "dnes {value}",
-    profitChange: "Změna zisku",
-    revenueSub: "obrat {projected} vs {current}",
-    colToday: "Dnes",
-    colProposal: "Návrh",
-    colChange: "Změna",
-    colProfitPerUnit: "Zisk / Kč",
-    colProjProfit: "Projekt. zisk",
-    reallocationFooter: "Rozděleno {allocated} z {total} · strop 3× dnešní útraty kanálu.",
-    liveHint: "Změna marže nebo rozpočtu se promítne živě.",
-    categoryWorstAlert: "Kategorie {category} má nejnižší POAS {poas} — při marži {margin} a podílu {share} obratu prodělává. Zvažte vyšší prodejní cenu nebo přesun reklamního rozpočtu jinam.",
-    netProfitProducts: "Čistý zisk (produkty)",
-    marginVsCogs: "marže z prodejní ceny vs cena zboží",
-    poasProducts: "POAS (produkty)",
-    blendedMarginSub: "blended marže {value}",
-    unprofitableCategories: "Ztrátové kategorie",
-    belowBreakeven: "POAS pod bodem zvratu",
-    colCategory: "Kategorie",
-    colRevenueShare: "Podíl obratu",
-    colProductMargin: "Marže",
-    productTableFooter: "Marže = 1 − cena zboží (COGS). Reklamní náklady rozpočítány podle podílu na obratu.",
     nextStepLabel: "Přesunout rozpočet",
     nextStepHintHelps: "Přerozdělení slibuje +{profit} zisku",
     nextStepHintOther: "Omezit ztrátové kanály v Kampaních",
@@ -204,51 +163,7 @@ const T = {
     colAdjBreakeven: "Adjusted break-even",
     colContribution: "Contribution",
     overheadFooter: "Overhead {overhead} + fulfilment {fulfillment} allocated · unprofitable after overhead",
-    scenariosTitle: "Margin scenarios",
-    scenariosDesc: "Save a margin set under a name and compare two scenarios side by side.",
-    scenarioName: "Scenario name",
-    scenarioPlaceholder: "e.g. Conservative margins",
-    saveMargins: "Save current margins",
-    loadScenario: "Load scenario",
-    loadScenarioSelect: "Select…",
-    compareWith: "Compare with",
-    compareNone: "None",
     scenarioDefaultName: "Scenario {n}",
-    deleteScenario: "Delete scenario {name}",
-    colMetric: "Metric",
-    colCurrentMargin: "Current margins",
-    colDiff: "Difference",
-    rowNetProfit: "Net profit",
-    rowUnprofitableChannels: "Unprofitable channels",
-    whatIfTitle: "What if: budget reallocation",
-    whatIfDesc: "Holds each channel's ROAS and shifts budget to the most profitable channels.",
-    maxProfit: "Maximise profit",
-    holdRevenue: "Hold revenue",
-    totalBudget: "Total budget",
-    currentBudgetBtn: "Current",
-    currentCostHint: "default = today's cost {cost}",
-    projectedNetProfit: "Projected net profit",
-    todayValue: "today {value}",
-    profitChange: "Profit change",
-    revenueSub: "revenue {projected} vs {current}",
-    colToday: "Today",
-    colProposal: "Proposed",
-    colChange: "Change",
-    colProfitPerUnit: "Profit / unit",
-    colProjProfit: "Proj. profit",
-    reallocationFooter: "Allocated {allocated} of {total} · capped at 3× today's channel spend.",
-    liveHint: "Margin or budget changes apply live.",
-    categoryWorstAlert: "Category {category} has the lowest POAS {poas} — at margin {margin} and revenue share {share} it is losing money. Consider a higher selling price or shifting ad budget elsewhere.",
-    netProfitProducts: "Net profit (products)",
-    marginVsCogs: "margin from selling price vs cost of goods",
-    poasProducts: "POAS (products)",
-    blendedMarginSub: "blended margin {value}",
-    unprofitableCategories: "Unprofitable categories",
-    belowBreakeven: "POAS below break-even",
-    colCategory: "Category",
-    colRevenueShare: "Revenue share",
-    colProductMargin: "Margin",
-    productTableFooter: "Margin = 1 − cost of goods (COGS). Ad cost allocated by revenue share.",
     nextStepLabel: "Shift budget",
     nextStepHintHelps: "Reallocation projects +{profit} profit",
     nextStepHintOther: "Reduce unprofitable channels in Campaigns",
@@ -1052,366 +967,36 @@ export default function ProfitModule({
           </div>
 
           {/* #4 margin scenarios — save / load / compare */}
-          <div className="card overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-navy-800">{t("scenariosTitle")}</p>
-                <p className="mt-0.5 text-xs text-muted">
-                  {t("scenariosDesc")}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-end gap-3 px-5 py-4">
-              <div>
-                <label htmlFor="sc-name" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                  {t("scenarioName")}
-                </label>
-                <input
-                  id="sc-name"
-                  type="text"
-                  value={scenarioName}
-                  onChange={(e) => setScenarioName(e.target.value)}
-                  placeholder={t("scenarioPlaceholder")}
-                  className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => saveScenario(Date.now())}
-                className="rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
-              >
-                {t("saveMargins")}
-              </button>
-              {scenarios.length > 0 && (
-                <div>
-                  <label htmlFor="sc-load" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                    {t("loadScenario")}
-                  </label>
-                  <select
-                    id="sc-load"
-                    defaultValue=""
-                    onChange={(e) => {
-                      if (e.target.value) loadScenario(e.target.value);
-                      e.target.value = "";
-                    }}
-                    className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                  >
-                    <option value="">{t("loadScenarioSelect")}</option>
-                    {scenarios.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {scenarios.length > 0 && (
-                <div>
-                  <label htmlFor="sc-compare" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                    {t("compareWith")}
-                  </label>
-                  <select
-                    id="sc-compare"
-                    value={compareId}
-                    onChange={(e) => setCompareId(e.target.value)}
-                    className="mt-1.5 w-56 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                  >
-                    <option value="">{t("compareNone")}</option>
-                    {scenarios.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {compareScenario && compareSummary && (
-              <div className="overflow-x-auto border-t border-line">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                      <th className="px-4 py-3 font-medium">{t("colMetric")}</th>
-                      <th className="px-4 py-3 text-right font-medium">{t("colCurrentMargin")}</th>
-                      <th className="px-4 py-3 text-right font-medium">{compareScenario.name}</th>
-                      <th className="px-4 py-3 text-right font-medium">{t("colDiff")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(
-                      [
-                        [t("rowNetProfit"), summary.netProfit, compareSummary.netProfit, "czk"],
-                        [t("poas"), summary.poas, compareSummary.poas, "mult"],
-                        [t("rowUnprofitableChannels"), summary.unprofitableCount, compareSummary.unprofitableCount, "count"],
-                      ] as const
-                    ).map(([label, a, b, kind]) => {
-                      const diff = a - b;
-                      const fmtVal = (v: number) =>
-                        kind === "czk" ? fmt.fmtCZK(v) : kind === "mult" ? fmt.fmtMultiple(v) : String(v);
-                      const good = kind === "count" ? diff <= 0 : diff >= 0;
-                      return (
-                        <tr key={label} className="border-b border-line/70 last:border-0">
-                          <td className="px-4 py-3 font-medium text-navy-800">{label}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtVal(a)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmtVal(b)}</td>
-                          <td className={`tnum px-4 py-3 text-right font-semibold ${good ? "text-positive" : "text-negative"}`}>
-                            {diff > 0 ? "+" : diff < 0 ? "−" : ""}
-                            {fmtVal(Math.abs(diff))}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {scenarios.length > 0 && (
-              <div className="flex flex-wrap gap-2 border-t border-line px-5 py-3">
-                {scenarios.map((s) => (
-                  <span key={s.id} className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1 text-xs text-navy-700">
-                    {s.name}
-                    <button
-                      type="button"
-                      onClick={() => deleteScenario(s.id)}
-                      aria-label={t("deleteScenario", { name: s.name })}
-                      className="text-muted transition-colors hover:text-negative"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          <ProfitScenariosPanel
+            scenarioName={scenarioName}
+            setScenarioName={setScenarioName}
+            saveScenario={saveScenario}
+            scenarios={scenarios}
+            loadScenario={loadScenario}
+            compareId={compareId}
+            setCompareId={setCompareId}
+            deleteScenario={deleteScenario}
+            compareScenario={compareScenario}
+            compareSummary={compareSummary}
+            summary={summary}
+          />
 
           {/* "What if" — budget-reallocation simulator */}
-          <div className="card overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-navy-800">{t("whatIfTitle")}</p>
-                <p className="mt-0.5 text-xs text-muted">
-                  {t("whatIfDesc")}
-                </p>
-              </div>
-              <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
-                {(
-                  [
-                    ["max-profit", t("maxProfit")],
-                    ["hold-revenue", t("holdRevenue")],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setStrategy(value)}
-                    className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                      strategy === value ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
-              <div>
-                <label htmlFor="realloc-budget" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                  {t("totalBudget")}
-                </label>
-                <div className="mt-1.5 inline-flex items-center gap-1.5">
-                  <input
-                    id="realloc-budget"
-                    type="number"
-                    min={0}
-                    step={1000}
-                    value={Math.round(budget)}
-                    onChange={(e) => setBudgetOverride(Math.max(0, Number(e.target.value)))}
-                    className="tnum w-36 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                  />
-                  <span className="text-sm text-muted">{t("currencyUnit")}</span>
-                  {budgetOverride !== null && budgetOverride !== Math.round(summary.cost) && (
-                    <button
-                      type="button"
-                      onClick={() => setBudgetOverride(null)}
-                      className="ml-1 text-xs font-medium text-muted transition-colors hover:text-navy-700"
-                    >
-                      {t("currentBudgetBtn")}
-                    </button>
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-muted">{t("currentCostHint", { cost: fmt.fmtCZKCompact(summary.cost) })}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("projectedNetProfit")}</p>
-                <p
-                  className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
-                    plan.projectedNetProfit >= 0 ? "text-navy-800" : "text-negative"
-                  }`}
-                >
-                  {fmt.fmtCZK(plan.projectedNetProfit)}
-                </p>
-                <p className="mt-1 text-xs text-muted">{t("todayValue", { value: fmt.fmtCZKCompact(plan.currentNetProfit) })}</p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("profitChange")}</p>
-                <p
-                  className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
-                    plan.profitDelta >= 0 ? "text-positive" : "text-negative"
-                  }`}
-                >
-                  {plan.profitDelta >= 0 ? "+" : "−"}
-                  {fmt.fmtCZK(Math.abs(plan.profitDelta))}
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  {t("revenueSub", { projected: fmt.fmtCZKCompact(plan.projectedRevenue), current: fmt.fmtCZKCompact(plan.currentRevenue) })}
-                </p>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto border-t border-line">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colToday")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colProposal")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colChange")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colProfitPerUnit")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colProjProfit")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {plan.rows.map((r) => (
-                    <tr key={r.channel} className="border-b border-line/70 last:border-0">
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-2 font-medium text-navy-800">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                          {r.channel}
-                        </span>
-                      </td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.currentSpend)}</td>
-                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtCZKCompact(r.suggestedSpend)}</td>
-                      <td
-                        className={`tnum px-4 py-3 text-right font-medium ${
-                          r.spendDelta > 0 ? "text-positive" : r.spendDelta < 0 ? "text-negative" : "text-muted"
-                        }`}
-                      >
-                        {r.spendDelta > 0 ? "+" : r.spendDelta < 0 ? "−" : ""}
-                        {fmt.fmtCZKCompact(Math.abs(r.spendDelta))}
-                      </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.roas * r.marginPct)}</td>
-                      <td
-                        className={`tnum px-4 py-3 text-right font-semibold ${
-                          r.projectedNetProfit >= 0 ? "text-positive" : "text-negative"
-                        }`}
-                      >
-                        {fmt.fmtCZK(r.projectedNetProfit)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
-              <span>
-                {t("reallocationFooter", { allocated: fmt.fmtCZKCompact(plan.allocatedSpend), total: fmt.fmtCZKCompact(plan.totalBudget) })}
-              </span>
-              <span>{t("liveHint")}</span>
-            </div>
-          </div>
+          <ProfitReallocationPanel
+            plan={plan}
+            strategy={strategy}
+            setStrategy={setStrategy}
+            budget={budget}
+            budgetOverride={budgetOverride}
+            setBudgetOverride={setBudgetOverride}
+            summaryCost={summary.cost}
+          />
         </>
       )}
 
       {/* #2 product / category view */}
       {view === "products" && (
-        <>
-          {worstCategory && worstCategory.poas < 1 && (
-            <div className="flex items-start gap-3 rounded-card border border-negative/30 bg-negative-soft px-4 py-3.5">
-              <Layers width={18} height={18} className="mt-0.5 shrink-0 text-negative" />
-              <p className="text-sm leading-relaxed text-navy-700">
-                {t("categoryWorstAlert", {
-                  category: worstCategory.category,
-                  poas: fmt.fmtMultiple(worstCategory.poas),
-                  margin: fmt.fmtPct(worstCategory.marginPct),
-                  share: fmt.fmtPct(worstCategory.revenueShare),
-                })}
-              </p>
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("netProfitProducts")}</p>
-              <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${productResult.summary.netProfit >= 0 ? "text-navy-800" : "text-negative"}`}>
-                {fmt.fmtCZK(productResult.summary.netProfit)}
-              </p>
-              <p className="mt-1 text-xs text-muted">{t("marginVsCogs")}</p>
-            </div>
-            <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("poasProducts")}</p>
-              <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-                {fmt.fmtMultiple(productResult.summary.poas)}
-              </p>
-              <p className="mt-1 text-xs text-muted">{t("blendedMarginSub", { value: fmt.fmtPct(productResult.summary.blendedMargin) })}</p>
-            </div>
-            <div className="card p-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("unprofitableCategories")}</p>
-              <p className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${productResult.summary.unprofitableCount > 0 ? "text-negative" : "text-positive"}`}>
-                {productResult.summary.unprofitableCount}
-              </p>
-              <p className="mt-1 text-xs text-muted">{t("belowBreakeven")}</p>
-            </div>
-          </div>
-
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">{t("colCategory")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colRevenueShare")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colRevenue")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colCost")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colProductMargin")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colPoas")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colNetProfit")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {productResult.rows.map((r) => (
-                    <tr key={r.category} className="border-b border-line/70 last:border-0">
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-2 font-medium text-navy-800">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                          {r.category}
-                        </span>
-                      </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtPct(r.revenueShare)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.revenue)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.cost)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.marginPct)}</td>
-                      <td className={`tnum px-4 py-3 text-right font-medium ${r.poas >= 1 ? "text-navy-800" : "text-negative"}`}>
-                        {fmt.fmtMultiple(r.poas)}
-                      </td>
-                      <td className={`tnum px-4 py-3 text-right font-semibold ${r.netProfit >= 0 ? "text-positive" : "text-negative"}`}>
-                        {fmt.fmtCZK(r.netProfit)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
-              <span>{t("productTableFooter")}</span>
-            </div>
-          </div>
-        </>
+        <ProfitProductsPanel productResult={productResult} worstCategory={worstCategory} />
       )}
 
       <NextSteps
