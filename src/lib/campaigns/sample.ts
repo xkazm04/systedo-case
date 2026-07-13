@@ -256,12 +256,15 @@ export function sampleCampaignSeries(
       const j = (scale = 0.14) => 1 + (rnd() * 2 - 1) * scale;
       const dow = d.getUTCDay();
       const weekend = dow === 0 || dow === 6 ? 0.82 : 1;
-      points.push({
-        date,
-        cost: Math.round(baseCost * weekend * j()),
-        conversions: Math.max(0, Math.round(baseConv * weekend * j())),
-        conversionValue: Math.max(0, Math.round(baseValue * weekend * j())),
-      });
+      // cost/conv/value keep their original draw order (byte-identical output);
+      // clicks/impressions draw AFTER, so the spine carries CTR/CPC without
+      // perturbing any pre-existing sample series.
+      const cost = Math.round(baseCost * weekend * j());
+      const conversions = Math.max(0, Math.round(baseConv * weekend * j()));
+      const conversionValue = Math.max(0, Math.round(baseValue * weekend * j()));
+      const impressions = Math.round(s.impr * weekend * j());
+      const clicksDay = Math.round(clicks * weekend * j());
+      points.push({ date, cost, conversions, conversionValue, clicks: clicksDay, impressions });
     }
     out[s.id] = points;
   }
@@ -287,11 +290,15 @@ export function sampleSeries(
   let baseCost = 0;
   let baseConv = 0;
   let baseValue = 0;
+  let baseImpr = 0;
+  let baseClicks = 0;
   for (const s of scaledSpecs(specsFor(type), days, envelope)) {
     const clicks = s.impr * s.ctr;
     baseCost += clicks * s.cpc;
     baseConv += clicks * s.convRate;
     baseValue += clicks * s.convRate * s.aov;
+    baseImpr += s.impr;
+    baseClicks += clicks;
   }
 
   const out: DailyPoint[] = [];
@@ -302,12 +309,14 @@ export function sampleSeries(
     const j = (scale = 0.1) => 1 + (rnd() * 2 - 1) * scale;
     const dow = d.getUTCDay();
     const weekend = dow === 0 || dow === 6 ? 0.82 : 1;
-    out.push({
-      date,
-      cost: Math.round(baseCost * weekend * j()),
-      conversions: Math.max(0, Math.round(baseConv * weekend * j())),
-      conversionValue: Math.round(baseValue * weekend * j()),
-    });
+    // cost/conv/value keep their original draw order (byte-identical output);
+    // impressions/clicks draw AFTER so the portfolio series carries CTR/CPC.
+    const cost = Math.round(baseCost * weekend * j());
+    const conversions = Math.max(0, Math.round(baseConv * weekend * j()));
+    const conversionValue = Math.round(baseValue * weekend * j());
+    const impressions = Math.round(baseImpr * weekend * j());
+    const clicks = Math.round(baseClicks * weekend * j());
+    out.push({ date, cost, conversions, conversionValue, clicks, impressions });
   }
   return out;
 }

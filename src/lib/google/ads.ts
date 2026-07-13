@@ -212,6 +212,8 @@ export async function fetchDailySeries(
   const query = `
     SELECT
       segments.date,
+      metrics.impressions,
+      metrics.clicks,
       metrics.cost_micros,
       metrics.conversions,
       metrics.conversions_value
@@ -224,10 +226,14 @@ export async function fetchDailySeries(
   for (const r of rows) {
     const date = r.segments?.date;
     if (!date) continue;
-    const p = byDate.get(date) ?? { date, cost: 0, conversions: 0, conversionValue: 0 };
+    const p =
+      byDate.get(date) ??
+      { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
     p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
     p.conversions += num(r.metrics?.conversions);
     p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+    p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
+    p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
     byDate.set(date, p);
   }
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -270,6 +276,8 @@ export async function fetchCampaignDailySeries(
     SELECT
       campaign.id,
       segments.date,
+      metrics.impressions,
+      metrics.clicks,
       metrics.cost_micros,
       metrics.conversions,
       metrics.conversions_value
@@ -284,10 +292,14 @@ export async function fetchCampaignDailySeries(
     const date = r.segments?.date;
     if (!id || !date) continue;
     const byDate = byCampaign.get(id) ?? new Map<string, DailyPoint>();
-    const p = byDate.get(date) ?? { date, cost: 0, conversions: 0, conversionValue: 0 };
+    const p =
+      byDate.get(date) ??
+      { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
     p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
     p.conversions += num(r.metrics?.conversions);
     p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+    p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
+    p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
     byDate.set(date, p);
     byCampaign.set(id, byDate);
   }

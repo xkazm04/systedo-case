@@ -10,12 +10,15 @@ import {
   aggregate,
   budgetPacing,
   campaignStatusLabel,
+  dailyMetricValues,
+  seriesSupportsMetric,
   withMetrics,
   type Campaign,
   type CampaignChange,
   type CampaignPeriod,
   type CampaignStatus,
   type CampaignType,
+  type SeriesMetric,
 } from "@/lib/campaigns/types";
 import {
   SEVERITY_RANK,
@@ -82,7 +85,12 @@ const T = {
     budgetCappedTitle:
       "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den) — vítěz, kterého brzdí rozpočet",
     colTrend: "Trend",
+    trendCost: "Náklady",
+    trendCtr: "CTR",
+    trendCpc: "CPC",
+    trendMetricAria: "Zvolit metriku trendu",
     sparkAria: "Denní náklady kampaně „{name}“ za období: od {start} do {end}",
+    sparkAriaMetric: "Denní {metric} kampaně „{name}“",
     footerLabel: "Součet filtru ({n})",
     footerTitle:
       "Souhrn právě vyfiltrovaných kampaní — ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
@@ -141,7 +149,12 @@ const T = {
     budgetCappedTitle:
       "ROAS {roas} above target with {pacing} of budget spent ({budget}/day) — a winner held back by its budget",
     colTrend: "Trend",
+    trendCost: "Cost",
+    trendCtr: "CTR",
+    trendCpc: "CPC",
+    trendMetricAria: "Choose trend metric",
     sparkAria: "Daily cost of campaign “{name}” over the period: from {start} to {end}",
+    sparkAriaMetric: "Daily {metric} of campaign “{name}”",
     footerLabel: "Filter total ({n})",
     footerTitle:
       "Aggregate of the currently filtered campaigns — ROAS and PNO are re-derived from sums, not averaged",
@@ -395,6 +408,11 @@ export default function CampaignTable({
     void onAnalyze(id);
   };
 
+  // Which metric the per-row trend sparkline plots. Cost is always available; CTR
+  // and CPC only when the widened daily spine (clicks + impressions) reached the
+  // stored series — legacy series stay cost-only and never show the toggle.
+  const [trendMetric, setTrendMetric] = useState<SeriesMetric>("cost");
+
   // One-click batch over the existing per-row endpoint: strictly sequential
   // (concurrency 1 respects the AI rate limiter), in triageWeight order — the
   // documented order a PPC manager should spend their evaluation clicks — and
@@ -439,8 +457,23 @@ export default function CampaignTable({
 
   // Trend column only when per-campaign series exist (older tenants re-sync
   // into it); the column count drives the empty-state / detail-row colspans.
-  const hasSeries = Object.values(campaignSeries ?? {}).some((pts) => (pts?.length ?? 0) >= 2);
+  const allSeries = Object.values(campaignSeries ?? {});
+  const hasSeries = allSeries.some((pts) => (pts?.length ?? 0) >= 2);
   const cols = COLS + (hasSeries ? 1 : 0);
+
+  // Metrics the trend toggle can offer: cost always, CTR/CPC only when the spine
+  // is present on some series. `activeTrendMetric` guards against a selected
+  // metric that the current data can't support (falls back to cost) without a
+  // state-reset effect.
+  const trendMetrics = (["cost", "ctr", "cpc"] as SeriesMetric[]).filter(
+    (m) => m === "cost" || allSeries.some((pts) => seriesSupportsMetric(pts ?? [], m))
+  );
+  const activeTrendMetric: SeriesMetric = trendMetrics.includes(trendMetric) ? trendMetric : "cost";
+  const trendMetricLabel: Record<SeriesMetric, string> = {
+    cost: t("trendCost"),
+    ctr: t("trendCtr"),
+    cpc: t("trendCpc"),
+  };
 
   // Derive once, then filter + sort. The helpers are pure and Next's React
   // Compiler memoizes the component, so we compute the view directly.
@@ -638,7 +671,31 @@ export default function CampaignTable({
                   <SortHeader col={col} sort={sort} onSort={onSort} t={t} />
                   {col.key === "name" && hasSeries && (
                     <th className="px-3 py-3 text-left font-semibold uppercase tracking-wide">
-                      {t("colTrend")}
+                      {trendMetrics.length > 1 ? (
+                        <span
+                          role="group"
+                          aria-label={t("trendMetricAria")}
+                          className="inline-flex items-center gap-1 normal-case"
+                        >
+                          {trendMetrics.map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => setTrendMetric(m)}
+                              aria-pressed={activeTrendMetric === m}
+                              className={`rounded-pill px-1.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                                activeTrendMetric === m
+                                  ? "bg-brand-100 text-brand-accent"
+                                  : "text-muted hover:text-navy-700"
+                              }`}
+                            >
+                              {trendMetricLabel[m]}
+                            </button>
+                          ))}
+                        </span>
+                      ) : (
+                        t("colTrend")
+                      )}
                     </th>
                   )}
                 </Fragment>
@@ -731,24 +788,34 @@ export default function CampaignTable({
                     </td>
                     {hasSeries && (
                       <td className="px-3 py-3 align-middle">
-                        {(campaignSeries?.[c.id]?.length ?? 0) >= 2 ? (
-                          <Sparkline
-                            values={campaignSeries![c.id]!.map((p) => p.cost)}
-                            width={96}
-                            height={26}
-                            area={false}
-                            className="h-[26px] w-24"
-                            label={t("sparkAria", {
-                              name: c.name,
-                              start: fmt.fmtCZKCompact(campaignSeries![c.id]![0]!.cost),
-                              end: fmt.fmtCZKCompact(
-                                campaignSeries![c.id]![campaignSeries![c.id]!.length - 1]!.cost
-                              ),
-                            })}
-                          />
-                        ) : (
-                          <span className="text-muted">—</span>
-                        )}
+                        {(() => {
+                          const pts = campaignSeries?.[c.id] ?? [];
+                          const values = dailyMetricValues(pts, activeTrendMetric);
+                          if (values.length < 2) return <span className="text-muted">—</span>;
+                          // Cost keeps its exact prior aria (with CZK endpoints); CTR/CPC
+                          // use a metric-named aria — same Sparkline, autoscaled.
+                          const label =
+                            activeTrendMetric === "cost"
+                              ? t("sparkAria", {
+                                  name: c.name,
+                                  start: fmt.fmtCZKCompact(values[0]!),
+                                  end: fmt.fmtCZKCompact(values[values.length - 1]!),
+                                })
+                              : t("sparkAriaMetric", {
+                                  name: c.name,
+                                  metric: trendMetricLabel[activeTrendMetric],
+                                });
+                          return (
+                            <Sparkline
+                              values={values}
+                              width={96}
+                              height={26}
+                              area={false}
+                              className="h-[26px] w-24"
+                              label={label}
+                            />
+                          );
+                        })()}
                       </td>
                     )}
                     <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(c.cost)}</td>

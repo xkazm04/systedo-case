@@ -170,6 +170,56 @@ export interface DailyPoint {
   conversions: number;
   /** value of conversions, CZK */
   conversionValue: number;
+  /** clicks on the day — OPTIONAL so points written before the spine carried
+   *  clicks/impressions (and any provider that can't supply them) read cleanly.
+   *  Present, it unlocks a CPC (cost/clicks) trend without a second ingestion. */
+  clicks?: number;
+  /** impressions on the day — OPTIONAL for the same backward-compat reason.
+   *  With `clicks`, it unlocks a CTR (clicks/impressions) trend. */
+  impressions?: number;
+}
+
+/** CTR for a daily point, or null when impressions weren't captured (legacy
+ *  points) or are zero. Pure + null-safe so a chart/diff can map straight over a
+ *  stored series without guarding each point. */
+export function dailyCtr(p: DailyPoint): number | null {
+  if (typeof p.clicks !== "number" || typeof p.impressions !== "number" || p.impressions <= 0) {
+    return null;
+  }
+  return p.clicks / p.impressions;
+}
+
+/** CPC for a daily point (CZK), or null when clicks weren't captured or are zero. */
+export function dailyCpc(p: DailyPoint): number | null {
+  if (typeof p.clicks !== "number" || p.clicks <= 0) return null;
+  return p.cost / p.clicks;
+}
+
+/** The metrics a daily series can be plotted by (the trend sparkline's toggle). */
+export type SeriesMetric = "cost" | "ctr" | "cpc";
+
+/** Is a CTR/CPC series available for these points? True only when the widened
+ *  spine (clicks + impressions) is present on enough of the series to draw it —
+ *  legacy series (cost only) return false so the toggle stays cost-only for them. */
+export function seriesSupportsMetric(points: DailyPoint[], metric: SeriesMetric): boolean {
+  if (metric === "cost") return points.length >= 2;
+  const derive = metric === "ctr" ? dailyCtr : dailyCpc;
+  return points.filter((p) => derive(p) !== null).length >= 2;
+}
+
+/** Extract the plottable value series for `metric`, dropping points where the
+ *  ratio is undefined (legacy points / zero denominators). For "cost" this is
+ *  every point's cost; for CTR/CPC only the points that carry clicks/impressions.
+ *  Pure so the chart maps straight over a stored series. */
+export function dailyMetricValues(points: DailyPoint[], metric: SeriesMetric): number[] {
+  if (metric === "cost") return points.map((p) => p.cost);
+  const derive = metric === "ctr" ? dailyCtr : dailyCpc;
+  const out: number[] = [];
+  for (const p of points) {
+    const v = derive(p);
+    if (v !== null) out.push(v);
+  }
+  return out;
 }
 
 /** Ratios derived from the raw metrics — never stored, always recomputed so the
@@ -281,6 +331,15 @@ export interface CampaignChange {
   valueDelta: number;
   roasBefore: number;
   roasAfter: number;
+  /** CTR / CPC before & after — OPTIONAL: present only when the widened spine
+   *  (clicks + impressions) is available on the snapshots being diffed. Legacy
+   *  snapshots omit clicks/impressions, so a diff over old history keeps its exact
+   *  prior shape. A null on one side means the ratio is undefined there (that side
+   *  is an add/remove, or has zero impressions/clicks). */
+  ctrBefore?: number | null;
+  ctrAfter?: number | null;
+  cpcBefore?: number | null;
+  cpcAfter?: number | null;
 }
 
 /** "What changed since the last sync" — diff of the two most recent snapshots. */

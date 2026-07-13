@@ -5,7 +5,7 @@ import { tenantDoc, activePeriod } from "./tenant";
 import { listCampaigns } from "./campaigns";
 import { belongsToPeriod } from "../store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "../triage";
-import { roas } from "@/lib/metrics/ratios";
+import { roas, ctr, cpc } from "@/lib/metrics/ratios";
 import type { CampaignChange, CampaignPeriod, ChangesSummary } from "../types";
 
 interface SnapshotEntry {
@@ -15,6 +15,10 @@ interface SnapshotEntry {
   conversions: number;
   conversion_value?: number;
   conversionValue?: number;
+  /** widened spine (optional — legacy snapshots omit these) */
+  clicks?: number;
+  impressions?: number;
+  budgetPerDay?: number;
 }
 
 /** Rule-based triage over the last `limit` stored sync snapshots, oldest →
@@ -95,6 +99,29 @@ export async function getLatestChanges(
   const valueOf = (e: SnapshotEntry) => e.conversionValue ?? e.conversion_value ?? 0;
   const rel = (a: number, b: number) => (b > 0 ? (a - b) / b : a > 0 ? 1 : 0);
 
+  // CTR/CPC from a snapshot entry, or null when the widened spine (clicks +
+  // impressions) wasn't captured for it (legacy snapshot) or the denominator is 0.
+  const hasSpine = (e: SnapshotEntry) =>
+    typeof e.clicks === "number" && typeof e.impressions === "number";
+  const ctrOf = (e: SnapshotEntry): number | null =>
+    hasSpine(e) && e.impressions! > 0 ? ctr(e.clicks!, e.impressions!) : null;
+  const cpcOf = (e: SnapshotEntry): number | null =>
+    typeof e.clicks === "number" && e.clicks > 0 ? cpc(e.cost, e.clicks) : null;
+  // Attach CTR/CPC before/after only when the spine is present on some side of the
+  // pair; otherwise return nothing so a legacy diff keeps its exact prior shape.
+  const ratioFields = (
+    prev: SnapshotEntry | null,
+    cur: SnapshotEntry | null
+  ): Pick<CampaignChange, "ctrBefore" | "ctrAfter" | "cpcBefore" | "cpcAfter"> | undefined => {
+    if (!(prev && hasSpine(prev)) && !(cur && hasSpine(cur))) return undefined;
+    return {
+      ctrBefore: prev ? ctrOf(prev) : null,
+      ctrAfter: cur ? ctrOf(cur) : null,
+      cpcBefore: prev ? cpcOf(prev) : null,
+      cpcAfter: cur ? cpcOf(cur) : null,
+    };
+  };
+
   let added = 0;
   let removed = 0;
   let changed = 0;
@@ -109,6 +136,7 @@ export async function getLatestChanges(
         campaignId: id, name, kind: "added",
         costBefore: 0, costAfter: c.cost, costDelta: 1, valueDelta: 1,
         roasBefore: 0, roasAfter: roas(valueOf(c), c.cost),
+        ...ratioFields(null, c),
       });
       continue;
     }
@@ -120,6 +148,7 @@ export async function getLatestChanges(
         campaignId: id, name, kind: "changed",
         costBefore: p.cost, costAfter: c.cost, costDelta, valueDelta,
         roasBefore: roas(valueOf(p), p.cost), roasAfter: roas(valueOf(c), c.cost),
+        ...ratioFields(p, c),
       });
     }
   }
@@ -130,6 +159,7 @@ export async function getLatestChanges(
       campaignId: id, name: names.get(id) ?? id, kind: "removed",
       costBefore: p.cost, costAfter: 0, costDelta: -1, valueDelta: -1,
       roasBefore: roas(valueOf(p), p.cost), roasAfter: 0,
+      ...ratioFields(p, null),
     });
   }
 

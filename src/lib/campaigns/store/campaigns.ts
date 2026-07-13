@@ -77,6 +77,12 @@ export async function upsertCampaigns(
         cost: c.cost,
         conversions: c.conversions,
         conversionValue: c.conversionValue,
+        // Widened spine (all optional so legacy snapshots read cleanly): clicks +
+        // impressions let the change diff report CTR/CPC movement, and the daily
+        // budget lets it flag a budget change. Kept lean — five extra numbers.
+        clicks: c.clicks,
+        impressions: c.impressions,
+        ...(typeof c.budgetPerDay === "number" ? { budgetPerDay: c.budgetPerDay } : {}),
       })),
     });
   }
