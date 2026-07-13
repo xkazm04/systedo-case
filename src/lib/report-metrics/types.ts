@@ -7,13 +7,22 @@
 export interface MetricRow {
   /** YYYY-MM-DD */
   date: string;
-  /** sessions/clicks proxy (Ads clicks map here) */
+  /** sessions/clicks proxy (Ads clicks map here). STAYS the clicks-stand-in for
+   *  backward compat with stored blobs + the sample-series funnel; the first-class
+   *  `clicks` field below is the honest paid-click count (equal to it for Ads). */
   visits: number;
   /** ad spend, in the account currency's major unit (e.g. CZK, not micros) */
   cost: number;
   conversions: number;
   /** conversion value / revenue, major unit */
   revenue: number;
+  /** paid ad clicks — OPTIONAL so legacy blobs (synced before A1 selected the
+   *  paid-traffic pair) read cleanly; present, it feeds canonical DailyPoint.clicks
+   *  so live CTR/CPC compute. Equal to `visits` on the Ads path (both are clicks). */
+  clicks?: number;
+  /** paid ad impressions — OPTIONAL for the same backward-compat reason; with
+   *  `clicks` it unlocks live click-through rate on the monthly report. */
+  impressions?: number;
 }
 
 export type MetricsSource = "google-ads";

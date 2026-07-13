@@ -7,7 +7,7 @@ import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
-import { reportTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -66,6 +66,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         : [t]
     );
   }
+  // Direction 1: on the LIVE path only, surface CTR/CPC for the traffic-led report
+  // types — the sync now carries impressions+clicks, so click efficiency is real.
+  // The sample spine has no paid-traffic pair, so these stay off the illustrative
+  // report (they'd read 0). Appended last, after the cost-model relabel.
+  if (resolved.live) tiles = [...tiles, ...livePaidTilesForType(project.type)];
 
   const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
   for (const p of ANALYSIS_PERIODS) {
@@ -122,6 +127,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         convRate: c.cr,
         profit,
         poas,
+        // Live CTR/CPC — derived by totalsOf from the daily impressions/clicks the
+        // Ads sync now carries (0 on the sample spine, but only rendered when live).
+        ctr: c.ctr,
+        cpc: c.cpc,
         ...(profitMargin !== undefined ? { profitMargin } : {}),
       },
       delta: {

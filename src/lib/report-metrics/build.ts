@@ -29,6 +29,11 @@ export function buildLiveDataset(project: Project, rows: MetricRow[]): Performan
       cost: Math.round(r.cost),
       conversions: r.conversions,
       revenue: Math.round(r.revenue),
+      // Canonical optional paid-traffic pair (types.ts DailyPoint) — present only
+      // when the synced row carried them, so legacy blobs stay clean and the metrics
+      // engine's CTR/CPC derive from real numbers rather than a fabricated 0.
+      ...(r.impressions !== undefined ? { impressions: Math.round(r.impressions) } : {}),
+      ...(r.clicks !== undefined ? { clicks: Math.round(r.clicks) } : {}),
     }));
   return { ...base, channels: [], events: undefined, daily };
 }

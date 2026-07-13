@@ -32,25 +32,42 @@ const { resolveReportDataset } = await import("@/lib/report-metrics/resolve");
 
 const PROJECT = { id: "proj-ads", name: "Acme s.r.o.", type: "eshop", domain: "acme.cz" };
 
-test("mapper: sums date-segmented rows, micros→CZK, clicks→visits", () => {
+test("mapper: sums date-segmented rows, micros→CZK, clicks→visits + first-class clicks/impressions", () => {
   const rows = mapAdsRowsToMetrics([
-    { segments: { date: "2026-06-02" }, metrics: { clicks: 10, costMicros: "1500000", conversions: 2, conversionsValue: 4000 } },
-    { segments: { date: "2026-06-01" }, metrics: { clicks: "5", costMicros: 500000, conversions: 1, conversionsValue: "1200" } },
+    { segments: { date: "2026-06-02" }, metrics: { impressions: "1000", clicks: 10, costMicros: "1500000", conversions: 2, conversionsValue: 4000 } },
+    { segments: { date: "2026-06-01" }, metrics: { impressions: 500, clicks: "5", costMicros: 500000, conversions: 1, conversionsValue: "1200" } },
     // second campaign, same day → summed into 2026-06-02
-    { segments: { date: "2026-06-02" }, metrics: { clicks: 3, costMicros: "500000", conversions: 1, conversionsValue: 800 } },
+    { segments: { date: "2026-06-02" }, metrics: { impressions: 300, clicks: 3, costMicros: "500000", conversions: 1, conversionsValue: 800 } },
     { metrics: { clicks: 99 } }, // no date → dropped
   ]);
   assert.deepEqual(rows, [
-    { date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 },
-    { date: "2026-06-02", visits: 13, cost: 2, conversions: 3, revenue: 4800 },
+    // visits STAYS the clicks proxy; clicks/impressions are carried first-class (D1).
+    { date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200, clicks: 5, impressions: 500 },
+    { date: "2026-06-02", visits: 13, cost: 2, conversions: 3, revenue: 4800, clicks: 13, impressions: 1300 },
   ]);
 });
 
-test("mapper: empty / malformed input never throws", () => {
+test("mapper: empty / malformed input never throws (impressions default 0)", () => {
   assert.deepEqual(mapAdsRowsToMetrics([]), []);
   assert.deepEqual(mapAdsRowsToMetrics([{ segments: { date: "2026-06-01" } }]), [
-    { date: "2026-06-01", visits: 0, cost: 0, conversions: 0, revenue: 0 },
+    { date: "2026-06-01", visits: 0, cost: 0, conversions: 0, revenue: 0, clicks: 0, impressions: 0 },
   ]);
+});
+
+test("builder: live rows carry clicks/impressions onto canonical DailyPoint; legacy rows stay clean", () => {
+  // A fresh sync (D1) carries the paid-traffic pair → CTR/CPC computable downstream.
+  const live = buildLiveDataset(PROJECT, [
+    { date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200, clicks: 5, impressions: 500 },
+  ]);
+  assert.equal(live.daily[0].impressions, 500);
+  assert.equal(live.daily[0].clicks, 5);
+  // A legacy blob (synced before D1) lacks the pair → the fields must be ABSENT, not 0,
+  // so the metrics engine's optional-field guards stay honest.
+  const legacy = buildLiveDataset(PROJECT, [
+    { date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 },
+  ]);
+  assert.equal("impressions" in legacy.daily[0], false);
+  assert.equal("clicks" in legacy.daily[0], false);
 });
 
 test("builder: keeps the project's client label + goals, swaps in the live series", () => {

@@ -1,7 +1,7 @@
 /** Monthly report compute (src/lib/report/compute.ts): delta tone + tile specs. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deltaTone, REPORT_TILES, reportTilesForType } from "@/lib/report/compute";
+import { deltaTone, REPORT_TILES, reportTilesForType, livePaidTilesForType } from "@/lib/report/compute";
 
 test("deltaTone: up is good for revenue-like metrics", () => {
   assert.equal(deltaTone(0.12, false), "positive");
@@ -37,4 +37,25 @@ test("report tiles are per-type: leadgen/local lead with leads/CPL, never e-shop
   assert.equal(cpaTile.goodWhenDown, true);
   // eshop is unchanged (back-compat with REPORT_TILES).
   assert.deepEqual(reportTilesForType("eshop"), REPORT_TILES);
+});
+
+test("livePaidTilesForType: CTR/CPC only for traffic-led types (eshop/content), live path only", () => {
+  // The base presets never carry the paid-traffic pair — it's live-only and appended
+  // by the page, so the sample report stays free of a 0% CTR.
+  for (const type of ["eshop", "leadgen", "local", "content", "app"]) {
+    assert.ok(!reportTilesForType(type).some((t) => t.metric === "ctr" || t.metric === "cpc"), `${type} preset must not carry ctr/cpc`);
+  }
+  assert.deepEqual(livePaidTilesForType("eshop").map((t) => t.metric), ["ctr", "cpc"]);
+  assert.deepEqual(livePaidTilesForType("content").map((t) => t.metric), ["ctr", "cpc"]);
+  for (const type of ["leadgen", "local", "app"]) {
+    assert.deepEqual(livePaidTilesForType(type), [], `${type} stays lead-focused`);
+  }
+  // CTR reads better up, CPC better down; neither carries a period delta.
+  const [ctr, cpc] = livePaidTilesForType("eshop");
+  assert.equal(ctr.goodWhenDown, false);
+  assert.equal(ctr.format, "pct");
+  assert.equal(cpc.goodWhenDown, true);
+  assert.equal(cpc.format, "czk");
+  assert.equal(ctr.hasDelta, false);
+  assert.equal(cpc.hasDelta, false);
 });

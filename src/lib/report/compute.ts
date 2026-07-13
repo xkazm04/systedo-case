@@ -20,7 +20,12 @@ export type ReportMetric =
   /** profit on ad spend = contribution / ad cost */
   | "poas"
   /** net profit margin = net profit / revenue (A3, only with a cost model) */
-  | "profitMargin";
+  | "profitMargin"
+  /** click-through rate = clicks / impressions (live only — needs the paid-traffic
+   *  pair the Ads sync carries; the sample spine drops it, so read as a fraction) */
+  | "ctr"
+  /** cost per click = ad cost / clicks (live only, paired with ctr) */
+  | "cpc";
 export type ReportFormat = "czk" | "multiple" | "pct" | "int";
 export type DeltaTone = "positive" | "negative" | "neutral";
 
@@ -94,6 +99,22 @@ export const REPORT_TILE_PRESETS: Record<ProjectType, ReportTileSpec[]> = {
 /** The recap tiles for a project type. */
 export function reportTilesForType(type: ProjectType): ReportTileSpec[] {
   return REPORT_TILE_PRESETS[type] ?? REPORT_TILE_PRESETS.eshop;
+}
+
+// The paid-traffic pair — CTR reads as a fraction (clicks/impressions), CPC as a
+// koruna cost per click. No delta line: a period-over-period paid-efficiency swing
+// wants its own baseline the report doesn't reconstruct, so we keep the tile honest
+// as a single figure rather than pairing it with a fabricated change.
+const CTR = T("ctr", "CTR", "CTR", "pct", false, false);
+const CPC = T("cpc", "CPC", "CPC", "czk", true, false);
+
+/** Extra tiles surfaced ONLY on the live report path (a real Ads sync), for the
+ *  project types where paid click efficiency is part of the story — the traffic-led
+ *  e-shop and content reports. The sample spine has no impressions/clicks, so these
+ *  would read 0 there; the page appends them only when `resolved.live`. Kept
+ *  deliberately conservative (leadgen/local/app reports stay lead-focused). */
+export function livePaidTilesForType(type: ProjectType): ReportTileSpec[] {
+  return type === "eshop" || type === "content" ? [CTR, CPC] : [];
 }
 
 /** Back-compat: the default (e-shop) tile set. Prefer reportTilesForType(type). */
