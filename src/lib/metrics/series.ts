@@ -5,6 +5,7 @@ import type { DailyPoint, MetricKey } from "../types";
 import type { SupportedLocale } from "../format";
 import { rel, relSigned, totalsOf, type Totals } from "./totals";
 import { pno, aov, cr, roas, ctr, cpc } from "./ratios";
+import { mean as meanOf, sampleVariance } from "./config";
 
 // --- periods ----------------------------------------------------------------
 
@@ -92,14 +93,9 @@ function dailyValue(p: DailyPoint, key: MetricKey): number {
 }
 
 function meanVar(xs: number[]): { mean: number; variance: number; n: number } {
-  const n = xs.length;
-  if (n === 0) return { mean: 0, variance: 0, n: 0 };
-  const mean = xs.reduce((a, b) => a + b, 0) / n;
-  // Sample variance (Bessel's correction, ÷(n−1)): these are a sample of daily
-  // values, not the whole population, so the unbiased estimator is correct here.
-  // A single day has no spread, so variance is 0.
-  const variance = n > 1 ? xs.reduce((a, b) => a + (b - mean) ** 2, 0) / (n - 1) : 0;
-  return { mean, variance, n };
+  // The engine's one (sample) variance estimator — see ./config. A single day has
+  // no spread, so variance is 0.
+  return { mean: meanOf(xs), variance: sampleVariance(xs), n: xs.length };
 }
 
 /** Two-sample normal-approx significance of the change in a metric between two

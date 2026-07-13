@@ -16,10 +16,11 @@ import { channelRowsCompared, type ChannelRow } from "./channels";
 import { detectAnomalies, type Anomaly } from "./anomalies";
 import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
+import { seriesCoverage, type Coverage } from "./config";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
-export const SNAPSHOT_SCHEMA_VERSION = 3;
+export const SNAPSHOT_SCHEMA_VERSION = 4;
 
 export interface SnapshotPeriod {
   key: string;
@@ -49,6 +50,12 @@ export interface MetricsSnapshot {
    *  full-period comparison. Consumers that quote the period as an absolute span
    *  (e.g. a "12 months / YoY" grounding line) must honor this. */
   truncated: boolean;
+  /** how much daily history the anomaly/trend detectors had to work with:
+   *  "full" (≥29 days, unchanged detection), "degraded" (10–28 days: shorter
+   *  baseline + wider z bar, so weaker signals), or "insufficient" (<10 days:
+   *  no anomalies). Lets the UI and the AI grounding stay honest about sensitivity
+   *  instead of reading an empty feed as "all clear". */
+  coverage: Coverage;
   current: Totals;
   previous: Totals;
   delta: Record<MetricKey, number>;
@@ -75,6 +82,7 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     period: { key: period.key, label: period.label, days: period.days },
     baseline: result.baseline,
     truncated: result.truncated,
+    coverage: seriesCoverage(data.daily.length),
     current: result.current,
     previous: result.previous,
     delta: result.delta,

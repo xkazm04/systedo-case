@@ -7,6 +7,7 @@ import {
   periodLabel,
   type Anomaly,
   type AnomalyImpact,
+  type Coverage,
   type PeriodDef,
 } from "@/lib/metrics";
 import type { Formatters, SupportedLocale } from "@/lib/format";
@@ -28,6 +29,7 @@ const T = {
     anomalyDrop: "{metric} — propad {pct} pod očekávání",
     anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
     anomalyGoalBreach: "Překročení cílového PNO ({pno})",
+    coverageDegraded: "Kratší historie dat — méně citlivá detekce, slabší události nemusí být zachyceny.",
   },
   en: {
     alerts: "Alerts",
@@ -42,6 +44,7 @@ const T = {
     anomalyDrop: "{metric} — drop {pct} below expected",
     anomalyOutage: "{metric} — outage (value near zero)",
     anomalyGoalBreach: "PNO target breached ({pno})",
+    coverageDegraded: "Short data history — less sensitive detection; weaker events may be missed.",
   },
 } as const;
 
@@ -88,12 +91,15 @@ export default function AlertsPanel({
   impact,
   period,
   onFocus,
+  coverage = "full",
 }: {
   topAnomalies: Anomaly[];
   count: number;
   impact: AnomalyImpact;
   period: PeriodDef;
   onFocus: (a: Anomaly) => void;
+  /** how much history the detector had — drives an honest note when short */
+  coverage?: Coverage;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -157,6 +163,9 @@ export default function AlertsPanel({
           );
         })}
       </ul>
+      {coverage !== "full" && (
+        <p className="mt-3 border-t border-navy-50 pt-3 text-xs text-muted">{t("coverageDegraded")}</p>
+      )}
     </div>
   );
 }

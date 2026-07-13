@@ -5,17 +5,18 @@
  *  de-seasonalised (anomaly detection). */
 
 import type { DailyPoint, RawMetric } from "../types";
+import { WINDOWS, sampleStd } from "./config";
 
 /** σ of the de-seasonalised daily revenue over a trailing window — the day-to-day
- *  noise used to size the forecast confidence band. */
+ *  noise used to size the forecast confidence band. Uses the engine's one (sample)
+ *  variance estimator (see ./config), so the pacing band and the anomaly/trend
+ *  detectors all speak the same statistical language. */
 export function dailyRevenueSigma(daily: DailyPoint[], weights: number[]): number {
-  const window = Math.min(daily.length, 56);
+  const window = Math.min(daily.length, WINDOWS.sigma);
   const recent = daily.slice(daily.length - window);
   if (recent.length < 2) return 0;
   const adj = recent.map((p) => p.revenue / (weights[dayOfWeek(p.date)] || 1));
-  const mean = adj.reduce((a, b) => a + b, 0) / adj.length;
-  const variance = adj.reduce((a, b) => a + (b - mean) ** 2, 0) / adj.length;
-  return Math.sqrt(variance);
+  return sampleStd(adj);
 }
 
 /** Standard normal CDF (Abramowitz-Stegun 26.2.17), dependency-free. */
@@ -35,7 +36,7 @@ export const dayOfWeek = (date: string): number => new Date(`${date}T00:00:00Z`)
  *  seasonality baked into the series so days can be weighted by their weekday mix
  *  (used by the forecast) or de-seasonalised (used by anomaly detection). */
 export function weekdayWeightsFor(daily: DailyPoint[], key: RawMetric): number[] {
-  const window = Math.min(daily.length, 84); // up to 12 whole weeks
+  const window = Math.min(daily.length, WINDOWS.weekday); // up to 12 whole weeks
   const recent = daily.slice(daily.length - window);
   const sum = new Array(7).fill(0);
   const count = new Array(7).fill(0);

@@ -7,6 +7,7 @@ import {
   metricShort,
   METRICS,
   type ChannelRow,
+  type Coverage,
   type Trend,
   type WeekdayProfilePoint,
 } from "@/lib/metrics";
@@ -28,6 +29,10 @@ const T = {
     insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
     insightWeekday:
       "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
+    coverageDegraded:
+      "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
+    coverageInsufficient:
+      "Zatím příliš málo dat pro spolehlivou detekci anomálií a trendů.",
   },
   en: {
     insights: "Worth noting",
@@ -41,6 +46,10 @@ const T = {
     insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
     insightWeekday:
       "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
+    coverageDegraded:
+      "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
+    coverageInsufficient:
+      "Too little data yet for reliable anomaly and trend detection.",
   },
 } as const;
 
@@ -160,6 +169,7 @@ export default function InsightsPanel({
   goalPno,
   trends,
   profile,
+  coverage = "full",
 }: {
   channels: ChannelRow[];
   revenueDelta: number;
@@ -167,6 +177,8 @@ export default function InsightsPanel({
   goalPno: number;
   trends: Trend[];
   profile: WeekdayProfilePoint[];
+  /** how much history the detectors had — drives an honest note when short */
+  coverage?: Coverage;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -198,6 +210,11 @@ export default function InsightsPanel({
           </li>
         ))}
       </ul>
+      {coverage !== "full" && (
+        <p className="mt-3 border-t border-navy-50 pt-3 text-xs text-muted">
+          {t(coverage === "insufficient" ? "coverageInsufficient" : "coverageDegraded")}
+        </p>
+      )}
     </div>
   );
 }

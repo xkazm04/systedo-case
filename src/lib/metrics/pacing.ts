@@ -3,10 +3,11 @@
 import type { DailyPoint } from "../types";
 import { dailyRevenueSigma, normalCdf, weekdayWeights } from "./seasonality";
 import { totalsOf } from "./totals";
+import { WINDOWS } from "./config";
 
 /** Trailing window whose ROAS converts a revenue-pace shortfall into the extra
  *  daily ad spend it would take to close it (matches the anomaly baseline span). */
-const ROAS_WINDOW_DAYS = 28;
+const ROAS_WINDOW_DAYS = WINDOWS.roas;
 
 /** Days that must have elapsed before goalProbability is quoted as a hard number.
  *  Below this the i.i.d.-normal forecast is too volatile to state a precise %. */

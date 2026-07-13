@@ -8,6 +8,7 @@
 
 import type { DailyPoint, RawMetric } from "../types";
 import { dayOfWeek, weekdayWeightsFor } from "./seasonality";
+import { sampleVariance } from "./config";
 
 export interface Trend {
   metric: RawMetric;
@@ -69,15 +70,10 @@ export function detectTrends(daily: DailyPoint[], options: TrendOptions = {}): T
       weekly.push(block.reduce((a, b) => a + b, 0) / 7);
     }
 
-    // Noise floor: sample variance of the daily values over the span → the
-    // standard error of the difference of two independent 7-day means.
+    // Noise floor: the engine's one (sample) variance estimator over the span →
+    // the standard error of the difference of two independent 7-day means.
     const span = adj.slice(adj.length - weekCount * 7);
-    const mean = span.reduce((a, b) => a + b, 0) / span.length;
-    const variance =
-      span.length > 1
-        ? span.reduce((a, b) => a + (b - mean) ** 2, 0) / (span.length - 1)
-        : 0;
-    const seMove = Math.sqrt((2 * variance) / 7);
+    const seMove = Math.sqrt((2 * sampleVariance(span)) / 7);
 
     // Walk the moves backwards from the latest week; the run must reach "now".
     let run = 0;

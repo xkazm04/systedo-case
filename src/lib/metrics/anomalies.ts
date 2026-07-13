@@ -3,6 +3,15 @@
 
 import type { DailyPoint, MetricKey, RawMetric } from "../types";
 import { dayOfWeek, weekdayWeightsFor } from "./seasonality";
+import {
+  ANOMALY_Z,
+  ANOMALY_Z_DEGRADED,
+  anomalyThreshold,
+  anomalyWindow,
+  mean as meanOf,
+  sampleStd,
+  seriesCoverage,
+} from "./config";
 
 export type AnomalyKind = "spike" | "drop" | "outage" | "goal-breach";
 
@@ -37,9 +46,22 @@ export function detectAnomalies(
   goals: { pno: number },
   options: AnomalyOptions = {}
 ): Anomaly[] {
-  const window = options.window ?? 28;
-  const threshold = options.z ?? 2.5;
+  // Graceful degradation: below ~10 days we can't honestly score anything; between
+  // 10 and 28 days we run a shorter, still-weekday-balanced baseline with a wider
+  // |z| bar; ≥29 days is the unchanged full-confidence pass. An explicit
+  // window/z override always wins (e.g. tests, or a caller who knows its own noise).
+  const coverage = seriesCoverage(daily.length);
+  if (options.window === undefined && options.z === undefined && coverage === "insufficient") {
+    return [];
+  }
+  const window = options.window ?? anomalyWindow(daily.length, coverage);
+  const threshold = options.z ?? (coverage === "full" ? ANOMALY_Z : ANOMALY_Z_DEGRADED);
   if (daily.length < window + 1) return [];
+
+  // Every scored point reads a baseline of exactly `window` days, so the sample-
+  // variance z's are all on the same footing: recalibrate the flag threshold once
+  // so switching from the population estimator leaves the flagged set unchanged.
+  const effThreshold = anomalyThreshold(threshold, window);
 
   const metrics: RawMetric[] = ["revenue", "cost", "conversions", "visits"];
   const out: Anomaly[] = [];
@@ -55,13 +77,12 @@ export function detectAnomalies(
     const zMap = new Map<string, number>();
     for (let i = window; i < daily.length; i++) {
       const base = adj.slice(i - window, i);
-      const mean = base.reduce((a, b) => a + b, 0) / base.length;
-      const variance = base.reduce((a, b) => a + (b - mean) ** 2, 0) / base.length;
-      const std = Math.sqrt(variance);
+      const mean = meanOf(base);
+      const std = sampleStd(base);
       if (!(std > 0)) continue;
       const z = (adj[i] - mean) / std;
       zMap.set(daily[i].date, z);
-      if (Math.abs(z) < threshold) continue;
+      if (Math.abs(z) < effThreshold) continue;
       const w = weights[dayOfWeek(daily[i].date)] || 1;
       const expected = mean * (w > 0 ? w : 1);
       const observed = daily[i][key];
@@ -83,7 +104,7 @@ export function detectAnomalies(
     if (pno <= goals.pno) continue;
     const cz = costZ?.get(p.date) ?? 0;
     const rz = revZ?.get(p.date) ?? 0;
-    if (cz >= threshold || rz <= -threshold) {
+    if (cz >= effThreshold || rz <= -effThreshold) {
       out.push({ date: p.date, metric: "pno", observed: pno, expected: goals.pno, z: Math.max(cz, -rz), kind: "goal-breach" });
     }
   }

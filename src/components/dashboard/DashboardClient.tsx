@@ -20,6 +20,7 @@ import {
   monthlyAttainmentHistory,
   monthlyPacing,
   PERIODS,
+  seriesCoverage,
   TREND_METRICS,
   weekdayProfile,
   type Anomaly,
@@ -68,6 +69,10 @@ export default function DashboardClient({
   const anomalies = detectAnomalies(data.daily, data.goals);
   const trends = detectTrends(data.daily);
   const profile = weekdayProfile(data.daily);
+  // How much history the detectors had — so the alerts/insights cards can note
+  // honestly when a short series makes detection less sensitive (or impossible)
+  // rather than letting an empty feed read as "all clear".
+  const coverage = seriesCoverage(data.daily.length);
 
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
@@ -141,6 +146,7 @@ export default function DashboardClient({
                 impact={impact}
                 period={period}
                 onFocus={focusAlert}
+                coverage={coverage}
               />
             )}
             <InsightsPanel
@@ -150,6 +156,7 @@ export default function DashboardClient({
               goalPno={goalPno}
               trends={trends}
               profile={profile}
+              coverage={coverage}
             />
           </div>
         </div>

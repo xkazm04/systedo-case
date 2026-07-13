@@ -5,6 +5,7 @@
  *  This barrel re-exports the cohesive submodules so `@/lib/metrics` stays a
  *  drop-in for the previous single-file module. */
 
+export * from "./config";
 export * from "./ratios";
 export * from "./totals";
 export * from "./series";
