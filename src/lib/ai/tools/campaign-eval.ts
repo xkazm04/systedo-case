@@ -24,6 +24,7 @@ import {
   type ChangesSummary,
 } from "../../campaigns/types";
 import { buildCampaignPrompt, buildOverallPrompt } from "../../campaigns/report-input";
+import type { ClientProfile } from "../../campaigns/report-config-types";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
@@ -221,6 +222,9 @@ export function generateCampaignEvaluation(args: {
   changes?: ChangesSummary;
   /** output language (defaults to Czech) */
   locale?: SupportedLocale;
+  /** the tenant's client profile — grounds the prompt in who the client is and
+   *  their PNO goal (defaults to the case-study client when omitted) */
+  client?: ClientProfile;
   /** client abort propagation (stops the provider work when the caller is gone) */
   signal?: AbortSignal;
 }): Promise<AiResponse<CampaignReportResult>> {
@@ -229,8 +233,8 @@ export function generateCampaignEvaluation(args: {
     // llm-tool: campaign-eval
     id: "campaign-eval",
     prompt: single
-      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes)
-      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes),
+      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client)
+      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes, args.client),
     system: EVAL_SYSTEM,
     schema: EVAL_SCHEMA,
     temperature: 0.6,

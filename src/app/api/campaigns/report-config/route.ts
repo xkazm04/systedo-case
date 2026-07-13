@@ -4,14 +4,29 @@
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
+  DEFAULT_CLIENT_PROFILE,
   REPORT_CADENCES,
   getReportConfig,
   setReportConfig,
+  type ClientProfile,
   type ReportCadence,
 } from "@/lib/campaigns/report-config";
 
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+
+/** Sanitize the submitted client profile: cap free-text, clamp the PNO goal to a
+ *  sane share (1%–100%), and fall back to the default (Mionelo) for empty fields
+ *  so a blank submit restores the seeded demo rather than persisting blanks. */
+function parseClientProfile(raw: unknown): ClientProfile {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const name = str(o.name).slice(0, 80) || DEFAULT_CLIENT_PROFILE.name;
+  const domain = str(o.domain).slice(0, 120) || DEFAULT_CLIENT_PROFILE.domain;
+  const businessLine = str(o.businessLine).slice(0, 200) || DEFAULT_CLIENT_PROFILE.businessLine;
+  const goal = Number(o.pnoGoal);
+  const pnoGoal = Number.isFinite(goal) && goal > 0 && goal <= 1 ? goal : DEFAULT_CLIENT_PROFILE.pnoGoal;
+  return { name, domain, businessLine, pnoGoal };
+}
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function GET(request: Request) {
@@ -50,6 +65,7 @@ export async function PUT(request: Request) {
     accentColor,
     recipients,
     cadence,
+    clientProfile: parseClientProfile(body.clientProfile),
   };
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const tenant = await resolveTenant(userId, projectId);

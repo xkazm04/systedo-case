@@ -15,10 +15,14 @@ import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
 import { recordActivity } from "./activity";
 import { planSuppression, type AlertState } from "./alert-suppression";
+import { getClientProfile } from "./report-config";
+import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
 
-/** Default PNO target when a tenant carries no explicit goal (matches the
- *  case-study client's 0.15). Anomaly goal-breaches are measured against this. */
-export const DEFAULT_PNO_GOAL = 0.15;
+/** Default PNO goal for anomaly goal-breaches — the ONE paid-portfolio target
+ *  (0.18) that triage and reporting also use, instead of the old rogue 0.15 that
+ *  split-brained against them. The per-tenant ClientProfile.pnoGoal overrides it
+ *  (resolved inside evaluateAnomalyAlerts); an explicit `opts.pnoGoal` still wins. */
+export const DEFAULT_PNO_GOAL = PAID_PORTFOLIO_TARGET_PNO;
 
 /** Cap on how many anomalies we spell out in one alert body, by severity. */
 const MAX_ITEMS = 5;
@@ -77,7 +81,9 @@ export async function evaluateAnomalyAlerts(
   series: DailyPoint[],
   opts: { pnoGoal?: number } = {}
 ): Promise<number> {
-  const pnoGoal = opts.pnoGoal ?? DEFAULT_PNO_GOAL;
+  // Single source: the tenant's client PNO goal (defaulting to the one paid-
+  // portfolio target). An explicit opts.pnoGoal still wins for callers that pass one.
+  const pnoGoal = opts.pnoGoal ?? (await getClientProfile(tenant)).pnoGoal;
   const anomalies = detectAnomalies(toMetricSeries(series), { pno: pnoGoal });
 
   // Hysteresis+cooldown memory, shared with campaign alerts. Anomalies carry no

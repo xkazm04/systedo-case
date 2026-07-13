@@ -8,7 +8,6 @@ import {
   CAMPAIGN_TYPE_ROLE_LABELS,
   CAMPAIGN_TYPE_ROLES,
   CAMPAIGN_STATUS_LABELS,
-  TARGET_PNO,
   aggregate,
   campaignTypesForRole,
   groupByType,
@@ -23,6 +22,7 @@ import {
 import { CAMPAIGN_PERIOD_LABELS } from "./types";
 import { triage } from "./triage";
 import { recommendBudgetMoves } from "./budget-moves";
+import { DEFAULT_CLIENT_PROFILE, type ClientProfile } from "./report-config-types";
 
 /** Render one campaign's deterministic triage as prompt lines, so the model
  *  reasons over the same rule-based diagnosis the UI badges show — instead of
@@ -65,7 +65,11 @@ function changesBlock(changes: ChangesSummary | undefined, onlyCampaignId?: stri
   ];
 }
 
-const CLIENT_LINE = "Klient: Mionelo (mionelo.cz) — e-shop s ořechy, semínky a superpotravinami";
+/** The client-identity line, rendered from the tenant's ClientProfile — no
+ *  hardcoded client string. Default profile (Mionelo) renders byte-identically
+ *  to the string this replaced. */
+const clientLine = (client: ClientProfile): string =>
+  `Klient: ${client.name} (${client.domain}) — ${client.businessLine}`;
 
 const metricsLine = (c: CampaignRow): string =>
   [
@@ -86,8 +90,8 @@ const metricsLine = (c: CampaignRow): string =>
     `prokliky ${fmtInt(c.clicks)}`,
   ].join(", ");
 
-function targetLine(): string {
-  return `Cílové PNO domluvené s klientem: ${fmtPct(TARGET_PNO, 0)} (≈ ROAS ${fmtMultiple(1 / TARGET_PNO)}).`;
+function targetLine(client: ClientProfile): string {
+  return `Cílové PNO domluvené s klientem: ${fmtPct(client.pnoGoal, 0)} (≈ ROAS ${fmtMultiple(1 / client.pnoGoal)}).`;
 }
 
 /** One-line strategist framing derived from CAMPAIGN_TYPE_ROLES (never a
@@ -102,11 +106,11 @@ function roleLine(): string {
   );
 }
 
-function header(period: CampaignPeriod): string[] {
+function header(period: CampaignPeriod, client: ClientProfile): string[] {
   return [
-    CLIENT_LINE,
+    clientLine(client),
     `Období: posledních ${CAMPAIGN_PERIOD_LABELS[period]}.`,
-    targetLine(),
+    targetLine(client),
     roleLine(),
   ];
 }
@@ -119,7 +123,8 @@ export function buildCampaignPrompt(
   target: Campaign,
   all: Campaign[],
   period: CampaignPeriod,
-  changes?: ChangesSummary
+  changes?: ChangesSummary,
+  client: ClientProfile = DEFAULT_CLIENT_PROFILE
 ): string {
   const changesById = indexChanges(changes);
   const t = withMetrics(target);
@@ -134,7 +139,7 @@ export function buildCampaignPrompt(
   return [
     "Vyhodnoť výkon jedné konkrétní reklamní kampaně z Google Ads.",
     "",
-    ...header(period),
+    ...header(period, client),
     "",
     `HODNOCENÁ KAMPAŇ: „${target.name}“`,
     `- ${metricsLine(t)}`,
@@ -162,7 +167,8 @@ export function buildOverallPrompt(
   all: Campaign[],
   period: CampaignPeriod,
   patternLines: string[] = [],
-  changes?: ChangesSummary
+  changes?: ChangesSummary,
+  client: ClientProfile = DEFAULT_CLIENT_PROFILE
 ): string {
   const changesById = indexChanges(changes);
   const portfolio = aggregate(all);
@@ -182,11 +188,11 @@ export function buildOverallPrompt(
   return [
     "Vyhodnoť celé portfolio reklamních kampaní klienta z Google Ads jako PPC stratég.",
     "",
-    ...header(period),
+    ...header(period, client),
     "",
     `SOUHRN PORTFOLIA (${portfolio.count} kampaní):`,
     `- náklady ${fmtCZK(portfolio.cost)}, hodnota konverzí ${fmtCZK(portfolio.conversionValue)}, konverze ${fmtInt(portfolio.conversions)}`,
-    `- ROAS ${fmtMultiple(portfolio.roas)}, PNO ${fmtPct(portfolio.pno)} (cíl ${fmtPct(TARGET_PNO, 0)})`,
+    `- ROAS ${fmtMultiple(portfolio.roas)}, PNO ${fmtPct(portfolio.pno)} (cíl ${fmtPct(client.pnoGoal, 0)})`,
     "",
     "VÝKON PODLE TYPU (náklady | hodnota konverzí | ROAS | PNO):",
     ...types.map(

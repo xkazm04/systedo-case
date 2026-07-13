@@ -17,6 +17,13 @@ const T = {
   cs: {
     summaryHeading: "Automatický report pro klienta",
     cadenceOff: "vypnuto",
+    profileHeading: "Profil klienta",
+    profileHint: "Grunduje AI report (kdo je klient) a je jediným cílem PNO pro report i anomálie.",
+    clientNameLabel: "Název klienta",
+    clientDomainLabel: "Doména",
+    clientBusinessLabel: "Čím se klient zabývá (jedna věta)",
+    clientBusinessPlaceholder: "e-shop s ořechy, semínky a superpotravinami",
+    pnoGoalLabel: "Cílové PNO (%)",
     brandLabel: "Název značky (white-label)",
     accentLabel: "Akcentová barva",
     accentAriaLabel: "Akcentová barva",
@@ -36,6 +43,13 @@ const T = {
   en: {
     summaryHeading: "Automated client report",
     cadenceOff: "off",
+    profileHeading: "Client profile",
+    profileHint: "Grounds the AI report (who the client is) and is the single PNO target for both the report and anomalies.",
+    clientNameLabel: "Client name",
+    clientDomainLabel: "Domain",
+    clientBusinessLabel: "What the client does (one line)",
+    clientBusinessPlaceholder: "online store for nuts, seeds and superfoods",
+    pnoGoalLabel: "Target COS (%)",
     brandLabel: "Brand name (white-label)",
     accentLabel: "Accent colour",
     accentAriaLabel: "Accent colour",
@@ -88,6 +102,14 @@ export default function ReportSettings() {
     setSaved(false);
   };
 
+  const setProfile = <K extends keyof ReportConfig["clientProfile"]>(
+    key: K,
+    value: ReportConfig["clientProfile"][K]
+  ) => {
+    setCfg((c) => (c ? { ...c, clientProfile: { ...c.clientProfile, [key]: value } } : c));
+    setSaved(false);
+  };
+
   const save = () => {
     if (!cfg) return;
     const c = cfg;
@@ -101,6 +123,7 @@ export default function ReportSettings() {
             accentColor: c.accentColor,
             recipients: c.recipients,
             cadence: c.cadence,
+            clientProfile: c.clientProfile,
             projectId: pid,
           }),
         });
@@ -126,7 +149,60 @@ export default function ReportSettings() {
         </span>
       </summary>
 
-      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+      {/* client profile — the single source for prompt identity + PNO goal */}
+      <fieldset className="mt-5 rounded-card border border-line p-4">
+        <legend className="px-1 text-sm font-semibold text-navy-800">{t("profileHeading")}</legend>
+        <p className="text-xs text-muted">{t("profileHint")}</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("clientNameLabel")}</span>
+            <input
+              type="text"
+              value={cfg.clientProfile.name}
+              onChange={(e) => setProfile("name", e.target.value)}
+              placeholder="Mionelo"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("clientDomainLabel")}</span>
+            <input
+              type="text"
+              value={cfg.clientProfile.domain}
+              onChange={(e) => setProfile("domain", e.target.value)}
+              placeholder="mionelo.cz"
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("clientBusinessLabel")}</span>
+            <input
+              type="text"
+              value={cfg.clientProfile.businessLine}
+              onChange={(e) => setProfile("businessLine", e.target.value)}
+              placeholder={t("clientBusinessPlaceholder")}
+              className="w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("pnoGoalLabel")}</span>
+            <input
+              type="number"
+              min={1}
+              max={100}
+              step={1}
+              value={Math.round(cfg.clientProfile.pnoGoal * 100)}
+              onChange={(e) => {
+                const pct = Number(e.target.value);
+                if (Number.isFinite(pct) && pct > 0) setProfile("pnoGoal", pct / 100);
+              }}
+              className="tnum w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
+            />
+          </label>
+        </div>
+      </fieldset>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-navy-700">{t("brandLabel")}</span>
           <input

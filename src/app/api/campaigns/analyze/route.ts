@@ -9,6 +9,7 @@ import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getServerLocale } from "@/lib/i18n/locale";
 import {
   findCachedReport,
@@ -174,6 +175,8 @@ export async function POST(request: Request) {
         patternLines,
         changes: changes ?? undefined,
         locale: await getServerLocale(),
+        // The tenant's client profile grounds the prompt identity + PNO goal.
+        client: await getClientProfile(tenant),
         // Client abort propagation: a closed tab / re-run stops the provider work.
         signal: request.signal,
       });

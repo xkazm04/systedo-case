@@ -17,6 +17,7 @@ import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getServerLocale } from "@/lib/i18n/locale";
 import {
   findCachedReport,
@@ -164,6 +165,8 @@ export async function POST(request: Request) {
 
   try {
     const locale = await getServerLocale();
+    // Resolve the tenant's client profile once for the whole batch.
+    const client = await getClientProfile(tenant);
 
     for (let i = 0; i < pending.length; i++) {
       const target = pending[i]!;
@@ -206,6 +209,7 @@ export async function POST(request: Request) {
           patternLines,
           changes: changes ?? undefined,
           locale,
+          client,
           // A closed tab stops the remaining provider work mid-batch.
           signal: request.signal,
         });
