@@ -1,9 +1,10 @@
 /** Turn a fresh sync into alerts across channels — email, an outbound webhook,
- *  and a persisted in-app inbox — for campaigns that have *newly* become critical
- *  (don't re-alert ones already flagged). The "already alerted" set lives on the
- *  tenant doc, so a recovered-then-relapsed campaign re-alerts. The same path runs
- *  on the hourly cron and on a manual sync, so the inbox always reflects reality.
- *  Server-only. */
+ *  and a persisted in-app inbox — for campaigns that have *newly* become critical.
+ *  Re-alerting is governed by a hysteresis + cooldown policy (see
+ *  ./alert-suppression) persisted on the tenant doc, so a campaign flickering
+ *  across the critical boundary alerts once per cooldown window instead of every
+ *  sync. The same path runs on the hourly cron and on a manual sync, so the inbox
+ *  always reflects reality. Server-only. */
 import { firestore } from "@/lib/firebase";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
@@ -11,6 +12,7 @@ import { escapeHtml } from "@/lib/html";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
+import { planSuppression, type AlertState } from "./alert-suppression";
 
 export type AlertType = "critical" | "digest";
 
@@ -83,16 +85,26 @@ export async function evaluateAndAlert(
   changesById: Record<string, CampaignChange> = {}
 ): Promise<number> {
   const rows = campaigns.map(withMetrics);
-  const criticals = rows.filter((c) => triage(c, changesById[c.id]).severity === "critical");
-  const criticalIds = criticals.map((c) => c.id);
+  // Split by severity so the hysteresis band (recovered-to-warning) can hold an
+  // episode open — a critical→warning→critical flicker must NOT re-alert.
+  const byId = new Map(rows.map((c) => [c.id, triage(c, changesById[c.id]).severity]));
+  const criticals = rows.filter((c) => byId.get(c.id) === "critical");
+  const banded = rows.filter((c) => byId.get(c.id) === "warning").map((c) => c.id);
 
   const tenantRef = firestore.collection("tenants").doc(tenant);
-  const prevAlerted: string[] = (await tenantRef.get()).data()?.alertedCampaignIds ?? [];
-  const fresh = criticals.filter((c) => !prevAlerted.includes(c.id));
+  const prevState: AlertState = (await tenantRef.get()).data()?.criticalAlertState ?? {};
 
-  // Remember the current criticals so recovered ones drop and can re-alert later.
-  await tenantRef.set({ alertedCampaignIds: criticalIds }, { merge: true });
+  // Hysteresis + per-key cooldown: decide which criticals actually alert now and
+  // roll the episode memory forward (grouped repeats stay in state, silent).
+  const { toAlert, nextState } = planSuppression(prevState, {
+    breaching: criticals.map((c) => c.id),
+    banded,
+    now: Date.now(),
+  });
+  await tenantRef.set({ criticalAlertState: nextState }, { merge: true });
 
+  const alertIds = new Set(toAlert);
+  const fresh = criticals.filter((c) => alertIds.has(c.id));
   if (fresh.length === 0) return 0;
 
   const items: AlertItem[] = fresh.map((c) => ({

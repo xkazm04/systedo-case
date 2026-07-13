@@ -14,6 +14,7 @@ import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
 import { recordActivity } from "./activity";
+import { planSuppression, type AlertState } from "./alert-suppression";
 
 /** Default PNO target when a tenant carries no explicit goal (matches the
  *  case-study client's 0.15). Anomaly goal-breaches are measured against this. */
@@ -78,19 +79,22 @@ export async function evaluateAnomalyAlerts(
 ): Promise<number> {
   const pnoGoal = opts.pnoGoal ?? DEFAULT_PNO_GOAL;
   const anomalies = detectAnomalies(toMetricSeries(series), { pno: pnoGoal });
-  if (anomalies.length === 0) {
-    // Clear the remembered set so a future recurrence re-alerts cleanly.
-    await firestore.collection("tenants").doc(tenant).set({ alertedAnomalyKeys: [] }, { merge: true });
-    return 0;
-  }
 
-  const currentKeys = anomalies.map(anomalyKey);
+  // Hysteresis+cooldown memory, shared with campaign alerts. Anomalies carry no
+  // recovery band (a flagged day is discrete), so `banded` is empty — but the
+  // cooldown tombstones mean a zero-anomaly sync no longer WIPES the memory (the
+  // old bug: the next sync re-alerted the very same days). Runs even when there
+  // are zero anomalies, so recovered keys age out through the cooldown window.
   const tenantRef = firestore.collection("tenants").doc(tenant);
-  const prev: string[] = (await tenantRef.get()).data()?.alertedAnomalyKeys ?? [];
-  const fresh = anomalies.filter((a) => !prev.includes(anomalyKey(a)));
+  const prevState: AlertState = (await tenantRef.get()).data()?.anomalyAlertState ?? {};
+  const byKey = new Map(anomalies.map((a) => [anomalyKey(a), a]));
+  const { toAlert, nextState } = planSuppression(prevState, {
+    breaching: [...byKey.keys()],
+    now: Date.now(),
+  });
+  await tenantRef.set({ anomalyAlertState: nextState }, { merge: true });
 
-  // Remember the full current set so resolved days drop and can re-alert later.
-  await tenantRef.set({ alertedAnomalyKeys: currentKeys }, { merge: true });
+  const fresh = toAlert.map((k) => byKey.get(k)!).filter(Boolean);
   if (fresh.length === 0) return 0;
 
   // Most severe first, then cap the spelled-out list.

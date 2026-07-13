@@ -6,6 +6,7 @@ import { Bell, Check } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
+import { groupAlertRecords } from "@/lib/campaigns/alert-suppression";
 
 const T = {
   cs: {
@@ -14,6 +15,7 @@ const T = {
     buttonLabel: "Upozornění",
     heading: "Upozornění",
     markRead: "Označit přečtené",
+    repeat: "×{n}",
     empty: "Žádná upozornění. Při synchronizaci vás upozorníme na nově kritické kampaně.",
   },
   en: {
@@ -22,6 +24,7 @@ const T = {
     buttonLabel: "Alerts",
     heading: "Alerts",
     markRead: "Mark all read",
+    repeat: "×{n}",
     empty: "No alerts. We'll notify you when newly critical campaigns are found during a sync.",
   },
 } as const;
@@ -115,25 +118,38 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
             <p className="px-1 py-6 text-center text-sm text-muted">{t("empty")}</p>
           ) : (
             <ul className="mt-2 max-h-80 space-y-1.5 overflow-y-auto">
-              {alerts.map((a) => (
-                <li
-                  key={a.id}
-                  className={`rounded-lg border px-3 py-2.5 text-sm ${
-                    a.read ? "border-line" : "border-brand-200 bg-brand-50"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="font-medium text-navy-800">{a.title}</span>
-                    {!a.read && (
-                      <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" aria-hidden />
-                    )}
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
-                  <time dateTime={a.createdAt} className="mt-1 block text-[13px] text-muted">
-                    {fmt.fmtRelative(a.createdAt)}
-                  </time>
-                </li>
-              ))}
+              {/* Collapse repeat alerts about the same campaign(s) into one row with
+                  a ×N count, so a flickering campaign doesn't flood the inbox. */}
+              {groupAlertRecords(alerts).map((g) => {
+                const a = g.latest;
+                const unread = g.unread > 0;
+                return (
+                  <li
+                    key={a.id}
+                    className={`rounded-lg border px-3 py-2.5 text-sm ${
+                      unread ? "border-brand-200 bg-brand-50" : "border-line"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex items-center gap-1.5 font-medium text-navy-800">
+                        {a.title}
+                        {g.count > 1 && (
+                          <span className="tnum rounded-full bg-navy-100 px-1.5 text-[13px] font-semibold text-muted">
+                            {t("repeat", { n: g.count })}
+                          </span>
+                        )}
+                      </span>
+                      {unread && (
+                        <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-coral-500" aria-hidden />
+                      )}
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
+                    <time dateTime={a.createdAt} className="mt-1 block text-[13px] text-muted">
+                      {fmt.fmtRelative(a.createdAt)}
+                    </time>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
