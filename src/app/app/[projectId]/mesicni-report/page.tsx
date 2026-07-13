@@ -5,7 +5,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
-import { cpa, rel } from "@/lib/metrics";
+import { cpa, rel, monthlyAttainmentHistory } from "@/lib/metrics";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
@@ -160,11 +160,21 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     };
   }
 
+  // Goal-attainment track record — did we hit the monthly revenue goal in the last
+  // complete months? Revenue-goal based, so surfaced on e-shop reports only (the
+  // leadgen/local/content tile sets are lead-first and don't quote a revenue goal).
+  // Period-independent, so it reads the same whatever window the user selects.
+  const attainment =
+    project.type === "eshop"
+      ? monthlyAttainmentHistory(dataset.daily, dataset.goals.monthlyRevenue)
+      : [];
+
   return (
     <ModulePage moduleKey="mesicni-report">
       <MonthlyReport
         tiles={tiles}
         snaps={snaps}
+        attainment={attainment}
         projectName={project.name}
         logoUrl={project.logoUrl}
         accentColor={project.accentColor}

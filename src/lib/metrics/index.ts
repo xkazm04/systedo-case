@@ -12,6 +12,7 @@ export * from "./series";
 export * from "./seasonality";
 export * from "./pacing";
 export * from "./channels";
+export * from "./insight-rank";
 export * from "./anomalies";
 export * from "./funnel";
 export * from "./trends";

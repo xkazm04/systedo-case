@@ -12,10 +12,12 @@ import type { PerformanceData } from "./types";
 import {
   buildMetricsSnapshot,
   cpa,
+  monthlyAttainmentHistory,
   type Anomaly,
   type AnomalyKind,
   type ChannelRow,
   type FunnelAttribution,
+  type MonthAttainment,
   type MonthlyPacing,
   type PeriodBaseline,
   type Significance,
@@ -73,6 +75,10 @@ export interface Snapshot {
   /** funnel attribution of the revenue move (traffic vs CR vs AOV), when strong */
   funnel: FunnelAttribution | null;
   pacing: MonthlyPacing | null;
+  /** month-by-month goal-attainment track record over the last complete calendar
+   *  months (revenue vs the monthly goal) — period-independent, so it reads the
+   *  same on every window. Empty when the series spans no complete month. */
+  attainment: MonthAttainment[];
   goalPno: number;
   client: { name: string; domain: string; segment: string };
 }
@@ -105,6 +111,9 @@ export function buildSnapshot(
     trends: snap.trends,
     funnel: snap.funnel,
     pacing: snap.pacing,
+    // The goal-attainment track record is derived from the whole series against
+    // the monthly revenue goal — the same helper the dashboard's pacing card uses.
+    attainment: monthlyAttainmentHistory(data.daily, snap.goals.monthlyRevenue),
     goalPno: snap.goals.pno,
     client: {
       name: data.client.name,
@@ -131,6 +140,12 @@ const KIND_LABEL: Record<AnomalyKind, string> = {
 const ddmm = (iso: string): string => {
   const [, m, d] = iso.split("-");
   return `${Number(d)}.${Number(m)}.`;
+};
+
+/** ISO "2026-05-01" → "5/2026" (month-of-year label for the attainment track record). */
+const mmYyyy = (iso: string): string => {
+  const [y, m] = iso.split("-");
+  return `${Number(m)}/${y}`;
 };
 
 export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): string {
@@ -237,6 +252,24 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
       `- Zatím tento měsíc: ${fmtCZK(p.mtd)} z cíle ${fmtCZK(p.goal)} (${p.onPace ? "na plánu" : "pod plánem"})`,
       `- Projekce konce měsíce: ${fmtCZK(p.projection)} (rozpětí ${fmtCZK(p.projectionLow)}–${fmtCZK(p.projectionHigh)})`,
       `- Pravděpodobnost splnění cíle: ${fmtPct(p.goalProbability, 0)}`
+    );
+  }
+
+  // Goal-attainment track record: did we hit the monthly revenue goal in the last
+  // complete months? Grounds the recap's "trajectory vs. the goal" narrative on the
+  // engine's own history instead of only the current period. E-shop only — the goal
+  // is a revenue target, which leadgen/local/content recaps don't quote (R01).
+  if (isEshop && s.attainment.length > 0) {
+    const hits = s.attainment.filter((m) => m.hit).length;
+    lines.push(
+      "",
+      `Plnění měsíčního cíle obratu (uzavřené měsíce, ${hits}/${s.attainment.length} splněno):`,
+      ...s.attainment.map(
+        (m) =>
+          `- ${mmYyyy(m.month)}: obrat ${fmtCZK(m.revenue)}, ${fmtPct(m.attainment, 0)} cíle (${
+            m.hit ? "splněno" : "nesplněno"
+          })`
+      )
     );
   }
 

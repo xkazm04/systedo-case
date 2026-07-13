@@ -58,7 +58,10 @@ export default function KpiCard({
           values={spark}
           width={104}
           height={34}
-          autoColor
+          // A noise-grade delta isn't a real trend — drop the green/red autoColour
+          // so the sparkline reads neutral (the muted stroke below) and the card
+          // stops overselling daily wobble as direction. Weak/strong keep the tone.
+          autoColor={significance !== "noise"}
           goodDirection={meta.goodDirection}
           dot
           baseline

@@ -164,6 +164,7 @@ export default function DashboardClient({
               goalPno={goalPno}
               trends={trends}
               profile={profile}
+              significance={result.significance}
               coverage={coverage}
               funnel={funnel}
             />

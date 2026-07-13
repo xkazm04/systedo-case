@@ -4,14 +4,17 @@ import { Bulb, TrendDown, TrendUp } from "@/components/icons";
 import { weekWord } from "./plural";
 import { weekdayName } from "@/components/dashboard/vykon/plural";
 import {
+  compareInsightRank,
   metricShort,
   METRICS,
   type ChannelRow,
   type Coverage,
   type FunnelAttribution,
+  type Significance,
   type Trend,
   type WeekdayProfilePoint,
 } from "@/lib/metrics";
+import type { MetricKey } from "@/lib/types";
 import type { Formatters, SupportedLocale } from "@/lib/format";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -65,6 +68,10 @@ const T = {
 interface Insight {
   text: React.ReactNode;
   tone: "good" | "warn" | "info";
+  /** the engine's confidence in the underlying metric's move — drives ordering */
+  significance: Significance;
+  /** |relative change| (or gap-to-goal) for tie-breaking within a confidence tier */
+  magnitude: number;
 }
 
 /** Below ±0.5 % a revenue move is noise, not a story worth surfacing. */
@@ -94,19 +101,27 @@ function buildInsights(
   trends: Trend[],
   profile: WeekdayProfilePoint[],
   funnel: FunnelAttribution | null,
+  significance: Record<MetricKey, Significance>,
   fmt: Formatters,
   t: TFn<keyof typeof T.cs>,
   locale: SupportedLocale
 ): Insight[] {
   const out: Insight[] = [];
   const paid = channels.filter((ch) => ch.cost > 0);
+  // Relative gap to the PNO goal — the tie-break magnitude for the PNO-level lines.
+  const pnoGap = goalPno > 0 ? Math.abs(pno - goalPno) / goalPno : 0;
 
-  // Sustained multi-week drifts first — agencies get fired over unnoticed slow
-  // bleeds, not single flagged days, so a trend outranks every other line.
+  // Each insight carries the engine's confidence in its underlying metric plus a
+  // magnitude, so the list can be ordered by "how sure are we this is real?"
+  // (strong > weak > noise, ties by magnitude) instead of authoring order. The
+  // authoring order below is still the final, stable tiebreak — keeping a revenue
+  // move and its funnel explanation adjacent.
   for (const tr of trends) {
     const favourable = (tr.direction === "up") === (METRICS[tr.metric].goodDirection === "up");
     out.push({
       tone: favourable ? "good" : "warn",
+      significance: significance[tr.metric],
+      magnitude: Math.abs(tr.cumulativeChange),
       text: (
         <>
           {t(tr.direction === "down" ? "insightTrendDown" : "insightTrendUp", {
@@ -122,6 +137,8 @@ function buildInsights(
   if (Number.isFinite(revenueDelta) && Math.abs(revenueDelta) > MIN_REVENUE_DELTA_TO_REPORT) {
     out.push({
       tone: revenueDelta > 0 ? "good" : "warn",
+      significance: significance.revenue,
+      magnitude: Math.abs(revenueDelta),
       text: (
         <>
           {revenueDelta > 0
@@ -133,10 +150,13 @@ function buildInsights(
   }
 
   // Explain the revenue move the line above just reported: which funnel stage
-  // (traffic / conversion rate / AOV) drove most of it.
+  // (traffic / conversion rate / AOV) drove most of it. Shares the revenue move's
+  // confidence + magnitude so it stays adjacent to the line it explains.
   if (funnel) {
     out.push({
       tone: "info",
+      significance: significance.revenue,
+      magnitude: Math.abs(revenueDelta),
       text: (
         <>
           {t("insightFunnel", {
@@ -150,6 +170,8 @@ function buildInsights(
 
   out.push({
     tone: pno <= goalPno ? "good" : "warn",
+    significance: significance.pno,
+    magnitude: pnoGap,
     text: (
       <>
         {pno <= goalPno
@@ -161,8 +183,12 @@ function buildInsights(
 
   const bestRoas = [...paid].sort((a, b) => b.roas - a.roas)[0];
   if (bestRoas) {
+    // Magnitude = the best channel's lead over the paid-field average ROAS.
+    const avgRoas = paid.reduce((s, ch) => s + ch.roas, 0) / paid.length;
     out.push({
       tone: "good",
+      significance: significance.roas,
+      magnitude: avgRoas > 0 ? Math.abs(bestRoas.roas - avgRoas) / avgRoas : 0,
       text: (
         <>{t("insightBestRoas", { channel: bestRoas.channel, roas: fmt.fmtMultiple(bestRoas.roas) })}</>
       ),
@@ -173,6 +199,8 @@ function buildInsights(
   if (worstPno && worstPno.pno > goalPno * WORST_PNO_FLAG_MULTIPLE) {
     out.push({
       tone: "warn",
+      significance: significance.pno,
+      magnitude: goalPno > 0 ? worstPno.pno / goalPno - 1 : 0,
       text: <>{t("insightWorstPno", { channel: worstPno.channel, pno: fmt.fmtPct(worstPno.pno) })}</>,
     });
   }
@@ -180,8 +208,12 @@ function buildInsights(
   const bestDay = profile.find((p) => p.best);
   const worstDay = profile.find((p) => p.worst);
   if (bestDay && worstDay && bestDay.index - worstDay.index >= WEEKDAY_SPREAD_TO_REPORT) {
+    // The weekday shape is a visits distribution — rank it by visits confidence,
+    // with the strongest-vs-weakest spread as its magnitude.
     out.push({
       tone: "info",
+      significance: significance.visits,
+      magnitude: bestDay.index - worstDay.index,
       text: (
         <>
           {t("insightWeekday", {
@@ -195,7 +227,9 @@ function buildInsights(
     });
   }
 
-  return out.slice(0, 4);
+  // Order by the engine's confidence (strong > weak > noise, ties by magnitude);
+  // Array.sort is stable, so the authoring order above breaks exact ties. Then cap.
+  return [...out].sort(compareInsightRank).slice(0, 4);
 }
 
 /** The auto-generated "Co stojí za pozornost" list — sustained trends first,
@@ -207,6 +241,7 @@ export default function InsightsPanel({
   goalPno,
   trends,
   profile,
+  significance,
   coverage = "full",
   funnel = null,
 }: {
@@ -216,6 +251,9 @@ export default function InsightsPanel({
   goalPno: number;
   trends: Trend[];
   profile: WeekdayProfilePoint[];
+  /** per-metric period-over-period significance — orders the insight list so the
+   *  moves the engine is most confident are real lead (strong > weak > noise) */
+  significance: Record<MetricKey, Significance>;
   /** how much history the detectors had — drives an honest note when short */
   coverage?: Coverage;
   /** funnel attribution of the revenue move (traffic vs CR vs AOV), when strong */
@@ -225,7 +263,7 @@ export default function InsightsPanel({
   const t = useT(T);
   const { locale } = useLocale();
 
-  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, fmt, t, locale);
+  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, fmt, t, locale);
 
   return (
     <div className="card p-5">

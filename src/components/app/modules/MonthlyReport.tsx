@@ -14,6 +14,7 @@ import { downloadText } from "@/lib/export";
 import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import type { MonthAttainment } from "@/lib/metrics";
 import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
 import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
 import type { Competitor } from "@/lib/competitors/types";
@@ -46,6 +47,10 @@ const T = {
     annFull: "Dosažen limit {cap} poznámek — nejstarší se při přidání odstraní.",
     annFailed: "Poznámku se nepodařilo uložit.", annOutOfRange: "mimo období reportu",
     annTimelineLabel: "Časová osa poznámek",
+    attainmentHeading: "Plnění měsíčního cíle obratu",
+    attainmentSub: "{hits} z {total} uzavřených měsíců",
+    attainmentHit: "cíl splněn", attainmentMiss: "cíl nesplněn",
+    pctOfGoal: "{pct} cíle",
   },
   en: {
     heading: "Monthly report", periodLabel: "Period", print: "Print / PDF", downloadMd: "Download .md",
@@ -70,12 +75,17 @@ const T = {
     annFull: "Reached the {cap}-note limit — the oldest is dropped when you add one.",
     annFailed: "Could not save the note.", annOutOfRange: "outside the report period",
     annTimelineLabel: "Notes timeline",
+    attainmentHeading: "Monthly revenue goal attainment",
+    attainmentSub: "{hits} of {total} closed months",
+    attainmentHit: "target met", attainmentMiss: "target missed",
+    pctOfGoal: "{pct} of target",
   },
 } as const;
 
 export default function MonthlyReport({
   tiles,
   snaps,
+  attainment = [],
   projectName,
   logoUrl,
   accentColor,
@@ -94,6 +104,9 @@ export default function MonthlyReport({
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
+  /** goal-attainment track record over the last complete months (e-shop only);
+   *  a period-independent hit/miss strip beside the period tiles. Empty = hidden. */
+  attainment?: MonthAttainment[];
   projectName: string;
   logoUrl?: string;
   /** R08: white-label accent band on the report header, matching the shared report */
@@ -125,7 +138,7 @@ export default function MonthlyReport({
   const t = useT(T);
   const { locale } = useLocale();
   const router = useRouter();
-  const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct } = useFormatters();
+  const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct, fmtMonth } = useFormatters();
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
   const [syncing, setSyncing] = useState(false);
   const [syncErr, setSyncErr] = useState<string | null>(null);
@@ -263,6 +276,50 @@ export default function MonthlyReport({
           );
         })}
       </div>
+
+      {/* Goal-attainment track record — a period-independent hit/miss strip: "did we
+          hit the monthly revenue goal the last months?" beside the "this period"
+          tiles above. E-shop only (revenue goal); hidden when no complete month. */}
+      {attainment.length > 0 && (
+        <div className="card p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
+              <Gauge width={16} height={16} className="text-brand-600" />
+              {t("attainmentHeading")}
+            </div>
+            <span className="text-xs text-muted">
+              {t("attainmentSub", {
+                hits: attainment.filter((m) => m.hit).length,
+                total: attainment.length,
+              })}
+            </span>
+          </div>
+          <ul className="mt-3 flex items-end gap-3">
+            {attainment.map((m) => (
+              <li
+                key={m.month}
+                className="flex flex-col items-center gap-1"
+                title={`${fmtMonth(m.month)} · ${t("pctOfGoal", {
+                  pct: fmtPct(m.attainment, 0),
+                })} · ${m.hit ? t("attainmentHit") : t("attainmentMiss")}`}
+              >
+                <span className="flex h-9 w-6 items-end overflow-hidden rounded-sm bg-navy-50">
+                  <span
+                    aria-hidden
+                    className={`block w-full rounded-sm ${m.hit ? "bg-brand-500" : "bg-coral-500"}`}
+                    style={{ height: `${Math.min(100, m.attainment * 100)}%` }}
+                  />
+                </span>
+                <span className="text-[10px] text-muted">{fmtMonth(m.month)}</span>
+                <span className="sr-only">
+                  {t("pctOfGoal", { pct: fmtPct(m.attainment, 0) })} ·{" "}
+                  {m.hit ? t("attainmentHit") : t("attainmentMiss")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Data source — honest about live vs illustrative, with a sync affordance. */}
       {live ? (
