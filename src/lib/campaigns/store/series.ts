@@ -1,7 +1,7 @@
 /** The tenant's daily-series store (server-only): the portfolio trend chart
  *  series and the per-campaign sparkline series, one small doc per period. */
 import "server-only";
-import { tenantDoc, activePeriod } from "./tenant";
+import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
 import { campaignSeriesDocId, seriesDocId } from "../store-keys";
 import type { CampaignPeriod, DailyPoint } from "../types";
 
@@ -21,9 +21,13 @@ export async function saveSeries(
 /** The tenant's daily series for `period` (defaults to the active period),
  *  oldest → newest, or []. Falls back to the legacy `latest` doc when it holds
  *  exactly the requested period (it always recorded its period). */
-export async function getSeries(tenant: string, period?: CampaignPeriod): Promise<DailyPoint[]> {
+export async function getSeries(
+  tenant: string,
+  period?: CampaignPeriod,
+  root?: TenantRoot
+): Promise<DailyPoint[]> {
   const col = tenantDoc(tenant).collection("series");
-  const requested = period ?? (await activePeriod(tenant));
+  const requested = period ?? (await activePeriod(tenant, root));
   if (requested) {
     const keyed = await col.doc(seriesDocId(requested)).get();
     const data = keyed.data();
@@ -56,10 +60,11 @@ export async function saveCampaignSeries(
  *  holds exactly the requested period. */
 export async function getCampaignSeries(
   tenant: string,
-  period?: CampaignPeriod
+  period?: CampaignPeriod,
+  root?: TenantRoot
 ): Promise<Record<string, DailyPoint[]>> {
   const col = tenantDoc(tenant).collection("series");
-  const requested = period ?? (await activePeriod(tenant));
+  const requested = period ?? (await activePeriod(tenant, root));
   if (requested) {
     const keyed = await col.doc(campaignSeriesDocId(requested)).get();
     const byId = keyed.data()?.byId;

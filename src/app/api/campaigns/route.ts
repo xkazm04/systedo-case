@@ -11,11 +11,12 @@ import {
   getReportsForPeriodWithHashes,
   getSeries,
   getSyncMeta,
-  hashEvalInputs,
   listCampaigns,
   listSnapshotSummaries,
+  readTenantRoot,
   setActivePeriod,
 } from "@/lib/campaigns/store";
+import { assembleCampaignsState } from "./state";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import { isCampaignPeriod, type CampaignPeriod } from "@/lib/campaigns/types";
 import { consume, refund } from "@/lib/usage";
@@ -35,54 +36,46 @@ import { durableGuard } from "@/lib/ai/durable-limit";
  *  `requestedPeriod` reads a specific period's stored state (the store keeps
  *  every synced period now); omitted, it serves the active one. */
 async function loadState(tenant: string, requestedPeriod?: CampaignPeriod) {
-  const meta = await getSyncMeta(tenant);
+  // ONE tenant-root read per request: the root carries the sync meta AND the
+  // active-period pointer that listCampaigns/getSeries/getCampaignSeries/
+  // listSnapshotSummaries/getLatestChanges each used to re-read (5+ root reads per
+  // load). We read it once and pass it down. Everything below is independent of
+  // everything else, so the reads run in parallel instead of ~9 sequential
+  // round-trips. activePeriod semantics are unchanged — `root.activePeriod` is
+  // exactly what `activePeriod(tenant)` returned before.
+  const root = await readTenantRoot(tenant);
+  const meta = await getSyncMeta(tenant, root);
   const period = requestedPeriod ?? meta?.period;
-  const campaigns = await listCampaigns(tenant, period);
-  const changes = await getLatestChanges(tenant, period);
-  const { reports, inputHashes } =
-    meta && period
-      ? await getReportsForPeriodWithHashes(tenant, period)
-      : { reports: {}, inputHashes: {} as Record<string, string | null> };
 
-  // A report is stale when its stored input fingerprint no longer matches the
-  // data on screen — i.e. a later sync changed the metrics it was based on, so
-  // its score/recommendations may mislead. Reports predating input hashing
-  // (null hash) can't be compared and are not flagged (no false alarms).
-  // The current hash folds in the sync diff exactly like the analyze route, so
-  // a fresh report is never flagged stale by hash-recipe mismatch.
-  const staleKeys =
-    meta && period
-      ? Object.keys(reports).filter((key) => {
-          const stored = inputHashes[key];
-          if (!stored) return false;
-          const current =
-            key === "overall"
-              ? hashEvalInputs("overall", null, period, campaigns, changes?.current ?? null)
-              : hashEvalInputs("campaign", key, period, campaigns, changes?.current ?? null);
-          return stored !== current;
-        })
-      : [];
+  const [campaigns, changes, reportsBundle, histories, series, campaignSeries, snapshotSummaries] =
+    await Promise.all([
+      listCampaigns(tenant, period, root),
+      getLatestChanges(tenant, period, root),
+      meta && period
+        ? getReportsForPeriodWithHashes(tenant, period)
+        : Promise.resolve({ reports: {}, inputHashes: {} as Record<string, string | null> }),
+      getReportHistories(tenant),
+      getSeries(tenant, period, root),
+      getCampaignSeries(tenant, period, root),
+      // Rule-based health per stored sync — the deterministic timeline next to the
+      // AI score history (which only grows when evaluations are paid for).
+      listSnapshotSummaries(tenant, 12, period, root),
+    ]);
 
-  // When serving a non-active period's stored state, the meta the client sees
-  // must describe THAT period (and its own sync age), not the active pointer.
-  const metaOut =
-    meta && period && period !== meta.period
-      ? { ...meta, period, syncedAt: meta.syncedByPeriod?.[period] ?? meta.syncedAt }
-      : meta;
-
-  return {
+  // Pure assembly (stale-report detection + non-active-period meta rewrite) lives
+  // in ./state so the exact response shape is unit-tested without Firestore.
+  return assembleCampaignsState({
+    meta,
+    period,
     campaigns,
-    meta: metaOut,
-    reports,
-    staleKeys,
-    histories: await getReportHistories(tenant),
     changes,
-    series: await getSeries(tenant, period),
-    campaignSeries: await getCampaignSeries(tenant, period),
-    // Rule-based health per stored sync — the deterministic timeline next to
-    // the AI score history (which only grows when evaluations are paid for).
-    snapshotSummaries: await listSnapshotSummaries(tenant, 12, period),
-  };
+    reports: reportsBundle.reports,
+    inputHashes: reportsBundle.inputHashes,
+    histories,
+    series,
+    campaignSeries,
+    snapshotSummaries,
+  });
 }
 
 export async function GET(request: Request) {

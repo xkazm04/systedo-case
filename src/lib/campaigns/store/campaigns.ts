@@ -3,9 +3,14 @@
  *  active-period pointer. */
 import "server-only";
 import { firestore } from "@/lib/firebase";
-import { tenantDoc, activePeriod } from "./tenant";
+import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
 import { belongsToPeriod, campaignDocId } from "../store-keys";
 import type { Campaign, CampaignPeriod } from "../types";
+
+// Re-export the shared tenant-root read so the public store surface
+// (@/lib/campaigns/store) can hand it to a request that wants to resolve the root
+// exactly once and pass it into the reads below.
+export { readTenantRoot, type TenantRoot } from "./tenant";
 
 export interface SyncMeta {
   source: string;
@@ -127,8 +132,12 @@ function toCampaign(r: FirebaseFirestore.DocumentData): Campaign {
 /** The tenant's campaigns for `period` (defaults to the active period, so every
  *  legacy caller — the analyze route included — keeps reading exactly what the
  *  page shows). Un-keyed legacy docs count as the active period's data. */
-export async function listCampaigns(tenant: string, period?: CampaignPeriod): Promise<Campaign[]> {
-  const active = await activePeriod(tenant);
+export async function listCampaigns(
+  tenant: string,
+  period?: CampaignPeriod,
+  root?: TenantRoot
+): Promise<Campaign[]> {
+  const active = await activePeriod(tenant, root);
   const requested = period ?? active;
   const snap = await tenantDoc(tenant).collection("campaigns").orderBy("position", "asc").get();
   const docs = snap.docs.map((d) => d.data());
@@ -162,9 +171,8 @@ export async function getCampaign(
   return toCampaign(data);
 }
 
-export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
-  const doc = await tenantDoc(tenant).get();
-  const r = doc.data();
+/** Parse SyncMeta off already-read tenant-root data (no I/O). */
+function syncMetaFromData(r: FirebaseFirestore.DocumentData | undefined): SyncMeta | null {
   if (!r?.syncedAt) return null;
   return {
     source: r.source,
@@ -176,6 +184,13 @@ export async function getSyncMeta(tenant: string): Promise<SyncMeta | null> {
       ? { syncedByPeriod: r.syncedByPeriod as Record<string, string> }
       : {}),
   };
+}
+
+/** The tenant's sync metadata. Pass a pre-read `root` (see readTenantRoot) to
+ *  derive it from the shared root read instead of issuing another. */
+export async function getSyncMeta(tenant: string, root?: TenantRoot): Promise<SyncMeta | null> {
+  const data = root ? root.data : (await tenantDoc(tenant).get()).data();
+  return syncMetaFromData(data);
 }
 
 /** Flip the tenant's ACTIVE period to `period` — the cheap half of a period

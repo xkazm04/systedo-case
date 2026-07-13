@@ -1,7 +1,7 @@
 /** The sync-snapshot / change-diff engine (server-only): the rule-based health
  *  timeline over stored sync snapshots and the sync-over-sync change diff. */
 import "server-only";
-import { tenantDoc, activePeriod } from "./tenant";
+import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
 import { listCampaigns } from "./campaigns";
 import { belongsToPeriod } from "../store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "../triage";
@@ -29,9 +29,10 @@ interface SnapshotEntry {
 export async function listSnapshotSummaries(
   tenant: string,
   limit = 12,
-  period?: CampaignPeriod
+  period?: CampaignPeriod,
+  root?: TenantRoot
 ): Promise<SnapshotSummaryPoint[]> {
-  const active = await activePeriod(tenant);
+  const active = await activePeriod(tenant, root);
   const requested = period ?? active;
   // Over-fetch, then filter to the requested period: with per-period storage
   // snapshots of different windows interleave, and a health timeline must not
@@ -65,9 +66,10 @@ export async function listSnapshotSummaries(
 
 export async function getLatestChanges(
   tenant: string,
-  period?: CampaignPeriod
+  period?: CampaignPeriod,
+  root?: TenantRoot
 ): Promise<ChangesSummary | null> {
-  const active = await activePeriod(tenant);
+  const active = await activePeriod(tenant, root);
   const requested = period ?? active;
   // Diff the two newest snapshots OF THE SAME PERIOD — comparing a 7-day
   // window against a 30-day one would report the window change as campaign
@@ -94,7 +96,7 @@ export async function getLatestChanges(
     new Map(entries.map((e) => [e.campaignId, e]));
   const curMap = toMap((docs[0]!.campaigns ?? []) as SnapshotEntry[]);
   const prevMap = toMap((docs[1]!.campaigns ?? []) as SnapshotEntry[]);
-  const names = new Map((await listCampaigns(tenant, requested ?? undefined)).map((c) => [c.id, c.name]));
+  const names = new Map((await listCampaigns(tenant, requested ?? undefined, root)).map((c) => [c.id, c.name]));
 
   const valueOf = (e: SnapshotEntry) => e.conversionValue ?? e.conversion_value ?? 0;
   const rel = (a: number, b: number) => (b > 0 ? (a - b) / b : a > 0 ? 1 : 0);

@@ -49,10 +49,20 @@ function toHistoryPoint(r: ReportDoc): ReportHistoryPoint {
   };
 }
 
-/** All of a tenant's reports, oldest → newest. */
+/** All of a tenant's reports, oldest → newest. Used by the reads that genuinely
+ *  need the whole history (score timelines); the period/cache lookups below use a
+ *  narrower single-field query instead of scanning the whole collection. */
 async function allReports(tenant: string): Promise<ReportDoc[]> {
   const snap = await tenantDoc(tenant).collection("reports").orderBy("created_at", "asc").get();
   return snap.docs.map((d) => d.data() as ReportDoc);
+}
+
+/** Sort report docs oldest → newest by their ISO `created_at` (the order a plain
+ *  `orderBy("created_at")` would return). ISO-8601 strings sort lexicographically
+ *  by time, so a code-side sort matches the DB order without needing a composite
+ *  index on top of the single-field equality filters below. */
+function byCreatedAtAsc(docs: ReportDoc[]): ReportDoc[] {
+  return docs.sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
 const reportKey = (r: ReportDoc): string =>
@@ -157,9 +167,10 @@ export async function getReportsForPeriodWithHashes(
 ): Promise<{ reports: Record<string, CampaignReport>; inputHashes: Record<string, string | null> }> {
   const reports: Record<string, CampaignReport> = {};
   const inputHashes: Record<string, string | null> = {};
-  // asc order → last write for a key wins = the latest report.
-  for (const r of await allReports(tenant)) {
-    if (r.period !== period) continue;
+  // Query just this period's reports (single-field equality → auto-indexed, no
+  // whole-collection scan) and sort in code, so last write per key still wins.
+  const snap = await tenantDoc(tenant).collection("reports").where("period", "==", period).get();
+  for (const r of byCreatedAtAsc(snap.docs.map((d) => d.data() as ReportDoc))) {
     const key = reportKey(r);
     reports[key] = toReport(r);
     inputHashes[key] = r.input_hash ?? null;
@@ -201,12 +212,23 @@ export async function findCachedReport(
   period: CampaignPeriod,
   inputHash: string
 ): Promise<CampaignReport | null> {
-  const matches = (await allReports(tenant)).filter(
-    (r) =>
-      r.scope === scope &&
-      (r.campaign_id ?? "") === (campaignId ?? "") &&
-      r.period === period &&
-      r.input_hash === inputHash
+  // The input hash is the cache key — query it directly (single-field equality →
+  // auto-indexed) instead of scanning every stored report. A sha1 hash collides
+  // across (scope, campaign, period) only in the astronomically-unlikely case, so
+  // the remaining fields are filtered in code over the already-tiny match set.
+  const snap = await tenantDoc(tenant)
+    .collection("reports")
+    .where("input_hash", "==", inputHash)
+    .get();
+  const matches = byCreatedAtAsc(
+    snap.docs
+      .map((d) => d.data() as ReportDoc)
+      .filter(
+        (r) =>
+          r.scope === scope &&
+          (r.campaign_id ?? "") === (campaignId ?? "") &&
+          r.period === period
+      )
   );
   return matches.length ? toReport(matches[matches.length - 1]!) : null;
 }
