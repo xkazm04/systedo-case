@@ -325,7 +325,15 @@ export default function CampaignsClient() {
 
         <div className="flex items-center gap-2">
           <ActivityFeed refreshKey={alertRefresh} />
-          <AlertsInbox refreshKey={alertRefresh} />
+          <AlertsInbox
+            refreshKey={alertRefresh}
+            onStaged={() => {
+              // A change-set was staged from an alert: reload the control plane so
+              // the pending proposal surfaces, and refresh the activity thread.
+              setControlPlaneRefresh((n) => n + 1);
+              refreshAlerts();
+            }}
+          />
           <button
             type="button"
             onClick={() => syncAndRefresh(period)}

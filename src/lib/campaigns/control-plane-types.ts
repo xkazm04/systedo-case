@@ -82,6 +82,12 @@ export interface ChangeSet {
   statusSnapshots?: StatusSnapshot[];
   /** true if applied despite guardrail violations via an explicit override */
   overridden?: boolean;
+  /** the inbox alert this change-set was staged from (one-click "close the loop"
+   *  action). Set at creation when the set is pre-scoped to an alert's campaigns;
+   *  on apply the alert is marked resolved with this set's id as its back-reference,
+   *  so the activity thread reads alert → change-set → apply. Absent for change-sets
+   *  proposed straight from the console. */
+  alertId?: string;
 }
 
 /** Guardrail check — returns human-readable breaches, never throws. Enforced by

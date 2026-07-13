@@ -26,6 +26,13 @@ export interface ActivityInput {
   module?: string;
   /** optional severity for the project-wide feed (inferred from kind when absent) */
   severity?: ActivitySeverity;
+  /** the inbox alert this event belongs to, linking the timeline into one
+   *  traceable thread (alert fired → change-set staged → applied). Absent for
+   *  events with no alert origin. */
+  alertId?: string;
+  /** the control-plane change-set this event belongs to — the other half of the
+   *  alert → change-set → apply thread. Absent for non-change-set events. */
+  changeSetId?: string;
 }
 
 export interface ActivityRecord extends ActivityInput {

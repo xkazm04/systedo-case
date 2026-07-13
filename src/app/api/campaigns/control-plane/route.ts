@@ -15,6 +15,8 @@ import {
   revertChangeSet,
 } from "@/lib/campaigns/control-plane";
 import { GuardrailError } from "@/lib/campaigns/control-plane-types";
+import { getAlert } from "@/lib/campaigns/alerts";
+import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 
 
 export async function GET(request: Request) {
@@ -29,7 +31,13 @@ export async function POST(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let body: { action?: unknown; id?: unknown; override?: unknown; projectId?: unknown };
+  let body: {
+    action?: unknown;
+    id?: unknown;
+    override?: unknown;
+    projectId?: unknown;
+    alertId?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -39,9 +47,32 @@ export async function POST(request: Request) {
   const id = typeof body.id === "string" ? body.id : "";
   const override = body.override === true;
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const alertId = typeof body.alertId === "string" ? body.alertId : "";
   const tenant = await resolveTenant(userId, projectId);
 
   if (action === "create") {
+    // Close-the-loop path: when an alertId is supplied, pre-scope the change-set to
+    // exactly the alerted campaigns and link it back to the alert. Otherwise the
+    // usual portfolio-wide proposal.
+    if (alertId) {
+      const alert = await getAlert(tenant, alertId);
+      if (!alert) return Response.json({ error: "Upozornění nenalezeno." }, { status: 404 });
+      const scopeCampaignIds = alertCampaignIds(alert);
+      if (scopeCampaignIds.length === 0) {
+        return Response.json(
+          { error: "Upozornění neodkazuje na žádnou kampaň." },
+          { status: 422 }
+        );
+      }
+      const changeSet = await createChangeSet(tenant, { scopeCampaignIds, alertId });
+      if (!changeSet) {
+        return Response.json(
+          { error: "Pro upozorněné kampaně není žádný smysluplný přesun." },
+          { status: 422 }
+        );
+      }
+      return Response.json({ changeSet });
+    }
     const changeSet = await createChangeSet(tenant);
     if (!changeSet) {
       return Response.json({ error: "Žádné doporučené přesuny — portfolio je vyvážené." }, { status: 422 });

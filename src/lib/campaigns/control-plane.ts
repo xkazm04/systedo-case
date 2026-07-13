@@ -12,6 +12,7 @@ import { recommendBudgetMoves } from "./budget-moves";
 import { simulateBudgetShift } from "./simulate";
 import { applyBudgetShift, applyPause, applyResume, restoreBudgets } from "./mutations";
 import { recordActivity } from "./activity";
+import { resolveAlert } from "./alerts";
 import { fmtCZK } from "@/lib/format";
 import {
   checkPolicy,
@@ -39,13 +40,29 @@ class NotClaimable extends Error {
   }
 }
 
+/** Options for building a change-set. */
+export interface CreateChangeSetOptions {
+  policy?: ControlPolicy;
+  /** restrict the moves to act on exactly these campaigns as donors — the
+   *  "close the loop" path pre-scopes a change-set to an alert's campaigns so the
+   *  operator acts on precisely what was flagged, not the whole portfolio.
+   *  Recipients are still drawn from the full portfolio's over-performers. Empty/
+   *  omitted → the usual portfolio-wide recommendation. */
+  scopeCampaignIds?: string[];
+  /** the inbox alert this set is staged from — persisted on the set so applying it
+   *  resolves the alert with this set as the back-reference. */
+  alertId?: string;
+}
+
 /** Build a pending change-set from the current campaigns + recommendation engine,
  *  simulate it, and flag any guardrail breaches. Returns null when there's
- *  nothing worth moving. */
+ *  nothing worth moving — including a scoped request whose alerted campaigns yield
+ *  no sensible move (surfaced honestly rather than inventing one). */
 export async function createChangeSet(
   tenant: string,
-  policy: ControlPolicy = DEFAULT_POLICY
+  opts: CreateChangeSetOptions = {}
 ): Promise<ChangeSet | null> {
+  const policy = opts.policy ?? DEFAULT_POLICY;
   const campaigns = await listCampaigns(tenant);
   if (campaigns.length === 0) return null;
   const rows = campaigns.map(withMetrics);
@@ -53,7 +70,13 @@ export async function createChangeSet(
   // shifts (simulate → guardrail → approve → revert), instead of only being
   // pausable through the ungoverned BudgetMoves panel. A pause carries its own
   // exact revert via the status snapshot captured at approval.
-  const { moves } = recommendBudgetMoves(rows, { maxMoves: policy.maxMoves, includePauses: true });
+  // donorScopeIds: when staged from an alert, only the alerted campaigns may be
+  // acted on as donors — the recommendation stays honest to what was flagged.
+  const { moves } = recommendBudgetMoves(rows, {
+    maxMoves: policy.maxMoves,
+    includePauses: true,
+    donorScopeIds: opts.scopeCampaignIds,
+  });
   if (moves.length === 0) return null;
 
   const simulation = simulateBudgetShift(campaigns, moves);
@@ -67,6 +90,8 @@ export async function createChangeSet(
     approvedAt: null,
     revertedAt: null,
     results: null,
+    // only persist alertId when set — keep console-proposed sets free of the field.
+    ...(opts.alertId ? { alertId: opts.alertId } : {}),
   };
   const ref = await changeSetsCol(tenant).add(doc);
   return { id: ref.id, ...doc };
@@ -161,6 +186,18 @@ if (m.kind === "pause") {
   };
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
 
+  // Close the loop: if this set was staged off an alert, mark that alert resolved
+  // with this set as the back-reference. Best-effort — a resolution write failing
+  // must not undo the (already-applied) budget mutations. Done before the activity
+  // record so the thread's detail can state the alert was closed.
+  if (cs.alertId) {
+    try {
+      await resolveAlert(tenant, cs.alertId, id);
+    } catch (err) {
+      console.error(`[control-plane] resolve alert ${cs.alertId} failed:`, err);
+    }
+  }
+
   const okCount = results.filter((r) => r.ok).length;
   await recordActivity(tenant, {
     kind: "budget_shift",
@@ -169,8 +206,11 @@ if (m.kind === "pause") {
     }`,
     detail: `Aplikováno ${okCount}/${cs.moves.length}. Projektovaný dopad ${fmtCZK(
       cs.simulation.after.conversionValue - cs.simulation.before.conversionValue
-    )} hodnoty konverzí.`,
+    )} hodnoty konverzí.${cs.alertId ? " Upozornění uzavřeno." : ""}`,
     actor: "Vy",
+    changeSetId: id,
+    // thread this apply back to the originating alert when there is one.
+    ...(cs.alertId ? { alertId: cs.alertId } : {}),
   });
 
   return { ...cs, ...updated } as ChangeSet;

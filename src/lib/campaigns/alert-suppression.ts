@@ -176,3 +176,51 @@ export function groupAlertRecords<T extends GroupableAlert>(alerts: T[]): AlertG
   }
   return order.map((k) => groups.get(k)!);
 }
+
+// --- alert workflow (status lifecycle) ---------------------------------------
+
+/** Where an alert sits in the operator's workflow. Detection alone is only a
+ *  notification; the workflow turns it into a task:
+ *   - `new`          — just fired, untouched;
+ *   - `acknowledged` — the operator has seen it and taken responsibility, no action yet;
+ *   - `resolved`     — closed out, typically by an applied change-set (see `resolvedBy`).
+ *  Legacy docs written before the workflow existed carry no `status` field and
+ *  are treated as `new` (see {@link alertStatus}), so old inbox docs stay
+ *  first-class. Pure + client-safe so the inbox and the server share one model. */
+export type AlertStatus = "new" | "acknowledged" | "resolved";
+
+/** The workflow status of an alert record, defaulting legacy docs (no `status`
+ *  field) to `new`. */
+export function alertStatus(a: { status?: AlertStatus }): AlertStatus {
+  return a.status ?? "new";
+}
+
+/** The distinct campaign ids an alert concerns, derived from its items (already
+ *  carried on every alert record). Deduped, order-preserving, and drops empty
+ *  ids — so an item-less digest alert yields `[]`. This is exactly the scope a
+ *  one-click inbox action pre-loads a change-set with: act on the alerted
+ *  campaigns, nothing else. */
+export function alertCampaignIds(a: { items: { campaignId: string }[] }): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const it of a.items) {
+    if (it.campaignId && !seen.has(it.campaignId)) {
+      seen.add(it.campaignId);
+      out.push(it.campaignId);
+    }
+  }
+  return out;
+}
+
+/** Can the operator stage a change-set straight from this alert? True only for a
+ *  fresh (`new`) critical alert that actually names campaigns — those are the ones
+ *  a one-click inbox action can pre-scope a change-set to. Digests (no critical
+ *  action), already-acknowledged/resolved alerts, and item-less alerts don't
+ *  qualify. Pure, so the inbox and any server guard share one predicate. */
+export function isAlertActionable(a: {
+  type: string;
+  status?: AlertStatus;
+  items: { campaignId: string }[];
+}): boolean {
+  return a.type === "critical" && alertStatus(a) === "new" && alertCampaignIds(a).length > 0;
+}

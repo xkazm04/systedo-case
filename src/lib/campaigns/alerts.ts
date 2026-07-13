@@ -12,7 +12,7 @@ import { escapeHtml } from "@/lib/html";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
-import { planSuppression, type AlertState } from "./alert-suppression";
+import { planSuppression, type AlertState, type AlertStatus } from "./alert-suppression";
 
 export type AlertType = "critical" | "digest";
 
@@ -30,6 +30,13 @@ export interface AlertDoc {
   items: AlertItem[];
   createdAt: string;
   read: boolean;
+  /** where the alert sits in the operator's workflow (new → acknowledged →
+   *  resolved). Omitted on docs written before the workflow existed — treat a
+   *  missing value as "new" (see {@link alertStatus}). */
+  status?: AlertStatus;
+  /** the change-set id that resolved this alert, set when resolution came from an
+   *  applied change-set staged off the alert. The activity thread's back-reference. */
+  resolvedBy?: string;
 }
 
 export interface AlertRecord extends AlertDoc {
@@ -41,12 +48,47 @@ function alertsCol(tenant: string) {
 }
 
 /** Persist one alert to the tenant's in-app inbox (always, even when no email/
- *  webhook is configured — so there's a durable record either way). */
+ *  webhook is configured — so there's a durable record either way). New alerts
+ *  start in the `new` workflow status. Returns the new alert's id so a caller can
+ *  thread it into the activity feed / a staged change-set. */
 export async function recordAlert(
   tenant: string,
   alert: { type: AlertType; title: string; body: string; items: AlertItem[] }
+): Promise<string> {
+  const ref = await alertsCol(tenant).add({
+    ...alert,
+    createdAt: new Date().toISOString(),
+    read: false,
+    status: "new" satisfies AlertStatus,
+  });
+  return ref.id;
+}
+
+/** One alert by id (for scoping a staged change-set to its campaigns), or null. */
+export async function getAlert(tenant: string, id: string): Promise<AlertRecord | null> {
+  const snap = await alertsCol(tenant).doc(id).get();
+  return snap.exists ? { id, ...(snap.data() as AlertDoc) } : null;
+}
+
+/** Move an alert to `acknowledged`: the operator has taken responsibility for it
+ *  without (yet) acting. Idempotent merge; never advances a resolved alert. */
+export async function acknowledgeAlert(tenant: string, id: string): Promise<void> {
+  await alertsCol(tenant)
+    .doc(id)
+    .set({ status: "acknowledged" satisfies AlertStatus }, { merge: true });
+}
+
+/** Close an alert as `resolved`, recording the change-set that resolved it as the
+ *  back-reference. Called when a change-set staged off the alert is applied, so the
+ *  inbox reflects that the detected problem was actioned. */
+export async function resolveAlert(
+  tenant: string,
+  id: string,
+  changeSetId: string
 ): Promise<void> {
-  await alertsCol(tenant).add({ ...alert, createdAt: new Date().toISOString(), read: false });
+  await alertsCol(tenant)
+    .doc(id)
+    .set({ status: "resolved" satisfies AlertStatus, resolvedBy: changeSetId }, { merge: true });
 }
 
 /** Newest alerts for a tenant's inbox. */
@@ -116,12 +158,15 @@ export async function evaluateAndAlert(
   const body = items.map((i) => `${i.name} — ${i.reason}`).join(" · ");
 
   // In-app inbox first — the durable record that never depends on a 3rd party.
-  await recordAlert(tenant, { type: "critical", title, body, items });
+  // Thread the alert id into the activity feed so the timeline can tie this
+  // detection to the change-set later staged from it (alert → change-set → apply).
+  const alertId = await recordAlert(tenant, { type: "critical", title, body, items });
   await recordActivity(tenant, {
     kind: "alert",
     title,
     detail: body,
     actor: "Automatická synchronizace",
+    alertId,
   });
 
   // Outbound webhook (Slack/Teams/…), best-effort.

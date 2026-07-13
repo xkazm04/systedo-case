@@ -29,6 +29,7 @@ const T = {
     approveOverride: "Schválit přes pojistky",
     approve: "Schválit a aplikovat",
     ledgerHeading: "Historie balíčků",
+    fromAlert: "Z upozornění",
     moves: "{n} přesunů",
     applied: "{ok}/{total} aplikováno",
     revert: "Vrátit zpět",
@@ -55,6 +56,7 @@ const T = {
     approveOverride: "Approve despite guardrails",
     approve: "Approve and apply",
     ledgerHeading: "Package history",
+    fromAlert: "From alert",
     moves: "{n} moves",
     applied: "{ok}/{total} applied",
     revert: "Revert",
@@ -157,7 +159,12 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
       {pending && (
         <div className="mt-4 rounded-card border border-coral-200 bg-coral-soft/30 p-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-navy-800">{t("pendingHeading")}</span>
+            <span className="flex items-center gap-2 text-sm font-semibold text-navy-800">
+              {t("pendingHeading")}
+              {pending.alertId && (
+                <span className="pill bg-coral-soft text-coral-600">{t("fromAlert")}</span>
+              )}
+            </span>
             <span className={`pill ${STATUS_STYLE.pending}`}>{STATUS_LABEL.pending}</span>
           </div>
 
@@ -232,6 +239,9 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm">
                 <span className="flex items-center gap-2">
                   <span className={`pill ${STATUS_STYLE[s.status]}`}>{STATUS_LABEL[s.status]}</span>
+                  {s.alertId && (
+                    <span className="pill bg-coral-soft text-coral-600">{t("fromAlert")}</span>
+                  )}
                   <span className="text-navy-800">{t("moves", { n: s.moves.length })}</span>
                   {s.results && (
                     <span className="text-xs text-muted">

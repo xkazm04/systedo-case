@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Bell, Check } from "@/components/icons";
+import { Bell, Bolt, Check } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
-import { groupAlertRecords } from "@/lib/campaigns/alert-suppression";
+import {
+  groupAlertRecords,
+  alertStatus,
+  alertCampaignIds,
+  isAlertActionable,
+} from "@/lib/campaigns/alert-suppression";
 
 const T = {
   cs: {
@@ -17,6 +22,13 @@ const T = {
     markRead: "Označit přečtené",
     repeat: "×{n}",
     empty: "Žádná upozornění. Při synchronizaci vás upozorníme na nově kritické kampaně.",
+    stage: "Připravit balíček",
+    staging: "Připravuji…",
+    acknowledge: "Vzít na vědomí",
+    statusAck: "Vzato na vědomí",
+    statusResolved: "Vyřešeno",
+    actionErr: "Akci se nepodařilo dokončit.",
+    serverErr: "Nepodařilo se spojit se serverem.",
   },
   en: {
     ariaLabel: "Alerts",
@@ -26,19 +38,38 @@ const T = {
     markRead: "Mark all read",
     repeat: "×{n}",
     empty: "No alerts. We'll notify you when newly critical campaigns are found during a sync.",
+    stage: "Stage change-set",
+    staging: "Staging…",
+    acknowledge: "Acknowledge",
+    statusAck: "Acknowledged",
+    statusResolved: "Resolved",
+    actionErr: "The action could not be completed.",
+    serverErr: "Could not reach the server.",
   },
 } as const;
 
 /** Bell + dropdown showing the tenant's alert inbox (newly-critical campaigns
  *  surfaced by a sync, scheduled or manual). Reloads when `refreshKey` changes.
- *  Renders nothing for anonymous visitors. */
-export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
+ *  Critical alerts carry one-click workflow actions: stage a pre-scoped change-set
+ *  (closing the loop into the control plane) or acknowledge. Renders nothing for
+ *  anonymous visitors. */
+export default function AlertsInbox({
+  refreshKey,
+  onStaged,
+}: {
+  refreshKey: number;
+  /** called after a change-set is staged from an alert, so the parent can reload
+   *  the control plane to surface the new pending proposal. */
+  onStaged?: () => void;
+}) {
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
   const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [actionErr, setActionErr] = useState<string | null>(null);
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -78,6 +109,53 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
     }
   };
 
+  /** Stage a pending change-set pre-scoped to this alert's campaigns and link it
+   *  back to the alert. Human click is the only mutation trigger — this only
+   *  *creates* a pending proposal; applying it stays a separate, explicit step. */
+  const stage = async (alertId: string) => {
+    setActingId(alertId);
+    setActionErr(null);
+    try {
+      const res = await fetch("/api/campaigns/control-plane", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "create", alertId, projectId: pid }),
+      });
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        setActionErr(json?.error ?? t("actionErr"));
+        return;
+      }
+      await load();
+      onStaged?.();
+    } catch {
+      setActionErr(t("serverErr"));
+    } finally {
+      setActingId(null);
+    }
+  };
+
+  const acknowledge = async (alertId: string) => {
+    setActingId(alertId);
+    setActionErr(null);
+    try {
+      const res = await fetch("/api/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "acknowledge", id: alertId, projectId: pid }),
+      });
+      if (!res.ok) {
+        setActionErr(t("actionErr"));
+        return;
+      }
+      await load();
+    } catch {
+      setActionErr(t("serverErr"));
+    } finally {
+      setActingId(null);
+    }
+  };
+
   if (status !== "authenticated") return null;
 
   return (
@@ -114,6 +192,8 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
             )}
           </div>
 
+          {actionErr && <p className="mt-2 px-1 text-xs text-negative">{actionErr}</p>}
+
           {alerts.length === 0 ? (
             <p className="px-1 py-6 text-center text-sm text-muted">{t("empty")}</p>
           ) : (
@@ -123,6 +203,15 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
               {groupAlertRecords(alerts).map((g) => {
                 const a = g.latest;
                 const unread = g.unread > 0;
+                const st = alertStatus(a);
+                // A change-set can be staged from any critical alert that names
+                // campaigns and isn't already resolved; acknowledge is offered
+                // while the alert is still fresh (isAlertActionable = critical +
+                // new + has campaigns).
+                const canStage =
+                  a.type === "critical" && st !== "resolved" && alertCampaignIds(a).length > 0;
+                const canAck = isAlertActionable(a);
+                const acting = actingId === a.id;
                 return (
                   <li
                     key={a.id}
@@ -144,9 +233,45 @@ export default function AlertsInbox({ refreshKey }: { refreshKey: number }) {
                       )}
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
-                    <time dateTime={a.createdAt} className="mt-1 block text-[13px] text-muted">
-                      {fmt.fmtRelative(a.createdAt)}
-                    </time>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <time dateTime={a.createdAt} className="text-[13px] text-muted">
+                        {fmt.fmtRelative(a.createdAt)}
+                      </time>
+                      {st === "resolved" && (
+                        <span className="pill bg-positive-soft text-positive">
+                          {t("statusResolved")}
+                        </span>
+                      )}
+                      {st === "acknowledged" && (
+                        <span className="pill bg-navy-50 text-muted">{t("statusAck")}</span>
+                      )}
+                    </div>
+                    {(canStage || canAck) && (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {canStage && (
+                          <button
+                            type="button"
+                            onClick={() => stage(a.id)}
+                            disabled={acting}
+                            className="inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
+                          >
+                            <Bolt width={12} height={12} />
+                            {acting ? t("staging") : t("stage")}
+                          </button>
+                        )}
+                        {canAck && (
+                          <button
+                            type="button"
+                            onClick={() => acknowledge(a.id)}
+                            disabled={acting}
+                            className="inline-flex items-center gap-1 rounded-pill border border-line px-3 py-1 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
+                          >
+                            <Check width={12} height={12} />
+                            {t("acknowledge")}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </li>
                 );
               })}

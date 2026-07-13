@@ -23,6 +23,13 @@ export interface RecommendOptions {
    *  bundles moves straight into live budget mutations and must keep receiving
    *  shifts only — the BudgetMoves panel and the AI prompt opt in. */
   includePauses?: boolean;
+  /** restrict DONORS to these campaign ids (recipients stay unrestricted). The
+   *  alert→change-set flow uses this to pre-scope a change-set to exactly the
+   *  alerted campaigns — acting *on* them (pause the burner, move budget away
+   *  from the under-performer) without inventing moves on unrelated campaigns.
+   *  Recipients are still drawn from the whole portfolio's over-performers, so
+   *  the shifted budget lands where it works best. Empty/omitted → no restriction. */
+  donorScopeIds?: string[];
 }
 
 /**
@@ -42,6 +49,10 @@ export function recommendBudgetMoves(
   const shiftFraction = opts.shiftFraction ?? 0.4;
   const minSpend = opts.minSpend ?? 1000;
   const includePauses = opts.includePauses ?? false;
+  // Optional donor allow-list: when set, only these campaigns may be acted on as
+  // donors (the alert→change-set flow scopes to exactly the alerted campaigns).
+  const donorScope =
+    opts.donorScopeIds && opts.donorScopeIds.length > 0 ? new Set(opts.donorScopeIds) : null;
 
   const enabled = rows.filter((c) => c.status === "enabled");
 
@@ -50,7 +61,11 @@ export function recommendBudgetMoves(
   // admitted it out-ranks every partially-performing donor by construction.
   const donors = enabled
     .filter(
-      (c) => c.cost >= minSpend && c.roas < TARGET_ROAS && (includePauses ? true : c.roas > 0)
+      (c) =>
+        c.cost >= minSpend &&
+        c.roas < TARGET_ROAS &&
+        (includePauses ? true : c.roas > 0) &&
+        (donorScope ? donorScope.has(c.id) : true)
     )
     .map((c) => ({ c, waste: c.cost * (1 - c.roas / TARGET_ROAS) }))
     .sort((a, b) => b.waste - a.waste)
