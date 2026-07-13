@@ -6,13 +6,13 @@
     },
     {
       "type": "p",
-      "text": "Ořechy obsahují tuky, které při špatném skladování rychle žluknou a ztrácejí chuť i výživové hodnoty."
+      "text": "Ořechy obsahují vysoký podíl tuků, které při špatném skladování snadno žluknou. Výsledkem je hořká chuť a ztráta nutriční hodnoty."
     },
     {
       "type": "ul",
       "items": [
-        "Žluknutí: kontakt se vzduchem a teplem urychluje oxidaci tuků",
-        "Vlhkost: podporuje plíseň a ztrátu křupavosti"
+        "Žluknutí – oxidace tuků na světle a teple",
+        "Vlhkost – riziko plísní a ztráty křupavosti"
       ]
     },
     {
@@ -21,35 +21,34 @@
     },
     {
       "type": "p",
-      "text": "Správné podmínky prodlouží trvanlivost ořechů o týdny až měsíce."
+      "text": "Základem je chránit ořechy před teplem, světlem a vzduchem."
     },
     {
       "type": "ul",
       "items": [
-        "Chlad a tma: lednice nebo mraznička zpomalují žluknutí",
-        "Vzduchotěsné nádoby: chrání před vlhkostí a pachy z okolí"
+        "Chlad a tma – lednice nebo mraznička prodlouží trvanlivost",
+        "Vzduchotěsné nádoby – zabrání vlhkosti i pachům z okolí"
       ]
     },
     {
       "type": "callout",
-      "variant": "info",
+      "variant": "tip",
       "title": "Tip",
-      "text": "Skořápkové ořechy vydrží déle než loupané – pokud můžete, kupujte je neloupané."
+      "text": "Kupujte ořechy v menším množství, které spotřebujete do pár týdnů."
     },
     {
       "type": "cta",
-      "text": "Chcete více praktických rad o skladování potravin?",
-      "cta": "Přečíst další tipy"
+      "cta": "Vyzkoušejte tipy hned dnes a udržte si ořechy čerstvé déle."
     }
   ],
   "faq": [
     {
       "question": "Jak dlouho vydrží ořechy v lednici?",
-      "answer": "Při skladování ve vzduchotěsné nádobě v lednici vydrží čerstvé zpravidla 4 až 6 měsíců."
+      "answer": "Ve vzduchotěsné nádobě v lednici vydrží obvykle 6 měsíců až rok, podle druhu ořechu."
     },
     {
-      "question": "Můžu ořechy zamrazit?",
-      "answer": "Ano, mražení v uzavřeném sáčku nebo nádobě prodlouží trvanlivost až na rok a chuť zůstane zachována."
+      "question": "Poznám, že ořechy žluknou?",
+      "answer": "Žluklé ořechy mají hořkou, štiplavou chuť a nepříjemnou vůni – v takovém případě je lepší je vyhodit."
     }
   ]
 }

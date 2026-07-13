@@ -1,29 +1,31 @@
 {
   "titleTag": "Skladování ořechů: jak je uchovat čerstvé a chutné",
-  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si zachovaly chuť a nezežluknly. Praktické tipy na teplotu, vlhkost a vhodné obaly pro dlouhou trvanlivost.",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si zachovaly chuť a nezežluknly. Tipy na teplotu, vlhkost, obaly i trvanlivost různých druhů ořechů.",
   "outline": [
     {
-      "heading": "Proč ořechy podléhají zkáze a jak poznat zežluknutí",
+      "heading": "Proč ořechy rychle žluknou",
       "points": [
-        "Vysoký obsah tuků a jejich oxidace",
+        "Vysoký obsah tuku a citlivost na oxidaci",
         "Vliv světla, tepla a vzduchu na kvalitu",
-        "Jak poznat zežluklé ořechy podle chuti a vůně"
+        "Rozdíly mezi loupanými a neloupanými ořechy"
       ]
     },
     {
-      "heading": "Optimální podmínky pro skladování ořechů",
+      "heading": "Jak správně skladovat ořechy doma",
       "points": [
         "Ideální teplota a vlhkost prostředí",
         "Skladování v lednici vs. mrazáku",
-        "Vhodné obaly: vzduchotěsné nádoby a sáčky"
+        "Vhodné obaly: vzduchotěsné dózy a sáčky",
+        "Skladování v temnu, mimo přímé slunce"
       ]
     },
     {
-      "heading": "Praktické tipy pro domácnost",
+      "heading": "Trvanlivost jednotlivých druhů ořechů",
       "points": [
-        "Skladování loupaných vs. neloupaných ořechů",
-        "Doporučená doba spotřeby jednotlivých druhů",
-        "Jak prodloužit trvanlivost větších zásob"
+        "Vlašské a lískové ořechy",
+        "Mandle a kešu",
+        "Piniové oříšky a pistácie",
+        "Jak poznat zkažené ořechy"
       ]
     }
   ]

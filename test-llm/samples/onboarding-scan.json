@@ -1,18 +1,16 @@
 {
   "businessName": "Dentalis",
-  "summary": "Zubní ordinace v Brně poskytující komplexní zubní péči pro děti i dospělé s možností online objednání.",
+  "summary": "Zubní ordinace v Brně poskytující komplexní zubní péči pro děti i dospělé, s možností online objednání.",
   "offering": "Dentální hygiena, záchovná stomatologie, zubní implantáty, bělení zubů",
-  "audience": "Děti i dospělí hledající zubní péči v Brně",
-  "toneOfVoice": "Vstřícný, profesionální, klidný",
+  "audience": "Děti i dospělí v Brně a okolí hledající komplexní zubní péči",
+  "toneOfVoice": "Přívětivý a profesionální",
   "keywords": [
-    "zubní ordinace",
-    "Brno",
+    "zubní ordinace Brno",
     "dentální hygiena",
     "zubní implantáty",
     "bělení zubů",
     "záchovná stomatologie",
-    "online objednání",
-    "zubní péče"
+    "online objednání"
   ],
   "competitors": [],
   "suggestedType": "local"

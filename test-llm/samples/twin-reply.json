@@ -1,16 +1,15 @@
 {
-  "reply": "Dobrý den, děkuji za zájem o revizi elektroinstalace. Pro správné zařazení Vaší poptávky a sdělení dostupnosti si dovolím upřesnit několik detailů. Jaký je plánovaný termín revize a jsou v místnosti nějaké specifické problémy, které řešíte? Jakmile objasnimeScope, rád Vám sdělím, kdy máme možnosti. Těšíme se na bližší komunikaci.",
+  "reply": "Dobrý den, děkuji za vaši poptávku — revizi elektroinstalace v rozsahu 200 m² si v pořádku vezmu na seznam. Abych vám mohl připravit přesnější informace, potřebuji si ujasit pár věcí: Jde o rutinní kontrolu nebo řešíte konkrétní problém? Máte preferenci, kdy by měla revize proběhnout? A je to prostředí s běžnou kancelářskou infrastrukturou, nebo jsou tam nějaké specifické technické nárože?",
   "questions": [
-    "Máte v plánu konkrétní datum nebo časový rámec, kdy by měla revize proběhnout?",
-    "Řeší se nějaké konkrétní problémy (výpadky, přetížení, bezpečnostní obavy) nebo se jedná o rutinní kontrolu?",
-    "Kdo je rozhodujícím kontaktem pro naplánování a kdo bude na místě přítomen během revize?"
+    "Jaký je důvod kontroly — rutinní revize nebo řešení konkrétního problému?",
+    "Máte představu, kdy by byla revize ideální z vašeho pohledu (příští týden, příští měsíc)?",
+    "Jsou v kanceláři nějaké specifické technické instalace, které bychom měli vědět (serverovna, zvýšený výkon, starší rozvodna)?"
   ],
-  "confidence": 65,
+  "confidence": 75,
   "risks": [
-    "Chybí mi background materiály s cenníkem, dostupností termínů a SLA — bez nich nemohu garantovat správnost odpovědi o volnosti",
-    "Nevím, jaký formát termínu očekávají (seznam možností vs. obecné 'Ozveme se s nabídkou')",
-    "Není jasno, zda je to poptávka od nového klienta nebo stávajícího – tón může vyžadovat úpravu",
-    "Součástí leadgen odpovědi by mělo být jasné CTA (Call To Action) – chybí instrukce, kam mají poslat fotky, rozpočty apod."
+    "Neznáme kapacity a dostupnost techniků — neměli bychom slibovat konkrétní datum bez interního check-u.",
+    "Leadgen model: ověřit, zda tuto poptávku vraciíme partnerům nebo sami realizujeme.",
+    "Není jasné, jestli se odesílá na telefon, email nebo chat — formát komunikace ovlivní percepi professionality."
   ],
-  "toneNotes": "Formální oslovení (Dobrý den, vykání), okamžitá odpověď na dotaz v první větě, profesionální a vstřícný tón vhodný pro B2B službu. Vyhnul jsem se přislíbení konkrétního termínu bez znalosti dostupnosti (VŽDY: neobchoduj bez podkladů). Zpráva kvalifikuje lead dalšími otázkami a signalizuje vážný zájem."
+  "toneNotes": "Použit formální vy + příjmení (i když nemáme jméno, předpokládáme, že volá osoba oprávněná rozhodovat). Odpověď v první větě řeší jejich dotaz bez nejasností. Tón je profesionální, klidný, nepoddajný — sbíráme informace bez tlaku. Vyhnuli jsme se slibům na termín či cenu, místo toho otevíráme dialog."
 }

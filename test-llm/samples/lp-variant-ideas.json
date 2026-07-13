@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B · Zaměření na úsporu času",
-      "hypothesis": "Pokud zdůrazníme úsporu času a přehlednost úkolů místo obecného popisu produktu, návštěvníci pochopí okamžitý přínos a konverze vzroste.",
-      "headline": "Mějte všechny úkoly a projekty na jednom místě – bez chaosu v tabulkách",
+      "label": "Konkrétní přínos v čísle úspor času",
+      "hypothesis": "Zaměření headline na konkrétní přínos (úspora času, přehled nad úkoly) místo obecného popisu produktu zvýší konverzi oproti generickému sdělení kontroly.",
+      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní benefit (úspora času, přehlednost) je konverzně silnější než obecný popis funkcí produktu."
+      "rationale": "Konkrétní přínos místo obecného popisu produktu lépe komunikuje hodnotu a snižuje kognitivní zátěž návštěvníka."
     },
     {
-      "label": "C · Sociální důkaz a důvěra",
-      "hypothesis": "Pokud na hlavní stránku přidáme důraz na to, že nástroj používají další týmy a firmy, návštěvníci získají důvěru a snáze se rozhodnou vyzkoušet produkt.",
-      "headline": "Nástroj pro řízení projektů, kterému důvěřují týmy po celém Česku",
-      "primaryCTA": "Chci to vidět v akci",
-      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí, zejména u B2B nástrojů, kde chybí osobní doporučení."
+      "label": "Sociální důkaz a důvěra",
+      "hypothesis": "Přidání důkazu o využívání nástroje jinými týmy (reference, loga, počty uživatelů) posílí důvěru a zvýší konverzi oproti čistě produktovému sdělení kontroly.",
+      "headline": "Nástroj pro řízení projektů, kterému důvěřují stovky týmů",
+      "primaryCTA": "Chci to samé pro svůj tým",
+      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí a funguje jinak než slevová motivace, která u varianty B selhala."
     },
     {
-      "label": "D · Řešení konkrétního problému",
-      "hypothesis": "Pokud místo popisu produktu pojmenujeme konkrétní bolest (roztříštěné úkoly, ztracené termíny) a nabídneme ji jako řešení, návštěvníci se s problémem ztotožní a konverze vzroste.",
-      "headline": "Konec zapomenutým úkolům a zmatku v projektech",
-      "primaryCTA": "Vyřešit to hned",
-      "rationale": "Pojmenování konkrétního problému cílové skupiny vytváří silnější emocionální spojení než neutrální popis nástroje."
+      "label": "Jasná úleva od chaosu s úkoly",
+      "hypothesis": "Pojmenování konkrétního problému cílové skupiny (roztříštěné úkoly, ztráta přehledu) v headline namísto obecného popisu produktu zvýší relevanci a konverzi.",
+      "headline": "Konec chaosu v úkolech – jeden nástroj na řízení projektů i týmu",
+      "primaryCTA": "Zobrazit řešení",
+      "rationale": "Formulace okolo bolestivého problému cílí přímo na motivaci uživatele hledat řešení, na rozdíl od generického popisu kontroly i krátkého CTA bez kontextu jako u varianty C."
     }
   ]
 }

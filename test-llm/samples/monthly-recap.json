@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4×",
-  "summary": "Kampaně dál táhnou výkon nahoru – obrat 1 200 000 Kč proti nákladům 220 000 Kč drží PNO na zdravých 18,3 % a ROAS na 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že poptávka i nastavení kampaní jsou v dobré kondici.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při zdravém PNO 18,3 % a ROAS 5,4×",
+  "summary": "Kampaně dosáhly obratu 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že nastavení kampaní i cílení funguje efektivně a přináší rostoucí návratnost investic.",
   "highlights": [
-    "Obrat 1 200 000 Kč při nákladech jen 220 000 Kč – PNO 18,3 %",
-    "ROAS 5,4× ukazuje na velmi efektivní využití rozpočtu",
-    "Konverze meziměsíčně +12 %, poptávka roste rychleji než náklady"
+    "ROAS 5,4× výrazně převyšuje běžný benchmark pro lokální podniky a služby",
+    "PNO 18,3 % ukazuje efektivní vynakládání rozpočtu vůči celkovému obratu",
+    "Konverze vzrostly o 12 %, což signalizuje zlepšující se kvalitu poptávky"
   ],
   "watchouts": [
-    "Při dalším růstu poptávky hlídat, aby se PNO nezačalo zvyšovat kvůli dražším aukcím",
-    "Ověřit, že nárůst konverzí odpovídá i kvalitě poptávky (ne jen objemu), aby nedošlo k ředění hodnoty zakázek"
+    "Růst konverzí je třeba ověřit i v dalších měsících, aby nešlo o jednorázový výkyv",
+    "Při zvyšování rozpočtu sledovat, zda se PNO nezhorší a ROAS zůstane na podobné úrovni"
   ],
   "priorities": [
     {
-      "title": "Škálovat úspěšné kampaně",
-      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO, a sledovat, zda se efektivita udrží i při vyšším objemu."
+      "title": "Postupně navýšit rozpočet na nejvýkonnější kampaně",
+      "detail": "Vzhledem k ROAS 5,4× a nízkému PNO má smysl otestovat mírné navýšení rozpočtu u nejlépe performujících kampaní a sledovat, zda se návratnost udrží."
     },
     {
-      "title": "Prohloubit sledování kvality konverzí",
-      "detail": "Nastavit detailnější vyhodnocení nových konverzí (např. poměr poptávek na uzavřené zakázky), aby bylo jasné, že +12 % odpovídá reálnému byznysovému přínosu."
+      "title": "Analyzovat zdroj růstu konverzí",
+      "detail": "Zjistit, které kanály nebo kampaně stojí za 12% nárůstem konverzí, a tyto poznatky využít pro optimalizaci ostatních kampaní."
     }
   ]
 }
