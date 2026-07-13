@@ -41,8 +41,13 @@ export interface CampaignsMeta {
   /** the last sync's live fetch fell back to sample data — the UI shows a
    *  truth-in-labeling warning instead of presenting demo numbers as live */
   degraded?: boolean;
-  /** error summary behind the fallback (diagnostics; not rendered verbatim) */
+  /** error summary behind the fallback (a describeError string) — surfaced in the
+   *  provenance popover so "why am I seeing sample data?" is answerable */
   degradedReason?: string | null;
+  /** when each period was last actually synced — powers the provenance popover's
+   *  per-period coverage + stale distinction. Already persisted in SyncMeta and
+   *  returned by the API, so exposing it needs no new fetch. */
+  syncedByPeriod?: Record<string, string>;
 }
 
 interface State {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
-import { Bolt, Gauge, Info, Layers, Refresh, Share, Sparkles } from "@/components/icons";
+import { Bolt, Gauge, Layers, Refresh, Share, Sparkles } from "@/components/icons";
 import { Button } from "@/components/ui";
 import {
   CAMPAIGN_PERIODS,
@@ -32,6 +32,7 @@ import ReportView from "./ReportView";
 import SharedReportsList from "./SharedReportsList";
 import MicrositeCard from "./MicrositeCard";
 import ControlPlane from "./ControlPlane";
+import SyncProvenance from "./SyncProvenance";
 
 const T = {
   cs: {
@@ -316,13 +317,11 @@ export default function CampaignsClient() {
             ))}
           </div>
           {meta && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-muted">
-              <Info width={13} height={13} />
-              {t(SOURCE_KEY[meta.source] ?? "sourceSample")} ·{" "}
-              <time dateTime={meta.syncedAt} title={fmt.fmtDateTime(meta.syncedAt)}>
-                {fmt.fmtRelative(meta.syncedAt)}
-              </time>
-            </span>
+            <SyncProvenance
+              meta={meta}
+              period={period}
+              sourceLabel={t(SOURCE_KEY[meta.source] ?? "sourceSample")}
+            />
           )}
         </div>
 
