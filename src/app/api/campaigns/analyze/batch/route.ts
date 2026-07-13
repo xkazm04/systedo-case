@@ -13,6 +13,7 @@
 import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { getPatternLines } from "@/lib/patterns/store";
+import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
 import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
@@ -27,7 +28,7 @@ import {
   listCampaigns,
   saveReport,
 } from "@/lib/campaigns/store";
-import { aggregate, indexChanges, withMetrics, type Campaign } from "@/lib/campaigns/types";
+import { indexChanges, withMetrics, type Campaign } from "@/lib/campaigns/types";
 import { triageWeight } from "@/lib/campaigns/triage";
 import type { EvalScope } from "@/lib/ai-types";
 import {
@@ -182,23 +183,18 @@ export async function POST(request: Request) {
         }
       }
 
-      // Ground the portfolio eval in the account's own winning patterns (RAG) —
-      // the same query the single analyze route builds.
-      let patternLines: string[] | undefined;
-      if (target.scope === "overall") {
-        const totals = aggregate(campaigns);
-        const rows = campaigns.map(withMetrics);
-        const best = [...rows].sort((a, b) => b.roas - a.roas)[0];
-        const worst = [...rows].filter((c) => c.cost > 0).sort((a, b) => a.roas - b.roas)[0];
-        const query = [
-          `Portfolio ROAS ${totals.roas.toFixed(1)}, PNO ${(totals.pno * 100).toFixed(0)} %.`,
-          best ? `Nejlepší kampaň ${best.name} (${best.type}).` : "",
-          worst ? `Nejslabší kampaň ${worst.name} (${worst.type}).` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
-        patternLines = await getPatternLines(tenant, query, 6, client.pnoGoal);
-      }
+      // Ground each eval in the account's own winning patterns (RAG) — the same
+      // query builders the single analyze route uses (overall portfolio, or the
+      // per-campaign type + metrics), mined against the tenant's PNO target.
+      const patternQuery =
+        target.scope === "overall"
+          ? overallPatternQuery(campaigns)
+          : target.campaign
+            ? campaignPatternQuery(target.campaign)
+            : "";
+      const patternLines = patternQuery
+        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal)
+        : undefined;
 
       try {
         const response = await generateCampaignEvaluation({

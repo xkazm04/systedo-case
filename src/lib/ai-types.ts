@@ -136,6 +136,12 @@ export interface AdRequest {
   audience: string;
   platform: Platform;
   tone: Tone;
+  /** server-derived winning-pattern lines from the account's own library, relevant
+   *  to this brief (resolved SERVER-SIDE from the caller's project — never trusted
+   *  from the client). Injected into the USER prompt only — like `brand`/`refine` —
+   *  so the system prompt + schema stay byte-identical and the LLM-gate golden
+   *  holds. Absent for a project with no library / no project context. */
+  patterns?: string[];
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;

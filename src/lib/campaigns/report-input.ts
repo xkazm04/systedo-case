@@ -124,7 +124,12 @@ export function buildCampaignPrompt(
   all: Campaign[],
   period: CampaignPeriod,
   changes?: ChangesSummary,
-  client: ClientProfile = DEFAULT_CLIENT_PROFILE
+  client: ClientProfile = DEFAULT_CLIENT_PROFILE,
+  /** account's winning-pattern lines relevant to THIS campaign — grounds the
+   *  per-campaign eval in proven account lessons, exactly like buildOverallPrompt
+   *  grounds the portfolio eval. Injected into the user prompt only (the system
+   *  prompt + schema, and thus the gate/golden fingerprint, stay untouched). */
+  patternLines: string[] = []
 ): string {
   const changesById = indexChanges(changes);
   const t = withMetrics(target);
@@ -154,6 +159,13 @@ export function buildCampaignPrompt(
     "",
     "DETERMINISTICKÁ TRIÁŽ (pravidlová diagnóza zobrazená u kampaně — tvé hodnocení s ní musí být v souladu):",
     ...triageLines(t, changesById[target.id]),
+    ...(patternLines.length > 0
+      ? [
+          "",
+          "OSVĚDČENÉ VZORY Z TOHOTO ÚČTU (knihovna vzorů — využij je, pokud dávají v kontextu této kampaně smysl):",
+          ...patternLines,
+        ]
+      : []),
     "",
     "Na základě těchto čísel vrať: skóre 0–100 (zdraví kampaně vůči cíli a portfoliu), jednovětý verdikt, krátké shrnutí, silné stránky, slabiny a 2–4 konkrétní doporučené kroky s prioritou. Skóre i verdikt musí odpovídat triáži výše — kampaň s kritickým nálezem nemůže dostat skóre zdraví nad 50. Vycházej VÝHRADNĚ z uvedených čísel.",
   ].join("\n");

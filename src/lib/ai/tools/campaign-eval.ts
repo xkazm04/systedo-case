@@ -214,7 +214,9 @@ export function generateCampaignEvaluation(args: {
   target: Campaign | null;
   campaigns: Campaign[];
   period: CampaignPeriod;
-  /** account's winning-pattern lines, to ground the portfolio prompt */
+  /** account's winning-pattern lines, to ground the eval prompt — the portfolio
+   *  situation for an overall eval, or the campaign's own type + metrics for a
+   *  per-campaign eval (both injected into the user prompt only) */
   patternLines?: string[];
   /** sync-over-sync diff — grounds the prompts in the same change-aware triage
    *  the UI badges show (roas_crater / spend_spike), so the evaluation can't
@@ -233,7 +235,7 @@ export function generateCampaignEvaluation(args: {
     // llm-tool: campaign-eval
     id: "campaign-eval",
     prompt: single
-      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client)
+      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client, args.patternLines ?? [])
       : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes, args.client),
     system: EVAL_SYSTEM,
     schema: EVAL_SCHEMA,

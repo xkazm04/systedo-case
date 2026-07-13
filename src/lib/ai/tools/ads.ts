@@ -43,10 +43,27 @@ function buildAdPrompt(req: AdRequest): string {
     "- 8 návrhů klíčových slov pro tuto kampaň,",
     `- 1 dlouhý nadpis (longHeadline) max ${AD_LIMITS.longHeadline} znaků,`,
     "- krátké zdůvodnění (rationale, 1–2 věty), proč jsou texty postavené takto.",
+    // Account's own winning patterns relevant to this brief (RAG) — grounds the
+    // copy in proven lessons instead of generic advice. USER prompt only, so the
+    // system prompt + schema (and the gate/golden fingerprint) stay untouched.
+    ...patternBlock(req.patterns),
     // Refine note (re-run steering) rides on the USER prompt only — the system
     // prompt + schema stay byte-identical, so the gate/golden fingerprint holds.
     ...refineLines(req.refine),
   ].join("\n");
+}
+
+/** Prompt lines for the account's relevant winning patterns — `[]` when the
+ *  caller has no library, so the prompt stays byte-identical to the ungrounded
+ *  path (and to the demo). */
+function patternBlock(patterns?: string[]): string[] {
+  const lines = (patterns ?? []).map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+  return [
+    "",
+    "OSVĚDČENÉ VZORY Z TOHOTO ÚČTU (knihovna vzorů — inspiruj se jimi, pokud dávají pro tento inzerát smysl):",
+    ...lines,
+  ];
 }
 
 const AD_SCHEMA = {

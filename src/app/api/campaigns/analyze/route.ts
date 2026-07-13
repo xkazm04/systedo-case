@@ -5,6 +5,7 @@ import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
+import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
 import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
@@ -21,7 +22,7 @@ import {
   listCampaigns,
   saveReport,
 } from "@/lib/campaigns/store";
-import { aggregate, withMetrics, type Campaign } from "@/lib/campaigns/types";
+import type { Campaign } from "@/lib/campaigns/types";
 import {
   RATE_RULES,
   acquireSlot,
@@ -153,24 +154,15 @@ export async function POST(request: Request) {
     // pattern query and the eval prompt share the read (no redundant Firestore hit).
     const client = await getClientProfile(tenant);
 
-    // Ground the portfolio eval in the account's own winning patterns, ranked by
-    // semantic relevance to the current portfolio situation (RAG). Mined against
-    // the tenant's own PNO target (client.pnoGoal).
-    let patternLines: string[] | undefined;
-    if (scope === "overall") {
-      const totals = aggregate(campaigns);
-      const rows = campaigns.map(withMetrics);
-      const best = [...rows].sort((a, b) => b.roas - a.roas)[0];
-      const worst = [...rows].filter((c) => c.cost > 0).sort((a, b) => a.roas - b.roas)[0];
-      const query = [
-        `Portfolio ROAS ${totals.roas.toFixed(1)}, PNO ${(totals.pno * 100).toFixed(0)} %.`,
-        best ? `Nejlepší kampaň ${best.name} (${best.type}).` : "",
-        worst ? `Nejslabší kampaň ${worst.name} (${worst.type}).` : "",
-      ]
-        .filter(Boolean)
-        .join(" ");
-      patternLines = await getPatternLines(tenant, query, 6, client.pnoGoal);
-    }
+    // Ground BOTH eval scopes in the account's own winning patterns (RAG), ranked
+    // by relevance and mined against the tenant's own PNO target (client.pnoGoal).
+    // Overall: the whole portfolio; per-campaign: that campaign's type + metrics —
+    // so a per-campaign eval is grounded too, not just the portfolio verdict.
+    const patternQuery =
+      scope === "overall" ? overallPatternQuery(campaigns) : target ? campaignPatternQuery(target) : "";
+    const patternLines = patternQuery
+      ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal)
+      : undefined;
 
     try {
       const response = await generateCampaignEvaluation({

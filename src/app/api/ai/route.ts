@@ -65,6 +65,10 @@ import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
+import { resolveTenant } from "@/lib/campaigns/connector";
+import { getClientProfile } from "@/lib/campaigns/report-config";
+import { getPatternLines } from "@/lib/patterns/store";
+import { adPatternQuery } from "@/lib/patterns/query";
 
 
 /** Cache-then-quota-then-generate for one tool call. An identical (mode, locale,
@@ -208,6 +212,25 @@ async function resolveGrounding(
   return { keyId: "base" };
 }
 
+/** Resolve the account's winning-pattern lines relevant to this ad brief (RAG),
+ *  tenancy-checked through resolveTenant — the SAME boundary the /api/patterns
+ *  routes use. Project-gated like resolveBrandContext: no projectId → `[]`, so the
+ *  demo / no-project path (and its cache entry) is byte-identical to before. The
+ *  lines enter the request → the input-hash cache key, so a real library serves
+ *  fresh + tenant-scoped and can't collide with another account's same-brief ad.
+ *  Query embeddings are content-cached (lib/patterns/embeddings), so a repeat that
+ *  hits the response cache re-embeds nothing. */
+async function resolveAdPatterns(
+  projectId: string | undefined,
+  userId: string | null,
+  req: { product: string; benefits: string; audience: string }
+): Promise<string[]> {
+  if (!projectId) return [];
+  const tenant = await resolveTenant(userId, projectId);
+  const { pnoGoal } = await getClientProfile(tenant);
+  return getPatternLines(tenant, adPatternQuery(req), 6, pnoGoal);
+}
+
 /** B1 — resolve a project's brand grounding (what it sells + how it talks) for the
  *  content tools (brief, article-draft), with the same demo-public / user-owned
  *  tenancy as resolveGrounding. Returns "" when there's no project or no catalogue,
@@ -302,9 +325,10 @@ export async function POST(request: Request) {
     // the projectId is taken from the payload when the caller names one — read back
     // by generateStructured at the recordLlmCall seam.
     const reqProjectId = (body as { projectId?: unknown })?.projectId;
+    const projectIdStr = typeof reqProjectId === "string" && reqProjectId ? reqProjectId : undefined;
     enterLlmRequestContext({
       ...(userId ? { userId } : {}),
-      ...(typeof reqProjectId === "string" && reqProjectId ? { projectId: reqProjectId } : {}),
+      ...(projectIdStr ? { projectId: projectIdStr } : {}),
     });
 
     // BYOM: resolve the per-operation provider for THIS mode (the matrix override
@@ -321,7 +345,17 @@ export async function POST(request: Request) {
     switch (mode) {
       case "ads": {
         const p = validateAdRequest(body, locale);
-        return p.valid ? cachedRespond("ads", p.value, locale, userId, () => generateAds(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // Ground the creative in the account's own winning patterns (RAG), resolved
+        // server-side (tenancy via resolveTenant) and injected into the USER prompt
+        // only. Enters p.value → the input-hash cache key, so a changed library
+        // serves fresh and two accounts with the same brief never share a pattern-
+        // grounded ad. Empty for demo/no-project → prompt + cache unchanged.
+        const patterns = await resolveAdPatterns(projectIdStr, userId, p.value);
+        // Only attach when non-empty so the demo / no-library path keeps the exact
+        // request shape (and thus the exact cache key + prompt) it had before.
+        if (patterns.length > 0) p.value.patterns = patterns;
+        return cachedRespond("ads", p.value, locale, userId, () => generateAds(p.value, locale, request.signal));
       }
       case "brief": {
         const p = validateBriefRequest(body, locale);
