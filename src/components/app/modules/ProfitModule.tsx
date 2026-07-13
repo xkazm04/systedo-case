@@ -9,7 +9,7 @@ import NextSteps from "@/components/app/NextSteps";
 import ProfitScenariosPanel from "@/components/app/modules/ProfitScenariosPanel";
 import ProfitReallocationPanel from "@/components/app/modules/ProfitReallocationPanel";
 import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
-import type { ChannelRow } from "@/lib/metrics";
+import { aov, cr, pno, roas, type ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
 import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
 import { applyOverhead } from "@/lib/profit/overhead";
@@ -319,10 +319,10 @@ function scaleRow(r: ChannelRow, revScale: number, costScale: number): ChannelRo
     cost,
     conversions,
     visits,
-    pno: revenue > 0 ? cost / revenue : 0,
-    aov: conversions > 0 ? revenue / conversions : 0,
-    cr: visits > 0 ? conversions / visits : 0,
-    roas: cost > 0 ? revenue / cost : 0,
+    pno: pno(cost, revenue),
+    aov: aov(revenue, conversions),
+    cr: cr(conversions, visits),
+    roas: roas(revenue, cost),
   };
 }
 

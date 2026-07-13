@@ -18,6 +18,7 @@ import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
 import { seriesCoverage, type Coverage } from "./config";
 import { decomposeRevenueMove, type FunnelAttribution } from "./funnel";
+import { weekdayWeightsBundle } from "./seasonality";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
@@ -82,6 +83,10 @@ export interface MetricsSnapshot {
 export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeriod): MetricsSnapshot {
   const result = evaluatePeriod(data.daily, period.days, period.baseline ?? "previous");
   const granularity = period.granularity ?? (period.days > 90 ? "month" : "day");
+  // Compute the raw-metric weekday weights ONCE and share them with the anomaly,
+  // trend and pacing passes, which each used to re-derive them (~6 redundant
+  // passes per build). No global cache — just plumbed through this one build.
+  const weights = weekdayWeightsBundle(data.daily);
   return {
     schemaVersion: SNAPSHOT_SCHEMA_VERSION,
     period: { key: period.key, label: period.label, days: period.days },
@@ -94,15 +99,15 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     significance: result.significance,
     buckets: bucketize(result.points, granularity),
     channels: channelRowsCompared(data.channels, result.current, result.previous),
-    anomalies: detectAnomalies(data.daily, data.goals),
-    trends: detectTrends(data.daily),
+    anomalies: detectAnomalies(data.daily, data.goals, { weights }),
+    trends: detectTrends(data.daily, { weights }),
     // Attribute the revenue move across the funnel only when it's a real signal —
     // a statistically strong delta — so the recap never explains away noise.
     funnel:
       result.significance.revenue === "strong"
         ? decomposeRevenueMove(result.current, result.previous)
         : null,
-    pacing: monthlyPacing(data.daily, data.goals.monthlyRevenue),
+    pacing: monthlyPacing(data.daily, data.goals.monthlyRevenue, weights.revenue),
     goals: data.goals,
   };
 }

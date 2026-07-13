@@ -7,7 +7,7 @@
  *  the weekly noise. Pure; no React, no formatting. */
 
 import type { DailyPoint, RawMetric } from "../types";
-import { dayOfWeek, weekdayWeightsFor } from "./seasonality";
+import { dayOfWeek, weekdayWeightsFor, type WeekdayWeights } from "./seasonality";
 import { sampleVariance } from "./config";
 
 export interface Trend {
@@ -28,6 +28,9 @@ export interface TrendOptions {
   minRun?: number;
   /** per-move noise threshold, in z units of a weekly-mean difference */
   z?: number;
+  /** precomputed raw-metric weekday weights, shared across a snapshot build so the
+   *  detector doesn't re-derive them (numerically identical to computing here) */
+  weights?: WeekdayWeights;
 }
 
 /**
@@ -56,7 +59,7 @@ export function detectTrends(daily: DailyPoint[], options: TrendOptions = {}): T
     // De-seasonalise so a weekday-mix artefact can't fake a move (blocks are
     // exactly 7 days, but the weights also neutralise level differences when a
     // strong weekly shape meets the variance estimate below).
-    const weights = weekdayWeightsFor(daily, key);
+    const weights = options.weights?.[key] ?? weekdayWeightsFor(daily, key);
     const adj = daily.map((p) => {
       const w = weights[dayOfWeek(p.date)] || 1;
       return p[key] / (w > 0 ? w : 1);

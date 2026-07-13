@@ -2,6 +2,7 @@
  *  gross/net profit, POAS and break-even ROAS per channel plus a portfolio
  *  summary. No I/O, no React — numbers in, numbers out. */
 import type { ChannelRow } from "@/lib/metrics";
+import { poas, roas } from "@/lib/metrics";
 import { FALLBACK_MARGIN } from "./sample";
 import type {
   ChannelMargin,
@@ -27,7 +28,7 @@ export function computeMarginRow(
   return {
     grossProfit,
     netProfit,
-    poas: cost > 0 ? grossProfit / cost : 0,
+    poas: poas(grossProfit, cost),
     breakEvenRoas: marginPct > 0 ? 1 / marginPct : Infinity,
     // Profitable ⇔ netProfit ≥ 0 (revenue·margin ≥ cost). This equals the
     // ROAS ≥ break-even test for paid channels, but stays correct for a
@@ -68,8 +69,8 @@ export function computeProfit(
       cost,
       grossProfit,
       netProfit,
-      roas: cost > 0 ? revenue / cost : 0,
-      poas: cost > 0 ? grossProfit / cost : 0,
+      roas: roas(revenue, cost),
+      poas: poas(grossProfit, cost),
       blendedMargin: revenue > 0 ? grossProfit / revenue : 0,
       unprofitableCount: out.filter((r) => !r.profitable).length,
     },

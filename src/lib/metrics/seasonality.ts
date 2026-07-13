@@ -68,6 +68,22 @@ export function weekdayWeights(daily: DailyPoint[]): number[] {
   return weekdayWeightsFor(daily, "revenue");
 }
 
+/** Precomputed weekday weights for every raw additive metric. The anomaly and
+ *  trend detectors and the pacing forecast each re-derive these from the same
+ *  series; computing the bundle once and plumbing it through a snapshot build
+ *  removes ~6 redundant passes without any global cache (see buildMetricsSnapshot). */
+export type WeekdayWeights = Record<RawMetric, number[]>;
+
+/** Compute the {@link WeekdayWeights} bundle once for a series. */
+export function weekdayWeightsBundle(daily: DailyPoint[]): WeekdayWeights {
+  return {
+    visits: weekdayWeightsFor(daily, "visits"),
+    cost: weekdayWeightsFor(daily, "cost"),
+    conversions: weekdayWeightsFor(daily, "conversions"),
+    revenue: weekdayWeightsFor(daily, "revenue"),
+  };
+}
+
 /** One weekday's slot in the day-of-week performance profile. */
 export interface WeekdayProfilePoint {
   /** UTC day-of-week (0 = Sunday … 6 = Saturday) */

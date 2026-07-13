@@ -80,7 +80,13 @@ export interface MonthlyPacing {
  * run-rate. When the month is already complete the ratio is 1, so the
  * projection equals the actual.
  */
-export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing | null {
+export function monthlyPacing(
+  daily: DailyPoint[],
+  goal: number,
+  // Precomputed revenue weekday weights, shared across a snapshot build. Omitted,
+  // they are derived here — numerically identical, just an extra pass.
+  revenueWeights?: number[]
+): MonthlyPacing | null {
   if (daily.length === 0) return null;
 
   const last = daily[daily.length - 1];
@@ -98,7 +104,7 @@ export function monthlyPacing(daily: DailyPoint[], goal: number): MonthlyPacing 
 
   // Weight every calendar day of the month by its weekday, then scale the MTD
   // actual by full-month-weight / elapsed-weight to forecast the remainder.
-  const weights = weekdayWeights(daily);
+  const weights = revenueWeights ?? weekdayWeights(daily);
   let weightElapsed = 0;
   let weightMonth = 0;
   for (let d = 1; d <= daysInMonth; d++) {

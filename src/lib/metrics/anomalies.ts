@@ -2,7 +2,7 @@
  *  outage / pno goal-breach), and the aggregate money impact of the flagged days. */
 
 import type { DailyPoint, MetricKey, RawMetric } from "../types";
-import { dayOfWeek, weekdayWeightsFor, weekdayWeightsOf } from "./seasonality";
+import { dayOfWeek, weekdayWeightsFor, weekdayWeightsOf, type WeekdayWeights } from "./seasonality";
 import { ctr, cpc } from "./ratios";
 import {
   ANOMALY_Z,
@@ -33,6 +33,9 @@ export interface AnomalyOptions {
   window?: number;
   /** |z| threshold to flag a point */
   z?: number;
+  /** precomputed raw-metric weekday weights, shared across a snapshot build so the
+   *  detector doesn't re-derive them (numerically identical to computing here) */
+  weights?: WeekdayWeights;
 }
 
 /**
@@ -69,7 +72,7 @@ export function detectAnomalies(
   const zByMetric: Partial<Record<RawMetric, Map<string, number>>> = {};
 
   for (const key of metrics) {
-    const weights = weekdayWeightsFor(daily, key);
+    const weights = options.weights?.[key] ?? weekdayWeightsFor(daily, key);
     // De-seasonalise so a normal weekend low isn't mistaken for a drop.
     const adj = daily.map((p) => {
       const w = weights[dayOfWeek(p.date)] || 1;

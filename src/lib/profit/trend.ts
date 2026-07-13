@@ -3,7 +3,7 @@
  *  bucket's totals, apply the margin model and reduce to net-profit + POAS per
  *  bucket — the series the sparkline plots. No I/O, no React. */
 import type { ChannelShare, DailyPoint } from "@/lib/types";
-import { channelRows, totalsOf } from "@/lib/metrics";
+import { channelRows, poas, totalsOf } from "@/lib/metrics";
 import { computeProfit } from "./compute";
 import { FALLBACK_MARGIN } from "./sample";
 import type { ChannelMargin, ProfitTrendPoint, TrendGranularity } from "./types";
@@ -120,7 +120,7 @@ export function retargetTrend(
       ...p,
       grossProfit,
       netProfit: grossProfit - p.cost,
-      poas: p.cost > 0 ? grossProfit / p.cost : 0,
+      poas: poas(grossProfit, p.cost),
     };
   });
 }

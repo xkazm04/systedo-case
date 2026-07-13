@@ -5,6 +5,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import MonthlyReport from "@/components/app/modules/MonthlyReport";
 import { buildSnapshot } from "@/lib/snapshot";
+import { cpa, rel } from "@/lib/metrics";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
@@ -76,12 +77,17 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   for (const p of ANALYSIS_PERIODS) {
     const s = buildSnapshot(p, "previous", dataset);
     const c = s.current;
-    // Derived, type-relevant metrics not carried directly on Totals.
-    const cpa = c.conversions > 0 ? c.cost / c.conversions : 0;
-    const prevConv = c.conversions / (1 + (s.delta.conversions ?? 0));
-    const prevCost = c.cost / (1 + (s.delta.cost ?? 0));
-    const prevCpa = prevConv > 0 ? prevCost / prevConv : 0;
-    const cpaDelta = prevCpa > 0 ? cpa / prevCpa - 1 : 0;
+    // Prior-period totals: read the comparison window directly (snap.previous)
+    // rather than reconstructing them by inverting the deltas — the inversion
+    // silently returns the CURRENT value when a baseline is zero (1 + 0), faking
+    // a "no change". Cost-per-conversion (CPA) and its delta come from the shared
+    // ratio/delta spine so they can't drift from the rest of the engine.
+    const prev = s.previous;
+    const cpaValue = cpa(c.cost, c.conversions);
+    const prevCost = prev.cost;
+    const prevConv = prev.conversions;
+    const prevCpa = cpa(prevCost, prevConv);
+    const cpaDelta = rel(cpaValue, prevCpa);
 
     // Profit line: with a cost model → true net profit after COGS + overhead and a
     // margin-aware POAS; without → pre-COGS contribution (revenue − ad cost).
@@ -102,8 +108,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       // delta (s.delta.profit). Once fixed overhead shrinks the denominator, a +8%
       // contribution swing can be +35% on net profit — pairing the net koruna figure
       // with the contribution % is a wrong, client-facing number. Recompute the prior
-      // period's net profit from its reconstructed totals and take the real delta.
-      const prevRevenue = c.revenue / (1 + (s.delta.revenue ?? 0));
+      // period's net profit from its prior-window totals (snap.previous) and take
+      // the real delta.
+      const prevRevenue = prev.revenue;
       const prevNet = periodProfit(
         { revenue: prevRevenue, adCost: prevCost, conversions: prevConv, months },
         costModel
@@ -123,7 +130,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         conversions: c.conversions,
         cost: c.cost,
         visits: c.visits,
-        cpa,
+        cpa: cpaValue,
         convRate: c.cr,
         profit,
         poas,

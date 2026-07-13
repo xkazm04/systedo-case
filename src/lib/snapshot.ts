@@ -11,6 +11,7 @@ import { performance } from "./data";
 import type { PerformanceData } from "./types";
 import {
   buildMetricsSnapshot,
+  cpa,
   type Anomaly,
   type AnomalyKind,
   type ChannelRow,
@@ -59,6 +60,10 @@ export interface Snapshot {
    *  full-period comparison. See MetricsSnapshot.truncated. */
   truncated: boolean;
   current: Totals;
+  /** the equal-length comparison window's totals — read these directly instead of
+   *  reconstructing them by inverting `delta` (which silently mis-reads a zero
+   *  baseline) */
+  previous: Totals;
   delta: Record<MetricKey, number>;
   significance: Record<MetricKey, Significance>;
   channels: ChannelRow[];
@@ -92,6 +97,7 @@ export function buildSnapshot(
     baseline: snap.baseline,
     truncated: snap.truncated,
     current: snap.current,
+    previous: snap.previous,
     delta: snap.delta,
     significance: snap.significance,
     channels: snap.channels,
@@ -178,11 +184,11 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
     const t = projectType;
     const convLabel = CONVERSION_LABEL[t];
     const cpcLabel = COST_PER_CONVERSION_LABEL[t];
-    const cpc = c.conversions > 0 ? c.cost / c.conversions : 0;
+    const costPerConv = cpa(c.cost, c.conversions);
     const totalConv = s.channels.reduce((sum, ch) => sum + ch.conversions, 0);
     lines.push(
       `- ${convLabel}: ${fmtInt(c.conversions)} | ${fmtSignedPct(s.delta.conversions)}${sig("conversions")}`,
-      `- ${cpcLabel}: ${fmtCZK(cpc)}`,
+      `- ${cpcLabel}: ${fmtCZK(costPerConv)}`,
       `- Konverzní poměr: ${fmtPct(c.cr, 2)}`,
       // Revenue/ROAS/PNO/AOV are e-shop concepts — omitted so the recap doesn't
       // present them as this client's reality.
@@ -193,10 +199,10 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
             `Výkon podle kanálů (${convLabel.toLowerCase()} | podíl | ${cpcLabel.toLowerCase()} | změna):`,
             ...s.channels.map((ch) => {
               const share = totalConv > 0 ? ch.conversions / totalConv : 0;
-              const chCpc = ch.conversions > 0 ? ch.cost / ch.conversions : 0;
+              const chCostPerConv = cpa(ch.cost, ch.conversions);
               return (
                 `- ${ch.channel}: ${fmtInt(ch.conversions)} | ${fmtPct(share, 0)} | ` +
-                `${ch.conversions > 0 ? fmtCZK(chCpc) : "—"} | ` +
+                `${ch.conversions > 0 ? fmtCZK(chCostPerConv) : "—"} | ` +
                 `${ch.delta ? fmtSignedPct(ch.delta.conversions) : "—"}`
               );
             }),

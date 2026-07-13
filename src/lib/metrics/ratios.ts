@@ -10,6 +10,11 @@ export const safe = (num: number, den: number): number => (den > 0 ? num / den :
 /** return on ad spend = value / cost */
 export const roas = (value: number, cost: number): number => safe(value, cost);
 
+/** profit on ad spend = gross profit / cost — the margin-aware sibling of ROAS
+ *  (revenue × margin instead of revenue), so a channel's true earning per koruna
+ *  of spend comes from the same guarded divide as every other ratio. */
+export const poas = (grossProfit: number, cost: number): number => safe(grossProfit, cost);
+
 /** cost share of revenue (PNO) = cost / value */
 export const pno = (cost: number, value: number): number => safe(cost, value);
 
