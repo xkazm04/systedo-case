@@ -13,6 +13,7 @@ export * from "./seasonality";
 export * from "./pacing";
 export * from "./channels";
 export * from "./anomalies";
+export * from "./funnel";
 export * from "./trends";
 export * from "./meta";
 export * from "./snapshot";

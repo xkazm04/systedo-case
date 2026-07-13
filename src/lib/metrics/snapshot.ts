@@ -17,6 +17,7 @@ import { detectAnomalies, type Anomaly } from "./anomalies";
 import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
 import { seriesCoverage, type Coverage } from "./config";
+import { decomposeRevenueMove, type FunnelAttribution } from "./funnel";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch. */
@@ -68,6 +69,10 @@ export interface MetricsSnapshot {
   anomalies: Anomaly[];
   /** sustained multi-week drifts ending at the latest data ("slow bleed") */
   trends: Trend[];
+  /** funnel-consistency attribution of the revenue move (traffic vs conversion
+   *  rate vs AOV), present only when the revenue delta is statistically strong and
+   *  the decomposition is defined (all factor endpoints > 0); null otherwise */
+  funnel: FunnelAttribution | null;
   /** monthly goal pacing + forecast band (null when no data) */
   pacing: MonthlyPacing | null;
   goals: { pno: number; monthlyRevenue: number };
@@ -91,6 +96,12 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
     channels: channelRowsCompared(data.channels, result.current, result.previous),
     anomalies: detectAnomalies(data.daily, data.goals),
     trends: detectTrends(data.daily),
+    // Attribute the revenue move across the funnel only when it's a real signal —
+    // a statistically strong delta — so the recap never explains away noise.
+    funnel:
+      result.significance.revenue === "strong"
+        ? decomposeRevenueMove(result.current, result.previous)
+        : null,
     pacing: monthlyPacing(data.daily, data.goals.monthlyRevenue),
     goals: data.goals,
   };

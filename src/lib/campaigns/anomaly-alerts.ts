@@ -30,7 +30,9 @@ const MAX_ITEMS = 5;
 /** The campaign series carries `conversionValue` (no `visits`/`revenue`), while the
  *  anomaly detector speaks the dashboard's metric shape. Bridge the two so the
  *  detector can run unchanged; `visits` is absent in this feed (→ 0, which the
- *  detector safely ignores once its std is 0). */
+ *  detector safely ignores once its std is 0). Clicks/impressions carry through when
+ *  present (the widened spine) so a CTR collapse or CPC spike can now alert — absent,
+ *  the detector's ratio pass silently skips them (legacy points stay unchanged). */
 function toMetricSeries(series: DailyPoint[]): MetricsDailyPoint[] {
   return series.map((p) => ({
     date: p.date,
@@ -38,6 +40,8 @@ function toMetricSeries(series: DailyPoint[]): MetricsDailyPoint[] {
     cost: p.cost,
     conversions: p.conversions,
     revenue: p.conversionValue,
+    ...(p.clicks !== undefined ? { clicks: p.clicks } : {}),
+    ...(p.impressions !== undefined ? { impressions: p.impressions } : {}),
   }));
 }
 
@@ -54,6 +58,8 @@ const METRIC_LABEL: Record<string, string> = {
   conversions: "konverzí",
   visits: "návštěv",
   pno: "PNO",
+  ctr: "CTR",
+  cpc: "CPC",
 };
 
 /** Stable de-dupe key for one flagged day, so the same anomaly never re-alerts. */

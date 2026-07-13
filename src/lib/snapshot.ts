@@ -14,6 +14,7 @@ import {
   type Anomaly,
   type AnomalyKind,
   type ChannelRow,
+  type FunnelAttribution,
   type MonthlyPacing,
   type PeriodBaseline,
   type Significance,
@@ -64,6 +65,8 @@ export interface Snapshot {
   anomalies: Anomaly[];
   /** sustained multi-week drifts ending at the latest data ("slow bleed") */
   trends: Trend[];
+  /** funnel attribution of the revenue move (traffic vs CR vs AOV), when strong */
+  funnel: FunnelAttribution | null;
   pacing: MonthlyPacing | null;
   goalPno: number;
   client: { name: string; domain: string; segment: string };
@@ -94,6 +97,7 @@ export function buildSnapshot(
     channels: snap.channels,
     anomalies: snap.anomalies,
     trends: snap.trends,
+    funnel: snap.funnel,
     pacing: snap.pacing,
     goalPno: snap.goals.pno,
     client: {
@@ -198,6 +202,24 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
             }),
           ]
         : [])
+    );
+  }
+
+  // Funnel-consistency: WHY the revenue moved — traffic vs conversion rate vs AOV.
+  // E-shop only (revenue/AOV are e-shop concepts) and only when the move is strong.
+  if (isEshop && s.funnel) {
+    const f = s.funnel;
+    const label: Record<FunnelAttribution["dominant"], string> = {
+      traffic: "návštěvnost",
+      conversion: "konverzní poměr",
+      aov: "průměrná hodnota objednávky",
+    };
+    lines.push(
+      "",
+      `Rozklad změny obratu (${fmtSignedPct(f.totalChange)}) na příčiny — hlavní tahoun: ${label[f.dominant]}:`,
+      `- Návštěvnost: ${fmtSignedPct(f.drivers.traffic.change)} (podíl na změně ${fmtPct(f.drivers.traffic.share, 0)})`,
+      `- Konverzní poměr: ${fmtSignedPct(f.drivers.conversion.change)} (podíl na změně ${fmtPct(f.drivers.conversion.share, 0)})`,
+      `- Prům. hodnota objednávky: ${fmtSignedPct(f.drivers.aov.change)} (podíl na změně ${fmtPct(f.drivers.aov.share, 0)})`
     );
   }
 

@@ -14,6 +14,7 @@ import {
   anomalyImpact,
   bucketize,
   channelRowsCompared,
+  decomposeRevenueMove,
   detectAnomalies,
   detectTrends,
   evaluatePeriod,
@@ -84,6 +85,13 @@ export default function DashboardClient({
   const periodAnomalies = anomalies.filter((a) => windowDates.has(a.date));
   const topAnomalies = [...periodAnomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
   const impact = anomalyImpact(periodAnomalies);
+
+  // WHY the revenue moved — split across traffic / conversion rate / AOV — but
+  // only for a statistically strong move, so the insight never explains noise.
+  const funnel =
+    result.significance.revenue === "strong"
+      ? decomposeRevenueMove(result.current, result.previous)
+      : null;
 
   const buckets = bucketize(result.points, period.granularity);
   // Bucketize the comparison window too so the chart can overlay it (index-aligned).
@@ -157,6 +165,7 @@ export default function DashboardClient({
               trends={trends}
               profile={profile}
               coverage={coverage}
+              funnel={funnel}
             />
           </div>
         </div>

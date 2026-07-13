@@ -36,13 +36,24 @@ export const dayOfWeek = (date: string): number => new Date(`${date}T00:00:00Z`)
  *  seasonality baked into the series so days can be weighted by their weekday mix
  *  (used by the forecast) or de-seasonalised (used by anomaly detection). */
 export function weekdayWeightsFor(daily: DailyPoint[], key: RawMetric): number[] {
+  return weekdayWeightsOf(daily, (p) => p[key]);
+}
+
+/** {@link weekdayWeightsFor} generalised to any per-day value accessor, so a
+ *  derived DAY-RATIO series (e.g. per-day CTR = clicks/impressions) can be
+ *  de-seasonalised with weights of its OWN shape rather than a raw metric's.
+ *  Same normalisation (mean weekday weight = 1) and same flat-weights fallback. */
+export function weekdayWeightsOf(
+  daily: DailyPoint[],
+  valueOf: (p: DailyPoint) => number
+): number[] {
   const window = Math.min(daily.length, WINDOWS.weekday); // up to 12 whole weeks
   const recent = daily.slice(daily.length - window);
   const sum = new Array(7).fill(0);
   const count = new Array(7).fill(0);
   for (const p of recent) {
     const d = dayOfWeek(p.date);
-    sum[d] += p[key];
+    sum[d] += valueOf(p);
     count[d] += 1;
   }
   const avg = sum.map((s, i) => (count[i] > 0 ? s / count[i] : 0));

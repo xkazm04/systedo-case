@@ -8,6 +8,7 @@ import {
   METRICS,
   type ChannelRow,
   type Coverage,
+  type FunnelAttribution,
   type Trend,
   type WeekdayProfilePoint,
 } from "@/lib/metrics";
@@ -29,6 +30,10 @@ const T = {
     insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
     insightWeekday:
       "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
+    insightFunnel: "Změnu obratu táhne hlavně {driver} ({share} vlivu).",
+    funnelTraffic: "návštěvnost",
+    funnelConversion: "konverzní poměr",
+    funnelAov: "průměrná objednávka",
     coverageDegraded:
       "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
     coverageInsufficient:
@@ -46,6 +51,10 @@ const T = {
     insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
     insightWeekday:
       "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
+    insightFunnel: "The revenue move is driven mainly by {driver} ({share} of the effect).",
+    funnelTraffic: "traffic",
+    funnelConversion: "conversion rate",
+    funnelAov: "average order value",
     coverageDegraded:
       "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
     coverageInsufficient:
@@ -65,6 +74,18 @@ const WORST_PNO_FLAG_MULTIPLE = 1.3;
 /** Report the day-of-week shape only at a ≥15 pp strongest-vs-weakest spread. */
 const WEEKDAY_SPREAD_TO_REPORT = 0.15;
 
+/** Localised label for a funnel driver. */
+function funnelDriverLabel(
+  driver: FunnelAttribution["dominant"],
+  t: TFn<keyof typeof T.cs>
+): string {
+  return driver === "traffic"
+    ? t("funnelTraffic")
+    : driver === "conversion"
+      ? t("funnelConversion")
+      : t("funnelAov");
+}
+
 function buildInsights(
   channels: ChannelRow[],
   revenueDelta: number,
@@ -72,6 +93,7 @@ function buildInsights(
   goalPno: number,
   trends: Trend[],
   profile: WeekdayProfilePoint[],
+  funnel: FunnelAttribution | null,
   fmt: Formatters,
   t: TFn<keyof typeof T.cs>,
   locale: SupportedLocale
@@ -105,6 +127,22 @@ function buildInsights(
           {revenueDelta > 0
             ? t("insightRevenueUp", { delta: fmt.fmtSignedPct(revenueDelta).replace("+", "") })
             : t("insightRevenueDown", { delta: fmt.fmtSignedPct(revenueDelta).replace("-", "") })}
+        </>
+      ),
+    });
+  }
+
+  // Explain the revenue move the line above just reported: which funnel stage
+  // (traffic / conversion rate / AOV) drove most of it.
+  if (funnel) {
+    out.push({
+      tone: "info",
+      text: (
+        <>
+          {t("insightFunnel", {
+            driver: funnelDriverLabel(funnel.dominant, t),
+            share: fmt.fmtPct(Math.abs(funnel.drivers[funnel.dominant].share), 0),
+          })}
         </>
       ),
     });
@@ -170,6 +208,7 @@ export default function InsightsPanel({
   trends,
   profile,
   coverage = "full",
+  funnel = null,
 }: {
   channels: ChannelRow[];
   revenueDelta: number;
@@ -179,12 +218,14 @@ export default function InsightsPanel({
   profile: WeekdayProfilePoint[];
   /** how much history the detectors had — drives an honest note when short */
   coverage?: Coverage;
+  /** funnel attribution of the revenue move (traffic vs CR vs AOV), when strong */
+  funnel?: FunnelAttribution | null;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
 
-  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, fmt, t, locale);
+  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, fmt, t, locale);
 
   return (
     <div className="card p-5">

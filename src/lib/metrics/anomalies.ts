@@ -2,7 +2,8 @@
  *  outage / pno goal-breach), and the aggregate money impact of the flagged days. */
 
 import type { DailyPoint, MetricKey, RawMetric } from "../types";
-import { dayOfWeek, weekdayWeightsFor } from "./seasonality";
+import { dayOfWeek, weekdayWeightsFor, weekdayWeightsOf } from "./seasonality";
+import { ctr, cpc } from "./ratios";
 import {
   ANOMALY_Z,
   ANOMALY_Z_DEGRADED,
@@ -91,6 +92,46 @@ export function detectAnomalies(
       out.push({ date: daily[i].date, metric: key, observed, expected, z, kind });
     }
     zByMetric[key] = zMap;
+  }
+
+  // Paid-traffic RATIO anomalies (CTR = clicks/impressions, CPC = cost/clicks) on
+  // the DAY-RATIO series. This is the statistically sounder choice over scoring the
+  // raw components: a day that scales impressions AND clicks together has a normal
+  // CTR and stays quiet, whereas component detection would fire two spurious volume
+  // spikes and never see a CTR *collapse* (clicks fall, impressions hold). A series
+  // that never carried the paid-traffic pair yields an all-zero ratio series whose
+  // std is 0 — so every day is skipped and legacy data flags nothing (silent
+  // degradation, no false anomalies).
+  const ratioSpecs: {
+    key: MetricKey;
+    value: (p: DailyPoint) => number;
+    present: (p: DailyPoint) => boolean;
+  }[] = [
+    { key: "ctr", value: (p) => ctr(p.clicks ?? 0, p.impressions ?? 0), present: (p) => (p.impressions ?? 0) > 0 },
+    { key: "cpc", value: (p) => cpc(p.cost, p.clicks ?? 0), present: (p) => (p.clicks ?? 0) > 0 },
+  ];
+  for (const spec of ratioSpecs) {
+    if (!daily.some(spec.present)) continue; // legacy series: field never captured
+    const weights = weekdayWeightsOf(daily, spec.value);
+    const adj = daily.map((p) => {
+      const w = weights[dayOfWeek(p.date)] || 1;
+      return spec.value(p) / (w > 0 ? w : 1);
+    });
+    for (let i = window; i < daily.length; i++) {
+      if (!spec.present(daily[i])) continue; // no denominator that day → not a ratio event
+      const base = adj.slice(i - window, i);
+      const std = sampleStd(base);
+      if (!(std > 0)) continue;
+      const mean = meanOf(base);
+      const z = (adj[i] - mean) / std;
+      if (Math.abs(z) < effThreshold) continue;
+      const w = weights[dayOfWeek(daily[i].date)] || 1;
+      const expected = mean * (w > 0 ? w : 1);
+      const observed = spec.value(daily[i]);
+      const nearZero = expected > 0 && observed <= expected * 0.1;
+      const kind: AnomalyKind = z < 0 && nearZero ? "outage" : z > 0 ? "spike" : "drop";
+      out.push({ date: daily[i].date, metric: spec.key, observed, expected, z, kind });
+    }
   }
 
   // PNO goal-breach: a day whose pno exceeds the goal AND is driven by an
