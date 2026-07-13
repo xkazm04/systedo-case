@@ -56,6 +56,8 @@ import { resolveTwinVoice } from "@/lib/twin/load";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { staleCaveatText } from "@/lib/report-metrics/freshness";
+import { getAnnotations } from "@/lib/annotations/store";
+import { annotationsGroundingText } from "@/lib/annotations/types";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
 import { localSignalsPromptText } from "@/lib/local-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -180,7 +182,7 @@ async function resolveGrounding(
   if (demo) {
     const data = getProjectDataset(demo);
     const localText = await localSignalsPromptText(demo, locale);
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale);
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale, windowDaysFor(period));
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -199,7 +201,7 @@ async function resolveGrounding(
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
       const localText = await localSignalsPromptText(project, locale);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale);
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale, windowDaysFor(period));
       // D1: when the live series is stale, the recap gets a one-line caveat so the
       // narrative acknowledges the data age instead of presenting month-old numbers
       // as current. USER-prompt only (groundingContext) — no system-prompt / golden
@@ -275,20 +277,38 @@ async function mergeGrounding(
   // resolved by the caller (it needs the project object, not just the id).
   localText: string | null,
   data: PerformanceData | undefined,
-  locale: SupportedLocale
+  locale: SupportedLocale,
+  // Direction 2: the analyzed window (days) for the "Poznámky klienta" annotations
+  // block, so only in-window client notes ground the narrative.
+  windowDays: number
 ): Promise<{ text?: string; keySuffix?: string }> {
-  const [set, costModel] = await Promise.all([getCompetitors(projectId), getCostModel(projectId)]);
+  const [set, costModel, annotations] = await Promise.all([
+    getCompetitors(projectId),
+    getCostModel(projectId),
+    getAnnotations(projectId).catch(() => null),
+  ]);
   const merged = [
     leadText,
     localText,
     competitorGroundingText(set, locale),
     profitGroundingText(data, costModel, locale),
     historyGroundingText(data, locale),
+    // Direction 2: in-window "what happened here" notes. USER-prompt only (no
+    // system-prompt/fingerprint change); "" when there are no in-window notes, so
+    // the prompt stays byte-identical for projects without annotations.
+    annotationsGroundingText(annotations?.items ?? [], data, windowDays, locale),
   ]
     .filter(Boolean)
     .join(" ");
-  const keySuffix = [set?.updatedAt, costModel?.updatedAt].filter(Boolean).join("|");
+  const keySuffix = [set?.updatedAt, costModel?.updatedAt, annotations?.updatedAt].filter(Boolean).join("|");
   return { text: merged || undefined, keySuffix: keySuffix || undefined };
+}
+
+/** The analyzed-window length (days) per recap period, for the annotations block.
+ *  Undefined period (e.g. chat) → a 90-day default so recent notes still ground. */
+const RECAP_WINDOW_DAYS: Record<AnalysisPeriod, number> = { "30d": 30, "90d": 90, "12m": 365 };
+function windowDaysFor(period?: AnalysisPeriod): number {
+  return period ? RECAP_WINDOW_DAYS[period] : 90;
 }
 
 /** D4: the account's lead-quality / CVR grounding for LP-experiment hypotheses,

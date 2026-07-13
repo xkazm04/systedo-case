@@ -10,6 +10,8 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 import { getReportMetrics } from "./store";
 import { buildLiveDataset } from "./build";
 import { isReportStale } from "./freshness";
+import { listAnnotations } from "@/lib/annotations/store";
+import { annotationsToEvents } from "@/lib/annotations/types";
 import { isLiveMetrics, type ReportMetrics } from "./types";
 
 export interface ResolvedDataset {
@@ -36,8 +38,20 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
     metrics = null; // store hiccup → degrade to sample, never break the report
   }
   if (isLiveMetrics(metrics)) {
+    const data = buildLiveDataset(project, metrics.rows);
+    // Resolve seam (annotations): a live report has no authored event calendar
+    // (build.ts sets events:undefined) — give it memory by mapping the project's
+    // client notes into the SAME PerformanceData.events shape a sample dataset
+    // uses, so chart markers + recap grounding read one canonical source. A store
+    // hiccup degrades to "no events", never breaking the report.
+    try {
+      const annotations = await listAnnotations(project.id);
+      if (annotations.length) data.events = annotationsToEvents(annotations);
+    } catch {
+      /* leave events undefined */
+    }
     return {
-      data: buildLiveDataset(project, metrics.rows),
+      data,
       source: metrics.meta.source,
       live: true,
       syncedAt: metrics.meta.syncedAt,

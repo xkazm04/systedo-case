@@ -12,6 +12,7 @@ import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportT
 import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
+import { listAnnotations } from "@/lib/annotations/store";
 import { cohortsForProject } from "@/lib/ltv/sample";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { loadProductsFor } from "@/lib/catalog/load";
@@ -30,6 +31,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
   // C3: the project's competitor set grounds the AI narrative "vs. the market".
   const competitorSet = await getCompetitors(project.id);
+  // Direction 2: the project's "what happened here" annotations — rendered as chart
+  // markers on the report and (in-window) fed to the recap grounding. The chart marker
+  // window is the report's own data span.
+  const annotations = await listAnnotations(project.id);
+  const dataStart = dataset.daily[0]?.date;
+  const dataEnd = dataset.daily.at(-1)?.date;
 
   // D1: compose the customer-economics (LTV) + stock/seasonality spines into the
   // e-shop report, so Robert's weekly job (marketing + LTV + stock) lives in one place.
@@ -169,6 +176,9 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
         competitors={competitorSet?.competitors ?? []}
+        annotations={annotations}
+        dataStart={dataStart}
+        dataEnd={dataEnd}
         beyond={beyond}
       />
     </ModulePage>

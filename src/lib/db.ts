@@ -181,6 +181,17 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Per-project report annotations ("what happened here" client-authored business
+  -- events pinned to a date), as one {items, updatedAt} blob. Absent → the report
+  -- has no notes yet. Live datasets map these into the chart's event markers + the
+  -- recap grounding (a demo dataset carries its own authored event calendar). See
+  -- src/lib/annotations/.
+  CREATE TABLE IF NOT EXISTS annotations (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Twin module's communication double: the per-channel trained voice, the
   -- style facts it was trained on, the channel/autonomy config and the draft
   -- outbox, as one blob. Absent → the seeded per-type sample (an untrained twin
