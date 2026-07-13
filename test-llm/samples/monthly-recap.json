@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc s rostoucí efektivitou i konverzemi",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená PNO 18,3 % a ROAS 5,4×, což je nadprůměrný výsledek pro lokální podnik. Konverze navíc meziměsíčně vzrostly o 12 %, což ukazuje na zlepšující se kvalitu poptávek i efektivitu kampaní.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4×",
+  "summary": "Kampaně dál táhnou výkon nahoru – obrat 1 200 000 Kč proti nákladům 220 000 Kč drží PNO na zdravých 18,3 % a ROAS na 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že poptávka i nastavení kampaní jsou v dobré kondici.",
   "highlights": [
-    "ROAS 5,4× výrazně převyšuje běžný standard pro lokální služby",
-    "PNO 18,3 % drží náklady na akvizici pod kontrolou",
-    "Konverze vzrostly o 12 %, poptávky se mění v zákazníky lépe než dřív"
+    "Obrat 1 200 000 Kč při nákladech jen 220 000 Kč – PNO 18,3 %",
+    "ROAS 5,4× ukazuje na velmi efektivní využití rozpočtu",
+    "Konverze meziměsíčně +12 %, poptávka roste rychleji než náklady"
   ],
   "watchouts": [
-    "Růst konverzí je třeba udržet i při případném navýšení rozpočtu, aby PNO zůstalo pod kontrolou",
-    "Bez segmentace zdrojů poptávek hrozí, že se úspěch soustředí jen do jednoho kanálu"
+    "Při dalším růstu poptávky hlídat, aby se PNO nezačalo zvyšovat kvůli dražším aukcím",
+    "Ověřit, že nárůst konverzí odpovídá i kvalitě poptávky (ne jen objemu), aby nedošlo k ředění hodnoty zakázek"
   ],
   "priorities": [
     {
-      "title": "Ověřit kvalitu nových poptávek",
-      "detail": "Zkontrolovat, zda nárůst konverzí o 12 % odpovídá i reálné kvalitě zakázek, ne jen počtu kontaktů."
+      "title": "Škálovat úspěšné kampaně",
+      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO, a sledovat, zda se efektivita udrží i při vyšším objemu."
     },
     {
-      "title": "Otestovat mírné navýšení rozpočtu",
-      "detail": "Při ROAS 5,4× má kampaň prostor pro postupné škálování rozpočtu s průběžným sledováním PNO."
+      "title": "Prohloubit sledování kvality konverzí",
+      "detail": "Nastavit detailnější vyhodnocení nových konverzí (např. poměr poptávek na uzavřené zakázky), aby bylo jasné, že +12 % odpovídá reálnému byznysovému přínosu."
     }
   ]
 }

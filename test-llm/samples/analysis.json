@@ -1,14 +1,14 @@
 {
-  "headline": "Kampaň generuje silně ziskový výkon s ROAS 5,4× a PNO pod 20 %",
-  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje kampaň PNO 18,3 % a ROAS 5,4×, což signalizuje efektivní a udržitelný poměr investic k tržbám.",
+  "headline": "Kampaň generuje zisk s PNO 18,3 % a ROAS 5,4×, výkon je zdravý",
+  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje kampaň PNO 18,3 % a ROAS 5,4×, což signalizuje efektivní a ziskové využití rozpočtu.",
   "actions": [
     {
-      "title": "Navýšit rozpočet na výkonné kampaně",
-      "detail": "Vzhledem k PNO 18,3 % a ROAS 5,4× je prostor postupně zvýšit denní rozpočet a otestovat, zda se poměr udrží i při vyšším objemu."
+      "title": "Navýšit rozpočet na výkonné segmenty",
+      "detail": "Vzhledem k ROAS 5,4× a PNO pod 20 % lze postupně navýšit denní rozpočet u nejlépe konvertujících kampaní a sledovat, zda se poměr udrží."
     },
     {
       "title": "Sledovat vývoj PNO při škálování",
-      "detail": "Při navyšování rozpočtu pravidelně kontrolovat, zda PNO nepřekročí stanovenou hranici, a případně korigovat nabídky nebo cílení."
+      "detail": "Při zvyšování investic pravidelně kontrolovat, zda PNO nepřekročí stanovenou hranici ziskovosti, a v případě růstu nad limit rozpočet korigovat."
     }
   ]
 }

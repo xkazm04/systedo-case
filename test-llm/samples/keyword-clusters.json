@@ -2,7 +2,7 @@
   "clusters": [
     {
       "topic": "Vlašské ořechy",
-      "intent": "nákupní a zdravotní",
+      "intent": "informational",
       "pillar": "vlašské ořechy",
       "supporting": [
         "vlašské ořechy cena",
@@ -11,7 +11,7 @@
     },
     {
       "topic": "Mandle",
-      "intent": "nákupní a charakteristiky",
+      "intent": "informational",
       "pillar": "mandle",
       "supporting": [
         "mandle cena",

@@ -1,17 +1,16 @@
 {
-  "reply": "Dobrý den,\n\ndíky za zájem. Konkrétní termín bude záviset na rozsahu revize a capacitě našeho týmu — pro přesnější dostupnost potřebuji vědět, jaký typ elektroinstalace se jedná (rozvody, zásuvky, osvětlení, nebo komplexní audit?) a jaký máte časový rámec.\n\nBude se jednat o běžnou revizi nebo diagnostiku konkrétního problému?\n\nS pozdravem",
+  "reply": "Dobrý den, děkuji za zájem o revizi elektroinstalace. Pro správné zařazení Vaší poptávky a sdělení dostupnosti si dovolím upřesnit několik detailů. Jaký je plánovaný termín revize a jsou v místnosti nějaké specifické problémy, které řešíte? Jakmile objasnimeScope, rád Vám sdělím, kdy máme možnosti. Těšíme se na bližší komunikaci.",
   "questions": [
-    "Jaký konkrétní typ revize elektroinstalace potřebujete — jde o bezpečnostní audit, ověření funkčnosti, nebo řešení konkrétního problému?",
-    "Máte preferovaný čas pro provedení revize (např. v pracovní dny, mimořádně?) a jak dlouho předem to plánujete?",
-    "Jedná se o první revizi nebo následnou diagnostiku v důsledku zjištěných problémů?"
+    "Máte v plánu konkrétní datum nebo časový rámec, kdy by měla revize proběhnout?",
+    "Řeší se nějaké konkrétní problémy (výpadky, přetížení, bezpečnostní obavy) nebo se jedná o rutinní kontrolu?",
+    "Kdo je rozhodujícím kontaktem pro naplánování a kdo bude na místě přítomen během revize?"
   ],
-  "confidence": 35,
+  "confidence": 65,
   "risks": [
-    "Chybí informace o skutečných kapacitách a termínech dostupnosti firmy — odpověď vyhýbavě slibuje 'diskusi' bez konkrétního závazku.",
-    "Není znám ceník ani standardní doba odezvy firmy — neuvedl jsem realistické timeframe.",
-    "Nevím, zda firma poskytuje inspekce na místo nebo pouze online konzultace.",
-    "Chybí kontakt na dispečer/bookování nebo následující krok, jak si domluvit konkrétní termín.",
-    "Slabá výchozí pozice — měly by být v podkladech standardní otázky/filtry na lead qualification."
+    "Chybí mi background materiály s cenníkem, dostupností termínů a SLA — bez nich nemohu garantovat správnost odpovědi o volnosti",
+    "Nevím, jaký formát termínu očekávají (seznam možností vs. obecné 'Ozveme se s nabídkou')",
+    "Není jasno, zda je to poptávka od nového klienta nebo stávajícího – tón může vyžadovat úpravu",
+    "Součástí leadgen odpovědi by mělo být jasné CTA (Call To Action) – chybí instrukce, kam mají poslat fotky, rozpočty apod."
   ],
-  "toneNotes": "Volaný v první větě okamžitě odpověděl na otázku o dostupnosti (bez slibu termínu). Udržen formální styl s 'vykání' a příjmením. Tón je profesionální a navádí k dalšímu dialogu bez jednoznačného zavázání se — typické pro lead-gen, kde je klíč kvalifikace klienta. Chybí však sebevědomí a konkrétnost, které by měla očekávaná marca mít."
+  "toneNotes": "Formální oslovení (Dobrý den, vykání), okamžitá odpověď na dotaz v první větě, profesionální a vstřícný tón vhodný pro B2B službu. Vyhnul jsem se přislíbení konkrétního termínu bez znalosti dostupnosti (VŽDY: neobchoduj bez podkladů). Zpráva kvalifikuje lead dalšími otázkami a signalizuje vážný zájem."
 }
