@@ -73,3 +73,6 @@ next-env.d.ts
 
 # LLM quality-matrix reports — timestamped benchmark artifacts (npm run llm:quality).
 /test-llm/quality/reports/
+
+# perfect loop vault (local state, never committed - shared master w/ vibeman agent)
+.perfect/
