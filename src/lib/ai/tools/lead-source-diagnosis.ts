@@ -22,13 +22,15 @@ import {
 import { fmtCZK, fmtInt, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { missingStrFields, withObjectGuard } from "./_validate";
 import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
 
 const LEAD_SOURCE_DIAGNOSIS_SYSTEM = `Jsi zkušený český analytik akvizice a kvality leadů pro B2B a lead-gen firmy. Děláš stručnou diagnostiku JEDNOHO podvýkonného zdroje leadů.
 
 Pravidla:
-- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
+- ${antiFabrication("předaných čísel")}
 - Urči JEDNU nejpravděpodobnější příčinu, proč zdroj podvýkonný — a klasifikuj ji do jedné z těchto kategorií (pole „likelyCause"):
   - „spam" = levné leady, ale skoro nic se nekvalifikuje (nízká míra kvalifikace + nízká cena za lead) → boti, soutěžící, nezájemci.
   - „mis-targeting" = leady se kvalifikují, ale skoro nic se neuzavře (slušná míra kvalifikace, nízký win rate) → špatné cílení / nesoulad (fit).
@@ -184,16 +186,19 @@ function normalizeLeadSourceDiagnosis(
   return result;
 }
 
-/** Flag a hollow diagnosis (no summary / recommendation) so the wrapper
- *  re-prompts once instead of rendering an empty card the normalizer would
- *  silently paper over. likelyCause is coerced, never a hard fail. */
+/** Flag a hollow diagnosis so the wrapper re-prompts once instead of rendering an
+ *  empty card the normalizer would silently paper over. Covers every required
+ *  field: a missing likelyCause now fails here (→ one repair) before normalize()
+ *  coerces an absent value to a default — a truncated response no longer skips
+ *  straight to the demo floor. */
 function validateLeadSourceDiagnosis(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
-  if (!txt(o.recommendation)) v.push("Chybí doporučení (recommendation).");
-  return v;
+  return withObjectGuard((o) =>
+    missingStrFields(o, [
+      ["summary", "Chybí shrnutí (summary)."],
+      ["likelyCause", "Chybí příčina (likelyCause) — vrať jednu z povolených hodnot."],
+      ["recommendation", "Chybí doporučení (recommendation)."],
+    ])
+  )(parsed);
 }
 
 /** Deterministic, data-driven diagnosis: pick the cause from the numbers and emit
@@ -208,8 +213,7 @@ export function demoLeadSourceDiagnosis(
   const cpl = req.cpl != null ? fmtCZK(req.cpl) : "—";
   const cpq = req.costPerQualified != null ? fmtCZK(req.costPerQualified) : "—";
 
-  const DEMO_TAIL =
-    " Ukázkový výstup — připojte LLM (Claude v devu, Gemini v produkci) pro diagnostiku od modelu.";
+  const DEMO_TAIL = demoTail("diagnostiku od modelu");
 
   // Deterministic drift note from the period-over-period trend, when the source is
   // measurably getting worse — so the demo also reflects the new signal.

@@ -18,6 +18,7 @@ import type { AiResponse, TwinStyleConstraint, TwinStyleRequest, TwinStyleResult
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { cleanList, digest, txt } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const SCOPE_LABELS: Record<string, string> = {
@@ -175,17 +176,16 @@ export function generateTwinStyle(
 
   // Directives are the entire product of this tool — an empty string means the
   // voice never got trained, which the UI would happily save over a good one.
-  const validate = (parsed: unknown): string[] => {
-    const o = parsed as Record<string, unknown> | null;
+  const validate = withObjectGuard((o) => {
     const v: string[] = [];
-    if (txt(o?.directives).length < 40) {
+    if (txt(o.directives).length < 40) {
       v.push("Pole „directives“ je prázdné nebo příliš krátké — vrať 3–6 konkrétních vět ve druhé osobě.");
     }
-    if (cleanList(o?.gapQuestions, 4).length < 1) {
+    if (cleanList(o.gapQuestions, 4).length < 1) {
       v.push("Vrať alespoň jednu otázku v poli „gapQuestions“ — co o hlasu ještě nevíš.");
     }
     return v;
-  };
+  });
 
   return generateStructured({
     // llm-tool: twin-style

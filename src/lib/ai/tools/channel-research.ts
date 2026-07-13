@@ -29,6 +29,8 @@ import {
 import { baseChannelPlan } from "@/lib/organic-channels/sample";
 import { generateStructured } from "../../llm";
 import { cleanList, slugify, txt } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { withObjectGuard, missingStrFields } from "./_validate";
 import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
 
@@ -45,7 +47,7 @@ Uvažuj o těchto typech kanálů:
 
 Pravidla:
 - Doporuč 6–9 KONKRÉTNÍCH kanálů vhodných přesně pro tuto firmu a její typ. Preferuj kanály relevantní na českém trhu.
-- Vycházej VÝHRADNĚ z předaného kontextu (typ podnikání, značka, nabídka, lokality, konkurence, klíčová slova). Nevymýšlej si čísla ani fakta o konkurenci.
+- ${antiFabrication("předaného kontextu (typ podnikání, značka, nabídka, lokality, konkurence, klíčová slova)")} Zejména si nevymýšlej čísla ani fakta o konkurenci.
 - Každý kanál musí být bezplatný na vstup (žádné placené PPC/nákup médií).
 - Pro každý kanál vrať: „name" (název kanálu), „category" (jedna z: ${CHANNEL_CATEGORIES.join(" | ")}), „fit" (0–100, jak dobře sedí této firmě), „effort" (low | medium | high), „rationale" (jednou větou proč sedí PRÁVĚ této firmě), „payoff" (co konkrétně přinese) a „firstActions" (2–4 konkrétní první kroky).
 - Seřaď kanály od nejvyššího „fit" po nejnižší. Nedávej dva stejné kanály.
@@ -171,7 +173,7 @@ export function demoChannelResearch(req: ChannelResearchRequest): ChannelResearc
     req.brand
   );
   return {
-    summary: `Ukázkový plán bezplatných kanálů pro ${req.brand}. Připojte LLM (Claude v devu, Gemini v produkci) pro plán na míru.`,
+    summary: `Plán bezplatných kanálů pro ${req.brand}.` + demoTail("plán na míru"),
     channels,
   };
 }
@@ -223,14 +225,15 @@ function normalizeChannelResearch(
 /** Flag an empty / hollow plan so the wrapper re-prompts once: the plan needs at
  *  least a couple of named channels, each with a rationale. */
 function validateChannelResearch(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const raw = Array.isArray(o.channels) ? o.channels : [];
-  const named = raw.filter((c) => c && typeof c === "object" && txt((c as Record<string, unknown>).name));
-  if (named.length < 3) {
-    return [`Plán má málo kanálů — vrať alespoň 3 konkrétní bezplatné kanály v poli „channels".`];
-  }
-  return [];
+  return withObjectGuard((o) => {
+    const v = missingStrFields(o, [["summary", "Chybí shrnutí (summary)."]]);
+    const raw = Array.isArray(o.channels) ? o.channels : [];
+    const named = raw.filter((c) => c && typeof c === "object" && txt((c as Record<string, unknown>).name));
+    if (named.length < 3) {
+      v.push(`Plán má málo kanálů — vrať alespoň 3 konkrétní bezplatné kanály v poli „channels".`);
+    }
+    return v;
+  })(parsed);
 }
 
 export function generateChannelResearch(

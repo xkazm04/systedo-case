@@ -23,6 +23,7 @@ import { COMPARE_INTENT_LABELS } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const COMPARISON_OUTLINE_SYSTEM = `Jsi český SEO obsahový stratég specializovaný na srovnávací stránky s vysokým nákupním záměrem (typu „X vs Y", „alternativy k X", „ceník X", „recenze X"). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci — ne obecný brief.
@@ -225,24 +226,30 @@ function demoComparisonOutline(req: ComparisonOutlineRequest): ComparisonOutline
   };
 }
 
-/** Flag a hollow scaffold (no h1, no sections or no FAQ) so the wrapper re-prompts
- *  once instead of rendering an empty page the normalizer would paper over. */
+/** Flag a hollow scaffold so the wrapper re-prompts once instead of rendering an
+ *  empty page the normalizer would paper over. Covers the required fields: a
+ *  non-object fails hard, and a truncated scaffold missing h1 / sections /
+ *  verdict / criteria / faq is retried rather than passed. */
 function validateComparisonOutline(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  if (!txt(o.h1)) v.push("Chybí nadpis stránky (h1).");
-  const sections = Array.isArray(o.sections)
-    ? o.sections.map(toSection).filter((s): s is ComparisonOutlineSection => s !== null)
-    : [];
-  if (sections.length === 0) {
-    v.push("Kostra neobsahuje žádnou sekci — vrať pole „sections“ s alespoň jednou sekcí.");
-  }
-  const faq = normalizeFaq(o.faq);
-  if (faq.length === 0) {
-    v.push("Chybí časté dotazy — vrať pole „faq“ s alespoň jedním dotazem a odpovědí.");
-  }
-  return v;
+  return withObjectGuard((o) => {
+    const v: string[] = [];
+    if (!txt(o.h1)) v.push("Chybí nadpis stránky (h1).");
+    const sections = Array.isArray(o.sections)
+      ? o.sections.map(toSection).filter((s): s is ComparisonOutlineSection => s !== null)
+      : [];
+    if (sections.length === 0) {
+      v.push("Kostra neobsahuje žádnou sekci — vrať pole „sections“ s alespoň jednou sekcí.");
+    }
+    if (cleanList(o.comparisonCriteria, 8).length === 0) {
+      v.push("Chybí srovnávací kritéria — vrať pole „comparisonCriteria“ s alespoň jedním kritériem.");
+    }
+    if (!txt(o.verdict)) v.push("Chybí verdikt (verdict).");
+    const faq = normalizeFaq(o.faq);
+    if (faq.length === 0) {
+      v.push("Chybí časté dotazy — vrať pole „faq“ s alespoň jedním dotazem a odpovědí.");
+    }
+    return v;
+  })(parsed);
 }
 
 export function generateComparisonOutline(

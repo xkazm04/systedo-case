@@ -18,6 +18,8 @@ import type {
 import { fmtCZK, fmtMultiple, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { missingStrFields, withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 function cohortDiagnosisSystem(eshop: boolean): string {
@@ -27,7 +29,7 @@ function cohortDiagnosisSystem(eshop: boolean): string {
   return `Jsi zkušený český analytik jednotkové ekonomiky (CAC, LTV, návratnost) pro ${domain}. Děláš stručnou diagnostiku akvizičních kohort pro zakladatele.
 
 Pravidla:
-- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky, kohorty ani hodnoty, které v datech nejsou.
+- ${antiFabrication("předaných čísel")} Nevymýšlej si ani žádné kohorty, které v datech nejsou.
 - Urči JEDNU nejproblematičtější kohortu (nejnižší poměr LTV:CAC, případně nejdelší / chybějící návratnost) a pojmenuj ji přesně tak, jak je označená v datech.
 - Doporuč JEDEN nejúčinnější páku, kterou má smysl řešit jako první (snížit CAC, ${lever}, nebo přealokovat rozpočet) — konkrétně a akčně, ne obecně.
 - Odkazuj se na konkrétní čísla z dat (CAC, LTV, LTV:CAC, návratnost, ${retention}).
@@ -179,18 +181,19 @@ function normalizeCohortDiagnosis(
  *  isn't one of the supplied labels) so the wrapper re-prompts once instead of
  *  rendering an empty card the normalizer would silently paper over. */
 function validateCohortDiagnosis(parsed: unknown, req: CohortDiagnosisRequest): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const labels = new Set(req.cohorts.map((c) => c.month));
-  const v: string[] = [];
-  if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
-  if (!txt(o.recommendation)) v.push("Chybí doporučení (recommendation).");
-  const worst = txt(o.worstCohort);
-  if (!worst) v.push("Chybí název problémové kohorty (worstCohort).");
-  else if (labels.size > 0 && !labels.has(worst)) {
-    v.push(`„worstCohort" musí být jedna z předaných kohort: ${[...labels].join(", ")}.`);
-  }
-  return v;
+  return withObjectGuard((o) => {
+    const labels = new Set(req.cohorts.map((c) => c.month));
+    const v = missingStrFields(o, [
+      ["summary", "Chybí shrnutí (summary)."],
+      ["recommendation", "Chybí doporučení (recommendation)."],
+    ]);
+    const worst = txt(o.worstCohort);
+    if (!worst) v.push("Chybí název problémové kohorty (worstCohort).");
+    else if (labels.size > 0 && !labels.has(worst)) {
+      v.push(`„worstCohort" musí být jedna z předaných kohort: ${[...labels].join(", ")}.`);
+    }
+    return v;
+  })(parsed);
 }
 
 /** Deterministic, data-driven diagnosis: pick the lowest LTV:CAC cohort and emit
@@ -200,7 +203,8 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
   if (!worst) {
     return {
       summary:
-        "Nejsou k dispozici žádné kohorty k vyhodnocení. Doplňte akviziční data (CAC, LTV, retenci) z product analytics. Ukázkový výstup — připojte LLM (Claude v devu, Gemini v produkci) pro diagnostiku od modelu.",
+        "Nejsou k dispozici žádné kohorty k vyhodnocení. Doplňte akviziční data (CAC, LTV, retenci) z product analytics." +
+        demoTail("diagnostiku od modelu"),
       worstCohort: "—",
       recommendation: "Nejdřív zaveďte měření kohort (registrace → retence → tržby), pak vyhodnoťte ekonomiku.",
     };
@@ -245,7 +249,7 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
       worst.ltvCac
     )} (návratnost ${payback}). Při průměru portfolia ${fmtMultiple(req.avgLtvCac)} ${
       belowGoal ? "táhne ekonomiku pod cíl 3×" : "drží blízko cíle"
-    }. Ukázkový výstup — připojte LLM (Claude v devu, Gemini v produkci) pro diagnostiku od modelu.`,
+    }.${demoTail("diagnostiku od modelu")}`,
     worstCohort: worst.month,
     recommendation,
     risks: risks.length > 0 ? risks : undefined,

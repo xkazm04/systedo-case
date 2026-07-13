@@ -22,6 +22,7 @@ import type {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, clamp } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const LP_VARIANT_IDEAS_SYSTEM = `Jsi český CRO specialista (optimalizace konverzního poměru) a copywriter pro landing pages. Z tématu a klíčových slov navrhuješ konkurenční varianty landing page (challengery), které se otestují proti stávající kontrolní variantě v A/B testu.
@@ -132,16 +133,16 @@ function normalizeLpVariantIdeas(
 /** Flag an empty / hollow set so the wrapper re-prompts once: at least one concept
  *  with a label and a hypothesis must be present. */
 function validateLpVariantIdeas(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const raw = Array.isArray(o.variants) ? o.variants : [];
-  const wellFormed = raw.map(toVariant).filter((v): v is LpVariantIdea => v !== null);
-  if (wellFormed.length === 0) {
-    return [
-      "Výstup neobsahuje použitelnou variantu — vrať pole „variants“ s alespoň jedním konceptem, který má vyplněný „label“ i „hypothesis“.",
-    ];
-  }
-  return [];
+  return withObjectGuard((o) => {
+    const raw = Array.isArray(o.variants) ? o.variants : [];
+    const wellFormed = raw.map(toVariant).filter((v): v is LpVariantIdea => v !== null);
+    if (wellFormed.length === 0) {
+      return [
+        "Výstup neobsahuje použitelnou variantu — vrať pole „variants“ s alespoň jedním konceptem, který má vyplněný „label“ i „hypothesis“.",
+      ];
+    }
+    return [];
+  })(parsed);
 }
 
 /** Deterministic, topic-templated concepts — the keyless demo and the floor when

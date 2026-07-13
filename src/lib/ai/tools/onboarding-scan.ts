@@ -21,12 +21,14 @@ import type { SupportedLocale } from "@/lib/format";
 import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import { generateStructured } from "../../llm";
 import { cleanList, digest, txt } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { withObjectGuard, missingStrFields } from "./_validate";
 import { refineLines } from "./refine";
 
 const ONBOARDING_SCAN_SYSTEM = `Jsi český business analytik pro marketingový nástroj. Z textu domovské stránky webu vytáhneš stručný, věcný profil firmy, kterým se pak naplní celý nástroj.
 
 Pravidla:
-- Vycházej VÝHRADNĚ z předaného textu stránky. Nevymýšlej si nic, co v textu není.
+- ${antiFabrication("předaného textu stránky")}
 - Urči:
   - „businessName" = název firmy / značky (z textu nebo titulku stránky),
   - „summary" = 1–2 věty, čím se firma zabývá,
@@ -133,7 +135,7 @@ export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanRe
             : "produkt nebo služba";
   const result: OnboardingScanResult = {
     businessName: name,
-    summary: `Ukázkový profil pro ${name}. Připojte LLM (Claude v devu, Gemini v produkci) pro sken na míru z vašeho webu.`,
+    summary: `Profil firmy „${name}".` + demoTail("sken na míru z vašeho webu"),
     offering,
     audience: "zákazníci hledající tuto nabídku",
     toneOfVoice: "přátelský a věcný",
@@ -167,14 +169,24 @@ function normalizeOnboardingScan(
   return result;
 }
 
-/** Flag a hollow profile (no summary / offering) so the wrapper re-prompts once. */
+/** Flag a hollow profile so the wrapper re-prompts once. Covers every required
+ *  string field plus a non-empty keyword list, so a truncated scan (missing
+ *  businessName / audience / tone / keywords) fails here instead of silently
+ *  falling to the demo floor. */
 function validateOnboardingScan(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
-  if (!txt(o.offering)) v.push("Chybí popis nabídky (offering).");
-  return v;
+  return withObjectGuard((o) => {
+    const v = missingStrFields(o, [
+      ["businessName", "Chybí název firmy (businessName)."],
+      ["summary", "Chybí shrnutí (summary)."],
+      ["offering", "Chybí popis nabídky (offering)."],
+      ["audience", "Chybí cílové publikum (audience)."],
+      ["toneOfVoice", "Chybí tón komunikace (toneOfVoice)."],
+    ]);
+    if (cleanList(o.keywords, 10).length === 0) {
+      v.push("Chybí klíčová slova (keywords) — vrať 4–8 slov, která by publikum hledalo.");
+    }
+    return v;
+  })(parsed);
 }
 
 export function generateOnboardingScan(

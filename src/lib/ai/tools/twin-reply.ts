@@ -19,6 +19,7 @@ import { draftReply } from "../../speed-lead/draft";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { cleanList, digest, txt } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 import { voiceLines } from "./voice";
 
@@ -178,16 +179,15 @@ export function generateTwinReply(
   // so the wrapper self-repairs once before normalize's deterministic floor. The
   // confidence check catches a model that omits the field entirely (→ 0), which
   // would otherwise look like a deliberate "not send-ready" verdict.
-  const validate = (parsed: unknown): string[] => {
-    const o = parsed as Record<string, unknown> | null;
+  const validate = withObjectGuard((o) => {
     const v: string[] = [];
-    if (!txt(o?.reply)) v.push("Pole „reply“ je prázdné — vrať celou zprávu připravenou k odeslání.");
-    if (typeof o?.confidence !== "number") {
+    if (!txt(o.reply)) v.push("Pole „reply“ je prázdné — vrať celou zprávu připravenou k odeslání.");
+    if (typeof o.confidence !== "number") {
       v.push("Pole „confidence“ musí být číslo 0–100 vyjadřující připravenost zprávy k odeslání.");
     }
-    if (!Array.isArray(o?.risks)) v.push("Pole „risks“ musí být pole (i prázdné) — vypiš, co má člověk zkontrolovat.");
+    if (!Array.isArray(o.risks)) v.push("Pole „risks“ musí být pole (i prázdné) — vypiš, co má člověk zkontrolovat.");
     return v;
-  };
+  });
 
   return generateStructured({
     // llm-tool: twin-reply

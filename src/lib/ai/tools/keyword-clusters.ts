@@ -23,12 +23,14 @@ import type { KeywordIntent } from "@/lib/keywords/types";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { antiFabrication } from "./_fragments";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const KEYWORD_CLUSTERS_SYSTEM = `Jsi český SEO stratég. Z plochého seznamu klíčových slov skládáš tematické klastry připravené k tvorbě obsahu (pilířová stránka + podpůrné podstránky).
 
 Pravidla:
-- Pracuj VÝHRADNĚ s předanými klíčovými slovy. Žádné slovo si nevymýšlej a žádné nepřidávej — jen je seskup.
+- ${antiFabrication("předaných klíčových slov")} Žádné slovo nepřidávej — jen je seskup.
 - Seskup slova podle vyhledávacího záměru (informační / transakční / značkové) a sémantické blízkosti do tematických klastrů.
 - Každé klíčové slovo zařaď do právě jednoho klastru.
 - Pro KAŽDÝ klastr vyber právě jedno „pillar“ slovo (nejširší, nejvýstižnější téma — ideálně s nejvyšší hledaností) a zbytek slov klastru dej do pole „supporting“.
@@ -236,8 +238,7 @@ function normalizeKeywordClusters(
 /** Flag an empty / invalid clustering so the wrapper re-prompts once: every
  *  cluster needs a topic and a pillar that is one of the supplied keywords. */
 function validateKeywordClusters(parsed: unknown, req: KeywordClustersRequest): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
+  return withObjectGuard((o) => {
   const raw = Array.isArray(o.clusters) ? o.clusters : [];
   if (raw.length === 0) {
     return ["Výstup neobsahuje žádný klastr — vrať pole „clusters“ s alespoň jedním klastrem."];
@@ -255,6 +256,7 @@ function validateKeywordClusters(parsed: unknown, req: KeywordClustersRequest): 
     }
   }
   return v;
+  })(parsed);
 }
 
 export function generateKeywordClusters(

@@ -43,6 +43,11 @@ const HASHED_FILES = [
   "src/lib/llm/gemini.ts",
   "src/lib/llm/models.ts",
   "src/lib/ai/tools/_shared.ts",
+  // Shared anti-fabrication fragment feeds five system prompts (channel-research,
+  // cohort-diagnosis, keyword-clusters, lead-source-diagnosis, onboarding-scan);
+  // the demo-tail is demo-only. Untagged ⇒ a change here forces a full re-run so
+  // editing the shared rule re-proves every tool that embeds it.
+  "src/lib/ai/tools/_fragments.ts",
   // Shared by twin-reply, social and repurpose — a change here rewrites three prompts.
   "src/lib/ai/tools/voice.ts",
   // The analyst persona shared by analysis + chat (chat's live system prompt is
