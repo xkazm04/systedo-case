@@ -227,6 +227,93 @@ export async function setCampaignBudgetMicros(
   }
 }
 
+/** The metric columns every account-daily query selects, named once. This is the
+ *  ONE Google Ads seam the report + campaign daily series share: a GAQL SELECT over
+ *  `campaign` segmented by day, on behalf of the signed-in user. A second ad platform
+ *  (Sklik, Meta) would NOT reuse this — the connector layer maps that provider's own
+ *  API into the same `DailyPoint` shape at its own edge. */
+const ACCOUNT_DAILY_METRICS = [
+  "metrics.impressions",
+  "metrics.clicks",
+  "metrics.cost_micros",
+  "metrics.conversions",
+  "metrics.conversions_value",
+] as const;
+
+/** Shared account-daily fetcher — date-segmented metrics over `campaign` for the
+ *  trailing `days` window, one raw `searchStream` row per campaign per day. Every
+ *  live daily-ingestion path builds on this single query: the campaigns portfolio
+ *  series ({@link fetchDailySeries}), the per-campaign series
+ *  ({@link fetchCampaignDailySeries}), and the monthly report's A1 sync
+ *  ({@link fetchAccountDailyRows}). Each caller maps the raw rows into its own store
+ *  shape at the edge (summed per date, kept per campaign, or handed to a pure mapper).
+ *  `extraSelect` prepends non-metric columns (e.g. `campaign.id`) without cloning the
+ *  metric list; the caller passes the customerId exactly as it wants it queried
+ *  (digits-only on the report path, as-linked on the campaigns path). */
+async function fetchAccountDailyRaw(
+  accessToken: string,
+  customerId: string,
+  days: number,
+  extraSelect: readonly string[] = []
+): Promise<SearchRow[]> {
+  const { start, end } = dateRange(days);
+  const columns = [...extraSelect, "segments.date", ...ACCOUNT_DAILY_METRICS];
+  const query = `
+    SELECT
+      ${columns.join(",\n      ")}
+    FROM campaign
+    WHERE segments.date BETWEEN '${start}' AND '${end}'
+  `;
+  return searchStream(accessToken, customerId, query);
+}
+
+/** Fold one searchStream row into a date-keyed DailyPoint accumulator. Cost micros
+ *  are converted to the major unit and rounded PER ROW — the campaigns path's
+ *  long-standing behavior (the report path rounds once per day in its own mapper). */
+function accumulateDaily(byDate: Map<string, DailyPoint>, date: string, r: SearchRow): void {
+  const p =
+    byDate.get(date) ??
+    { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
+  p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
+  p.conversions += num(r.metrics?.conversions);
+  p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+  p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
+  p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
+  byDate.set(date, p);
+}
+
+const sortByDate = (pts: DailyPoint[]): DailyPoint[] =>
+  pts.sort((a, b) => a.date.localeCompare(b.date));
+
+/** Sum date-segmented Ads rows into one sorted DailyPoint per day (portfolio total).
+ *  Pure — unit-tested on fixtures without credentials. */
+export function mapRowsToDailySeries(rows: SearchRow[]): DailyPoint[] {
+  const byDate = new Map<string, DailyPoint>();
+  for (const r of rows) {
+    const date = r.segments?.date;
+    if (!date) continue;
+    accumulateDaily(byDate, date, r);
+  }
+  return sortByDate([...byDate.values()]);
+}
+
+/** Same date-segmented aggregation as {@link mapRowsToDailySeries}, kept per
+ *  `campaign.id` so each campaign row can render its own trend. Pure — fixture-tested. */
+export function mapRowsToCampaignDailySeries(rows: SearchRow[]): Record<string, DailyPoint[]> {
+  const byCampaign = new Map<string, Map<string, DailyPoint>>();
+  for (const r of rows) {
+    const id = r.campaign?.id ? String(r.campaign.id) : null;
+    const date = r.segments?.date;
+    if (!id || !date) continue;
+    const byDate = byCampaign.get(id) ?? new Map<string, DailyPoint>();
+    accumulateDaily(byDate, date, r);
+    byCampaign.set(id, byDate);
+  }
+  const out: Record<string, DailyPoint[]> = {};
+  for (const [id, byDate] of byCampaign) out[id] = sortByDate([...byDate.values()]);
+  return out;
+}
+
 /** Portfolio daily series for the period — date-segmented metrics summed across
  *  all campaigns. Powers the live trend chart (the per-campaign fetch is
  *  date-aggregated and so can't). */
@@ -235,59 +322,19 @@ export async function fetchDailySeries(
   customerId: string,
   period: CampaignPeriod
 ): Promise<DailyPoint[]> {
-  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
-  const query = `
-    SELECT
-      segments.date,
-      metrics.impressions,
-      metrics.clicks,
-      metrics.cost_micros,
-      metrics.conversions,
-      metrics.conversions_value
-    FROM campaign
-    WHERE segments.date BETWEEN '${start}' AND '${end}'
-  `;
-  const rows = await searchStream(accessToken, customerId, query);
-
-  const byDate = new Map<string, DailyPoint>();
-  for (const r of rows) {
-    const date = r.segments?.date;
-    if (!date) continue;
-    const p =
-      byDate.get(date) ??
-      { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
-    p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
-    p.conversions += num(r.metrics?.conversions);
-    p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
-    p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
-    p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
-    byDate.set(date, p);
-  }
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return mapRowsToDailySeries(await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period]));
 }
 
 /** Account-level daily rows for the last `days` — the series the monthly report's
- *  live seam (A1) ingests. Date-segmented over `campaign` (so one row per campaign
- *  per day; the caller sums per date) and, unlike `fetchDailySeries`, selects
- *  `metrics.clicks` too (→ visits). Returns raw searchStream rows; the pure mapper
- *  in report-metrics/map.ts turns them into daily totals with no credentials needed. */
+ *  live seam (A1) ingests. Returns the shared fetcher's raw searchStream rows (one
+ *  per campaign per day; the pure mapper in report-metrics/map.ts sums them per date
+ *  with no credentials needed). Digits-only customerId, matching the report link. */
 export async function fetchAccountDailyRows(
   accessToken: string,
   customerId: string,
   days: number
 ): Promise<SearchRow[]> {
-  const { start, end } = dateRange(days);
-  const query = `
-    SELECT
-      segments.date,
-      metrics.clicks,
-      metrics.cost_micros,
-      metrics.conversions,
-      metrics.conversions_value
-    FROM campaign
-    WHERE segments.date BETWEEN '${start}' AND '${end}'
-  `;
-  return searchStream(accessToken, customerId.replace(/\D/g, ""), query);
+  return fetchAccountDailyRaw(accessToken, customerId.replace(/\D/g, ""), days);
 }
 
 /** Per-campaign daily series for the period — the same date-segmented metrics as
@@ -298,44 +345,9 @@ export async function fetchCampaignDailySeries(
   customerId: string,
   period: CampaignPeriod
 ): Promise<Record<string, DailyPoint[]>> {
-  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
-  const query = `
-    SELECT
-      campaign.id,
-      segments.date,
-      metrics.impressions,
-      metrics.clicks,
-      metrics.cost_micros,
-      metrics.conversions,
-      metrics.conversions_value
-    FROM campaign
-    WHERE segments.date BETWEEN '${start}' AND '${end}'
-  `;
-  const rows = await searchStream(accessToken, customerId, query);
-
-  const byCampaign = new Map<string, Map<string, DailyPoint>>();
-  for (const r of rows) {
-    const id = r.campaign?.id ? String(r.campaign.id) : null;
-    const date = r.segments?.date;
-    if (!id || !date) continue;
-    const byDate = byCampaign.get(id) ?? new Map<string, DailyPoint>();
-    const p =
-      byDate.get(date) ??
-      { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
-    p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
-    p.conversions += num(r.metrics?.conversions);
-    p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
-    p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
-    p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
-    byDate.set(date, p);
-    byCampaign.set(id, byDate);
-  }
-
-  const out: Record<string, DailyPoint[]> = {};
-  for (const [id, byDate] of byCampaign) {
-    out[id] = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
-  }
-  return out;
+  return mapRowsToCampaignDailySeries(
+    await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"])
+  );
 }
 
 const CHANNEL_TYPE: Record<string, CampaignType> = {
