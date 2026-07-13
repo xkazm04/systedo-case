@@ -16,14 +16,7 @@ import type {
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import { cohortTrend } from "@/lib/ltv/compute";
 import { useAiTool } from "@/components/ai/useAiTool";
-import {
-  LoadingTimer,
-  PromptDisclosure,
-  RefineBar,
-  ResultMeta,
-  TimeoutState,
-  ToolError,
-} from "@/components/ai/primitives";
+import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -106,107 +99,73 @@ export default function LtvDiagnosisPanel({
   eshop?: boolean;
 }) {
   const t = useT(T);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine, expectedMs } =
-    useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
-  const r = data?.result;
+  const tool = useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
+  const { status, run } = tool;
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Sparkles width={16} height={16} className="shrink-0 text-brand-accent" />
-            {t("panelTitle")}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            {t("panelDesc")}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() =>
-            status !== "loading" &&
-            rows.length > 0 &&
-            run(buildRequest(rows, summary, eshop) as unknown as Record<string, unknown>)
-          }
-          disabled={status === "loading" || rows.length === 0}
-          className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
-        >
-          <Sparkles width={15} height={15} className={status === "loading" ? "animate-pulse" : ""} />
-          {status === "loading" ? t("runningBtn") : t("runBtn")}
-        </button>
-      </div>
-
-      <div className="p-5">
-        {status === "idle" && (
-          <p className="text-sm leading-relaxed text-muted">
-            {t("idleHint")}
-          </p>
-        )}
-
-        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
-
-        {status === "error" &&
-          (timedOut ? (
-            <TimeoutState onRetry={reset} />
-          ) : (
-            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
-          ))}
-
-        {status === "done" && r && data && (
-          <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} />
-
-            <div className="rounded-card border border-navy-200 bg-navy-50 p-5">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400">
-                  <Target width={18} height={18} />
-                </span>
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-navy-700">{t("worstCohortLabel")}</span>
-                    <span className="pill bg-coral-soft text-coral-600">
-                      <TrendDown width={13} height={13} />
-                      {r.worstCohort}
-                    </span>
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-navy-700">{r.summary}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3.5">
-              <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
+    <AiToolPanel<CohortDiagnosisResult>
+      tool={tool}
+      idleHint={t("idleHint")}
+      header={
+        <AiPanelHeader icon={Sparkles} title={t("panelTitle")} description={t("panelDesc")}>
+          <AiRunButton
+            onClick={() =>
+              status !== "loading" &&
+              rows.length > 0 &&
+              run(buildRequest(rows, summary, eshop) as unknown as Record<string, unknown>)
+            }
+            loading={status === "loading"}
+            disabled={status === "loading" || rows.length === 0}
+            idleLabel={t("runBtn")}
+            loadingLabel={t("runningBtn")}
+          />
+        </AiPanelHeader>
+      }
+      renderResult={(r) => (
+        <>
+          <div className="rounded-card border border-navy-200 bg-navy-50 p-5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400">
+                <Target width={18} height={18} />
+              </span>
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                  {t("fixFirstLabel")}
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-navy-700">{t("worstCohortLabel")}</span>
+                  <span className="pill bg-coral-soft text-coral-600">
+                    <TrendDown width={13} height={13} />
+                    {r.worstCohort}
+                  </span>
                 </p>
-                <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
+                <p className="mt-2 text-sm leading-relaxed text-navy-700">{r.summary}</p>
               </div>
             </div>
-
-            {r.risks && r.risks.length > 0 && (
-              <div>
-                <p className="mb-2.5 text-sm font-semibold text-navy-800">{t("risksTitle")}</p>
-                <ul className="space-y-2.5">
-                  {r.risks.map((risk, i) => (
-                    <li key={i} className="flex gap-2.5 text-sm text-navy-700">
-                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-coral-soft text-coral-600">
-                        <TrendDown width={12} height={12} />
-                      </span>
-                      <span className="leading-snug">{risk}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {canRefine && <RefineBar onRefine={refine} />}
-
-            <PromptDisclosure prompt={data.meta.prompt} />
           </div>
-        )}
-      </div>
-    </div>
+
+          <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3.5">
+            <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("fixFirstLabel")}</p>
+              <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
+            </div>
+          </div>
+
+          {r.risks && r.risks.length > 0 && (
+            <div>
+              <p className="mb-2.5 text-sm font-semibold text-navy-800">{t("risksTitle")}</p>
+              <ul className="space-y-2.5">
+                {r.risks.map((risk, i) => (
+                  <li key={i} className="flex gap-2.5 text-sm text-navy-700">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-coral-soft text-coral-600">
+                      <TrendDown width={12} height={12} />
+                    </span>
+                    <span className="leading-snug">{risk}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    />
   );
 }

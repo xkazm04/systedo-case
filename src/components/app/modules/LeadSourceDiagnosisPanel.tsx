@@ -23,14 +23,7 @@ import {
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
-import {
-  LoadingTimer,
-  PromptDisclosure,
-  RefineBar,
-  ResultMeta,
-  TimeoutState,
-  ToolError,
-} from "@/components/ai/primitives";
+import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
 
 const T = {
   cs: {
@@ -130,141 +123,108 @@ export default function LeadSourceDiagnosisPanel({ seeds }: { seeds: LeadSourceS
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine, expectedMs } =
-    useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
+  const tool = useAiTool<LeadSourceDiagnosisResult>("lead-source-diagnosis");
+  const { status, run, reset } = tool;
   const [selectedSource, setSelectedSource] = useState(seeds[0]?.source ?? "");
   const selected = seeds.find((s) => s.source === selectedSource) ?? seeds[0];
-  const r = data?.result;
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Sparkles width={16} height={16} className="shrink-0 text-brand-accent" />
-            {t("panelTitle")}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            {t("panelDesc")}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {seeds.length > 1 && (
-            <select
-              value={selectedSource}
-              onChange={(e) => {
-                setSelectedSource(e.target.value);
-                // Clear the previous source's diagnosis — otherwise the result body
-                // (cause/summary/recommendation for source A) stays rendered while the
-                // meta line above relabels it with the newly-selected source B.
-                reset();
-              }}
-              disabled={status === "loading"}
-              aria-label={t("selectAriaLabel")}
-              className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {seeds.map((s) => (
-                <option key={s.source} value={s.source}>
-                  {s.source}
-                </option>
-              ))}
-            </select>
-          )}
-          <button
-            type="button"
-            onClick={() =>
-              status !== "loading" &&
-              selected &&
-              run(buildRequest(selected) as unknown as Record<string, unknown>)
-            }
-            disabled={status === "loading" || !selected}
-            className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
-          >
-            <Sparkles width={15} height={15} className={status === "loading" ? "animate-pulse" : ""} />
-            {status === "loading" ? t("runningBtn") : t("diagBtn")}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-5">
-        {status === "idle" && (
-          <p className="text-sm leading-relaxed text-muted">
-            {t("idleHint")}
-          </p>
-        )}
-
-        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
-
-        {status === "error" &&
-          (timedOut ? (
-            <TimeoutState onRetry={reset} />
-          ) : (
-            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
-          ))}
-
-        {status === "done" && r && data && (
-          <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} />
-
-            {selected && (
-              <p className="text-xs text-muted">
-                {t("diagMeta", {
-                  source: selected.source,
-                  qualRate: fmt.fmtPct(selected.qualRate),
-                  winRate: fmt.fmtPct(selected.winRate),
-                  cpql: selected.costPerQualified != null
+    <AiToolPanel<LeadSourceDiagnosisResult>
+      tool={tool}
+      idleHint={t("idleHint")}
+      header={
+        <AiPanelHeader icon={Sparkles} title={t("panelTitle")} description={t("panelDesc")}>
+          <div className="flex items-center gap-2">
+            {seeds.length > 1 && (
+              <select
+                value={selectedSource}
+                onChange={(e) => {
+                  setSelectedSource(e.target.value);
+                  // Clear the previous source's diagnosis — otherwise the result body
+                  // (cause/summary/recommendation for source A) stays rendered while the
+                  // meta line above relabels it with the newly-selected source B.
+                  reset();
+                }}
+                disabled={status === "loading"}
+                aria-label={t("selectAriaLabel")}
+                className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {seeds.map((s) => (
+                  <option key={s.source} value={s.source}>
+                    {s.source}
+                  </option>
+                ))}
+              </select>
+            )}
+            <AiRunButton
+              onClick={() =>
+                status !== "loading" &&
+                selected &&
+                run(buildRequest(selected) as unknown as Record<string, unknown>)
+              }
+              loading={status === "loading"}
+              disabled={status === "loading" || !selected}
+              idleLabel={t("diagBtn")}
+              loadingLabel={t("runningBtn")}
+            />
+          </div>
+        </AiPanelHeader>
+      }
+      renderResult={(r) => (
+        <>
+          {selected && (
+            <p className="text-xs text-muted">
+              {t("diagMeta", {
+                source: selected.source,
+                qualRate: fmt.fmtPct(selected.qualRate),
+                winRate: fmt.fmtPct(selected.winRate),
+                cpql:
+                  selected.costPerQualified != null
                     ? t("cpqlPart", { value: fmt.fmtCZK(selected.costPerQualified) })
                     : "",
-                  leads: fmt.fmtInt(selected.leads),
-                })}
-              </p>
-            )}
+                leads: fmt.fmtInt(selected.leads),
+              })}
+            </p>
+          )}
 
-            <div className="rounded-card border border-navy-200 bg-navy-50 p-5">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400">
-                  <Funnel width={18} height={18} />
-                </span>
-                <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-navy-700">{t("likelyCauseLabel")}</span>
-                    <Pill tone={CAUSE_TONE[r.likelyCause]}>
-                      {leadSourceCauseLabel(r.likelyCause, locale)}
-                    </Pill>
-                    {r.severity && (
-                      <Pill tone={SEVERITY_TONE[r.severity]}>
-                        {r.severity === "high" ? t("severityHigh") : r.severity === "medium" ? t("severityMedium") : t("severityLow")}
-                      </Pill>
-                    )}
-                  </p>
-                  <p className="mt-2 text-sm leading-relaxed text-navy-700">{r.summary}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3.5">
-              <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                  {t("recommendedAction")}
-                </p>
-                <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 text-xs text-muted">
-              <Target width={14} height={14} className="mt-0.5 shrink-0 text-brand-600" />
-              <span className="leading-relaxed">
-                {t("dataDisclaimer")}
+          <div className="rounded-card border border-navy-200 bg-navy-50 p-5">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400">
+                <Funnel width={18} height={18} />
               </span>
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-navy-700">{t("likelyCauseLabel")}</span>
+                  <Pill tone={CAUSE_TONE[r.likelyCause]}>{leadSourceCauseLabel(r.likelyCause, locale)}</Pill>
+                  {r.severity && (
+                    <Pill tone={SEVERITY_TONE[r.severity]}>
+                      {r.severity === "high"
+                        ? t("severityHigh")
+                        : r.severity === "medium"
+                          ? t("severityMedium")
+                          : t("severityLow")}
+                    </Pill>
+                  )}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-navy-700">{r.summary}</p>
+              </div>
             </div>
-
-            {canRefine && <RefineBar onRefine={refine} />}
-
-            <PromptDisclosure prompt={data.meta.prompt} />
           </div>
-        )}
-      </div>
-    </div>
+
+          <div className="flex items-start gap-3 rounded-card border border-line bg-canvas px-4 py-3.5">
+            <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-positive" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("recommendedAction")}</p>
+              <p className="mt-1 text-sm leading-relaxed text-navy-700">{r.recommendation}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 text-xs text-muted">
+            <Target width={14} height={14} className="mt-0.5 shrink-0 text-brand-600" />
+            <span className="leading-relaxed">{t("dataDisclaimer")}</span>
+          </div>
+        </>
+      )}
+    />
   );
 }

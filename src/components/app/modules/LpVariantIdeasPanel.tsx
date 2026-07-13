@@ -10,18 +10,11 @@
  *  styling, plus loading / error / timeout / demo states. */
 import { useState } from "react";
 import { Pill } from "@/components/ui";
-import { Beaker, Sparkles, Bulb, Target } from "@/components/icons";
+import { Beaker, Bulb, Target } from "@/components/icons";
 import type { LpVariantIdeasRequest, LpVariantIdeasResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useOptionalProject } from "@/lib/projects/context";
-import {
-  LoadingTimer,
-  PromptDisclosure,
-  RefineBar,
-  ResultMeta,
-  TimeoutState,
-  ToolError,
-} from "@/components/ai/primitives";
+import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -85,120 +78,92 @@ function buildRequest(seed: LpVariantSeed, controlDescription: string, projectId
 
 export default function LpVariantIdeasPanel({ seeds }: { seeds: LpVariantSeed[] }) {
   const t = useT(T);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, refine, canRefine, expectedMs } =
-    useAiTool<LpVariantIdeasResult>("lp-variant-ideas");
+  const tool = useAiTool<LpVariantIdeasResult>("lp-variant-ideas");
+  const { status, run } = tool;
   const project = useOptionalProject();
   const [selectedId, setSelectedId] = useState(seeds[0]?.id ?? "");
   const selected = seeds.find((s) => s.id === selectedId) ?? seeds[0];
-  const r = data?.result;
 
   return (
-    <div className="card overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3.5">
-        <div className="min-w-0">
-          <p className="flex items-center gap-2 text-sm font-semibold text-navy-800">
-            <Beaker width={16} height={16} className="shrink-0 text-brand-accent" />
-            {t("panelTitle")}
-          </p>
-          <p className="mt-0.5 text-xs text-muted">{t("panelHint")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {seeds.length > 1 && (
-            <select
-              value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
-              disabled={status === "loading"}
-              aria-label={t("selectExperiment")}
-              className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {seeds.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.cluster}
-                </option>
-              ))}
-            </select>
-          )}
-          <button
-            type="button"
-            onClick={() => {
-              if (status !== "loading" && selected) {
-                const desc = t("controlDescription", { label: selected.controlLabel, cluster: selected.cluster });
-                run(buildRequest(selected, desc, project?.id) as unknown as Record<string, unknown>);
-              }
-            }}
-            disabled={status === "loading" || !selected}
-            className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
-          >
-            <Sparkles width={15} height={15} className={status === "loading" ? "animate-pulse" : ""} />
-            {status === "loading" ? t("suggestingBtn") : t("suggestBtn")}
-          </button>
-        </div>
-      </div>
-
-      <div className="p-5">
-        {status === "idle" && (
-          <p className="text-sm leading-relaxed text-muted">{t("idleHint")}</p>
-        )}
-
-        {status === "loading" && <LoadingTimer expectedMs={expectedMs} />}
-
-        {status === "error" &&
-          (timedOut ? (
-            <TimeoutState onRetry={reset} />
-          ) : (
-            <ToolError message={error ?? ""} onRetry={reset} retryIn={retryIn} upgradeUrl={upgradeUrl} />
-          ))}
-
-        {status === "done" && r && data && (
-          <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} />
-
-            {selected && (
-              <p className="text-xs text-muted">
-                {t("proposalsFor")}{" "}
-                <span className="font-medium text-navy-700">“{selected.cluster}”</span> {t("vsControl")}{" "}
-                <span className="font-medium text-navy-700">“{selected.controlLabel}”</span>.
-              </p>
+    <AiToolPanel<LpVariantIdeasResult>
+      tool={tool}
+      idleHint={t("idleHint")}
+      header={
+        <AiPanelHeader icon={Beaker} title={t("panelTitle")} description={t("panelHint")}>
+          <div className="flex items-center gap-2">
+            {seeds.length > 1 && (
+              <select
+                value={selectedId}
+                onChange={(e) => setSelectedId(e.target.value)}
+                disabled={status === "loading"}
+                aria-label={t("selectExperiment")}
+                className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {seeds.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.cluster}
+                  </option>
+                ))}
+              </select>
             )}
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {r.variants.map((v, i) => (
-                <div key={i} className="card border-brand-200 bg-brand-50/40 p-4">
-                  <div className="mb-2.5 flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-navy-800">
-                      <Beaker width={14} height={14} className="shrink-0 text-brand-accent" />
-                      <span className="truncate">{v.label}</span>
-                    </span>
-                    <Pill tone="brand">{t("challenger")}</Pill>
-                  </div>
-
-                  <p className="text-sm font-medium leading-snug text-navy-800">{v.headline}</p>
-
-                  <div className="mt-3 flex items-start gap-2">
-                    <Target width={15} height={15} className="mt-0.5 shrink-0 text-brand-600" />
-                    <p className="text-xs leading-relaxed text-navy-700">{v.hypothesis}</p>
-                  </div>
-
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                    <span className="pill bg-positive-soft text-positive">{v.primaryCTA}</span>
-                  </div>
-
-                  {v.rationale && (
-                    <div className="mt-3 flex items-start gap-2 border-t border-line pt-2.5">
-                      <Bulb width={14} height={14} className="mt-0.5 shrink-0 text-positive" />
-                      <p className="text-xs leading-relaxed text-muted">{v.rationale}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {canRefine && <RefineBar onRefine={refine} />}
-
-            <PromptDisclosure prompt={data.meta.prompt} />
+            <AiRunButton
+              onClick={() => {
+                if (status !== "loading" && selected) {
+                  const desc = t("controlDescription", { label: selected.controlLabel, cluster: selected.cluster });
+                  run(buildRequest(selected, desc, project?.id) as unknown as Record<string, unknown>);
+                }
+              }}
+              loading={status === "loading"}
+              disabled={status === "loading" || !selected}
+              idleLabel={t("suggestBtn")}
+              loadingLabel={t("suggestingBtn")}
+            />
           </div>
-        )}
-      </div>
-    </div>
+        </AiPanelHeader>
+      }
+      renderResult={(r) => (
+        <>
+          {selected && (
+            <p className="text-xs text-muted">
+              {t("proposalsFor")}{" "}
+              <span className="font-medium text-navy-700">“{selected.cluster}”</span> {t("vsControl")}{" "}
+              <span className="font-medium text-navy-700">“{selected.controlLabel}”</span>.
+            </p>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {r.variants.map((v, i) => (
+              <div key={i} className="card border-brand-200 bg-brand-50/40 p-4">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-navy-800">
+                    <Beaker width={14} height={14} className="shrink-0 text-brand-accent" />
+                    <span className="truncate">{v.label}</span>
+                  </span>
+                  <Pill tone="brand">{t("challenger")}</Pill>
+                </div>
+
+                <p className="text-sm font-medium leading-snug text-navy-800">{v.headline}</p>
+
+                <div className="mt-3 flex items-start gap-2">
+                  <Target width={15} height={15} className="mt-0.5 shrink-0 text-brand-600" />
+                  <p className="text-xs leading-relaxed text-navy-700">{v.hypothesis}</p>
+                </div>
+
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <span className="pill bg-positive-soft text-positive">{v.primaryCTA}</span>
+                </div>
+
+                {v.rationale && (
+                  <div className="mt-3 flex items-start gap-2 border-t border-line pt-2.5">
+                    <Bulb width={14} height={14} className="mt-0.5 shrink-0 text-positive" />
+                    <p className="text-xs leading-relaxed text-muted">{v.rationale}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    />
   );
 }

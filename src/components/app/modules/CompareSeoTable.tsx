@@ -10,8 +10,8 @@ import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { usePersistedForm } from "@/components/ai/usePersistedForm";
-import { RefineBar, ResultMeta } from "@/components/ai/primitives";
-import type { ComparisonOutlineResult } from "@/lib/ai-types";
+import { PromptDisclosure, RefineBar, ResultMeta } from "@/components/ai/primitives";
+import type { AiMeta, ComparisonOutlineResult } from "@/lib/ai-types";
 import {
   acquisitionFor,
   DEFAULT_SCORE_WEIGHTS,
@@ -229,22 +229,20 @@ function briefTopic(r: ScoredQuery, t: ReturnType<typeof useT<keyof typeof T.cs>
  *  existing brief-seed flow. */
 function ScaffoldPanel({
   result,
-  demo,
-  tookMs,
-  model,
+  meta,
   onHandoff,
   t,
 }: {
   result: ComparisonOutlineResult;
-  demo: boolean;
-  tookMs: number;
-  model: string;
+  /** the real generation meta — carries the engineered prompt so the disclosure
+   *  renders (it was hard-coded to an empty string before, silently hiding it). */
+  meta: AiMeta;
   onHandoff: () => void;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
 }) {
   return (
     <div className="space-y-4 rounded-lg border border-line bg-canvas p-4">
-      <ResultMeta meta={{ model, demo, prompt: "", tookMs }} />
+      <ResultMeta meta={meta} />
 
       <div>
         <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("scaffoldH1")}</p>
@@ -314,6 +312,8 @@ function ScaffoldPanel({
         </button>
         <span className="text-xs text-muted">{t("handoffHint")}</span>
       </div>
+
+      <PromptDisclosure prompt={meta.prompt} />
     </div>
   );
 }
@@ -443,9 +443,7 @@ function QueryRow({
               <div className="space-y-3">
                 <ScaffoldPanel
                   result={data.result}
-                  demo={data.meta.demo}
-                  tookMs={data.meta.tookMs}
-                  model={data.meta.model}
+                  meta={data.meta}
                   t={t}
                   onHandoff={() => {
                     onCreateFromOutline(r, data.result);
