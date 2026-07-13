@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos místo obecného popisu",
-      "hypothesis": "Když nadpis slibuje konkrétní a snadno pochopitelný výsledek namísto obecného výčtu funkcí, návštěvníci rychleji pochopí hodnotu nástroje a konverze vzroste.",
-      "headline": "Mějte všechny úkoly týmu na jednom místě, bez chaosu v e-mailech a tabulkách",
-      "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní a srozumitelný slib řeší jasnou bolest cílové skupiny lépe než obecný popis produktu v kontrolní variantě."
+      "label": "A · Zaměření na jasnost přehledu",
+      "hypothesis": "Pokud dáme do popředí konkrétní vizuální ukázku přehledu úkolů místo obecného popisu produktu, návštěvníci rychleji pochopí hodnotu nástroje a konverze vzroste.",
+      "headline": "Všechny úkoly a projekty na jednom přehledu",
+      "primaryCTA": "Zobrazit ukázku zdarma",
+      "rationale": "Konkrétní vizuální důkaz hodnoty přesvědčí lépe než obecný popis, který kontrola už vyzkoušela."
     },
     {
-      "label": "Zaměření na bolest a frustraci",
-      "hypothesis": "Pokud landing page pojmenuje konkrétní frustraci z chaotického řízení projektů a nabídne nástroj jako řešení, návštěvníci se s problémem ztotožní a konverze vzroste.",
-      "headline": "Přestaňte hledat, kdo má co na starosti — projektové řízení pod kontrolou",
-      "primaryCTA": "Ukázat, jak to funguje",
-      "rationale": "Copy postavené na pojmenování skutečného problému cílí přímo na motivaci návštěvníka, místo aby jen popisovalo produkt jako kontrolní varianta."
+      "label": "B · Zaměření na rychlost nasazení",
+      "hypothesis": "Pokud zdůrazníme rychlé a bezplatné vyzkoušení bez nutnosti dlouhého vyplňování, sníží se bariéra vstupu a konverze vzroste oproti kontrole i oproti variantě s dlouhým formulářem.",
+      "headline": "Nastavte si projektové řízení za pár minut",
+      "primaryCTA": "Vyzkoušet bez registrace",
+      "rationale": "Nízkoprahový vstup cílí přesně na důvod, proč dlouhý formulář (varianta C) selhal."
     },
     {
-      "label": "Důvěra a jednoduchost použití",
-      "hypothesis": "Pokud nadpis zdůrazní snadné zavedení a důvěryhodnost nástroje pro řízení projektů, sníží se obavy z komplikovaného přechodu a konverze vzroste.",
-      "headline": "Nástroj na úkoly a projekty, který váš tým zvládne používat hned první den",
-      "primaryCTA": "Vyzkoušet bez rizika",
-      "rationale": "Důraz na snadnost přechodu a nízkou bariéru vstupu řeší jinou překážku konverze než obecný popis produktu i než dosud poražené varianty se slevou nebo dlouhým formulářem."
+      "label": "C · Zaměření na týmovou spolupráci",
+      "hypothesis": "Pokud místo obecného popisu produktu zdůrazníme konkrétní přínos pro sladění týmu kolem úkolů, návštěvníci se ztotožní s problémem a konverze vzroste.",
+      "headline": "Ať celý tým vidí, na čem se pracuje",
+      "primaryCTA": "Vyzkoušet s týmem",
+      " rationale": "Testuje jinou hypotézu než slevu i formulář – emocionální apel na týmovou přehlednost místo ceny nebo sběru dat."
     }
   ]
 }

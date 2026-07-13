@@ -1,9 +1,9 @@
 {
-  "summary": "Kohorty vykazují jasně klesající trend akviziční efektivity: CAC roste z 1 200 Kč na 2 100 Kč, LTV naopak klesá z 5 400 Kč na 2 200 Kč a M3 retence padá z 62 % na 31 %. Kohorta 2025-03 má LTV:CAC pouze 1,0× a návratnost investice se v horizontu vůbec nevrací, což ji řadí hluboko pod blended průměr 2,6×. Hlavní příčinou propadu je zhoršující se M3 retence, která táhne dolů LTV napříč kohortami rychleji, než klesá objem registrací.",
+  "summary": "Jednotková ekonomika se mezi lednem a březnem 2025 prudce zhoršila: CAC vzrostl z 1 200 Kč na 2 100 Kč, LTV kleslo z 5 400 Kč na 2 200 Kč a poměr LTV:CAC se propadl ze 4,5× na 1,0×, u kohorty 2025-03 se navíc CAC vůbec nevrací v horizontu měření a M3 retence klesla na 31 %. Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× tak maskují prudce zhoršující se trend v nejnovějších kohortách.",
   "worstCohort": "2025-03",
-  "recommendation": "Zaměřit se na zvýšení M3 retence u nově akvírovaných uživatelů (např. onboarding a aktivační kampaně), protože právě propad retence z 62 % na 31 % je hlavní pákou klesajícího LTV:CAC, nikoli samotný růst CAC.",
+  "recommendation": "Okamžitě prověřit a omezit akviziční kanály použité v kohortě 2025-03 (zdroj prudkého nárůstu CAC a propadu M3 retence) a přesměrovat rozpočet zpět na kanály/segmenty typické pro kohortu 2025-01, dokud se LTV:CAC nevrátí nad 3×.",
   "risks": [
-    "Bez zásahu bude CAC dále růst a LTV klesat, což při kohortě 2025-03 znamená ztrátovou akvizici",
-    "Pokračování ve stejném mixu akvizičních kanálů může znovu produkovat kohorty s LTV:CAC pod 1,0×"
+    "Bez rozpadu CAC podle akvizičního kanálu nelze určit, zda je příčinou dražší traffic, nebo horší kvalita leadů.",
+    "Pokles M3 retence napříč kohortami (62 % → 48 % → 31 %) naznačuje možný produktový nebo onboardingový problém nezávislý na akvizici."
   ]
 }

@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4× potvrzuje, že kampaně táhnou zákazníky efektivně a bez zbytečného utrácení.",
-  "summary": "Za sledované období jste z reklamních nákladů 220 000 Kč vygenerovali obrat 1 200 000 Kč. Poměr nákladů k obratu (PNO) 18,3 % je pro lokální službu velmi zdravý a návratnost 5,4× ukazuje, že vynaložená koruna se vrací víc než pětinásobně. Zároveň roste i počet konverzí, což naznačuje, že poptávka nejde jen z ceny, ale i z kvality nastavení kampaní.",
+  "headline": "Silný měsíc s rostoucí efektivitou i konverzemi",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená PNO 18,3 % a ROAS 5,4×, což je nadprůměrný výsledek pro lokální podnik. Konverze navíc meziměsíčně vzrostly o 12 %, což ukazuje na zlepšující se kvalitu poptávek i efektivitu kampaní.",
   "highlights": [
-    "Návratnost investic 5,4× znamená, že z každé investované koruny se vrátilo přes 5 Kč obratu.",
-    "Konverze meziměsíčně vzrostly o 12 %, tedy více poptávek či rezervací při stejném nastavení kampaní.",
-    "PNO 18,3 % drží náklady na získání zákazníka na zdravé úrovni typické pro dobře fungující lokální podnik."
+    "ROAS 5,4× výrazně převyšuje běžný standard pro lokální služby",
+    "PNO 18,3 % drží náklady na akvizici pod kontrolou",
+    "Konverze vzrostly o 12 %, poptávky se mění v zákazníky lépe než dřív"
   ],
   "watchouts": [
-    "Při pokračujícím růstu konverzí je třeba hlídat kapacitu provozu (obsazenost, personál), aby se poptávka dala reálně obsloužit.",
-    "Aktuální efektivita může být částečně sezónní – bez sledování dalšího měsíce nelze potvrdit, že 5,4× ROAS je dlouhodobě udržitelné."
+    "Růst konverzí je třeba udržet i při případném navýšení rozpočtu, aby PNO zůstalo pod kontrolou",
+    "Bez segmentace zdrojů poptávek hrozí, že se úspěch soustředí jen do jednoho kanálu"
   ],
   "priorities": [
     {
-      "title": "Rozšířit rozpočet na nejvýkonnější kampaně",
-      "detail": "Vzhledem k ROAS 5,4× a nízkému PNO je prostor postupně navýšit investice do kampaní s nejlepší návratností a otestovat, zda se výkon udrží i při vyšším objemu."
+      "title": "Ověřit kvalitu nových poptávek",
+      "detail": "Zkontrolovat, zda nárůst konverzí o 12 % odpovídá i reálné kvalitě zakázek, ne jen počtu kontaktů."
     },
     {
-      "title": "Zavést sledování kapacity a kvality obsluhy poptávky",
-      "detail": "S růstem konverzí o 12 % nastavit jednoduché měření toho, kolik poptávek se skutečně promění v obslouženého zákazníka, aby růst reklamy nebyl brzděn provozními limity."
+      "title": "Otestovat mírné navýšení rozpočtu",
+      "detail": "Při ROAS 5,4× má kampaň prostor pro postupné škálování rozpočtu s průběžným sledováním PNO."
     }
   ]
 }

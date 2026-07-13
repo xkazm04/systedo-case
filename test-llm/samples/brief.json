@@ -1,29 +1,29 @@
 {
-  "titleTag": "Jak skladovat ořechy, aby vydržely čerstvé",
-  "metaDescription": "Zjistěte, jak správně skladovat ořechy – teplota, vlhkost, obaly i trvanlivost. Praktické tipy, jak zabránit žluknutí a udržet chuť i výživové hodnoty.",
+  "titleTag": "Skladování ořechů: jak je uchovat čerstvé a chutné",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si zachovaly chuť a nezhořkly. Praktické tipy na teplotu, vlhkost a obaly pro dlouhou trvanlivost.",
   "outline": [
     {
-      "heading": "Proč je správné skladování ořechů důležité",
+      "heading": "Proč ořechy rychle žluknou",
       "points": [
-        "Vysoký obsah tuku vede k rychlému žluknutí",
+        "Vysoký obsah tuků a citlivost na oxidaci",
         "Vliv světla, tepla a vzduchu na kvalitu",
-        "Ztráta chuti a výživových hodnot při špatném skladování"
+        "Rozdíly mezi loupanými a neloupanými ořechy"
       ]
     },
     {
-      "heading": "Nejlepší podmínky a obaly pro skladování",
+      "heading": "Optimální podmínky pro skladování",
       "points": [
-        "Ideální teplota a vlhkost prostředí",
-        "Skladování v lednici vs. mrazáku",
-        "Vzduchotěsné nádoby a tmavé obaly proti oxidaci"
+        "Teplota a vlhkost ve spíži vs. lednici",
+        "Vhodné obaly: sklenice, vakuové sáčky, dózy",
+        "Skladování v mrazáku pro dlouhodobou trvanlivost"
       ]
     },
     {
-      "heading": "Trvanlivost jednotlivých druhů ořechů",
+      "heading": "Praktické tipy a časté chyby",
       "points": [
-        "Rozdíly mezi vlašskými, mandlemi a lískovými oříšky",
-        "Skladovací doba loupaných vs. neloupaných ořechů",
-        "Jak poznat zkažené nebo žluklé ořechy"
+        "Jak poznat žluklé ořechy podle vůně a chuti",
+        "Nevhodné umístění u sporáku nebo na slunci",
+        "Doporučená doba spotřeby jednotlivých druhů ořechů"
       ]
     }
   ]

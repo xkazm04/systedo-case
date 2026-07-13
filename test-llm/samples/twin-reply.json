@@ -1,16 +1,17 @@
 {
-  "reply": "Pane, děkujeme za poptávku. Revizi elektroinstalace na 200 m² zvládneme – abychom vám mohli potvrdit konkrétní termín, potřebujeme si ověřit dostupnost našeho týmu a získat pár podrobností o projektu. Ozveme se vám s konkrétním návrhem brzy. Jakou máte představu o termínu?",
+  "reply": "Dobrý den,\n\ndíky za zájem. Konkrétní termín bude záviset na rozsahu revize a capacitě našeho týmu — pro přesnější dostupnost potřebuji vědět, jaký typ elektroinstalace se jedná (rozvody, zásuvky, osvětlení, nebo komplexní audit?) a jaký máte časový rámec.\n\nBude se jednat o běžnou revizi nebo diagnostiku konkrétního problému?\n\nS pozdravem",
   "questions": [
-    "Jakou máte představu o časovém rámci – je to urgentní nebo máte času?",
-    "Jedná se o komplexní revizi nebo řešíte konkrétní problém?",
-    "Jaké je místní zaměření – v jakém městě či okrese se kancelář nachází?"
+    "Jaký konkrétní typ revize elektroinstalace potřebujete — jde o bezpečnostní audit, ověření funkčnosti, nebo řešení konkrétního problému?",
+    "Máte preferovaný čas pro provedení revize (např. v pracovní dny, mimořádně?) a jak dlouho předem to plánujete?",
+    "Jedná se o první revizi nebo následnou diagnostiku v důsledku zjištěných problémů?"
   ],
-  "confidence": 65,
+  "confidence": 35,
   "risks": [
-    "Neznám aktuální dostupnost týmu – slibný termín by měl být ověřen v interním systému.",
-    "Neznám přesnou cenu za tento typ a rozsah – neslibuj konkrétní výši bez kalkulace.",
-    "Chybí informace o povaze stavby (historická budova, panelák apod.), což ovlivní složitost.",
-    "Neznám polohu – travel time má vliv na plánování."
+    "Chybí informace o skutečných kapacitách a termínech dostupnosti firmy — odpověď vyhýbavě slibuje 'diskusi' bez konkrétního závazku.",
+    "Není znám ceník ani standardní doba odezvy firmy — neuvedl jsem realistické timeframe.",
+    "Nevím, zda firma poskytuje inspekce na místo nebo pouze online konzultace.",
+    "Chybí kontakt na dispečer/bookování nebo následující krok, jak si domluvit konkrétní termín.",
+    "Slabá výchozí pozice — měly by být v podkladech standardní otázky/filtry na lead qualification."
   ],
-  "toneNotes": "Profesionální a vstřícný tón s bezprostřední odpovědí na dotaz (termín), ale bez slibování konkrétního data. Oslovení příjmením s vykáním. Snaha o rychlou reakci s jasným záměrem pokračovat v komunikaci."
+  "toneNotes": "Volaný v první větě okamžitě odpověděl na otázku o dostupnosti (bez slibu termínu). Udržen formální styl s 'vykání' a příjmením. Tón je profesionální a navádí k dalšímu dialogu bez jednoznačného zavázání se — typické pro lead-gen, kde je klíč kvalifikace klienta. Chybí však sebevědomí a konkrétnost, které by měla očekávaná marca mít."
 }
