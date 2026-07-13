@@ -14,6 +14,9 @@ import { getSyncMeta } from "@/lib/campaigns/store";
 import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { getReportMetrics } from "@/lib/report-metrics/store";
+import { syncReportMetricsFromAds } from "@/lib/report-metrics/sync";
+import { isResyncDue } from "@/lib/report-metrics/freshness";
 import { planSyncTargets } from "./plan";
 
 // long-running fan-out across users
@@ -26,6 +29,14 @@ export async function GET(request: Request) {
 
   const userIds = await listConnectedUserIds();
   const results: { userId: string; projectId?: string; customerId?: string; reason?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
+  // Direction 1: the report's live series re-synced alongside the campaign sync. The
+  // report had NO cron — refresh was manual-only, so syncedAt silently drifted and
+  // the recap served month-old numbers. This cron is the right home (vs. the daily
+  // report/digest crons): it ALREADY fans out over the exact per-(account,project)
+  // linked targets a report sync needs and runs hourly, so a per-project due-gate
+  // (~20h) turns it into an effectively-daily, quota-safe refresh. One
+  // syncReportMetricsFromAds call per linked project per run, bounded by that gate.
+  const reportResults: { userId: string; projectId: string; ok: boolean; skipped?: boolean; error?: string }[] = [];
 
   // Per-project tenancy with account→project mapping: an Ads account is synced
   // ONLY into the project(s) explicitly linked to it via project.adsCustomerId
@@ -73,6 +84,31 @@ export async function GET(request: Request) {
         error: err instanceof Error ? err.message : String(err),
       });
     }
+
+    // Report-metrics refresh for the LINKED project behind this target. Only a
+    // project that carries its own adsCustomerId can sync a report (the sync
+    // resolves the account from the project, never from the active connection), so
+    // the unmapped single-project fallback is skipped here. The due-gate keeps this
+    // to ~once/day/project; syncReportMetricsFromAds does the rest of the gating
+    // (save-only-on-success, classified errors, never throws), so a report-sync
+    // failure never disturbs the campaign sync above.
+    const linked = target.projectId
+      ? projects.find((p) => p.id === target.projectId && p.adsCustomerId)
+      : undefined;
+    if (linked) {
+      try {
+        const existing = await getReportMetrics(linked.id);
+        if (!isResyncDue(existing?.meta.syncedAt, new Date())) {
+          reportResults.push({ userId, projectId: linked.id, ok: true, skipped: true });
+        } else {
+          const r = await syncReportMetricsFromAds(linked, userId);
+          reportResults.push({ userId, projectId: linked.id, ok: r.ok, ...(r.error ? { error: r.error } : {}) });
+        }
+      } catch (err) {
+        console.error(`[cron] report-metrics sync failed for ${userId}/${linked.id}:`, err);
+        reportResults.push({ userId, projectId: linked.id, ok: false, error: err instanceof Error ? err.message : String(err) });
+      }
+    }
     }
   }
 
@@ -81,5 +117,10 @@ export async function GET(request: Request) {
     alerted: results.reduce((n, r) => n + (r.alerted ?? 0), 0),
     anomalies: results.reduce((n, r) => n + (r.anomalies ?? 0), 0),
     results,
+    // Direction 1: report-metrics refreshes this run (one per linked project, minus
+    // the due-gate skips).
+    reportSynced: reportResults.filter((r) => r.ok && !r.skipped).length,
+    reportSkipped: reportResults.filter((r) => r.skipped).length,
+    reportResults,
   });
 }

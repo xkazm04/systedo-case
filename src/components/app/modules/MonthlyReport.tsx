@@ -25,6 +25,7 @@ const T = {
     heading: "Měsíční report", periodLabel: "Období", print: "Tisk / PDF", downloadMd: "Stáhnout .md",
     note: "Ilustrativní data klienta (stejná jako v dashboardu). AI dostává jen reálná čísla a nesmí si žádná vymýšlet.",
     liveData: "Živá data · Google Ads", syncedAt: "synchronizováno {date}",
+    stale: "Data nejsou aktuální — poslední synchronizace před více než 7 dny. Synchronizujte znovu pro aktuální čísla.",
     syncCta: "Synchronizovat z Google Ads", resync: "Synchronizovat znovu", syncing: "Synchronizuji…",
     syncFailed: "Synchronizace se nezdařila.",
     unlink: "Odpojit živá data", unlinking: "Odpojuji…", unlinkFailed: "Odpojení se nezdařilo.",
@@ -41,6 +42,7 @@ const T = {
     heading: "Monthly report", periodLabel: "Period", print: "Print / PDF", downloadMd: "Download .md",
     note: "Illustrative client data (the same you see in the dashboard). The AI only receives real numbers and must not invent any.",
     liveData: "Live data · Google Ads", syncedAt: "synced {date}",
+    stale: "Data is out of date — last synced more than 7 days ago. Re-sync for current figures.",
     syncCta: "Sync from Google Ads", resync: "Re-sync", syncing: "Syncing…",
     syncFailed: "Sync failed.",
     unlink: "Disconnect live data", unlinking: "Disconnecting…", unlinkFailed: "Disconnect failed.",
@@ -64,6 +66,7 @@ export default function MonthlyReport({
   projectId,
   live = false,
   syncedAt,
+  stale = false,
   customerId,
   showCostModel = false,
   costModel = null,
@@ -82,6 +85,8 @@ export default function MonthlyReport({
   live?: boolean;
   /** ISO timestamp of the last live sync */
   syncedAt?: string;
+  /** D1: the live series is older than the staleness window (>7d) → show a warning */
+  stale?: boolean;
   /** the ad account behind the live data */
   customerId?: string;
   /** A3: show the cost-model control (e-shop only) so profit reflects real margin */
@@ -237,8 +242,9 @@ export default function MonthlyReport({
 
       {/* Data source — honest about live vs illustrative, with a sync affordance. */}
       {live ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-positive-soft px-4 py-3 text-xs leading-relaxed">
-          <span className="font-medium text-positive">
+        <div className="space-y-2">
+        <div className={"flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs leading-relaxed " + (stale ? "bg-coral-soft" : "bg-positive-soft")}>
+          <span className={"font-medium " + (stale ? "text-coral-600" : "text-positive")}>
             <Check width={12} height={12} className="mb-0.5 mr-1 inline" />
             {t("liveData")}
             {customerId ? ` · ${customerId}` : ""}
@@ -264,6 +270,14 @@ export default function MonthlyReport({
               </button>
             </div>
           )}
+        </div>
+        {/* D1: stale-data warning — the live series is >7 days old. */}
+        {stale && (
+          <p className="rounded-lg bg-coral-soft px-4 py-2.5 text-xs font-medium leading-relaxed text-coral-600">
+            {t("stale")}
+          </p>
+        )}
+        {syncErr && !unlinkOpen && <p className="text-xs text-negative">{syncErr}</p>}
         </div>
       ) : (
         <div className="rounded-lg bg-canvas px-4 py-3 text-xs leading-relaxed text-muted">

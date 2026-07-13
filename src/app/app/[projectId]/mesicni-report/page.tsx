@@ -164,6 +164,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         projectId={project.id}
         live={resolved.live}
         syncedAt={resolved.syncedAt}
+        stale={resolved.stale}
         customerId={resolved.customerId}
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}

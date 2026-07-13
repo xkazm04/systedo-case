@@ -55,6 +55,7 @@ import { loadBrandContext } from "@/lib/brand/load";
 import { resolveTwinVoice } from "@/lib/twin/load";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import { staleCaveatText } from "@/lib/report-metrics/freshness";
 import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
 import { localSignalsPromptText } from "@/lib/local-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -199,13 +200,24 @@ async function resolveGrounding(
       const resolved = await resolveReportDataset(project);
       const localText = await localSignalsPromptText(project, locale);
       const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale);
-      const base = resolved.live && resolved.syncedAt ? `${project.id}@${resolved.syncedAt}` : project.id;
+      // D1: when the live series is stale, the recap gets a one-line caveat so the
+      // narrative acknowledges the data age instead of presenting month-old numbers
+      // as current. USER-prompt only (groundingContext) — no system-prompt / golden
+      // fingerprint change. Empty (byte-identical prompt) when fresh or on sample.
+      const staleText = resolved.stale ? staleCaveatText(resolved.syncedAt, new Date(), locale) : "";
+      // Staleness flips once for a FIXED syncedAt, so it enters the cache key too —
+      // a stale request must never be served a fresh-cached answer (or vice-versa).
+      const base =
+        resolved.live && resolved.syncedAt
+          ? `${project.id}@${resolved.syncedAt}${resolved.stale ? "#stale" : ""}`
+          : project.id;
+      const groundingContext = [comp.text, staleText || null].filter(Boolean).join(" ") || undefined;
       return {
         data: resolved.data,
         keyId: comp.keySuffix ? `${base}#${comp.keySuffix}` : base,
         businessType: BUSINESS_TYPE[project.type],
         projectType: project.type,
-        groundingContext: comp.text,
+        groundingContext,
       };
     }
   }

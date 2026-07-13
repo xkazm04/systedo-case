@@ -9,6 +9,7 @@ import type { PerformanceData } from "@/lib/types";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { getReportMetrics } from "./store";
 import { buildLiveDataset } from "./build";
+import { isReportStale } from "./freshness";
 import { isLiveMetrics, type ReportMetrics } from "./types";
 
 export interface ResolvedDataset {
@@ -21,6 +22,9 @@ export interface ResolvedDataset {
   syncedAt?: string;
   /** the ad account behind the live data (live only). */
   customerId?: string;
+  /** true when a LIVE series is older than the staleness window (>7d) — drives the
+   *  report's stale banner + the recap's staleness caveat. Never true on sample. */
+  stale?: boolean;
 }
 
 /** The active dataset for a project's report: live if synced rows exist, else sample. */
@@ -38,6 +42,7 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
       live: true,
       syncedAt: metrics.meta.syncedAt,
       customerId: metrics.meta.customerId,
+      stale: isReportStale(metrics.meta.syncedAt, new Date()),
     };
   }
   return { data: getProjectDataset(project), source: "sample", live: false };
