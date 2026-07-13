@@ -20,15 +20,50 @@ import { fmtCZK, fmtMultiple, fmtPct, fmtSignedCZK } from "@/lib/format";
 import { aggregateTelemetry, listLlmTelemetrySince } from "@/lib/llm/telemetry";
 import { aiOpsLines, summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { listDiagnoses } from "@/lib/diagnoses/store";
+import { shouldRunWeeklyDiagnosis } from "@/lib/diagnoses/schedule";
+import { runTenantDiagnoses, type DigestDiagnosisResult } from "@/lib/diagnoses/digest-run";
 
 export const maxDuration = 300;
+
+/** Build the "Diagnóza týdne" alert body (plain text) + email section (HTML) from
+ *  the two produced diagnoses. Each present part contributes a subject + the single
+ *  recommendation to act on. */
+function renderDiagnosis(d: DigestDiagnosisResult): { alertBody: string; html: string } {
+  const parts: string[] = [];
+  const rows: string[] = [];
+  if (d.cohort) {
+    parts.push(`Kohorty: ${d.cohort.subject} — ${d.cohort.recommendation}`);
+    rows.push(
+      `<li style="margin:6px 0"><strong>Kohorty — ${escapeHtml(d.cohort.subject)}:</strong> ${escapeHtml(
+        d.cohort.recommendation
+      )}</li>`
+    );
+  }
+  if (d.leadSource) {
+    parts.push(`Zdroj ${d.leadSource.subject} — ${d.leadSource.recommendation}`);
+    rows.push(
+      `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
+        d.leadSource.recommendation
+      )}</li>`
+    );
+  }
+  const html = rows.length
+    ? `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>${rows.join("")}</ul>`
+    : "";
+  return { alertBody: parts.join(" · "), html };
+}
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const now = new Date();
   const userIds = await listConnectedUserIds();
+  // "Diagnóza týdne": one passive diagnosis per PROJECT per run — the fan-out is
+  // account×project, so a project seen under a second account must not re-run it.
+  const diagnosedProjects = new Set<string>();
   const results: {
     userId: string;
     projectId?: string;
@@ -111,6 +146,39 @@ export async function GET(request: Request) {
       await recordAlert(tenant, { type: "digest", title, body, items });
       await sendWebhook(`Adamant — ${title}: ${body}`);
 
+      // "Diagnóza týdne": passively run the LTV cohort + lead-source diagnosis over
+      // this tenant's real data (reusing the gate-tracked tools) and file it as an
+      // inbox entry + an email section. Only for a connected tenant (this branch is
+      // reached only when meta && campaigns exist → not sample-only), once per
+      // project per week (the newest digest-produced diagnosis gates re-runs).
+      let diagnosisHtml = "";
+      if (project && !diagnosedProjects.has(project.id)) {
+        diagnosedProjects.add(project.id);
+        const priorDigest = (await listDiagnoses(project.id))
+          .filter((d) => d.origin === "digest")
+          .map((d) => d.createdAt)
+          .sort();
+        const shouldRun = shouldRunWeeklyDiagnosis({
+          hasLiveData: true,
+          lastRunAt: priorDigest.at(-1) ?? null,
+          now: now.getTime(),
+        });
+        if (shouldRun) {
+          const diagnosis = await runTenantDiagnoses(project, now);
+          if (diagnosis) {
+            const { alertBody, html } = renderDiagnosis(diagnosis);
+            await recordAlert(tenant, {
+              type: "digest",
+              title: "Diagnóza týdne",
+              body: alertBody,
+              items: [],
+              href: `/app/${project.id}/ltv`,
+            });
+            diagnosisHtml = html;
+          }
+        }
+      }
+
       const email = await getUserEmail(userId);
       if (email) {
         const kpiHtml = kpis
@@ -129,6 +197,7 @@ export async function GET(request: Request) {
           `<table style="border-collapse:collapse;margin-top:8px"><tr>${kpiHtml}</tr></table>` +
           `<p style="margin-top:12px">${criticals} kampaní vyžaduje pozornost.</p>` +
           movesHtml +
+          diagnosisHtml +
           aiHtml +
           `<p style="margin-top:16px">Otevřete přehled v Adamant pro detail a AI vyhodnocení.</p>`;
         await sendEmail(email, `Adamant: ${title}`, html);

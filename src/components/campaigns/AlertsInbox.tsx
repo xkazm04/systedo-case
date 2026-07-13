@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Bell, Bolt, Check } from "@/components/icons";
+import { ArrowRight, Bell, Bolt, Check } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
@@ -21,6 +22,7 @@ const T = {
     heading: "Upozornění",
     markRead: "Označit přečtené",
     repeat: "×{n}",
+    open: "Otevřít",
     empty: "Žádná upozornění. Při synchronizaci vás upozorníme na nově kritické kampaně.",
     stage: "Připravit balíček",
     staging: "Připravuji…",
@@ -37,6 +39,7 @@ const T = {
     heading: "Alerts",
     markRead: "Mark all read",
     repeat: "×{n}",
+    open: "Open",
     empty: "No alerts. We'll notify you when newly critical campaigns are found during a sync.",
     stage: "Stage change-set",
     staging: "Staging…",
@@ -233,7 +236,7 @@ export default function AlertsInbox({
                       )}
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-muted">{a.body}</p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+<div className="mt-1.5 flex flex-wrap items-center gap-2">
                       <time dateTime={a.createdAt} className="text-[13px] text-muted">
                         {fmt.fmtRelative(a.createdAt)}
                       </time>
@@ -246,6 +249,16 @@ export default function AlertsInbox({
                         <span className="pill bg-navy-50 text-muted">{t("statusAck")}</span>
                       )}
                     </div>
+                    {a.href && (
+                      <Link
+                        href={a.href}
+                        onClick={() => setOpen(false)}
+                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-brand-accent hover:underline"
+                      >
+                        {t("open")}
+                        <ArrowRight width={12} height={12} />
+                      </Link>
+                    )}
                     {(canStage || canAck) && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         {canStage && (

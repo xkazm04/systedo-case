@@ -28,6 +28,9 @@ export interface AlertDoc {
   /** short plain-text body for the inbox row + webhook */
   body: string;
   items: AlertItem[];
+  /** optional in-app deep-link target for the inbox row (e.g. a module panel the
+   *  alert is about) — the "Diagnóza týdne" digest alert links to the LTV module. */
+  href?: string;
   createdAt: string;
   read: boolean;
   /** where the alert sits in the operator's workflow (new → acknowledged →
@@ -53,10 +56,13 @@ function alertsCol(tenant: string) {
  *  thread it into the activity feed / a staged change-set. */
 export async function recordAlert(
   tenant: string,
-  alert: { type: AlertType; title: string; body: string; items: AlertItem[] }
+  alert: { type: AlertType; title: string; body: string; items: AlertItem[]; href?: string }
 ): Promise<string> {
+  // Firestore rejects an `undefined` field, so only include href when set.
+  const { href, ...rest } = alert;
   const ref = await alertsCol(tenant).add({
-    ...alert,
+    ...rest,
+    ...(href ? { href } : {}),
     createdAt: new Date().toISOString(),
     read: false,
     status: "new" satisfies AlertStatus,
