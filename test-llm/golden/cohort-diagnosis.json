@@ -1,14 +1,14 @@
 {
   "id": "cohort-diagnosis",
   "label": "Diagnostika kohort (CAC → LTV)",
-  "promptHash": "ed9ea64506b272a1",
+  "promptHash": "522b51e67b877731",
   "schemaKeys": [
     "recommendation",
     "risks",
     "summary",
     "worstCohort"
   ],
-  "system": "Jsi český analytik jednotkové ekonomiky (CAC, LTV, návratnost). Děláš stručnou diagnostiku akvizičních kohort. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+  "system": "Jsi český analytik jednotkové ekonomiky (CAC, LTV, návratnost). Děláš stručnou diagnostiku akvizičních kohort. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty. Je-li uveden rozpad podle kanálů, urči kanál, který kohortu nejvíc táhne dolů; z retenční křivky čti tvar poklesu. Vracej pouze validní JSON dle schématu.",
   "schema": {
     "properties": {
       "recommendation": {

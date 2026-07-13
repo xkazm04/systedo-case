@@ -49,9 +49,12 @@ const T = {
   },
 } as const;
 
-/** Project a computed cohort row down to the few real numbers the model needs. */
+/** Project a computed cohort row down to the real numbers the model needs —
+ *  including the per-channel breakdown and the retention/survival curve the panel
+ *  used to drop, so the diagnosis can point at the channel and read the decay
+ *  shape rather than only the headline ratio + M3. */
 function toDiagnosisCohort(r: CohortMetrics): CohortDiagnosisCohort {
-  return {
+  const cohort: CohortDiagnosisCohort = {
     month: r.month,
     cac: r.cac,
     ltv: r.ltv,
@@ -59,7 +62,19 @@ function toDiagnosisCohort(r: CohortMetrics): CohortDiagnosisCohort {
     paybackMonth: r.paybackMonth,
     m3: r.m3,
     signups: r.signups,
+    survival: r.survival,
+    observedMonths: r.observedMonths,
   };
+  if (r.channelMetrics.length > 0) {
+    cohort.channels = r.channelMetrics.map((m) => ({
+      channel: m.channel,
+      cac: m.cac,
+      ltvCac: m.ltvCac,
+      paid: m.paid,
+      signups: m.signups,
+    }));
+  }
+  return cohort;
 }
 
 /** Build the request from props at click time (never during render). */

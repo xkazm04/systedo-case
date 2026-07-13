@@ -8,6 +8,8 @@ import {
   avgVelocity,
   funnelBySource,
   periodAlerts,
+  sourceAlerts,
+  sourceTrend,
   summarize,
   trendBySource,
   withMetrics,
@@ -175,6 +177,19 @@ export default async function LeadQualityModule({ sources }: { sources: LeadSour
       seed.cpl = r.cpl;
       seed.costPerQualified = r.cpql;
     }
+    // Period-over-period drift, velocity and any live alerts for THIS source —
+    // computed here and previously dropped, so the diagnosis reads whether the
+    // source is getting worse (CPQL rising, qualification slipping) and how slow
+    // it closes, not only its static snapshot.
+    const tr = sourceTrend(r);
+    if (tr && (tr.cpqlDelta !== null || tr.qualRateDelta !== null || tr.winRateDelta !== null)) {
+      seed.trend = { cpqlDelta: tr.cpqlDelta, qualRateDelta: tr.qualRateDelta, winRateDelta: tr.winRateDelta };
+    }
+    if (r.daysToQualify != null || r.daysToClose != null) {
+      seed.velocityDays = (r.daysToQualify ?? 0) + (r.daysToClose ?? 0);
+    }
+    const rowAlerts = tr ? sourceAlerts(tr).map((a) => a.message) : [];
+    if (rowAlerts.length > 0) seed.alerts = rowAlerts;
     // Peer sources (best-first by quality score, excluding self) so the diagnosis
     // can name a concrete better destination for budget instead of "move it".
     const peers = rows

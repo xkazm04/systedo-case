@@ -19,7 +19,7 @@ import {
   type LeadSourceDiagnosisResult,
   type LeadSourceSeverity,
 } from "../../ai-types";
-import { fmtCZK, fmtInt, fmtPct, type SupportedLocale } from "../../format";
+import { fmtCZK, fmtInt, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
 import { coerceEnum } from "./_coerce";
@@ -37,6 +37,8 @@ Pravidla:
   - „ok" = zdroj nemá zásadní problém.
 - Doporuč JEDNU nejúčinnější, konkrétní akci (např. přitvrdit kvalifikaci formuláře a vyloučit boty; přecílit publikum; přesunout rozpočet ke kvalitnějším zdrojům; sbírat víc dat) — akčně, ne obecně.
 - Jsou-li v datech uvedeny i ostatní zdroje pro srovnání a doporučuješ přesun rozpočtu, jmenuj KONKRÉTNÍ lepší zdroj podle jeho čísel — ne obecně „ke kvalitnějším zdrojům".
+- Je-li uveden VÝVOJ oproti minulému období (drift CPQL, kvalifikace, win rate) nebo upozornění, zohledni ho: zhoršující se zdroj (rostoucí CPQL, klesající kvalifikace) je naléhavější a mění doporučení i závažnost.
+- Je-li uvedena rychlost (dní lead → uzavřeno), vezmi ji v potaz — pomalý zdroj je jiný problém než nekvalitní.
 - Odkazuj se na konkrétní čísla z dat (míra kvalifikace, win rate, CPL, CPQL, počet leadů).
 - Volitelně vrať „severity" (high | medium | low) podle závažnosti.
 - Piš česky, věcně, bez vaty a marketingových frází.
@@ -65,6 +67,22 @@ function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string
       lines.push(`- CPQL (cena za kvalifikovaný lead): ${fmtCZK(req.costPerQualified)}`);
   } else {
     lines.push("- Neplacený zdroj (bez nákladů) — cenu/CPQL neřeš.");
+  }
+  // Period-over-period drift, velocity and any live alerts for this source — so the
+  // diagnosis reads whether it is getting WORSE, not just its static snapshot.
+  if (req.trend) {
+    const parts: string[] = [];
+    if (req.trend.cpqlDelta != null) parts.push(`CPQL ${fmtSignedPct(req.trend.cpqlDelta)}`);
+    if (req.trend.qualRateDelta != null) parts.push(`kvalifikace ${fmtSignedPct(req.trend.qualRateDelta)}`);
+    if (req.trend.winRateDelta != null) parts.push(`win rate ${fmtSignedPct(req.trend.winRateDelta)}`);
+    if (parts.length > 0) lines.push(`- Vývoj oproti minulému období: ${parts.join(", ")}`);
+  }
+  if (req.velocityDays != null && req.velocityDays > 0) {
+    lines.push(`- Rychlost lead → uzavřeno: ø ${Math.round(req.velocityDays)} dní`);
+  }
+  if (req.alerts && req.alerts.length > 0) {
+    lines.push("- Upozornění (drift):");
+    for (const a of req.alerts) lines.push(`  · ${a}`);
   }
   const peers = (req.peers ?? []).filter((p) => p.source !== req.source);
   if (peers.length > 0) {
@@ -193,6 +211,13 @@ export function demoLeadSourceDiagnosis(
   const DEMO_TAIL =
     " Ukázkový výstup — připojte LLM (Claude v devu, Gemini v produkci) pro diagnostiku od modelu.";
 
+  // Deterministic drift note from the period-over-period trend, when the source is
+  // measurably getting worse — so the demo also reflects the new signal.
+  const driftNote =
+    req.trend?.cpqlDelta != null && req.trend.cpqlDelta > 0.25
+      ? ` Navíc CPQL vzrostlo o ${fmtSignedPct(req.trend.cpqlDelta)} oproti minulému období — zdroj se zhoršuje.`
+      : "";
+
   let summary: string;
   let recommendation: string;
   switch (cause) {
@@ -219,7 +244,7 @@ export function demoLeadSourceDiagnosis(
   }
 
   return {
-    summary: summary + DEMO_TAIL,
+    summary: summary + driftNote + DEMO_TAIL,
     likelyCause: cause,
     recommendation,
     severity: severityFor(cause),

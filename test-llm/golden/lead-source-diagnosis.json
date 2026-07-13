@@ -1,14 +1,14 @@
 {
   "id": "lead-source-diagnosis",
   "label": "Diagnostika zdroje leadů",
-  "promptHash": "af50e0d39534719a",
+  "promptHash": "491215bd90c0492b",
   "schemaKeys": [
     "likelyCause",
     "recommendation",
     "severity",
     "summary"
   ],
-  "system": "Jsi český analytik kvality leadů. Diagnostikuješ JEDEN podvýkonný zdroj leadů. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty a vracej pouze validní JSON dle schématu.",
+  "system": "Jsi český analytik kvality leadů. Diagnostikuješ JEDEN podvýkonný zdroj leadů. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty. Je-li uveden vývoj oproti minulému období nebo upozornění (drift), zohledni ho: zhoršující se zdroj je naléhavější. Vracej pouze validní JSON dle schématu.",
   "schema": {
     "properties": {
       "likelyCause": {

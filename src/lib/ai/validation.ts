@@ -19,6 +19,7 @@ import {
   type ChatTurn,
   type BriefKeyword,
   type BriefRequest,
+  type CohortDiagnosisChannel,
   type CohortDiagnosisCohort,
   type CohortDiagnosisRequest,
   type CompareOutlineIntent,
@@ -36,6 +37,7 @@ import {
   type TwinStyleRequest,
   type LeadSourceDiagnosisRequest,
   type LeadSourcePeer,
+  type LeadSourceTrend,
   type LocalReviewReplyRequest,
   type LpVariantIdeasRequest,
   type Platform,
@@ -532,7 +534,7 @@ function parseDiagnosisCohort(v: unknown): CohortDiagnosisCohort | null {
   const month = str(o.month).slice(0, 60);
   if (!month) return null;
   const paybackMonth = o.paybackMonth == null ? null : fin(o.paybackMonth);
-  return {
+  const cohort: CohortDiagnosisCohort = {
     month,
     cac: fin(o.cac),
     ltv: fin(o.ltv),
@@ -541,6 +543,33 @@ function parseDiagnosisCohort(v: unknown): CohortDiagnosisCohort | null {
     m3: fin(o.m3),
     signups: fin(o.signups),
   };
+  // Retention/survival curve (the SHAPE of the decay) + how much of it is observed.
+  if (Array.isArray(o.survival)) {
+    const survival = o.survival.slice(0, 36).map((n) => fin(n));
+    if (survival.length > 0) cohort.survival = survival;
+  }
+  const observedMonths = Math.round(fin(o.observedMonths));
+  if (observedMonths > 0) cohort.observedMonths = observedMonths;
+  // Per-channel breakdown so the diagnosis can name the channel dragging a cohort
+  // down. Bounded; each row needs a channel label to be addressable.
+  if (Array.isArray(o.channels)) {
+    const channels: CohortDiagnosisChannel[] = [];
+    for (const item of o.channels.slice(0, 12)) {
+      if (!item || typeof item !== "object") continue;
+      const c = item as Record<string, unknown>;
+      const channel = str(c.channel).slice(0, 80);
+      if (!channel) continue;
+      channels.push({
+        channel,
+        cac: fin(c.cac),
+        ltvCac: fin(c.ltvCac),
+        paid: Boolean(c.paid),
+        signups: fin(c.signups),
+      });
+    }
+    if (channels.length > 0) cohort.channels = channels;
+  }
+  return cohort;
 }
 
 export function validateCohortDiagnosisRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<CohortDiagnosisRequest> {
@@ -631,6 +660,31 @@ export function validateLeadSourceDiagnosisRequest(
       peers.push(peer);
     }
     if (peers.length > 0) value.peers = peers;
+  }
+  // Period-over-period drift for this source: three relative deltas (or null when
+  // no baseline). A drifting source is a different problem than a static-weak one.
+  if (o.trend && typeof o.trend === "object") {
+    const tr = o.trend as Record<string, unknown>;
+    const delta = (v: unknown): number | null => (v == null ? null : fin(v));
+    const trend: LeadSourceTrend = {
+      cpqlDelta: delta(tr.cpqlDelta),
+      qualRateDelta: delta(tr.qualRateDelta),
+      winRateDelta: delta(tr.winRateDelta),
+    };
+    if (trend.cpqlDelta !== null || trend.qualRateDelta !== null || trend.winRateDelta !== null) {
+      value.trend = trend;
+    }
+  }
+  const velocityDays = fin(o.velocityDays);
+  if (velocityDays > 0) value.velocityDays = velocityDays;
+  if (Array.isArray(o.alerts)) {
+    const alerts = o.alerts
+      .filter((a): a is string => typeof a === "string")
+      .map((a) => a.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .map((a) => a.slice(0, 300));
+    if (alerts.length > 0) value.alerts = alerts;
   }
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;

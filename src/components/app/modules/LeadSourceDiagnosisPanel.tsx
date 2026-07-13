@@ -18,6 +18,7 @@ import {
   type LeadSourceDiagnosisResult,
   type LeadSourcePeer,
   type LeadSourceSeverity,
+  type LeadSourceTrend,
 } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -83,6 +84,12 @@ export interface LeadSourceSeed {
   junk: boolean;
   /** other sources' compact metrics (best-first) for budget-shift comparison */
   peers?: LeadSourcePeer[];
+  /** period-over-period drift for this source (relative deltas), when it has prior data */
+  trend?: LeadSourceTrend;
+  /** average lead → close velocity in days, when known */
+  velocityDays?: number;
+  /** period alert sentences already raised for this source (CPQL rise / over target) */
+  alerts?: string[];
 }
 
 /** Build the request from the picked seed at click time (never during render). */
@@ -99,6 +106,9 @@ function buildRequest(seed: LeadSourceSeed): LeadSourceDiagnosisRequest {
   if (seed.cpl != null) req.cpl = seed.cpl;
   if (seed.costPerQualified != null) req.costPerQualified = seed.costPerQualified;
   if (seed.peers && seed.peers.length > 0) req.peers = seed.peers;
+  if (seed.trend) req.trend = seed.trend;
+  if (seed.velocityDays != null && seed.velocityDays > 0) req.velocityDays = seed.velocityDays;
+  if (seed.alerts && seed.alerts.length > 0) req.alerts = seed.alerts;
   return req;
 }
 

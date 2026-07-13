@@ -9,6 +9,7 @@
 import { Type } from "@google/genai";
 import type {
   AiResponse,
+  CohortDiagnosisChannel,
   CohortDiagnosisCohort,
   CohortDiagnosisRequest,
   CohortDiagnosisResult,
@@ -30,6 +31,8 @@ Pravidla:
 - Urči JEDNU nejproblematičtější kohortu (nejnižší poměr LTV:CAC, případně nejdelší / chybějící návratnost) a pojmenuj ji přesně tak, jak je označená v datech.
 - Doporuč JEDEN nejúčinnější páku, kterou má smysl řešit jako první (snížit CAC, ${lever}, nebo přealokovat rozpočet) — konkrétně a akčně, ne obecně.
 - Odkazuj se na konkrétní čísla z dat (CAC, LTV, LTV:CAC, návratnost, ${retention}).
+- Je-li u kohorty uveden rozpad podle akvizičních kanálů, urči, který kanál ji nejvíc táhne dolů (nejnižší LTV:CAC nebo nejdražší CAC), a zohledni to v páce — nezaměňuj problémový kanál za celou kohortu.
+- Retenční křivka ukazuje TVAR poklesu (M0, M1, …): strmý pád hned po prvních měsících (slabá aktivace) je jiný problém než pozvolný dlouhodobý odliv.
 - Cíl je LTV:CAC ≥ 3 a co nejkratší návratnost. Pod 1 je akvizice ztrátová.
 - Piš česky, věcně, bez vaty a marketingových frází.
 - Drž se zadaného JSON schématu.`;
@@ -54,6 +57,37 @@ function cohortLine(c: CohortDiagnosisCohort, eshop: boolean): string {
   ].join(" ");
 }
 
+/** One channel's economics inside a cohort, as an indented evidence line. */
+function channelLine(ch: CohortDiagnosisChannel): string {
+  const cac = ch.paid ? fmtCZK(ch.cac) : "zdarma";
+  const ratio = ch.ltvCac > 0 ? fmtMultiple(ch.ltvCac) : "—";
+  return `    · ${ch.channel}: CAC ${cac}, LTV:CAC ${ratio}, ${ch.signups} akvizic`;
+}
+
+/** The retention curve as an indented evidence line: the observed-month fractions
+ *  followed by the modelled tail, so the model reads the shape of the decay. */
+function retentionLine(c: CohortDiagnosisCohort): string | null {
+  if (!c.survival || c.survival.length < 2) return null;
+  const obs = c.observedMonths ?? c.survival.length;
+  const pts = c.survival
+    .map((s, i) => `M${i} ${fmtPct(s)}${i === obs - 1 && obs < c.survival!.length ? " (dál modelováno)" : ""}`)
+    .join(", ");
+  return `    retenční křivka: ${pts}`;
+}
+
+/** All evidence lines for one cohort: the headline row plus, when present, the
+ *  per-channel breakdown and the retention curve the panel now carries through. */
+function cohortLines(c: CohortDiagnosisCohort, eshop: boolean): string[] {
+  const lines = [cohortLine(c, eshop)];
+  if (c.channels && c.channels.length > 0) {
+    lines.push("    kanály:");
+    for (const ch of c.channels) lines.push(channelLine(ch));
+  }
+  const ret = retentionLine(c);
+  if (ret) lines.push(ret);
+  return lines;
+}
+
 function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
   const eshop = req.eshop ?? false;
   const retention = eshop ? "M3 opakování" : "M3 retence";
@@ -68,8 +102,8 @@ function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
     }.`,
     req.trend ? `Trend kohort: ${TREND_LABEL[req.trend]}.` : "",
     "",
-    "KOHORTY (od nejstarší po nejnovější):",
-    ...req.cohorts.map((c) => cohortLine(c, eshop)),
+    "KOHORTY (od nejstarší po nejnovější; u kohort s rozpadem i kanály a tvar retenční křivky):",
+    ...req.cohorts.flatMap((c) => cohortLines(c, eshop)),
     "",
     `Povolené názvy kohort pro pole „worstCohort": ${labels}.`,
     "",
@@ -107,6 +141,14 @@ const COHORT_DIAGNOSIS_SCHEMA = {
 function worstCohortOf(cohorts: CohortDiagnosisCohort[]): CohortDiagnosisCohort | null {
   if (cohorts.length === 0) return null;
   return cohorts.reduce((worst, c) => (c.ltvCac < worst.ltvCac ? c : worst), cohorts[0]!);
+}
+
+/** The paid channel with the weakest LTV:CAC in a cohort's breakdown (the one to
+ *  fix first), or null when there is no paid channel to point at. Deterministic. */
+function worstChannelOf(channels?: CohortDiagnosisChannel[]): CohortDiagnosisChannel | null {
+  const paid = (channels ?? []).filter((c) => c.paid && c.ltvCac > 0);
+  if (paid.length === 0) return null;
+  return paid.reduce((worst, c) => (c.ltvCac < worst.ltvCac ? c : worst), paid[0]!);
 }
 
 function normalizeCohortDiagnosis(
@@ -173,9 +215,15 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
   // attack CAC; if retention is weak, push retention/ARPU; otherwise reallocate.
   const cacHeavy = worst.ltv > 0 && worst.cac / worst.ltv >= 0.4;
   const weakRetention = worst.m3 < 0.4;
+  // The paid channel with the weakest LTV:CAC inside the worst cohort — named in
+  // the CAC lever so the demo points at the channel, not just the cohort.
+  const worstChannel = worstChannelOf(worst.channels);
   let recommendation: string;
   if (losing && cacHeavy) {
-    recommendation = `Snižte CAC kohorty ${worst.month} (${fmtCZK(worst.cac)}/registraci) — utlumte nejdražší kanály a přesuňte rozpočet ke kohortám s nejlepší LTV:CAC, než přidáte další objem.`;
+    const channelHint = worstChannel
+      ? ` Nejhůř si vede kanál ${worstChannel.channel} (LTV:CAC ${fmtMultiple(worstChannel.ltvCac)}) — začněte u něj.`
+      : "";
+    recommendation = `Snižte CAC kohorty ${worst.month} (${fmtCZK(worst.cac)}/registraci) — utlumte nejdražší kanály a přesuňte rozpočet ke kohortám s nejlepší LTV:CAC, než přidáte další objem.${channelHint}`;
   } else if (weakRetention) {
     recommendation = `Zvedněte retenci/ARPU kohorty ${worst.month} (M3 retence jen ${fmtPct(worst.m3)}) — onboarding a aktivace v prvních týdnech protáhnou křivku a zvednou LTV ${fmtCZK(worst.ltv)}.`;
   } else {

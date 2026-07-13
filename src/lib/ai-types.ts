@@ -672,6 +672,31 @@ export interface CohortDiagnosisCohort {
   m3: number;
   /** signups in the cohort */
   signups: number;
+  /** per-acquisition-channel economics within the cohort, when a breakdown
+   *  exists — lets the diagnosis name the channel dragging a cohort down, not
+   *  just the cohort. Absent/empty when the cohort carries no channel split. */
+  channels?: CohortDiagnosisChannel[];
+  /** the retention / survival curve M0…M(n): observed months followed by the
+   *  modelled tail, so the model reads the SHAPE of the decay, not only M3. */
+  survival?: number[];
+  /** how many leading `survival` entries are observed (the rest are modelled). */
+  observedMonths?: number;
+}
+
+/** One acquisition channel's economics inside a cohort — the projection the
+ *  diagnosis reads to point at the channel behind a weak cohort. REAL numbers
+ *  only, mirrored from ChannelMetrics (lib/ltv/compute). */
+export interface CohortDiagnosisChannel {
+  /** the channel label (e.g. „Google Ads", „Organic") */
+  channel: string;
+  /** channel spend per signup (CZK); 0 for a free / organic channel */
+  cac: number;
+  /** cohort LTV-per-user ÷ this channel's CAC (0 when CAC is 0) */
+  ltvCac: number;
+  /** whether the channel costs ad money (excluded from paid CAC when false) */
+  paid: boolean;
+  /** signups the channel brought into the cohort */
+  signups: number;
 }
 
 /** Blended portfolio summary + optional trend direction handed to the model. */
@@ -932,6 +957,16 @@ export interface LeadSourceDiagnosisRequest {
   /** other sources' compact metrics, best-first — lets the diagnosis name a
    *  concrete better source to move budget to instead of a generic "move it" */
   peers?: LeadSourcePeer[];
+  /** period-over-period drift for THIS source (relative deltas vs the previous
+   *  period) — so the diagnosis reads whether the source is getting worse, not
+   *  just its static snapshot. Absent when the source has no prior-period data. */
+  trend?: LeadSourceTrend;
+  /** average lead → close velocity for the source (days), when known — a slow
+   *  source is a different problem than a low-quality one. */
+  velocityDays?: number;
+  /** ready-to-read period alert sentences already raised for this source (CPQL
+   *  rose past threshold / over target), so the model can weigh a live warning. */
+  alerts?: string[];
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -945,6 +980,18 @@ export interface LeadSourcePeer {
   winRate: number;
   /** cost per qualified lead (CZK), when the peer has spend */
   costPerQualified?: number;
+}
+
+/** A source's period-over-period drift, mirrored from SourceTrend
+ *  (lib/lead-quality/compute) — relative changes as fractions (+0.12 = +12 %),
+ *  null when there is no usable prior-period baseline. */
+export interface LeadSourceTrend {
+  /** relative change in CPQL vs the previous period (rise = worse); null = no baseline */
+  cpqlDelta: number | null;
+  /** relative change in qualification rate (rise = better); null = no baseline */
+  qualRateDelta: number | null;
+  /** relative change in win rate (rise = better); null = no baseline */
+  winRateDelta: number | null;
 }
 
 export interface LeadSourceDiagnosisResult {
