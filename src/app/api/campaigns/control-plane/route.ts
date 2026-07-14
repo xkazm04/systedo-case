@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     override?: unknown;
     projectId?: unknown;
     alertId?: unknown;
+    scopeCampaignIds?: unknown;
   };
   try {
     body = await request.json();
@@ -73,9 +74,25 @@ export async function POST(request: Request) {
       }
       return Response.json({ changeSet });
     }
-    const changeSet = await createChangeSet(tenant);
+    // Direct campaign scoping (a critical table row without an alert): the body may
+    // name the campaigns to act on — createChangeSet already supports the scope, the
+    // route just has to read it. Absent/empty → the usual portfolio-wide proposal.
+    const scopeCampaignIds = Array.isArray(body.scopeCampaignIds)
+      ? (body.scopeCampaignIds as unknown[])
+          .filter((v): v is string => typeof v === "string" && v.length > 0)
+          .slice(0, 50)
+      : [];
+    const changeSet = await createChangeSet(
+      tenant,
+      scopeCampaignIds.length > 0 ? { scopeCampaignIds } : {}
+    );
     if (!changeSet) {
-      return Response.json({ error: "Žádné doporučené přesuny — portfolio je vyvážené." }, { status: 422 });
+      return Response.json(
+        scopeCampaignIds.length > 0
+          ? { error: "Pro vybrané kampaně není žádný smysluplný přesun." }
+          : { error: "Žádné doporučené přesuny — portfolio je vyvážené." },
+        { status: 422 }
+      );
     }
     return Response.json({ changeSet });
   }
