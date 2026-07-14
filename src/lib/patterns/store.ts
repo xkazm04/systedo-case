@@ -55,9 +55,10 @@ export async function deletePattern(tenant: string, id: string): Promise<boolean
  *  no extra Firestore read is made. */
 export async function getLibrary(
   tenant: string,
-  pnoGoal?: number
+  pnoGoal?: number,
+  projectId?: string
 ): Promise<{ auto: Pattern[]; saved: Pattern[] }> {
-  const [mined, saved] = await Promise.all([extractPatterns(tenant, pnoGoal), listSavedPatterns(tenant)]);
+  const [mined, saved] = await Promise.all([extractPatterns(tenant, pnoGoal, projectId), listSavedPatterns(tenant)]);
   // Campaign-mined patterns + the demo-derived creative/targeting sample lessons.
   // The library is a lessons surface, so sample lessons show for every tenant
   // (their insight says "(ukázková lekce)"); the AI-prompt path filters them out
@@ -119,10 +120,11 @@ export async function getPatternLines(
   tenant: string,
   query?: string,
   limit = 6,
-  pnoGoal?: number
+  pnoGoal?: number,
+  projectId?: string
 ): Promise<string[]> {
   const [{ auto, saved }, live] = await Promise.all([
-    getLibrary(tenant, pnoGoal),
+    getLibrary(tenant, pnoGoal, projectId),
     isLiveTenant(tenant),
   ]);
   // Prompt integrity: a live tenant's "proven patterns from this account" block

@@ -16,6 +16,7 @@ import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct, fmtSignedPct } from "@/lib/format";
 import { evaluate } from "@/lib/lp-exp/compute";
 import { SAMPLE_EXPERIMENTS, type LpExperiment } from "@/lib/lp-exp/sample";
+import { listExperiments } from "@/lib/lp-exp/store";
 import { SAMPLE_ATTRIBUTION, type ChannelPerf } from "@/lib/distribution/sample";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
 import type { Pattern, PatternCategory } from "./types";
@@ -267,18 +268,40 @@ export function promptSafePatterns(patterns: Pattern[], liveTenant: boolean): Pa
   return patterns.filter((p) => !sampleIds.has(p.id));
 }
 
-/** Derive patterns from the tenant's current campaign set + score history.
- *  Loads both from the store, then delegates to the pure `minePatterns`. See it
- *  for the `pnoGoal` contract (defaults to the paid-portfolio 0.18). Campaign-
- *  derived ONLY — the sample-derived creative/targeting lessons are composed in by
- *  `getLibrary` via `sampleLessonPatterns` so the prompt path can tell the two
- *  producers apart. Server-only. */
+/** LIVE creative-pattern handoff: mine a PROJECT's own PERSISTED landing-page
+ *  experiments (not the seeded sample) for statistically significant winners, exactly
+ *  as `mineCreativePatterns` does for any experiment set. These are NORMAL creative
+ *  patterns — NOT marked "(ukázková lekce)" and NOT in the `sampleLessonPatterns` id
+ *  set — so `promptSafePatterns` legitimately KEEPS them for a live tenant: a real
+ *  experiment's winner IS an account-proven win, unlike the quarantined sample lessons.
+ *
+ *  The join is by projectId, threaded down from the ad-generator's `resolveAdPatterns`
+ *  (which already resolves it for the tenant + brand grounding). No projectId → `[]`,
+ *  so the demo / no-project path is byte-identical. Never throws — a store hiccup
+ *  degrades to no patterns (via listExperiments). Server-only. */
+export async function extractExperimentPatterns(projectId: string | undefined): Promise<Pattern[]> {
+  if (!projectId) return [];
+  const experiments = await listExperiments(projectId);
+  if (experiments.length === 0) return [];
+  return mineCreativePatterns(experiments);
+}
+
+/** Derive patterns from the tenant's current campaign set + score history, PLUS — when
+ *  a `projectId` is threaded through — the project's own persisted LP-experiment winners
+ *  (see `extractExperimentPatterns`). Loads campaigns + history from the store, then
+ *  delegates to the pure `minePatterns`. See it for the `pnoGoal` contract (defaults to
+ *  the paid-portfolio 0.18). The sample-derived creative/targeting lessons are composed
+ *  in separately by `getLibrary` via `sampleLessonPatterns` so the prompt path can tell
+ *  the two producers apart. No projectId → byte-identical to the campaign-only path.
+ *  Server-only. */
 export async function extractPatterns(
   tenant: string,
-  pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO
+  pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO,
+  projectId?: string
 ): Promise<Pattern[]> {
+  const experimentPatterns = await extractExperimentPatterns(projectId);
   const campaigns = await listCampaigns(tenant);
-  if (campaigns.length === 0) return [];
+  if (campaigns.length === 0) return experimentPatterns;
   const histories = await getReportHistories(tenant);
-  return minePatterns(campaigns, histories, pnoGoal);
+  return [...minePatterns(campaigns, histories, pnoGoal), ...experimentPatterns];
 }

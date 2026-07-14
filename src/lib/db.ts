@@ -204,6 +204,18 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Persisted landing-page experiments per project: one {items[], updatedAt} blob,
+  -- each item an LpExperiment (cluster + control/challenger variants with visitors +
+  -- signups + a status running|done). Absent → the module runs on the seeded
+  -- per-project sample experiments (illustrative, never mined as account-proven). A
+  -- REAL persisted experiment's significant winner IS mined as a live creative pattern
+  -- (see patterns/extract.ts extractExperimentPatterns). See src/lib/lp-exp/.
+  CREATE TABLE IF NOT EXISTS lp_experiments (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Twin module's communication double: the per-channel trained voice, the
   -- style facts it was trained on, the channel/autonomy config and the draft
   -- outbox, as one blob. Absent → the seeded per-type sample (an untrained twin

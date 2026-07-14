@@ -8,6 +8,7 @@ import NextSteps from "@/components/app/NextSteps";
 import LpVariantIdeasPanel, {
   type LpVariantSeed,
 } from "@/components/app/modules/LpVariantIdeasPanel";
+import LpExperimentsManager from "@/components/app/modules/LpExperimentsManager";
 
 const T = {
   cs: {
@@ -56,7 +57,17 @@ const T = {
   },
 } as const;
 
-export default async function LpExperimentsModule({ experiments }: { experiments: LpExperiment[] }) {
+export default async function LpExperimentsModule({
+  experiments,
+  source = "sample",
+  projectId,
+}: {
+  experiments: LpExperiment[];
+  /** "live" (the project's persisted experiments — editable) or "sample" (seeded) */
+  source?: "sample" | "live";
+  /** the owning project — the manager targets its experiments sub-resource */
+  projectId?: string;
+}) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
 
@@ -85,6 +96,13 @@ export default async function LpExperimentsModule({ experiments }: { experiments
 
   return (
     <div className="stagger space-y-4">
+      {projectId && (
+        <LpExperimentsManager
+          projectId={projectId}
+          experiments={source === "live" ? experiments : []}
+          source={source}
+        />
+      )}
       {results.map((r) => {
         const maxCvr = Math.max(...r.variants.map((v) => v.cvr), 0.0001);
         // A running test below its target sample size is still collecting data —

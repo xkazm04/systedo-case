@@ -246,7 +246,10 @@ async function resolveAdPatterns(
   if (!projectId) return [];
   const tenant = await resolveTenant(userId, projectId);
   const { pnoGoal } = await getClientProfile(tenant);
-  return getPatternLines(tenant, adPatternQuery(req), 6, pnoGoal);
+  // projectId is threaded so the tenant's LIVE LP-experiment winners (project-scoped)
+  // join the tenant-scoped pattern grounding — an account-proven creative angle from a
+  // real, significant experiment. Sample/demo projects persist no experiments → no-op.
+  return getPatternLines(tenant, adPatternQuery(req), 6, pnoGoal, projectId);
 }
 
 /** B1 — resolve a project's brand grounding (what it sells + how it talks) for the
