@@ -52,6 +52,42 @@ export function periodProfit(input: PeriodProfitInput, m: CostModel): PeriodProf
   };
 }
 
+/** The tenant's break-even performance derived from its cost model, so every
+ *  operational surface can judge against the margin it actually earns — not the
+ *  margin-blind portfolio target. `gross*` is the period-independent 1/margin
+ *  (the "hrubý" break-even the /kampane and report surfaces show); `loaded*` folds
+ *  in overhead + fulfilment for a reference window and is only present when the
+ *  model carries either (else it equals the gross value, so it's omitted). */
+export interface BreakEven {
+  /** gross break-even ROAS = 1 / margin */
+  grossRoas: number;
+  /** gross break-even PNO = margin */
+  grossPno: number;
+  /** overhead-loaded break-even ROAS over the reference window */
+  loadedRoas?: number;
+  /** overhead-loaded break-even PNO over the reference window */
+  loadedPno?: number;
+}
+
+/** Derive the tenant's break-even ROAS + PNO from its blended margin. Pass a
+ *  reference window (ad spend, orders, months) to also get the overhead-loaded
+ *  variant; without one — or when the model has no overhead/fulfilment — only the
+ *  gross figures are returned. Pure; reuses the shared profit-math core. */
+export function deriveBreakEven(
+  m: CostModel,
+  ref?: { adCost: number; conversions: number; months: number }
+): BreakEven {
+  const grossRoas = ProfitMath.breakEvenRoas(m.grossMarginPct);
+  const grossPno = ProfitMath.breakEvenPno(m.grossMarginPct);
+  if (!ref) return { grossRoas, grossPno };
+  const overhead = ProfitMath.overheadForPeriod(m.monthlyOverhead, ref.months);
+  const fulfil = ProfitMath.fulfilment(m.perOrderCost, ref.conversions);
+  if (overhead <= 0 && fulfil <= 0) return { grossRoas, grossPno };
+  const loadedRoas = ProfitMath.loadedBreakEvenRoas(m.grossMarginPct, ref.adCost, overhead, fulfil);
+  const loadedPno = loadedRoas > 0 && Number.isFinite(loadedRoas) ? 1 / loadedRoas : Infinity;
+  return { grossRoas, grossPno, loadedRoas, loadedPno };
+}
+
 /** Clamp/validate a raw cost model from the client. Returns null if unusable. */
 export function sanitizeCostModel(raw: unknown): Omit<CostModel, "updatedAt"> | null {
   if (!raw || typeof raw !== "object") return null;

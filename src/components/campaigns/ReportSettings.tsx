@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Check, Document } from "@/components/icons";
-import { useT } from "@/lib/i18n/client";
+import { useT, useFormatters } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import {
@@ -12,6 +12,7 @@ import {
   type ReportCadence,
   type ReportConfig,
 } from "@/lib/campaigns/report-config-types";
+import type { BreakEven } from "@/lib/cost-model/compute";
 
 const T = {
   cs: {
@@ -24,6 +25,8 @@ const T = {
     clientBusinessLabel: "Čím se klient zabývá (jedna věta)",
     clientBusinessPlaceholder: "e-shop s ořechy, semínky a superpotravinami",
     pnoGoalLabel: "Cílové PNO (%)",
+    breakEvenHint: "Váš break-even PNO podle marže je {pno} (ROAS {roas}).",
+    useAsGoal: "Použít jako cíl",
     brandLabel: "Název značky (white-label)",
     accentLabel: "Akcentová barva",
     accentAriaLabel: "Akcentová barva",
@@ -50,6 +53,8 @@ const T = {
     clientBusinessLabel: "What the client does (one line)",
     clientBusinessPlaceholder: "online store for nuts, seeds and superfoods",
     pnoGoalLabel: "Target COS (%)",
+    breakEvenHint: "Your margin-based break-even COS is {pno} (ROAS {roas}).",
+    useAsGoal: "Use as goal",
     brandLabel: "Brand name (white-label)",
     accentLabel: "Accent colour",
     accentAriaLabel: "Accent colour",
@@ -71,7 +76,7 @@ const T = {
 /** White-label + scheduling settings for the client report. Branding stamps the
  *  shared report page; cadence + recipients drive the daily report cron. Renders
  *  nothing for anonymous visitors. */
-export default function ReportSettings() {
+export default function ReportSettings({ breakEven = null }: { breakEven?: BreakEven | null } = {}) {
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -79,6 +84,7 @@ export default function ReportSettings() {
   const { busy: saving, error, setError, run } = useAsyncAction();
   const [saved, setSaved] = useState(false);
   const t = useT(T);
+  const fmt = useFormatters();
 
   const load = useCallback(async () => {
     try {
@@ -198,6 +204,27 @@ export default function ReportSettings() {
               }}
               className="tnum w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface"
             />
+            {/* Direction 2: the margin-derived break-even PNO as CONTEXT beside the
+                target, plus an explicit action to adopt it — never automatic, so a
+                negotiated client target is never silently overwritten. Only when a
+                cost model exists (breakEven passed) and its PNO is finite. */}
+            {breakEven && Number.isFinite(breakEven.grossPno) && (
+              <span className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                <span>
+                  {t("breakEvenHint", {
+                    pno: fmt.fmtPct(breakEven.grossPno, 0),
+                    roas: fmt.fmtMultiple(breakEven.grossRoas),
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setProfile("pnoGoal", breakEven.grossPno)}
+                  className="rounded-pill border border-brand-300 bg-brand-50 px-2.5 py-1 font-semibold text-brand-accent transition-colors hover:border-brand-400"
+                >
+                  {t("useAsGoal")}
+                </button>
+              </span>
+            )}
           </label>
         </div>
       </fieldset>

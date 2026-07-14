@@ -16,6 +16,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import type { MonthAttainment } from "@/lib/metrics";
 import CostModelEditor, { type CostModelView } from "@/components/app/modules/CostModelEditor";
+import type { BreakEven } from "@/lib/cost-model/compute";
 import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
 import type { Competitor } from "@/lib/competitors/types";
 import ReportBeyond, { type ReportBeyondData } from "@/components/app/modules/ReportBeyond";
@@ -113,6 +114,7 @@ export default function MonthlyReport({
   customerId,
   showCostModel = false,
   costModel = null,
+  breakEven = null,
   competitors = [],
   annotations = [],
   dataStart,
@@ -143,6 +145,9 @@ export default function MonthlyReport({
   showCostModel?: boolean;
   /** the saved cost model, or null when profit is still pre-COGS contribution */
   costModel?: CostModelView | null;
+  /** Direction 2: the tenant's margin-derived break-even (ROAS + PNO), shown on the
+   *  cost-model strip as the target the profit line is judged against. Null → hidden. */
+  breakEven?: BreakEven | null;
   /** C3: the project's competitor set — grounds the AI narrative "vs. the market" */
   competitors?: Competitor[];
   /** Direction 2: the project's "what happened here" annotations (newest-first) */
@@ -452,7 +457,7 @@ export default function MonthlyReport({
       </Modal>
 
       {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
-      {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} />}
+      {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} breakEven={breakEven} />}
 
       {/* C3: competitor set — grounds the AI narrative "vs. the market". */}
       {projectId && <CompetitorEditor projectId={projectId} initial={competitors} />}

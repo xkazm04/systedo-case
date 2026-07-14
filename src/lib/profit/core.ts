@@ -67,6 +67,13 @@ export function breakEvenRoas(marginPct: number): number {
   return marginPct > 0 ? 1 / marginPct : Infinity;
 }
 
+/** The GROSS break-even PNO (cost share of revenue) = margin, since at break-even
+ *  ad spend equals gross profit so cost/revenue = margin (= 1 / breakEvenRoas).
+ *  Infinity for a non-positive margin (never breaks even). */
+export function breakEvenPno(marginPct: number): number {
+  return marginPct > 0 ? marginPct : Infinity;
+}
+
 /** The break-even ROAS once fixed overhead + fulfilment are loaded on top of ad
  *  spend: the channel/account must cover ad spend AND its share of overhead out of
  *  its margin. `revenue × margin = adCost + overhead + fulfilment`, solved for

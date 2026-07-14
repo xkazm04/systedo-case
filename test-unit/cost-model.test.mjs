@@ -19,7 +19,7 @@ process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
 register("./json-loader.mjs", import.meta.url);
 
-const { periodProfit, sanitizeCostModel, PERIOD_MONTHS } = await import("@/lib/cost-model/compute");
+const { periodProfit, sanitizeCostModel, PERIOD_MONTHS, deriveBreakEven } = await import("@/lib/cost-model/compute");
 const { getCostModel, saveCostModel, clearCostModel } = await import("@/lib/cost-model/store");
 
 test("periodProfit: net = revenue×margin − adCost − overhead×months − perOrder×orders", () => {
@@ -43,6 +43,26 @@ test("periodProfit: overhead scales with the period's months", () => {
 test("periodProfit: zero ad spend → poas 0 (no divide-by-zero)", () => {
   const pp = periodProfit({ revenue: 100, adCost: 0, conversions: 0, months: 1 }, { grossMarginPct: 0.5, monthlyOverhead: 0, perOrderCost: 0, updatedAt: "x" });
   assert.equal(pp.poas, 0);
+});
+
+test("deriveBreakEven: gross ROAS = 1/margin, gross PNO = margin (no window)", () => {
+  const be = deriveBreakEven({ grossMarginPct: 0.42, monthlyOverhead: 0, perOrderCost: 0, updatedAt: "x" });
+  assert.equal(be.grossRoas, 1 / 0.42); // ≈ 2.38× — a 42% channel breaks even at 2.4×
+  assert.equal(be.grossPno, 0.42);
+  assert.equal(be.loadedRoas, undefined); // no overhead/fulfilment → no loaded variant
+});
+
+test("deriveBreakEven: loaded variant only when a window + overhead/fulfilment exist", () => {
+  const m = { grossMarginPct: 0.5, monthlyOverhead: 10_000, perOrderCost: 50, updatedAt: "x" };
+  // window has no overhead/fulfilment charged (0 months, 0 orders) → gross only
+  const bare = deriveBreakEven({ ...m, monthlyOverhead: 0, perOrderCost: 0 }, { adCost: 100_000, conversions: 200, months: 3 });
+  assert.equal(bare.loadedRoas, undefined);
+  // overhead 10k×3 = 30k, fulfil 50×200 = 10k, adCost 100k, margin .5
+  // loaded ROAS = (100k+30k+10k)/(100k×.5) = 140k/50k = 2.8
+  const be = deriveBreakEven(m, { adCost: 100_000, conversions: 200, months: 3 });
+  assert.equal(be.grossRoas, 2); // 1/.5
+  assert.equal(be.loadedRoas, 2.8);
+  assert.equal(be.loadedPno, 1 / 2.8);
 });
 
 test("sanitize: rejects a margin outside (0,1]; clamps negatives to 0", () => {

@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT, useFormatters } from "@/lib/i18n/client";
+import type { BreakEven } from "@/lib/cost-model/compute";
 
 export interface CostModelView {
   grossMarginPct: number;
@@ -17,6 +18,8 @@ export interface CostModelView {
 const T = {
   cs: {
     active: "Zisk po nákladech · marže {m} · režie {o}/měs · {f}/obj.",
+    breakEven: "Bod zvratu podle marže: ROAS {roas} (hrubý)",
+    breakEvenLoaded: ", s režií ROAS {roas}",
     inactive: "Zisk je zatím jen příspěvek (obrat − reklama). Zadejte marži a režii pro skutečný zisk po nákladech.",
     set: "Zadat marži",
     edit: "Upravit",
@@ -30,6 +33,8 @@ const T = {
   },
   en: {
     active: "Profit after costs · margin {m} · overhead {o}/mo · {f}/order",
+    breakEven: "Margin-based break-even: ROAS {roas} (gross)",
+    breakEvenLoaded: ", with overhead ROAS {roas}",
     inactive: "Profit is still contribution (revenue − ads). Enter margin & overhead for true net profit after costs.",
     set: "Set margin",
     edit: "Edit",
@@ -46,12 +51,14 @@ const T = {
 export default function CostModelEditor({
   projectId,
   model,
+  breakEven = null,
 }: {
   projectId: string;
   model: CostModelView | null;
+  breakEven?: BreakEven | null;
 }) {
   const t = useT(T);
-  const { fmtPct, fmtCZK } = useFormatters();
+  const { fmtPct, fmtCZK, fmtMultiple } = useFormatters();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -101,10 +108,24 @@ export default function CostModelEditor({
     ? { cls: "bg-positive-soft text-positive", text: t("active", { m: fmtPct(model.grossMarginPct, 0), o: fmtCZK(model.monthlyOverhead), f: fmtCZK(model.perOrderCost) }) }
     : { cls: "bg-canvas text-muted", text: t("inactive") };
 
+  // Direction 2: the margin-derived break-even ROAS as the target the profit line
+  // is judged against — gross (1/margin) always, plus the overhead-loaded variant
+  // when the model carries overhead/fulfilment. Only when a model exists.
+  const breakEvenText =
+    model && breakEven && Number.isFinite(breakEven.grossRoas)
+      ? t("breakEven", { roas: fmtMultiple(breakEven.grossRoas) }) +
+        (breakEven.loadedRoas !== undefined && Number.isFinite(breakEven.loadedRoas)
+          ? t("breakEvenLoaded", { roas: fmtMultiple(breakEven.loadedRoas) })
+          : "")
+      : null;
+
   return (
     <div className={`rounded-lg px-4 py-3 text-xs leading-relaxed ${strip.cls}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <span className="font-medium">{strip.text}</span>
+        <span className="font-medium">
+          {strip.text}
+          {breakEvenText && <span className="ml-1.5 font-normal opacity-80">· {breakEvenText}</span>}
+        </span>
         <div className="flex items-center gap-2 print:hidden">
           {model && (
             <button

@@ -16,6 +16,7 @@ import {
   type CampaignType,
 } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
+import type { BreakEven } from "@/lib/cost-model/compute";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
 import { alertStatus, alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -73,6 +74,8 @@ const T = {
     kpiCost: "Náklady",
     kpiConvValue: "Hodnota konverzí",
     kpiPnoHint: "cíl {target} · placené portfolio",
+    breakEvenNote: "Váš break-even ROAS podle marže je {roas} (PNO {pno}) — pod ním kampaň po odečtení nákladů zboží prodělává.",
+    breakEvenLoaded: "s režií {roas}",
     shareButton: "Sdílet report",
     sharing: "Vytvářím…",
     shareErr: "Sdílení se nezdařilo.",
@@ -112,6 +115,8 @@ const T = {
     kpiCost: "Cost",
     kpiConvValue: "Conversion value",
     kpiPnoHint: "target {target} · paid portfolio",
+    breakEvenNote: "Your margin-based break-even ROAS is {roas} (COS {pno}) — below it a campaign loses money once cost of goods is subtracted.",
+    breakEvenLoaded: "with overhead {roas}",
     shareButton: "Share report",
     sharing: "Creating…",
     shareErr: "Sharing failed.",
@@ -145,7 +150,7 @@ const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive" | "sourceSklik"> 
   sklik: "sourceSklik",
 };
 
-export default function CampaignsClient() {
+export default function CampaignsClient({ breakEven = null }: { breakEven?: BreakEven | null } = {}) {
   const project = useOptionalProject();
   const pid = project?.id;
   const fmt = useFormatters();
@@ -436,6 +441,27 @@ export default function CampaignsClient() {
         </div>
       </div>
 
+      {/* Direction 2: the tenant's margin-derived break-even ROAS, surfaced as
+          CONTEXT next to the portfolio KPIs — every triage row is judged against a
+          margin-blind portfolio target, so this names the ROAS below which a
+          campaign actually loses money. Only when a cost model exists. */}
+      {breakEven && (
+        <p className="flex flex-wrap items-center gap-x-1.5 rounded-card border border-brand-200 bg-brand-50 px-4 py-2.5 text-xs text-navy-700">
+          <Gauge width={14} height={14} className="text-brand-600" />
+          <span>
+            {t("breakEvenNote", {
+              roas: fmt.fmtMultiple(breakEven.grossRoas),
+              pno: fmt.fmtPct(breakEven.grossPno, 0),
+            })}
+          </span>
+          {breakEven.loadedRoas !== undefined && Number.isFinite(breakEven.loadedRoas) && (
+            <span className="text-muted">
+              · {t("breakEvenLoaded", { roas: fmt.fmtMultiple(breakEven.loadedRoas) })}
+            </span>
+          )}
+        </p>
+      )}
+
       {error && (
         <p className="rounded-card border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative">
           {errText(error)}
@@ -640,7 +666,7 @@ export default function CampaignsClient() {
       </section>
 
       {/* white-label + scheduled client report settings */}
-      <ReportSettings />
+      <ReportSettings breakEven={breakEven} />
 
       {/* public, SEO-indexable white-label client microsite */}
       <MicrositeCard />

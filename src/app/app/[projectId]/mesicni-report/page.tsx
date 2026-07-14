@@ -12,7 +12,7 @@ import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
 import { getCostModel } from "@/lib/cost-model/store";
-import { periodProfit, PERIOD_MONTHS } from "@/lib/cost-model/compute";
+import { periodProfit, PERIOD_MONTHS, deriveBreakEven } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
 import { listAnnotations } from "@/lib/annotations/store";
 import { cohortsForProject } from "@/lib/ltv/sample";
@@ -83,9 +83,13 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   if (resolved.live) tiles = [...tiles, ...livePaidTilesForType(project.type)];
 
   const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
+  // Direction 2: reference totals for the overhead-loaded break-even (the 12-month
+  // window, so overhead + fulfilment are charged over a full year of ad spend).
+  let ref12: { adCost: number; conversions: number } | null = null;
   for (const p of ANALYSIS_PERIODS) {
     const s = buildSnapshot(p, "previous", dataset);
     const c = s.current;
+    if (p === "12m") ref12 = { adCost: c.cost, conversions: c.conversions };
     // Prior-period totals: read the comparison window directly (snap.previous)
     // rather than reconstructing them by inverting the deltas — the inversion
     // silently returns the CURRENT value when a baseline is zero (1 + 0), faking
@@ -162,6 +166,15 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     };
   }
 
+  // Direction 2: the tenant's margin-derived break-even, surfaced on the report's
+  // cost-model strip as the target the profit line is judged against. Gross (1/margin)
+  // always; overhead-loaded when the model carries overhead/fulfilment. Null → the
+  // strip renders exactly as before (byte-identical for tenants without a model).
+  const breakEven =
+    costModel && ref12
+      ? deriveBreakEven(costModel, { adCost: ref12.adCost, conversions: ref12.conversions, months: PERIOD_MONTHS["12m"] })
+      : null;
+
   // Goal-attainment track record — did we hit the monthly revenue goal in the last
   // complete months? Revenue-goal based, so surfaced on e-shop reports only (the
   // leadgen/local/content tile sets are lead-first and don't quote a revenue goal).
@@ -206,6 +219,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         customerId={resolved.customerId}
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
+        breakEven={breakEven}
         competitors={competitorSet?.competitors ?? []}
         annotations={annotations}
         dataStart={dataStart}
