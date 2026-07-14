@@ -1,7 +1,9 @@
-/** AI skill marketplace catalog:
- *   GET → the registered, gate-covered skills available on this install.
- *  Importing the registry triggers built-in skill registration; only skills the
- *  prove-once gate covers are admitted, so this list is "what's safe to run".
+/** AI skill registry — dev/diagnostics surface (NOT a user-facing marketplace):
+ *   GET → the registered, gate-covered skills on this install + the gate-covered set.
+ *  Importing the registry is what RUNS its load-time governance: every core skill is
+ *  registered here, and registration throws unless the skill is structurally complete
+ *  and covered by the prove-once gate — so hitting this route is also a live check
+ *  that the registry's contract holds (the admitted set equals the gate-covered set).
  *  Node runtime. */
 import { skillRegistry, GATE_COVERED_SKILL_IDS } from "@/lib/skills/registry";
 

@@ -17,6 +17,7 @@ import {
 } from "../../social/types";
 import { draftPosts } from "../../social/draft";
 import { generateStructured } from "../../llm";
+import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { clamp, txt } from "./_shared";
 import { withObjectGuard } from "./_validate";
 
@@ -106,7 +107,10 @@ export const validateSocial = withObjectGuard((o): string[] => {
   return v;
 });
 
-export function generateSocialPosts(req: {
+/** Everything the social prompt + demo + normalizer are a pure function of. The
+ *  brand grounds the SYSTEM persona (unlike most tools, whose grounding rides the
+ *  user prompt), so it lives here and drives the skill's input-aware `system`. */
+export interface SocialSkillInput {
   topic: string;
   tone: Tone;
   platforms: SocialPlatform[];
@@ -120,49 +124,69 @@ export function generateSocialPosts(req: {
    *  writes. Resolved server-side from the project's twin (lib/twin/load) and
    *  injected into the USER prompt only, so the golden holds. */
   voice?: TwinReplyVoice;
+}
+
+/** The deterministic per-platform drafts — the demo fallback, and the fill for any
+ *  platform the model skips. */
+function socialFallback(i: SocialSkillInput): { platform: SocialPlatform; content: string }[] {
+  return draftPosts(i.topic, i.tone, i.platforms) as { platform: SocialPlatform; content: string }[];
+}
+
+/** Reconcile the model's posts against the requested platforms: clamp each to its
+ *  platform limit, keep the first per platform, and fill any skipped platform with
+ *  the deterministic draft. Needs the request `input` (the requested platforms) —
+ *  which is exactly why the Skill normalizer is input-aware. */
+function normalizeSocial(parsed: unknown, i: SocialSkillInput): SocialDraftResult {
+  const requested = i.platforms;
+  const o = parsed as Record<string, unknown>;
+  const raw = Array.isArray(o?.posts) ? o.posts : [];
+  const byPlatform = new Map<SocialPlatform, string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const x = item as Record<string, unknown>;
+    const platform = txt(x.platform).toLowerCase() as SocialPlatform;
+    if (!requested.includes(platform)) continue;
+    const content = txt(x.content);
+    if (content && !byPlatform.has(platform)) {
+      byPlatform.set(platform, clamp(content, PLATFORM_LIMITS[platform]));
+    }
+  }
+  const templates = new Map(socialFallback(i).map((p) => [p.platform, p.content]));
+  const posts = requested.map((p) => ({
+    platform: p,
+    content: byPlatform.get(p) ?? clamp(templates.get(p) ?? "", PLATFORM_LIMITS[p]),
+  }));
+  return { posts };
+}
+
+/** The social-post-drafting tool as a Skill SDK plugin. Contract unchanged; the
+ *  migration is a pure adapter. This is the reference for the SDK's input-aware
+ *  fields: the SYSTEM persona is grounded in the brand, and the normalizer needs the
+ *  requested platforms — both flow from the one input object. */
+export const socialSkill: Skill<SocialSkillInput, SocialDraftResult> = {
+  id: "social",
+  label: "Příspěvky na sociální sítě",
+  category: "social",
+  system: (i) => socialSystem(i.brand),
+  schema: SOCIAL_SCHEMA,
+  temperature: 0.9,
+  buildPrompt: (i) => buildSocialPrompt(i.topic, i.tone, i.platforms, i.grounding, i.voice),
+  normalize: normalizeSocial,
+  validate: validateSocial,
+  demo: (i) => ({ posts: socialFallback(i) }),
+};
+
+export function generateSocialPosts(req: SocialSkillInput & {
   /** output language (defaults to Czech) */
   locale?: SupportedLocale;
   /** client abort propagation (stops the provider work when the caller is gone) */
   signal?: AbortSignal;
 }): Promise<AiResponse<SocialDraftResult>> {
-  const requested = req.platforms;
-  const fallback = () =>
-    draftPosts(req.topic, req.tone, requested) as { platform: SocialPlatform; content: string }[];
-
-  const normalize = (parsed: unknown): SocialDraftResult => {
-    const o = parsed as Record<string, unknown>;
-    const raw = Array.isArray(o?.posts) ? o.posts : [];
-    const byPlatform = new Map<SocialPlatform, string>();
-    for (const item of raw) {
-      if (!item || typeof item !== "object") continue;
-      const x = item as Record<string, unknown>;
-      const platform = txt(x.platform).toLowerCase() as SocialPlatform;
-      if (!requested.includes(platform)) continue;
-      const content = txt(x.content);
-      if (content && !byPlatform.has(platform)) {
-        byPlatform.set(platform, clamp(content, PLATFORM_LIMITS[platform]));
-      }
-    }
-    // Fill any platform the model skipped with the deterministic draft.
-    const templates = new Map(fallback().map((p) => [p.platform, p.content]));
-    const posts = requested.map((p) => ({
-      platform: p,
-      content: byPlatform.get(p) ?? clamp(templates.get(p) ?? "", PLATFORM_LIMITS[p]),
-    }));
-    return { posts };
-  };
-
+  const { locale, signal, ...input } = req;
   return generateStructured({
     // llm-tool: social
-    id: "social",
-    prompt: buildSocialPrompt(req.topic, req.tone, requested, req.grounding, req.voice),
-    system: socialSystem(req.brand),
-    schema: SOCIAL_SCHEMA,
-    temperature: 0.9,
-    normalize,
-    validate: validateSocial,
-    locale: req.locale,
-    signal: req.signal,
-    demo: () => ({ posts: fallback() }),
+    ...skillToGenerateArgs(socialSkill, input),
+    locale,
+    signal,
   });
 }

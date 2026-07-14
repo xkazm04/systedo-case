@@ -12,6 +12,7 @@ import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapsh
 import type { PerformanceData } from "../../types";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
+import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
 import { demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
@@ -138,6 +139,32 @@ export function demoAnalysis(s: Snapshot): AnalysisResult {
   };
 }
 
+/** The analysis input, once the route has resolved the project dataset into a
+ *  snapshot: the numbers to read plus the optional re-run steering note. Keeping the
+ *  snapshot (not the raw request + data) in the skill input means buildPrompt/demo
+ *  are pure functions of it, exactly as before. */
+export interface AnalysisSkillInput {
+  snapshot: Snapshot;
+  refine?: string;
+}
+
+/** The performance-analysis tool as a Skill SDK plugin. Contract (system + schema)
+ *  unchanged; the migration is a pure adapter.
+ *  - Strictly-grounded numeric read (5/5): temperature stays low so the verdict is
+ *    faithful to the figures, not embellished. */
+export const analysisSkill: Skill<AnalysisSkillInput, AnalysisResult> = {
+  id: "analysis",
+  label: "Analýza výkonu",
+  category: "analysis",
+  system: ANALYSIS_SYSTEM,
+  schema: ANALYSIS_SCHEMA,
+  temperature: 0.4,
+  buildPrompt: (i) => buildAnalysisPrompt(snapshotToPromptText(i.snapshot), i.refine),
+  normalize: normalizeAnalysisResult,
+  validate: validateAnalysis,
+  demo: (i) => demoAnalysis(i.snapshot),
+};
+
 export function generateAnalysis(
   req: AnalysisRequest,
   locale?: SupportedLocale,
@@ -150,16 +177,7 @@ export function generateAnalysis(
   const snapshot = buildSnapshot(req.period, "previous", data);
   return generateStructured({
     // llm-tool: analysis
-    id: "analysis",
-    prompt: buildAnalysisPrompt(snapshotToPromptText(snapshot), req.refine),
-    system: ANALYSIS_SYSTEM,
-    schema: ANALYSIS_SCHEMA,
-    // Strictly-grounded numeric read (5/5): keep temperature low so the verdict
-    // stays consistent and faithful to the figures, not embellished.
-    temperature: 0.4,
-    normalize: normalizeAnalysisResult,
-    validate: validateAnalysis,
-    demo: () => demoAnalysis(snapshot),
+    ...skillToGenerateArgs(analysisSkill, { snapshot, refine: req.refine }),
     locale,
     signal,
   });

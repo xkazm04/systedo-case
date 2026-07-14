@@ -11,6 +11,7 @@ import {
 } from "../../ai-types";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
+import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cap, slugify } from "./_shared";
 import { demoTail } from "./_fragments";
 import { withObjectGuard } from "./_validate";
@@ -186,6 +187,21 @@ function demoBrief(req: BriefRequest): BriefResult {
   };
 }
 
+/** The SEO-brief tool as a Skill SDK plugin. Contract (system + schema) unchanged,
+ *  so its gate/golden fingerprint holds; the migration is a pure adapter. */
+export const briefSkill: Skill<BriefRequest, BriefResult> = {
+  id: "brief",
+  label: "SEO obsahový brief",
+  category: "content",
+  system: BRIEF_SYSTEM,
+  schema: BRIEF_SCHEMA,
+  temperature: 0.9,
+  buildPrompt: buildBriefPrompt,
+  normalize: normalizeBriefResult,
+  validate: validateBrief,
+  demo: demoBrief,
+};
+
 export function generateBrief(
   req: BriefRequest,
   locale?: SupportedLocale,
@@ -193,14 +209,7 @@ export function generateBrief(
 ): Promise<AiResponse<BriefResult>> {
   return generateStructured({
     // llm-tool: brief
-    id: "brief",
-    prompt: buildBriefPrompt(req),
-    system: BRIEF_SYSTEM,
-    schema: BRIEF_SCHEMA,
-    temperature: 0.9,
-    normalize: normalizeBriefResult,
-    validate: validateBrief,
-    demo: () => demoBrief(req),
+    ...skillToGenerateArgs(briefSkill, req),
     locale,
     signal,
   });

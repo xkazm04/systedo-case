@@ -6,6 +6,10 @@
  *  Server-only (skills pull in the tool layer). */
 import { validateSkillShape, type Skill, type SkillCategory } from "./types";
 import { adsSkill } from "@/lib/ai/tools/ads";
+import { briefSkill } from "@/lib/ai/tools/brief";
+import { analysisSkill } from "@/lib/ai/tools/analysis";
+import { campaignEvalSkill } from "@/lib/ai/tools/campaign-eval";
+import { socialSkill } from "@/lib/ai/tools/social";
 
 /** Ids the prove-once gate verifies against a real model. Source of truth is the
  *  gate (test-llm); kept here as the admission list for the registry. */
@@ -40,20 +44,6 @@ class SkillRegistry {
     this.skills.set(skill.id, skill as Skill<unknown, unknown>);
   }
 
-  /** Graceful variant for untrusted/3rd-party skills — never throws. */
-  tryRegister<I, O>(skill: Skill<I, O>): { ok: boolean; error?: string } {
-    try {
-      this.register(skill);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : String(err) };
-    }
-  }
-
-  get(id: string): Skill<unknown, unknown> | undefined {
-    return this.skills.get(id);
-  }
-
   list(): SkillSummary[] {
     return [...this.skills.values()].map((s) => ({
       id: s.id,
@@ -66,5 +56,13 @@ class SkillRegistry {
 
 export const skillRegistry = new SkillRegistry();
 
-// Built-in reference plugin: the ads tool, migrated to the SDK shape.
+// The core marketing tools, migrated to the SDK shape. Registering them here makes
+// GATE_COVERED_SKILL_IDS a contract the code actually keeps: each register() throws
+// unless the skill is structurally complete AND covered by the prove-once gate, so
+// the admitted set below can only ever equal the gate-covered set. Importing this
+// module (e.g. by the /api/skills diagnostics route) runs this governance.
 skillRegistry.register(adsSkill);
+skillRegistry.register(briefSkill);
+skillRegistry.register(analysisSkill);
+skillRegistry.register(campaignEvalSkill);
+skillRegistry.register(socialSkill);

@@ -27,6 +27,7 @@ import { buildCampaignPrompt, buildOverallPrompt } from "../../campaigns/report-
 import type { ClientProfile } from "../../campaigns/report-config-types";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "../../format";
 import { generateStructured } from "../../llm";
+import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
@@ -234,7 +235,11 @@ function demoOverallReport(all: Campaign[]): CampaignReportResult {
   };
 }
 
-export function generateCampaignEvaluation(args: {
+/** Everything the eval prompt + demo are a pure function of — the many grounding
+ *  args this tool takes, shaped into one input object so the Skill contract (which
+ *  is generic over a single input `I`) fits it. `locale`/`signal` are wrapper
+ *  concerns, kept as separate params to generateCampaignEvaluation below. */
+export interface CampaignEvalInput {
   scope: EvalScope;
   target: Campaign | null;
   campaigns: Campaign[];
@@ -247,8 +252,6 @@ export function generateCampaignEvaluation(args: {
    *  the UI badges show (roas_crater / spend_spike), so the evaluation can't
    *  contradict a crater badge sitting next to it */
   changes?: ChangesSummary;
-  /** output language (defaults to Czech) */
-  locale?: SupportedLocale;
   /** the tenant's client profile — grounds the prompt in who the client is and
    *  their PNO goal (defaults to the case-study client when omitted) */
   client?: ClientProfile;
@@ -256,27 +259,50 @@ export function generateCampaignEvaluation(args: {
    *  the eval speak Sklik (vocabulary + no Google-only features) via the USER prompt;
    *  "google-ads" / "sample" / undefined keep the byte-identical Google persona. */
   source?: string;
+}
+
+/** Assemble the eval user prompt from the grounding input — the base per-scope
+ *  prompt plus (for a Sklik tenant only) the platform note, which rides the USER
+ *  prompt so the system fingerprint stays byte-identical. Pure. */
+function buildEvalPrompt(i: CampaignEvalInput): string {
+  const single = i.scope === "campaign" && i.target;
+  const basePrompt = single
+    ? buildCampaignPrompt(i.target!, i.campaigns, i.period, i.changes, i.client, i.patternLines ?? [])
+    : buildOverallPrompt(i.campaigns, i.period, i.patternLines ?? [], i.changes, i.client);
+  const platform = platformEvalLines(i.source);
+  return platform.length ? `${basePrompt}\n${platform.join("\n")}` : basePrompt;
+}
+
+/** The campaign/portfolio-evaluation tool as a Skill SDK plugin. Contract (system +
+ *  schema) unchanged; the migration is a pure adapter. Its input carries the many
+ *  grounding args this tool needs — the Skill contract is generic over one input. */
+export const campaignEvalSkill: Skill<CampaignEvalInput, CampaignReportResult> = {
+  id: "campaign-eval",
+  label: "Vyhodnocení kampaně / portfolia",
+  category: "analysis",
+  system: EVAL_SYSTEM,
+  schema: EVAL_SCHEMA,
+  temperature: 0.6,
+  buildPrompt: buildEvalPrompt,
+  normalize: normalizeReport,
+  validate: validateReport,
+  demo: (i) =>
+    i.scope === "campaign" && i.target
+      ? demoCampaignReport(i.target, i.campaigns)
+      : demoOverallReport(i.campaigns),
+};
+
+export function generateCampaignEvaluation(args: CampaignEvalInput & {
+  /** output language (defaults to Czech) */
+  locale?: SupportedLocale;
   /** client abort propagation (stops the provider work when the caller is gone) */
   signal?: AbortSignal;
 }): Promise<AiResponse<CampaignReportResult>> {
-  const single = args.scope === "campaign" && args.target;
-  const basePrompt = single
-    ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client, args.patternLines ?? [])
-    : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes, args.client);
-  // Platform note rides the USER prompt only ([] for Google/sample → byte-identical).
-  const platform = platformEvalLines(args.source);
+  const { locale, signal, ...input } = args;
   return generateStructured({
     // llm-tool: campaign-eval
-    id: "campaign-eval",
-    prompt: platform.length ? `${basePrompt}\n${platform.join("\n")}` : basePrompt,
-    system: EVAL_SYSTEM,
-    schema: EVAL_SCHEMA,
-    temperature: 0.6,
-    normalize: normalizeReport,
-    validate: validateReport,
-    locale: args.locale,
-    signal: args.signal,
-    demo: () =>
-      single ? demoCampaignReport(args.target!, args.campaigns) : demoOverallReport(args.campaigns),
+    ...skillToGenerateArgs(campaignEvalSkill, input),
+    locale,
+    signal,
   });
 }
