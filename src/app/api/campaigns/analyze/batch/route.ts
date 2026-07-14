@@ -206,6 +206,9 @@ export async function POST(request: Request) {
           changes: changes ?? undefined,
           locale,
           client,
+          // Platform-aware persona: a Sklik-sourced tenant gets Sklik vocabulary + no
+          // Google-only recommendations (google-ads / sample stay byte-identical).
+          source: meta.source,
           // A closed tab stops the remaining provider work mid-batch.
           signal: request.signal,
         });

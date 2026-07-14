@@ -174,6 +174,9 @@ export async function POST(request: Request) {
         changes: changes ?? undefined,
         locale: await getServerLocale(),
         client,
+        // Platform-aware persona: a Sklik-sourced tenant gets Sklik vocabulary + no
+        // Google-only recommendations (google-ads / sample stay byte-identical).
+        source: meta.source,
         // Client abort propagation: a closed tab / re-run stops the provider work.
         signal: request.signal,
       });

@@ -40,6 +40,25 @@ Pravidla:
 - Odkazuj se na konkrétní čísla (ROAS, PNO, CPA, podíl na nákladech).
 - Piš česky, věcně, bez marketingových frází. Drž se zadaného JSON schématu.`;
 
+/** Platform-awareness lines appended to the USER prompt when the tenant's campaigns
+ *  are NOT Google-sourced. The system persona speaks Google Ads by default; for a
+ *  Sklik-sourced tenant this overrides it in the user prompt only, so the system
+ *  prompt (and the gate/golden fingerprint) stays byte-identical for every tenant.
+ *
+ *  Google-sourced and sample tenants (and an unknown/absent source) get `[]` → the
+ *  prompt is byte-identical to today. Only "sklik" adds the block. Kept honest and
+ *  general: real Sklik vocabulary, and a ban on Google-only features — no invented
+ *  Sklik capabilities. */
+export function platformEvalLines(source?: string): string[] {
+  if (source !== "sklik") return [];
+  return [
+    "",
+    "POZNÁMKA K PLATFORMĚ (DŮLEŽITÉ): Tyto kampaně pocházejí ze Skliku (Seznam.cz), NE z Google Ads. Nadřaď tuto informaci obecné personě.",
+    "- Vystupuj jako specialista na Sklik a používej slovník Skliku: kombinovaná reklama, zbožový Sklik (zbožové kampaně), Sklik sítě (obsahová a partnerská síť), dynamický retargeting.",
+    "- NEDOPORUČUJ funkce a formáty, které Sklik nemá: Performance Max (PMax), Demand Gen ani Google-specifické typy shody klíčových slov. Doporučení drž obecná a přenositelná; nevymýšlej si funkce Skliku, které neznáš.",
+  ];
+}
+
 const EVAL_SCHEMA = {
   type: Type.OBJECT,
   properties: {
@@ -233,16 +252,23 @@ export function generateCampaignEvaluation(args: {
   /** the tenant's client profile — grounds the prompt in who the client is and
    *  their PNO goal (defaults to the case-study client when omitted) */
   client?: ClientProfile;
+  /** the data source behind the tenant's campaigns (SyncMeta.source). "sklik" makes
+   *  the eval speak Sklik (vocabulary + no Google-only features) via the USER prompt;
+   *  "google-ads" / "sample" / undefined keep the byte-identical Google persona. */
+  source?: string;
   /** client abort propagation (stops the provider work when the caller is gone) */
   signal?: AbortSignal;
 }): Promise<AiResponse<CampaignReportResult>> {
   const single = args.scope === "campaign" && args.target;
+  const basePrompt = single
+    ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client, args.patternLines ?? [])
+    : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes, args.client);
+  // Platform note rides the USER prompt only ([] for Google/sample → byte-identical).
+  const platform = platformEvalLines(args.source);
   return generateStructured({
     // llm-tool: campaign-eval
     id: "campaign-eval",
-    prompt: single
-      ? buildCampaignPrompt(args.target!, args.campaigns, args.period, args.changes, args.client, args.patternLines ?? [])
-      : buildOverallPrompt(args.campaigns, args.period, args.patternLines ?? [], args.changes, args.client),
+    prompt: platform.length ? `${basePrompt}\n${platform.join("\n")}` : basePrompt,
     system: EVAL_SYSTEM,
     schema: EVAL_SCHEMA,
     temperature: 0.6,
