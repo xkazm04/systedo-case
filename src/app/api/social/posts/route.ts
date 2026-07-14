@@ -5,8 +5,9 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
-import { publishPost } from "@/lib/social/publish";
-import { PLATFORM_LIMITS, isSocialPlatform } from "@/lib/social/types";
+import { publishPost, type PublishContext } from "@/lib/social/publish";
+import { getAccount, getAccountToken } from "@/lib/social/connection";
+import { PLATFORM_LIMITS, isSocialPlatform, type SocialPlatform } from "@/lib/social/types";
 
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -16,6 +17,17 @@ async function tenantOf(projectId?: string | null): Promise<string> {
   // Social content is account-agnostic — key it without the Ads customerId so a
   // later account connect/switch can't orphan a user's scheduled posts + inbox.
   return resolveTenant(uid, projectId, { accountScoped: false });
+}
+
+/** Resolve the publish context for the signed-in user + platform: the connected account
+ *  and — only for a real (non-demo) connection — its decrypted token, so publishPost can
+ *  choose the real adapter over an honest simulation. */
+async function publishContextFor(platform: SocialPlatform): Promise<PublishContext> {
+  const uid = await currentUserId();
+  if (!uid) return {};
+  const account = await getAccount(uid, platform);
+  const token = account && !account.demo ? await getAccountToken(uid, platform) : null;
+  return { account, token };
 }
 
 export async function GET(request: Request) {
@@ -64,12 +76,13 @@ export async function POST(request: Request) {
     return Response.json({ post });
   }
 
-  // Publish now (simulated in demo mode).
+  // Publish now — real when a provider is configured + the account is connected with a
+  // token, an honest simulation otherwise (marked simulated on the record).
   const post = await createPost(tenant, { platform, content, status: "draft" });
-  const result = await publishPost(platform, content, post.id);
+  const result = await publishPost(platform, content, post.id, await publishContextFor(platform));
   const patch = result.ok
-    ? { status: "published" as const, publishedAt: new Date().toISOString(), externalUrl: result.externalUrl }
-    : { status: "failed" as const, error: result.error ?? "Publikování se nezdařilo." };
+    ? { status: "published" as const, publishedAt: new Date().toISOString(), externalUrl: result.externalUrl, simulated: result.simulated }
+    : { status: "failed" as const, error: result.error ?? "Publikování se nezdařilo.", simulated: result.simulated };
   await updatePost(tenant, post.id, patch);
   await recordActivity(tenant, {
     kind: "update", module: "socialni", severity: result.ok ? "success" : "warning",

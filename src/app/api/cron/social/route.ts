@@ -1,11 +1,11 @@
 /** Scheduled social publishing: publish posts whose scheduled time has arrived,
  *  for every user with a connected account. Guarded by CRON_SECRET; schedule in
  *  vercel.json. Publishing is simulated in demo mode (see lib/social/publish). */
-import { listConnectedSocialUserIds } from "@/lib/social/connection";
+import { getAccount, getAccountToken, listConnectedSocialUserIds } from "@/lib/social/connection";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
 import { claimScheduledPost, listDueScheduled, updatePost } from "@/lib/social/store";
-import { publishPost } from "@/lib/social/publish";
+import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron/run";
 
@@ -41,16 +41,22 @@ export async function GET(request: Request) {
             // write failed → next run republishes" window: a claimed post is no longer
             // `scheduled`, so it isn't re-listed.
             if (!(await claimScheduledPost(tenant, post.id))) continue;
-            const result = await publishPost(post.platform, post.content, post.id);
+            // Resolve the account + (real-only) token so the cron flows through the SAME
+            // simulated-vs-real seam as the manual publish route.
+            const account = await getAccount(userId, post.platform);
+            const token = account && !account.demo ? await getAccountToken(userId, post.platform) : null;
+            const ctx: PublishContext = { account, token };
+            const result = await publishPost(post.platform, post.content, post.id, ctx);
             if (result.ok) {
               await updatePost(tenant, post.id, {
                 status: "published",
                 publishedAt: new Date().toISOString(),
                 externalUrl: result.externalUrl,
+                simulated: result.simulated,
               });
               published++;
             } else {
-              await updatePost(tenant, post.id, { status: "failed", error: result.error });
+              await updatePost(tenant, post.id, { status: "failed", error: result.error, simulated: result.simulated });
               failed++;
             }
           } catch (postErr) {

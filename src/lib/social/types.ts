@@ -58,8 +58,12 @@ export interface SocialPost {
   scheduledAt?: string;
   publishedAt?: string;
   createdAt: string;
-  /** URL of the published post (or a demo marker) */
+  /** URL of the published post (a real permalink, or a demo.social preview marker) */
   externalUrl?: string;
+  /** true when the publish was SIMULATED (no real provider configured/connected) — the
+   *  UI labels it honestly instead of dressing the demo.social URL up as a real post.
+   *  Absent on legacy/pre-seam records; the UI still falls back to sniffing the URL. */
+  simulated?: boolean;
   error?: string;
 }
 

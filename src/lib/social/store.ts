@@ -27,6 +27,7 @@ export interface CreatePostInput {
   scheduledAt?: string;
   publishedAt?: string;
   externalUrl?: string;
+  simulated?: boolean;
 }
 
 export async function createPost(tenant: string, input: CreatePostInput): Promise<SocialPost> {
@@ -39,6 +40,7 @@ export async function createPost(tenant: string, input: CreatePostInput): Promis
     ...(input.scheduledAt ? { scheduledAt: input.scheduledAt } : {}),
     ...(input.publishedAt ? { publishedAt: input.publishedAt } : {}),
     ...(input.externalUrl ? { externalUrl: input.externalUrl } : {}),
+    ...(input.simulated !== undefined ? { simulated: input.simulated } : {}),
   };
   await postsCol(tenant).doc(id).set(post);
   return { id, ...post };

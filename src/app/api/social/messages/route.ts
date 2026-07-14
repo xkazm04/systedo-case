@@ -4,6 +4,7 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listMessages, markReplied } from "@/lib/social/store";
 import { publishReply } from "@/lib/social/publish";
+import { getAccount, getAccountToken } from "@/lib/social/connection";
 import { draftReply } from "@/lib/social/draft";
 import { isSocialPlatform } from "@/lib/social/types";
 
@@ -40,7 +41,12 @@ export async function POST(request: Request) {
 
   const tenant = await tenantOf(str(body.projectId) || null);
   if (isSocialPlatform(body.platform)) {
-    await publishReply(body.platform, id, reply);
+    // Same seam as post publishing: real when the account is connected with a token,
+    // an honest no-op simulation otherwise.
+    const uid = await currentUserId();
+    const account = uid ? await getAccount(uid, body.platform) : null;
+    const token = uid && account && !account.demo ? await getAccountToken(uid, body.platform) : null;
+    await publishReply(body.platform, id, reply, { account, token });
   }
   const ok = await markReplied(tenant, id, reply);
   return Response.json({ ok }, { status: ok ? 200 : 404 });

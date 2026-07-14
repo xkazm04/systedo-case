@@ -22,7 +22,7 @@ const T = {
     publishedAt: "published {rel}",
     createdAt: "created {rel}",
     link: "link",
-    demoLink: "ukázka — nezveřejněno",
+    demoLink: "Simulované publikování",
   },
   en: {
     posts: "Posts",
@@ -34,7 +34,7 @@ const T = {
     publishedAt: "published {rel}",
     createdAt: "created {rel}",
     link: "link",
-    demoLink: "demo — not actually posted",
+    demoLink: "Simulated publishing",
   },
 } as const;
 
@@ -131,9 +131,11 @@ export default function PostsList() {
                     ? t("publishedAt", { rel: fmt.fmtRelative(post.publishedAt) })
                     : t("createdAt", { rel: fmt.fmtRelative(post.createdAt) })}
                 {post.externalUrl &&
-                  (post.externalUrl.startsWith("https://demo.social/") ? (
-                    // Simulated publish (demo mode): don't dress the placeholder URL
-                    // up as a real, clickable published post.
+                  // Prefer the explicit `simulated` marker; fall back to sniffing the
+                  // demo.social preview URL for legacy records written before the seam.
+                  (post.simulated || post.externalUrl.startsWith("https://demo.social/") ? (
+                    // Simulated publish: label it honestly, don't dress the placeholder
+                    // preview URL up as a real, clickable published post.
                     <span className="text-muted">· {t("demoLink")}</span>
                   ) : (
                     // Real connected account: the returned URL is a genuine post link.
