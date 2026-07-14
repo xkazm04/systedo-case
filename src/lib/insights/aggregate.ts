@@ -21,8 +21,12 @@ import { SAMPLE_EXPERIMENTS } from "@/lib/lp-exp/sample";
 import { evaluate } from "@/lib/lp-exp/compute";
 import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { scoreQueries } from "@/lib/seo-compare/compute";
-import { SAMPLE_TARGETS } from "@/lib/local/sample";
+import { SAMPLE_TARGETS, targetsForProject, type LocalTarget } from "@/lib/local/sample";
 import { gaps } from "@/lib/local/compute";
+import type { KeywordRank } from "@/lib/mappack/sample";
+import { sortLadder } from "@/lib/mappack/compute";
+import type { ReviewItem } from "@/lib/reviews/sample";
+import { bandOf } from "@/lib/reviews/compute";
 import { SAMPLE_DECAY } from "@/lib/content-engine/sample";
 import { decayingPosts } from "@/lib/content-engine/compute";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
@@ -215,6 +219,72 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   return out;
 }
 
+/** The already-resolved local signals a `local` project's Overview recs read —
+ *  threaded in by the caller (ProjectOverview) so the aggregator stays pure and
+ *  does NO I/O: coverage targets (catalog-grounded when the catalog has services,
+ *  else the per-project sample), the ranking ladder (live-over-sample via
+ *  resolveLocalLadder) and the review set (live-over-sample via resolveReviews).
+ *  Absent → collectRecommendations falls back to the pure per-project sample so a
+ *  local project always gets local recs, never content-marketing advice. */
+export interface LocalRecsInput {
+  targets: LocalTarget[];
+  ladder: KeywordRank[];
+  reviews: ReviewItem[];
+}
+
+/** Recommendations for a `local` project: the coverage gap with the most search
+ *  volume, the weakest tracked map-pack position, and a nudge to answer negative
+ *  reviews. Pure — reads only the resolved signals the caller threaded in, mirroring
+ *  how lokalni/page.tsx resolves them. Was the missing branch that dumped `local`
+ *  projects into contentRecs (content-marketing advice on a local Overview). */
+function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendation[] {
+  const f = createFormatters(locale);
+  const out: Recommendation[] = [];
+
+  // Coverage gap → the highest-volume uncovered service×area (from the project's
+  // RESOLVED targets, not the hardcoded HVAC sample the leadgen branch used).
+  const gap = gaps(input.targets)[0];
+  if (gap) {
+    out.push(rec(locale, "lokalni", "opportunity",
+      locale === "en"
+        ? `Missing page: ${gap.service} ${gap.area}`
+        : `Chybí stránka: ${gap.service} ${gap.area}`,
+      locale === "en"
+        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
+        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`,
+      `${f.fmtInt(gap.monthlyVolume)}/${locale === "en" ? "mo." : "měs."}`, gap.monthlyVolume));
+  }
+
+  // Weakest position → the tracked keyword furthest from the map pack (worst current
+  // rank), so the Overview points at the combo most worth pushing into the top 3.
+  const weakest = sortLadder(input.ladder).at(-1);
+  if (weakest && weakest.current > 3) {
+    out.push(rec(locale, "lokalni", "warning",
+      locale === "en"
+        ? `Weak position: ${weakest.keyword}`
+        : `Slabá pozice: ${weakest.keyword}`,
+      locale === "en"
+        ? `Ranks #${weakest.current} in ${weakest.area} (best #${weakest.best}) — outside the top 3. Strengthen the page + GBP to reach the map pack.`
+        : `V lokalitě ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}) — mimo top 3. Posilte stránku a Google profil pro vstup do mapa-packu.`,
+      `#${weakest.current}`));
+  }
+
+  // Reviews → unanswered negative reviews drag reputation; nudge to reply.
+  const negative = input.reviews.filter((r) => bandOf(r.rating) === "negative").length;
+  if (negative > 0) {
+    out.push(rec(locale, "lokalni", "warning",
+      locale === "en"
+        ? `${negative} negative reviews need a reply`
+        : `${negative} negativních recenzí čeká na odpověď`,
+      locale === "en"
+        ? `Public negative reviews left unanswered erode trust — reply promptly to show you resolve issues.`
+        : `Nezodpovězené negativní recenze snižují důvěru — reagujte včas a ukažte, že problémy řešíte.`,
+      `${negative}`));
+  }
+
+  return out;
+}
+
 function contentRecs(locale: SupportedLocale): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
@@ -254,7 +324,14 @@ function channelRecs(project: Project, locale: SupportedLocale): Recommendation[
 
 /** All recommendations for a project, ranked by impact (severity bucket, then
  *  money at stake) so the highest-leverage items lead — see {@link byImpact}. */
-export function collectRecommendations(project: Project, locale: SupportedLocale = "cs"): Recommendation[] {
+export function collectRecommendations(
+  project: Project,
+  locale: SupportedLocale = "cs",
+  /** resolved local signals for a `local` project, threaded by the caller (async
+   *  I/O stays out of this pure aggregator). Omitted → a pure per-project sample
+   *  fallback, so a local project still gets local recs (never content advice). */
+  local?: LocalRecsInput | null
+): Recommendation[] {
   const typeRecs =
     project.type === "eshop"
       ? eshopRecs(project, locale)
@@ -262,6 +339,8 @@ export function collectRecommendations(project: Project, locale: SupportedLocale
         ? appRecs(locale)
         : project.type === "leadgen"
           ? leadgenRecs(locale)
-          : contentRecs(locale);
+          : project.type === "local"
+            ? localRecs(locale, local ?? { targets: targetsForProject(project), ladder: [], reviews: [] })
+            : contentRecs(locale);
   return [...typeRecs, ...channelRecs(project, locale)].sort(byImpact);
 }

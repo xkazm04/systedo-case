@@ -15,7 +15,14 @@ import LocationsOverviewSection from "@/components/app/overview/LocationsOvervie
 import { projectDataSource } from "@/lib/project-data/source";
 import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { collectRecommendations } from "@/lib/insights/aggregate";
+import { collectRecommendations, type LocalRecsInput } from "@/lib/insights/aggregate";
+import { targetsForProject } from "@/lib/local/sample";
+import { targetsFromCatalog } from "@/lib/local/catalog";
+import { keywordLadder } from "@/lib/mappack/sample";
+import { reviewsForProject } from "@/lib/reviews/sample";
+import { resolveLocalLadder, resolveReviews } from "@/lib/local-signals/resolve";
+import { localitiesFor } from "@/lib/catalog/resolve";
+import { loadServicesFor } from "@/lib/catalog/load";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
 import type { Formatters } from "@/lib/format";
 import {
@@ -179,6 +186,25 @@ function NeedsAttention({
   );
 }
 
+/** Resolve a `local` project's Overview rec signals the same way lokalni/page.tsx
+ *  does — catalog-grounded coverage targets, and the ladder + reviews live-over-
+ *  sample — so the aggregator's local recs read the project's real data, not the
+ *  HVAC sample. Null for non-local projects. Server-only I/O kept out of the pure
+ *  aggregator. */
+async function resolveLocalRecsInput(project: Project): Promise<LocalRecsInput | null> {
+  if (project.type !== "local") return null;
+  const localities = localitiesFor(project);
+  const services = await loadServicesFor(project);
+  const targets =
+    services.length > 0 ? targetsFromCatalog(services, localities) : targetsForProject(project);
+  const resolvedLadder = await resolveLocalLadder(
+    project.id,
+    keywordLadder(project, localities, services)
+  );
+  const resolvedReviews = await resolveReviews(project.id, reviewsForProject(project, localities));
+  return { targets, ladder: resolvedLadder.ladder, reviews: resolvedReviews.reviews };
+}
+
 export default async function ProjectOverview({
   projects,
   activeProjectId,
@@ -204,7 +230,8 @@ export default async function ProjectOverview({
   if (projects.length <= 1) {
     const project = projects[0]!;
     const data = getProjectDataset(project);
-    const recs: ProjRec[] = collectRecommendations(project, locale).map((r) => ({
+    const localInput = await resolveLocalRecsInput(project);
+    const recs: ProjRec[] = collectRecommendations(project, locale, localInput).map((r) => ({
       ...r,
       projectId: project.id,
       projectName: project.name,
@@ -334,9 +361,16 @@ export default async function ProjectOverview({
 
   // Combined, cross-project recommendations — each tagged with its project and
   // re-keyed (rec ids aren't project-scoped), then ranked by impact across all.
+  // Local signals are resolved per project up front (async) so the pure aggregator
+  // reads each local project's real coverage / ladder / reviews, not the sample.
+  const localInputs = new Map<string, LocalRecsInput | null>(
+    await Promise.all(
+      projects.map(async (p) => [p.id, await resolveLocalRecsInput(p)] as const)
+    )
+  );
   const combined: ProjRec[] = projects
     .flatMap((p) =>
-      collectRecommendations(p, locale).map((r) => ({
+      collectRecommendations(p, locale, localInputs.get(p.id)).map((r) => ({
         ...r,
         id: `${p.id}:${r.id}`,
         projectId: p.id,
