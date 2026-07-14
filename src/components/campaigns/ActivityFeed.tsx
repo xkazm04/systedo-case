@@ -8,6 +8,7 @@ import { toCsv, downloadText } from "@/lib/export";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { ActivityKind, ActivityRecord } from "@/lib/campaigns/activity";
 import { useDismiss } from "./useDismiss";
+import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 
 const T = {
   cs: {
@@ -28,6 +29,8 @@ const T = {
     kindAlert: "Upozornění",
     kindReport: "Report",
     kindUpdate: "Změna",
+    viewAlert: "Upozornění",
+    viewChangeSet: "Balíček",
   },
   en: {
     ariaLabel: "Activity history",
@@ -47,6 +50,8 @@ const T = {
     kindAlert: "Alert",
     kindReport: "Report",
     kindUpdate: "Change",
+    viewAlert: "Alert",
+    viewChangeSet: "Change-set",
   },
 } as const;
 
@@ -147,6 +152,39 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
                           {a.actor && <span aria-hidden>·</span>}
                           {a.actor && <span>{a.actor}</span>}
                         </div>
+                        {/* Make the alert → change-set → apply thread navigable:
+                            an entry carrying an alert/change-set links to that
+                            target, closing the dropdown and flashing it. */}
+                        {(a.alertId || a.changeSetId) && (
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            {a.changeSetId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpen(false);
+                                  revealThreadTarget(THREAD_ANCHORS.controlPlane);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-pill border border-line px-2 py-0.5 text-[11px] font-medium text-brand-accent transition-colors hover:border-brand-300"
+                              >
+                                <Bolt width={11} height={11} />
+                                {t("viewChangeSet")}
+                              </button>
+                            )}
+                            {a.alertId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOpen(false);
+                                  revealThreadTarget(THREAD_ANCHORS.alertsInbox);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-pill border border-line px-2 py-0.5 text-[11px] font-medium text-brand-accent transition-colors hover:border-brand-300"
+                              >
+                                <Bell width={11} height={11} />
+                                {t("viewAlert")}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </li>

@@ -16,12 +16,15 @@ import {
   type CampaignType,
 } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
+import type { AlertRecord } from "@/lib/campaigns/alerts";
+import { alertStatus, alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { useCampaigns } from "./useCampaigns";
 import { useCampaignErrorText } from "./errors";
+import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 import TypeBreakdown from "./TypeBreakdown";
 import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
@@ -202,6 +205,65 @@ export default function CampaignsClient() {
   // control plane below reloads and surfaces the pending proposal for approval.
   const [controlPlaneRefresh, setControlPlaneRefresh] = useState(0);
   const syncAndRefresh = (p: CampaignPeriod) => void sync(p).then(refreshAlerts);
+
+  // Map campaign id → the id of a stageable critical alert naming it. A critical
+  // table row uses this to stage a change-set pre-scoped to that campaign's alert
+  // — the fully-scoped path the control-plane route supports. Rebuilt whenever a
+  // sync may have minted or resolved alerts (alertRefresh).
+  const [alertByCampaign, setAlertByCampaign] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!authed) {
+        if (!cancelled) setAlertByCampaign(new Map());
+        return;
+      }
+      try {
+        const res = await fetch(pid ? `/api/alerts?projectId=${encodeURIComponent(pid)}` : "/api/alerts");
+        if (!res.ok) return;
+        const json = (await res.json()) as { alerts?: AlertRecord[] };
+        if (cancelled) return;
+        const map = new Map<string, string>();
+        for (const a of json.alerts ?? []) {
+          // Mirrors AlertsInbox's canStage: a critical, not-yet-resolved alert
+          // that names campaigns can seed a scoped change-set.
+          if (a.type !== "critical" || alertStatus(a) === "resolved") continue;
+          for (const cid of alertCampaignIds(a)) if (!map.has(cid)) map.set(cid, a.id);
+        }
+        setAlertByCampaign(map);
+      } catch {
+        /* non-critical chrome */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [authed, pid, alertRefresh]);
+
+  // Stage a change-set for one critical row: prefer the campaign's own alert (the
+  // route's fully-scoped path); otherwise fall back to a campaign-scoped create.
+  // On success, reload the control plane + alerts and reveal the new proposal.
+  const preparePackage = async (campaignId: string): Promise<boolean> => {
+    const alertId = alertByCampaign.get(campaignId);
+    try {
+      const res = await fetch("/api/campaigns/control-plane", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          alertId
+            ? { action: "create", alertId, projectId: pid }
+            : { action: "create", scopeCampaignIds: [campaignId], projectId: pid }
+        ),
+      });
+      if (!res.ok) return false;
+      setControlPlaneRefresh((n) => n + 1);
+      refreshAlerts();
+      revealThreadTarget(THREAD_ANCHORS.controlPlane);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   const changePeriod = (p: CampaignPeriod) => {
     setSelected(p);
@@ -416,6 +478,7 @@ export default function CampaignsClient() {
           campaignSeries={campaignSeries}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
+          onPreparePackage={authed ? preparePackage : undefined}
         />
       </section>
 

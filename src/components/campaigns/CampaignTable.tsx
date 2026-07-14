@@ -64,6 +64,10 @@ const T = {
     emptyNoMatch: "Žádná kampaň neodpovídá zadanému filtru.",
     okLabel: "V pořádku",
     okTitle: "Plní cíl",
+    preparePackage: "Připravit balíček",
+    preparingPackage: "Připravuji…",
+    preparePackageTitle:
+      "Vytvořit změnový balíček pro tuto kampaň v Řízení rozpočtů níže (simulace → schválení → vrácení)",
     analyzePriorityTitle: "Doporučeno vyhodnotit prioritně",
     analyzing: "Analyzuji…",
     analyze: "Analyzovat",
@@ -128,6 +132,10 @@ const T = {
     emptyNoMatch: "No campaign matches the active filter.",
     okLabel: "On target",
     okTitle: "Meeting goal",
+    preparePackage: "Stage change-set",
+    preparingPackage: "Staging…",
+    preparePackageTitle:
+      "Create a change package for this campaign in Budget management below (simulate → approve → revert)",
     analyzePriorityTitle: "Recommended to evaluate first",
     analyzing: "Analysing…",
     analyze: "Analyse",
@@ -219,6 +227,7 @@ export default function CampaignTable({
   campaignSeries,
   typeFilter,
   onTypeFilterChange,
+  onPreparePackage,
 }: {
   campaigns: Campaign[];
   reports: Record<string, CampaignReport>;
@@ -244,6 +253,11 @@ export default function CampaignTable({
    *  and the table dropdown drive the same state (click a card → filter rows) */
   typeFilter: CampaignType | "all";
   onTypeFilterChange: (t: CampaignType | "all") => void;
+  /** Stage a governed change-set for one critical row — prefers that campaign's
+   *  alert when one exists, else a campaign-scoped create. Absent for anonymous
+   *  visitors (the control-plane route is signed-in only). Resolves false on
+   *  failure so the row can drop its busy state. */
+  onPreparePackage?: (campaignId: string) => Promise<boolean> | void;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -282,6 +296,18 @@ export default function CampaignTable({
   const analyze = (id: string) => {
     setExpanded((e) => ({ ...e, [id]: true }));
     void onAnalyze(id);
+  };
+
+  // Which critical row is currently staging a change-set (disables its button).
+  const [preparingId, setPreparingId] = useState<string | null>(null);
+  const prepare = async (id: string) => {
+    if (!onPreparePackage) return;
+    setPreparingId(id);
+    try {
+      await onPreparePackage(id);
+    } finally {
+      setPreparingId(null);
+    }
   };
 
   // Which metric the per-row trend sparkline plots. Cost is always available; CTR
@@ -573,21 +599,38 @@ export default function CampaignTable({
                           —
                         </span>
                       ) : (
-                        // A button, not a bare pill: the hover-only tooltip left
-                        // touch users with no way to read WHY the row is flagged.
-                        // Clicking opens the row detail, where the same reasons
-                        // render as a copyable list; the title stays as a
-                        // secondary desktop affordance.
-                        <button
-                          type="button"
-                          onClick={() => toggle(c.id)}
-                          aria-expanded={isOpen}
-                          className={`pill cursor-pointer transition-shadow hover:shadow-card ${SEVERITY_BADGE[triageResult.severity]}`}
-                          title={`${t("severityPillTitle")}\n${triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}`}
-                        >
-                          <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
-                          {severityLabel(triageResult.severity, locale)}
-                        </button>
+                        <div className="flex flex-col items-start gap-1.5">
+                          {/* A button, not a bare pill: the hover-only tooltip left
+                              touch users with no way to read WHY the row is flagged.
+                              Clicking opens the row detail, where the same reasons
+                              render as a copyable list; the title stays as a
+                              secondary desktop affordance. */}
+                          <button
+                            type="button"
+                            onClick={() => toggle(c.id)}
+                            aria-expanded={isOpen}
+                            className={`pill cursor-pointer transition-shadow hover:shadow-card ${SEVERITY_BADGE[triageResult.severity]}`}
+                            title={`${t("severityPillTitle")}\n${triageResult.reasons.map((r) => `${triageReasonLabel(r, locale)}: ${r.detail}`).join("\n")}`}
+                          >
+                            <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+                            {severityLabel(triageResult.severity, locale)}
+                          </button>
+                          {/* Critical rows get a direct path to the fix: stage a
+                              governed change-set (scoped to this campaign's alert
+                              when one exists) without hunting through the inbox. */}
+                          {triageResult.severity === "critical" && onPreparePackage && (
+                            <button
+                              type="button"
+                              onClick={() => void prepare(c.id)}
+                              disabled={preparingId === c.id}
+                              title={t("preparePackageTitle")}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-accent transition-colors hover:underline disabled:opacity-60"
+                            >
+                              <Bolt width={11} height={11} />
+                              {preparingId === c.id ? t("preparingPackage") : t("preparePackage")}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="px-5 py-3">

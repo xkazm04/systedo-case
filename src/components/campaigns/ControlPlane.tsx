@@ -7,6 +7,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import { projectedValueGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
+import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 
 const T = {
   cs: {
@@ -30,6 +31,7 @@ const T = {
     approve: "Schválit a aplikovat",
     ledgerHeading: "Historie balíčků",
     fromAlert: "Z upozornění",
+    fromAlertTitle: "Zobrazit související upozornění ve schránce",
     moves: "{n} přesunů",
     applied: "{ok}/{total} aplikováno",
     revert: "Vrátit zpět",
@@ -57,6 +59,7 @@ const T = {
     approve: "Approve and apply",
     ledgerHeading: "Package history",
     fromAlert: "From alert",
+    fromAlertTitle: "Show the related alert in the inbox",
     moves: "{n} moves",
     applied: "{ok}/{total} applied",
     revert: "Revert",
@@ -135,7 +138,7 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
   const pending = sets.find((s) => s.status === "pending");
 
   return (
-    <section className="card p-6">
+    <section className="card p-6" id={THREAD_ANCHORS.controlPlane}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Bolt width={16} height={16} className="text-brand-accent" />
@@ -162,7 +165,14 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
             <span className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               {t("pendingHeading")}
               {pending.alertId && (
-                <span className="pill bg-coral-soft text-coral-600">{t("fromAlert")}</span>
+                <button
+                  type="button"
+                  onClick={() => revealThreadTarget(THREAD_ANCHORS.alertsInbox)}
+                  title={t("fromAlertTitle")}
+                  className="pill cursor-pointer bg-coral-soft text-coral-600 transition-shadow hover:shadow-card"
+                >
+                  {t("fromAlert")}
+                </button>
               )}
             </span>
             <span className={`pill ${STATUS_STYLE.pending}`}>{STATUS_LABEL.pending}</span>
@@ -240,7 +250,14 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
                 <span className="flex items-center gap-2">
                   <span className={`pill ${STATUS_STYLE[s.status]}`}>{STATUS_LABEL[s.status]}</span>
                   {s.alertId && (
-                    <span className="pill bg-coral-soft text-coral-600">{t("fromAlert")}</span>
+                    <button
+                      type="button"
+                      onClick={() => revealThreadTarget(THREAD_ANCHORS.alertsInbox)}
+                      title={t("fromAlertTitle")}
+                      className="pill cursor-pointer bg-coral-soft text-coral-600 transition-shadow hover:shadow-card"
+                    >
+                      {t("fromAlert")}
+                    </button>
                   )}
                   <span className="text-navy-800">{t("moves", { n: s.moves.length })}</span>
                   {s.results && (

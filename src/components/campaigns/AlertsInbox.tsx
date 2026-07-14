@@ -14,6 +14,7 @@ import {
   isAlertActionable,
 } from "@/lib/campaigns/alert-suppression";
 import { useDismiss } from "./useDismiss";
+import { THREAD_ANCHORS } from "./thread";
 
 const T = {
   cs: {
@@ -164,7 +165,7 @@ export default function AlertsInbox({
   if (status !== "authenticated") return null;
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative rounded-pill" id={THREAD_ANCHORS.alertsInbox} ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
