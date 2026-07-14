@@ -11,7 +11,7 @@
  *  The transport is INJECTABLE so the adapter can be unit-tested against a fixture
  *  with no network. Dependency-free (fetch only); the real HTTP transport is the
  *  only part that touches the network. */
-import type { SklikCampaign, SklikStatsReport } from "./types";
+import type { SklikCampaign, SklikKeywordSuggestion, SklikStatsReport } from "./types";
 
 /** How a client call reaches Sklik — a single seam so tests swap in a fixture. */
 export interface SklikTransport {
@@ -54,6 +54,14 @@ function num(v: unknown): number {
   const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : 0;
   return Number.isFinite(n) ? n : 0;
 }
+
+/** The Sklik JSON-RPC method used to fetch keyword suggestions for a seed phrase.
+ *  ISOLATED as a single constant (the moneyToCzk precedent): Sklik's public drak API
+ *  keyword surface is not stably documented offline, so the method name AND the response
+ *  mapping (sklik/keywords.ts `mapSklikSuggestion`) are the one place to adjust once
+ *  verified against a live account. `keywords.suggest` is the documented-plausible RPC;
+ *  an unknown method simply throws and the connector degrades to no Sklik contribution. */
+export const SKLIK_KEYWORDS_METHOD = "keywords.suggest";
 
 /** Stats granularity Sklik supports for a report. */
 export type SklikGranularity = "total" | "daily";
@@ -124,6 +132,31 @@ export class SklikClient {
         dayBudget: c.dayBudget != null ? num(c.dayBudget) : undefined,
         deleted: c.deleted === true,
       }));
+  }
+
+  /** Keyword suggestions for a seed phrase, from Sklik's keyword surface
+   *  (SKLIK_KEYWORDS_METHOD). Returns the raw wire suggestions; the neutral mapping into
+   *  RawKeywordIdea lives in sklik/keywords.ts (the documented seam). The response
+   *  envelope is read defensively (either `suggestions` or `keywords` array), since the
+   *  exact key is offline-unverifiable. An empty / unrecognised response → []. */
+  async suggestKeywords(seed: string, limit = 40): Promise<SklikKeywordSuggestion[]> {
+    const user = await this.user();
+    const res = await this.transport.call(SKLIK_KEYWORDS_METHOD, [user, { seed, limit }]);
+    this.refresh(res);
+    const raw = Array.isArray(res.suggestions)
+      ? (res.suggestions as unknown[])
+      : Array.isArray(res.keywords)
+        ? (res.keywords as unknown[])
+        : [];
+    return raw.map((s) => {
+      const o = s as Record<string, unknown>;
+      const out: SklikKeywordSuggestion = {};
+      if (typeof o.keyword === "string") out.keyword = o.keyword;
+      if (o.searchCount != null) out.searchCount = num(o.searchCount);
+      if (o.avgCpc != null) out.avgCpc = num(o.avgCpc);
+      if (o.competition != null) out.competition = num(o.competition);
+      return out;
+    });
   }
 
   /** Per-campaign performance over a window. `granularity: "daily"` yields one

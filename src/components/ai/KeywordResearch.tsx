@@ -73,6 +73,9 @@ const T = {
     clusterSupportingLabel: "Podpůrná slova ({n})",
     clusterCreateBrief: "Vytvořit brief",
     clusterVolumeHint: "{n}/měs",
+    srcGoogle: "Google",
+    srcSklik: "Sklik",
+    srcSample: "Ukázka",
   },
   en: {
     formHeading: "Topic to research",
@@ -116,6 +119,9 @@ const T = {
     clusterSupportingLabel: "Supporting keywords ({n})",
     clusterCreateBrief: "Create brief",
     clusterVolumeHint: "{n}/mo",
+    srcGoogle: "Google",
+    srcSklik: "Sklik",
+    srcSample: "Sample",
   },
 } as const;
 
@@ -326,6 +332,14 @@ export default function KeywordResearch({
   };
 
   const intentsPresent = result ? result.groups.map((g) => g.intent) : [];
+
+  // Per-row source badges only when the result is actually a MIX of providers (e.g.
+  // Google + Sklik merged). A single-source result (Google-only / sample-only) leaves
+  // idea.source undefined → no badges, unchanged from before Sklik existed.
+  const mixedSources = useMemo(() => {
+    if (!result) return false;
+    return new Set(result.ideas.map((i) => i.source).filter(Boolean)).size > 1;
+  }, [result]);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[380px_1fr] lg:items-start">
@@ -541,6 +555,7 @@ export default function KeywordResearch({
                   idea={idea}
                   checked={selected.has(idea.keyword)}
                   onToggle={() => toggle(idea.keyword)}
+                  showSource={mixedSources}
                   t={t}
                   fmt={fmt}
                 />
@@ -571,15 +586,20 @@ function IdeaRow({
   idea,
   checked,
   onToggle,
+  showSource,
   t,
   fmt,
 }: {
   idea: KeywordIdea;
   checked: boolean;
   onToggle: () => void;
+  /** render the per-idea provider badge (only when the result mixes sources) */
+  showSource: boolean;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
   fmt: ReturnType<typeof useFormatters>;
 }) {
+  const sourceKey =
+    idea.source === "google" ? "srcGoogle" : idea.source === "sklik" ? "srcSklik" : "srcSample";
   return (
     <li>
       <label
@@ -597,6 +617,15 @@ function IdeaRow({
           <span className="flex flex-wrap items-center gap-2">
             <span className="truncate text-sm font-medium text-navy-800">{idea.keyword}</span>
             <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[idea.intent]}</span>
+            {showSource && idea.source && (
+              <span
+                className={`pill ${
+                  idea.source === "sklik" ? "bg-brand-50 text-brand-700" : "bg-navy-50 text-muted"
+                }`}
+              >
+                {t(sourceKey)}
+              </span>
+            )}
           </span>
           <span className="mt-0.5 block text-xs text-muted">
             <span className="tnum">{fmt.fmtInt(idea.avgMonthlySearches)}</span>{t("perMonth")} · {t("competition")}{" "}

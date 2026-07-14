@@ -8,8 +8,16 @@ import { adsConfigured } from "@/lib/google/ads";
 import { generateKeywordIdeas } from "@/lib/google/keyword-planner";
 import { getProject } from "@/lib/projects/store";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { SklikClient, httpSklikTransport } from "@/lib/sklik/client";
+import { fetchSklikKeywordIdeas } from "@/lib/sklik/keywords";
 import { sampleKeywordIdeas } from "./sample";
-import { finalizeKeywords, type KeywordResult, type RawKeywordIdea } from "./types";
+import {
+  finalizeKeywords,
+  mergeRawIdeas,
+  type KeywordResult,
+  type KeywordSource,
+  type RawKeywordIdea,
+} from "./types";
 
 /** Resolve the tenant's brand NAME so finalizeKeywords can fire its brand-intent
  *  branch (a keyword containing the brand → "brand"). Same demo-public / user-owned
@@ -53,6 +61,29 @@ async function fetchRaw(
   return { source: "sample", raw: sampleKeywordIdeas(seed) };
 }
 
+/** Sklik keyword suggestions for a seed, when SKLIK_API_TOKEN is configured. Returns []
+ *  (and logs) on ANY failure or an empty result, so a Sklik hiccup can never break — or
+ *  visibly alter — keyword research; the caller then serves the Google/sample result
+ *  exactly as before. The real HTTP transport is used here; the mapping is exercised
+ *  offline via fetchSklikKeywordIdeas' injectable-client fixture tests. */
+async function fetchSklikIdeas(seed: string): Promise<RawKeywordIdea[]> {
+  const token = process.env.SKLIK_API_TOKEN;
+  if (!token) return [];
+  try {
+    const client = new SklikClient(httpSklikTransport(), token);
+    return await fetchSklikKeywordIdeas(client, seed);
+  } catch (err) {
+    console.error("[keywords] Sklik fetch failed, no Sklik contribution:", err);
+    return [];
+  }
+}
+
+/** Tag every idea in a base (Google/sample) list with its per-idea source label, so a
+ *  merged result attributes each row. `google-ads` maps to the per-idea "google" label. */
+function tagSource(raw: RawKeywordIdea[], source: KeywordSource): RawKeywordIdea[] {
+  return raw.map((idea) => ({ ...idea, source }));
+}
+
 /** Keyword ideas for a seed (and optional landing URL), finalized with intent +
  *  opportunity scoring and grouped by intent. */
 export async function researchKeywords(
@@ -64,9 +95,18 @@ export async function researchKeywords(
    *  behavior unchanged. */
   projectId?: string
 ): Promise<KeywordResult> {
-  const [{ source, raw }, brand] = await Promise.all([
+  const [{ source, raw }, brand, sklik] = await Promise.all([
     fetchRaw(userId, seed, url),
     resolveBrandName(userId, projectId),
+    fetchSklikIdeas(seed),
   ]);
-  return finalizeKeywords(seed, source, raw, brand);
+  // Sklik contributed nothing (unset token, error, or empty) → serve the Google/sample
+  // result BYTE-IDENTICALLY: no per-idea source labels, no reordering. Only when Sklik
+  // actually returns ideas do we merge (deduped, richer record wins) and label each row
+  // by provider so the UI can show the mix. The result-level `source` stays the base
+  // provider; the per-row badges convey the blend.
+  if (sklik.length === 0) return finalizeKeywords(seed, source, raw, brand);
+  const baseLabel: KeywordSource = source === "google-ads" ? "google" : "sample";
+  const merged = mergeRawIdeas(tagSource(raw, baseLabel), sklik);
+  return finalizeKeywords(seed, source, merged, brand);
 }

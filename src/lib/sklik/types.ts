@@ -45,6 +45,22 @@ export interface SklikStatsReport {
   stats?: SklikStatRow[];
 }
 
+/** One keyword suggestion as returned by Sklik's keyword-suggestion surface. Only the
+ *  fields the adapter maps are typed; the API returns more (and the exact names are
+ *  offline-unverifiable — see sklik/keywords.ts, the single documented mapping seam).
+ *  All metric fields are OPTIONAL: a suggestion may carry only the phrase, in which case
+ *  the adapter fills conservative defaults. */
+export interface SklikKeywordSuggestion {
+  /** the suggested search phrase */
+  keyword?: string;
+  /** average monthly searches, when the surface provides it */
+  searchCount?: number;
+  /** average / suggested CPC in the account currency — unit handled by moneyToCzk */
+  avgCpc?: number;
+  /** competition/competitiveness, 0–1 or 0–100 (the adapter normalises defensively) */
+  competition?: number;
+}
+
 /**
  * Sklik campaign type → this app's advertising-channel type. Sklik's taxonomy
  * differs from Google's, so we normalise onto the shared CampaignType the whole

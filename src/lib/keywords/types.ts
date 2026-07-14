@@ -19,8 +19,21 @@ export const KEYWORD_INTENT_LABELS: Record<KeywordIntent, string> = {
   local: "Lokální",
 };
 
-/** What a provider (Ads Keyword Planner or the sample generator) returns before
- *  intent + opportunity are derived. */
+/** Which provider a single idea came from. Distinct from the result-level `source`
+ *  ("google-ads" | "sample") because a MERGED result carries ideas from more than one
+ *  provider at once — so the label belongs per idea. Only set when sources are actually
+ *  mixed (Sklik contributed); a Google-only / sample-only result leaves it undefined so
+ *  its shape stays byte-identical to before Sklik existed. */
+export type KeywordSource = "google" | "sklik" | "sample";
+
+export const KEYWORD_SOURCE_LABELS: Record<KeywordSource, string> = {
+  google: "Google",
+  sklik: "Sklik",
+  sample: "Ukázka",
+};
+
+/** What a provider (Ads Keyword Planner, Sklik, or the sample generator) returns
+ *  before intent + opportunity are derived. */
 export interface RawKeywordIdea {
   keyword: string;
   /** average monthly searches */
@@ -31,6 +44,40 @@ export interface RawKeywordIdea {
   /** top-of-page bid range, CZK */
   lowBidCzk: number;
   highBidCzk: number;
+  /** which provider produced THIS idea — set only on a merged (mixed-source) result */
+  source?: KeywordSource;
+}
+
+/** Merge two raw idea lists (the Google/sample base + Sklik suggestions), deduped by
+ *  keyword (case-insensitive, trimmed), preserving first-seen order. DEDUPE RULE — keep
+ *  the RICHER record: the one with the higher avgMonthlySearches wins (a real volume
+ *  beats a conservative default); ties keep whichever carries CPC bid data; still tied →
+ *  keep the first (base) record. The kept record's own `source` label is preserved, so a
+ *  keyword both providers return is attributed to whichever actually supplied the
+ *  numbers shown. Pure — no I/O; the engine tags each side's `source` before calling. */
+export function mergeRawIdeas(base: RawKeywordIdea[], extra: RawKeywordIdea[]): RawKeywordIdea[] {
+  const richer = (a: RawKeywordIdea, b: RawKeywordIdea): RawKeywordIdea => {
+    if (b.avgMonthlySearches > a.avgMonthlySearches) return b;
+    if (b.avgMonthlySearches < a.avgMonthlySearches) return a;
+    const aHasBid = a.highBidCzk > 0 || a.lowBidCzk > 0;
+    const bHasBid = b.highBidCzk > 0 || b.lowBidCzk > 0;
+    if (bHasBid && !aHasBid) return b;
+    return a;
+  };
+  const byKey = new Map<string, RawKeywordIdea>();
+  const order: string[] = [];
+  for (const idea of [...base, ...extra]) {
+    const key = idea.keyword.trim().toLowerCase();
+    if (!key) continue;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, idea);
+      order.push(key);
+    } else {
+      byKey.set(key, richer(existing, idea));
+    }
+  }
+  return order.map((k) => byKey.get(k)!);
 }
 
 /** A finalized idea with derived intent + opportunity, ready for the UI. */
