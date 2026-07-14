@@ -19,6 +19,7 @@ import { collectRecommendations, type LocalRecsInput } from "@/lib/insights/aggr
 import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { loadPlansFor } from "@/lib/catalog/load";
+import { getCompetitors } from "@/lib/competitors/store";
 import { targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { keywordLadder } from "@/lib/mappack/sample";
@@ -215,7 +216,12 @@ async function resolveLocalRecsInput(project: Project): Promise<LocalRecsInput |
  *  keeps its SAMPLE_QUERIES default). Server-only I/O kept out of the pure aggregator. */
 async function resolveSeoQueries(project: Project): Promise<CompareQuery[] | null> {
   if (project.type !== "app") return null;
-  const generated = comparisonQueriesFromCatalog(project.name, await loadPlansFor(project));
+  const [plans, competitorSet] = await Promise.all([
+    loadPlansFor(project),
+    getCompetitors(project.id),
+  ]);
+  const storedCompetitors = competitorSet?.competitors.map((c) => c.name) ?? [];
+  const generated = comparisonQueriesFromCatalog(project.name, plans, storedCompetitors);
   return generated.length > 0 ? generated : SAMPLE_QUERIES;
 }
 

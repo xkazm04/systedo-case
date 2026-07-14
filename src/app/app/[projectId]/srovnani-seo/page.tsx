@@ -8,6 +8,7 @@ import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
 import { seoChannelFrom } from "@/lib/seo-compare/compute";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { loadPlansFor } from "@/lib/catalog/load";
+import { getCompetitors } from "@/lib/competitors/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { channelRows, totalsOf } from "@/lib/metrics";
 
@@ -20,9 +21,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const data = getProjectDataset(project);
   const rows = channelRows(data.channels, totalsOf(data.daily.slice(-90)));
   const seoChannel = seoChannelFrom(rows);
-  // Comparison queries generated from the project's plan offerings + their named
-  // competitors; fall back to the sample set if the catalog has no plans.
-  const generated = comparisonQueriesFromCatalog(project.name, await loadPlansFor(project));
+  // Comparison queries generated from the project's brand + the ONE competitor
+  // slate: the union of its stored competitor set (user-editable here) and the
+  // competitors named on its plan offerings. Editing competitors reshapes the vs-
+  // query table on next load. Falls back to the sample set when there's neither.
+  const [plans, competitorSet] = await Promise.all([
+    loadPlansFor(project),
+    getCompetitors(projectId),
+  ]);
+  const storedCompetitors = competitorSet?.competitors.map((c) => c.name) ?? [];
+  const generated = comparisonQueriesFromCatalog(project.name, plans, storedCompetitors);
   const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
   return (
     <ModulePage moduleKey="srovnani-seo" sample>
