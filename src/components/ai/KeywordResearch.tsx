@@ -172,7 +172,7 @@ export default function KeywordResearch({
       const res = await fetch("/api/keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seed: seed.trim(), url: url.trim() || undefined }),
+        body: JSON.stringify({ seed: seed.trim(), url: url.trim() || undefined, projectId: pid }),
       });
       const json = await res.json();
       if (!res.ok) {

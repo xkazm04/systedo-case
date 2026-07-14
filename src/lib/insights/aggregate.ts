@@ -19,7 +19,7 @@ import { SAMPLE_COHORTS } from "@/lib/ltv/sample";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { SAMPLE_EXPERIMENTS } from "@/lib/lp-exp/sample";
 import { evaluate } from "@/lib/lp-exp/compute";
-import { SAMPLE_QUERIES } from "@/lib/seo-compare/sample";
+import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
 import { scoreQueries } from "@/lib/seo-compare/compute";
 import { SAMPLE_TARGETS, targetsForProject, type LocalTarget } from "@/lib/local/sample";
 import { gaps } from "@/lib/local/compute";
@@ -146,7 +146,12 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   return out;
 }
 
-function appRecs(locale: SupportedLocale): Recommendation[] {
+/** @param seoQueries the project's RESOLVED comparison queries (catalog-generated
+ *  when the catalog has plans / named competitors, else the sample set) — threaded
+ *  in by the caller (ProjectOverview) exactly as srovnani-seo/page.tsx resolves them,
+ *  so the Overview SEO rec scores the same slate the module shows. The aggregator
+ *  stays pure and does NO I/O — same precedent as the localRecs signals above. */
+function appRecs(locale: SupportedLocale, seoQueries: CompareQuery[]): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
   const ltv = ltvSummary(SAMPLE_COHORTS);
@@ -169,7 +174,7 @@ function appRecs(locale: SupportedLocale): Recommendation[] {
         ? `Variant leads conclusively (${f.fmtPct(w.confidence)} confidence). Deploy it as the primary landing page.`
         : `Varianta vede průkazně (${f.fmtPct(w.confidence)} jistota). Nasaďte ji jako hlavní landing page.`));
   }
-  const top = scoreQueries(SAMPLE_QUERIES).find((q) => q.opportunity === "high");
+  const top = scoreQueries(seoQueries).find((q) => q.opportunity === "high");
   if (top) {
     out.push(rec(locale, "srovnani-seo", "opportunity",
       locale === "en"
@@ -330,13 +335,17 @@ export function collectRecommendations(
   /** resolved local signals for a `local` project, threaded by the caller (async
    *  I/O stays out of this pure aggregator). Omitted → a pure per-project sample
    *  fallback, so a local project still gets local recs (never content advice). */
-  local?: LocalRecsInput | null
+  local?: LocalRecsInput | null,
+  /** resolved comparison queries for an `app` project's SEO rec, threaded by the
+   *  caller (mirrors srovnani-seo/page.tsx). Omitted → the static SAMPLE_QUERIES,
+   *  so an app project without a resolved slate behaves exactly as before. */
+  seoQueries?: CompareQuery[] | null
 ): Recommendation[] {
   const typeRecs =
     project.type === "eshop"
       ? eshopRecs(project, locale)
       : project.type === "app"
-        ? appRecs(locale)
+        ? appRecs(locale, seoQueries ?? SAMPLE_QUERIES)
         : project.type === "leadgen"
           ? leadgenRecs(locale)
           : project.type === "local"

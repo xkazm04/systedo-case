@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { seed?: unknown; url?: unknown };
+  let body: { seed?: unknown; url?: unknown; projectId?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -40,11 +40,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Zadejte téma / klíčové slovo (2–80 znaků)." }, { status: 422 });
   }
   const url = str(body.url) || undefined;
+  const projectId = str(body.projectId) || undefined;
 
   const userId = await currentUserId();
 
   try {
-    const result = await researchKeywords(userId, seed, url);
+    const result = await researchKeywords(userId, seed, url, projectId);
     return Response.json(result);
   } catch (err) {
     console.error("[keywords] research failed:", err);

@@ -16,6 +16,9 @@ import { projectDataSource } from "@/lib/project-data/source";
 import { hasSyncedMetrics } from "@/lib/report-metrics/store";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations, type LocalRecsInput } from "@/lib/insights/aggregate";
+import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
+import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
+import { loadPlansFor } from "@/lib/catalog/load";
 import { targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { keywordLadder } from "@/lib/mappack/sample";
@@ -205,6 +208,17 @@ async function resolveLocalRecsInput(project: Project): Promise<LocalRecsInput |
   return { targets, ladder: resolvedLadder.ladder, reviews: resolvedReviews.reviews };
 }
 
+/** Resolve an `app` project's comparison-query slate the same way srovnani-seo/page.tsx
+ *  does — catalog-generated from the brand + plan competitors when the catalog has
+ *  plans, else the sample set — so the Overview SEO rec scores the project's real
+ *  queries, not the hardcoded sample. Null for non-app projects (the aggregator then
+ *  keeps its SAMPLE_QUERIES default). Server-only I/O kept out of the pure aggregator. */
+async function resolveSeoQueries(project: Project): Promise<CompareQuery[] | null> {
+  if (project.type !== "app") return null;
+  const generated = comparisonQueriesFromCatalog(project.name, await loadPlansFor(project));
+  return generated.length > 0 ? generated : SAMPLE_QUERIES;
+}
+
 export default async function ProjectOverview({
   projects,
   activeProjectId,
@@ -230,8 +244,11 @@ export default async function ProjectOverview({
   if (projects.length <= 1) {
     const project = projects[0]!;
     const data = getProjectDataset(project);
-    const localInput = await resolveLocalRecsInput(project);
-    const recs: ProjRec[] = collectRecommendations(project, locale, localInput).map((r) => ({
+    const [localInput, seoQueries] = await Promise.all([
+      resolveLocalRecsInput(project),
+      resolveSeoQueries(project),
+    ]);
+    const recs: ProjRec[] = collectRecommendations(project, locale, localInput, seoQueries).map((r) => ({
       ...r,
       projectId: project.id,
       projectName: project.name,
@@ -368,9 +385,14 @@ export default async function ProjectOverview({
       projects.map(async (p) => [p.id, await resolveLocalRecsInput(p)] as const)
     )
   );
+  const seoQueriesByProject = new Map<string, CompareQuery[] | null>(
+    await Promise.all(
+      projects.map(async (p) => [p.id, await resolveSeoQueries(p)] as const)
+    )
+  );
   const combined: ProjRec[] = projects
     .flatMap((p) =>
-      collectRecommendations(p, locale, localInputs.get(p.id)).map((r) => ({
+      collectRecommendations(p, locale, localInputs.get(p.id), seoQueriesByProject.get(p.id)).map((r) => ({
         ...r,
         id: `${p.id}:${r.id}`,
         projectId: p.id,
