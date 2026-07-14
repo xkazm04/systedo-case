@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { currentUserId } from "@/lib/session";
 import { listProjects } from "@/lib/projects/store";
+import { listConnectedAccounts } from "@/lib/campaigns/connection";
+import type { LinkableAccount } from "@/lib/projects/ads-link";
 import ProjectsHome from "@/components/app/ProjectsHome";
 
 export default function AppHomePage() {
@@ -35,5 +37,13 @@ async function AppHomeContent() {
   await connection();
   const userId = await currentUserId();
   const projects = userId ? await listProjects(userId) : [];
-  return <ProjectsHome projects={projects} />;
+  // One user-level read (NOT per-project) so the hub can surface Ads-link status and
+  // any connected account that isn't mapped to a project yet. Best-effort — a store
+  // hiccup (or no connection) simply hides the callout rather than breaking the hub.
+  const accounts: LinkableAccount[] = userId
+    ? await listConnectedAccounts(userId)
+        .then((r) => r.accounts.map((a) => ({ customerId: a.customerId, customerName: a.customerName })))
+        .catch(() => [])
+    : [];
+  return <ProjectsHome projects={projects} accounts={accounts} />;
 }
