@@ -1,12 +1,7 @@
 "use client";
 
 import { Bulb, ChevronRight, TrendDown, TrendUp } from "@/components/icons";
-import { weekWord } from "./plural";
-import { weekdayName } from "@/components/dashboard/vykon/plural";
 import {
-  compareInsightRank,
-  metricShort,
-  METRICS,
   type ChannelRow,
   type Coverage,
   type FunnelAttribution,
@@ -20,97 +15,14 @@ import type { Formatters, SupportedLocale } from "@/lib/format";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { TFn } from "@/lib/i18n/interpolate";
+import {
+  buildInsightLines,
+  funnelDriverLabel,
+  INSIGHT_T,
+  type InsightTKey,
+} from "./insight-lines";
 
-const T = {
-  cs: {
-    insights: "Co stojí za pozornost",
-    insightRevenueUp: "Obrat vzrostl o {delta} oproti předchozímu období.",
-    insightRevenueDown: "Obrat klesl o {delta} oproti předchozímu období.",
-    insightRevenueUpYoy: "Obrat vzrostl o {delta} oproti stejnému období loni.",
-    insightRevenueDownYoy: "Obrat klesl o {delta} oproti stejnému období loni.",
-    insightPnoBelow: "Celkové PNO {pno} je pod cílem {goal}.",
-    insightPnoAbove: "Celkové PNO {pno} je nad cílem {goal}.",
-    insightBestRoas: "Nejefektivnější kanál je {channel} s ROAS {roas}.",
-    insightWorstPno: "{channel} má nejvyšší PNO {pno} — prostor pro optimalizaci nabídek.",
-    insightTrendDown: "{metric} — pokles {weeks} v řadě ({pct} kumulativně).",
-    insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
-    insightWeekday:
-      "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
-    insightFunnel: "Změnu obratu táhne hlavně {driver} ({share} vlivu).",
-    insightMixUp: "Podíl kanálu {channel} vzrostl o {pp} p.b. za období.",
-    insightMixDown: "Podíl kanálu {channel} klesl o {pp} p.b. za období.",
-    funnelTraffic: "návštěvnost",
-    funnelConversion: "konverzní poměr",
-    funnelAov: "průměrná objednávka",
-    funnelChangeCol: "změna",
-    funnelShareCol: "vliv",
-    funnelSharesTotal: "Součet vlivů",
-    navFocusAria: "Zobrazit v grafu: {label}",
-    navFocusHint: "Zobrazit tuto metriku v grafu",
-    navMixAria: "Přejít na kanál v tabulce: {label}",
-    navMixHint: "Přejít na tento kanál v tabulce kanálů",
-    coverageDegraded:
-      "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
-    coverageInsufficient:
-      "Zatím příliš málo dat pro spolehlivou detekci anomálií a trendů.",
-  },
-  en: {
-    insights: "Worth noting",
-    insightRevenueUp: "Revenue grew by {delta} vs the previous period.",
-    insightRevenueDown: "Revenue fell by {delta} vs the previous period.",
-    insightRevenueUpYoy: "Revenue grew by {delta} vs the same period last year.",
-    insightRevenueDownYoy: "Revenue fell by {delta} vs the same period last year.",
-    insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
-    insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
-    insightBestRoas: "Most efficient channel is {channel} with ROAS {roas}.",
-    insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
-    insightTrendDown: "{metric} — declining {weeks} in a row ({pct} cumulative).",
-    insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
-    insightWeekday:
-      "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
-    insightFunnel: "The revenue move is driven mainly by {driver} ({share} of the effect).",
-    insightMixUp: "{channel}'s share rose by {pp} pp over the period.",
-    insightMixDown: "{channel}'s share fell by {pp} pp over the period.",
-    funnelTraffic: "traffic",
-    funnelConversion: "conversion rate",
-    funnelAov: "average order value",
-    funnelChangeCol: "change",
-    funnelShareCol: "share",
-    funnelSharesTotal: "Shares total",
-    navFocusAria: "Show on the chart: {label}",
-    navFocusHint: "Show this metric on the chart",
-    navMixAria: "Go to the channel in the table: {label}",
-    navMixHint: "Go to this channel in the channel table",
-    coverageDegraded:
-      "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
-    coverageInsufficient:
-      "Too little data yet for reliable anomaly and trend detection.",
-  },
-} as const;
-
-/** Where an insight navigates when clicked (Direction 3). `focus` pins the chart on
- *  a metric + a date (the window end, or an anomaly date when it has one); `mix`
- *  scrolls to the channel table and flashes the moved channel's row. Insights
- *  without a sensible target carry no action and stay non-interactive text. */
-type InsightAction =
-  | { kind: "focus"; metric: MetricKey; date: string }
-  | { kind: "mix"; channel: string };
-
-interface Insight {
-  text: React.ReactNode;
-  tone: "good" | "warn" | "info";
-  /** the engine's confidence in the underlying metric's move — drives ordering */
-  significance: Significance;
-  /** |relative change| (or gap-to-goal) for tie-breaking within a confidence tier */
-  magnitude: number;
-  /** when set, this insight is the funnel line: `text` is the one-line summary and
-   *  the attribution renders as an expandable per-driver breakdown (Direction 1). */
-  funnel?: FunnelAttribution;
-  /** when set, the insight renders as a button that navigates (Direction 3) */
-  action?: InsightAction;
-  /** plain-text of `text`, for the button's aria-label when `action` is set */
-  plain?: string;
-}
+const T = INSIGHT_T;
 
 /** The three funnel drivers, in the order the disclosure lists them. */
 const FUNNEL_DRIVERS: FunnelAttribution["dominant"][] = ["traffic", "conversion", "aov"];
@@ -129,7 +41,7 @@ function FunnelDisclosure({
   summary: React.ReactNode;
   funnel: FunnelAttribution;
   fmt: Formatters;
-  t: TFn<keyof typeof T.cs>;
+  t: TFn<InsightTKey>;
 }) {
   const sharesTotal = FUNNEL_DRIVERS.reduce((s, k) => s + funnel.drivers[k].share, 0);
   const cols = "grid grid-cols-[1fr_auto_auto] items-center gap-x-3";
@@ -173,30 +85,12 @@ function FunnelDisclosure({
   );
 }
 
-/** Below ±0.5 % a revenue move is noise, not a story worth surfacing. */
-const MIN_REVENUE_DELTA_TO_REPORT = 0.005;
-/** Report a channel mix shift only at a ≥3-percentage-point move in revenue share
- *  (current vs previous equal-length window). Below this the composition change is
- *  within ordinary week-to-week wobble and not worth a headline. Only ever non-zero
- *  on the time-resolved path (a dataset with a per-day channel mix). */
-const MIX_SHIFT_TO_REPORT = 0.03;
-/** Flag "room to optimise bids" only when the worst channel's PNO is ≥30 % over goal. */
-const WORST_PNO_FLAG_MULTIPLE = 1.3;
-/** Report the day-of-week shape only at a ≥15 pp strongest-vs-weakest spread. */
-const WEEKDAY_SPREAD_TO_REPORT = 0.15;
-
-/** Localised label for a funnel driver. */
-function funnelDriverLabel(
-  driver: FunnelAttribution["dominant"],
-  t: TFn<keyof typeof T.cs>
-): string {
-  return driver === "traffic"
-    ? t("funnelTraffic")
-    : driver === "conversion"
-      ? t("funnelConversion")
-      : t("funnelAov");
-}
-
+/** Adapt the shared, server-usable insight lines (selection + wording now live in
+ *  ./insight-lines, reused by the weekly-digest brief) to the panel's render model:
+ *  each `line` becomes the display text and — when the line carries a navigation
+ *  action — the button's aria-label. Rendering a raw string is DOM-identical to the
+ *  former `<>{line}</>`, so the panel stays byte-for-byte unchanged; the top-4 cap
+ *  that used to live in the builder is applied here (the digest slices its own 3). */
 function buildInsights(
   channels: ChannelRow[],
   revenueDelta: number,
@@ -209,174 +103,15 @@ function buildInsights(
   baseline: PeriodBaseline,
   windowEndDate: string,
   fmt: Formatters,
-  t: TFn<keyof typeof T.cs>,
+  t: TFn<InsightTKey>,
   locale: SupportedLocale
-): Insight[] {
-  const out: Insight[] = [];
-  // A metric-backed insight that spans the whole window pins the chart on the
-  // window's last point (the trends/moves all end at the latest data). Guarded so a
-  // dataless window never emits a dead button.
-  const focusAt = (metric: MetricKey): InsightAction | undefined =>
-    windowEndDate ? { kind: "focus", metric, date: windowEndDate } : undefined;
-  const paid = channels.filter((ch) => ch.cost > 0);
-  // Relative gap to the PNO goal — the tie-break magnitude for the PNO-level lines.
-  const pnoGap = goalPno > 0 ? Math.abs(pno - goalPno) / goalPno : 0;
-
-  // Each insight carries the engine's confidence in its underlying metric plus a
-  // magnitude, so the list can be ordered by "how sure are we this is real?"
-  // (strong > weak > noise, ties by magnitude) instead of authoring order. The
-  // authoring order below is still the final, stable tiebreak — keeping a revenue
-  // move and its funnel explanation adjacent.
-  for (const tr of trends) {
-    const favourable = (tr.direction === "up") === (METRICS[tr.metric].goodDirection === "up");
-    const line = t(tr.direction === "down" ? "insightTrendDown" : "insightTrendUp", {
-      metric: metricShort(METRICS[tr.metric], locale),
-      weeks: `${tr.weeks} ${weekWord(tr.weeks, locale)}`,
-      pct: fmt.fmtSignedPct(tr.cumulativeChange),
-    });
-    out.push({
-      tone: favourable ? "good" : "warn",
-      significance: significance[tr.metric],
-      magnitude: Math.abs(tr.cumulativeChange),
-      action: focusAt(tr.metric),
-      plain: line,
-      text: <>{line}</>,
-    });
-  }
-
-  // Mix shift: the biggest move in any channel's REVENUE SHARE over the period —
-  // only ever present on the time-resolved path, where each channel is summed from
-  // its own daily mix (the static projection holds every share constant, so
-  // revenueShareDelta is undefined there). Ranked "strong": a move past the
-  // threshold is a real composition change, not aggregate noise redistributed.
-  const mixShift = channels
-    .filter((ch) => ch.revenueShareDelta !== undefined)
-    .reduce<ChannelRow | null>(
-      (top, ch) =>
-        Math.abs(ch.revenueShareDelta ?? 0) > Math.abs(top?.revenueShareDelta ?? 0) ? ch : top,
-      null
-    );
-  if (mixShift && Math.abs(mixShift.revenueShareDelta ?? 0) >= MIX_SHIFT_TO_REPORT) {
-    const d = mixShift.revenueShareDelta ?? 0;
-    const line = t(d > 0 ? "insightMixUp" : "insightMixDown", {
-      channel: mixShift.channel,
-      pp: fmt.fmtInt(Math.abs(d) * 100),
-    });
-    out.push({
-      tone: "info",
-      significance: "strong",
-      magnitude: Math.abs(d),
-      action: { kind: "mix", channel: mixShift.channel },
-      plain: line,
-      text: <>{line}</>,
-    });
-  }
-
-  if (Number.isFinite(revenueDelta) && Math.abs(revenueDelta) > MIN_REVENUE_DELTA_TO_REPORT) {
-    const line =
-      revenueDelta > 0
-        ? t(baseline === "yoy" ? "insightRevenueUpYoy" : "insightRevenueUp", {
-            delta: fmt.fmtSignedPct(revenueDelta).replace("+", ""),
-          })
-        : t(baseline === "yoy" ? "insightRevenueDownYoy" : "insightRevenueDown", {
-            delta: fmt.fmtSignedPct(revenueDelta).replace("-", ""),
-          });
-    out.push({
-      tone: revenueDelta > 0 ? "good" : "warn",
-      significance: significance.revenue,
-      magnitude: Math.abs(revenueDelta),
-      action: focusAt("revenue"),
-      plain: line,
-      text: <>{line}</>,
-    });
-  }
-
-  // Explain the revenue move the line above just reported: which funnel stage
-  // (traffic / conversion rate / AOV) drove most of it. Shares the revenue move's
-  // confidence + magnitude so it stays adjacent to the line it explains.
-  if (funnel) {
-    out.push({
-      tone: "info",
-      significance: significance.revenue,
-      magnitude: Math.abs(revenueDelta),
-      funnel,
-      text: (
-        <>
-          {t("insightFunnel", {
-            driver: funnelDriverLabel(funnel.dominant, t),
-            share: fmt.fmtPct(Math.abs(funnel.drivers[funnel.dominant].share), 0),
-          })}
-        </>
-      ),
-    });
-  }
-
-  const pnoLine =
-    pno <= goalPno
-      ? t("insightPnoBelow", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })
-      : t("insightPnoAbove", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) });
-  out.push({
-    tone: pno <= goalPno ? "good" : "warn",
-    significance: significance.pno,
-    magnitude: pnoGap,
-    action: focusAt("pno"),
-    plain: pnoLine,
-    text: (
-      <>
-        {pnoLine}
-      </>
-    ),
-  });
-
-  const bestRoas = [...paid].sort((a, b) => b.roas - a.roas)[0];
-  if (bestRoas) {
-    // Magnitude = the best channel's lead over the paid-field average ROAS.
-    const avgRoas = paid.reduce((s, ch) => s + ch.roas, 0) / paid.length;
-    out.push({
-      tone: "good",
-      significance: significance.roas,
-      magnitude: avgRoas > 0 ? Math.abs(bestRoas.roas - avgRoas) / avgRoas : 0,
-      text: (
-        <>{t("insightBestRoas", { channel: bestRoas.channel, roas: fmt.fmtMultiple(bestRoas.roas) })}</>
-      ),
-    });
-  }
-
-  const worstPno = [...paid].sort((a, b) => b.pno - a.pno)[0];
-  if (worstPno && worstPno.pno > goalPno * WORST_PNO_FLAG_MULTIPLE) {
-    out.push({
-      tone: "warn",
-      significance: significance.pno,
-      magnitude: goalPno > 0 ? worstPno.pno / goalPno - 1 : 0,
-      text: <>{t("insightWorstPno", { channel: worstPno.channel, pno: fmt.fmtPct(worstPno.pno) })}</>,
-    });
-  }
-
-  const bestDay = profile.find((p) => p.best);
-  const worstDay = profile.find((p) => p.worst);
-  if (bestDay && worstDay && bestDay.index - worstDay.index >= WEEKDAY_SPREAD_TO_REPORT) {
-    // The weekday shape is a visits distribution — rank it by visits confidence,
-    // with the strongest-vs-weakest spread as its magnitude.
-    out.push({
-      tone: "info",
-      significance: significance.visits,
-      magnitude: bestDay.index - worstDay.index,
-      text: (
-        <>
-          {t("insightWeekday", {
-            best: weekdayName(bestDay.day, locale),
-            bestPct: fmt.fmtPct(bestDay.index - 1, 0).replace("-", ""),
-            worst: weekdayName(worstDay.day, locale),
-            worstPct: fmt.fmtPct(1 - worstDay.index, 0).replace("-", ""),
-          })}
-        </>
-      ),
-    });
-  }
-
-  // Order by the engine's confidence (strong > weak > noise, ties by magnitude);
-  // Array.sort is stable, so the authoring order above breaks exact ties. Then cap.
-  return [...out].sort(compareInsightRank).slice(0, 4);
+) {
+  return buildInsightLines(
+    { channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, baseline, windowEndDate },
+    fmt,
+    t,
+    locale
+  ).slice(0, 4);
 }
 
 /** The auto-generated "Co stojí za pozornost" list — sustained trends first,
@@ -447,7 +182,7 @@ export default function InsightsPanel({
             </span>
             <div className="min-w-0 flex-1 leading-snug text-navy-700">
               {ins.funnel ? (
-                <FunnelDisclosure summary={ins.text} funnel={ins.funnel} fmt={fmt} t={t} />
+                <FunnelDisclosure summary={ins.line} funnel={ins.funnel} fmt={fmt} t={t} />
               ) : ins.action && (ins.action.kind === "focus" ? onFocusMetric : onMixShift) ? (
                 <button
                   type="button"
@@ -456,15 +191,15 @@ export default function InsightsPanel({
                     else if (ins.action?.kind === "mix") onMixShift?.(ins.action.channel);
                   }}
                   aria-label={t(ins.action.kind === "focus" ? "navFocusAria" : "navMixAria", {
-                    label: ins.plain ?? "",
+                    label: ins.line,
                   })}
                   title={t(ins.action.kind === "focus" ? "navFocusHint" : "navMixHint")}
                   className="-mx-1.5 -my-0.5 block w-[calc(100%+0.75rem)] rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-canvas/70 hover:text-navy-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
                 >
-                  {ins.text}
+                  {ins.line}
                 </button>
               ) : (
-                ins.text
+                ins.line
               )}
             </div>
           </li>

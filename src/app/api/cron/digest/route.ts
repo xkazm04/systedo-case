@@ -24,6 +24,12 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { listDiagnoses } from "@/lib/diagnoses/store";
 import { shouldRunWeeklyDiagnosis } from "@/lib/diagnoses/schedule";
 import { runTenantDiagnoses, type DigestDiagnosisResult } from "@/lib/diagnoses/digest-run";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import {
+  insightBriefAlertBody,
+  insightBriefHtml,
+  selectDigestInsights,
+} from "@/lib/cron/insight-brief";
 
 export const maxDuration = 300;
 
@@ -138,17 +144,20 @@ export async function GET(request: Request) {
       await recordAlert(tenant, { type: "digest", title, body, items });
       await sendWebhook(`Adamant — ${title}: ${body}`);
 
-      // "Diagnóza týdne": run the gate-tracked lead-source diagnosis over the
-      // tenant's REAL resolved data, once per project per week (the weekly claim
-      // above bounds the whole email/alert to one ISO week; the newest
-      // digest-produced diagnosis gates re-runs). This branch is reached only for a
-      // connected tenant (meta && campaigns exist → not sample-only). Direction 1:
-      // it runs only on genuinely imported leads; the cohort diagnosis is skipped
-      // honestly (recorded in notes).
+      // "Diagnóza týdne" + "Přehled týdne": once per project per digest (the weekly
+      // claim above already bounds the whole email/alert to one ISO week). This
+      // branch is reached only for a connected tenant (meta && campaigns exist →
+      // not sample-only).
       let diagnosisHtml = "";
+      let insightHtml = "";
       let diagnosisNotes: string[] | undefined;
       if (project && !diagnosedProjects.has(project.id)) {
         diagnosedProjects.add(project.id);
+
+        // Diagnóza týdne: run the gate-tracked lead-source diagnosis over the
+        // tenant's REAL resolved data, once per week (the newest digest-produced
+        // diagnosis gates re-runs). Direction 1: it runs only on genuinely imported
+        // leads; the cohort diagnosis is skipped honestly (recorded in notes).
         const priorDigest = (await listDiagnoses(project.id))
           .filter((d) => d.origin === "digest")
           .map((d) => d.createdAt)
@@ -173,6 +182,25 @@ export async function GET(request: Request) {
             diagnosisHtml = html;
           }
         }
+
+        // Přehled týdne: the week's top computed insights from the SAME
+        // deterministic engine + selection the Výkon dashboard uses, over this
+        // project's resolved dataset (live when synced, else the honest sample,
+        // labeled as such). Zero new LLM calls; the section is omitted when there
+        // is nothing worth surfacing.
+        const resolved = await resolveReportDataset(project);
+        const insightLines = selectDigestInsights(resolved.data, "cs");
+        const briefBody = insightBriefAlertBody(insightLines, resolved.live, "cs");
+        if (briefBody) {
+          await recordAlert(tenant, {
+            type: "digest",
+            title: "Přehled týdne",
+            body: briefBody,
+            items: [],
+            href: `/app/${project.id}/vykon`,
+          });
+          insightHtml = insightBriefHtml(insightLines, resolved.live, "cs");
+        }
       }
 
       const email = await getUserEmail(userId);
@@ -193,6 +221,7 @@ export async function GET(request: Request) {
           `<table style="border-collapse:collapse;margin-top:8px"><tr>${kpiHtml}</tr></table>` +
           `<p style="margin-top:12px">${criticals} kampaní vyžaduje pozornost.</p>` +
           movesHtml +
+          insightHtml +
           diagnosisHtml +
           aiHtml +
           `<p style="margin-top:16px">Otevřete přehled v Adamant pro detail a AI vyhodnocení.</p>`;
