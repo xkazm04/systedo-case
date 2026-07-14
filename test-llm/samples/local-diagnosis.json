@@ -1,9 +1,9 @@
 {
-  "summary": "Pokrytí lokálních kombinací služba×lokalita je nízké (43 %, 3 ze 7) a mapa-pack výkon se zhoršuje (2 z 5 v top 3, průměrná pozice 6,2, trend −5 za 30 dní). Největší nevyužitý objem poptávky leží u „Bělení zubů — Praha“ s 1 400 hledáními měsíčně bez vlastní stránky, což je více než dvojnásobek druhé největší mezery. Recenze jsou solidní (4,3★, 214 hodnocení), takže limitem růstu je chybějící obsahové pokrytí, ne důvěryhodnost.",
+  "summary": "Zubní klinika Dentalis pokrývá jen 43 % sledovaných kombinací služba×lokalita, přičemž chybí stránka na kombinaci s nejvyšším poptávaným objemem (Bělení zubů — Praha, 1 400 hledání/měs.) z celkových 3 100 hledání/měs. v mezerách. V mapa-packu je klinika v top 3 jen u 40 % kombinací s průměrnou pozicí 6,2 a za posledních 30 dní se trend zhoršil (1 zlepšeno, 3 zhoršeno, čistý posun −5). Recenze jsou solidní (4,3★, 214 hodnocení, 170 pozitivních), což je dobrý základ pro novou stránku, ale samotné neřeší chybějící pokrytí obsahu.",
   "worstGap": "Bělení zubů — Praha",
-  "recommendation": "Vytvořit dedikovanou lokální stránku/službu pro „Bělení zubů — Praha“ (vlastní URL, NAP, lokální reference a strukturovaná data) a propojit ji s GBP záznamem pro Prahu, aby se uzavřela mezera s nejvyšším objemem hledání.",
+  "recommendation": "Vytvořit dedikovanou lokální stránku služby „Bělení zubů — Praha“ (s NAP, lokálními referencemi a odkazem na GBP) a propojit ji s existujícím profilem, aby se zachytil nejvyšší nepokrytý objem 1 400 hledání/měs. a zastavil klesající trend v mapa-packu.",
   "risks": [
-    "Bez vlastní stránky pro tuto kombinaci nelze v datech ověřit skutečnou konverzní hodnotu poptávky, jde jen o objem hledání.",
-    "Zhoršující se trend pozic (−5 za 30 dní) může další mezeru prohlubovat rychleji, než ji stihne nová stránka kompenzovat."
+    "Bez rychlé publikace může objem 1 400 hledání/měs. dál odčerpávat konkurence, zatímco trend mapa-packu je již −5 za 30 dní.",
+    "Nová stránka sama nezaručí zlepšení pozice v mapa-packu — je potřeba ji doplnit signály (recenze, citace, NAP konzistence) specifickými pro lokalitu Praha."
   ]
 }

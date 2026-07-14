@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4×",
-  "summary": "Podnik si v uplynulém měsíci vedl velmi dobře – obrat dosáhl 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Zároveň vzrostly konverze o 12 %, což potvrzuje, že investice do marketingu se vyplácí a poptávka roste rychleji než náklady na její získání.",
+  "headline": "Solidní měsíc s vysokou návratností a rostoucí konverzí, jen náklady hlídejte, ať PNO nevystoupá výš",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč přinesl PNO 18,3 % a ROAS 5,4×, což je zdravý poměr investice k výnosu. Konverze meziměsíčně vzrostly o 12 %, tedy návštěvníci se proměňují v zákazníky lépe než dřív. Kampaně tak drží efektivitu i při solidním objemu obratu.",
   "highlights": [
-    "ROAS 5,4× znamená, že každá investovaná koruna přinesla zpět 5,4 Kč obratu",
-    "PNO 18,3 % drží náklady na akvizici na zdravé úrovni vůči obratu 1 200 000 Kč",
-    "Konverze vzrostly o 12 %, což ukazuje rostoucí efektivitu kampaní i nabídky"
+    "ROAS 5,4× ukazuje, že každá investovaná koruna se vrací s vysokým násobkem",
+    "Konverze vzrostly o 12 %, což potvrzuje zlepšující se kvalitu návštěvnosti i nabídky",
+    "PNO na úrovni 18,3 % zůstává v bezpečném pásmu vůči obratu 1 200 000 Kč"
   ],
   "watchouts": [
-    "Při dalším škálování rozpočtu je třeba sledovat, zda PNO 18,3 % zůstane stabilní a nezačne růst",
-    "Růst konverzí o 12 % je třeba ověřit i v dalších měsících, aby nešlo o jednorázový výkyv"
+    "Při dalším růstu nákladů je třeba sledovat, zda PNO nezačne stoupat rychleji než obrat",
+    "Nárůst konverzí je třeba ověřit i v dalších měsících, aby nešlo o jednorázový výkyv"
   ],
   "priorities": [
     {
-      "title": "Postupně navýšit rozpočet na nejvýkonnější kanály",
-      "detail": "Vzhledem k ROAS 5,4× a zdravému PNO má smysl opatrně zvýšit investice tam, kde je návratnost nejvyšší, a sledovat, zda se poměr nákladů k obratu nezhorší."
+      "title": "Udržet efektivitu při škálování",
+      "detail": "Postupně navyšovat rozpočet jen v kampaních s prokázaným ROAS nad 5×, aby růst obratu nezhoršil PNO."
     },
     {
-      "title": "Zafixovat a rozšířit faktory za růstem konverzí",
-      "detail": "Identifikovat, co konkrétně (kampaň, nabídka, landing page) stálo za nárůstem konverzí o 12 %, a tento přístup aplikovat i na další kanály či produkty."
+      "title": "Ověřit stabilitu konverzního nárůstu",
+      "detail": "Sledovat vývoj konverzního poměru v dalších týdnech a identifikovat, které kanály či nabídky za zlepšením stojí, aby se dalo replikovat."
     }
   ]
 }

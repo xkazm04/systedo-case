@@ -1,17 +1,15 @@
 {
-  "reply": "Dobrý den, revizi elektroinstalace pro vás radi zvládneme. Konkrétní termín si upřesníme po zodpovězení několika otázek, abychom se ujistili, že splníme vaše požadavky.",
+  "reply": "Děkujeme za Váš dotaz. Rádi bychom Vám s revizí elektroinstalace pomohli. Konkrétní termín si musíme ověřit podle Vašich požadavků a kapacity našeho týmu — jaké dny a časy by Vám vyhovovaly?",
   "questions": [
-    "Jaký je preferovaný termín realizace? (konkrétní týden nebo měsíc)",
-    "Jedná se o povinnou revizi dle normy nebo o bezpečnostní audit na vaše přání?",
-    "Máte nějaké specifické problémy s elektroinstalací, které chcete, aby jsme zvláště zaměřili?"
+    "Jaký konkrétní typ revize elektroinstalace potřebujete (bezpečnostní, stavební, preventivní)?",
+    "Máte preferenci na konkrétní dny nebo časy?",
+    "V jakém městě se kancelář nachází?"
   ],
-  "confidence": 42,
+  "confidence": 72,
   "risks": [
-    "Nemám k dispozici aktuální disponibilitu týmu ani kalendář termínů - odpověď je předčasná bez interního zjištění",
-    "Cena nebyla zmíněna v podkladech - zákazník ji bude očekávat, je potřeba kalkulace",
-    "Scope revize není jasný (STK vs. komplexní audit) - ovlivňuje čas i cenu",
-    "Chybí informace o geografických limitech služeb - je důležité vědět, jestli dojezd do lokality pokrývají",
-    "Neznám standardní procesní dobu od poptávky k realizaci v dané firmě"
+    "Kalendář týmu není ověřen — neslibovat konkrétní termín bez interní kontroly dostupnosti",
+    "Cena není v podkladech — zákázka musí být kvalifikována specialistou na elektroinstalace",
+    "Detaily revize (rozsah kabeláže, složitost, stav) ovlivňují obnos i čas — vyžaduje údaje od zákazníka"
   ],
-  "toneNotes": "Formální a sebevědomý tón - slibuju schopnost bez konkrétních termínů. Vykávám a zachovávám profesionalitu. První věta přímo odpovídá na otázku (ano, zvládneme), druhá pečlivě drží vzdálenost od slibů bez podkladů. Doplňující otázky signalizují prozákaznický přístup a transparentnost."
+  "toneNotes": "Formální čeština s vykaním (Vy), profesionální a vstřícný tón. Primeira věta rovnou odpovídá na dotaz (máme zájem/kapacitu), ale bez slibování dat. Žádá upřesnění k dalšímu postupu. Vyvážený přístup: ochota, ale opatrnost vůči zavazování se."
 }

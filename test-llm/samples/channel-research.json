@@ -1,109 +1,109 @@
 {
-  "summary": "Největší bezplatnou příležitostí je maximální využití Google Profilu firmy a lokálních katalogů, protože pacienti hledají zubaře a hygienu primárně přes lokální vyhledávání v Brně.",
+  "summary": "Největší bezplatnou příležitostí je Google Business Profile v kombinaci s lokálními recenzemi – pro vyhledávání typu \"zubař Brno\" rozhoduje hlavně mapová sekce a hodnocení, ne web.",
   "channels": [
     {
-      "name": "Google Profil firmy (Google Business Profile)",
+      "name": "Google Business Profile",
       "category": "directory",
-      "fit": 97,
+      "fit": 95,
       "effort": "low",
-      "rationale": "Lokální podnik s provozovnou v Brně cílí na vyhledávání typu 'zubař Brno' a 'dentální hygiena Brno', kde Google Maps a lokální balíček rozhodují o první volbě.",
-      "payoff": "Vyšší viditelnost v Google Maps a lokálním balíčku, více telefonátů a rezervací bez placené reklamy.",
+      "rationale": "Pro dotazy jako \"zubař Brno\" a \"dentální hygiena Brno\" Google zobrazuje primárně mapovou sekci (Local Pack) před organickými výsledky, takže profil je nejviditelnější bezplatné místo pro lokální podnik s provozovnou.",
+      "payoff": "Zvýšení počtu zobrazení a telefonátů/rezervací přímo z vyhledávání a map bez nutnosti mít vlastní web na první pozici.",
       "firstActions": [
-        "Vyplnit a ověřit profil se všemi službami (zubní ordinace, dentální hygiena, implantáty)",
-        "Nahrát fotky provozovny, týmu a zákroků",
-        "Aktivně sbírat a odpovídat na recenze pacientů",
-        "Pravidelně publikovat příspěvky (novinky, akce, otevírací doba)"
+        "Ověřit a kompletně vyplnit profil (kategorie zubní ordinace, otevírací doba, fotky provozovny)",
+        "Přidat služby (implantáty, dentální hygiena) s popisem",
+        "Nastavit pravidelné sbírání a odpovídání na recenze pacientů",
+        "Publikovat krátké aktuality/příspěvky (novinky, akce) v profilu"
       ]
     },
     {
-      "name": "Firmy.cz",
+      "name": "Recenze a hodnocení (Google, Firmy.cz)",
       "category": "directory",
-      "fit": 85,
+      "fit": 90,
       "effort": "low",
-      "rationale": "Nejpoužívanější český lokální katalog, kde uživatelé hledající 'zubař Brno' často ověřují recenze a kontakt.",
-      "payoff": "Dodatečný zdroj lokální organické viditelnosti a důvěryhodnosti přes recenze.",
+      "rationale": "U zdravotních služeb je důvěra klíčovým faktorem rozhodování a recenze silně ovlivňují jak klikací poměr, tak pozici v Local Packu.",
+      "payoff": "Vyšší důvěryhodnost a lepší lokální viditelnost díky počtu a kvalitě recenzí.",
       "firstActions": [
-        "Vytvořit nebo aktualizovat výpis firmy s kompletními údaji",
-        "Doplnit fotografie a popis nabídky (implantáty, hygiena)",
-        "Požádat spokojené pacienty o recenzi"
+        "Zavést rutinu žádosti o recenzi po dokončeném ošetření",
+        "Odpovídat na všechny recenze, včetně negativních, věcně a profesionálně",
+        "Zaregistrovat/aktualizovat profil na Firmy.cz"
       ]
     },
     {
-      "name": "Mapy.cz",
+      "name": "Lokální adresáře a katalogy (Firmy.cz, Zlaté stránky, mapy.cz)",
       "category": "directory",
-      "fit": 83,
-      "effort": "low",
-      "rationale": "Nejpoužívanější mapová služba v ČR, klíčová pro lokální podniky s provozovnou hledané podle lokality Brno.",
-      "payoff": "Zvýšená šance na zobrazení při vyhledávání zubaře v okolí, navigace pacientů přímo do ordinace.",
-      "firstActions": [
-        "Ověřit a doplnit firemní záznam na Mapy.cz",
-        "Přidat otevírací dobu, fotky a kontakt",
-        "Sledovat a reagovat na recenze"
-      ]
-    },
-    {
-      "name": "Lokální webový obsah a blog (SEO)",
-      "category": "content",
       "fit": 80,
-      "effort": "medium",
-      "rationale": "Klíčová slova jako 'zubní implantáty' a 'dentální hygiena Brno' mají informační charakter, který lze pokrýt obsahem podporujícím organické hledání.",
-      "payoff": "Dlouhodobý organický provoz z vyhledávačů a budování odbornosti (E-E-A-T) v oboru.",
+      "effort": "low",
+      "rationale": "Konzistentní záznamy v hlavních českých katalozích posilují lokální SEO signály a zvyšují dohledatelnost pro místní publikum hledající zubaře v Brně.",
+      "payoff": "Další bezplatné vstupní body pro pacienty hledající mimo Google a podpora lokálního SEO skrze konzistentní NAP údaje (název, adresa, telefon).",
       "firstActions": [
-        "Napsat články na téma 'Jak probíhá zubní implantát' a 'Proč je dentální hygiena důležitá'",
-        "Optimalizovat stránky služeb pro klíčová slova s lokalitou Brno",
-        "Propojit blog s Google Profilem firmy"
+        "Vytvořit/aktualizovat záznam na Firmy.cz a Zlatých stránkách",
+        "Sjednotit název, adresu a telefon napříč všemi záznamy",
+        "Přidat odkaz na web a hlavní služby"
       ]
     },
     {
-      "name": "Facebook / Instagram (organický)",
-      "category": "social",
+      "name": "Obsahový/lokální blog na webu (SEO)",
+      "category": "content",
       "fit": 75,
       "effort": "medium",
-      "rationale": "Lokální firmy se službami těží z vizuální prezentace týmu a proměn úsměvu, které oslovují publikum v okolí Brna.",
-      "payoff": "Budování důvěry a povědomí o značce mezi místními obyvateli, sdílení referencí.",
+      "rationale": "Klíčová slova jako \"dentální hygiena Brno\" a \"zubní implantáty\" mají informační i transakční potenciál, který lze pokrýt vlastním obsahem cíleným na Brno.",
+      "payoff": "Dlouhodobý organický přísun návštěvníků z vyhledávání, kteří řeší konkrétní téma (např. cena/proces implantátů) a mohou konvertovat na objednávku.",
       "firstActions": [
-        "Založit/aktualizovat firemní profily s kontaktními údaji",
-        "Sdílet příběhy pacientů (se souhlasem) a tipy na péči o chrup",
-        "Pravidelně publikovat 2-3x týdně"
+        "Napsat článek o průběhu a péči po zubní hygieně",
+        "Napsat článek vysvětlující proces zubních implantátů (FAQ styl)",
+        "Optimalizovat nadpisy a meta popisy pro lokální klíčová slova"
       ]
     },
     {
-      "name": "Zdravotnické a pacientské komunity (např. Skupiny na Facebooku pro Brno)",
-      "category": "community",
-      "fit": 68,
+      "name": "Sociální sítě (Facebook, Instagram)",
+      "category": "social",
+      "fit": 70,
       "effort": "medium",
-      "rationale": "Místní diskusní skupiny a fóra jsou místem, kde lidé z Brna aktivně doporučují a hledají zubaře.",
-      "payoff": "Doporučení od reálných uživatelů zvyšují důvěryhodnost a přivádí nové pacienty bez nákladů na reklamu.",
+      "rationale": "Lokální podniky se službami těží z vizuální prezentace prostředí ordinace a budování důvěry u místní komunity, kde se lidé často ptají na doporučení.",
+      "payoff": "Budování povědomí o značce Dentalis mezi místními obyvateli a udržení kontaktu se stávajícími pacienty pro doporučení a opakované návštěvy.",
       "firstActions": [
-        "Identifikovat aktivní brněnské skupiny a fóra",
-        "Zapojit se odpovídáním na dotazy o zubní péči (bez agresivní propagace)",
-        "Nabídnout odbornou radu, která buduje reputaci ordinace"
+        "Založit/aktualizovat firemní profil s adresou a kontaktem",
+        "Sdílet fotky ordinace, týmu a edukativní obsah o hygieně a implantátech",
+        "Zapojit se do místních Facebook skupin (např. \"Brno - doporučení\")"
       ]
     },
     {
-      "name": "PR a lokální média",
-      "category": "pr",
+      "name": "Komunitní skupiny a fóra (např. místní Facebook skupiny, Reddit lokality)",
+      "category": "community",
       "fit": 60,
-      "effort": "high",
-      "rationale": "Regionální zpravodajské weby a magazíny v Brně mohou přinést zpětné odkazy a důvěryhodnost pro obor zdravotní péče.",
-      "payoff": "Zvýšení autority domény a lokální viditelnosti prostřednictvím zmínek v médiích.",
+      "effort": "medium",
+      "rationale": "Lidé v lokálních skupinách běžně žádají o doporučení zubaře, což je přímá bezplatná cesta k novým pacientům bez nutnosti reklamy.",
+      "payoff": "Získání doporučení a organických zmínek od místních obyvatel, kteří aktivně hledají zubaře v Brně.",
       "firstActions": [
-        "Připravit tiskovou zprávu o novince (např. nová technologie implantátů)",
-        "Oslovit lokální brněnská média a zpravodajské portály",
-        "Nabídnout odborný komentář k tématu zubního zdraví"
+        "Identifikovat aktivní brněnské komunitní skupiny",
+        "Sledovat dotazy typu \"doporučíte zubaře v Brně\" a reagovat věcně, ne prodejně",
+        "Nabídnout odbornou radu jako důkaz kompetence"
       ]
     },
     {
-      "name": "Partnerství s lokálními firmami",
+      "name": "Partnerství s lokálními firmami (lékárny, fitness centra, kosmetická studia)",
       "category": "partnership",
       "fit": 55,
       "effort": "medium",
-      "rationale": "Spolupráce s fitness centry, lékárnami nebo wellness studii v Brně může přivést nové pacienty skrze vzájemná doporučení.",
-      "payoff": "Nový zdroj doporučení bez nutnosti platit za reklamu, posílení lokální sítě kontaktů.",
+      "rationale": "Vzájemné doporučování s doplňkovými lokálními službami je bezplatný způsob, jak oslovit publikum, které už důvěřuje jinému lokálnímu podniku.",
+      "payoff": "Přísun nových pacientů skrze doporučení od důvěryhodných místních partnerů bez nákladů na reklamu.",
       "firstActions": [
-        "Oslovit 2-3 lokální podniky s komplementární nabídkou",
-        "Domluvit vzájemné doporučování zákazníků/pacientů",
-        "Zvážit společnou akci nebo slevu pro klienty partnera"
+        "Oslovit 2-3 blízké lékárny nebo wellness provozovny v Brně",
+        "Domluvit vzájemné doporučování (letáky, vizitky)",
+        "Nabídnout partnerům informační materiál o hygieně a implantátech"
+      ]
+    },
+    {
+      "name": "PR a lokální média (regionální zpravodajské weby, tiskové zprávy)",
+      "category": "pr",
+      "fit": 45,
+      "effort": "high",
+      "rationale": "Regionální média občas přebírají zajímavá témata z oboru zdravotnictví, což může přinést bezplatnou zmínku a zpětný odkaz, i když šance na publikaci jsou nižší a vyžadují více úsilí.",
+      "payoff": "Zvýšení důvěryhodnosti a možný zpětný odkaz z regionálního média, který podpoří lokální SEO.",
+      "firstActions": [
+        "Připravit krátkou tiskovou zprávu na téma novinky v ordinaci nebo osvěty o zubním zdraví",
+        "Oslovit brněnské regionální weby a redaktory",
+        "Nabídnout odborníka k rozhovoru na téma dentální péče"
       ]
     }
   ]

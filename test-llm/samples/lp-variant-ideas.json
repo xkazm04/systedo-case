@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B · Konkrétní výsledek",
-      "hypothesis": "Nadpis a CTA zaměřené na konkrétní přínos (přehled o projektech, méně chaosu) zvýší konverzi oproti obecnému popisu produktu.",
-      "headline": "Mějte všechny projekty pod kontrolou na jednom místě",
+      "label": "B · Konkrétní přínos v akci",
+      "hypothesis": "Headline a CTA zaměřené na okamžitý přínos (přehled o projektech na jednom místě) zvýší konverzní poměr oproti obecnému popisu produktu, protože návštěvník rychleji pochopí hodnotu.",
+      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní přínos místo obecného popisu produktu dává návštěvníkovi jasný důvod kliknout."
+      "rationale": "Konkrétní přínos místo obecného popisu produktu pomáhá návštěvníkovi rychleji vyhodnotit relevanci nabídky."
     },
     {
-      "label": "C · Sociální důkaz",
-      "hypothesis": "Zobrazení důkazu, že nástroj používají jiné týmy, sníží vnímané riziko a zvýší konverzi oproti kontrole bez sociálního důkazu.",
-      "headline": "Nástroj pro řízení projektů, kterému věří stovky týmů",
-      "primaryCTA": "Přidat se k dalším týmům",
-      "rationale": "Sociální důkaz snižuje nejistotu u rozhodování o novém nástroji, aniž by šlo o slevu nebo dlouhý formulář."
+      "label": "C · Zaměření na tým a spolupráci",
+      "hypothesis": "Zdůraznění týmové spolupráce a přehlednosti úkolů namísto obecných vlastností produktu zvýší konverzní poměr, protože osloví rozhodovatele hledající řešení pro celý tým.",
+      "headline": "Projektové řízení, kterému váš tým skutečně rozumí",
+      "primaryCTA": "Vyzkoušet s týmem zdarma",
+      "rationale": "Cílení na bolest týmové koordinace místo obecného popisu produktu může lépe rezonovat s rozhodovateli nakupujícími pro celý tým."
     },
     {
-      "label": "D · Jednoduchost nasazení",
-      "hypothesis": "Zdůraznění rychlého a jednoduchého startu (bez nutnosti složitého nastavení) zvýší konverzi oproti obecnému popisu produktu.",
-      "headline": "Nastavte projektové řízení týmu za pár minut",
-      "primaryCTA": "Začít hned",
-      "rationale": "Obava z náročného zavádění je častá bariéra u nástrojů pro řízení projektů, proto cílení na rychlý start řeší jinou hypotézu než sleva či dlouhý formulář."
+      "label": "D · Jednoduchost a rychlé nasazení",
+      "hypothesis": "Zdůraznění jednoduchosti a rychlého startu bez nutnosti složitého nastavení zvýší konverzní poměr, protože sníží vnímanou bariéru vstupu ve srovnání s obecným popisem produktu.",
+      "headline": "Nástroj na úkoly a projekty, který nastavíte za pár minut",
+      "primaryCTA": "Začít během chvilky",
+      "rationale": "Snížení vnímané složitosti zavedení nástroje řeší jinou překážku konverze než obecný popis produktu i dosud poražené varianty."
     }
   ]
 }
