@@ -83,8 +83,10 @@ lands as `model: …` / `auth: …` in the cell.
 ## Running it
 
 ```bash
-# Full matrix: 15 operations × 6 models = 90 generations + up to 90 judge calls.
-# ~30 min, real OpenRouter tokens. Don't run this casually.
+# Full matrix: 15 operations × 9 models = 135 generations, ×3 Sonnet judges/cell =
+# up to ~405 judge calls. Real OpenRouter tokens (the Claude judge is on your
+# subscription). Don't run this casually. Drop LLM_QUALITY_JUDGES=1 for a cheaper
+# single-judge pass (baked honestly as plain `claude-sonnet`, not a median).
 npm run llm:quality
 
 # Smoke: one operation, one model — validate slugs/keys before a full run.
@@ -101,14 +103,25 @@ LLM_QUALITY_TOOLS=analysis,campaign-eval LLM_QUALITY_REASONING=high npm run llm:
 
 | Var | Default | Effect |
 |---|---|---|
-| `LLM_QUALITY_TARGETS` | the 6 below | comma-separated OpenRouter model slugs |
+| `LLM_QUALITY_TARGETS` | the 9 below | comma-separated OpenRouter model slugs |
 | `LLM_QUALITY_TOOLS` | all 15 | comma-separated operation ids (subset) |
 | `LLM_QUALITY_CONCURRENCY` | `4` | parallel target generations (judges fixed at 2) |
 | `LLM_QUALITY_REASONING` | `default` | reasoning level applied to every target call |
+| `LLM_QUALITY_JUDGES` | `3` | Sonnet judges per cell; the median is the score. This is the honest **"medián ze 3"** the scorecard label claims. Only cells that truly realise ≥2 judges get a median label — a quota-limited pass at `1` is baked as plain `claude-sonnet`, never over-claimed. |
 
-**Default targets** (all via the OpenRouter key):
-`z-ai/glm-5.2`, `deepseek/deepseek-v4-flash`, `xiaomi/mimo-v2.5-pro`,
-`openai/gpt-5.4-mini`, `anthropic/claude-sonnet-5`, `google/gemini-3.5-flash`.
+**Default targets** (all via the OpenRouter key) — the comparison field **plus the
+models the app actually serves**, so the scorecard measures what users really get:
+
+- comparison field: `z-ai/glm-5.2`, `deepseek/deepseek-v4-flash`,
+  `xiaomi/mimo-v2.5-pro`, `openai/gpt-5.4-mini`
+- **prod** Gemini serving path: `google/gemini-3-flash-preview`,
+  `google/gemini-3-flash-lite-preview` (`GEMINI_MODEL` / `GEMINI_MODEL_FAST`)
+- **prod** Claude (dev/CLI + BYOM Anthropic defaults): `anthropic/claude-sonnet-5`,
+  `anthropic/claude-haiku-4-5` — note `claude-sonnet-5` is the **judge family** (self-judged)
+- **prod** BYOM Gemini default: `google/gemini-3.5-flash`
+
+No paid run has been done against this expanded roster yet. To score it, run
+`npm run llm:quality` (a full run costs real tokens — see the cost note below).
 
 Operation ids: `ads, brief, analysis, chat, campaign-eval, social, lead-reply,
 repurpose, local-review-reply, article-draft, cohort-diagnosis, keyword-clusters,
@@ -163,7 +176,9 @@ A playbook, cheapest-first:
    outcome for these tools.
 
 5. **Discount the home-team bias.** The judge is Claude, so
-   `anthropic/claude-sonnet-5` outputs are judged by a sibling model — treat a
+   `anthropic/claude-sonnet-5` (and any `claude-*` target) is judged by a sibling
+   model — the report now flags this conflict explicitly (a ⚠ caveat under the
+   scores matrix, and the BYOM UI marks the affected columns with a `°`). Treat a
    narrow Claude win as noise, a wide one as signal. If a decision hinges on it,
    re-judge that column with a different judge (swap the judge to an OpenRouter
    model — a small change to `run.mjs`) and compare.

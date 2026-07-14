@@ -5,6 +5,7 @@
  *  evidence. Pure + client-safe (no data, no I/O — the measured data lives in
  *  ./quality-scores). */
 import type { ByomVendor } from "./keys/types";
+import type { SupportedLocale } from "@/lib/format";
 
 export interface QualityDims {
   relevance: number;
@@ -13,13 +14,15 @@ export interface QualityDims {
   tone: number;
 }
 
-/** One measured (operation × model) result — the median of the Sonnet judges. */
+/** One measured (operation × model) result. When `judges` > 1 the dimensions are
+ *  the median of that many Sonnet judges; when `judges` === 1 it is a single
+ *  Sonnet verdict (a quota-limited pass). Read `judges` — never assume a median. */
 export interface QualityCell extends QualityDims {
   /** the judge's own overall 1–10 (kept for reference; the composite is derived) */
   score: number;
   /** did the output pass the tool's own schema validator */
   valid: boolean;
-  /** how many Sonnet judges backed this median (confidence) */
+  /** how many Sonnet judges backed this cell (median when > 1; 1 = single-judge) */
   judges: number;
   /** provider-reported USD cost of this one generation (OpenRouter usage.cost) */
   costUsd?: number;
@@ -28,7 +31,9 @@ export interface QualityCell extends QualityDims {
 export interface QualityScores {
   /** ISO timestamp of the run this was baked from */
   measuredAt: string;
-  /** the judge, e.g. "claude-sonnet (medián ze 3)" */
+  /** the judge label — "claude-sonnet", or "claude-sonnet (medián ze N)" ONLY when
+   *  the baked run truly realised ≥2 judges per cell (see bake-quality-scores.mjs).
+   *  The label always matches the real judge count — never claims a median it lacks. */
   judge: string;
   /** measured model slugs (matrix targets), in display order */
   models: string[];
@@ -142,4 +147,94 @@ const VENDOR_PREFIX: Partial<Record<ByomVendor, string>> = {
 };
 export function matrixSlug(vendor: ByomVendor, model: string): string {
   return vendor === "openrouter" ? model : `${VENDOR_PREFIX[vendor] ?? vendor}/${model}`;
+}
+
+// ── measurement freshness ─────────────────────────────────────────────────────
+// The scorecard is a STATIC bake — nothing re-measures it. Surface its age so a
+// months-old number isn't read as current. These are pure so they unit-test cleanly.
+
+/** Days beyond which a baked measurement is surfaced as stale in the UI. */
+export const STALENESS_THRESHOLD_DAYS = 30;
+
+/** Whole days between a measurement's ISO timestamp and `now` (≥ 0; NaN if the
+ *  timestamp can't be parsed). */
+export function measurementAgeDays(measuredAt: string, now: Date = new Date()): number {
+  const t = Date.parse(measuredAt);
+  if (!Number.isFinite(t)) return NaN;
+  return Math.max(0, Math.floor((now.getTime() - t) / 86_400_000));
+}
+
+/** Is a baked measurement older than the staleness threshold? */
+export function isMeasurementStale(
+  measuredAt: string,
+  now: Date = new Date(),
+  thresholdDays: number = STALENESS_THRESHOLD_DAYS
+): boolean {
+  const d = measurementAgeDays(measuredAt, now);
+  return Number.isFinite(d) && d >= thresholdDays;
+}
+
+/** Locale-aware "před N dny / N days ago" phrase for a measurement's age (cs/en).
+ *  Buckets to keep the number small: < 14 d → days, < 60 d → weeks, else months.
+ *  Returns "" for an unparseable timestamp so the caller can omit the note. */
+export function formatMeasuredAge(
+  measuredAt: string,
+  locale: SupportedLocale,
+  now: Date = new Date()
+): string {
+  const days = measurementAgeDays(measuredAt, now);
+  if (!Number.isFinite(days)) return "";
+  const cs = locale === "cs";
+  if (days < 1) return cs ? "dnes" : "today";
+
+  let n: number;
+  let unit: "day" | "week" | "month";
+  if (days < 14) {
+    n = days;
+    unit = "day";
+  } else if (days < 60) {
+    n = Math.round(days / 7);
+    unit = "week";
+  } else {
+    n = Math.round(days / 30);
+    unit = "month";
+  }
+
+  if (cs) {
+    // Czech instrumental after "před": den→dnem(1)/dny, týden→týdnem(1)/týdny,
+    // měsíc→měsícem(1)/měsíci.
+    const w =
+      unit === "day"
+        ? n === 1
+          ? "dnem"
+          : "dny"
+        : unit === "week"
+          ? n === 1
+            ? "týdnem"
+            : "týdny"
+          : n === 1
+            ? "měsícem"
+            : "měsíci";
+    return `před ${n} ${w}`;
+  }
+  const w = unit === "day" ? "day" : unit === "week" ? "week" : "month";
+  return `${n} ${w}${n === 1 ? "" : "s"} ago`;
+}
+
+// ── self-judging conflict ─────────────────────────────────────────────────────
+// The judge is Claude (Sonnet), so any Anthropic-family model grades its own
+// vendor's outputs — a home-team bias to flag, not hide (see docs step 5).
+
+/** The vendor family whose own outputs the judge grades. Derived from the baked
+ *  judge label; null when the judge isn't a recognised family. */
+export function judgeVendor(judge: string): ByomVendor | null {
+  return /claude|sonnet|anthropic/i.test(judge) ? "anthropic" : null;
+}
+
+/** True when a measured model slug belongs to the judge's own vendor family — its
+ *  cells are self-judged (home-team bias) and shouldn't be read as neutral. */
+export function isSelfJudged(judge: string, modelSlug: string): boolean {
+  if (!judgeVendor(judge)) return false;
+  const prefix = modelSlug.includes("/") ? modelSlug.split("/")[0]!.toLowerCase() : "";
+  return prefix === "anthropic" || /claude|sonnet|anthropic/i.test(modelSlug);
 }

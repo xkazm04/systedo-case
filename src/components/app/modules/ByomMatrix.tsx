@@ -12,8 +12,16 @@ import {
   type PublicByomConfig,
   type ReasoningLevel,
 } from "@/lib/llm/keys/types";
-import { bestModelForOp, cellComposite, matrixSlug } from "@/lib/llm/quality";
+import {
+  bestModelForOp,
+  cellComposite,
+  formatMeasuredAge,
+  isMeasurementStale,
+  isSelfJudged,
+  matrixSlug,
+} from "@/lib/llm/quality";
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 
 const T = {
@@ -27,6 +35,10 @@ const T = {
     colModel: "Model",
     colReasoning: "Uvažování",
     inherit: "Výchozí",
+    recTitle: "Nejlepší naměřený model: {model}",
+    recSelfJudge: " (pozor: model rodiny rozhodčího claude-sonnet — home-team bias)",
+    measured: "★ = nejlepší naměřený model · změřeno {date} ({age}).",
+    stale: " ⚠ skóre může být zastaralé.",
     errGeneric: "Něco se pokazilo.",
     errNetwork: "Nepodařilo se spojit se serverem.",
   },
@@ -40,6 +52,10 @@ const T = {
     colModel: "Model",
     colReasoning: "Reasoning",
     inherit: "Default",
+    recTitle: "Best measured model: {model}",
+    recSelfJudge: " (note: same family as the judge claude-sonnet — home-team bias)",
+    measured: "★ = best measured model · measured {date} ({age}).",
+    stale: " ⚠ scores may be stale.",
     errGeneric: "Something went wrong.",
     errNetwork: "Could not reach the server.",
   },
@@ -52,6 +68,7 @@ type State = { entitled: boolean; config: PublicByomConfig };
 
 export default function ByomMatrix() {
   const t = useT(T);
+  const { locale } = useLocale();
   const [state, setState] = useState<State | null>(null);
   // `busy` is a plain boolean here: every select is disabled while any single
   // mutation is in flight (no per-row keying), so the shared hook fits exactly.
@@ -109,6 +126,17 @@ export default function ByomMatrix() {
       <div className="mb-4">
         <h3 className="text-lg font-semibold text-navy-800">{t("title")}</h3>
         <p className="mt-0.5 text-sm text-muted">{t("subtitle")}</p>
+        {hasQualityScores() && (
+          <p className="mt-1 text-xs text-muted">
+            {t("measured", {
+              date: QUALITY_SCORES.measuredAt.slice(0, 10),
+              age: formatMeasuredAge(QUALITY_SCORES.measuredAt, locale),
+            })}
+            {isMeasurementStale(QUALITY_SCORES.measuredAt) && (
+              <span className="text-coral-600">{t("stale")}</span>
+            )}
+          </p>
+        )}
       </div>
 
       {configured.length === 0 ? (
@@ -147,7 +175,10 @@ export default function ByomMatrix() {
                   {rec && (
                     <span
                       className="ml-2 whitespace-nowrap text-xs font-normal text-brand-accent"
-                      title={`Nejlepší naměřený model: ${rec.model}`}
+                      title={
+                        t("recTitle", { model: rec.model }) +
+                        (isSelfJudged(QUALITY_SCORES.judge, rec.model) ? t("recSelfJudge") : "")
+                      }
                     >
                       ★ {rec.model.split("/").pop()} {rec.composite.toFixed(1)}
                     </span>

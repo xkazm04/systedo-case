@@ -1,7 +1,14 @@
 "use client";
 
 import { useT } from "@/lib/i18n/client";
-import { formatCostUsd, modelRanking } from "@/lib/llm/quality";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import {
+  formatCostUsd,
+  formatMeasuredAge,
+  isMeasurementStale,
+  judgeVendor,
+  modelRanking,
+} from "@/lib/llm/quality";
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
 
 const T = {
@@ -16,7 +23,10 @@ const T = {
     colCost: "Cena / op",
     ops: "operací",
     method:
-      "Změřeno {date} · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
+      "Změřeno {date} ({age}) · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
+    stale: "⚠ Naposledy měřeno {age} — skóre může být zastaralé. Zvaž přeměření (npm run llm:quality).",
+    selfJudge:
+      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model — jejich skóre ber jako ovlivněné „domácím prostředím“, ne neutrálně.",
     na: "—",
   },
   en: {
@@ -30,7 +40,10 @@ const T = {
     colCost: "Cost / op",
     ops: "ops",
     method:
-      "Measured {date} · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised. Cost is the mean actual per-operation price reported by OpenRouter.",
+      "Measured {date} ({age}) · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised. Cost is the mean actual per-operation price reported by OpenRouter.",
+    stale: "⚠ Last measured {age} — scores may be stale. Consider re-running (npm run llm:quality).",
+    selfJudge:
+      "Note: the judge is claude-sonnet, so Anthropic-family models (claude-*) are graded by a sibling model — read their scores as home-team-biased, not neutral.",
     na: "—",
   },
 } as const;
@@ -40,11 +53,15 @@ const barTone = (s: number) => (s >= 8 ? "bg-positive" : s >= 6 ? "bg-brand-500"
 
 export default function ByomQualityOverview({ className = "max-w-3xl" }: { className?: string }) {
   const t = useT(T);
+  const { locale } = useLocale();
   if (!hasQualityScores()) return null;
 
   const ranking = modelRanking(QUALITY_SCORES);
   const totalOps = Object.keys(QUALITY_SCORES.cells).length;
   const date = QUALITY_SCORES.measuredAt.slice(0, 10);
+  const age = formatMeasuredAge(QUALITY_SCORES.measuredAt, locale);
+  const stale = isMeasurementStale(QUALITY_SCORES.measuredAt);
+  const selfJudged = judgeVendor(QUALITY_SCORES.judge) !== null;
 
   return (
     <section className={`mt-8 ${className}`}>
@@ -99,8 +116,16 @@ export default function ByomQualityOverview({ className = "max-w-3xl" }: { class
       </div>
 
       <p className="mt-3 text-xs leading-relaxed text-muted">
-        {t("method", { date, judge: QUALITY_SCORES.judge, n: String(totalOps) })}
+        {t("method", { date, age, judge: QUALITY_SCORES.judge, n: String(totalOps) })}
       </p>
+      {stale && (
+        <p className="mt-1.5 text-xs leading-relaxed text-coral-600" role="note">
+          {t("stale", { age })}
+        </p>
+      )}
+      {selfJudged && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">{t("selfJudge")}</p>
+      )}
     </section>
   );
 }

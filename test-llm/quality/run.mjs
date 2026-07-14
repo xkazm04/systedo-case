@@ -10,14 +10,21 @@
  *
  *  Run:   npm run llm:quality
  *  Needs: OPENROUTER_API_KEY (loaded from .env.local) + a logged-in Claude CLI.
- *  Env:   LLM_QUALITY_TARGETS=slug,slug   override the 6 default OpenRouter models
+ *  Env:   LLM_QUALITY_TARGETS=slug,slug   override the default OpenRouter roster
  *         LLM_QUALITY_TOOLS=ads,brief      run a subset of operations
  *         LLM_QUALITY_CONCURRENCY=4        parallel generations (judges use 2)
  *         LLM_QUALITY_REASONING=default    reasoning level for every target call
+ *         LLM_QUALITY_JUDGES=3             Sonnet judges per cell (median of them);
+ *                                          default 3 — the honest "medián ze 3" the
+ *                                          scorecard label claims. Lower it only for
+ *                                          a quota-limited pass (the bake then labels
+ *                                          the real n — never over-claims a median).
  *
- *  A full run is 15 × 6 = 90 generations + up to 90 Claude-CLI judge calls — it
- *  costs real tokens on your OpenRouter key and takes a while. Use the subset env
- *  vars for a quick smoke run.
+ *  A full run is 15 × <roster> generations + up to that many Claude-CLI judge calls,
+ *  ×LLM_QUALITY_JUDGES judge calls per served cell. With the default 9-model roster
+ *  and 3 judges that's 135 generations + up to ~405 judge calls — it costs real
+ *  tokens on your OpenRouter key (the Claude judge is on your subscription) and takes
+ *  a while. Use the subset env vars for a quick smoke run.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -51,12 +58,30 @@ const { generateStructured } = await import("../../src/lib/llm/index.ts");
 const { runWithByomContext } = await import("../../src/lib/llm/byom-context.ts");
 const { LLM_TOOLS } = await import("../registry.mjs");
 
+// The benchmark roster (all routed via OpenRouter). Two groups:
+//  · comparison field — strong third-party models to rank the app against.
+//  · PROD models — the models the app ACTUALLY serves, so the scorecard measures
+//    what users really get, not just the field:
+//      google/gemini-3-flash-preview(+ -lite-preview)  = production Gemini path
+//        (src/lib/llm/models.ts GEMINI_MODEL / GEMINI_MODEL_FAST).
+//      anthropic/claude-sonnet-5 / claude-haiku-4-5     = the dev/CLI Claude path
+//        AND the BYOM Anthropic defaults (CLAUDE_API_MODEL / _FAST).
+//      google/gemini-3.5-flash                          = the BYOM Gemini default.
+//  NOTE: claude-sonnet-5 is ALSO the judge family — its cells are self-judged
+//  (home-team bias). The report surfaces this; see `selfJudged` below.
 const DEFAULT_TARGETS = [
+  // comparison field
   "z-ai/glm-5.2",
   "deepseek/deepseek-v4-flash",
   "xiaomi/mimo-v2.5-pro",
   "openai/gpt-5.4-mini",
+  // prod: production Gemini serving path
+  "google/gemini-3-flash-preview",
+  "google/gemini-3-flash-lite-preview",
+  // prod: dev/CLI Claude + BYOM Anthropic defaults (sonnet-5 = judge family)
   "anthropic/claude-sonnet-5",
+  "anthropic/claude-haiku-4-5",
+  // prod: BYOM Gemini default
   "google/gemini-3.5-flash",
 ];
 
@@ -86,6 +111,16 @@ if (!API_KEY) {
 }
 const short = (slug) => slug.split("/").pop();
 const numOr = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
+
+// Self-judging conflict: the judge is Claude (Sonnet), so any Anthropic-family
+// target grades its own vendor's outputs — a home-team bias to disclose, not hide.
+const isSelfJudged = (slug) => /claude|sonnet|anthropic/i.test(slug || "");
+const selfJudged = TARGETS.filter(isSelfJudged);
+const selfJudgeNote = selfJudged.length
+  ? `⚠ Konflikt hodnocení: rozhodčí je claude-sonnet, takže buňky rodiny Anthropic (${selfJudged
+      .map(short)
+      .join(", ")}) hodnotí sourozenecký model — čtěte je jako ovlivněné „domácím prostředím" (home-team bias), ne neutrálně.`
+  : null;
 
 // ── judge (Claude Code CLI, via the wrapper with no BYOM context) ─────────────
 const JUDGE_SYSTEM =
@@ -235,7 +270,9 @@ const lighttrack = process.env.LIGHTTRACK_PROJECT || process.env.LIGHTTRACK_KEY;
 console.log(`\nLLM quality matrix — ${TOOLS.length} operations × ${TARGETS.length} targets (via OpenRouter)`);
 console.log(`Targets: ${TARGETS.map(short).join(", ")}`);
 console.log(`LightTrack: ${lighttrack ? "ON (mirroring)" : "off (set LIGHTTRACK_* to mirror)"}`);
-console.log(`Judge: Claude Code CLI · reasoning: ${REASONING}\n`);
+console.log(`Judge: Claude Code CLI (Sonnet) · ${JUDGE_COUNT} judge(s)/cell (median) · reasoning: ${REASONING}`);
+if (selfJudged.length) console.log(`Self-judged (home-team bias): ${selfJudged.map(short).join(", ")}`);
+console.log("");
 
 const cells = [];
 for (const tool of TOOLS) for (const target of TARGETS) cells.push({ tool, target });
@@ -316,6 +353,7 @@ const md = [
   avgRow,
   "",
   "Legenda: číslo = skóre rozhodčího · `✗` = model neobsloužil (selhal/fallback) · `—` = hodnocení nedostupné · ⚠ = výstup nesplnil schéma.",
+  ...(selfJudgeNote ? ["", selfJudgeNote] : []),
   "",
   "## Pořadí",
   "",
@@ -331,7 +369,12 @@ const outDir = join(HERE, "reports");
 mkdirSync(outDir, { recursive: true });
 const stamp = at.replace(/[:.]/g, "-");
 writeFileSync(join(outDir, `quality-${stamp}.md`), md);
-writeFileSync(join(outDir, `quality-${stamp}.json`), JSON.stringify({ at, targets: TARGETS, results: gen }, null, 2) + "\n");
+// judgeConfig lets the bake label the judge count honestly ("medián ze N" only when
+// the run truly ran N judges); mirror what rejudge.mjs stamps.
+writeFileSync(
+  join(outDir, `quality-${stamp}.json`),
+  JSON.stringify({ at, targets: TARGETS, judgeConfig: JUDGE_COUNT, results: gen }, null, 2) + "\n"
+);
 
 // stdout summary
 console.log("\n" + header);
@@ -340,4 +383,5 @@ for (const r of rows) console.log(r);
 console.log(avgRow);
 console.log("\nPořadí:");
 for (const r of ranking) console.log("  " + r.replace(/\*\*/g, ""));
+if (selfJudgeNote) console.log("\n" + selfJudgeNote);
 console.log(`\n✓ report: test-llm/quality/reports/quality-${stamp}.md`);

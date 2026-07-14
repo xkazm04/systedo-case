@@ -5,8 +5,17 @@
  *  as ByomQualityOverview — no auth, no API — so it can render on the public
  *  /kvalita-modelu page as well as inside the authed settings. */
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { BYOM_OPERATIONS } from "@/lib/llm/keys/types";
-import { bestModelForOp, cellComposite, modelOverall, modelRanking } from "@/lib/llm/quality";
+import {
+  bestModelForOp,
+  cellComposite,
+  formatMeasuredAge,
+  isMeasurementStale,
+  isSelfJudged,
+  modelOverall,
+  modelRanking,
+} from "@/lib/llm/quality";
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
 
 const T = {
@@ -16,6 +25,10 @@ const T = {
       "Složené skóre (0–10) každého modelu v jednotlivých AI operacích. ★ označuje nejlepší naměřený model pro danou operaci; „—“ znamená, že model operaci neobsloužil.",
     colOperation: "Operace",
     avg: "Průměr",
+    measured: "Změřeno {date} ({age}) · rozhodčí {judge}.",
+    stale: "⚠ Skóre může být zastaralé (naposledy měřeno {age}).",
+    selfJudge:
+      "° Rozhodčí je claude-sonnet — sloupce rodiny Anthropic (claude-*) hodnotí sourozenecký model (home-team bias).",
     na: "—",
   },
   en: {
@@ -24,6 +37,10 @@ const T = {
       "Composite score (0–10) of each model per AI operation. ★ marks the best measured model for an operation; “—” means the model didn’t serve it.",
     colOperation: "Operation",
     avg: "Average",
+    measured: "Measured {date} ({age}) · judge {judge}.",
+    stale: "⚠ Scores may be stale (last measured {age}).",
+    selfJudge:
+      "° The judge is claude-sonnet — Anthropic-family columns (claude-*) are graded by a sibling model (home-team bias).",
     na: "—",
   },
 } as const;
@@ -34,10 +51,16 @@ const tone = (s: number) =>
 
 export default function ByomQualityMatrix({ className = "max-w-4xl" }: { className?: string }) {
   const t = useT(T);
+  const { locale } = useLocale();
   if (!hasQualityScores()) return null;
 
   const models = modelRanking(QUALITY_SCORES).map((m) => m.model); // strongest first
   const ops = BYOM_OPERATIONS.filter((op) => QUALITY_SCORES.cells[op.id]);
+  const judge = QUALITY_SCORES.judge;
+  const date = QUALITY_SCORES.measuredAt.slice(0, 10);
+  const age = formatMeasuredAge(QUALITY_SCORES.measuredAt, locale);
+  const stale = isMeasurementStale(QUALITY_SCORES.measuredAt);
+  const anySelfJudged = models.some((m) => isSelfJudged(judge, m));
 
   const thBase = "px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted";
   const tdBase = "px-3 py-2.5 tnum text-center";
@@ -55,11 +78,15 @@ export default function ByomQualityMatrix({ className = "max-w-4xl" }: { classNa
           <thead>
             <tr className="border-b border-line">
               <th className={`${thBase} ${opCol} text-left`}>{t("colOperation")}</th>
-              {models.map((m) => (
-                <th key={m} className={thBase} title={m}>
-                  {short(m)}
-                </th>
-              ))}
+              {models.map((m) => {
+                const self = isSelfJudged(judge, m);
+                return (
+                  <th key={m} className={thBase} title={self ? `${m} — ${t("selfJudge")}` : m}>
+                    {short(m)}
+                    {self && <span aria-hidden> °</span>}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -105,6 +132,16 @@ export default function ByomQualityMatrix({ className = "max-w-4xl" }: { classNa
           </tbody>
         </table>
       </div>
+
+      <p className="mt-3 text-xs leading-relaxed text-muted">{t("measured", { date, age, judge })}</p>
+      {stale && (
+        <p className="mt-1.5 text-xs leading-relaxed text-coral-600" role="note">
+          {t("stale", { age })}
+        </p>
+      )}
+      {anySelfJudged && (
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">{t("selfJudge")}</p>
+      )}
     </section>
   );
 }
