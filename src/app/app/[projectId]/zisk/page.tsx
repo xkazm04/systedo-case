@@ -2,7 +2,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ProfitModule from "@/components/app/modules/ProfitModule";
-import { getProjectDataset } from "@/lib/project-data/dataset";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { channelRows, totalsOf } from "@/lib/metrics";
 import { defaultMargins, SAMPLE_PRODUCTS } from "@/lib/profit/sample";
 import { categoryMixFromCatalog } from "@/lib/profit/products";
@@ -23,7 +23,14 @@ const TREND_GRANULARITY: Record<string, TrendGranularity> = {
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "zisk");
-  const data = getProjectDataset(project);
+  // Direction 2 — one profit truth: /zisk resolves the SAME live-over-sample dataset
+  // the monthly report uses (resolveReportDataset), so a live-synced tenant reads its
+  // real channel mix here instead of the sample spine while the report shows live
+  // numbers. Unsynced → the identical sample dataset (getProjectDataset underneath),
+  // so those tenants are byte-identical to before. `sample` and the provenance label
+  // both follow this one resolution.
+  const resolved = await resolveReportDataset(project);
+  const data = resolved.data;
   const margins = defaultMargins(data.channels);
   // Category mix derived from the real product catalog (retiring the generic mock);
   // falls back to the sample mix for an empty catalog.
@@ -62,7 +69,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   ) as Record<string, ProfitTrendPoint[]>;
 
   return (
-    <ModulePage moduleKey="zisk" sample>
+    <ModulePage moduleKey="zisk" sample={!resolved.live}>
       <ProfitModule
         projectId={projectId}
         rowsByPeriod={rowsByPeriod}
@@ -70,6 +77,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         channels={data.channels}
         products={products}
         defaults={margins}
+        live={resolved.live}
+        syncedAt={resolved.syncedAt}
         costModel={
           costModel
             ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost }

@@ -12,6 +12,7 @@ import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
 import { aov, cr, pno, roas, type ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
 import { monthsForDays } from "@/lib/profit/core";
+import { marginDivergence } from "@/lib/profit/reconcile";
 import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
 import { applyOverhead } from "@/lib/profit/overhead";
 import { computeProductProfit, lowestPoasCategory } from "@/lib/profit/products";
@@ -37,6 +38,10 @@ const T = {
     resetMargins: "Obnovit výchozí marže",
     reportSyncActive: "Měsíční report počítá zisk z těchto hodnot (marže {m} · režie {o}/měs · {f}/obj.).",
     reportSyncInactive: "Použijte tuto marži a režii v měsíčním reportu, aby počítal skutečný zisk po nákladech.",
+    liveData: "Živá data · Google Ads",
+    sampleData: "Ukázková data",
+    synced: "synchronizováno {date}",
+    reconcileNote: "Blended marže v tomto modulu ({computed}) se liší o {delta} p.b. od marže v reportu ({persisted}) — stejný e-shop by ve dvou záložkách viděl jiný zisk. Sjednoťte je tlačítkem „{apply}“ výše.",
     applyToReport: "Použít v reportu",
     applyUpdate: "Aktualizovat report",
     applied: "Uloženo do reportu ✓",
@@ -110,6 +115,10 @@ const T = {
     resetMargins: "Reset margins",
     reportSyncActive: "The monthly report computes profit from these (margin {m} · overhead {o}/mo · {f}/order).",
     reportSyncInactive: "Use this margin & overhead in the monthly report so it computes true profit after costs.",
+    liveData: "Live data · Google Ads",
+    sampleData: "Sample data",
+    synced: "synced {date}",
+    reconcileNote: "This module's blended margin ({computed}) differs by {delta} pp from the report's margin ({persisted}) — the same store would read two different profits across two tabs. Unify them with the “{apply}” button above.",
     applyToReport: "Use in report",
     applyUpdate: "Update report",
     applied: "Saved to report ✓",
@@ -334,6 +343,8 @@ export default function ProfitModule({
   channels,
   products,
   defaults,
+  live = false,
+  syncedAt,
   costModel = null,
 }: {
   projectId: string;
@@ -342,6 +353,12 @@ export default function ProfitModule({
   channels: ChannelShare[];
   products: ProductCategory[];
   defaults: ChannelMargin[];
+  /** Direction 2: true when the resolved dataset is the tenant's own synced Ads data
+   *  (same resolution as the report), false on the illustrative sample. Drives the
+   *  provenance label, consistent with the report's wording. */
+  live?: boolean;
+  /** ISO timestamp of the last live sync (live only). */
+  syncedAt?: string;
   /** the shared server cost model (A3) — seeds overhead here and receives this
    *  module's blended margin + overhead via "apply to report". null = none saved. */
   costModel?: { grossMarginPct: number; monthlyOverhead: number; perOrderCost: number } | null;
@@ -388,6 +405,16 @@ export default function ProfitModule({
   );
 
   const { rows, summary } = useMemo(() => computeProfit(effectiveRows, margins), [effectiveRows, margins]);
+
+  // Direction 2 — reconciliation: this module's revenue-weighted blended margin vs the
+  // report's persisted single blended margin. When they drift ≥ threshold p.b. the same
+  // e-shop would read two different profits in two tabs, so we surface both numbers and
+  // point at the "apply to report" fix. Pure decision (marginDivergence), reactive to
+  // live margin edits so the note clears as the user converges on the report's model.
+  const reconcile = useMemo(
+    () => marginDivergence(summary.blendedMargin, costModel?.grossMarginPct),
+    [summary.blendedMargin, costModel]
+  );
 
   // #3 trend: re-drive the server-bucketed series with the live margin model.
   const trend = useMemo(
@@ -541,6 +568,16 @@ export default function ProfitModule({
 
   return (
     <div className="stagger space-y-6">
+      {/* Direction 2 — provenance label, consistent with the report's wording: live
+          synced Ads data vs the illustrative sample (the sample banner itself is the
+          ModulePage `sample` note; this pill mirrors the report's live strip). */}
+      <div className="flex items-center gap-2 text-xs">
+        <Pill tone={live ? "positive" : "navy"}>{live ? t("liveData") : t("sampleData")}</Pill>
+        {live && syncedAt && (
+          <span className="text-muted">{t("synced", { date: syncedAt.slice(0, 10) })}</span>
+        )}
+      </div>
+
       {/* controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
@@ -618,6 +655,23 @@ export default function ProfitModule({
           </button>
         </div>
       </div>
+
+      {/* Direction 2 — reconciliation note: shown only when a report model exists AND
+          this module's blended margin diverges from it by ≥ threshold p.b. Both numbers
+          are stated; the fix is the "apply to report" button in the band above. */}
+      {costModel && reconcile.diverged && (
+        <div className="flex items-start gap-3 rounded-card border border-coral-200 bg-coral-soft/40 px-4 py-3 text-xs leading-relaxed text-navy-700">
+          <Bulb width={16} height={16} className="mt-0.5 shrink-0 text-coral-600" />
+          <span>
+            {t("reconcileNote", {
+              computed: fmt.fmtPct(reconcile.computedMargin, 0),
+              persisted: fmt.fmtPct(reconcile.persistedMargin, 0),
+              delta: String(Math.abs(reconcile.deltaPp)),
+              apply: t("applyUpdate"),
+            })}
+          </span>
+        </div>
+      )}
 
       {/* real-numbers override (#ROB-02): enter your actual revenue + ad spend so
           the whole view reflects YOUR books, not just the margin lens. */}
