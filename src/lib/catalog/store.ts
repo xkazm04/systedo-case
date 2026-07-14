@@ -18,3 +18,8 @@ export async function listOfferings(userId: string, projectId: string): Promise<
 export async function saveOfferings(userId: string, projectId: string, offerings: Offering[]): Promise<void> {
   return (await backend()).saveOfferings(userId, projectId, offerings);
 }
+
+/** Drop the project's whole catalog (→ modules fall back to the seed). */
+export async function deleteCatalog(userId: string, projectId: string): Promise<void> {
+  return (await backend()).deleteCatalog(userId, projectId);
+}

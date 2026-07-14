@@ -1,6 +1,7 @@
 /** Single-project update + delete for the signed-in user. Server-only. */
 import { currentUserId } from "@/lib/session";
-import { deleteProject, updateProject } from "@/lib/projects/store";
+import { deleteProject, getProject, updateProject } from "@/lib/projects/store";
+import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
 import { PROJECT_TYPES, type ProjectPatch, type ProjectType } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
@@ -56,6 +57,33 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
+
+  // Resolve the workspace up front so the audit record can name it (it's gone by
+  // the time we log). Best-effort — a read hiccup must not block the delete.
+  const project = await getProject(uid, id).catch(() => null);
+
+  // Scrub every satellite store + tenant-keyed Firestore data first (best-effort,
+  // never throws), THEN remove the workspace doc itself so a satellite hiccup can't
+  // strand the project's data behind a deleted entry.
+  const cascade = await deleteProjectCascade(uid, id);
   await deleteProject(uid, id);
-  return Response.json({ ok: true });
+
+  // Audit the deletion on the USER-level feed (projectId omitted) — the project's
+  // own tenant was just scrubbed, so a project-scoped record would be orphaned.
+  await emitProjectActivity(uid, undefined, {
+    kind: "update",
+    module: "nastaveni",
+    severity: cascade.failed.length > 0 ? "warning" : "info",
+    title: "Projekt smazán",
+    detail:
+      (project?.name ?? id) +
+      (cascade.failed.length > 0 ? ` · ${cascade.failed.length} úložišť selhalo` : ""),
+    actor: "Vy",
+  });
+
+  return Response.json({
+    ok: true,
+    cleaned: cascade.cleaned,
+    failed: cascade.failed.map((f) => f.name),
+  });
 }

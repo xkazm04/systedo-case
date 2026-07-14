@@ -30,3 +30,9 @@ export async function saveOfferings(userId: string, projectId: string, offerings
     updatedAt: new Date().toISOString(),
   });
 }
+
+/** Drop the project's catalog (→ modules fall back to the seed). Used by the
+ *  project-deletion cascade; a missing doc delete is a no-op in Firestore. */
+export async function deleteCatalog(userId: string, projectId: string): Promise<void> {
+  await catalogDoc(userId, projectId).delete();
+}

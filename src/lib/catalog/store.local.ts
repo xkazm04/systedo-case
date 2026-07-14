@@ -37,3 +37,11 @@ export async function saveOfferings(userId: string, projectId: string, offerings
     )
     .run(userId, projectId, JSON.stringify(offerings), now);
 }
+
+/** Drop the project's catalog (→ modules fall back to the seed). Used by the
+ *  project-deletion cascade; a missing row is a no-op. */
+export async function deleteCatalog(userId: string, projectId: string): Promise<void> {
+  getDb()
+    .prepare("DELETE FROM project_catalog WHERE user_id = ? AND project_id = ?")
+    .run(userId, projectId);
+}

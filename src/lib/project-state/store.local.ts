@@ -34,3 +34,11 @@ export async function saveProjectState<T>(userId: string, projectId: string, key
     )
     .run(userId, projectId, key, JSON.stringify(data), now);
 }
+
+/** Drop EVERY (user, project, *) state row — all keys for the project at once.
+ *  Used by the project-deletion cascade; missing rows are a no-op. */
+export async function deleteProjectState(userId: string, projectId: string): Promise<void> {
+  getDb()
+    .prepare("DELETE FROM project_state WHERE user_id = ? AND project_id = ?")
+    .run(userId, projectId);
+}

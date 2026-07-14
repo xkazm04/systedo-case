@@ -17,3 +17,8 @@ export async function getProjectState<T>(userId: string, projectId: string, key:
 export async function saveProjectState<T>(userId: string, projectId: string, key: string, data: T): Promise<void> {
   return (await backend()).saveProjectState<T>(userId, projectId, key, data);
 }
+
+/** Drop EVERY stored blob for (user, project, *) — all keys at once. */
+export async function deleteProjectState(userId: string, projectId: string): Promise<void> {
+  return (await backend()).deleteProjectState(userId, projectId);
+}

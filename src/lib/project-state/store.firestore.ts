@@ -4,8 +4,12 @@
  *  firebase-admin in. Mirrors the local backend's interface. */
 import { firestore } from "@/lib/firebase";
 
+function stateCol(userId: string) {
+  return firestore.collection("users").doc(userId).collection("projectState");
+}
+
 function stateDoc(userId: string, projectId: string, key: string) {
-  return firestore.collection("users").doc(userId).collection("projectState").doc(`${projectId}__${key}`);
+  return stateCol(userId).doc(`${projectId}__${key}`);
 }
 
 export async function getProjectState<T>(userId: string, projectId: string, key: string): Promise<T | null> {
@@ -25,4 +29,18 @@ export async function saveProjectState<T>(userId: string, projectId: string, key
     data: JSON.stringify(data),
     updatedAt: new Date().toISOString(),
   });
+}
+
+/** Drop EVERY (user, project, *) state doc — all keys for the project. Doc ids are
+ *  `${projectId}__${key}`; the per-user projectState collection is small, so list it
+ *  once and delete the docs whose id carries this project's prefix — never another
+ *  project's. Used by the project-deletion cascade. */
+export async function deleteProjectState(userId: string, projectId: string): Promise<void> {
+  const prefix = `${projectId}__`;
+  const snap = await stateCol(userId).get();
+  const doomed = snap.docs.filter((d) => d.id.startsWith(prefix));
+  if (doomed.length === 0) return;
+  const batch = firestore.batch();
+  doomed.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
 }
