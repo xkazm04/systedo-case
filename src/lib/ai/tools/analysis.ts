@@ -9,6 +9,7 @@ import {
   type AnalysisResult,
 } from "../../ai-types";
 import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapshot";
+import type { PerformanceData } from "../../types";
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
@@ -140,9 +141,13 @@ export function demoAnalysis(s: Snapshot): AnalysisResult {
 export function generateAnalysis(
   req: AnalysisRequest,
   locale?: SupportedLocale,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  // The project's dataset, resolved + tenancy-checked by the route (the SAME path
+  // chat + monthly-recap use). Undefined → buildSnapshot's base case-study default,
+  // so the no-project path stays byte-identical (request shape, prompt and demo).
+  data?: PerformanceData
 ): Promise<AiResponse<AnalysisResult>> {
-  const snapshot = buildSnapshot(req.period);
+  const snapshot = buildSnapshot(req.period, "previous", data);
   return generateStructured({
     // llm-tool: analysis
     id: "analysis",

@@ -400,7 +400,17 @@ export async function POST(request: Request) {
       }
       case "analysis": {
         const p = validateAnalysisRequest(body, locale);
-        return p.valid ? cachedRespond("analysis", p.value, locale, userId, () => generateAnalysis(p.value, locale, request.signal)) : bad(p.error);
+        if (!p.valid) return bad(p.error);
+        // Ground the analysis in the caller's OWN project dataset — the same
+        // tenancy-checked resolution chat + monthly-recap use. No project → data
+        // undefined, so the value (and thus the cache key + prompt + demo) stays
+        // byte-identical to the ungrounded path; a real project keys the cache by
+        // the EFFECTIVE grounding (keyId) so an unowned id degrades to base.
+        const { data, keyId } = await resolveGrounding(projectIdStr, userId, locale);
+        const value = data ? { ...p.value, projectId: keyId } : p.value;
+        return cachedRespond("analysis", value, locale, userId, () =>
+          generateAnalysis(p.value, locale, request.signal, data)
+        );
       }
       case "monthly-recap": {
         const p = validateMonthlyRecapRequest(body, locale);
