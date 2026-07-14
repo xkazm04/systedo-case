@@ -246,6 +246,19 @@ const SCHEMA = `
     data       TEXT NOT NULL,
     updated_at TEXT NOT NULL
   );
+
+  -- Per-(tenant, kind) claim-first double-run guard for scheduled crons. The
+  -- period column is the claimed window key (e.g. the digest's Monday-anchored ISO
+  -- week); a claim is an UPSERT that only updates when the period CHANGES, so an
+  -- already-sent window can't be re-sent by a manual re-fire. Mirrors the Firestore
+  -- tenants/{tenant}/config/{kind} doc. See src/lib/cron/sent-guard.*.
+  CREATE TABLE IF NOT EXISTS cron_sent_guard (
+    tenant     TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    period     TEXT NOT NULL,
+    claimed_at TEXT NOT NULL,
+    PRIMARY KEY (tenant, kind)
+  );
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -273,7 +286,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (19 tables + projects index)",
+    name: "base schema (20 tables + projects index)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -320,6 +333,21 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "lead_imports"),
+  },
+  {
+    version: 8,
+    name: "cron_sent_guard (claim-first double-run guard for scheduled crons)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS cron_sent_guard (
+          tenant     TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          period     TEXT NOT NULL,
+          claimed_at TEXT NOT NULL,
+          PRIMARY KEY (tenant, kind)
+        )`
+      ),
+    applied: (db) => tableExists(db, "cron_sent_guard"),
   },
 ];
 

@@ -1,9 +1,12 @@
 /** Public, SEO-indexable client microsite at a stable URL (/m/{slug}). Renders
  *  the latest performance snapshot as a deterministic article with white-label
- *  brand tokens + Article/Dataset JSON-LD. Server-rendered on every request, so
- *  it's always current; the daily cron (/api/cron/microsite) revalidates it.
- *  Unlike the rest of the case study, these pages are index:true on purpose —
- *  a continuously-fresh, search-findable proof of results per client. */
+ *  brand tokens + Article/Dataset JSON-LD. This is a dynamic route (no `use
+ *  cache`, no `revalidate`): under Cache Components it re-renders from the latest
+ *  snapshot on EVERY request, so it is always current with no scheduled hook —
+ *  there was a daily revalidate cron, but with nothing cached to invalidate it was
+ *  a no-op and has been removed. Unlike the rest of the case study, these pages
+ *  are index:true on purpose — a continuously-fresh, search-findable proof of
+ *  results per client. */
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui";
@@ -36,8 +39,6 @@ const T = {
     illustrative: "Illustrative sample data (case study) — not a client's real results.",
   },
 } as const;
-
-// Daily self-update target for the cron's revalidatePath.
 
 export async function generateMetadata({
   params,

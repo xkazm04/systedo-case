@@ -7,6 +7,8 @@
  *
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
+import { claimWeeklyDigest } from "@/lib/cron/sent-guard";
+import { isoWeekKey } from "@/lib/cron/schedule";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
@@ -98,6 +100,15 @@ export async function GET(request: Request) {
       const campaigns = await listCampaigns(tenant);
       if (!meta || campaigns.length === 0) {
         results.push({ userId, projectId: project?.id, ok: true, sent: false });
+        return;
+      }
+
+      // Weekly double-run guard, CLAIM-FIRST: the digest had none, so a manual
+      // re-fire re-sent every tenant's email/alert. Atomically claim this ISO week
+      // for the tenant BEFORE recording/sending; a second run in the same week
+      // finds it claimed and skips. The winner proceeds to send below.
+      if (!(await claimWeeklyDigest(tenant, isoWeekKey(now)))) {
+        results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: false });
         return;
       }
 

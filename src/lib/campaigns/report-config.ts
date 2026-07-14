@@ -3,6 +3,7 @@
  *  the daily report cron. Server-only — the pure shapes/constants live in
  *  `report-config-types.ts` so the client UI can import them firebase-free. */
 import { firestore } from "@/lib/firebase";
+import { FieldValue } from "firebase-admin/firestore";
 import {
   DEFAULT_CLIENT_PROFILE,
   REPORT_CADENCES,
@@ -67,7 +68,42 @@ export async function setReportConfig(
   await configRef(tenant).set(patch, { merge: true });
 }
 
-/** Cron-side: record that a scheduled report went out today. */
-export async function markReportSent(tenant: string, day: string): Promise<void> {
-  await configRef(tenant).set({ lastSentDay: day }, { merge: true });
+/** Pure claim decision: is `day` already the recorded sent-day? The atomic claim
+ *  below turns on this comparison; exported so the (untestable-without-Firestore)
+ *  transaction's decision is unit-tested in isolation. */
+export function isDayClaimed(lastSentDay: string | undefined, day: string): boolean {
+  return lastSentDay === day;
+}
+
+/** Cron-side, CLAIM-FIRST: atomically claim `day` as sent BEFORE the report is
+ *  built/emailed, so two overlapping daily runs can't both pass the due-check and
+ *  double-send. Returns true only to the caller that won the claim; a run that
+ *  finds the day already claimed returns false and skips. Firestore transaction =
+ *  the atomic compare-and-set (report-config is Firestore-only; the cron reads it
+ *  the same way). Release with releaseReportDay on a TOTAL delivery failure so the
+ *  next run retries the whole batch. */
+export async function claimReportDay(tenant: string, day: string): Promise<boolean> {
+  const ref = configRef(tenant);
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const lastSentDay = (snap.data() as Partial<ReportConfig> | undefined)?.lastSentDay;
+    if (isDayClaimed(lastSentDay, day)) return false; // already claimed this day
+    tx.set(ref, { lastSentDay: day }, { merge: true });
+    return true;
+  });
+}
+
+/** Release a claim taken by claimReportDay when nothing was delivered (total
+ *  failure / no evaluation), so the next run of the same day retries instead of
+ *  the day staying silently "sent". Only clears OUR claim: a no-op if lastSentDay
+ *  has since moved on. */
+export async function releaseReportDay(tenant: string, day: string): Promise<void> {
+  const ref = configRef(tenant);
+  await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const lastSentDay = (snap.data() as Partial<ReportConfig> | undefined)?.lastSentDay;
+    if (isDayClaimed(lastSentDay, day)) {
+      tx.set(ref, { lastSentDay: FieldValue.delete() }, { merge: true });
+    }
+  });
 }

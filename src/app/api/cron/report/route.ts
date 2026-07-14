@@ -7,7 +7,12 @@
  *  Automatic delivery covers connected live accounts (the cron's user set). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { createSharedReport } from "@/lib/campaigns/shared-report";
-import { getReportConfig, markReportSent, type ReportCadence } from "@/lib/campaigns/report-config";
+import {
+  getReportConfig,
+  claimReportDay,
+  releaseReportDay,
+  type ReportCadence,
+} from "@/lib/campaigns/report-config";
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
 import { sendEmail, sendWebhook, summarizeDelivery } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
@@ -54,6 +59,15 @@ export async function GET(request: Request) {
         return;
       }
 
+      // Claim-first: atomically claim today BEFORE building/sending, so two
+      // overlapping runs (same minute) can't both pass the due-check above and
+      // double-send. The loser skips; the winner proceeds and releases the claim
+      // below only on a TOTAL delivery failure.
+      if (!(await claimReportDay(tenant, today))) {
+        results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: false, reason: "already-claimed" });
+        return;
+      }
+
       const accountName = account?.customerName ?? project?.name ?? "Ukázkový účet";
       // Client report brand defaults to the project (client) brand, not the vendor.
       const token = await createSharedReport(tenant, accountName, {
@@ -64,6 +78,9 @@ export async function GET(request: Request) {
         logo: project?.logoUrl,
       });
       if (!token) {
+        // Claimed but nothing to send — release so a later run today can retry
+        // once an evaluation exists.
+        await releaseReportDay(tenant, today);
         results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: false, reason: "no-evaluation" });
         return;
       }
@@ -115,10 +132,10 @@ export async function GET(request: Request) {
         body: `${title} · ${delivered}/${recipients.length} příjemců`,
         items: [],
       });
-      // Mark sent only once at least one recipient actually got it, so the report
-      // isn't re-sent to everyone on the next daily run — while a TOTAL failure
-      // leaves lastSentDay unset so the next run retries the whole batch.
-      if (shouldMarkSent) await markReportSent(tenant, today);
+      // The day was already claimed (lastSentDay set) before sending, so ≥1
+      // delivery needs no further mark. A TOTAL failure RELEASES the claim so the
+      // next run retries the whole batch instead of the day staying silently sent.
+      if (!shouldMarkSent) await releaseReportDay(tenant, today);
 
       results.push({
         userId,

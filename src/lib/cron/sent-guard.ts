@@ -1,0 +1,32 @@
+/** Claim-first double-run guard for scheduled crons — backend dispatcher.
+ *  Resolves to the local node:sqlite store when LOCAL_DB is on, else Firestore.
+ *  The backend is imported LAZILY so the LOCAL_DB path never evaluates the
+ *  Firestore module. Both backends expose an identical, ATOMIC claim: it records
+ *  `period` for (tenant, kind) and returns true only when the period is NEW —
+ *  concurrent/re-fired runs that see the same period get false and must skip.
+ *  Server-only. */
+import { LOCAL_DB } from "@/lib/local-mode";
+
+function backend() {
+  return LOCAL_DB ? import("./sent-guard.local") : import("./sent-guard.firestore");
+}
+
+/** Guard kind — the digest's weekly send. A stable string keyed alongside the
+ *  tenant so future crons can share the table without colliding. */
+export type SentGuardKind = "digest-weekly";
+
+/** Atomically claim `period` for (tenant, kind). Returns true to the FIRST caller
+ *  (the period was not yet recorded → proceed to send), false if it was already
+ *  claimed (skip). Claim-first: call this BEFORE sending. */
+export async function claimSentPeriod(
+  tenant: string,
+  kind: SentGuardKind,
+  period: string
+): Promise<boolean> {
+  return (await backend()).claimSentPeriod(tenant, kind, period);
+}
+
+/** The digest weekly guard: claim this ISO week for the tenant. */
+export function claimWeeklyDigest(tenant: string, week: string): Promise<boolean> {
+  return claimSentPeriod(tenant, "digest-weekly", week);
+}
