@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ChevronDown, Info, Refresh } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { CAMPAIGN_PERIODS, campaignPeriodLabel, type CampaignPeriod } from "@/lib/campaigns/types";
 import type { CampaignsMeta } from "./useCampaigns";
+import { useDismiss } from "./useDismiss";
 
 const T = {
   cs: {
@@ -90,29 +91,13 @@ export default function SyncProvenance({
   // Captured when the popover opens (event handlers may read the clock; render may
   // not) — the reference "now" the per-period stale classification compares against.
   const [nowMs, setNowMs] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
+  // Dismiss on outside click / Escape — the shared lightweight popover contract.
+  const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
 
   const toggle = () => {
     setNowMs(Date.now());
     setOpen((v) => !v);
   };
-
-  // Dismiss on outside click / Escape — a lightweight popover contract.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
 
   const degraded = Boolean(meta.degraded);
   const isLive = !degraded && meta.source !== "sample";

@@ -7,6 +7,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 import { toCsv, downloadText } from "@/lib/export";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { ActivityKind, ActivityRecord } from "@/lib/campaigns/activity";
+import { useDismiss } from "./useDismiss";
 
 const T = {
   cs: {
@@ -59,6 +60,7 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
   const pid = project?.id;
   const [items, setItems] = useState<ActivityRecord[]>([]);
   const [open, setOpen] = useState(false);
+  const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -95,7 +97,7 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
   if (status !== "authenticated") return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

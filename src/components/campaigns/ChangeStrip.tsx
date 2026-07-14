@@ -6,7 +6,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
-    heading: "Co se změnilo od posledního načtení",
+    heading: "Co se změnilo od poslední synchronizace",
     noChanges: "beze změn",
     added: "{n} nových",
     removed: "{n} odebraných",

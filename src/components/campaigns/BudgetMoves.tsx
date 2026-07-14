@@ -15,6 +15,9 @@ const T = {
     pill: "bez AI · okamžité",
     balanced: "Rozpočet je vůči cíli vyvážený — žádné zjevné přesuny se nenabízejí.",
     move: "Přesunout {amount}",
+    fromLabel: "z",
+    toLabel: "na",
+    roasLabel: "ROAS",
     pauseMove: "Pozastavit „{name}“",
     pauseMoveSpend: "utrácí {amount} bez návratnosti",
     estGain: "Odhadovaný přínos:",
@@ -46,6 +49,9 @@ const T = {
     pill: "no AI · instant",
     balanced: "Budget is balanced against target — no obvious moves to suggest.",
     move: "Move {amount}",
+    fromLabel: "from",
+    toLabel: "to",
+    roasLabel: "ROAS",
     pauseMove: "Pause “{name}”",
     pauseMoveSpend: "spending {amount} with no return",
     estGain: "Estimated gain:",
@@ -167,13 +173,13 @@ export default function BudgetMoves({
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
                     <span className="font-semibold text-navy-800">{t("move", { amount: fmt.fmtCZK(m.amount) })}</span>
                     <span className="inline-flex items-center gap-1.5 text-navy-700">
-                      from <span className="font-medium">{m.fromName}</span>
-                      <span className="tnum text-negative">ROAS {fmt.fmtMultiple(m.fromRoas)}</span>
+                      {t("fromLabel")} <span className="font-medium">{m.fromName}</span>
+                      <span className="tnum text-negative">{t("roasLabel")} {fmt.fmtMultiple(m.fromRoas)}</span>
                     </span>
-                    <ArrowRight width={15} height={15} className="text-muted" aria-label="to" />
+                    <ArrowRight width={15} height={15} className="text-muted" aria-label={t("toLabel")} />
                     <span className="inline-flex items-center gap-1.5 text-navy-700">
                       <span className="font-medium">{m.toName}</span>
-                      <span className="tnum text-positive">ROAS {fmt.fmtMultiple(m.toRoas)}</span>
+                      <span className="tnum text-positive">{t("roasLabel")} {fmt.fmtMultiple(m.toRoas)}</span>
                     </span>
                   </div>
                 )}

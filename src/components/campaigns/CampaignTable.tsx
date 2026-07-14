@@ -39,6 +39,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import Sparkline from "@/components/charts/Sparkline";
 import ReportView from "./ReportView";
 import TriageBanner from "./TriageBanner";
+import { useCampaignErrorText, type CampaignError } from "./errors";
 import SortHeader from "./table/SortHeader";
 import { SORT_KEYS, loadSort, saveSort, type SortKey, type SortState } from "./table/sort";
 import { loadFilters, saveFilters } from "./table/filters";
@@ -225,7 +226,7 @@ export default function CampaignTable({
   staleKeys?: string[];
   histories: Record<string, ReportHistoryPoint[]>;
   analyzing: Record<string, boolean>;
-  analyzeErrors: Record<string, string>;
+  analyzeErrors: Record<string, CampaignError>;
   /** per-campaign-id: was the last evaluation served from cache (no new call) */
   cached: Record<string, boolean>;
   /** per-campaign-id diff vs the prior sync, so triage can flag ROAS craters /
@@ -246,6 +247,7 @@ export default function CampaignTable({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  const errText = useCampaignErrorText();
   const { locale } = useLocale();
 
   // Build translated column definitions after hooks run.
@@ -781,7 +783,7 @@ export default function CampaignTable({
                           </div>
                         ) : err ? (
                           <div className="flex flex-wrap items-center gap-3">
-                            <p className="text-sm text-negative">{err}</p>
+                            <p className="text-sm text-negative">{errText(err)}</p>
                             <button
                               type="button"
                               onClick={() => analyze(c.id)}

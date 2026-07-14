@@ -21,6 +21,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { useCampaigns } from "./useCampaigns";
+import { useCampaignErrorText } from "./errors";
 import TypeBreakdown from "./TypeBreakdown";
 import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
@@ -145,6 +146,9 @@ export default function CampaignsClient() {
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
+  // Resolves the hook's CampaignError (a client key or a raw server message) to a
+  // localized string at render — the hook itself can't call useT.
+  const errText = useCampaignErrorText();
   const {
     campaigns,
     meta,
@@ -283,7 +287,7 @@ export default function CampaignsClient() {
           <Refresh width={17} height={17} className={syncing ? "animate-spin" : ""} />
           {syncing ? t("syncing") : t("syncButton")}
         </button>
-        {error && <p className="mt-4 text-sm text-negative">{error}</p>}
+        {error && <p className="mt-4 text-sm text-negative">{errText(error)}</p>}
       </div>
     );
   }
@@ -370,7 +374,7 @@ export default function CampaignsClient() {
 
       {error && (
         <p className="rounded-card border border-negative/30 bg-negative-soft px-4 py-3 text-sm text-negative">
-          {error}
+          {errText(error)}
         </p>
       )}
 
@@ -495,11 +499,11 @@ export default function CampaignsClient() {
           </div>
         </div>
 
-        {overallErr && <p className="mt-4 text-sm text-negative">{overallErr}</p>}
+        {overallErr && <p className="mt-4 text-sm text-negative">{errText(overallErr)}</p>}
         {shareErr && <p className="mt-3 text-sm text-negative">{shareErr}</p>}
         {batchSummary &&
           (batchSummary.error && batchSummary.evaluated === 0 ? (
-            <p className="mt-3 text-sm text-negative">{batchSummary.error}</p>
+            <p className="mt-3 text-sm text-negative">{errText(batchSummary.error)}</p>
           ) : (
             <p className="mt-3 text-sm text-muted">
               <span className="tnum">
@@ -510,7 +514,9 @@ export default function CampaignsClient() {
                   {t("evalAllQuota", { n: batchSummary.remaining })}
                 </span>
               )}
-              {batchSummary.error && <span className="ml-1 text-negative">{batchSummary.error}</span>}
+              {batchSummary.error && (
+                <span className="ml-1 text-negative">{errText(batchSummary.error)}</span>
+              )}
             </p>
           ))}
         {shareUrl && (

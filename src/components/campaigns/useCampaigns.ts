@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useOptionalProject } from "@/lib/projects/context";
+import { serverErrorOr, rawError, type CampaignError } from "./errors";
 import type { CampaignReport, CampaignReportResult, EvalScope, ReportHistoryPoint } from "@/lib/ai-types";
 import type { SnapshotSummaryPoint } from "@/lib/campaigns/triage";
 import type {
@@ -88,9 +89,9 @@ export function useCampaigns() {
   const [state, setState] = useState<State>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CampaignError | null>(null);
   const [analyzing, setAnalyzing] = useState<Record<string, boolean>>({});
-  const [analyzeErrors, setAnalyzeErrors] = useState<Record<string, string>>({});
+  const [analyzeErrors, setAnalyzeErrors] = useState<Record<string, CampaignError>>({});
   /** per-key: was the last evaluation served from the input-hash cache (no new
    *  paid model call) rather than freshly generated? */
   const [cached, setCached] = useState<Record<string, boolean>>({});
@@ -101,7 +102,7 @@ export function useCampaigns() {
     cached: number;
     remaining: number;
     quotaExhausted: boolean;
-    error: string | null;
+    error: CampaignError | null;
   } | null>(null);
 
   const load = useCallback(async () => {
@@ -120,7 +121,7 @@ export function useCampaigns() {
         snapshotSummaries: json.snapshotSummaries ?? [],
       });
     } catch {
-      setError("Nepodařilo se načíst kampaně.");
+      setError({ key: "loadFailed" });
     } finally {
       setLoading(false);
     }
@@ -149,7 +150,7 @@ export function useCampaigns() {
       });
       const json = await res.json();
       if (!res.ok) {
-        setError(json?.error ?? "Synchronizace se nezdařila.");
+        setError(serverErrorOr(json?.error, "syncFailed"));
         return;
       }
       setState({
@@ -163,7 +164,7 @@ export function useCampaigns() {
         snapshotSummaries: json.snapshotSummaries ?? [],
       });
     } catch {
-      setError("Nepodařilo se spojit se serverem.");
+      setError({ key: "serverError" });
     } finally {
       setSyncing(false);
     }
@@ -189,7 +190,7 @@ export function useCampaigns() {
         });
         const json = await res.json();
         if (!res.ok) {
-          setAnalyzeErrors((e) => ({ ...e, [key]: json?.error ?? "Vyhodnocení se nezdařilo." }));
+          setAnalyzeErrors((e) => ({ ...e, [key]: serverErrorOr(json?.error, "analyzeFailed") }));
           return false;
         }
         setState((s) => ({
@@ -206,7 +207,7 @@ export function useCampaigns() {
         setCached((cc) => ({ ...cc, [key]: Boolean(json.cached) }));
         return true;
       } catch {
-        setAnalyzeErrors((e) => ({ ...e, [key]: "Nepodařilo se spojit se serverem." }));
+        setAnalyzeErrors((e) => ({ ...e, [key]: { key: "serverError" } }));
         return false;
       } finally {
         setAnalyzing((a) => ({ ...a, [key]: false }));
@@ -235,7 +236,7 @@ export function useCampaigns() {
           cached: 0,
           remaining: 0,
           quotaExhausted: false,
-          error: json?.error ?? "Hromadné vyhodnocení se nezdařilo.",
+          error: serverErrorOr(json?.error, "batchFailed"),
         });
         return false;
       }
@@ -246,7 +247,7 @@ export function useCampaigns() {
         cached: cachedKeys.length,
         remaining: json.remaining?.length ?? 0,
         quotaExhausted: Boolean(json.quotaExhausted),
-        error: json.error ?? null,
+        error: json.error ? rawError(json.error) : null,
       });
       // A just-evaluated or cache-hit target matches the current data by
       // construction, so it can't be stale any more — drop those keys from the
@@ -265,7 +266,7 @@ export function useCampaigns() {
         cached: 0,
         remaining: 0,
         quotaExhausted: false,
-        error: "Nepodařilo se spojit se serverem.",
+        error: { key: "serverError" },
       });
       return false;
     } finally {

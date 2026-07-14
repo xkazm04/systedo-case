@@ -13,6 +13,7 @@ import {
   alertCampaignIds,
   isAlertActionable,
 } from "@/lib/campaigns/alert-suppression";
+import { useDismiss } from "./useDismiss";
 
 const T = {
   cs: {
@@ -73,6 +74,7 @@ export default function AlertsInbox({
   const [open, setOpen] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
+  const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -162,7 +164,7 @@ export default function AlertsInbox({
   if (status !== "authenticated") return null;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={ref}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
