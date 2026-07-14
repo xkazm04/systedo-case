@@ -13,6 +13,7 @@ import type {
 import {
   COMPETITION_LABELS,
   KEYWORD_INTENT_LABELS,
+  spendEfficiency,
   type KeywordIdea,
   type KeywordIntent,
   type KeywordResult,
@@ -64,6 +65,10 @@ const T = {
     competition: "konkurence",
     cpc: "CPC",
     opportunity: "Příležitost",
+    sortLabel: "Řadit",
+    sortByOpportunity: "Příležitost",
+    sortByEfficiency: "Efektivita nákladů",
+    sortEfficiencyTitle: "Řadit podle příležitosti na 1 Kč odhadované ceny za proklik (příležitost ÷ střed CPC) — čím výš, tím lepší sázka na organiku oproti placenému prokliku.",
     clusterPillarLabel: "Pilíř",
     clusterSupportingLabel: "Podpůrná slova ({n})",
     clusterCreateBrief: "Vytvořit brief",
@@ -103,6 +108,10 @@ const T = {
     competition: "competition",
     cpc: "CPC",
     opportunity: "Opportunity",
+    sortLabel: "Sort",
+    sortByOpportunity: "Opportunity",
+    sortByEfficiency: "Spend efficiency",
+    sortEfficiencyTitle: "Sort by opportunity per CZK of estimated cost-per-click (opportunity ÷ mid CPC) — higher means a better organic bet than paying for the click.",
     clusterPillarLabel: "Pillar",
     clusterSupportingLabel: "Supporting keywords ({n})",
     clusterCreateBrief: "Create brief",
@@ -112,6 +121,7 @@ const T = {
 
 type Status = "idle" | "loading" | "done" | "error";
 type IntentFilter = "all" | KeywordIntent;
+type SortBy = "opportunity" | "efficiency";
 
 export interface BriefSeed {
   topic: string;
@@ -152,6 +162,7 @@ export default function KeywordResearch({
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<IntentFilter>("all");
+  const [sortBy, setSortBy] = useState<SortBy>("opportunity");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
 
   // AI clustering of the current research into pillar + supporting topic clusters.
@@ -166,6 +177,7 @@ export default function KeywordResearch({
     setError(null);
     setSelected(new Set());
     setFilter("all");
+    setSortBy("opportunity");
     setSaveState("idle");
     clusters.reset();
     try {
@@ -207,10 +219,16 @@ export default function KeywordResearch({
       return next;
     });
 
-  const visible = useMemo(
-    () => (result ? result.ideas.filter((i) => filter === "all" || i.intent === filter) : []),
-    [result, filter]
-  );
+  const visible = useMemo(() => {
+    if (!result) return [];
+    const filtered = result.ideas.filter((i) => filter === "all" || i.intent === filter);
+    // ideas arrive already sorted by opportunity (desc); only re-sort for the
+    // spend-efficiency view (opportunity per CZK of estimated CPC).
+    if (sortBy === "efficiency") {
+      return [...filtered].sort((a, b) => spendEfficiency(b) - spendEfficiency(a));
+    }
+    return filtered;
+  }, [result, filter, sortBy]);
 
   const createBrief = () => {
     if (!result) return;
@@ -284,6 +302,11 @@ export default function KeywordResearch({
         opportunity: i.opportunity,
         avgMonthlySearches: i.avgMonthlySearches,
         competition: i.competition,
+        // CPC-aware economics: snapshot the bid band + raw competition index so the
+        // saved list carries real CPC (and feeds the SEO engine its true difficulty).
+        lowBidCzk: i.lowBidCzk,
+        highBidCzk: i.highBidCzk,
+        competitionIndex: i.competitionIndex,
         tag: selected.has(i.keyword) ? "core" : "watch",
       }));
       const res = await fetch("/api/keywords/lists", {
@@ -469,23 +492,46 @@ export default function KeywordResearch({
               </div>
             )}
 
-            {/* intent filter */}
-            <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
-              {(["all", ...intentsPresent] as IntentFilter[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFilter(f)}
-                  aria-pressed={filter === f}
-                  className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
-                    filter === f
-                      ? "border-brand-400 bg-brand-50 text-brand-800"
-                      : "border-line text-muted hover:border-navy-200"
-                  }`}
-                >
-                  {f === "all" ? t("filterAll") : KEYWORD_INTENT_LABELS[f]}
-                </button>
-              ))}
+            {/* intent filter + spend-efficiency sort */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
+                {(["all", ...intentsPresent] as IntentFilter[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFilter(f)}
+                    aria-pressed={filter === f}
+                    className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      filter === f
+                        ? "border-brand-400 bg-brand-50 text-brand-800"
+                        : "border-line text-muted hover:border-navy-200"
+                    }`}
+                  >
+                    {f === "all" ? t("filterAll") : KEYWORD_INTENT_LABELS[f]}
+                  </button>
+                ))}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="text-xs font-medium text-muted">{t("sortLabel")}</span>
+                <div className="flex gap-1.5">
+                  {(["opportunity", "efficiency"] as SortBy[]).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSortBy(s)}
+                      aria-pressed={sortBy === s}
+                      title={s === "efficiency" ? t("sortEfficiencyTitle") : undefined}
+                      className={`shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        sortBy === s
+                          ? "border-brand-400 bg-brand-50 text-brand-800"
+                          : "border-line text-muted hover:border-navy-200"
+                      }`}
+                    >
+                      {s === "opportunity" ? t("sortByOpportunity") : t("sortByEfficiency")}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
 
             <ul className="space-y-2">

@@ -143,9 +143,20 @@ const COMPETITION_DIFFICULTY: Record<SavedKeyword["competition"], number> = {
   high: 75,
 };
 
+/** SEO difficulty (0–100) for a saved keyword: the REAL 0–100 competition index
+ *  when the keyword carries it (lists saved with CPC-aware economics), else the
+ *  coarse three-band fallback for legacy lists saved before it existed. */
+function difficultyOf(k: SavedKeyword): number {
+  if (typeof k.competitionIndex === "number" && Number.isFinite(k.competitionIndex)) {
+    return Math.max(0, Math.min(100, Math.round(k.competitionIndex)));
+  }
+  return COMPETITION_DIFFICULTY[k.competition] ?? 50;
+}
+
 /** Build comparison-engine queries from a saved keyword list — keep only the
- *  comparison-intent keywords, mapping volume + (coarse) difficulty from the saved
- *  metrics. Empty when the list has no comparison queries (caller falls back). */
+ *  comparison-intent keywords, mapping volume + difficulty from the saved metrics
+ *  (real competition index when present, banded fallback for old lists). Empty when
+ *  the list has no comparison queries (caller falls back). */
 export function deriveCompareQueries(keywords: SavedKeyword[]): CompareQuery[] {
   const out: CompareQuery[] = [];
   for (const k of keywords) {
@@ -156,7 +167,7 @@ export function deriveCompareQueries(keywords: SavedKeyword[]): CompareQuery[] {
       query: k.keyword,
       intent,
       volume: k.avgMonthlySearches,
-      difficulty: COMPETITION_DIFFICULTY[k.competition] ?? 50,
+      difficulty: difficultyOf(k),
       rank: null,
     });
   }

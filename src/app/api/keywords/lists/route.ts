@@ -29,12 +29,23 @@ function toSavedKeyword(raw: unknown): SavedKeyword | null {
   const intent =
     r.intent === "transactional" || r.intent === "brand" || r.intent === "local" ? r.intent : "informational";
   const competition = r.competition === "low" || r.competition === "high" ? r.competition : "medium";
+  // Optional CPC-aware economics: only persist a field when the client sent a
+  // finite value, so legacy payloads (no bids) stay clean and read back unchanged.
+  const optNum = (v: unknown): number | undefined =>
+    Number.isFinite(Number(v)) ? Math.max(0, Math.round(Number(v))) : undefined;
+  const lowBidCzk = optNum(r.lowBidCzk);
+  const highBidCzk = optNum(r.highBidCzk);
+  const competitionIndex =
+    optNum(r.competitionIndex) != null ? Math.min(100, optNum(r.competitionIndex)!) : undefined;
   return {
     keyword,
     intent,
     competition,
     opportunity: Math.max(0, Math.min(100, Math.round(num(r.opportunity)))),
     avgMonthlySearches: Math.max(0, Math.round(num(r.avgMonthlySearches))),
+    ...(lowBidCzk != null ? { lowBidCzk } : {}),
+    ...(highBidCzk != null ? { highBidCzk } : {}),
+    ...(competitionIndex != null ? { competitionIndex } : {}),
     tag: isTag(r.tag) ? r.tag : "watch",
   };
 }

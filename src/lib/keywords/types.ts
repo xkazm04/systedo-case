@@ -65,14 +65,47 @@ export const KEYWORD_TAG_LABELS: Record<KeywordTag, string> = {
   watch: "Sledované",
 };
 
-/** A keyword frozen into a saved list (metrics snapshotted at save time). */
+/** A keyword frozen into a saved list (metrics snapshotted at save time). The CPC
+ *  band + the raw 0–100 competition index are optional so legacy lists saved before
+ *  CPC-aware economics (no bid fields) still read cleanly — consumers guard for
+ *  `undefined` and fall back to the coarse competition band. */
 export interface SavedKeyword {
   keyword: string;
   intent: KeywordIntent;
   opportunity: number;
   avgMonthlySearches: number;
   competition: Competition;
+  /** low top-of-page bid, CZK (optional — absent on pre-CPC saved lists) */
+  lowBidCzk?: number;
+  /** high top-of-page bid, CZK (optional — absent on pre-CPC saved lists) */
+  highBidCzk?: number;
+  /** raw 0–100 competition index (optional — absent on pre-CPC saved lists) */
+  competitionIndex?: number;
   tag: KeywordTag;
+}
+
+/** Estimated mid top-of-page bid (CZK): the midpoint of the low/high band, or
+ *  whichever bound is present, else 0 when there is no bid data. Pure. */
+export function midBidCzk(idea: { lowBidCzk?: number; highBidCzk?: number }): number {
+  const lo = idea.lowBidCzk ?? 0;
+  const hi = idea.highBidCzk ?? 0;
+  if (lo > 0 && hi > 0) return (lo + hi) / 2;
+  return hi || lo || 0;
+}
+
+/** Spend-efficiency = opportunity points per CZK of estimated top-of-page bid
+ *  (opportunity ÷ mid CPC). It answers "how much organic upside does this keyword
+ *  carry relative to what the paid click would cost" — a higher value is a better
+ *  free-traffic bet than buying the click. A deliberately coarse, honest ratio (not
+ *  a currency amount); keywords with no bid data (mid = 0) score 0 so they sink to
+ *  the bottom of an efficiency sort rather than falsely topping it. */
+export function spendEfficiency(idea: {
+  opportunity: number;
+  lowBidCzk?: number;
+  highBidCzk?: number;
+}): number {
+  const mid = midBidCzk(idea);
+  return mid > 0 ? idea.opportunity / mid : 0;
 }
 
 export interface KeywordListInput {
