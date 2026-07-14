@@ -11,7 +11,7 @@ export default function Segmented<T extends string>({
   onChange,
   ariaLabel,
 }: {
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; disabled?: boolean; title?: string }[];
   value: T;
   onChange: (v: T) => void;
   ariaLabel: string;
@@ -53,9 +53,15 @@ export default function Segmented<T extends string>({
               }}
               role="tab"
               aria-selected={active}
+              disabled={o.disabled}
+              title={o.title}
               onClick={() => onChange(o.value)}
               className={`relative z-10 shrink-0 rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                active ? "text-navy-800" : "text-muted hover:text-navy-700"
+                o.disabled
+                  ? "cursor-not-allowed text-muted/50"
+                  : active
+                    ? "text-navy-800"
+                    : "text-muted hover:text-navy-700"
               }`}
             >
               {o.label}

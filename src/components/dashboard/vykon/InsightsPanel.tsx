@@ -10,6 +10,7 @@ import {
   type ChannelRow,
   type Coverage,
   type FunnelAttribution,
+  type PeriodBaseline,
   type Significance,
   type Trend,
   type WeekdayProfilePoint,
@@ -25,6 +26,8 @@ const T = {
     insights: "Co stojí za pozornost",
     insightRevenueUp: "Obrat vzrostl o {delta} oproti předchozímu období.",
     insightRevenueDown: "Obrat klesl o {delta} oproti předchozímu období.",
+    insightRevenueUpYoy: "Obrat vzrostl o {delta} oproti stejnému období loni.",
+    insightRevenueDownYoy: "Obrat klesl o {delta} oproti stejnému období loni.",
     insightPnoBelow: "Celkové PNO {pno} je pod cílem {goal}.",
     insightPnoAbove: "Celkové PNO {pno} je nad cílem {goal}.",
     insightBestRoas: "Nejefektivnější kanál je {channel} s ROAS {roas}.",
@@ -51,6 +54,8 @@ const T = {
     insights: "Worth noting",
     insightRevenueUp: "Revenue grew by {delta} vs the previous period.",
     insightRevenueDown: "Revenue fell by {delta} vs the previous period.",
+    insightRevenueUpYoy: "Revenue grew by {delta} vs the same period last year.",
+    insightRevenueDownYoy: "Revenue fell by {delta} vs the same period last year.",
     insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
     insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
     insightBestRoas: "Most efficient channel is {channel} with ROAS {roas}.",
@@ -181,6 +186,7 @@ function buildInsights(
   profile: WeekdayProfilePoint[],
   funnel: FunnelAttribution | null,
   significance: Record<MetricKey, Significance>,
+  baseline: PeriodBaseline,
   fmt: Formatters,
   t: TFn<keyof typeof T.cs>,
   locale: SupportedLocale
@@ -250,8 +256,12 @@ function buildInsights(
       text: (
         <>
           {revenueDelta > 0
-            ? t("insightRevenueUp", { delta: fmt.fmtSignedPct(revenueDelta).replace("+", "") })
-            : t("insightRevenueDown", { delta: fmt.fmtSignedPct(revenueDelta).replace("-", "") })}
+            ? t(baseline === "yoy" ? "insightRevenueUpYoy" : "insightRevenueUp", {
+                delta: fmt.fmtSignedPct(revenueDelta).replace("+", ""),
+              })
+            : t(baseline === "yoy" ? "insightRevenueDownYoy" : "insightRevenueDown", {
+                delta: fmt.fmtSignedPct(revenueDelta).replace("-", ""),
+              })}
         </>
       ),
     });
@@ -353,6 +363,7 @@ export default function InsightsPanel({
   significance,
   coverage = "full",
   funnel = null,
+  baseline = "previous",
 }: {
   channels: ChannelRow[];
   revenueDelta: number;
@@ -367,12 +378,15 @@ export default function InsightsPanel({
   coverage?: Coverage;
   /** funnel attribution of the revenue move (traffic vs CR vs AOV), when strong */
   funnel?: FunnelAttribution | null;
+  /** comparison baseline in effect — keeps the revenue insight's wording honest
+   *  ("vs the previous period" vs "vs the same period last year") */
+  baseline?: PeriodBaseline;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
 
-  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, fmt, t, locale);
+  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, baseline, fmt, t, locale);
 
   return (
     <div className="card p-5">

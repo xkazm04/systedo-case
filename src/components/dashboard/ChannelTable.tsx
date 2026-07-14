@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChannelRow, Significance, Totals } from "@/lib/metrics";
+import type { ChannelRow, PeriodBaseline, Significance, Totals } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
 
@@ -49,6 +49,7 @@ export default function ChannelTable({
   revenueDelta,
   revenueSignificance,
   timeResolved = false,
+  baseline = "previous",
 }: {
   rows: ChannelRow[];
   totals: Totals;
@@ -67,6 +68,8 @@ export default function ChannelTable({
    *  would equal the aggregate on every row (five identical badges) — there we keep it
    *  once, on the Total row, and this column is absent (static path byte-identical). */
   timeResolved?: boolean;
+  /** comparison baseline in effect — swaps the delta badges' tooltip wording */
+  baseline?: PeriodBaseline;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -125,7 +128,7 @@ export default function ChannelTable({
                   <td className="px-3 py-3 text-right">
                     {r.delta ? (
                       <span className="inline-flex justify-end">
-                        <DeltaBadge delta={r.delta.revenue} goodDirection="up" size="xs" />
+                        <DeltaBadge delta={r.delta.revenue} goodDirection="up" size="xs" baseline={baseline} />
                       </span>
                     ) : (
                       <span className="text-muted">—</span>
@@ -159,6 +162,7 @@ export default function ChannelTable({
                         goodDirection="up"
                         size="xs"
                         significance={revenueSignificance}
+                        baseline={baseline}
                       />
                     </span>
                   )}
@@ -173,6 +177,7 @@ export default function ChannelTable({
                         goodDirection="up"
                         size="xs"
                         significance={revenueSignificance}
+                        baseline={baseline}
                       />
                     </span>
                   )}

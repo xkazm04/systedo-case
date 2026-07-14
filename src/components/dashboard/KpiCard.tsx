@@ -1,6 +1,12 @@
 import Sparkline from "@/components/charts/Sparkline";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
-import { metricDescription, metricLabel, type MetricMeta, type Significance } from "@/lib/metrics";
+import {
+  metricDescription,
+  metricLabel,
+  type MetricMeta,
+  type PeriodBaseline,
+  type Significance,
+} from "@/lib/metrics";
 import { createFormatters, type SupportedLocale } from "@/lib/format";
 
 /** One headline metric: current value, change vs the comparison window, a trend
@@ -15,6 +21,7 @@ export default function KpiCard({
   footnote,
   emphasised = false,
   delayMs = 0,
+  baseline = "previous",
 }: {
   meta: MetricMeta;
   locale?: SupportedLocale;
@@ -25,6 +32,8 @@ export default function KpiCard({
   footnote?: React.ReactNode;
   emphasised?: boolean;
   delayMs?: number;
+  /** comparison baseline in effect — swaps the delta badge's tooltip wording */
+  baseline?: PeriodBaseline;
 }) {
   // Locale-bound formatters, so the headline value and the sparkline endpoints
   // follow the active locale instead of the metric registry's Czech default.
@@ -45,6 +54,7 @@ export default function KpiCard({
           goodDirection={meta.goodDirection}
           size="xs"
           significance={significance}
+          baseline={baseline}
         />
       </div>
 

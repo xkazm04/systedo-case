@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "@/components/icons";
 import Segmented from "./Segmented";
 import { dayWord } from "./plural";
-import { periodLabel, PERIODS, type PeriodDef } from "@/lib/metrics";
+import { periodLabel, PERIODS, type PeriodBaseline, type PeriodDef } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
@@ -18,6 +18,11 @@ const T = {
       "Datová řada je kratší než zvolené období — okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
     dataReport: "Datový report",
     periodSelector: "Výběr období",
+    baselineSelector: "Srovnávací základna",
+    baselinePrevious: "Předchozí",
+    baselineYoy: "Rok zpět",
+    yoyDisabledTitle:
+      "Pro toto období není dost historie na srovnání rok zpět (chybí data spřed roku).",
   },
   en: {
     periodLabel: "Period:",
@@ -28,6 +33,11 @@ const T = {
       "The data series is shorter than the selected period — the window and its comparison were capped to the equal-length span available.",
     dataReport: "Data report",
     periodSelector: "Period selector",
+    baselineSelector: "Comparison baseline",
+    baselinePrevious: "Previous",
+    baselineYoy: "Year ago",
+    yoyDisabledTitle:
+      "Not enough history for a year-over-year comparison of this period (no data from a year back).",
   },
 } as const;
 
@@ -38,6 +48,9 @@ export default function PeriodHeader({
   period,
   periodKey,
   onPeriodChange,
+  baseline,
+  onBaselineChange,
+  yoySupported,
   truncated,
   actualDays,
   reportHref,
@@ -45,6 +58,12 @@ export default function PeriodHeader({
   period: PeriodDef;
   periodKey: string;
   onPeriodChange: (key: string) => void;
+  /** the comparison baseline currently in effect (reflects the yoy fallback) */
+  baseline: PeriodBaseline;
+  onBaselineChange: (b: PeriodBaseline) => void;
+  /** whether the series can support a year-over-year comparison for this window;
+   *  when false the yoy option is disabled with an honest tooltip */
+  yoySupported: boolean;
   truncated: boolean;
   actualDays: number;
   reportHref: string;
@@ -80,6 +99,20 @@ export default function PeriodHeader({
         </Link>
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <Segmented<PeriodBaseline>
+          ariaLabel={t("baselineSelector")}
+          options={[
+            { value: "previous", label: t("baselinePrevious") },
+            {
+              value: "yoy",
+              label: t("baselineYoy"),
+              disabled: !yoySupported,
+              title: yoySupported ? undefined : t("yoyDisabledTitle"),
+            },
+          ]}
+          value={baseline}
+          onChange={onBaselineChange}
+        />
         <Segmented
           ariaLabel={t("periodSelector")}
           options={PERIODS.map((p) => ({ value: p.key, label: periodLabel(p, locale) }))}

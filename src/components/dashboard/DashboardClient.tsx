@@ -26,6 +26,7 @@ import {
   TREND_METRICS,
   weekdayProfile,
   type Anomaly,
+  type PeriodBaseline,
 } from "@/lib/metrics";
 import type { PerformanceData, MetricKey } from "@/lib/types";
 
@@ -44,6 +45,10 @@ export default function DashboardClient({
   reportHref?: string;
 }) {
   const [periodKey, setPeriodKey] = useState("90d");
+  // Which comparison window the KPIs/chart/insights measure against: the adjacent
+  // previous window (default) or the same window a year ago. Client-side like
+  // periodKey; the engine (evaluatePeriod) does the actual windowing.
+  const [baselineKey, setBaselineKey] = useState<PeriodBaseline>("previous");
   const [trendMetric, setTrendMetric] = useState<MetricKey>("revenue");
   // "See this alert in context": clicking an alert switches the chart to the
   // event's metric and pins its point (seq bumps so a repeat click re-applies).
@@ -76,9 +81,21 @@ export default function DashboardClient({
   // rather than letting an empty feed read as "all clear".
   const coverage = seriesCoverage(data.daily.length);
 
+  // Can the series support a year-over-year comparison for THIS window? Probe the
+  // engine: yoy is fully supported only when it neither falls back to "previous"
+  // (no year-ago day fits) nor truncates (only part of the window has a twin). When
+  // it can't, the toggle disables yoy with an honest note instead of silently
+  // serving a shortened or adjacent comparison.
+  const yoyProbe = evaluatePeriod(data.daily, period.days, "yoy");
+  const yoySupported = yoyProbe.baseline === "yoy" && !yoyProbe.truncated;
+  // The baseline actually used: honour a yoy request only while it's supported, so
+  // switching to a window that can't support yoy cleanly falls back to previous
+  // (and the segmented control reflects that).
+  const baseline: PeriodBaseline = baselineKey === "yoy" && yoySupported ? "yoy" : "previous";
+
   // The analytics helpers are pure and React Compiler (Next 16) memoizes the
   // component automatically, so we compute the derived views directly.
-  const result = evaluatePeriod(data.daily, period.days, "previous");
+  const result = evaluatePeriod(data.daily, period.days, baseline);
 
   // Scope the alerts feed + its Kč impact to the selected window, so the card
   // answers about the same period as the KPI cards, chart and channel table.
@@ -116,12 +133,22 @@ export default function DashboardClient({
         period={period}
         periodKey={periodKey}
         onPeriodChange={setPeriodKey}
+        baseline={baseline}
+        onBaselineChange={setBaselineKey}
+        yoySupported={yoySupported}
         truncated={result.truncated}
         actualDays={result.actualDays}
         reportHref={reportHref}
       />
 
-      <KpiGrid periodKey={periodKey} totals={c} result={result} buckets={buckets} goalPno={goalPno} />
+      <KpiGrid
+        periodKey={periodKey}
+        totals={c}
+        result={result}
+        buckets={buckets}
+        goalPno={goalPno}
+        baseline={baseline}
+      />
 
       {pacing && (
         <GoalPacing
@@ -156,6 +183,7 @@ export default function DashboardClient({
             revenueSignificance={result.significance.revenue}
             period={period}
             timeResolved={!!channelTime}
+            baseline={baseline}
           />
           <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
             {hasAlerts && (
@@ -178,6 +206,7 @@ export default function DashboardClient({
               significance={result.significance}
               coverage={coverage}
               funnel={funnel}
+              baseline={baseline}
             />
           </div>
         </div>

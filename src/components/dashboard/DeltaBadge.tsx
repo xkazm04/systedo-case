@@ -2,7 +2,7 @@
 
 import { TrendDown, TrendUp } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
-import type { Significance } from "@/lib/metrics";
+import type { PeriodBaseline, Significance } from "@/lib/metrics";
 
 const T = {
   cs: {
@@ -10,6 +10,8 @@ const T = {
     noiseTitle: "Změna v rámci běžného kolísání — statisticky nevýznamná",
     improvingTitle: "Zlepšení oproti předchozímu období",
     worseningTitle: "Zhoršení oproti předchozímu období",
+    improvingTitleYoy: "Zlepšení oproti stejnému období loni",
+    worseningTitleYoy: "Zhoršení oproti stejnému období loni",
     weakSignal: " · slabý signál",
     strongSignal: " · významné",
   },
@@ -18,6 +20,8 @@ const T = {
     noiseTitle: "Change within normal variance — not statistically significant",
     improvingTitle: "Improvement vs previous period",
     worseningTitle: "Deterioration vs previous period",
+    improvingTitleYoy: "Improvement vs the same period last year",
+    worseningTitleYoy: "Deterioration vs the same period last year",
     weakSignal: " · weak signal",
     strongSignal: " · significant",
   },
@@ -32,11 +36,16 @@ export default function DeltaBadge({
   goodDirection,
   size = "sm",
   significance,
+  baseline = "previous",
 }: {
   delta: number;
   goodDirection: "up" | "down";
   size?: "sm" | "xs";
   significance?: Significance;
+  /** which comparison window the delta is against — only swaps the hover tooltip
+   *  wording ("previous period" vs "same period last year") so the badge stays
+   *  honest under the year-over-year toggle. Defaults to the adjacent window. */
+  baseline?: PeriodBaseline;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -73,11 +82,14 @@ export default function DeltaBadge({
       : significance === "strong"
         ? t("strongSignal")
         : "";
+  const changeTitle = improving
+    ? t(baseline === "yoy" ? "improvingTitleYoy" : "improvingTitle")
+    : t(baseline === "yoy" ? "worseningTitleYoy" : "worseningTitle");
 
   return (
     <span
       className={`pill ${tone} ${sizeCls}`}
-      title={`${improving ? t("improvingTitle") : t("worseningTitle")}${sigSuffix}`}
+      title={`${changeTitle}${sigSuffix}`}
     >
       <Icon width={iconSize} height={iconSize} />
       <span className="tnum">{fmt.fmtSignedPct(delta)}</span>

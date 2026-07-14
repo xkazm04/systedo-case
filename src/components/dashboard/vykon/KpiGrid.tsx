@@ -1,7 +1,14 @@
 "use client";
 
 import KpiCard from "@/components/dashboard/KpiCard";
-import { HEADLINE_METRICS, METRICS, type Bucket, type PeriodResult, type Totals } from "@/lib/metrics";
+import {
+  HEADLINE_METRICS,
+  METRICS,
+  type Bucket,
+  type PeriodBaseline,
+  type PeriodResult,
+  type Totals,
+} from "@/lib/metrics";
 import type { MetricKey } from "@/lib/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -35,12 +42,15 @@ export default function KpiGrid({
   result,
   buckets,
   goalPno,
+  baseline = "previous",
 }: {
   periodKey: string;
   totals: Totals;
   result: PeriodResult;
   buckets: Bucket[];
   goalPno: number;
+  /** comparison baseline in effect — passes to each card's delta badge tooltip */
+  baseline?: PeriodBaseline;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -84,6 +94,7 @@ export default function KpiGrid({
           footnote={footnotes[m]}
           emphasised={m === "pno"}
           delayMs={i * 55}
+          baseline={baseline}
         />
       ))}
     </div>

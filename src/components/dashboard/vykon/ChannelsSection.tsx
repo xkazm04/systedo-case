@@ -6,6 +6,7 @@ import { csvNum, downloadText, toCsv } from "@/lib/export";
 import {
   periodLabel,
   type ChannelRow,
+  type PeriodBaseline,
   type PeriodDef,
   type Significance,
   type Totals,
@@ -50,6 +51,7 @@ export default function ChannelsSection({
   revenueSignificance,
   period,
   timeResolved = false,
+  baseline = "previous",
 }: {
   channels: ChannelRow[];
   totals: Totals;
@@ -60,6 +62,8 @@ export default function ChannelsSection({
   /** true when channels carry real per-day-resolved per-channel deltas — passes
    *  through to the table so it can render the per-channel „Změna obratu" column */
   timeResolved?: boolean;
+  /** comparison baseline in effect — passes to the table's delta badge tooltips */
+  baseline?: PeriodBaseline;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -122,6 +126,7 @@ export default function ChannelsSection({
         revenueDelta={revenueDelta}
         revenueSignificance={revenueSignificance}
         timeResolved={timeResolved}
+        baseline={baseline}
       />
     </div>
   );
