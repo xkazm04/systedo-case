@@ -1,29 +1,31 @@
 {
-  "titleTag": "Jak správně skladovat ořechy: rady pro trvanlivost",
-  "metaDescription": "Zjistěte, jak skladovat ořechy, aby si zachovaly chuť a nezežluknuly. Praktické tipy na teplotu, vlhkost a vhodné obaly pro dlouhou trvanlivost.",
+  "titleTag": "Skladování ořechů: jak je uchovat čerstvé a chutné",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si udržely chuť a nutriční hodnotu. Tipy na teplotu, vlhkost, obaly a trvanlivost jednotlivých druhů ořechů.",
   "outline": [
     {
-      "heading": "Proč ořechy žluknou a co tomu brání",
+      "heading": "Proč záleží na správném skladování ořechů",
       "points": [
-        "Vliv světla, tepla a vzduchu na oxidaci tuků",
-        "Rozdíly mezi loupanými a neloupanými ořechy",
-        "Typická trvanlivost jednotlivých druhů ořechů"
+        "Ořechy obsahují tuky náchylné k žluknutí",
+        "Nesprávné podmínky zkracují trvanlivost a ničí chuť",
+        "Riziko plísní a aflatoxinů při vlhkém skladování"
       ]
     },
     {
-      "heading": "Ideální podmínky pro skladování",
+      "heading": "Optimální podmínky: teplota, vlhkost a obaly",
       "points": [
-        "Optimální teplota a vlhkost prostředí",
-        "Skladování v lednici vs. mrazáku",
-        "Vhodné obaly: vzduchotěsné nádoby a sáčky"
+        "Chladné a tmavé místo, ideálně lednice nebo mrazák",
+        "Vzduchotěsné nádoby omezují oxidaci",
+        "Oddělené skladování loupaných a neloupaných ořechů",
+        "Ochrana před přímým slunečním světlem a teplotními výkyvy"
       ]
     },
     {
-      "heading": "Praktické tipy a časté chyby",
+      "heading": "Trvanlivost podle druhu ořechů a poznání zkažení",
       "points": [
-        "Jak poznat zkažené ořechy podle vůně a chuti",
-        "Skladování větších zásob nakupovaných hromadně",
-        "Doporučené množství k nákupu podle spotřeby domácnosti"
+        "Vlašské a pekanové ořechy vydrží kratší dobu než mandle",
+        "Neloupané ořechy mají delší trvanlivost než loupané",
+        "Poznávací znaky žluklosti: hořká chuť, nepříjemný zápach",
+        "Doporučení pro mrazení a rozmrazování ořechů"
       ]
     }
   ]

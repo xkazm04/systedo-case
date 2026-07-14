@@ -1,10 +1,10 @@
 {
-  "summary": "Kohorty se za tři měsíce citelně zhoršují: CAC roste (1 200→1 600→2 100 Kč), LTV klesá (5 400→3 800→2 200 Kč) a LTV:CAC padá z 4,5× na 1,0×, u 2025-03 se navíc CAC vůbec nevrátí. M3 retence klesá 62 %→48 %→31 %, přičemž retenční křivka kohorty 2025-03 ukazuje strmý pokles hned na startu (M0 100 %→M1 70 %, tj. -30 pb za první měsíc), nejde tedy o postupné vyhasínání, ale o rané odchody. V rámci 2025-03 kohortu nejvíc táhne dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic zdarma).",
+  "summary": "Kohorty se zhoršují: CAC roste (1200→1600→2100 Kč), LTV klesá (5400→3800→2200 Kč) a LTV:CAC padá z 4,5× na 1,0×. Kohorta 2025-03 se vůbec nevrací (payback > horizont) a M3 retence je jen 31 %. Retenční křivka (100→70→48→31 %) klesá plynule bez stabilizace, což značí strukturální churn, ne jednorázový výpadek. Podle kanálů táhne kohortu 2025-03 dolů Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic).",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit/pozastavit akvizici přes Google Ads (LTV:CAC 0,8×) a přesměrovat rozpočet i kapacitu na škálování Organic (LTV:CAC 6,0×); paralelně řešit strmý propad M0→M1 zlepšením onboardingu, protože právě tam se ztrácí nejvíc hodnoty.",
+  "recommendation": "Okamžitě přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) do Organic (LTV:CAC 6,0×) a pozastavit škálování Google Ads, dokud se nezlepší CAC nebo retence M1–M3 v této kohortě.",
   "risks": [
-    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je ztrátová – bez zásahu bude trend dál táhnout blended metriky dolů.",
-    "Retence za M3 je u 2025-03 pouze modelovaná, ne naměřená – skutečný propad může být ještě strmější.",
-    "Škálování Organic má fyzický strop (dosah, kapacita), takže náhrada objemu z Google Ads nemusí být 1:1 možná."
+    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují prudké zhoršení nejnovější kohorty 2025-03",
+    "Klesající retenční trend (M1 70 % → M3 31 %) naznačuje, že bez zásahu bude i budoucí LTV nižší než modelováno",
+    "Růst objemu registrací (180→210→240) při klesající kvalitě zvyšuje celkové akviziční riziko"
   ]
 }

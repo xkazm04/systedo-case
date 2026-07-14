@@ -1,14 +1,16 @@
 {
-  "reply": "Dobrý den, děkujeme za váš zájem, ale obávám se, že jste se na nás obrátili omylem – Adamant je platforma pro marketing a prodejní automatizaci, nikoli provádějící elektrikářských prací. Doporučuji vám kontaktovat místního elektrikáře nebo stavbyvedoucího, kteří si s revizí elektroinstalace poradí. Pokud byste v budoucnu potřebovali optimalizovat online marketing nebo prodejní pipeline vaší firmy, rádi vám ukážeme, jak vám to lze zautomatizovat.",
+  "reply": "Dobrý den, děkujeme za poptávku. Revizi elektroinstalace ve vašem rozsahu rádi zajistíme, konkrétní termín si s vámi upřesníme po zjištění dalších podrobností. Máte chvíli na pár otázek?",
   "questions": [
-    "Máte kontakt na svého běžného elektrikáře nebo stavbyvedoucího, kterého bychom vám mohli v paměti připomenout?",
-    "Pokud se vám informace o našich službách zdála relevantní – co vás k nám poslalo?"
+    "Jde o úplnou revizi nebo kontrolu specifické části elektroinstalace (např. pouze bezpečnostní prvky)?",
+    "Kdy byste revizi potřebovali provést – máte nějakou preferenci týdne či měsíce?",
+    "Je kancelář stále v provozu nebo máte možnost na čas její částečné vypnutí z provozu?"
   ],
-  "confidence": 85,
+  "confidence": 58,
   "risks": [
-    "Ověřit, zda se jedná skutečně o omylem poslané dotazy nebo o potenciálního klienta s více firmami v portfoliu",
-    "Zkontrolovat, není-li to phishing či test procesu",
-    "Ujistit se, že tón není vnímaný jako odmítavý – místo toho pomocný"
+    "Neznáme termínový backlog a kapacitu – ověřit realističnost slibů o termínu",
+    "Chybí podrobnosti k rozpočtu – neobsahuje se v reply, ale ověřit si interně, co je dostupné",
+    "Nevíme jméno zástupce zákazníka – při dalším kontaktu si explicitně ověřit, na koho se budeme oracovat",
+    "Neobsahuje info o lokalitě – může ovlivnit dostupnost týmu"
   ],
-  "toneNotes": "Oslovení příjmením + formální 'vy', okamžitá odpověď na dotaz (omyl), ale vlídné upozornění; užito 'obávám se' místo chladného 'nejste u nás' a nabídnutí alternativy. Zachován profesionální, nekondescendentní přístup bez podtíní lítosti. Možný háček: jemné naznačení, že kdyby měli marketing, můžeme pomoci."
+  "toneNotes": "Formální vykání, okamžitá odpověď na hlavní otázku (bez konkrétního termínu). Vyjádření zájmu a přechod k dialogu. Střízlivý tón bez přehnané zápřeň. Oslovení bude upřesněno v následné komunikaci."
 }

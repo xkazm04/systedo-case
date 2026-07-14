@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc s rostoucí efektivitou i objemem",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč (PNO 18,3 %) a ROAS 5,4× ukazují zdravou ziskovost kampaní, konverze navíc meziměsíčně vzrostly o 12 %, což signalizuje zlepšující se kvalitu provozu i nabídky.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4× potvrzuje zdravou návratnost investic.",
+  "summary": "Kampaně vygenerovaly obrat 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Konverze meziměsíčně vzrostly o 12 %, což ukazuje na zlepšující se efektivitu celého marketingového mixu.",
   "highlights": [
-    "ROAS 5,4× při PNO jen 18,3 % – kampaně vydělávají výrazně víc, než stojí",
-    "Konverze vzrostly o 12 %, tedy více poptávek při srovnatelném rozpočtu",
-    "Obrat 1 200 000 Kč potvrzuje stabilní poptávku po lokálních službách"
+    "ROAS 5,4× výrazně převyšuje běžný cílový poměr pro lokální podnik",
+    "Konverze vzrostly o 12 %, tedy zlepšení výkonu bez nutnosti navyšovat rozpočet",
+    "PNO 18,3 % drží náklady na akvizici na zdravé úrovni vůči obratu 1,2 mil. Kč"
   ],
   "watchouts": [
-    "Bez porovnání s předchozími měsíci hrozí riziko, že aktuální čísla jsou ovlivněna sezónností",
-    "Růst konverzí je třeba ověřit i v návaznosti na skutečně uzavřené zakázky, ne jen počet poptávek"
+    "Růst konverzí je třeba ověřit, zda není tažen jen sezónní poptávkou, aby se dal udržet i příští měsíc",
+    "Při zachování nízkého PNO sledovat, zda škálování rozpočtu neplatí za cenu horší efektivity"
   ],
   "priorities": [
     {
-      "title": "Udržet a rozšířit ziskové kampaně",
-      "detail": "Navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO 18,3 %."
+      "title": "Otestovat navýšení rozpočtu",
+      "detail": "Vzhledem k ROAS 5,4× postupně navýšit investice do nejvýkonnějších kampaní a sledovat, zda se PNO drží pod 20 %."
     },
     {
-      "title": "Ověřit kvalitu nových konverzí",
-      "detail": "Zkontrolovat, zda 12% nárůst konverzí odpovídá i nárůstu reálně realizovaných zakázek, případně upravit cílení."
+      "title": "Analyzovat zdroj růstu konverzí",
+      "detail": "Zjistit, které kanály nebo kampaně stojí za 12% nárůstem konverzí, a replikovat úspěšné prvky v dalších kampaních."
     }
   ]
 }

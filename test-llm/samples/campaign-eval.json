@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň výrazně překonává cílové PNO 18 % (aktuální 5,3 %) při vynikajícím ROAS 18,9×, což signalizuje prostor pro škálování rozpočtu.",
-  "score": 93,
+  "verdict": "Kampaň výrazně překonává cíl PNO (5,3 % vs. 18 %) při ROAS 18,9×, což ukazuje na silný prostor pro škálování bez ztráty efektivity.",
+  "score": 92,
   "recommendations": [
     {
-      "title": "Navýšit denní rozpočet",
-      "detail": "Při PNO 5,3 % oproti cíli 18 % má kampaň velkou rezervu – postupně navyšujte rozpočet (např. o 20–30 % týdně) a sledujte, zda se ROAS drží nad 10×, aby se využil neplný potenciál poptávky po brandu.",
+      "title": "Navýšit denní rozpočet a bid strategii",
+      "detail": "Vzhledem k tomu, že aktuální PNO 5,3 % je hluboko pod cílovými 18 %, kampaň má prostor absorbovat vyšší náklady při zachování ziskovosti. Doporučuji postupně navýšit rozpočet o 50–100 % a přejít na agresivnější Target ROAS strategii, případně navýšit maximální CPC u nejvýkonnějších klíčových slov.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit shody klíčových slov a chránit brand",
-      "detail": "Zvažte přidání širších/frázových shod a negativních klíčových slov konkurence, aby kampaň zachytila více brandové poptávky a zároveň ochránila stávající vysokou efektivitu před konkurenčním přebíjením.",
+      "title": "Rozšířit pokrytí brandových a blízce souvisejících dotazů",
+      "detail": "Prověřit vyhledávací dotazy (search terms report) a přidat varianty s dlouhým chvostem, skloňováním nebo souvisejícími brand výrazy, aby kampaň zachytila více poptávky se stejně nízkým PNO a nevytvářela prostor konkurenci.",
       "priority": "medium"
     }
   ]
