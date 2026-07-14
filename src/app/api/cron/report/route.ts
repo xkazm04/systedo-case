@@ -18,6 +18,7 @@ import { sendEmail, sendWebhook, summarizeDelivery } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { canonical } from "@/lib/site";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron/run";
 
 export const maxDuration = 300;
 
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = new Date();
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const results: {
@@ -158,6 +160,18 @@ export async function GET(request: Request) {
       });
     }
   );
+
+  const failed = results.filter((r) => !r.ok);
+  await recordCronRun("report", startedAt, {
+    ok: failed.length === 0,
+    counts: {
+      pairs: results.length,
+      sent: results.filter((r) => r.sent).length,
+      failed: failed.length,
+    },
+    results,
+    errors: failed,
+  });
 
   return Response.json({ users: results.length, sent: results.filter((r) => r.sent).length, results });
 }

@@ -9,6 +9,7 @@
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { claimWeeklyDigest } from "@/lib/cron/sent-guard";
 import { isoWeekKey } from "@/lib/cron/schedule";
+import { recordCronRun } from "@/lib/cron/run";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = new Date();
   const now = new Date();
   // "Diagnóza týdne": one passive diagnosis per PROJECT per run.
   const diagnosedProjects = new Set<string>();
@@ -225,6 +227,20 @@ export async function GET(request: Request) {
   if (aiOps.warn || aiOps.driftedTools.length > 0) {
     await sendWebhook(`Adamant — AI provoz (7 dní): ${aiLines.join(" · ")}`);
   }
+
+  const failed = results.filter((r) => !r.ok);
+  await recordCronRun("digest", startedAt, {
+    ok: failed.length === 0,
+    counts: {
+      pairs: results.length,
+      sent: results.filter((r) => r.sent).length,
+      failed: failed.length,
+      aiCalls: aiOps.calls,
+      aiDrifted: aiOps.driftedTools.length,
+    },
+    results,
+    errors: failed,
+  });
 
   return Response.json({
     users: results.length,

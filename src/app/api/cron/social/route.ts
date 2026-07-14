@@ -7,12 +7,14 @@ import { listProjects } from "@/lib/projects/store";
 import { claimScheduledPost, listDueScheduled, updatePost } from "@/lib/social/store";
 import { publishPost } from "@/lib/social/publish";
 import { cronAuthorized } from "@/lib/cron-auth";
+import { recordCronRun } from "@/lib/cron/run";
 
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+  const startedAt = new Date();
   const nowIso = new Date().toISOString();
   const userIds = await listConnectedSocialUserIds();
   let published = 0;
@@ -61,6 +63,11 @@ export async function GET(request: Request) {
       }
     }
   }
+
+  await recordCronRun("social", startedAt, {
+    ok: failed === 0,
+    counts: { users: userIds.length, published, failed },
+  });
 
   return Response.json({ users: userIds.length, published, failed });
 }

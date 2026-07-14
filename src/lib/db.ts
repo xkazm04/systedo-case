@@ -259,6 +259,24 @@ const SCHEMA = `
     claimed_at TEXT NOT NULL,
     PRIMARY KEY (tenant, kind)
   );
+
+  -- Durable cron run records: one row per scheduled-cron invocation, so
+  -- "did last night's report deliver?" is answerable without Vercel logs. The
+  -- full record (counts + truncated results/errors) is the JSON data blob; cron /
+  -- finished_at / ok are columned for retention + the health projection. Capped to
+  -- ~20 rows per cron on write. Mirrors the Firestore cronRuns collection. See
+  -- src/lib/cron/runs-store.* and run-record.ts.
+  CREATE TABLE IF NOT EXISTS cron_runs (
+    id          TEXT PRIMARY KEY,
+    cron        TEXT NOT NULL,
+    started_at  TEXT NOT NULL,
+    finished_at TEXT NOT NULL,
+    ok          INTEGER NOT NULL,
+    data        TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_cron_runs_cron
+    ON cron_runs (cron, finished_at);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -286,7 +304,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (20 tables + projects index)",
+    name: "base schema (21 tables + projects/cron_runs indexes)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -348,6 +366,24 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "cron_sent_guard"),
+  },
+  {
+    version: 9,
+    name: "cron_runs (durable per-invocation run records + retention/health)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS cron_runs (
+          id          TEXT PRIMARY KEY,
+          cron        TEXT NOT NULL,
+          started_at  TEXT NOT NULL,
+          finished_at TEXT NOT NULL,
+          ok          INTEGER NOT NULL,
+          data        TEXT NOT NULL
+        )`
+      );
+      db.exec("CREATE INDEX IF NOT EXISTS idx_cron_runs_cron ON cron_runs (cron, finished_at)");
+    },
+    applied: (db) => tableExists(db, "cron_runs"),
   },
 ];
 

@@ -17,6 +17,7 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { getReportMetrics } from "@/lib/report-metrics/store";
 import { syncReportMetricsFromAds } from "@/lib/report-metrics/sync";
 import { isResyncDue } from "@/lib/report-metrics/freshness";
+import { recordCronRun } from "@/lib/cron/run";
 import { planSyncTargets } from "./plan";
 
 // long-running fan-out across users
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = new Date();
   const userIds = await listConnectedUserIds();
   const results: { userId: string; projectId?: string; customerId?: string; reason?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
   // Direction 1: the report's live series re-synced alongside the campaign sync. The
@@ -112,6 +114,27 @@ export async function GET(request: Request) {
     }
   }
 
+  const failed = results.filter((r) => !r.ok);
+  const reportSynced = reportResults.filter((r) => r.ok && !r.skipped).length;
+  const reportSkipped = reportResults.filter((r) => r.skipped).length;
+
+  // Durable run record: one row per invocation, so the last sync's outcome is
+  // answerable via /api/health without digging through Vercel logs.
+  await recordCronRun("sync", startedAt, {
+    ok: failed.length === 0 && reportResults.every((r) => r.ok),
+    counts: {
+      synced: results.filter((r) => r.ok).length,
+      failed: failed.length,
+      alerted: results.reduce((n, r) => n + (r.alerted ?? 0), 0),
+      anomalies: results.reduce((n, r) => n + (r.anomalies ?? 0), 0),
+      reportSynced,
+      reportSkipped,
+      reportFailed: reportResults.filter((r) => !r.ok).length,
+    },
+    results,
+    errors: [...failed, ...reportResults.filter((r) => !r.ok)],
+  });
+
   return Response.json({
     synced: results.length,
     alerted: results.reduce((n, r) => n + (r.alerted ?? 0), 0),
@@ -119,8 +142,8 @@ export async function GET(request: Request) {
     results,
     // Direction 1: report-metrics refreshes this run (one per linked project, minus
     // the due-gate skips).
-    reportSynced: reportResults.filter((r) => r.ok && !r.skipped).length,
-    reportSkipped: reportResults.filter((r) => r.skipped).length,
+    reportSynced,
+    reportSkipped,
     reportResults,
   });
 }

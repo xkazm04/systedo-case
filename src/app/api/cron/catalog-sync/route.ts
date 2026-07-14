@@ -11,6 +11,7 @@ import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
 import { alertSyncFailed, alertSyncRecovered } from "@/lib/inventory/sync-alerts";
 import { classifySyncResult } from "@/lib/inventory/sync-health";
+import { recordCronRun } from "@/lib/cron/run";
 
 export const maxDuration = 300;
 
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = new Date();
   const now = new Date();
   const connections = await listAllConnections();
   const results: {
@@ -71,6 +73,20 @@ export async function GET(request: Request) {
       });
     }
   }
+
+  const failed = results.filter((r) => !r.ok);
+  await recordCronRun("catalog-sync", startedAt, {
+    ok: failed.length === 0,
+    counts: {
+      connections: results.length,
+      synced: results.filter((r) => r.ok).length,
+      failed: failed.length,
+      alerted: results.filter((r) => r.alerted).length,
+      recovered: results.filter((r) => r.recovered).length,
+    },
+    results,
+    errors: failed,
+  });
 
   return Response.json({
     connections: results.length,
