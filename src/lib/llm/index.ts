@@ -15,13 +15,22 @@ import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
-import { byomModel, claudeModelTag, geminiModelTag, LLM_RETRY_AFTER_CAP_MS, type ModelTier } from "./models";
+import {
+  byomModel,
+  claudeModelTag,
+  CLAUDE_TIMEOUT_MS,
+  geminiModelTag,
+  LLM_DEADLINE_MS,
+  LLM_RETRY_AFTER_CAP_MS,
+  type ModelTier,
+} from "./models";
 import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
 import { runByom } from "./byom/adapters";
 import { providerOrder, type ProviderName } from "./provider-order";
 import { getByomContext } from "./byom-context";
 import { getLlmRequestContext } from "./request-context";
 import { ByomUserError, isRetryableLlmError, LlmCallError } from "./errors";
+import { runWithDeadline } from "./deadline";
 import type { ResolvedByomKey } from "./keys/types";
 
 export {
@@ -106,11 +115,18 @@ interface Provider {
   modelFor: (tier?: ModelTier) => string;
   available: () => boolean;
   run: (call: ProviderCall) => Promise<{ parsed: unknown; usage?: TokenUsage }>;
+  /** Lower bound for this provider's wrapper deadline (ms). The Claude CLI already
+   *  self-times-out at CLAUDE_TIMEOUT_MS; flooring its deadline there guarantees
+   *  the outer deadline never SHORTENS the CLI path (happy-path byte-identical).
+   *  Absent → the tier deadline applies as-is (the HTTP providers, previously
+   *  unbounded). */
+  deadlineFloorMs?: number;
 }
 
 const claudeProvider: Provider = {
   modelFor: claudeModelTag,
   available: claudeAvailable,
+  deadlineFloorMs: CLAUDE_TIMEOUT_MS,
   // Claude runs on the dev subscription — no metered token usage to report.
   run: async (c) => ({
     parsed: await runClaude({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal }),
@@ -171,19 +187,30 @@ function backoffMs(err: unknown, attempt: number): number {
   return 250 * attempt;
 }
 
-/** Run one provider with a bounded retry on recoverable errors. Returns the
- *  parsed output, any usage, and how many attempts it took. Throws if every
- *  attempt fails. The retry decision is CODE-based (isRetryableLlmError) — a
- *  reworded or English provider error is classified the same as the Czech one. */
+/** The wrapper deadline for one attempt: the tier's generous backstop, floored by
+ *  the provider's own timeout so a provider that already self-times-out (Claude CLI)
+ *  is never cut short by the outer deadline. */
+function attemptDeadlineMs(provider: Provider, tier?: ModelTier): number {
+  const base = LLM_DEADLINE_MS[tier ?? "quality"];
+  return Math.max(base, provider.deadlineFloorMs ?? 0);
+}
+
+/** Run one provider with a bounded retry on recoverable errors, each attempt under
+ *  a composed deadline (caller signal + tier timeout). Returns the parsed output,
+ *  any usage, and how many attempts it took. Throws if every attempt fails. The
+ *  retry decision is CODE-based (isRetryableLlmError) — a reworded or English
+ *  provider error is classified the same as the Czech one; a deadline fire is a
+ *  typed `timeout` (retryable → normal fallback), a caller abort a typed `aborted`. */
 async function runWithRetry(
   provider: Provider,
   call: ProviderCall,
   attempts: number
 ): Promise<{ parsed: unknown; usage?: TokenUsage; attempts: number }> {
+  const deadlineMs = attemptDeadlineMs(provider, call.tier);
   let lastErr: unknown;
   for (let i = 1; i <= attempts; i++) {
     try {
-      const out = await provider.run(call);
+      const out = await runWithDeadline((signal) => provider.run({ ...call, signal }), deadlineMs, call.signal);
       return { ...out, attempts: i };
     } catch (err) {
       lastErr = err;

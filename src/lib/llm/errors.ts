@@ -89,6 +89,26 @@ export function isRetryableLlmError(err: unknown): boolean {
   return err instanceof LlmCallError && err.retryable;
 }
 
+/** Name of an abort/DOMException reason, duck-typed (a DOMException is not an
+ *  Error subclass in every runtime, but always carries a `.name`). */
+function reasonName(reason: unknown): string | undefined {
+  return reason && typeof reason === "object" && "name" in reason ? String((reason as { name: unknown }).name) : undefined;
+}
+
+/** True when an abort was caused by an `AbortSignal.timeout` deadline (its reason
+ *  is a `TimeoutError`), as opposed to a caller-initiated `abort()`. Lets the
+ *  wrapper tell a deadline fire (timeout → retryable) apart from a caller abort
+ *  (aborted → non-retryable) even though both arrive through one composed signal. */
+export function isTimeoutAbort(reason: unknown): boolean {
+  return reasonName(reason) === "TimeoutError";
+}
+
+/** True for any abort-shaped error (a fetch/SDK rejection when its signal aborts). */
+export function isAbortLikeError(err: unknown): boolean {
+  const name = reasonName(err);
+  return name === "AbortError" || name === "TimeoutError";
+}
+
 /** Parse a Retry-After header value (delta-seconds or an HTTP-date) to milliseconds;
  *  `undefined` when the header is absent or unparseable. Never negative. Accepts a
  *  Headers-like object (guards `.get` so a test/stub without headers is a no-op). */

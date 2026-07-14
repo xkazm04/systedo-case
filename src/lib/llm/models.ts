@@ -67,6 +67,21 @@ export const CLAUDE_THINKING_TOKENS = 4000;
  *  dev client ceiling in useAiTool tracks this value, so the two stay aligned. */
 export const CLAUDE_TIMEOUT_MS = 150_000;
 
+/** Wrapper-level per-tier deadline for a single provider attempt (ms). A generous
+ *  outer backstop — a healthy call finishes in seconds; this only fires on a hang.
+ *  The Claude CLI path floors its deadline at CLAUDE_TIMEOUT_MS (see index.ts), so
+ *  these never SHORTEN the CLI's own 150s ceiling — they exist to bound the Gemini
+ *  SDK and the BYOM HTTP fetches, which previously had NO timeout at all. */
+export const LLM_DEADLINE_MS: Record<ModelTier, number> = {
+  quality: 120_000,
+  fast: 60_000,
+};
+
+/** Grace period after SIGTERM before the Claude CLI child is force-killed
+ *  (SIGKILL). A well-behaved child exits on SIGTERM well inside this; a wedged one
+ *  is escalated so it can't keep holding a concurrency slot. */
+export const CLAUDE_KILL_GRACE_MS = 2_000;
+
 /** Upper bound on how long a Retry-After header may pause a retry. A provider can
  *  ask us to wait minutes on a 429; a user waiting on an AI generation cannot, so
  *  we honor Retry-After only up to this cap and otherwise use it as-is (bounded

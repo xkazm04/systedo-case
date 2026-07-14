@@ -10,15 +10,33 @@
  *  running this from inside Claude Code) starts a fresh top-level session.
  */
 import { spawn, spawnSync } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import {
+  CLAUDE_KILL_GRACE_MS,
   CLAUDE_THINKING_TOKENS,
   CLAUDE_TIMEOUT_MS,
   claudeCliAlias,
   type ModelTier,
 } from "./models";
-import { LlmCallError } from "./errors";
+import { isTimeoutAbort, LlmCallError } from "./errors";
 
 const isWindows = process.platform === "win32";
+
+/** Terminate a CLI child with escalation: SIGTERM first, then — if it is still
+ *  alive after a grace period — SIGKILL, so a wedged child can never keep holding
+ *  a process-wide concurrency slot. The death check reads exitCode/signalCode
+ *  (both null == still running). On Windows signals are emulated (either forcibly
+ *  terminates), so the escalation is harmless there. */
+function killChild(child: ChildProcess): void {
+  child.kill("SIGTERM");
+  const grace = setTimeout(() => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGKILL");
+    }
+  }, CLAUDE_KILL_GRACE_MS);
+  // Never keep the event loop alive just for the escalation timer.
+  grace.unref?.();
+}
 
 /** A fresh env for the spawned CLI: drop the markers that signal we're already
  *  inside Claude Code, and request a "medium" thinking budget. */
@@ -82,11 +100,15 @@ function buildCliPrompt(system: string, prompt: string, schema: object): string 
 function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     const { tier, signal } = opts;
-    // A client that has already gone away must not spawn a CLI child at all.
-    // An abort is a deliberate stop (code "aborted" → never retried, never falls
-    // back, never degrades to demo).
+    // An already-fired signal must not spawn a CLI child at all. A caller abort is
+    // a deliberate stop (`aborted`); an already-elapsed wrapper deadline is a
+    // `timeout` (retryable).
     if (signal?.aborted) {
-      reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem před spuštěním Claude CLI.", { provider: "claude" }));
+      if (isTimeoutAbort(signal.reason)) {
+        reject(new LlmCallError("timeout", "Časový limit vypršel před spuštěním Claude CLI.", { provider: "claude" }));
+      } else {
+        reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem před spuštěním Claude CLI.", { provider: "claude" }));
+      }
       return;
     }
     const args = cliArgs(tier);
@@ -97,16 +119,20 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
-      child.kill();
+      killChild(child);
       reject(new LlmCallError("timeout", `Claude CLI vypršel po ${CLAUDE_TIMEOUT_MS} ms.`, { provider: "claude" }));
     }, CLAUDE_TIMEOUT_MS);
-    // Client abort (timeout, re-run, closed tab): kill the child instead of
-    // letting it burn one of the few process-wide concurrency slots for up to
-    // CLAUDE_TIMEOUT_MS producing output nobody will read.
+    // The composed signal (caller abort OR wrapper deadline) fired: kill the child
+    // instead of burning a concurrency slot on output nobody will read. Classify a
+    // deadline fire as a retryable timeout and a real caller abort as `aborted`.
     const onAbort = () => {
       clearTimeout(timer);
-      child.kill();
-      reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem — Claude CLI ukončeno.", { provider: "claude" }));
+      killChild(child);
+      if (isTimeoutAbort(signal?.reason)) {
+        reject(new LlmCallError("timeout", "Claude CLI překročil časový limit — ukončeno.", { provider: "claude" }));
+      } else {
+        reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem — Claude CLI ukončeno.", { provider: "claude" }));
+      }
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => {
