@@ -517,6 +517,7 @@ export default async function DemoModule({
               firestore: true, localDb: false, devAuth: false,
               lighttrack: false, social: false, leonardo: true,
               adsLinked: true, byomValidated: false, warehouse: false,
+              sklikToken: false, gbpImported: true,
             })}
           />
         </ModulePage>

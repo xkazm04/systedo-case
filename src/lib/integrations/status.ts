@@ -11,6 +11,7 @@ import { computeIntegrationRows, type IntegrationRow } from "./compute";
 import { getPublicByomConfig } from "@/lib/llm/keys/store";
 import { getConnection } from "@/lib/inventory/connection-store";
 import { getAdsConnection } from "@/lib/campaigns/connection";
+import { getLocalSignals } from "@/lib/local-signals/store";
 
 const has = (v: string | undefined): boolean => typeof v === "string" && v.trim() !== "";
 
@@ -44,12 +45,23 @@ async function probeAdsLinked(userId: string | null, project: Project): Promise<
   }
 }
 
+/** Has this project imported a Google Business Profile section into local-signals? */
+async function probeGbpImported(projectId: string): Promise<boolean> {
+  try {
+    const signals = await getLocalSignals(projectId);
+    return Boolean(signals?.gbp && signals.gbp.rows.length > 0);
+  } catch {
+    return false;
+  }
+}
+
 export async function integrationStatus(project: Project, userId: string | null): Promise<IntegrationRow[]> {
   const e = process.env;
-  const [byomValidated, warehouse, adsLinked] = await Promise.all([
+  const [byomValidated, warehouse, adsLinked, gbpImported] = await Promise.all([
     probeByomValidated(userId),
     probeWarehouse(userId, project.id),
     probeAdsLinked(userId, project),
+    probeGbpImported(project.id),
   ]);
   return computeIntegrationRows({
     googleAdsToken: has(e.GOOGLE_ADS_DEVELOPER_TOKEN),
@@ -67,5 +79,7 @@ export async function integrationStatus(project: Project, userId: string | null)
     adsLinked,
     byomValidated,
     warehouse,
+    sklikToken: has(e.SKLIK_API_TOKEN),
+    gbpImported,
   });
 }

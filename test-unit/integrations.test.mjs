@@ -9,7 +9,7 @@ const NONE = {
   gemini: false, resend: false, cron: false,
   firestore: false, localDb: false, devAuth: false,
   lighttrack: false, social: false, leonardo: false, adsLinked: false,
-  byomValidated: false, warehouse: false,
+  byomValidated: false, warehouse: false, sklikToken: false, gbpImported: false,
 };
 
 const rowById = (rows, id) => rows.find((r) => r.id === id);
@@ -47,11 +47,18 @@ test("auth: oauth → connected; dev-auth only → action; neither → missing",
   assert.equal(rowById(computeIntegrationRows(NONE), "auth").status, "missing");
 });
 
-test("static statuses: sklik manual, gbp planned, lighttrack optional when off", () => {
-  const rows = computeIntegrationRows(NONE);
-  assert.equal(rowById(rows, "sklik").status, "manual");
-  assert.equal(rowById(rows, "gbp").status, "planned");
-  assert.equal(rowById(rows, "lighttrack").status, "optional");
+test("sklik probe: manual without a token, connected once SKLIK_API_TOKEN is set", () => {
+  assert.equal(rowById(computeIntegrationRows(NONE), "sklik").status, "manual");
+  assert.equal(rowById(computeIntegrationRows({ ...NONE, sklikToken: true }), "sklik").status, "connected");
+});
+
+test("gbp probe: action (import it) without an import, connected once imported", () => {
+  assert.equal(rowById(computeIntegrationRows(NONE), "gbp").status, "action");
+  assert.equal(rowById(computeIntegrationRows({ ...NONE, gbpImported: true }), "gbp").status, "connected");
+});
+
+test("static statuses: lighttrack optional when off", () => {
+  assert.equal(rowById(computeIntegrationRows(NONE), "lighttrack").status, "optional");
 });
 
 test("rows are grouped by category order and summary tallies them", () => {

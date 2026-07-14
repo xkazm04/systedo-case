@@ -40,6 +40,12 @@ export interface ProvisionInput {
   byomValidated: boolean;
   /** live probe: this project has a saved warehouse/ERP feed connection */
   warehouse: boolean;
+  /** env probe: a Sklik API token is configured (live data-in adapter, keyword
+   *  suggestions + CSV export ship regardless — see the honest "manual" hint) */
+  sklikToken: boolean;
+  /** live probe: this project has an imported Google Business Profile section in
+   *  its local-signals store (the live GBP import already ships) */
+  gbpImported: boolean;
 }
 
 const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "reviews", "reports", "infra"];
@@ -53,10 +59,15 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
       category: "ads",
       status: adsPlatform ? (p.adsLinked ? "connected" : "action") : "missing",
     },
-    { id: "sklik", category: "ads", status: "manual" },
+    // Sklik: connected once a token is configured (the live data-in adapter reads
+    // the user's account); without one it's "manual" — but honestly so: CSV export,
+    // keyword suggestions and the data-in adapter all ship, they just run token-gated.
+    { id: "sklik", category: "ads", status: p.sklikToken ? "connected" : "manual" },
     // Live: a server key OR a validated BYOM key means AI generation works.
     { id: "ai-llm", category: "ai", status: p.gemini || p.byomValidated ? "connected" : "action" },
-    { id: "gbp", category: "reviews", status: "planned" },
+    // GBP: the import already ships. Connected once this project has an imported GBP
+    // section; otherwise "action" (do the import) — "planned" was never honest.
+    { id: "gbp", category: "reviews", status: p.gbpImported ? "connected" : "action" },
     { id: "social", category: "content", status: p.social ? "connected" : "missing" },
     { id: "creative-images", category: "content", status: p.leonardo ? "connected" : "missing" },
     { id: "email-reports", category: "reports", status: p.resend ? "connected" : "missing" },
