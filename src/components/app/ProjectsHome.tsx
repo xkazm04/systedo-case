@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Pill } from "@/components/ui";
-import { ArrowRight, Logo, Plus } from "@/components/icons";
+import { ArrowRight, Copy, Logo, Plus } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import CreateProjectForm from "@/components/app/CreateProjectForm";
+import Modal from "@/components/app/Modal";
+import { inputClass } from "@/components/app/create-project-shared";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import AuthButton from "@/components/auth/AuthButton";
 import { modulesFor } from "@/lib/projects/modules";
@@ -40,6 +42,16 @@ const T = {
     connectTo: "Přiřadit k projektu",
     cancel: "Zrušit",
     linking: "Přiřazuji…",
+    duplicate: "Duplikovat jako šablonu",
+    dupTitle: "Duplikovat jako šablonu",
+    dupLead: "Vytvoří nový samostatný projekt a zkopíruje do něj nastavení tohoto projektu. Nový klient začíná s prázdnými daty — zkopíruje se jen scaffold, ne provozní data ani přístupy.",
+    dupCopiesTitle: "Zkopíruje se",
+    dupExcludesTitle: "Nezkopíruje se",
+    dupNameLabel: "Název nového projektu",
+    dupNamePlaceholder: "např. Klient B",
+    dupConfirm: "Duplikovat projekt",
+    dupWorking: "Duplikuji…",
+    dupError: "Duplikaci se nepodařilo dokončit.",
   },
   en: {
     homeLabel: "Adamant — home",
@@ -61,6 +73,53 @@ const T = {
     connectTo: "Map to a project",
     cancel: "Cancel",
     linking: "Linking…",
+    duplicate: "Duplicate as template",
+    dupTitle: "Duplicate as template",
+    dupLead: "Creates a new, independent project and copies this project's setup into it. A new client starts with empty data — only the scaffold is copied, never operating data or credentials.",
+    dupCopiesTitle: "What's copied",
+    dupExcludesTitle: "What's not copied",
+    dupNameLabel: "New project name",
+    dupNamePlaceholder: "e.g. Client B",
+    dupConfirm: "Duplicate project",
+    dupWorking: "Duplicating…",
+    dupError: "Couldn't complete the duplication.",
+  },
+} as const;
+
+/** The copied / excluded bullet lists for the duplicate dialog — kept out of the
+ *  string-only translation table (useT) because they're arrays. cs is the source. */
+const DUP_LISTS = {
+  cs: {
+    copies: [
+      "Typ projektu a barva značky",
+      "Katalog (produkty / služby / plány)",
+      "Nákladový model a konkurence",
+      "Plán organických kanálů",
+      "Branding reportu (název, barva, profil klienta)",
+    ],
+    excludes: [
+      "Data a metriky reportu, diagnózy, recapy",
+      "Twin, poznámky, LP experimenty",
+      "Importy leadů a stav onboardingu",
+      "Připojení skladu a přístupy (nikdy)",
+      "Doména, logo a napojení Google Ads",
+    ],
+  },
+  en: {
+    copies: [
+      "Project type and brand color",
+      "Catalog (products / services / plans)",
+      "Cost model and competitors",
+      "Organic-channels plan",
+      "Report branding (name, color, client profile)",
+    ],
+    excludes: [
+      "Report data and metrics, diagnoses, recaps",
+      "Twin, annotations, LP experiments",
+      "Lead imports and onboarding state",
+      "Warehouse connection and credentials (never)",
+      "Domain, logo and Google Ads link",
+    ],
   },
 } as const;
 
@@ -259,47 +318,199 @@ function ProjectCard({ project, accounts }: { project: Project; accounts: Linkab
   const moduleCount = modulesFor(project.type).filter((m) => m.section !== "system").length;
   const t = useT(T);
   const link = projectAdsLink(project, accounts);
+  const [duplicating, setDuplicating] = useState(false);
+  // Stretched-link pattern: the whole card navigates via an absolute overlay link,
+  // so the duplicate control can live ABOVE it (its own stacking context) and stay
+  // clickable without nesting an interactive element inside an anchor.
   return (
-    <Link
-      href={`/app/${project.id}`}
-      className="card group flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-pop"
-    >
-      <div className="flex items-center justify-between">
-        <span
-          className="grid h-11 w-11 place-items-center rounded-xl text-white"
-          style={{ backgroundColor: project.accentColor }}
+    <>
+      <div className="card group relative flex flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-pop">
+        <Link
+          href={`/app/${project.id}`}
+          className="absolute inset-0 rounded-[inherit] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+          aria-label={project.name}
         >
-          <ModuleIcon icon={rawMeta.icon} width={22} height={22} />
-        </span>
-        <ArrowRight
-          width={18}
-          height={18}
-          className="text-muted transition-transform group-hover:translate-x-1 group-hover:text-brand-accent"
-        />
-      </div>
-      <h2 className="mt-4 truncate text-lg font-semibold text-navy-800">{project.name}</h2>
-      <p className="mt-0.5 text-sm text-muted">
-        {meta.label}
-        {project.domain ? ` · ${project.domain}` : ""}
-      </p>
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium text-muted">{moduleCount} {t("modules")}</p>
-        {/* Honest Ads-link badge straight off project.adsCustomerId — no extra read. */}
-        {link.linked ? (
+          <span className="sr-only">{project.name}</span>
+        </Link>
+        <div className="flex items-center justify-between">
           <span
-            className="inline-flex max-w-[60%] items-center gap-1.5 rounded-pill bg-positive-soft px-2 py-0.5 text-[11px] font-semibold text-positive"
-            title={link.customerName ? `${link.customerName} · ${link.customerId}` : link.customerId}
+            className="grid h-11 w-11 place-items-center rounded-xl text-white"
+            style={{ backgroundColor: project.accentColor }}
           >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" aria-hidden />
-            <span className="truncate">{link.customerName ?? link.customerId}</span>
+            <ModuleIcon icon={rawMeta.icon} width={22} height={22} />
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-pill bg-canvas px-2 py-0.5 text-[11px] font-medium text-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-navy-300" aria-hidden />
-            {t("unlinked")}
-          </span>
+          <div className="relative z-10 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setDuplicating(true)}
+              aria-label={t("duplicate")}
+              title={t("duplicate")}
+              className="grid h-8 w-8 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-brand-accent"
+            >
+              <Copy width={16} height={16} />
+            </button>
+            <ArrowRight
+              width={18}
+              height={18}
+              className="text-muted transition-transform group-hover:translate-x-1 group-hover:text-brand-accent"
+            />
+          </div>
+        </div>
+        <h2 className="mt-4 truncate text-lg font-semibold text-navy-800">{project.name}</h2>
+        <p className="mt-0.5 text-sm text-muted">
+          {meta.label}
+          {project.domain ? ` · ${project.domain}` : ""}
+        </p>
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-xs font-medium text-muted">{moduleCount} {t("modules")}</p>
+          {/* Honest Ads-link badge straight off project.adsCustomerId — no extra read. */}
+          {link.linked ? (
+            <span
+              className="inline-flex max-w-[60%] items-center gap-1.5 rounded-pill bg-positive-soft px-2 py-0.5 text-[11px] font-semibold text-positive"
+              title={link.customerName ? `${link.customerName} · ${link.customerId}` : link.customerId}
+            >
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" aria-hidden />
+              <span className="truncate">{link.customerName ?? link.customerId}</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-canvas px-2 py-0.5 text-[11px] font-medium text-muted">
+              <span className="h-1.5 w-1.5 rounded-full bg-navy-300" aria-hidden />
+              {t("unlinked")}
+            </span>
+          )}
+        </div>
+      </div>
+      <DuplicateProjectModal
+        project={project}
+        open={duplicating}
+        onClose={() => setDuplicating(false)}
+      />
+    </>
+  );
+}
+
+/** Confirm-gated "duplicate as template" dialog: explains exactly what carries over
+ *  (setup) and what doesn't (operating data + credentials), takes the new project's
+ *  name, POSTs to the ownership-checked duplicate route, then lands on the copy. */
+function DuplicateProjectModal({
+  project,
+  open,
+  onClose,
+}: {
+  project: Project;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const t = useT(T);
+  const { locale } = useLocale();
+  const router = useRouter();
+  const [name, setName] = useState(`${project.name} (kopie)`);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/duplicate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+      const json = (await res.json()) as { project?: { id: string }; error?: string };
+      if (!res.ok || !json.project) throw new Error(json.error ?? t("dupError"));
+      router.push(`/app/${json.project.id}`);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("dupError"));
+      setBusy(false);
+    }
+  }
+
+  const listData = DUP_LISTS[locale] ?? DUP_LISTS.cs;
+  const lists: { title: string; items: readonly string[]; tone: "copy" | "skip" }[] = [
+    { title: t("dupCopiesTitle"), items: listData.copies, tone: "copy" },
+    { title: t("dupExcludesTitle"), items: listData.excludes, tone: "skip" },
+  ];
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t("dupTitle")}
+      description={t("dupLead")}
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-pill px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-navy-700"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={busy || !name.trim()}
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
+          >
+            <Copy width={15} height={15} />
+            {busy ? t("dupWorking") : t("dupConfirm")}
+          </button>
+        </div>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {lists.map((l) => (
+            <div
+              key={l.title}
+              className={`rounded-card border px-3.5 py-3 ${
+                l.tone === "copy" ? "border-positive/25 bg-positive-soft" : "border-line bg-canvas"
+              }`}
+            >
+              <p
+                className={`text-xs font-semibold uppercase tracking-wide ${
+                  l.tone === "copy" ? "text-positive" : "text-muted"
+                }`}
+              >
+                {l.title}
+              </p>
+              <ul className="mt-2 space-y-1 text-sm text-navy-700">
+                {l.items.map((it) => (
+                  <li key={it} className="flex gap-1.5">
+                    <span aria-hidden className={l.tone === "copy" ? "text-positive" : "text-muted"}>
+                      {l.tone === "copy" ? "✓" : "×"}
+                    </span>
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <label className="block">
+          <span className="text-sm font-medium text-navy-800">{t("dupNameLabel")}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t("dupNamePlaceholder")}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submit();
+            }}
+            className={`mt-1.5 ${inputClass}`}
+          />
+        </label>
+
+        {error && (
+          <p className="rounded-lg bg-negative-soft px-3.5 py-2.5 text-sm text-negative" role="alert">
+            {error}
+          </p>
         )}
       </div>
-    </Link>
+    </Modal>
   );
 }
