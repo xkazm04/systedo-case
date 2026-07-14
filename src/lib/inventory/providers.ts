@@ -5,7 +5,7 @@
  *  the sample warehouse catalog (no credentials) so the sync is demonstrable; real
  *  providers (Baselinker first) are credential-gated. Framework-free (pure). */
 import type { OfferingSource, ProductOffering } from "@/lib/catalog/offering";
-import { warehouseCatalog } from "./warehouse";
+import { warehouseCatalog, type WarehouseKind, type WarehouseProviderMeta } from "./warehouse";
 
 /** A product as returned by a warehouse/ERP, normalized across providers. */
 export interface ProviderProduct {
@@ -35,25 +35,87 @@ export interface SyncProviderMeta {
   implemented: boolean;
   /** whether the provider needs an endpoint/mapping config (the generic ERP adapter). */
   needsConfig?: boolean;
+  // --- display metadata (Direction 1: ONE registry) --------------------------------
+  //  Layered onto the engine list so the connector picker + connection badge derive
+  //  from the SAME source of truth as the sync engine. A `kind` marks a connectable
+  //  branded warehouse (shown in the picker); the demo/generic adapters omit it.
+  /** hub / 3PL / ERP grouping — present ⇒ a real, brandable warehouse back-end. */
+  kind?: WarehouseKind;
+  /** provider initials for the (logo-free) badge/mark. */
+  mark?: string;
+  /** one-line positioning shown in the connector picker (cs / en). */
+  blurb?: string;
+  blurbEn?: string;
 }
 
 /** The providers offered in the sync picker: credential-free demos, Baselinker and the
  *  generic ERP adapter (implemented), and the vendor-specific ERPs as coming-soon (they
- *  are reachable today via the generic "Obecné ERP" adapter). */
+ *  are reachable today via the generic "Obecné ERP" adapter). The branded warehouses
+ *  carry display metadata (kind/mark/blurb) so the picker + badge derive from here —
+ *  no second, drift-prone provider list. Ordered hub → 3PL → ERP. */
 export const SYNC_PROVIDERS: SyncProviderMeta[] = [
   { id: "demo", label: "Ukázkový sklad (demo)", needsToken: false, implemented: true },
-  { id: "baselinker", label: "Baselinker", needsToken: true, implemented: true },
+  { id: "baselinker", label: "Baselinker", needsToken: true, implemented: true,
+    kind: "hub", mark: "BL",
+    blurb: "Multikanálový sklad + prodejní kanály přes jedno API",
+    blurbEn: "Multichannel stock + sales channels through one API" },
   { id: "erp", label: "Obecné ERP (CSV/JSON)", needsToken: false, implemented: true, needsConfig: true },
   { id: "erp-demo", label: "Ukázkové ERP (demo)", needsToken: false, implemented: true },
-  { id: "shipmonk", label: "ShipMonk", needsToken: true, implemented: false },
-  { id: "skladon", label: "Skladon", needsToken: true, implemented: false },
-  { id: "pohoda", label: "POHODA", needsToken: true, implemented: false },
-  { id: "money-s3", label: "Money S3", needsToken: true, implemented: false },
-  { id: "helios", label: "HELIOS", needsToken: true, implemented: false },
+  { id: "shipmonk", label: "ShipMonk", needsToken: true, implemented: false,
+    kind: "3pl", mark: "SM",
+    blurb: "3PL fulfillment — zásoby a příjem v reálném čase",
+    blurbEn: "3PL fulfillment — real-time stock and receiving" },
+  { id: "skladon", label: "Skladon", needsToken: true, implemented: false,
+    kind: "3pl", mark: "SK",
+    blurb: "České fulfillment centrum, oboustranná synchronizace",
+    blurbEn: "Czech fulfillment centre, two-way sync" },
+  { id: "pohoda", label: "POHODA", needsToken: true, implemented: false,
+    kind: "erp", mark: "PO",
+    blurb: "Nejrozšířenější český ERP (Stormware)",
+    blurbEn: "The most common Czech ERP (Stormware)" },
+  { id: "money-s3", label: "Money S3", needsToken: true, implemented: false,
+    kind: "erp", mark: "M3",
+    blurb: "Účetnictví + sklad, import dávkou nebo přes middleware",
+    blurbEn: "Accounting + stock, batch import or via middleware" },
+  { id: "helios", label: "HELIOS", needsToken: true, implemented: false,
+    kind: "erp", mark: "He",
+    blurb: "ERP pro střední a velké e-shopy",
+    blurbEn: "ERP for mid & large e-shops" },
 ];
 
 export function syncProvider(id: string): SyncProviderMeta | undefined {
   return SYNC_PROVIDERS.find((p) => p.id === id);
+}
+
+/** Provider initials fallback when a SYNC provider carries no explicit `mark`. */
+function initials(label: string): string {
+  const words = label.replace(/[()]/g, "").trim().split(/\s+/);
+  const s = words.length >= 2 ? words[0]![0]! + words[1]![0]! : label.slice(0, 2);
+  return s.toUpperCase();
+}
+
+/** Display metadata for a provider, derived from its SYNC_PROVIDERS entry (the single
+ *  registry). Returns undefined for an unknown id; synthesizes mark/kind/blurb for known
+ *  providers that omit them (demo/generic ERP), so the badge always has something honest
+ *  to show. */
+export function providerDisplay(id: string): WarehouseProviderMeta | undefined {
+  const m = syncProvider(id);
+  if (!m) return undefined;
+  return {
+    id: m.id,
+    label: m.label,
+    kind: m.kind ?? "erp",
+    mark: m.mark ?? initials(m.label),
+    blurb: m.blurb ?? "",
+    blurbEn: m.blurbEn ?? "",
+  };
+}
+
+/** The connectable branded warehouses for the connector picker — the SYNC providers
+ *  that carry a `kind` (excludes the demo + generic-ERP adapters). Derived from
+ *  SYNC_PROVIDERS, preserving its hub → 3PL → ERP order. */
+export function warehouseDisplayProviders(): WarehouseProviderMeta[] {
+  return SYNC_PROVIDERS.filter((p) => p.kind).map((p) => providerDisplay(p.id)!);
 }
 
 /** The offering source a provider maps to (drives the authoritative-field merge). */

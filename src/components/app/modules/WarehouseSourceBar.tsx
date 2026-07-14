@@ -2,22 +2,23 @@
  *  Connected: shows the live provider, sync freshness and what the link unlocks
  *  (margins, velocity, restock from the ERP/3PL). Not connected: the connector
  *  picker — the hub / 3PL / ERP back-ends a shop can link. Server component. */
-import { Pill } from "@/components/ui";
-import { Box, Check, Link as LinkIcon, Network, Refresh } from "@/components/icons";
+import { Pill, type PillTone } from "@/components/ui";
+import { Box, Check, Clock, Info, Link as LinkIcon, Network, Refresh } from "@/components/icons";
 import { getT } from "@/lib/i18n/server";
-import {
-  WAREHOUSE_PROVIDERS,
-  type WarehouseConnection,
-  type WarehouseKind,
-  type WarehouseProviderMeta,
-} from "@/lib/inventory/warehouse";
+import { type WarehouseConnection, type WarehouseKind, type WarehouseProviderMeta } from "@/lib/inventory/warehouse";
+import { warehouseDisplayProviders } from "@/lib/inventory/providers";
 
 const T = {
   cs: {
     liveFrom: "Živě z {provider}",
     syncedAgo: "synchronizováno před {n} min",
+    neverSynced: "zatím nesynchronizováno",
+    syncFailing: "poslední synchronizace selhala",
+    lastGood: "poslední úspěšná před {n} min",
     skuCount: "{n} SKU",
     connected: "Napojeno",
+    failingBadge: "Chyba synchronizace",
+    pendingBadge: "Čeká na první synchronizaci",
     unlocks: "Obrátka, marže (COGS) i naskladnění z POs tečou přímo ze skladu — ne z ručně udržovaných konstant.",
     demoNote: "Ukázkové napojení — v prototypu jsou čísla ilustrativní; ostrá synchronizace se připojí přes API konektor.",
     otherSources: "Další zdroje",
@@ -38,8 +39,13 @@ const T = {
   en: {
     liveFrom: "Live from {provider}",
     syncedAgo: "synced {n} min ago",
+    neverSynced: "not synced yet",
+    syncFailing: "last sync failed",
+    lastGood: "last good {n} min ago",
     skuCount: "{n} SKUs",
     connected: "Connected",
+    failingBadge: "Sync error",
+    pendingBadge: "Awaiting first sync",
     unlocks: "Velocity, margin (COGS) and restock ETAs come straight from the warehouse — not hand-maintained constants.",
     demoNote: "Demo connection — numbers are illustrative in this prototype; a live sync connects via an API connector.",
     otherSources: "Other sources",
@@ -82,26 +88,48 @@ export default async function WarehouseSourceBar({
   const t = await getT(T);
 
   if (connection) {
-    const others = WAREHOUSE_PROVIDERS.filter((p) => p.id !== connection.provider.id);
+    const others = warehouseDisplayProviders().filter((p) => p.id !== connection.provider.id);
+    const failing = connection.health === "failing";
+    const pending = connection.health === "never-synced";
+
+    // Health drives the container tint + the status pill so the badge tells the truth:
+    // a really-connected-but-failing sync reads red, a never-synced link reads neutral.
+    const shell = failing
+      ? "border-coral-300 bg-coral-50/40"
+      : pending
+        ? "border-line bg-surface"
+        : "border-brand-200 bg-brand-50/50";
+    const statusPill: { tone: PillTone; icon: React.ReactNode; label: string } = failing
+      ? { tone: "coral", icon: <Info width={12} height={12} aria-hidden />, label: t("failingBadge") }
+      : pending
+        ? { tone: "neutral", icon: <Clock width={12} height={12} aria-hidden />, label: t("pendingBadge") }
+        : { tone: "positive", icon: <Check width={12} height={12} aria-hidden />, label: t("connected") };
+
     return (
-      <div className="rounded-card border border-brand-200 bg-brand-50/50 p-4 sm:p-5">
+      <div className={`rounded-card border p-4 sm:p-5 ${shell}`}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <ProviderMark mark={connection.provider.mark} active />
+            <ProviderMark mark={connection.provider.mark} active={!failing && !pending} />
             <div>
               <p className="flex items-center gap-2 font-semibold text-navy-800">
                 {t("liveFrom", { provider: connection.provider.label })}
-                <Pill tone="positive">
+                <Pill tone={statusPill.tone}>
                   <span className="flex items-center gap-1">
-                    <Check width={12} height={12} aria-hidden />
-                    {t("connected")}
+                    {statusPill.icon}
+                    {statusPill.label}
                   </span>
                 </Pill>
               </p>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm text-muted">
-                <span className="flex items-center gap-1">
+                <span className={`flex items-center gap-1 ${failing ? "text-coral-600" : ""}`}>
                   <Refresh width={13} height={13} aria-hidden />
-                  {t("syncedAgo", { n: connection.syncedMinsAgo })}
+                  {failing
+                    ? connection.syncedMinsAgo != null
+                      ? t("lastGood", { n: connection.syncedMinsAgo })
+                      : t("syncFailing")
+                    : connection.syncedMinsAgo != null
+                      ? t("syncedAgo", { n: connection.syncedMinsAgo })
+                      : t("neverSynced")}
                 </span>
                 <span aria-hidden>·</span>
                 <span className="flex items-center gap-1">
@@ -129,8 +157,12 @@ export default async function WarehouseSourceBar({
           </div>
         </div>
 
-        <p className="mt-3 border-t border-brand-200/70 pt-3 text-sm text-navy-700">{t("unlocks")}</p>
-        <p className="mt-1.5 text-xs text-muted">{t("demoNote")}</p>
+        {failing && connection.lastError ? (
+          <p className="mt-3 border-t border-coral-200/70 pt-3 text-sm text-coral-700">{connection.lastError}</p>
+        ) : (
+          <p className="mt-3 border-t border-brand-200/70 pt-3 text-sm text-navy-700">{t("unlocks")}</p>
+        )}
+        {connection.demo && <p className="mt-1.5 text-xs text-muted">{t("demoNote")}</p>}
       </div>
     );
   }
@@ -156,7 +188,7 @@ export default async function WarehouseSourceBar({
 
       <div className="mt-5 space-y-5">
         {kinds.map(({ kind, title, note, icon }) => {
-          const providers = WAREHOUSE_PROVIDERS.filter((p) => p.kind === kind);
+          const providers = warehouseDisplayProviders().filter((p) => p.kind === kind);
           return (
             <div key={kind}>
               <div className="mb-2 flex items-center gap-2">

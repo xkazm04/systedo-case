@@ -5,7 +5,9 @@ import InventorySeasonModule from "@/components/app/modules/InventorySeasonModul
 import WarehouseSourceBar from "@/components/app/modules/WarehouseSourceBar";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { loadProductsFor } from "@/lib/catalog/load";
-import { warehouseConnectionFor } from "@/lib/inventory/warehouse";
+import { currentUserId } from "@/lib/session";
+import { deriveWarehouseBadge, warehouseConnectionFor } from "@/lib/inventory/warehouse";
+import { getConnection } from "@/lib/inventory/connection-store";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
 
@@ -25,8 +27,13 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const currentMonth = now.getUTCMonth();
 
   // Products come from the project catalog (the business source of truth); the
-  // warehouse connection is the source badge shown by WarehouseSourceBar.
-  const connection = warehouseConnectionFor(project.id, now);
+  // warehouse connection is the source badge shown by WarehouseSourceBar. Demo
+  // projects show the illustrative (honestly-labeled) badge; a real project's badge
+  // is derived from its persisted StoredConnection so it reflects the truth — provider,
+  // last-sync age and sync health — even after a real connect + sync.
+  const connection = project.id.startsWith("demo-")
+    ? warehouseConnectionFor(project.id, now)
+    : deriveWarehouseBadge(await resolveStoredConnection(project.id), now);
   const products = await loadProductsFor(project, now);
 
   const stock = stockRows(products, now);
@@ -55,4 +62,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       />
     </ModulePage>
   );
+}
+
+/** The signed-in user's stored warehouse connection for this project, or null. The
+ *  session read is request-deduped (React cache) with the guard's, so this reuses it. */
+async function resolveStoredConnection(projectId: string) {
+  const userId = await currentUserId();
+  if (!userId) return null;
+  return getConnection(userId, projectId);
 }

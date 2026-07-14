@@ -13,6 +13,8 @@
  *  credentials — the seam is real, the bytes are illustrative. Everything the
  *  module consumes already flows through `Product[]`, so nothing downstream changes. */
 import type { Product } from "@/lib/catalog/sample";
+import type { StoredConnection } from "./connection-store";
+import { providerDisplay } from "./providers";
 
 export type WarehouseKind = "hub" | "3pl" | "erp";
 
@@ -27,40 +29,67 @@ export interface WarehouseProviderMeta {
   blurbEn: string;
 }
 
-/** The connectable back-ends, grouped by kind. Ordered hub → 3PL → ERP: one hub
- *  covers the most ground, a 3PL is API-native, an ERP is where mid/large shops
- *  keep authoritative stock. */
-export const WAREHOUSE_PROVIDERS: WarehouseProviderMeta[] = [
-  { id: "baselinker", label: "Baselinker", kind: "hub", mark: "BL",
-    blurb: "Multikanálový sklad + prodejní kanály přes jedno API",
-    blurbEn: "Multichannel stock + sales channels through one API" },
-  { id: "shipmonk", label: "ShipMonk", kind: "3pl", mark: "SM",
-    blurb: "3PL fulfillment — zásoby a příjem v reálném čase",
-    blurbEn: "3PL fulfillment — real-time stock and receiving" },
-  { id: "skladon", label: "Skladon", kind: "3pl", mark: "SK",
-    blurb: "České fulfillment centrum, oboustranná synchronizace",
-    blurbEn: "Czech fulfillment centre, two-way sync" },
-  { id: "pohoda", label: "POHODA", kind: "erp", mark: "PO",
-    blurb: "Nejrozšířenější český ERP (Stormware)",
-    blurbEn: "The most common Czech ERP (Stormware)" },
-  { id: "money-s3", label: "Money S3", kind: "erp", mark: "M3",
-    blurb: "Účetnictví + sklad, import dávkou nebo přes middleware",
-    blurbEn: "Accounting + stock, batch import or via middleware" },
-  { id: "helios", label: "HELIOS", kind: "erp", mark: "He",
-    blurb: "ERP pro střední a velké e-shopy",
-    blurbEn: "ERP for mid & large e-shops" },
-];
-
+/** Display metadata for a provider id — derived from the ONE registry (SYNC_PROVIDERS
+ *  in providers.ts). The standalone WAREHOUSE_PROVIDERS list is retired; the picker's
+ *  list is `warehouseDisplayProviders()` and a single provider is `warehouseProvider`. */
 export function warehouseProvider(id: string): WarehouseProviderMeta | undefined {
-  return WAREHOUSE_PROVIDERS.find((p) => p.id === id);
+  return providerDisplay(id);
 }
 
+/** Connection health, derived from the stored record's sync outcome. */
+export type ConnectionHealth =
+  /** last sync succeeded, no outstanding error */
+  | "ok"
+  /** the last sync failed (lastError set) — badge shows the failure */
+  | "failing"
+  /** connected but no successful sync yet */
+  | "never-synced";
+
+/** The connection BADGE — a derived view over the persisted StoredConnection (or an
+ *  illustrative demo). Reduced to a derivation (Direction 1): no longer a second store
+ *  of truth, just provider display + sync freshness + health computed from the record. */
 export interface WarehouseConnection {
   provider: WarehouseProviderMeta;
-  /** ISO timestamp of the last successful sync */
-  syncedAt: string;
-  /** minutes since the last sync, relative to the module's reference `now` */
-  syncedMinsAgo: number;
+  /** ISO timestamp of the last SUCCESSFUL sync, or null when never synced. */
+  syncedAt: string | null;
+  /** whole minutes since the last successful sync (relative to `now`), or null. */
+  syncedMinsAgo: number | null;
+  /** health derived from lastError / failCount / lastSyncAt. */
+  health: ConnectionHealth;
+  /** last failure message when `health === "failing"`. */
+  lastError?: string;
+  /** consecutive failure count (drives the failing badge). */
+  failCount?: number;
+  /** true for the illustrative demo badge (not a real stored connection). */
+  demo: boolean;
+}
+
+/** A synthesized provider meta for an id missing from the registry — the badge stays
+ *  honest (shows the raw id) rather than crashing on an unknown stored provider. */
+function fallbackProvider(id: string): WarehouseProviderMeta {
+  return { id, label: id, kind: "erp", mark: id.slice(0, 2).toUpperCase(), blurb: "", blurbEn: "" };
+}
+
+/** Derive the connection badge from a project's real StoredConnection (or null when the
+ *  project has no linked warehouse). Pure — the page resolves the record server-side and
+ *  threads this down. Health: a set `lastError` (with failCount > 0) ⇒ "failing"; else a
+ *  present `lastSyncAt` ⇒ "ok"; else "never-synced". */
+export function deriveWarehouseBadge(stored: StoredConnection | null, now: Date): WarehouseConnection | null {
+  if (!stored) return null;
+  const provider = warehouseProvider(stored.provider) ?? fallbackProvider(stored.provider);
+  const lastSyncAt = stored.lastSyncAt ?? null;
+  const failing = Boolean(stored.lastError) && (stored.failCount ?? 0) > 0;
+  const health: ConnectionHealth = failing ? "failing" : lastSyncAt ? "ok" : "never-synced";
+  const syncedMinsAgo =
+    lastSyncAt != null ? Math.max(0, Math.floor((now.getTime() - Date.parse(lastSyncAt)) / 60_000)) : null;
+  return {
+    provider,
+    syncedAt: lastSyncAt,
+    syncedMinsAgo,
+    health,
+    ...(failing ? { lastError: stored.lastError, failCount: stored.failCount } : {}),
+    demo: false,
+  };
 }
 
 /** ISO YYYY-MM-DD `days` after a reference date (UTC). */
@@ -114,19 +143,27 @@ export function warehouseCatalog(now: Date): Product[] {
   ];
 }
 
-/** The active warehouse connection for a project, or null if none is linked.
+/** The ILLUSTRATIVE warehouse badge for a project, or null if none applies.
  *
- *  PROTOTYPE: demo projects (`demo-*`) present as connected to Baselinker so the
- *  module can show the payoff; a real project stays unlinked until credentials are
- *  supplied. Real integration replaces this with a store lookup + token check. */
+ *  Demo projects (`demo-*`) present as connected to Baselinker so the module can show
+ *  the payoff without credentials; the badge is flagged `demo` so the UI labels it
+ *  honestly. A REAL project's badge is NOT derived here — the page resolves its stored
+ *  connection server-side (getConnection → deriveWarehouseBadge), because that needs the
+ *  signed-in userId and an async store read this pure helper can't do. */
 export function warehouseConnectionFor(projectId: string, now: Date): WarehouseConnection | null {
   if (!projectId.startsWith("demo-")) return null;
   return demoWarehouseConnection(now);
 }
 
-/** A demo Baselinker connection, synced 6 minutes before the reference `now`. */
+/** A demo Baselinker badge, synced 6 minutes before the reference `now` (demo: true). */
 export function demoWarehouseConnection(now: Date): WarehouseConnection {
   const syncedMinsAgo = 6;
   const syncedAt = new Date(now.getTime() - syncedMinsAgo * 60_000).toISOString();
-  return { provider: warehouseProvider("baselinker")!, syncedAt, syncedMinsAgo };
+  return {
+    provider: warehouseProvider("baselinker")!,
+    syncedAt,
+    syncedMinsAgo,
+    health: "ok",
+    demo: true,
+  };
 }
