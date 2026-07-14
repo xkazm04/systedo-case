@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import {
   attentionScore,
   fleetSummary,
+  mergeGbp,
   needsAttention,
   sortByAttention,
 } from "@/lib/locations/compute";
@@ -74,6 +75,29 @@ test("sortByAttention is most-urgent-first, stable, and non-mutating", () => {
   assert.deepEqual(sorted.map((r) => r.id), ["b", "c", "a"]);
   // input not mutated
   assert.deepEqual(rows.map((r) => r.id), ["a", "b", "c"]);
+});
+
+test("mergeGbp overrides matched locations by name and appends unmatched imports", () => {
+  const sample = [
+    row({ id: "praha", name: "Praha", gbp: "connected", reviews: 100, rating: 4.6, unanswered: 0, mapRank: 3 }),
+    row({ id: "plzen", name: "Plzeň", gbp: "connected", reviews: 50, rating: 4.9, unanswered: 1, mapRank: 5 }),
+  ];
+  const imported = [
+    { name: "plzen", status: "disconnected", reviews: 140, rating: 4.2, unanswered: 4 }, // diacritic/case-insensitive match
+    { name: "Kladno", status: "attention", reviews: 12, rating: 3.9, unanswered: 2 }, // unmatched → appended
+  ];
+  const out = mergeGbp(sample, imported);
+  assert.equal(out.length, 3);
+  const plzen = out.find((r) => r.name === "Plzeň");
+  assert.equal(plzen.gbp, "disconnected"); // status overridden
+  assert.equal(plzen.reviews, 140);
+  assert.equal(plzen.rating, 4.2);
+  assert.equal(plzen.mapRank, 5); // seeded map rank kept (export lacks it)
+  assert.equal(out.find((r) => r.name === "Praha").gbp, "connected"); // untouched
+  const kladno = out.find((r) => r.name === "Kladno");
+  assert.equal(kladno.mapRank, 0); // unknown
+  assert.equal(kladno.services, 0);
+  assert.equal(kladno.gbp, "attention");
 });
 
 test("locationsFromCatalog is deterministic and counts covering services", () => {

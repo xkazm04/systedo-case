@@ -6,7 +6,12 @@
  *  import of one never disturbs the others. Per-user, ownership-checked. Server-only. */
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
-import { parseRankRows, parseReviewRows, mergeLadder } from "@/lib/local-signals/import";
+import {
+  parseRankRows,
+  parseReviewRows,
+  parseGbpRows,
+  mergeLadder,
+} from "@/lib/local-signals/import";
 import { getLocalSignals, saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
@@ -84,6 +89,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       reviews: { meta: meta(items.length), items },
     });
     return Response.json({ ok: true, rowCount: items.length });
+  }
+
+  if (kind === "gbp") {
+    const rows = parseGbpRows(text);
+    if (rows.length === 0) {
+      return Response.json(
+        { ok: false, error: "Nenašel jsem žádné pobočky. Formát: pobočka, stav, počet recenzí, hodnocení, nezodpovězené." },
+        { status: 400 }
+      );
+    }
+    await saveLocalSignals(project.id, {
+      meta: ladderMeta(prev, source, url),
+      ladder: prev?.ladder ?? [],
+      ...(prev?.reviews ? { reviews: prev.reviews } : {}),
+      gbp: { meta: meta(rows.length), rows },
+    });
+    return Response.json({ ok: true, rowCount: rows.length });
   }
 
   // kind === "ranks": append to the previously-imported ladder so per-keyword rank

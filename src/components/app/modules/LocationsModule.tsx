@@ -45,6 +45,7 @@ const T = {
     focusDrafts: "Koncepty ke schválení",
     manageBranding: "Branding a nastavení",
     gatingNote: "Ovládací prvky (autopilot, rozpočet, publikování) se aktivují po připojení Google profilu a živých zdrojů. Zobrazená data jsou ilustrativní.",
+    gatingNoteLive: "Stav Google profilů, recenze a nezodpovězené jsou z importu. Ovládací prvky (autopilot, rozpočet, publikování) se aktivují po napojení živých akčních zdrojů.",
     servicesUnit: "{n} služeb",
   },
   en: {
@@ -80,6 +81,7 @@ const T = {
     focusDrafts: "Drafts to approve",
     manageBranding: "Branding & settings",
     gatingNote: "Controls (autopilot, budget, publishing) activate once a Google profile and live sources are connected. The figures shown are illustrative.",
+    gatingNoteLive: "Google profile status, reviews and unanswered counts are imported. Controls (autopilot, budget, publishing) activate once live action sources are connected.",
     servicesUnit: "{n} services",
   },
 } as const;
@@ -100,9 +102,12 @@ function rankTone(rank: number): PillTone {
 export default async function LocationsModule({
   rows,
   projectId,
+  live = false,
 }: {
   rows: LocationRow[];
   projectId: string;
+  /** true when the roster carries imported GBP data (adjusts the gating note) */
+  live?: boolean;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -183,7 +188,11 @@ export default async function LocationsModule({
                     </Pill>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <Pill tone={rankTone(r.mapRank)}>#{r.mapRank}</Pill>
+                    {r.mapRank > 0 ? (
+                      <Pill tone={rankTone(r.mapRank)}>#{r.mapRank}</Pill>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
@@ -246,7 +255,7 @@ export default async function LocationsModule({
               >
                 {t("manageBranding")}
               </Link>
-              <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted">{t("gatingNote")}</p>
+              <p className="min-w-0 flex-1 text-xs leading-relaxed text-muted">{live ? t("gatingNoteLive") : t("gatingNote")}</p>
             </div>
           </div>
         ) : (

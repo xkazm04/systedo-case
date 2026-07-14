@@ -3,7 +3,7 @@
  *  rank rows (from any tracker) as `keyword, oblast/area, pozice/rank`. Framework-
  *  free + unit-tested; the store/route just persist what this returns. */
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
-import type { ImportedReview, LocalSignals } from "./types";
+import type { ImportedGbpRow, ImportedReview, LocalSignals } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -271,6 +271,78 @@ export function parseReviewRows(text: string): ImportedReview[] {
     });
   }
   return out;
+}
+
+// ── GBP import (D3) ──────────────────────────────────────────────────────────
+// A Google Business Profile export gives the locations roster real inputs (status,
+// review count, avg rating, unanswered) instead of pure seed. Same tolerant, capped,
+// quote-aware ingestion as reviews; rows are matched to catalog localities on read.
+
+const GBP_COL: Record<string, "name" | "status" | "reviews" | "rating" | "unanswered"> = {
+  location: "name", name: "name", pobočka: "name", pobocka: "name", lokalita: "name", název: "name", nazev: "name", area: "name", oblast: "name", město: "name", mesto: "name",
+  status: "status", stav: "status", connection: "status", připojení: "status", pripojeni: "status", gbp: "status",
+  reviews: "reviews", recenze: "reviews", "počet recenzí": "reviews", "pocet recenzi": "reviews", count: "reviews",
+  rating: "rating", hodnocení: "rating", hodnoceni: "rating", stars: "rating", avg: "rating", průměr: "rating", prumer: "rating",
+  unanswered: "unanswered", nezodpovězené: "unanswered", nezodpovezene: "unanswered", pending: "unanswered", "bez odpovědi": "unanswered",
+};
+
+/** Map a free-text status cell to GBP connection health. Tolerant of cs/en wording;
+ *  defaults to "connected" when the value is present but unrecognised. */
+function parseGbpStatus(raw: string): ImportedGbpRow["status"] {
+  const s = raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+  if (/(disconnect|odpoj|off|inactive|neaktiv)/.test(s)) return "disconnected";
+  if (/(attention|akce|pozor|warn|issue|vyzaduje|problem|chyb)/.test(s)) return "attention";
+  return "connected";
+}
+
+function toCount(cell: string | undefined): number {
+  const n = Number((cell ?? "").replace(/[^\d.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
+}
+
+/** Parse a pasted/CSV GBP export → imported location rows. Tolerant: a header row maps
+ *  columns by name (cs/en); without one it assumes name, status, reviews, rating,
+ *  unanswered. Rating clamps to 0..5, counts to ≥0; a row with no location name is
+ *  dropped. Last write wins per (case/diacritic-insensitive) name. */
+export function parseGbpRows(text: string): ImportedGbpRow[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const delim = detectDelimiter(lines[0]!);
+  const firstCells = splitCsvLine(lines[0]!, delim).map((c) => c.toLowerCase());
+  const headerCols = firstCells.map((c) => GBP_COL[c]);
+  const hasHeader = headerCols.some(Boolean);
+
+  const idx = { name: 0, status: 1, reviews: 2, rating: 3, unanswered: 4 };
+  if (hasHeader) {
+    headerCols.forEach((col, i) => {
+      if (col) idx[col] = i;
+    });
+  }
+
+  const byName = new Map<string, ImportedGbpRow>();
+  for (const line of lines.slice(hasHeader ? 1 : 0)) {
+    const cells = splitCsvLine(line, delim);
+    const name = cells[idx.name]?.trim() ?? "";
+    if (!name) continue;
+    const ratingRaw = Number((cells[idx.rating] ?? "").replace(",", ".").replace(/[^\d.]/g, ""));
+    const key = name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    byName.set(key, {
+      name,
+      status: parseGbpStatus(cells[idx.status] ?? ""),
+      reviews: toCount(cells[idx.reviews]),
+      rating: Number.isFinite(ratingRaw) ? Math.min(5, Math.max(0, Math.round(ratingRaw * 10) / 10)) : 0,
+      unanswered: toCount(cells[idx.unanswered]),
+    });
+  }
+  return [...byName.values()];
 }
 
 /** Normalize a persisted LocalSignals blob on read: dual-shape ladder history is

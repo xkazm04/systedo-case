@@ -6,7 +6,9 @@
 import "server-only";
 import type { KeywordRank } from "@/lib/mappack/sample";
 import type { ReviewItem } from "@/lib/reviews/sample";
+import type { LocationRow } from "@/lib/locations/sample";
 import { fromImported } from "@/lib/reviews/compute";
+import { mergeGbp } from "@/lib/locations/compute";
 import { getLocalSignals } from "./store";
 import type { LocalSignalsSource } from "./types";
 
@@ -78,4 +80,38 @@ export async function resolveReviews(
     };
   }
   return { reviews: sample, source: "sample", live: false };
+}
+
+export interface ResolvedLocations {
+  rows: LocationRow[];
+  source: "sample" | LocalSignalsSource;
+  live: boolean;
+  syncedAt?: string;
+  sourceUrl?: string;
+}
+
+/** The active locations roster for a project: the seeded roster with imported GBP rows
+ *  merged in (matched by name, unmatched imported rows appended) when a live GBP section
+ *  exists, else the pure sample. Same live-over-sample seam as ladder/reviews. */
+export async function resolveLocations(
+  projectId: string,
+  sample: LocationRow[]
+): Promise<ResolvedLocations> {
+  let signals = null;
+  try {
+    signals = await getLocalSignals(projectId);
+  } catch {
+    signals = null; // store hiccup → sample, never break the roster
+  }
+  const gbp = signals?.gbp;
+  if (gbp && gbp.rows.length > 0) {
+    return {
+      rows: mergeGbp(sample, gbp.rows),
+      source: gbp.meta.source,
+      live: true,
+      syncedAt: gbp.meta.syncedAt,
+      sourceUrl: gbp.meta.sourceUrl,
+    };
+  }
+  return { rows: sample, source: "sample", live: false };
 }

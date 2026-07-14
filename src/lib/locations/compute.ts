@@ -1,6 +1,53 @@
 /** Location-roster rollups + attention ranking. Pure (no imports beyond the row
  *  type), so it has a matching test-unit and can run anywhere. */
+import type { ImportedGbpRow } from "@/lib/local-signals/types";
 import type { LocationRow } from "./sample";
+
+/** Case- and diacritic-insensitive key for matching an imported location to a
+ *  catalog locality by name ("Plzeň" ↔ "plzen"). */
+function nameKey(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+}
+
+/** Merge imported GBP rows onto the seeded roster: a row matched to a catalog
+ *  locality by name overrides its status / review count / rating / unanswered with the
+ *  real figures (map rank, tasks, budget stay seeded — the export doesn't carry them);
+ *  an UNMATCHED imported row still renders as its own location (mapRank 0 = unknown, so
+ *  the UI shows "—"). Attention math is unchanged — its inputs simply become real. Pure. */
+export function mergeGbp(sample: LocationRow[], imported: ImportedGbpRow[]): LocationRow[] {
+  const usedKeys = new Set<string>();
+  const impByKey = new Map(imported.map((i) => [nameKey(i.name), i]));
+
+  const out = sample.map((r) => {
+    const imp = impByKey.get(nameKey(r.name));
+    if (!imp) return r;
+    usedKeys.add(nameKey(r.name));
+    return { ...r, gbp: imp.status, reviews: imp.reviews, rating: imp.rating, unanswered: imp.unanswered };
+  });
+
+  for (const imp of imported) {
+    const key = nameKey(imp.name);
+    if (usedKeys.has(key)) continue;
+    usedKeys.add(key);
+    out.push({
+      id: `gbp-${key || imp.name}`,
+      name: imp.name,
+      region: "",
+      services: 0,
+      gbp: imp.status,
+      autopilot: false,
+      rating: imp.rating,
+      reviews: imp.reviews,
+      unanswered: imp.unanswered,
+      mapRank: 0, // unknown — no ladder for an imported-only location
+      openTasks: 0,
+      flagged: 0,
+      drafts: 0,
+      monthlyBudget: 0,
+    });
+  }
+  return out;
+}
 
 export interface FleetSummary {
   total: number;

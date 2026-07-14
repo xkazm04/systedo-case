@@ -20,10 +20,17 @@ process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
 register("./json-loader.mjs", import.meta.url);
 
-const { parseRankRows, ladderFromRows, mergeLadder, normalizeLadder, normalizeSignals, parseReviewRows } =
-  await import("@/lib/local-signals/import");
+const {
+  parseRankRows,
+  ladderFromRows,
+  mergeLadder,
+  normalizeLadder,
+  normalizeSignals,
+  parseReviewRows,
+  parseGbpRows,
+} = await import("@/lib/local-signals/import");
 const { getLocalSignals, saveLocalSignals, clearLocalSignals } = await import("@/lib/local-signals/store");
-const { resolveLocalLadder, resolveReviews } = await import("@/lib/local-signals/resolve");
+const { resolveLocalLadder, resolveReviews, resolveLocations } = await import("@/lib/local-signals/resolve");
 
 test("parser: header detection, mixed separators, dedup (last wins), rank clamp", () => {
   const rows = parseRankRows(
@@ -182,4 +189,68 @@ test("resolveReviews: sample without import, live imported reviews after save", 
   // empty ladder → ladder resolver still reports sample
   assert.equal((await resolveLocalLadder("proj-rev", SAMPLE)).live, false);
   await clearLocalSignals("proj-rev");
+});
+
+// ── D3: GBP parser + live seam ──────────────────────────────────────────────
+test("parseGbpRows: header map, cs/en status, rating clamp, diacritic-insensitive dedup", () => {
+  const rows = parseGbpRows(
+    [
+      "pobočka,stav,recenze,hodnocení,nezodpovězené",
+      "Plzeň,připojeno,128,4.8,2",
+      "plzen,odpojeno,130,9,0", // same location (diacritic/case) → last wins
+      "Brno,vyžaduje akci,74,4.7,5",
+      "Praha,connected,200,4.9,1",
+      ",connected,10,5,0", // no name → dropped
+    ].join("\n")
+  );
+  const byName = Object.fromEntries(rows.map((r) => [r.name, r]));
+  assert.equal(rows.length, 3);
+  assert.equal(byName["plzen"].status, "disconnected"); // last write won
+  assert.equal(byName["plzen"].rating, 5); // 9 clamped to 5
+  assert.equal(byName["Brno"].status, "attention");
+  assert.equal(byName["Praha"].status, "connected");
+});
+
+test("parseGbpRows: no header assumes name,status,reviews,rating,unanswered", () => {
+  const rows = parseGbpRows("Ostrava,disconnected,31,4.5,3");
+  assert.equal(rows.length, 1);
+  assert.deepEqual(
+    [rows[0].name, rows[0].status, rows[0].reviews, rows[0].rating, rows[0].unanswered],
+    ["Ostrava", "disconnected", 31, 4.5, 3]
+  );
+});
+
+const LOC = (over = {}) => ({
+  id: "praha", name: "Praha", region: "Praha", services: 3, gbp: "connected",
+  autopilot: true, rating: 4.6, reviews: 100, unanswered: 0, mapRank: 3,
+  openTasks: 0, flagged: 0, drafts: 0, monthlyBudget: 10000, ...over,
+});
+
+test("resolveLocations: sample without import; imported GBP merged + unmatched appended", async () => {
+  const sample = [LOC(), LOC({ id: "plzen", name: "Plzeň", mapRank: 5 })];
+  const before = await resolveLocations("proj-gbp", sample);
+  assert.equal(before.live, false);
+  assert.deepEqual(before.rows, sample);
+
+  const rows = parseGbpRows(
+    ["Plzeň,odpojeno,140,4.2,4", "Kladno,vyžaduje akci,12,3.9,2"].join("\n")
+  );
+  await saveLocalSignals("proj-gbp", {
+    meta: { source: "gbp", syncedAt: "2026-07-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    gbp: { meta: { source: "gbp", syncedAt: "2026-07-01T00:00:00Z", rowCount: rows.length }, rows },
+  });
+  const after = await resolveLocations("proj-gbp", sample);
+  assert.equal(after.live, true);
+  assert.equal(after.source, "gbp");
+  const plzen = after.rows.find((r) => r.name === "Plzeň");
+  assert.equal(plzen.gbp, "disconnected"); // imported override
+  assert.equal(plzen.reviews, 140);
+  assert.equal(plzen.mapRank, 5); // seeded map rank preserved (export lacks it)
+  const praha = after.rows.find((r) => r.name === "Praha");
+  assert.equal(praha.gbp, "connected"); // untouched — not in the import
+  const kladno = after.rows.find((r) => r.name === "Kladno");
+  assert.ok(kladno, "unmatched imported row still renders");
+  assert.equal(kladno.mapRank, 0); // unknown map rank
+  await clearLocalSignals("proj-gbp");
 });
