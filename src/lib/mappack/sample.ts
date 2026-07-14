@@ -47,12 +47,23 @@ export interface AreaPack {
   listings: MapListing[];
 }
 
+/** One time-anchored observation in a keyword's rank history. Replaces the old
+ *  bare `number` point so the ladder can say WHEN a rank was measured — the whole
+ *  point of a rank tracker (D1). Legacy bare-number blobs are coerced to this shape
+ *  on read (normalizeLadder in local-signals/import). */
+export interface RankPoint {
+  /** local rank (1 = best) observed at `at` */
+  rank: number;
+  /** ISO date (YYYY-MM-DD) of the observation */
+  at: string;
+}
+
 export interface KeywordRank {
   id: string;
   keyword: string;
   area: string;
-  /** oldest → newest local rank (1 = best) */
-  history: number[];
+  /** oldest → newest local rank observations (1 = best), each date-stamped */
+  history: RankPoint[];
   current: number;
   best: number;
 }
@@ -102,16 +113,25 @@ export function packsForProject(
   return localities.map((l) => packForArea(project, l, businessName));
 }
 
+/** Days the seeded sample history spans (newest point at `endDate`, oldest this
+ *  many days earlier) — mirrors a ~quarter of monthly-ish tracking so the demo
+ *  ladder renders an honest "Vývoj (N dní)" span identical in shape to real data. */
+const SAMPLE_SPAN_DAYS = 90;
+const DAY_MS = 86_400_000;
+
 /** Keyword ranking ladder: a rank history per tracked service×area, trending from
- *  a weaker start toward the current position. Capped at `limit` rows so the
- *  ladder stays scannable. */
+ *  a weaker start toward the current position. Each point carries a synthetic date
+ *  (evenly spaced, newest at `endDate`) so the sample renders the same time-anchored
+ *  UI as an imported ladder. Capped at `limit` rows so the ladder stays scannable. */
 export function keywordLadder(
   project: Project,
   localities: Locality[],
   services: ServiceOffering[],
-  limit = 6
+  limit = 6,
+  endDate: Date = new Date()
 ): KeywordRank[] {
   const areaName = new Map(localities.map((l) => [l.id, l.name]));
+  const end = endDate.getTime();
   const out: KeywordRank[] = [];
   for (const svc of services) {
     for (const areaId of svc.serviceAreas) {
@@ -121,19 +141,22 @@ export function keywordLadder(
       const start = 5 + Math.round(g("start") * 9); // 5..14
       const target = 1 + Math.round(g("cur") * 5); // 1..6
       const points = 8;
-      const history = Array.from({ length: points }, (_, i) => {
+      const step = SAMPLE_SPAN_DAYS / (points - 1);
+      const history: RankPoint[] = Array.from({ length: points }, (_, i) => {
         const t = i / (points - 1);
         const base = start + (target - start) * t;
         const noise = (seed01(`${project.id}:kw:${svc.name}:${areaId}:p${i}`) - 0.5) * 1.6;
-        return Math.max(1, Math.round(base + noise));
+        const rank = Math.max(1, Math.round(base + noise));
+        const at = new Date(end - (points - 1 - i) * step * DAY_MS).toISOString().slice(0, 10);
+        return { rank, at };
       });
       out.push({
         id: `${svc.id}:${areaId}`,
         keyword: `${svc.name} · ${city}`,
         area: city,
         history,
-        current: history[history.length - 1],
-        best: Math.min(...history),
+        current: history[history.length - 1]!.rank,
+        best: Math.min(...history.map((p) => p.rank)),
       });
       if (out.length >= limit) return out;
     }

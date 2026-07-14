@@ -12,6 +12,7 @@ import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { resolveLocalLadder } from "@/lib/local-signals/resolve";
+import { changeSinceLast, ladderSpanDays } from "@/lib/mappack/compute";
 import { reviewsForProject } from "@/lib/reviews/sample";
 import { bandOf } from "@/lib/reviews/compute";
 import { fmtInt, fmtPct } from "@/lib/format";
@@ -36,6 +37,23 @@ export async function localSignalsPromptText(
   const avgRank = tracked > 0 ? ladder.reduce((a, r) => a + r.current, 0) / tracked : 0;
   const packRate = tracked > 0 ? inPack / tracked : 0;
 
+  // Time-anchored trend: over the observed span, how many combos improved vs slipped
+  // since the last import, and the net move. Only meaningful when the span is real
+  // (>0 days) — a single-observation ladder has no trend to report.
+  const spanDays = ladderSpanDays(ladder);
+  let improved = 0;
+  let declined = 0;
+  let netSinceLast = 0;
+  for (const k of ladder) {
+    const sl = changeSinceLast(k);
+    if (sl === null) continue;
+    netSinceLast += sl;
+    if (sl > 0) improved++;
+    else if (sl < 0) declined++;
+  }
+  const hasTrend = spanDays > 0 && improved + declined > 0;
+  const netStr = `${netSinceLast > 0 ? "+" : ""}${netSinceLast}`;
+
   // Review sentiment.
   const n = reviews.length;
   const avgStars = n > 0 ? reviews.reduce((a, r) => a + r.rating, 0) / n : 0;
@@ -59,6 +77,13 @@ export async function localSignalsPromptText(
         )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.`
       );
     }
+    if (hasTrend) {
+      lines.push(
+        `- Trend pozic za ${fmtInt(spanDays)} dní: od posledního importu ${fmtInt(
+          improved
+        )} kombinací zlepšeno, ${fmtInt(declined)} zhoršeno (čistý posun ${netStr}).`
+      );
+    }
     if (n > 0) {
       lines.push(
         `- Recenze: ${fmtInt(n)} hodnocení, průměr ${avgStars.toFixed(1)}★; pozitivních ${fmtInt(
@@ -74,6 +99,13 @@ export async function localSignalsPromptText(
           packRate,
           0
         )}), of which #1 for ${fmtInt(top1)}; average position ${avgRank.toFixed(1)}.`
+      );
+    }
+    if (hasTrend) {
+      lines.push(
+        `- Rank trend over ${fmtInt(spanDays)} days: since the last import ${fmtInt(
+          improved
+        )} combos improved, ${fmtInt(declined)} declined (net move ${netStr}).`
       );
     }
     if (n > 0) {

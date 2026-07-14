@@ -2,8 +2,24 @@
  *  share-of-voice, ladder trend, rank sort, geo + determinism. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ladderDelta, shareOfVoice, sortByRank, sortLadder } from "@/lib/mappack/compute";
+import {
+  changeSinceLast,
+  ladderDelta,
+  ladderSpanDays,
+  ladderTrend,
+  observedSpanDays,
+  shareOfVoice,
+  sortByRank,
+  sortLadder,
+} from "@/lib/mappack/compute";
 import { CITY_COORDS, keywordLadder, packForArea } from "@/lib/mappack/sample";
+
+/** Build a dated history from bare ranks, newest last, `stepDays` apart. */
+const hist = (ranks, stepDays = 10, end = Date.parse("2026-06-30")) =>
+  ranks.map((rank, i) => ({
+    rank,
+    at: new Date(end - (ranks.length - 1 - i) * stepDays * 86_400_000).toISOString().slice(0, 10),
+  }));
 
 const listing = (rank, you = false) => ({
   id: `l${rank}`,
@@ -37,15 +53,38 @@ test("sortByRank orders 1-first and does not mutate", () => {
 });
 
 test("ladderDelta is positive when the rank improved (oldest−newest)", () => {
-  assert.equal(ladderDelta({ history: [8, 6, 4, 2] }), 6); // climbed 8 → 2
-  assert.equal(ladderDelta({ history: [2, 4] }), -2); // slipped
-  assert.equal(ladderDelta({ history: [3] }), 0);
+  assert.equal(ladderDelta({ history: hist([8, 6, 4, 2]) }), 6); // climbed 8 → 2
+  assert.equal(ladderDelta({ history: hist([2, 4]) }), -2); // slipped
+  assert.equal(ladderDelta({ history: hist([3]) }), 0);
+});
+
+test("changeSinceLast is the move between the last two observations, null when <2", () => {
+  assert.equal(changeSinceLast({ history: hist([8, 6, 4, 2]) }), 2); // 4 → 2 improved
+  assert.equal(changeSinceLast({ history: hist([2, 5]) }), -3); // slipped
+  assert.equal(changeSinceLast({ history: hist([3]) }), null);
+});
+
+test("observedSpanDays + ladderSpanDays reflect the real dated window", () => {
+  assert.equal(observedSpanDays({ history: hist([9, 5, 3], 10) }), 20); // 2 gaps × 10d
+  assert.equal(observedSpanDays({ history: hist([4], 10) }), 0); // single point
+  const rows = [{ history: hist([9, 5], 5) }, { history: hist([9, 7, 3], 10) }];
+  assert.equal(ladderSpanDays(rows), 20); // widest window wins
+});
+
+test("ladderTrend gives delta, sinceLast, span and a 30-day velocity where span supports it", () => {
+  const t = ladderTrend({ history: hist([10, 6, 4], 15) }); // span 30d, climbed 6
+  assert.equal(t.delta, 6);
+  assert.equal(t.sinceLast, 2);
+  assert.equal(t.spanDays, 30);
+  assert.ok(Math.abs(t.velocity30 - 6) < 1e-9); // 6 positions / 30d × 30
+  // too-short span → no velocity
+  assert.equal(ladderTrend({ history: hist([5, 3], 3) }).velocity30, null);
 });
 
 test("sortLadder puts the best current position first", () => {
   const rows = [
-    { id: "a", keyword: "a", area: "Praha", history: [9, 5], current: 5, best: 5 },
-    { id: "b", keyword: "b", area: "Brno", history: [4, 1], current: 1, best: 1 },
+    { id: "a", keyword: "a", area: "Praha", history: hist([9, 5]), current: 5, best: 5 },
+    { id: "b", keyword: "b", area: "Brno", history: hist([4, 1]), current: 1, best: 1 },
   ];
   assert.deepEqual(sortLadder(rows).map((r) => r.id), ["b", "a"]);
 });
@@ -73,13 +112,19 @@ test("keywordLadder builds capped, history-bounded rows", () => {
     { id: "s1", name: "Sluzba A", serviceAreas: ["praha"] },
     { id: "s2", name: "Sluzba B", serviceAreas: ["praha"] },
   ];
-  const rows = keywordLadder(project, localities, services, 6);
+  const rows = keywordLadder(project, localities, services, 6, new Date("2026-06-30"));
   assert.equal(rows.length, 2);
   for (const r of rows) {
     assert.equal(r.history.length, 8);
-    assert.equal(r.current, r.history[r.history.length - 1]);
-    assert.equal(r.best, Math.min(...r.history));
-    for (const p of r.history) assert.ok(p >= 1);
+    assert.equal(r.current, r.history[r.history.length - 1].rank);
+    assert.equal(r.best, Math.min(...r.history.map((p) => p.rank)));
+    for (const p of r.history) {
+      assert.ok(p.rank >= 1);
+      assert.match(p.at, /^\d{4}-\d{2}-\d{2}$/); // every point is date-stamped
+    }
+    // newest point anchored at the passed endDate; span is the sampled 90-day window
+    assert.equal(r.history[r.history.length - 1].at, "2026-06-30");
+    assert.equal(observedSpanDays(r), 90);
   }
   // cap is honoured
   assert.equal(keywordLadder(project, localities, [services[0], services[1]], 1).length, 1);
