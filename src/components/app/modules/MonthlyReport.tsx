@@ -7,7 +7,7 @@
  *  Markdown export. Account epic. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bolt, Check, Close, Document, Download, Gauge, Pin, Plus, Target, TrendDown } from "@/components/icons";
+import { Bolt, Check, Clock, Close, Document, Download, Gauge, Pin, Plus, Target, TrendDown } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { downloadText } from "@/lib/export";
@@ -37,6 +37,10 @@ const T = {
     unlinkConfirm: "Odpojit", cancel: "Zrušit",
     narrativeHeading: "Souhrn od AI", generate: "Vygenerovat souhrn", regenerate: "Vygenerovat znovu", generating: "Generuji…",
     idle: "Nech AI sestavit shrnutí výkonu za období na základě čísel výše.",
+    storedOn: "Uložený souhrn z {date}", recapStale: "Neaktuální — data se od vygenerování změnila",
+    recapFresh: "Odpovídá aktuálním datům", previewing: "náhled z historie",
+    historyHeading: "Historie souhrnů ({n})", historyEmpty: "Zatím žádné uložené souhrny.",
+    historyLatest: "nejnovější", historyStale: "neaktuální",
     error: "Souhrn se nepodařilo vygenerovat.", retry: "Zkusit znovu",
     wins: "Co se daří", risks: "Na co si dát pozor", actions: "Doporučené kroky",
     vsPrev: "vs. předchozí období",
@@ -65,6 +69,10 @@ const T = {
     unlinkConfirm: "Disconnect", cancel: "Cancel",
     narrativeHeading: "AI summary", generate: "Generate summary", regenerate: "Regenerate", generating: "Generating…",
     idle: "Let the AI compile a performance summary for the period based on the figures above.",
+    storedOn: "Saved summary from {date}", recapStale: "Out of date — the data changed since this was generated",
+    recapFresh: "Matches the current data", previewing: "history preview",
+    historyHeading: "Summary history ({n})", historyEmpty: "No saved summaries yet.",
+    historyLatest: "latest", historyStale: "out of date",
     error: "Could not generate the summary.", retry: "Try again",
     wins: "What’s working", risks: "Watch out for", actions: "Recommended actions",
     vsPrev: "vs. previous period",
@@ -81,6 +89,15 @@ const T = {
     pctOfGoal: "{pct} of target",
   },
 } as const;
+
+/** A persisted recap for a period, with the on-load staleness verdict already
+ *  decided server-side (the stored input hash vs the current inputs). Newest-first. */
+export interface RecapHistoryItem {
+  id: string;
+  createdAt: string;
+  stale: boolean;
+  result: MonthlyRecapResult;
+}
 
 export default function MonthlyReport({
   tiles,
@@ -101,6 +118,7 @@ export default function MonthlyReport({
   dataStart,
   dataEnd,
   beyond = null,
+  recaps,
 }: {
   tiles: ReportTileSpec[];
   snaps: Record<AnalysisPeriod, ReportSnap>;
@@ -134,17 +152,28 @@ export default function MonthlyReport({
   dataEnd?: string;
   /** D1: LTV + stock/seasonality headline numbers composed into the report (e-shop) */
   beyond?: ReportBeyondData | null;
+  /** Direction 1: the project's persisted recaps per period (newest-first, capped),
+   *  resolved server-side so the narrative renders a stored recap on load — with its
+   *  generation date and an honest stale marker — instead of regenerating every visit. */
+  recaps?: Partial<Record<AnalysisPeriod, RecapHistoryItem[]>>;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
   const router = useRouter();
-  const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct, fmtMonth } = useFormatters();
+  const { fmtInt, fmtCZKCompact, fmtPct, fmtMultiple, fmtSignedPct, fmtMonth, fmtDateShort } = useFormatters();
   const [period, setPeriod] = useState<AnalysisPeriod>("30d");
   const [syncing, setSyncing] = useState(false);
   const [syncErr, setSyncErr] = useState<string | null>(null);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
   const { status, data, run, reset } = useAiTool<MonthlyRecapResult>("monthly-recap", period);
+  // Direction 1: the persisted recaps for the selected period (newest-first). The
+  // narrative renders the stored recap on load; a preview lets the user page back
+  // through the history. The preview lookup is scoped to the current period's
+  // `history`, and the period toggle clears it — so a preview never leaks across
+  // periods (no set-state-in-effect needed).
+  const history = recaps?.[period] ?? [];
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   async function syncNow() {
     if (!projectId || syncing) return;
@@ -184,7 +213,20 @@ export default function MonthlyReport({
 
   const en = locale === "en";
   const snap = snaps[period];
-  const r = data?.result;
+  // What the narrative shows, in precedence: an explicit history preview → a fresh
+  // in-session generation (from useAiTool, incl. its localStorage restore) → the
+  // newest persisted recap for this period. `shownStored` is the stored/preview
+  // record when we're NOT showing a fresh session result, so its date + stale marker
+  // are surfaced (a fresh generation needs neither).
+  const sessionResult = data?.result;
+  const preview = previewId ? history.find((h) => h.id === previewId) ?? null : null;
+  const latestStored = history[0] ?? null;
+  // An explicit history preview wins; else a fresh/restored in-session generation;
+  // else the newest persisted recap. shownStored is the record whose date + stale
+  // marker we surface (null on a fresh session result — it needs neither).
+  const shownStored = preview ?? (sessionResult ? null : latestStored);
+  const r = preview?.result ?? sessionResult ?? latestStored?.result ?? null;
+  const activeHistoryId = preview?.id ?? (sessionResult ? null : latestStored?.id);
 
   const tileLabel = (spec: ReportTileSpec): string => (en ? spec.labelEn : spec.label);
   const fmtVal = (metric: ReportMetric, v: number): string => {
@@ -242,7 +284,7 @@ export default function MonthlyReport({
               <button
                 key={p}
                 type="button"
-                onClick={() => setPeriod(p)}
+                onClick={() => { setPeriod(p); setPreviewId(null); }}
                 className={"px-3 py-1.5 text-xs font-semibold transition-colors " + (period === p ? "bg-brand-500/15 text-brand-accent" : "text-muted hover:bg-brand-50")}
               >
                 {analysisPeriodLabel(p, locale)}
@@ -431,7 +473,7 @@ export default function MonthlyReport({
           <h3 className="text-base font-semibold text-navy-800">{t("narrativeHeading")}</h3>
           <button
             type="button"
-            onClick={() => status !== "loading" && run({ period })}
+            onClick={() => { if (status !== "loading") { setPreviewId(null); run({ period }); } }}
             disabled={status === "loading"}
             className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 print:hidden"
           >
@@ -440,7 +482,7 @@ export default function MonthlyReport({
           </button>
         </div>
 
-        {status === "idle" && <p className="mt-4 text-sm text-muted">{t("idle")}</p>}
+        {status !== "loading" && status !== "error" && !r && <p className="mt-4 text-sm text-muted">{t("idle")}</p>}
         {status === "loading" && <div className="mt-4 h-24 animate-pulse rounded-card bg-canvas" />}
         {status === "error" && (
           <div className="mt-4 text-sm">
@@ -448,8 +490,25 @@ export default function MonthlyReport({
             <button type="button" onClick={reset} className="mt-2 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-700 hover:border-brand-300">{t("retry")}</button>
           </div>
         )}
-        {status === "done" && r && (
+        {status !== "loading" && status !== "error" && r && (
           <div className="animate-fade-up mt-4 space-y-5">
+            {/* Direction 1: when the shown recap is a stored record (not a fresh
+                in-session generation), surface its generation date and an honest
+                stale marker (the current data no longer matches the stored one). */}
+            {shownStored && (
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 text-muted">
+                  <Clock width={12} height={12} />
+                  {t("storedOn", { date: fmtDateShort(shownStored.createdAt.slice(0, 10)) })}
+                </span>
+                {shownStored.stale ? (
+                  <span className="rounded-pill bg-coral-soft px-2 py-0.5 font-medium text-coral-600">{t("recapStale")}</span>
+                ) : (
+                  <span className="rounded-pill bg-positive-soft px-2 py-0.5 font-medium text-positive">{t("recapFresh")}</span>
+                )}
+                {preview && <span className="text-muted">· {t("previewing")}</span>}
+              </div>
+            )}
             <div className="rounded-card border border-navy-200 bg-navy-50 p-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-onyx text-brand-400"><Target width={18} height={18} /></span>
@@ -496,6 +555,37 @@ export default function MonthlyReport({
                   ))}
                 </ol>
               </div>
+            )}
+
+            {/* Direction 1: capped history (last 6 per period) in a small disclosure —
+                page back through the stored recaps; each row shows its date, headline
+                and a stale badge. Interactive, so hidden in print. */}
+            {history.length > 0 && (
+              <details className="group border-t border-line pt-4 print:hidden">
+                <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold text-muted transition-colors hover:text-navy-700">
+                  <Clock width={13} height={13} />
+                  {t("historyHeading", { n: history.length })}
+                </summary>
+                <ul className="mt-3 space-y-1.5">
+                  {history.map((h, i) => (
+                    <li key={h.id}>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewId(h.id)}
+                        className={
+                          "flex w-full items-center gap-2.5 rounded-card border px-3 py-2 text-left text-xs transition-colors " +
+                          (activeHistoryId === h.id ? "border-brand-300 bg-brand-50" : "border-line bg-surface hover:border-brand-300")
+                        }
+                      >
+                        <span className="tnum shrink-0 font-semibold text-navy-700">{fmtDateShort(h.createdAt.slice(0, 10))}</span>
+                        <span className="flex-1 truncate text-navy-600">{h.result.headline}</span>
+                        {i === 0 && <span className="shrink-0 rounded-pill bg-canvas px-1.5 py-0.5 font-medium text-muted">{t("historyLatest")}</span>}
+                        {h.stale && <span className="shrink-0 rounded-pill bg-coral-soft px-1.5 py-0.5 font-medium text-coral-600">{t("historyStale")}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </div>
         )}

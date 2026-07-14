@@ -68,6 +68,8 @@ import { getCostModel } from "@/lib/cost-model/store";
 import { profitGroundingText, historyGroundingText } from "@/lib/report/recap-context";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
+import { recordRecap, buildStoredRecap, recapInputHash } from "@/lib/recaps";
+import { randomUUID } from "node:crypto";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
 import { resolveTenant } from "@/lib/campaigns/connector";
@@ -421,9 +423,29 @@ export async function POST(request: Request) {
         // the EFFECTIVE project (keyId) so an unowned id degrades to base.
         const { data, keyId, businessType, projectType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale, p.value.period);
         const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
-        return cachedRespond("monthly-recap", value, locale, userId, () =>
-          generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext, projectType)
-        );
+        // Direction 1: persist the recap so the report can render it on load instead
+        // of regenerating every visit. Only for a REAL, owned project — `data` is
+        // defined for demo + owned, so we additionally exclude demo (public/shared)
+        // and require the original id; an unowned id degrades to keyId "base" with
+        // `data` undefined and never reaches here, so a caller can't write to a
+        // project they don't own. The input hash (period + locale + type + dataset)
+        // is stored so the page can flag a stored recap stale when the data changed.
+        const projectId = p.value.projectId;
+        const isDemo = projectId ? DEMO_PROJECTS.some((d) => d.id === projectId) : false;
+        const persistTarget = data && projectId && !isDemo ? projectId : null;
+        return cachedRespond("monthly-recap", value, locale, userId, async () => {
+          const res = await generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext, projectType);
+          if (persistTarget && !res.meta?.demo) {
+            const inputHash = recapInputHash(locale, p.value.period, projectType, data);
+            // Persistence is best-effort: a store hiccup must never fail the (already
+            // paid-for) generation the caller is waiting on.
+            await recordRecap(
+              persistTarget,
+              buildStoredRecap({ period: p.value.period, result: res.result, inputHash, locale }, randomUUID)
+            ).catch(() => {});
+          }
+          return res;
+        });
       }
       case "chat": {
         const p = validateChatRequest(body, locale);

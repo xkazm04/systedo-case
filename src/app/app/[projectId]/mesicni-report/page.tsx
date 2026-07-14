@@ -3,7 +3,9 @@
  *  `monthly-recap` narrative reads. Account-level module, every project type. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
-import MonthlyReport from "@/components/app/modules/MonthlyReport";
+import MonthlyReport, { type RecapHistoryItem } from "@/components/app/modules/MonthlyReport";
+import { getServerLocale } from "@/lib/i18n/locale";
+import { getRecaps, historyForPeriod, recapInputHash, isRecapStale } from "@/lib/recaps";
 import { buildSnapshot } from "@/lib/snapshot";
 import { cpa, rel, monthlyAttainmentHistory } from "@/lib/metrics";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
@@ -169,6 +171,25 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       ? monthlyAttainmentHistory(dataset.daily, dataset.goals.monthlyRevenue)
       : [];
 
+  // Direction 1: the project's persisted recaps per period, resolved server-side so
+  // the narrative renders a stored recap on load instead of regenerating every visit.
+  // Each stored recap's staleness is decided here — its stored input hash vs the
+  // CURRENT inputs (the same period + locale + project type + dataset the route
+  // hashes at generation) — so a recap computed before a data change is honestly
+  // flagged. Read once; the pure helpers bucket + cap per period.
+  const locale = await getServerLocale();
+  const recapState = await getRecaps(project.id).catch(() => null);
+  const recaps = {} as Record<AnalysisPeriod, RecapHistoryItem[]>;
+  for (const p of ANALYSIS_PERIODS) {
+    const currentHash = recapInputHash(locale, p, project.type, dataset);
+    recaps[p] = historyForPeriod(recapState, p).map((it) => ({
+      id: it.id,
+      createdAt: it.createdAt,
+      stale: isRecapStale(it, currentHash),
+      result: it.result,
+    }));
+  }
+
   return (
     <ModulePage moduleKey="mesicni-report">
       <MonthlyReport
@@ -190,6 +211,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         dataStart={dataStart}
         dataEnd={dataEnd}
         beyond={beyond}
+        recaps={recaps}
       />
     </ModulePage>
   );

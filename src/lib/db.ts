@@ -181,6 +181,18 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Persisted monthly recaps: per-project {items[], updatedAt} blob, each item a
+  -- generated recap for a period (the result payload, the createdAt timestamp, the
+  -- input hash it was computed from — for the stale marker — and the locale). The
+  -- most report-like AI artifact used to regenerate on every visit; now it is a
+  -- record with capped history (newest-first, capped per period). Absent → nothing
+  -- generated yet (the narrative renders its idle hint). See src/lib/recaps/.
+  CREATE TABLE IF NOT EXISTS recaps (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- Per-project report annotations ("what happened here" client-authored business
   -- events pinned to a date), as one {items, updatedAt} blob. Absent → the report
   -- has no notes yet. Live datasets map these into the chart's event markers + the
