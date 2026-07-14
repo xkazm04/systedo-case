@@ -7,6 +7,7 @@
 import type { Project } from "@/lib/projects/types";
 import { sourcesForProject, type LeadSource } from "@/lib/lead-quality/sample";
 import { summarize, withMetrics, avgVelocity } from "@/lib/lead-quality/compute";
+import { resolveLeadSources } from "@/lib/lead-quality/resolve";
 import { fmtCZK, fmtInt, fmtPct } from "@/lib/format";
 
 /** R02: reconcile the lead-quality source breakdown with the report tile. The tile
@@ -42,24 +43,32 @@ function scaleSourcesToLeads(sources: LeadSource[], targetLeads: number): LeadSo
   return scaled;
 }
 
-/** A lead-quality grounding block for a leadgen/local project, or null otherwise.
- *  `targetLeads` (the report's period lead total) reconciles the counts with the
- *  tile (R02); omit it to keep the raw sample totals. */
-export function leadSignalsPromptText(project: Project, targetLeads?: number): string | null {
-  if (project.type !== "leadgen" && project.type !== "local") return null;
-  const raw = sourcesForProject(project);
-  if (raw.length === 0) return null;
-  const sources = targetLeads != null && targetLeads > 0 ? scaleSourcesToLeads(raw, targetLeads) : raw;
+/** Build the lead-quality grounding block from a resolved source set. `live` marks
+ *  the provenance honestly (imported CRM leads vs the illustrative sample) — the
+ *  integrity rule: the AI grounding must never present sample data as live. Scaling
+ *  to the report tile (R02) only applies to the SAMPLE spine — imported leads are
+ *  ground truth and are never rescaled. Pure; null for an empty set. */
+export function leadSignalsText(
+  sources: LeadSource[],
+  opts: { targetLeads?: number; live: boolean }
+): string | null {
+  if (sources.length === 0) return null;
+  const { targetLeads, live } = opts;
+  const scaled =
+    !live && targetLeads != null && targetLeads > 0 ? scaleSourcesToLeads(sources, targetLeads) : sources;
 
-  const rows = sources.map(withMetrics);
-  const sum = summarize(sources);
-  const vel = avgVelocity(sources);
+  const rows = scaled.map(withMetrics);
+  const sum = summarize(scaled);
+  const vel = avgVelocity(scaled);
   const junk = rows.filter((r) => r.junk).sort((a, b) => a.qualRate - b.qualRate);
   const best = [...rows].sort((a, b) => b.qualityScore - a.qualityScore)[0];
   const qualRate = sum.leads > 0 ? sum.qualified / sum.leads : 0;
 
+  const header = live
+    ? "Kvalita a zdroje leadů (reálná importovaná data z CRM — report na ně nesmí mlčet):"
+    : "Kvalita a zdroje leadů (reálná, už spočítaná data — report na ně nesmí mlčet):";
   const lines: string[] = [
-    "Kvalita a zdroje leadů (reálná, už spočítaná data — report na ně nesmí mlčet):",
+    header,
     `- Leadů: ${fmtInt(sum.leads)}; kvalifikovaných: ${fmtInt(sum.qualified)} (${fmtPct(qualRate)}); vyhraných: ${fmtInt(sum.won)}`,
     `- Cena za lead (CPL): ${fmtCZK(sum.blendedCpl)}; cena za kvalifikovaný lead (CPQL): ${fmtCZK(sum.blendedCpql)}`,
     junk.length > 0
@@ -82,4 +91,43 @@ export function leadSignalsPromptText(project: Project, targetLeads?: number): s
     lines.push(`- Rychlost leadů (velocity): ${parts.join(", ")}`);
   }
   return lines.join("\n");
+}
+
+/** A lead-quality grounding block for a leadgen/local project, or null otherwise,
+ *  computed over the SAMPLE spine. `targetLeads` (the report's period lead total)
+ *  reconciles the counts with the tile (R02); omit it to keep the raw sample totals.
+ *  Pure + sync — the sample-only path (its output is byte-identical to before this
+ *  became provenance-aware). For the live-over-sample path, use
+ *  {@link resolveLeadSignalsPromptText}. */
+export function leadSignalsPromptText(project: Project, targetLeads?: number): string | null {
+  if (project.type !== "leadgen" && project.type !== "local") return null;
+  const raw = sourcesForProject(project);
+  return leadSignalsText(raw, { targetLeads, live: false });
+}
+
+/** The recap's lead-quality grounding, resolving IMPORTED leads over the sample:
+ *  when the project has imported CRM leads the block computes over them (labelled
+ *  live) and reports the import's timestamp as a cache `version` so a re-import
+ *  can't be served a stale recap; otherwise it falls back to the sample spine
+ *  (byte-identical, no version). Leadgen/local only. Server-only. Never throws. */
+export async function resolveLeadSignals(
+  project: Project,
+  targetLeads?: number
+): Promise<{ text: string | null; version?: string }> {
+  if (project.type !== "leadgen" && project.type !== "local") return { text: null };
+  const sample = sourcesForProject(project);
+  const resolved = await resolveLeadSources(project.id, sample);
+  return {
+    text: leadSignalsText(resolved.sources, { targetLeads, live: resolved.live }),
+    version: resolved.live ? resolved.syncedAt : undefined,
+  };
+}
+
+/** Text-only convenience over {@link resolveLeadSignals} for grounding paths that
+ *  key their cache by project alone (LP-variant ideas). */
+export async function resolveLeadSignalsPromptText(
+  project: Project,
+  targetLeads?: number
+): Promise<string | null> {
+  return (await resolveLeadSignals(project, targetLeads)).text;
 }

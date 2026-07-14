@@ -16,6 +16,7 @@ import {
 } from "@/lib/lead-quality/compute";
 import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel from "@/components/app/modules/LeadSourceDiagnosisPanel";
+import LeadImportPanel from "@/components/app/modules/LeadImportPanel";
 import { buildLeadSourceSeeds } from "@/lib/diagnoses/lead-source-request";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
@@ -139,10 +140,22 @@ const alertTone: Record<LeadQualityAlert["severity"], PillTone> = {
 export default async function LeadQualityModule({
   sources,
   projectId,
+  live = false,
+  source,
+  syncedAt,
+  sourceUrl,
 }: {
   sources: LeadSource[];
   /** the project the diagnosis persists under — undefined on sample-less surfaces */
   projectId?: string;
+  /** whether `sources` are imported (live) rather than the seeded sample */
+  live?: boolean;
+  /** provenance of the active source set (import / url / sample) */
+  source?: "sample" | "import" | "url";
+  /** ISO timestamp of the import, when live */
+  syncedAt?: string;
+  /** for source "url": the hosted CSV the leads were fetched from */
+  sourceUrl?: string;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -180,6 +193,18 @@ export default async function LeadQualityModule({
 
   return (
     <div className="stagger space-y-6">
+      {/* Live-over-sample: import real CRM leads (or revert). Only on a real project
+          surface — the demo/sample-less mount omits it. */}
+      {projectId && (
+        <LeadImportPanel
+          projectId={projectId}
+          live={live}
+          source={source}
+          syncedAt={syncedAt}
+          sourceUrl={sourceUrl}
+        />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="card p-5">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("leads")}</p>

@@ -198,6 +198,17 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Imported CRM leads per project: one {items[], source, syncedAt, updatedAt} blob,
+  -- each item a raw lead (source + stage + date + optional value/closeDate). Absent →
+  -- the funnel runs on the seeded per-project sample (illustrative). Present → the
+  -- funnel/velocity/alerts + AI grounding compute over the imported rows, honestly
+  -- labelled live. See src/lib/lead-quality/ (import.ts aggregates → LeadSource shape).
+  CREATE TABLE IF NOT EXISTS lead_imports (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Start module's onboarding state: the applied website-scan business profile
   -- + a couple of flags (scanApplied, dismissed), as one blob. Absent → a fresh
   -- project (nothing scanned yet); the connector checklist's per-step "done" is
@@ -262,7 +273,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (18 tables + projects index)",
+    name: "base schema (19 tables + projects index)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -296,6 +307,19 @@ const MIGRATIONS: Migration[] = [
     name: "projects.logo_url (client branding for reports)",
     up: (db) => db.exec("ALTER TABLE projects ADD COLUMN logo_url TEXT"),
     applied: (db) => hasColumn(db, "projects", "logo_url"),
+  },
+  {
+    version: 7,
+    name: "lead_imports (imported CRM leads → live funnel)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS lead_imports (
+          project_id TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      ),
+    applied: (db) => tableExists(db, "lead_imports"),
   },
 ];
 

@@ -60,7 +60,7 @@ import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { staleCaveatText } from "@/lib/report-metrics/freshness";
 import { getAnnotations } from "@/lib/annotations/store";
 import { annotationsGroundingText } from "@/lib/annotations/types";
-import { leadSignalsPromptText } from "@/lib/lead-signals/summary";
+import { resolveLeadSignals, resolveLeadSignalsPromptText } from "@/lib/lead-signals/summary";
 import { localSignalsPromptText } from "@/lib/local-signals/summary";
 import { getCompetitors } from "@/lib/competitors/store";
 import { competitorGroundingText } from "@/lib/competitors/grounding";
@@ -186,7 +186,8 @@ async function resolveGrounding(
   if (demo) {
     const data = getProjectDataset(demo);
     const localText = await localSignalsPromptText(demo, locale);
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale, windowDaysFor(period), period);
+const lead = await resolveLeadSignals(demo, targetLeads(data));
+    const comp = await mergeGrounding(demo.id, lead.text, localText, data, locale, windowDaysFor(period), period, lead.version);
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -205,7 +206,8 @@ async function resolveGrounding(
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
       const localText = await localSignalsPromptText(project, locale);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale, windowDaysFor(period), period);
+const lead = await resolveLeadSignals(project, targetLeads(resolved.data));
+      const comp = await mergeGrounding(project.id, lead.text, localText, resolved.data, locale, windowDaysFor(period), period, lead.version);
       // D1: when the live series is stale, the recap gets a one-line caveat so the
       // narrative acknowledges the data age instead of presenting month-old numbers
       // as current. USER-prompt only (groundingContext) — no system-prompt / golden
@@ -288,9 +290,12 @@ async function mergeGrounding(
   // Direction 2: the analyzed window (days) for the "Poznámky klienta" annotations
   // block, so only in-window client notes ground the narrative.
   windowDays: number,
-  // Profit-trajectory grounding: the recap period, so the profit line covers the
+// Profit-trajectory grounding: the recap period, so the profit line covers the
   // ANALYZED window (not a hardcoded 30d) with its net-profit trend direction.
-  period?: AnalysisPeriod
+  period?: AnalysisPeriod,
+  // Imported-leads version (the import's syncedAt when live, else undefined) so a
+  // re-import invalidates the recap cache — the lead grounding text is real data.
+  leadVersion?: string
 ): Promise<{ text?: string; keySuffix?: string }> {
   const [set, costModel, annotations] = await Promise.all([
     getCompetitors(projectId),
@@ -310,7 +315,9 @@ async function mergeGrounding(
   ]
     .filter(Boolean)
     .join(" ");
-  const keySuffix = [set?.updatedAt, costModel?.updatedAt, annotations?.updatedAt].filter(Boolean).join("|");
+  const keySuffix = [set?.updatedAt, costModel?.updatedAt, annotations?.updatedAt, leadVersion]
+    .filter(Boolean)
+    .join("|");
   return { text: merged || undefined, keySuffix: keySuffix || undefined };
 }
 
@@ -330,10 +337,10 @@ async function resolveLeadGrounding(
 ): Promise<{ text?: string; keyId: string }> {
   if (!projectId) return { keyId: "base" };
   const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return { text: leadSignalsPromptText(demo) ?? undefined, keyId: demo.id };
+  if (demo) return { text: (await resolveLeadSignalsPromptText(demo)) ?? undefined, keyId: demo.id };
   if (userId) {
     const project = await getProject(userId, projectId);
-    if (project) return { text: leadSignalsPromptText(project) ?? undefined, keyId: project.id };
+    if (project) return { text: (await resolveLeadSignalsPromptText(project)) ?? undefined, keyId: project.id };
   }
   return { keyId: "base" };
 }
