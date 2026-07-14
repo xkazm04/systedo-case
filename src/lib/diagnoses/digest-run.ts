@@ -1,31 +1,34 @@
-/** "Diagnóza týdne" runner (Direction 2, server-only): during the weekly digest,
- *  run BOTH gate-tracked diagnosis tools over a tenant's real (per-project) data —
- *  reusing the EXISTING tools + their extracted request builders, so there is NO new
- *  LLM operation and the gate fingerprints are unchanged — persist each result
- *  through the Direction-1 store (origin "digest") so the module shows it too, and
- *  return a compact summary for the alert-inbox entry + the email section.
+/** "Diagnóza týdne" runner (server-only): during the weekly digest, run the
+ *  gate-tracked lead-source diagnosis over a tenant's REAL resolved data — reusing
+ *  the EXACT request builder the panel path uses (lead-source-request.ts), so there
+ *  is NO new LLM operation and the gate fingerprints are unchanged. The result is
+ *  persisted through the Direction-1 store (origin "digest") so the module shows it
+ *  too, and a compact summary is returned for the alert-inbox entry + the email.
+ *
+ *  Integrity (Direction 1): the lead-source diagnosis runs ONLY when the funnel
+ *  resolves to genuinely imported leads (resolveLeadSources.live) — a connected
+ *  tenant WITHOUT imported leads now gets NO synthetic diagnosis. The cohort
+ *  diagnosis is skipped honestly (no live cohort store): no LLM call, no spend, a
+ *  recorded note. Sample-only tenants were already gated out by the cron.
  *
  *  Spend posture: mirrors /api/ai's cachedRespond — one global-ceiling unit is
- *  charged per intended provider call up front and refunded when a call degrades to
- *  the deterministic demo (no paid provider ran) or throws, so passive digest AI
- *  respects the same AI_GLOBAL_DAILY_CEILING guard as interactive calls. The caller
- *  (the cron) has already gated on shouldRunWeeklyDiagnosis (once/week + skip
- *  sample-only), so this just does the work. */
+ *  charged per intended provider call and refunded when a call degrades to the
+ *  deterministic demo (no paid provider ran) or throws. Nothing is charged when no
+ *  diagnosis runs. */
 import "server-only";
-import { generateCohortDiagnosis, generateLeadSourceDiagnosis } from "@/lib/ai/tools";
-import { cohortsForProject } from "@/lib/ltv/sample";
-import { ltvSummary, withMetrics as cohortWithMetrics } from "@/lib/ltv/compute";
+import { generateLeadSourceDiagnosis } from "@/lib/ai/tools";
 import { sourcesForProject } from "@/lib/lead-quality/sample";
 import { withMetrics as sourceWithMetrics } from "@/lib/lead-quality/compute";
-import { buildCohortRequest } from "./cohort-request";
+import { resolveLeadSources } from "@/lib/lead-quality/resolve";
 import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
+import { planDigestDiagnoses } from "./digest-plan";
 import { buildStoredDiagnosis, inputDigest, sanitizeDiagnosisInput } from "./types";
 import { recordDiagnosis } from "./store";
 import { durableGuard, refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import type { Project } from "@/lib/projects/types";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, CohortDiagnosisResult, LeadSourceDiagnosisResult } from "@/lib/ai-types";
+import type { AiResponse, LeadSourceDiagnosisResult } from "@/lib/ai-types";
 
 /** One diagnosis's compact output for the alert / email. */
 export interface DigestDiagnosisPart {
@@ -35,8 +38,9 @@ export interface DigestDiagnosisPart {
 }
 
 export interface DigestDiagnosisResult {
-  cohort?: DigestDiagnosisPart;
   leadSource?: DigestDiagnosisPart;
+  /** honest run/skip notes for the run record (e.g. "cohort: no live basis") */
+  notes: string[];
 }
 
 /** Refund the global-ceiling unit when a call degraded to the demo (no paid work). */
@@ -45,93 +49,54 @@ async function refundIfDemo(res: AiResponse<unknown>): Promise<void> {
 }
 
 /**
- * Run + persist both diagnoses for a project's tenant. Returns the compact summary,
- * or null when nothing produced (e.g. the tenant has no diagnosable data). The
- * digest emails are Czech, so the tools run with the `cs` locale.
+ * Run + persist the lead-source diagnosis for a project's tenant when its funnel
+ * resolves to genuinely imported leads; otherwise return only the honest skip
+ * notes. The digest emails are Czech, so the tool runs with the `cs` locale.
  */
 export async function runTenantDiagnoses(
   project: Project,
   now: Date = new Date()
-): Promise<DigestDiagnosisResult | null> {
+): Promise<DigestDiagnosisResult> {
   const locale: SupportedLocale = "cs";
-  const eshop = project.type === "eshop";
 
-  // Build the SAME requests the panels build, from the project's real data.
-  const cohorts = cohortsForProject(project);
-  const cohortRows = cohorts.map((c) => cohortWithMetrics(c));
-  const cohortReq = buildCohortRequest(cohortRows, ltvSummary(cohorts), eshop);
-
-  const sourceRows = sourcesForProject(project)
+  // Resolve the funnel's ACTUAL source set (imported-over-sample) and build the
+  // SAME seeds the panel builds — from real data, never the sample generator.
+  const resolved = await resolveLeadSources(project.id, sourcesForProject(project));
+  const sourceRows = resolved.sources
     .map(sourceWithMetrics)
     .sort((a, b) => b.qualityScore - a.qualityScore);
-  const seeds = buildLeadSourceSeeds(sourceRows);
-  const leadSeed = seeds[0];
+  const leadSeed = buildLeadSourceSeeds(sourceRows)[0];
 
-  const hasCohort = cohortReq.cohorts.length > 0;
-  const hasLead = leadSeed != null;
-  if (!hasCohort && !hasLead) return null;
+  const plan = planDigestDiagnoses({
+    leadSourcesLive: resolved.live,
+    hasLeadSeed: leadSeed != null,
+  });
+  const out: DigestDiagnosisResult = { notes: plan.notes };
+  if (!plan.runLead || !leadSeed) return out;
 
   // Attribute the telemetry to the project (mirrors the /api/ai request context).
   enterLlmRequestContext({ projectId: project.id });
 
-  // Charge the global ceiling for the intended provider calls; skip on exhaustion.
-  const intended = (hasCohort ? 1 : 0) + (hasLead ? 1 : 0);
-  const guard = await durableGuard("cron:digest-diagnosis", [], { spendUnits: intended });
-  if (!guard.ok) return null;
+  // Charge the global ceiling for the one intended provider call; skip on exhaustion.
+  const guard = await durableGuard("cron:digest-diagnosis", [], { spendUnits: 1 });
+  if (!guard.ok) return out;
 
-  const out: DigestDiagnosisResult = {};
-
-  if (hasCohort) {
-    try {
-      const res = await generateCohortDiagnosis(cohortReq, locale);
-      await refundIfDemo(res);
-      await persistCohort(project.id, res.result, cohortReq, now);
-      out.cohort = {
-        subject: res.result.worstCohort,
-        summary: res.result.summary,
-        recommendation: res.result.recommendation,
-      };
-    } catch (err) {
-      await refundGlobalSpend(1); // no billable work landed
-      console.error(`[cron] cohort diagnosis failed for ${project.id}:`, err);
-    }
+  try {
+    const leadReq = seedToRequest(leadSeed);
+    const res = await generateLeadSourceDiagnosis(leadReq, locale);
+    await refundIfDemo(res);
+    await persistLeadSource(project.id, res.result, leadReq, leadSeed.source, now);
+    out.leadSource = {
+      subject: leadSeed.source,
+      summary: res.result.summary,
+      recommendation: res.result.recommendation,
+    };
+  } catch (err) {
+    await refundGlobalSpend(1); // no billable work landed
+    console.error(`[cron] lead-source diagnosis failed for ${project.id}:`, err);
   }
 
-  if (hasLead) {
-    try {
-      const leadReq = seedToRequest(leadSeed);
-      const res = await generateLeadSourceDiagnosis(leadReq, locale);
-      await refundIfDemo(res);
-      await persistLeadSource(project.id, res.result, leadReq, leadSeed.source, now);
-      out.leadSource = {
-        subject: leadSeed.source,
-        summary: res.result.summary,
-        recommendation: res.result.recommendation,
-      };
-    } catch (err) {
-      await refundGlobalSpend(1);
-      console.error(`[cron] lead-source diagnosis failed for ${project.id}:`, err);
-    }
-  }
-
-  return out.cohort || out.leadSource ? out : null;
-}
-
-async function persistCohort(
-  projectId: string,
-  result: CohortDiagnosisResult,
-  req: unknown,
-  now: Date
-): Promise<void> {
-  const input = sanitizeDiagnosisInput({
-    kind: "cohort",
-    result,
-    inputDigest: inputDigest(req),
-    subject: result.worstCohort,
-    origin: "digest",
-  });
-  if (!input) return;
-  await recordDiagnosis(projectId, buildStoredDiagnosis(input, () => crypto.randomUUID(), now));
+  return out;
 }
 
 async function persistLeadSource(

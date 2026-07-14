@@ -28,31 +28,17 @@ import { runTenantDiagnoses, type DigestDiagnosisResult } from "@/lib/diagnoses/
 export const maxDuration = 300;
 
 /** Build the "Diagnóza týdne" alert body (plain text) + email section (HTML) from
- *  the two produced diagnoses. Each present part contributes a subject + the single
- *  recommendation to act on. */
+ *  the produced lead-source diagnosis. Empty when nothing ran (see Direction 1: the
+ *  cohort diagnosis is skipped honestly, and the lead one runs only on live data). */
 function renderDiagnosis(d: DigestDiagnosisResult): { alertBody: string; html: string } {
-  const parts: string[] = [];
-  const rows: string[] = [];
-  if (d.cohort) {
-    parts.push(`Kohorty: ${d.cohort.subject} — ${d.cohort.recommendation}`);
-    rows.push(
-      `<li style="margin:6px 0"><strong>Kohorty — ${escapeHtml(d.cohort.subject)}:</strong> ${escapeHtml(
-        d.cohort.recommendation
-      )}</li>`
-    );
-  }
-  if (d.leadSource) {
-    parts.push(`Zdroj ${d.leadSource.subject} — ${d.leadSource.recommendation}`);
-    rows.push(
-      `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
-        d.leadSource.recommendation
-      )}</li>`
-    );
-  }
-  const html = rows.length
-    ? `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>${rows.join("")}</ul>`
-    : "";
-  return { alertBody: parts.join(" · "), html };
+  if (!d.leadSource) return { alertBody: "", html: "" };
+  const alertBody = `Zdroj ${d.leadSource.subject} — ${d.leadSource.recommendation}`;
+  const html =
+    `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>` +
+    `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
+      d.leadSource.recommendation
+    )}</li></ul>`;
+  return { alertBody, html };
 }
 
 export async function GET(request: Request) {
@@ -71,6 +57,8 @@ export async function GET(request: Request) {
     ok: boolean;
     sent?: boolean;
     error?: string;
+    /** honest run/skip notes from the passive diagnosis (Direction 1) */
+    diagnosisNotes?: string[];
   }[] = [];
 
   // AI operations rollup over the digest window — global (llmTelemetry is
@@ -150,12 +138,15 @@ export async function GET(request: Request) {
       await recordAlert(tenant, { type: "digest", title, body, items });
       await sendWebhook(`Adamant — ${title}: ${body}`);
 
-      // "Diagnóza týdne": passively run the LTV cohort + lead-source diagnosis over
-      // this tenant's real data (reusing the gate-tracked tools) and file it as an
-      // inbox entry + an email section. Only for a connected tenant (this branch is
-      // reached only when meta && campaigns exist → not sample-only), once per
-      // project per week (the newest digest-produced diagnosis gates re-runs).
+      // "Diagnóza týdne": run the gate-tracked lead-source diagnosis over the
+      // tenant's REAL resolved data, once per project per week (the weekly claim
+      // above bounds the whole email/alert to one ISO week; the newest
+      // digest-produced diagnosis gates re-runs). This branch is reached only for a
+      // connected tenant (meta && campaigns exist → not sample-only). Direction 1:
+      // it runs only on genuinely imported leads; the cohort diagnosis is skipped
+      // honestly (recorded in notes).
       let diagnosisHtml = "";
+      let diagnosisNotes: string[] | undefined;
       if (project && !diagnosedProjects.has(project.id)) {
         diagnosedProjects.add(project.id);
         const priorDigest = (await listDiagnoses(project.id))
@@ -169,14 +160,15 @@ export async function GET(request: Request) {
         });
         if (shouldRun) {
           const diagnosis = await runTenantDiagnoses(project, now);
-          if (diagnosis) {
-            const { alertBody, html } = renderDiagnosis(diagnosis);
+          diagnosisNotes = diagnosis.notes;
+          const { alertBody, html } = renderDiagnosis(diagnosis);
+          if (alertBody) {
             await recordAlert(tenant, {
               type: "digest",
               title: "Diagnóza týdne",
               body: alertBody,
               items: [],
-              href: `/app/${project.id}/ltv`,
+              href: `/app/${project.id}/kvalita-leadu`,
             });
             diagnosisHtml = html;
           }
@@ -207,7 +199,14 @@ export async function GET(request: Request) {
         await sendEmail(email, `Adamant: ${title}`, html);
       }
 
-      results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: true });
+      results.push({
+        userId,
+        projectId: project?.id,
+        customerId: account?.customerId,
+        ok: true,
+        sent: true,
+        ...(diagnosisNotes ? { diagnosisNotes } : {}),
+      });
     },
     (pair, err) => {
       const { userId, target } = pair;
