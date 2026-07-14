@@ -1,8 +1,16 @@
 /** Lead-quality math: cost per lead vs cost per *qualified* lead, qualification
  *  and win rates, ROI, and a composite quality score. Flags "junk" sources that
  *  are cheap per lead but low quality. Pure. */
-import { fmtCZK } from "@/lib/format";
+import { createFormatters, type SupportedLocale } from "@/lib/format";
 import type { LeadSource, PeriodCounts } from "./sample";
+
+/** Locale-bound formatter instances, built once. `cs` is byte-identical to the
+ *  module-level `fmtCZK` the alert copy used before this became locale-aware, so a
+ *  `locale`-less (default cs) call still renders exactly the same Czech string. */
+const FMT: Record<SupportedLocale, ReturnType<typeof createFormatters>> = {
+  cs: createFormatters("cs"),
+  en: createFormatters("en"),
+};
 
 export interface SourceMetrics extends LeadSource {
   cpl: number;
@@ -86,18 +94,29 @@ export interface SourceFunnel {
   overallConversion: number;
 }
 
-const STAGE_LABELS = {
-  leads: "Lead",
-  qualified: "SQL",
-  opportunities: "Příležitost",
-  won: "Uzavřeno",
-} as const;
+/** Stage labels per locale. cs is byte-identical to the former single map, so a
+ *  default (cs) render is unchanged; en spells the stages out in English. */
+const STAGE_LABELS: Record<SupportedLocale, Record<FunnelStage["key"], string>> = {
+  cs: {
+    leads: "Lead",
+    qualified: "SQL",
+    opportunities: "Příležitost",
+    won: "Uzavřeno",
+  },
+  en: {
+    leads: "Lead",
+    qualified: "SQL",
+    opportunities: "Opportunity",
+    won: "Won",
+  },
+};
 
 /** Build the Lead → SQL → (Opportunity) → Won funnel for one source with
  *  per-step conversion and absolute drop-off. The opportunity stage is skipped
  *  when `opportunities` is absent, so a source without it degrades to the
- *  three-stage funnel without regression. */
-export function sourceFunnel(s: LeadSource): SourceFunnel {
+ *  three-stage funnel without regression. `locale` picks the stage labels (default
+ *  cs → byte-identical output). */
+export function sourceFunnel(s: LeadSource, locale: SupportedLocale = "cs"): SourceFunnel {
   const ordered: Array<{ key: FunnelStage["key"]; count: number }> = [
     { key: "leads", count: s.leads },
     { key: "qualified", count: s.qualified },
@@ -111,7 +130,7 @@ export function sourceFunnel(s: LeadSource): SourceFunnel {
     const prev = i > 0 ? ordered[i - 1].count : stage.count;
     return {
       key: stage.key,
-      label: STAGE_LABELS[stage.key],
+      label: STAGE_LABELS[locale][stage.key],
       count: stage.count,
       conversion: i === 0 ? 1 : prev > 0 ? stage.count / prev : 0,
       dropOff: i === 0 ? 0 : Math.max(0, prev - stage.count),
@@ -126,9 +145,9 @@ export function sourceFunnel(s: LeadSource): SourceFunnel {
   };
 }
 
-/** Funnels for every source, in input order. */
-export function funnelBySource(sources: LeadSource[]): SourceFunnel[] {
-  return sources.map(sourceFunnel);
+/** Funnels for every source, in input order. `locale` threads the stage labels. */
+export function funnelBySource(sources: LeadSource[], locale: SupportedLocale = "cs"): SourceFunnel[] {
+  return sources.map((s) => sourceFunnel(s, locale));
 }
 
 /** Average days-in-stage. Each leg (qualify / close) is included only when its
@@ -233,9 +252,25 @@ export interface LeadQualityAlert {
   source: string;
   kind: AlertKind;
   severity: AlertSeverity;
-  /** Czech, ready-to-render alert sentence */
+  /** ready-to-render alert sentence in the requested locale (default cs) */
   message: string;
 }
+
+/** Localised alert sentence templates. cs is byte-identical to the former inline
+ *  literals (default path unchanged); en is the plain-English counterpart. */
+const ALERT_MSG: Record<
+  SupportedLocale,
+  { rise: (source: string, pct: string) => string; target: (source: string, now: string, target: string) => string }
+> = {
+  cs: {
+    rise: (source, pct) => `CPQL zdroje „${source}” vzrostlo o ${pct} oproti minulému období.`,
+    target: (source, now, target) => `CPQL zdroje „${source}” (${now}) překračuje cíl ${target}.`,
+  },
+  en: {
+    rise: (source, pct) => `The CPQL of source “${source}” rose by ${pct} vs. the previous period.`,
+    target: (source, now, target) => `The CPQL of source “${source}” (${now}) exceeds the target ${target}.`,
+  },
+};
 
 /** Options for the drift alerts; both default to the module constants so callers
  *  may override the target/rise per project without re-implementing the rule. */
@@ -253,10 +288,18 @@ const pctText = (fraction: number): string => `${Math.round(Math.abs(fraction) *
 
 /** Threshold alerts for one source's trend: a CPQL rise beyond the threshold
  *  ("vzrostlo o >25 %") and/or CPQL over target ("překračuje cíl"). A paid
- *  source whose CPQL is flat and on-target yields no alerts. */
-export function sourceAlerts(t: SourceTrend, opts: AlertOptions = {}): LeadQualityAlert[] {
+ *  source whose CPQL is flat and on-target yields no alerts. `locale` picks the
+ *  message language + currency (default cs → byte-identical to the former copy),
+ *  so the gate-tracked diagnosis seeds that omit it stay unchanged. */
+export function sourceAlerts(
+  t: SourceTrend,
+  opts: AlertOptions = {},
+  locale: SupportedLocale = "cs"
+): LeadQualityAlert[] {
   const riseThreshold = opts.riseThreshold ?? CPQL_ALERT_RISE;
   const targetCzk = opts.targetCzk ?? CPQL_TARGET_CZK;
+  const msg = ALERT_MSG[locale];
+  const fmtCurrency = FMT[locale].fmtCZK;
   const alerts: LeadQualityAlert[] = [];
   if (!t.paid) return alerts; // CPQL undefined for unpaid sources → nothing to alert
 
@@ -265,7 +308,7 @@ export function sourceAlerts(t: SourceTrend, opts: AlertOptions = {}): LeadQuali
       source: t.source,
       kind: "cpql-rise",
       severity: "warning",
-      message: `CPQL zdroje „${t.source}” vzrostlo o ${pctText(t.cpqlDelta)} oproti minulému období.`,
+      message: msg.rise(t.source, pctText(t.cpqlDelta)),
     });
   }
   if (t.cpqlNow > targetCzk) {
@@ -273,13 +316,17 @@ export function sourceAlerts(t: SourceTrend, opts: AlertOptions = {}): LeadQuali
       source: t.source,
       kind: "cpql-target",
       severity: "critical",
-      message: `CPQL zdroje „${t.source}” (${fmtCZK(t.cpqlNow)}) překračuje cíl ${fmtCZK(targetCzk)}.`,
+      message: msg.target(t.source, fmtCurrency(t.cpqlNow), fmtCurrency(targetCzk)),
     });
   }
   return alerts;
 }
 
 /** Every drift alert across all sources that carry a trend, in source order. */
-export function periodAlerts(sources: LeadSource[], opts: AlertOptions = {}): LeadQualityAlert[] {
-  return trendBySource(sources).flatMap((t) => sourceAlerts(t, opts));
+export function periodAlerts(
+  sources: LeadSource[],
+  opts: AlertOptions = {},
+  locale: SupportedLocale = "cs"
+): LeadQualityAlert[] {
+  return trendBySource(sources).flatMap((t) => sourceAlerts(t, opts, locale));
 }

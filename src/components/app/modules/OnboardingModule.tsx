@@ -80,6 +80,11 @@ const T = {
     toOverview: "Přejít na přehled projektu",
     saveError: "Uložení se nepodařilo. Zkuste to prosím znovu.",
     stepsDone: "{done} / {total} hotovo",
+    chipRemove: "Odebrat {value}",
+    chipAdd: "Přidat",
+    errUnauthorized: "Nejste přihlášeni. Přihlaste se prosím znovu.",
+    errNotFound: "Projekt se nenašel.",
+    errInvalidScan: "Profil ze skenu je neúplný. Zkontrolujte pole a zkuste to znovu.",
   },
   en: {
     welcome: "Welcome! Let's seed the app with your business",
@@ -125,8 +130,27 @@ const T = {
     toOverview: "Go to the project overview",
     saveError: "Saving failed. Please try again.",
     stepsDone: "{done} / {total} done",
+    chipRemove: "Remove {value}",
+    chipAdd: "Add",
+    errUnauthorized: "You are not signed in. Please sign in again.",
+    errNotFound: "Project not found.",
+    errInvalidScan: "The scan profile is incomplete. Check the fields and try again.",
   },
 } as const;
+
+type TKey = keyof (typeof T)["cs"];
+
+/** Map an onboarding-route error `code` to localized copy, falling back to the
+ *  generic save error for an unknown/absent code. */
+function errorText(t: (key: TKey, vars?: Record<string, string | number>) => string, code?: string): string {
+  const byCode: Record<string, TKey> = {
+    unauthorized: "errUnauthorized",
+    "not-found": "errNotFound",
+    "invalid-scan": "errInvalidScan",
+  };
+  const key = code ? byCode[code] : undefined;
+  return t(key ?? "saveError");
+}
 
 /** The Start module: a website-scan → review → apply flow that seeds the app with
  *  the user's real business, plus a type-aware connector checklist that self-completes. */
@@ -188,7 +212,13 @@ export default function OnboardingModule({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scan: { ...profile, scannedUrl: url.trim() } }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        // The server returns a stable `code`; map it to localized copy so an `en`
+        // user never sees the Czech server `error` string. Unknown code → generic.
+        const json = (await res.json().catch(() => ({}))) as { code?: string };
+        setSaveError(errorText(t, json.code));
+        return;
+      }
       setMode("applied");
       router.refresh();
     } catch {
@@ -293,6 +323,8 @@ export default function OnboardingModule({
             onChange={(v) => set("keywords", v)}
             addPlaceholder={t("addPlaceholder")}
             tone="brand"
+            removeLabel={(v) => t("chipRemove", { value: v })}
+            addLabel={t("chipAdd")}
           />
           <ChipEditor
             label={t("fCompetitors")}
@@ -300,6 +332,8 @@ export default function OnboardingModule({
             onChange={(v) => set("competitors", v)}
             addPlaceholder={t("addPlaceholder")}
             tone="navy"
+            removeLabel={(v) => t("chipRemove", { value: v })}
+            addLabel={t("chipAdd")}
           />
 
           <SuggestedType
@@ -541,12 +575,18 @@ function ChipEditor({
   onChange,
   addPlaceholder,
   tone,
+  removeLabel,
+  addLabel,
 }: {
   label: string;
   values: string[];
   onChange: (next: string[]) => void;
   addPlaceholder: string;
   tone: "brand" | "navy";
+  /** localized aria-label for a chip's remove button, given the chip value */
+  removeLabel: (value: string) => string;
+  /** localized aria-label for the add button */
+  addLabel: string;
 }) {
   const [draft, setDraft] = useState("");
   const chipClass = tone === "brand" ? "bg-brand-50 text-brand-700" : "bg-navy-50 text-navy-700";
@@ -568,7 +608,7 @@ function ChipEditor({
             <button
               type="button"
               onClick={() => onChange(values.filter((x) => x !== v))}
-              aria-label={`Odebrat ${v}`}
+              aria-label={removeLabel(v)}
               className="opacity-60 transition-opacity hover:opacity-100"
             >
               ×
@@ -589,7 +629,7 @@ function ChipEditor({
             className="w-36 rounded-pill border border-dashed border-line bg-transparent px-3 py-1 text-xs text-navy-800 placeholder:text-muted focus:border-brand-400 focus:outline-none"
           />
           {draft.trim() && (
-            <button type="button" onClick={add} aria-label="Přidat" className="text-brand-accent">
+            <button type="button" onClick={add} aria-label={addLabel} className="text-brand-accent">
               <Plus width={14} height={14} />
             </button>
           )}

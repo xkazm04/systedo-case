@@ -4,6 +4,7 @@ import { Pill, type PillTone } from "@/components/ui";
 import { Bulb, Funnel, Clock, Bell } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 import {
   avgVelocity,
   funnelBySource,
@@ -145,16 +146,17 @@ export default async function LeadQualityModule({
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
+  const locale = await getServerLocale();
 
   const rows = sources.map(withMetrics).sort((a, b) => b.qualityScore - a.qualityScore);
   const s = summarize(sources);
-  const funnels = funnelBySource(sources);
+  const funnels = funnelBySource(sources, locale);
   const velocity = avgVelocity(sources);
   const campaigns = sources.filter((src) => src.campaign);
   // Period-over-period drift watch: per-source deltas + threshold alerts. Both
   // empty when no source carries prior-period data → the whole section hides.
   const trends = trendBySource(sources);
-  const alerts = periodAlerts(sources);
+  const alerts = periodAlerts(sources, {}, locale);
 
   // Under-performing sources the AI diagnosis can read (junk, or qualifies-yet-
   // rarely-closes; the weakest by score as a floor), projected to the REAL numbers

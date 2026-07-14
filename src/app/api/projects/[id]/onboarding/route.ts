@@ -19,12 +19,16 @@ import {
   shouldSeedScanList,
 } from "@/lib/onboarding/seed";
 
+/** Stable machine codes echoed alongside the (Czech) server `error` text. The client
+ *  never renders these Czech strings — it maps the `code` to its own localized copy
+ *  (mirroring the CampaignError key-or-text pattern), so the response is bilingual on
+ *  the surface without server-side i18n. `error` stays as a human-readable fallback. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
+  if (!uid) return Response.json({ ok: false, code: "unauthorized", error: "Nepřihlášeno." }, { status: 401 });
   const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  if (!project) return Response.json({ ok: false, code: "not-found", error: "Projekt nenalezen." }, { status: 404 });
 
   const body = (await req.json().catch(() => null)) as
     | { scan?: unknown; dismissed?: unknown }
@@ -37,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (body?.scan !== undefined) {
     const profile = sanitizeScanProfile(body.scan);
     if (!profile) {
-      return Response.json({ ok: false, error: "Neplatný profil ze skenu." }, { status: 422 });
+      return Response.json({ ok: false, code: "invalid-scan", error: "Neplatný profil ze skenu." }, { status: 422 });
     }
     next.scan = { ...profile, appliedAt: now };
     next.scanApplied = true;
@@ -86,9 +90,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
+  if (!uid) return Response.json({ ok: false, code: "unauthorized", error: "Nepřihlášeno." }, { status: 401 });
   const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  if (!project) return Response.json({ ok: false, code: "not-found", error: "Projekt nenalezen." }, { status: 404 });
   await clearOnboarding(project.id);
   return Response.json({ ok: true });
 }
