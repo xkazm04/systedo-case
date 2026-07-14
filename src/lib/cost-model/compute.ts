@@ -5,6 +5,7 @@
  *  POAS is margin-aware (grossProfit / adSpend), unlike the pre-COGS contribution
  *  the report shows without a model. Framework-free + unit-tested. */
 import type { AnalysisPeriod } from "@/lib/ai-types";
+import * as ProfitMath from "@/lib/profit/core";
 import type { CostModel } from "./types";
 
 /** Whole months a report period spans, so the monthly overhead scales to it. */
@@ -34,10 +35,13 @@ export interface PeriodProfit {
 
 /** Net profit after COGS + overhead for one period under a cost model. */
 export function periodProfit(input: PeriodProfitInput, m: CostModel): PeriodProfit {
-  const grossProfit = input.revenue * m.grossMarginPct;
-  const overhead = m.monthlyOverhead * input.months;
-  const fulfilment = m.perOrderCost * input.conversions;
-  const netProfit = grossProfit - input.adCost - overhead - fulfilment;
+  // Blended-margin, single-P&L variant of the shared primitives: one margin over
+  // all revenue, the whole overhead charged against portfolio net profit (the
+  // per-channel /zisk engine splits overhead by revenue share instead — see core).
+  const grossProfit = ProfitMath.grossProfit(input.revenue, m.grossMarginPct);
+  const overhead = ProfitMath.overheadForPeriod(m.monthlyOverhead, input.months);
+  const fulfilment = ProfitMath.fulfilment(m.perOrderCost, input.conversions);
+  const netProfit = ProfitMath.netProfit(grossProfit, input.adCost, overhead, fulfilment);
   return {
     grossProfit,
     overhead,

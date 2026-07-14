@@ -11,6 +11,7 @@ import ProfitReallocationPanel from "@/components/app/modules/ProfitReallocation
 import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
 import { aov, cr, pno, roas, type ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
+import { monthsForDays } from "@/lib/profit/core";
 import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
 import { applyOverhead } from "@/lib/profit/overhead";
 import { computeProductProfit, lowestPoasCategory } from "@/lib/profit/products";
@@ -404,7 +405,7 @@ export default function ProfitModule({
     perOrderCost: costModel?.perOrderCost ?? 60,
     months: 1,
   });
-  const months = useMemo(() => Math.max(1, (rowsByPeriod[period]?.length ?? 0) > 0 ? Number(period) / 30 : 1), [rowsByPeriod, period]);
+  const months = useMemo(() => Math.max(1, (rowsByPeriod[period]?.length ?? 0) > 0 ? monthsForDays(Number(period)) : 1), [rowsByPeriod, period]);
   const overheadResult = useMemo(
     () => applyOverhead(effectiveRows, margins, { ...overhead, months }),
     [effectiveRows, margins, overhead, months]

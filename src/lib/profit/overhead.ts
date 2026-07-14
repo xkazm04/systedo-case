@@ -7,6 +7,7 @@
  *  No I/O, no React. */
 import type { ChannelRow } from "@/lib/metrics";
 import { FALLBACK_MARGIN } from "./sample";
+import * as ProfitMath from "./core";
 import { computeMarginRow } from "./compute";
 import type {
   ChannelMargin,
@@ -25,8 +26,9 @@ export function applyOverhead(
   // Scale the monthly fixed overhead to the analysed window; non-positive /
   // disabled inputs collapse to zero so the view degrades to the gross-margin one.
   const months = Math.max(0, opts.months);
-  const periodOverhead = opts.enabled ? Math.max(0, opts.monthlyOverhead) * months : 0;
-  const perOrder = opts.enabled ? Math.max(0, opts.perOrderCost) : 0;
+  // Portfolio overhead for the window (shared primitive); this engine then splits
+  // it across channels by revenue share below — the report charges it whole.
+  const periodOverhead = opts.enabled ? ProfitMath.overheadForPeriod(opts.monthlyOverhead, months) : 0;
 
   const out: OverheadRow[] = rows.map((r) => {
     const marginPct = marginByChannel.get(r.channel) ?? FALLBACK_MARGIN;
@@ -34,7 +36,7 @@ export function applyOverhead(
 
     const revShare = totalRevenue > 0 ? r.revenue / totalRevenue : 0;
     const allocatedOverhead = periodOverhead * revShare;
-    const fulfilmentCost = perOrder * r.conversions;
+    const fulfilmentCost = opts.enabled ? ProfitMath.fulfilment(opts.perOrderCost, r.conversions) : 0;
     const contributionProfit = core.grossProfit - allocatedOverhead - fulfilmentCost;
     // Single "unprofitable once overhead is loaded in" verdict: contribution
     // can't cover the channel's own ad spend. unprofitableCount and the row
@@ -45,11 +47,14 @@ export function applyOverhead(
     const contributionPoas = r.cost > 0 ? contributionProfit / r.cost : 0;
 
     // Break-even ROAS once overhead + fulfilment are loaded in: the channel must
-    // cover ad spend AND its share of overhead/fulfilment out of its margin.
-    // revenue × margin = cost + overhead + perOrder × conv  →  solve for ROAS.
-    const loadedCost = r.cost + allocatedOverhead + fulfilmentCost;
-    const adjustedBreakEvenRoas =
-      marginPct > 0 && r.cost > 0 ? loadedCost / (r.cost * marginPct) : Infinity;
+    // cover ad spend AND its share of overhead/fulfilment out of its margin
+    // (shared primitive — the same loaded break-even the report surfaces).
+    const adjustedBreakEvenRoas = ProfitMath.loadedBreakEvenRoas(
+      marginPct,
+      r.cost,
+      allocatedOverhead,
+      fulfilmentCost
+    );
 
     return {
       channel: r.channel,

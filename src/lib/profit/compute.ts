@@ -3,6 +3,7 @@
  *  summary. No I/O, no React — numbers in, numbers out. */
 import type { ChannelRow } from "@/lib/metrics";
 import { poas, roas } from "@/lib/metrics";
+import * as ProfitMath from "./core";
 import { FALLBACK_MARGIN } from "./sample";
 import type {
   ChannelMargin,
@@ -23,13 +24,13 @@ export function computeMarginRow(
   cost: number,
   marginPct: number
 ): { grossProfit: number; netProfit: number; poas: number; breakEvenRoas: number; profitable: boolean } {
-  const grossProfit = revenue * marginPct;
-  const netProfit = grossProfit - cost;
+  const grossProfit = ProfitMath.grossProfit(revenue, marginPct);
+  const netProfit = ProfitMath.netProfit(grossProfit, cost);
   return {
     grossProfit,
     netProfit,
     poas: poas(grossProfit, cost),
-    breakEvenRoas: marginPct > 0 ? 1 / marginPct : Infinity,
+    breakEvenRoas: ProfitMath.breakEvenRoas(marginPct),
     // Profitable ⇔ netProfit ≥ 0 (revenue·margin ≥ cost). This equals the
     // ROAS ≥ break-even test for paid channels, but stays correct for a
     // zero-cost channel (organic/direct), whose guarded roas=0 would
@@ -138,14 +139,20 @@ export function reallocateBudget(
       suggestedSpend,
       spendDelta: suggestedSpend - row.cost,
       projectedRevenue,
-      projectedNetProfit: projectedRevenue * row.marginPct - suggestedSpend,
+      projectedNetProfit: ProfitMath.netProfit(
+        ProfitMath.grossProfit(projectedRevenue, row.marginPct),
+        suggestedSpend
+      ),
     };
   });
 
   const allocatedSpend = out.reduce((a, r) => a + r.suggestedSpend, 0);
   const currentRevenue = rows.reduce((a, r) => a + r.revenue, 0);
   const projectedRevenue = out.reduce((a, r) => a + r.projectedRevenue, 0);
-  const currentNetProfit = rows.reduce((a, r) => a + (r.revenue * r.marginPct - r.cost), 0);
+  const currentNetProfit = rows.reduce(
+    (a, r) => a + ProfitMath.netProfit(ProfitMath.grossProfit(r.revenue, r.marginPct), r.cost),
+    0
+  );
   const projectedNetProfit = out.reduce((a, r) => a + r.projectedNetProfit, 0);
 
   return {

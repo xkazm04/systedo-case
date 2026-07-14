@@ -4,6 +4,7 @@
  *  bucket — the series the sparkline plots. No I/O, no React. */
 import type { ChannelShare, DailyPoint } from "@/lib/types";
 import { channelRows, poas, totalsOf } from "@/lib/metrics";
+import * as ProfitMath from "./core";
 import { computeProfit } from "./compute";
 import { FALLBACK_MARGIN } from "./sample";
 import type { ChannelMargin, ProfitTrendPoint, TrendGranularity } from "./types";
@@ -115,11 +116,11 @@ export function retargetTrend(
       : FALLBACK_MARGIN;
 
   return points.map((p) => {
-    const grossProfit = p.revenue * blendedMargin;
+    const grossProfit = ProfitMath.grossProfit(p.revenue, blendedMargin);
     return {
       ...p,
       grossProfit,
-      netProfit: grossProfit - p.cost,
+      netProfit: ProfitMath.netProfit(grossProfit, p.cost),
       poas: poas(grossProfit, p.cost),
     };
   });
