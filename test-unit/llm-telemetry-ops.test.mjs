@@ -52,6 +52,50 @@ test("warn flips only when the demo-rate exceeds the threshold", () => {
   assert.equal(empty.warn, false, "an empty window never warns");
 });
 
+test("status counts + percentiles are populated only when raw entries are passed", () => {
+  const tools = [tool({ calls: 3 })];
+  // Without entries: additive fields default, existing fields unchanged.
+  const noEntries = summarizeAiOps(tools);
+  assert.deepEqual(noEntries.statusCounts, { success: 0, repaired: 0, corrupt: 0, error: 0, demo: 0 });
+  assert.equal(noEntries.successRate, 1);
+  assert.equal(noEntries.problemCalls, 0);
+  assert.equal(noEntries.p50TookMs, 0);
+  assert.equal(noEntries.p95TookMs, 0);
+
+  // With entries: real status counts, success rate over real calls, percentiles.
+  const entries = [
+    { status: "success", demo: false, tookMs: 100 },
+    { status: "success", demo: false, tookMs: 300 },
+    { status: "corrupt", demo: false, tookMs: 500 },
+    { status: "error", demo: false, tookMs: 700 },
+    { status: "demo", demo: true, tookMs: 1 },
+  ];
+  const withEntries = summarizeAiOps(tools, entries);
+  assert.equal(withEntries.statusCounts.corrupt, 1);
+  assert.equal(withEntries.statusCounts.error, 1);
+  assert.equal(withEntries.problemCalls, 2);
+  assert.equal(withEntries.successRate, 0.5); // 2 healthy of 4 real
+  assert.equal(withEntries.p50TookMs, 300);
+  assert.equal(withEntries.p95TookMs, 700);
+});
+
+test("status/latency line renders only with entries; problem line on corrupt/error", () => {
+  const tools = [tool({ toolId: "brief", calls: 5, totalCostUsd: 0.4 })];
+  // No entries → no extra status line (old callers render exactly as before).
+  const plain = aiOpsLines(summarizeAiOps(tools));
+  assert.equal(plain.length, 1);
+
+  const entries = [
+    { status: "success", demo: false, tookMs: 100 },
+    { status: "success", demo: false, tookMs: 200 },
+    { status: "corrupt", demo: false, tookMs: 400 },
+  ];
+  const lines = aiOpsLines(summarizeAiOps(tools, entries));
+  assert.ok(lines.some((l) => /Úspěšnost/.test(l) && /p50/.test(l) && /p95/.test(l)));
+  assert.ok(lines.some((l) => /poškozených/.test(l)));
+  assert.ok(lines.some((l) => /skončilo chybou nebo poškozeným/.test(l)));
+});
+
 test("renders Czech lines — and none at all for a quiet week", () => {
   assert.deepEqual(aiOpsLines(summarizeAiOps([])), []);
 

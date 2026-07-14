@@ -24,7 +24,7 @@ import {
   LLM_RETRY_AFTER_CAP_MS,
   type ModelTier,
 } from "./models";
-import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
+import { promptFingerprint, recordLlmCall, recordLlmError, recordLlmErrorEntry } from "./telemetry";
 import { runByom } from "./byom/adapters";
 import { providerOrder, type ProviderName } from "./provider-order";
 import { getByomContext } from "./byom-context";
@@ -353,6 +353,13 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         meta.estCostUsd = 0; // dev subscription — no metered cost
       }
 
+      // The parse succeeded but may still be corrupt/truncated (stopped mid-JSON, or
+      // a degenerate one-liner that happened to parse). Classify it so the DURABLE
+      // entry carries the honest status — a corrupt output must not read as a healthy
+      // success in Firestore (the admin route + digest read from there).
+      const corrupt = looksCorrupt(parsed, args.schema);
+      const status: "success" | "repaired" | "corrupt" = corrupt ? "corrupt" : repaired ? "repaired" : "success";
+
       // Persist eval telemetry (cost/latency/usage) that we'd otherwise discard.
       await recordLlmCall({
         toolId,
@@ -364,6 +371,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         attempts: totalAttempts,
         repaired,
         fellBack: idx > 0,
+        status,
         estCostUsd: meta.estCostUsd ?? 0,
         inputTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
@@ -371,10 +379,9 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         ...attribution,
       });
 
-      // The parse succeeded but may still be corrupt/truncated. Flag it to LightTrack as an error
-      // (alongside the success above, which carries the real cost/latency) so a garbage or truncated
-      // response doesn't read as a healthy success in the monitoring.
-      if (looksCorrupt(parsed, args.schema)) {
+      // Also mirror the corrupt case to LightTrack (the durable entry above already
+      // carries status "corrupt" for the Firestore-backed dashboards).
+      if (corrupt) {
         recordLlmError(model, toolId, "corrupted/truncated structured output (missing required fields)");
       }
 
@@ -389,9 +396,28 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // silently falling back to the app's own paid provider or the demo.
       if (err instanceof ByomUserError) throw err;
       // This provider just exhausted its retries; we're about to fall through to the
-      // next one (or degrade to the demo). Mirror it to LightTrack as an error event
-      // so the silent fallback becomes a signal the monitoring can act on.
-      recordLlmError(model, toolId, err instanceof Error ? err.message : String(err));
+      // next one (or degrade to the demo). Mirror it to LightTrack (fire-and-forget)
+      // AND write a DURABLE Firestore entry (status "error") so the silent fallback
+      // stops being invisible to the admin route + digest, which read Firestore.
+      const message = err instanceof Error ? err.message : String(err);
+      recordLlmError(model, toolId, message);
+      void recordLlmErrorEntry({
+        toolId,
+        promptHash,
+        provider: model,
+        model,
+        demo: false,
+        tookMs: Date.now() - start,
+        attempts: 0,
+        repaired: false,
+        fellBack: idx > 0,
+        status: "error",
+        estCostUsd: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        at: new Date().toISOString(),
+        ...attribution,
+      });
       console.error(`[llm] provider ${model} failed:`, err);
       // Fall through to the next configured provider; if this was the last one,
       // the loop ends and we degrade to the demo below.
@@ -421,6 +447,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
     tookMs: demoMeta.tookMs,
     attempts: 0,
     repaired: false,
+    status: "demo",
     estCostUsd: 0,
     inputTokens: 0,
     outputTokens: 0,

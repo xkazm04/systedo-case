@@ -70,11 +70,10 @@ export async function GET(request: Request) {
   // AI operations rollup over the digest window — global (llmTelemetry is
   // app-wide, not per-tenant), so compute it once per run. Best-effort: the
   // reader returns [] on failure and a quiet week renders no section at all.
-  const aiOps = summarizeAiOps(
-    aggregateTelemetry(
-      await listLlmTelemetrySince(new Date(Date.now() - 7 * 86_400_000).toISOString())
-    )
-  );
+  const aiEntries = await listLlmTelemetrySince(new Date(Date.now() - 7 * 86_400_000).toISOString());
+  // Pass the raw entries too so the summary carries status counts + latency
+  // percentiles (surfaced in the extra aiOpsLines status line).
+  const aiOps = summarizeAiOps(aggregateTelemetry(aiEntries), aiEntries);
   const aiLines = aiOpsLines(aiOps);
   const aiHtml = aiLines.length
     ? `<p style="margin-top:16px"><strong>AI provoz (7 dní)</strong></p><ul>${aiLines
