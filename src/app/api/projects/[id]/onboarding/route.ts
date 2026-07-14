@@ -18,6 +18,7 @@ import {
   scanKeywordsToSaved,
   shouldSeedScanList,
 } from "@/lib/onboarding/seed";
+import { readJson } from "@/lib/api/route-utils";
 
 /** Stable machine codes echoed alongside the (Czech) server `error` text. The client
  *  never renders these Czech strings — it maps the `code` to its own localized copy
@@ -30,9 +31,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, code: "not-found", error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = (await req.json().catch(() => null)) as
-    | { scan?: unknown; dismissed?: unknown }
-    | null;
+  const body = await readJson<{ scan?: unknown; dismissed?: unknown }>(req);
 
   const existing = await getOnboarding(project.id).catch(() => null);
   const now = new Date().toISOString();

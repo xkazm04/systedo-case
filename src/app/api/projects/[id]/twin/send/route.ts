@@ -15,6 +15,7 @@ import { getProject } from "@/lib/projects/store";
 import { getTwin, saveTwin } from "@/lib/twin/store";
 import { connectorFor } from "@/lib/twin/connectors";
 import { channelConfig } from "@/lib/twin/types";
+import { asString, readJson } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,8 +24,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = (await req.json().catch(() => null)) as { draftId?: unknown } | null;
-  const draftId = typeof body?.draftId === "string" ? body.draftId : "";
+  const body = await readJson<{ draftId?: unknown }>(req);
+  const draftId = asString(body?.draftId);
   if (!draftId) return Response.json({ ok: false, error: "Chybí draftId." }, { status: 400 });
 
   const state = await getTwin(project.id);

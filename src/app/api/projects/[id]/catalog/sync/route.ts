@@ -9,6 +9,7 @@ import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
 import { CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import type { ImportStrategy } from "@/lib/catalog/import";
+import { badRequest, readJson, unprocessable } from "@/lib/api/route-utils";
 
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
@@ -22,14 +23,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const limited = enforceCatalogRate(uid, CATALOG_RATE.sync());
   if (limited) return limited;
 
-  const body = (await req.json().catch(() => null)) as {
+  const body = await readJson<{
     provider?: unknown;
     token?: unknown;
     inventoryId?: unknown;
     config?: unknown;
     mode?: unknown;
     strategy?: unknown;
-  } | null;
+  }>(req);
 
   // Provider/token/config from the request, else from the persisted connection.
   const stored = await getConnection(uid, id);
@@ -61,17 +62,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   switch (result.code) {
     case "unknown-provider":
-      return Response.json({ error: "Neznámý poskytovatel." }, { status: 400 });
+      return badRequest("Neznámý poskytovatel.");
     case "not-implemented":
       return Response.json({ error: `Napojení na ${result.provider} připravujeme.` }, { status: 501 });
     case "no-token":
-      return Response.json({ error: `${result.provider} vyžaduje API token.` }, { status: 400 });
+      return badRequest(`${result.provider} vyžaduje API token.`);
     case "no-config":
-      return Response.json({ error: `${result.provider} vyžaduje konfiguraci koncového bodu.` }, { status: 400 });
+      return badRequest(`${result.provider} vyžaduje konfiguraci koncového bodu.`);
     case "provider-error":
       return Response.json({ error: result.message }, { status: 502 });
     case "empty":
-      return Response.json({ error: "Poskytovatel nevrátil žádné produkty." }, { status: 422 });
+      return unprocessable("Poskytovatel nevrátil žádné produkty.");
     default:
       return Response.json({
         ok: true,

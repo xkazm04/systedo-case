@@ -14,6 +14,7 @@ import {
   saveConnection,
 } from "@/lib/inventory/connection-store";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { badRequest, readJson } from "@/lib/api/route-utils";
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,14 +32,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const limited = enforceCatalogRate(auth.uid, CATALOG_RATE.connect());
   if (limited) return limited;
 
-  const body = (await req.json().catch(() => null)) as
-    | { provider?: unknown; token?: unknown; inventoryId?: unknown; config?: unknown }
-    | null;
+  const body = await readJson<{ provider?: unknown; token?: unknown; inventoryId?: unknown; config?: unknown }>(req);
 
   const providerId = typeof body?.provider === "string" ? body.provider : "";
   const meta = syncProvider(providerId);
   if (!meta || !meta.implemented) {
-    return Response.json({ error: "Tohoto poskytovatele zatím nelze připojit." }, { status: 400 });
+    return badRequest("Tohoto poskytovatele zatím nelze připojit.");
   }
 
   const token = typeof body?.token === "string" ? body.token.trim() : "";
@@ -54,7 +53,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       validateFeedUrl(config.endpoint);
     } catch (e) {
       if (e instanceof ErpError || e instanceof FeedFetchError) {
-        return Response.json({ error: e.message }, { status: 400 });
+        return badRequest(e.message);
       }
       throw e;
     }
@@ -63,7 +62,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   let tokenEnc: string | undefined;
   if (tokenRequired) {
-    if (!token) return Response.json({ error: `${meta.label} vyžaduje API token.` }, { status: 400 });
+    if (!token) return badRequest(`${meta.label} vyžaduje API token.`);
     if (!hasTokenCrypto()) {
       return Response.json(
         { error: "Server není nakonfigurován pro bezpečné uložení tokenu (CATALOG_TOKEN_SECRET)." },

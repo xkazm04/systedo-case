@@ -6,6 +6,7 @@ import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { listAnnotations, recordAnnotation, deleteAnnotation } from "@/lib/annotations/store";
 import { sanitizeAnnotationInput } from "@/lib/annotations/types";
+import { readJson } from "@/lib/api/route-utils";
 
 /** The project's annotations (newest-first). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +26,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const input = sanitizeAnnotationInput(body);
   if (!input) return Response.json({ ok: false, error: "Neplatná poznámka (datum nebo text)." }, { status: 422 });
 
@@ -44,7 +45,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const url = new URL(req.url);
   let annotationId = url.searchParams.get("id") ?? "";
   if (!annotationId) {
-    const body = (await req.json().catch(() => null)) as { id?: unknown } | null;
+    const body = await readJson<{ id?: unknown }>(req);
     if (typeof body?.id === "string") annotationId = body.id;
   }
   if (!annotationId) return Response.json({ ok: false, error: "Chybí id poznámky." }, { status: 400 });

@@ -9,6 +9,7 @@ import { parseLeadRows } from "@/lib/lead-quality/import";
 import { saveLeadImports, clearLeadImports } from "@/lib/lead-quality/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { ImportedLeadsState } from "@/lib/lead-quality/types";
+import { asString, readJson, trimmedString } from "@/lib/api/route-utils";
 
 const MAX_BYTES = 512_000;
 
@@ -19,8 +20,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = (await req.json().catch(() => null)) as { text?: unknown; url?: unknown } | null;
-  const url = typeof body?.url === "string" ? body.url.trim() : "";
+  const body = await readJson<{ text?: unknown; url?: unknown }>(req);
+  const url = trimmedString(body?.url);
 
   // Two honest ingestion paths: pasted CSV, or a fetch of a hosted CSV the user
   // controls (a published Sheet / export) — the connector seam a paid CRM could
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     source = "url";
   } else {
-    text = typeof body?.text === "string" ? body.text : "";
+    text = asString(body?.text);
     source = "import";
   }
   if (text.length > MAX_BYTES) {

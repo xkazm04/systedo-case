@@ -12,6 +12,7 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { duplicateProject } from "@/lib/projects/duplicate-cascade";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { badRequest, notFound, readJson, trimmedString } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,14 +22,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if ("error" in guard) return guard.error;
   const { uid, project: source } = guard;
 
-  const body = (await req.json().catch(() => null)) as { name?: unknown } | null;
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-  if (!name) return Response.json({ error: "Zadejte název nového projektu." }, { status: 400 });
+  const body = await readJson<{ name?: unknown }>(req);
+  const name = trimmedString(body?.name);
+  if (!name) return badRequest("Zadejte název nového projektu.");
 
   const result = await duplicateProject(uid, id, name);
   // Defensive: duplicateProject re-checks ownership and only returns null if the
   // source vanished between the guard and the copy.
-  if (!result) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+  if (!result) return notFound("Projekt nenalezen.");
 
   // Audit on the NEW project's feed (best-effort, never throws).
   await emitProjectActivity(uid, result.project.id, {

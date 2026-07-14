@@ -12,6 +12,7 @@ import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
 import { CATALOG_MAX_BODY_BYTES, CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { asString, badRequest, readJson, trimmedString } from "@/lib/api/route-utils";
 
 /** Guard against a pathological paste (~12 MB of text). */
 const MAX_CONTENT = 12_000_000;
@@ -29,30 +30,27 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const limited = enforceCatalogRate(uid, CATALOG_RATE.import());
   if (limited) return limited;
 
-  const body = (await req.json().catch(() => null)) as {
+  const body = await readJson<{
     content?: unknown;
     url?: unknown;
     format?: unknown;
     mode?: unknown;
     strategy?: unknown;
-  } | null;
+  }>(req);
 
   // Either paste feed content, or supply a URL we fetch server-side (SSRF-guarded).
-  const url = typeof body?.url === "string" ? body.url.trim() : "";
+  const url = trimmedString(body?.url);
   let content: string;
   if (url) {
     try {
       content = await fetchFeed(url);
     } catch (e) {
-      return Response.json(
-        { error: e instanceof FeedFetchError ? e.message : "Feed se nepodařilo stáhnout." },
-        { status: 400 }
-      );
+      return badRequest(e instanceof FeedFetchError ? e.message : "Feed se nepodařilo stáhnout.");
     }
   } else {
-    content = typeof body?.content === "string" ? body.content : "";
+    content = asString(body?.content);
   }
-  if (!content.trim()) return Response.json({ error: "Vložte obsah feedu nebo URL." }, { status: 400 });
+  if (!content.trim()) return badRequest("Vložte obsah feedu nebo URL.");
   if (content.length > MAX_CONTENT) return Response.json({ error: "Feed je příliš velký." }, { status: 413 });
 
   const format = FORMATS.includes(body?.format as FeedFormat) ? (body!.format as FeedFormat) : undefined;

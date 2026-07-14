@@ -2,17 +2,13 @@
  *  The onboarding flow and the project switcher call this. */
 import { currentUserId } from "@/lib/session";
 import { createProject, listProjects } from "@/lib/projects/store";
-import { PROJECT_TYPES, type ProjectType } from "@/lib/projects/types";
 import { saveOfferings } from "@/lib/catalog/store";
 import { defaultNatureFor, starterCatalog } from "@/lib/catalog/starter";
 import type { OfferingNature } from "@/lib/catalog/offering";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { badRequest, isProjectType, readJson } from "@/lib/api/route-utils";
 
 const NATURES: OfferingNature[] = ["online", "local", "hybrid"];
-
-function isProjectType(v: unknown): v is ProjectType {
-  return typeof v === "string" && (PROJECT_TYPES as string[]).includes(v);
-}
 
 function isNature(v: unknown): v is OfferingNature {
   return typeof v === "string" && (NATURES as string[]).includes(v);
@@ -28,15 +24,19 @@ export async function POST(req: Request) {
   const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  const body = (await req.json().catch(() => null)) as
-    | { name?: unknown; type?: unknown; accentColor?: unknown; domain?: unknown; nature?: unknown }
-    | null;
+  const body = await readJson<{
+    name?: unknown;
+    type?: unknown;
+    accentColor?: unknown;
+    domain?: unknown;
+    nature?: unknown;
+  }>(req);
 
   if (!body || typeof body.name !== "string" || !body.name.trim()) {
-    return Response.json({ error: "Zadejte název projektu." }, { status: 400 });
+    return badRequest("Zadejte název projektu.");
   }
   if (!isProjectType(body.type)) {
-    return Response.json({ error: "Neplatný typ projektu." }, { status: 400 });
+    return badRequest("Neplatný typ projektu.");
   }
 
   const project = await createProject(uid, {

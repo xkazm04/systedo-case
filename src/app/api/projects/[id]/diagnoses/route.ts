@@ -14,6 +14,7 @@ import {
   sanitizeDiagnosisKind,
   sanitizeDiagnosisStatus,
 } from "@/lib/diagnoses/types";
+import { asString, readJson } from "@/lib/api/route-utils";
 
 async function requireOwnedProject(id: string) {
   const uid = await currentUserId();
@@ -40,7 +41,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { project, error } = await requireOwnedProject(id);
   if (error) return error;
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const input = sanitizeDiagnosisInput(body);
   if (!input) return Response.json({ ok: false, error: "Neplatná diagnóza." }, { status: 422 });
 
@@ -55,8 +56,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { project, error } = await requireOwnedProject(id);
   if (error) return error;
 
-  const body = (await req.json().catch(() => null)) as { id?: unknown; status?: unknown } | null;
-  const diagId = typeof body?.id === "string" ? body.id : "";
+  const body = await readJson<{ id?: unknown; status?: unknown }>(req);
+  const diagId = asString(body?.id);
   const status = sanitizeDiagnosisStatus(body?.status);
   if (!diagId || !status) {
     return Response.json({ ok: false, error: "Chybí id nebo status." }, { status: 422 });

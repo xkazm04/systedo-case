@@ -2,21 +2,17 @@
 import { currentUserId } from "@/lib/session";
 import { deleteProject, getProject, updateProject } from "@/lib/projects/store";
 import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
-import { PROJECT_TYPES, type ProjectPatch, type ProjectType } from "@/lib/projects/types";
+import { type ProjectPatch } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
-
-
-function isProjectType(v: unknown): v is ProjectType {
-  return typeof v === "string" && (PROJECT_TYPES as string[]).includes(v);
-}
+import { badRequest, isProjectType, readJson } from "@/lib/api/route-utils";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const uid = await currentUserId();
   if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
 
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!body) return Response.json({ error: "Neplatný požadavek." }, { status: 400 });
+  const body = await readJson<Record<string, unknown>>(req);
+  if (!body) return badRequest("Neplatný požadavek.");
 
   const patch: ProjectPatch = {};
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();

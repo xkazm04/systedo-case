@@ -5,6 +5,7 @@ import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { sanitizeCostModel } from "@/lib/cost-model/compute";
 import { saveCostModel, clearCostModel } from "@/lib/cost-model/store";
+import { readJson } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const clean = sanitizeCostModel(body);
   if (!clean) {
     return Response.json(

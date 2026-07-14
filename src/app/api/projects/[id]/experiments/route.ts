@@ -13,6 +13,7 @@ import {
   updateExperiment,
 } from "@/lib/lp-exp/store";
 import { sanitizeExperimentInput } from "@/lib/lp-exp/types";
+import { asString, readJson } from "@/lib/api/route-utils";
 
 async function requireProject(id: string) {
   const uid = await currentUserId();
@@ -36,7 +37,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { project, error } = await requireProject(id);
   if (error) return error;
 
-  const body = await req.json().catch(() => null);
+  const body = await readJson(req);
   const input = sanitizeExperimentInput(body);
   if (!input) {
     return Response.json({ ok: false, error: "Neplatný experiment (klastr nebo varianty)." }, { status: 422 });
@@ -52,9 +53,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { project, error } = await requireProject(id);
   if (error) return error;
 
-  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+  const body = await readJson<Record<string, unknown>>(req);
   const url = new URL(req.url);
-  const expId = url.searchParams.get("id") || (typeof body?.id === "string" ? body.id : "");
+  const expId = url.searchParams.get("id") || asString(body?.id);
   if (!expId) return Response.json({ ok: false, error: "Chybí id experimentu." }, { status: 400 });
 
   const input = sanitizeExperimentInput(body);
@@ -75,7 +76,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const url = new URL(req.url);
   let expId = url.searchParams.get("id") ?? "";
   if (!expId) {
-    const body = (await req.json().catch(() => null)) as { id?: unknown } | null;
+    const body = await readJson<{ id?: unknown }>(req);
     if (typeof body?.id === "string") expId = body.id;
   }
   if (!expId) return Response.json({ ok: false, error: "Chybí id experimentu." }, { status: 400 });

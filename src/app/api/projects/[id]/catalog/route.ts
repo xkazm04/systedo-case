@@ -5,6 +5,7 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { saveOfferings } from "@/lib/catalog/store";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { readJson } from "@/lib/api/route-utils";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +13,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if ("error" in g) return g.error;
   const { uid } = g;
 
-  const body = (await req.json().catch(() => null)) as { offerings?: unknown } | null;
+  const body = await readJson<{ offerings?: unknown }>(req);
   const offerings = sanitizeOfferings(body?.offerings, id);
   await saveOfferings(uid, id, offerings);
 
