@@ -4,11 +4,17 @@
  *  report sits in a sticky left rail as reference, and a live chat (grounded in the
  *  same snapshot, via /api/ai mode:chat) owns the right. Opened from the "Datový
  *  report" action on the Výkon dashboard. Shared by the demo and the authed app. */
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bolt, Check, Target, TrendDown } from "@/components/icons";
+import { ArrowRight, Bolt, Check, Close, Target, TrendDown } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import type { AnalysisPeriod, AnalysisResult, ChatTurn } from "@/lib/ai-types";
+import {
+  isSettled,
+  parseStoredMessages,
+  reportChatKey,
+  serializeMessages,
+} from "@/components/dashboard/report-chat-store";
 
 const T = {
   cs: {
@@ -21,9 +27,12 @@ const T = {
     thinking: "Přemýšlím…",
     send: "Odeslat",
     retry: "Zkusit znovu",
+    clear: "Vymazat konverzaci",
     wins: "Co se daří",
     risks: "Na co si dát pozor",
     actions: "Doporučené kroky",
+    liveData: "Živá data · Google Ads",
+    illustrativeData: "Ilustrativní data",
   },
   en: {
     back: "Back to dashboard",
@@ -35,18 +44,56 @@ const T = {
     thinking: "Thinking…",
     send: "Send",
     retry: "Retry",
+    clear: "Clear conversation",
     wins: "What’s working",
     risks: "Watch out for",
     actions: "Recommended actions",
+    liveData: "Live data · Google Ads",
+    illustrativeData: "Illustrative data",
   },
 } as const;
 
+/** Read-once loader for the persisted conversation: SSR-guarded (returns [] on the
+ *  server), defensive + capped inside parseStoredMessages. Feeds the lazy useState
+ *  initializer so restoration never runs in a render or effect body. */
+function loadStoredMessages(bucket: string): ChatTurn[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return parseStoredMessages(window.localStorage.getItem(reportChatKey(bucket)));
+  } catch {
+    return [];
+  }
+}
+
 /** One live chat turn against /api/ai mode:chat, grounded server-side by period +
- *  the project (the route tenancy-checks the id and falls back to base). */
-function useReportChat(period: AnalysisPeriod, projectId?: string) {
-  const [messages, setMessages] = useState<ChatTurn[]>([]);
+ *  the project (the route tenancy-checks the id and falls back to base). The
+ *  conversation persists per `bucket` (project id, or a shared demo bucket) in
+ *  localStorage: restored on mount, capped, and written only on SETTLED turns so a
+ *  pending / errored exchange never leaves a dangling question in storage. */
+function useReportChat(period: AnalysisPeriod, bucket: string, projectId?: string) {
+  // Restore the conversation once, via a lazy initializer (SSR-guarded inside
+  // loadStoredMessages) — the repo's per-project persistence pattern (see
+  // CampaignTable / useSnippetLibrary), never read in a render or effect body.
+  const [messages, setMessages] = useState<ChatTurn[]>(() => loadStoredMessages(bucket));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The bucket the transcript was loaded from. Guards the persist effect so a later
+  // bucket change (project switch without a remount) can never write the loaded
+  // bucket's transcript under a different bucket's key.
+  const loadedBucket = useRef(bucket);
+
+  // Persist on settled turns only. Skipped while a turn is pending or when the
+  // transcript ends on a user turn (errored / dangling), so the stored entry always
+  // reflects the last complete exchange — never a half-written one.
+  useEffect(() => {
+    if (loadedBucket.current !== bucket) return;
+    if (pending || !isSettled(messages)) return;
+    try {
+      window.localStorage.setItem(reportChatKey(bucket), serializeMessages(messages));
+    } catch {
+      /* storage unavailable — the in-memory conversation still works */
+    }
+  }, [messages, pending, bucket]);
 
   /** POST a transcript (already ending on a user turn) and append the reply. */
   const post = async (msgs: ChatTurn[]) => {
@@ -87,7 +134,14 @@ function useReportChat(period: AnalysisPeriod, projectId?: string) {
     if (last?.role === "user") void post(messages);
   };
 
-  return { messages, pending, error, send, retry };
+  // Wipe the conversation (the persist effect writes the empty settled state).
+  const clear = () => {
+    if (pending) return;
+    setMessages([]);
+    setError(null);
+  };
+
+  return { messages, pending, error, send, retry, clear };
 }
 
 export default function ReportChat({
@@ -97,6 +151,8 @@ export default function ReportChat({
   backHref,
   subtitle,
   projectId,
+  storageBucket,
+  live = false,
 }: {
   report: AnalysisResult;
   period: AnalysisPeriod;
@@ -105,10 +161,18 @@ export default function ReportChat({
   subtitle: string;
   /** ground the chat on this project (route tenancy-checks it); omit → base. */
   projectId?: string;
+  /** persistence bucket: the project id on the authed mount, a shared demo bucket
+   *  on the public demo mount. Falls back to `projectId` / "demo". */
+  storageBucket?: string;
+  /** true when the report/chat runs on the project's own synced Google Ads data —
+   *  drives the honest source note (živá vs ilustrativní). Demo is always false. */
+  live?: boolean;
 }) {
   const t = useT(T);
-  const { messages, pending, error, send, retry } = useReportChat(period, projectId);
+  const bucket = storageBucket ?? projectId ?? "demo";
+  const { messages, pending, error, send, retry, clear } = useReportChat(period, bucket, projectId);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sourceNote = live ? t("liveData") : t("illustrativeData");
 
   const onSend = (text: string) => {
     void send(text);
@@ -132,13 +196,28 @@ export default function ReportChat({
       <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start">
         {/* report rail */}
         <div className="card space-y-4 p-5 lg:sticky lg:top-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-accent">
               {t("eyebrow")}
             </p>
             <span className="rounded-pill bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
               {subtitle}
             </span>
+          </div>
+
+          {/* Honest source note: say whether these numbers are the client's own
+              synced Google Ads data or the illustrative sample — never let a sample
+              report read as real. Same wording as the Monthly Report banner. */}
+          <div
+            className={`flex items-center gap-1.5 text-[11px] font-medium ${
+              live ? "text-positive" : "text-muted"
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${live ? "bg-positive" : "bg-navy-300"}`}
+              aria-hidden
+            />
+            {sourceNote}
           </div>
 
           <div className="rounded-card border border-navy-200 bg-navy-50 p-4">
@@ -183,10 +262,21 @@ export default function ReportChat({
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-onyx text-brand-400">
               <Target width={18} height={18} />
             </span>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-semibold text-navy-800">{t("assistant")}</p>
               <p className="text-xs text-muted">{t("assistantSub")}</p>
             </div>
+            {messages.length > 0 && (
+              <button
+                type="button"
+                onClick={clear}
+                disabled={pending}
+                className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-pill border border-line px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:border-coral-200 hover:text-coral-600 disabled:opacity-40"
+              >
+                <Close width={12} height={12} />
+                {t("clear")}
+              </button>
+            )}
           </div>
 
           <div ref={scrollRef} className="flex-1 space-y-5 overflow-y-auto scrollbar-slim px-5 py-5">

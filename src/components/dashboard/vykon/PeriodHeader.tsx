@@ -91,8 +91,10 @@ export default function PeriodHeader({
             </span>
           )}
         </p>
+        {/* Carry the dashboard's active period into the report so it opens on the
+            same window the user is looking at (the report validates it, default 90d). */}
         <Link
-          href={reportHref}
+          href={`${reportHref}${reportHref.includes("?") ? "&" : "?"}period=${periodKey}`}
           className="inline-flex items-center gap-1 text-sm font-medium text-brand-accent hover:underline"
         >
           {t("dataReport")} <ArrowRight width={14} height={14} />
