@@ -6,7 +6,10 @@ import { Pin } from "@/components/icons";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { gaps, localSummary, matrix } from "@/lib/local/compute";
 import type { LocalTarget, RecentReview, ReviewProfile } from "@/lib/local/sample";
+import type { LocalDiagnosisRequest } from "@/lib/ai-types";
+import type { StoredDiagnosis } from "@/lib/diagnoses/types";
 import LocalReviews from "@/components/app/modules/LocalReviews";
+import LocalDiagnosisPanel from "@/components/app/modules/LocalDiagnosisPanel";
 
 const T = {
   cs: {
@@ -92,6 +95,9 @@ export default async function LocalModule({
   businessName,
   businessType,
   projectId,
+  diagnosisRequest,
+  initialDiagnosis = null,
+  diagnosisHistory = [],
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
@@ -103,6 +109,13 @@ export default async function LocalModule({
   /** what this business actually does, derived from the catalog — grounds the AI
    *  review replies instead of a hardcoded industry (BM-L1-07). */
   businessType?: string;
+  /** the prebuilt local-diagnosis request (resolved figures) — renders the AI
+   *  "Lokální diagnóza" panel. Omitted on the marketing demo (no live project). */
+  diagnosisRequest?: LocalDiagnosisRequest;
+  /** the latest persisted local diagnosis (renders on load) */
+  initialDiagnosis?: StoredDiagnosis | null;
+  /** the capped local-diagnosis history */
+  diagnosisHistory?: StoredDiagnosis[];
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -138,6 +151,15 @@ export default async function LocalModule({
           <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-positive">{star(s.avgRating, fmt.fmtDecimal)}</p>
         </div>
       </div>
+
+      {diagnosisRequest && (
+        <LocalDiagnosisPanel
+          request={diagnosisRequest}
+          projectId={projectId}
+          initialDiagnosis={initialDiagnosis}
+          history={diagnosisHistory}
+        />
+      )}
 
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
@@ -185,7 +207,7 @@ export default async function LocalModule({
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div id="local-gaps" className="card overflow-hidden scroll-mt-24">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Pin width={18} height={18} className="text-brand-accent" />

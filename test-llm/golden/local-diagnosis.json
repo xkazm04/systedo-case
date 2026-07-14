@@ -1,0 +1,37 @@
+{
+  "id": "local-diagnosis",
+  "label": "Lokální diagnóza (mapa-pack + recenze)",
+  "promptHash": "61e66c9eda9838fa",
+  "schemaKeys": [
+    "recommendation",
+    "risks",
+    "summary",
+    "worstGap"
+  ],
+  "system": "Jsi český specialista na lokální SEO a Google Business Profile (mapa-pack, pokrytí služeb v lokalitách, recenze). Děláš stručnou diagnostiku lokální viditelnosti. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty ani lokality. Urči JEDNU mezeru v pokrytí (kombinaci služba×lokalita) k uzavření jako první — pole „worstGap“ musí být jeden z povolených názvů. Vracej pouze validní JSON dle schématu.",
+  "schema": {
+    "properties": {
+      "recommendation": {
+        "type": "STRING"
+      },
+      "risks": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
+      "summary": {
+        "type": "STRING"
+      },
+      "worstGap": {
+        "type": "STRING"
+      }
+    },
+    "required": [
+      "summary",
+      "worstGap",
+      "recommendation"
+    ],
+    "type": "OBJECT"
+  }
+}

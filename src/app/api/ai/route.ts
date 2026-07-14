@@ -12,6 +12,7 @@ import {
   generateTwinReply,
   generateTwinStyle,
   generateLeadSourceDiagnosis,
+  generateLocalDiagnosis,
   generateLocalReviewReply,
   generateLpVariantIdeas,
   generateMonthlyRecap,
@@ -33,6 +34,7 @@ import {
   validateTwinReplyRequest,
   validateTwinStyleRequest,
   validateLeadSourceDiagnosisRequest,
+  validateLocalDiagnosisRequest,
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
@@ -504,6 +506,10 @@ export async function POST(request: Request) {
       case "lead-source-diagnosis": {
         const p = validateLeadSourceDiagnosisRequest(body, locale);
         return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, userId, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
+      }
+      case "local-diagnosis": {
+        const p = validateLocalDiagnosisRequest(body, locale);
+        return p.valid ? cachedRespond("local-diagnosis", p.value, locale, userId, () => generateLocalDiagnosis(p.value, locale, request.signal)) : bad(p.error);
       }
       case "channel-research": {
         const p = validateChannelResearchRequest(body, locale);

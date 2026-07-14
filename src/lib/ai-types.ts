@@ -1013,6 +1013,110 @@ export interface LeadSourceDiagnosisResult {
 
 
 // ===========================================================================
+// Tool — local diagnosis (Lokální diagnóza: an AI read of a local business's
+// map-pack coverage, ranking ladder, review sentiment and location health —
+// names the single coverage gap worth closing first and the one action to take.
+// Grounded strictly in the resolved figures the module already computed (live
+// when imported, else the honest sample); the model invents no numbers and can
+// only name a gap from the supplied list.)
+// ===========================================================================
+
+/** One uncovered service×area combination the diagnosis may name as the worst
+ *  gap. `label` is the addressable identifier — `worstGap` must be exactly one
+ *  of the supplied labels (domain-limited, like cohort's worstCohort). */
+export interface LocalDiagnosisGap {
+  /** the addressable label (e.g. „Bělení zubů — Praha") — the worstGap identifier */
+  label: string;
+  service: string;
+  area: string;
+  /** monthly local search volume sitting uncovered */
+  monthlyVolume: number;
+}
+
+/** Map-pack ladder rollup: how many tracked combos sit in the pack, the average
+ *  position, and the movement since the last import (live only). */
+export interface LocalDiagnosisLadder {
+  /** tracked service×area combos in the ladder */
+  tracked: number;
+  /** combos ranking in the top 3 (the map pack) */
+  inPack: number;
+  /** combos at position #1 */
+  top1: number;
+  /** average current position across the ladder */
+  avgRank: number;
+  /** inPack / tracked, 0–1 */
+  packRate: number;
+  /** observed span in days (0 when single-observation / sample) */
+  spanDays: number;
+  /** combos improved since the last import */
+  improved: number;
+  /** combos declined since the last import */
+  declined: number;
+  /** net position move since the last import (positive = gained) */
+  netSinceLast: number;
+  /** true when the ladder is imported/synced (not the illustrative sample) */
+  live: boolean;
+}
+
+/** Review-sentiment rollup across the resolved review set. */
+export interface LocalDiagnosisReviews {
+  total: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  /** average star rating (1–5) */
+  avg: number;
+  /** true when the reviews are imported (not the sample) */
+  live: boolean;
+}
+
+/** Location-roster attention rollup, when a location roster is available. */
+export interface LocalDiagnosisLocations {
+  /** locations in the roster */
+  total: number;
+  /** locations needing attention (profile issues / backlog / weak rank) */
+  attention: number;
+  /** reviews awaiting a reply across all locations */
+  unanswered: number;
+}
+
+/** Everything the local diagnosis reads — REAL, already-computed figures only. */
+export interface LocalDiagnosisRequest {
+  /** the business name, when known (framing only — no invented facts) */
+  businessName?: string;
+  /** coverage: withPage / trackedCombos, 0–1 */
+  coveragePct: number;
+  /** total tracked service×area combinations */
+  trackedCombos: number;
+  /** combos that have a dedicated page */
+  withPage: number;
+  /** monthly search volume sitting in uncovered gaps */
+  gapVolume: number;
+  /** the top coverage gaps by volume — worstGap MUST be one of these labels */
+  gaps: LocalDiagnosisGap[];
+  /** the ranking-ladder rollup, when a ladder exists */
+  ladder?: LocalDiagnosisLadder;
+  /** the review-sentiment rollup, when reviews exist */
+  reviews?: LocalDiagnosisReviews;
+  /** the location-roster attention rollup, when a roster exists */
+  locations?: LocalDiagnosisLocations;
+  /** optional free-text refinement note from a re-run — user prompt only */
+  refine?: string;
+}
+
+export interface LocalDiagnosisResult {
+  /** one short paragraph reading the local visibility picture */
+  summary: string;
+  /** the single coverage gap to close first (must be one of the supplied labels) */
+  worstGap: string;
+  /** the single most impactful action to take first, concrete */
+  recommendation: string;
+  /** optional 1–3 risks to watch */
+  risks?: string[];
+}
+
+
+// ===========================================================================
 // Tool 14 — organic channel research (Kanály: from the project's business
 // context — type, brand, offering, localities, competitors, seed keywords —
 // produce a RANKED plan of zero-ad-spend visibility channels (directories,

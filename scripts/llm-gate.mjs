@@ -84,6 +84,7 @@ const HASHED_FILES = [
   "src/lib/ai/tools/comparison-outline.ts",
   "src/lib/ai/tools/lp-variant-ideas.ts",
   "src/lib/ai/tools/lead-source-diagnosis.ts",
+  "src/lib/ai/tools/local-diagnosis.ts",
   "src/lib/ai/tools/channel-research.ts",
   "src/lib/ai/tools/onboarding-scan.ts",
   "src/lib/ai/tools/chat.ts",

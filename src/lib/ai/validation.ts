@@ -38,6 +38,11 @@ import {
   type LeadSourceDiagnosisRequest,
   type LeadSourcePeer,
   type LeadSourceTrend,
+  type LocalDiagnosisGap,
+  type LocalDiagnosisLadder,
+  type LocalDiagnosisLocations,
+  type LocalDiagnosisRequest,
+  type LocalDiagnosisReviews,
   type LocalReviewReplyRequest,
   type LpVariantIdeasRequest,
   type Platform,
@@ -686,6 +691,102 @@ export function validateLeadSourceDiagnosisRequest(
       .map((a) => a.slice(0, 300));
     if (alerts.length > 0) value.alerts = alerts;
   }
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+/** Sanitize one supplied coverage gap, or null to drop it. A gap needs a non-empty
+ *  label to be addressable as worstGap. */
+function parseLocalGap(v: unknown): LocalDiagnosisGap | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const label = str(o.label).slice(0, 160);
+  if (!label) return null;
+  return {
+    label,
+    service: str(o.service).slice(0, 120),
+    area: str(o.area).slice(0, 120),
+    monthlyVolume: Math.max(0, Math.round(fin(o.monthlyVolume))),
+  };
+}
+
+function parseLocalLadder(v: unknown): LocalDiagnosisLadder | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const tracked = Math.max(0, Math.round(fin(o.tracked)));
+  if (tracked <= 0) return null;
+  return {
+    tracked,
+    inPack: Math.max(0, Math.round(fin(o.inPack))),
+    top1: Math.max(0, Math.round(fin(o.top1))),
+    avgRank: Math.max(0, fin(o.avgRank)),
+    packRate: Math.max(0, Math.min(1, fin(o.packRate))),
+    spanDays: Math.max(0, Math.round(fin(o.spanDays))),
+    improved: Math.max(0, Math.round(fin(o.improved))),
+    declined: Math.max(0, Math.round(fin(o.declined))),
+    netSinceLast: Math.round(fin(o.netSinceLast)),
+    live: Boolean(o.live),
+  };
+}
+
+function parseLocalReviews(v: unknown): LocalDiagnosisReviews | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const total = Math.max(0, Math.round(fin(o.total)));
+  if (total <= 0) return null;
+  return {
+    total,
+    positive: Math.max(0, Math.round(fin(o.positive))),
+    neutral: Math.max(0, Math.round(fin(o.neutral))),
+    negative: Math.max(0, Math.round(fin(o.negative))),
+    avg: Math.max(0, Math.min(5, fin(o.avg))),
+    live: Boolean(o.live),
+  };
+}
+
+function parseLocalLocations(v: unknown): LocalDiagnosisLocations | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const total = Math.max(0, Math.round(fin(o.total)));
+  if (total <= 0) return null;
+  return {
+    total,
+    attention: Math.max(0, Math.round(fin(o.attention))),
+    unanswered: Math.max(0, Math.round(fin(o.unanswered))),
+  };
+}
+
+export function validateLocalDiagnosisRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<LocalDiagnosisRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const gaps = Array.isArray(o.gaps)
+    ? o.gaps
+        .slice(0, 20)
+        .map(parseLocalGap)
+        .filter((g): g is LocalDiagnosisGap => g !== null)
+    : [];
+  const trackedCombos = Math.max(0, Math.round(fin(o.trackedCombos)));
+  if (trackedCombos <= 0 && gaps.length === 0) {
+    return { valid: false, error: t(locale, "Chybí data lokální viditelnosti k diagnostice.", "Missing local visibility data for diagnosis.") };
+  }
+  const value: LocalDiagnosisRequest = {
+    coveragePct: Math.max(0, Math.min(1, fin(o.coveragePct))),
+    trackedCombos,
+    withPage: Math.max(0, Math.round(fin(o.withPage))),
+    gapVolume: Math.max(0, Math.round(fin(o.gapVolume))),
+    gaps,
+  };
+  const businessName = str(o.businessName);
+  if (businessName) value.businessName = businessName.slice(0, 120);
+  const ladder = parseLocalLadder(o.ladder);
+  if (ladder) value.ladder = ladder;
+  const reviews = parseLocalReviews(o.reviews);
+  if (reviews) value.reviews = reviews;
+  const locations = parseLocalLocations(o.locations);
+  if (locations) value.locations = locations;
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
   return { valid: true, value };

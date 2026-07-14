@@ -14,9 +14,9 @@ import {
   type DiagnosisStatus,
   type StoredDiagnosis,
 } from "@/lib/diagnoses/types";
-import type { CohortDiagnosisResult, LeadSourceDiagnosisResult } from "@/lib/ai-types";
+import type { CohortDiagnosisResult, LeadSourceDiagnosisResult, LocalDiagnosisResult } from "@/lib/ai-types";
 
-type DiagResult = CohortDiagnosisResult | LeadSourceDiagnosisResult;
+type DiagResult = CohortDiagnosisResult | LeadSourceDiagnosisResult | LocalDiagnosisResult;
 
 export interface DiagnosisPersistence {
   /** the newest persisted diagnosis of this kind (what the panel shows on load) */

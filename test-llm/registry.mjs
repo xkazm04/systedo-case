@@ -526,6 +526,35 @@ export const LLM_TOOLS = [
       r && isStr(r.summary) && isStr(r.recommendation) && isStr(r.likelyCause),
   },
   {
+    id: "local-diagnosis",
+    label: "Lokální diagnóza (mapa-pack + recenze)",
+    system:
+      "Jsi český specialista na lokální SEO a Google Business Profile (mapa-pack, pokrytí služeb v lokalitách, recenze). Děláš stručnou diagnostiku lokální viditelnosti. Vycházej jen z předaných čísel, nevymýšlej žádné hodnoty ani lokality. Urči JEDNU mezeru v pokrytí (kombinaci služba×lokalita) k uzavření jako první — pole „worstGap“ musí být jeden z povolených názvů. Vracej pouze validní JSON dle schématu.",
+    prompt:
+      "Reálná, spočítaná data lokální viditelnosti. Podnik: Zubní klinika Dentalis. Pokrytí: 43 % (3 z 7 sledovaných kombinací služba×lokalita má vlastní stránku). Objem hledání bez pokrytí (v mezerách): 3 100 / měsíc. Mezery v pokrytí (od nejvyššího objemu; „worstGap“ musí být jeden z těchto názvů): Bělení zubů — Praha: 1 400 hledání/měs., bez stránky; Dentální hygiena — Brno: 900 hledání/měs., bez stránky; Implantáty — Ostrava: 800 hledání/měs., bez stránky. Mapa-pack pozice [zdroj: živá data]: v top 3 je 2 z 5 kombinací (40 %), na 1. místě 1; průměrná pozice 6,2. Trend za 30 dní: 1 zlepšeno, 3 zhoršeno (čistý posun −5). Recenze [zdroj: živá data]: 214 hodnocení, průměr 4,3★; pozitivních 170, neutrálních 22, negativních 22. Urči, kterou mezeru uzavřít jako první, a jednu nejúčinnější akci. Vrať summary (krátký odstavec), worstGap (přesný název mezery z dat) a recommendation (jedno konkrétní doporučení).",
+    schema: {
+      type: Type.OBJECT,
+      properties: {
+        summary: { type: Type.STRING },
+        worstGap: { type: Type.STRING },
+        recommendation: { type: Type.STRING },
+        risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+      },
+      required: ["summary", "worstGap", "recommendation"],
+    },
+    // Lenient: non-empty summary + recommendation, and worstGap must be one of the
+    // gap labels supplied in the prompt (the model can't invent a gap).
+    validate: (r) => {
+      if (!r || !isStr(r.summary) || !isStr(r.recommendation) || !isStr(r.worstGap)) return false;
+      const LABELS = new Set([
+        "Bělení zubů — Praha",
+        "Dentální hygiena — Brno",
+        "Implantáty — Ostrava",
+      ]);
+      return LABELS.has(r.worstGap.trim());
+    },
+  },
+  {
     id: "chat",
     label: "Datový report — chat",
     system:

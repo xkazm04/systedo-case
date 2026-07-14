@@ -7,12 +7,15 @@
  *  LOCAL_DB sqlite twin), mirroring organic-channels/twin. Framework-free — the
  *  pure state transitions (append with a per-kind cap, status change) and the wire
  *  sanitizers live here so they are unit-testable without any I/O. */
-import type { CohortDiagnosisResult, LeadSourceDiagnosisResult } from "../ai-types";
+import type { CohortDiagnosisResult, LeadSourceDiagnosisResult, LocalDiagnosisResult } from "../ai-types";
 import { LEAD_SOURCE_CAUSES, LEAD_SOURCE_SEVERITIES } from "../ai-types";
 
-/** The two diagnosis tools that persist here (the LTV cohort read + the lead-source
- *  root cause). Keyed by the /api/ai tool mode so the two stay aligned. */
-export const DIAGNOSIS_KINDS = ["cohort", "lead-source"] as const;
+/** The diagnosis tools that persist here (the LTV cohort read, the lead-source root
+ *  cause, and the local-visibility diagnosis). Keyed by the /api/ai tool mode so the
+ *  kinds stay aligned. Extending the tuple is backward-compatible — capPerKind /
+ *  the sanitizers are keyed by kind, so an old {cohort,lead-source} blob reads
+ *  cleanly and a new "local" item coexists under its own per-kind cap. */
+export const DIAGNOSIS_KINDS = ["cohort", "lead-source", "local"] as const;
 export type DiagnosisKind = (typeof DIAGNOSIS_KINDS)[number];
 
 /** The status lifecycle. A fresh diagnosis is `new`; the operator moves it to
@@ -51,7 +54,15 @@ export interface LeadSourceStoredDiagnosis extends StoredDiagnosisBase {
   result: LeadSourceDiagnosisResult;
 }
 
-export type StoredDiagnosis = CohortStoredDiagnosis | LeadSourceStoredDiagnosis;
+export interface LocalStoredDiagnosis extends StoredDiagnosisBase {
+  kind: "local";
+  result: LocalDiagnosisResult;
+}
+
+export type StoredDiagnosis =
+  | CohortStoredDiagnosis
+  | LeadSourceStoredDiagnosis
+  | LocalStoredDiagnosis;
 
 /** The per-project persisted blob (mirrors the {statuses, plan?} shape of the
  *  other single-blob stores). `items` is newest-first, capped per kind. */
@@ -155,6 +166,22 @@ export function sanitizeCohortResult(raw: unknown): CohortDiagnosisResult | null
   return result;
 }
 
+/** Coerce a local-diagnosis result from the wire into a clean payload, or null when
+ *  the mandatory fields are missing. worstGap is domain-limited at generation time
+ *  (the tool's validator), so here we only require the mandatory strings. */
+export function sanitizeLocalResult(raw: unknown): LocalDiagnosisResult | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const summary = str(o.summary, 1200);
+  const worstGap = str(o.worstGap, 160);
+  const recommendation = str(o.recommendation, 1200);
+  if (!summary || !recommendation || !worstGap) return null;
+  const result: LocalDiagnosisResult = { summary, worstGap, recommendation };
+  const risks = strList(o.risks, 3, 400);
+  if (risks.length > 0) result.risks = risks;
+  return result;
+}
+
 /** Coerce a lead-source-diagnosis result from the wire into a clean payload, or
  *  null when the mandatory fields are missing. */
 export function sanitizeLeadSourceResult(raw: unknown): LeadSourceDiagnosisResult | null {
@@ -179,7 +206,7 @@ export function sanitizeLeadSourceResult(raw: unknown): LeadSourceDiagnosisResul
  *  stamped by the builder, not trusted from the wire). */
 export interface SanitizedDiagnosisInput {
   kind: DiagnosisKind;
-  result: CohortDiagnosisResult | LeadSourceDiagnosisResult;
+  result: CohortDiagnosisResult | LeadSourceDiagnosisResult | LocalDiagnosisResult;
   inputDigest: string;
   subject: string;
   origin: DiagnosisOrigin;
@@ -193,14 +220,20 @@ export function sanitizeDiagnosisInput(raw: unknown): SanitizedDiagnosisInput | 
   const kind = sanitizeDiagnosisKind(o.kind);
   if (!kind) return null;
   const result =
-    kind === "cohort" ? sanitizeCohortResult(o.result) : sanitizeLeadSourceResult(o.result);
+    kind === "cohort"
+      ? sanitizeCohortResult(o.result)
+      : kind === "lead-source"
+        ? sanitizeLeadSourceResult(o.result)
+        : sanitizeLocalResult(o.result);
   if (!result) return null;
   const origin = ORIGIN_SET.has(o.origin as string) ? (o.origin as DiagnosisOrigin) : "manual";
   const subject =
     str(o.subject, 120) ||
     (kind === "cohort"
       ? (result as CohortDiagnosisResult).worstCohort
-      : (result as LeadSourceDiagnosisResult).likelyCause);
+      : kind === "lead-source"
+        ? (result as LeadSourceDiagnosisResult).likelyCause
+        : (result as LocalDiagnosisResult).worstGap);
   return { kind, result, inputDigest: str(o.inputDigest, 64), subject, origin };
 }
 
@@ -222,7 +255,9 @@ export function buildStoredDiagnosis(
   };
   return input.kind === "cohort"
     ? { ...base, kind: "cohort", result: input.result as CohortDiagnosisResult }
-    : { ...base, kind: "lead-source", result: input.result as LeadSourceDiagnosisResult };
+    : input.kind === "lead-source"
+      ? { ...base, kind: "lead-source", result: input.result as LeadSourceDiagnosisResult }
+      : { ...base, kind: "local", result: input.result as LocalDiagnosisResult };
 }
 
 /** Stable, cheap digest (fnv-1a, base36) of any JSON-serializable request — so a
