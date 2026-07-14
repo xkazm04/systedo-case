@@ -115,6 +115,7 @@ export default function MonthlyReport({
   showCostModel = false,
   costModel = null,
   breakEven = null,
+  catalogMarginPct = null,
   competitors = [],
   annotations = [],
   dataStart,
@@ -148,6 +149,9 @@ export default function MonthlyReport({
   /** Direction 2: the tenant's margin-derived break-even (ROAS + PNO), shown on the
    *  cost-model strip as the target the profit line is judged against. Null → hidden. */
   breakEven?: BreakEven | null;
+  /** Direction 2: the catalog's revenue-weighted blended gross margin (0–1), a
+   *  one-click default for the cost-model margin field. Null → no chip shown. */
+  catalogMarginPct?: number | null;
   /** C3: the project's competitor set — grounds the AI narrative "vs. the market" */
   competitors?: Competitor[];
   /** Direction 2: the project's "what happened here" annotations (newest-first) */
@@ -457,7 +461,7 @@ export default function MonthlyReport({
       </Modal>
 
       {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
-      {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} breakEven={breakEven} />}
+      {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} breakEven={breakEven} catalogMarginPct={catalogMarginPct} />}
 
       {/* C3: competitor set — grounds the AI narrative "vs. the market". */}
       {projectId && <CompetitorEditor projectId={projectId} initial={competitors} />}

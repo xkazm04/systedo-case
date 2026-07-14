@@ -30,6 +30,8 @@ const T = {
     save: "Uložit",
     saving: "Ukládám…",
     failed: "Uložení se nezdařilo.",
+    fromCatalog: "Z katalogu: {m}",
+    applyCatalog: "Použít",
   },
   en: {
     active: "Profit after costs · margin {m} · overhead {o}/mo · {f}/order",
@@ -45,6 +47,8 @@ const T = {
     save: "Save",
     saving: "Saving…",
     failed: "Save failed.",
+    fromCatalog: "From catalog: {m}",
+    applyCatalog: "Apply",
   },
 } as const;
 
@@ -52,10 +56,15 @@ export default function CostModelEditor({
   projectId,
   model,
   breakEven = null,
+  catalogMarginPct = null,
 }: {
   projectId: string;
   model: CostModelView | null;
   breakEven?: BreakEven | null;
+  /** Direction 2: the project catalog's revenue-weighted blended gross margin
+   *  (0–1), offered as a one-click default beside the margin field. Null → no
+   *  catalog margin resolved (nothing rendered). Never applied automatically. */
+  catalogMarginPct?: number | null;
 }) {
   const t = useT(T);
   const { fmtPct, fmtCZK, fmtMultiple } = useFormatters();
@@ -148,7 +157,19 @@ export default function CostModelEditor({
       </div>
       {open && (
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <Field label={t("margin")} value={margin} onChange={setMargin} />
+          <div>
+            <Field label={t("margin")} value={margin} onChange={setMargin} />
+            {catalogMarginPct !== null && Number.isFinite(catalogMarginPct) && (
+              <button
+                type="button"
+                onClick={() => setMargin(String(Math.round(catalogMarginPct * 100)))}
+                className="mt-1.5 inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-2.5 py-1 text-[11px] font-medium text-brand-700 ring-1 ring-brand-200 transition-colors hover:bg-brand-100"
+              >
+                {t("fromCatalog", { m: fmtPct(catalogMarginPct, 0) })}
+                <span className="font-semibold text-brand-accent">{t("applyCatalog")}</span>
+              </button>
+            )}
+          </div>
           <Field label={t("overhead")} value={overhead} onChange={setOverhead} />
           <Field label={t("perOrder")} value={perOrder} onChange={setPerOrder} />
           <div className="sm:col-span-3 flex items-center gap-2">

@@ -17,7 +17,9 @@ import { getCompetitors } from "@/lib/competitors/store";
 import { listAnnotations } from "@/lib/annotations/store";
 import { cohortsForProject } from "@/lib/ltv/sample";
 import { ltvSummary } from "@/lib/ltv/compute";
-import { loadProductsFor } from "@/lib/catalog/load";
+import { loadProjectCatalog } from "@/lib/catalog/load";
+import { isProduct, toProduct } from "@/lib/catalog/offering";
+import { catalogBlendedMargin } from "@/lib/catalog/blended-margin";
 import { stockRows, monthlySeasonality } from "@/lib/inventory/compute";
 import type { ReportBeyondData } from "@/components/app/modules/ReportBeyond";
 
@@ -43,11 +45,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // D1: compose the customer-economics (LTV) + stock/seasonality spines into the
   // e-shop report, so Robert's weekly job (marketing + LTV + stock) lives in one place.
   let beyond: ReportBeyondData | null = null;
+  // Direction 2: the catalog's revenue-weighted blended margin — a one-click default
+  // for the cost-model editor. Only e-shop projects carry a stock/margin catalog.
+  let catalogMarginPct: number | null = null;
   if (project.type === "eshop") {
     const ltv = ltvSummary(cohortsForProject(project));
     const lastDate = dataset.daily.at(-1)?.date;
     const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
-    const products = await loadProductsFor(project, now);
+    const catalog = await loadProjectCatalog(project, now);
+    catalogMarginPct = catalogBlendedMargin(catalog);
+    const products = catalog.filter(isProduct).map(toProduct);
     const stock = stockRows(products, now);
     const atRiskCount = stock.filter((s) => s.status === "pause" || s.status === "low").length;
     const season = monthlySeasonality(dataset.daily);
@@ -220,6 +227,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
         breakEven={breakEven}
+        catalogMarginPct={catalogMarginPct}
         competitors={competitorSet?.competitors ?? []}
         annotations={annotations}
         dataStart={dataStart}
