@@ -10,8 +10,30 @@ import {
   sourceForProvider,
   syncProvider,
 } from "@/lib/inventory/providers";
-import { buildBaselinkerRequest, mapBaselinkerProducts } from "@/lib/inventory/baselinker";
+import {
+  BASELINKER_PAGE_SIZE,
+  buildBaselinkerRequest,
+  collectBaselinkerPages,
+  mapBaselinkerProducts,
+} from "@/lib/inventory/baselinker";
 import { mergeCatalog } from "@/lib/catalog/import.ts";
+
+/** A fixture page-fetcher: returns `counts[page-1]` synthetic products, and records
+ *  which pages were requested — the transport seam, no network. */
+function fixtureFetcher(counts) {
+  const pagesSeen = [];
+  const fetchPage = async (page) => {
+    pagesSeen.push(page);
+    const n = counts[page - 1] ?? 0;
+    return Array.from({ length: n }, (_, i) => ({
+      externalId: `p${page}-${i}`,
+      sku: `P${page}-${i}`,
+      name: `Product ${page}-${i}`,
+      price: 100,
+    }));
+  };
+  return { fetchPage, pagesSeen };
+}
 
 test("sourceForProvider maps providers to offering sources", () => {
   assert.equal(sourceForProvider("baselinker"), "baselinker");
@@ -64,6 +86,33 @@ test("mapBaselinkerProducts normalizes the products map (first price, summed sto
   assert.equal(prods[1].name, "Mandle"); // from text_fields
   assert.equal(prods[1].stock, 0);
   assert.deepEqual(mapBaselinkerProducts({ status: "SUCCESS" }), []); // no products key
+});
+
+test("collectBaselinkerPages: assembles multiple full pages then a short final page", async () => {
+  const { fetchPage, pagesSeen } = fixtureFetcher([2, 2, 1]);
+  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
+  assert.equal(all.length, 5); // 2 + 2 + 1
+  assert.deepEqual(pagesSeen, [1, 2, 3]); // stops after the short (< pageSize) page
+  assert.equal(all[0].sku, "P1-0");
+  assert.equal(all[4].sku, "P3-0");
+});
+
+test("collectBaselinkerPages: an empty page terminates the walk", async () => {
+  const { fetchPage, pagesSeen } = fixtureFetcher([2, 2, 0, 2]);
+  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
+  assert.equal(all.length, 4); // page 3 is empty → stop (page 4 never fetched)
+  assert.deepEqual(pagesSeen, [1, 2, 3]);
+});
+
+test("collectBaselinkerPages: enforces the page cap on a full-every-page catalog", async () => {
+  const { fetchPage, pagesSeen } = fixtureFetcher(Array(100).fill(2));
+  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 3 });
+  assert.equal(all.length, 6); // 3 pages × 2, capped
+  assert.deepEqual(pagesSeen, [1, 2, 3]); // never walks past the cap
+});
+
+test("collectBaselinkerPages: default cap is 20 pages of 1000 (20k SKUs)", () => {
+  assert.equal(BASELINKER_PAGE_SIZE, 1000);
 });
 
 const NOW = "2026-07-05T12:00:00.000Z";

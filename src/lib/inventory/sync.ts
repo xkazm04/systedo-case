@@ -95,11 +95,11 @@ async function computeSync(userId: string, projectId: string, opts: SyncOpts): P
   ).filter(isProduct) as ProductOffering[];
 
   const current = (await listOfferings(userId, projectId)) ?? [];
-  // Baselinker returns its product list PAGINATED (~1000/page) and fetchBaselinkerProducts
-  // only reads page 1, so `incoming` is a truncated view of a large catalog. Under
-  // strategy "replace" mergeCatalog would delete every real SKU past page 1. Force
-  // "merge" for baselinker until the client paginates, so a partial fetch can never
-  // delete the tail (the worst it does is leave those SKUs un-updated).
+  // fetchBaselinkerProducts now walks every page (~1000/page) up to a documented cap
+  // (BASELINKER_MAX_PAGES). But `incoming` can STILL be a partial view — a catalog past
+  // the cap, or a transient mid-walk failure — so we keep forcing "merge" for baselinker:
+  // under "replace" mergeCatalog would delete every SKU missing from a truncated fetch,
+  // whereas "merge" caps the blast radius at leaving those SKUs un-updated (never deleted).
   const strategy: ImportStrategy = opts.providerId === "baselinker" ? "merge" : opts.strategy;
   const { next, diff } = mergeCatalog(current, incoming, strategy, nowIso);
 

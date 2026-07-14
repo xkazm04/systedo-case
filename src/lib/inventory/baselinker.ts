@@ -80,6 +80,33 @@ export function mapBaselinkerProducts(json: unknown): ProviderProduct[] {
   });
 }
 
+/** Baselinker returns `getInventoryProductsList` in pages of up to this many products. */
+export const BASELINKER_PAGE_SIZE = 1000;
+/** Hard cap on pages we walk — 20 pages × 1000 = 20k SKUs. A bound on a runaway or
+ *  hostile catalog; a shop past this needs a scoped/incremental sync, not a full pull. */
+export const BASELINKER_MAX_PAGES = 20;
+
+/** Walk a Baselinker page-fetcher and assemble every page into one list. Termination:
+ *  an EMPTY page (Baselinker's end-of-list signal), a SHORT page (< pageSize ⇒ the last
+ *  page), or the page cap — whichever comes first. Pure over its fetcher (the network
+ *  lives in `fetchPage`), so multi-page assembly / empty-page stop / cap enforcement are
+ *  unit-testable without the live API. `page` is 1-indexed, per Baselinker's docs. */
+export async function collectBaselinkerPages(
+  fetchPage: (page: number) => Promise<ProviderProduct[]>,
+  opts: { maxPages?: number; pageSize?: number } = {}
+): Promise<ProviderProduct[]> {
+  const maxPages = opts.maxPages ?? BASELINKER_MAX_PAGES;
+  const pageSize = opts.pageSize ?? BASELINKER_PAGE_SIZE;
+  const all: ProviderProduct[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const batch = await fetchPage(page);
+    if (batch.length === 0) break; // empty page → end of list
+    all.push(...batch);
+    if (batch.length < pageSize) break; // short page → this was the last one
+  }
+  return all;
+}
+
 /** A Baselinker error the sync route surfaces to the user. */
 export class BaselinkerError extends Error {}
 
@@ -98,8 +125,10 @@ async function callBaselinker(token: string, method: string, parameters: Record<
   return json;
 }
 
-/** Fetch products from a Baselinker inventory (the first one when unspecified).
- *  Credential-gated: requires a valid token. Not exercised without real credentials. */
+/** Fetch products from a Baselinker inventory (the first one when unspecified),
+ *  walking every page (getInventoryProductsList returns ~1000/page). Credential-gated:
+ *  requires a valid token. Not exercised without real credentials — the network is
+ *  isolated in `callBaselinker`; `collectBaselinkerPages` (pure) owns the paging. */
 export async function fetchBaselinkerProducts(token: string, inventoryId?: string): Promise<ProviderProduct[]> {
   if (!token.trim()) throw new BaselinkerError("Zadejte Baselinker API token.");
 
@@ -112,6 +141,10 @@ export async function fetchBaselinkerProducts(token: string, inventoryId?: strin
     if (!inventory) throw new BaselinkerError("Na účtu nebyl nalezen žádný katalog (inventory).");
   }
 
-  const list = await callBaselinker(token, "getInventoryProductsList", { inventory_id: inventory });
-  return mapBaselinkerProducts(list);
+  // Per-page timeout/error behaviour is unchanged: each `callBaselinker` keeps its own
+  // 15s timeout and throws BaselinkerError, which propagates straight out of the loop.
+  return collectBaselinkerPages(async (page) => {
+    const list = await callBaselinker(token, "getInventoryProductsList", { inventory_id: inventory, page });
+    return mapBaselinkerProducts(list);
+  });
 }
