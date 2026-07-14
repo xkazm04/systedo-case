@@ -14,12 +14,13 @@ test("token crypto: round-trips, and a tampered blob fails the auth tag", () => 
   const secret = "bl-live-token-ABC123";
   const blob = encryptToken(secret);
   assert.notEqual(blob, secret);
-  assert.match(blob, /^v1\./);
+  assert.match(blob, /^v2\./); // current format carries a per-token salt
   assert.equal(decryptToken(blob), secret);
 
+  // v2 blob: v2.<salt>.<iv>.<tag>.<ct> — corrupt the auth tag → null (never throws).
   const parts = blob.split(".");
   const wrongTag = Buffer.alloc(16, 7).toString("base64"); // 16-byte GCM tag, wrong
-  assert.equal(decryptToken(`${parts[0]}.${parts[1]}.${wrongTag}.${parts[3]}`), null);
+  assert.equal(decryptToken(`${parts[0]}.${parts[1]}.${parts[2]}.${wrongTag}.${parts[4]}`), null);
   assert.equal(decryptToken("not-a-valid-blob"), null);
 });
 
