@@ -239,14 +239,25 @@ export function useCampaigns() {
         });
         return false;
       }
+      const evaluated: string[] = json.evaluated ?? [];
+      const cachedKeys: string[] = json.cached ?? [];
       setBatchSummary({
-        evaluated: json.evaluated?.length ?? 0,
-        cached: json.cached?.length ?? 0,
+        evaluated: evaluated.length,
+        cached: cachedKeys.length,
         remaining: json.remaining?.length ?? 0,
         quotaExhausted: Boolean(json.quotaExhausted),
         error: json.error ?? null,
       });
-      await load();
+      // A just-evaluated or cache-hit target matches the current data by
+      // construction, so it can't be stale any more — drop those keys from the
+      // stale set directly (mirrors the single-analyze splice at line ~200)
+      // instead of a blind full reload. The batch route's response carries only
+      // key lists (evaluated/cached/remaining), NOT the report bodies, so fresh
+      // reports still need one fetch — but only when there actually are new ones;
+      // an all-cached / nothing-new run now costs no round-trip.
+      const doneKeys = new Set([...evaluated, ...cachedKeys]);
+      setState((s) => ({ ...s, staleKeys: s.staleKeys.filter((k) => !doneKeys.has(k)) }));
+      if (evaluated.length > 0) await load();
       return true;
     } catch {
       setBatchSummary({

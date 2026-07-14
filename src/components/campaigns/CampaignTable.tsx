@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Bolt, ChevronDown, Download, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
 import {
   CAMPAIGN_STATUSES,
@@ -34,12 +34,16 @@ import {
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
 import type { DailyPoint } from "@/lib/campaigns/types";
-import { csvNum, toCsv, downloadText } from "@/lib/export";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import Sparkline from "@/components/charts/Sparkline";
 import ReportView from "./ReportView";
 import TriageBanner from "./TriageBanner";
+import SortHeader from "./table/SortHeader";
+import { SORT_KEYS, loadSort, saveSort, type SortKey, type SortState } from "./table/sort";
+import { loadFilters, saveFilters } from "./table/filters";
+import { useBatchRunner } from "./table/useBatchRunner";
+import { exportCampaignsCsv } from "./table/csv";
 
 const T = {
   cs: {
@@ -188,133 +192,14 @@ const SEVERITY_BADGE: Record<Exclude<Severity, "ok">, string> = {
 };
 
 // --- sorting / filtering ----------------------------------------------------
+// Sort/filter models + localStorage persistence live in ./table/sort and
+// ./table/filters; the SortHeader cell in ./table/SortHeader. This file keeps
+// only the render + the view derivation.
 
-type SortKey =
-  | "severity"
-  | "name"
-  | "cost"
-  | "conversions"
-  | "conversionValue"
-  | "cpa"
-  | "roas"
-  | "pno";
-type SortDir = "asc" | "desc";
-interface SortState {
-  key: SortKey;
-  dir: SortDir;
-}
-
-/** SortKey array used for validation when restoring sort from localStorage. */
-const SORT_KEYS: SortKey[] = ["severity", "name", "cost", "conversions", "conversionValue", "cpa", "roas", "pno"];
 /** Sortable columns + the (unsortable) AI-report column — drives empty-state
  *  colspan. The optional trend-sparkline column is added per render (`cols`)
  *  only when per-campaign series data exists. */
 const COLS = SORT_KEYS.length + 1;
-
-const SORT_STORAGE_KEY = "campaigns.table.sort";
-/** Persisted default: highest spend first — the lens a PPC manager reaches for. */
-const DEFAULT_SORT: SortState = { key: "cost", dir: "desc" };
-
-function loadSort(): SortState {
-  if (typeof window === "undefined") return DEFAULT_SORT;
-  try {
-    const raw = window.localStorage.getItem(SORT_STORAGE_KEY);
-    if (!raw) return DEFAULT_SORT;
-    const p = JSON.parse(raw) as Partial<SortState>;
-    if (p && SORT_KEYS.includes(p.key as SortKey) && (p.dir === "asc" || p.dir === "desc")) {
-      return { key: p.key as SortKey, dir: p.dir };
-    }
-  } catch {
-    /* corrupt or unavailable storage — fall back to the default */
-  }
-  return DEFAULT_SORT;
-}
-
-const FILTERS_STORAGE_KEY = "campaigns.table.filters";
-interface StoredFilters {
-  query: string;
-  typeFilter: CampaignType | "all";
-  statusFilter: CampaignStatus | "all";
-  attentionOnly: boolean;
-}
-const DEFAULT_FILTERS: StoredFilters = {
-  query: "",
-  typeFilter: "all",
-  statusFilter: "all",
-  attentionOnly: false,
-};
-
-/** Restore the table filters the same way sort is restored, so an agency reviewing
- *  the same segment daily doesn't re-apply them on every visit. Each field is
- *  validated against the known values before use. Exported because the type
- *  filter is lifted to CampaignsClient (the TypeBreakdown cards drive it too)
- *  and its initial value must come from the same stored record. */
-export function loadFilters(): StoredFilters {
-  if (typeof window === "undefined") return DEFAULT_FILTERS;
-  try {
-    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY);
-    if (!raw) return DEFAULT_FILTERS;
-    const p = JSON.parse(raw) as Partial<StoredFilters>;
-    return {
-      query: typeof p.query === "string" ? p.query : "",
-      typeFilter:
-        p.typeFilter === "all" || (CAMPAIGN_TYPES as readonly string[]).includes(p.typeFilter as string)
-          ? (p.typeFilter as CampaignType | "all")
-          : "all",
-      statusFilter:
-        p.statusFilter === "all" ||
-        (CAMPAIGN_STATUSES as readonly string[]).includes(p.statusFilter as string)
-          ? (p.statusFilter as CampaignStatus | "all")
-          : "all",
-      attentionOnly: typeof p.attentionOnly === "boolean" ? p.attentionOnly : false,
-    };
-  } catch {
-    /* corrupt or unavailable storage — fall back to the defaults */
-  }
-  return DEFAULT_FILTERS;
-}
-
-type TFnType = ReturnType<typeof useT<keyof typeof T.cs>>;
-
-function SortHeader({
-  col,
-  sort,
-  onSort,
-  t,
-}: {
-  col: { key: SortKey; label: string; align: "left" | "right" };
-  sort: SortState;
-  onSort: (key: SortKey) => void;
-  t: TFnType;
-}) {
-  const active = sort.key === col.key;
-  const right = col.align === "right";
-  return (
-    <th
-      className={`${right ? "px-3 text-right" : "px-5 text-left"} py-3 font-semibold`}
-      aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
-    >
-      <button
-        type="button"
-        onClick={() => onSort(col.key)}
-        title={t("sortTitle", { col: col.label })}
-        className={`group -my-1 inline-flex items-center gap-1 py-1 uppercase tracking-wide transition-colors hover:text-navy-700 ${
-          right ? "flex-row-reverse" : ""
-        } ${active ? "text-navy-700" : ""}`}
-      >
-        {col.label}
-        <ChevronDown
-          width={13}
-          height={13}
-          aria-hidden
-          className={`shrink-0 transition-[transform,opacity] ${
-            active ? "text-brand-accent opacity-100" : "opacity-0 group-hover:opacity-50"
-          } ${active && sort.dir === "asc" ? "rotate-180" : ""}`}
-        />
-      </button>
-    </th>
-  );
-}
 
 const FILTER_FIELD =
   "rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-700 transition-colors hover:border-navy-200";
@@ -383,23 +268,12 @@ export default function CampaignTable({
 
   // Persist the chosen sort so the table reopens the way the user left it.
   useEffect(() => {
-    try {
-      window.localStorage.setItem(SORT_STORAGE_KEY, JSON.stringify(sort));
-    } catch {
-      /* storage may be unavailable (e.g. private mode) — non-fatal */
-    }
+    saveSort(sort);
   }, [sort]);
 
   // Persist the filters alongside sort, so a daily reviewer's segment survives a reload.
   useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        FILTERS_STORAGE_KEY,
-        JSON.stringify({ query, typeFilter, statusFilter, attentionOnly })
-      );
-    } catch {
-      /* storage may be unavailable (e.g. private mode) — non-fatal */
-    }
+    saveFilters({ query, typeFilter, statusFilter, attentionOnly });
   }, [query, typeFilter, statusFilter, attentionOnly]);
 
   const toggle = (id: string) => setExpanded((e) => ({ ...e, [id]: !e[id] }));
@@ -417,28 +291,16 @@ export default function CampaignTable({
   // (concurrency 1 respects the AI rate limiter), in triageWeight order — the
   // documented order a PPC manager should spend their evaluation clicks — and
   // stopped by the first failure/429 or a user cancel. Rows that already have a
-  // report are skipped; re-evaluation stays a deliberate per-row click.
-  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
-  const batchCancelled = useRef(false);
-  const runBatch = async () => {
-    if (batch) return;
+  // report are skipped; re-evaluation stays a deliberate per-row click. The
+  // execution loop + progress state live in useBatchRunner; this file builds the
+  // ordered queue (it owns batchPending + the triage weighting).
+  const { batch, runBatch, cancelBatch } = useBatchRunner(onAnalyze);
+  const runFlaggedBatch = () => {
     const queue = batchPending
       .slice()
       .sort((a, b) => triageWeight(b.c, changesById[b.c.id]) - triageWeight(a.c, changesById[a.c.id]))
       .map(({ c }) => c.id);
-    if (queue.length === 0) return;
-    batchCancelled.current = false;
-    setBatch({ done: 0, total: queue.length });
-    try {
-      for (let i = 0; i < queue.length; i++) {
-        if (batchCancelled.current) break;
-        const ok = await onAnalyze(queue[i]);
-        setBatch({ done: i + 1, total: queue.length });
-        if (ok === false) break;
-      }
-    } finally {
-      setBatch(null);
-    }
+    void runBatch(queue);
   };
   // First click sorts (numeric/severity desc, text asc); clicking the active column flips.
   const onSort = (key: SortKey) =>
@@ -519,37 +381,7 @@ export default function CampaignTable({
   // Export the *currently filtered + sorted* view as a cs-CZ-friendly CSV (the
   // deliverable agencies actually hand to clients), carrying triage severity, the
   // top finding, and any loaded AI score. Reads only in-memory state.
-  const exportCsv = () => {
-    const headers = [
-      t("colCampaign"), t("csvType"), t("csvStatus"),
-      t("csvImpressions"), t("csvClicks"), t("colCost"),
-      t("colConversions"), t("colConvValue"), "ROAS", "PNO %",
-      "CTR %", "CPC", t("csvConvRate"),
-      t("colPriority"), t("csvReason"), t("csvScore"),
-    ];
-    const rows = view.map(({ c, tr }) => [
-      c.name,
-      CAMPAIGN_TYPE_LABELS[c.type],
-      campaignStatusLabel(c.status, locale),
-      Math.round(c.impressions),
-      Math.round(c.clicks),
-      Math.round(c.cost),
-      Math.round(c.conversions),
-      Math.round(c.conversionValue),
-      c.roas > 0 ? csvNum(c.roas, 2, locale) : "",
-      c.pno > 0 ? csvNum(c.pno * 100, 1, locale) : "",
-      // Funnel ratios — the agency deliverable carries the full causal layer;
-      // zero-denominator cells stay empty, matching the on-screen "—". Ratio
-      // cells go through csvNum so Czech Excel parses them as numbers.
-      c.impressions > 0 ? csvNum(c.ctr * 100, 2, locale) : "",
-      c.clicks > 0 ? csvNum(c.cpc, 2, locale) : "",
-      c.clicks > 0 ? csvNum(c.convRate * 100, 2, locale) : "",
-      severityLabel(tr.severity, locale),
-      tr.primary ? triageReasonLabel(tr.primary, locale) : "",
-      reports[c.id]?.result.score ?? "",
-    ]);
-    downloadText("adamant-kampane.csv", toCsv(headers, rows));
-  };
+  const exportCsv = () => exportCampaignsCsv({ view, reports, t, locale });
 
   return (
     <div className="card overflow-hidden">
@@ -559,10 +391,8 @@ export default function CampaignTable({
         onSortBySeverity={() => setSort({ key: "severity", dir: "desc" })}
         batchPending={batchPending.length}
         batch={batch}
-        onEvaluateFlagged={() => void runBatch()}
-        onCancelBatch={() => {
-          batchCancelled.current = true;
-        }}
+        onEvaluateFlagged={runFlaggedBatch}
+        onCancelBatch={cancelBatch}
       />
 
       <div className="flex flex-wrap items-center gap-2 border-b border-line p-3">
@@ -668,7 +498,12 @@ export default function CampaignTable({
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               {SORT_COLUMNS.map((col) => (
                 <Fragment key={col.key}>
-                  <SortHeader col={col} sort={sort} onSort={onSort} t={t} />
+                  <SortHeader
+                    col={col}
+                    sort={sort}
+                    onSort={onSort}
+                    title={t("sortTitle", { col: col.label })}
+                  />
                   {col.key === "name" && hasSeries && (
                     <th className="px-3 py-3 text-left font-semibold uppercase tracking-wide">
                       {trendMetrics.length > 1 ? (

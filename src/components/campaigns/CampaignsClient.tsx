@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { Bolt, Gauge, Layers, Refresh, Share, Sparkles } from "@/components/icons";
@@ -18,21 +19,40 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
+import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { useCampaigns } from "./useCampaigns";
 import TypeBreakdown from "./TypeBreakdown";
-import BudgetMoves from "./BudgetMoves";
 import ChangeStrip from "./ChangeStrip";
 import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
 import ActivityFeed from "./ActivityFeed";
-import CampaignTable, { loadFilters } from "./CampaignTable";
+import CampaignTable from "./CampaignTable";
+import { loadFilters } from "./table/filters";
 import HealthTimeline from "./HealthTimeline";
-import ReportSettings from "./ReportSettings";
 import ReportView from "./ReportView";
-import SharedReportsList from "./SharedReportsList";
-import MicrositeCard from "./MicrositeCard";
-import ControlPlane from "./ControlPlane";
 import SyncProvenance from "./SyncProvenance";
+
+// Below-fold, heavy panels — code-split so their JS loads after the above-fold
+// triage view (toolbar, account picker, campaign table) rather than in this
+// page's initial bundle, mirroring the repo's next/dynamic + SectionSkeleton
+// convention (see ContentEngine). ReportView stays eager: the eager CampaignTable
+// already imports it for per-row reports, so a dynamic wrapper here would add a
+// skeleton flash for zero bundle win.
+const BudgetMoves = dynamic(() => import("./BudgetMoves"), {
+  loading: () => <SectionSkeleton height="h-80" />,
+});
+const SharedReportsList = dynamic(() => import("./SharedReportsList"), {
+  loading: () => <SectionSkeleton height="h-32" lines={2} />,
+});
+const ReportSettings = dynamic(() => import("./ReportSettings"), {
+  loading: () => <SectionSkeleton height="h-80" />,
+});
+const MicrositeCard = dynamic(() => import("./MicrositeCard"), {
+  loading: () => <SectionSkeleton height="h-64" />,
+});
+const ControlPlane = dynamic(() => import("./ControlPlane"), {
+  loading: () => <SectionSkeleton height="h-48" lines={2} />,
+});
 
 const T = {
   cs: {
