@@ -12,6 +12,7 @@ import { CHANNEL_LIMITS, REPURPOSE_CHANNELS, repurpose } from "../../distributio
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { clamp, digest, txt } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 import { voiceLines } from "./voice";
 
@@ -77,6 +78,26 @@ const REPURPOSE_SCHEMA = {
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
 
+/** Flag any requested-channel variant over its limit, or a non-object / truncated
+ *  parse, so the wrapper re-prompts once before the normalizer clamps + fills. */
+export function validateRepurpose(channels: string[], parsed: unknown): string[] {
+  return withObjectGuard((o): string[] => {
+    if (!Array.isArray(o.variants)) return [];
+    const v: string[] = [];
+    for (const item of o.variants) {
+      if (!item || typeof item !== "object") continue;
+      const x = item as Record<string, unknown>;
+      const channel = txt(x.channel);
+      const limit = channelLimit(channel);
+      const text = txt(x.text);
+      if (channels.includes(channel) && text.length > limit) {
+        v.push(`Varianta pro ${channel} má ${text.length} znaků (limit ${limit}).`);
+      }
+    }
+    return v;
+  })(parsed);
+}
+
 export function generateRepurpose(
   req: RepurposeRequest,
   locale?: SupportedLocale,
@@ -126,23 +147,6 @@ export function generateRepurpose(
     };
   };
 
-  const validate = (parsed: unknown): string[] => {
-    const o = parsed as Record<string, unknown> | null;
-    if (!o || !Array.isArray(o.variants)) return [];
-    const v: string[] = [];
-    for (const item of o.variants) {
-      if (!item || typeof item !== "object") continue;
-      const x = item as Record<string, unknown>;
-      const channel = txt(x.channel);
-      const limit = channelLimit(channel);
-      const text = txt(x.text);
-      if (channels.includes(channel) && text.length > limit) {
-        v.push(`Varianta pro ${channel} má ${text.length} znaků (limit ${limit}).`);
-      }
-    }
-    return v;
-  };
-
   return generateStructured({
     // llm-tool: repurpose
     id: "repurpose",
@@ -153,7 +157,7 @@ export function generateRepurpose(
     schema: REPURPOSE_SCHEMA,
     temperature: 0.8,
     normalize,
-    validate,
+    validate: (parsed) => validateRepurpose(channels, parsed),
     demo: fallback,
     locale,
     signal,

@@ -28,11 +28,13 @@ import type { ClientProfile } from "../../campaigns/report-config-types";
 import { fmtCZK, fmtInt, fmtMultiple, fmtPct } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { missingStrFields, withObjectGuard } from "./_validate";
 
 const EVAL_SYSTEM = `Jsi zkušený český PPC stratég a specialista na Google Ads v marketingové agentuře. Vyhodnocuješ výkon reklamních kampaní a připravuješ klientovi stručný hodnoticí report s konkrétními dalšími kroky.
 
 Pravidla:
-- Vycházej VÝHRADNĚ z předaných čísel. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
+- ${antiFabrication("předaných čísel")}
 - Skóre 0–100 vyjadřuje zdraví kampaně/portfolia vůči cílovému PNO a vůči ostatním kampaním: ~80+ výborné, ~60–79 solidní, ~40–59 průměrné s rezervami, pod 40 podvýkonné.
 - Doporučení musí být akční a konkrétní (navýšit/snížit rozpočet, upravit nabídky, vyloučení, cílení, kreativu, utlumit či pozastavit) a seřazená podle priority (high/medium/low).
 - Odkazuj se na konkrétní čísla (ROAS, PNO, CPA, podíl na nákladech).
@@ -90,18 +92,22 @@ function normalizeReport(parsed: unknown): CampaignReportResult {
 /** Flag evaluation output that's out of range or missing the decision-bearing
  *  parts (score 0–100, a verdict, a summary, at least one recommendation), so the
  *  wrapper re-prompts before the normalizer clamps an out-of-range score to 0. */
-function validateReport(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  const raw = typeof o.score === "number" ? o.score : Number(o.score);
-  if (!Number.isFinite(raw) || raw < 0 || raw > 100) {
-    v.push(`Skóre musí být číslo 0–100 (dostal jsem „${String(o.score)}“).`);
-  }
-  if (!txt(o.verdict)) v.push("Chybí jednovětý verdikt.");
-  if (!txt(o.summary)) v.push("Chybí shrnutí (summary).");
-  if (countTitled(o.recommendations) === 0) v.push("Chybí doporučené kroky (recommendations).");
-  return v;
+export function validateReport(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const v: string[] = [];
+    const raw = typeof o.score === "number" ? o.score : Number(o.score);
+    if (!Number.isFinite(raw) || raw < 0 || raw > 100) {
+      v.push(`Skóre musí být číslo 0–100 (dostal jsem „${String(o.score)}“).`);
+    }
+    v.push(
+      ...missingStrFields(o, [
+        ["verdict", "Chybí jednovětý verdikt."],
+        ["summary", "Chybí shrnutí (summary)."],
+      ])
+    );
+    if (countTitled(o.recommendations) === 0) v.push("Chybí doporučené kroky (recommendations).");
+    return v;
+  })(parsed);
 }
 
 /** Map ROAS to a 0–100 health score relative to the target — shared by the demo
@@ -153,7 +159,7 @@ function demoCampaignReport(target: Campaign, all: Campaign[]): CampaignReportRe
   return {
     verdict: `${beatsTarget ? "Efektivní kampaň nad cílem" : "Kampaň pod cílovou efektivitou"} (ROAS ${fmtMultiple(t.roas)}).`,
     score: healthScore(t.roas),
-    summary: `Kampaň „${target.name}“ (${CAMPAIGN_TYPE_LABELS[target.type]}) utratila ${fmtCZK(t.cost)} a přinesla ${fmtCZK(t.conversionValue)} při ROAS ${fmtMultiple(t.roas)} a PNO ${fmtPct(t.pno)}. Tvoří ${fmtPct(costShare)} nákladů portfolia. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro vyhodnocení modelem.`,
+    summary: `Kampaň „${target.name}“ (${CAMPAIGN_TYPE_LABELS[target.type]}) utratila ${fmtCZK(t.cost)} a přinesla ${fmtCZK(t.conversionValue)} při ROAS ${fmtMultiple(t.roas)} a PNO ${fmtPct(t.pno)}. Tvoří ${fmtPct(costShare)} nákladů portfolia.${demoTail("vyhodnocení modelem")}`,
     strengths,
     weaknesses,
     recommendations,
@@ -202,7 +208,7 @@ function demoOverallReport(all: Campaign[]): CampaignReportResult {
   return {
     verdict: `Portfolio ${underTarget ? "je v cíli" : "překračuje cílové PNO"} (ROAS ${fmtMultiple(portfolio.roas)}, PNO ${fmtPct(portfolio.pno)}).`,
     score: healthScore(portfolio.roas),
-    summary: `${portfolio.count} kampaní utratilo ${fmtCZK(portfolio.cost)} a přineslo ${fmtCZK(portfolio.conversionValue)} při ROAS ${fmtMultiple(portfolio.roas)} a PNO ${fmtPct(portfolio.pno)} (cíl ${fmtPct(TARGET_PNO, 0)}). Výkon táhnou ${CAMPAIGN_TYPE_LABELS[bestType.type]} a brandové vyhledávání. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro vyhodnocení modelem.`,
+    summary: `${portfolio.count} kampaní utratilo ${fmtCZK(portfolio.cost)} a přineslo ${fmtCZK(portfolio.conversionValue)} při ROAS ${fmtMultiple(portfolio.roas)} a PNO ${fmtPct(portfolio.pno)} (cíl ${fmtPct(TARGET_PNO, 0)}). Výkon táhnou ${CAMPAIGN_TYPE_LABELS[bestType.type]} a brandové vyhledávání.${demoTail("vyhodnocení modelem")}`,
     strengths,
     weaknesses,
     recommendations,

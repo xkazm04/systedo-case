@@ -12,6 +12,8 @@ import {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, clamp, cap, slugify } from "./_shared";
+import { demoTail } from "./_fragments";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const BRIEF_SYSTEM = `Jsi český SEO a obsahový stratég v marketingové agentuře. Připravuješ zadání (brief) pro tvorbu obsahu na web a e-shop.
@@ -138,19 +140,19 @@ function normalizeBriefResult(parsed: unknown): BriefResult {
 
 /** Flag raw brief output whose title tag / meta description exceed the SEO
  *  limits, so the wrapper can re-prompt before we clamp. */
-function validateBrief(parsed: unknown): string[] {
-  const o = parsed as Partial<BriefResult> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  const tt = txt(o.titleTag);
-  if (tt.length > SEO_LIMITS.titleTag) {
-    v.push(`Title tag má ${tt.length} znaků (limit ${SEO_LIMITS.titleTag}).`);
-  }
-  const md = txt(o.metaDescription);
-  if (md.length > SEO_LIMITS.metaDescription) {
-    v.push(`Meta description má ${md.length} znaků (limit ${SEO_LIMITS.metaDescription}).`);
-  }
-  return v;
+export function validateBrief(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const v: string[] = [];
+    const tt = txt(o.titleTag);
+    if (tt.length > SEO_LIMITS.titleTag) {
+      v.push(`Title tag má ${tt.length} znaků (limit ${SEO_LIMITS.titleTag}).`);
+    }
+    const md = txt(o.metaDescription);
+    if (md.length > SEO_LIMITS.metaDescription) {
+      v.push(`Meta description má ${md.length} znaků (limit ${SEO_LIMITS.metaDescription}).`);
+    }
+    return v;
+  })(parsed);
 }
 
 function demoBrief(req: BriefRequest): BriefResult {
@@ -173,14 +175,14 @@ function demoBrief(req: BriefRequest): BriefResult {
       { heading: "Časté dotazy", points: ["Odpovědi na nejčastější otázky"] },
     ],
     faq: [
-      { question: `Co je u tématu „${topic}“ nejdůležitější?`, answer: "Doplní AI po nastavení GEMINI_API_KEY." },
+      { question: `Co je u tématu „${topic}“ nejdůležitější?`, answer: "Doplní AI." + demoTail("odpověď na míru") },
       { question: "Pro koho se obsah hodí?", answer: `Zejména pro ${aud}.` },
       { question: "Jak často téma řešit?", answer: "Záleží na potřebách čtenáře — brief slouží jako kostra." },
     ],
     keywords: [kw, `${kw} tipy`, `${kw} návod`, `jak na ${kw}`, `${kw} doporučení`].filter(Boolean),
     internalLinks: ["Související téma", "Podrobný návod", "Další články na blogu", "Nejčtenější obsah"],
     rationale:
-      "Ukázkový brief: title a meta v SEO limitech, osnova H2 a FAQ. Připojte LLM (Claude Code v devu, Gemini v produkci) pro plnou verzi od modelu.",
+      "Title a meta v SEO limitech, osnova H2 a FAQ." + demoTail("plnou verzi od modelu"),
   };
 }
 

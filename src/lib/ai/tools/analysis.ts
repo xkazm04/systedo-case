@@ -12,6 +12,8 @@ import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapsh
 import { fmtCZK, fmtMultiple, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
+import { demoTail } from "./_fragments";
+import { missingStrFields, withObjectGuard } from "./_validate";
 import { ANALYST_PERSONA } from "./persona";
 import { refineLines } from "./refine";
 
@@ -71,15 +73,14 @@ function normalizeAnalysisResult(parsed: unknown): AnalysisResult {
 /** Flag analysis output missing the actionable parts (empty wins/risks/actions
  *  or no verdict), so the wrapper re-prompts instead of rendering a hollow card
  *  that the normalizer would have silently passed through. */
-function validateAnalysis(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  if (!txt(o.headline)) v.push("Chybí jednovětý verdikt (headline).");
-  if (cleanList(o.wins, 6).length === 0) v.push("Chybí body „co se daří“ (wins).");
-  if (cleanList(o.risks, 6).length === 0) v.push("Chybí rizika (risks).");
-  if (countTitled(o.actions) === 0) v.push("Chybí konkrétní doporučené kroky (actions).");
-  return v;
+export function validateAnalysis(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const v = missingStrFields(o, [["headline", "Chybí jednovětý verdikt (headline)."]]);
+    if (cleanList(o.wins, 6).length === 0) v.push("Chybí body „co se daří“ (wins).");
+    if (cleanList(o.risks, 6).length === 0) v.push("Chybí rizika (risks).");
+    if (countTitled(o.actions) === 0) v.push("Chybí konkrétní doporučené kroky (actions).");
+    return v;
+  })(parsed);
 }
 
 export function demoAnalysis(s: Snapshot): AnalysisResult {
@@ -129,7 +130,7 @@ export function demoAnalysis(s: Snapshot): AnalysisResult {
 
   return {
     headline: `${pnoUnder ? "PNO je pod cílem" : "PNO překračuje cíl"}, obrat ${revUp ? "roste" : "klesá"} (${fmtSignedPct(s.delta.revenue)}).`,
-    summary: `Za posledních ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, což odpovídá PNO ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) a ROAS ${fmtMultiple(c.roas)}. Konverze ${s.delta.conversions >= 0 ? "vzrostly" : "klesly"} o ${fmtSignedPct(s.delta.conversions).replace("+", "")}. Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro analýzu od modelu.`,
+    summary: `Za posledních ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, což odpovídá PNO ${fmtPct(c.pno)} (cíl ${fmtPct(s.goalPno, 0)}) a ROAS ${fmtMultiple(c.roas)}. Konverze ${s.delta.conversions >= 0 ? "vzrostly" : "klesly"} o ${fmtSignedPct(s.delta.conversions).replace("+", "")}.${demoTail("analýzu od modelu")}`,
     wins,
     risks,
     actions,

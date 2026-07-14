@@ -13,6 +13,7 @@ import type {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const LOCAL_REVIEW_REPLY_SYSTEM = `Jsi zkušený český správce reputace lokální firmy. Píšeš veřejné odpovědi na recenze v Google firemním profilu tak, aby působily lidsky, profesionálně a posilovaly důvěru dalších zákazníků, kteří odpověď uvidí.
@@ -80,6 +81,13 @@ function cannedReply(req: LocalReviewReplyRequest): string {
   return `Mrzí nás, že vaše zkušenost nedopadla podle očekávání, a omlouváme se za vzniklé potíže. Rádi bychom to s vámi napravili — ozvěte se nám prosím přímo na kontakt naší pobočky v lokalitě ${req.area} a společně najdeme řešení.`;
 }
 
+/** Flag an empty model reply (or a non-object / truncated parse) so the wrapper
+ *  self-repairs once instead of silently falling back to the canned rating-based
+ *  text (which masked a failed generation). */
+export const validateLocalReviewReply = withObjectGuard((o) =>
+  txt(o.reply) ? [] : ["Pole „reply“ je prázdné — vrať celou veřejnou odpověď na recenzi."]
+);
+
 export function generateLocalReviewReply(
   req: LocalReviewReplyRequest,
   locale?: SupportedLocale,
@@ -93,12 +101,7 @@ export function generateLocalReviewReply(
     return { reply: reply || cannedReply(req) };
   };
 
-  // Flag an empty model reply so the wrapper self-repairs once instead of silently
-  // falling back to the canned rating-based text (which masked a failed generation).
-  const validate = (parsed: unknown): string[] => {
-    const o = parsed as Record<string, unknown> | null;
-    return txt(o?.reply) ? [] : ["Pole „reply“ je prázdné — vrať celou veřejnou odpověď na recenzi."];
-  };
+  const validate = validateLocalReviewReply;
 
   return generateStructured({
     // llm-tool: local-review-reply

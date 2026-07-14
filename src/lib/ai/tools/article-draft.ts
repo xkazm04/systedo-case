@@ -28,6 +28,7 @@ import type { Block, CalloutBlock, FaqItem } from "../../article";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, slugify } from "./_shared";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const ARTICLE_DRAFT_SYSTEM = `Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku připravený k publikaci.
@@ -261,15 +262,15 @@ function demoArticleDraft(req: ArticleDraftRequest): ArticleDraftResult {
 }
 
 /** Flag a draft with no usable body blocks so the wrapper can re-prompt once. */
-function validateArticleDraft(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o) return [];
-  const raw = Array.isArray(o.blocks) ? o.blocks : [];
-  const valid = raw.map((b, i) => toBlock(b, i)).filter((b): b is Block => b !== null);
-  if (valid.length === 0) {
-    return ["Návrh neobsahuje žádný platný blok textu — vrať tělo článku jako pole „blocks“."];
-  }
-  return [];
+export function validateArticleDraft(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const raw = Array.isArray(o.blocks) ? o.blocks : [];
+    const valid = raw.map((b, i) => toBlock(b, i)).filter((b): b is Block => b !== null);
+    if (valid.length === 0) {
+      return ["Návrh neobsahuje žádný platný blok textu — vrať tělo článku jako pole „blocks“."];
+    }
+    return [];
+  })(parsed);
 }
 
 export function generateArticleDraft(

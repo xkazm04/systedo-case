@@ -14,6 +14,8 @@ import { generateStructured } from "../../llm";
 import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, clamp, cleanClampedList, lenViolations } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 const AD_SYSTEM = `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
@@ -22,7 +24,7 @@ Pravidla:
 - Piš výhradně česky, s diakritikou a gramaticky správně.
 - Striktně dodržuj limity znaků: nadpisy max ${AD_LIMITS.headline} znaků, popisky max ${AD_LIMITS.description} znaků, odznaky (callouts) max ${AD_LIMITS.callout} znaků, dlouhý nadpis max ${AD_LIMITS.longHeadline} znaků. Raději buď mírně pod limitem.
 - Texty musí být konkrétní a relevantní k produktu i cílové skupině. Vyhni se prázdným frázím.
-- Neslibuj nepodložená tvrzení (např. „nejlepší na světě“) ani konkrétní slevy či čísla, která nebyla zadána.
+- ${antiFabrication("zadaného produktu, benefitů a cílové skupiny")} Neslibuj nepodložená tvrzení (např. „nejlepší na světě“), konkrétní slevy ani čísla, která nebyla zadána.
 - Žádné emoji, žádné zbytečné vykřičníky, nepiš celá slova velkými písmeny.
 - Nadpisy ať pokrývají různé úhly: hlavní benefit, cílová skupina, výzva k akci, důvěra/kvalita, šíře sortimentu.`;
 
@@ -96,18 +98,18 @@ function normalizeAdResult(parsed: unknown): AdResult {
 
 /** Flag raw ad output that exceeds the Google Ads / Sklik character limits, so
  *  the wrapper can re-prompt the model to self-correct before we clamp. */
-function validateAds(parsed: unknown): string[] {
-  const o = parsed as Partial<AdResult> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  v.push(...lenViolations("Nadpis", cleanList(o.headlines, 10), AD_LIMITS.headline));
-  v.push(...lenViolations("Popisek", cleanList(o.descriptions, 6), AD_LIMITS.description));
-  v.push(...lenViolations("Odznak", cleanList(o.callouts, 6), AD_LIMITS.callout));
-  const long = txt(o.longHeadline);
-  if (long.length > AD_LIMITS.longHeadline) {
-    v.push(`Dlouhý nadpis má ${long.length} znaků (limit ${AD_LIMITS.longHeadline}).`);
-  }
-  return v;
+export function validateAds(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const v: string[] = [];
+    v.push(...lenViolations("Nadpis", cleanList(o.headlines, 10), AD_LIMITS.headline));
+    v.push(...lenViolations("Popisek", cleanList(o.descriptions, 6), AD_LIMITS.description));
+    v.push(...lenViolations("Odznak", cleanList(o.callouts, 6), AD_LIMITS.callout));
+    const long = txt(o.longHeadline);
+    if (long.length > AD_LIMITS.longHeadline) {
+      v.push(`Dlouhý nadpis má ${long.length} znaků (limit ${AD_LIMITS.longHeadline}).`);
+    }
+    return v;
+  })(parsed);
 }
 
 function demoAds(req: AdRequest): AdResult {
@@ -132,7 +134,8 @@ function demoAds(req: AdRequest): AdResult {
     })(),
     longHeadline: clamp(`${product} — ${firstBenefit}, doprava zdarma od 999 Kč`, AD_LIMITS.longHeadline),
     rationale:
-      "Ukázkový výstup: nadpisy kombinují produkt, hlavní benefit, důvěru a výzvu k akci, aby pokryly různé fáze rozhodování. Připojte LLM (Claude Code v devu, Gemini v produkci) pro generování modelem.",
+      "Nadpisy kombinují produkt, hlavní benefit, důvěru a výzvu k akci, aby pokryly různé fáze rozhodování." +
+      demoTail("generování modelem"),
   };
 }
 

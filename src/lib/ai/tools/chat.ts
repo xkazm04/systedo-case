@@ -8,6 +8,9 @@ import { buildSnapshot, snapshotToPromptText, type Snapshot } from "../../snapsh
 import type { PerformanceData } from "../../types";
 import { fmtCZK, fmtPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
+import { txt } from "./_shared";
+import { demoTail } from "./_fragments";
+import { withObjectGuard } from "./_validate";
 import { ANALYST_PERSONA } from "./persona";
 
 /** The analyst persona (shared with the one-shot `analysis` tool via ./persona),
@@ -37,6 +40,12 @@ function transcript(messages: ChatTurn[]): string {
     .join("\n");
 }
 
+/** Fail a chat turn whose parse is not an object (truncated stream) or whose reply
+ *  is empty, so the wrapper re-prompts once instead of falling straight to the demo. */
+export const validateChat = withObjectGuard((o) =>
+  txt(o.reply) ? [] : ["Prázdná odpověď."]
+);
+
 function buildChatPrompt(snapshotText: string, messages: ChatTurn[]): string {
   return [
     "Níže jsou reálná výkonnostní data klienta z marketingových kampaní.",
@@ -64,7 +73,7 @@ function demoChat(s: Snapshot): ChatResult {
   ];
   if (worst) parts.push(`Nejslabší kanál je ${worst.channel} s PNO ${fmtPct(worst.pno)}.`);
   if (best) parts.push(`Nejlepší návratnost má ${best.channel}.`);
-  parts.push("Připojte LLM (Claude Code v devu, Gemini v produkci) pro konkrétní odpověď na váš dotaz.");
+  parts.push(demoTail("konkrétní odpověď na váš dotaz").trim());
   return { reply: parts.join(" ") };
 }
 
@@ -90,11 +99,9 @@ export function generateChat(
       const reply = typeof (parsed as ChatResult)?.reply === "string" ? (parsed as ChatResult).reply.trim() : "";
       return { reply };
     },
-    // Return domain violations ([] = valid); an empty reply is the only failure.
-    validate: (r) =>
-      typeof (r as ChatResult)?.reply === "string" && (r as ChatResult).reply.trim().length > 0
-        ? []
-        : ["Prázdná odpověď."],
+    // Return domain violations ([] = valid); a non-object parse (truncated stream)
+    // or an empty reply is the only failure — both route the wrapper's repair pass.
+    validate: validateChat,
     demo: () => demoChat(snapshot),
     locale,
     signal,

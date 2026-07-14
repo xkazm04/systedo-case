@@ -18,6 +18,7 @@ import {
 import { draftPosts } from "../../social/draft";
 import { generateStructured } from "../../llm";
 import { clamp, txt } from "./_shared";
+import { withObjectGuard } from "./_validate";
 
 function socialSystem(brand?: string): string {
   const who = brand ? `pro značku: ${brand}` : "pro značku, jejíž téma a tón dostaneš v zadání";
@@ -87,6 +88,24 @@ const SOCIAL_SCHEMA = {
   propertyOrdering: ["posts"],
 };
 
+/** Flag any post over its platform limit, or a non-object / truncated parse, so the
+ *  wrapper re-prompts once before the normalizer clamps + fills from the templates. */
+export const validateSocial = withObjectGuard((o): string[] => {
+  if (!Array.isArray(o.posts)) return [];
+  const v: string[] = [];
+  for (const item of o.posts) {
+    if (!item || typeof item !== "object") continue;
+    const x = item as Record<string, unknown>;
+    const platform = txt(x.platform).toLowerCase() as SocialPlatform;
+    const limit = PLATFORM_LIMITS[platform];
+    const content = txt(x.content);
+    if (limit && content.length > limit) {
+      v.push(`Příspěvek pro ${platform} má ${content.length} znaků (limit ${limit}).`);
+    }
+  }
+  return v;
+});
+
 export function generateSocialPosts(req: {
   topic: string;
   tone: Tone;
@@ -133,23 +152,6 @@ export function generateSocialPosts(req: {
     return { posts };
   };
 
-  const validate = (parsed: unknown): string[] => {
-    const o = parsed as Record<string, unknown> | null;
-    if (!o || !Array.isArray(o.posts)) return [];
-    const v: string[] = [];
-    for (const item of o.posts) {
-      if (!item || typeof item !== "object") continue;
-      const x = item as Record<string, unknown>;
-      const platform = txt(x.platform).toLowerCase() as SocialPlatform;
-      const limit = PLATFORM_LIMITS[platform];
-      const content = txt(x.content);
-      if (limit && content.length > limit) {
-        v.push(`Příspěvek pro ${platform} má ${content.length} znaků (limit ${limit}).`);
-      }
-    }
-    return v;
-  };
-
   return generateStructured({
     // llm-tool: social
     id: "social",
@@ -158,7 +160,7 @@ export function generateSocialPosts(req: {
     schema: SOCIAL_SCHEMA,
     temperature: 0.9,
     normalize,
-    validate,
+    validate: validateSocial,
     locale: req.locale,
     signal: req.signal,
     demo: () => ({ posts: fallback() }),

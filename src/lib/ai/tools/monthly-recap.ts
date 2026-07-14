@@ -15,12 +15,14 @@ import type { ProjectType } from "../../projects/types";
 import { fmtCZK, fmtPct, fmtSignedPct, type SupportedLocale } from "../../format";
 import { generateStructured } from "../../llm";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
+import { antiFabrication, demoTail } from "./_fragments";
+import { missingStrFields, withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 
 export const MONTHLY_RECAP_SYSTEM = `Jsi zkušený český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu pro klienta.
 
 Pravidla:
-- Vycházej VÝHRADNĚ z předaných čísel a z typu podnikání klienta. Nevymýšlej si žádné metriky ani hodnoty, které v datech nejsou.
+- ${antiFabrication("předaných čísel a z typu podnikání klienta")}
 - Přizpůsob rámování typu podnikání: u e-shopu mluv o obratu, PNO a ROAS; u lokálního podniku, leadgenu nebo obsahového webu spíš o poptávkách, návštěvnosti, viditelnosti a konverzích — nepředpokládej e-commerce, pokud to data nedokládají.
 - Buď konkrétní a akční: priority musí být něco, co tým reálně příští měsíc udělá.
 - Piš česky, věcně, bez vaty a marketingových frází.
@@ -85,15 +87,14 @@ function normalizeRecap(parsed: unknown): MonthlyRecapResult {
 
 /** Flag output missing the actionable parts, so the wrapper re-prompts instead of
  *  rendering a hollow recap the normalizer would have silently passed through. */
-function validateRecap(parsed: unknown): string[] {
-  const o = parsed as Record<string, unknown> | null;
-  if (!o || typeof o !== "object") return [];
-  const v: string[] = [];
-  if (!txt(o.headline)) v.push("Chybí jednovětý verdikt (headline).");
-  if (cleanList(o.highlights, 6).length === 0) v.push("Chybí hlavní úspěchy (highlights).");
-  if (cleanList(o.watchouts, 6).length === 0) v.push("Chybí věci k hlídání (watchouts).");
-  if (countTitled(o.priorities) === 0) v.push("Chybí priority na příští měsíc (priorities).");
-  return v;
+export function validateRecap(parsed: unknown): string[] {
+  return withObjectGuard((o) => {
+    const v = missingStrFields(o, [["headline", "Chybí jednovětý verdikt (headline)."]]);
+    if (cleanList(o.highlights, 6).length === 0) v.push("Chybí hlavní úspěchy (highlights).");
+    if (cleanList(o.watchouts, 6).length === 0) v.push("Chybí věci k hlídání (watchouts).");
+    if (countTitled(o.priorities) === 0) v.push("Chybí priority na příští měsíc (priorities).");
+    return v;
+  })(parsed);
 }
 
 export function demoRecap(s: Snapshot, businessType?: string): MonthlyRecapResult {
@@ -121,7 +122,7 @@ export function demoRecap(s: Snapshot, businessType?: string): MonthlyRecapResul
 
   return {
     headline: `Měsíc ${revUp ? "s růstem" : "s poklesem"} obratu (${fmtSignedPct(s.delta.revenue)})${businessType ? `, ${businessType}` : ""}.`,
-    summary: `Za ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)} (PNO ${fmtPct(c.pno)}, cíl ${fmtPct(s.goalPno, 0)}). Ukázkový výstup — připojte LLM (Claude Code v devu, Gemini v produkci) pro rekapitulaci od modelu.`,
+    summary: `Za ${s.periodLabel} dosáhl ${s.client.name} obratu ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)} (PNO ${fmtPct(c.pno)}, cíl ${fmtPct(s.goalPno, 0)}).${demoTail("rekapitulaci od modelu")}`,
     highlights,
     watchouts,
     priorities,

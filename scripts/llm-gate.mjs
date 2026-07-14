@@ -43,11 +43,16 @@ const HASHED_FILES = [
   "src/lib/llm/gemini.ts",
   "src/lib/llm/models.ts",
   "src/lib/ai/tools/_shared.ts",
-  // Shared anti-fabrication fragment feeds five system prompts (channel-research,
-  // cohort-diagnosis, keyword-clusters, lead-source-diagnosis, onboarding-scan);
-  // the demo-tail is demo-only. Untagged ⇒ a change here forces a full re-run so
-  // editing the shared rule re-proves every tool that embeds it.
+  // Shared anti-fabrication fragment feeds many system prompts (the analyst persona
+  // → analysis + chat, monthly-recap, campaign-eval, ads, and the diagnostic tools:
+  // channel-research, cohort-diagnosis, keyword-clusters, lead-source-diagnosis,
+  // onboarding-scan); the demo-tail is demo-only. Untagged ⇒ a change here forces a
+  // full re-run so editing the shared rule re-proves every tool that embeds it.
   "src/lib/ai/tools/_fragments.ts",
+  // Shared validation scaffolding (withObjectGuard / missingStrFields) is the single
+  // repair-gate every tool's validator now routes through — a change to the
+  // non-object floor alters self-repair behavior for all of them. Untagged ⇒ full re-run.
+  "src/lib/ai/tools/_validate.ts",
   // Shared by twin-reply, social and repurpose — a change here rewrites three prompts.
   "src/lib/ai/tools/voice.ts",
   // The analyst persona shared by analysis + chat (chat's live system prompt is
