@@ -52,6 +52,7 @@ export default function ChannelsSection({
   period,
   timeResolved = false,
   baseline = "previous",
+  highlightChannel = null,
 }: {
   channels: ChannelRow[];
   totals: Totals;
@@ -64,6 +65,8 @@ export default function ChannelsSection({
   timeResolved?: boolean;
   /** comparison baseline in effect — passes to the table's delta badge tooltips */
   baseline?: PeriodBaseline;
+  /** transient row flash driven by the mix-shift insight (Direction 3) */
+  highlightChannel?: { channel: string; seq: number } | null;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -127,6 +130,7 @@ export default function ChannelsSection({
         revenueSignificance={revenueSignificance}
         timeResolved={timeResolved}
         baseline={baseline}
+        highlightChannel={highlightChannel}
       />
     </div>
   );

@@ -53,15 +53,31 @@ export default function DashboardClient({
   // "See this alert in context": clicking an alert switches the chart to the
   // event's metric and pins its point (seq bumps so a repeat click re-applies).
   const [chartFocus, setChartFocus] = useState<{ date: string; seq: number } | null>(null);
+  // "See this channel in the table": clicking the mix-shift insight scrolls to the
+  // channels section and flashes the moved channel's row (seq bumps to re-trigger).
+  const [channelFocus, setChannelFocus] = useState<{ channel: string; seq: number } | null>(null);
   const chartCardRef = useRef<HTMLDivElement>(null);
+  const channelsRef = useRef<HTMLDivElement>(null);
+
+  // Pin the trend chart on a metric + date: switch the chart to that metric (when
+  // the selector offers it) and open its tooltip on the date, then bring the chart
+  // into view. Shared by the alerts feed and the metric-backed insights.
+  const focusChart = (metric: MetricKey, date: string) => {
+    if (TREND_METRICS.includes(metric)) setTrendMetric(metric);
+    setChartFocus((f) => ({ date, seq: (f?.seq ?? 0) + 1 }));
+    chartCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const focusAlert = (a: Anomaly) => {
     // goal-breach alerts describe PNO against the goal; other kinds carry their
     // own metric. Only switch to metrics the selector actually offers.
-    const metric: MetricKey = a.kind === "goal-breach" ? "pno" : a.metric;
-    if (TREND_METRICS.includes(metric)) setTrendMetric(metric);
-    setChartFocus((f) => ({ date: a.date, seq: (f?.seq ?? 0) + 1 }));
-    chartCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    focusChart(a.kind === "goal-breach" ? "pno" : a.metric, a.date);
+  };
+
+  // Mix-shift insight → scroll to the channel table and flash the moved channel.
+  const focusChannel = (channel: string) => {
+    setChannelFocus((f) => ({ channel, seq: (f?.seq ?? 0) + 1 }));
+    channelsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[1];
@@ -175,16 +191,19 @@ export default function DashboardClient({
           profile in the thin right rail */}
       <div key={`channels-${periodKey}`} className="grid animate-fade-in gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <ChannelsSection
-            channels={channels}
-            totals={c}
-            goalPno={goalPno}
-            revenueDelta={result.delta.revenue}
-            revenueSignificance={result.significance.revenue}
-            period={period}
-            timeResolved={!!channelTime}
-            baseline={baseline}
-          />
+          <div ref={channelsRef} className="scroll-mt-6">
+            <ChannelsSection
+              channels={channels}
+              totals={c}
+              goalPno={goalPno}
+              revenueDelta={result.delta.revenue}
+              revenueSignificance={result.significance.revenue}
+              period={period}
+              timeResolved={!!channelTime}
+              baseline={baseline}
+              highlightChannel={channelFocus}
+            />
+          </div>
           <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
             {hasAlerts && (
               <AlertsPanel
@@ -207,6 +226,9 @@ export default function DashboardClient({
               coverage={coverage}
               funnel={funnel}
               baseline={baseline}
+              windowEndDate={result.points[result.points.length - 1]?.date ?? ""}
+              onFocusMetric={focusChart}
+              onMixShift={focusChannel}
             />
           </div>
         </div>

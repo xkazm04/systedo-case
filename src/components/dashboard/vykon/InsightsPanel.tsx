@@ -45,6 +45,10 @@ const T = {
     funnelChangeCol: "změna",
     funnelShareCol: "vliv",
     funnelSharesTotal: "Součet vlivů",
+    navFocusAria: "Zobrazit v grafu: {label}",
+    navFocusHint: "Zobrazit tuto metriku v grafu",
+    navMixAria: "Přejít na kanál v tabulce: {label}",
+    navMixHint: "Přejít na tento kanál v tabulce kanálů",
     coverageDegraded:
       "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
     coverageInsufficient:
@@ -73,12 +77,24 @@ const T = {
     funnelChangeCol: "change",
     funnelShareCol: "share",
     funnelSharesTotal: "Shares total",
+    navFocusAria: "Show on the chart: {label}",
+    navFocusHint: "Show this metric on the chart",
+    navMixAria: "Go to the channel in the table: {label}",
+    navMixHint: "Go to this channel in the channel table",
     coverageDegraded:
       "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
     coverageInsufficient:
       "Too little data yet for reliable anomaly and trend detection.",
   },
 } as const;
+
+/** Where an insight navigates when clicked (Direction 3). `focus` pins the chart on
+ *  a metric + a date (the window end, or an anomaly date when it has one); `mix`
+ *  scrolls to the channel table and flashes the moved channel's row. Insights
+ *  without a sensible target carry no action and stay non-interactive text. */
+type InsightAction =
+  | { kind: "focus"; metric: MetricKey; date: string }
+  | { kind: "mix"; channel: string };
 
 interface Insight {
   text: React.ReactNode;
@@ -90,6 +106,10 @@ interface Insight {
   /** when set, this insight is the funnel line: `text` is the one-line summary and
    *  the attribution renders as an expandable per-driver breakdown (Direction 1). */
   funnel?: FunnelAttribution;
+  /** when set, the insight renders as a button that navigates (Direction 3) */
+  action?: InsightAction;
+  /** plain-text of `text`, for the button's aria-label when `action` is set */
+  plain?: string;
 }
 
 /** The three funnel drivers, in the order the disclosure lists them. */
@@ -187,11 +207,17 @@ function buildInsights(
   funnel: FunnelAttribution | null,
   significance: Record<MetricKey, Significance>,
   baseline: PeriodBaseline,
+  windowEndDate: string,
   fmt: Formatters,
   t: TFn<keyof typeof T.cs>,
   locale: SupportedLocale
 ): Insight[] {
   const out: Insight[] = [];
+  // A metric-backed insight that spans the whole window pins the chart on the
+  // window's last point (the trends/moves all end at the latest data). Guarded so a
+  // dataless window never emits a dead button.
+  const focusAt = (metric: MetricKey): InsightAction | undefined =>
+    windowEndDate ? { kind: "focus", metric, date: windowEndDate } : undefined;
   const paid = channels.filter((ch) => ch.cost > 0);
   // Relative gap to the PNO goal — the tie-break magnitude for the PNO-level lines.
   const pnoGap = goalPno > 0 ? Math.abs(pno - goalPno) / goalPno : 0;
@@ -203,19 +229,18 @@ function buildInsights(
   // move and its funnel explanation adjacent.
   for (const tr of trends) {
     const favourable = (tr.direction === "up") === (METRICS[tr.metric].goodDirection === "up");
+    const line = t(tr.direction === "down" ? "insightTrendDown" : "insightTrendUp", {
+      metric: metricShort(METRICS[tr.metric], locale),
+      weeks: `${tr.weeks} ${weekWord(tr.weeks, locale)}`,
+      pct: fmt.fmtSignedPct(tr.cumulativeChange),
+    });
     out.push({
       tone: favourable ? "good" : "warn",
       significance: significance[tr.metric],
       magnitude: Math.abs(tr.cumulativeChange),
-      text: (
-        <>
-          {t(tr.direction === "down" ? "insightTrendDown" : "insightTrendUp", {
-            metric: metricShort(METRICS[tr.metric], locale),
-            weeks: `${tr.weeks} ${weekWord(tr.weeks, locale)}`,
-            pct: fmt.fmtSignedPct(tr.cumulativeChange),
-          })}
-        </>
-      ),
+      action: focusAt(tr.metric),
+      plain: line,
+      text: <>{line}</>,
     });
   }
 
@@ -233,37 +258,36 @@ function buildInsights(
     );
   if (mixShift && Math.abs(mixShift.revenueShareDelta ?? 0) >= MIX_SHIFT_TO_REPORT) {
     const d = mixShift.revenueShareDelta ?? 0;
+    const line = t(d > 0 ? "insightMixUp" : "insightMixDown", {
+      channel: mixShift.channel,
+      pp: fmt.fmtInt(Math.abs(d) * 100),
+    });
     out.push({
       tone: "info",
       significance: "strong",
       magnitude: Math.abs(d),
-      text: (
-        <>
-          {t(d > 0 ? "insightMixUp" : "insightMixDown", {
-            channel: mixShift.channel,
-            pp: fmt.fmtInt(Math.abs(d) * 100),
-          })}
-        </>
-      ),
+      action: { kind: "mix", channel: mixShift.channel },
+      plain: line,
+      text: <>{line}</>,
     });
   }
 
   if (Number.isFinite(revenueDelta) && Math.abs(revenueDelta) > MIN_REVENUE_DELTA_TO_REPORT) {
+    const line =
+      revenueDelta > 0
+        ? t(baseline === "yoy" ? "insightRevenueUpYoy" : "insightRevenueUp", {
+            delta: fmt.fmtSignedPct(revenueDelta).replace("+", ""),
+          })
+        : t(baseline === "yoy" ? "insightRevenueDownYoy" : "insightRevenueDown", {
+            delta: fmt.fmtSignedPct(revenueDelta).replace("-", ""),
+          });
     out.push({
       tone: revenueDelta > 0 ? "good" : "warn",
       significance: significance.revenue,
       magnitude: Math.abs(revenueDelta),
-      text: (
-        <>
-          {revenueDelta > 0
-            ? t(baseline === "yoy" ? "insightRevenueUpYoy" : "insightRevenueUp", {
-                delta: fmt.fmtSignedPct(revenueDelta).replace("+", ""),
-              })
-            : t(baseline === "yoy" ? "insightRevenueDownYoy" : "insightRevenueDown", {
-                delta: fmt.fmtSignedPct(revenueDelta).replace("-", ""),
-              })}
-        </>
-      ),
+      action: focusAt("revenue"),
+      plain: line,
+      text: <>{line}</>,
     });
   }
 
@@ -287,15 +311,19 @@ function buildInsights(
     });
   }
 
+  const pnoLine =
+    pno <= goalPno
+      ? t("insightPnoBelow", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })
+      : t("insightPnoAbove", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) });
   out.push({
     tone: pno <= goalPno ? "good" : "warn",
     significance: significance.pno,
     magnitude: pnoGap,
+    action: focusAt("pno"),
+    plain: pnoLine,
     text: (
       <>
-        {pno <= goalPno
-          ? t("insightPnoBelow", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })
-          : t("insightPnoAbove", { pno: fmt.fmtPct(pno), goal: fmt.fmtPct(goalPno, 0) })}
+        {pnoLine}
       </>
     ),
   });
@@ -364,6 +392,9 @@ export default function InsightsPanel({
   coverage = "full",
   funnel = null,
   baseline = "previous",
+  windowEndDate = "",
+  onFocusMetric,
+  onMixShift,
 }: {
   channels: ChannelRow[];
   revenueDelta: number;
@@ -381,12 +412,18 @@ export default function InsightsPanel({
   /** comparison baseline in effect — keeps the revenue insight's wording honest
    *  ("vs the previous period" vs "vs the same period last year") */
   baseline?: PeriodBaseline;
+  /** last date of the current window — where a whole-window insight pins the chart */
+  windowEndDate?: string;
+  /** pin the trend chart on a metric + date (Direction 3 navigation) */
+  onFocusMetric?: (metric: MetricKey, date: string) => void;
+  /** scroll to the channel table and flash a channel's row (Direction 3) */
+  onMixShift?: (channel: string) => void;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
   const { locale } = useLocale();
 
-  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, baseline, fmt, t, locale);
+  const insights = buildInsights(channels, revenueDelta, pno, goalPno, trends, profile, funnel, significance, baseline, windowEndDate, fmt, t, locale);
 
   return (
     <div className="card p-5">
@@ -411,6 +448,21 @@ export default function InsightsPanel({
             <div className="min-w-0 flex-1 leading-snug text-navy-700">
               {ins.funnel ? (
                 <FunnelDisclosure summary={ins.text} funnel={ins.funnel} fmt={fmt} t={t} />
+              ) : ins.action && (ins.action.kind === "focus" ? onFocusMetric : onMixShift) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (ins.action?.kind === "focus") onFocusMetric?.(ins.action.metric, ins.action.date);
+                    else if (ins.action?.kind === "mix") onMixShift?.(ins.action.channel);
+                  }}
+                  aria-label={t(ins.action.kind === "focus" ? "navFocusAria" : "navMixAria", {
+                    label: ins.plain ?? "",
+                  })}
+                  title={t(ins.action.kind === "focus" ? "navFocusHint" : "navMixHint")}
+                  className="-mx-1.5 -my-0.5 block w-[calc(100%+0.75rem)] rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-canvas/70 hover:text-navy-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-400"
+                >
+                  {ins.text}
+                </button>
               ) : (
                 ins.text
               )}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ChannelRow, PeriodBaseline, Significance, Totals } from "@/lib/metrics";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import DeltaBadge from "@/components/dashboard/DeltaBadge";
@@ -50,6 +51,7 @@ export default function ChannelTable({
   revenueSignificance,
   timeResolved = false,
   baseline = "previous",
+  highlightChannel = null,
 }: {
   rows: ChannelRow[];
   totals: Totals;
@@ -70,9 +72,23 @@ export default function ChannelTable({
   timeResolved?: boolean;
   /** comparison baseline in effect — swaps the delta badges' tooltip wording */
   baseline?: PeriodBaseline;
+  /** a channel name (+ seq to re-trigger) to briefly flash — driven by clicking the
+   *  mix-shift insight so it lands on the moved channel's row (Direction 3) */
+  highlightChannel?: { channel: string; seq: number } | null;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+
+  // Briefly flash the row the mix-shift insight points at, then fade it out. Seeding
+  // the flash from the focus request mirrors TrendChart's alert-focus effect.
+  const [flash, setFlash] = useState<string | null>(null);
+  useEffect(() => {
+    if (!highlightChannel) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFlash(highlightChannel.channel);
+    const id = setTimeout(() => setFlash(null), 1800);
+    return () => clearTimeout(id);
+  }, [highlightChannel]);
 
   const maxShare = Math.max(...rows.map((r) => r.revenueShare), 0.0001);
 
@@ -97,7 +113,12 @@ export default function ChannelTable({
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.channel} className="border-b border-line/70 last:border-0 hover:bg-canvas/60">
+              <tr
+                key={r.channel}
+                className={`border-b border-line/70 transition-colors duration-700 last:border-0 ${
+                  flash === r.channel ? "bg-brand-100/70" : "hover:bg-canvas/60"
+                }`}
+              >
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-2.5">
                     <span
