@@ -8,6 +8,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { ArrowRight, Check, Plus, Sparkles } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
+import Modal from "@/components/app/Modal";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import type { OnboardingScanResult } from "@/lib/ai-types";
@@ -56,6 +57,15 @@ const T = {
     fCompetitors: "Konkurenti (návrhy — potvrďte nebo upravte)",
     addPlaceholder: "Přidat a Enter",
     suggestedType: "Doporučený typ",
+    typeAlready: "už používáte",
+    applyType: "Použít navrhovaný typ",
+    typeConfirmTitle: "Změnit typ projektu?",
+    typeConfirmBody:
+      "Změníme typ projektu na „{type}“. Tím se přizpůsobí levé menu i dostupné moduly vaší firmě. Nic nemažeme — mění se jen to, co je vidět. Typ můžete kdykoli změnit v nastavení.",
+    typeConfirmCta: "Ano, změnit typ",
+    typeChanging: "Měním…",
+    typeError: "Změna typu se nepodařila. Zkuste to prosím znovu.",
+    cancel: "Zrušit",
     apply: "Použít a naplnit aplikaci",
     applying: "Ukládám…",
     rescan: "Přeskenovat",
@@ -92,6 +102,15 @@ const T = {
     fCompetitors: "Competitors (suggestions — confirm or edit)",
     addPlaceholder: "Add and press Enter",
     suggestedType: "Suggested type",
+    typeAlready: "already in use",
+    applyType: "Use the suggested type",
+    typeConfirmTitle: "Change the project type?",
+    typeConfirmBody:
+      "We'll change the project type to “{type}”. That adapts the sidebar and the available modules to your business. Nothing is deleted — only what's shown changes. You can change the type anytime in settings.",
+    typeConfirmCta: "Yes, change the type",
+    typeChanging: "Changing…",
+    typeError: "Changing the type failed. Please try again.",
+    cancel: "Cancel",
     apply: "Apply and seed the app",
     applying: "Saving…",
     rescan: "Re-scan",
@@ -283,14 +302,11 @@ export default function OnboardingModule({
             tone="navy"
           />
 
-          {profile.suggestedType && (
-            <p className="text-xs text-muted">
-              {t("suggestedType")}:{" "}
-              <span className="font-semibold text-navy-800">
-                {TYPE_LABEL[profile.suggestedType as ProjectType]?.[L] ?? profile.suggestedType}
-              </span>
-            </p>
-          )}
+          <SuggestedType
+            suggested={profile.suggestedType}
+            currentType={project.type}
+            projectId={project.id}
+          />
 
           {saveError && <p className="text-sm text-negative">{saveError}</p>}
 
@@ -340,6 +356,11 @@ export default function OnboardingModule({
               )}
             </div>
           )}
+          <SuggestedType
+            suggested={profile.suggestedType}
+            currentType={project.type}
+            projectId={project.id}
+          />
           <button
             type="button"
             onClick={rescan}
@@ -404,6 +425,102 @@ export default function OnboardingModule({
         {t("toOverview")}
         <ArrowRight width={16} height={16} />
       </Link>
+    </div>
+  );
+}
+
+/** Renders the scan's suggested project type. When it differs from the project's
+ *  current type, it offers an explicit, confirm-gated button that PATCHes
+ *  project.type — never automatic. The confirm dialog explains that the sidebar +
+ *  modules will adapt (nothing is deleted). When the suggestion already matches the
+ *  current type, it shows a read-only "already in use" note. */
+function SuggestedType({
+  suggested,
+  currentType,
+  projectId,
+}: {
+  suggested?: string;
+  currentType: ProjectType;
+  projectId: string;
+}) {
+  const router = useRouter();
+  const { locale } = useLocale();
+  const t = useT(T);
+  const L = locale === "en" ? "en" : "cs";
+  const [confirming, setConfirming] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!suggested) return null;
+  const label = TYPE_LABEL[suggested as ProjectType]?.[L] ?? suggested;
+  const isDifferent = suggested !== currentType;
+
+  const changeType = async () => {
+    setChanging(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: suggested }),
+      });
+      if (!res.ok) throw new Error();
+      setConfirming(false);
+      router.refresh();
+    } catch {
+      setError(t("typeError"));
+    } finally {
+      setChanging(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+      <span>
+        {t("suggestedType")}: <span className="font-semibold text-navy-800">{label}</span>
+        {!isDifferent && <span className="ml-1">({t("typeAlready")})</span>}
+      </span>
+      {isDifferent && (
+        <button
+          type="button"
+          onClick={() => setConfirming(true)}
+          className="inline-flex items-center gap-1 rounded-pill border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-accent transition-colors hover:border-brand-300 hover:bg-brand-50"
+        >
+          {t("applyType")}
+          <ArrowRight width={12} height={12} />
+        </button>
+      )}
+      <Modal
+        open={confirming}
+        onClose={() => (changing ? undefined : setConfirming(false))}
+        title={t("typeConfirmTitle")}
+        footer={
+          <div className="flex items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setConfirming(false)}
+              disabled={changing}
+              className="text-sm font-medium text-muted transition-colors hover:text-navy-800 disabled:opacity-50"
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={changeType}
+              disabled={changing}
+              className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+            >
+              <Check width={15} height={15} />
+              {changing ? t("typeChanging") : t("typeConfirmCta")}
+            </button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-navy-700">
+          {t("typeConfirmBody", { type: label })}
+        </p>
+        {error && <p className="mt-3 text-sm text-negative">{error}</p>}
+      </Modal>
     </div>
   );
 }

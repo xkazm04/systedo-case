@@ -10,6 +10,14 @@ import { sanitizeScanProfile } from "@/lib/onboarding/types";
 import type { OnboardingState } from "@/lib/onboarding/types";
 import { saveCompetitors } from "@/lib/competitors/store";
 import { sanitizeCompetitors } from "@/lib/competitors/types";
+import { resolveTenant } from "@/lib/campaigns/connector";
+import { listKeywordLists, saveKeywordList } from "@/lib/keywords/store";
+import {
+  SCAN_LIST_SEED,
+  SCAN_LIST_NAME,
+  scanKeywordsToSaved,
+  shouldSeedScanList,
+} from "@/lib/onboarding/seed";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -39,6 +47,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       const set = sanitizeCompetitors({ competitors: profile.competitors.map((name) => ({ name })) });
       if (set) {
         await saveCompetitors(project.id, { ...set, updatedAt: now }).catch(() => {});
+      }
+    }
+
+    // Seed a scan-tagged keyword list from the scan's keywords — tenant-scoped, the
+    // same tenant the keyword-lists route resolves (lists are per-tenant, onboarding
+    // is per-project). Idempotent: skip when a scan-originated list already exists, so
+    // re-applying never duplicates it. Best-effort — a keyword-store hiccup never
+    // fails the apply.
+    if (profile.keywords.length > 0) {
+      try {
+        const tenant = await resolveTenant(uid, project.id);
+        const existing = await listKeywordLists(tenant);
+        if (shouldSeedScanList(existing.map((l) => l.seed), profile.keywords.length)) {
+          const keywords = scanKeywordsToSaved(profile.keywords, profile.businessName);
+          if (keywords.length > 0) {
+            await saveKeywordList(tenant, {
+              name: SCAN_LIST_NAME,
+              seed: SCAN_LIST_SEED,
+              source: "sample",
+              keywords,
+            });
+          }
+        }
+      } catch {
+        /* best-effort seeding */
       }
     }
   }
