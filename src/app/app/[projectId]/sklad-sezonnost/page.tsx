@@ -8,6 +8,7 @@ import { loadProductsFor } from "@/lib/catalog/load";
 import { currentUserId } from "@/lib/session";
 import { deriveWarehouseBadge, warehouseConnectionFor } from "@/lib/inventory/warehouse";
 import { getConnection } from "@/lib/inventory/connection-store";
+import { getStoredPlan } from "@/lib/inventory/plan-store";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
 
 
@@ -48,6 +49,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   });
   const changeSet = budgetChangeSet(stock);
 
+  // Direction 1: the saved action plan (per-move accept/dismiss) for real projects.
+  // Demo projects aren't owned/persisted, so their accept/dismiss stays local-only —
+  // pass no projectId (and no stored plan) to keep the module honest about that.
+  const isDemo = project.id.startsWith("demo-");
+  const storedPlan = isDemo ? null : await getStoredPlan(project.id);
+
   return (
     <ModulePage moduleKey="sklad-sezonnost">
       <div className="mb-5">
@@ -59,6 +66,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         stock={stock}
         budgetPlan={budgetPlan}
         changeSet={changeSet}
+        projectId={isDemo ? undefined : project.id}
+        storedPlan={storedPlan}
       />
     </ModulePage>
   );

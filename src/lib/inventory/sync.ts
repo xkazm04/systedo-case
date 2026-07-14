@@ -2,6 +2,7 @@
  *  project's catalog, optionally persist, and stamp the connection's last sync. Used
  *  by the on-demand sync route AND the scheduled cron re-sync, so both behave
  *  identically. Server-only. */
+import type { SupportedLocale } from "@/lib/format";
 import type { Offering, ProductOffering } from "@/lib/catalog/offering";
 import { isProduct } from "@/lib/catalog/offering";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
@@ -63,6 +64,10 @@ export interface SyncOpts {
   now: Date;
   /** when set, a successful apply stamps this connection's lastSyncAt. */
   stampConnection?: { userId: string; projectId: string; connection: StoredConnection };
+  /** locale for the stock-transition alert text (cs/en). Defaults to cs (the market
+   *  language, matching the rest of sync-alerts) when the caller has no request locale
+   *  — e.g. the cron. */
+  locale?: SupportedLocale;
 }
 
 /** The sync itself — validate, fetch, merge, and (on apply) persist the offerings.
@@ -134,6 +139,18 @@ export async function runCatalogSync(userId: string, projectId: string, opts: Sy
         lastErrorAt: nowIso,
         failCount: (stamp.connection.failCount ?? 0) + 1,
       });
+    }
+
+    // Direction 1: on a SUCCESSFUL apply from a REAL stored connection, alert on SKUs
+    // crossing into a pause / at-risk stock condition (transition-only, suppression-
+    // governed). Gated to a real connection here (stampConnection present) so sample-
+    // /seed-derived stock never alerts; the eshop-only gate lives in alertStockTransitions.
+    // Runs for both the cron re-sync and the manual sync — both call this seam.
+    // Lazily imported so sync.ts's static graph stays light (the alert path pulls in
+    // the campaigns inbox + firebase; only load it when an alert can actually fire).
+    if (result.code === "ok" && result.offerings) {
+      const { alertStockTransitions } = await import("./sync-alerts");
+      await alertStockTransitions(stamp.userId, stamp.projectId, result.offerings, opts.now, opts.locale);
     }
   }
   return result;

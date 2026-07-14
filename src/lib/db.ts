@@ -237,6 +237,18 @@ const SCHEMA = `
     PRIMARY KEY (user_id, project_id)
   );
 
+  -- A project's persisted inventory action plan + per-SKU stock-alert episodes, as
+  -- one {plan, stockAlerts, updatedAt} blob. The plan is the saved budget-move
+  -- recommendation with per-move state (proposed|accepted|dismissed) and the inputs
+  -- digest; stockAlerts is the planSuppression state that makes stockout alerts
+  -- transition-only. Absent → nothing saved yet. Mirrors the Firestore inventoryPlans
+  -- doc. See src/lib/inventory/plan-store.*.
+  CREATE TABLE IF NOT EXISTS inventory_plan (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- LOCAL_DB mode only: a user's BYOM (bring-your-own-model) config — one JSON
   -- blob holding the active vendor and per-vendor ENCRYPTED provider API keys
   -- (see llm/keys/crypto.ts). Keys are never stored plaintext, never returned to
@@ -384,6 +396,19 @@ const MIGRATIONS: Migration[] = [
       db.exec("CREATE INDEX IF NOT EXISTS idx_cron_runs_cron ON cron_runs (cron, finished_at)");
     },
     applied: (db) => tableExists(db, "cron_runs"),
+  },
+  {
+    version: 10,
+    name: "inventory_plan (persisted action plan + per-SKU stock-alert episodes)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS inventory_plan (
+          project_id TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      ),
+    applied: (db) => tableExists(db, "inventory_plan"),
   },
 ];
 

@@ -7,6 +7,7 @@ import NextSteps from "@/components/app/NextSteps";
 import InventoryBudgetActions from "@/components/app/modules/InventoryBudgetActions";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { buildActionPlan } from "@/lib/inventory/action-plan";
+import { initialMoveStates, planInputsDigest, type StoredPlan } from "@/lib/inventory/plan-types";
 import type {
   BudgetChangeSet,
   SeasonalBudgetPlan,
@@ -130,12 +131,18 @@ export default async function InventorySeasonModule({
   stock,
   budgetPlan,
   changeSet,
+  projectId,
+  storedPlan = null,
 }: {
   season: SeasonMonth[];
   currentMonth: number;
   stock: StockRow[];
   budgetPlan: SeasonalBudgetPlan;
   changeSet: BudgetChangeSet;
+  /** the project whose plan decisions persist (omit for demo → local-only accept). */
+  projectId?: string;
+  /** the saved action plan, resolved server-side, for the initial per-move states. */
+  storedPlan?: StoredPlan | null;
 }) {
   const fmt = await getServerFormatters();
   const t = await getT(T);
@@ -167,8 +174,12 @@ export default async function InventorySeasonModule({
     .filter((s) => s.status === "pause" || s.status === "low" || s.status === "resuming")
     .reduce((sum, s) => sum + s.coverValue, 0);
 
-  // Direction 3: the proposal becomes an executable, governed, cross-channel plan.
+  // Direction 3: the proposal becomes a governed, cross-channel plan. Direction 1
+  // (persisted plan): the digest identifies THIS proposal, and the initial per-move
+  // states come from the saved plan when it still matches (else all proposed).
   const actionPlan = buildActionPlan(stock, changeSet);
+  const digest = planInputsDigest(actionPlan.actions);
+  const initialStates = initialMoveStates(storedPlan, digest, actionPlan.actions);
 
   return (
     <div className="stagger space-y-6">
@@ -364,8 +375,8 @@ export default async function InventorySeasonModule({
         </div>
       </div>
 
-      {/* per-SKU budget change-set — now an executable, governed action plan */}
-      <InventoryBudgetActions plan={actionPlan} />
+      {/* per-SKU budget change-set — a governed, persisted, honest action plan */}
+      <InventoryBudgetActions plan={actionPlan} projectId={projectId} digest={digest} initialStates={initialStates} />
 
       <NextSteps steps={[{ to: "kampane", label: t("nextStep"), hint: t("nextStepHint") }]} />
     </div>
