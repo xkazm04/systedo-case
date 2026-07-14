@@ -186,7 +186,7 @@ async function resolveGrounding(
   if (demo) {
     const data = getProjectDataset(demo);
     const localText = await localSignalsPromptText(demo, locale);
-    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale, windowDaysFor(period));
+    const comp = await mergeGrounding(demo.id, leadSignalsPromptText(demo, targetLeads(data)), localText, data, locale, windowDaysFor(period), period);
     return {
       data,
       // C3: the grounding inputs' versions enter the cache key so edits re-generate.
@@ -205,7 +205,7 @@ async function resolveGrounding(
       // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
       const resolved = await resolveReportDataset(project);
       const localText = await localSignalsPromptText(project, locale);
-      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale, windowDaysFor(period));
+      const comp = await mergeGrounding(project.id, leadSignalsPromptText(project, targetLeads(resolved.data)), localText, resolved.data, locale, windowDaysFor(period), period);
       // D1: when the live series is stale, the recap gets a one-line caveat so the
       // narrative acknowledges the data age instead of presenting month-old numbers
       // as current. USER-prompt only (groundingContext) — no system-prompt / golden
@@ -287,7 +287,10 @@ async function mergeGrounding(
   locale: SupportedLocale,
   // Direction 2: the analyzed window (days) for the "Poznámky klienta" annotations
   // block, so only in-window client notes ground the narrative.
-  windowDays: number
+  windowDays: number,
+  // Profit-trajectory grounding: the recap period, so the profit line covers the
+  // ANALYZED window (not a hardcoded 30d) with its net-profit trend direction.
+  period?: AnalysisPeriod
 ): Promise<{ text?: string; keySuffix?: string }> {
   const [set, costModel, annotations] = await Promise.all([
     getCompetitors(projectId),
@@ -298,8 +301,8 @@ async function mergeGrounding(
     leadText,
     localText,
     competitorGroundingText(set, locale),
-    profitGroundingText(data, costModel, locale),
-    historyGroundingText(data, locale),
+    profitGroundingText(data, costModel, locale, period),
+    historyGroundingText(data, locale, costModel),
     // Direction 2: in-window "what happened here" notes. USER-prompt only (no
     // system-prompt/fingerprint change); "" when there are no in-window notes, so
     // the prompt stays byte-identical for projects without annotations.

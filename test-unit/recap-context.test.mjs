@@ -35,6 +35,33 @@ test("profit: names true net profit + margin-aware POAS (cs/en)", () => {
   assert.match(en, /not just revenue\/ROAS/);
 });
 
+test("profit: the window label follows the threaded period (not hardcoded 30d)", () => {
+  // Default (no period) still reads 30 dní — byte-identical to the old signature.
+  assert.match(profitGroundingText(base, model, "cs"), /\(30 dní\)/);
+  // A threaded period re-labels the window and covers it.
+  assert.match(profitGroundingText(base, model, "cs", "90d"), /\(90 dní\)/);
+  assert.match(profitGroundingText(base, model, "en", "12m"), /\(12 months\)/);
+});
+
+test("profit: names a net-profit trend direction vs the prior window", () => {
+  // The sample spine is long enough that a 90d window has a real prior window, so a
+  // direction word appears (rostoucí | klesající | stabilní).
+  const cs = profitGroundingText(base, model, "cs", "90d");
+  assert.match(cs, /trend čistého zisku (rostoucí|klesající|stabilní)/);
+  const en = profitGroundingText(base, model, "en", "90d");
+  assert.match(en, /net-profit trend (rising|falling|stable)/);
+});
+
+test("history: gains a net-profit YoY line only when a cost model exists", () => {
+  const revenueOnly = historyGroundingText(withDays(730), "cs");
+  assert.doesNotMatch(revenueOnly, /Čistý zisk po nákladech/); // fallback unchanged
+  const withModel = historyGroundingText(withDays(730), "cs", model);
+  assert.match(withModel, /Delší horizont \(12 měsíců\)/); // base line preserved
+  assert.match(withModel, /Čistý zisk po nákladech:.*meziročně/);
+  const en = historyGroundingText(withDays(730), "en", model);
+  assert.match(en, /Net profit after costs:.*YoY/);
+});
+
 test("history: silent until the series can actually cover a 12m + YoY comparison", () => {
   assert.equal(historyGroundingText(withDays(90), "cs"), ""); // below the day floor
   // 365 days looks like "a year" but a 12m/YoY comparison needs a full prior year
