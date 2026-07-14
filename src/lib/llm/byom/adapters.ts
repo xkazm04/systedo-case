@@ -15,7 +15,7 @@
  *  spirit and the fetch-based embeddings path), and gives the error classifier the
  *  exact HTTP status the user-fault-vs-recoverable decision depends on. */
 import { extractJson } from "../claude";
-import { classifyByomHttp } from "../errors";
+import { classifyByomHttp, LlmCallError, parseRetryAfterMs } from "../errors";
 import { byomModel } from "../models";
 import { toJsonSchema } from "./schema";
 import { anthropicReasoning, geminiThinkingConfig, openaiReasoning, openrouterReasoning } from "./reasoning";
@@ -53,9 +53,44 @@ function embeddedUserContent(prompt: string, schema: object): string {
   ].join("\n");
 }
 
-/** Turn a non-OK response into the right error: a ByomUserError for user faults,
- *  else a recoverable Error whose wording carries a RETRYABLE marker ("selhal")
- *  so the wrapper gives it a couple of tries before falling to the app provider. */
+/** Classify a non-OK BYOM response into the failure the wrapper should see:
+ *   - a ByomUserError for a user fault (surfaced, no fallback),
+ *   - a typed LlmCallError("rate_limited") for a 429 that carries a Retry-After
+ *     header (transient throttle, honored with bounded backoff — not a hard quota),
+ *   - a typed LlmCallError("server") for a 5xx/other (recoverable → retry/fallback),
+ *   - `null` ONLY for a bare 400, meaning "the model likely rejected the
+ *     structured-output param" so the caller should retry with the prompt-embed
+ *     request before giving up.
+ *  Code-based, not wording-based: an English/reworded provider body is classified
+ *  the same as a Czech one. */
+function classifyByomResponse(vendor: string, status: number, body: string, headers?: Headers): Error | null {
+  // A 429 with a Retry-After header is a transient throttle we can wait out
+  // (retryable), distinct from an account whose quota is exhausted (user fault).
+  if (status === 429) {
+    const retryAfterMs = parseRetryAfterMs(headers);
+    if (retryAfterMs !== undefined) {
+      return new LlmCallError("rate_limited", `Poskytovatel ${vendor} dočasně omezuje požadavky (HTTP 429).`, {
+        provider: vendor,
+        status,
+        retryAfterMs,
+      });
+    }
+  }
+  const userErr = classifyByomHttp(vendor, status, body);
+  if (userErr) return userErr;
+  // A bare 400 = our request/schema; the caller can still try the prompt-embed
+  // fallback (some models reject the structured-output param with 400).
+  if (status === 400) return null;
+  // 5xx and everything else: provider-side / transient → retryable server error.
+  return new LlmCallError("server", `Poskytovatel ${vendor} selhal (HTTP ${status}). ${body.slice(0, 200)}`, {
+    provider: vendor,
+    status,
+  });
+}
+
+/** Turn a non-OK response into the right error. A bare 400 that reaches here has
+ *  already exhausted the prompt-embed fallback, so it is treated as a retryable
+ *  server error rather than a "try embed" signal. */
 async function byomHttpError(vendor: string, res: Response): Promise<Error> {
   let body = "";
   try {
@@ -64,16 +99,19 @@ async function byomHttpError(vendor: string, res: Response): Promise<Error> {
     /* body unreadable — classify on status alone */
   }
   return (
-    classifyByomHttp(vendor, res.status, body) ??
-    new Error(`Poskytovatel ${vendor} selhal (HTTP ${res.status}). ${body.slice(0, 200)}`)
+    classifyByomResponse(vendor, res.status, body, res.headers) ??
+    new LlmCallError("server", `Poskytovatel ${vendor} selhal (HTTP ${res.status}). ${body.slice(0, 200)}`, {
+      provider: vendor,
+      status: res.status,
+    })
   );
 }
 
-/** Try a native-structured-output request first; on a USER fault surface it
- *  immediately (no wasted retry), on a RECOVERABLE failure (e.g. the model doesn't
- *  support the structured-output param → 400, or a transient 5xx) retry once with
- *  the universal prompt-embed request, so any user-chosen model still works. The
- *  returned Response is guaranteed `ok`. */
+/** Try a native-structured-output request first; on a USER fault / throttle / 5xx
+ *  surface it immediately (no wasted embed retry), on a bare-400 (the model likely
+ *  doesn't support the structured-output param) retry once with the universal
+ *  prompt-embed request, so any user-chosen model still works. The returned
+ *  Response is guaranteed `ok`. */
 async function fetchWithFallback(
   vendor: string,
   doStructured: () => Promise<Response>,
@@ -87,9 +125,9 @@ async function fetchWithFallback(
   } catch {
     /* body unreadable — classify on status alone */
   }
-  const userErr = classifyByomHttp(vendor, res.status, body);
-  if (userErr) throw userErr;
-  const res2 = await doPromptEmbed();
+  const err = classifyByomResponse(vendor, res.status, body, res.headers);
+  if (err) throw err; // user fault, throttle, or 5xx — don't waste a prompt-embed try
+  const res2 = await doPromptEmbed(); // null == bare 400 → the structured param was likely rejected
   if (!res2.ok) throw await byomHttpError(vendor, res2);
   return res2;
 }
@@ -142,7 +180,7 @@ async function runOpenAi(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   };
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
-  if (!parsed) throw new Error("OpenAI nevrátil platný JSON.");
+  if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "OpenAI nevrátil platný JSON.", { provider: "openai" });
 
   const u = json.usage;
   const usage: TokenUsage | undefined = u
@@ -206,9 +244,10 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
     content?: { type?: string; text?: string }[];
     usage?: { input_tokens?: number; output_tokens?: number };
   };
-  // A safety refusal is neither the user's key fault nor our request bug — let it
-  // fall through to the app provider (recoverable, no RETRYABLE marker → one shot).
-  if (json.stop_reason === "refusal") throw new Error("Anthropic odmítl požadavek (refusal).");
+  // A safety refusal is neither the user's key fault nor our request bug, and
+  // re-prompting won't change it — code "safety_blocked" (not retried) still falls
+  // through to the app provider.
+  if (json.stop_reason === "refusal") throw new LlmCallError("safety_blocked", "Anthropic odmítl požadavek (refusal).", { provider: "anthropic" });
 
   const text = Array.isArray(json.content)
     ? json.content
@@ -217,7 +256,7 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
         .join("")
     : "";
   const parsed = text ? extractJson(text) : null;
-  if (!parsed) throw new Error("Anthropic nevrátil platný JSON.");
+  if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "Anthropic nevrátil platný JSON.", { provider: "anthropic" });
 
   const u = json.usage;
   const usage: TokenUsage | undefined = u
@@ -258,12 +297,12 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
     usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
   };
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini vrátil prázdnou odpověď.");
+  if (!text) throw new LlmCallError("empty", "Gemini vrátil prázdnou odpověď.", { provider: "gemini" });
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error("Gemini nevrátil platný JSON.");
+    throw new LlmCallError("malformed_json", "Gemini nevrátil platný JSON.", { provider: "gemini" });
   }
 
   const um = json.usageMetadata;
@@ -338,7 +377,7 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
   };
   const text = json.choices?.[0]?.message?.content;
   const parsed = text ? extractJson(text) : null;
-  if (!parsed) throw new Error("OpenRouter nevrátil platný JSON.");
+  if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "OpenRouter nevrátil platný JSON.", { provider: "openrouter" });
 
   const u = json.usage;
   const usage: TokenUsage | undefined = u

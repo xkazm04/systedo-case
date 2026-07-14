@@ -15,13 +15,13 @@ import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
 import { estimateCostUsd, type TokenUsage } from "./cost";
-import { byomModel, claudeModelTag, geminiModelTag, type ModelTier } from "./models";
+import { byomModel, claudeModelTag, geminiModelTag, LLM_RETRY_AFTER_CAP_MS, type ModelTier } from "./models";
 import { promptFingerprint, recordLlmCall, recordLlmError } from "./telemetry";
 import { runByom } from "./byom/adapters";
 import { providerOrder, type ProviderName } from "./provider-order";
 import { getByomContext } from "./byom-context";
 import { getLlmRequestContext } from "./request-context";
-import { ByomUserError } from "./errors";
+import { ByomUserError, isRetryableLlmError, LlmCallError } from "./errors";
 import type { ResolvedByomKey } from "./keys/types";
 
 export {
@@ -158,19 +158,23 @@ export function resolveProviders(dev: boolean, byom: ResolvedByomKey | undefined
   return byom ? [byomProvider(byom), ...env] : env;
 }
 
-/** Recoverable failure modes thrown by the provider adapters — worth one retry. */
-const RETRYABLE = ["nevrátil platný JSON", "prázdnou odpověď", "vypršel", "selhal"];
-
-function isRetryable(err: unknown): boolean {
-  const msg = err instanceof Error ? err.message : String(err);
-  return RETRYABLE.some((m) => msg.includes(m));
-}
-
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** How long to back off before retry `i` (1-based). A provider that sent a
+ *  Retry-After (a typed rate_limited error) dictates the wait, capped so a
+ *  throttled provider can't stall the whole request; otherwise the previous
+ *  linear 250ms·i schedule is preserved. */
+function backoffMs(err: unknown, attempt: number): number {
+  if (err instanceof LlmCallError && err.retryAfterMs !== undefined) {
+    return Math.min(err.retryAfterMs, LLM_RETRY_AFTER_CAP_MS);
+  }
+  return 250 * attempt;
+}
 
 /** Run one provider with a bounded retry on recoverable errors. Returns the
  *  parsed output, any usage, and how many attempts it took. Throws if every
- *  attempt fails. */
+ *  attempt fails. The retry decision is CODE-based (isRetryableLlmError) — a
+ *  reworded or English provider error is classified the same as the Czech one. */
 async function runWithRetry(
   provider: Provider,
   call: ProviderCall,
@@ -185,8 +189,8 @@ async function runWithRetry(
       lastErr = err;
       // A client abort is a deliberate stop — retrying would keep burning the
       // provider for a caller that is already gone.
-      if (i < attempts && isRetryable(err) && !call.signal?.aborted) {
-        await sleep(250 * i);
+      if (i < attempts && isRetryableLlmError(err) && !call.signal?.aborted) {
+        await sleep(backoffMs(err, i));
         continue;
       }
       throw err;

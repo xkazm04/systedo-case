@@ -16,6 +16,7 @@ import {
   claudeCliAlias,
   type ModelTier,
 } from "./models";
+import { LlmCallError } from "./errors";
 
 const isWindows = process.platform === "win32";
 
@@ -82,10 +83,10 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
   return new Promise((resolve, reject) => {
     const { tier, signal } = opts;
     // A client that has already gone away must not spawn a CLI child at all.
-    // The wording deliberately matches no RETRYABLE marker (see ./index.ts) —
-    // an abort is a deliberate stop, never worth a retry.
+    // An abort is a deliberate stop (code "aborted" → never retried, never falls
+    // back, never degrades to demo).
     if (signal?.aborted) {
-      reject(new Error("Požadavek byl zrušen klientem před spuštěním Claude CLI."));
+      reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem před spuštěním Claude CLI.", { provider: "claude" }));
       return;
     }
     const args = cliArgs(tier);
@@ -97,7 +98,7 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
     let stderr = "";
     const timer = setTimeout(() => {
       child.kill();
-      reject(new Error(`Claude CLI vypršel po ${CLAUDE_TIMEOUT_MS} ms.`));
+      reject(new LlmCallError("timeout", `Claude CLI vypršel po ${CLAUDE_TIMEOUT_MS} ms.`, { provider: "claude" }));
     }, CLAUDE_TIMEOUT_MS);
     // Client abort (timeout, re-run, closed tab): kill the child instead of
     // letting it burn one of the few process-wide concurrency slots for up to
@@ -105,7 +106,7 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
     const onAbort = () => {
       clearTimeout(timer);
       child.kill();
-      reject(new Error("Požadavek byl zrušen klientem — Claude CLI ukončeno."));
+      reject(new LlmCallError("aborted", "Požadavek byl zrušen klientem — Claude CLI ukončeno.", { provider: "claude" }));
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     const cleanup = () => {
@@ -117,13 +118,17 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
     child.stderr.on("data", (d) => (stderr += d.toString()));
     child.on("error", (err) => {
       cleanup();
-      reject(err);
+      // A spawn failure (CLI missing, EACCES) is a local transport fault — code
+      // "network" so a transient spawn hiccup gets the same bounded retry as an
+      // HTTP transport error.
+      reject(new LlmCallError("network", `Claude CLI se nepodařilo spustit: ${err.message}`, { provider: "claude", cause: err }));
     });
     child.on("close", (code) => {
       cleanup();
       // Some non-zero exits still print a usable answer on stdout; prefer stdout.
       if (stdout.trim()) resolve(stdout);
-      else reject(new Error(`Claude CLI selhal (kód ${code}): ${stderr.slice(0, 300)}`));
+      // A non-zero exit with no usable output is a provider-side failure (retryable).
+      else reject(new LlmCallError("server", `Claude CLI selhal (kód ${code}): ${stderr.slice(0, 300)}`, { provider: "claude" }));
     });
 
     child.stdin.write(input);
@@ -226,10 +231,10 @@ export async function runClaude(args: {
   });
   const parsed = extractJson(out);
   if (!parsed) {
-    // Keep the retryable marker first (see RETRYABLE in ./index.ts) and append
-    // a bounded raw snippet so a parse failure is diagnosable from the log.
+    // Unparseable output → code "malformed_json" (retryable). Append a bounded raw
+    // snippet so a parse failure is diagnosable from the log.
     const snippet = out.trim().slice(0, 200).replace(/\s+/g, " ");
-    throw new Error(`Claude CLI nevrátil platný JSON. Začátek výstupu: ${snippet}`);
+    throw new LlmCallError("malformed_json", `Claude CLI nevrátil platný JSON. Začátek výstupu: ${snippet}`, { provider: "claude" });
   }
   return parsed;
 }

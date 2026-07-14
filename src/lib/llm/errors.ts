@@ -8,6 +8,105 @@
 
 export type ByomUserErrorCode = "auth" | "permission" | "quota" | "model" | "invalid";
 
+/** Classification of a provider-call failure, decoupled from the (Czech, display)
+ *  error message. The wrapper's retry/fallback decision reads the CODE, never the
+ *  wording — so a reworded or English provider error is classified the same as the
+ *  Czech one it replaces, and a genuinely-transient failure always retries.
+ *
+ *    timeout         a deadline (wrapper or provider) fired
+ *    empty           the model returned no content
+ *    malformed_json  content came back but did not parse as the expected JSON
+ *    rate_limited    HTTP 429 / provider throttle (carries retryAfterMs when the
+ *                    provider sent a Retry-After header)
+ *    server          provider-side / transient failure (5xx, non-zero CLI exit)
+ *    network         the transport itself failed (fetch reject, DNS, reset)
+ *    safety_blocked  a content-safety refusal — re-prompting the same input won't
+ *                    help, so it is NOT retried (but still falls to another provider)
+ *    aborted         the caller aborted — a deliberate stop, never retried/fallen-back
+ *    unknown         an unclassified failure — conservatively NOT retried */
+export type LlmErrorCode =
+  | "timeout"
+  | "empty"
+  | "malformed_json"
+  | "rate_limited"
+  | "server"
+  | "network"
+  | "safety_blocked"
+  | "aborted"
+  | "unknown";
+
+/** Codes worth a bounded retry on the SAME provider. `safety_blocked`, `aborted`
+ *  and `unknown` are deliberately absent: re-running them just burns the provider. */
+const RETRYABLE_CODES: ReadonlySet<LlmErrorCode> = new Set<LlmErrorCode>([
+  "timeout",
+  "empty",
+  "malformed_json",
+  "rate_limited",
+  "server",
+  "network",
+]);
+
+export interface LlmCallErrorOptions {
+  /** the provider/model tag that produced the failure (diagnostics) */
+  provider?: string;
+  /** the HTTP status, when the failure came from an HTTP provider */
+  status?: number;
+  /** honored backoff from a Retry-After header (ms), when the provider sent one */
+  retryAfterMs?: number;
+  cause?: unknown;
+}
+
+/** A typed provider-call failure. Every provider path (Claude CLI, Gemini SDK, the
+ *  BYOM HTTP adapters) throws or wraps one of these, so the wrapper decides retry
+ *  and cross-provider fallback from `code` alone. The `message` stays the existing
+ *  human-readable (Czech) text — it is display/log copy, not a decision input. */
+export class LlmCallError extends Error {
+  readonly code: LlmErrorCode;
+  readonly provider?: string;
+  readonly status?: number;
+  readonly retryAfterMs?: number;
+
+  constructor(code: LlmErrorCode, message: string, opts: LlmCallErrorOptions = {}) {
+    super(message);
+    this.name = "LlmCallError";
+    this.code = code;
+    this.provider = opts.provider;
+    this.status = opts.status;
+    this.retryAfterMs = opts.retryAfterMs;
+    if (opts.cause !== undefined) (this as { cause?: unknown }).cause = opts.cause;
+  }
+
+  /** Whether re-running the same call on the same provider is worthwhile. */
+  get retryable(): boolean {
+    return RETRYABLE_CODES.has(this.code);
+  }
+}
+
+/** The wrapper's retry gate: only a typed, retryable-coded failure is retried.
+ *  Anything else (a plain Error, an app/mapper bug, a user fault) is not — the old
+ *  Czech-substring match is gone from the decision path. */
+export function isRetryableLlmError(err: unknown): boolean {
+  return err instanceof LlmCallError && err.retryable;
+}
+
+/** Parse a Retry-After header value (delta-seconds or an HTTP-date) to milliseconds;
+ *  `undefined` when the header is absent or unparseable. Never negative. Accepts a
+ *  Headers-like object (guards `.get` so a test/stub without headers is a no-op). */
+export function parseRetryAfterMs(headers: { get?: (name: string) => string | null } | undefined): number | undefined {
+  const raw = headers?.get?.("retry-after");
+  if (!raw) return undefined;
+  const secs = Number(raw);
+  let ms: number;
+  if (Number.isFinite(secs)) {
+    ms = secs * 1000;
+  } else {
+    const when = Date.parse(raw);
+    if (Number.isNaN(when)) return undefined;
+    ms = when - Date.now();
+  }
+  return ms > 0 ? ms : 0;
+}
+
 /** Thrown by a BYOM adapter when the failure is the user's to fix. The wrapper
  *  re-throws it instead of falling back, and the route maps `code` to an AiError
  *  so the client can render an actionable message (fix key / top up / pick a

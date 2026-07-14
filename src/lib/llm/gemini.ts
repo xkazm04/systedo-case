@@ -4,6 +4,7 @@
  *  server and never reaches the client. */
 import { GoogleGenAI } from "@google/genai";
 import { geminiModelTag, type ModelTier } from "./models";
+import { LlmCallError } from "./errors";
 import type { TokenUsage } from "./cost";
 
 /** Parsed model output plus the provider-reported token usage (when available). */
@@ -30,7 +31,9 @@ export async function runGemini(args: {
   signal?: AbortSignal;
 }): Promise<GeminiResult> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error("Chybí GEMINI_API_KEY.");
+  // A missing key is a configuration fault, not a transient one — code "unknown"
+  // so it is never retried (nor mistaken for a provider outage).
+  if (!apiKey) throw new LlmCallError("unknown", "Chybí GEMINI_API_KEY.", { provider: "gemini" });
 
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
@@ -52,7 +55,30 @@ export async function runGemini(args: {
   });
 
   const text = response.text;
-  if (!text) throw new Error("Model vrátil prázdnou odpověď.");
+  if (!text) {
+    // Distinguish a content-safety block from a plain empty body: a block is not
+    // worth retrying (code "safety_blocked" → falls straight to the next provider),
+    // an empty body is a transient glitch (code "empty" → bounded retry). The SDK
+    // surfaces the reason on promptFeedback.blockReason and/or the candidate's
+    // finishReason (SAFETY / RECITATION / PROHIBITED_CONTENT / BLOCKLIST).
+    const r = response as {
+      promptFeedback?: { blockReason?: string };
+      candidates?: { finishReason?: string }[];
+    };
+    const blockReason = r.promptFeedback?.blockReason;
+    const finishReason = r.candidates?.[0]?.finishReason;
+    const blocked =
+      Boolean(blockReason) ||
+      (finishReason !== undefined && ["SAFETY", "RECITATION", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII"].includes(finishReason));
+    if (blocked) {
+      throw new LlmCallError(
+        "safety_blocked",
+        `Gemini zablokoval odpověď (${blockReason ?? finishReason}).`,
+        { provider: "gemini" }
+      );
+    }
+    throw new LlmCallError("empty", "Model vrátil prázdnou odpověď.", { provider: "gemini" });
+  }
 
   const um = (response as {
     usageMetadata?: {
@@ -73,11 +99,9 @@ export async function runGemini(args: {
   try {
     parsed = JSON.parse(text);
   } catch {
-    // Throw the retryable wording (see isRetryable in index.ts) so a malformed
-    // Gemini response gets one retry — matching Claude's "nevrátil platný JSON"
-    // path. A native SyntaxError matched none of the RETRYABLE strings, so prod
-    // (Gemini) previously got strictly weaker malformed-output handling than dev.
-    throw new Error("Gemini nevrátil platný JSON.");
+    // Code "malformed_json" → one bounded retry, matching Claude's parse-failure
+    // path (a native SyntaxError would otherwise never be classified as retryable).
+    throw new LlmCallError("malformed_json", "Gemini nevrátil platný JSON.", { provider: "gemini" });
   }
   return { parsed, usage };
 }

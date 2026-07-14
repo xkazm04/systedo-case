@@ -67,6 +67,12 @@ export const CLAUDE_THINKING_TOKENS = 4000;
  *  dev client ceiling in useAiTool tracks this value, so the two stay aligned. */
 export const CLAUDE_TIMEOUT_MS = 150_000;
 
+/** Upper bound on how long a Retry-After header may pause a retry. A provider can
+ *  ask us to wait minutes on a 429; a user waiting on an AI generation cannot, so
+ *  we honor Retry-After only up to this cap and otherwise use it as-is (bounded
+ *  backoff). Keeps a throttled provider from stalling the whole request. */
+export const LLM_RETRY_AFTER_CAP_MS = 20_000;
+
 // ===========================================================================
 // BYOM (bring-your-own-model): default model tags per vendor. Distinct from the
 // app's own provider tags above — a BYOM Anthropic call hits the HTTP Messages
