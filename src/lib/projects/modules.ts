@@ -41,6 +41,12 @@ export const SECTION_LABELS_EN: Record<ModuleSection, string> = {
 export interface ModuleDef {
   /** route segment under /app/[projectId]/ ("" = the project overview/home) */
   key: string;
+  /** Explicit render position — the module's canonical registry index, used as the
+   *  intra-section tiebreak in `modulesFor`'s sort. Making order a value (not merely
+   *  "wherever the entry sits in the array") means a reorder is an `order` edit, and a
+   *  test can pin the exact rendered sequence. Monotonic across the array, so within
+   *  any one section these values reproduce registry appearance order exactly. */
+  order: number;
   /** sidebar label (cs) */
   label: string;
   /** sidebar label (en) */
@@ -66,6 +72,7 @@ const ALL: ProjectType[] = PROJECT_TYPES;
 export const MODULES: ModuleDef[] = [
   {
     key: "",
+    order: 0,
     label: "Přehled",
     labelEn: "Overview",
     icon: "overview",
@@ -76,6 +83,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "vykon",
+    order: 1,
     label: "Výkon",
     labelEn: "Performance",
     icon: "dashboard",
@@ -86,6 +94,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "start",
+    order: 2,
     label: "Start",
     labelEn: "Get started",
     icon: "start",
@@ -96,6 +105,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "kampane",
+    order: 3,
     label: "Kampaně",
     labelEn: "Campaigns",
     icon: "campaigns",
@@ -106,6 +116,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "klicova-slova",
+    order: 4,
     label: "Klíčová slova",
     labelEn: "Keywords",
     icon: "keywords",
@@ -116,6 +127,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "kanaly",
+    order: 5,
     label: "Kanály zdarma",
     labelEn: "Free channels",
     icon: "channels",
@@ -126,6 +138,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "obsahovy-engine",
+    order: 6,
     label: "Obsahový engine",
     labelEn: "Content engine",
     icon: "content",
@@ -136,6 +149,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "recenze",
+    order: 7,
     label: "Recenze",
     labelEn: "Reviews",
     icon: "reviews",
@@ -146,6 +160,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "obsah-plan",
+    order: 8,
     label: "Obsah — plán",
     labelEn: "Content schedule",
     icon: "schedule",
@@ -156,6 +171,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "socialni",
+    order: 9,
     label: "Sociální sítě",
     labelEn: "Social media",
     icon: "social",
@@ -166,6 +182,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "kreativa",
+    order: 10,
     label: "Kreativa",
     labelEn: "Creative",
     icon: "creative",
@@ -176,6 +193,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "knihovna",
+    order: 11,
     label: "Knihovna vzorů",
     labelEn: "Patterns library",
     icon: "patterns",
@@ -186,6 +204,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "reporty",
+    order: 12,
     label: "Reporty",
     labelEn: "Reports",
     icon: "reports",
@@ -196,6 +215,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "zisk",
+    order: 13,
     label: "Zisk",
     labelEn: "Profit",
     icon: "profit",
@@ -206,6 +226,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "produktova-kreativa",
+    order: 14,
     label: "Produktová kreativa",
     labelEn: "Product creative",
     icon: "catalog",
@@ -216,6 +237,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "sklad-sezonnost",
+    order: 15,
     label: "Sklad & sezónnost",
     labelEn: "Stock & seasonality",
     icon: "season",
@@ -226,6 +248,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "ltv",
+    order: 16,
     label: "CAC → LTV",
     labelEn: "CAC → LTV",
     icon: "ltv",
@@ -238,6 +261,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "experimenty-lp",
+    order: 17,
     label: "LP experimenty",
     labelEn: "LP experiments",
     icon: "experiment",
@@ -248,6 +272,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "srovnani-seo",
+    order: 18,
     label: "Srovnání & SEO",
     labelEn: "Compare & SEO",
     icon: "compare",
@@ -258,6 +283,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "kvalita-leadu",
+    order: 19,
     label: "Kvalita leadů",
     labelEn: "Lead quality",
     icon: "quality",
@@ -271,6 +297,7 @@ export const MODULES: ModuleDef[] = [
   // review what it wrote (schranka). All three read and write one persisted blob.
   {
     key: "twin",
+    order: 20,
     label: "Twin",
     labelEn: "Twin",
     icon: "twin",
@@ -283,6 +310,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "sprava-kanalu",
+    order: 21,
     label: "Správa kanálů",
     labelEn: "Channel management",
     icon: "autonomy",
@@ -295,6 +323,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "schranka",
+    order: 22,
     label: "Schránka zpráv",
     labelEn: "Message box",
     icon: "inbox",
@@ -310,6 +339,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "lokalni",
+    order: 23,
     label: "Lokální dominance",
     labelEn: "Local dominance",
     icon: "local",
@@ -320,6 +350,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "mapa",
+    order: 24,
     label: "Mapa & pozice",
     labelEn: "Map & rankings",
     icon: "map",
@@ -330,6 +361,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "distribuce",
+    order: 25,
     label: "Distribuce",
     labelEn: "Distribution",
     icon: "distribute",
@@ -340,6 +372,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "publikum",
+    order: 26,
     label: "Publikum & výnos",
     labelEn: "Audience & revenue",
     icon: "audience",
@@ -350,6 +383,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "katalog",
+    order: 27,
     label: "Katalog",
     labelEn: "Catalog",
     icon: "store",
@@ -360,6 +394,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "ucet",
+    order: 28,
     label: "Účet & zabezpečení",
     labelEn: "Account & security",
     icon: "account",
@@ -370,6 +405,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "branding",
+    order: 29,
     label: "Branding",
     labelEn: "Branding",
     icon: "creative",
@@ -380,6 +416,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "spotreba",
+    order: 30,
     label: "Spotřeba",
     labelEn: "Usage",
     icon: "usage",
@@ -390,6 +427,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "mesicni-report",
+    order: 31,
     label: "Měsíční report",
     labelEn: "Monthly report",
     icon: "reports",
@@ -400,6 +438,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "aktivita",
+    order: 32,
     label: "Aktivita",
     labelEn: "Activity",
     icon: "activity",
@@ -410,6 +449,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "integrace",
+    order: 33,
     label: "Integrace",
     labelEn: "Integrations",
     icon: "integrations",
@@ -420,6 +460,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     key: "nastaveni",
+    order: 34,
     label: "Nastavení",
     labelEn: "Settings",
     icon: "settings",
@@ -430,10 +471,14 @@ export const MODULES: ModuleDef[] = [
   },
 ];
 
-/** Modules available for a project type, in section + registry order. */
+/** Modules available for a project type, grouped by section then by explicit
+ *  intra-section `order`. Sorting on `order` (not relying on a stable sort over the
+ *  raw array) makes the sequence explicit and testable; because `order` is the
+ *  canonical registry index it reproduces the previous registry-order output byte
+ *  for byte. */
 export function modulesFor(type: ProjectType): ModuleDef[] {
   return MODULES.filter((m) => m.availableFor.includes(type)).sort(
-    (a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section)
+    (a, b) => SECTION_ORDER.indexOf(a.section) - SECTION_ORDER.indexOf(b.section) || a.order - b.order
   );
 }
 
