@@ -79,7 +79,17 @@ const STATUS_STYLE: Record<ChangeSetStatus, string> = {
 /** Ad-ops control plane: bundle recommended budget moves into a simulated,
  *  human-approved change-set with a reversible ledger. The governance envelope
  *  that makes touching real spend safe. Anonymous → hidden. */
-export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }) {
+export default function ControlPlane({
+  refreshKey = 0,
+  hideProposeButton = false,
+}: {
+  refreshKey?: number;
+  /** Suppress the header's bare "Navrhnout změnový balíček" button. Set when the
+   *  richer BudgetMoves preview renders directly above with its own single propose
+   *  affordance, so the co-located budget-governance section has ONE way to
+   *  propose (see CampaignsClient). */
+  hideProposeButton?: boolean;
+}) {
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -144,15 +154,17 @@ export default function ControlPlane({ refreshKey = 0 }: { refreshKey?: number }
           <Bolt width={16} height={16} className="text-brand-accent" />
           <h2 className="text-base font-semibold text-navy-800">{t("heading")}</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => act("create")}
-          disabled={busy}
-          className="inline-flex items-center gap-2 rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
-        >
-          <Refresh width={15} height={15} className={busy ? "animate-spin" : ""} />
-          {t("propose")}
-        </button>
+        {!hideProposeButton && (
+          <button
+            type="button"
+            onClick={() => act("create")}
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:opacity-60"
+          >
+            <Refresh width={15} height={15} className={busy ? "animate-spin" : ""} />
+            {t("propose")}
+          </button>
+        )}
       </div>
       <p className="mt-1 text-sm text-muted">{t("subtitle")}</p>
 

@@ -94,6 +94,7 @@ const T = {
     buildingReport: "Sestavuji hodnoticí report…",
     campaignsHeading: "Kampaně",
     campaignCount: "{n} kampaní · analýza po řádcích",
+    govHeading: "Řízení rozpočtů",
     degradedBanner:
       "Živá data z Google Ads jsou dočasně nedostupná — poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
   },
@@ -132,6 +133,7 @@ const T = {
     buildingReport: "Building evaluation report…",
     campaignsHeading: "Campaigns",
     campaignCount: "{n} campaigns · row-by-row analysis",
+    govHeading: "Budget management",
     degradedBanner:
       "Live Google Ads data is temporarily unavailable — the last sync is showing sample data. Try syncing again, or reconnect the account.",
   },
@@ -492,12 +494,25 @@ export default function CampaignsClient() {
         onTypeClick={toggleTypeFilter}
       />
 
-      {/* deterministic budget-reallocation recommendations — proposes into the
-          governed control plane below rather than mutating the account directly */}
-      <BudgetMoves
-        campaigns={campaigns}
-        onProposed={() => setControlPlaneRefresh((n) => n + 1)}
-      />
+      {/* Budget governance — one workflow, one place: the deterministic
+          recommendation preview (BudgetMoves) flows top-to-bottom into the
+          governed change-set + reversible ledger (ControlPlane) under a single
+          section heading. The SINGLE propose affordance lives in BudgetMoves
+          (the richer preview); ControlPlane's own bare propose button is
+          suppressed (hideProposeButton) so the two panels read as one flow. The
+          control-plane anchor id (thread.ts reveal target for alert-staging and
+          the table's preparePackage) is unchanged — only its position moved. */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Bolt width={18} height={18} className="text-brand-600" />
+          <h2 className="text-base font-semibold text-navy-800">{t("govHeading")}</h2>
+        </div>
+        <BudgetMoves
+          campaigns={campaigns}
+          onProposed={() => setControlPlaneRefresh((n) => n + 1)}
+        />
+        <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton />
+      </section>
 
       {/* portfolio AI evaluation */}
       <section className="card p-5 sm:p-6">
@@ -629,9 +644,6 @@ export default function CampaignsClient() {
 
       {/* public, SEO-indexable white-label client microsite */}
       <MicrositeCard />
-
-      {/* governed budget control plane: simulate → approve → ledger → revert */}
-      <ControlPlane refreshKey={controlPlaneRefresh} />
     </div>
   );
 }
