@@ -21,45 +21,17 @@ import { dirname, join } from "node:path";
 // outlived an HMR across a schema change still picks up new tables/columns.
 const g = globalThis as unknown as { __systedoDb?: DatabaseSync; __systedoSchema?: string };
 
-/** Additive column migrations for databases created before a column existed — a
- *  `CREATE TABLE IF NOT EXISTS` won't add a column to an already-existing table. Each
- *  is applied ONLY when the column is actually missing (checked via PRAGMA), so the N
- *  test processes that share `.data/systedo.db` don't all fire the same ALTER at once
- *  and contend on the write lock. */
-const COLUMN_MIGRATIONS: { table: string; column: string; ddl: string }[] = [
-  // Generic ERP adapter config (endpoint/format/mapping) for warehouse_connection.
-  {
-    table: "warehouse_connection",
-    column: "config_json",
-    ddl: "ALTER TABLE warehouse_connection ADD COLUMN config_json TEXT",
-  },
-  // Sync-health tracking (drives the cron's failure alerting).
-  {
-    table: "warehouse_connection",
-    column: "last_error",
-    ddl: "ALTER TABLE warehouse_connection ADD COLUMN last_error TEXT",
-  },
-  {
-    table: "warehouse_connection",
-    column: "last_error_at",
-    ddl: "ALTER TABLE warehouse_connection ADD COLUMN last_error_at TEXT",
-  },
-  {
-    table: "warehouse_connection",
-    column: "fail_count",
-    ddl: "ALTER TABLE warehouse_connection ADD COLUMN fail_count INTEGER",
-  },
-  // Client logo URL for branding / client-facing reports (see projects/store.local.ts).
-  {
-    table: "projects",
-    column: "logo_url",
-    ddl: "ALTER TABLE projects ADD COLUMN logo_url TEXT",
-  },
-];
-
 function hasColumn(db: DatabaseSync, table: string, column: string): boolean {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).some(
     (c) => c.name === column
+  );
+}
+
+function tableExists(db: DatabaseSync, table: string): boolean {
+  return (
+    db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(table) != null
   );
 }
 
@@ -265,9 +237,196 @@ const SCHEMA = `
   );
 `;
 
-/** Marker identifying the current schema definition; when it changes, the schema
- *  is (idempotently) re-applied even to a cached handle. */
-const SCHEMA_KEY = `${SCHEMA}\n--migrations--\n${COLUMN_MIGRATIONS.map((m) => m.ddl).join("\n")}`;
+/** One ordered, versioned schema change. `up` performs it; `applied` reports
+ *  whether its effect is ALREADY present on the handle. `applied` is what lets a
+ *  database that predates the `schema_version` ledger (or one a concurrent
+ *  process just migrated) be stamped without re-running the DDL — the runner
+ *  probes the real shape via PRAGMA/sqlite_master instead of trusting a version
+ *  it never wrote. Keep this list append-only and contiguous from 1. */
+type Migration = {
+  version: number;
+  name: string;
+  up: (db: DatabaseSync) => void;
+  applied: (db: DatabaseSync) => boolean;
+};
+
+/** The migration ledger. v1 is the whole base schema (all `CREATE … IF NOT
+ *  EXISTS` above, still idempotent); v2..v6 are the additive columns that used to
+ *  live in COLUMN_MIGRATIONS, re-expressed as ordered versions. A fresh database
+ *  gets v1's CREATEs (which already include every later column), so v2..v6 detect
+ *  their column as present and are stamped without a redundant ALTER.
+ *
+ *  Non-additive changes (a type change, rename, drop, PK change) have NO ALTER in
+ *  SQLite — use the table-rebuild recipe in `rebuildTable` below as the `up` of a
+ *  new version, with an `applied` probe of the post-rebuild shape. */
+const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    name: "base schema (18 tables + projects index)",
+    up: (db) => db.exec(SCHEMA),
+    // rate_limits is the always-on table; its presence means the base schema ran.
+    applied: (db) => tableExists(db, "rate_limits"),
+  },
+  {
+    version: 2,
+    name: "warehouse_connection.config_json (generic ERP adapter config)",
+    up: (db) => db.exec("ALTER TABLE warehouse_connection ADD COLUMN config_json TEXT"),
+    applied: (db) => hasColumn(db, "warehouse_connection", "config_json"),
+  },
+  {
+    version: 3,
+    name: "warehouse_connection.last_error (sync-health tracking)",
+    up: (db) => db.exec("ALTER TABLE warehouse_connection ADD COLUMN last_error TEXT"),
+    applied: (db) => hasColumn(db, "warehouse_connection", "last_error"),
+  },
+  {
+    version: 4,
+    name: "warehouse_connection.last_error_at",
+    up: (db) => db.exec("ALTER TABLE warehouse_connection ADD COLUMN last_error_at TEXT"),
+    applied: (db) => hasColumn(db, "warehouse_connection", "last_error_at"),
+  },
+  {
+    version: 5,
+    name: "warehouse_connection.fail_count",
+    up: (db) => db.exec("ALTER TABLE warehouse_connection ADD COLUMN fail_count INTEGER"),
+    applied: (db) => hasColumn(db, "warehouse_connection", "fail_count"),
+  },
+  {
+    version: 6,
+    name: "projects.logo_url (client branding for reports)",
+    up: (db) => db.exec("ALTER TABLE projects ADD COLUMN logo_url TEXT"),
+    applied: (db) => hasColumn(db, "projects", "logo_url"),
+  },
+];
+
+const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
+
+/** The `schema_version` ledger: one row per applied migration. */
+const VERSION_TABLE = `CREATE TABLE IF NOT EXISTS schema_version (
+  version    INTEGER PRIMARY KEY,
+  name       TEXT NOT NULL,
+  applied_at TEXT NOT NULL
+);`;
+
+function currentVersion(db: DatabaseSync): number {
+  const row = db.prepare("SELECT MAX(version) AS v FROM schema_version").get() as
+    | { v: number | null }
+    | undefined;
+  return row?.v ?? 0;
+}
+
+/** Errors we tolerate when applying a migration: another process (parallel test
+ *  workers, the cron, a concurrent request, an HMR re-apply) won the same race and
+ *  already applied it. Anything else is a real schema bug and must surface. */
+function isBenignMigrationError(err: unknown): boolean {
+  const msg = String((err as { message?: string })?.message ?? err).toLowerCase();
+  return msg.includes("duplicate column name") || msg.includes("already exists");
+}
+
+/** Versioned migration runner. Idempotent and concurrency-tolerant:
+ *   - the `schema_version` ledger is authoritative for versions it records;
+ *   - a version not in the ledger whose effect is already present (a legacy
+ *     pre-ledger db, or a racing process) is stamped WITHOUT re-running its DDL;
+ *   - otherwise the DDL runs, and a benign "already applied" race is tolerated
+ *     while any other failure throws LOUD (surfaced in dev, never swallowed).
+ *  Returns the version the db is at afterward. Exported for unit tests. */
+export function runMigrations(db: DatabaseSync): number {
+  db.exec(VERSION_TABLE);
+  const recorded = currentVersion(db);
+
+  for (const m of MIGRATIONS) {
+    if (m.version <= recorded) continue; // ledger already covers this version
+
+    if (m.applied(db)) {
+      // Effect present but unrecorded → legacy db (created before the ledger) or a
+      // concurrent process just applied it. Stamp the ledger to match reality.
+      stamp(db, m);
+      continue;
+    }
+
+    try {
+      m.up(db);
+    } catch (err) {
+      // A racing process may have applied it between our probe and our DDL.
+      if (m.applied(db) || isBenignMigrationError(err)) {
+        stamp(db, m);
+        continue;
+      }
+      console.error(
+        `[db] migration v${m.version} (${m.name}) FAILED — schema is inconsistent:`,
+        err
+      );
+      throw err;
+    }
+    stamp(db, m);
+  }
+
+  return currentVersion(db);
+}
+
+function stamp(db: DatabaseSync, m: Migration): void {
+  // OR IGNORE: a concurrent process may have stamped this version already.
+  db.prepare(
+    "INSERT OR IGNORE INTO schema_version (version, name, applied_at) VALUES (?, ?, ?)"
+  ).run(m.version, m.name, new Date().toISOString());
+}
+
+/** Non-additive schema change recipe. SQLite cannot ALTER a column's type, rename
+ *  a PK, or (pre-3.35) drop a column, so the portable path is: create the new
+ *  table, copy the data across, drop the old, rename the new into place. This
+ *  helper runs that sequence as one transaction, following the safe order in
+ *  https://www.sqlite.org/lang_altertable.html#otheralter (FK enforcement off for
+ *  the swap, an integrity check before commit). It is the executable form of the
+ *  recipe — a future non-additive `Migration.up` calls it, e.g.:
+ *
+ *    up: (db) => rebuildTable(db, {
+ *      table: "projects",
+ *      // must create `${table}__new`:
+ *      newTableSql: `CREATE TABLE projects__new ( ... accent_color TEXT ... )`,
+ *      copySql: `INSERT INTO projects__new (id, user_id, ...)
+ *                SELECT id, user_id, ... FROM projects`,
+ *      indexes: [`CREATE INDEX IF NOT EXISTS idx_projects_user ON projects (user_id, created_at)`],
+ *    })
+ */
+export function rebuildTable(
+  db: DatabaseSync,
+  opts: { table: string; newTableSql: string; copySql: string; indexes?: string[] }
+): void {
+  const { table, newTableSql, copySql, indexes = [] } = opts;
+  const tmp = `${table}__new`;
+  db.exec("PRAGMA foreign_keys = OFF;");
+  try {
+    db.exec("BEGIN;");
+    db.exec(newTableSql); // creates `${table}__new`
+    db.exec(copySql); // INSERT INTO `${table}__new` ... SELECT ... FROM `${table}`
+    db.exec(`DROP TABLE "${table}";`);
+    db.exec(`ALTER TABLE "${tmp}" RENAME TO "${table}";`);
+    for (const idx of indexes) db.exec(idx);
+    const violations = db.prepare("PRAGMA foreign_key_check").all();
+    if (violations.length > 0) {
+      throw new Error(
+        `foreign_key_check failed after rebuilding ${table}: ${JSON.stringify(violations)}`
+      );
+    }
+    db.exec("COMMIT;");
+  } catch (err) {
+    try {
+      db.exec("ROLLBACK;");
+    } catch {
+      /* no active transaction to roll back */
+    }
+    throw err;
+  } finally {
+    db.exec("PRAGMA foreign_keys = ON;");
+  }
+}
+
+/** Marker identifying the current schema definition; when it changes across an
+ *  HMR (a schema edit adds a table/column/version), the runner re-runs even on a
+ *  cached handle so a long-lived dev server self-heals without a restart. */
+const SCHEMA_KEY = `${SCHEMA}\n--v${LATEST_VERSION}--\n${MIGRATIONS.map(
+  (m) => `${m.version}:${m.name}`
+).join("\n")}`;
 
 export function getDb(): DatabaseSync {
   let db = g.__systedoDb;
@@ -283,24 +442,19 @@ export function getDb(): DatabaseSync {
     // rate-limit writer and the HMR schema re-apply can all touch the file at once;
     // 5s is generous for this low-write workload.
     db.exec("PRAGMA busy_timeout = 5000;");
+    // Enforce declared foreign keys (off by default per-connection in SQLite). The
+    // current 18-table schema declares none, so this is forward-looking hygiene; it
+    // must be set here because rebuildTable toggles it and PRAGMAs are per-connection.
+    db.exec("PRAGMA foreign_keys = ON;");
     g.__systedoDb = db;
   }
 
-  // Apply (or re-apply) the schema whenever its definition changes. All statements
-  // are idempotent (CREATE … IF NOT EXISTS), so this is safe to run on an existing
-  // handle — it just creates anything missing. This is what makes a dev server that
-  // survived an HMR across a schema edit (new table/column) self-heal without a
-  // restart, and a db file created before a table existed get it created.
+  // Run the versioned migrations whenever the schema definition changed since we
+  // last applied it to this cached handle. runMigrations is itself idempotent, so
+  // this is safe on an existing handle — it just brings the ledger and shape up to
+  // date (new tables via v1's IF NOT EXISTS, new columns via later versions).
   if (g.__systedoSchema !== SCHEMA_KEY) {
-    db.exec(SCHEMA);
-    for (const m of COLUMN_MIGRATIONS) {
-      if (hasColumn(db, m.table, m.column)) continue; // fresh db already has it via CREATE
-      try {
-        db.exec(m.ddl);
-      } catch {
-        /* a concurrent process added it first — node:sqlite throws, which is fine */
-      }
-    }
+    runMigrations(db);
     g.__systedoSchema = SCHEMA_KEY;
   }
 
