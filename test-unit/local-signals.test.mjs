@@ -20,10 +20,10 @@ process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true";
 register("./json-loader.mjs", import.meta.url);
 
-const { parseRankRows, ladderFromRows, mergeLadder, normalizeLadder, normalizeSignals } =
+const { parseRankRows, ladderFromRows, mergeLadder, normalizeLadder, normalizeSignals, parseReviewRows } =
   await import("@/lib/local-signals/import");
 const { getLocalSignals, saveLocalSignals, clearLocalSignals } = await import("@/lib/local-signals/store");
-const { resolveLocalLadder } = await import("@/lib/local-signals/resolve");
+const { resolveLocalLadder, resolveReviews } = await import("@/lib/local-signals/resolve");
 
 test("parser: header detection, mixed separators, dedup (last wins), rank clamp", () => {
   const rows = parseRankRows(
@@ -135,4 +135,51 @@ test("store: clear reverts to sample", async () => {
   await clearLocalSignals("proj-local");
   assert.equal(await getLocalSignals("proj-local"), null);
   assert.equal((await resolveLocalLadder("proj-local", SAMPLE)).live, false);
+});
+
+// ── D2: reviews parser + live seam ──────────────────────────────────────────
+test("parseReviewRows: header map, quoted comma-bearing text, rating clamp, date parse", () => {
+  const rows = parseReviewRows(
+    [
+      "autor,hodnocení,text,datum,oblast",
+      'Jana K.,5,"Skvělé, doporučuji všem",2026-06-01,Praha',
+      "Petr M.,9,Fajn,01.05.2026,Brno", // rating clamps to 5; cs date D.M.YYYY
+      "Eva H.,3,,2026-04-15,Praha", // empty text but has author → kept
+      "NoDate,4,text bez data,,Praha", // no date → dropped
+    ].join("\n")
+  );
+  assert.equal(rows.length, 3);
+  assert.equal(rows[0].text, "Skvělé, doporučuji všem"); // comma inside quotes preserved
+  assert.equal(rows[0].rating, 5);
+  assert.equal(rows[1].rating, 5); // 9 clamped to 5
+  assert.equal(rows[1].at, "2026-05-01"); // 01.05.2026 → ISO
+  assert.equal(rows[2].author, "Eva H.");
+});
+
+test("parseReviewRows: no header assumes author,rating,text,date,area; bad rating dropped", () => {
+  const rows = parseReviewRows(["Jan,4,Dobré,2026-06-01,Praha", "X,abc,Nope,2026-06-02,Brno"].join("\n"));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].rating, 4);
+});
+
+test("resolveReviews: sample without import, live imported reviews after save", async () => {
+  const SAMPLE_REVIEWS = [{ id: "s", author: "A", area: "Praha", rating: 5, text: "x", daysAgo: 1 }];
+  const before = await resolveReviews("proj-rev", SAMPLE_REVIEWS);
+  assert.equal(before.live, false);
+  assert.deepEqual(before.reviews, SAMPLE_REVIEWS);
+
+  const items = parseReviewRows("Jana K.,5,Skvělé,2026-06-01,Praha");
+  await saveLocalSignals("proj-rev", {
+    meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    reviews: { meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: items.length }, items },
+  });
+  const now = Date.parse("2026-06-11T00:00:00Z");
+  const after = await resolveReviews("proj-rev", SAMPLE_REVIEWS, now);
+  assert.equal(after.live, true);
+  assert.equal(after.source, "import");
+  assert.equal(after.reviews[0].daysAgo, 10); // 2026-06-01 → 2026-06-11
+  // empty ladder → ladder resolver still reports sample
+  assert.equal((await resolveLocalLadder("proj-rev", SAMPLE)).live, false);
+  await clearLocalSignals("proj-rev");
 });

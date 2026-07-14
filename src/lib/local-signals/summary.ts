@@ -11,7 +11,7 @@ import type { SupportedLocale } from "@/lib/format";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { keywordLadder } from "@/lib/mappack/sample";
-import { resolveLocalLadder } from "@/lib/local-signals/resolve";
+import { resolveLocalLadder, resolveReviews } from "@/lib/local-signals/resolve";
 import { changeSinceLast, ladderSpanDays } from "@/lib/mappack/compute";
 import { reviewsForProject } from "@/lib/reviews/sample";
 import { bandOf } from "@/lib/reviews/compute";
@@ -27,7 +27,10 @@ export async function localSignalsPromptText(
   const services = await loadServicesFor(project);
   const resolved = await resolveLocalLadder(project.id, keywordLadder(project, localities, services));
   const ladder = resolved.ladder;
-  const reviews = reviewsForProject(project, localities);
+  // Reviews go live-over-sample on the SAME seam as the ladder, so the recap can state
+  // per-source provenance instead of silently blending live ranks with sample reviews.
+  const resolvedReviews = await resolveReviews(project.id, reviewsForProject(project, localities));
+  const reviews = resolvedReviews.reviews;
   if (ladder.length === 0 && reviews.length === 0) return null;
 
   // Map-pack coverage — current position per tracked service×area combo.
@@ -65,16 +68,33 @@ export async function localSignalsPromptText(
     else if (b === "negative") neg++;
   }
 
+  // Per-source provenance so the recap never silently mixes live and sample: each
+  // signal line is tagged with where its numbers came from.
   const cs = locale !== "en";
+  const ladderTag = cs
+    ? resolved.live
+      ? " [zdroj: živá data]"
+      : " [zdroj: ukázková data]"
+    : resolved.live
+      ? " [source: live data]"
+      : " [source: sample data]";
+  const reviewsTag = cs
+    ? resolvedReviews.live
+      ? " [zdroj: živá data]"
+      : " [zdroj: ukázková data]"
+    : resolvedReviews.live
+      ? " [source: live data]"
+      : " [source: sample data]";
+
   const lines: string[] = [];
   if (cs) {
-    lines.push("Lokální viditelnost (reálná, spočítaná data — report na ně nesmí mlčet):");
+    lines.push("Lokální viditelnost (spočítaná data — report na ně nesmí mlčet; zdroj u každého signálu):");
     if (tracked > 0) {
       lines.push(
         `- Mapa-pack: sledováno ${fmtInt(tracked)} kombinací služba×lokalita; v top 3 ${fmtInt(inPack)} (${fmtPct(
           packRate,
           0
-        )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.`
+        )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.${ladderTag}`
       );
     }
     if (hasTrend) {
@@ -88,17 +108,17 @@ export async function localSignalsPromptText(
       lines.push(
         `- Recenze: ${fmtInt(n)} hodnocení, průměr ${avgStars.toFixed(1)}★; pozitivních ${fmtInt(
           pos
-        )}, negativních ${fmtInt(neg)}.`
+        )}, negativních ${fmtInt(neg)}.${reviewsTag}`
       );
     }
   } else {
-    lines.push("Local visibility (real, already-computed data — the report must not stay silent on it):");
+    lines.push("Local visibility (already-computed data — the report must not stay silent on it; source tagged per signal):");
     if (tracked > 0) {
       lines.push(
         `- Map pack: ${fmtInt(tracked)} service×area combos tracked; top-3 for ${fmtInt(inPack)} (${fmtPct(
           packRate,
           0
-        )}), of which #1 for ${fmtInt(top1)}; average position ${avgRank.toFixed(1)}.`
+        )}), of which #1 for ${fmtInt(top1)}; average position ${avgRank.toFixed(1)}.${ladderTag}`
       );
     }
     if (hasTrend) {
@@ -112,7 +132,7 @@ export async function localSignalsPromptText(
       lines.push(
         `- Reviews: ${fmtInt(n)} ratings, ${avgStars.toFixed(1)}★ average; ${fmtInt(pos)} positive, ${fmtInt(
           neg
-        )} negative.`
+        )} negative.${reviewsTag}`
       );
     }
   }

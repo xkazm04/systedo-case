@@ -2,7 +2,25 @@
  *  expansion. Pure (framework-free), so it carries a test-unit and both the
  *  client inbox and any batch job share one implementation. */
 import { interpolate } from "@/lib/i18n/interpolate";
+import type { ImportedReview } from "@/lib/local-signals/types";
 import type { ReviewItem } from "./sample";
+
+/** Convert imported (date-stamped) reviews into the inbox's ReviewItem shape,
+ *  deriving `daysAgo` from the posted date relative to `now`, newest first. The
+ *  live counterpart of reviewsForProject — one shape for the inbox to render. Pure. */
+export function fromImported(items: ImportedReview[], now = Date.now()): ReviewItem[] {
+  const DAY = 86_400_000;
+  return items
+    .map((r) => ({
+      id: r.id,
+      author: r.author,
+      area: r.area,
+      rating: r.rating,
+      text: r.text,
+      daysAgo: Math.max(0, Math.floor((now - Date.parse(r.at)) / DAY)),
+    }))
+    .sort((a, b) => a.daysAgo - b.daysAgo);
+}
 
 export type Band = "positive" | "neutral" | "negative";
 

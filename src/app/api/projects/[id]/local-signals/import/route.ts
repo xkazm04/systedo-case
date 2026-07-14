@@ -1,14 +1,30 @@
-/** A2 — POST a rank export (pasted/CSV text) to bring a local project's real
- *  keyword-rank ladder in as the map module's source of truth. Per-user,
- *  ownership-checked; parses tolerantly and persists. Server-only. */
+/** A2/D2/D3 — POST a rank / review / GBP export (pasted CSV or a hosted-CSV URL) to
+ *  bring a local project's real signals in as the module's source of truth. One route,
+ *  three sections selected by `kind` (default "ranks"): ranks feed the map ladder,
+ *  reviews feed the inbox + recap sentiment, gbp feeds the locations roster. Each
+ *  section carries its own provenance and lives in the same per-project blob, so an
+ *  import of one never disturbs the others. Per-user, ownership-checked. Server-only. */
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
-import { parseRankRows, mergeLadder } from "@/lib/local-signals/import";
+import { parseRankRows, parseReviewRows, mergeLadder } from "@/lib/local-signals/import";
 import { getLocalSignals, saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
-import type { LocalSignalsSource } from "@/lib/local-signals/types";
+import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
 
 const MAX_BYTES = 256_000;
+type Kind = "ranks" | "reviews" | "gbp";
+
+function isKind(v: unknown): v is Kind {
+  return v === "ranks" || v === "reviews" || v === "gbp";
+}
+
+/** The top-level meta represents the LADDER section (kept for backward compat). When a
+ *  non-rank import lands with no ladder yet, we still need a meta — a rowCount-0
+ *  placeholder that the resolver ignores (it falls back to the sample ladder). */
+function ladderMeta(prev: LocalSignals | null, source: LocalSignalsSource, url: string): LocalSignalsMeta {
+  if (prev && prev.ladder.length > 0) return prev.meta;
+  return { source, syncedAt: new Date().toISOString(), rowCount: 0, ...(url ? { sourceUrl: url } : {}) };
+}
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -17,12 +33,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
 
-  const body = (await req.json().catch(() => null)) as { text?: unknown; url?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as
+    | { text?: unknown; url?: unknown; kind?: unknown }
+    | null;
+  const kind: Kind = isKind(body?.kind) ? body.kind : "ranks";
   const url = typeof body?.url === "string" ? body.url.trim() : "";
 
   // Two honest ingestion paths: pasted CSV, or a fetch of a hosted CSV the user
-  // controls (a published Sheet / rank-tracker export) — the connector seam a paid
-  // rank provider could later plug into. No pretend live SERP API.
+  // controls (a published Sheet / export) — the connector seam a paid provider could
+  // later plug into. No pretend live API.
   let text: string;
   let source: LocalSignalsSource;
   if (url) {
@@ -35,12 +54,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     source = "url";
   } else {
     text = typeof body?.text === "string" ? body.text : "";
-    source = "import";
+    source = kind === "gbp" ? "gbp" : "import";
   }
   if (text.length > MAX_BYTES) {
     return Response.json({ ok: false, error: "Import je příliš velký." }, { status: 413 });
   }
 
+  const prev = await getLocalSignals(project.id);
+  const now = new Date().toISOString();
+  const meta = (rowCount: number): LocalSignalsMeta => ({
+    source,
+    syncedAt: now,
+    rowCount,
+    ...(source === "url" ? { sourceUrl: url } : {}),
+  });
+
+  if (kind === "reviews") {
+    const items = parseReviewRows(text);
+    if (items.length === 0) {
+      return Response.json(
+        { ok: false, error: "Nenašel jsem žádné recenze. Formát: autor, hodnocení, text, datum, oblast." },
+        { status: 400 }
+      );
+    }
+    await saveLocalSignals(project.id, {
+      meta: ladderMeta(prev, source, url),
+      ladder: prev?.ladder ?? [],
+      ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+      reviews: { meta: meta(items.length), items },
+    });
+    return Response.json({ ok: true, rowCount: items.length });
+  }
+
+  // kind === "ranks": append to the previously-imported ladder so per-keyword rank
+  // history accumulates across monthly imports (the climb/trend/best the module exists
+  // to show), instead of resetting to a single point on every upload.
   const rows = parseRankRows(text);
   if (rows.length === 0) {
     return Response.json(
@@ -48,30 +96,44 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       { status: 400 }
     );
   }
-
-  // Append to the previously-imported ladder so per-keyword rank history accumulates
-  // across monthly imports (the climb/trend/best the module exists to show), instead of
-  // resetting to a single point on every upload.
-  const prev = await getLocalSignals(project.id);
   await saveLocalSignals(project.id, {
-    meta: {
-      source,
-      syncedAt: new Date().toISOString(),
-      rowCount: rows.length,
-      ...(source === "url" ? { sourceUrl: url } : {}),
-    },
-    ladder: mergeLadder(prev?.ladder ?? [], rows),
+    meta: meta(rows.length),
+    ladder: mergeLadder(prev?.ladder ?? [], rows, now),
+    ...(prev?.reviews ? { reviews: prev.reviews } : {}),
+    ...(prev?.gbp ? { gbp: prev.gbp } : {}),
   });
   return Response.json({ ok: true, rowCount: rows.length });
 }
 
-/** Revert to the illustrative sample ladder. */
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+/** Revert to the illustrative sample. `?source=ranks|reviews|gbp` reverts just that
+ *  section (dropping the rest of the blob only when nothing live remains); no param
+ *  clears everything. Per-source revert keeps the other live imports intact. */
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const uid = await currentUserId();
   if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
   const project = await getProject(uid, id);
   if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+
+  const source = new URL(req.url).searchParams.get("source");
+  if (source === "reviews" || source === "gbp" || source === "ranks") {
+    const prev = await getLocalSignals(project.id);
+    if (!prev) return Response.json({ ok: true });
+    const next: LocalSignals = {
+      meta: prev.meta,
+      ladder: source === "ranks" ? [] : prev.ladder,
+      ...(source !== "reviews" && prev.reviews ? { reviews: prev.reviews } : {}),
+      ...(source !== "gbp" && prev.gbp ? { gbp: prev.gbp } : {}),
+    };
+    // Nothing live left → drop the whole blob so the project cleanly reads as sample.
+    if (next.ladder.length === 0 && !next.reviews && !next.gbp) {
+      await clearLocalSignals(project.id);
+    } else {
+      await saveLocalSignals(project.id, next);
+    }
+    return Response.json({ ok: true });
+  }
+
   await clearLocalSignals(project.id);
   return Response.json({ ok: true });
 }

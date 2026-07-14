@@ -6,6 +6,7 @@ import {
   bandOf,
   expandMacro,
   filterReviews,
+  fromImported,
   sentiment,
   sortReviews,
 } from "@/lib/reviews/compute";
@@ -77,6 +78,20 @@ test("expandMacro fills author/business/area and leaves unknowns intact", () => 
     "Dobrý den Jana K., děkujeme za návštěvu Dentalis v Praha."
   );
   assert.equal(expandMacro("Ahoj {author} {unknown}", { author: "Petr" }), "Ahoj Petr {unknown}");
+});
+
+test("fromImported derives daysAgo from the posted date, newest-first", () => {
+  const now = Date.parse("2026-06-20T00:00:00Z");
+  const items = [
+    { id: "a", author: "A", area: "Praha", rating: 5, text: "x", at: "2026-06-10" },
+    { id: "b", author: "B", area: "Brno", rating: 3, text: "y", at: "2026-06-18" },
+  ];
+  const out = fromImported(items, now);
+  assert.deepEqual(out.map((r) => r.id), ["b", "a"]); // newest first (smallest daysAgo)
+  assert.equal(out[0].daysAgo, 2);
+  assert.equal(out[1].daysAgo, 10);
+  // a future date clamps to 0, never negative
+  assert.equal(fromImported([{ id: "c", author: "C", area: "X", rating: 4, text: "z", at: "2026-07-01" }], now)[0].daysAgo, 0);
 });
 
 test("reviewsForProject is deterministic, newest-first and locality-scoped", () => {

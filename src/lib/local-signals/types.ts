@@ -12,14 +12,55 @@ export interface LocalSignalsMeta {
   source: LocalSignalsSource;
   /** ISO timestamp of the sync/import that produced these rows */
   syncedAt: string;
-  /** number of ranked keyword×area rows */
+  /** number of rows this section carries */
   rowCount: number;
-  /** for source "url": the hosted CSV the ladder was fetched from (enables refresh) */
+  /** for source "url": the hosted CSV the section was fetched from (enables refresh) */
   sourceUrl?: string;
 }
 
-/** Persisted per project: provenance + the live keyword-rank ladder. */
+/** A single imported public review (the live counterpart of reviews/sample's seed). */
+export interface ImportedReview {
+  id: string;
+  author: string;
+  area: string;
+  /** star rating, clamped 1..5 */
+  rating: number;
+  text: string;
+  /** ISO date (YYYY-MM-DD) the review was posted */
+  at: string;
+}
+
+/** The live reviews section: its own provenance + the imported reviews. */
+export interface ImportedReviews {
+  meta: LocalSignalsMeta;
+  items: ImportedReview[];
+}
+
+/** A single imported Google Business Profile location snapshot (D3). */
+export interface ImportedGbpRow {
+  /** location name as exported (matched to a catalog locality tolerantly on read) */
+  name: string;
+  /** connection health */
+  status: "connected" | "attention" | "disconnected";
+  reviews: number;
+  /** average star rating, 0..5 */
+  rating: number;
+  /** reviews awaiting a reply */
+  unanswered: number;
+}
+
+/** The live GBP section: its own provenance + the imported location rows. */
+export interface ImportedGbp {
+  meta: LocalSignalsMeta;
+  rows: ImportedGbpRow[];
+}
+
+/** Persisted per project: the keyword-rank ladder (top-level `meta`+`ladder`, kept
+ *  for backward compatibility) plus optional live review and GBP sections, each with
+ *  its own provenance. Old `{meta, ladder}` blobs read cleanly (reviews/gbp absent). */
 export interface LocalSignals {
   meta: LocalSignalsMeta;
   ladder: KeywordRank[];
+  reviews?: ImportedReviews;
+  gbp?: ImportedGbp;
 }
