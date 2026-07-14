@@ -3,18 +3,16 @@
  *  (returns a classified error the client surfaces); DELETE drops the stored series so
  *  the report + recap revert to sample (the honest hasSyncedMetrics signal flips for
  *  every surface that reads it). Server-only. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { syncReportMetricsFromAds } from "@/lib/report-metrics/sync";
 import { clearReportMetrics } from "@/lib/report-metrics/store";
 import { emitProjectActivity } from "@/lib/activity/emit";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project, uid } = g;
 
   const result = await syncReportMetricsFromAds(project, uid);
   return Response.json(result, { status: result.ok ? 200 : 400 });
@@ -25,10 +23,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
  *  feed (mirrors the "Google Ads napojen" entry emitted when the account is linked). */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project, uid } = g;
 
   await clearReportMetrics(project.id);
   // Best-effort audit entry — never fails the unlink (emit swallows its own errors).

@@ -3,8 +3,7 @@
  *  module immediately speaks the real business — and/or flips the dismissed flag.
  *  DELETE resets. Per-user, ownership-checked; the body is coerced to a clean blob.
  *  Server-only. Mirrors the organic-channels route's auth shape. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getOnboarding, saveOnboarding, clearOnboarding } from "@/lib/onboarding/store";
 import { sanitizeScanProfile } from "@/lib/onboarding/types";
 import type { OnboardingState } from "@/lib/onboarding/types";
@@ -26,10 +25,9 @@ import { readJson } from "@/lib/api/route-utils";
  *  the surface without server-side i18n. `error` stays as a human-readable fallback. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, code: "unauthorized", error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, code: "not-found", error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok", code: true });
+  if ("error" in g) return g.error;
+  const { project, uid } = g;
 
   const body = await readJson<{ scan?: unknown; dismissed?: unknown }>(req);
 
@@ -88,10 +86,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 /** Reset onboarding (drops the applied scan + flags). */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, code: "unauthorized", error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, code: "not-found", error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok", code: true });
+  if ("error" in g) return g.error;
+  const { project } = g;
   await clearOnboarding(project.id);
   return Response.json({ ok: true });
 }

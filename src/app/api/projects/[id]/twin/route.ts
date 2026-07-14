@@ -3,8 +3,7 @@
  *  ownership-checked; the body is coerced to a clean, bounded blob (never trust the
  *  wire — the client POSTs the whole state). Server-only. Mirrors the
  *  organic-channels route's auth shape. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { saveTwin, clearTwin } from "@/lib/twin/store";
 import { channelConfig, decideDraft, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
 import { readJson } from "@/lib/api/route-utils";
@@ -36,10 +35,9 @@ function enforceAutonomy(state: TwinState): TwinState {
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson(req);
   const state = enforceAutonomy(sanitizeTwinState(body));
@@ -50,10 +48,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 /** Untrain the twin: back to the seeded per-type sample, empty outbox. */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
   await clearTwin(project.id);
   return Response.json({ ok: true });
 }

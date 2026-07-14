@@ -3,8 +3,7 @@
  *  sample. The rows feed the funnel/velocity/alerts + the recap grounding, honestly
  *  labelled live. Per-user, ownership-checked. Server-only. Mirrors the local-signals
  *  import route's auth + ingestion shape. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { parseLeadRows } from "@/lib/lead-quality/import";
 import { saveLeadImports, clearLeadImports } from "@/lib/lead-quality/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
@@ -15,10 +14,9 @@ const MAX_BYTES = 512_000;
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson<{ text?: unknown; url?: unknown }>(req);
   const url = trimmedString(body?.url);
@@ -66,10 +64,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 /** Revert to the illustrative sample funnel by dropping the imported leads. */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
   await clearLeadImports(project.id);
   return Response.json({ ok: true });
 }

@@ -2,8 +2,7 @@
  *  notes. Per-user, ownership-checked; the body is coerced to a clean, bounded draft
  *  (never trust the wire) and capped per project in the store. Server-only. Mirrors
  *  the organic-channels sub-resource route's auth shape. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { listAnnotations, recordAnnotation, deleteAnnotation } from "@/lib/annotations/store";
 import { sanitizeAnnotationInput } from "@/lib/annotations/types";
 import { readJson } from "@/lib/api/route-utils";
@@ -11,20 +10,18 @@ import { readJson } from "@/lib/api/route-utils";
 /** The project's annotations (newest-first). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
   return Response.json({ ok: true, items: await listAnnotations(project.id) });
 }
 
 /** Add one dated note. 422 when the draft is invalid (blank text / malformed date). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson(req);
   const input = sanitizeAnnotationInput(body);
@@ -37,10 +34,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 /** Remove one note by id (?id=… or {id} in the body). 404 on an unknown id. */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const url = new URL(req.url);
   let annotationId = url.searchParams.get("id") ?? "";

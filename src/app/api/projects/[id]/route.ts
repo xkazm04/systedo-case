@@ -1,15 +1,16 @@
 /** Single-project update + delete for the signed-in user. Server-only. */
-import { currentUserId } from "@/lib/session";
-import { deleteProject, getProject, updateProject } from "@/lib/projects/store";
+import { deleteProject, updateProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
 import { type ProjectPatch } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
-import { badRequest, isProjectType, readJson } from "@/lib/api/route-utils";
+import { badRequest, isProjectType, notFound, readJson } from "@/lib/api/route-utils";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
+  const g = await requireOwnedProject(id);
+  if ("error" in g) return g.error;
+  const { uid } = g;
 
   const body = await readJson<Record<string, unknown>>(req);
   if (!body) return badRequest("Neplatný požadavek.");
@@ -23,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.adsCustomerId === "string") patch.adsCustomerId = body.adsCustomerId;
 
   const project = await updateProject(uid, id, patch);
-  if (!project) return Response.json({ error: "Projekt nenalezen." }, { status: 404 });
+  if (!project) return notFound("Projekt nenalezen.");
 
   // Surface the change on the project-wide activity feed (best-effort, never throws).
   const changed = Object.keys(patch);
@@ -50,13 +51,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const { id } = await params;
 
-  // Resolve the workspace up front so the audit record can name it (it's gone by
-  // the time we log). Best-effort — a read hiccup must not block the delete.
-  const project = await getProject(uid, id).catch(() => null);
+  // Ownership FIRST: a foreign/absent id must 404 before any deletion cascade runs
+  // (previously this returned a silent {ok:true} for ids the caller never owned).
+  // The guard also resolves the workspace so the audit record can name it (it's gone
+  // by the time we log).
+  const g = await requireOwnedProject(id);
+  if ("error" in g) return g.error;
+  const { uid, project } = g;
 
   // Scrub every satellite store + tenant-keyed Firestore data first (best-effort,
   // never throws), THEN remove the workspace doc itself so a satellite hiccup can't
@@ -72,7 +75,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     severity: cascade.failed.length > 0 ? "warning" : "info",
     title: "Projekt smazán",
     detail:
-      (project?.name ?? id) +
+      project.name +
       (cascade.failed.length > 0 ? ` · ${cascade.failed.length} úložišť selhalo` : ""),
     actor: "Vy",
   });

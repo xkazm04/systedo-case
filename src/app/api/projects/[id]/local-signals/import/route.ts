@@ -4,8 +4,7 @@
  *  reviews feed the inbox + recap sentiment, gbp feeds the locations roster. Each
  *  section carries its own provenance and lives in the same per-project blob, so an
  *  import of one never disturbs the others. Per-user, ownership-checked. Server-only. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import {
   parseRankRows,
   parseReviewRows,
@@ -34,10 +33,9 @@ function ladderMeta(prev: LocalSignals | null, source: LocalSignalsSource, url: 
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson<{ text?: unknown; url?: unknown; kind?: unknown }>(req);
   const kind: Kind = isKind(body?.kind) ? body.kind : "ranks";
@@ -131,10 +129,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
  *  clears everything. Per-source revert keeps the other live imports intact. */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const source = new URL(req.url).searchParams.get("source");
   if (source === "reviews" || source === "gbp" || source === "ranks") {

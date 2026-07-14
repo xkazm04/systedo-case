@@ -2,8 +2,7 @@
  *  so content surfaces (WeekPlanner) can show "the tool knows your brand" and offer
  *  it as the default voice instead of a blank field. Tenancy-checked: a demo id is
  *  public; a real id must belong to the caller. GET → { context }. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { loadBrandContext } from "@/lib/brand/load";
@@ -17,10 +16,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ context: await loadBrandContext(demo, locale) });
   }
 
-  const userId = await currentUserId();
-  if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const project = await getProject(userId, id);
-  if (!project) return Response.json({ error: "Not found" }, { status: 404 });
+  const g = await requireOwnedProject(id, { messages: { unauthorized: "Unauthorized", notFound: "Not found" } });
+  if ("error" in g) return g.error;
 
-  return Response.json({ context: await loadBrandContext(project, locale) });
+  return Response.json({ context: await loadBrandContext(g.project, locale) });
 }

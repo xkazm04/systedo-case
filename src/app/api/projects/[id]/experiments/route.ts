@@ -4,8 +4,7 @@
  *  winner may enter live tenants' AI prompts as an account-proven creative pattern, so
  *  the sanitiser is the integrity boundary here. Server-only. Mirrors the annotations
  *  sub-resource route's auth shape. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import {
   createExperiment,
   deleteExperiment,
@@ -15,27 +14,21 @@ import {
 import { sanitizeExperimentInput } from "@/lib/lp-exp/types";
 import { asString, readJson } from "@/lib/api/route-utils";
 
-async function requireProject(id: string) {
-  const uid = await currentUserId();
-  if (!uid) return { error: Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 }) };
-  const project = await getProject(uid, id);
-  if (!project) return { error: Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 }) };
-  return { project };
-}
-
 /** The project's persisted experiments (newest-first). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { project, error } = await requireProject(id);
-  if (error) return error;
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
   return Response.json({ ok: true, items: await listExperiments(project.id) });
 }
 
 /** Create one experiment. 422 when the body is invalid (blank cluster / < 2 variants). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { project, error } = await requireProject(id);
-  if (error) return error;
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson(req);
   const input = sanitizeExperimentInput(body);
@@ -50,8 +43,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
  *  invalid body, 404 on an unknown id. Id comes from ?id=… or the body. */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { project, error } = await requireProject(id);
-  if (error) return error;
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson<Record<string, unknown>>(req);
   const url = new URL(req.url);
@@ -70,8 +64,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 /** Remove one experiment by id (?id=… or {id} in the body). 404 on an unknown id. */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { project, error } = await requireProject(id);
-  if (error) return error;
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const url = new URL(req.url);
   let expId = url.searchParams.get("id") ?? "";

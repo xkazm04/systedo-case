@@ -10,8 +10,7 @@
  *  and hands the text back to be pasted. The draft is still marked `sent` — that is
  *  the human recording their own send — and the response says plainly that Adamant
  *  transmitted nothing. See src/lib/twin/connectors.ts. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getTwin, saveTwin } from "@/lib/twin/store";
 import { connectorFor } from "@/lib/twin/connectors";
 import { channelConfig } from "@/lib/twin/types";
@@ -19,10 +18,9 @@ import { asString, readJson } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const uid = await currentUserId();
-  if (!uid) return Response.json({ ok: false, error: "Nepřihlášeno." }, { status: 401 });
-  const project = await getProject(uid, id);
-  if (!project) return Response.json({ ok: false, error: "Projekt nenalezen." }, { status: 404 });
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  const { project } = g;
 
   const body = await readJson<{ draftId?: unknown }>(req);
   const draftId = asString(body?.draftId);
