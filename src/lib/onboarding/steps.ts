@@ -6,7 +6,7 @@
 import type { IconKey } from "@/lib/projects/icon-keys";
 import type { ProjectType } from "@/lib/projects/types";
 
-export type OnboardingStepKey = "scan" | "catalog" | "ads" | "ranks" | "channels";
+export type OnboardingStepKey = "scan" | "catalog" | "ads" | "ranks" | "channels" | "costModel";
 
 export interface OnboardingStepDef {
   key: OnboardingStepKey;
@@ -49,12 +49,26 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
   },
   ranks: {
     key: "ranks",
+    // The Map module hosts the whole local-data import (rank ladder, reviews AND
+    // GBP locations, via LocalLadderSource / LocalSourcePanel), so it stays the
+    // single entry point now that any of the three completes this step.
     to: "mapa",
     icon: "map",
-    labelCs: "Naimportovat pozice",
-    labelEn: "Import your ranks",
-    hintCs: "Reálný žebříček pozic do mapy a lokálního přehledu.",
-    hintEn: "A real rank ladder for the map and local overview.",
+    labelCs: "Naimportovat lokální data",
+    labelEn: "Import local data",
+    hintCs: "Reálné pozice, recenze nebo Google profil do mapy a lokálního přehledu.",
+    hintEn: "Real ranks, reviews or your Google profile for the map and local overview.",
+  },
+  costModel: {
+    key: "costModel",
+    // The monthly report hosts the CostModelEditor (blended margin, overhead,
+    // per-order cost) — the input that turns pre-COGS contribution into true profit.
+    to: "mesicni-report",
+    icon: "profit",
+    labelCs: "Zadat marži a náklady",
+    labelEn: "Enter margin & costs",
+    hintCs: "Hrubá marže a náklady, aby report ukázal skutečný čistý zisk.",
+    hintEn: "Gross margin and costs so the report shows true net profit.",
   },
   channels: {
     key: "channels",
@@ -70,7 +84,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
 /** The connector checklist per project type — only steps whose completion this
  *  project can actually reach, ordered scan → connect → free-visibility. */
 const BY_TYPE: Record<ProjectType, OnboardingStepKey[]> = {
-  eshop: ["scan", "catalog", "ads", "channels"],
+  eshop: ["scan", "catalog", "costModel", "ads", "channels"],
   app: ["scan", "ads", "channels"],
   leadgen: ["scan", "ads", "channels"],
   content: ["scan", "channels"],

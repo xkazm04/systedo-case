@@ -11,6 +11,7 @@ import { listOfferings } from "@/lib/catalog/store";
 import { getLocalSignals } from "@/lib/local-signals/store";
 import { getOrganicChannels } from "@/lib/organic-channels/store";
 import { getAdsConnection } from "@/lib/campaigns/connection";
+import { getCostModel } from "@/lib/cost-model/store";
 
 export interface ResolvedStep extends OnboardingStepDef {
   done: boolean;
@@ -38,7 +39,7 @@ export async function resolveOnboardingProgress(
   const defs = stepsForType(project.type);
   const need = new Set(defs.map((d) => d.key));
 
-  const [state, offerings, ranks, channels, adsConn] = await Promise.all([
+  const [state, offerings, ranks, channels, adsConn, costModel] = await Promise.all([
     getOnboarding(project.id).catch(() => null),
     userId && need.has("catalog")
       ? listOfferings(userId, project.id).catch(() => null)
@@ -51,14 +52,22 @@ export async function resolveOnboardingProgress(
     userId && need.has("ads") && !project.adsCustomerId
       ? getAdsConnection(userId).catch(() => null)
       : Promise.resolve(null),
+    need.has("costModel") ? getCostModel(project.id).catch(() => null) : Promise.resolve(null),
   ]);
 
   const scanApplied = !!state?.scanApplied;
   const catalogDone = Array.isArray(offerings) && offerings.length > 0;
   const adsDone = !!project.adsCustomerId || !!adsConn?.customerId;
-  const ranksDone = !!ranks && ranks.ladder.length > 0;
+  // The local-signals store now carries three importable sections (rank ladder,
+  // reviews, GBP) — ANY of them present means the user has imported local data.
+  const ranksDone =
+    !!ranks &&
+    (ranks.ladder.length > 0 ||
+      (ranks.reviews?.items.length ?? 0) > 0 ||
+      (ranks.gbp?.rows.length ?? 0) > 0);
   const channelsDone =
     !!channels && (Object.keys(channels.statuses ?? {}).length > 0 || (channels.plan?.length ?? 0) > 0);
+  const costModelDone = !!costModel;
 
   const doneOf = (key: OnboardingStepKey): boolean => {
     switch (key) {
@@ -72,6 +81,8 @@ export async function resolveOnboardingProgress(
         return ranksDone;
       case "channels":
         return channelsDone;
+      case "costModel":
+        return costModelDone;
     }
   };
 
