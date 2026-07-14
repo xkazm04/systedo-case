@@ -6,9 +6,7 @@
  *  AI cost jump or a silently-down provider without opening anything.
  *
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
-import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
-import { resolveTenant, resolveTenantForAccount } from "@/lib/campaigns/connector";
-import { listProjects } from "@/lib/projects/store";
+import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
 import { aggregate, indexChanges, withMetrics } from "@/lib/campaigns/types";
@@ -60,9 +58,7 @@ export async function GET(request: Request) {
   }
 
   const now = new Date();
-  const userIds = await listConnectedUserIds();
-  // "Diagnóza týdne": one passive diagnosis per PROJECT per run — the fan-out is
-  // account×project, so a project seen under a second account must not re-run it.
+  // "Diagnóza týdne": one passive diagnosis per PROJECT per run.
   const diagnosedProjects = new Set<string>();
   const results: {
     userId: string;
@@ -88,26 +84,21 @@ export async function GET(request: Request) {
         .join("")}</ul>`
     : "";
 
-  for (const userId of userIds) {
-    const projects = await listProjects(userId);
-    const targets = projects.length ? projects : [null];
-    // Fan out over ALL connected accounts, exactly as the sync cron writes them — each
-    // account is a distinct client tenant. Reading only the active account (via
-    // resolveTenant → getAdsConnection) silently skipped every other account's client,
-    // so an MCC agency got a digest for just one of N clients.
-    const { accounts } = await listConnectedAccounts(userId);
-    const accountTargets = accounts.length ? accounts : [null];
-    for (const account of accountTargets) {
-    for (const project of targets) {
-    try {
-      const tenant = account
-        ? resolveTenantForAccount(userId, project?.id, account.customerId)
-        : await resolveTenant(userId, project?.id);
+  // One fan-out spine: iterate only the LINKED (account, project) pairs
+  // planSyncTargets resolves — the sync cron already writes exactly these tenants.
+  // The old cron fanned out every account × every project, so one client account's
+  // data could land in another client's digest email; iterating linked pairs closes
+  // that cross-project breach (an unlinked account writes nowhere). Per-pair
+  // try/catch lives in the spine (onError below).
+  await forEachSyncPair(
+    async (pair) => {
+      const { userId, account, project } = pair;
+      const tenant = await resolvePairTenant(pair);
       const meta = await getSyncMeta(tenant);
       const campaigns = await listCampaigns(tenant);
       if (!meta || campaigns.length === 0) {
         results.push({ userId, projectId: project?.id, ok: true, sent: false });
-        continue;
+        return;
       }
 
       const totals = aggregate(campaigns);
@@ -204,13 +195,19 @@ export async function GET(request: Request) {
       }
 
       results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: true });
-    } catch (err) {
-      console.error(`[cron] digest failed for ${userId}/${project?.id}/${account?.customerId}:`, err);
-      results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: false, error: err instanceof Error ? err.message : String(err) });
+    },
+    (pair, err) => {
+      const { userId, target } = pair;
+      console.error(`[cron] digest failed for ${userId}/${target.projectId}/${target.customerId}:`, err);
+      results.push({
+        userId,
+        projectId: target.projectId,
+        customerId: target.customerId ?? undefined,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
-    }
-    }
-  }
+  );
 
   // One operator-facing webhook per run (not per tenant) when the AI layer
   // needs attention: demo-rate over threshold or a drifted tool contract.

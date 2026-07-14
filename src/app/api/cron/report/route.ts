@@ -5,9 +5,7 @@
  *
  *  Guarded by CRON_SECRET; runs daily (vercel.json) and self-filters by cadence.
  *  Automatic delivery covers connected live accounts (the cron's user set). */
-import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
-import { resolveTenant, resolveTenantForAccount } from "@/lib/campaigns/connector";
-import { listProjects } from "@/lib/projects/store";
+import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
 import { createSharedReport } from "@/lib/campaigns/shared-report";
 import { getReportConfig, markReportSent, type ReportCadence } from "@/lib/campaigns/report-config";
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
@@ -32,7 +30,6 @@ export async function GET(request: Request) {
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const userIds = await listConnectedUserIds();
   const results: {
     userId: string;
     projectId?: string;
@@ -42,25 +39,19 @@ export async function GET(request: Request) {
     reason?: string;
   }[] = [];
 
-  for (const userId of userIds) {
-    const projects = await listProjects(userId);
-    const targets = projects.length ? projects : [null];
-    // Fan out over ALL connected accounts (each a distinct client), matching how the
-    // sync cron writes per-account tenants — reading only the active account skipped
-    // every other client's scheduled report.
-    const { accounts } = await listConnectedAccounts(userId);
-    const accountTargets = accounts.length ? accounts : [null];
-    for (const account of accountTargets) {
-    for (const project of targets) {
-    try {
-      const tenant = account
-        ? resolveTenantForAccount(userId, project?.id, account.customerId)
-        : await resolveTenant(userId, project?.id);
+  // One fan-out spine: iterate only the LINKED (account, project) pairs
+  // planSyncTargets resolves (same tenants the sync cron writes). The old cron
+  // fanned out every account × every project, so one client account's report could
+  // be emailed under another client's project; linked pairs close that breach.
+  await forEachSyncPair(
+    async (pair) => {
+      const { userId, account, project } = pair;
+      const tenant = await resolvePairTenant(pair);
       const config = await getReportConfig(tenant);
 
       if (!isDue(config.cadence, now) || config.lastSentDay === today) {
         results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: false, reason: "not-due" });
-        continue;
+        return;
       }
 
       const accountName = account?.customerName ?? project?.name ?? "Ukázkový účet";
@@ -74,7 +65,7 @@ export async function GET(request: Request) {
       });
       if (!token) {
         results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: true, sent: false, reason: "no-evaluation" });
-        continue;
+        return;
       }
 
       const url = canonical(`/report/${token}`);
@@ -137,13 +128,19 @@ export async function GET(request: Request) {
         sent: delivered > 0,
         reason: failed.length ? `partial: ${failed.length} recipient(s) failed` : undefined,
       });
-    } catch (err) {
-      console.error(`[cron] report failed for ${userId}/${project?.id}/${account?.customerId}:`, err);
-      results.push({ userId, projectId: project?.id, customerId: account?.customerId, ok: false, reason: err instanceof Error ? err.message : String(err) });
+    },
+    (pair, err) => {
+      const { userId, target } = pair;
+      console.error(`[cron] report failed for ${userId}/${target.projectId}/${target.customerId}:`, err);
+      results.push({
+        userId,
+        projectId: target.projectId,
+        customerId: target.customerId ?? undefined,
+        ok: false,
+        reason: err instanceof Error ? err.message : String(err),
+      });
     }
-    }
-    }
-  }
+  );
 
   return Response.json({ users: results.length, sent: results.filter((r) => r.sent).length, results });
 }
