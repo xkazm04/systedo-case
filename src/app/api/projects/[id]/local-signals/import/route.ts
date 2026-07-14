@@ -14,9 +14,13 @@ import {
 import { getLocalSignals, saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
-import { asString, readJson, trimmedString } from "@/lib/api/route-utils";
+import { tooLarge } from "@/lib/ai/rate-limit";
+import { envInt } from "@/lib/env";
+import { asString, enforceUserRate, readJson, trimmedString, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 const MAX_BYTES = 256_000;
+/** Pre-parse content-length cap — see the leads import route for the rationale. */
+const MAX_BODY_BYTES = envInt("LOCAL_SIGNALS_MAX_BODY_BYTES", 512_000);
 type Kind = "ranks" | "reviews" | "gbp";
 
 function isKind(v: unknown): v is Kind {
@@ -35,7 +39,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
   if ("error" in g) return g.error;
-  const { project } = g;
+  const { project, uid } = g;
+
+  // Reject an oversized body up front, then throttle before the fetch/parse work
+  // (this route can fetch a hosted CSV — an outbound call worth rate-limiting).
+  if (tooLarge(req, MAX_BODY_BYTES)) return Response.json({ ok: false, error: "Import je příliš velký." }, { status: 413 });
+  const limited = enforceUserRate(uid, WORKSPACE_RATE.localSignalsImport(), "Příliš mnoho importů. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const body = await readJson<{ text?: unknown; url?: unknown; kind?: unknown }>(req);
   const kind: Kind = isKind(body?.kind) ? body.kind : "ranks";

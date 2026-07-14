@@ -14,13 +14,17 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getTwin, saveTwin } from "@/lib/twin/store";
 import { connectorFor } from "@/lib/twin/connectors";
 import { channelConfig } from "@/lib/twin/types";
-import { asString, readJson } from "@/lib/api/route-utils";
+import { asString, enforceUserRate, readJson, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
   if ("error" in g) return g.error;
-  const { project } = g;
+  const { project, uid } = g;
+
+  // Throttle before the external channel-connector delivery.
+  const limited = enforceUserRate(uid, WORKSPACE_RATE.twinSend(), "Příliš mnoho odeslání. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const body = await readJson<{ draftId?: unknown }>(req);
   const draftId = asString(body?.draftId);

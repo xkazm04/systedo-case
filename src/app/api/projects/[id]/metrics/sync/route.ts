@@ -7,12 +7,17 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { syncReportMetricsFromAds } from "@/lib/report-metrics/sync";
 import { clearReportMetrics } from "@/lib/report-metrics/store";
 import { emitProjectActivity } from "@/lib/activity/emit";
+import { enforceUserRate, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
   if ("error" in g) return g.error;
   const { project, uid } = g;
+
+  // Throttle before the live Google Ads round-trip (loopable straight from the UI).
+  const limited = enforceUserRate(uid, WORKSPACE_RATE.metricsSync(), "Příliš mnoho synchronizací. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const result = await syncReportMetricsFromAds(project, uid);
   return Response.json(result, { status: result.ok ? 200 : 400 });

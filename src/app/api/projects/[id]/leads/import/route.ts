@@ -8,15 +8,27 @@ import { parseLeadRows } from "@/lib/lead-quality/import";
 import { saveLeadImports, clearLeadImports } from "@/lib/lead-quality/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { ImportedLeadsState } from "@/lib/lead-quality/types";
-import { asString, readJson, trimmedString } from "@/lib/api/route-utils";
+import { tooLarge } from "@/lib/ai/rate-limit";
+import { envInt } from "@/lib/env";
+import { asString, enforceUserRate, readJson, trimmedString, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 const MAX_BYTES = 512_000;
+/** Pre-parse content-length cap (the JSON envelope around the CSV is a little larger
+ *  than the CSV itself, so this sits above MAX_BYTES to only catch genuinely oversized
+ *  bodies before we buffer them; the post-parse MAX_BYTES check still applies). */
+const MAX_BODY_BYTES = envInt("LEADS_MAX_BODY_BYTES", 1_000_000);
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
   if ("error" in g) return g.error;
-  const { project } = g;
+  const { project, uid } = g;
+
+  // Reject an oversized body up front, then throttle before the fetch/parse work
+  // (this route can fetch a hosted CSV — an outbound call worth rate-limiting).
+  if (tooLarge(req, MAX_BODY_BYTES)) return Response.json({ ok: false, error: "Import je příliš velký." }, { status: 413 });
+  const limited = enforceUserRate(uid, WORKSPACE_RATE.leadsImport(), "Příliš mnoho importů. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const body = await readJson<{ text?: unknown; url?: unknown }>(req);
   const url = trimmedString(body?.url);
