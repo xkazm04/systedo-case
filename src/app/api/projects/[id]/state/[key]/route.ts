@@ -7,7 +7,7 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getProjectState, saveProjectState } from "@/lib/project-state/store";
 import { emitProjectActivity } from "@/lib/activity/emit";
-import { badRequest, readJson } from "@/lib/api/route-utils";
+import { apiError, badRequest, readJson } from "@/lib/api/route-utils";
 
 /** Whitelisted keys → the module the activity feed attributes their events to. */
 const ALLOWED: Record<string, string> = {
@@ -25,7 +25,7 @@ const MAX_BYTES = 256_000;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; key: string }> }) {
   const { id, key } = await params;
-  if (!ALLOWED[key]) return badRequest("Neznámý klíč stavu.");
+  if (!ALLOWED[key]) return badRequest("Neznámý klíč stavu.", "invalid-type");
   const auth = await requireOwnedProject(id);
   if ("error" in auth) return auth.error;
   return Response.json({ data: await getProjectState(auth.uid, id, key) });
@@ -34,14 +34,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string; key: string }> }) {
   const { id, key } = await params;
   const moduleKey = ALLOWED[key];
-  if (!moduleKey) return badRequest("Neznámý klíč stavu.");
+  if (!moduleKey) return badRequest("Neznámý klíč stavu.", "invalid-type");
   const auth = await requireOwnedProject(id);
   if ("error" in auth) return auth.error;
 
   const body = await readJson<{ data?: unknown; event?: unknown }>(req);
-  if (!body || body.data === undefined) return badRequest("Chybí data.");
+  if (!body || body.data === undefined) return badRequest("Chybí data.", "missing-field");
   if (JSON.stringify(body.data).length > MAX_BYTES) {
-    return Response.json({ error: "Stav je příliš velký." }, { status: 413 });
+    return apiError(413, "Stav je příliš velký.", "unprocessable");
   }
 
   await saveProjectState(auth.uid, id, key, body.data);

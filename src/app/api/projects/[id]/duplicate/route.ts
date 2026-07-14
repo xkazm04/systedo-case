@@ -24,12 +24,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = await readJson<{ name?: unknown }>(req);
   const name = trimmedString(body?.name);
-  if (!name) return badRequest("Zadejte název nového projektu.");
+  if (!name) return badRequest("Zadejte název nového projektu.", "missing-field");
 
   const result = await duplicateProject(uid, id, name);
   // Defensive: duplicateProject re-checks ownership and only returns null if the
   // source vanished between the guard and the copy.
-  if (!result) return notFound("Projekt nenalezen.");
+  if (!result) return notFound("Projekt nenalezen.", "not-found");
 
   // Audit on the NEW project's feed (best-effort, never throws).
   await emitProjectActivity(uid, result.project.id, {

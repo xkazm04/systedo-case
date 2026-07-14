@@ -13,7 +13,7 @@ import {
   sanitizeDiagnosisKind,
   sanitizeDiagnosisStatus,
 } from "@/lib/diagnoses/types";
-import { asString, readJson } from "@/lib/api/route-utils";
+import { apiError, asString, readJson } from "@/lib/api/route-utils";
 
 /** List the project's saved diagnoses (newest-first), optionally one kind only. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -36,7 +36,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = await readJson(req);
   const input = sanitizeDiagnosisInput(body);
-  if (!input) return Response.json({ ok: false, error: "Neplatná diagnóza." }, { status: 422 });
+  if (!input) return apiError(422, "Neplatná diagnóza.", "unprocessable", { envelope: "ok" });
 
   const stored = buildStoredDiagnosis(input, () => crypto.randomUUID());
   await recordDiagnosis(project.id, stored);
@@ -54,9 +54,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const diagId = asString(body?.id);
   const status = sanitizeDiagnosisStatus(body?.status);
   if (!diagId || !status) {
-    return Response.json({ ok: false, error: "Chybí id nebo status." }, { status: 422 });
+    return apiError(422, "Chybí id nebo status.", "missing-field", { envelope: "ok" });
   }
   const ok = await updateDiagnosisStatus(project.id, diagId, status);
-  if (!ok) return Response.json({ ok: false, error: "Diagnóza nenalezena." }, { status: 404 });
+  if (!ok) return apiError(404, "Diagnóza nenalezena.", "not-found", { envelope: "ok" });
   return Response.json({ ok: true });
 }

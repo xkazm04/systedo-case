@@ -9,7 +9,7 @@ import { decryptToken } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
 import { CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import type { ImportStrategy } from "@/lib/catalog/import";
-import { badRequest, readJson, unprocessable } from "@/lib/api/route-utils";
+import { apiError, badRequest, providerError, readJson, unprocessable } from "@/lib/api/route-utils";
 
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
@@ -62,17 +62,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   switch (result.code) {
     case "unknown-provider":
-      return badRequest("Neznámý poskytovatel.");
+      return badRequest("Neznámý poskytovatel.", "provider-unknown");
     case "not-implemented":
-      return Response.json({ error: `Napojení na ${result.provider} připravujeme.` }, { status: 501 });
+      return apiError(501, `Napojení na ${result.provider} připravujeme.`, "provider-unavailable");
     case "no-token":
-      return badRequest(`${result.provider} vyžaduje API token.`);
+      return badRequest(`${result.provider} vyžaduje API token.`, "provider-no-token");
     case "no-config":
-      return badRequest(`${result.provider} vyžaduje konfiguraci koncového bodu.`);
+      return badRequest(`${result.provider} vyžaduje konfiguraci koncového bodu.`, "provider-no-config");
     case "provider-error":
-      return Response.json({ error: result.message }, { status: 502 });
+      // Was a RAW upstream error string handed to the client. Now a coded category
+      // with a generic Czech message; the raw provider text is server-logged only.
+      return providerError({
+        category: "provider-error",
+        message: "Synchronizace u poskytovatele selhala. Zkontrolujte připojení a zkuste to znovu.",
+        raw: result.message,
+        context: `catalog-sync ${result.provider}`,
+      });
     case "empty":
-      return unprocessable("Poskytovatel nevrátil žádné produkty.");
+      return unprocessable("Poskytovatel nevrátil žádné produkty.", "provider-empty");
     default:
       return Response.json({
         ok: true,

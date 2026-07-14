@@ -14,7 +14,7 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getTwin, saveTwin } from "@/lib/twin/store";
 import { connectorFor } from "@/lib/twin/connectors";
 import { channelConfig } from "@/lib/twin/types";
-import { asString, enforceUserRate, readJson, WORKSPACE_RATE } from "@/lib/api/route-utils";
+import { apiError, asString, conflict, enforceUserRate, providerError, readJson, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,27 +28,34 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = await readJson<{ draftId?: unknown }>(req);
   const draftId = asString(body?.draftId);
-  if (!draftId) return Response.json({ ok: false, error: "Chybí draftId." }, { status: 400 });
+  if (!draftId) return apiError(400, "Chybí draftId.", "missing-field", { envelope: "ok" });
 
   const state = await getTwin(project.id);
   const draft = state?.drafts.find((d) => d.id === draftId);
-  if (!state || !draft) return Response.json({ ok: false, error: "Koncept nenalezen." }, { status: 404 });
+  if (!state || !draft) return apiError(404, "Koncept nenalezen.", "not-found", { envelope: "ok" });
   if (draft.status !== "approved") {
-    return Response.json({ ok: false, error: "Odeslat lze jen schválený koncept." }, { status: 409 });
+    return conflict("Odeslat lze jen schválený koncept.", "not-approved", { envelope: "ok" });
   }
 
   const cfg = channelConfig(state.channels, draft.channel);
   const connector = connectorFor(cfg.connector);
   if (!connector.configured) {
-    return Response.json({ ok: false, error: `Konektor „${connector.label}" není nastavený.` }, { status: 409 });
+    return conflict(`Konektor „${connector.label}" není nastavený.`, "conflict", { envelope: "ok" });
   }
 
   let result;
   try {
     result = await connector.send({ channel: draft.channel, contact: draft.contact, body: draft.reply });
   } catch (err) {
-    const detail = err instanceof Error ? err.message : "Odeslání selhalo.";
-    return Response.json({ ok: false, error: detail }, { status: 502 });
+    // Was a RAW connector error string handed to the client. Now a coded category
+    // with a generic Czech message; the raw text is server-logged only.
+    return providerError({
+      category: "provider-error",
+      message: "Odeslání přes konektor selhalo.",
+      raw: err,
+      context: `twin-send ${draft.channel}`,
+      envelope: "ok",
+    });
   }
 
   const sentAt = new Date().toISOString();

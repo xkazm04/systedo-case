@@ -11,6 +11,10 @@ import {
   badRequest,
   notFound,
   unprocessable,
+  conflict,
+  apiError,
+  providerError,
+  API_ERROR_CODES,
 } from "@/lib/api/route-utils";
 
 test("readJson: parses a valid body, null on malformed / empty", async () => {
@@ -40,7 +44,7 @@ test("isProjectType: accepts known types, rejects everything else", () => {
   assert.equal(isProjectType(undefined), false);
 });
 
-test("4xx builders: bare { error } envelope + correct status", async () => {
+test("4xx builders: bare { error } envelope + correct status (no code → historical shape)", async () => {
   const b = badRequest("nope");
   assert.equal(b.status, 400);
   assert.deepEqual(await b.json(), { error: "nope" });
@@ -52,4 +56,63 @@ test("4xx builders: bare { error } envelope + correct status", async () => {
   const u = unprocessable("bad shape");
   assert.equal(u.status, 422);
   assert.deepEqual(await u.json(), { error: "bad shape" });
+});
+
+test("4xx builders: an optional machine code is ADDITIVE (error field kept)", async () => {
+  const b = badRequest("nope", "missing-field");
+  assert.equal(b.status, 400);
+  assert.deepEqual(await b.json(), { error: "nope", code: "missing-field" });
+
+  const u = unprocessable("bad", "unprocessable");
+  assert.deepEqual(await u.json(), { error: "bad", code: "unprocessable" });
+
+  const c = conflict("state", "not-approved", { envelope: "ok" });
+  assert.equal(c.status, 409);
+  assert.deepEqual(await c.json(), { ok: false, code: "not-approved", error: "state" });
+});
+
+test("apiError: both envelopes, code optional", async () => {
+  assert.deepEqual(await apiError(400, "x").json(), { error: "x" });
+  assert.deepEqual(await apiError(400, "x", "bad-request").json(), { error: "x", code: "bad-request" });
+  assert.deepEqual(await apiError(422, "x", undefined, { envelope: "ok" }).json(), { ok: false, error: "x" });
+  assert.deepEqual(
+    await apiError(422, "x", "unprocessable", { envelope: "ok" }).json(),
+    { ok: false, code: "unprocessable", error: "x" }
+  );
+});
+
+test("providerError: coded category + generic message; raw is server-logged, NOT in body", async () => {
+  const logged = [];
+  const orig = console.error;
+  console.error = (...a) => logged.push(a);
+  try {
+    const r = providerError({
+      category: "provider-error",
+      message: "Obecná chyba.",
+      raw: new Error("SECRET upstream 500 detail"),
+      context: "unit",
+    });
+    assert.equal(r.status, 502);
+    const body = await r.json();
+    assert.deepEqual(body, { error: "Obecná chyba.", code: "provider-error" });
+    // The raw provider text must NOT leak to the client…
+    assert.ok(!JSON.stringify(body).includes("SECRET"));
+    // …but it IS logged for operators.
+    assert.ok(logged.some((a) => JSON.stringify(a).includes("SECRET")));
+    // timeout maps to 504
+    assert.equal(providerError({ category: "provider-timeout", message: "t", context: "u" }).status, 504);
+  } finally {
+    console.error = orig;
+  }
+});
+
+test("code catalog: every code is unique + kebab-case (the client's stable contract)", () => {
+  assert.ok(API_ERROR_CODES.length > 0);
+  assert.equal(new Set(API_ERROR_CODES).size, API_ERROR_CODES.length, "no duplicate codes");
+  for (const code of API_ERROR_CODES) {
+    assert.match(code, /^[a-z]+(-[a-z]+)*$/, `"${code}" must be kebab-case`);
+  }
+  // The auth codes the guard emits must exist in the catalog.
+  assert.ok(API_ERROR_CODES.includes("unauthorized"));
+  assert.ok(API_ERROR_CODES.includes("not-found"));
 });

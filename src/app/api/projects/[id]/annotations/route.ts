@@ -5,7 +5,7 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { listAnnotations, recordAnnotation, deleteAnnotation } from "@/lib/annotations/store";
 import { sanitizeAnnotationInput } from "@/lib/annotations/types";
-import { readJson } from "@/lib/api/route-utils";
+import { apiError, readJson } from "@/lib/api/route-utils";
 
 /** The project's annotations (newest-first). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = await readJson(req);
   const input = sanitizeAnnotationInput(body);
-  if (!input) return Response.json({ ok: false, error: "Neplatná poznámka (datum nebo text)." }, { status: 422 });
+  if (!input) return apiError(422, "Neplatná poznámka (datum nebo text).", "unprocessable", { envelope: "ok" });
 
   const items = await recordAnnotation(project.id, input);
   return Response.json({ ok: true, items });
@@ -44,9 +44,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const body = await readJson<{ id?: unknown }>(req);
     if (typeof body?.id === "string") annotationId = body.id;
   }
-  if (!annotationId) return Response.json({ ok: false, error: "Chybí id poznámky." }, { status: 400 });
+  if (!annotationId) return apiError(400, "Chybí id poznámky.", "missing-field", { envelope: "ok" });
 
   const found = await deleteAnnotation(project.id, annotationId);
-  if (!found) return Response.json({ ok: false, error: "Poznámka nenalezena." }, { status: 404 });
+  if (!found) return apiError(404, "Poznámka nenalezena.", "not-found", { envelope: "ok" });
   return Response.json({ ok: true });
 }

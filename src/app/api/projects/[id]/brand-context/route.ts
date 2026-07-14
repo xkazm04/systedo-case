@@ -16,7 +16,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return Response.json({ context: await loadBrandContext(demo, locale) });
   }
 
-  const g = await requireOwnedProject(id, { messages: { unauthorized: "Unauthorized", notFound: "Not found" } });
+  // Czech messages + machine codes (via the guard), matching the app-wide convention —
+  // the client branches on `code`, so these strings are just human fallbacks. The old
+  // English "Unauthorized"/"Not found" literals leaked into a Czech surface.
+  const g = await requireOwnedProject(id);
   if ("error" in g) return g.error;
 
   return Response.json({ context: await loadBrandContext(g.project, locale) });

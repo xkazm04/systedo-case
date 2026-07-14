@@ -12,7 +12,7 @@ import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
 import { CATALOG_MAX_BODY_BYTES, CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
 import { emitProjectActivity } from "@/lib/activity/emit";
-import { asString, badRequest, readJson, trimmedString } from "@/lib/api/route-utils";
+import { apiError, asString, badRequest, readJson, trimmedString } from "@/lib/api/route-utils";
 
 /** Guard against a pathological paste (~12 MB of text). */
 const MAX_CONTENT = 12_000_000;
@@ -45,13 +45,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     try {
       content = await fetchFeed(url);
     } catch (e) {
-      return badRequest(e instanceof FeedFetchError ? e.message : "Feed se nepodařilo stáhnout.");
+      return badRequest(e instanceof FeedFetchError ? e.message : "Feed se nepodařilo stáhnout.", "bad-request");
     }
   } else {
     content = asString(body?.content);
   }
-  if (!content.trim()) return badRequest("Vložte obsah feedu nebo URL.");
-  if (content.length > MAX_CONTENT) return Response.json({ error: "Feed je příliš velký." }, { status: 413 });
+  if (!content.trim()) return badRequest("Vložte obsah feedu nebo URL.", "missing-field");
+  if (content.length > MAX_CONTENT) return apiError(413, "Feed je příliš velký.", "content-too-long");
 
   const format = FORMATS.includes(body?.format as FeedFormat) ? (body!.format as FeedFormat) : undefined;
   const strategy = STRATEGIES.includes(body?.strategy as ImportStrategy)
@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const parsed = parseFeed(content, format);
   if (parsed.items.length === 0) {
-    return Response.json({ error: "Feed neobsahuje žádné položky.", warnings: parsed.warnings }, { status: 422 });
+    return Response.json({ error: "Feed neobsahuje žádné položky.", code: "provider-empty", warnings: parsed.warnings }, { status: 422 });
   }
 
   const now = new Date().toISOString();

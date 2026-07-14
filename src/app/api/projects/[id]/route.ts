@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { uid } = g;
 
   const body = await readJson<Record<string, unknown>>(req);
-  if (!body) return badRequest("Neplatný požadavek.");
+  if (!body) return badRequest("Neplatný požadavek.", "bad-request");
 
   const patch: ProjectPatch = {};
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
@@ -24,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (typeof body.adsCustomerId === "string") patch.adsCustomerId = body.adsCustomerId;
 
   const project = await updateProject(uid, id, patch);
-  if (!project) return notFound("Projekt nenalezen.");
+  if (!project) return notFound("Projekt nenalezen.", "not-found");
 
   // Surface the change on the project-wide activity feed (best-effort, never throws).
   const changed = Object.keys(patch);

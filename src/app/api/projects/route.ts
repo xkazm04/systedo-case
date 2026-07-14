@@ -6,7 +6,7 @@ import { saveOfferings } from "@/lib/catalog/store";
 import { defaultNatureFor, starterCatalog } from "@/lib/catalog/starter";
 import type { OfferingNature } from "@/lib/catalog/offering";
 import { emitProjectActivity } from "@/lib/activity/emit";
-import { badRequest, isProjectType, readJson } from "@/lib/api/route-utils";
+import { apiError, badRequest, isProjectType, readJson } from "@/lib/api/route-utils";
 
 const NATURES: OfferingNature[] = ["online", "local", "hybrid"];
 
@@ -16,13 +16,13 @@ function isNature(v: unknown): v is OfferingNature {
 
 export async function GET() {
   const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
+  if (!uid) return apiError(401, "Nepřihlášeno.", "unauthorized");
   return Response.json({ projects: await listProjects(uid) });
 }
 
 export async function POST(req: Request) {
   const uid = await currentUserId();
-  if (!uid) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
+  if (!uid) return apiError(401, "Nepřihlášeno.", "unauthorized");
 
   const body = await readJson<{
     name?: unknown;
@@ -33,10 +33,10 @@ export async function POST(req: Request) {
   }>(req);
 
   if (!body || typeof body.name !== "string" || !body.name.trim()) {
-    return badRequest("Zadejte název projektu.");
+    return badRequest("Zadejte název projektu.", "missing-field");
   }
   if (!isProjectType(body.type)) {
-    return badRequest("Neplatný typ projektu.");
+    return badRequest("Neplatný typ projektu.", "invalid-type");
   }
 
   const project = await createProject(uid, {

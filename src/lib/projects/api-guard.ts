@@ -29,27 +29,31 @@ const DEFAULT_UNAUTHORIZED = "Nepřihlášeno.";
 const DEFAULT_NOT_FOUND = "Projekt nenalezen.";
 
 export interface OwnershipGuardOptions {
-  /** Error envelope: "bare" → `{ error }` (default), "ok" → `{ ok:false, error }`. */
+  /** Error envelope: "bare" → `{ error, code }` (default), "ok" → `{ ok:false, code, error }`. */
   envelope?: "bare" | "ok";
-  /** With envelope "ok", also emit a stable machine `code` ("unauthorized" |
-   *  "not-found") alongside `error` — matches the onboarding route's bilingual shape. */
+  /** Legacy no-op: the stable machine `code` ("unauthorized" | "not-found") is now
+   *  emitted UNCONDITIONALLY in both envelopes (it is additive — the `error` field and
+   *  status are unchanged, so a client that ignores `code` is unaffected). Kept so
+   *  existing `code: true` call sites (onboarding) stay valid. */
   code?: boolean;
-  /** Override the default Czech messages (e.g. the brand-context demo route's
-   *  English copy). */
+  /** Override the default Czech messages (e.g. a route whose surface convention differs). */
   messages?: { unauthorized?: string; notFound?: string };
 }
 
+/** Both auth/ownership failures ALWAYS carry their machine `code` now — this is the
+ *  single choke point that gives every projects sub-resource a coded 401/404 without
+ *  each route opting in (route-specific 4xx codes flow through the route-utils builders). */
 function guardError(
   status: number,
   code: "unauthorized" | "not-found",
   message: string,
   opts: OwnershipGuardOptions
 ): Response {
-  if (opts.envelope === "ok") {
-    const body = opts.code ? { ok: false, code, error: message } : { ok: false, error: message };
-    return Response.json(body, { status });
-  }
-  return Response.json({ error: message }, { status });
+  const body =
+    opts.envelope === "ok"
+      ? { ok: false, code, error: message }
+      : { error: message, code };
+  return Response.json(body, { status });
 }
 
 export async function requireOwnedProject(

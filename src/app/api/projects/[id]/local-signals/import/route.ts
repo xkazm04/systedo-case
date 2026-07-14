@@ -16,7 +16,7 @@ import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
 import { tooLarge } from "@/lib/ai/rate-limit";
 import { envInt } from "@/lib/env";
-import { asString, enforceUserRate, readJson, trimmedString, WORKSPACE_RATE } from "@/lib/api/route-utils";
+import { apiError, asString, enforceUserRate, readJson, trimmedString, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 const MAX_BYTES = 256_000;
 /** Pre-parse content-length cap — see the leads import route for the rationale. */
@@ -43,7 +43,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   // Reject an oversized body up front, then throttle before the fetch/parse work
   // (this route can fetch a hosted CSV — an outbound call worth rate-limiting).
-  if (tooLarge(req, MAX_BODY_BYTES)) return Response.json({ ok: false, error: "Import je příliš velký." }, { status: 413 });
+  if (tooLarge(req, MAX_BODY_BYTES)) return apiError(413, "Import je příliš velký.", "content-too-long", { envelope: "ok" });
   const limited = enforceUserRate(uid, WORKSPACE_RATE.localSignalsImport(), "Příliš mnoho importů. Zkuste to prosím za chvíli.");
   if (limited) return limited;
 
@@ -61,7 +61,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       text = await fetchFeed(url);
     } catch (err) {
       const msg = err instanceof FeedFetchError ? err.message : "Stažení z URL se nezdařilo.";
-      return Response.json({ ok: false, error: msg }, { status: 400 });
+      return apiError(400, msg, "bad-request", { envelope: "ok" });
     }
     source = "url";
   } else {
@@ -69,7 +69,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     source = kind === "gbp" ? "gbp" : "import";
   }
   if (text.length > MAX_BYTES) {
-    return Response.json({ ok: false, error: "Import je příliš velký." }, { status: 413 });
+    return apiError(413, "Import je příliš velký.", "content-too-long", { envelope: "ok" });
   }
 
   const prev = await getLocalSignals(project.id);
@@ -84,10 +84,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (kind === "reviews") {
     const items = parseReviewRows(text);
     if (items.length === 0) {
-      return Response.json(
-        { ok: false, error: "Nenašel jsem žádné recenze. Formát: autor, hodnocení, text, datum, oblast." },
-        { status: 400 }
-      );
+      return apiError(400, "Nenašel jsem žádné recenze. Formát: autor, hodnocení, text, datum, oblast.", "unprocessable", { envelope: "ok" });
     }
     await saveLocalSignals(project.id, {
       meta: ladderMeta(prev, source, url),
@@ -101,10 +98,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (kind === "gbp") {
     const rows = parseGbpRows(text);
     if (rows.length === 0) {
-      return Response.json(
-        { ok: false, error: "Nenašel jsem žádné pobočky. Formát: pobočka, stav, počet recenzí, hodnocení, nezodpovězené." },
-        { status: 400 }
-      );
+      return apiError(400, "Nenašel jsem žádné pobočky. Formát: pobočka, stav, počet recenzí, hodnocení, nezodpovězené.", "unprocessable", { envelope: "ok" });
     }
     await saveLocalSignals(project.id, {
       meta: ladderMeta(prev, source, url),
@@ -120,10 +114,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // to show), instead of resetting to a single point on every upload.
   const rows = parseRankRows(text);
   if (rows.length === 0) {
-    return Response.json(
-      { ok: false, error: "Nenašel jsem žádné pozice. Formát: klíčové slovo, oblast, pozice." },
-      { status: 400 }
-    );
+    return apiError(400, "Nenašel jsem žádné pozice. Formát: klíčové slovo, oblast, pozice.", "unprocessable", { envelope: "ok" });
   }
   await saveLocalSignals(project.id, {
     meta: meta(rows.length),

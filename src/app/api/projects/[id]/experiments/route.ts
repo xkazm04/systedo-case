@@ -12,7 +12,7 @@ import {
   updateExperiment,
 } from "@/lib/lp-exp/store";
 import { sanitizeExperimentInput } from "@/lib/lp-exp/types";
-import { asString, readJson } from "@/lib/api/route-utils";
+import { apiError, asString, readJson } from "@/lib/api/route-utils";
 
 /** The project's persisted experiments (newest-first). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,7 +33,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await readJson(req);
   const input = sanitizeExperimentInput(body);
   if (!input) {
-    return Response.json({ ok: false, error: "Neplatný experiment (klastr nebo varianty)." }, { status: 422 });
+    return apiError(422, "Neplatný experiment (klastr nebo varianty).", "unprocessable", { envelope: "ok" });
   }
   const { created, items } = await createExperiment(project.id, input);
   return Response.json({ ok: true, created, items });
@@ -50,14 +50,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await readJson<Record<string, unknown>>(req);
   const url = new URL(req.url);
   const expId = url.searchParams.get("id") || asString(body?.id);
-  if (!expId) return Response.json({ ok: false, error: "Chybí id experimentu." }, { status: 400 });
+  if (!expId) return apiError(400, "Chybí id experimentu.", "missing-field", { envelope: "ok" });
 
   const input = sanitizeExperimentInput(body);
   if (!input) {
-    return Response.json({ ok: false, error: "Neplatný experiment (klastr nebo varianty)." }, { status: 422 });
+    return apiError(422, "Neplatný experiment (klastr nebo varianty).", "unprocessable", { envelope: "ok" });
   }
   const items = await updateExperiment(project.id, expId, input);
-  if (!items) return Response.json({ ok: false, error: "Experiment nenalezen." }, { status: 404 });
+  if (!items) return apiError(404, "Experiment nenalezen.", "not-found", { envelope: "ok" });
   return Response.json({ ok: true, items });
 }
 
@@ -74,9 +74,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const body = await readJson<{ id?: unknown }>(req);
     if (typeof body?.id === "string") expId = body.id;
   }
-  if (!expId) return Response.json({ ok: false, error: "Chybí id experimentu." }, { status: 400 });
+  if (!expId) return apiError(400, "Chybí id experimentu.", "missing-field", { envelope: "ok" });
 
   const found = await deleteExperiment(project.id, expId);
-  if (!found) return Response.json({ ok: false, error: "Experiment nenalezen." }, { status: 404 });
+  if (!found) return apiError(404, "Experiment nenalezen.", "not-found", { envelope: "ok" });
   return Response.json({ ok: true });
 }
