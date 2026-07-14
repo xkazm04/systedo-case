@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import nextEnv from "@next/env";
-import { buildDoctorReport } from "./doctor-rules.mjs";
+import { buildDoctorReport, buildReadinessMatrix } from "./doctor-rules.mjs";
 
 const ROOT = process.cwd();
 
@@ -56,6 +56,18 @@ for (const r of rows) {
   console.log(`  ${MARK[r.status]} ${r.surface.padEnd(width)}${LABEL[r.status].padEnd(12)}${r.detail}`);
   if (r.hint) console.log(`    ${" ".repeat(width)}↳ ${r.hint}`);
 }
+
+// Production-readiness matrix: present/absent booleans for the prod credentials
+// (same matrix GET /api/health exposes) — no secret values, just what's set.
+const readiness = buildReadinessMatrix(process.env, probes);
+console.log("  produkční credentials (readiness — jen present/absent):");
+const rWidth = Math.max(...readiness.map((r) => r.label.length)) + 2;
+for (const r of readiness) {
+  const mark = r.present ? MARK.on : MARK.off;
+  const val = r.value ? ` (${r.value})` : "";
+  console.log(`  ${mark} ${r.label.padEnd(rWidth)}${r.present ? "nastaveno" : "chybí"}${val}`);
+}
+console.log("");
 
 const demoOrOff = rows.filter((r) => r.status !== "on").length;
 const errors = rows.filter((r) => r.status === "error").length;

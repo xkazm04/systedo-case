@@ -2,7 +2,12 @@
  *  product-surface mapping behind `npm run doctor`. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildDoctorReport, nodeSatisfies } from "../scripts/doctor-rules.mjs";
+import {
+  buildDoctorReport,
+  nodeSatisfies,
+  buildReadinessMatrix,
+  firebaseCredMode,
+} from "../scripts/doctor-rules.mjs";
 
 const PROBES_NONE = {
   nodeVersion: "v24.14.0",
@@ -120,4 +125,41 @@ test("vision model falls back GEMINI_VISION_MODEL → GEMINI_MODEL → default",
     "Creative Studio"
   );
   assert.match(vision.detail, /m-vision/);
+});
+
+// ---- readiness matrix (production credential preflight) ---------------------
+
+test("firebaseCredMode follows env → key file → adc, matching src/lib/firebase.ts", () => {
+  assert.equal(firebaseCredMode({ FIREBASE_SERVICE_ACCOUNT: "{}" }, PROBES_NONE), "service-account-env");
+  assert.equal(firebaseCredMode({}, { ...PROBES_NONE, saFile: true }), "key-file");
+  assert.equal(firebaseCredMode({}, { ...PROBES_NONE, gacFile: true }), "key-file");
+  assert.equal(firebaseCredMode({}, PROBES_NONE), "adc");
+});
+
+test("buildReadinessMatrix reports present/absent booleans for the prod credentials", () => {
+  const matrix = buildReadinessMatrix(
+    {
+      FIREBASE_SERVICE_ACCOUNT: "{}",
+      RESEND_API_KEY: "r",
+      GOOGLE_ADS_DEVELOPER_TOKEN: "t",
+      SKLIK_API_TOKEN: "s",
+      CRON_SECRET: "c",
+      ADMIN_EMAILS: "a@x.com",
+    },
+    PROBES_NONE
+  );
+  const byKey = Object.fromEntries(matrix.map((r) => [r.key, r]));
+  assert.equal(byKey.firebaseCredMode.value, "service-account-env");
+  assert.equal(byKey.firebaseCredMode.present, true);
+  for (const k of ["resend", "googleAds", "sklik", "cron", "admin"]) {
+    assert.equal(byKey[k].present, true, `${k} should be present`);
+  }
+
+  const empty = buildReadinessMatrix({}, PROBES_NONE);
+  const emptyByKey = Object.fromEntries(empty.map((r) => [r.key, r]));
+  assert.equal(emptyByKey.firebaseCredMode.value, "adc");
+  assert.equal(emptyByKey.firebaseCredMode.present, false);
+  for (const k of ["resend", "googleAds", "sklik", "cron", "admin"]) {
+    assert.equal(emptyByKey[k].present, false, `${k} should be absent`);
+  }
 });

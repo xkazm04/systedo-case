@@ -6,6 +6,10 @@
  *   2. a key file — GOOGLE_APPLICATION_CREDENTIALS, or the local `.data/firebase-sa.json`
  *      created by the gcloud provisioning step (gitignored).
  *   3. Application Default Credentials (gcloud ADC).
+ *
+ *  In PRODUCTION (and not LOCAL_DB) the ADC fallthrough is FATAL unless the
+ *  operator opts in with FIREBASE_ALLOW_ADC=true — see firebasePreflight — so a
+ *  prod deploy can never silently run against ambient credentials nobody chose.
  */
 import "server-only";
 import { existsSync, readFileSync } from "node:fs";
@@ -19,13 +23,15 @@ import {
 } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
+import { firebasePreflight } from "@/lib/readiness";
+
+const KEY_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS ?? ".data/firebase-sa.json";
 
 function resolveCredential(): Credential {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (raw) return cert(JSON.parse(raw));
 
-  const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS ?? ".data/firebase-sa.json";
-  if (existsSync(keyPath)) return cert(JSON.parse(readFileSync(keyPath, "utf8")));
+  if (existsSync(KEY_PATH)) return cert(JSON.parse(readFileSync(KEY_PATH, "utf8")));
 
   return applicationDefault();
 }
@@ -33,6 +39,17 @@ function resolveCredential(): Credential {
 function init(): App {
   const apps = getApps();
   if (apps.length) return apps[0]!;
+
+  // Fail loud before touching a provider: refuse a silent ADC fallthrough in prod.
+  const preflight = firebasePreflight(process.env, { keyFilePresent: existsSync(KEY_PATH) });
+  if (preflight.mustThrow) {
+    console.error(
+      "[firebase] FATAL production credential preflight failed",
+      JSON.stringify({ mode: preflight.mode, nodeEnv: process.env.NODE_ENV, reason: preflight.reason })
+    );
+    throw new Error(preflight.reason);
+  }
+
   return initializeApp({ credential: resolveCredential() });
 }
 

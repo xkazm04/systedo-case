@@ -217,3 +217,36 @@ export function buildDoctorReport(env, probes) {
 
   return rows;
 }
+
+/** Firebase credential resolution mode (mirrors src/lib/firebase.ts and
+ *  src/lib/readiness.ts): the full service-account JSON in an env var, a key file
+ *  on disk, or ambient Application Default Credentials as the fallback. */
+export function firebaseCredMode(env, probes) {
+  if (set(env.FIREBASE_SERVICE_ACCOUNT)) return "service-account-env";
+  if (probes.saFile || probes.gacFile) return "key-file";
+  return "adc";
+}
+
+/** The production-readiness matrix: present/absent booleans for the credentials
+ *  that gate production surfaces, plus the Firebase credential MODE label. No
+ *  secret material — only whether each is configured. Backs `npm run doctor`'s
+ *  readiness section and mirrors GET /api/health (src/lib/readiness.ts). */
+export function buildReadinessMatrix(env, probes) {
+  return [
+    {
+      key: "firebaseCredMode",
+      label: "Firebase přihlašovací režim",
+      value: firebaseCredMode(env, probes),
+      present: firebaseCredMode(env, probes) !== "adc",
+    },
+    { key: "resend", label: "RESEND_API_KEY", present: set(env.RESEND_API_KEY) },
+    {
+      key: "googleAds",
+      label: "GOOGLE_ADS_DEVELOPER_TOKEN",
+      present: set(env.GOOGLE_ADS_DEVELOPER_TOKEN),
+    },
+    { key: "sklik", label: "SKLIK_API_TOKEN", present: set(env.SKLIK_API_TOKEN) },
+    { key: "cron", label: "CRON_SECRET", present: set(env.CRON_SECRET) },
+    { key: "admin", label: "ADMIN_EMAILS", present: set(env.ADMIN_EMAILS) },
+  ];
+}
