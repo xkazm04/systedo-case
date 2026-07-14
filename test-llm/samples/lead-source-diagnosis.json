@@ -1,6 +1,5 @@
 {
-  "summary": "Zdroj Meta lead formuláře generuje vysoký objem (540 leadů), ale kvalita silně klesá: míra kvalifikace pouze 24,1 % (meziročně −28,3 %) a CPQL 738 Kč, tedy skoro dvojnásobek oproti Google Search (392 Kč) a téměř čtyřnásobek oproti doporučením (210 Kč). CPQL navíc meziobdobně vzrostl o 66,5 % a win rate klesl o 5,0 %, což ukazuje na zhoršující se trend, nikoli jednorázový výkyv. Levný CPL (178 Kč) v kombinaci s nízkou kvalifikací naznačuje, že formulář přitahuje nekvalifikovanou poptávku spíše než skutečný zájem.",
+  "summary": "Zdroj „Meta lead formuláře” vykazuje nejnižší efektivitu ze všech sledovaných kanálů: při 540 leadech je kvalifikace jen 24,1 % a win rate 10,8 %, přičemž CPQL meziobdobně vzrostl o 66,5 % a kvalifikace klesla o 28,3 % – jde o zhoršující se, naléhavý trend. Ve srovnání s Google Search (kvalifikace 41,0 %, win rate 19,2 %, CPQL 392 Kč) a Doporučeními (55,0 %, 24,0 %, 210 Kč) přivádí Meta výrazně méně relevantní poptávku za vyšší cenu na kvalifikovaný lead.",
   "likelyCause": "mis-targeting",
-  "recommendation": "Zúžit cílení Meta lead formulářů (publika/kreativy) směrem k profilu, který funguje u Google Search (41,0 % kvalifikace, CPQL 392 Kč), a přesunout část rozpočtu z Meta do Google Search, dokud se kvalifikace u Meta nezlepší.",
-  "severity": "high"
+  "recommendation": "Přesměrovat část rozpočtu z Meta lead formulářů (CPQL 738 Kč, kvalifikace 24,1 %) do Google Search (CPQL 392 Kč, kvalifikace 41,0 %) a zároveň zúžit/zpřesnit cílení Meta kampaní, aby se zastavil klesající trend kvalifikace."
 }

@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň výrazně překonává cílovou efektivitu (PNO 5,3 % vs. cíl 18 %) a nabízí prostor pro škálování bez ztráty rentability.",
-  "score": 92,
+  "verdict": "Kampaň výrazně překonává cílové PNO 18 % (aktuální 5,3 %) při vynikajícím ROAS 18,9×, což signalizuje prostor pro škálování rozpočtu.",
+  "score": 93,
   "recommendations": [
     {
-      "title": "Navýšit rozpočet kampaně",
-      "detail": "Při PNO 5,3 % oproti cíli 18 % má kampaň velkou rezervu – postupně navyšujte denní rozpočet (např. o 30–50 %) a sledujte, zda ROAS zůstává nad udržitelnou hranicí.",
+      "title": "Navýšit denní rozpočet",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % má kampaň velkou rezervu – postupně navyšujte rozpočet (např. o 20–30 % týdně) a sledujte, zda se ROAS drží nad 10×, aby se využil neplný potenciál poptávky po brandu.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit brand pokrytí a chránit klíčová slova",
-      "detail": "Ověřte impression share pro brandové výrazy a doplňte konkurenční/brandové varianty i shody, aby kampaň nepřicházela o vysoce konverzní poptávku.",
+      "title": "Rozšířit shody klíčových slov a chránit brand",
+      "detail": "Zvažte přidání širších/frázových shod a negativních klíčových slov konkurence, aby kampaň zachytila více brandové poptávky a zároveň ochránila stávající vysokou efektivitu před konkurenčním přebíjením.",
       "priority": "medium"
     }
   ]

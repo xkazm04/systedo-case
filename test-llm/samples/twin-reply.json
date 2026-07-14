@@ -1,16 +1,14 @@
 {
-  "reply": "Dobrý den,\n\nméně víme, že potřebujete revizi elektroinstalace. Rád bych Vás kontaktoval v nejbližších hodinách, abychom Vám našli volný termín, který Vám vyhovuje.\n\nAbychom to zvládli co nejrychleji, potřeboval bych ještě pár informací:\n- Jak brzy byste revizi potřebovali?\n- Jedná se o konkrétní problém, nebo jde o rutinní kontrolu?\n- Na jaké číslo Vás mohu zavolat?\n\nDěkuji, ozvu se Vám brzy.\n\nS pozdravem",
+  "reply": "Dobrý den, děkujeme za váš zájem, ale obávám se, že jste se na nás obrátili omylem – Adamant je platforma pro marketing a prodejní automatizaci, nikoli provádějící elektrikářských prací. Doporučuji vám kontaktovat místního elektrikáře nebo stavbyvedoucího, kteří si s revizí elektroinstalace poradí. Pokud byste v budoucnu potřebovali optimalizovat online marketing nebo prodejní pipeline vaší firmy, rádi vám ukážeme, jak vám to lze zautomatizovat.",
   "questions": [
-    "Jakou máte časovou disponibilitu pro revizi? (urgence)",
-    "Jsou nějaké konkrétní problémy s elektroinstalací, které řešíte?",
-    "Na jaký kontakt Vás máme zavolat pro konkrétní domluvení termínu?"
+    "Máte kontakt na svého běžného elektrikáře nebo stavbyvedoucího, kterého bychom vám mohli v paměti připomenout?",
+    "Pokud se vám informace o našich službách zdála relevantní – co vás k nám poslalo?"
   ],
-  "confidence": 72,
+  "confidence": 85,
   "risks": [
-    "V podkladech není konkrétní SLA/dostupnost – ověř, v jaké časové lhůtě se firma ozvala operátorům",
-    "Není jasné, zda firma má vlastní elektrikáře nebo partnery – ověř messaging",
-    "Chybí informace o cenách/způsobu oceňování – buď opatrný s jakýmikoliv slibem nákladů",
-    "Tón \"méně víme\" nemusí být adekvátní – ověř, jaký je brand voice pro leadgen komunikaci"
+    "Ověřit, zda se jedná skutečně o omylem poslané dotazy nebo o potenciálního klienta s více firmami v portfoliu",
+    "Zkontrolovat, není-li to phishing či test procesu",
+    "Ujistit se, že tón není vnímaný jako odmítavý – místo toho pomocný"
   ],
-  "toneNotes": "Formální oslovení příjmením a vykání, přímá a profesionální odpověď v úvodní větě, průběžné budování důvěry skrz jasné kroky, kvalifikační otázky orientované na lead-capture proces"
+  "toneNotes": "Oslovení příjmením + formální 'vy', okamžitá odpověď na dotaz (omyl), ale vlídné upozornění; užito 'obávám se' místo chladného 'nejste u nás' a nabídnutí alternativy. Zachován profesionální, nekondescendentní přístup bez podtíní lítosti. Možný háček: jemné naznačení, že kdyby měli marketing, můžeme pomoci."
 }

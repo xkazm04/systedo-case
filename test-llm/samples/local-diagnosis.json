@@ -1,0 +1,9 @@
+{
+  "summary": "Zubní klinika Dentalis pokrývá vlastní stránkou jen 43 % sledovaných kombinací služba×lokalita, přičemž v mezerách uniká 3 100 hledání měsíčně. Nejvyšší nevyužitý objem má kombinace Bělení zubů — Praha s 1 400 hledáními/měs. bez odpovídající stránky. V mapa-pack je v top 3 jen 40 % kombinací (průměrná pozice 6,2) a trend za 30 dní je záporný (1 zlepšení vs. 3 zhoršení, čistě -5), recenze jsou solidní (4,3★, 214 hodnocení), ale 22 negativních recenzí může dál tlačit pozice dolů.",
+  "worstGap": "Bělení zubů — Praha",
+  "recommendation": "Vytvořit a publikovat dedikovanou lokální stránku pro Bělení zubů v Praze (služba+lokalita, lokální schema, CTA na rezervaci) a propojit ji s GBP záznamem, protože jde o mezeru s nejvyšším nevyužitým objemem hledání (1 400/měs.) v celém pokrytí.",
+  "risks": [
+    "Klesající trend mapa-pack pozic (3 ze 4 zhoršené) může nová stránka sama nezvrátit bez doprovodné práce na recenzích a citacích.",
+    "22 negativních recenzí (10 % z celku) může snižovat konverzi i nově získané viditelnosti, pokud se neřeší souběžně."
+  ]
+}

@@ -1,23 +1,23 @@
 {
-  "headline": "Solidní měsíc s bezpečnou ziskovostí a rostoucí poptávkou",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč drží PNO na zdravých 18,3 % a ROAS 5,4×, tedy nad hranicí pro ziskový provoz lokálního podniku. Počet konverzí meziměsíčně vzrostl o 12 %, což ukazuje na rostoucí zájem i lepší práci kampaní s poptávkou.",
+  "headline": "Silný měsíc s rostoucí efektivitou i objemem",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč (PNO 18,3 %) a ROAS 5,4× ukazují zdravou ziskovost kampaní, konverze navíc meziměsíčně vzrostly o 12 %, což signalizuje zlepšující se kvalitu provozu i nabídky.",
   "highlights": [
-    "ROAS 5,4× výrazně převyšuje běžný cíl pro lokální služby (obvykle 3-4×)",
-    "PNO 18,3 % zajišťuje zdravou marži i po odečtení nákladů na marketing",
-    "Konverze vzrostly o 12 %, což signalizuje sílící poptávku po službách"
+    "ROAS 5,4× při PNO jen 18,3 % – kampaně vydělávají výrazně víc, než stojí",
+    "Konverze vzrostly o 12 %, tedy více poptávek při srovnatelném rozpočtu",
+    "Obrat 1 200 000 Kč potvrzuje stabilní poptávku po lokálních službách"
   ],
   "watchouts": [
-    "Při dalším růstu objemu je třeba hlídat, zda PNO nezačne stoupat kvůli dražším aukcím",
-    "Nárůst konverzí je třeba ověřit i na kvalitu (skutečné zakázky, ne jen leady)"
+    "Bez porovnání s předchozími měsíci hrozí riziko, že aktuální čísla jsou ovlivněna sezónností",
+    "Růst konverzí je třeba ověřit i v návaznosti na skutečně uzavřené zakázky, ne jen počet poptávek"
   ],
   "priorities": [
     {
-      "title": "Škálovat úspěšné kampaně",
-      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO."
+      "title": "Udržet a rozšířit ziskové kampaně",
+      "detail": "Navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO 18,3 %."
     },
     {
-      "title": "Ověřit kvalitu konverzí",
-      "detail": "Propojit data o konverzích s reálnými uzavřenými zakázkami a vyhodnotit, zda růst objemu odpovídá růstu tržeb."
+      "title": "Ověřit kvalitu nových konverzí",
+      "detail": "Zkontrolovat, zda 12% nárůst konverzí odpovídá i nárůstu reálně realizovaných zakázek, případně upravit cílení."
     }
   ]
 }

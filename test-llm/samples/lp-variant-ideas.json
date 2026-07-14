@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B · Důkaz a jistota",
-      "hypothesis": "Zdůraznění konkrétních referencí a jistoty výsledku zvýší důvěru a konverzi oproti obecnému popisu produktu.",
-      "headline": "Projektové řízení, kterému věří stovky týmů",
+      "label": "B · Konkrétní výsledek",
+      "hypothesis": "Nadpis postavený na konkrétním přínosu (přehled a kontrola nad projekty) zvýší konverzi lépe než obecný popis produktu.",
+      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Kontrola stavěla na obecném popisu produktu, tato varianta místo toho staví na sociálním důkazu a snižování vnímaného rizika."
+      "rationale": "Konkrétní slib výsledku oslovuje návštěvníka rychleji než obecný popis produktu v kontrolní variantě."
     },
     {
-      "label": "C · Rychlost nasazení",
-      "hypothesis": "Zdůraznění rychlého a jednoduchého zprovoznění nástroje na úkoly sníží vnímanou bariéru vstupu a zvýší konverzi.",
-      "headline": "Řízení projektů, které rozjedete za 5 minut",
-      "primaryCTA": "Spustit nástroj hned",
-      "rationale": "Na rozdíl od kontroly i poražené varianty s dlouhým formulářem tato varianta cílí na rychlost a jednoduchost místo obecného popisu nebo náročného onboardingu."
+      "label": "C · Sociální důkaz",
+      "hypothesis": "Zdůraznění důvěryhodnosti a využití nástroje jinými týmy zvýší konverzi oproti čistě produktovému popisu.",
+      "headline": "Nástroj pro řízení projektů, kterému důvěřují týmy po celém Česku",
+      "primaryCTA": "Chci to taky vyzkoušet",
+      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí a motivuje k akci bez slev či dlouhých formulářů."
     },
     {
-      "label": "D · Konkrétní bolest týmu",
-      "hypothesis": "Pojmenování konkrétního problému (chaos v úkolech a termínech) místo obecného popisu produktu zvýší relevanci sdělení a konverzi.",
-      "headline": "Konec chaosu v úkolech a termínech projektů",
+      "label": "D · Řešení bolesti",
+      "hypothesis": "Pojmenování konkrétního problému (chaos v úkolech, ztracené termíny) v nadpisu zvýší konverzi lépe než obecná prezentace produktu.",
+      "headline": "Konec chaosu v úkolech a zapomenutých termínech",
       "primaryCTA": "Zbavit se chaosu",
-      "rationale": "Místo obecného popisu produktu (kontrola) nebo slevy (poražená varianta B) tato varianta cílí přímo na bolest cílové skupiny při řízení projektů."
+      "rationale": "Přímé pojmenování bolesti cílové skupiny vytváří silnější emocionální motivaci ke kliknutí než neutrální popis produktu."
     }
   ]
 }

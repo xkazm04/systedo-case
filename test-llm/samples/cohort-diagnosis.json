@@ -1,9 +1,10 @@
 {
-  "summary": "Kohorta 2025-03 je jasně nejhorší: CAC vzrostl na 2 100 Kč, LTV:CAC kleslo na 1,0× a návratnost investice se vůbec nevrací během sledovaného horizontu. Retenční křivka padá prudce a bez stabilizace (M0 100 % → M1 70 % → M2 48 % → M3 31 %), tedy strmý pokles bez náznaku plata. V rámci kanálů kohortu nejvíc táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic zdarma dosahuje LTV:CAC 6,0× na 90 akvizicích. Trend napříč třemi měsíci je jednoznačně zhoršující se (CAC roste, LTV:CAC i M3 retence klesají).",
+  "summary": "Kohorty se za tři měsíce citelně zhoršují: CAC roste (1 200→1 600→2 100 Kč), LTV klesá (5 400→3 800→2 200 Kč) a LTV:CAC padá z 4,5× na 1,0×, u 2025-03 se navíc CAC vůbec nevrátí. M3 retence klesá 62 %→48 %→31 %, přičemž retenční křivka kohorty 2025-03 ukazuje strmý pokles hned na startu (M0 100 %→M1 70 %, tj. -30 pb za první měsíc), nejde tedy o postupné vyhasínání, ale o rané odchody. V rámci 2025-03 kohortu nejvíc táhne dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic zdarma).",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) do Organic akvizice (LTV:CAC 6,0×) a pozastavit škálování Google Ads kampaní, dokud se jejich LTV:CAC nedostane alespoň nad 2×.",
+  "recommendation": "Okamžitě omezit/pozastavit akvizici přes Google Ads (LTV:CAC 0,8×) a přesměrovat rozpočet i kapacitu na škálování Organic (LTV:CAC 6,0×); paralelně řešit strmý propad M0→M1 zlepšením onboardingu, protože právě tam se ztrácí nejvíc hodnoty.",
   "risks": [
-    "Data jsou pouze pro 3 měsíce a kanálový rozpad je k dispozici jen pro kohortu 2025-03, takže příčina propadu (kanál vs. jiné faktory) nemusí platit pro předchozí kohorty.",
-    "Retence po M3 je u kohorty 2025-03 pouze modelovaná, nikoli naměřená, takže skutečná návratnost může být ještě horší nebo lepší."
+    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je ztrátová – bez zásahu bude trend dál táhnout blended metriky dolů.",
+    "Retence za M3 je u 2025-03 pouze modelovaná, ne naměřená – skutečný propad může být ještě strmější.",
+    "Škálování Organic má fyzický strop (dosah, kapacita), takže náhrada objemu z Google Ads nemusí být 1:1 možná."
   ]
 }
