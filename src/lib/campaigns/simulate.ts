@@ -20,6 +20,11 @@ export interface BudgetMove {
   /** estimated extra conversion value = amount × (toRoas − fromRoas); 0 for a
    *  pause of a zero-return donor (nothing was coming back anyway) */
   estValueGain: number;
+  /** estimated extra NET PROFIT the move buys = blended margin × estValueGain (a
+   *  pause recovers its full saved spend). Present ONLY when the tenant has a
+   *  persisted cost model whose blended margin was threaded into the recommender;
+   *  absent otherwise, so margin-blind change-sets stay byte-identical. */
+  estProfitGain?: number;
 }
 
 export interface SimulationResult {

@@ -29,12 +29,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // target. e-shop only (the model is an e-shop concept); null → note hidden.
   const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
   const breakEven = costModel ? deriveBreakEven(costModel) : null;
+  // Direction 1: thread the persisted blended margin to the client so the BudgetMoves
+  // preview scores donors by profit destruction (not revenue waste) and shows the
+  // projected profit with the margin stated. Null → the margin-blind revenue scoring.
+  const marginPct = costModel?.grossMarginPct ?? null;
   return (
     <ModulePage
       moduleKey="kampane"
       description={focus ? t("desc", { focus }) : undefined}
     >
-      <CampaignsClient breakEven={breakEven} />
+      <CampaignsClient breakEven={breakEven} marginPct={marginPct} />
     </ModulePage>
   );
 }

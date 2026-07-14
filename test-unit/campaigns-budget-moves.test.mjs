@@ -73,3 +73,83 @@ test("minSpend still gates pause recommendations (noise floor)", () => {
   const { moves } = recommendBudgetMoves([tinyBurner, winner], { includePauses: true });
   assert.equal(moves.length, 0);
 });
+
+// --- Direction 1: profit-aware scoring (opt-in on a persisted blended margin) ------
+
+/** A row with an EXACT roas (conversionValue = cost × roas), for the margin math. */
+function roasRow(id, cost, roasValue) {
+  return withMetrics({
+    id,
+    name: `Kampaň ${id}`,
+    type: "search",
+    status: "enabled",
+    impressions: 50_000,
+    clicks: 1_000,
+    cost,
+    conversions: 20,
+    conversionValue: cost * roasValue,
+  });
+}
+
+// Two under-target donors + one winner. With one free recipient only the
+// top-ranked donor moves — so which donor wins reveals the ranking metric.
+//   P: cost 10000, roas 1.3   Q: cost 8000, roas 1.0   W: cost 20000, roas 8.0
+// Profit destruction = cost × (1 − roas×margin) crosses at margin* = 0.4:
+//   margin 0.3 → P (6100) > Q (5600); margin 0.5 → Q (4000) > P (3500).
+const donorP = roasRow("p", 10_000, 1.3);
+const donorQ = roasRow("q", 8_000, 1.0);
+const bigWinner = roasRow("w", 20_000, 8.0);
+
+test("no margin → margin-blind revenue scoring, byte-identical shape", () => {
+  const rec = recommendBudgetMoves([donorP, donorQ, bigWinner]);
+  // No margin echoed, and no move carries a profit field (Firestore shape unchanged).
+  assert.equal(rec.marginPct, undefined);
+  assert.ok(rec.moves.every((m) => !("estProfitGain" in m)));
+  // Revenue waste ranks P worst (matches the low-margin verdict below).
+  assert.equal(rec.moves[0].fromId, "p");
+});
+
+test("high blended margin flips which under-target donor is the worst", () => {
+  const low = recommendBudgetMoves([donorP, donorQ, bigWinner], { marginPct: 0.3 });
+  const high = recommendBudgetMoves([donorP, donorQ, bigWinner], { marginPct: 0.5 });
+  assert.equal(low.moves[0].fromId, "p", "at 30 % margin P destroys the most profit");
+  assert.equal(high.moves[0].fromId, "q", "at 50 % margin Q destroys the most profit");
+  // The margin is echoed on the recommendation for the display.
+  assert.equal(low.marginPct, 0.3);
+  assert.equal(high.marginPct, 0.5);
+});
+
+test("profit gain = margin × value gain on a shift; profit field present", () => {
+  const rec = recommendBudgetMoves([donorP, bigWinner], { marginPct: 0.4 });
+  const shift = rec.moves.find((m) => m.kind === "shift");
+  assert.ok(shift, "a shift move exists");
+  assert.ok(shift.estProfitGain !== undefined);
+  // estProfitGain = 0.4 × estValueGain (gross profit on the re-pointed revenue).
+  assert.ok(Math.abs(shift.estProfitGain - 0.4 * shift.estValueGain) < 1e-6);
+});
+
+test("pause recovers full saved spend as profit (persisted-margin only)", () => {
+  const withMargin = recommendBudgetMoves([burner, winner], {
+    includePauses: true,
+    marginPct: 0.42,
+  });
+  const pause = withMargin.moves.find((m) => m.kind === "pause");
+  assert.ok(pause);
+  assert.equal(pause.estProfitGain, burner.cost); // full cost recovered
+
+  // Same call without a margin → no profit field at all (byte-identical pause).
+  const blind = recommendBudgetMoves([burner, winner], { includePauses: true });
+  const blindPause = blind.moves.find((m) => m.kind === "pause");
+  assert.ok(blindPause);
+  assert.ok(!("estProfitGain" in blindPause));
+});
+
+test("a degenerate margin (≤0 or >1) falls back to margin-blind scoring", () => {
+  const bad = recommendBudgetMoves([donorP, donorQ, bigWinner], { marginPct: 0 });
+  const blind = recommendBudgetMoves([donorP, donorQ, bigWinner]);
+  assert.equal(bad.marginPct, undefined);
+  assert.deepEqual(
+    bad.moves.map((m) => m.fromId),
+    blind.moves.map((m) => m.fromId)
+  );
+});

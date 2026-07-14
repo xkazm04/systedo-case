@@ -17,6 +17,7 @@ import {
 import { GuardrailError } from "@/lib/campaigns/control-plane-types";
 import { getAlert } from "@/lib/campaigns/alerts";
 import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
+import { getCostModel } from "@/lib/cost-model/store";
 
 
 export async function GET(request: Request) {
@@ -52,6 +53,22 @@ export async function POST(request: Request) {
   const tenant = await resolveTenant(userId, projectId);
 
   if (action === "create") {
+    // Direction 1 — profit-aware money-mover: resolve the project's persisted blended
+    // margin here (the route already holds the projectId; createChangeSet takes a
+    // tenant) and thread it into every create path. Absent model → margin undefined →
+    // the recommender's original revenue-ROAS scoring, unchanged. A store hiccup
+    // degrades to margin-blind rather than failing the proposal.
+    let marginPct: number | undefined;
+    if (projectId) {
+      try {
+        const costModel = await getCostModel(projectId);
+        if (costModel && costModel.grossMarginPct > 0 && costModel.grossMarginPct <= 1) {
+          marginPct = costModel.grossMarginPct;
+        }
+      } catch {
+        marginPct = undefined;
+      }
+    }
     // Close-the-loop path: when an alertId is supplied, pre-scope the change-set to
     // exactly the alerted campaigns and link it back to the alert. Otherwise the
     // usual portfolio-wide proposal.
@@ -65,7 +82,7 @@ export async function POST(request: Request) {
           { status: 422 }
         );
       }
-      const changeSet = await createChangeSet(tenant, { scopeCampaignIds, alertId });
+      const changeSet = await createChangeSet(tenant, { scopeCampaignIds, alertId, marginPct });
       if (!changeSet) {
         return Response.json(
           { error: "Pro upozorněné kampaně není žádný smysluplný přesun." },
@@ -84,7 +101,7 @@ export async function POST(request: Request) {
       : [];
     const changeSet = await createChangeSet(
       tenant,
-      scopeCampaignIds.length > 0 ? { scopeCampaignIds } : {}
+      scopeCampaignIds.length > 0 ? { scopeCampaignIds, marginPct } : { marginPct }
     );
     if (!changeSet) {
       return Response.json(

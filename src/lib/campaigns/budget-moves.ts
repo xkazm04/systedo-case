@@ -4,10 +4,14 @@
  *  constant and the simulate model. */
 import { TARGET_ROAS, type CampaignRow } from "./types";
 import { simulateBudgetShift, type BudgetMove, type SimulationResult } from "./simulate";
+import { grossProfit } from "@/lib/profit/core";
 
 export interface BudgetRecommendation {
   moves: BudgetMove[];
   simulation: SimulationResult;
+  /** the blended margin the scoring used, echoed back for the display ("při marži
+   *  42 %"). Present only when a persisted cost model was threaded in. */
+  marginPct?: number;
 }
 
 export interface RecommendOptions {
@@ -30,16 +34,43 @@ export interface RecommendOptions {
    *  Recipients are still drawn from the whole portfolio's over-performers, so
    *  the shifted budget lands where it works best. Empty/omitted → no restriction. */
   donorScopeIds?: string[];
+  /** the tenant's blended gross margin (0..1) from its persisted cost model. When
+   *  present the recommender chases PROFIT rather than revenue: donors are ranked
+   *  by profit destruction (spend consumed minus gross profit returned) instead of
+   *  revenue waste, and each move carries an `estProfitGain`. Absent (no saved
+   *  model) → the original margin-blind, revenue-ROAS scoring, byte-for-byte. */
+  marginPct?: number;
 }
 
 /**
  * Pair the worst-performing spenders (enabled, ROAS below target) with the best
  * over-performers (enabled, ROAS at/above target) and propose concrete budget
- * shifts, ranked by *wasted spend* = cost × (1 − roas/target). Each donor and
- * recipient is used at most once. With `includePauses`, zero-return donors are
- * emitted as pause moves (stop the spend — nothing was coming back) instead of
- * being silently invisible. Returns the moves plus a projected portfolio
- * simulation so the UI can show the estimated ROAS/PNO lift. Deterministic.
+ * shifts. Each donor and recipient is used at most once. With `includePauses`,
+ * zero-return donors are emitted as pause moves (stop the spend — nothing was
+ * coming back) instead of being silently invisible. Returns the moves plus a
+ * projected portfolio simulation so the UI can show the estimated ROAS/PNO lift.
+ * Deterministic.
+ *
+ * DONOR RANKING — revenue vs profit. Without a cost model (`opts.marginPct`
+ * absent) donors rank by *wasted spend* = cost × (1 − roas/TARGET_ROAS): distance
+ * below the margin-blind portfolio ROAS target, weighted by spend. This is
+ * revenue-centric — it doesn't know a 3× ROAS channel at a 20 % margin loses money
+ * while the same ROAS at a 60 % margin prints it.
+ *
+ * With the tenant's blended margin threaded in, donors rank by PROFIT DESTRUCTION
+ * = cost − grossProfit(cost×roas, margin) = cost × (1 − roas×margin), i.e. distance
+ * below the *profit* break-even (roas = 1/margin), weighted by spend. Derived
+ * straight from the shared core: a donor's spend `cost` buys revenue `cost×roas`,
+ * whose gross profit is `grossProfit(revenue, margin)`; the profit it destroys is
+ * the shortfall of that gross profit against the spend. A move's honest profit
+ * delta is likewise the gross profit on the incremental revenue it re-points:
+ * `estProfitGain = grossProfit(amount × (recipRoas − donorRoas), margin)` =
+ * margin × estValueGain (one blended margin over both sides — the report's
+ * single-P&L model; per-channel margins live in the /zisk engine). A pause of a
+ * zero-return donor recovers its full saved spend (profit was −cost), so
+ * `estProfitGain = amount`. The donor/recipient FILTERS are unchanged — margin only
+ * re-prioritises which under-target spender is the worst and quantifies the gain in
+ * profit, never invents or drops a move.
  */
 export function recommendBudgetMoves(
   rows: CampaignRow[],
@@ -49,6 +80,13 @@ export function recommendBudgetMoves(
   const shiftFraction = opts.shiftFraction ?? 0.4;
   const minSpend = opts.minSpend ?? 1000;
   const includePauses = opts.includePauses ?? false;
+  // Profit-aware scoring is opt-in on a persisted, positive blended margin. A
+  // missing/degenerate margin (≤0 or >1) falls back to the revenue-ROAS scoring so
+  // a blank/corrupt model can never flip the recommender into nonsense.
+  const marginPct =
+    typeof opts.marginPct === "number" && opts.marginPct > 0 && opts.marginPct <= 1
+      ? opts.marginPct
+      : undefined;
   // Optional donor allow-list: when set, only these campaigns may be acted on as
   // donors (the alert→change-set flow scopes to exactly the alerted campaigns).
   const donorScope =
@@ -56,9 +94,16 @@ export function recommendBudgetMoves(
 
   const enabled = rows.filter((c) => c.status === "enabled");
 
-  // Donors: paying for under-target efficiency, ranked by wasted spend. A
-  // zero-return spender wastes its ENTIRE cost (1 − 0/target = 1), so once
-  // admitted it out-ranks every partially-performing donor by construction.
+  // Donors: paying for under-target efficiency, ranked by wasted spend (revenue) or
+  // profit destruction (with a margin). A zero-return spender wastes its ENTIRE cost
+  // under either metric (1 − 0 = 1), so once admitted it out-ranks every
+  // partially-performing donor by construction.
+  //   revenue waste     = cost × (1 − roas/TARGET_ROAS)
+  //   profit destruction = cost − grossProfit(cost×roas, margin) = cost×(1 − roas×margin)
+  const waste = (c: CampaignRow) =>
+    marginPct !== undefined
+      ? c.cost - grossProfit(c.cost * c.roas, marginPct)
+      : c.cost * (1 - c.roas / TARGET_ROAS);
   const donors = enabled
     .filter(
       (c) =>
@@ -67,7 +112,7 @@ export function recommendBudgetMoves(
         (includePauses ? true : c.roas > 0) &&
         (donorScope ? donorScope.has(c.id) : true)
     )
-    .map((c) => ({ c, waste: c.cost * (1 - c.roas / TARGET_ROAS) }))
+    .map((c) => ({ c, waste: waste(c) }))
     .sort((a, b) => b.waste - a.waste)
     .map((x) => x.c);
 
@@ -95,6 +140,10 @@ export function recommendBudgetMoves(
         fromRoas: 0,
         toRoas: 0,
         estValueGain: 0,
+        // Pausing a zero-return donor recovers the full saved spend as profit (it
+        // was buying ~nothing). Only attached under a persisted margin so the
+        // margin-blind path stays byte-identical.
+        ...(marginPct !== undefined ? { estProfitGain: donor.cost } : {}),
       });
       continue;
     }
@@ -107,6 +156,7 @@ export function recommendBudgetMoves(
     const amount = Math.round((donor.cost * shiftFraction) / 100) * 100;
     if (amount <= 0) continue;
 
+    const estValueGain = amount * (recipient.roas - donor.roas);
     moves.push({
       kind: "shift",
       fromId: donor.id,
@@ -116,9 +166,16 @@ export function recommendBudgetMoves(
       amount,
       fromRoas: donor.roas,
       toRoas: recipient.roas,
-      estValueGain: amount * (recipient.roas - donor.roas),
+      estValueGain,
+      // Profit the re-pointed revenue actually earns = gross profit on the
+      // incremental value (= margin × estValueGain). Persisted-model only.
+      ...(marginPct !== undefined ? { estProfitGain: grossProfit(estValueGain, marginPct) } : {}),
     });
   }
 
-  return { moves, simulation: simulateBudgetShift(rows, moves) };
+  return {
+    moves,
+    simulation: simulateBudgetShift(rows, moves),
+    ...(marginPct !== undefined ? { marginPct } : {}),
+  };
 }

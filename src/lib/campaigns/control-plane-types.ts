@@ -4,6 +4,7 @@
  *  reversible ledger entry — the governance envelope that lets software touch
  *  real ad spend safely. */
 import type { BudgetMove, SimulationResult } from "./simulate";
+import { grossProfit } from "@/lib/profit/core";
 
 /** Guardrails applied to a change-set. Enforced at approval: a change-set that
  *  breaches a guardrail cannot be applied without an explicit human override
@@ -88,6 +89,10 @@ export interface ChangeSet {
    *  so the activity thread reads alert → change-set → apply. Absent for change-sets
    *  proposed straight from the console. */
   alertId?: string;
+  /** the tenant's blended gross margin (0..1) the recommender scored against, when
+   *  a persisted cost model was threaded in. Drives the projected-PROFIT line on the
+   *  proposal (alongside the projected value). Absent → margin-blind set, value only. */
+  marginPct?: number;
 }
 
 /** Guardrail check — returns human-readable breaches, never throws. Enforced by
@@ -120,10 +125,21 @@ export function inverseMoves(moves: BudgetMove[]): BudgetMove[] {
     fromRoas: m.toRoas,
     toRoas: m.fromRoas,
     estValueGain: -m.estValueGain,
+    // Mirror the profit delta's sign only when the forward move carried one, so a
+    // margin-blind set's inverse stays byte-identical (no estProfitGain field).
+    ...(m.estProfitGain !== undefined ? { estProfitGain: -m.estProfitGain } : {}),
   }));
 }
 
 /** Projected extra conversion value if the change-set is applied (CZK). */
 export function projectedValueGain(sim: SimulationResult): number {
   return sim.after.conversionValue - sim.before.conversionValue;
+}
+
+/** Projected extra NET PROFIT if the change-set is applied (CZK) = gross profit on
+ *  the projected value gain under the tenant's blended margin. Derived from the
+ *  unchanged value simulation (not a re-modelled profit run), so it reconciles with
+ *  the value line by construction. Undefined when the set carried no margin. */
+export function projectedProfitGain(sim: SimulationResult, marginPct?: number): number | undefined {
+  return marginPct === undefined ? undefined : grossProfit(projectedValueGain(sim), marginPct);
 }

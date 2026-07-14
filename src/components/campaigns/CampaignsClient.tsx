@@ -150,7 +150,15 @@ const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive" | "sourceSklik"> 
   sklik: "sourceSklik",
 };
 
-export default function CampaignsClient({ breakEven = null }: { breakEven?: BreakEven | null } = {}) {
+export default function CampaignsClient({
+  breakEven = null,
+  marginPct = null,
+}: {
+  breakEven?: BreakEven | null;
+  /** Direction 1: the tenant's persisted blended margin (0..1), threaded to the
+   *  BudgetMoves preview so it scores/scales in profit. Null → margin-blind. */
+  marginPct?: number | null;
+} = {}) {
   const project = useOptionalProject();
   const pid = project?.id;
   const fmt = useFormatters();
@@ -535,6 +543,7 @@ export default function CampaignsClient({ breakEven = null }: { breakEven?: Brea
         </div>
         <BudgetMoves
           campaigns={campaigns}
+          marginPct={marginPct}
           onProposed={() => setControlPlaneRefresh((n) => n + 1)}
         />
         <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton />

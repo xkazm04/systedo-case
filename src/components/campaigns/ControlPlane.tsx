@@ -6,7 +6,7 @@ import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
-import { projectedValueGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
+import { projectedValueGain, projectedProfitGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
 import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 
 const T = {
@@ -23,6 +23,8 @@ const T = {
     statusApplying: "Aplikuje se…",
     statusReverting: "Vrací se…",
     projectedGain: "Projektovaný přínos ≈",
+    projectedProfit: "Projektovaný zisk ≈",
+    marginStated: "při marži {m}",
     convValue: "Hodnota",
     linEst: "hodnoty konverzí (lineární odhad).",
     confirmOverride: "Potvrdit i přes pojistky",
@@ -51,6 +53,8 @@ const T = {
     statusApplying: "Applying…",
     statusReverting: "Reverting…",
     projectedGain: "Projected gain ≈",
+    projectedProfit: "Projected profit ≈",
+    marginStated: "at a {m} margin",
     convValue: "Value",
     linEst: "conversion value (linear estimate).",
     confirmOverride: "Confirm despite guardrails",
@@ -214,6 +218,19 @@ export default function ControlPlane({
           <p className="mt-2 text-xs text-muted">
             {t("projectedGain")} <strong className="text-navy-700">{fmt.fmtCZK(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
           </p>
+          {/* Direction 1: projected NET PROFIT alongside the value, when the set was
+              scored against the tenant's persisted blended margin — derived from the
+              same value simulation (margin × value gain), with the margin stated. */}
+          {(() => {
+            const profit = projectedProfitGain(pending.simulation, pending.marginPct);
+            return profit === undefined ? null : (
+              <p className="mt-1 text-xs text-muted">
+                {t("projectedProfit")}{" "}
+                <strong className="text-positive">{fmt.fmtCZK(profit)}</strong>{" "}
+                <span className="text-muted">{t("marginStated", { m: fmt.fmtPct(pending.marginPct!, 0) })}</span>
+              </p>
+            );
+          })()}
 
           {pending.violations.length > 0 && (
             <ul className="mt-3 space-y-1">

@@ -24,6 +24,9 @@ const T = {
     estSaving: "Odhadovaná úspora:",
     savedCost: "nákladů bez ztráty hodnoty konverzí.",
     convVal: "hodnoty konverzí.",
+    profitGain: "zisk ≈ {profit}",
+    projectedProfit: "Projektovaný zisk",
+    marginStated: "při marži {m}",
     signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci.",
     propose: "Navrhnout do control plane",
     proposing: "Vytvářím návrh…",
@@ -58,6 +61,9 @@ const T = {
     estSaving: "Estimated saving:",
     savedCost: "of spend, with no conversion value lost.",
     convVal: "conversion value.",
+    profitGain: "profit ≈ {profit}",
+    projectedProfit: "Projected profit",
+    marginStated: "at a {m} margin",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
     propose: "Propose to control plane",
     proposing: "Creating proposal…",
@@ -86,9 +92,14 @@ const T = {
  *  (simulate → guardrail → human approval → reversible ledger). */
 export default function BudgetMoves({
   campaigns,
+  marginPct = null,
   onProposed,
 }: {
   campaigns: Campaign[];
+  /** Direction 1: the tenant's persisted blended margin (0..1). When present the
+   *  preview ranks donors by profit destruction and shows projected profit with the
+   *  margin stated; null → margin-blind revenue scoring (byte-identical output). */
+  marginPct?: number | null;
   onProposed?: () => void;
 }) {
   const { status } = useSession();
@@ -100,11 +111,16 @@ export default function BudgetMoves({
   // "budget is balanced" while the triage banner shows a budget-burner. The
   // server-side control-plane bundle uses the same option, so the proposal
   // matches what's shown here.
+  const margin = typeof marginPct === "number" && marginPct > 0 && marginPct <= 1 ? marginPct : undefined;
   const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics), {
     includePauses: true,
+    marginPct: margin,
   });
   const { before, after } = simulation;
   const valueGain = after.conversionValue - before.conversionValue;
+  // Projected net profit derived from the (unchanged) value simulation: margin ×
+  // value gain. Only when a persisted margin was threaded in.
+  const profitGain = margin !== undefined ? valueGain * margin : undefined;
   const fmt = useFormatters();
   const t = useT(T);
 
@@ -188,12 +204,24 @@ export default function BudgetMoves({
                     {t("estSaving")}{" "}
                     <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.amount)}</span>{" "}
                     {t("savedCost")}
+                    {m.estProfitGain !== undefined && (
+                      <span className="text-muted">
+                        {" · "}
+                        {t("profitGain", { profit: fmt.fmtSignedCZK(m.estProfitGain) })}
+                      </span>
+                    )}
                   </p>
                 ) : (
                   <p className="mt-1.5 text-xs text-muted">
                     {t("estGain")}{" "}
                     <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.estValueGain)}</span>{" "}
                     {t("convVal")}
+                    {m.estProfitGain !== undefined && (
+                      <span className="text-muted">
+                        {" · "}
+                        {t("profitGain", { profit: fmt.fmtSignedCZK(m.estProfitGain) })}
+                      </span>
+                    )}
                   </p>
                 )}
               </li>
@@ -258,6 +286,18 @@ export default function BudgetMoves({
               </p>
             </div>
           </div>
+          {/* Direction 1: projected NET PROFIT alongside the value lift, derived from
+              the same value simulation (margin × value gain), margin stated. Shown only
+              when the tenant's persisted blended margin was threaded in. */}
+          {profitGain !== undefined && margin !== undefined && (
+            <p className="mt-3 text-sm text-navy-700">
+              {t("projectedProfit")}:{" "}
+              <strong className={profitGain >= 0 ? "text-positive" : "text-negative"}>
+                {fmt.fmtSignedCZK(profitGain)}
+              </strong>{" "}
+              <span className="text-muted">{t("marginStated", { m: fmt.fmtPct(margin, 0) })}</span>
+            </p>
+          )}
           <p
             className="mt-2 text-[13px] text-muted"
             dangerouslySetInnerHTML={{ __html: t("footnote") }}

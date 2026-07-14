@@ -52,6 +52,10 @@ export interface CreateChangeSetOptions {
   /** the inbox alert this set is staged from — persisted on the set so applying it
    *  resolves the alert with this set as the back-reference. */
   alertId?: string;
+  /** the tenant's blended gross margin (0..1) from its persisted cost model, resolved
+   *  by the route (which already holds the projectId) so the recommender chases profit
+   *  and the proposal shows the projected-profit line. Absent → margin-blind set. */
+  marginPct?: number;
 }
 
 /** Build a pending change-set from the current campaigns + recommendation engine,
@@ -72,10 +76,14 @@ export async function createChangeSet(
   // exact revert via the status snapshot captured at approval.
   // donorScopeIds: when staged from an alert, only the alerted campaigns may be
   // acted on as donors — the recommendation stays honest to what was flagged.
+  // marginPct: when the route resolved the tenant's persisted blended margin, the
+  // recommender ranks donors by profit destruction (not revenue waste) and every
+  // move carries an estProfitGain. Absent → the original margin-blind scoring.
   const { moves } = recommendBudgetMoves(rows, {
     maxMoves: policy.maxMoves,
     includePauses: true,
     donorScopeIds: opts.scopeCampaignIds,
+    marginPct: opts.marginPct,
   });
   if (moves.length === 0) return null;
 
@@ -92,6 +100,9 @@ export async function createChangeSet(
     results: null,
     // only persist alertId when set — keep console-proposed sets free of the field.
     ...(opts.alertId ? { alertId: opts.alertId } : {}),
+    // persist the scored margin only when profit-aware, so margin-blind sets keep
+    // their exact prior shape in Firestore.
+    ...(opts.marginPct !== undefined ? { marginPct: opts.marginPct } : {}),
   };
   const ref = await changeSetsCol(tenant).add(doc);
   return { id: ref.id, ...doc };
