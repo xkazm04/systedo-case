@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import {
   generateAds,
   generateAnalysis,
@@ -357,7 +357,7 @@ export async function POST(request: Request) {
     // UI language instead of always being Czech.
     const locale = await getServerLocale();
     // Resolved once: powers the daily quota AND per-project grounding tenancy.
-    const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+    const userId = await currentUserId();
     const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
     // Identity attribution for telemetry (per-user + per-project spend). Best-effort:

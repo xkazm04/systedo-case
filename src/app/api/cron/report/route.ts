@@ -11,7 +11,7 @@ import { listProjects } from "@/lib/projects/store";
 import { createSharedReport } from "@/lib/campaigns/shared-report";
 import { getReportConfig, markReportSent, type ReportCadence } from "@/lib/campaigns/report-config";
 import { getUserEmail, recordAlert } from "@/lib/campaigns/alerts";
-import { sendEmail, sendWebhook } from "@/lib/email";
+import { sendEmail, sendWebhook, summarizeDelivery } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { canonical } from "@/lib/site";
 import { cronAuthorized } from "@/lib/cron-auth";
@@ -95,18 +95,27 @@ export async function GET(request: Request) {
 
       // Guard each recipient: one bad address / transient SMTP error must not abort the
       // rest and skip markReportSent (isDue is true only on the cadence day, so a full
-      // abort would never retry this period, leaving a silent partial send).
-      let delivered = 0;
+      // abort would never retry this period, leaving a silent partial send). sendEmail
+      // is best-effort — it RETURNS false on an HTTP/transport failure rather than
+      // throwing, so we count the boolean, not merely "did it not throw".
+      const outcomes: boolean[] = [];
       const failed: string[] = [];
       for (const to of recipients) {
+        let ok = false;
         try {
-          await sendEmail(to, `${brand}: ${title}`, html);
-          delivered++;
+          ok = await sendEmail(to, `${brand}: ${title}`, html);
         } catch (mailErr) {
-          console.error(`[cron] report email to ${to} failed:`, mailErr);
+          console.error(`[cron] report email to ${to} threw:`, mailErr);
+        }
+        outcomes.push(ok);
+        if (ok) {
+          console.log(`[cron] report email to ${to}: sent`);
+        } else {
+          console.error(`[cron] report email to ${to}: not delivered`);
           failed.push(to);
         }
       }
+      const { delivered, shouldMarkSent } = summarizeDelivery(outcomes);
 
       await sendWebhook(`${brand} — ${title}: ${url}`);
       await recordAlert(tenant, {
@@ -115,9 +124,10 @@ export async function GET(request: Request) {
         body: `${title} · ${delivered}/${recipients.length} příjemců`,
         items: [],
       });
-      // Mark sent once at least one recipient got it, so the report isn't re-sent to
-      // everyone (including those who already received it) on the next daily run.
-      if (delivered > 0) await markReportSent(tenant, today);
+      // Mark sent only once at least one recipient actually got it, so the report
+      // isn't re-sent to everyone on the next daily run — while a TOTAL failure
+      // leaves lastSentDay unset so the next run retries the whole batch.
+      if (shouldMarkSent) await markReportSent(tenant, today);
 
       results.push({
         userId,

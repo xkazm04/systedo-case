@@ -1,5 +1,34 @@
 import { SITE_NAME } from "@/lib/site";
 
+/** Shared best-effort POST for the two senders below: does the fetch, treats a
+ *  non-2xx response or a thrown error as a soft failure (logged with the given
+ *  label, returns false) so alerting never throws into a caller. When
+ *  `bodyOnError` is set, a failed response's body is included in the log (Resend
+ *  returns a useful reason there); the webhook sender omits it, keeping each
+ *  sender's exact existing log shape. */
+async function postJson(
+  label: string,
+  url: string,
+  init: RequestInit,
+  bodyOnError = false
+): Promise<boolean> {
+  try {
+    const res = await fetch(url, init);
+    if (!res.ok) {
+      if (bodyOnError) {
+        console.error(`[${label}] send failed:`, res.status, await res.text().catch(() => ""));
+      } else {
+        console.error(`[${label}] send failed:`, res.status);
+      }
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`[${label}] error:`, err);
+    return false;
+  }
+}
+
 /** Best-effort outbound webhook (server-only). Posts a Slack-compatible
  *  `{ text }` payload to ALERT_WEBHOOK_URL when set (Slack/Teams/Discord-style
  *  incoming webhooks all accept this), so a team can get alerts where they live.
@@ -7,21 +36,11 @@ import { SITE_NAME } from "@/lib/site";
 export async function sendWebhook(text: string): Promise<boolean> {
   const url = process.env.ALERT_WEBHOOK_URL;
   if (!url) return false;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    if (!res.ok) {
-      console.error("[webhook] send failed:", res.status);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[webhook] error:", err);
-    return false;
-  }
+  return postJson("webhook", url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
 }
 
 /** Best-effort transactional email (server-only). Sends via Resend when
@@ -36,19 +55,28 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
     return false;
   }
 
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
+  return postJson(
+    "email",
+    "https://api.resend.com/emails",
+    {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to, subject, html }),
-    });
-    if (!res.ok) {
-      console.error("[email] send failed:", res.status, await res.text().catch(() => ""));
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error("[email] error:", err);
-    return false;
-  }
+    },
+    true
+  );
+}
+
+/** Pure decision for a fan-out send (e.g. the report cron): given each
+ *  recipient's success flag, how many were delivered and whether the batch should
+ *  be marked as sent. Marking sent on >= 1 success stops a re-send to everyone on
+ *  the next run; a TOTAL failure returns shouldMarkSent=false so the sent marker
+ *  stays unset and the next run retries the whole batch. Side-effect-free. */
+export function summarizeDelivery(outcomes: boolean[]): {
+  delivered: number;
+  failed: number;
+  shouldMarkSent: boolean;
+} {
+  const delivered = outcomes.filter(Boolean).length;
+  return { delivered, failed: outcomes.length - delivered, shouldMarkSent: delivered > 0 };
 }

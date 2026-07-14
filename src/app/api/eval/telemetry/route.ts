@@ -7,13 +7,13 @@
  *  tenants — the entries carry no per-tenant field), so it is gated to the
  *  ADMIN_EMAILS allowlist and fails closed: any non-admin (incl. signed-in free
  *  users) gets an empty payload rather than every tenant's AI spend. */
-import { auth } from "@/auth";
+import { currentSession } from "@/lib/session";
 import { isAdminEmail } from "@/lib/admin";
 import { listLlmTelemetry, aggregateTelemetry } from "@/lib/llm/telemetry";
 
 
 export async function GET() {
-  const email = ((await auth())?.user as { email?: string } | undefined)?.email ?? null;
+  const email = (((await currentSession())?.user) as { email?: string } | undefined)?.email ?? null;
   if (!isAdminEmail(email)) return Response.json({ entries: [], tools: [] });
 
   const entries = await listLlmTelemetry();

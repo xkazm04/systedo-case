@@ -9,7 +9,8 @@ import Providers from "@/components/auth/Providers";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
-import { auth, DEV_AUTH } from "@/auth";
+import { DEV_AUTH } from "@/auth";
+import { currentSession } from "@/lib/session";
 import { DevInspector } from "./_dev-inspector/DevInspector";
 import { getT } from "@/lib/i18n/server";
 
@@ -96,7 +97,7 @@ async function LocalizedApp({ children }: { children: React.ReactNode }) {
   const tSkip = await getT(SKIP_T);
   // Only seed the session server-side in dev-auth mode; in production the client
   // provider fetches it as usual, so public pages keep doing no auth lookup.
-  const session = DEV_AUTH ? await auth() : undefined;
+  const session = DEV_AUTH ? await currentSession() : undefined;
   return (
     <LocaleProvider initialLocale={locale}>
       <Providers session={session} devAuth={DEV_AUTH}>

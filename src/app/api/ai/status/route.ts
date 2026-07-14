@@ -12,7 +12,7 @@
  *  Nothing here increments a counter or touches a provider beyond the cached
  *  availability probes the wrapper itself uses (import-only — the actual
  *  generation chokepoint is untouched). */
-import { auth } from "@/auth";
+import { currentUserId } from "@/lib/session";
 import { isDevEnvironment } from "@/lib/llm";
 import { claudeAvailable } from "@/lib/llm/claude";
 import { geminiAvailable } from "@/lib/llm/gemini";
@@ -76,7 +76,7 @@ export async function GET(request: Request) {
 
   // Signed-in callers are metered per plan (aiEval) on top of the IP cap; the
   // banner treats the plan quota as the binding budget when it is present.
-  const userId = (((await auth())?.user as { id?: string } | undefined)?.id) ?? null;
+  const userId = await currentUserId();
   if (userId) {
     try {
       const usage = await getUsage(userId);
