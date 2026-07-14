@@ -49,6 +49,7 @@ export default function ChannelsSection({
   revenueDelta,
   revenueSignificance,
   period,
+  timeResolved = false,
 }: {
   channels: ChannelRow[];
   totals: Totals;
@@ -56,6 +57,9 @@ export default function ChannelsSection({
   revenueDelta: number;
   revenueSignificance: Significance;
   period: PeriodDef;
+  /** true when channels carry real per-day-resolved per-channel deltas — passes
+   *  through to the table so it can render the per-channel „Změna obratu" column */
+  timeResolved?: boolean;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -117,6 +121,7 @@ export default function ChannelsSection({
         goalPno={goalPno}
         revenueDelta={revenueDelta}
         revenueSignificance={revenueSignificance}
+        timeResolved={timeResolved}
       />
     </div>
   );

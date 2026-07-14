@@ -48,17 +48,25 @@ export default function ChannelTable({
   goalPno,
   revenueDelta,
   revenueSignificance,
+  timeResolved = false,
 }: {
   rows: ChannelRow[];
   totals: Totals;
   goalPno: number;
-  /** period-over-period revenue change, shown once on the Total footer row */
+  /** period-over-period revenue change, shown on the Total footer row (and, on the
+   *  static projection, the ONLY place it can honestly appear). */
   revenueDelta?: number;
-  /** confidence that the revenue change is real rather than daily noise. Channels
-   *  project the totals by a constant share, so a per-channel revenue delta would
-   *  equal this aggregate on every row — so it is surfaced only on the Total row,
-   *  not as five identical per-channel badges. */
+  /** confidence that the aggregate revenue change is real rather than daily noise
+   *  — carried on the Total row. Per-channel rows have no per-channel significance,
+   *  so their badges render without a signal suffix. */
   revenueSignificance?: Significance;
+  /** true when the rows were built from a per-day channel mix (`channelTime`), so
+   *  each row carries a REAL per-channel revenue delta — rendered as a per-row badge
+   *  in its own „Změna obratu" column. On the static projection this is false: every
+   *  channel projects the totals by a constant share, so a per-channel revenue delta
+   *  would equal the aggregate on every row (five identical badges) — there we keep it
+   *  once, on the Total row, and this column is absent (static path byte-identical). */
+  timeResolved?: boolean;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -68,13 +76,18 @@ export default function ChannelTable({
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
+        <table className={`w-full border-collapse text-sm ${timeResolved ? "min-w-[820px]" : "min-w-[720px]"}`}>
           <thead>
             <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
               <th className="px-5 py-3 font-semibold">{t("colChannel")}</th>
               <th className="px-3 py-3 text-right font-semibold">{t("colCost")}</th>
               <th className="px-3 py-3 text-right font-semibold">{t("colConversions")}</th>
               <th className="px-5 py-3 text-right font-semibold">{t("colRevenue")}</th>
+              {timeResolved && (
+                <th className="px-3 py-3 text-right font-semibold" title={t("revenueDeltaHint")}>
+                  {t("colRevenueDelta")}
+                </th>
+              )}
               <th className="px-3 py-3 text-right font-semibold">{t("colPno")}</th>
               <th className="px-3 py-3 text-right font-semibold">{t("colRoas")}</th>
             </tr>
@@ -108,6 +121,17 @@ export default function ChannelTable({
                     </span>
                   </div>
                 </td>
+                {timeResolved && (
+                  <td className="px-3 py-3 text-right">
+                    {r.delta ? (
+                      <span className="inline-flex justify-end">
+                        <DeltaBadge delta={r.delta.revenue} goodDirection="up" size="xs" />
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                )}
                 <td className={`tnum px-3 py-3 text-right font-medium ${pnoTone(r.pno, goalPno)}`}>
                   {r.pno > 0 ? fmt.fmtPct(r.pno) : "—"}
                 </td>
@@ -125,7 +149,10 @@ export default function ChannelTable({
               <td className="px-5 py-3 text-right">
                 <div className="flex flex-col items-end gap-1">
                   <span className="tnum">{fmt.fmtCZK(totals.revenue)}</span>
-                  {revenueDelta !== undefined && (
+                  {/* On the static projection the aggregate delta has no per-channel
+                      column to live in, so it stacks under the revenue total (as before).
+                      Time-resolved, it moves into the „Změna obratu" column footer. */}
+                  {!timeResolved && revenueDelta !== undefined && (
                     <span className="inline-flex items-center justify-end gap-1.5" title={t("revenueDeltaHint")}>
                       <DeltaBadge
                         delta={revenueDelta}
@@ -137,6 +164,20 @@ export default function ChannelTable({
                   )}
                 </div>
               </td>
+              {timeResolved && (
+                <td className="px-3 py-3 text-right">
+                  {revenueDelta !== undefined && (
+                    <span className="inline-flex justify-end" title={t("revenueDeltaHint")}>
+                      <DeltaBadge
+                        delta={revenueDelta}
+                        goodDirection="up"
+                        size="xs"
+                        significance={revenueSignificance}
+                      />
+                    </span>
+                  )}
+                </td>
+              )}
               <td className="tnum px-3 py-3 text-right">{fmt.fmtPct(totals.pno)}</td>
               <td className="tnum px-3 py-3 text-right">{fmt.fmtMultiple(totals.roas)}</td>
             </tr>

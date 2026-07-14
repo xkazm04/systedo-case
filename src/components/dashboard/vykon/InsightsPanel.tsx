@@ -1,6 +1,6 @@
 "use client";
 
-import { Bulb, TrendDown, TrendUp } from "@/components/icons";
+import { Bulb, ChevronRight, TrendDown, TrendUp } from "@/components/icons";
 import { weekWord } from "./plural";
 import { weekdayName } from "@/components/dashboard/vykon/plural";
 import {
@@ -39,6 +39,9 @@ const T = {
     funnelTraffic: "návštěvnost",
     funnelConversion: "konverzní poměr",
     funnelAov: "průměrná objednávka",
+    funnelChangeCol: "změna",
+    funnelShareCol: "vliv",
+    funnelSharesTotal: "Součet vlivů",
     coverageDegraded:
       "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
     coverageInsufficient:
@@ -62,6 +65,9 @@ const T = {
     funnelTraffic: "traffic",
     funnelConversion: "conversion rate",
     funnelAov: "average order value",
+    funnelChangeCol: "change",
+    funnelShareCol: "share",
+    funnelSharesTotal: "Shares total",
     coverageDegraded:
       "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
     coverageInsufficient:
@@ -76,6 +82,70 @@ interface Insight {
   significance: Significance;
   /** |relative change| (or gap-to-goal) for tie-breaking within a confidence tier */
   magnitude: number;
+  /** when set, this insight is the funnel line: `text` is the one-line summary and
+   *  the attribution renders as an expandable per-driver breakdown (Direction 1). */
+  funnel?: FunnelAttribution;
+}
+
+/** The three funnel drivers, in the order the disclosure lists them. */
+const FUNNEL_DRIVERS: FunnelAttribution["dominant"][] = ["traffic", "conversion", "aov"];
+
+/** The expandable per-driver breakdown of a revenue move: the one-line summary as
+ *  the disclosure trigger, and — when opened — traffic / conversion rate / AOV each
+ *  with its relative change and signed share of the move, plus the shares' total
+ *  (they sum to exactly 100 % by construction — see funnel.ts). Keyboard-accessible
+ *  via the native <details>/<summary>. */
+function FunnelDisclosure({
+  summary,
+  funnel,
+  fmt,
+  t,
+}: {
+  summary: React.ReactNode;
+  funnel: FunnelAttribution;
+  fmt: Formatters;
+  t: TFn<keyof typeof T.cs>;
+}) {
+  const sharesTotal = FUNNEL_DRIVERS.reduce((s, k) => s + funnel.drivers[k].share, 0);
+  const cols = "grid grid-cols-[1fr_auto_auto] items-center gap-x-3";
+  return (
+    <details className="group">
+      <summary className="flex cursor-pointer list-none items-start gap-1.5 [&::-webkit-details-marker]:hidden">
+        <ChevronRight
+          width={14}
+          height={14}
+          className="mt-0.5 shrink-0 text-navy-400 transition-transform group-open:rotate-90"
+          aria-hidden
+        />
+        <span>{summary}</span>
+      </summary>
+      <div className="mt-2 border-l-2 border-navy-50 pl-3">
+        <div className={`${cols} text-[11px] uppercase tracking-wide text-muted`}>
+          <span />
+          <span className="w-14 text-right">{t("funnelChangeCol")}</span>
+          <span className="w-12 text-right">{t("funnelShareCol")}</span>
+        </div>
+        {FUNNEL_DRIVERS.map((k) => (
+          <div key={k} className={`${cols} py-0.5 text-[13px]`}>
+            <span className="text-navy-700">{funnelDriverLabel(k, t)}</span>
+            <span className="tnum w-14 text-right text-navy-700">
+              {fmt.fmtSignedPct(funnel.drivers[k].change)}
+            </span>
+            <span className="tnum w-12 text-right font-medium text-navy-800">
+              {fmt.fmtSignedPct(funnel.drivers[k].share, 0)}
+            </span>
+          </div>
+        ))}
+        <div className={`${cols} mt-1 border-t border-navy-50 pt-1 text-[13px]`}>
+          <span className="text-muted">{t("funnelSharesTotal")}</span>
+          <span />
+          <span className="tnum w-12 text-right font-semibold text-navy-800">
+            {fmt.fmtPct(sharesTotal, 0)}
+          </span>
+        </div>
+      </div>
+    </details>
+  );
 }
 
 /** Below ±0.5 % a revenue move is noise, not a story worth surfacing. */
@@ -195,6 +265,7 @@ function buildInsights(
       tone: "info",
       significance: significance.revenue,
       magnitude: Math.abs(revenueDelta),
+      funnel,
       text: (
         <>
           {t("insightFunnel", {
@@ -323,7 +394,13 @@ export default function InsightsPanel({
             >
               {ins.tone === "warn" ? <TrendDown width={12} height={12} /> : <TrendUp width={12} height={12} />}
             </span>
-            <span className="leading-snug text-navy-700">{ins.text}</span>
+            <div className="min-w-0 flex-1 leading-snug text-navy-700">
+              {ins.funnel ? (
+                <FunnelDisclosure summary={ins.text} funnel={ins.funnel} fmt={fmt} t={t} />
+              ) : (
+                ins.text
+              )}
+            </div>
           </li>
         ))}
       </ul>

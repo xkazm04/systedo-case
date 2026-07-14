@@ -155,6 +155,7 @@ export default function DashboardClient({
             revenueDelta={result.delta.revenue}
             revenueSignificance={result.significance.revenue}
             period={period}
+            timeResolved={!!channelTime}
           />
           <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
             {hasAlerts && (
