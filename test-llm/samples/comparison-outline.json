@@ -1,92 +1,91 @@
 {
-  "h1": "monday.com vs Trello: Které řešení pro řízení projektů vybrat v roce 2026?",
+  "h1": "monday.com vs Trello: který nástroj pro řízení projektů vybrat?",
   "sections": [
     {
-      "heading": "Co je monday.com a co je Trello",
+      "heading": "monday.com vs Trello v kostce",
       "points": [
-        "monday.com je flexibilní work management platforma s vizuálními tabulkami, automatizacemi a širokou škálovatelností pro týmy i celé firmy",
-        "Trello je jednoduchý nástroj založený na Kanban tabulích, oblíbený pro svou přehlednost a nízkou vstupní bariéru",
-        "Oba nástroje patří do kategorie projektového a týmového řízení, liší se ale hloubkou funkcí a cílovou skupinou uživatelů",
-        "Doplnit: aktuální pozicionování obou značek dle jejich oficiální komunikace"
+        "monday.com je komplexní work OS s pokročilými pohledy, automatizacemi a reportingem",
+        "Trello staví na jednoduchosti Kanban tabulí a rychlém zapracování",
+        "Oba nástroje nabízí bezplatnou verzi i placené tarify pro týmy",
+        "Volba závisí na velikosti týmu, komplexitě projektů a rozpočtu"
       ]
     },
     {
-      "heading": "Klíčové funkce a možnosti",
+      "heading": "Funkce a možnosti",
       "points": [
-        "monday.com nabízí více pohledů na data (tabulka, Gantt, kalendář, kanban) a pokročilé automatizace bez nutnosti kódování",
-        "Trello se drží čistě kanbanového principu s kartami, seznamy a doplňkovými 'Power-Upy'",
-        "Rozdíly v hloubce reportingu, dashboardů a možností přizpůsobení workflow",
-        "Doplnit: konkrétní srovnání šablon, integrací a limitů dle aktuálních ceníkových plánů"
+        "Doplnit srovnání pohledů (Kanban, Gantt, kalendář, timeline) u obou nástrojů",
+        "Doplnit srovnání automatizací a workflow builderu",
+        "Doplnit srovnání reportingu a dashboardů",
+        "Doplnit srovnání integrací s dalšími nástroji (Slack, Google Workspace apod.)",
+        "Doplnit informace o šablonách a odvětvových řešeních"
       ]
     },
     {
-      "heading": "Cena a licenční plány",
+      "heading": "Cena a tarify",
       "points": [
-        "Oba nástroje nabízí bezplatnou verzi s omezenou funkcionalitou vhodnou pro menší týmy",
-        "Placené plány se odvíjí od počtu uživatelů a rozsahu potřebných funkcí (automatizace, reporting, bezpečnost)",
-        "monday.com bývá vnímán jako nákladnější řešení odpovídající své funkční šíři",
-        "Doplnit: aktuální ceny jednotlivých tarifů a jejich přepočet na český trh"
+        "Doplnit aktuální cenové tarify monday.com (Free, Basic, Standard, Pro, Enterprise)",
+        "Doplnit aktuální cenové tarify Trello (Free, Standard, Premium, Enterprise)",
+        "Doplnit srovnání poměru cena/výkon podle velikosti týmu",
+        "Upozornit na omezení bezplatných verzí u obou nástrojů"
       ]
     },
     {
-      "heading": "Pro koho se hodí monday.com a pro koho Trello",
+      "heading": "Snadnost použití a onboarding",
       "points": [
-        "monday.com je vhodný pro rostoucí firmy a týmy, které potřebují komplexní řízení více projektů a procesů najednou",
-        "Trello je ideální pro jednotlivce, malé týmy nebo jednoduché projekty, kde stačí vizuální přehled úkolů",
-        "Volba závisí na velikosti týmu, komplexitě procesů a požadované míře automatizace",
-        "Doplnit: konkrétní příklady oborů či typů projektů, kde se každý nástroj osvědčil"
+        "Trello je obecně považováno za intuitivnější pro začátečníky",
+        "monday.com nabízí více možností nastavení, což může prodloužit zaškolení",
+        "Doplnit zkušenosti uživatelů s křivkou učení u obou nástrojů",
+        "Doplnit dostupnost mobilních aplikací a jejich kvalitu"
       ]
     },
     {
-      "heading": "Integrace a rozšiřitelnost",
+      "heading": "Pro koho se který nástroj hodí",
       "points": [
-        "monday.com nabízí širokou nabídku nativních integrací a otevřené API pro vlastní propojení",
-        "Trello využívá systém Power-Upů a integraci s Atlassian ekosystémem (Jira, Confluence)",
-        "Rozšiřitelnost ovlivňuje, jak dobře nástroj zapadne do existujícího firemního software stacku",
-        "Doplnit: seznam nejčastěji požadovaných integrací dle cílové skupiny čtenářů"
+        "monday.com vhodný pro střední a větší týmy s komplexnějšími projekty",
+        "Trello vhodný pro malé týmy, jednoduché projekty a osobní produktivitu",
+        "Doplnit konkrétní příklady use-case podle odvětví",
+        "Doplnit doporučení podle rozpočtu a technické vyspělosti týmu"
       ]
     },
     {
-      "heading": "Přechod mezi nástroji a migrace dat",
+      "heading": "Alternativy k monday.com a Trello",
       "points": [
-        "Oba nástroje umožňují import dat z konkurenčních platforem, včetně vzájemného importu mezi sebou",
-        "Migrace vyžaduje zvážení struktury projektů, oprávnění uživatelů a historie úkolů",
-        "Doporučeno otestovat oba nástroje na reálném pilotním projektu před finálním rozhodnutím",
-        "Doplnit: krokový návod na migraci, pokud bude k dispozici konkrétní zkušenost redakce"
+        "Doplnit stručný přehled dalších nástrojů (např. Asana, ClickUp, Notion)",
+        "Uvést, kdy se vyplatí zvážit alternativu místo obou srovnávaných nástrojů"
       ]
     }
   ],
   "comparisonCriteria": [
-    "Cena a poměr cena/výkon",
-    "Jednoduchost a rychlost zavedení",
-    "Flexibilita a možnosti přizpůsobení workflow",
-    "Vizualizace dat a reporting",
-    "Automatizace a AI funkce",
+    "Cena a tarify",
+    "Snadnost použití",
+    "Flexibilita a možnosti přizpůsobení",
+    "Automatizace a workflow",
+    "Reporting a analytika",
     "Integrace s dalšími nástroji",
-    "Vhodnost pro velikost týmu/firmy",
-    "Zákaznická podpora a dostupnost v češtině"
+    "Škálovatelnost pro větší týmy",
+    "Zákaznická podpora"
   ],
-  "verdict": "Trello je vhodnou volbou pro jednotlivce a malé týmy, kteří ocení jednoduchost a rychlý start, zatímco monday.com se vyplatí firmám s komplexnějšími projekty a potřebou pokročilé automatizace a reportingu. Finální volba by měla vycházet z konkrétního otestování obou nástrojů na reálném projektu.",
+  "verdict": "Trello je lepší volbou pro menší týmy a jednoduché projekty díky nízké křivce učení, zatímco monday.com se vyplatí týmům, které potřebují pokročilejší funkce, automatizace a reporting. Konečné doporučení by mělo zohlednit konkrétní velikost týmu, rozpočet a komplexitu projektů daného čtenáře.",
   "faq": [
     {
-      "q": "Je Trello zdarma?",
-      "a": "Ano, Trello nabízí bezplatný plán s omezeným počtem desek a funkcí, který je vhodný pro jednotlivce a malé týmy."
-    },
-    {
       "q": "Je monday.com dražší než Trello?",
-      "a": "Placené plány monday.com bývají obecně nákladnější než u Trello, což odpovídá širší nabídce funkcí a možností automatizace. Doplnit aktuální ceny obou platforem."
+      "a": "Obecně ano, monday.com bývá u srovnatelných tarifů dražší, protože nabízí širší funkcionalitu. Přesné ceny je třeba doplnit podle aktuálního ceníku."
     },
     {
-      "q": "Lze data z Trello přenést do monday.com?",
-      "a": "Ano, monday.com umožňuje import dat z Trello, díky čemuž je přechod mezi nástroji relativně snadný."
+      "q": "Který nástroj je jednodušší na naučení?",
+      "a": "Trello je díky principu jednoduchých Kanban tabulí obvykle rychleji zvládnutelné než monday.com, který nabízí více nastavení a možností."
     },
     {
-      "q": "Který nástroj je lepší pro malé týmy?",
-      "a": "Pro malé týmy s jednoduššími potřebami bývá vhodnější Trello díky své přehlednosti a nízké vstupní bariéře."
+      "q": "Dá se monday.com nebo Trello vyzkoušet zdarma?",
+      "a": "Oba nástroje nabízí bezplatnou verzi s omezenou funkcionalitou, případně zkušební období u placených tarifů – detaily je třeba doplnit."
     },
     {
-      "q": "Podporují oba nástroje mobilní aplikace?",
-      "a": "Ano, jak monday.com, tak Trello nabízí mobilní aplikace pro iOS i Android umožňující správu úkolů na cestách."
+      "q": "Který nástroj je vhodnější pro velké firmy?",
+      "a": "monday.com je díky pokročilým funkcím, automatizacím a reportingu obvykle vhodnější pro větší týmy a komplexnější projekty."
+    },
+    {
+      "q": "Existuje lepší alternativa k oběma nástrojům?",
+      "a": "Podle konkrétních potřeb může být vhodnější například Asana, ClickUp nebo Notion – výběr závisí na požadovaných funkcích a rozpočtu."
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
-  "summary": "Kohorty se zhoršují: CAC roste (1200→1600→2100 Kč), LTV klesá (5400→3800→2200 Kč) a LTV:CAC padá z 4,5× na 1,0×. Kohorta 2025-03 se vůbec nevrací (payback > horizont) a M3 retence je jen 31 %. Retenční křivka (100→70→48→31 %) klesá plynule bez stabilizace, což značí strukturální churn, ne jednorázový výpadek. Podle kanálů táhne kohortu 2025-03 dolů Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic).",
+  "summary": "Kohorty se v čase zhoršují: LTV:CAC klesá z 4,5× (2025-01) na 2,4× (2025-02) a 1,0× (2025-03), návratnost CAC se prodlužuje ze 4 měsíců přes 7 měsíců až za horizont modelu. M3 retence padá 62 %→48 %→31 %, retenční křivka 2025-03 (100 %→70 %→48 %→31 %) ukazuje strmý, zatím nezpomalující pokles bez náznaku stabilizace. V kohortě 2025-03 táhne výkon dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic, tedy prodělečný a zároveň objemově dominantní), zatímco Organic (LTV:CAC 6,0×, 90 akvizic, zdarma) je vysoce ziskový. Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× tak maskují, že nejnovější a největší kohorta (240 registrací) se nevrací vůbec.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) do Organic (LTV:CAC 6,0×) a pozastavit škálování Google Ads, dokud se nezlepší CAC nebo retence M1–M3 v této kohortě.",
+  "recommendation": "Okamžitě přesunout akviziční rozpočet z Google Ads (LTV:CAC 0,8×) do Organic (LTV:CAC 6,0×) a pozastavit škálování Google Ads, dokud se CAC v tomto kanálu nedostane pod hranici návratnosti.",
   "risks": [
-    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují prudké zhoršení nejnovější kohorty 2025-03",
-    "Klesající retenční trend (M1 70 % → M3 31 %) naznačuje, že bez zásahu bude i budoucí LTV nižší než modelováno",
-    "Růst objemu registrací (180→210→240) při klesající kvalitě zvyšuje celkové akviziční riziko"
+    "Trend napříč třemi kohortami je jednoznačně klesající, nejde o jednorázový výkyv",
+    "Retenční křivka 2025-03 stále klesá i v M3, skutečné LTV:CAC kohorty tak může být ještě nižší než modelovaná hodnota 1,0×",
+    "Google Ads je při 150 ze 240 akvizic dominantním zdrojem objemu kohorty 2025-03, takže jeho okamžité omezení sníží celkový počet registrací"
   ]
 }

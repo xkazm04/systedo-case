@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B2 · Řešení konkrétní bolesti (přehled úkolů)",
-      "hypothesis": "Když headline a CTA místo obecného popisu produktu pojmenují konkrétní bolest (chaos v úkolech a termínech), návštěvník rychleji pozná relevanci a konverze na vyzkoušení nástroje vzroste.",
-      "headline": "Konec chaosu v úkolech: všechny projekty na jednom místě",
-      "primaryCTA": "Zobrazit přehled úkolů zdarma",
-      "rationale": "Konkrétní pojmenování problému cílové skupiny (rozptýlené úkoly) je jiná hypotéza než obecný popis produktu i než dosud testovaná sleva či dlouhý formulář."
+      "label": "B · Konkrétní výsledek",
+      "hypothesis": "Nadpis a CTA zaměřené na konkrétní přínos (přehled o projektech, méně chaosu) zvýší konverzi oproti obecnému popisu produktu.",
+      "headline": "Mějte všechny projekty pod kontrolou na jednom místě",
+      "primaryCTA": "Vyzkoušet zdarma",
+      "rationale": "Konkrétní přínos místo obecného popisu produktu dává návštěvníkovi jasný důvod kliknout."
     },
     {
-      "label": "C2 · Sociální důkaz z praxe týmů",
-      "hypothesis": "Když je hlavní sdělení postaveno na tom, jak nástroj používají reálné projektové týmy, důvěra a konverze poroste oproti neosobnímu popisu produktu.",
-      "headline": "Nástroj pro řízení projektů, který týmy skutečně používají každý den",
-      "primaryCTA": "Podívat se, jak to funguje v týmu",
-      "rationale": "Testuje hypotézu důvěryhodnosti a sociálního důkazu, což je odlišný mechanismus konverze než sleva, formulář nebo obecný popis produktu."
+      "label": "C · Sociální důkaz",
+      "hypothesis": "Zobrazení důkazu, že nástroj používají jiné týmy, sníží vnímané riziko a zvýší konverzi oproti kontrole bez sociálního důkazu.",
+      "headline": "Nástroj pro řízení projektů, kterému věří stovky týmů",
+      "primaryCTA": "Přidat se k dalším týmům",
+      "rationale": "Sociální důkaz snižuje nejistotu u rozhodování o novém nástroji, aniž by šlo o slevu nebo dlouhý formulář."
     },
     {
-      "label": "D · Rychlost nasazení bez zásahu IT",
-      "hypothesis": "Když sdělení zdůrazní snadné a rychlé nasazení bez nutnosti zapojit IT oddělení, sníží se vnímaná bariéra vstupu a konverze vzroste oproti kontrole zaměřené na obecný popis produktu.",
-      "headline": "Projektové řízení nasazené za pár minut, bez IT oddělení",
-      "primaryCTA": "Vyzkoušet bez instalace",
-      "rationale": "Zaměřuje se na odstranění bariéry (technická náročnost zavedení), což je hypotéza dosud netestovaná a odlišná od slevy i délky formuláře."
+      "label": "D · Jednoduchost nasazení",
+      "hypothesis": "Zdůraznění rychlého a jednoduchého startu (bez nutnosti složitého nastavení) zvýší konverzi oproti obecnému popisu produktu.",
+      "headline": "Nastavte projektové řízení týmu za pár minut",
+      "primaryCTA": "Začít hned",
+      "rationale": "Obava z náročného zavádění je častá bariéra u nástrojů pro řízení projektů, proto cílení na rychlý start řeší jinou hypotézu než sleva či dlouhý formulář."
     }
   ]
 }

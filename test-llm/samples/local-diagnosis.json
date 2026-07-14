@@ -1,9 +1,9 @@
 {
-  "summary": "Pokrytí lokální viditelnosti je 43 % (3 ze 7 kombinací služba×lokalita), v mezerách uniká 3 100 hledání/měsíc. Nejvyšší neobsloužený objem má Bělení zubů — Praha (1 400/měs.), následují Dentální hygiena — Brno (900) a Implantáty — Ostrava (800). Mapa-pack výkon je slabý (jen 40 % v top 3, průměrná pozice 6,2) a trend za 30 dní je záporný (−5, 3 zhoršení proti 1 zlepšení). Recenze jsou solidní (4,3★, 214 hodnocení, 170 pozitivních), takže reputace není hlavní brzdou.",
+  "summary": "Pokrytí lokálních kombinací služba×lokalita je nízké (43 %, 3 ze 7) a mapa-pack výkon se zhoršuje (2 z 5 v top 3, průměrná pozice 6,2, trend −5 za 30 dní). Největší nevyužitý objem poptávky leží u „Bělení zubů — Praha“ s 1 400 hledáními měsíčně bez vlastní stránky, což je více než dvojnásobek druhé největší mezery. Recenze jsou solidní (4,3★, 214 hodnocení), takže limitem růstu je chybějící obsahové pokrytí, ne důvěryhodnost.",
   "worstGap": "Bělení zubů — Praha",
-  "recommendation": "Vytvořit dedikovanou lokální stránku pro Bělení zubů v Praze (vlastní URL, NAP, služby, recenze k tématu) a propojit ji s GBP záznamem pro tuto kombinaci — uzavře nejvyšší neobsloužený objem hledání (1 400/měs.) a dá mapa-pack signálu relevance, který teď chybí.",
+  "recommendation": "Vytvořit dedikovanou lokální stránku/službu pro „Bělení zubů — Praha“ (vlastní URL, NAP, lokální reference a strukturovaná data) a propojit ji s GBP záznamem pro Prahu, aby se uzavřela mezera s nejvyšším objemem hledání.",
   "risks": [
-    "Klesající trend mapa-pack pozic (−5 za 30 dní) může nový obsah zpomalit, pokud se současně neřeší technické/on-page signály existujících stránek.",
-    "Bez zrychlení sběru nových recenzí konkrétně k bělení zubů v Praze nemusí nová stránka rychle získat důvěryhodnost v mapa-packu."
+    "Bez vlastní stránky pro tuto kombinaci nelze v datech ověřit skutečnou konverzní hodnotu poptávky, jde jen o objem hledání.",
+    "Zhoršující se trend pozic (−5 za 30 dní) může další mezeru prohlubovat rychleji, než ji stihne nová stránka kompenzovat."
   ]
 }
