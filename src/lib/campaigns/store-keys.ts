@@ -13,6 +13,18 @@ export function safeKeyComponent(s: string): string {
   return s.replace(/[^A-Za-z0-9_-]/g, "_");
 }
 
+/** The stable synthetic "account" component a per-user Sklik connection keys its
+ *  tenant under — the Sklik counterpart of a Google customerId. Because Sklik data
+ *  is keyed with THIS fixed suffix (never the volatile Google customerId), a Sklik
+ *  user who LATER connects Google does not orphan their Sklik-synced history: Google
+ *  data lands under its own `_{customerId}` tenant, Sklik history stays addressable
+ *  under `_sklik`, and disconnecting Google restores the Sklik view. The read path
+ *  (resolveTenant) and the sync path (resolveCampaignContext) both apply it whenever
+ *  the user has a per-user Sklik connection and no active Google account, so the two
+ *  never disagree. NB: the legacy env-only global token keeps the base key (no
+ *  per-user connection → no suffix), so pre-existing env-token data is untouched. */
+export const SKLIK_TENANT_SUFFIX = "sklik";
+
 /** The per-tenant key: per-user, optionally per-project, optionally per-account.
  *  Single source of truth for the read path (resolveTenant), the sync path
  *  (resolveCampaignContext) and the mutation audit, so no two of them can ever

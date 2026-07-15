@@ -36,7 +36,9 @@ import {
   fetchSklikSeries,
 } from "@/lib/sklik/adapter";
 import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
-import { buildTenantKey } from "./store-keys";
+import { buildTenantKey, SKLIK_TENANT_SUFFIX } from "./store-keys";
+import { getSklikConnection } from "./sklik-connection";
+import { decryptToken } from "@/lib/inventory/token-crypto";
 import type { ProjectType } from "@/lib/projects/types";
 
 /** Stable id of the data source behind a connector, persisted alongside the data
@@ -191,16 +193,20 @@ function googleAdsProvider(
   );
 }
 
-/** Whether a Sklik API token is configured (env-gated; per-user credentials are a
- *  documented follow-up). */
+/** Whether the deployment-wide env Sklik token is set. This is now only the DEV /
+ *  DEPLOY FALLBACK — the primary credential is the caller's per-user encrypted token
+ *  (see {@link resolveSklik}). Kept so a single-tenant self-host can still light up
+ *  Sklik with one env var and no connect step. */
 export function sklikConfigured(): boolean {
   return Boolean(process.env.SKLIK_API_TOKEN);
 }
 
-/** Live Sklik provider — one {@link SklikClient} (env token + HTTP transport) per
- *  sync, its DATA-IN fetchers behind the same sample fallback as Google. */
-function sklikProvider(fallback: AdsConnector): AdsConnector {
-  const client = new SklikClient(httpSklikTransport(), process.env.SKLIK_API_TOKEN ?? "");
+/** Live Sklik provider — one {@link SklikClient} (the caller's token + HTTP
+ *  transport) per sync, its DATA-IN fetchers behind the same sample fallback as
+ *  Google. The token is resolved by {@link resolveSklik} (per-user first, env
+ *  fallback second), so this stays credential-source-agnostic. */
+function sklikProvider(fallback: AdsConnector, token: string): AdsConnector {
+  const client = new SklikClient(httpSklikTransport(), token);
   return withSampleFallback(
     "sklik",
     "Sklik · živá data",
@@ -234,13 +240,37 @@ const resolveGoogle: LiveProviderResolver = async ({ userId, connection, fallbac
   return token ? googleAdsProvider(token, connection.customerId, fallback) : null;
 };
 
-/** Sklik applies to a signed-in user with NO Google account connected when a Sklik
- *  API token is configured. It never overrides a Google connection (Google-first),
- *  so existing Google/sample behaviour is untouched when SKLIK_API_TOKEN is unset. */
-const resolveSklik: LiveProviderResolver = async ({ connection, fallback }) => {
-  if (connection || !sklikConfigured()) return null;
-  return sklikProvider(fallback);
+/** Sklik applies to a signed-in user with NO Google account connected. It prefers
+ *  the caller's OWN per-user encrypted token; the deployment-wide env SKLIK_API_TOKEN
+ *  is the documented dev/deploy fallback. It never overrides a Google connection
+ *  (Google-first), so existing Google/sample behaviour is untouched. */
+const resolveSklik: LiveProviderResolver = async ({ userId, connection, fallback }) => {
+  if (connection) return null;
+  const token = await resolveSklikToken(userId);
+  return token ? sklikProvider(fallback, token) : null;
 };
+
+/** The Sklik token to sync a user with: their per-user encrypted token first, the
+ *  env fallback second. Null when neither is available (→ sample). Server-only. */
+async function resolveSklikToken(userId: string): Promise<string | null> {
+  const conn = await getSklikConnection(userId);
+  if (conn?.tokenEnc) {
+    const token = decryptToken(conn.tokenEnc);
+    if (token) return token;
+  }
+  return process.env.SKLIK_API_TOKEN ?? null;
+}
+
+/** The stable account suffix a user's account-scoped tenant keys under when they
+ *  have NO active Google account: `sklik` for a per-user Sklik connection (so a
+ *  later Google connection can't orphan Sklik history — see SKLIK_TENANT_SUFFIX),
+ *  else null (base key). Deliberately keyed on the PER-USER connection only — the
+ *  env-only global token keeps the historical base key, so pre-existing env-token
+ *  data is not stranded. Shared by the read (resolveTenant) and sync
+ *  (resolveCampaignContext) paths so they never disagree. */
+async function sklikAccountSuffix(userId: string): Promise<string | null> {
+  return (await getSklikConnection(userId)) ? SKLIK_TENANT_SUFFIX : null;
+}
 
 /** Live providers in precedence order. The first to return a connector wins;
  *  none → the sample fallback. Adding a provider is a one-line registry change. */
@@ -266,7 +296,11 @@ export async function resolveTenant(
   // read and sync keys agree.
   if (opts.accountScoped === false) return buildTenantKey(userId, projectId);
   const connection = await getAdsConnection(userId);
-  return buildTenantKey(userId, projectId, connection?.customerId);
+  // Google account wins the suffix; with none, a per-user Sklik connection gets the
+  // stable `sklik` suffix so read and sync tenants agree AND a later Google connect
+  // never orphans Sklik history (see sklikAccountSuffix / SKLIK_TENANT_SUFFIX).
+  const suffix = connection?.customerId ?? (await sklikAccountSuffix(userId));
+  return buildTenantKey(userId, projectId, suffix);
 }
 
 /** The tenant key for a SPECIFIC connected account — the read-side counterpart of
@@ -304,11 +338,13 @@ export async function resolveCampaignContext(
 
   const override = customerId ? await getConnectedAccount(userId, customerId) : null;
   const connection = override ?? (await getAdsConnection(userId));
-  // Tenant keying is unchanged: it hangs off the Google connection's customerId
-  // when present. A Sklik-sourced user has no Google connection, so it keys on the
-  // per-user/per-project base — which is exactly what resolveTenant computes on the
-  // read side, so read and sync tenants still agree.
-  const tenant = buildTenantKey(userId, projectId, connection?.customerId);
+  // Tenant keying hangs off the Google connection's customerId when present; a
+  // Sklik-sourced user (no Google connection) with a per-user token keys on the
+  // stable `sklik` suffix instead of the bare base — the SAME suffix resolveTenant
+  // applies on the read side, so read and sync tenants agree AND a later Google
+  // connection can never orphan the Sklik-synced history.
+  const suffix = connection?.customerId ?? (await sklikAccountSuffix(userId));
+  const tenant = buildTenantKey(userId, projectId, suffix);
 
   // Provider registry: try each live provider in precedence order; the first whose
   // credentials resolve wins, otherwise the deterministic sample provider. This

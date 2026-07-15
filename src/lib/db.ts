@@ -256,6 +256,22 @@ const SCHEMA = `
     PRIMARY KEY (user_id, project_id)
   );
 
+  -- LOCAL_DB mode only: a user's per-user Sklik API connection. token_enc is the
+  -- AES-GCM-encrypted Sklik API token (see inventory/token-crypto.ts) — never stored
+  -- plaintext, never returned to the client. money_verdict / halere_confirmed carry
+  -- the Direction-3 money-unit diagnostic + the owner's confirmed haléře conversion.
+  -- Keyed by user (a Seznam login is per-user). Mirrors the Firestore
+  -- sklikConnections doc. See src/lib/campaigns/sklik-connection.*.
+  CREATE TABLE IF NOT EXISTS sklik_connection (
+    user_id             TEXT PRIMARY KEY,
+    token_enc           TEXT NOT NULL,
+    connected_at        TEXT NOT NULL,
+    money_verdict       TEXT,
+    money_verdict_at    TEXT,
+    halere_confirmed    INTEGER,
+    halere_confirmed_at TEXT
+  );
+
   -- Direction 1: a project's owner-entered finance inputs (the /zisk module's margin
   -- scenarios, per-period real-numbers override and last-edited per-channel margins),
   -- as one {realNumbers?, scenarios, channelMargins?, updatedAt} blob. Replaces the
@@ -474,6 +490,23 @@ const MIGRATIONS: Migration[] = [
       );
     },
     applied: (db) => tableExists(db, "twin_archive"),
+  },
+  {
+    version: 13,
+    name: "sklik_connection (per-user encrypted Sklik API token → live citizen sync)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS sklik_connection (
+          user_id             TEXT PRIMARY KEY,
+          token_enc           TEXT NOT NULL,
+          connected_at        TEXT NOT NULL,
+          money_verdict       TEXT,
+          money_verdict_at    TEXT,
+          halere_confirmed    INTEGER,
+          halere_confirmed_at TEXT
+        )`
+      ),
+    applied: (db) => tableExists(db, "sklik_connection"),
   },
 ];
 

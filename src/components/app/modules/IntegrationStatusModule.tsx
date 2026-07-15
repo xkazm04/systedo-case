@@ -6,6 +6,7 @@ import { Pill, TONE_TEXT } from "@/components/ui";
 import type { PillTone } from "@/components/ui";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { statusSummary, type IntCategory, type IntegrationRow, type IntStatus } from "@/lib/integrations/compute";
+import SklikConnectCard from "@/components/campaigns/SklikConnectCard";
 
 const COPY = {
   cs: {
@@ -93,23 +94,33 @@ export default async function IntegrationStatusModule({ rows }: { rows: Integrat
       {/* Readiness by category */}
       <div className="space-y-6">
         {byCategory.map((g) => (
-          <div key={g.cat} className="card overflow-hidden">
-            <h3 className="border-b border-line px-5 py-3 text-sm font-semibold text-navy-800">
-              {c.categories[g.cat]}
-            </h3>
-            <ul className="divide-y divide-line">
-              {g.rows.map((r) => (
-                <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-navy-800">{c.items[r.id] ?? r.id}</div>
-                    <div className="text-xs text-muted">
-                      {c.itemHint[`${r.id}:${r.status}`] ?? c.hint[r.status]}
+          <div key={g.cat}>
+            <div className="card overflow-hidden">
+              <h3 className="border-b border-line px-5 py-3 text-sm font-semibold text-navy-800">
+                {c.categories[g.cat]}
+              </h3>
+              <ul className="divide-y divide-line">
+                {g.rows.map((r) => (
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-navy-800">{c.items[r.id] ?? r.id}</div>
+                      <div className="text-xs text-muted">
+                        {c.itemHint[`${r.id}:${r.status}`] ?? c.hint[r.status]}
+                      </div>
                     </div>
-                  </div>
-                  <Pill tone={TONE[r.status]}>{c.status[r.status]}</Pill>
-                </li>
-              ))}
-            </ul>
+                    <Pill tone={TONE[r.status]}>{c.status[r.status]}</Pill>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Sklik is now a real citizen: a live per-user connect row sits directly
+                under the Advertising readiness board so the honest status pairs with
+                the action that changes it. */}
+            {g.cat === "ads" && (
+              <div className="mt-4">
+                <SklikConnectCard />
+              </div>
+            )}
           </div>
         ))}
       </div>

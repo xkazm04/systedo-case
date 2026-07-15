@@ -8,6 +8,8 @@
  *  Guarded by CRON_SECRET (Vercel Cron sends it as a Bearer token when the env var
  *  is set). Schedule lives in vercel.json. */
 import { listConnectedAccounts, listConnectedUserIds } from "@/lib/campaigns/connection";
+import { listSklikConnectedUserIds } from "@/lib/campaigns/sklik-connection";
+import { unionConnectedUserIds } from "@/lib/campaigns/provider-precedence";
 import { resolveCampaignContext } from "@/lib/campaigns/connector";
 import { listProjects } from "@/lib/projects/store";
 import { getSyncMeta } from "@/lib/campaigns/store";
@@ -29,7 +31,19 @@ export async function GET(request: Request) {
   }
 
   const startedAt = new Date();
-  const userIds = await listConnectedUserIds();
+  // Fan out over Google-connected AND per-user-Sklik-connected users, deduped: a
+  // Sklik-only user (no Google adsConnections) used to be invisible to the cron and
+  // so NEVER synced daily. Now they are enumerated too; planSyncTargets returns their
+  // per-project null-account targets, and resolveCampaignContext picks the Sklik
+  // provider into the stable `sklik` tenant — the same tenant a manual sync / read
+  // uses, so the daily refresh and the on-screen data agree. A user with BOTH keeps
+  // Google-first (Sklik provider never fires while Google is connected), and the
+  // per-tenant idempotent upsert keeps the double-run guards intact.
+  const [googleUserIds, sklikUserIds] = await Promise.all([
+    listConnectedUserIds(),
+    listSklikConnectedUserIds(),
+  ]);
+  const userIds = unionConnectedUserIds(googleUserIds, sklikUserIds);
   const results: { userId: string; projectId?: string; customerId?: string; reason?: string; ok: boolean; alerted?: number; anomalies?: number; error?: string }[] = [];
   // Direction 1: the report's live series re-synced alongside the campaign sync. The
   // report had NO cron — refresh was manual-only, so syncedAt silently drifted and
