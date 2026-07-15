@@ -19,12 +19,15 @@ import { useTwinState, type TwinSource } from "@/components/app/twin/useTwinStat
 import { useT } from "@/lib/i18n/client";
 import { parseReplySeed, replySeedKey } from "@/lib/twin/reply-seed";
 import { voiceToWire } from "@/lib/twin/wire";
+import { upsertDraft } from "@/lib/twin/banking";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import {
   avoidDirectives,
+  channelConfig,
   rejectionPatterns,
   resolveVoice,
   type TwinChannel,
+  type TwinDraft,
   type TwinState,
 } from "@/lib/twin/types";
 import type { InboundLead } from "@/lib/speed-lead/sample";
@@ -93,6 +96,11 @@ export default function TwinInboxModule({
   const leadsVoice = resolveVoice(state.voices, "leads");
   const leadsAvoid = useMemo(() => avoidDirectives(rejectionPatterns(state.drafts, "leads")), [state.drafts]);
 
+  /** The `leads` channel's autonomy config + a banking sink, so the SpeedLead inbox
+   *  writes its generated replies into the shared outbox through the same gate. */
+  const leadsCfg = channelConfig(state.channels, "leads");
+  const bankLead = (draft: TwinDraft) => commit({ ...state, drafts: upsertDraft(state.drafts, draft) });
+
   return (
     <div className="stagger space-y-6">
       <TwinOutbox
@@ -112,6 +120,8 @@ export default function TwinInboxModule({
           {...(leadsVoice ? { voice: voiceToWire(leadsVoice) } : {})}
           examples={leadsVoice?.examples ?? []}
           avoid={leadsAvoid}
+          leadsCfg={leadsCfg}
+          onBankLead={bankLead}
         />
       )}
 

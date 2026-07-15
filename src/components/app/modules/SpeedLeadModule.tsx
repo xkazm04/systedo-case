@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill } from "@/components/ui";
 import NextSteps from "@/components/app/NextSteps";
-import { Bell, Bolt, Bookmark, Check, Clock, Copy, Info, Refresh, Sparkles } from "@/components/icons";
+import { Bell, Bolt, Bookmark, Check, Clock, Close, Copy, Info, Refresh, Sparkles } from "@/components/icons";
 import { CHANNEL_LABELS, type InboundLead } from "@/lib/speed-lead/sample";
 import { draftReply, SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
 import {
@@ -19,8 +19,12 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
 import { promptSafeName } from "@/lib/projects/name";
+import { asRejected, asSent, buildDraft, type DraftSeed } from "@/lib/twin/banking";
+import { decideDraft, REJECT_REASONS, type RejectReason, type TwinChannelConfig, type TwinDraft } from "@/lib/twin/types";
+import { REASON_LABELS } from "@/components/app/twin/labels";
 import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { mmss, useLeadSla, type SlaPhase } from "./speed-lead/useLeadSla";
 import { useSnippetLibrary } from "./speed-lead/useSnippetLibrary";
 import { describeQualification } from "./speed-lead/qualification";
@@ -68,6 +72,13 @@ const T = {
     sendReply: "Odeslat odpověď",
     sent: "Odesláno",
     sendDisclaimer: "Odeslání se v ukázce simuluje.",
+    reject: "Zamítnout",
+    rejectWhy: "Proč zamítáte?",
+    rejectNote: "Poznámka (nepovinná)",
+    confirmReject: "Zamítnout a poučit twin",
+    cancel: "Zrušit",
+    autoApproved: "Schváleno automaticky",
+    learned: "Twin se poučil z {n} zamítnutí na poptávkách.",
     nextStepLeadQuality: "Posoudit kvalitu leadů podle zdroje",
     nextStepLeadQualityHint: "Které zdroje plní pipeline a které jen formuláře",
     nextStepOptimize: "Optimalizovat zdroje s pomalou reakcí",
@@ -116,6 +127,13 @@ const T = {
     sendReply: "Send reply",
     sent: "Sent",
     sendDisclaimer: "Sending is simulated in this demo.",
+    reject: "Reject",
+    rejectWhy: "Why are you rejecting?",
+    rejectNote: "Note (optional)",
+    confirmReject: "Reject and teach the twin",
+    cancel: "Cancel",
+    autoApproved: "Auto-approved",
+    learned: "The twin has learned from {n} rejections on enquiries.",
     nextStepLeadQuality: "Assess lead quality by source",
     nextStepLeadQualityHint: "Which sources fill the pipeline vs. just fill forms",
     nextStepOptimize: "Optimise slow-response sources",
@@ -124,6 +142,8 @@ const T = {
     agoH: "{n} h ago",
   },
 } as const;
+
+const uid = () => Math.random().toString(36).slice(2, 10);
 
 /** A short project-type hint for the AI reply, grounded in the business's REAL
  *  catalog: prefer a service the lead names in their message, else the primary
@@ -147,6 +167,8 @@ export default function SpeedLeadModule({
   voice,
   examples = [],
   avoid = [],
+  leadsCfg,
+  onBankLead,
 }: {
   leads: InboundLead[];
   /** the business's real catalog service names, grounding the reply's type hint */
@@ -158,10 +180,16 @@ export default function SpeedLeadModule({
   examples?: string[];
   /** directives distilled from drafts a human rejected on this channel */
   avoid?: string[];
+  /** the `leads` channel's autonomy config — present ⇒ banking is enabled and a
+   *  generated reply flows through the same lifecycle as every other channel. */
+  leadsCfg?: TwinChannelConfig;
+  /** upsert a lead draft into the twin's outbox (append, or flip a record by id). */
+  onBankLead?: (draft: TwinDraft) => void;
 }) {
   const project = useProject();
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
 
   const [selectedId, setSelectedId] = useState(leads[0]?.id ?? "");
   /** id → captured BANT qualification; leads not yet touched fall back to EMPTY. */
@@ -272,6 +300,79 @@ export default function SpeedLeadModule({
   const usingAi = Boolean(aiReply);
   /** The questions to display — the AI's when present, else the deterministic set. */
   const questions = aiReply?.questions?.length ? aiReply.questions : draft?.questions ?? [];
+
+  // ── twin banking ────────────────────────────────────────────────────────────
+  // `leads` is one channel of the twin, so an AI-generated reply here banks into
+  // the SAME outbox and past the SAME autonomy gate as every other channel — not a
+  // second, private lifecycle. Banking is opt-in (leadsCfg + onBankLead present);
+  // the deterministic fallback draft is never banked, only a real generation is.
+  const bankingOn = Boolean(leadsCfg && onBankLead);
+  /** The record already banked for the current generation, so a later send/reject
+   *  FLIPS it (by id) rather than appending a duplicate. */
+  const bankedRef = useRef<TwinDraft | null>(null);
+  /** Keyed on lead+reply so the auto-bank effect fires once per generation. */
+  const bankKeyRef = useRef<string | null>(null);
+
+  const seedFor = (reply: string): DraftSeed | null =>
+    selected && aiReply
+      ? {
+          channel: "leads",
+          contact: selected.name,
+          inbound: selected.message,
+          reply,
+          questions: aiReply.questions,
+          confidence: aiReply.confidence,
+          risks: aiReply.risks,
+        }
+      : null;
+
+  /** Under `auto`, a confident risk-free lead reply self-approves the moment it
+   *  arrives — otherwise `auto` would be a label the leads inbox never earns. */
+  useEffect(() => {
+    if (!bankingOn || !leadsCfg || !onBankLead || !aiReply || !selected) return;
+    const verdict = decideDraft(leadsCfg, { confidence: aiReply.confidence, risks: aiReply.risks });
+    if (!verdict.autoApproved) return;
+    const key = `${selected.id}:${aiReply.reply}`;
+    if (bankKeyRef.current === key) return;
+    bankKeyRef.current = key;
+    const draft = buildDraft(leadsCfg, seedFor(aiReply.reply)!, uid(), new Date().toISOString());
+    bankedRef.current = draft;
+    onBankLead(draft);
+    // seedFor is a pure render-time closure; the ref guard makes this fire once.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankingOn, leadsCfg, onBankLead, aiReply, selected]);
+
+  /** The rejection tally already learned on this channel — the same feedback the
+   *  free-form outbox shows, so a human sees the twin is being taught. */
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectReason, setRejectReason] = useState<RejectReason>("off_brand");
+  const [rejectNote, setRejectNote] = useState("");
+
+  /** Record the human's send as a `sent` lead draft — flipping the auto-approved
+   *  record if the gate already banked one, else banking a fresh one. This is what
+   *  makes the activity readiness milestone tickable from the leads inbox. */
+  const bankSend = () => {
+    if (!bankingOn || !onBankLead || !leadsCfg || !selected || !aiReply) return;
+    const now = new Date().toISOString();
+    const base = bankedRef.current ?? buildDraft(leadsCfg, seedFor(replyText)!, uid(), now);
+    onBankLead(asSent(base, now));
+    bankedRef.current = null;
+    bankKeyRef.current = `${selected.id}:${aiReply.reply}`; // don't re-auto-bank
+  };
+
+  /** Reject with a counted reason — feeds `rejectionPatterns(drafts,"leads")`, the
+   *  wiring that turns past "no"s into the next generation's avoid directives. */
+  const confirmReject = () => {
+    if (!bankingOn || !onBankLead || !leadsCfg || !selected || !aiReply) return;
+    const now = new Date().toISOString();
+    const base = bankedRef.current ?? buildDraft(leadsCfg, seedFor(replyText)!, uid(), now);
+    onBankLead(asRejected(base, now, rejectReason, rejectNote));
+    bankedRef.current = null;
+    bankKeyRef.current = `${selected.id}:${aiReply.reply}`;
+    setRejecting(false);
+    setRejectNote("");
+    reset();
+  };
 
   const focusFirstBreached = () => {
     const el = firstBreachedRef.current;
@@ -507,6 +608,12 @@ export default function SpeedLeadModule({
                   {aiReply.risks.length === 0 ? (
                     <Pill tone="positive">{t("noRisks")}</Pill>
                   ) : null}
+                  {bankingOn && leadsCfg && decideDraft(leadsCfg, aiReply).autoApproved ? (
+                    <Pill tone="positive">
+                      <Check width={12} height={12} />
+                      {t("autoApproved")}
+                    </Pill>
+                  ) : null}
                 </div>
                 {aiReply.risks.length > 0 ? (
                   <ul className="space-y-1 rounded-lg bg-coral-soft px-3 py-2">
@@ -516,6 +623,64 @@ export default function SpeedLeadModule({
                       </li>
                     ))}
                   </ul>
+                ) : null}
+                {/* Reject with a counted reason — the leads inbox's half of the same
+                    training loop the free-form outbox runs. */}
+                {bankingOn ? (
+                  rejecting ? (
+                    <div className="space-y-2 rounded-lg border border-line bg-surface p-3">
+                      <p className="text-xs font-semibold text-navy-800">{t("rejectWhy")}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {REJECT_REASONS.map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            onClick={() => setRejectReason(r)}
+                            aria-pressed={rejectReason === r}
+                            className={`rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                              rejectReason === r
+                                ? "border-brand-400 bg-brand-50 text-brand-800"
+                                : "border-line text-muted hover:border-navy-200"
+                            }`}
+                          >
+                            {REASON_LABELS[r][locale === "en" ? "en" : "cs"]}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={rejectNote}
+                        onChange={(e) => setRejectNote(e.target.value)}
+                        placeholder={t("rejectNote")}
+                        className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={confirmReject}
+                          className="rounded-pill bg-negative px-4 py-2 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                        >
+                          {t("confirmReject")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRejecting(false)}
+                          className="rounded-pill border border-line px-4 py-2 text-xs font-semibold text-muted transition-colors hover:text-navy-800"
+                        >
+                          {t("cancel")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setRejecting(true)}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:border-negative/40 hover:text-negative"
+                    >
+                      <Close width={13} height={13} />
+                      {t("reject")}
+                    </button>
+                  )
                 ) : null}
               </div>
             ) : null}
@@ -584,7 +749,10 @@ export default function SpeedLeadModule({
           <div className="mt-5 flex items-center gap-3 border-t border-line pt-4">
             <button
               type="button"
-              onClick={() => markResponded(selected.id)}
+              onClick={() => {
+                bankSend();
+                markResponded(selected.id);
+              }}
               disabled={respondedAt.has(selected.id)}
               className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
             >

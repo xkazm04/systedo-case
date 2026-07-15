@@ -20,6 +20,7 @@ import {
 import { deriveReadiness, buildGaps } from "@/lib/twin/readiness";
 import { sampleTwin } from "@/lib/twin/sample";
 import { voiceToWire } from "@/lib/twin/wire";
+import { asApproved, asRejected, asSent, buildDraft, upsertDraft } from "@/lib/twin/banking";
 import { voiceLines } from "@/lib/ai/tools/voice";
 
 const cfg = (over = {}) => ({
@@ -167,6 +168,79 @@ test("buildGaps ranks empty milestones before partial ones", () => {
     assert.ok(lastEmpty < firstPartial, "every empty gap outranks every partial one");
   }
   assert.ok(gaps.every((g) => g.delta > 0), "each gap recovers something");
+});
+
+// --- banking: the shared draft lifecycle ----------------------------------
+
+const seed = (over = {}) => ({
+  channel: "leads",
+  contact: "Jana",
+  inbound: "Máte volný termín?",
+  reply: "Dobrý den, ozvu se s termínem.",
+  questions: ["Kdy se vám to hodí?"],
+  confidence: 90,
+  risks: [],
+  ...over,
+});
+
+test("buildDraft runs the SAME autonomy gate every channel uses", () => {
+  const autoOk = buildDraft(cfg(), seed(), "id1", "2026-07-15T00:00:00.000Z");
+  assert.equal(autoOk.status, "approved", "auto + confident + risk-free self-approves");
+  assert.equal(autoOk.autoApproved, true);
+  assert.equal(autoOk.decidedAt, "2026-07-15T00:00:00.000Z", "a machine decision is stamped");
+
+  const risky = buildDraft(cfg(), seed({ risks: ["Slibuje termín."] }), "id2", "2026-07-15T00:00:00.000Z");
+  assert.equal(risky.status, "pending", "a risk forces human review");
+  assert.equal(risky.autoApproved, false);
+  assert.equal("decidedAt" in risky, false, "a pending draft isn't decided yet");
+
+  const supervised = buildDraft(cfg({ autonomy: "assist" }), seed(), "id3", "2026-07-15T00:00:00.000Z");
+  assert.equal(supervised.status, "pending", "assist never self-approves");
+});
+
+test("asApproved/asRejected/asSent are the pure status transitions", () => {
+  const base = buildDraft(cfg({ autonomy: "assist" }), seed(), "id", "2026-07-15T00:00:00.000Z");
+  const now = "2026-07-16T00:00:00.000Z";
+
+  const app = asApproved(base, now);
+  assert.equal(app.status, "approved");
+  assert.equal(app.autoApproved, false, "a human approval is never an auto-approval");
+  assert.equal(app.decidedAt, now);
+
+  const rej = asRejected(base, now, "too_long", "  zkrať to  ");
+  assert.equal(rej.status, "rejected");
+  assert.equal(rej.rejectReason, "too_long", "the counted reason feeds rejectionPatterns");
+  assert.equal(rej.rejectNote, "zkrať to", "the free note is trimmed");
+  assert.equal(asRejected(base, now, "off_brand").rejectNote, undefined, "an empty note is omitted");
+
+  const sent = asSent(app, now);
+  assert.equal(sent.status, "sent");
+  assert.equal(sent.sentAt, now);
+});
+
+test("upsertDraft appends a new draft but FLIPS one with the same id (no double-count)", () => {
+  const a = buildDraft(cfg(), seed(), "keep", "2026-07-15T00:00:00.000Z");
+  const drafts = [a];
+  const appended = upsertDraft(drafts, buildDraft(cfg(), seed(), "new", "2026-07-15T00:00:00.000Z"));
+  assert.equal(appended.length, 2, "a fresh id appends");
+
+  const flipped = upsertDraft(drafts, asRejected(a, "2026-07-16T00:00:00.000Z", "off_brand"));
+  assert.equal(flipped.length, 1, "the same id replaces in place");
+  assert.equal(flipped[0].status, "rejected", "the record is overturned, not duplicated");
+});
+
+test("a banked+sent lead draft ticks the `activity` readiness milestone", () => {
+  const state = { ...sampleTwin("leadgen"), drafts: [] };
+  const before = deriveReadiness(state, { offerings: 0 });
+  assert.equal(before.milestones.find((m) => m.milestone === "activity").level, "empty");
+
+  const leadSent = asSent(buildDraft(cfg({ channel: "leads" }), seed(), "d", "2026-07-15T00:00:00.000Z"), "2026-07-15T00:01:00.000Z");
+  const after = deriveReadiness({ ...state, drafts: [leadSent] }, { offerings: 0 });
+  assert.equal(
+    after.milestones.find((m) => m.milestone === "activity").level,
+    "complete",
+    "a sent lead draft is real activity — the milestone the leads inbox never used to reach"
+  );
 });
 
 // --- wire conversion -------------------------------------------------------

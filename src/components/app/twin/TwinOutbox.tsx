@@ -25,6 +25,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import { promptSafeName } from "@/lib/projects/name";
 import { voiceToWire } from "@/lib/twin/wire";
+import { asApproved, asRejected, buildDraft, upsertDraft } from "@/lib/twin/banking";
 import type { TwinReplyResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -215,26 +216,25 @@ export default function TwinOutbox({
     });
   };
 
-  /** Bank the live draft as a record. The autonomy gate decides whether it lands
-   *  approved or pending — the human's edits ride along either way. */
+  /** Bank the live draft as a record via the shared banking path. The autonomy
+   *  gate decides whether it lands approved or pending — the human's edits ride
+   *  along either way. */
   const bankDraft = (): TwinDraft | null => {
     if (!result || !draftContext) return null;
-    const verdict = decideDraft(cfg, { confidence: result.confidence, risks: result.risks });
-    const now = new Date().toISOString();
-    const draft: TwinDraft = {
-      id: uid(),
-      channel: draftContext.channel,
-      contact: draftContext.contact,
-      inbound: inbound.trim(),
-      reply: replyText,
-      questions: result.questions,
-      confidence: result.confidence,
-      risks: result.risks,
-      status: verdict.status,
-      autoApproved: verdict.autoApproved,
-      createdAt: now,
-    };
-    return draft;
+    return buildDraft(
+      cfg,
+      {
+        channel: draftContext.channel,
+        contact: draftContext.contact,
+        inbound: inbound.trim(),
+        reply: replyText,
+        questions: result.questions,
+        confidence: result.confidence,
+        risks: result.risks,
+      },
+      uid(),
+      new Date().toISOString()
+    );
   };
 
   /** The gate's verdict on the live draft, recomputed as the human edits nothing
@@ -258,36 +258,29 @@ export default function TwinOutbox({
     autoBankedRef.current = result.reply;
     const id = uid();
     autoBankedIdRef.current = id;
-    const now = new Date().toISOString();
-    onCommit({
-      ...state,
-      drafts: [
-        ...state.drafts,
-        {
-          id,
-          channel: draftContext.channel,
-          contact: draftContext.contact,
-          inbound: inbound.trim(),
-          reply: result.reply,
-          questions: result.questions,
-          confidence: result.confidence,
-          risks: result.risks,
-          status: "approved",
-          autoApproved: true,
-          decidedAt: now,
-          createdAt: now,
-        },
-      ],
-    });
+    const draft = buildDraft(
+      cfg,
+      {
+        channel: draftContext.channel,
+        contact: draftContext.contact,
+        inbound: inbound.trim(),
+        reply: result.reply,
+        questions: result.questions,
+        confidence: result.confidence,
+        risks: result.risks,
+      },
+      id,
+      new Date().toISOString()
+    );
+    onCommit({ ...state, drafts: [...state.drafts, draft] });
   }, [result, verdict, draftContext, cfg, inbound, state, onCommit]);
 
   const approve = () => {
     const draft = bankDraft();
     if (!draft) return;
-    const now = new Date().toISOString();
     // A human pressed Approve, so this is never an auto-approval however the gate
     // would have ruled.
-    const approved: TwinDraft = { ...draft, status: "approved", autoApproved: false, decidedAt: now };
+    const approved = asApproved(draft, new Date().toISOString());
     onCommit({ ...state, drafts: [...state.drafts, approved] });
     setPendingId(approved.id);
     ai.reset();
@@ -299,27 +292,15 @@ export default function TwinOutbox({
     const draft = bankDraft();
     if (!draft) return;
     const now = new Date().toISOString();
-    const note = rejectNote.trim();
-    const decide = <T extends TwinDraft>(d: T): T => ({
-      ...d,
-      status: "rejected" as const,
-      autoApproved: false,
-      decidedAt: now,
-      rejectReason,
-      ...(note ? { rejectNote: note } : {}),
-    });
 
     // The gate may already have banked this exact message as approved. Overturning
     // that verdict must edit the record, not add a second one — otherwise the
-    // rejection tally (and the audit trail) double-counts.
+    // rejection tally (and the audit trail) double-counts. `upsertDraft` flips the
+    // banked record by id, or appends a fresh rejected one.
     const bankedId = autoBankedIdRef.current;
-    const alreadyBanked = bankedId !== null && state.drafts.some((d) => d.id === bankedId);
-    onCommit({
-      ...state,
-      drafts: alreadyBanked
-        ? state.drafts.map((d) => (d.id === bankedId ? decide(d) : d))
-        : [...state.drafts, decide(draft)],
-    });
+    const banked = bankedId !== null ? state.drafts.find((d) => d.id === bankedId) ?? null : null;
+    const rejected = asRejected(banked ?? draft, now, rejectReason, rejectNote);
+    onCommit({ ...state, drafts: upsertDraft(state.drafts, rejected) });
     autoBankedIdRef.current = null;
     setRejecting(null);
     setRejectNote("");
