@@ -17,6 +17,7 @@ import {
 } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { BreakEven } from "@/lib/cost-model/compute";
+import type { TriageGoals } from "@/lib/campaigns/triage";
 import type { AlertRecord } from "@/lib/campaigns/alerts";
 import { alertStatus, alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -153,11 +154,17 @@ const SOURCE_KEY: Record<string, "sourceSample" | "sourceLive" | "sourceSklik"> 
 export default function CampaignsClient({
   breakEven = null,
   marginPct = null,
+  goals = null,
 }: {
   breakEven?: BreakEven | null;
   /** Direction 1: the tenant's persisted blended margin (0..1), threaded to the
    *  BudgetMoves preview so it scores/scales in profit. Null → margin-blind. */
   marginPct?: number | null;
+  /** Triage against the tenant's own goal: the agreed pnoGoal → target ROAS/PNO
+   *  (plus the margin-based break-even when a cost model exists), so the badges,
+   *  cell tones and banner all measure against the SAME per-tenant target. Null →
+   *  the module constants (default / unseeded tenant → byte-identical). */
+  goals?: TriageGoals | null;
 } = {}) {
   const project = useOptionalProject();
   const pid = project?.id;
@@ -515,6 +522,7 @@ export default function CampaignsClient({
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
           onPreparePackage={authed ? preparePackage : undefined}
+          goals={goals ?? undefined}
         />
       </section>
 
@@ -526,6 +534,7 @@ export default function CampaignsClient({
         changesById={changesById}
         activeType={typeFilter}
         onTypeClick={toggleTypeFilter}
+        goals={goals ?? undefined}
       />
 
       {/* Budget governance — one workflow, one place: the deterministic

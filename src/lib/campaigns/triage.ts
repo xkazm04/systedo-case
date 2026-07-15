@@ -44,16 +44,16 @@ export const SPEND_SPIKE_VALUE_LAG = 0.5;
  *  to colour classes; keeping the decision here means there is one threshold. */
 export type MetricTone = "good" | "bad" | "neutral" | "muted";
 
-export function roasMetricTone(roas: number): MetricTone {
-  if (roas >= TARGET_ROAS) return "good";
-  if (roas > 0 && roas < TARGET_ROAS * ROAS_CRITICAL_RATIO) return "bad";
+export function roasMetricTone(roas: number, targetRoas: number = TARGET_ROAS): MetricTone {
+  if (roas >= targetRoas) return "good";
+  if (roas > 0 && roas < targetRoas * ROAS_CRITICAL_RATIO) return "bad";
   return "neutral";
 }
 
-export function pnoMetricTone(pno: number): MetricTone {
+export function pnoMetricTone(pno: number, targetPno: number = TARGET_PNO): MetricTone {
   if (pno <= 0) return "muted";
-  if (pno <= TARGET_PNO) return "good";
-  if (pno >= TARGET_PNO * PNO_CRITICAL_RATIO) return "bad";
+  if (pno <= targetPno) return "good";
+  if (pno >= targetPno * PNO_CRITICAL_RATIO) return "bad";
   return "neutral";
 }
 
@@ -100,6 +100,57 @@ export interface TriageResult {
   primary: TriageReason | null;
 }
 
+// --- per-tenant goals --------------------------------------------------------
+// The rules judge against a target ROAS / PNO. By default these are the module
+// constants (the paid-portfolio target), but when a tenant's own goal is known
+// — its agreed pnoGoal, and optionally the margin-based break-even from a
+// persisted cost model — it is threaded in here so the badge, the cell colour and
+// the banner all measure against the SAME per-tenant goal. Absent (or degenerate)
+// → the constants, so a default / unseeded tenant stays byte-identical.
+
+export interface TriageGoals {
+  /** the tenant's target ROAS = 1 / pnoGoal. */
+  targetRoas: number;
+  /** the tenant's target PNO (agreed cost share of revenue = pnoGoal). */
+  targetPno: number;
+  /** the tenant's margin-based break-even ROAS (1 / gross margin) from a persisted
+   *  cost model, when one exists. Enables the margin-aware "above target but below
+   *  break-even" severity; omitted → that rule never fires (margin-blind, unchanged). */
+  breakEvenRoas?: number;
+}
+
+/** Resolved, validated goals every rule reads. A missing / degenerate field falls
+ *  back to the module constant, so a blank or corrupt profile can never flip a
+ *  rule into nonsense and the no-goal path is byte-identical to the pre-goal code. */
+interface ResolvedGoals {
+  targetRoas: number;
+  targetPno: number;
+  breakEvenRoas?: number;
+}
+
+function resolveGoals(goals?: TriageGoals): ResolvedGoals {
+  const targetRoas =
+    goals && typeof goals.targetRoas === "number" && goals.targetRoas > 0 ? goals.targetRoas : TARGET_ROAS;
+  const targetPno =
+    goals && typeof goals.targetPno === "number" && goals.targetPno > 0 ? goals.targetPno : TARGET_PNO;
+  const breakEvenRoas =
+    goals &&
+    typeof goals.breakEvenRoas === "number" &&
+    goals.breakEvenRoas > 0 &&
+    Number.isFinite(goals.breakEvenRoas)
+      ? goals.breakEvenRoas
+      : undefined;
+  return { targetRoas, targetPno, breakEvenRoas };
+}
+
+/** Build TriageGoals from a tenant's agreed pnoGoal (and optional break-even ROAS
+ *  from a persisted cost model). The single resolver the tenant-aware call sites
+ *  use, so the ROAS + PNO targets always derive from the one pnoGoal. */
+export function triageGoals(pnoGoal: number, breakEvenRoas?: number): TriageGoals {
+  const pno = typeof pnoGoal === "number" && pnoGoal > 0 ? pnoGoal : TARGET_PNO;
+  return { targetPno: pno, targetRoas: 1 / pno, breakEvenRoas };
+}
+
 // --- the rules ---------------------------------------------------------------
 // Ordered worst-first. ROAS bands are disjoint so a campaign never matches both
 // the critical and the warning ROAS rule. New rules (e.g. a drop vs the prior
@@ -110,11 +161,11 @@ interface Rule {
   severity: "critical" | "warning";
   label: string;
   labelEn: string;
-  test: (c: CampaignRow) => boolean;
-  detail: (c: CampaignRow) => string;
+  test: (c: CampaignRow, g: ResolvedGoals) => boolean;
+  detail: (c: CampaignRow, g: ResolvedGoals) => string;
 }
 
-const TARGET_LINE = `cíl ${fmtMultiple(TARGET_ROAS)} (PNO ${fmtPct(TARGET_PNO, 0)})`;
+const targetLine = (g: ResolvedGoals) => `cíl ${fmtMultiple(g.targetRoas)} (PNO ${fmtPct(g.targetPno, 0)})`;
 
 const RULES: Rule[] = [
   {
@@ -138,18 +189,40 @@ const RULES: Rule[] = [
     severity: "critical",
     label: "ROAS hluboko pod cílem",
     labelEn: "ROAS far below target",
-    test: (c) => c.cost > 0 && c.roas > 0 && c.roas < TARGET_ROAS * ROAS_CRITICAL_RATIO,
-    detail: (c) =>
-      `ROAS ${fmtMultiple(c.roas)} je pod ${fmtPct(ROAS_CRITICAL_RATIO, 0)} cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
+    test: (c, g) => c.cost > 0 && c.roas > 0 && c.roas < g.targetRoas * ROAS_CRITICAL_RATIO,
+    detail: (c, g) =>
+      `ROAS ${fmtMultiple(c.roas)} je pod ${fmtPct(ROAS_CRITICAL_RATIO, 0)} cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
   },
   {
     id: "below_target",
     severity: "warning",
     label: "Pod cílem",
     labelEn: "Below target",
-    test: (c) =>
-      c.cost > 0 && c.roas >= TARGET_ROAS * ROAS_CRITICAL_RATIO && c.roas < TARGET_ROAS,
-    detail: (c) => `ROAS ${fmtMultiple(c.roas)} nedosahuje cíle; ${TARGET_LINE}. PNO ${fmtPct(c.pno)}.`,
+    test: (c, g) =>
+      c.cost > 0 && c.roas >= g.targetRoas * ROAS_CRITICAL_RATIO && c.roas < g.targetRoas,
+    detail: (c, g) => `ROAS ${fmtMultiple(c.roas)} nedosahuje cíle; ${targetLine(g)}. PNO ${fmtPct(c.pno)}.`,
+  },
+  {
+    id: "below_breakeven",
+    severity: "warning",
+    label: "Nad cílem, ale pod bodem zvratu",
+    labelEn: "Above target, below break-even",
+    // Margin-aware honesty: a campaign that MEETS the agreed ROAS target can still
+    // lose money when the tenant's real gross margin puts break-even ABOVE that
+    // target (i.e. pnoGoal > margin). Only fires when a persisted cost model
+    // supplied a break-even ROAS; disjoint from the below_target / roas_critical
+    // bands (those need roas < target, this needs roas >= target). Margin-blind
+    // tenants (no cost model → no breakEvenRoas): never fires, so those stay
+    // byte-identical.
+    test: (c, g) =>
+      g.breakEvenRoas !== undefined &&
+      c.cost > 0 &&
+      c.roas >= g.targetRoas &&
+      c.roas < g.breakEvenRoas,
+    detail: (c, g) =>
+      `ROAS ${fmtMultiple(c.roas)} plní cíl, ale při vaší marži je bod zvratu ${fmtMultiple(
+        g.breakEvenRoas!
+      )} — kampaň je při této marži ztrátová.`,
   },
 ];
 
@@ -163,8 +236,8 @@ interface ChangeRule {
   severity: "critical" | "warning";
   label: string;
   labelEn: string;
-  test: (c: CampaignRow, ch: CampaignChange) => boolean;
-  detail: (c: CampaignRow, ch: CampaignChange) => string;
+  test: (c: CampaignRow, ch: CampaignChange, g: ResolvedGoals) => boolean;
+  detail: (c: CampaignRow, ch: CampaignChange, g: ResolvedGoals) => string;
 }
 
 const CHANGE_RULES: ChangeRule[] = [
@@ -175,12 +248,12 @@ const CHANGE_RULES: ChangeRule[] = [
     labelEn: "ROAS crater vs. last sync",
     // A real collapse: was meaningfully healthy, lost >40% of its ROAS, and has
     // now fallen below target. Guards against tiny-base noise via the before band.
-    test: (_c, ch) =>
+    test: (_c, ch, g) =>
       ch.kind === "changed" &&
-      ch.roasBefore >= TARGET_ROAS * ROAS_CRITICAL_RATIO &&
+      ch.roasBefore >= g.targetRoas * ROAS_CRITICAL_RATIO &&
       ch.roasAfter > 0 &&
       ch.roasAfter < ch.roasBefore * ROAS_CRATER_RETAINED_MAX &&
-      ch.roasAfter < TARGET_ROAS,
+      ch.roasAfter < g.targetRoas,
     detail: (_c, ch) =>
       `ROAS spadl z ${fmtMultiple(ch.roasBefore)} na ${fmtMultiple(ch.roasAfter)} od minulé synchronizace.`,
   },
@@ -214,18 +287,23 @@ export function triageReasonLabel(reason: TriageReason, locale: SupportedLocale)
 
 /** Classify one campaign against every rule. When a `change` (the diff against
  *  the prior sync) is supplied, the sync-over-sync rules also run, so a ROAS
- *  crater or an unbacked spend spike earns a badge a snapshot rule would miss. */
-export function triage(c: CampaignRow, change?: CampaignChange): TriageResult {
-  const reasons: TriageReason[] = RULES.filter((r) => r.test(c)).map((r) => ({
+ *  crater or an unbacked spend spike earns a badge a snapshot rule would miss.
+ *  When `goals` is supplied (the tenant's agreed pnoGoal → target ROAS, and
+ *  optionally the margin-based break-even), every rule judges against that
+ *  per-tenant goal instead of the module constants; omitted → the constants, so
+ *  a default / unseeded tenant is byte-identical. */
+export function triage(c: CampaignRow, change?: CampaignChange, goals?: TriageGoals): TriageResult {
+  const g = resolveGoals(goals);
+  const reasons: TriageReason[] = RULES.filter((r) => r.test(c, g)).map((r) => ({
     id: r.id,
     severity: r.severity,
     label: r.label,
-    detail: r.detail(c),
+    detail: r.detail(c, g),
   }));
   if (change) {
     for (const r of CHANGE_RULES) {
-      if (r.test(c, change)) {
-        reasons.push({ id: r.id, severity: r.severity, label: r.label, detail: r.detail(c, change) });
+      if (r.test(c, change, g)) {
+        reasons.push({ id: r.id, severity: r.severity, label: r.label, detail: r.detail(c, change, g) });
       }
     }
   }
@@ -243,8 +321,12 @@ export function triage(c: CampaignRow, change?: CampaignChange): TriageResult {
  *  should spend their attention (and their AI-evaluation clicks). When the
  *  sync-over-sync `change` is supplied, the change-aware rules count too, so a
  *  ROAS crater ranks with the criticals it is. */
-export function triageWeight(c: CampaignRow, change?: CampaignChange): number {
-  return SEVERITY_RANK[triage(c, change).severity] * 1e12 + c.cost;
+export function triageWeight(
+  c: CampaignRow,
+  change?: CampaignChange,
+  goals?: TriageGoals
+): number {
+  return SEVERITY_RANK[triage(c, change, goals).severity] * 1e12 + c.cost;
 }
 
 // --- portfolio summary (the banner headline) ---------------------------------
@@ -260,11 +342,12 @@ export interface TriageSummary {
 
 export function summarize(
   rows: CampaignRow[],
-  changesById?: Record<string, CampaignChange>
+  changesById?: Record<string, CampaignChange>,
+  goals?: TriageGoals
 ): TriageSummary {
   const s: TriageSummary = { critical: 0, warning: 0, attention: 0, ok: 0, total: rows.length };
   for (const r of rows) {
-    const sev = triage(r, changesById?.[r.id]).severity;
+    const sev = triage(r, changesById?.[r.id], goals).severity;
     if (sev === "critical") s.critical++;
     else if (sev === "warning") s.warning++;
     else s.ok++;
@@ -299,7 +382,10 @@ export interface SnapshotSummaryPoint {
  *  evaluation). The change-aware rules need a diff and deliberately don't run
  *  here: each historic point stands alone. Funnel fields the snapshot doesn't
  *  store (impressions/clicks) are zeroed — no rule reads them. */
-export function summarizeSnapshotEntries(entries: SnapshotTriageEntry[]): TriageSummary {
+export function summarizeSnapshotEntries(
+  entries: SnapshotTriageEntry[],
+  goals?: TriageGoals
+): TriageSummary {
   return summarize(
     entries.map((e, i) =>
       withMetrics({
@@ -313,6 +399,8 @@ export function summarizeSnapshotEntries(entries: SnapshotTriageEntry[]): Triage
         conversions: Number(e.conversions) || 0,
         conversionValue: Number(e.conversionValue) || 0,
       })
-    )
+    ),
+    undefined,
+    goals
   );
 }

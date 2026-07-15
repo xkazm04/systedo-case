@@ -7,6 +7,10 @@ import { PROJECT_TYPE_META } from "@/lib/projects/types";
 import { getT } from "@/lib/i18n/server";
 import { getCostModel } from "@/lib/cost-model/store";
 import { deriveBreakEven } from "@/lib/cost-model/compute";
+import { getClientProfile } from "@/lib/campaigns/report-config";
+import { resolveTenant } from "@/lib/campaigns/connector";
+import { triageGoals } from "@/lib/campaigns/triage";
+import { currentUserId } from "@/lib/session";
 
 
 const T = {
@@ -33,12 +37,21 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // preview scores donors by profit destruction (not revenue waste) and shows the
   // projected profit with the margin stated. Null → the margin-blind revenue scoring.
   const marginPct = costModel?.grossMarginPct ?? null;
+  // Triage learns the tenant's goals: resolve the agreed pnoGoal (→ target ROAS/PNO)
+  // once here and thread it, together with the margin-based break-even ROAS, so the
+  // table badges, cell tones and the banner all judge against the SAME per-tenant
+  // goal instead of the module constants. Default/unseeded profile (pnoGoal = the
+  // paid-portfolio target) → byte-identical to the module target.
+  const userId = await currentUserId();
+  const tenant = await resolveTenant(userId, project.id);
+  const { pnoGoal } = await getClientProfile(tenant);
+  const goals = triageGoals(pnoGoal, breakEven?.grossRoas);
   return (
     <ModulePage
       moduleKey="kampane"
       description={focus ? t("desc", { focus }) : undefined}
     >
-      <CampaignsClient breakEven={breakEven} marginPct={marginPct} />
+      <CampaignsClient breakEven={breakEven} marginPct={marginPct} goals={goals} />
     </ModulePage>
   );
 }

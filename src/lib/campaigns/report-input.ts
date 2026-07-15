@@ -20,7 +20,7 @@ import {
   type ChangesSummary,
 } from "./types";
 import { CAMPAIGN_PERIOD_LABELS } from "./types";
-import { triage } from "./triage";
+import { triage, triageGoals, type TriageGoals } from "./triage";
 import { recommendBudgetMoves } from "./budget-moves";
 import { DEFAULT_CLIENT_PROFILE, type ClientProfile } from "./report-config-types";
 
@@ -29,8 +29,8 @@ import { DEFAULT_CLIENT_PROFILE, type ClientProfile } from "./report-config-type
  *  re-inventing one that can contradict the screen. When the sync-over-sync
  *  `change` is supplied, the change-aware rules (roas_crater / spend_spike)
  *  run too, exactly like the table badges. */
-function triageLines(c: CampaignRow, change?: CampaignChange): string[] {
-  const t = triage(c, change);
+function triageLines(c: CampaignRow, change?: CampaignChange, goals?: TriageGoals): string[] {
+  const t = triage(c, change, goals);
   if (t.reasons.length === 0) return ["- Bez porušení pravidel triáže (plní cíle)."];
   return t.reasons.map(
     (r) => `- [${r.severity === "critical" ? "KRITICKÉ" : "sledovat"}] ${r.label}: ${r.detail}`
@@ -132,6 +132,10 @@ export function buildCampaignPrompt(
   patternLines: string[] = []
 ): string {
   const changesById = indexChanges(changes);
+  // The tenant's agreed pnoGoal grounds the deterministic triage the model must
+  // agree with, so the prompt and the UI badge measure against the SAME target.
+  // Default profile (Mionelo, pnoGoal = paid-portfolio target) → byte-identical.
+  const goals = triageGoals(client.pnoGoal);
   const t = withMetrics(target);
   const portfolio = aggregate(all);
   const ranked = [...all].map(withMetrics).sort((a, b) => b.roas - a.roas);
@@ -158,7 +162,7 @@ export function buildCampaignPrompt(
     `- Typ ${CAMPAIGN_TYPE_LABELS[target.type]} celkem (${typeTotal.count} kampaní): náklady ${fmtCZK(typeTotal.cost)}, ROAS ${fmtMultiple(typeTotal.roas)}, PNO ${fmtPct(typeTotal.pno)}.`,
     "",
     "DETERMINISTICKÁ TRIÁŽ (pravidlová diagnóza zobrazená u kampaně — tvé hodnocení s ní musí být v souladu):",
-    ...triageLines(t, changesById[target.id]),
+    ...triageLines(t, changesById[target.id], goals),
     ...(patternLines.length > 0
       ? [
           "",
@@ -183,14 +187,16 @@ export function buildOverallPrompt(
   client: ClientProfile = DEFAULT_CLIENT_PROFILE
 ): string {
   const changesById = indexChanges(changes);
+  const goals = triageGoals(client.pnoGoal);
   const portfolio = aggregate(all);
   const types = groupByType(all);
   const rows = [...all].map(withMetrics).sort((a, b) => b.cost - a.cost);
   // Deterministic layer the model must agree with: rule-based triage (change-
-  // aware when the sync diff is supplied, matching the UI badges) + the
-  // quantified budget-reallocation the BudgetMoves card already shows on screen.
+  // aware when the sync diff is supplied, matching the UI badges, and judged
+  // against the tenant's agreed pnoGoal) + the quantified budget-reallocation the
+  // BudgetMoves card already shows on screen.
   const flagged = rows
-    .map((c) => ({ c, t: triage(c, changesById[c.id]) }))
+    .map((c) => ({ c, t: triage(c, changesById[c.id], goals) }))
     .filter((x) => x.t.severity !== "ok");
   // includePauses: a zero-return spender surfaces as a pause recommendation, so
   // the prompt's deterministic-moves block can't contradict a critical

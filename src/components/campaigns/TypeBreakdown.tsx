@@ -11,7 +11,7 @@ import {
   type CampaignChange,
   type CampaignType,
 } from "@/lib/campaigns/types";
-import { summarize } from "@/lib/campaigns/triage";
+import { summarize, type TriageGoals } from "@/lib/campaigns/triage";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -48,6 +48,7 @@ export default function TypeBreakdown({
   changesById,
   activeType,
   onTypeClick,
+  goals,
 }: {
   campaigns: Campaign[];
   /** per-campaign-id diff vs the prior sync — lets the per-type attention count
@@ -59,11 +60,16 @@ export default function TypeBreakdown({
    *  Omitted on read-only surfaces (the shared client report) — cards stay
    *  plain, non-interactive tiles there. */
   onTypeClick?: (type: CampaignType) => void;
+  /** the tenant's triage goal (target ROAS/PNO), so the per-type ROAS colour and
+   *  the attention rollup measure against the same goal as the table. Omitted →
+   *  the module target (byte-identical). */
+  goals?: TriageGoals;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
   const groups = groupByType(campaigns);
   const totalCost = aggregate(campaigns).cost || 1;
+  const targetRoas = goals && goals.targetRoas > 0 ? goals.targetRoas : TARGET_ROAS;
 
   return (
     <section>
@@ -74,12 +80,12 @@ export default function TypeBreakdown({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map((g) => {
           const tot = g.total;
-          const beats = tot.roas >= TARGET_ROAS;
+          const beats = tot.roas >= targetRoas;
           const costShare = tot.cost / totalCost;
           const convValue = fmt.fmtCZKCompactA11y(tot.conversionValue);
           // Per-type triage rollup — an aggregate ROAS can look fine while the
           // group hides two critical campaigns; the pill stops that masking.
-          const attention = summarize(g.campaigns.map(withMetrics), changesById).attention;
+          const attention = summarize(g.campaigns.map(withMetrics), changesById, goals).attention;
           const attentionKey =
             attention === 1 ? "attention1" : attention >= 2 && attention <= 4 ? "attention234" : "attentionN";
           const active = activeType === g.type;

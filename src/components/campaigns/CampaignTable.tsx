@@ -31,6 +31,7 @@ import {
   triageWeight,
   type MetricTone,
   type Severity,
+  type TriageGoals,
 } from "@/lib/campaigns/triage";
 import type { CampaignReport, ReportHistoryPoint } from "@/lib/ai-types";
 import type { DailyPoint } from "@/lib/campaigns/types";
@@ -228,6 +229,7 @@ export default function CampaignTable({
   typeFilter,
   onTypeFilterChange,
   onPreparePackage,
+  goals,
 }: {
   campaigns: Campaign[];
   reports: Record<string, CampaignReport>;
@@ -258,6 +260,12 @@ export default function CampaignTable({
    *  visitors (the control-plane route is signed-in only). Resolves false on
    *  failure so the row can drop its busy state. */
   onPreparePackage?: (campaignId: string) => Promise<boolean> | void;
+  /** the tenant's triage goal — agreed pnoGoal → target ROAS/PNO, plus the
+   *  margin-based break-even when a cost model exists. Threaded through every
+   *  triage / tone / banner call so the badges, cell colours and the summary all
+   *  measure against the SAME goal. Omitted → the module constants (byte-identical
+   *  default). */
+  goals?: TriageGoals;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -326,7 +334,7 @@ export default function CampaignTable({
   const runFlaggedBatch = () => {
     const queue = batchPending
       .slice()
-      .sort((a, b) => triageWeight(b.c, changesById[b.c.id]) - triageWeight(a.c, changesById[a.c.id]))
+      .sort((a, b) => triageWeight(b.c, changesById[b.c.id], goals) - triageWeight(a.c, changesById[a.c.id], goals))
       .map(({ c }) => c.id);
     void runBatch(queue);
   };
@@ -368,14 +376,14 @@ export default function CampaignTable({
   // Derive once, then filter + sort. The helpers are pure and Next's React
   // Compiler memoizes the component, so we compute the view directly.
   const all = campaigns.map(withMetrics);
-  const summary = summarize(all, changesById); // portfolio-wide — independent of the active filters
+  const summary = summarize(all, changesById, goals); // portfolio-wide — independent of the active filters
   const q = query.trim().toLowerCase();
   const filtersActive =
     q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
 
   // Each row carries its triage result so the badge, the filter, the sort and
   // the batch queue all read the same classification.
-  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id]) }));
+  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id], goals) }));
   // Flagged rows still lacking a report — the "evaluate all flagged" queue.
   const batchPending = allRows.filter(({ c, tr }) => tr.severity !== "ok" && !reports[c.id]);
   const view = allRows
@@ -704,10 +712,10 @@ export default function CampaignTable({
                     <td className="tnum px-3 py-3 text-right text-navy-700">
                       {c.conversions > 0 ? fmt.fmtCZK(c.cpa) : "—"}
                     </td>
-                    <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[roasMetricTone(c.roas)]}`}>
+                    <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[roasMetricTone(c.roas, goals?.targetRoas)]}`}>
                       {c.roas > 0 ? fmt.fmtMultiple(c.roas) : "—"}
                     </td>
-                    <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[pnoMetricTone(c.pno)]}`}>
+                    <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[pnoMetricTone(c.pno, goals?.targetPno)]}`}>
                       {c.pno > 0 ? fmt.fmtPct(c.pno) : "—"}
                     </td>
                     <td className="px-5 py-3 text-right">
@@ -889,10 +897,10 @@ export default function CampaignTable({
                     <td className="tnum px-3 py-3 text-right text-navy-800">
                       {seg.conversions > 0 ? fmt.fmtCZK(seg.cpa) : "—"}
                     </td>
-                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[roasMetricTone(seg.roas)]}`}>
+                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[roasMetricTone(seg.roas, goals?.targetRoas)]}`}>
                       {seg.roas > 0 ? fmt.fmtMultiple(seg.roas) : "—"}
                     </td>
-                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[pnoMetricTone(seg.pno)]}`}>
+                    <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[pnoMetricTone(seg.pno, goals?.targetPno)]}`}>
                       {seg.pno > 0 ? fmt.fmtPct(seg.pno) : "—"}
                     </td>
                     <td className="px-5 py-3" />
