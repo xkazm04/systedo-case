@@ -10,6 +10,7 @@ import { ArrowRight, Check, Clock, Refresh, Target } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { DiagnosisStatus, StoredDiagnosis } from "@/lib/diagnoses/types";
+import type { DiagnosisSaveErrorKind } from "@/components/ai/useDiagnosisPersistence";
 
 const T = {
   cs: {
@@ -63,6 +64,59 @@ const SAMPLE_T = {
   cs: { note: "Ukázková data — diagnóza běží nad ilustrativním vzorkem, ne nad živým importem." },
   en: { note: "Sample data — the diagnosis ran on the illustrative sample, not a live import." },
 } as const;
+
+/** Direction 3 — a save / status write failed. The operator paid quota for this
+ *  diagnosis; say the persistence didn't land (instead of swallowing it) and offer a
+ *  one-tap retry + dismiss. Coral, mirroring the app's other inline failure notes. */
+const SAVE_ERROR_T = {
+  cs: {
+    save: "Uložení diagnózy se nezdařilo — výsledek je zobrazen, ale nemusí přetrvat.",
+    status: "Změnu stavu se nepodařilo uložit.",
+    retry: "Zkusit znovu",
+    dismiss: "Skrýt",
+  },
+  en: {
+    save: "Saving the diagnosis failed — the result is shown but may not persist.",
+    status: "Could not save the status change.",
+    retry: "Try again",
+    dismiss: "Dismiss",
+  },
+} as const;
+
+export function DiagnosisSaveError({
+  error,
+  onRetry,
+  onDismiss,
+}: {
+  error: DiagnosisSaveErrorKind;
+  onRetry: () => void;
+  onDismiss: () => void;
+}) {
+  const t = useT(SAVE_ERROR_T);
+  if (!error) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-card border border-coral-400/30 bg-coral-soft px-4 py-3">
+      <span className="min-w-0 flex-1 text-sm leading-relaxed text-coral-600">
+        {error === "save" ? t("save") : t("status")}
+      </span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="inline-flex items-center gap-1.5 rounded-pill bg-onyx px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-800"
+      >
+        <Refresh width={13} height={13} />
+        {t("retry")}
+      </button>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="text-xs font-medium text-muted transition-colors hover:text-navy-700"
+      >
+        {t("dismiss")}
+      </button>
+    </div>
+  );
+}
 
 export function DiagnosisSampleNote({ sample }: { sample: boolean }) {
   const t = useT(SAMPLE_T);

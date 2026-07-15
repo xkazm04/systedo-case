@@ -6,9 +6,7 @@
 import "server-only";
 import { LOCAL_DB } from "@/lib/local-mode";
 import {
-  appendDiagnosis,
   latestOfKind,
-  setStatusIn,
   type DiagnosisKind,
   type DiagnosisState,
   type DiagnosisStatus,
@@ -34,36 +32,27 @@ export async function clearDiagnoses(projectId: string): Promise<void> {
   return (await backend()).clearDiagnoses(projectId);
 }
 
-/** Read-modify-write: prepend one diagnosis (re-capped per kind) and persist. A
- *  store hiccup on the read is swallowed to a fresh blob so a first save never
- *  fails on a missing doc. Returns the stored diagnosis. */
+/** ATOMIC read-modify-write (Direction 3): prepend one diagnosis (re-capped per kind)
+ *  and persist inside a single transaction in the active backend (Firestore txn /
+ *  sqlite BEGIN IMMEDIATE), so a concurrent save (panel + digest cron) can't clobber a
+ *  just-stored diagnosis. Returns the stored diagnosis; PROPAGATES a store failure so
+ *  the caller (the persist route) can surface it instead of silently losing the save. */
 export async function recordDiagnosis(
   projectId: string,
   diagnosis: StoredDiagnosis
 ): Promise<StoredDiagnosis> {
-  let cur: DiagnosisState | null = null;
-  try {
-    cur = await getDiagnoses(projectId);
-  } catch {
-    cur = null;
-  }
-  await saveDiagnoses(projectId, appendDiagnosis(cur, diagnosis));
-  return diagnosis;
+  return (await backend()).recordDiagnosis(projectId, diagnosis);
 }
 
-/** Read-modify-write: set one diagnosis's status by id. Returns false (no write)
- *  when the project has no blob or the id is unknown, so the route can 404. */
+/** ATOMIC read-modify-write: set one diagnosis's status by id. Returns false (no
+ *  write) when the project has no blob or the id is unknown, so the route can 404.
+ *  Propagates a store failure (Direction 3). */
 export async function updateDiagnosisStatus(
   projectId: string,
   id: string,
   status: DiagnosisStatus
 ): Promise<boolean> {
-  const cur = await getDiagnoses(projectId);
-  if (!cur) return false;
-  const { state, found } = setStatusIn(cur, id, status);
-  if (!found) return false;
-  await saveDiagnoses(projectId, state);
-  return true;
+  return (await backend()).updateDiagnosisStatus(projectId, id, status);
 }
 
 /** Every stored diagnosis for a project, newest-first, optionally one kind only. */

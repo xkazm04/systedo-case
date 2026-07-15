@@ -13,7 +13,7 @@ import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -114,7 +114,7 @@ export default function LocalDiagnosisPanel({
   const tool = useAiTool<LocalDiagnosisResult>("local-diagnosis");
   const { status, run, data } = tool;
   const persistence = useDiagnosisPersistence(projectId, "local", initialDiagnosis, history);
-  const { active, persist, patchStatus } = persistence;
+  const { active, persist, patchStatus, saveError, retry, clearError } = persistence;
 
   // Auto-persist a freshly-run diagnosis (see LtvDiagnosisPanel for the gating). The
   // digest of the SERVER-rebuilt request rides the result meta (Direction 1).
@@ -187,6 +187,7 @@ export default function LocalDiagnosisPanel({
           </>
         )}
       />
+      <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
       <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );

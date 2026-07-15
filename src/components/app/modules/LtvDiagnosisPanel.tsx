@@ -17,7 +17,7 @@ import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -117,7 +117,7 @@ export default function LtvDiagnosisPanel({
   const tool = useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
   const { status, run, data } = tool;
   const persistence = useDiagnosisPersistence(projectId, "cohort", initialDiagnosis, history);
-  const { active, persist, patchStatus } = persistence;
+  const { active, persist, patchStatus, saveError, retry, clearError } = persistence;
 
   // Auto-persist a freshly-run diagnosis. `ranThisSession` gates out the tool's
   // localStorage restore (which also lands as status "done" on mount) so a restored
@@ -195,6 +195,7 @@ export default function LtvDiagnosisPanel({
           </>
         )}
       />
+      <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
       <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );

@@ -25,7 +25,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 
 export type { LeadSourceSeed };
 
@@ -104,7 +104,7 @@ export default function LeadSourceDiagnosisPanel({
   const selected = seeds.find((s) => s.source === selectedSource) ?? seeds[0];
 
   const persistence = useDiagnosisPersistence(projectId, "lead-source", initialDiagnosis, history);
-  const { active, persist, patchStatus } = persistence;
+  const { active, persist, patchStatus, saveError, retry, clearError } = persistence;
 
   // Auto-persist a freshly-run diagnosis — gated so the tool's localStorage restore
   // (also status "done" on mount) is never re-saved. See LtvDiagnosisPanel. The digest
@@ -258,6 +258,7 @@ export default function LeadSourceDiagnosisPanel({
         }
         renderResult={(r) => resultBody(r)}
       />
+      <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
       <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );

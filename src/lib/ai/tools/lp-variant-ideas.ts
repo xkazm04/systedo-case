@@ -114,41 +114,88 @@ function toVariant(raw: unknown): LpVariantIdea | null {
   };
 }
 
-/** Map the raw model output into validated concepts: trim + clamp each field,
- *  drop entries missing a label or hypothesis, and clamp to at most 3. Falls back
- *  to the deterministic demo when nothing usable survives. */
-function normalizeLpVariantIdeas(
+/** Case/whitespace-insensitive label key — lowercased, trimmed, internal whitespace
+ *  collapsed to one space. Used both to de-duplicate variants and to match a variant
+ *  against the control / disproven-loser labels, so „Sociální  Důkaz " and
+ *  „sociální důkaz" count as the same concept. */
+function labelKey(s: string): string {
+  return s.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/** The labels a challenger must NOT re-propose: the control's own label + every
+ *  disproven loser, normalized. Re-proposing any of them is not a new test. */
+function bannedLabels(req: LpVariantIdeasRequest): Set<string> {
+  const banned = new Set<string>();
+  if (req.controlLabel) banned.add(labelKey(req.controlLabel));
+  for (const l of req.losers ?? []) {
+    const k = labelKey(l);
+    if (k) banned.add(k);
+  }
+  return banned;
+}
+
+/** Well-formed variants, de-duplicated by normalized label (first occurrence wins) —
+ *  so „Sociální důkaz" and „sociální  důkaz" don't both count toward the ≥2 bar. */
+function distinctVariants(raw: unknown[]): LpVariantIdea[] {
+  const seen = new Set<string>();
+  const out: LpVariantIdea[] = [];
+  for (const item of raw) {
+    const v = toVariant(item);
+    if (!v) continue;
+    const k = labelKey(v.label);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(v);
+  }
+  return out;
+}
+
+/** Map the raw model output into validated concepts: trim + clamp each field, drop
+ *  entries missing a label or hypothesis, DE-DUPE by label and DROP any that re-propose
+ *  the control / a disproven loser, then clamp to at most 3. Falls back to the
+ *  deterministic demo unless at least TWO distinct, non-banned challengers survive —
+ *  an A/B test needs more than one arm, and it must not re-run a losing one. */
+export function normalizeLpVariantIdeas(
   parsed: unknown,
   req: LpVariantIdeasRequest
 ): LpVariantIdeasResult {
   const o = parsed as Record<string, unknown> | null;
   const raw = Array.isArray(o?.variants) ? o.variants : [];
-  const variants = raw
-    .map(toVariant)
-    .filter((v): v is LpVariantIdea => v !== null)
+  const banned = bannedLabels(req);
+  const variants = distinctVariants(raw)
+    .filter((v) => !banned.has(labelKey(v.label)))
     .slice(0, 3);
-  return variants.length > 0 ? { variants } : demoLpVariantIdeas(req);
+  return variants.length >= 2 ? { variants } : demoLpVariantIdeas(req);
 }
 
-/** Flag an empty / hollow set so the wrapper re-prompts once: at least one concept
- *  with a label and a hypothesis must be present. */
-function validateLpVariantIdeas(parsed: unknown): string[] {
+/** Flag an unusable set so the wrapper re-prompts once. A usable output needs at
+ *  least TWO variants with DISTINCT labels (one arm is not a test), and NONE may match
+ *  the control label or a disproven loser (case/whitespace-insensitive) — re-proposing
+ *  a losing angle wastes the test. */
+export function validateLpVariantIdeas(parsed: unknown, req: LpVariantIdeasRequest): string[] {
   return withObjectGuard((o) => {
     const raw = Array.isArray(o.variants) ? o.variants : [];
-    const wellFormed = raw.map(toVariant).filter((v): v is LpVariantIdea => v !== null);
-    if (wellFormed.length === 0) {
-      return [
-        "Výstup neobsahuje použitelnou variantu — vrať pole „variants“ s alespoň jedním konceptem, který má vyplněný „label“ i „hypothesis“.",
-      ];
+    const distinct = distinctVariants(raw);
+    const banned = bannedLabels(req);
+    const violations: string[] = [];
+    if (distinct.length < 2) {
+      violations.push(
+        "Vrať alespoň DVĚ od sebe navzájem odlišné varianty (různé „label“) — jeden koncept není A/B test.",
+      );
     }
-    return [];
+    if (distinct.some((v) => banned.has(labelKey(v.label)))) {
+      violations.push(
+        "Nenavrhuj varianty shodné s kontrolní variantou ani s již vyvrácenými (neúspěšnými) úhly — navrhni jiné.",
+      );
+    }
+    return violations;
   })(parsed);
 }
 
 /** Deterministic, topic-templated concepts — the keyless demo and the floor when
  *  the model returns nothing usable. Builds 2 distinct challenger angles (social
  *  proof + a sharper offer) from the topic alone; invents no metrics. */
-function demoLpVariantIdeas(req: LpVariantIdeasRequest): LpVariantIdeasResult {
+export function demoLpVariantIdeas(req: LpVariantIdeasRequest): LpVariantIdeasResult {
   const topic = req.topic.trim() || "vaše téma";
   return {
     variants: [
@@ -187,7 +234,7 @@ export function generateLpVariantIdeas(
     schema: LP_VARIANT_IDEAS_SCHEMA,
     temperature: 0.8,
     normalize: (parsed) => normalizeLpVariantIdeas(parsed, req),
-    validate: validateLpVariantIdeas,
+    validate: (parsed) => validateLpVariantIdeas(parsed, req),
     demo: () => demoLpVariantIdeas(req),
     locale,
     signal,

@@ -182,10 +182,10 @@ test("lead-source-diagnosis: picked source is the intent; server rebuilds its me
   assert.equal(res.meta.sampleGrounded, false, "a live-lead funnel is NOT sample-grounded");
 });
 
-test("local-diagnosis: intent → server-rebuilt request with the locale threaded", async () => {
+test("local-diagnosis: intent → server-rebuilt request from the project", async () => {
   const { table, calls } = harness();
   const prepared = await prepare(table, "local-diagnosis", { projectId: "pid" });
-  assert.deepEqual(calls[0], { name: "resolveLocalDiagnosis", args: ["pid", "u1", LOCALE] });
+  assert.deepEqual(calls[0], { name: "resolveLocalDiagnosis", args: ["pid", "u1"] });
   assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "local-req" }, keyId: "LOCKID" });
   await prepared.gen();
   assert.deepEqual(calls[1], { name: "localDiagnosis", args: [{ __sentinel: "local-req" }, LOCALE, SIGNAL] });
