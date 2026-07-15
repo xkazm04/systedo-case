@@ -18,14 +18,14 @@ import {
   type LeadSourceDiagnosisResult,
   type LeadSourceSeverity,
 } from "@/lib/ai-types";
-import { seedToRequest, type LeadSourceSeed } from "@/lib/diagnoses/lead-source-request";
-import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { type LeadSourceSeed } from "@/lib/diagnoses/lead-source-request";
+import { type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
 
 export type { LeadSourceSeed };
 
@@ -103,15 +103,15 @@ export default function LeadSourceDiagnosisPanel({
   const { active, persist, patchStatus } = persistence;
 
   // Auto-persist a freshly-run diagnosis — gated so the tool's localStorage restore
-  // (also status "done" on mount) is never re-saved. See LtvDiagnosisPanel.
+  // (also status "done" on mount) is never re-saved. See LtvDiagnosisPanel. The digest
+  // of the SERVER-rebuilt request rides the result meta (Direction 1).
   const ranThisSession = useRef(false);
-  const pendingDigest = useRef("");
   const pendingSubject = useRef("");
   const lastData = useRef<unknown>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, pendingDigest.current, pendingSubject.current);
+      void persist(data.result, data.meta?.inputDigest ?? "", pendingSubject.current);
     }
   }, [status, data, persist]);
 
@@ -120,6 +120,7 @@ export default function LeadSourceDiagnosisPanel({
 
   const resultBody = (r: LeadSourceDiagnosisResult) => (
     <>
+      <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
       {selected && (
         <p className="text-xs text-muted">
           {t("diagMeta", {
@@ -219,11 +220,11 @@ export default function LeadSourceDiagnosisPanel({
               <AiRunButton
                 onClick={() => {
                   if (status === "loading" || !selected) return;
-                  const req = seedToRequest(selected);
-                  pendingDigest.current = inputDigest(req);
+                  // Direction 1: send only the picked source (intent) — the server
+                  // re-derives that source's real metrics from the funnel.
                   pendingSubject.current = selected.source;
                   ranThisSession.current = true;
-                  run(req as unknown as Record<string, unknown>);
+                  run(projectId ? { projectId, source: selected.source } : { source: selected.source });
                 }}
                 loading={status === "loading"}
                 disabled={status === "loading" || !selected}

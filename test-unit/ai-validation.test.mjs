@@ -22,6 +22,9 @@ import {
   validateLpVariantIdeasRequest,
   validateEvaluationRequest,
   validateKeywordClustersRequest,
+  validateCohortDiagnosisIntent,
+  validateLeadSourceDiagnosisIntent,
+  validateLocalDiagnosisIntent,
 } from "@/lib/ai/validation";
 
 // --- shared shape guards --------------------------------------------------
@@ -52,6 +55,37 @@ test("every validator rejects a non-object input with the localized 'missing dat
       assert.equal(en.error, "Missing request data.", `${v.name} en message`);
     }
   }
+});
+
+// --- Direction 1 — diagnosis INTENT validators ----------------------------
+
+test("diagnosis intent validators require a project id and ignore any client economics", () => {
+  // A tampered body with fake numbers reduces to just the projectId intent — the
+  // server rebuilds the economics; nothing else survives validation.
+  const c = validateCohortDiagnosisIntent({ projectId: "p1", blendedCac: 999, cohorts: [{ month: "x" }] });
+  assert.equal(c.valid, true);
+  assert.deepEqual(c.value, { projectId: "p1" });
+
+  const l = validateLocalDiagnosisIntent({ projectId: "p1", gaps: [{ label: "hacked" }], refine: " kratší " });
+  assert.equal(l.valid, true);
+  assert.deepEqual(l.value, { projectId: "p1", refine: "kratší" });
+
+  // Missing project id → rejected (localized).
+  assert.equal(validateCohortDiagnosisIntent({}).valid, false);
+  assert.equal(validateCohortDiagnosisIntent({}, "en").error, "Missing project to diagnose.");
+  assert.equal(validateLocalDiagnosisIntent({ projectId: "" }).valid, false);
+});
+
+test("lead-source intent requires both a project id and a picked source", () => {
+  const ok = validateLeadSourceDiagnosisIntent({ projectId: "p1", source: "  Meta  ", leads: 4 });
+  assert.equal(ok.valid, true);
+  assert.deepEqual(ok.value, { projectId: "p1", source: "Meta" });
+  assert.equal(validateLeadSourceDiagnosisIntent({ projectId: "p1" }).valid, false, "no source");
+  assert.equal(
+    validateLeadSourceDiagnosisIntent({ projectId: "p1" }, "en").error,
+    "Missing source name for diagnosis."
+  );
+  assert.equal(validateLeadSourceDiagnosisIntent({ source: "Meta" }).valid, false, "no project");
 });
 
 // --- validateAdRequest ----------------------------------------------------

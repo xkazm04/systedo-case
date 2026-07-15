@@ -234,6 +234,67 @@ export async function resolveBrandContext(
   return loadBrandContext(access.project, locale);
 }
 
+// ─── Direction 1 — diagnoses ground themselves ──────────────────────────────────
+//
+// The three diagnosis modes re-derive their request SERVER-SIDE from the project so a
+// tampered body cannot change a diagnosed number. Tenancy is the SAME triad every
+// grounded op shares (resolveProjectAccess: demo public, real id owner-only). A demo
+// user may still explore (sample-grounded, labelled truthfully) — we do NOT refuse
+// sample here the way the digest cron does; the honest `sample` flag rides the result
+// meta instead. `keyId` keys the response cache to the effective project so an unowned
+// id can never serve another tenant's cached diagnosis.
+import {
+  resolveCohortDiagnosisRequest,
+  resolveLeadSourceDiagnosisRequest,
+  resolveLocalDiagnosisRequest,
+} from "@/lib/diagnoses/resolve-request";
+import type {
+  CohortDiagnosisRequest,
+  LeadSourceDiagnosisRequest,
+  LocalDiagnosisRequest,
+} from "@/lib/ai-types";
+
+/** A server-rebuilt diagnosis request, its honest sample-provenance flag, and the
+ *  effective cache-tenancy key. `null` when no project resolves for the caller (an
+ *  unowned / unknown id) — the mode then returns the shared 422 (nothing to diagnose). */
+export interface ResolvedDiagnosis<T> {
+  request: T;
+  sample: boolean;
+  keyId: string;
+}
+
+export async function resolveCohortDiagnosis(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<ResolvedDiagnosis<CohortDiagnosisRequest> | null> {
+  const access = await resolveProjectAccess(projectId, userId);
+  if (access.kind === "none") return null;
+  const { request, sample } = resolveCohortDiagnosisRequest(access.project);
+  return { request, sample, keyId: access.project.id };
+}
+
+export async function resolveLeadSourceDiagnosis(
+  projectId: string | undefined,
+  userId: string | null,
+  source: string
+): Promise<ResolvedDiagnosis<LeadSourceDiagnosisRequest> | null> {
+  const access = await resolveProjectAccess(projectId, userId);
+  if (access.kind === "none") return null;
+  const resolved = await resolveLeadSourceDiagnosisRequest(access.project, source);
+  if (!resolved) return null;
+  return { request: resolved.request, sample: resolved.sample, keyId: access.project.id };
+}
+
+export async function resolveLocalDiagnosis(
+  projectId: string | undefined,
+  userId: string | null
+): Promise<ResolvedDiagnosis<LocalDiagnosisRequest> | null> {
+  const access = await resolveProjectAccess(projectId, userId);
+  if (access.kind === "none") return null;
+  const resolved = await resolveLocalDiagnosisRequest(access.project);
+  return { request: resolved.request, sample: resolved.sample, keyId: access.project.id };
+}
+
 /** D4: the account's lead-quality / CVR grounding for LP-experiment hypotheses,
  *  tenancy-checked (demo public, real id owner-only). Leadgen/local only (else the
  *  summary is null). keyId keys the cache by the effective project. */

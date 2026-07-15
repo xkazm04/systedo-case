@@ -69,6 +69,15 @@ export interface AiMeta {
   usage?: { inputTokens: number; outputTokens: number; totalTokens: number };
   /** estimated USD cost of the call; 0 for the dev Claude subscription path */
   estCostUsd?: number;
+  /** Direction 1 (diagnoses ground themselves): true when the diagnosis was computed
+   *  from the illustrative SAMPLE (no live import), so the panel can label it honestly
+   *  — click-path parity with the digest cron's honesty gate (which refuses sample; the
+   *  click path labels instead). Server-set in the diagnosis modes' prepare(). */
+  sampleGrounded?: boolean;
+  /** Direction 1/2: the stable input digest of the SERVER-rebuilt diagnosis request,
+   *  so the panel persists the digest of what was actually diagnosed (not a client-
+   *  sent one) and the stale-badge comparison stays authoritative. */
+  inputDigest?: string;
 }
 
 /** Typed error envelope for the AI routes. Success responses are AiResponse<T>;

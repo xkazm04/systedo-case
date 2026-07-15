@@ -9,11 +9,11 @@
 import { useEffect, useRef } from "react";
 import { Bulb, Pin, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { LocalDiagnosisRequest, LocalDiagnosisResult } from "@/lib/ai-types";
-import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -110,14 +110,14 @@ export default function LocalDiagnosisPanel({
   const persistence = useDiagnosisPersistence(projectId, "local", initialDiagnosis, history);
   const { active, persist, patchStatus } = persistence;
 
-  // Auto-persist a freshly-run diagnosis (see LtvDiagnosisPanel for the gating).
+  // Auto-persist a freshly-run diagnosis (see LtvDiagnosisPanel for the gating). The
+  // digest of the SERVER-rebuilt request rides the result meta (Direction 1).
   const ranThisSession = useRef(false);
-  const pendingDigest = useRef("");
   const lastData = useRef<unknown>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, pendingDigest.current, data.result.worstGap);
+      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstGap);
     }
   }, [status, data, persist]);
 
@@ -150,9 +150,10 @@ export default function LocalDiagnosisPanel({
             <AiRunButton
               onClick={() => {
                 if (status === "loading" || !hasGaps) return;
-                pendingDigest.current = inputDigest(request);
+                // Direction 1: send only the intent — the server re-derives the local
+                // visibility signals from the project.
                 ranThisSession.current = true;
-                run(request as unknown as Record<string, unknown>);
+                run(projectId ? { projectId } : {});
               }}
               loading={status === "loading"}
               disabled={status === "loading" || !hasGaps}
@@ -161,7 +162,12 @@ export default function LocalDiagnosisPanel({
             />
           </AiPanelHeader>
         }
-        renderResult={(r) => <LocalResultBody r={r} t={t} />}
+        renderResult={(r) => (
+          <>
+            <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
+            <LocalResultBody r={r} t={t} />
+          </>
+        )}
       />
       <DiagnosisHistory items={persistence.history} onStatus={patchStatus} />
     </div>

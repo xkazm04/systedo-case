@@ -875,6 +875,92 @@ export function validateLpVariantIdeasRequest(input: unknown, locale: SupportedL
   return { valid: true, value };
 }
 
+// ─── Direction 1 — diagnosis INTENT validators ──────────────────────────────────
+//
+// The three diagnosis modes (cohort / lead-source / local) used to trust the full
+// economics the panel POSTed. They now re-derive the request SERVER-SIDE from the
+// project (see grounding.ts + diagnoses/resolve-request.ts), so the wire body shrinks
+// to a tamper-proof INTENT: the project to diagnose (+ the picked source for lead-
+// source, + an optional refine note). Any numbers a client sends are ignored — the
+// server rebuilds them. The old full-request validators above are kept (exported +
+// unit-tested) as the pure body-coercion contract the rebuilt request must satisfy.
+
+/** The project to diagnose is injected into every AI request body by useAiTool
+ *  (the active route's project). Bounded so a bogus id can't bloat the cache key. */
+function parseIntentProjectId(o: Record<string, unknown>): string {
+  return str(o.projectId).slice(0, 128);
+}
+
+export interface CohortDiagnosisIntent {
+  projectId: string;
+  refine?: string;
+}
+export interface LeadSourceDiagnosisIntent {
+  projectId: string;
+  /** the under-performing source the operator picked to diagnose */
+  source: string;
+  refine?: string;
+}
+export interface LocalDiagnosisIntent {
+  projectId: string;
+  refine?: string;
+}
+
+const MISSING_PROJECT = (locale: SupportedLocale) =>
+  t(locale, "Chybí projekt k diagnostice.", "Missing project to diagnose.");
+
+export function validateCohortDiagnosisIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<CohortDiagnosisIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) return { valid: false, error: MISSING_PROJECT(locale) };
+  const value: CohortDiagnosisIntent = { projectId };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+export function validateLeadSourceDiagnosisIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LeadSourceDiagnosisIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) return { valid: false, error: MISSING_PROJECT(locale) };
+  const source = str(o.source).slice(0, 120);
+  if (!source) {
+    return { valid: false, error: t(locale, "Chybí název zdroje k diagnostice.", "Missing source name for diagnosis.") };
+  }
+  const value: LeadSourceDiagnosisIntent = { projectId, source };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+export function validateLocalDiagnosisIntent(
+  input: unknown,
+  locale: SupportedLocale = "cs"
+): Valid<LocalDiagnosisIntent> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const projectId = parseIntentProjectId(o);
+  if (!projectId) return { valid: false, error: MISSING_PROJECT(locale) };
+  const value: LocalDiagnosisIntent = { projectId };
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
 export function validateEvaluationRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<EvaluationRequest> {
   if (typeof input !== "object" || input === null) {
     return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };

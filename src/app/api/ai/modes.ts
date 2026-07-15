@@ -75,19 +75,23 @@ import {
   validateChatRequest,
   validateArticleDraftRequest,
   validateBriefRequest,
-  validateCohortDiagnosisRequest,
+  validateCohortDiagnosisIntent,
   validateComparisonOutlineRequest,
   validateKeywordClustersRequest,
   validateTwinReplyRequest,
   validateTwinStyleRequest,
-  validateLeadSourceDiagnosisRequest,
-  validateLocalDiagnosisRequest,
+  validateLeadSourceDiagnosisIntent,
+  validateLocalDiagnosisIntent,
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
+  type CohortDiagnosisIntent,
+  type LeadSourceDiagnosisIntent,
+  type LocalDiagnosisIntent,
 } from "@/lib/ai/validation";
+import { inputDigest } from "@/lib/diagnoses/types";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
-import type { GroundingResult } from "./grounding";
+import type { GroundingResult, ResolvedDiagnosis } from "./grounding";
 import type { ToneScope } from "@/lib/twin/types";
 
 // ─── shared contracts ──────────────────────────────────────────────────────────
@@ -205,6 +209,21 @@ export interface ModeDeps {
     projectId: string | undefined,
     userId: string | null
   ) => Promise<{ text?: string; keyId: string }>;
+  // Direction 1: the three diagnosis modes re-derive their request server-side from
+  // the project (never the client body). `null` → no project resolves for the caller.
+  resolveCohortDiagnosis: (
+    projectId: string | undefined,
+    userId: string | null
+  ) => Promise<ResolvedDiagnosis<CohortDiagnosisRequest> | null>;
+  resolveLeadSourceDiagnosis: (
+    projectId: string | undefined,
+    userId: string | null,
+    source: string
+  ) => Promise<ResolvedDiagnosis<LeadSourceDiagnosisRequest> | null>;
+  resolveLocalDiagnosis: (
+    projectId: string | undefined,
+    userId: string | null
+  ) => Promise<ResolvedDiagnosis<LocalDiagnosisRequest> | null>;
   fetchSiteText: (url: string) => Promise<{ title: string; description: string; text: string }>;
   onFetchError: (err: unknown) => Response;
   recap: {
@@ -227,6 +246,52 @@ function bad(error: string): Response {
   return Response.json({ error, code: "invalid" }, { status: 422 });
 }
 
+/** Direction 1: wrap a diagnosis generator so its response carries the honest
+ *  sample-provenance flag AND the stable digest of the SERVER-rebuilt request. The
+ *  flag lets the panel label a sample-grounded run truthfully; the digest lets the
+ *  panel persist (and later stale-compare) the digest of what was actually diagnosed
+ *  — not a client-supplied one. Additive to `meta`, so no tool fingerprint moves. */
+function withDiagnosisMeta(
+  gen: () => Promise<AiResponse<unknown>>,
+  sample: boolean,
+  digest: string
+): () => Promise<AiResponse<unknown>> {
+  return async () => {
+    const res = await gen();
+    return { ...res, meta: { ...res.meta, sampleGrounded: sample, inputDigest: digest } };
+  };
+}
+
+/** The shared shape of a diagnosis mode's prepare(): validate → server-rebuild →
+ *  compute digest (before refine) → attach refine → cache by effective grounding. */
+function prepareDiagnosis<T extends { refine?: string }>(
+  resolved: ResolvedDiagnosis<T>,
+  refine: string | undefined,
+  gen: (request: T) => Promise<AiResponse<unknown>>
+): Prepared {
+  const request = resolved.request;
+  // The digest is of the DATA the diagnosis rests on — computed before the transient
+  // refine note is folded in, so a re-run steer never reads as a data change.
+  const digest = inputDigest(request);
+  if (refine) request.refine = refine;
+  return {
+    // Cache keyed by the effective project (keyId) + the rebuilt request, so an
+    // unowned id can never serve another tenant's cached diagnosis.
+    cacheValue: { request, keyId: resolved.keyId },
+    gen: withDiagnosisMeta(() => gen(request), resolved.sample, digest),
+  };
+}
+
+/** The 422 a diagnosis mode returns when no project resolves for the caller (an
+ *  unowned / unknown id) — there is genuinely nothing to diagnose. */
+function noDiagnosisData(ctx: DispatchCtx): Response {
+  return bad(
+    ctx.locale === "en"
+      ? "No data to diagnose for this project."
+      : "Pro tento projekt nejsou data k diagnostice."
+  );
+}
+
 // ─── the table ──────────────────────────────────────────────────────────────────
 
 export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
@@ -239,12 +304,19 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
         gen: () => deps.gen.localReviewReply(value, ctx.locale, ctx.signal),
       }),
     }),
-    "cohort-diagnosis": defineMode<CohortDiagnosisRequest>({
-      validate: validateCohortDiagnosisRequest,
-      prepare: (value, ctx) => ({
-        cacheValue: value,
-        gen: () => deps.gen.cohortDiagnosis(value, ctx.locale, ctx.signal),
-      }),
+    // ── diagnosis tools: the request is RE-DERIVED server-side from the project
+    //    (Direction 1), never the client body — so a tampered payload cannot alter a
+    //    diagnosed number. The wire body is a tamper-proof intent (projectId [+ the
+    //    picked source]); numbers, provenance and digest are all server-authoritative. ──
+    "cohort-diagnosis": defineMode<CohortDiagnosisIntent>({
+      validate: validateCohortDiagnosisIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveCohortDiagnosis(intent.projectId, ctx.userId);
+        if (!resolved) return noDiagnosisData(ctx);
+        return prepareDiagnosis(resolved, intent.refine, (req) =>
+          deps.gen.cohortDiagnosis(req, ctx.locale, ctx.signal)
+        );
+      },
     }),
     "keyword-clusters": defineMode<KeywordClustersRequest>({
       validate: validateKeywordClustersRequest,
@@ -260,19 +332,25 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
         gen: () => deps.gen.comparisonOutline(value, ctx.locale, ctx.signal),
       }),
     }),
-    "lead-source-diagnosis": defineMode<LeadSourceDiagnosisRequest>({
-      validate: validateLeadSourceDiagnosisRequest,
-      prepare: (value, ctx) => ({
-        cacheValue: value,
-        gen: () => deps.gen.leadSourceDiagnosis(value, ctx.locale, ctx.signal),
-      }),
+    "lead-source-diagnosis": defineMode<LeadSourceDiagnosisIntent>({
+      validate: validateLeadSourceDiagnosisIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveLeadSourceDiagnosis(intent.projectId, ctx.userId, intent.source);
+        if (!resolved) return noDiagnosisData(ctx);
+        return prepareDiagnosis(resolved, intent.refine, (req) =>
+          deps.gen.leadSourceDiagnosis(req, ctx.locale, ctx.signal)
+        );
+      },
     }),
-    "local-diagnosis": defineMode<LocalDiagnosisRequest>({
-      validate: validateLocalDiagnosisRequest,
-      prepare: (value, ctx) => ({
-        cacheValue: value,
-        gen: () => deps.gen.localDiagnosis(value, ctx.locale, ctx.signal),
-      }),
+    "local-diagnosis": defineMode<LocalDiagnosisIntent>({
+      validate: validateLocalDiagnosisIntent,
+      prepare: async (intent, ctx) => {
+        const resolved = await deps.resolveLocalDiagnosis(intent.projectId, ctx.userId);
+        if (!resolved) return noDiagnosisData(ctx);
+        return prepareDiagnosis(resolved, intent.refine, (req) =>
+          deps.gen.localDiagnosis(req, ctx.locale, ctx.signal)
+        );
+      },
     }),
     "channel-research": defineMode<ChannelResearchRequest>({
       validate: validateChannelResearchRequest,

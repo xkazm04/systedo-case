@@ -316,8 +316,6 @@ export default async function LtvModule({
 
       <LtvDiagnosisPanel
         rows={rows}
-        summary={summary}
-        eshop={eshop}
         projectId={projectId}
         initialDiagnosis={initialDiagnosis}
         history={diagnosisHistory}

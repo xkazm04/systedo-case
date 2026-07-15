@@ -6,7 +6,7 @@
  *  both track a diagnosis identically. Presentational — the parent owns the
  *  persistence hook and passes the status callback + the handoff target. */
 import Link from "next/link";
-import { ArrowRight, Check, Clock, Refresh } from "@/components/icons";
+import { ArrowRight, Check, Clock, Refresh, Target } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { DiagnosisStatus, StoredDiagnosis } from "@/lib/diagnoses/types";
@@ -39,6 +39,26 @@ const T = {
     fromDigest: "from the weekly digest",
   },
 } as const;
+
+/** Direction 1 — honest provenance label. When the diagnosis was computed from the
+ *  illustrative sample (no live import), say so plainly instead of implying the
+ *  numbers are the client's own. This is the click-path parity with the digest cron's
+ *  honesty gate: the cron refuses to run over sample, the click path labels it. */
+const SAMPLE_T = {
+  cs: { note: "Ukázková data — diagnóza běží nad ilustrativním vzorkem, ne nad živým importem." },
+  en: { note: "Sample data — the diagnosis ran on the illustrative sample, not a live import." },
+} as const;
+
+export function DiagnosisSampleNote({ sample }: { sample: boolean }) {
+  const t = useT(SAMPLE_T);
+  if (!sample) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-card border border-line bg-canvas px-3.5 py-2.5 text-xs text-muted">
+      <Target width={14} height={14} className="mt-0.5 shrink-0 text-brand-600" />
+      <span className="leading-relaxed">{t("note")}</span>
+    </div>
+  );
+}
 
 const STATUS_TONE: Record<DiagnosisStatus, PillTone> = {
   new: "brand",

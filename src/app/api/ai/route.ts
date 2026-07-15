@@ -41,6 +41,9 @@ import {
   resolveAdPatterns,
   resolveBrandContext,
   resolveLeadGrounding,
+  resolveCohortDiagnosis,
+  resolveLeadSourceDiagnosis,
+  resolveLocalDiagnosis,
 } from "./grounding";
 
 
@@ -150,6 +153,9 @@ const realDeps: ModeDeps = {
   resolveBrandContext,
   resolveTwinVoice,
   resolveLeadGrounding,
+  resolveCohortDiagnosis,
+  resolveLeadSourceDiagnosis,
+  resolveLocalDiagnosis,
   fetchSiteText,
   // A fetch failure is a clear 422 (bad/unreachable URL), not a generic generation
   // error — byte-identical to the old inline onboarding-scan catch.

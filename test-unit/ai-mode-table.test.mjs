@@ -83,6 +83,21 @@ function harness(overrides = {}) {
       calls.push({ name: "resolveLeadGrounding", args: a });
       return { text: "LEADTXT", keyId: "LKID" };
     },
+    // Direction 1: the diagnosis modes re-derive their request server-side. The fakes
+    // return a sentinel request so we can prove the generator gets the REBUILT request
+    // (never the client body) and cacheValue is keyed by the effective grounding.
+    resolveCohortDiagnosis: async (...a) => {
+      calls.push({ name: "resolveCohortDiagnosis", args: a });
+      return { request: { __sentinel: "cohort-req" }, sample: true, keyId: "CKID" };
+    },
+    resolveLeadSourceDiagnosis: async (...a) => {
+      calls.push({ name: "resolveLeadSourceDiagnosis", args: a });
+      return { request: { __sentinel: "lead-req", source: a[2] }, sample: false, keyId: "LSKID" };
+    },
+    resolveLocalDiagnosis: async (...a) => {
+      calls.push({ name: "resolveLocalDiagnosis", args: a });
+      return { request: { __sentinel: "local-req" }, sample: true, keyId: "LOCKID" };
+    },
     fetchSiteText: async (url) => {
       calls.push({ name: "fetchSiteText", args: [url] });
       return { title: "TITLE", description: "DESC", text: "x".repeat(60) };
@@ -112,11 +127,8 @@ async function prepare(table, mode, value, over = {}) {
 // ── plain tools: cacheValue === value; one generator; args [value, locale, signal] ──
 for (const [mode, genName] of [
   ["local-review-reply", "localReviewReply"],
-  ["cohort-diagnosis", "cohortDiagnosis"],
   ["keyword-clusters", "keywordClusters"],
   ["comparison-outline", "comparisonOutline"],
-  ["lead-source-diagnosis", "leadSourceDiagnosis"],
-  ["local-diagnosis", "localDiagnosis"],
   ["channel-research", "channelResearch"],
 ]) {
   test(`${mode}: plain — cacheValue is the value, generator gets (value, locale, signal)`, async () => {
@@ -129,6 +141,73 @@ for (const [mode, genName] of [
     assert.deepEqual(calls, [{ name: genName, args: [value, LOCALE, SIGNAL] }]);
   });
 }
+
+// ── diagnosis tools (Direction 1): request RE-DERIVED server-side from the project;
+//    a tampered client body cannot alter a diagnosed number. cacheValue is keyed by
+//    the effective grounding ({ request, keyId }); the generator gets the REBUILT
+//    request; the result meta carries the honest sample flag + the request digest. ──
+test("cohort-diagnosis: intent → server-rebuilt request; client numbers ignored", async () => {
+  const { table, calls } = harness();
+  // A tampered body with fake economics — none of it must reach the generator.
+  const intent = { projectId: "pid", blendedCac: 999999, cohorts: [{ month: "hacked" }] };
+  const prepared = await prepare(table, "cohort-diagnosis", intent);
+  assert.deepEqual(calls[0], { name: "resolveCohortDiagnosis", args: ["pid", "u1"] });
+  // cacheValue rewrites to { request, keyId } — the effective grounding, not the body.
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "cohort-req" }, keyId: "CKID" });
+  const res = await prepared.gen();
+  // The generator got the REBUILT request (sentinel), never the client's fake numbers.
+  assert.deepEqual(calls[1], { name: "cohortDiagnosis", args: [{ __sentinel: "cohort-req" }, LOCALE, SIGNAL] });
+  assert.equal(res.meta.sampleGrounded, true, "sample provenance rides the meta");
+  assert.equal(typeof res.meta.inputDigest, "string", "the rebuilt-request digest rides the meta");
+});
+
+test("cohort-diagnosis: refine rides into the request (busts cache) but not the digest", async () => {
+  const { table } = harness();
+  const prepared = await prepare(table, "cohort-diagnosis", { projectId: "pid", refine: "kratší" });
+  assert.equal(prepared.cacheValue.request.refine, "kratší", "refine folded into the cached request");
+  // The digest is computed BEFORE refine, so a re-run steer never reads as a data change.
+  const bare = await prepare(harness().table, "cohort-diagnosis", { projectId: "pid" });
+  const res1 = await prepared.gen();
+  const res2 = await bare.gen();
+  assert.equal(res1.meta.inputDigest, res2.meta.inputDigest, "refine leaves the digest unchanged");
+});
+
+test("lead-source-diagnosis: picked source is the intent; server rebuilds its metrics", async () => {
+  const { table, calls } = harness();
+  const prepared = await prepare(table, "lead-source-diagnosis", { projectId: "pid", source: "Meta" });
+  assert.deepEqual(calls[0], { name: "resolveLeadSourceDiagnosis", args: ["pid", "u1", "Meta"] });
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "lead-req", source: "Meta" }, keyId: "LSKID" });
+  const res = await prepared.gen();
+  assert.deepEqual(calls[1], { name: "leadSourceDiagnosis", args: [{ __sentinel: "lead-req", source: "Meta" }, LOCALE, SIGNAL] });
+  assert.equal(res.meta.sampleGrounded, false, "a live-lead funnel is NOT sample-grounded");
+});
+
+test("local-diagnosis: intent → server-rebuilt request with the locale threaded", async () => {
+  const { table, calls } = harness();
+  const prepared = await prepare(table, "local-diagnosis", { projectId: "pid" });
+  assert.deepEqual(calls[0], { name: "resolveLocalDiagnosis", args: ["pid", "u1", LOCALE] });
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "local-req" }, keyId: "LOCKID" });
+  await prepared.gen();
+  assert.deepEqual(calls[1], { name: "localDiagnosis", args: [{ __sentinel: "local-req" }, LOCALE, SIGNAL] });
+});
+
+test("diagnosis modes 422 when no project resolves for the caller (unowned / unknown id)", async () => {
+  const nullDeps = {
+    resolveCohortDiagnosis: async () => null,
+    resolveLeadSourceDiagnosis: async () => null,
+    resolveLocalDiagnosis: async () => null,
+  };
+  const { table } = harness(nullDeps);
+  for (const [mode, value] of [
+    ["cohort-diagnosis", { projectId: "pid" }],
+    ["lead-source-diagnosis", { projectId: "pid", source: "X" }],
+    ["local-diagnosis", { projectId: "pid" }],
+  ]) {
+    const out = await prepare(table, mode, value);
+    assert.ok(out instanceof Response, `${mode} returns a Response`);
+    assert.equal(out.status, 422, `${mode} is a 422`);
+  }
+});
 
 // ── ads: patterns injected into value ONLY when non-empty (route.ts:395-408) ──
 test("ads: non-empty patterns are attached to value; cacheValue is that mutated value", async () => {

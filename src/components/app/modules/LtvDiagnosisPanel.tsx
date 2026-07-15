@@ -12,13 +12,12 @@
 import { useEffect, useRef } from "react";
 import { Bulb, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { CohortDiagnosisResult } from "@/lib/ai-types";
-import type { CohortMetrics, LtvSummary } from "@/lib/ltv/compute";
-import { buildCohortRequest } from "@/lib/diagnoses/cohort-request";
-import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import type { CohortMetrics } from "@/lib/ltv/compute";
+import { type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -96,17 +95,14 @@ function CohortResultBody({ r, t }: { r: CohortDiagnosisResult; t: (k: keyof (ty
 
 export default function LtvDiagnosisPanel({
   rows,
-  summary,
-  eshop = false,
   projectId,
   initialDiagnosis = null,
   history = [],
 }: {
+  /** the computed cohort rows — used only to gate the run (empty → nothing to
+   *  diagnose); the diagnosed economics are re-derived server-side (Direction 1) */
   rows: CohortMetrics[];
-  summary: LtvSummary;
-  /** e-shop project → customer / repeat-purchase framing in the AI diagnosis */
-  eshop?: boolean;
-  /** the project the diagnosis persists under (from the module) */
+  /** the project the diagnosis persists under + the server re-derives from */
   projectId?: string;
   /** the latest persisted cohort diagnosis (renders on load) */
   initialDiagnosis?: StoredDiagnosis | null;
@@ -121,15 +117,14 @@ export default function LtvDiagnosisPanel({
 
   // Auto-persist a freshly-run diagnosis. `ranThisSession` gates out the tool's
   // localStorage restore (which also lands as status "done" on mount) so a restored
-  // result is never re-saved; `pendingDigest` carries the digest of the request the
-  // run was built from; `lastData` dedupes the same AiResponse object.
+  // result is never re-saved; the digest of the SERVER-rebuilt request rides the
+  // result meta (Direction 1); `lastData` dedupes the same AiResponse object.
   const ranThisSession = useRef(false);
-  const pendingDigest = useRef("");
   const lastData = useRef<unknown>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, pendingDigest.current, data.result.worstCohort);
+      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstCohort);
     }
   }, [status, data, persist]);
 
@@ -161,10 +156,11 @@ export default function LtvDiagnosisPanel({
             <AiRunButton
               onClick={() => {
                 if (status === "loading" || rows.length === 0) return;
-                const req = buildCohortRequest(rows, summary, eshop);
-                pendingDigest.current = inputDigest(req);
+                // Direction 1: send only the tamper-proof intent — the server
+                // re-derives the cohort economics from the project. useAiTool injects
+                // the active project id; we pass it explicitly when known.
                 ranThisSession.current = true;
-                run(req as unknown as Record<string, unknown>);
+                run(projectId ? { projectId } : {});
               }}
               loading={status === "loading"}
               disabled={status === "loading" || rows.length === 0}
@@ -173,7 +169,12 @@ export default function LtvDiagnosisPanel({
             />
           </AiPanelHeader>
         }
-        renderResult={(r) => <CohortResultBody r={r} t={t} />}
+        renderResult={(r) => (
+          <>
+            <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
+            <CohortResultBody r={r} t={t} />
+          </>
+        )}
       />
       <DiagnosisHistory items={persistence.history} onStatus={patchStatus} />
     </div>
