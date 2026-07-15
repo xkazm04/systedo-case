@@ -13,10 +13,12 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
 import { Info } from "@/components/icons";
 import type { ConnectorInfo } from "@/lib/twin/connectors";
+import { formatVoiceAge, shouldNudgeRetrain, voiceTrainedAt } from "@/lib/twin/voice-age";
 import {
   AUTONOMY_LEVELS,
   channelConfig,
   DEFAULT_AUTO_THRESHOLD,
+  resolveVoice,
   TWIN_CHANNELS,
   type Autonomy,
   type TwinChannel,
@@ -41,6 +43,9 @@ const T = {
     autonomyReviewHint: "Twin na tomto kanálu nepíše.",
     autonomyAssistHint: "Twin připraví návrh, odeslat ho může jen člověk.",
     autonomyAutoHint: "Twin schválí sám, pokud je jistota nad hranicí a nenajde riziko.",
+    trainedAge: "hlas trénován {age}",
+    retrainNudge: "K přetrénování",
+    retrainNudgeTitle: "Od tréninku hlasu přibyly nové podklady — zvažte přetrénování.",
   },
   en: {
     intro:
@@ -58,6 +63,9 @@ const T = {
     autonomyReviewHint: "The twin does not draft on this channel.",
     autonomyAssistHint: "The twin prepares a draft; only a human can send it.",
     autonomyAutoHint: "The twin self-approves when confidence clears the bar and no risk is found.",
+    trainedAge: "voice trained {age}",
+    retrainNudge: "Re-train",
+    retrainNudgeTitle: "New materials banked since the voice was trained — consider re-training.",
   },
 } as const;
 
@@ -123,6 +131,12 @@ export default function TwinChannels({
         {TWIN_CHANNELS.map((channel) => {
           const cfg = channelConfig(state.channels, channel);
           const available = connectors.filter((c) => c.channels.includes(channel));
+          // The voice that governs this channel (its own, else the generic register).
+          // A trained voice shows its age; a stale one (newer facts banked since)
+          // nudges a re-train. Display only — never fed into readiness.
+          const voice = resolveVoice(state.voices, channel);
+          const trainedAt = voice ? voiceTrainedAt(voice) : null;
+          const nudge = voice ? shouldNudgeRetrain(voice, state.facts) : false;
           return (
             <li key={channel} className="rounded-card border border-line bg-surface p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -135,7 +149,17 @@ export default function TwinChannels({
                   />
                   <span className="text-sm font-semibold text-navy-800">{CHANNEL_LABELS[channel][L]}</span>
                 </label>
-                <span className="pill bg-navy-50 text-muted">{t(AUTONOMY_LABEL[cfg.autonomy])}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  {trainedAt ? (
+                    <span className="text-[11px] text-muted">{t("trainedAge", { age: formatVoiceAge(trainedAt, L) })}</span>
+                  ) : null}
+                  {trainedAt && nudge ? (
+                    <span className="pill bg-coral-soft text-coral-600" title={t("retrainNudgeTitle")}>
+                      {t("retrainNudge")}
+                    </span>
+                  ) : null}
+                  <span className="pill bg-navy-50 text-muted">{t(AUTONOMY_LABEL[cfg.autonomy])}</span>
+                </div>
               </div>
 
               {cfg.enabled && (

@@ -30,6 +30,13 @@ import {
   TWIN_ARCHIVE_CAP,
   withArchivedRejects,
 } from "@/lib/twin/archive";
+import {
+  factsNewerThanVoice,
+  formatVoiceAge,
+  RETRAIN_MARGIN,
+  shouldNudgeRetrain,
+  voiceTrainedAt,
+} from "@/lib/twin/voice-age";
 import { voiceLines } from "@/lib/ai/tools/voice";
 
 const cfg = (over = {}) => ({
@@ -328,6 +335,63 @@ test("withArchivedRejects folds history into the tally, de-duped by id", () => {
     { reason: "too_long", count: 1 },
     { reason: "off_brand", count: 1 },
   ]);
+});
+
+// --- voice age + re-train nudge (display only) -----------------------------
+
+const NOW = new Date("2026-07-15T00:00:00.000Z");
+const trainedVoice = (over = {}) => ({ ...voice("email"), updatedAt: "2026-04-15T00:00:00.000Z", ...over });
+const fact = (scope, createdAt) => ({ id: `f-${createdAt}`, scope, question: "", answer: "a", source: "sample", createdAt });
+
+test("voiceTrainedAt: a real training stamp is read, the seed epoch / empty voice is not", () => {
+  assert.equal(voiceTrainedAt(trainedVoice()), "2026-04-15T00:00:00.000Z");
+  assert.equal(voiceTrainedAt(voice("email")), null, "the epoch seed stamp is not a training event");
+  assert.equal(voiceTrainedAt(trainedVoice({ directives: "   " })), null, "an empty voice is never 'trained'");
+});
+
+test("formatVoiceAge mirrors the round-7 buckets + Czech instrumental grammar", () => {
+  const at = (iso) => formatVoiceAge(iso, "cs", NOW);
+  assert.equal(at("2026-07-15T00:00:00.000Z"), "dnes");
+  assert.equal(at("2026-07-14T00:00:00.000Z"), "před 1 dnem");
+  assert.equal(at("2026-07-10T00:00:00.000Z"), "před 5 dny");
+  assert.equal(at("2026-07-01T00:00:00.000Z"), "před 2 týdny");
+  assert.equal(at("2026-04-15T00:00:00.000Z"), "před 3 měsíci");
+  assert.equal(formatVoiceAge("2026-04-15T00:00:00.000Z", "en", NOW), "3 months ago");
+  assert.equal(formatVoiceAge("2026-07-14T00:00:00.000Z", "en", NOW), "1 day ago");
+  assert.equal(formatVoiceAge("not-a-date", "cs", NOW), "", "an unparseable stamp yields no note");
+});
+
+test("shouldNudgeRetrain fires only when >= margin facts are newer than the voice", () => {
+  const v = trainedVoice(); // trained 2026-04-15
+  const newer = Array.from({ length: RETRAIN_MARGIN }, (_, i) => fact("email", `2026-05-${10 + i}T00:00:00.000Z`));
+  const older = Array.from({ length: RETRAIN_MARGIN }, (_, i) => fact("email", `2026-03-${10 + i}T00:00:00.000Z`));
+
+  assert.equal(factsNewerThanVoice(v, newer), RETRAIN_MARGIN);
+  assert.equal(shouldNudgeRetrain(v, newer), true, "enough newer material → nudge");
+  assert.equal(shouldNudgeRetrain(v, newer.slice(1)), false, "one short of the margin → no nudge");
+  assert.equal(shouldNudgeRetrain(v, older), false, "material older than the voice never nudges");
+  assert.equal(
+    shouldNudgeRetrain(v, [...newer, fact("sms", "2026-06-01T00:00:00.000Z")]),
+    true,
+    "a different scope's facts don't count, but the email ones still clear the bar"
+  );
+  assert.equal(shouldNudgeRetrain(voice("email"), newer), false, "an untrained voice never nudges");
+});
+
+test("age + nudge are pure display and never touch the readiness score", () => {
+  // Same trained twin, evaluated at two very different clocks → identical score.
+  const state = {
+    voices: [voice("generic"), { ...trainedVoice(), constraints: [
+      { kind: "do", rule: "a" }, { kind: "dont", rule: "b" }, { kind: "do", rule: "c" },
+    ] }],
+    channels: [cfg()],
+    facts: Array.from({ length: 5 }, (_, i) => fact("email", `2026-05-0${i + 1}T00:00:00.000Z`)),
+    drafts: [draft({ status: "sent" })],
+  };
+  const a = deriveReadiness(state, { offerings: 3 });
+  const b = deriveReadiness(state, { offerings: 3 });
+  assert.equal(a.score, b.score, "the score has no clock in it");
+  assert.equal(a.score, 100);
 });
 
 // --- wire conversion -------------------------------------------------------

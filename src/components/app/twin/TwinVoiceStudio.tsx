@@ -19,6 +19,7 @@ import { Check, Plus, Sparkles, Close } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import { promptSafeName } from "@/lib/projects/name";
+import { formatVoiceAge, shouldNudgeRetrain, voiceTrainedAt, RETRAIN_MARGIN } from "@/lib/twin/voice-age";
 import type { TwinStyleResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -62,6 +63,8 @@ const T = {
     never: "Nikdy",
     sourceSample: "ukázka",
     sourceInterview: "odpověď",
+    trainedAge: "hlas trénován {age}",
+    retrainNudge: "Od posledního tréninku přibylo {n}+ nových podkladů — zvažte přetrénování hlasu.",
   },
   en: {
     scope: "Voice channel",
@@ -95,6 +98,8 @@ const T = {
     never: "Never",
     sourceSample: "sample",
     sourceInterview: "answer",
+    trainedAge: "voice trained {age}",
+    retrainNudge: "{n}+ new materials banked since the last training — consider re-training the voice.",
   },
 } as const;
 
@@ -135,6 +140,10 @@ export default function TwinVoiceStudio({
 
   const currentVoice = state.voices.find((v) => v.scope === scope) ?? null;
   const scopeFacts = useMemo(() => state.facts.filter((f) => f.scope === scope), [state.facts, scope]);
+  /** When the in-force voice was trained (null ⇒ untrained), and whether newer
+   *  material has piled up since — display only, never fed into readiness. */
+  const trainedAt = currentVoice ? voiceTrainedAt(currentVoice) : null;
+  const retrainNudge = currentVoice ? shouldNudgeRetrain(currentVoice, state.facts) : false;
 
   /** Everything the model gets to look at: the pasted samples in this session plus
    *  every fact already saved for this scope (past pastes + past answers). */
@@ -235,7 +244,17 @@ export default function TwinVoiceStudio({
 
       {/* The voice in force right now */}
       <section className="rounded-card border border-line bg-canvas p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("currentVoice")}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("currentVoice")}</p>
+          {trainedAt ? (
+            <span className="pill bg-navy-50 text-muted">{t("trainedAge", { age: formatVoiceAge(trainedAt, L) })}</span>
+          ) : null}
+        </div>
+        {trainedAt && retrainNudge ? (
+          <p className="mt-2 rounded-lg border border-coral-soft bg-coral-soft px-3 py-2 text-xs leading-relaxed text-coral-600">
+            {t("retrainNudge", { n: RETRAIN_MARGIN })}
+          </p>
+        ) : null}
         {currentVoice && currentVoice.directives ? (
           <div className="mt-2 space-y-3">
             <p className="whitespace-pre-line text-sm leading-relaxed text-navy-700">{currentVoice.directives}</p>
