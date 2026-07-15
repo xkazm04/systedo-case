@@ -14,7 +14,7 @@ import {
   approveChangeSet,
   revertChangeSet,
 } from "@/lib/campaigns/control-plane";
-import { GuardrailError } from "@/lib/campaigns/control-plane-types";
+import { GuardrailError, NoSnapshotsError } from "@/lib/campaigns/control-plane-types";
 import { getAlert } from "@/lib/campaigns/alerts";
 import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { getCostModel } from "@/lib/cost-model/store";
@@ -133,9 +133,18 @@ export async function POST(request: Request) {
 
   if (action === "revert") {
     if (!id) return Response.json({ error: "Chybí ID balíčku." }, { status: 422 });
-    const changeSet = await revertChangeSet(tenant, userId, id);
-    if (!changeSet) return Response.json({ error: "Balíček nenalezen." }, { status: 404 });
-    return Response.json({ changeSet });
+    try {
+      const changeSet = await revertChangeSet(tenant, userId, id);
+      if (!changeSet) return Response.json({ error: "Balíček nenalezen." }, { status: 404 });
+      return Response.json({ changeSet });
+    } catch (err) {
+      // A set whose forward apply never landed has no snapshot to restore — the
+      // revert is refused rather than legacy-inversing moves that never happened.
+      if (err instanceof NoSnapshotsError) {
+        return Response.json({ error: err.message }, { status: 422 });
+      }
+      throw err;
+    }
   }
 
   return Response.json({ error: "Nepodporovaná akce." }, { status: 400 });

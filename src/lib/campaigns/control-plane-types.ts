@@ -30,6 +30,18 @@ export class GuardrailError extends Error {
   }
 }
 
+/** Thrown when a revert is requested for a change-set that carries NO restore
+ *  snapshots — i.e. one whose forward apply never landed a move (all-failed, or a
+ *  set recovered from a stranded claim). Reverting such a set used to fall back to
+ *  applying REAL inverse budget shifts for moves that never happened; that is now
+ *  refused outright. The route turns it into a 422. */
+export class NoSnapshotsError extends Error {
+  constructor() {
+    super("Balíček nemá co vrátit — žádný přesun se neaplikoval, takže neexistuje snímek k obnovení.");
+    this.name = "NoSnapshotsError";
+  }
+}
+
 /** Snapshot of a campaign budget's value *before* a change-set was applied, so a
  *  revert can restore the EXACT prior micros rather than an approximate inverse
  *  shift (which re-reads current budgets and re-floors the donor). */
@@ -52,8 +64,17 @@ export interface StatusSnapshot {
 // "applying"/"reverting" are transient claim states: approveChangeSet/revertChangeSet
 // flip into them atomically before running the live mutation loop, so a concurrent
 // Approve/Revert (double-click, retry) can't run the loop twice. They settle to
-// "applied"/"reverted" when the loop finishes.
-export type ChangeSetStatus = "pending" | "applying" | "applied" | "reverting" | "reverted";
+// "applied"/"reverted" when the loop finishes. "failed" is a terminal honest state:
+// an apply whose every move failed lands here (never a snapshot-less "applied"), and
+// a stale/stranded "applying" set is recovered here by the next actor.
+export type ChangeSetStatus = "pending" | "applying" | "applied" | "reverting" | "reverted" | "failed";
+
+/** How long a transient claim ("applying"/"reverting") may sit before the next
+ *  actor may treat it as stranded (the claimer crashed mid-loop) and recover it.
+ *  Stamped as `claimedAt` when the claim is taken, so recovery is time-bounded
+ *  rather than "forever stuck". 10 minutes — comfortably longer than any real
+ *  mutation loop, short enough that an operator isn't blocked for long. */
+export const CLAIM_TTL_MS = 10 * 60 * 1000;
 
 /** Outcome of applying one move to the live account (best-effort per move). */
 export interface MoveResult {
@@ -83,6 +104,12 @@ export interface ChangeSet {
   statusSnapshots?: StatusSnapshot[];
   /** true if applied despite guardrail violations via an explicit override */
   overridden?: boolean;
+  /** ISO timestamp the current transient claim ("applying"/"reverting") was taken,
+   *  stamped inside the claim transaction. Lets the next actor tell a genuinely
+   *  in-progress loop from a stranded one (claimer crashed) via {@link isStaleClaim}.
+   *  Absent on sets that were never claimed, or claimed before this field existed
+   *  (a legacy transient with no stamp is treated as stale → recoverable). */
+  claimedAt?: string;
   /** the inbox alert this change-set was staged from (one-click "close the loop"
    *  action). Set at creation when the set is pre-scoped to an alert's campaigns;
    *  on apply the alert is marked resolved with this set's id as its back-reference,
@@ -145,6 +172,85 @@ export function forwardProjectionApplies(status: ChangeSetStatus): boolean {
 /** Projected extra conversion value if the change-set is applied (CZK). */
 export function projectedValueGain(sim: SimulationResult): number {
   return sim.after.conversionValue - sim.before.conversionValue;
+}
+
+// --- transient-claim recovery + settle policy (pure, fixture-tested) ----------
+
+/** Whether a transient claim taken at `claimedAt` is old enough to be treated as
+ *  STRANDED (the actor that claimed it crashed before settling it). A missing or
+ *  unparseable stamp counts as stale — a claim we can't date is one we must be
+ *  able to recover, never one that blocks forever. */
+export function isStaleClaim(claimedAt: string | undefined, now: number, ttlMs = CLAIM_TTL_MS): boolean {
+  if (!claimedAt) return true;
+  const at = Date.parse(claimedAt);
+  if (Number.isNaN(at)) return true;
+  return now - at >= ttlMs;
+}
+
+/** The honest terminal status for an apply that has finished its move loop: a set
+ *  where EVERY move failed lands `failed` (no snapshots were captured, so it must
+ *  never masquerade as `applied` and offer a bogus revert); any move landing → the
+ *  set is `applied`. An empty result list (never happens — a set always has ≥1
+ *  move) settles `applied` for safety. */
+export function settledApplyStatus(results: MoveResult[]): "applied" | "failed" {
+  return results.length > 0 && results.every((r) => !r.ok) ? "failed" : "applied";
+}
+
+/** Whether a change-set carries at least one restore snapshot (budget or status) —
+ *  i.e. at least one forward move actually landed, so a revert has something exact
+ *  to restore. The sole gate for allowing a revert. */
+export function hasRestoreSnapshots(cs: Pick<ChangeSet, "budgetSnapshots" | "statusSnapshots">): boolean {
+  return (cs.budgetSnapshots?.length ?? 0) > 0 || (cs.statusSnapshots?.length ?? 0) > 0;
+}
+
+/** What an actor should do with a change-set when trying to claim it:
+ *   - `proceed`  — claim the source state → transient, then run the live loop;
+ *   - `recover`  — a stranded transient: write the given terminal status, no loop;
+ *   - `reclaim`  — re-claim a stranded transient and re-run the (idempotent) loop;
+ *   - `refuse`   — a revert with nothing to restore (no snapshots) → reject;
+ *   - `noop`     — nothing to do, return the set unchanged (idempotent). */
+export type ClaimAction =
+  | { kind: "proceed" }
+  | { kind: "recover"; status: ChangeSetStatus }
+  | { kind: "reclaim" }
+  | { kind: "refuse" }
+  | { kind: "noop" };
+
+/** Decide how to claim a set for APPROVE. Only a `pending` set proceeds to the
+ *  apply loop. A stranded `applying` set (claim older than the TTL) is recovered
+ *  to a terminal `failed` — we deliberately do NOT re-run the loop, because the
+ *  forward apply performs RELATIVE budget shifts (not idempotent) and we can't
+ *  know which moves landed before the crash; `failed` is the honest state for an
+ *  operator to review. Everything else is a no-op. */
+export function planApproveClaim(
+  cs: Pick<ChangeSet, "status" | "claimedAt">,
+  now: number,
+  ttlMs = CLAIM_TTL_MS
+): ClaimAction {
+  if (cs.status === "pending") return { kind: "proceed" };
+  if (cs.status === "applying" && isStaleClaim(cs.claimedAt, now, ttlMs)) {
+    return { kind: "recover", status: "failed" };
+  }
+  return { kind: "noop" };
+}
+
+/** Decide how to claim a set for REVERT. An `applied` set proceeds only when it
+ *  has restore snapshots, otherwise the revert is refused (never legacy-inverse a
+ *  set whose forward apply didn't land). A stranded `reverting` set is re-claimed
+ *  and its loop re-run — safe because the restore is an ABSOLUTE snapshot write
+ *  (set exact micros / resume), which is idempotent. Everything else is a no-op. */
+export function planRevertClaim(
+  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots">,
+  now: number,
+  ttlMs = CLAIM_TTL_MS
+): ClaimAction {
+  if (cs.status === "applied") {
+    return hasRestoreSnapshots(cs) ? { kind: "proceed" } : { kind: "refuse" };
+  }
+  if (cs.status === "reverting" && isStaleClaim(cs.claimedAt, now, ttlMs)) {
+    return { kind: "reclaim" };
+  }
+  return { kind: "noop" };
 }
 
 /** Projected extra NET PROFIT if the change-set is applied (CZK) = gross profit on

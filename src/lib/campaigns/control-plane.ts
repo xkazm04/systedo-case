@@ -16,9 +16,12 @@ import { resolveAlert } from "./alerts";
 import { fmtCZK } from "@/lib/format";
 import {
   checkPolicy,
-  inverseMoves,
+  planApproveClaim,
+  planRevertClaim,
+  settledApplyStatus,
   DEFAULT_POLICY,
   GuardrailError,
+  NoSnapshotsError,
   type BudgetSnapshot,
   type ChangeSet,
   type ChangeSetStatus,
@@ -144,23 +147,53 @@ export async function approveChangeSet(
   // Only the caller that wins the transaction proceeds; the loser sees a non-pending
   // status and returns it unchanged (idempotent). Guardrail violations are checked
   // inside the txn so a claim is never taken for a set that would be rejected.
+  //
+  // Recovery: a set stuck in "applying" past the claim TTL (the previous actor
+  // crashed mid-loop) is settled to a terminal "failed" here — NOT re-run, since
+  // the forward apply performs relative budget shifts we can't safely repeat. The
+  // stamp (`claimedAt`) written at claim time makes that distinction time-bounded.
   const ref = changeSetsCol(tenant).doc(id);
-  let cs: ChangeSet;
+  const now = Date.now();
+  let claim: { recovered: true; cs: ChangeSet } | { recovered: false; cs: ChangeSet };
   try {
-    cs = await firestore.runTransaction(async (tx) => {
+    claim = await firestore.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) throw new NotClaimable(null);
       const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
-      if (cur.status !== "pending") throw new NotClaimable(cur);
-      if (cur.violations.length > 0 && !opts.override) throw new GuardrailError(cur.violations);
-      tx.set(ref, { status: "applying" satisfies ChangeSetStatus }, { merge: true });
-      return cur;
+      const action = planApproveClaim(cur, now);
+      if (action.kind === "proceed") {
+        if (cur.violations.length > 0 && !opts.override) throw new GuardrailError(cur.violations);
+        tx.set(
+          ref,
+          { status: "applying" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() },
+          { merge: true }
+        );
+        return { recovered: false as const, cs: cur };
+      }
+      if (action.kind === "recover") {
+        tx.set(ref, { status: action.status satisfies ChangeSetStatus }, { merge: true });
+        return { recovered: true as const, cs: { ...cur, status: action.status } };
+      }
+      throw new NotClaimable(cur); // not claimable → idempotent no-op
     });
   } catch (err) {
-    if (err instanceof NotClaimable) return err.cs; // not pending → idempotent no-op
+    if (err instanceof NotClaimable) return err.cs;
     throw err; // GuardrailError (and any real error) propagates unchanged
   }
 
+  if (claim.recovered) {
+    // Stranded claim reclaimed to a terminal state; no live mutation to run.
+    await recordActivity(tenant, {
+      kind: "budget_shift",
+      title: `Uvíznutý balíček obnoven jako selhaný (${claim.cs.moves.length} přesunů)`,
+      detail: "Předchozí aplikace se nedokončila v časovém limitu; balíček označen jako selhaný k prověření.",
+      actor: "Systém",
+      changeSetId: id,
+    });
+    return claim.cs;
+  }
+
+  const cs = claim.cs;
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
   const statusSnapshots: StatusSnapshot[] = [];
@@ -187,8 +220,14 @@ if (m.kind === "pause") {
     if (r.ok && r.snapshots) budgetSnapshots.push(...r.snapshots);
   }
 
+  // Honest terminal status: if EVERY move failed, this set never touched the live
+  // account and captured no snapshots — it lands "failed", not a bogus "applied"
+  // whose revert would have legacy-inversed moves that never happened. Any move
+  // landing → "applied".
+  const status = settledApplyStatus(results);
+  const applied = status === "applied";
   const updated: Partial<ChangeSet> = {
-    status: "applied",
+    status,
     approvedAt: new Date().toISOString(),
     results,
     budgetSnapshots,
@@ -198,10 +237,10 @@ if (m.kind === "pause") {
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
 
   // Close the loop: if this set was staged off an alert, mark that alert resolved
-  // with this set as the back-reference. Best-effort — a resolution write failing
-  // must not undo the (already-applied) budget mutations. Done before the activity
-  // record so the thread's detail can state the alert was closed.
-  if (cs.alertId) {
+  // with this set as the back-reference — but ONLY when the apply actually landed.
+  // A fully-failed apply must not report the alerted problem as actioned. Best-
+  // effort: a resolution write failing must not undo the budget mutations.
+  if (applied && cs.alertId) {
     try {
       await resolveAlert(tenant, cs.alertId, id);
     } catch (err) {
@@ -212,12 +251,14 @@ if (m.kind === "pause") {
   const okCount = results.filter((r) => r.ok).length;
   await recordActivity(tenant, {
     kind: "budget_shift",
-    title: `Schválen změnový balíček (${cs.moves.length} přesunů)${
-      updated.overridden ? " — přes pojistky" : ""
-    }`,
-    detail: `Aplikováno ${okCount}/${cs.moves.length}. Projektovaný dopad ${fmtCZK(
-      cs.simulation.after.conversionValue - cs.simulation.before.conversionValue
-    )} hodnoty konverzí.${cs.alertId ? " Upozornění uzavřeno." : ""}`,
+    title: applied
+      ? `Schválen změnový balíček (${cs.moves.length} přesunů)${updated.overridden ? " — přes pojistky" : ""}`
+      : `Změnový balíček selhal (${cs.moves.length} přesunů)`,
+    detail: applied
+      ? `Aplikováno ${okCount}/${cs.moves.length}. Projektovaný dopad ${fmtCZK(
+          cs.simulation.after.conversionValue - cs.simulation.before.conversionValue
+        )} hodnoty konverzí.${cs.alertId ? " Upozornění uzavřeno." : ""}`
+      : `Žádný z ${cs.moves.length} přesunů se neaplikoval — balíček označen jako selhaný, není co vracet.`,
     actor: "Vy",
     changeSetId: id,
     // thread this apply back to the originating alert when there is one.
@@ -238,64 +279,58 @@ export async function revertChangeSet(
   id: string
 ): Promise<ChangeSet | null> {
   // Claim (applied → reverting) atomically so a concurrent Revert can't run the
-  // restore twice, mirroring approveChangeSet's claim.
+  // restore twice, mirroring approveChangeSet's claim. A revert with NO restore
+  // snapshots is refused (NoSnapshotsError) — never legacy-inverse a set whose
+  // forward apply didn't land. A set stranded in "reverting" past the TTL is
+  // re-claimed and re-run: the restore is an ABSOLUTE snapshot write (set exact
+  // micros / resume), which is idempotent, so repeating it is safe.
   const ref = changeSetsCol(tenant).doc(id);
+  const now = Date.now();
   let cs: ChangeSet;
   try {
     cs = await firestore.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) throw new NotClaimable(null);
       const cur = { id, ...(snap.data() as Omit<ChangeSet, "id">) };
-      if (cur.status !== "applied") throw new NotClaimable(cur);
-      tx.set(ref, { status: "reverting" satisfies ChangeSetStatus }, { merge: true });
-      return cur;
+      const action = planRevertClaim(cur, now);
+      if (action.kind === "proceed" || action.kind === "reclaim") {
+        tx.set(
+          ref,
+          { status: "reverting" satisfies ChangeSetStatus, claimedAt: new Date(now).toISOString() },
+          { merge: true }
+        );
+        return cur;
+      }
+      if (action.kind === "refuse") throw new NoSnapshotsError();
+      throw new NotClaimable(cur);
     });
   } catch (err) {
     if (err instanceof NotClaimable) return err.cs;
-    throw err;
+    throw err; // NoSnapshotsError (and any real error) propagates unchanged
   }
 
+  // Exact revert from snapshots (guaranteed present — the claim refused otherwise):
+  // restore every touched budget in one call, and resume every paused campaign.
+  // Per-move results map each move to the outcome of the operation that undoes it.
   const hasBudgetSnaps = (cs.budgetSnapshots?.length ?? 0) > 0;
-  const hasStatusSnaps = (cs.statusSnapshots?.length ?? 0) > 0;
-  let results: MoveResult[];
-  let detail: string;
-
-if (hasBudgetSnaps || hasStatusSnaps) {
-    // Exact revert from snapshots: restore every touched budget in one call, and
-    // resume every paused campaign. Per-move results map each move to the outcome
-    // of the operation that undoes it.
-    const budgetResult = hasBudgetSnaps ? await restoreBudgets(userId, tenant, cs.budgetSnapshots!) : null;
-    const resumeById = new Map<string, { ok: boolean; error?: string }>();
-    for (const s of cs.statusSnapshots ?? []) {
-      resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName));
-    }
-    results = cs.moves.map((m) => {
-      if (m.kind === "pause") {
-        const r = resumeById.get(m.fromId);
-        return { fromName: m.fromName, toName: m.fromName, ok: r?.ok ?? false, error: r?.error };
-      }
-      return { fromName: m.fromName, toName: m.toName, ok: budgetResult?.ok ?? true, error: budgetResult?.error };
-    });
-    const budgetOk = !hasBudgetSnaps || (budgetResult?.ok ?? false);
-    const resumeOk = [...resumeById.values()].every((r) => r.ok);
-    detail =
-      budgetOk && resumeOk
-        ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
-        : `Obnovení částečně selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}.`;
-  } else {
-    results = [];
-    for (const m of inverseMoves(cs.moves)) {
-      const r = await applyBudgetShift(userId, tenant, {
-        fromId: m.fromId,
-        fromName: m.fromName,
-        toId: m.toId,
-        toName: m.toName,
-        amount: m.amount,
-      });
-      results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
-    }
-    detail = "Přesuny vráceny inverzně (přibližná obnova — bez snímku původních rozpočtů).";
+  const budgetResult = hasBudgetSnaps ? await restoreBudgets(userId, tenant, cs.budgetSnapshots!) : null;
+  const resumeById = new Map<string, { ok: boolean; error?: string }>();
+  for (const s of cs.statusSnapshots ?? []) {
+    resumeById.set(s.campaignId, await applyResume(userId, tenant, s.campaignId, s.campaignName));
   }
+  const results: MoveResult[] = cs.moves.map((m) => {
+    if (m.kind === "pause") {
+      const r = resumeById.get(m.fromId);
+      return { fromName: m.fromName, toName: m.fromName, ok: r?.ok ?? false, error: r?.error };
+    }
+    return { fromName: m.fromName, toName: m.toName, ok: budgetResult?.ok ?? true, error: budgetResult?.error };
+  });
+  const budgetOk = !hasBudgetSnaps || (budgetResult?.ok ?? false);
+  const resumeOk = [...resumeById.values()].every((r) => r.ok);
+  const detail =
+    budgetOk && resumeOk
+      ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
+      : `Obnovení částečně selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}.`;
 
   const updated: Partial<ChangeSet> = { status: "reverted", revertedAt: new Date().toISOString(), results };
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });

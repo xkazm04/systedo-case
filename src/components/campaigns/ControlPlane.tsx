@@ -29,6 +29,7 @@ const T = {
     statusReverted: "Vráceno",
     statusApplying: "Aplikuje se…",
     statusReverting: "Vrací se…",
+    statusFailed: "Selhalo",
     projectedGain: "Projektovaný přínos ≈",
     projectedProfit: "Projektovaný zisk ≈",
     marginStated: "při marži {m}",
@@ -63,6 +64,7 @@ const T = {
     statusReverted: "Reverted",
     statusApplying: "Applying…",
     statusReverting: "Reverting…",
+    statusFailed: "Failed",
     projectedGain: "Projected gain ≈",
     projectedProfit: "Projected profit ≈",
     marginStated: "at a {m} margin",
@@ -93,6 +95,7 @@ const STATUS_STYLE: Record<ChangeSetStatus, string> = {
   applied: "bg-positive-soft text-positive",
   reverting: "bg-navy-50 text-muted",
   reverted: "bg-navy-50 text-muted",
+  failed: "bg-coral-soft text-coral-600",
 };
 
 /** Ad-ops control plane: bundle recommended budget moves into a simulated,
@@ -125,6 +128,7 @@ export default function ControlPlane({
     applied: t("statusApplied"),
     reverting: t("statusReverting"),
     reverted: t("statusReverted"),
+    failed: t("statusFailed"),
   };
 
   const load = useCallback(async () => {
