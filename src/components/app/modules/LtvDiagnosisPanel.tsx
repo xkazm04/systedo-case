@@ -13,7 +13,7 @@ import { useEffect, useRef } from "react";
 import { Bulb, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { CohortDiagnosisResult } from "@/lib/ai-types";
 import type { CohortMetrics } from "@/lib/ltv/compute";
-import { type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
@@ -98,6 +98,7 @@ export default function LtvDiagnosisPanel({
   projectId,
   initialDiagnosis = null,
   history = [],
+  currentDigest,
 }: {
   /** the computed cohort rows — used only to gate the run (empty → nothing to
    *  diagnose); the diagnosed economics are re-derived server-side (Direction 1) */
@@ -108,6 +109,9 @@ export default function LtvDiagnosisPanel({
   initialDiagnosis?: StoredDiagnosis | null;
   /** the capped cohort-diagnosis history */
   history?: StoredDiagnosis[];
+  /** Direction 2: the digest of the CURRENT cohort request (server-computed), so a
+   *  stored diagnosis computed from older data is badged stale */
+  currentDigest?: string;
 }) {
   const t = useT(T);
   const tool = useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
@@ -130,6 +134,11 @@ export default function LtvDiagnosisPanel({
 
   const handoff = { href: "#ltv-kohorty", label: t("handoff") };
   const activeCohort = active && active.kind === "cohort" ? active : null;
+  // Direction 2: a stored diagnosis is stale when its input digest no longer matches
+  // the current data digest (backward-tolerant — an old-format digest reads as
+  // unknown-age, never a hard stale claim).
+  const isStale = (d: StoredDiagnosis) =>
+    currentDigest ? digestFreshness(d.inputDigest, currentDigest) === "stale" : false;
 
   return (
     <div className="space-y-4">
@@ -141,14 +150,24 @@ export default function LtvDiagnosisPanel({
             ? {
                 result: activeCohort.result,
                 below: (
-                  <DiagnosisActions diagnosis={activeCohort} onStatus={patchStatus} handoff={handoff} />
+                  <DiagnosisActions
+                    diagnosis={activeCohort}
+                    onStatus={patchStatus}
+                    handoff={handoff}
+                    stale={isStale(activeCohort)}
+                  />
                 ),
               }
             : null
         }
         resultFooter={
           activeCohort ? (
-            <DiagnosisActions diagnosis={activeCohort} onStatus={patchStatus} handoff={handoff} />
+            <DiagnosisActions
+              diagnosis={activeCohort}
+              onStatus={patchStatus}
+              handoff={handoff}
+              stale={isStale(activeCohort)}
+            />
           ) : null
         }
         header={
@@ -176,7 +195,7 @@ export default function LtvDiagnosisPanel({
           </>
         )}
       />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );
 }

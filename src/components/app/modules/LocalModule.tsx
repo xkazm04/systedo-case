@@ -7,7 +7,7 @@ import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { gaps, localSummary, matrix } from "@/lib/local/compute";
 import type { LocalTarget, RecentReview, ReviewProfile } from "@/lib/local/sample";
 import type { LocalDiagnosisRequest } from "@/lib/ai-types";
-import type { StoredDiagnosis } from "@/lib/diagnoses/types";
+import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import LocalReviews from "@/components/app/modules/LocalReviews";
 import LocalDiagnosisPanel from "@/components/app/modules/LocalDiagnosisPanel";
 
@@ -158,6 +158,9 @@ export default async function LocalModule({
           projectId={projectId}
           initialDiagnosis={initialDiagnosis}
           history={diagnosisHistory}
+          // Direction 2: the digest of the CURRENT request (same builder the click path
+          // re-derives) badges an older stored diagnosis stale. Only when persisting.
+          currentDigest={projectId ? inputDigest(diagnosisRequest) : undefined}
         />
       )}
 

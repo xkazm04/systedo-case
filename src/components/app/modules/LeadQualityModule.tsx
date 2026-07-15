@@ -17,7 +17,8 @@ import {
 import type { LeadSource } from "@/lib/lead-quality/sample";
 import LeadSourceDiagnosisPanel from "@/components/app/modules/LeadSourceDiagnosisPanel";
 import LeadImportPanel from "@/components/app/modules/LeadImportPanel";
-import { buildLeadSourceSeeds } from "@/lib/diagnoses/lead-source-request";
+import { buildLeadSourceSeeds, seedToRequest } from "@/lib/diagnoses/lead-source-request";
+import { inputDigest } from "@/lib/diagnoses/types";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
 const T = {
@@ -185,6 +186,12 @@ export default async function LeadQualityModule({
         listDiagnoses(projectId, "lead-source"),
       ])
     : [null, []];
+  // Direction 2: per-source digest of the CURRENT seed request (the SAME builder the
+  // click path re-derives), keyed by source name, so an older stored diagnosis is
+  // badged stale. Only on a real project (persistence is on).
+  const currentDigests = projectId
+    ? Object.fromEntries(diagnosisSeeds.map((s) => [s.source, inputDigest(seedToRequest(s))]))
+    : undefined;
 
   const alertSeverityLabel: Record<LeadQualityAlert["severity"], string> = {
     critical: t("alertSeverityCritical"),
@@ -460,6 +467,7 @@ export default async function LeadQualityModule({
           projectId={projectId}
           initialDiagnosis={initialDiagnosis}
           history={diagnosisHistory}
+          currentDigests={currentDigests}
         />
       )}
 

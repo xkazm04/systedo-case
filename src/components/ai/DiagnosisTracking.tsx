@@ -24,6 +24,8 @@ const T = {
     historyDesc: "Posledních {n} — přetrvává mezi návštěvami.",
     empty: "Zatím žádné uložené diagnózy.",
     fromDigest: "z týdenního souhrnu",
+    stale: "Neaktuální — data se od uložení změnila",
+    staleNudge: "Spusťte rozbor znovu pro aktuální čísla.",
   },
   en: {
     statusNew: "New",
@@ -37,8 +39,21 @@ const T = {
     historyDesc: "Last {n} — persists across visits.",
     empty: "No saved diagnoses yet.",
     fromDigest: "from the weekly digest",
+    stale: "Out of date — the data changed since this was saved",
+    staleNudge: "Re-run the analysis for current figures.",
   },
 } as const;
+
+/** Direction 2 — the stale marker. A stored diagnosis whose input digest no longer
+ *  matches the current data digest (digestFreshness === "stale") is out of date; say
+ *  so with a coral pill, mirroring the MonthlyReport / ReportView recap-stale badge. */
+function StaleBadge({ t }: { t: (k: keyof (typeof T)["cs"]) => string }) {
+  return (
+    <span className="rounded-pill bg-coral-soft px-2 py-0.5 text-xs font-medium text-coral-600">
+      {t("stale")}
+    </span>
+  );
+}
 
 /** Direction 1 — honest provenance label. When the diagnosis was computed from the
  *  illustrative sample (no live import), say so plainly instead of implying the
@@ -81,10 +96,13 @@ export function DiagnosisActions({
   diagnosis,
   onStatus,
   handoff,
+  stale = false,
 }: {
   diagnosis: StoredDiagnosis;
   onStatus: (id: string, status: DiagnosisStatus) => void;
   handoff: DiagnosisHandoff;
+  /** Direction 2: the diagnosis is out of date vs the current data → badge + nudge */
+  stale?: boolean;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
@@ -108,11 +126,13 @@ export function DiagnosisActions({
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
       <Pill tone={STATUS_TONE[status]}>{statusLabel(t, status)}</Pill>
+      {stale && <StaleBadge t={t} />}
       <span className="inline-flex items-center gap-1 text-xs text-muted">
         <Clock width={12} height={12} />
         {t("savedAt", { when: fmt.fmtRelative(diagnosis.createdAt) })}
         {diagnosis.origin === "digest" ? ` · ${t("fromDigest")}` : ""}
       </span>
+      {stale && <span className="w-full text-xs text-coral-600">{t("staleNudge")}</span>}
       <span className="ml-auto flex items-center gap-2">
         {nextButton}
         <Link
@@ -153,9 +173,12 @@ function StatusButton({
 export function DiagnosisHistory({
   items,
   onStatus,
+  isStale,
 }: {
   items: StoredDiagnosis[];
   onStatus: (id: string, status: DiagnosisStatus) => void;
+  /** Direction 2: per-row staleness verdict against the current data digest */
+  isStale?: (d: StoredDiagnosis) => boolean;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
@@ -171,6 +194,7 @@ export function DiagnosisHistory({
         {items.map((it) => (
           <li key={it.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3">
             <Pill tone={STATUS_TONE[it.status]}>{statusLabel(t, it.status)}</Pill>
+            {isStale?.(it) && <StaleBadge t={t} />}
             <span className="min-w-0 flex-1 truncate text-sm text-navy-700">{it.subject}</span>
             <span className="inline-flex items-center gap-1 text-xs text-muted">
               <Clock width={12} height={12} />

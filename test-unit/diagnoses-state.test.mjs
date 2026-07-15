@@ -8,6 +8,8 @@ import {
   buildStoredDiagnosis,
   capPerKind,
   DIAGNOSIS_HISTORY_CAP,
+  DIGEST_VERSION,
+  digestFreshness,
   inputDigest,
   latestOfKind,
   sanitizeDiagnosisInput,
@@ -99,4 +101,35 @@ test("inputDigest is stable for equal input and differs for changed input", () =
   const c = inputDigest({ cohorts: [1, 2, 4], eshop: true });
   assert.equal(a, b);
   assert.notEqual(a, c);
+});
+
+// --- Direction 2 — stale-badge digest ------------------------------------
+
+test("inputDigest is key-order-independent (stable stringify) and version-prefixed", () => {
+  const a = inputDigest({ a: 1, b: { x: 10, y: 20 }, c: [1, 2] });
+  const b = inputDigest({ c: [1, 2], b: { y: 20, x: 10 }, a: 1 }); // keys reordered
+  assert.equal(a, b, "reordering keys must not change the digest");
+  assert.ok(a.startsWith(`${DIGEST_VERSION}:`), "digest carries the format version prefix");
+  // Array order IS meaningful — reordering an array must change the digest.
+  assert.notEqual(inputDigest({ v: [1, 2] }), inputDigest({ v: [2, 1] }));
+  // undefined-valued keys are dropped (JSON would omit them) — same as omitting them.
+  assert.equal(inputDigest({ a: 1, b: undefined }), inputDigest({ a: 1 }));
+});
+
+test("digestFreshness resolves fresh / stale for current-format digests", () => {
+  const cur = inputDigest({ n: 1 });
+  assert.equal(digestFreshness(cur, cur), "fresh");
+  assert.equal(digestFreshness(inputDigest({ n: 2 }), cur), "stale", "current-format mismatch is a hard stale");
+  assert.equal(digestFreshness(undefined, cur), "unknown");
+  assert.equal(digestFreshness("", cur), "unknown");
+});
+
+test("digestFreshness is backward-tolerant — an OLD-format digest is unknown, never stale", () => {
+  const cur = inputDigest({ n: 1 });
+  // A pre-versioned digest (bare base36, no "N:" prefix) can't be compared to the
+  // new stable digest, so it must read as unknown-age — never a hard mismatch claim.
+  const legacy = "abc123";
+  assert.equal(digestFreshness(legacy, cur), "unknown");
+  // Even if it happens to differ from the current, it stays soft (not "stale").
+  assert.notEqual(legacy, cur);
 });

@@ -260,15 +260,55 @@ export function buildStoredDiagnosis(
       : { ...base, kind: "local", result: input.result as LocalDiagnosisResult };
 }
 
-/** Stable, cheap digest (fnv-1a, base36) of any JSON-serializable request — so a
- *  stored diagnosis records the shape of the data it was computed from without
- *  keeping the whole payload. Not cryptographic; just a change-detector. */
+/** The digest format version. It PREFIXES every digest so the freshness comparison
+ *  (digestFreshness) can tell a current-format digest from an older one and stay
+ *  backward-tolerant: a pre-versioned stored digest is treated as unknown-age, never
+ *  as a hard "stale" claim. Bump on any change to the stringify below. */
+export const DIGEST_VERSION = "2";
+
+/** Key-order-normalized JSON — so `{ a, b }` and `{ b, a }` serialize identically and
+ *  a stored digest doesn't spuriously mismatch just because the request builder
+ *  emitted its keys in a different order. Arrays keep their order (it is meaningful);
+ *  `undefined`-valued keys are dropped (JSON would omit them anyway). */
+function stableStringify(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  const o = value as Record<string, unknown>;
+  const keys = Object.keys(o)
+    .filter((k) => o[k] !== undefined)
+    .sort();
+  return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(o[k])}`).join(",")}}`;
+}
+
+/** Stable, cheap digest (fnv-1a, base36, version-prefixed) of any JSON-serializable
+ *  request — so a stored diagnosis records the shape of the data it was computed from
+ *  without keeping the whole payload. Key-order-independent (stableStringify). Not
+ *  cryptographic; just a change-detector. */
 export function inputDigest(value: unknown): string {
-  const s = JSON.stringify(value) ?? "";
+  const s = stableStringify(value);
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
     h = Math.imul(h, 0x01000193);
   }
-  return (h >>> 0).toString(36);
+  return `${DIGEST_VERSION}:${(h >>> 0).toString(36)}`;
+}
+
+/** Whether a STORED diagnosis's input digest still matches the CURRENT data digest.
+ *   - "fresh"   — the digests match; the diagnosis reflects the current data.
+ *   - "stale"   — both are current-format and differ; the data changed since — a hard
+ *                 claim, safe because both were produced by the same stable stringify.
+ *   - "unknown" — no stored digest, OR the stored one predates the current format
+ *                 (backward tolerance): we CANNOT prove staleness, so we never claim
+ *                 it — the UI shows a soft, uncommitted label instead of "stale". */
+export type DigestFreshness = "fresh" | "stale" | "unknown";
+
+export function digestFreshness(
+  stored: string | undefined | null,
+  current: string
+): DigestFreshness {
+  if (!stored) return "unknown";
+  if (stored === current) return "fresh";
+  const isCurrentFormat = (d: string) => d.startsWith(`${DIGEST_VERSION}:`);
+  return isCurrentFormat(stored) && isCurrentFormat(current) ? "stale" : "unknown";
 }

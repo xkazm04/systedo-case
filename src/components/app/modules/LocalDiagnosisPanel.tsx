@@ -9,7 +9,7 @@
 import { useEffect, useRef } from "react";
 import { Bulb, Pin, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { LocalDiagnosisRequest, LocalDiagnosisResult } from "@/lib/ai-types";
-import { type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
@@ -94,8 +94,11 @@ export default function LocalDiagnosisPanel({
   projectId,
   initialDiagnosis = null,
   history = [],
+  currentDigest,
 }: {
-  /** the prebuilt local-diagnosis request (resolved figures only) */
+  /** the prebuilt local-diagnosis request (resolved figures only) — used to gate the
+   *  run + surface the current-data digest; the diagnosed numbers are re-derived
+   *  server-side (Direction 1) */
   request: LocalDiagnosisRequest;
   /** the project the diagnosis persists under */
   projectId?: string;
@@ -103,6 +106,9 @@ export default function LocalDiagnosisPanel({
   initialDiagnosis?: StoredDiagnosis | null;
   /** the capped local-diagnosis history */
   history?: StoredDiagnosis[];
+  /** Direction 2: digest of the CURRENT local request, so an older stored diagnosis
+   *  is badged stale */
+  currentDigest?: string;
 }) {
   const t = useT(T);
   const tool = useAiTool<LocalDiagnosisResult>("local-diagnosis");
@@ -124,6 +130,8 @@ export default function LocalDiagnosisPanel({
   const handoff = { href: "#local-gaps", label: t("handoff") };
   const activeLocal = active && active.kind === "local" ? active : null;
   const hasGaps = request.gaps.length > 0;
+  const isStale = (d: StoredDiagnosis) =>
+    currentDigest ? digestFreshness(d.inputDigest, currentDigest) === "stale" : false;
 
   return (
     <div className="space-y-4">
@@ -135,14 +143,24 @@ export default function LocalDiagnosisPanel({
             ? {
                 result: activeLocal.result,
                 below: (
-                  <DiagnosisActions diagnosis={activeLocal} onStatus={patchStatus} handoff={handoff} />
+                  <DiagnosisActions
+                    diagnosis={activeLocal}
+                    onStatus={patchStatus}
+                    handoff={handoff}
+                    stale={isStale(activeLocal)}
+                  />
                 ),
               }
             : null
         }
         resultFooter={
           activeLocal ? (
-            <DiagnosisActions diagnosis={activeLocal} onStatus={patchStatus} handoff={handoff} />
+            <DiagnosisActions
+              diagnosis={activeLocal}
+              onStatus={patchStatus}
+              handoff={handoff}
+              stale={isStale(activeLocal)}
+            />
           ) : null
         }
         header={
@@ -169,7 +187,7 @@ export default function LocalDiagnosisPanel({
           </>
         )}
       />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );
 }

@@ -7,6 +7,8 @@ import LtvReportButton from "@/components/app/modules/LtvReportButton";
 import LtvDiagnosisPanel from "@/components/app/modules/LtvDiagnosisPanel";
 import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
+import { buildCohortRequest } from "@/lib/diagnoses/cohort-request";
+import { inputDigest } from "@/lib/diagnoses/types";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import Sparkline from "@/components/charts/Sparkline";
 import { cohortTrend } from "@/lib/ltv/compute";
@@ -240,6 +242,13 @@ export default async function LtvModule({
     ? await Promise.all([latestDiagnosis(projectId, "cohort"), listDiagnoses(projectId, "cohort")])
     : [null, []];
 
+  // Direction 2: the digest of the CURRENT cohort request — the SAME builder + rows +
+  // summary the /api/ai click path re-derives — so a stored diagnosis computed from
+  // older cohort data is badged stale. Only on a real project (persistence is on).
+  const currentDigest = projectId
+    ? inputDigest(buildCohortRequest(rows, summary, eshop))
+    : undefined;
+
   // Project-type-aware labels.
   const L = eshop
     ? {
@@ -319,6 +328,7 @@ export default async function LtvModule({
         projectId={projectId}
         initialDiagnosis={initialDiagnosis}
         history={diagnosisHistory}
+        currentDigest={currentDigest}
       />
 
       <LtvProjectionPanel cohorts={cohorts} paidCac={summary.paidCac} />

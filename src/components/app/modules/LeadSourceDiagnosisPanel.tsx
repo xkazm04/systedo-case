@@ -19,7 +19,7 @@ import {
   type LeadSourceSeverity,
 } from "@/lib/ai-types";
 import { type LeadSourceSeed } from "@/lib/diagnoses/lead-source-request";
-import { type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
@@ -85,11 +85,15 @@ export default function LeadSourceDiagnosisPanel({
   projectId,
   initialDiagnosis = null,
   history = [],
+  currentDigests,
 }: {
   seeds: LeadSourceSeed[];
   projectId?: string;
   initialDiagnosis?: StoredDiagnosis | null;
   history?: StoredDiagnosis[];
+  /** Direction 2: per-source digest of the CURRENT seed request, keyed by source
+   *  name (the diagnosis subject), so an older stored diagnosis is badged stale */
+  currentDigests?: Record<string, string>;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -117,6 +121,12 @@ export default function LeadSourceDiagnosisPanel({
 
   const handoff = { href: projectId ? `/app/${projectId}/kampane` : "/app", label: t("handoff") };
   const activeLead = active && active.kind === "lead-source" ? active : null;
+  // Direction 2: a stored diagnosis is stale when its source's current seed digest
+  // differs (per-source, keyed by the diagnosis subject = the source name).
+  const isStale = (d: StoredDiagnosis) => {
+    const cur = currentDigests?.[d.subject];
+    return cur ? digestFreshness(d.inputDigest, cur) === "stale" : false;
+  };
 
   const resultBody = (r: LeadSourceDiagnosisResult) => (
     <>
@@ -184,13 +194,25 @@ export default function LeadSourceDiagnosisPanel({
           status === "idle" && activeLead
             ? {
                 result: activeLead.result,
-                below: <DiagnosisActions diagnosis={activeLead} onStatus={patchStatus} handoff={handoff} />,
+                below: (
+                  <DiagnosisActions
+                    diagnosis={activeLead}
+                    onStatus={patchStatus}
+                    handoff={handoff}
+                    stale={isStale(activeLead)}
+                  />
+                ),
               }
             : null
         }
         resultFooter={
           activeLead ? (
-            <DiagnosisActions diagnosis={activeLead} onStatus={patchStatus} handoff={handoff} />
+            <DiagnosisActions
+              diagnosis={activeLead}
+              onStatus={patchStatus}
+              handoff={handoff}
+              stale={isStale(activeLead)}
+            />
           ) : null
         }
         header={
@@ -236,7 +258,7 @@ export default function LeadSourceDiagnosisPanel({
         }
         renderResult={(r) => resultBody(r)}
       />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
     </div>
   );
 }
