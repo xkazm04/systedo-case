@@ -1,341 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Bulb } from "@/components/icons";
-import { Pill } from "@/components/ui";
-import Sparkline from "@/components/charts/Sparkline";
-import DeltaBadge from "@/components/dashboard/DeltaBadge";
 import NextSteps from "@/components/app/NextSteps";
 import ProfitScenariosPanel from "@/components/app/modules/ProfitScenariosPanel";
 import ProfitReallocationPanel from "@/components/app/modules/ProfitReallocationPanel";
 import ProfitProductsPanel from "@/components/app/modules/ProfitProductsPanel";
-import { aov, cr, pno, roas, type ChannelRow } from "@/lib/metrics";
+import type { ChannelRow } from "@/lib/metrics";
 import type { ChannelShare } from "@/lib/types";
-import { monthsForDays } from "@/lib/profit/core";
-import { marginDivergence } from "@/lib/profit/reconcile";
-import { computeProfit, reallocateBudget } from "@/lib/profit/compute";
-import { applyOverhead } from "@/lib/profit/overhead";
-import { computeProductProfit, lowestPoasCategory } from "@/lib/profit/products";
-import { retargetTrend, trendDelta } from "@/lib/profit/trend";
-import type {
-  ChannelMargin,
-  MarginScenario,
-  OverheadOptions,
-  ProductCategory,
-  ProfitSummary,
-  ProfitTrendPoint,
-  ReallocStrategy,
-} from "@/lib/profit/types";
-import {
-  coerceScenarios,
-  coerceRealNumbers,
-  type FinanceInputs,
-  type RealOverride,
-} from "@/lib/profit/finance-inputs/types";
+import type { ChannelMargin, ProductCategory, ProfitTrendPoint } from "@/lib/profit/types";
+import type { FinanceInputs } from "@/lib/profit/finance-inputs/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
-
-const T = {
-  cs: {
-    days30: "30 dní",
-    days90: "90 dní",
-    months12: "12 měsíců",
-    byChannels: "Podle kanálů",
-    byProducts: "Podle produktů",
-    resetMargins: "Obnovit výchozí marže",
-    reportSyncActive: "Měsíční report počítá zisk z těchto hodnot (marže {m} · režie {o}/měs · {f}/obj.).",
-    reportSyncInactive: "Použijte tuto marži a režii v měsíčním reportu, aby počítal skutečný zisk po nákladech.",
-    liveData: "Živá data · Google Ads",
-    sampleData: "Ukázková data",
-    synced: "synchronizováno {date}",
-    reconcileNote: "Blended marže v tomto modulu ({computed}) se liší o {delta} p.b. od marže v reportu ({persisted}) — stejný e-shop by ve dvou záložkách viděl jiný zisk. Sjednoťte je tlačítkem „{apply}“ výše.",
-    applyToReport: "Použít v reportu",
-    applyUpdate: "Aktualizovat report",
-    applied: "Uloženo do reportu ✓",
-    applying: "Ukládám…",
-    applyFailed: "Uložení selhalo.",
-    realNumbersTitle: "Vaše reálná čísla (za zvolené období)",
-    realNumbersDesc: "Zadejte skutečný obrat a útratu za reklamu za {period} — tabulka, souhrn i přerozdělení se přepočítají na vaši realitu (kanálový mix zůstává). Ne jen marže.",
-    revenue: "Obrat",
-    adSpend: "Útrata za reklamu",
-    backToDemo: "Zpět na ukázku",
-    recalculated: "Přepočítáno na vaše čísla. (Graf vývoje níže ukazuje tvar v čase.)",
-    netAdProfit: "Čistý zisk z reklamy",
-    grossProfitSub: "hrubý zisk {gross} − náklady {cost}",
-    poasSub: "zisk na korunu reklamy · ROAS {roas}",
-    blendedMargin: "Blended marže",
-    weightedByRevenue: "vážená obratem",
-    unprofitableChannels: "Ztrátové kanály",
-    unprofitableAfterMargin: "prodělávají po marži",
-    trendTitle: "Vývoj zisku a POAS v čase",
-    netProfit: "Čistý zisk",
-    poas: "POAS",
-    lastPeriod: "poslední {granularity} {value}",
-    unprofitableWarning_one: "kanál vypadá podle ROAS dobře, ale po započtení marže prodělává — jeho ROAS je pod bodem zvratu (1 / marže). Zvažte přesun rozpočtu do ziskových kanálů.",
-    unprofitableWarning_other: "kanály/ů vypadají podle ROAS dobře, ale po započtení marže prodělávají — jejich ROAS je pod bodem zvratu (1 / marže). Zvažte přesun rozpočtu do ziskových kanálů.",
-    colChannel: "Kanál",
-    colRevenue: "Obrat",
-    colCost: "Náklady",
-    colRoas: "ROAS",
-    colMargin: "Marže",
-    colBreakeven: "Bod zvratu",
-    colPoas: "POAS",
-    colNetProfit: "Čistý zisk",
-    marginAriaLabel: "Marže {channel}",
-    legendProfitable: "Ziskový",
-    legendProfitableDesc: "ROAS ≥ bod zvratu",
-    legendUnprofitable: "Ztrátový",
-    legendUnprofitableDesc: "ROAS pod bodem zvratu (1 / marže)",
-    legendEditHint: "Marže upravte v tabulce — vše se přepočítá živě.",
-    overheadTitle: "Zahrnout režijní náklady",
-    overheadDesc: "Rozpočítá fixní režii podle obratu a odečte fulfillment na objednávku → skutečný příspěvkový POAS.",
-    overheadInclude: "Zahrnout",
-    overheadFixedMonthly: "Fixní režie / měsíc",
-    overheadMonthsMult: "× {months} měsíce období",
-    overheadPerOrder: "Náklad / objednávku",
-    overheadFulfillmentHint: "fulfillment, balné, doprava",
-    contributionPoas: "Příspěvkový POAS",
-    rawPoas: "surový POAS {value}",
-    colRawPoas: "Surový POAS",
-    colOverhead: "Režie",
-    colFulfillment: "Fulfillment",
-    colContributionPoas: "Příspěvkový POAS",
-    colAdjBreakeven: "Upravený bod zvratu",
-    colContribution: "Příspěvek",
-    overheadFooter: "Režie {overhead} + fulfillment {fulfillment} rozpočítáno · ztrátových po režii",
-    scenarioDefaultName: "Scénář {n}",
-    nextStepLabel: "Přesunout rozpočet",
-    nextStepHintHelps: "Přerozdělení slibuje +{profit} zisku",
-    nextStepHintOther: "Omezit ztrátové kanály v Kampaních",
-    byWeeks: "po týdnech",
-    byMonths: "po měsících",
-    week: "týden",
-    month: "měsíc",
-    currencyUnit: "Kč",
-  },
-  en: {
-    days30: "30 days",
-    days90: "90 days",
-    months12: "12 months",
-    byChannels: "By channel",
-    byProducts: "By product",
-    resetMargins: "Reset margins",
-    reportSyncActive: "The monthly report computes profit from these (margin {m} · overhead {o}/mo · {f}/order).",
-    reportSyncInactive: "Use this margin & overhead in the monthly report so it computes true profit after costs.",
-    liveData: "Live data · Google Ads",
-    sampleData: "Sample data",
-    synced: "synced {date}",
-    reconcileNote: "This module's blended margin ({computed}) differs by {delta} pp from the report's margin ({persisted}) — the same store would read two different profits across two tabs. Unify them with the “{apply}” button above.",
-    applyToReport: "Use in report",
-    applyUpdate: "Update report",
-    applied: "Saved to report ✓",
-    applying: "Saving…",
-    applyFailed: "Save failed.",
-    realNumbersTitle: "Your actual numbers (for selected period)",
-    realNumbersDesc: "Enter your real revenue and ad spend for {period} — the table, summary and reallocation will recalculate against your books (channel mix is preserved). Not just margin.",
-    revenue: "Revenue",
-    adSpend: "Ad spend",
-    backToDemo: "Back to demo",
-    recalculated: "Recalculated against your numbers. (The trend chart below shows the shape over time.)",
-    netAdProfit: "Net ad profit",
-    grossProfitSub: "gross profit {gross} − cost {cost}",
-    poasSub: "profit per ad currency · ROAS {roas}",
-    blendedMargin: "Blended margin",
-    weightedByRevenue: "revenue-weighted",
-    unprofitableChannels: "Unprofitable channels",
-    unprofitableAfterMargin: "losing money after margin",
-    trendTitle: "Profit and POAS trend over time",
-    netProfit: "Net profit",
-    poas: "POAS",
-    lastPeriod: "last {granularity} {value}",
-    unprofitableWarning_one: "channel looks fine on ROAS but loses money after margin — its ROAS is below break-even (1 / margin). Consider shifting budget to profitable channels.",
-    unprofitableWarning_other: "channels look fine on ROAS but lose money after margin — their ROAS is below break-even (1 / margin). Consider shifting budget to profitable channels.",
-    colChannel: "Channel",
-    colRevenue: "Revenue",
-    colCost: "Cost",
-    colRoas: "ROAS",
-    colMargin: "Margin",
-    colBreakeven: "Break-even",
-    colPoas: "POAS",
-    colNetProfit: "Net profit",
-    marginAriaLabel: "Margin {channel}",
-    legendProfitable: "Profitable",
-    legendProfitableDesc: "ROAS ≥ break-even",
-    legendUnprofitable: "Unprofitable",
-    legendUnprofitableDesc: "ROAS below break-even (1 / margin)",
-    legendEditHint: "Edit margins in the table — everything recalculates live.",
-    overheadTitle: "Include overhead costs",
-    overheadDesc: "Allocates fixed overhead by revenue share and deducts fulfilment per order → true contribution POAS.",
-    overheadInclude: "Include",
-    overheadFixedMonthly: "Fixed overhead / month",
-    overheadMonthsMult: "× {months} months in period",
-    overheadPerOrder: "Cost / order",
-    overheadFulfillmentHint: "fulfilment, packaging, shipping",
-    contributionPoas: "Contribution POAS",
-    rawPoas: "raw POAS {value}",
-    colRawPoas: "Raw POAS",
-    colOverhead: "Overhead",
-    colFulfillment: "Fulfilment",
-    colContributionPoas: "Contribution POAS",
-    colAdjBreakeven: "Adjusted break-even",
-    colContribution: "Contribution",
-    overheadFooter: "Overhead {overhead} + fulfilment {fulfillment} allocated · unprofitable after overhead",
-    scenarioDefaultName: "Scenario {n}",
-    nextStepLabel: "Shift budget",
-    nextStepHintHelps: "Reallocation projects +{profit} profit",
-    nextStepHintOther: "Reduce unprofitable channels in Campaigns",
-    byWeeks: "by week",
-    byMonths: "by month",
-    week: "week",
-    month: "month",
-    currencyUnit: "USD",
-  },
-} as const;
-
-type ViewMode = "channels" | "products";
-
-// --- legacy localStorage keys (Direction 1 migration) -----------------------
-// The profit inputs used to live in the browser: margin scenarios and the
-// per-period real-numbers override under these two keys. They now persist
-// server-side in the finance-inputs store; these keys are read ONCE on first load
-// (see the migration effect) to lift any existing local values into the store,
-// then cleared. New writes never touch localStorage again.
-
-const scenariosKey = (projectId: string) => `systedo.profit.scenarios.${projectId}`;
-
-/** Compact key metrics for a margin set, for the side-by-side comparison. */
-function scenarioMetrics(rows: ChannelRow[], margins: ChannelMargin[]): ProfitSummary {
-  return computeProfit(rows, margins).summary;
-}
-
-// --- trend sparkline (#3) ---------------------------------------------------
-
-/** Full-width trend sparkline over the shared chart primitive (`responsive`
- *  viewBox sizing, soft area fill, last-point dot). Only the empty-state dash
- *  for sub-2-point series stays local — the shared component renders those as
- *  an empty decorative svg. */
-function TrendSpark({
-  values,
-  color,
-  ariaLabel,
-}: {
-  values: number[];
-  color: string;
-  ariaLabel: string;
-}) {
-  const w = 120;
-  const h = 34;
-  if (values.length < 2) {
-    return (
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-9 w-full" role="img" aria-label={ariaLabel}>
-        <line x1={3} y1={h / 2} x2={w - 3} y2={h / 2} stroke={color} strokeOpacity={0.3} strokeDasharray="2 3" />
-      </svg>
-    );
-  }
-  return (
-    <Sparkline
-      values={values}
-      width={w}
-      height={h}
-      responsive
-      className="h-9 w-full"
-      stroke={color}
-      fill={color}
-      areaOpacity={0.1}
-      strokeWidth={1.5}
-      dot
-      label={ariaLabel}
-    />
-  );
-}
-
-// Delta pills on the summary cards use the shared DeltaBadge (design-system
-// primitive) — locale-aware, goodDirection-aware and with the zero-floor
-// "beze změny" state, instead of a local sign-coloured clone.
-
-// --- real-numbers override (#ROB-02) ----------------------------------------
-// The per-period real revenue/spend override (RealOverride) now persists in the
-// finance-inputs store; its legacy localStorage key is migrated once on load.
-
-const realKey = (projectId: string) => `systedo.profit.real.${projectId}`;
-
-/** Read any legacy browser-local finance inputs (scenarios + real numbers) for the
- *  one-time migration into the server store. Returns null outside the browser or when
- *  nothing legacy is present. Reuses the shared wire-coercers so the migrated shape is
- *  identical to a server round-trip. */
-function readLegacyLocal(
-  projectId: string
-): { scenarios: MarginScenario[]; realNumbers: Record<string, RealOverride> } | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const rawScenarios = window.localStorage.getItem(scenariosKey(projectId));
-    const rawReal = window.localStorage.getItem(realKey(projectId));
-    if (rawScenarios === null && rawReal === null) return null;
-    const scenarios = rawScenarios ? coerceScenarios(JSON.parse(rawScenarios)) : [];
-    const realNumbers = rawReal ? coerceRealNumbers(JSON.parse(rawReal)) : {};
-    return { scenarios, realNumbers };
-  } catch {
-    return null;
-  }
-}
-
-/** Drop the legacy browser-local keys after migration, so they are never read again. */
-function clearLegacyLocal(projectId: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(scenariosKey(projectId));
-    window.localStorage.removeItem(realKey(projectId));
-  } catch {
-    /* storage unavailable — nothing to clear */
-  }
-}
-
-/** Seed the live per-channel margins from the saved set (mapped onto the current
- *  channels, defaulting any new channel), else the defaults. */
-function seedMargins(defaults: ChannelMargin[], saved?: ChannelMargin[]): ChannelMargin[] {
-  if (!saved || saved.length === 0) return defaults;
-  return defaults.map((d) => ({
-    channel: d.channel,
-    marginPct: saved.find((m) => m.channel === d.channel)?.marginPct ?? d.marginPct,
-  }));
-}
-
-/** Persist the owner's finance inputs to the server store (best-effort — the caller
- *  swallows failures; the wire is re-sanitized server-side regardless). */
-async function postFinanceInputs(
-  projectId: string,
-  body: { scenarios: MarginScenario[]; realNumbers: Record<string, RealOverride>; channelMargins: ChannelMargin[] }
-): Promise<void> {
-  try {
-    await fetch(`/api/projects/${projectId}/finance-inputs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch {
-    /* offline / store hiccup — the in-memory state remains the session source of truth */
-  }
-}
-
-/** Scale a channel row to a user-entered real revenue/spend — keeps the channel
- *  mix and (by scaling conversions/visits with revenue) the AOV/CR, recomputing the
- *  ratios so the whole profit view reflects the user's books, not just margin. */
-function scaleRow(r: ChannelRow, revScale: number, costScale: number): ChannelRow {
-  const revenue = r.revenue * revScale;
-  const cost = r.cost * costScale;
-  const conversions = r.conversions * revScale;
-  const visits = r.visits * revScale;
-  return {
-    ...r,
-    revenue,
-    cost,
-    conversions,
-    visits,
-    pno: pno(cost, revenue),
-    aov: aov(revenue, conversions),
-    cr: cr(conversions, visits),
-    roas: roas(revenue, cost),
-  };
-}
+import { T } from "./profit/strings";
+import { useProfitState } from "./profit/useProfitState";
+import ProvenanceBar from "./profit/ProvenanceBar";
+import ProfitControls from "./profit/ProfitControls";
+import ReportSyncBand from "./profit/ReportSyncBand";
+import ReconcileNote from "./profit/ReconcileNote";
+import RealNumbersPanel from "./profit/RealNumbersPanel";
+import SummaryBand from "./profit/SummaryBand";
+import TrendPanel from "./profit/TrendPanel";
+import ChannelsTable from "./profit/ChannelsTable";
+import OverheadPanel from "./profit/OverheadPanel";
 
 export default function ProfitModule({
   projectId,
@@ -373,724 +57,96 @@ export default function ProfitModule({
   const fmt = useFormatters();
   const t = useT(T);
 
-  const PERIOD_LABELS: Record<string, string> = {
-    "30": t("days30"),
-    "90": t("days90"),
-    "365": t("months12"),
-  };
-
-  // Direction 1: whether persistence is wired (a real /zisk surface passes the prop,
-  // even when null; the demo omits it → ephemeral, no persist / no migration).
-  const wired = financeInputs !== undefined;
-
-  const periods = Object.keys(rowsByPeriod);
-  const [period, setPeriod] = useState(periods.includes("90") ? "90" : periods[0]!);
-  // Direction 1: the three input surfaces now seed from the SERVER prop (financeInputs),
-  // which is identical on SSR + first client render, so there is no hydration mismatch
-  // and no post-mount hydration dance — the owner's own numbers render on first paint.
-  const [margins, setMargins] = useState<ChannelMargin[]>(() =>
-    seedMargins(defaults, financeInputs?.channelMargins)
-  );
-  const [view, setView] = useState<ViewMode>("channels");
-  // Real-numbers override (#ROB-02): per-period actual revenue + ad spend, so the
-  // whole view reflects the user's books, not just the margin lens. Seeded from the
-  // server prop (see above).
-  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>(
-    () => financeInputs?.realNumbers ?? {}
-  );
-
-  const periodRows = useMemo(() => rowsByPeriod[period] ?? [], [rowsByPeriod, period]);
-
-  // Apply the override (when set for this period): scale the channel rows to the
-  // user's entered revenue/spend, preserving the mix.
-  const real = realByPeriod[period];
-  const baseTotals = useMemo(
-    () =>
-      periodRows.reduce(
-        (a, r) => ({ revenue: a.revenue + r.revenue, cost: a.cost + r.cost }),
-        { revenue: 0, cost: 0 }
-      ),
-    [periodRows]
-  );
-  const revScale = real && real.revenue > 0 && baseTotals.revenue > 0 ? real.revenue / baseTotals.revenue : 1;
-  const costScale = real && real.spend > 0 && baseTotals.cost > 0 ? real.spend / baseTotals.cost : 1;
-  const overridden = revScale !== 1 || costScale !== 1;
-  const effectiveRows = useMemo(
-    () => (overridden ? periodRows.map((r) => scaleRow(r, revScale, costScale)) : periodRows),
-    [periodRows, revScale, costScale, overridden]
-  );
-
-  const { rows, summary } = useMemo(() => computeProfit(effectiveRows, margins), [effectiveRows, margins]);
-
-  // Direction 2 — reconciliation: this module's revenue-weighted blended margin vs the
-  // report's persisted single blended margin. When they drift ≥ threshold p.b. the same
-  // e-shop would read two different profits in two tabs, so we surface both numbers and
-  // point at the "apply to report" fix. Pure decision (marginDivergence), reactive to
-  // live margin edits so the note clears as the user converges on the report's model.
-  const reconcile = useMemo(
-    () => marginDivergence(summary.blendedMargin, costModel?.grossMarginPct),
-    [summary.blendedMargin, costModel]
-  );
-
-  // #3 trend: re-drive the server-bucketed series with the live margin model.
-  const trend = useMemo(
-    () => retargetTrend(trendByPeriod[period] ?? [], channels, margins),
-    [trendByPeriod, period, channels, margins]
-  );
-  const netDelta = useMemo(() => trendDelta(trend, "netProfit"), [trend]);
-  const poasDelta = useMemo(() => trendDelta(trend, "poas"), [trend]);
-
-  // #5 overhead toggle. Seeded from the shared server cost model (A3) when saved, so
-  // overhead is no longer ephemeral and agrees with the monthly report.
-  const [overhead, setOverhead] = useState<OverheadOptions>({
-    enabled: Boolean(costModel),
-    monthlyOverhead: costModel?.monthlyOverhead ?? 120_000,
-    perOrderCost: costModel?.perOrderCost ?? 60,
-    months: 1,
+  // All state, derived metrics and the persistence lifecycle (one-time localStorage
+  // migration, ready gate, 700ms debounced POST, wired/demo distinction) live in the hook.
+  const s = useProfitState({
+    projectId,
+    rowsByPeriod,
+    trendByPeriod,
+    channels,
+    products,
+    defaults,
+    live,
+    financeInputs,
+    costModel,
   });
-  const months = useMemo(() => Math.max(1, (rowsByPeriod[period]?.length ?? 0) > 0 ? monthsForDays(Number(period)) : 1), [rowsByPeriod, period]);
-  const overheadResult = useMemo(
-    () => applyOverhead(effectiveRows, margins, { ...overhead, months }),
-    [effectiveRows, margins, overhead, months]
-  );
-
-  // #2 product view.
-  const productResult = useMemo(
-    () => computeProductProfit(products, { revenue: summary.revenue, cost: summary.cost }),
-    [products, summary.revenue, summary.cost]
-  );
-  const worstCategory = useMemo(() => lowestPoasCategory(productResult.rows), [productResult.rows]);
-
-  // "Co kdyby" simulator.
-  const [strategy, setStrategy] = useState<ReallocStrategy>("max-profit");
-  const [budgetOverride, setBudgetOverride] = useState<number | null>(null);
-  const budget = budgetOverride ?? summary.cost;
-  const plan = useMemo(
-    () => reallocateBudget(rows, { totalBudget: budget, strategy }),
-    [rows, budget, strategy]
-  );
-
-  // Unify with the report: publish this module's blended margin + overhead to the
-  // shared server cost model (A3), so the monthly report's Zisk uses the same
-  // numbers. The overhead above is seeded from the same model on load.
-  const [applyState, setApplyState] = useState<"idle" | "busy" | "done" | "error">("idle");
-  async function applyToReport() {
-    setApplyState("busy");
-    try {
-      const res = await fetch(`/api/projects/${projectId}/cost-model`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          grossMarginPct: summary.blendedMargin,
-          monthlyOverhead: overhead.monthlyOverhead,
-          perOrderCost: overhead.perOrderCost,
-        }),
-      });
-      setApplyState(res.ok ? "done" : "error");
-    } catch {
-      setApplyState("error");
-    }
-  }
-
-  // #4 scenarios — seeded from the server prop (Direction 1).
-  const [scenarios, setScenarios] = useState<MarginScenario[]>(() => financeInputs?.scenarios ?? []);
-  const [scenarioName, setScenarioName] = useState("");
-  const [compareId, setCompareId] = useState<string>("");
-
-  // Direction 1 — one-time localStorage migration + server persistence.
-  // `ready` gates the persist effect so the migration decision lands BEFORE any POST
-  // (and so the initial server-seeded state never round-trips straight back). STATE, not
-  // a ref, so the persist effect re-runs once it flips. Per-project (the module remounts
-  // on a project route change).
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    // Lift any pre-existing browser-local inputs into the store EXACTLY ONCE (wired
-    // projects only): only when the server has nothing yet — a first-time migration —
-    // so a device that already synced never has its server truth overwritten by stale
-    // local values. Either way the legacy keys are dropped afterwards and never read
-    // again; then `ready` flips to enable persistence. All setState here is the
-    // intended once-per-mount initialization (see the old `hydrated` gate).
-    const legacy = wired ? readLegacyLocal(projectId) : null;
-    if (
-      wired &&
-      !financeInputs &&
-      legacy &&
-      (legacy.scenarios.length > 0 || Object.keys(legacy.realNumbers).length > 0)
-    ) {
-      /* eslint-disable react-hooks/set-state-in-effect */
-      setScenarios(legacy.scenarios);
-      setRealByPeriod(legacy.realNumbers);
-      /* eslint-enable react-hooks/set-state-in-effect */
-      void postFinanceInputs(projectId, {
-        scenarios: legacy.scenarios,
-        realNumbers: legacy.realNumbers,
-        channelMargins: margins,
-      });
-    }
-    if (wired) clearLegacyLocal(projectId);
-    setReady(true);
-    // Migration runs once per project mount; margins is intentionally read at run time
-    // (its latest value) without re-triggering — the persist effect handles later edits.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, wired]);
-
-  // Debounced persistence: after the migration settles, any change to the three input
-  // surfaces is written back as one blob (700ms after the last edit, so a margin slider
-  // drag is a single POST). Failures are swallowed — the in-memory state is the session
-  // source of truth and a transient store hiccup must never break the module.
-  useEffect(() => {
-    if (!wired || !ready) return;
-    const id = setTimeout(() => {
-      void postFinanceInputs(projectId, {
-        scenarios,
-        realNumbers: realByPeriod,
-        channelMargins: margins,
-      });
-    }, 700);
-    return () => clearTimeout(id);
-  }, [wired, ready, projectId, scenarios, realByPeriod, margins]);
-
-  function setMargin(channel: string, pct: number) {
-    const clamped = Math.max(0, Math.min(100, pct)) / 100;
-    setMargins((ms) => ms.map((m) => (m.channel === channel ? { ...m, marginPct: clamped } : m)));
-  }
-
-  function setReal(field: "revenue" | "spend", value: number) {
-    setRealByPeriod((prev) => {
-      const current = prev[period] ?? { revenue: 0, spend: 0 };
-      return { ...prev, [period]: { ...current, [field]: Math.max(0, value) } };
-    });
-  }
-  function clearReal() {
-    setRealByPeriod((prev) => {
-      const next = { ...prev };
-      delete next[period];
-      return next;
-    });
-  }
-
-  function saveScenario(savedAt: number) {
-    const name = scenarioName.trim() || t("scenarioDefaultName", { n: scenarios.length + 1 });
-    const id = `sc-${savedAt.toString(36)}`;
-    setScenarios((list) => [...list, { id, name, margins: margins.map((m) => ({ ...m })), savedAt }]);
-    setScenarioName("");
-  }
-
-  function loadScenario(id: string) {
-    const sc = scenarios.find((s) => s.id === id);
-    if (!sc) return;
-    // Map saved margins onto the current channels, defaulting any new channel.
-    setMargins(defaults.map((d) => ({
-      channel: d.channel,
-      marginPct: sc.margins.find((m) => m.channel === d.channel)?.marginPct ?? d.marginPct,
-    })));
-  }
-
-  function deleteScenario(id: string) {
-    setScenarios((list) => list.filter((s) => s.id !== id));
-    if (compareId === id) setCompareId("");
-  }
-
-  const dirty = margins.some(
-    (m) => m.marginPct !== defaults.find((d) => d.channel === m.channel)?.marginPct
-  );
-  const planHelps = plan.profitDelta > 0.5;
-
-  const compareScenario = scenarios.find((s) => s.id === compareId) ?? null;
-  const compareSummary = compareScenario ? scenarioMetrics(effectiveRows, compareScenario.margins) : null;
-  const granularityLabel = period === "365" ? t("byMonths") : t("byWeeks");
-  const granularityUnit = period === "365" ? t("month") : t("week");
 
   return (
     <div className="stagger space-y-6">
-      {/* Direction 2 — provenance label, consistent with the report's wording: live
-          synced Ads data vs the illustrative sample (the sample banner itself is the
-          ModulePage `sample` note; this pill mirrors the report's live strip). */}
-      <div className="flex items-center gap-2 text-xs">
-        <Pill tone={live ? "positive" : "navy"}>{live ? t("liveData") : t("sampleData")}</Pill>
-        {live && syncedAt && (
-          <span className="text-muted">{t("synced", { date: syncedAt.slice(0, 10) })}</span>
-        )}
-      </div>
+      <ProvenanceBar live={live} syncedAt={syncedAt} />
 
-      {/* controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
-          {periods.map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPeriod(p)}
-              className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                period === p ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
-              }`}
-            >
-              {PERIOD_LABELS[p] ?? p}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="inline-flex rounded-pill border border-line bg-surface p-0.5">
-            {(
-              [
-                ["channels", t("byChannels")],
-                ["products", t("byProducts")],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setView(value)}
-                className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                  view === value ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {dirty && (
-            <button
-              type="button"
-              onClick={() => setMargins(defaults)}
-              className="text-sm font-medium text-muted transition-colors hover:text-navy-700"
-            >
-              {t("resetMargins")}
-            </button>
-          )}
-        </div>
-      </div>
+      <ProfitControls
+        periods={s.periods}
+        period={s.period}
+        setPeriod={s.setPeriod}
+        view={s.view}
+        setView={s.setView}
+        dirty={s.dirty}
+        onResetMargins={s.resetMargins}
+      />
 
-      {/* Unify with the monthly report: this module's blended margin + overhead
-          publish to the shared server cost model, so the report's Zisk agrees. */}
-      <div
-        className={`flex flex-wrap items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs leading-relaxed ${
-          costModel ? "bg-positive-soft text-positive" : "bg-canvas text-muted"
-        }`}
-      >
-        <span className="font-medium">
-          {costModel
-            ? t("reportSyncActive", {
-                m: fmt.fmtPct(costModel.grossMarginPct, 0),
-                o: fmt.fmtCZK(costModel.monthlyOverhead),
-                f: fmt.fmtCZK(costModel.perOrderCost),
-              })
-            : t("reportSyncInactive")}
-        </span>
-        <div className="flex items-center gap-2">
-          {applyState === "done" && <span className="font-medium text-positive">{t("applied")}</span>}
-          {applyState === "error" && <span className="font-medium text-negative">{t("applyFailed")}</span>}
-          <button
-            type="button"
-            onClick={applyToReport}
-            disabled={applyState === "busy"}
-            className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
-          >
-            {applyState === "busy" ? t("applying") : costModel ? t("applyUpdate") : t("applyToReport")}
-          </button>
-        </div>
-      </div>
+      <ReportSyncBand costModel={costModel} applyState={s.applyState} onApply={s.applyToReport} />
 
-      {/* Direction 2 — reconciliation note: shown only when a report model exists AND
-          this module's blended margin diverges from it by ≥ threshold p.b. Both numbers
-          are stated; the fix is the "apply to report" button in the band above. */}
-      {costModel && reconcile.diverged && (
-        <div className="flex items-start gap-3 rounded-card border border-coral-200 bg-coral-soft/40 px-4 py-3 text-xs leading-relaxed text-navy-700">
-          <Bulb width={16} height={16} className="mt-0.5 shrink-0 text-coral-600" />
-          <span>
-            {t("reconcileNote", {
-              computed: fmt.fmtPct(reconcile.computedMargin, 0),
-              persisted: fmt.fmtPct(reconcile.persistedMargin, 0),
-              delta: String(Math.abs(reconcile.deltaPp)),
-              apply: t("applyUpdate"),
-            })}
-          </span>
-        </div>
+      {costModel && s.reconcile.diverged && <ReconcileNote reconcile={s.reconcile} />}
+
+      <RealNumbersPanel
+        period={s.period}
+        real={s.real}
+        baseTotals={s.baseTotals}
+        overridden={s.overridden}
+        setReal={s.setReal}
+        clearReal={s.clearReal}
+      />
+
+      <SummaryBand summary={s.summary} netDelta={s.netDelta} poasDelta={s.poasDelta} />
+
+      {s.trend.length >= 2 && (
+        <TrendPanel trend={s.trend} netDelta={s.netDelta} poasDelta={s.poasDelta} period={s.period} />
       )}
 
-      {/* real-numbers override (#ROB-02): enter your actual revenue + ad spend so
-          the whole view reflects YOUR books, not just the margin lens. */}
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-navy-800">{t("realNumbersTitle")}</p>
-        <p className="mt-1 text-xs text-muted">
-          {t("realNumbersDesc", { period: PERIOD_LABELS[period] ?? period })}
-        </p>
-        <div className="mt-3 flex flex-wrap items-end gap-3">
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-navy-700">{t("revenue")}</span>
-            <input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={real?.revenue ? Math.round(real.revenue) : ""}
-              onChange={(e) => setReal("revenue", Number(e.target.value))}
-              placeholder={String(Math.round(baseTotals.revenue))}
-              className="w-44 rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400"
-            />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-xs font-medium text-navy-700">{t("adSpend")}</span>
-            <input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={real?.spend ? Math.round(real.spend) : ""}
-              onChange={(e) => setReal("spend", Number(e.target.value))}
-              placeholder={String(Math.round(baseTotals.cost))}
-              className="w-44 rounded-lg border border-line bg-canvas px-3 py-2 text-sm outline-none transition focus:border-brand-400"
-            />
-          </label>
-          {overridden && (
-            <button
-              type="button"
-              onClick={clearReal}
-              className="rounded-pill border border-line px-3 py-2 text-xs font-medium text-navy-700 transition-colors hover:bg-navy-50"
-            >
-              {t("backToDemo")}
-            </button>
-          )}
-        </div>
-        {overridden && (
-          <p className="mt-2 text-xs text-positive">
-            {t("recalculated")}
-          </p>
-        )}
-      </div>
-
-      {/* summary band with period-over-period delta pills (#3) */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="card p-5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("netAdProfit")}</p>
-            <DeltaBadge delta={netDelta} goodDirection="up" size="xs" />
-          </div>
-          <p
-            className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
-              summary.netProfit >= 0 ? "text-navy-800" : "text-negative"
-            }`}
-          >
-            {fmt.fmtCZK(summary.netProfit)}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t("grossProfitSub", { gross: fmt.fmtCZKCompact(summary.grossProfit), cost: fmt.fmtCZKCompact(summary.cost) })}</p>
-        </div>
-        <div className="card p-5">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</p>
-            <DeltaBadge delta={poasDelta} goodDirection="up" size="xs" />
-          </div>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmt.fmtMultiple(summary.poas)}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t("poasSub", { roas: fmt.fmtMultiple(summary.roas) })}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("blendedMargin")}</p>
-          <p className="tnum mt-1.5 text-2xl font-semibold tracking-tight text-navy-800">
-            {fmt.fmtPct(summary.blendedMargin)}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t("weightedByRevenue")}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("unprofitableChannels")}</p>
-          <p
-            className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
-              summary.unprofitableCount > 0 ? "text-negative" : "text-positive"
-            }`}
-          >
-            {summary.unprofitableCount}
-          </p>
-          <p className="mt-1 text-xs text-muted">{t("unprofitableAfterMargin")}</p>
-        </div>
-      </div>
-
-      {/* #3 trend sparklines */}
-      {trend.length >= 2 && (
-        <div className="card p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-navy-800">{t("trendTitle")}</p>
-            <p className="text-xs text-muted">{granularityLabel} · {trend.length}</p>
-          </div>
-          <div className="mt-3 grid gap-5 sm:grid-cols-2">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("netProfit")}</span>
-                <DeltaBadge delta={netDelta} goodDirection="up" size="xs" />
-              </div>
-              <div className="mt-1.5">
-                <TrendSpark
-                  values={trend.map((t) => t.netProfit)}
-                  color="var(--color-brand-accent)"
-                  ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZK(trend[trend.length - 1]!.netProfit) })}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZKCompact(trend[trend.length - 1]!.netProfit) })}
-              </p>
-            </div>
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium uppercase tracking-wide text-muted">{t("poas")}</span>
-                <DeltaBadge delta={poasDelta} goodDirection="up" size="xs" />
-              </div>
-              <div className="mt-1.5">
-                <TrendSpark
-                  values={trend.map((t) => t.poas)}
-                  color="var(--color-navy-500)"
-                  ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted">
-                {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {view === "channels" && (
+      {s.view === "channels" && (
         <>
-          {summary.unprofitableCount > 0 && (
-            <div className="flex items-start gap-3 rounded-card border border-negative/30 bg-negative-soft px-4 py-3.5">
-              <Bulb width={18} height={18} className="mt-0.5 shrink-0 text-negative" />
-              <p className="text-sm leading-relaxed text-navy-700">
-                <strong>{summary.unprofitableCount}</strong>{" "}
-                {summary.unprofitableCount === 1
-                  ? t("unprofitableWarning_one")
-                  : t("unprofitableWarning_other")}
-              </p>
-            </div>
-          )}
+          <ChannelsTable summary={s.summary} rows={s.rows} setMargin={s.setMargin} />
 
-          {/* per-channel table with editable margins */}
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colRevenue")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colCost")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colRoas")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colMargin")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colBreakeven")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colPoas")}</th>
-                    <th className="px-4 py-3 text-right font-medium">{t("colNetProfit")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.channel} className="border-b border-line/70 last:border-0">
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-2 font-medium text-navy-800">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                          {r.channel}
-                        </span>
-                      </td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.revenue)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.cost)}</td>
-                      <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtMultiple(r.roas)}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className="inline-flex items-center gap-0.5">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={Math.round(r.marginPct * 100)}
-                            onChange={(e) => setMargin(r.channel, Number(e.target.value))}
-                            aria-label={t("marginAriaLabel", { channel: r.channel })}
-                            className="tnum w-14 rounded-lg border border-line bg-surface px-2 py-1 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                          />
-                          <span className="text-muted">%</span>
-                        </span>
-                      </td>
-                      <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.breakEvenRoas)}</td>
-                      <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{fmt.fmtMultiple(r.poas)}</td>
-                      <td
-                        className={`tnum px-4 py-3 text-right font-semibold ${
-                          r.netProfit >= 0 ? "text-positive" : "text-negative"
-                        }`}
-                      >
-                        {fmt.fmtCZK(r.netProfit)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
-              <span className="flex items-center gap-1.5">
-                <Pill tone="positive">{t("legendProfitable")}</Pill> {t("legendProfitableDesc")}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Pill tone="negative">{t("legendUnprofitable")}</Pill> {t("legendUnprofitableDesc")}
-              </span>
-              <span>{t("legendEditHint")}</span>
-            </div>
-          </div>
-
-          {/* #5 overhead allocation toggle */}
-          <div className="card overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
-              <div>
-                <p className="text-sm font-semibold text-navy-800">{t("overheadTitle")}</p>
-                <p className="mt-0.5 text-xs text-muted">
-                  {t("overheadDesc")}
-                </p>
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-navy-700">
-                <input
-                  type="checkbox"
-                  checked={overhead.enabled}
-                  onChange={(e) => setOverhead((o) => ({ ...o, enabled: e.target.checked }))}
-                  className="h-4 w-4 rounded border-line text-brand-600 focus:ring-2 focus:ring-brand-200"
-                />
-                {t("overheadInclude")}
-              </label>
-            </div>
-
-            {overhead.enabled && (
-              <>
-                <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
-                  <div>
-                    <label htmlFor="ovh-monthly" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                      {t("overheadFixedMonthly")}
-                    </label>
-                    <div className="mt-1.5 inline-flex items-center gap-1.5">
-                      <input
-                        id="ovh-monthly"
-                        type="number"
-                        min={0}
-                        step={5000}
-                        value={Math.round(overhead.monthlyOverhead)}
-                        onChange={(e) => setOverhead((o) => ({ ...o, monthlyOverhead: Math.max(0, Number(e.target.value)) }))}
-                        className="tnum w-36 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      />
-                      <span className="text-sm text-muted">{t("currencyUnit")}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted">{t("overheadMonthsMult", { months: fmt.fmtMultiple(months) })}</p>
-                  </div>
-                  <div>
-                    <label htmlFor="ovh-order" className="block text-xs font-medium uppercase tracking-wide text-muted">
-                      {t("overheadPerOrder")}
-                    </label>
-                    <div className="mt-1.5 inline-flex items-center gap-1.5">
-                      <input
-                        id="ovh-order"
-                        type="number"
-                        min={0}
-                        step={5}
-                        value={Math.round(overhead.perOrderCost)}
-                        onChange={(e) => setOverhead((o) => ({ ...o, perOrderCost: Math.max(0, Number(e.target.value)) }))}
-                        className="tnum w-28 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-right text-sm text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                      />
-                      <span className="text-sm text-muted">{t("currencyUnit")}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted">{t("overheadFulfillmentHint")}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("contributionPoas")}</p>
-                    <p
-                      className={`tnum mt-1.5 text-2xl font-semibold tracking-tight ${
-                        overheadResult.summary.contributionPoas >= 1 ? "text-navy-800" : "text-negative"
-                      }`}
-                    >
-                      {fmt.fmtMultiple(overheadResult.summary.contributionPoas)}
-                    </p>
-                    <p className="mt-1 text-xs text-muted">{t("rawPoas", { value: fmt.fmtMultiple(summary.poas) })}</p>
-                  </div>
-                </div>
-
-                <div className="overflow-x-auto border-t border-line">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                        <th className="px-4 py-3 font-medium">{t("colChannel")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colRawPoas")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colOverhead")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colFulfillment")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colContributionPoas")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colAdjBreakeven")}</th>
-                        <th className="px-4 py-3 text-right font-medium">{t("colContribution")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {overheadResult.rows.map((r) => (
-                        <tr key={r.channel} className="border-b border-line/70 last:border-0">
-                          <td className="px-4 py-3">
-                            <span className="flex items-center gap-2 font-medium text-navy-800">
-                              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: r.color }} />
-                              {r.channel}
-                            </span>
-                          </td>
-                          <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.poas)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.allocatedOverhead)}</td>
-                          <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtCZKCompact(r.fulfilmentCost)}</td>
-                          <td
-                            className={`tnum px-4 py-3 text-right font-medium ${
-                              r.contributionPoas >= 1 ? "text-navy-800" : "text-negative"
-                            }`}
-                          >
-                            {fmt.fmtMultiple(r.contributionPoas)}
-                          </td>
-                          <td className="tnum px-4 py-3 text-right text-muted">{fmt.fmtMultiple(r.adjustedBreakEvenRoas)}</td>
-                          <td
-                            className={`tnum px-4 py-3 text-right font-semibold ${
-                              r.contributionProfitable ? "text-positive" : "text-negative"
-                            }`}
-                          >
-                            {fmt.fmtCZK(r.contributionProfit)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 text-xs text-muted">
-                  <span>
-                    {t("overheadFooter", {
-                      overhead: fmt.fmtCZKCompact(overheadResult.summary.totalOverhead),
-                      fulfillment: fmt.fmtCZKCompact(overheadResult.summary.totalFulfilment),
-                    })}{" "}
-                    <strong className={overheadResult.summary.unprofitableCount > 0 ? "text-negative" : "text-positive"}>
-                      {overheadResult.summary.unprofitableCount}
-                    </strong>
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
+          <OverheadPanel
+            overhead={s.overhead}
+            setOverhead={s.setOverhead}
+            overheadResult={s.overheadResult}
+            months={s.months}
+            summary={s.summary}
+          />
 
           {/* #4 margin scenarios — save / load / compare */}
           <ProfitScenariosPanel
-            scenarioName={scenarioName}
-            setScenarioName={setScenarioName}
-            saveScenario={saveScenario}
-            scenarios={scenarios}
-            loadScenario={loadScenario}
-            compareId={compareId}
-            setCompareId={setCompareId}
-            deleteScenario={deleteScenario}
-            compareScenario={compareScenario}
-            compareSummary={compareSummary}
-            summary={summary}
+            scenarioName={s.scenarioName}
+            setScenarioName={s.setScenarioName}
+            saveScenario={s.saveScenario}
+            scenarios={s.scenarios}
+            loadScenario={s.loadScenario}
+            compareId={s.compareId}
+            setCompareId={s.setCompareId}
+            deleteScenario={s.deleteScenario}
+            compareScenario={s.compareScenario}
+            compareSummary={s.compareSummary}
+            summary={s.summary}
           />
 
           {/* "What if" — budget-reallocation simulator */}
           <ProfitReallocationPanel
-            plan={plan}
-            strategy={strategy}
-            setStrategy={setStrategy}
-            budget={budget}
-            budgetOverride={budgetOverride}
-            setBudgetOverride={setBudgetOverride}
-            summaryCost={summary.cost}
+            plan={s.plan}
+            strategy={s.strategy}
+            setStrategy={s.setStrategy}
+            budget={s.budget}
+            budgetOverride={s.budgetOverride}
+            setBudgetOverride={s.setBudgetOverride}
+            summaryCost={s.summary.cost}
           />
         </>
       )}
 
       {/* #2 product / category view */}
-      {view === "products" && (
-        <ProfitProductsPanel productResult={productResult} worstCategory={worstCategory} />
+      {s.view === "products" && (
+        <ProfitProductsPanel productResult={s.productResult} worstCategory={s.worstCategory} />
       )}
 
       <NextSteps
@@ -1098,8 +154,8 @@ export default function ProfitModule({
           {
             to: "kampane",
             label: t("nextStepLabel"),
-            hint: planHelps
-              ? t("nextStepHintHelps", { profit: fmt.fmtCZK(plan.profitDelta) })
+            hint: s.planHelps
+              ? t("nextStepHintHelps", { profit: fmt.fmtCZK(s.plan.profitDelta) })
               : t("nextStepHintOther"),
           },
         ]}
