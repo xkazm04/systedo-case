@@ -746,6 +746,11 @@ export interface CohortDiagnosisRequest {
   trend?: TrendDirection;
   /** e-shop project → customer / repeat-purchase framing instead of signups / ARPU */
   eshop?: boolean;
+  /** Direction 2 (sample hedges the prompt): true when the economics rest on the
+   *  illustrative SAMPLE (no live import), so the user prompt can tell the model to
+   *  hedge on illustrative figures. SERVER-injected only (never read from the wire —
+   *  the intent validator ignores it); absent → the prompt omits the provenance line. */
+  sample?: boolean;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;
@@ -1000,6 +1005,11 @@ export interface LeadSourceDiagnosisRequest {
   /** ready-to-read period alert sentences already raised for this source (CPQL
    *  rose past threshold / over target), so the model can weigh a live warning. */
   alerts?: string[];
+  /** Direction 2 (sample hedges the prompt): true when the funnel rests on the
+   *  illustrative SAMPLE (not genuinely imported leads), so the user prompt tells the
+   *  model to hedge. SERVER-injected only (the intent validator never reads it);
+   *  absent → the prompt omits the provenance line. */
+  sample?: boolean;
   /** optional free-text refinement note from a re-run („kratší", „vynech ceny") —
    *  appended to the user prompt only and naturally busts the input-hash cache */
   refine?: string;

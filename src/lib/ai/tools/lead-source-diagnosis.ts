@@ -26,6 +26,7 @@ import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
 import { coerceEnum } from "./_coerce";
 import { refineLines } from "./refine";
+import { dataProvenanceLine } from "./cohort-diagnosis";
 
 const LEAD_SOURCE_DIAGNOSIS_SYSTEM = `Jsi zkušený český analytik akvizice a kvality leadů pro B2B a lead-gen firmy. Děláš stručnou diagnostiku JEDNOHO podvýkonného zdroje leadů.
 
@@ -51,11 +52,13 @@ const CAUSE_PROMPT_LINE = LEAD_SOURCE_CAUSES.map(
   (c) => `„${c}" (${LEAD_SOURCE_CAUSE_LABELS[c]})`
 ).join(", ");
 
-function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string {
+export function buildLeadSourceDiagnosisPrompt(req: LeadSourceDiagnosisRequest): string {
   const paid = (req.spend ?? 0) > 0;
+  const provenance = dataProvenanceLine(req.sample);
   const lines = [
     "Níže jsou reálná, již spočítaná data jednoho zdroje leadů (kvalifikace, uzavření, náklady).",
     "Zanalyzuj, proč zdroj podvýkonný, a připrav krátkou diagnostiku.",
+    ...(provenance ? [provenance] : []),
     "",
     `ZDROJ: ${req.source}`,
     `- Leadů celkem: ${fmtInt(req.leads)}`,

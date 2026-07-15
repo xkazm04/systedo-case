@@ -294,6 +294,12 @@ function prepareDiagnosis<T extends { refine?: string }>(
   // refine note is folded in, so a re-run steer never reads as a data change.
   const digest = inputDigest(request);
   const snapshot = extractSnapshot(request);
+  // Direction 2 (sample hedges the prompt): SERVER-inject the honest provenance flag
+  // into the request so the user prompt can hedge on illustrative economics. Injected
+  // AFTER the digest (like refine) so it never shifts the stale-badge comparison; the
+  // local request already carries its own per-signal live flags, so this is a no-op for
+  // its prompt (which ignores `sample`). Never read from the wire.
+  (request as { sample?: boolean }).sample = resolved.sample;
   if (refine) request.refine = refine;
   return {
     // Cache keyed by the effective project (keyId) + the rebuilt request, so an

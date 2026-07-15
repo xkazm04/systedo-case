@@ -90,13 +90,25 @@ function cohortLines(c: CohortDiagnosisCohort, eshop: boolean): string[] {
   return lines;
 }
 
-function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
+/** Direction 2 — the honest provenance line. Mirrors local-diagnosis's per-signal
+ *  „[zdroj: živá/ukázková data]" wording, but for the whole request: sample-grounded
+ *  economics tell the model to hedge (illustrative, not the client's confirmed figures);
+ *  live data says so plainly. `undefined` sample → no line (byte-identical to before). */
+export function dataProvenanceLine(sample: boolean | undefined): string | null {
+  if (sample === undefined) return null;
+  return sample
+    ? "Zdroj dat: ukázková data — jde o ilustrativní vzorek bez živého importu; ekonomiku ber jako orientační, ne jako potvrzená čísla klienta."
+    : "Zdroj dat: živá data (napojený import).";
+}
+
+export function buildCohortDiagnosisPrompt(req: CohortDiagnosisRequest): string {
   const eshop = req.eshop ?? false;
   const retention = eshop ? "M3 opakování" : "M3 retence";
   const labels = req.cohorts.map((c) => c.month).join(", ");
   return [
     `Níže jsou reálná, již spočítaná data akvizičních kohort (CAC, LTV, LTV:CAC, návratnost, ${retention}).`,
     "Zanalyzuj jednotkovou ekonomiku a připrav krátkou diagnostiku.",
+    dataProvenanceLine(req.sample) ?? "",
     "",
     "SOUHRN PORTFOLIA:",
     `Blended CAC ${fmtCZK(req.blendedCac)}, průměrné LTV:CAC ${fmtMultiple(req.avgLtvCac)}, průměrná návratnost ${
