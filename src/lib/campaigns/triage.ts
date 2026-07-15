@@ -273,10 +273,99 @@ const CHANGE_RULES: ChangeRule[] = [
   },
 ];
 
-/** English label lookup keyed by rule id — used by the locale resolver. */
-const RULE_LABEL_EN: Record<string, string> = Object.fromEntries(
-  [...RULES, ...CHANGE_RULES].map((r) => [r.id, r.labelEn])
-);
+// --- history-aware rule: the slow bleed -------------------------------------
+// A single 2-point diff (roas_crater) catches an abrupt collapse, but a campaign
+// can also bleed out gradually — a few percent of ROAS lost every week — and
+// never trip a step-change rule while it quietly slides below target. This rule
+// gives that slow slide a name. It reads ONLY the campaign's existing daily
+// series (cost + conversion value per day — the same spine the trend sparkline
+// already plots), buckets it into consecutive weeks, and fires when the weekly
+// ROAS has fallen for enough weeks, by enough, without a real rebound. Pure trend
+// arithmetic — no fitted model, no new ingestion.
+
+/** Days per weekly bucket. */
+export const SLOW_BLEED_WEEK_DAYS = 7;
+/** Minimum full weekly buckets required before the rule can fire (≥21 days of
+ *  history) — below this it's "insufficient history" and the rule stays silent. */
+export const SLOW_BLEED_MIN_WEEKS = 3;
+/** Minimum cumulative ROAS loss from the first to the last week for the slide to
+ *  count as a bleed (−25%). */
+export const SLOW_BLEED_MIN_DROP = 0.25;
+/** A week may sit at most this fraction ABOVE its predecessor and still count as
+ *  "monotonic-ish" — a bigger week-over-week rebound means the campaign is
+ *  recovering, not bleeding, and the rule bows out. */
+export const SLOW_BLEED_REBOUND_TOLERANCE = 0.05;
+
+/** The minimal per-day shape the slow-bleed detector needs — a structural subset
+ *  of {@link DailyPoint}, so a stored campaign series passes straight through. */
+export interface SlowBleedPoint {
+  /** YYYY-MM-DD — used only to order the series ascending before bucketing. */
+  date: string;
+  cost: number;
+  conversionValue: number;
+}
+
+export interface SlowBleed {
+  /** how many consecutive weekly buckets the sustained decline spans */
+  weeks: number;
+  /** ROAS of the oldest weekly bucket (the peak of the slide) */
+  roasFrom: number;
+  /** ROAS of the most recent weekly bucket */
+  roasTo: number;
+}
+
+/** Detect a sustained multi-week ROAS decline in a campaign's daily series.
+ *  Deterministic, pure, allocation-light. Returns null (no bleed) for every
+ *  non-firing shape: insufficient history, a week with no spend, a flat/volatile
+ *  series that doesn't net a 25% loss, or a series that rebounds at any step.
+ *  When it fires, `weeks` is the length of the declining window for the badge
+ *  ("ROAS klesá už N týdnů"). */
+export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): SlowBleed | null {
+  if (!points || points.length < SLOW_BLEED_MIN_WEEKS * SLOW_BLEED_WEEK_DAYS) return null;
+  // Order ascending by date (stable — the store already returns them ordered, but
+  // never trust that) and keep the most recent whole weeks, dropping any leading
+  // remainder so every bucket is a full 7 days.
+  const asc = [...points].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const weeks = Math.floor(asc.length / SLOW_BLEED_WEEK_DAYS);
+  if (weeks < SLOW_BLEED_MIN_WEEKS) return null;
+  const used = asc.slice(asc.length - weeks * SLOW_BLEED_WEEK_DAYS);
+
+  const roasByWeek: number[] = [];
+  for (let w = 0; w < weeks; w++) {
+    let cost = 0;
+    let value = 0;
+    for (let i = 0; i < SLOW_BLEED_WEEK_DAYS; i++) {
+      const p = used[w * SLOW_BLEED_WEEK_DAYS + i]!;
+      cost += Number(p.cost) || 0;
+      value += Number(p.conversionValue) || 0;
+    }
+    // A week with no spend has no defined ROAS — the trend is ambiguous, so we
+    // decline to call it a bleed rather than guess.
+    if (cost <= 0) return null;
+    roasByWeek.push(value / cost);
+  }
+
+  const roasFrom = roasByWeek[0]!;
+  const roasTo = roasByWeek[roasByWeek.length - 1]!;
+  if (roasFrom <= 0) return null;
+
+  // Sustained: the last week must have lost at least MIN_DROP of the first week…
+  if (roasTo > roasFrom * (1 - SLOW_BLEED_MIN_DROP)) return null;
+  // …and no week may rebound above its predecessor beyond the tolerance (that
+  // rejects "recovering" and "volatile-but-flat-with-a-spike" alike).
+  for (let i = 1; i < roasByWeek.length; i++) {
+    if (roasByWeek[i]! > roasByWeek[i - 1]! * (1 + SLOW_BLEED_REBOUND_TOLERANCE)) return null;
+  }
+  return { weeks, roasFrom, roasTo };
+}
+
+/** English label lookup keyed by rule id — used by the locale resolver. The
+ *  history-aware slow-bleed reason isn't in the static rule arrays (it needs the
+ *  daily series), so its label is registered here alongside them. */
+const RULE_LABEL_EN: Record<string, string> = {
+  ...Object.fromEntries([...RULES, ...CHANGE_RULES].map((r) => [r.id, r.labelEn])),
+  slow_bleed: "Slow ROAS bleed",
+};
 
 /** Resolve a triage-reason label in the requested locale. Falls back to the
  *  Czech `label` stored on the reason when no EN mapping exists. */
@@ -291,8 +380,18 @@ export function triageReasonLabel(reason: TriageReason, locale: SupportedLocale)
  *  When `goals` is supplied (the tenant's agreed pnoGoal → target ROAS, and
  *  optionally the margin-based break-even), every rule judges against that
  *  per-tenant goal instead of the module constants; omitted → the constants, so
- *  a default / unseeded tenant is byte-identical. */
-export function triage(c: CampaignRow, change?: CampaignChange, goals?: TriageGoals): TriageResult {
+ *  a default / unseeded tenant is byte-identical.
+ *
+ *  When `history` (the campaign's daily cost/value series) is supplied, the
+ *  history-aware slow-bleed rule also runs — a sustained multi-week ROAS decline
+ *  earns a warning a two-point diff can't see. Omitted → that rule can't fire, so
+ *  callers without a series stay byte-identical. */
+export function triage(
+  c: CampaignRow,
+  change?: CampaignChange,
+  goals?: TriageGoals,
+  history?: readonly SlowBleedPoint[]
+): TriageResult {
   const g = resolveGoals(goals);
   const reasons: TriageReason[] = RULES.filter((r) => r.test(c, g)).map((r) => ({
     id: r.id,
@@ -305,6 +404,20 @@ export function triage(c: CampaignRow, change?: CampaignChange, goals?: TriageGo
       if (r.test(c, change, g)) {
         reasons.push({ id: r.id, severity: r.severity, label: r.label, detail: r.detail(c, change, g) });
       }
+    }
+  }
+  if (history) {
+    const bleed = detectSlowBleed(history);
+    if (bleed) {
+      reasons.push({
+        id: "slow_bleed",
+        severity: "warning",
+        label: "Pozvolný pokles ROAS",
+        // "posledních N týdnů" — genitive plural is grammatical for every N here.
+        detail: `ROAS klesá už posledních ${bleed.weeks} týdnů — z ${fmtMultiple(
+          bleed.roasFrom
+        )} na ${fmtMultiple(bleed.roasTo)}.`,
+      });
     }
   }
   reasons.sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
@@ -324,9 +437,10 @@ export function triage(c: CampaignRow, change?: CampaignChange, goals?: TriageGo
 export function triageWeight(
   c: CampaignRow,
   change?: CampaignChange,
-  goals?: TriageGoals
+  goals?: TriageGoals,
+  history?: readonly SlowBleedPoint[]
 ): number {
-  return SEVERITY_RANK[triage(c, change, goals).severity] * 1e12 + c.cost;
+  return SEVERITY_RANK[triage(c, change, goals, history).severity] * 1e12 + c.cost;
 }
 
 // --- portfolio summary (the banner headline) ---------------------------------
@@ -343,11 +457,12 @@ export interface TriageSummary {
 export function summarize(
   rows: CampaignRow[],
   changesById?: Record<string, CampaignChange>,
-  goals?: TriageGoals
+  goals?: TriageGoals,
+  historyById?: Record<string, readonly SlowBleedPoint[]>
 ): TriageSummary {
   const s: TriageSummary = { critical: 0, warning: 0, attention: 0, ok: 0, total: rows.length };
   for (const r of rows) {
-    const sev = triage(r, changesById?.[r.id], goals).severity;
+    const sev = triage(r, changesById?.[r.id], goals, historyById?.[r.id]).severity;
     if (sev === "critical") s.critical++;
     else if (sev === "warning") s.warning++;
     else s.ok++;

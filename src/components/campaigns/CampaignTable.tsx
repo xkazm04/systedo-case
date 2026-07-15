@@ -334,7 +334,11 @@ export default function CampaignTable({
   const runFlaggedBatch = () => {
     const queue = batchPending
       .slice()
-      .sort((a, b) => triageWeight(b.c, changesById[b.c.id], goals) - triageWeight(a.c, changesById[a.c.id], goals))
+      .sort(
+        (a, b) =>
+          triageWeight(b.c, changesById[b.c.id], goals, campaignSeries?.[b.c.id]) -
+          triageWeight(a.c, changesById[a.c.id], goals, campaignSeries?.[a.c.id])
+      )
       .map(({ c }) => c.id);
     void runBatch(queue);
   };
@@ -376,14 +380,14 @@ export default function CampaignTable({
   // Derive once, then filter + sort. The helpers are pure and Next's React
   // Compiler memoizes the component, so we compute the view directly.
   const all = campaigns.map(withMetrics);
-  const summary = summarize(all, changesById, goals); // portfolio-wide — independent of the active filters
+  const summary = summarize(all, changesById, goals, campaignSeries); // portfolio-wide — independent of the active filters
   const q = query.trim().toLowerCase();
   const filtersActive =
     q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
 
   // Each row carries its triage result so the badge, the filter, the sort and
   // the batch queue all read the same classification.
-  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id], goals) }));
+  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id], goals, campaignSeries?.[c.id]) }));
   // Flagged rows still lacking a report — the "evaluate all flagged" queue.
   const batchPending = allRows.filter(({ c, tr }) => tr.severity !== "ok" && !reports[c.id]);
   const view = allRows
