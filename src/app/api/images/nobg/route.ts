@@ -6,10 +6,9 @@ import { consume, refund } from "@/lib/usage";
 import { leonardoConfigured, removeBackground } from "@/lib/leonardo/client";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
+import { asString } from "@/lib/api/route-utils";
 
 export const maxDuration = 120;
-
-const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
 export async function POST(request: Request) {
   const guard = await guardPaidGeneration(request);
@@ -23,7 +22,7 @@ export async function POST(request: Request) {
     }
     let imageId = "";
     try {
-      imageId = str(((await request.json()) as { imageId?: unknown }).imageId);
+      imageId = asString(((await request.json()) as { imageId?: unknown }).imageId);
     } catch {
       return Response.json({ error: "Neplatný JSON." }, { status: 400 });
     }

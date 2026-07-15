@@ -55,6 +55,12 @@ export const RATE_RULES = {
   evalPerDay: (): RateRule => ({ bucket: "eval:day", limit: envInt("AI_RATE_PER_DAY", 80), windowMs: DAY }),
   /** Campaign sync — cheaper (connector only), so a looser per-minute cap. */
   syncPerMin: (): RateRule => ({ bucket: "sync:min", limit: envInt("SYNC_RATE_PER_MIN", 20), windowMs: MIN }),
+  /** Reference-image upload — a real presigned-S3 upload per call. It omits the
+   *  spend ceiling (no generation), so a per-minute throttle alone left the daily
+   *  volume uncapped; this daily rule bounds sustained upload abuse the same way
+   *  aiPerDay bounds the paid routes. Per-IP: upload-ref is anonymous-capable (like
+   *  its sibling paid routes), so the IP is the actor key. */
+  uploadRefPerDay: (): RateRule => ({ bucket: "upload-ref:day", limit: envInt("UPLOAD_REF_PER_DAY", 40), windowMs: DAY }),
 };
 
 /** Number of trusted reverse-proxy hops in front of the app (1 on Vercel). The

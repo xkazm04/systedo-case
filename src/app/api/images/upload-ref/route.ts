@@ -20,7 +20,13 @@ const EXT_BY_TYPE: Record<string, InitImageExt> = {
 };
 
 export async function POST(request: Request) {
-  const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin()]);
+  // Per-minute throttle + a per-IP DAILY cap: the upload does real presigned-S3
+  // work per call and had no daily ceiling, so a slow drip stayed under the minute
+  // limit indefinitely. No spendUnits — an upload isn't a paid generation.
+  const limited = await durableGuard(clientIp(request), [
+    RATE_RULES.aiPerMin(),
+    RATE_RULES.uploadRefPerDay(),
+  ]);
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,

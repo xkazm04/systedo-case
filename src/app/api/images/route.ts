@@ -21,10 +21,11 @@ import {
 } from "@/lib/images/types";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
+import { chargeGlobalSpend, refundGlobalSpend } from "@/lib/ai/durable-limit";
+import { creativeSpendUnits } from "@/lib/images/spend";
+import { trimmedString as str } from "@/lib/api/route-utils";
 
 export const maxDuration = 120;
-
-const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
 export async function POST(request: Request) {
   const guard = await guardPaidGeneration(
@@ -36,8 +37,16 @@ export async function POST(request: Request) {
   // Track the paid units actually charged so a degraded (non-Leonardo) result or a
   // thrown generation can refund them — the user must not spend daily image quota on
   // placeholder SVGs or a 502.
+  //
+  // Two independent ledgers:
+  //  • `charged`       — the per-user daily `image` quota (one unit per candidate).
+  //  • `globalCharged` — the cross-tenant `AI_GLOBAL_DAILY_CEILING` (provider ops).
+  //    `guardPaidGeneration` debited a flat 1 up front (before `count` was known); we
+  //    true that reservation up to the real figure (candidates + vision scores) once
+  //    the set exists, and refund proportionally on degrade / partial / failure.
   let uid: string | null = null;
   let charged = 0;
+  let globalCharged = 1;
   try {
     let body: Record<string, unknown>;
     try {
@@ -107,12 +116,34 @@ export async function POST(request: Request) {
       fidelity: Number.isFinite(fidelityRaw) ? fidelityRaw : undefined,
     });
 
-    // No real Leonardo generation happened (no API key / provider error → deterministic
-    // placeholder SVGs). Refund the charged units: the user must not spend daily quota
-    // on placeholders that cost the app nothing.
-    if (uid && charged && result.source !== "leonardo") {
-      await refund(uid, "image", charged);
-      charged = 0;
+    if (result.source !== "leonardo") {
+      // No real Leonardo generation happened (no API key / provider error →
+      // deterministic placeholder SVGs). Refund BOTH ledgers: neither the user's
+      // daily quota nor the global spend ceiling should count placeholders that cost
+      // the app nothing.
+      if (uid && charged) {
+        await refund(uid, "image", charged);
+        charged = 0;
+      }
+      await refundGlobalSpend(globalCharged);
+      globalCharged = 0;
+    } else {
+      // Real generation. True up the global ceiling to the ops actually made
+      // (candidates generated + one vision score each), and — when fewer candidates
+      // came back than requested — refund the user's unfinished share so a partial
+      // set isn't billed as a full one.
+      const done = result.images.length;
+      if (uid && charged && done < charged) {
+        await refund(uid, "image", charged - done);
+        charged = done;
+      }
+      const trueUnits = creativeSpendUnits({ candidates: done, visionScored: true });
+      if (trueUnits > globalCharged) {
+        await chargeGlobalSpend(trueUnits - globalCharged);
+      } else if (trueUnits < globalCharged) {
+        await refundGlobalSpend(globalCharged - trueUnits);
+      }
+      globalCharged = trueUnits;
     }
 
     // Persist the winner to the tenant's library (signed-in + real generation).
@@ -156,9 +187,11 @@ export async function POST(request: Request) {
     return Response.json(payload);
   } catch (err) {
     console.error("[images] generation failed:", err);
-    // The paid work threw after the quota was charged — reclaim it so a provider
-    // timeout / error (and any client retry-on-502) can't drain the daily limit.
+    // The paid work threw after the quota was charged — reclaim BOTH ledgers so a
+    // provider timeout / error (and any client retry-on-502) can't drain either the
+    // per-user daily limit or the global spend ceiling.
     if (uid && charged) await refund(uid, "image", charged);
+    if (globalCharged) await refundGlobalSpend(globalCharged);
     return Response.json(
       { error: "Generování se nezdařilo. Zkuste to prosím za chvíli znovu." },
       { status: 502 }

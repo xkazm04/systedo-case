@@ -159,6 +159,35 @@ export async function refundGlobalSpend(units: number): Promise<void> {
   }
 }
 
+/** Debit `units` MORE of the global daily spend ceiling — the compensating forward
+ *  of `refundGlobalSpend`, used to TRUE UP a flat up-front reservation once the real
+ *  provider work is known. `guardPaidGeneration` gates every paid call on a flat
+ *  `spendUnits: 1` before the body (and so the candidate count) is known; a creative
+ *  set then does up to 2N provider ops, so the route calls this with the delta so the
+ *  shared `AI_GLOBAL_DAILY_CEILING` reflects ops actually MADE, not planned.
+ *
+ *  This is a post-hoc accounting write, NOT a gate: the request already passed the
+ *  ceiling check in `durableGuard`, so we do not re-check here (a mid-set refusal
+ *  would strand a half-done generation). Best-effort and never throws (an accounting
+ *  write must not fail the response); no-op when the ceiling is disabled or
+ *  `units <= 0`. Mirrors the `_global_YYYY-MM-DD` doc `durableGuard` writes. */
+export async function chargeGlobalSpend(units: number): Promise<void> {
+  const debit = Math.max(0, Math.floor(units));
+  if (debit === 0 || globalDailyCeiling() === 0) return;
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  const globalRef = firestore.collection(COLL).doc(`_global_${day}`);
+  try {
+    await firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(globalRef);
+      const used = (snap.data()?.count as number) ?? 0;
+      tx.set(globalRef, { count: used + debit, day, expireAt: new Date(now + 2 * DAY) }, { merge: true });
+    });
+  } catch (err) {
+    console.error(`[durable-limit] chargeGlobalSpend(${debit}) failed:`, err);
+  }
+}
+
 /** Read-only peek at the durable counters: how many requests remain per rule for
  *  `ip`, WITHOUT incrementing anything — the data behind the preflight
  *  /api/ai/status endpoint. Reads the same Firestore docs durableGuard writes
