@@ -11,9 +11,12 @@
  *  there is exactly ONE token-encryption implementation in the codebase. */
 import { LOCAL_DB } from "@/lib/local-mode";
 import { decryptToken } from "@/lib/inventory/token-crypto";
+import type { SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
 
-/** Direction 3 — the per-connection money-unit verdict a live sync recorded. */
-export type SklikMoneyVerdict = "czk-plausible" | "halere-suspected" | "insufficient-data";
+/** Direction 3 — the per-connection money-unit verdict a live sync recorded.
+ *  Canonical definition lives in the pure verdict module; re-exported here for the
+ *  store backends that persist it. */
+export type { SklikMoneyVerdict };
 
 /** The stored record. `tokenEnc` is the AES-GCM blob from token-crypto.ts. The
  *  haléře fields (Direction 3) are the per-connection money-unit setting: absent /

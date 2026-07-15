@@ -75,12 +75,21 @@ export async function runTenantSync(
   // sample data → the persisted source flips to "sample"; a series-only
   // fallback keeps the source but still flags the sync as degraded.
   const degradation = connector.degradation;
+  // Direction 3: the provider's money-unit self-diagnostic over the LIVE campaigns
+  // (Sklik only supplies it). Skipped on a degraded fetch — the campaigns are sample
+  // data, so a verdict on them would be meaningless. Never converts; it only records
+  // a flag the provenance popover surfaces for the owner to confirm.
+  const moneyVerdict =
+    !degradation.campaigns && connector.diagnoseMoneyUnit
+      ? connector.diagnoseMoneyUnit(campaigns, period)
+      : undefined;
   await upsertCampaigns(tenant, campaigns, {
     source: degradation.campaigns ? "sample" : connector.source,
     period,
     // The account's captured currency (base CZK for sample / a degraded fetch). Lets
     // the money surfaces label a non-CZK account honestly without converting.
     currency: connector.currency ?? undefined,
+    moneyVerdict,
     degraded: degradation.campaigns || degradation.series,
     degradedReason: degradation.reason,
     // A degraded campaign fetch means `campaigns` are sample data with different

@@ -43,6 +43,9 @@ export interface CampaignsMeta {
    *  surfaces render exactly as before; a non-CZK code relabels the amounts honestly
    *  (no conversion). */
   currency?: string;
+  /** the Sklik money-unit verdict (Direction 3): "halere-suspected" surfaces the
+   *  provenance confirm affordance. Absent for Google / sample. */
+  moneyVerdict?: "czk-plausible" | "halere-suspected" | "insufficient-data";
   /** the last sync's live fetch fell back to sample data — the UI shows a
    *  truth-in-labeling warning instead of presenting demo numbers as live */
   degraded?: boolean;

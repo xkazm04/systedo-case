@@ -35,6 +35,8 @@ import {
   fetchSklikCampaignSeries,
   fetchSklikSeries,
 } from "@/lib/sklik/adapter";
+import type { SklikMoneyMode } from "@/lib/sklik/types";
+import { classifySklikMoneyUnit, type SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
 import { CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod, type DailyPoint } from "./types";
 import { buildTenantKey, SKLIK_TENANT_SUFFIX } from "./store-keys";
 import { getSklikConnection } from "./sklik-connection";
@@ -76,6 +78,12 @@ export interface AdsConnector {
   /** which of this request's fetches silently degraded to the sample provider —
    *  always all-false for the sample provider itself (sample is intended there) */
   degradation: SyncDegradation;
+  /** Optional provider self-diagnostic (Direction 3): given the freshly-fetched
+   *  campaigns + period, classify the money unit (Sklik costs-vs-budget → CZK vs
+   *  haléře). Neutral — only Sklik supplies it; the sync pipeline calls it after a
+   *  successful, non-degraded campaign fetch and persists the verdict on the sync
+   *  meta. It NEVER converts; the actual ÷100 only happens once the owner confirms. */
+  diagnoseMoneyUnit?(campaigns: Campaign[], period: CampaignPeriod): SklikMoneyVerdict;
 }
 
 /** Compact, persistable summary of a live-fetch error (class + message, capped). */
@@ -222,23 +230,28 @@ export function sklikConfigured(): boolean {
 /** Live Sklik provider — one {@link SklikClient} (the caller's token + HTTP
  *  transport) per sync, its DATA-IN fetchers behind the same sample fallback as
  *  Google. The token is resolved by {@link resolveSklik} (per-user first, env
- *  fallback second), so this stays credential-source-agnostic. */
-function sklikProvider(fallback: AdsConnector, token: string): AdsConnector {
+ *  fallback second); `mode` is the connection's confirmed money unit ("halere" ÷100
+ *  only after the owner confirms, else the native-CZK default). The connector also
+ *  carries the money-unit self-diagnostic so the sync can record a verdict. */
+function sklikProvider(fallback: AdsConnector, token: string, mode: SklikMoneyMode): AdsConnector {
   const client = new SklikClient(httpSklikTransport(), token);
-  return withSampleFallback(
+  const connector = withSampleFallback(
     "sklik",
     "Sklik · živá data",
     {
       // Sklik (Seznam) is a Czech platform — money is always native CZK, the base.
       fetchCampaigns: async (period) => ({
-        campaigns: await fetchSklikCampaigns(client, period),
+        campaigns: await fetchSklikCampaigns(client, period, mode),
         currency: "CZK",
       }),
-      fetchSeries: (period) => fetchSklikSeries(client, period),
-      fetchCampaignSeries: (period) => fetchSklikCampaignSeries(client, period),
+      fetchSeries: (period) => fetchSklikSeries(client, period, mode),
+      fetchCampaignSeries: (period) => fetchSklikCampaignSeries(client, period, mode),
     },
     fallback
   );
+  connector.diagnoseMoneyUnit = (campaigns, period) =>
+    classifySklikMoneyUnit(campaigns, CAMPAIGN_PERIOD_DAYS[period]);
+  return connector;
 }
 
 /** One entry in the live-provider registry: given the resolved request context,
@@ -268,20 +281,15 @@ const resolveGoogle: LiveProviderResolver = async ({ userId, connection, fallbac
  *  (Google-first), so existing Google/sample behaviour is untouched. */
 const resolveSklik: LiveProviderResolver = async ({ userId, connection, fallback }) => {
   if (connection) return null;
-  const token = await resolveSklikToken(userId);
-  return token ? sklikProvider(fallback, token) : null;
-};
-
-/** The Sklik token to sync a user with: their per-user encrypted token first, the
- *  env fallback second. Null when neither is available (→ sample). Server-only. */
-async function resolveSklikToken(userId: string): Promise<string | null> {
   const conn = await getSklikConnection(userId);
-  if (conn?.tokenEnc) {
-    const token = decryptToken(conn.tokenEnc);
-    if (token) return token;
-  }
-  return process.env.SKLIK_API_TOKEN ?? null;
-}
+  // Per-user encrypted token first, env dev/deploy fallback second.
+  const token = (conn?.tokenEnc ? decryptToken(conn.tokenEnc) : null) ?? process.env.SKLIK_API_TOKEN ?? null;
+  if (!token) return null;
+  // The money unit is the connection's CONFIRMED setting: "halere" (÷100) only after
+  // the owner confirms the haléře verdict, else the native-CZK default — never silent.
+  const mode: SklikMoneyMode = conn?.halereConfirmed ? "halere" : "czk";
+  return sklikProvider(fallback, token, mode);
+};
 
 /** The stable account suffix a user's account-scoped tenant keys under when they
  *  have NO active Google account: `sklik` for a per-user Sklik connection (so a

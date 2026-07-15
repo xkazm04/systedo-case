@@ -29,6 +29,13 @@ const T = {
     currencyLabel: "Měna účtu",
     currencyNote:
       "Účet je veden v měně {currency}. Částky zobrazujeme v této měně bez přepočtu na Kč.",
+    halereTitle: "Podezření na haléře",
+    halereBody:
+      "Náklady Sklik účtu jsou vůči dennímu rozpočtu ~100× vyšší, než je pravděpodobné — data mohou být v haléřích. Nic zatím nepřepočítáváme. Potvrzením se všechny další synchronizace budou dělit 100 (haléře → Kč).",
+    halereConfirm: "Potvrdit haléře (dělit 100)",
+    halereConfirming: "Potvrzuji…",
+    halereConfirmed: "Potvrzeno — přepočet se použije od příští synchronizace.",
+    halereError: "Potvrzení se nezdařilo.",
   },
   en: {
     trigger: "Data source",
@@ -49,6 +56,13 @@ const T = {
     currencyLabel: "Account currency",
     currencyNote:
       "This account is billed in {currency}. Amounts are shown in that currency, not converted to CZK.",
+    halereTitle: "Haléře suspected",
+    halereBody:
+      "This Sklik account's costs run ~100× higher than its daily budget makes plausible — the data may be in haléře. Nothing is converted yet. Confirming divides every future sync by 100 (haléře → CZK).",
+    halereConfirm: "Confirm haléře (divide by 100)",
+    halereConfirming: "Confirming…",
+    halereConfirmed: "Confirmed — the conversion applies from the next sync.",
+    halereError: "Confirmation failed.",
   },
 } as const;
 
@@ -98,8 +112,35 @@ export default function SyncProvenance({
   // Captured when the popover opens (event handlers may read the clock; render may
   // not) — the reference "now" the per-period stale classification compares against.
   const [nowMs, setNowMs] = useState(0);
+  // Direction 3: the haléře-confirm affordance's local state (optimistic — the ÷100
+  // takes effect from the next sync, so we confirm the intent here and let the note
+  // clear itself on the next sync's fresh verdict).
+  const [halereConfirming, setHalereConfirming] = useState(false);
+  const [halereDone, setHalereDone] = useState(false);
+  const [halereError, setHalereError] = useState(false);
   // Dismiss on outside click / Escape — the shared lightweight popover contract.
   const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
+
+  const confirmHalere = async () => {
+    setHalereConfirming(true);
+    setHalereError(false);
+    try {
+      const res = await fetch("/api/campaigns/sklik", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ halereConfirmed: true }),
+      });
+      if (!res.ok) {
+        setHalereError(true);
+        return;
+      }
+      setHalereDone(true);
+    } catch {
+      setHalereError(true);
+    } finally {
+      setHalereConfirming(false);
+    }
+  };
 
   const toggle = () => {
     setNowMs(Date.now());
@@ -176,6 +217,30 @@ export default function SyncProvenance({
               <p className="mt-1 text-[11px] text-muted">
                 {t("currencyNote", { currency: normalizeCurrency(meta.currency) ?? "" })}
               </p>
+            </div>
+          )}
+
+          {/* Direction 3 — suspected haléře: an honest flag + one-click confirm that
+              flips the ÷100 conversion GOING FORWARD (never a silent conversion). */}
+          {meta.moneyVerdict === "halere-suspected" && (
+            <div className="mt-2 rounded-lg border border-coral-400/40 bg-coral-soft px-3 py-2">
+              <p className="font-medium text-coral-600">{t("halereTitle")}</p>
+              {halereDone ? (
+                <p className="mt-1 text-xs text-positive">{t("halereConfirmed")}</p>
+              ) : (
+                <>
+                  <p className="mt-1 text-xs text-muted">{t("halereBody")}</p>
+                  <button
+                    type="button"
+                    onClick={confirmHalere}
+                    disabled={halereConfirming}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-coral-500 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-coral-600 disabled:opacity-60"
+                  >
+                    {halereConfirming ? t("halereConfirming") : t("halereConfirm")}
+                  </button>
+                  {halereError && <p className="mt-1.5 text-[11px] text-negative">{t("halereError")}</p>}
+                </>
+              )}
             </div>
           )}
 

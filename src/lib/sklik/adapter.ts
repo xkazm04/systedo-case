@@ -14,7 +14,7 @@ import {
   type DailyPoint,
 } from "@/lib/campaigns/types";
 import type { SklikClient } from "./client";
-import { moneyToCzk, sklikChannelType, sklikStatus, type SklikStatRow } from "./types";
+import { moneyToCzk, sklikChannelType, sklikStatus, type SklikMoneyMode, type SklikStatRow } from "./types";
 
 /** YYYY-MM-DD window for the period (matches the Google connector's dateRange). */
 function dateRange(days: number): { start: string; end: string } {
@@ -27,11 +27,14 @@ function dateRange(days: number): { start: string; end: string } {
 /** Fold a Sklik stat row into a mutable DailyPoint accumulator. conversionValue is
  *  accumulated RAW and rounded exactly ONCE at the aggregate boundary
  *  ({@link finalizePoint}) — summing per-row rounded values drifts by up to half a
- *  unit per row (mirrors the Google connector's round-once fix). Cost stays on the
- *  moneyToCzk seam (the single documented CZK/haléře conversion point). */
-function addRow(p: DailyPoint, s: SklikStatRow): void {
-  p.cost += moneyToCzk(s.money);
+ *  unit per row (mirrors the Google connector's round-once fix). Both money fields
+ *  (cost + conversionValue = revenue) flow through the moneyToCzk `mode`, so a
+ *  confirmed haléře account's spend AND revenue are divided by 100; the daily budget
+ *  is NOT (it is the trusted native-CZK reference the verdict compares against). */
+function addRow(p: DailyPoint, s: SklikStatRow, mode: SklikMoneyMode): void {
+  p.cost += moneyToCzk(s.money, mode);
   p.conversions += Number(s.conversions ?? 0);
+  // Raw here (unit applied once, with round-once, in finalizePoint).
   p.conversionValue += Number(s.conversionValue ?? 0);
   p.clicks = (p.clicks ?? 0) + Number(s.clicks ?? 0);
   p.impressions = (p.impressions ?? 0) + Number(s.impressions ?? 0);
@@ -41,9 +44,14 @@ function emptyPoint(date: string): DailyPoint {
   return { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
 }
 
-/** Round the raw-accumulated conversionValue once, at the aggregate boundary. */
-function finalizePoint(p: DailyPoint): DailyPoint {
-  return { ...p, conversionValue: Math.round(p.conversionValue) };
+/** Apply the money `mode` to a raw revenue/spend accumulator (÷100 for haléře). */
+function scaleMoney(raw: number, mode: SklikMoneyMode): number {
+  return mode === "halere" ? raw / 100 : raw;
+}
+
+/** Round the raw-accumulated conversionValue once, applying the money mode. */
+function finalizePoint(p: DailyPoint, mode: SklikMoneyMode): DailyPoint {
+  return { ...p, conversionValue: Math.round(scaleMoney(p.conversionValue, mode)) };
 }
 
 /** Campaigns + period-aggregated metrics, mapped into the app's Campaign model.
@@ -52,7 +60,8 @@ function finalizePoint(p: DailyPoint): DailyPoint {
  *  like the Google path. */
 export async function fetchSklikCampaigns(
   client: SklikClient,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  mode: SklikMoneyMode = "czk"
 ): Promise<Campaign[]> {
   const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
   const campaigns = await client.listCampaigns();
@@ -69,12 +78,14 @@ export async function fetchSklikCampaigns(
   const totals = new Map<number, DailyPoint>();
   for (const r of report) {
     const acc = totals.get(r.campaignId) ?? emptyPoint("");
-    for (const s of r.stats ?? []) addRow(acc, s);
+    for (const s of r.stats ?? []) addRow(acc, s, mode);
     totals.set(r.campaignId, acc);
   }
 
   return campaigns.map((c) => {
     const t = totals.get(c.id) ?? emptyPoint("");
+    // Daily budget stays NATIVE CZK — the trusted reference the money-unit verdict
+    // compares spend against; never haléře-scaled.
     const budgetPerDay = c.dayBudget != null ? Math.round(c.dayBudget) : 0;
     return {
       id: String(c.id),
@@ -85,8 +96,8 @@ export async function fetchSklikCampaigns(
       clicks: t.clicks ?? 0,
       cost: t.cost,
       conversions: t.conversions,
-      // Round the raw-accumulated value once, at the per-campaign aggregate.
-      conversionValue: Math.round(t.conversionValue),
+      // Round the raw-accumulated value once, applying the money mode.
+      conversionValue: Math.round(scaleMoney(t.conversionValue, mode)),
       // Optional on the model: only emit a positive resolvable budget.
       ...(budgetPerDay > 0 ? { budgetPerDay } : {}),
     } satisfies Campaign;
@@ -97,7 +108,8 @@ export async function fetchSklikCampaigns(
  *  summed per date. Powers the trend chart, same as the Google connector. */
 export async function fetchSklikSeries(
   client: SklikClient,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  mode: SklikMoneyMode = "czk"
 ): Promise<DailyPoint[]> {
   const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
   const report = await client.campaignStats({
@@ -111,17 +123,18 @@ export async function fetchSklikSeries(
     for (const s of r.stats ?? []) {
       if (!s.date) continue;
       const p = byDate.get(s.date) ?? emptyPoint(s.date);
-      addRow(p, s);
+      addRow(p, s, mode);
       byDate.set(s.date, p);
     }
   }
-  return [...byDate.values()].map(finalizePoint).sort((a, b) => a.date.localeCompare(b.date));
+  return [...byDate.values()].map((p) => finalizePoint(p, mode)).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /** Per-campaign daily series (campaign id → points) for the table sparklines. */
 export async function fetchSklikCampaignSeries(
   client: SklikClient,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  mode: SklikMoneyMode = "czk"
 ): Promise<Record<string, DailyPoint[]>> {
   const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
   const report = await client.campaignStats({
@@ -136,11 +149,11 @@ export async function fetchSklikCampaignSeries(
     for (const s of r.stats ?? []) {
       if (!s.date) continue;
       const p = byDate.get(s.date) ?? emptyPoint(s.date);
-      addRow(p, s);
+      addRow(p, s, mode);
       byDate.set(s.date, p);
     }
     out[String(r.campaignId)] = [...byDate.values()]
-      .map(finalizePoint)
+      .map((p) => finalizePoint(p, mode))
       .sort((a, b) => a.date.localeCompare(b.date));
   }
   return out;

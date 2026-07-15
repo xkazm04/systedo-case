@@ -102,14 +102,20 @@ export function sklikStatus(status: string | undefined): CampaignStatus {
   return status === "active" ? "enabled" : "paused";
 }
 
+/** How a connection's confirmed money-unit setting maps Sklik money onto CZK:
+ *  "czk" = native (the default, current behaviour); "halere" = divide by 100, used
+ *  only AFTER the owner confirms the Direction-3 haléře verdict. */
+export type SklikMoneyMode = "czk" | "halere";
+
 /**
  * Convert a Sklik money value to CZK. Per the connector decision Sklik money is
- * treated as NATIVE CZK (contrast Google Ads, which reports micros ÷ 1e6). This
- * is centralised as a single seam: should the live API turn out to report money
- * in haléře (1/100 CZK) for a given endpoint, this is the ONE place to divide by
- * 100 — the per-user-credentials follow-up must verify the unit against a real
- * account. Kept identity by default so fixture values map 1:1.
+ * treated as NATIVE CZK by default (contrast Google Ads, which reports micros ÷ 1e6).
+ * This is the ONE documented conversion seam: when a connection's owner has CONFIRMED
+ * the haléře verdict (Direction 3), the connector passes `mode: "halere"` and this
+ * divides by 100. It NEVER converts silently — an unconfirmed account stays on the
+ * "czk" default, so fixture values (and every existing caller) map 1:1.
  */
-export function moneyToCzk(money: number | undefined): number {
-  return Math.round(Number(money ?? 0));
+export function moneyToCzk(money: number | undefined, mode: SklikMoneyMode = "czk"): number {
+  const raw = Number(money ?? 0);
+  return Math.round(mode === "halere" ? raw / 100 : raw);
 }
