@@ -17,6 +17,12 @@ export interface BudgetMove {
   /** donor / recipient ROAS at the time of the recommendation */
   fromRoas: number;
   toRoas: number;
+  /** the donor's own period spend (CZK) at recommendation time. Lets a stored
+   *  change-set self-describe how large a share of the donor a shift re-points —
+   *  the input to the projection-confidence label — without re-loading campaigns.
+   *  OPTIONAL for backward compatibility: change-sets persisted before this field
+   *  omit it and read as full-confidence. */
+  fromCost?: number;
   /** estimated extra conversion value = amount × (toRoas − fromRoas); 0 for a
    *  pause of a zero-return donor (nothing was coming back anyway) */
   estValueGain: number;
@@ -30,6 +36,40 @@ export interface BudgetMove {
 export interface SimulationResult {
   before: CampaignTotals;
   after: CampaignTotals;
+}
+
+// --- projection confidence ---------------------------------------------------
+// A shift re-points spend at the RECIPIENT's current marginal efficiency. That
+// linear first-cut is honest for a small reallocation but degrades as the moved
+// share of the donor's spend grows — the recipient's marginal ROAS won't hold
+// once its budget balloons, so a big shift's projected lift is optimistic. Rather
+// than silently present the same confident number, the UI degrades the label
+// above this share; the caveat in the caption becomes an enforced signal.
+
+/** Above this share of a donor's own spend, a shift's linear projection is
+ *  labelled low-confidence. Set at 50% — comfortably above the recommender's own
+ *  40% shifts (plus the ≤100 CZK rounding on ≥1000 CZK donors), so an
+ *  auto-recommendation always reads high-confidence and only a genuinely large or
+ *  manually enlarged reallocation degrades. */
+export const SIM_LOW_CONFIDENCE_DONOR_SHARE = 0.5;
+
+export type SimulationConfidence = "high" | "low";
+
+/** Share (0..1+) of a donor's own spend a SHIFT re-points, from the move's stored
+ *  `fromCost`. A pause removes the donor's spend outright rather than
+ *  extrapolating a recipient's marginal ROAS, so it carries no linear-extrapolation
+ *  risk and returns 0; an unknown/zero donor cost (legacy move) also returns 0. */
+export function moveDonorShare(move: BudgetMove): number {
+  if (move.kind === "pause") return 0;
+  if (typeof move.fromCost !== "number" || move.fromCost <= 0) return 0;
+  return move.amount / move.fromCost;
+}
+
+/** Confidence in the linear projection for a whole change-set: "low" as soon as
+ *  any shift re-points more than {@link SIM_LOW_CONFIDENCE_DONOR_SHARE} of its
+ *  donor's spend, else "high". Pure; the UI degrades the projection's label. */
+export function simulationConfidence(moves: BudgetMove[]): SimulationConfidence {
+  return moves.some((m) => moveDonorShare(m) > SIM_LOW_CONFIDENCE_DONOR_SHARE) ? "low" : "high";
 }
 
 /**

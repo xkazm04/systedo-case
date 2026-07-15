@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Bolt, Check } from "@/components/icons";
+import { ArrowRight, Bolt, Check, Info } from "@/components/icons";
 import { recommendBudgetMoves } from "@/lib/campaigns/budget-moves";
-import { withMetrics, type Campaign } from "@/lib/campaigns/types";
+import { simulationConfidence } from "@/lib/campaigns/simulate";
+import { withMetrics, CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
@@ -27,6 +28,10 @@ const T = {
     profitGain: "zisk ≈ {profit}",
     projectedProfit: "Projektovaný zisk",
     marginStated: "při marži {m}",
+    lowConfidence: "Nižší jistota odhadu",
+    lowConfidenceTitle:
+      "Některý přesun přemísťuje více než polovinu rozpočtu dárce — lineární odhad je za hranicí" +
+      " „malé realokace“ a dopad může být nadhodnocený.",
     signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci.",
     propose: "Navrhnout do control plane",
     proposing: "Vytvářím návrh…",
@@ -64,6 +69,10 @@ const T = {
     profitGain: "profit ≈ {profit}",
     projectedProfit: "Projected profit",
     marginStated: "at a {m} margin",
+    lowConfidence: "Lower-confidence estimate",
+    lowConfidenceTitle:
+      "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
+      " \"small reallocation\" it is honest for, so the projected impact may be overstated.",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
     propose: "Propose to control plane",
     proposing: "Creating proposal…",
@@ -93,6 +102,7 @@ const T = {
 export default function BudgetMoves({
   campaigns,
   marginPct = null,
+  period,
   onProposed,
 }: {
   campaigns: Campaign[];
@@ -100,6 +110,10 @@ export default function BudgetMoves({
    *  preview ranks donors by profit destruction and shows projected profit with the
    *  margin stated; null → margin-blind revenue scoring (byte-identical output). */
   marginPct?: number | null;
+  /** the synced period — its day count floors each shift's projected gain to what
+   *  the live mutation can actually move (MIN_DAILY_CZK floor), so the preview and
+   *  the applied change-set reconcile. Omitted → no floor (unchanged). */
+  period?: CampaignPeriod;
   onProposed?: () => void;
 }) {
   const { status } = useSession();
@@ -115,8 +129,13 @@ export default function BudgetMoves({
   const { moves, simulation } = recommendBudgetMoves(campaigns.map(withMetrics), {
     includePauses: true,
     marginPct: margin,
+    periodDays: period ? CAMPAIGN_PERIOD_DAYS[period] : undefined,
   });
   const { before, after } = simulation;
+  // Direction 3: degrade the projection's label when any shift re-points more than
+  // half its donor's spend — the linear estimate is past the "small reallocation"
+  // it stays honest for.
+  const lowConfidence = simulationConfidence(moves) === "low";
   const valueGain = after.conversionValue - before.conversionValue;
   // Projected net profit derived from the (unchanged) value simulation: margin ×
   // value gain. Only when a persisted margin was threaded in.
@@ -296,6 +315,15 @@ export default function BudgetMoves({
                 {fmt.fmtSignedCZK(profitGain)}
               </strong>{" "}
               <span className="text-muted">{t("marginStated", { m: fmt.fmtPct(margin, 0) })}</span>
+            </p>
+          )}
+          {lowConfidence && (
+            <p
+              className="mt-3 inline-flex items-center gap-1.5 rounded-card bg-coral-soft px-3 py-1.5 text-xs font-medium text-coral-600"
+              title={t("lowConfidenceTitle")}
+            >
+              <Info width={14} height={14} className="shrink-0" />
+              {t("lowConfidence")}
             </p>
           )}
           <p

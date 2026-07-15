@@ -6,7 +6,14 @@ import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
-import { projectedValueGain, projectedProfitGain, type ChangeSet, type ChangeSetStatus } from "@/lib/campaigns/control-plane-types";
+import {
+  projectedValueGain,
+  projectedProfitGain,
+  forwardProjectionApplies,
+  type ChangeSet,
+  type ChangeSetStatus,
+} from "@/lib/campaigns/control-plane-types";
+import { simulationConfidence } from "@/lib/campaigns/simulate";
 import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 
 const T = {
@@ -27,6 +34,10 @@ const T = {
     marginStated: "při marži {m}",
     convValue: "Hodnota",
     linEst: "hodnoty konverzí (lineární odhad).",
+    lowConfidence: "Nižší jistota odhadu",
+    lowConfidenceTitle:
+      "Některý přesun přemísťuje více než polovinu rozpočtu dárce — lineární odhad je za hranicí" +
+      " „malé realokace“ a dopad může být nadhodnocený.",
     confirmOverride: "Potvrdit i přes pojistky",
     confirmApply: "Potvrdit a aplikovat na účet",
     approveOverride: "Schválit přes pojistky",
@@ -57,6 +68,10 @@ const T = {
     marginStated: "at a {m} margin",
     convValue: "Value",
     linEst: "conversion value (linear estimate).",
+    lowConfidence: "Lower-confidence estimate",
+    lowConfidenceTitle:
+      "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
+      " \"small reallocation\" it is honest for, so the projected impact may be overstated.",
     confirmOverride: "Confirm despite guardrails",
     confirmApply: "Confirm and apply to account",
     approveOverride: "Approve despite guardrails",
@@ -209,15 +224,31 @@ export default function ControlPlane({
             ))}
           </ul>
 
-          {/* simulated impact */}
-          <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-            <SimCell label="ROAS" before={fmt.fmtMultiple(pending.simulation.before.roas)} after={fmt.fmtMultiple(pending.simulation.after.roas)} />
-            <SimCell label="COS" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
-            <SimCell label={t("convValue")} before={fmt.fmtCZK(pending.simulation.before.conversionValue)} after={fmt.fmtCZK(pending.simulation.after.conversionValue)} />
-          </div>
-          <p className="mt-2 text-xs text-muted">
-            {t("projectedGain")} <strong className="text-navy-700">{fmt.fmtCZK(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
-          </p>
+          {/* simulated impact — a FORWARD projection, only shown while the set is
+              pending/applying (forwardProjectionApplies); a reverted set never
+              displays its stale forward numbers. The pending block itself is
+              pending-only, so this is defensive + explicit. */}
+          {forwardProjectionApplies(pending.status) && (
+            <>
+              <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                <SimCell label="ROAS" before={fmt.fmtMultiple(pending.simulation.before.roas)} after={fmt.fmtMultiple(pending.simulation.after.roas)} />
+                <SimCell label="COS" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
+                <SimCell label={t("convValue")} before={fmt.fmtCZK(pending.simulation.before.conversionValue)} after={fmt.fmtCZK(pending.simulation.after.conversionValue)} />
+              </div>
+              <p className="mt-2 text-xs text-muted">
+                {t("projectedGain")} <strong className="text-navy-700">{fmt.fmtCZK(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
+              </p>
+              {simulationConfidence(pending.moves) === "low" && (
+                <p
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-card bg-coral-soft px-3 py-1.5 text-xs font-medium text-coral-600"
+                  title={t("lowConfidenceTitle")}
+                >
+                  <Info width={14} height={14} className="shrink-0" />
+                  {t("lowConfidence")}
+                </p>
+              )}
+            </>
+          )}
           {/* Direction 1: projected NET PROFIT alongside the value, when the set was
               scored against the tenant's persisted blended margin — derived from the
               same value simulation (margin × value gain), with the margin stated. */}

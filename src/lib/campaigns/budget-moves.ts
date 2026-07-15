@@ -4,6 +4,7 @@
  *  constant and the simulate model. */
 import { TARGET_ROAS, type CampaignRow } from "./types";
 import { simulateBudgetShift, type BudgetMove, type SimulationResult } from "./simulate";
+import { movableAmount } from "./budget-math";
 import { grossProfit } from "@/lib/profit/core";
 
 export interface BudgetRecommendation {
@@ -40,6 +41,15 @@ export interface RecommendOptions {
    *  revenue waste, and each move carries an `estProfitGain`. Absent (no saved
    *  model) → the original margin-blind, revenue-ROAS scoring, byte-for-byte. */
   marginPct?: number;
+  /** the synced period length in days. When supplied, each shift's `amount` (and
+   *  therefore its `estValueGain`) is floored to what the live mutation can
+   *  actually move off the donor given the MIN_DAILY_CZK daily-budget floor
+   *  (`movableAmount`), so the projected gain reconciles with the applied move
+   *  (applied == simulated, modulo daily-micros rounding) rather than
+   *  over-promising. Absent → no floor applied, byte-identical to the pre-floor
+   *  recommendation (for the recommender's ≤40% shifts the floor never binds
+   *  anyway — the donor retains ≥60% of its budget, far above 10 CZK/day). */
+  periodDays?: number;
 }
 
 /**
@@ -80,6 +90,10 @@ export function recommendBudgetMoves(
   const shiftFraction = opts.shiftFraction ?? 0.4;
   const minSpend = opts.minSpend ?? 1000;
   const includePauses = opts.includePauses ?? false;
+  // Optional synced-period length — enables flooring each shift to what the live
+  // mutation can actually move (see RecommendOptions.periodDays). Absent → no floor.
+  const periodDays =
+    typeof opts.periodDays === "number" && opts.periodDays > 0 ? opts.periodDays : undefined;
   // Profit-aware scoring is opt-in on a persisted, positive blended margin. A
   // missing/degenerate margin (≤0 or >1) falls back to the revenue-ROAS scoring so
   // a blank/corrupt model can never flip the recommender into nonsense.
@@ -139,6 +153,7 @@ export function recommendBudgetMoves(
         amount: donor.cost,
         fromRoas: 0,
         toRoas: 0,
+        fromCost: donor.cost,
         estValueGain: 0,
         // Pausing a zero-return donor recovers the full saved spend as profit (it
         // was buying ~nothing). Only attached under a persisted margin so the
@@ -152,10 +167,17 @@ export function recommendBudgetMoves(
     if (!recipient) break;
     usedRecipient.add(recipient.id);
 
-    // Round the shift to a tidy 100 CZK so the recommendation reads cleanly.
-    const amount = Math.round((donor.cost * shiftFraction) / 100) * 100;
+    // Round the shift to a tidy 100 CZK so the recommendation reads cleanly, then
+    // floor it to what the live mutation can actually move off the donor (the
+    // MIN_DAILY_CZK daily-budget floor over the synced period) when the period is
+    // known — so the projected gain never over-promises what apply will deliver.
+    // Never above the donor's own spend (the simulation's own clamp).
+    const rounded = Math.round((donor.cost * shiftFraction) / 100) * 100;
+    const amount = Math.min(donor.cost, movableAmount(rounded, donor.budgetPerDay, periodDays));
     if (amount <= 0) continue;
 
+    // estValueGain is derived from the SAME (floored) amount the move carries and
+    // the simulation moves, so the stated gain reconciles with the applied move.
     const estValueGain = amount * (recipient.roas - donor.roas);
     moves.push({
       kind: "shift",
@@ -166,6 +188,7 @@ export function recommendBudgetMoves(
       amount,
       fromRoas: donor.roas,
       toRoas: recipient.roas,
+      fromCost: donor.cost,
       estValueGain,
       // Profit the re-pointed revenue actually earns = gross profit on the
       // incremental value (= margin × estValueGain). Persisted-model only.

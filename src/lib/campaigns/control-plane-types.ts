@@ -131,6 +131,17 @@ export function inverseMoves(moves: BudgetMove[]): BudgetMove[] {
   }));
 }
 
+/** Whether a change-set's forward projection is still a LIVE prediction. The
+ *  simulation is a "what would happen IF this is applied" forward projection — it
+ *  is meaningful only before the set settles. Once it is applied the number is
+ *  history; once it is REVERTED it describes a future that was undone and never
+ *  happened, so surfacing it as a current projection would mislead. Surfaces gate
+ *  the projection on this, and restate it as historical (or drop it) otherwise —
+ *  a reverted change-set must never show its stale forward projection. */
+export function forwardProjectionApplies(status: ChangeSetStatus): boolean {
+  return status === "pending" || status === "applying";
+}
+
 /** Projected extra conversion value if the change-set is applied (CZK). */
 export function projectedValueGain(sim: SimulationResult): number {
   return sim.after.conversionValue - sim.before.conversionValue;

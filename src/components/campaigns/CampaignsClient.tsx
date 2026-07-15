@@ -553,6 +553,7 @@ export default function CampaignsClient({
         <BudgetMoves
           campaigns={campaigns}
           marginPct={marginPct}
+          period={period}
           onProposed={() => setControlPlaneRefresh((n) => n + 1)}
         />
         <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton />
