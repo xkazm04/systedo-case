@@ -1,7 +1,7 @@
 ---
 name: Hana (lead-gen CRO)
 type: tiger/character
-maps_to: ["[[lead-source-diagnosis]]", "[[lead-reply]]"]
+maps_to: ["[[lead-source-diagnosis]]", "[[twin-reply]]"]  # was [[lead-reply]], retired 2026-07-15 → succeeded by twin-reply
 references:
   - https://hbr.org/2011/03/the-short-life-of-online-sales-leads — speed-to-lead bar
 ---

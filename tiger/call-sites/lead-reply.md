@@ -11,10 +11,12 @@ grounding: 5/5
 code_score: 5
 quality_score: 4.5  # sonnet, per [[benchmark-2026-06-20]]
 recommended_model: sonnet  # keep — Haiku degrades (generic, misses lead specifics); Opus no gain
-status: improved
-last_scanned: 2026-06-20
+status: retired
+last_scanned: 2026-07-15
 characters: ["[[hana-leadgen-cro]]"]
+superseded_by: "[[twin-reply]]"
 ---
+> **RETIRED 2026-07-15** — `src/lib/ai/tools/lead-reply.ts` is gone; the tool was absorbed into **[[twin-reply]]** (comms/twin split). Successor does everything here PLUS per-channel trained voice, `confidence`, `risks[]` and thread/rejection-learning grounding. This note is kept for history — the live speed-to-lead surface is now [[twin-reply]]. **Carry-forward warning:** the Sonnet recommendation below did NOT carry over — twin-reply runs `tier:"fast"` (Haiku); see [[2026-07-15-scan]] finding V1.
 ## What it does
 Speed-to-lead: drafts an on-brand first reply + 2–3 qualification questions for an inbound enquiry. Entry: `/api/ai` mode `lead-reply` → `generateLeadReply`.
 ## Prompt & grounding

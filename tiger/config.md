@@ -10,7 +10,7 @@ updated: 2026-06-20
 The engine (`.claude/skills/tiger.md`) is app-agnostic. This file pins how Tiger finds and exercises the LLM call sites in **this** repo.
 
 ## What counts as a call site (discovery)
-- **Text generation (16):** every `generateStructured()` site, tagged `// llm-tool: <id>` and registered in `test-llm/registry.mjs`. The chokepoint is `src/lib/llm/index.ts`; tools live in `src/lib/ai/tools/*.ts`. Discover with `grep -rn "// llm-tool:" src`.
+- **Text generation (20, as of 2026-07-15):** every `generateStructured()` site, tagged `// llm-tool: <id>` and registered in `test-llm/registry.mjs`. The chokepoint is `src/lib/llm/index.ts`; tools live in `src/lib/ai/tools/*.ts`. Discover with `grep -rn "// llm-tool:" src`.
 - **Image generation:** Leonardo (`src/lib/leonardo/client.ts`, driven by `src/lib/images/studio.ts`).
 - **Vision scoring:** Gemini vision ranks the N image candidates (`src/lib/images/studio.ts`).
 - **Embeddings:** Gemini embeddings for patterns semantic search (`src/lib/patterns/embeddings.ts`).

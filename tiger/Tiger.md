@@ -8,18 +8,20 @@ app: Adamant (systedo-case)
 Home / Map-of-Content for the Tiger vault. Open in Obsidian to navigate the graph. Engine: `.claude/skills/tiger.md` · Per-app config: [[config]].
 
 ## Call sites (the inventory)
-The highest-value surface — every LLM call. See `call-sites/`. Modalities: **text ×16** (generateStructured tools), **image** (Leonardo), **vision** (Gemini scoring), **embedding** (patterns), plus the shared **[[llm-wrapper]]** chokepoint.
+The highest-value surface — every LLM call. See `call-sites/`. **24 active** (+1 retired). Modalities: **text ×20** (generateStructured tools), **image** (Leonardo), **vision** (Gemini scoring), **embedding** (patterns), plus the shared **[[llm-wrapper]]** chokepoint.
 
 ## Characters
 Representative users who judge the OUTPUTS (UAT method, scoped to LLM). See `characters/`.
 
 ## Sessions
-Per-run records + backlogs. See `sessions/` — latest: [[2026-06-20-run]].
+Per-run records + backlogs. See `sessions/` — latest: [[2026-07-15-scan]] · baseline: [[2026-06-20-run]].
 
 ## Models
 Per-model×thinking benchmark rollups. See `models/`.
 
 ## Current headline
-Baseline run [[2026-06-20-run]] (10 characters, 18 call sites). Text plumbing is gold-standard ([[llm-wrapper]], [[campaign-eval]]); value leaks at the edges: **P0** — fix the [[lp-variant-ideas]] dropped-grounding bug (2/5), add `/api/ai` input-hash caching, and instrument the un-logged non-text calls ([[creative-image-gen]]/[[creative-vision-score]]/[[patterns-embed]]). **Model:** copy/reply tools need ≥ Sonnet ([[benchmark-2026-06-20]]); the constrained-tool test ran ([[benchmark-2026-06-20-constrained]]) — only [[keyword-clusters]] downgrades to Haiku/Flash, the numeric reads keep ≥ Sonnet. Full backlog → [[2026-06-20-run]].
+Latest scan [[2026-07-15-scan]] (24 active sites, +7 since baseline). The 7 new call sites — [[channel-research]] [[chat]] [[local-diagnosis]] [[monthly-recap]] [[onboarding-scan]] [[twin-reply]] [[twin-style]] — are all **code_score 5** with **excellent grounding** (6/7 land ≥5/6; [[onboarding-scan]] avoids the URL-hallucination trap by injecting real fetched page text). The baseline's patterns (validate-gate, demo-floor, effective-grounding-versioned cache) propagated cleanly; new high-water marks in [[monthly-recap]] (two-layer cache) and [[twin-style]] (do/dont double-defense). **[[lead-reply]] retired** → absorbed into [[twin-reply]].
 
-**Update:** the whole baseline backlog is **worked through** — P0/P1 same-day (grounding bug, `/api/ai` caching, reply validate gates, embedding cache, non-text telemetry), then V2 (refuted) / V3 / V4 grounding, C5 (repurpose body digest), C6 (contract goldens for all 14 tools + gate/CI enforcement), C7 (analysis temp 0.4), and M2 (constrained-tool benchmark). Still open: **M1** prod follow-through (Flash quality-check + Gemini-Pro trial on the 5 ≥Sonnet tools — needs a live Gemini run) + minor value ceilings. See [[2026-06-20-run]] § Resolved.
+**One sharp finding (V1, HIGH) — ✅ BENCHMARKED & CONFIRMED:** [[twin-reply]] runs `tier:"fast"` (Haiku), replacing [[lead-reply]] (pinned ≥Sonnet). [[benchmark-2026-07-15-twin-reply]] (haiku/sonnet/opus × 2 scenarios) shows **Haiku 2.9/5 vs Sonnet 5.0** on stakes-sensitive replies — Haiku miscalibrates `confidence` (78 on a health complaint vs Sonnet's 35) and leaves `risks` empty while proposing unverified slots, both of which erode the auto-send gate. **Action ready:** set `twin-reply` `tier:"fast"`→`"quality"` (twin-reply.ts:196 + registry.mjs:165), re-run LLM gate. Opus adds no lift over Sonnet. **V2 (MED):** [[twin-style]] is high-leverage (feeds 3 tools) but has no quality score. Full backlog → [[2026-07-15-scan]].
+
+**Baseline (resolved):** the whole [[2026-06-20-run]] backlog was worked through (grounding bug, `/api/ai` caching, reply validate gates, embedding cache, non-text telemetry, contract goldens, constrained-tool benchmark). Still open there: **M1** prod follow-through (Flash quality-check + Gemini-Pro trial — needs a live Gemini run).
