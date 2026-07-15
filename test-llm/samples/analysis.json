@@ -1,14 +1,14 @@
 {
-  "headline": "Kampaně jsou ziskové a efektivita je nad plánem",
-  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje účet PNO 18,3 % a ROAS 5,4×, což signalizuje zdravou a udržitelnou výkonnost placených kanálů.",
+  "headline": "Kampaň generuje zdravý výkon s PNO 18,3 % a ROAS 5,4×",
+  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahuje kampaň PNO 18,3 % a ROAS 5,4×, což signalizuje efektivní a udržitelnou návratnost investic do reklamy.",
   "actions": [
     {
-      "title": "Navýšit rozpočet na nejvýkonnější kampaně",
-      "detail": "Postupně zvyšovat denní rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO, a sledovat, zda se poměr při škálování udrží."
+      "title": "Navýšit rozpočet na výkonné segmenty",
+      "detail": "Vzhledem k ROAS 5,4× a PNO pod 20 % postupně navyšujte rozpočet u nejvýkonnějších kampaní/kanálů, abyste škálovali obrat při zachování efektivity."
     },
     {
-      "title": "Sledovat stabilitu PNO při růstu obratu",
-      "detail": "Nastavit pravidelnou kontrolu PNO a ROAS (např. týdně), aby se včas zachytilo případné zhoršení efektivity při zvyšování investic."
+      "title": "Sledovat vývoj PNO při škálování",
+      "detail": "Při zvyšování investic průběžně monitorujte PNO, aby nedošlo k jeho růstu nad akceptovatelnou hranici a udržela se současná ziskovost."
     }
   ]
 }

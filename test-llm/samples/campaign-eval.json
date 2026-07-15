@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň Search · Brand výrazně překonává cíl PNO (5,3 % vs. 18 %) při vysokém ROAS 18,9×, což signalizuje prostor pro agresivnější škálování bez rizika neefektivity.",
-  "score": 94,
+  "verdict": "Kampaň Search · Brand výrazně překonává cílovou PNO a generuje mimořádně vysoký ROAS, brand výkon je na maximu.",
+  "score": 92,
   "recommendations": [
     {
-      "title": "Navýšit denní rozpočet a bid strategii",
-      "detail": "Vzhledem k rezervě mezi aktuální PNO 5,3 % a cílem 18 % lze navýšit rozpočet kampaně (např. o 50–100 %) a přejít na agresivnější automatickou strategii (Maximalizace hodnoty konverzí s cílovou PNO blíže k 12–15 %), aby kampaň zachytila více brandové poptávky.",
+      "title": "Navýšit rozpočet na brand kampani",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % je prostor investovat výrazně více – otestujte navýšení denního rozpočtu o 30–50 % a sledujte, zda se ROAS udrží nad 10×.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit pokrytí brandových frází a variant",
-      "detail": "Doplnit long-tail a chybové varianty brandového klíčového slova (překlepy, produktové řady) a zvážit shodu s frázemi konkurentů v brandových výrazech, aby se využila volná marže v PNO k obraně a růstu podílu na brandovém vyhledávání.",
+      "title": "Rozšířit pokrytí brandových variant",
+      "detail": "Přidejte long-tail a misspelling brand klíčová slova, ať kampaň zachytí větší podíl brandového vyhledávání při stále nízké PNO.",
       "priority": "medium"
     }
   ]

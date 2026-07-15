@@ -1,15 +1,15 @@
 {
-  "reply": "Děkujeme za Váš dotaz. Rádi bychom Vám s revizí elektroinstalace pomohli. Konkrétní termín si musíme ověřit podle Vašich požadavků a kapacity našeho týmu — jaké dny a časy by Vám vyhovovaly?",
+  "reply": "Dobrý den, revizi elektroinstalace vám rádi zajistíme. Abychom mohli nabídnout konkrétní časy, pomohl byste nám zjistit ještě pár detailů? Především: jakou máte flexibilitu ohledně termínu a jak časově je to pro vás urgentní? Dále bychom rádi věděli, zda se jedná o novou instalaci nebo revizi stávajícího stavu, a zda máte specifické obavy či problémy, které si chcete vyjasnit. Po těchto informacích vám můžeme nabídnout konkrétní řešení.",
   "questions": [
-    "Jaký konkrétní typ revize elektroinstalace potřebujete (bezpečnostní, stavební, preventivní)?",
-    "Máte preferenci na konkrétní dny nebo časy?",
-    "V jakém městě se kancelář nachází?"
+    "Jak časově vás tuto revizi potřebujete a máte flexibilitu ohledně termínu?",
+    "Jde o novu instalaci nebo o revizi stávající elektroinstalace?",
+    "Máte nějaké specifické problémy nebo obavy, které si chcete vyjasnit, nebo jde o standardní audit?"
   ],
-  "confidence": 72,
+  "confidence": 70,
   "risks": [
-    "Kalendář týmu není ověřen — neslibovat konkrétní termín bez interní kontroly dostupnosti",
-    "Cena není v podkladech — zákázka musí být kvalifikována specialistou na elektroinstalace",
-    "Detaily revize (rozsah kabeláže, složitost, stav) ovlivňují obnos i čas — vyžaduje údaje od zákazníka"
+    "Bez informace o skutečné dostupnosti specialistů nelze slibovat konkrétní datum — ověřit interní kapacity",
+    "Cena revize není v podkladech — ověřit cenník podle typu a rozsahu práce",
+    "Nelze určit, zda jde o B2B či B2C kontakt — tón by měl být upraven dle segmentu"
   ],
-  "toneNotes": "Formální čeština s vykaním (Vy), profesionální a vstřícný tón. Primeira věta rovnou odpovídá na dotaz (máme zájem/kapacitu), ale bez slibování dat. Žádá upřesnění k dalšímu postupu. Vyvážený přístup: ochota, ale opatrnost vůči zavazování se."
+  "toneNotes": "Formální oslovení (Dobrý den, vy/vykání), bezprostřední odpověď na dotaz (ANO, revizi zajistíme), profesionální zájem bez slibování termínů, sbírání kvalifikačních informací k dalšímu kroku. Střízlivý přístup — nabízíme řešení na základě detailů."
 }

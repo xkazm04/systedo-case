@@ -1,10 +1,9 @@
 {
-  "summary": "Kohorty se v čase zhoršují: CAC roste (1 200→1 600→2 100 Kč), LTV klesá (5 400→3 800→2 200 Kč) a M3 retence padá (62 %→48 %→31 %). Kohorta 2025-03 už negeneruje návratnost investice (LTV:CAC 1,0×, návratnost přesahuje horizont). Rozpad podle kanálů u 2025-03 ukazuje, že ji táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic). Retenční křivka 2025-03 (100 %→70 %→48 %→31 %) má nejprudší pokles hned v M0→M1 (-30 p.b.), což naznačuje problém s onboardingem/kvalitou akvizice, ne jen s dlouhodobým udržením.",
+  "summary": "Kohorty se v čase zhoršují: CAC roste (1200→1600→2100 Kč), LTV klesá (5400→3800→2200 Kč) a LTV:CAC padá z 4,5× na 1,0×. Kohorta 2025-03 se už nevrací do zisku (návratnost přes horizont) a M3 retence klesla na 31 %. V rámci 2025-03 ji nejvíc táhne dolů Google Ads (CAC 2600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je ziskový (LTV:CAC 6,0×, 90 akvizic). Retenční křivka (100 %→70 %→48 %→31 %) ukazuje setrvalý, nezpomalující pokles bez stabilizace — uživatelé neustále odchází, ne jen v prvním měsíci.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit nebo pozastavit akvizici přes Google Ads (LTV:CAC 0,8×, ztrátový kanál) a přesměrovat rozpočet do Organic, případně zoptimalizovat Google Ads targeting a onboarding, aby se zmírnil prudký propad retence mezi M0 a M1.",
+  "recommendation": "Okamžitě přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) do Organic akvizice (LTV:CAC 6,0×) a pozastavit škálování Google Ads, dokud se CAC nevrátí pod úroveň udržující LTV:CAC alespoň 3×.",
   "risks": [
-    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je již pod hranicí návratnosti.",
-    "Bez zásahu do Google Ads bude CAC dál růst a M3 retence dál klesat, jak ukazuje trend napříč třemi kohortami.",
-    "Retenční křivka 2025-03 je jen z části pozorovaná (M3 dál modelováno), skutečný propad může být hlubší."
+    "Bez zásahu do retence (klesající křivka bez stabilizace) i levnější akvizice z Organic kanálu časem skončí na podobně nízkém LTV.",
+    "Malý vzorek u kanálového rozpadu (150 a 90 akvizic) — závěr o kanálech je třeba ověřit na větším objemu dat."
   ]
 }

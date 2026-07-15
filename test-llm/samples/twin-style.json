@@ -1,34 +1,33 @@
 {
-  "summary": "Krátké, věcné e-maily s formálním oslovením klienta jménem a titulem (pane/paní + příjmení). Firma hned poděkuje za poptávku nebo přejde k jádru sdělení, uvede konkrétní termín nebo lhůtu (počet dní, konkrétní den v týdnu) a nabídne další krok nebo kontakt, pokud je potřeba cokoliv řešit.",
-  "directives": "Oslovuj klienta formálně jménem a příjmením s titulem pane/paní. Ihned poděkuj za poptávku nebo přejdi k věci bez zdlouhavého úvodu. Uveď konkrétní, měřitelný termín nebo lhůtu (např. počet dní, konkrétní den). Pokud přesný termín ještě není znám, slib jeho upřesnění a řekni kdy. Na závěr nabídni možnost kontaktovat firmu telefonicky v případě dotazů nebo problémů. Piš stručně, ve spisovné, zdvořilé češtině, bez emotikonů a bez zbytečných formulací.",
+  "summary": "Firma komunikuje e-mailem stručně, věcně a vstřícně. Zprávy začínají formálním oslovením se jménem a titulem (pane/paní příjmení), hned následuje poděkování nebo přímá odpověď na poptávku. Sdělení je konkrétní – obsahuje termín, cenu nebo příslib jejich brzkého potvrzení – a končí nabídkou další komunikace (telefon), pokud zákazník potřebuje víc.",
+  "directives": "Oslovuj klienta jménem a titulem ve formě „Dobrý den, pane/paní [příjmení]“. Odpovídej přímo na to, co klient řešil (termín, cena, rozsah), a pokud přesnou informaci nemáš, slib konkrétní den, kdy ji dodáš. Piš krátce, v spisovné, zdvořilé češtině, bez nadbytečných frází a omluv. Na závěr nabídni možnost ozvat se telefonicky v případě dotazů.",
   "traits": [
-    "formální",
-    "stručný",
-    "věcný",
-    "vstřícný",
-    "konkrétní v termínech"
+    "formální, ale vstřícný tón",
+    "stručnost a věcnost",
+    "konkrétnost (termíny, ceny, dny)",
+    "zákaznická vstřícnost bez podbízivosti"
   ],
-  "lengthHint": "2–3 krátké věty, jeden odstavec",
+  "lengthHint": "2-3 krátké věty, řádově 30-50 slov",
   "constraints": [
     {
       "kind": "do",
-      "rule": "Oslov klienta 'Dobrý den, pane/paní [příjmení]'."
+      "rule": "Oslov příjemce jménem a titulem hned v úvodu (Dobrý den, pane/paní X)."
     },
     {
       "kind": "do",
-      "rule": "Uveď konkrétní časový rámec nebo termín (dny, den v týdnu)."
+      "rule": "Uveď konkrétní termín nebo den, kdy bude informace/cena potvrzena."
     },
     {
       "kind": "do",
-      "rule": "Nabídni telefonický kontakt pro doplňující dotazy nebo změny."
+      "rule": "Nabídni na závěr možnost zavolat v případě dotazů nebo nejasností."
     },
     {
       "kind": "dont",
-      "rule": "Nepoužívej dlouhé úvody, omluvy nebo zdvořilostní fráze navíc."
+      "rule": "Nepoužívej dlouhé odstavce ani zbytečné fráze a omluvy."
     },
     {
       "kind": "dont",
-      "rule": "Nepoužívej emotikony ani neformální oslovení."
+      "rule": "Neodpovídej vágně – pokud přesná informace chybí, slib konkrétní termín jejího dodání."
     }
   ],
   "examples": [
@@ -36,8 +35,8 @@
     "Dobrý den, paní Dvořáková, cenu za servis čtyř jednotek pošlu do pátku. Kdyby cokoliv, volejte."
   ],
   "gapQuestions": [
-    "Jak firma píše, když termín nebo cenu nemůže dodržet a musí klienta o zpoždění informovat?",
-    "Jaké rozloučení nebo podpis firma obvykle používá na konci e-mailu?",
-    "Jak firma reaguje na stížnost nebo nespokojenost klienta v e-mailu?"
+    "Jak firma komunikuje v případě zpoždění nebo problému (reklamace, omluva)?",
+    "Jaký je zvyklý závěrečný pozdrav/podpis e-mailů (jméno, pozice, firma)?",
+    "Používá firma v e-mailech oslovení „vy“ vždy, i u dlouhodobých klientů, nebo přechází na tykání?"
   ]
 }

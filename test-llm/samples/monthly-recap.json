@@ -1,23 +1,23 @@
 {
-  "headline": "Solidní měsíc s vysokou návratností a rostoucí konverzí, jen náklady hlídejte, ať PNO nevystoupá výš",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč přinesl PNO 18,3 % a ROAS 5,4×, což je zdravý poměr investice k výnosu. Konverze meziměsíčně vzrostly o 12 %, tedy návštěvníci se proměňují v zákazníky lépe než dřív. Kampaně tak drží efektivitu i při solidním objemu obratu.",
+  "headline": "Silný měsíc s efektivním PNO 18,3 % a ROAS 5,4×, konverze rostou o 12 %.",
+  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená zdravý poměr výkonu k investici. PNO 18,3 % je v komfortním pásmu pro lokální podnik a ROAS 5,4× ukazuje, že vložené prostředky se vrací s jasným ziskem. Růst konverzí o 12 % naznačuje, že poptávka i kvalita provozu jdou nahoru současně.",
   "highlights": [
-    "ROAS 5,4× ukazuje, že každá investovaná koruna se vrací s vysokým násobkem",
-    "Konverze vzrostly o 12 %, což potvrzuje zlepšující se kvalitu návštěvnosti i nabídky",
-    "PNO na úrovni 18,3 % zůstává v bezpečném pásmu vůči obratu 1 200 000 Kč"
+    "ROAS 5,4× – z každé investované koruny se vrací přes pět korun obratu",
+    "PNO 18,3 % drží náklady na výkon pod kontrolou i při rostoucím obratu",
+    "Konverze +12 % ukazují zlepšující se kvalitu poptávky, ne jen její objem"
   ],
   "watchouts": [
-    "Při dalším růstu nákladů je třeba sledovat, zda PNO nezačne stoupat rychleji než obrat",
-    "Nárůst konverzí je třeba ověřit i v dalších měsících, aby nešlo o jednorázový výkyv"
+    "Bez detailu o sezónnosti nelze potvrdit, zda je růst konverzí trvalý trend nebo jednorázový výkyv",
+    "Při dalším škálování rozpočtu je třeba hlídat, zda PNO neroste rychleji než obrat"
   ],
   "priorities": [
     {
-      "title": "Udržet efektivitu při škálování",
-      "detail": "Postupně navyšovat rozpočet jen v kampaních s prokázaným ROAS nad 5×, aby růst obratu nezhoršil PNO."
+      "title": "Ověřit udržitelnost růstu konverzí",
+      "detail": "Sledovat vývoj konverzního poměru i v příštím měsíci, aby se potvrdilo, že +12 % není jednorázový efekt sezóny nebo kampaně."
     },
     {
-      "title": "Ověřit stabilitu konverzního nárůstu",
-      "detail": "Sledovat vývoj konverzního poměru v dalších týdnech a identifikovat, které kanály či nabídky za zlepšením stojí, aby se dalo replikovat."
+      "title": "Otestovat postupné navýšení rozpočtu",
+      "detail": "Vzhledem k ROAS 5,4× zvážit mírné navýšení investice do nejvýkonnějších kanálů a sledovat, zda se PNO udrží pod 20 %."
     }
   ]
 }
