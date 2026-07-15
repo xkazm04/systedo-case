@@ -2,6 +2,9 @@
  *  `report-config.ts` so the client settings UI can import the cadence list and
  *  types without pulling firebase-admin into the browser bundle. */
 import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
+import type { GoalChange } from "@/lib/metrics/goal-history";
+
+export type { GoalChange } from "@/lib/metrics/goal-history";
 
 export type ReportCadence = "off" | "weekly" | "monthly";
 export const REPORT_CADENCES: ReportCadence[] = ["off", "weekly", "monthly"];
@@ -50,6 +53,12 @@ export interface ReportConfig {
   clientProfile: ClientProfile;
   /** UTC day (YYYY-MM-DD) a scheduled report was last sent — double-send guard */
   lastSentDay?: string;
+  /** append-only memory of the monthly REVENUE goal — each `{ effectiveMonth, goal }`
+   *  records the goal that took effect that YYYY-MM. Additive & optional: absent (the
+   *  default) means "no changes recorded", so `monthlyAttainmentHistory` scores every
+   *  month against the current constant goal exactly as before. Written idempotently
+   *  by `recordRevenueGoal`; the pure timeline logic lives in metrics/goal-history. */
+  revenueGoalHistory?: GoalChange[];
 }
 
 export const DEFAULT_REPORT_CONFIG: ReportConfig = {

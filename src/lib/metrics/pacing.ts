@@ -4,6 +4,7 @@ import type { DailyPoint } from "../types";
 import { dailyRevenueSigma, dayOfWeek, normalCdf, weekdayWeights } from "./seasonality";
 import { totalsOf } from "./totals";
 import { WINDOWS } from "./config";
+import { goalForMonth, type GoalChange } from "./goal-history";
 
 /** Trailing window whose ROAS converts a revenue-pace shortfall into the extra
  *  daily ad spend it would take to close it (matches the anomaly baseline span). */
@@ -173,9 +174,12 @@ export interface MonthAttainment {
   month: string;
   /** total revenue of that complete calendar month */
   revenue: number;
-  /** revenue / goal */
+  /** the monthly revenue goal in force for THIS month — the constant `goal`, or the
+   *  goal that `history` says was effective that month (see goalForMonth) */
+  goal: number;
+  /** revenue / goal (against the goal in force that month) */
   attainment: number;
-  /** revenue ≥ goal */
+  /** revenue ≥ goal (against the goal in force that month) */
   hit: boolean;
 }
 
@@ -184,13 +188,18 @@ export interface MonthAttainment {
  * the track record behind the pacing card's point-in-time gauge. A month counts
  * only when every calendar day is present in the series: a partial leading (or
  * in-progress current) month would otherwise read as a fake miss.
- * NOTE: the goal is the single constant `goals.monthlyRevenue` applied to every
- * month — the dataset carries no per-month goal history.
+ *
+ * Each month is scored against the goal that was IN FORCE that month: `goal` is the
+ * current constant, and `history` (optional, see goal-history.ts) overrides it for
+ * months at/after a recorded change. Months BEFORE the first recorded change — and
+ * every month when `history` is absent/empty — fall back to the constant `goal`, so
+ * the pre-memory behaviour (one goal applied to all months) is reproduced exactly.
  */
 export function monthlyAttainmentHistory(
   daily: DailyPoint[],
   goal: number,
-  n = 6
+  n = 6,
+  history: GoalChange[] = []
 ): MonthAttainment[] {
   const groups = new Map<string, { revenue: number; count: number }>();
   for (const p of daily) {
@@ -207,10 +216,16 @@ export function monthlyAttainmentHistory(
     })
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .slice(-n)
-    .map(([key, g]) => ({
-      month: `${key}-01`,
-      revenue: g.revenue,
-      attainment: goal > 0 ? g.revenue / goal : 0,
-      hit: g.revenue >= goal,
-    }));
+    .map(([key, g]) => {
+      // The goal in force for THIS month: the recorded change effective on/before it,
+      // else the constant `goal` (documented fallback = original behaviour).
+      const monthGoal = goalForMonth(history, key, goal);
+      return {
+        month: `${key}-01`,
+        revenue: g.revenue,
+        goal: monthGoal,
+        attainment: monthGoal > 0 ? g.revenue / monthGoal : 0,
+        hit: g.revenue >= monthGoal,
+      };
+    });
 }

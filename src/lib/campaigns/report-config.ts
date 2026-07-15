@@ -11,6 +11,7 @@ import {
   type ReportCadence,
   type ReportConfig,
 } from "./report-config-types";
+import { recordGoalChange, sanitizeGoalHistory, type GoalChange } from "@/lib/metrics/goal-history";
 
 export {
   REPORT_CADENCES,
@@ -56,7 +57,31 @@ export async function getReportConfig(tenant: string): Promise<ReportConfig> {
     cadence: REPORT_CADENCES.includes(d.cadence as ReportCadence) ? (d.cadence as ReportCadence) : "off",
     clientProfile: resolveClientProfile(d.clientProfile),
     lastSentDay: d.lastSentDay,
+    // Normalise the stored goal-change memory (drop malformed entries, sort, dedup);
+    // absent → [] so consumers never branch on undefined.
+    revenueGoalHistory: sanitizeGoalHistory(d.revenueGoalHistory),
   };
+}
+
+/** Record a change to the monthly REVENUE goal, effective from `effectiveMonth`
+ *  (YYYY-MM). Idempotent BY VALUE: a save that repeats the goal already in force for
+ *  that month writes nothing (the pure `recordGoalChange` returns the list
+ *  unchanged, and an equal-length list is a no-op merge), so repeated saves never
+ *  grow the log. The seam a monthly-goal editor calls; `monthlyAttainmentHistory`
+ *  then scores each past month against the goal in force that month. Firestore-only,
+ *  matching the rest of this store. */
+export async function recordRevenueGoal(
+  tenant: string,
+  effectiveMonth: string,
+  goal: number
+): Promise<GoalChange[]> {
+  const current = (await getReportConfig(tenant)).revenueGoalHistory ?? [];
+  const next = recordGoalChange(current, effectiveMonth, goal);
+  if (next.length === current.length && next.every((e, i) => e.effectiveMonth === current[i].effectiveMonth && e.goal === current[i].goal)) {
+    return current; // no-op: same value already in force (idempotent)
+  }
+  await configRef(tenant).set({ revenueGoalHistory: next }, { merge: true });
+  return next;
 }
 
 /** Persist the editable fields (cadence/branding/recipients/client profile),

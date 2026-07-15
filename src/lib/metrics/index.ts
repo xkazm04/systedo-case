@@ -11,6 +11,7 @@ export * from "./totals";
 export * from "./series";
 export * from "./seasonality";
 export * from "./pacing";
+export * from "./goal-history";
 export * from "./channels";
 export * from "./insight-rank";
 export * from "./anomalies";
