@@ -160,6 +160,8 @@ export async function POST(request: Request) {
             format: result.format,
             score: winner.score,
             defects: winner.defects,
+            // keeps this generation off the reaper's delete-list (nobg re-derivation)
+            generationId: result.generationId,
           });
         } catch (err) {
           console.error("[images] persist failed (non-fatal):", err);

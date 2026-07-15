@@ -12,6 +12,7 @@ import { runCatalogSync } from "@/lib/inventory/sync";
 import { alertSyncFailed, alertSyncRecovered } from "@/lib/inventory/sync-alerts";
 import { classifySyncResult } from "@/lib/inventory/sync-health";
 import { recordCronRun } from "@/lib/cron/run";
+import { reapLeonardoGenerations } from "@/lib/images/reaper";
 
 export const maxDuration = 300;
 
@@ -74,6 +75,11 @@ export async function GET(request: Request) {
     }
   }
 
+  // Sidecar: reap leaked Leonardo generations (this daily cron is the right cadence
+  // for a 48h grace window). Best-effort and isolated — a reaper failure is counted
+  // but never flips catalog-sync's own ok, and never throws.
+  const reap = await reapLeonardoGenerations(now);
+
   const failed = results.filter((r) => !r.ok);
   await recordCronRun("catalog-sync", startedAt, {
     ok: failed.length === 0,
@@ -83,6 +89,10 @@ export async function GET(request: Request) {
       failed: failed.length,
       alerted: results.filter((r) => r.alerted).length,
       recovered: results.filter((r) => r.recovered).length,
+      reapScanned: reap.scanned,
+      reapDeleted: reap.deleted,
+      reapKept: reap.kept,
+      reapErrors: reap.errors,
     },
     results,
     errors: failed,
@@ -95,5 +105,6 @@ export async function GET(request: Request) {
     alerted: results.filter((r) => r.alerted).length,
     recovered: results.filter((r) => r.recovered).length,
     results,
+    reap,
   });
 }

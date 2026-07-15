@@ -4,6 +4,7 @@
  *  tool works straight from the repo. Server-only. */
 import { generateCandidates, leonardoConfigured } from "@/lib/leonardo/client";
 import { rateImage } from "@/lib/leonardo/rate";
+import { recordGeneration } from "./generations-store";
 import { recordLlmCall } from "@/lib/llm/telemetry";
 // Shared demo core — the same FNV-1a hash as the other demo generators
 // (one implementation instead of copies), keeping the placeholder hue stable.
@@ -36,6 +37,9 @@ export interface StudioResult {
   format: ImageFormat;
   source: "leonardo" | "demo";
   images: StudioImage[];
+  /** the Leonardo generation these candidates came from — persisted with a saved
+   *  winner so the reaper keeps it alive (nobg re-derivation). Absent for demo. */
+  generationId?: string;
 }
 
 export interface StudioRequest {
@@ -139,11 +143,13 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
   images.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
   if (images[0]) images[0].winner = true;
 
-  // NOTE: the Leonardo generation is intentionally left in the cloud (not cleaned
-  // up) so a follow-up background-removal can reference the image by id.
-  void generationId;
+  // Record the generation in the ledger so the reaper can eventually clean it up.
+  // The generation is intentionally left in the cloud for now so a follow-up
+  // background-removal (nobg) can reference the winner by image id; the reaper
+  // deletes it past the grace window UNLESS a saved winner still references it.
+  await recordGeneration(generationId, new Date().toISOString());
 
-  return { prompt: req.prompt, style: req.style, format: req.format, source: "leonardo", images };
+  return { prompt: req.prompt, style: req.style, format: req.format, source: "leonardo", images, generationId };
 }
 
 // --- deterministic demo fallback (no LEONARDO_API_KEY) -----------------------

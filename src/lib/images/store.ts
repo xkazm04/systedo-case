@@ -27,6 +27,10 @@ export interface SaveCreativeInput {
   format: string;
   score: number | null;
   defects: string;
+  /** Leonardo generation this winner came from — persisted so the reaper keeps the
+   *  generation alive (a saved winner must stay nobg-re-derivable). Absent for demo
+   *  (no real generation). */
+  generationId?: string;
 }
 
 /** Upload the image bytes to Storage and the prompt + metadata to Firestore.
@@ -51,6 +55,8 @@ export async function saveCreative(tenant: string, input: SaveCreativeInput): Pr
     defects: input.defects,
     mime: input.mime,
     storagePath,
+    // additive field; the reaper reads it (collectionGroup) as its keep-list
+    ...(input.generationId ? { generationId: input.generationId } : {}),
     createdAt: new Date().toISOString(),
   });
   return id;
