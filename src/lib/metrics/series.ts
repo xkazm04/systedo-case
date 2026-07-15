@@ -40,9 +40,14 @@ export function periodLabel(p: PeriodDef, locale?: SupportedLocale): string {
  *  seasonality as agency performance. */
 export type PeriodBaseline = "previous" | "yoy";
 
-/** Days the YoY comparison shifts back. The seed is deliberately 730 daily
- *  points — two of these — so every window up to a year has a year-ago twin. */
-const YOY_SHIFT_DAYS = 365;
+/** Days the YoY comparison shifts back — 364 = exactly 52 weeks, deliberately NOT
+ *  365. A 52-week shift lands the year-ago twin on the SAME weekday, so a business
+ *  with strong day-of-week shape (weekends low, Monday peak…) compares like-for-like;
+ *  a 365-day shift slides the twin by one weekday every year — two across a leap
+ *  year — reading a Mon-vs-Sun gap as a year-over-year move. The 1-day calendar drift
+ *  this trades away is immaterial next to weekday parity. The 730-point seed still
+ *  gives every window up to a year a twin (730 − 364 ≥ any window ≤ 365 days). */
+const YOY_SHIFT_DAYS = 364;
 
 /** How trustworthy a period-over-period delta is.
  *  - Additive metrics (visits/cost/conversions/revenue/profit) and the RATE ratios

@@ -18,13 +18,15 @@ import { detectTrends, type Trend } from "./trends";
 import { monthlyPacing, type MonthlyPacing } from "./pacing";
 import { seriesCoverage, type Coverage } from "./config";
 import { decomposeRevenueMove, type FunnelAttribution } from "./funnel";
-import { weekdayWeightsBundle } from "./seasonality";
+import { weekdayWeightsBundle, type WeekdayWeights } from "./seasonality";
 
 /** Bumped when the MetricsSnapshot shape changes, so cached/serialised snapshots
  *  (and any future /api/snapshot consumer) can detect a schema mismatch.
  *  v5: channel rows may carry `revenueShareDelta` (real mix-shift) when the dataset
- *  supplies a per-day channel mix; legacy datasets omit it and read identically. */
-export const SNAPSHOT_SCHEMA_VERSION = 5;
+ *  supplies a per-day channel mix; legacy datasets omit it and read identically.
+ *  v6: carries `weekdayWeights` (the per-metric weekday-seasonality bundle the build
+ *  already computes) so consumers reuse it instead of re-deriving a weekday pass. */
+export const SNAPSHOT_SCHEMA_VERSION = 6;
 
 export interface SnapshotPeriod {
   key: string;
@@ -79,6 +81,10 @@ export interface MetricsSnapshot {
   /** monthly goal pacing + forecast band (null when no data) */
   pacing: MonthlyPacing | null;
   goals: { pno: number; monthlyRevenue: number };
+  /** per-raw-metric weekday-seasonality weights (mean = 1) the build already
+   *  computed for the anomaly/trend/pacing passes — exposed so consumers (e.g. the
+   *  weekday profile) reuse it rather than re-deriving the same weekday pass */
+  weekdayWeights: WeekdayWeights;
 }
 
 /** Compose the engine's outputs into the single MetricsSnapshot contract. */
@@ -120,5 +126,6 @@ export function buildMetricsSnapshot(data: PerformanceData, period: SnapshotPeri
         : null,
     pacing: monthlyPacing(data.daily, data.goals.monthlyRevenue, weights.revenue),
     goals: data.goals,
+    weekdayWeights: weights,
   };
 }

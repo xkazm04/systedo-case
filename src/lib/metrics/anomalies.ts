@@ -2,7 +2,7 @@
  *  outage / pno goal-breach), and the aggregate money impact of the flagged days. */
 
 import type { DailyPoint, MetricKey, RawMetric } from "../types";
-import { dayOfWeek, weekdayWeightsFor, weekdayWeightsOf, type WeekdayWeights } from "./seasonality";
+import { dayOfWeek, seasonalWeight, weekdayWeightsFor, weekdayWeightsOf, type WeekdayWeights } from "./seasonality";
 import { ctr, cpc } from "./ratios";
 import {
   ANOMALY_Z,
@@ -73,11 +73,9 @@ export function detectAnomalies(
 
   for (const key of metrics) {
     const weights = options.weights?.[key] ?? weekdayWeightsFor(daily, key);
-    // De-seasonalise so a normal weekend low isn't mistaken for a drop.
-    const adj = daily.map((p) => {
-      const w = weights[dayOfWeek(p.date)] || 1;
-      return p[key] / (w > 0 ? w : 1);
-    });
+    // De-seasonalise so a normal weekend low isn't mistaken for a drop. The weight
+    // is floored so a tiny weekday weight can't manufacture a spike (see seasonalWeight).
+    const adj = daily.map((p) => p[key] / seasonalWeight(weights[dayOfWeek(p.date)]));
     const zMap = new Map<string, number>();
     for (let i = window; i < daily.length; i++) {
       const base = adj.slice(i - window, i);
@@ -87,8 +85,9 @@ export function detectAnomalies(
       const z = (adj[i] - mean) / std;
       zMap.set(daily[i].date, z);
       if (Math.abs(z) < effThreshold) continue;
-      const w = weights[dayOfWeek(daily[i].date)] || 1;
-      const expected = mean * (w > 0 ? w : 1);
+      // Re-seasonalise with the SAME floored weight the divisor used, so `expected`
+      // is the exact inverse of the de-seasonalisation above.
+      const expected = mean * seasonalWeight(weights[dayOfWeek(daily[i].date)]);
       const observed = daily[i][key];
       const nearZero = expected > 0 && observed <= expected * 0.1;
       const kind: AnomalyKind = z < 0 && nearZero ? "outage" : z > 0 ? "spike" : "drop";
@@ -116,10 +115,7 @@ export function detectAnomalies(
   for (const spec of ratioSpecs) {
     if (!daily.some(spec.present)) continue; // legacy series: field never captured
     const weights = weekdayWeightsOf(daily, spec.value);
-    const adj = daily.map((p) => {
-      const w = weights[dayOfWeek(p.date)] || 1;
-      return spec.value(p) / (w > 0 ? w : 1);
-    });
+    const adj = daily.map((p) => spec.value(p) / seasonalWeight(weights[dayOfWeek(p.date)]));
     for (let i = window; i < daily.length; i++) {
       if (!spec.present(daily[i])) continue; // no denominator that day → not a ratio event
       const base = adj.slice(i - window, i);
@@ -128,8 +124,7 @@ export function detectAnomalies(
       const mean = meanOf(base);
       const z = (adj[i] - mean) / std;
       if (Math.abs(z) < effThreshold) continue;
-      const w = weights[dayOfWeek(daily[i].date)] || 1;
-      const expected = mean * (w > 0 ? w : 1);
+      const expected = mean * seasonalWeight(weights[dayOfWeek(daily[i].date)]);
       const observed = spec.value(daily[i]);
       const nearZero = expected > 0 && observed <= expected * 0.1;
       const kind: AnomalyKind = z < 0 && nearZero ? "outage" : z > 0 ? "spike" : "drop";

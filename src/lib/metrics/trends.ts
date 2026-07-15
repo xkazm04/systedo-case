@@ -7,7 +7,7 @@
  *  the weekly noise. Pure; no React, no formatting. */
 
 import type { DailyPoint, RawMetric } from "../types";
-import { dayOfWeek, weekdayWeightsFor, type WeekdayWeights } from "./seasonality";
+import { dayOfWeek, seasonalWeight, weekdayWeightsFor, type WeekdayWeights } from "./seasonality";
 import { sampleVariance } from "./config";
 
 export interface Trend {
@@ -115,10 +115,9 @@ export function detectTrends(daily: DailyPoint[], options: TrendOptions = {}): T
     // exactly 7 days, but the weights also neutralise level differences when a
     // strong weekly shape meets the variance estimate below).
     const weights = options.weights?.[key] ?? weekdayWeightsFor(daily, key);
-    const adj = daily.map((p) => {
-      const w = weights[dayOfWeek(p.date)] || 1;
-      return p[key] / (w > 0 ? w : 1);
-    });
+    // Floor the weight so a tiny weekday weight can't manufacture a drift when we
+    // divide by it (see seasonalWeight); ≥ floor is unchanged.
+    const adj = daily.map((p) => p[key] / seasonalWeight(weights[dayOfWeek(p.date)]));
 
     // Trailing 7-day means, oldest → newest, anchored on the last day.
     const weekly: number[] = [];

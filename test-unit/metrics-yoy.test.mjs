@@ -20,7 +20,7 @@ function days(start, n, value) {
 
 const sumRange = (from, to) => ((to - 1 + from) * (to - from)) / 2; // Σ i for i in [from, to)
 
-test("yoy compares against the same window shifted back exactly 365 days", () => {
+test("yoy compares against the same window shifted back exactly 364 days (52 weeks)", () => {
   // Two full years; revenue(i) = i makes each window's total unique.
   const daily = days("2024-06-02", 730, (i) => i);
   const r = evaluatePeriod(daily, 30, "yoy");
@@ -28,17 +28,34 @@ test("yoy compares against the same window shifted back exactly 365 days", () =>
   assert.equal(r.baseline, "yoy");
   assert.equal(r.actualDays, 30);
   assert.equal(r.truncated, false);
-  // current = days [700, 730), previous = days [335, 365)
+  // current = days [700, 730), previous = days [336, 366) — shifted back 364.
   assert.equal(r.current.revenue, sumRange(700, 730));
-  assert.equal(r.previous.revenue, sumRange(335, 365));
-  // the comparison points really are the year-ago twin, day for day
+  assert.equal(r.previous.revenue, sumRange(336, 366));
+  // the comparison points are the 52-weeks-ago twin, day for day (same weekday)
   assert.equal(r.comparePoints.length, 30);
-  const yearAgo = (iso) =>
-    new Date(new Date(`${iso}T00:00:00Z`).getTime() - 365 * 86_400_000)
+  const weeksAgo52 = (iso) =>
+    new Date(new Date(`${iso}T00:00:00Z`).getTime() - 364 * 86_400_000)
       .toISOString()
       .slice(0, 10);
-  assert.equal(r.comparePoints[0].date, yearAgo(r.points[0].date));
-  assert.equal(r.comparePoints[29].date, yearAgo(r.points[29].date));
+  assert.equal(r.comparePoints[0].date, weeksAgo52(r.points[0].date));
+  assert.equal(r.comparePoints[29].date, weeksAgo52(r.points[29].date));
+});
+
+test("the 364-day shift lands each twin on the SAME weekday (365 would not)", () => {
+  const daily = days("2024-06-02", 730, (i) => i);
+  const r = evaluatePeriod(daily, 28, "yoy");
+  const dow = (iso) => new Date(`${iso}T00:00:00Z`).getUTCDay();
+  // Every comparison point is the same weekday as its current-window twin — the
+  // like-for-like the chart overlay and the deltas rely on for a weekday business.
+  for (let i = 0; i < r.points.length; i++) {
+    assert.equal(dow(r.comparePoints[i].date), dow(r.points[i].date), `same weekday at ${i}`);
+  }
+  // A 365-day shift would move every twin one weekday off — the drift 364 fixes.
+  const p0 = r.points[0].date;
+  const shifted365 = new Date(new Date(`${p0}T00:00:00Z`).getTime() - 365 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  assert.notEqual(dow(shifted365), dow(p0), "365-day shift breaks weekday parity");
 });
 
 test("default baseline stays the adjacent previous window (backward compatible)", () => {
@@ -63,15 +80,15 @@ test("yoy on a series too short for any year-ago day falls back to previous", ()
 });
 
 test("yoy shortens the window (and flags truncated) when only part fits a year back", () => {
-  // 400 days: only 35 days have a year-ago twin, so a 90d request caps at 35.
+  // 400 days: only 36 days have a 52-weeks-ago twin, so a 90d request caps at 36.
   const daily = days("2025-01-01", 400, (i) => i);
   const r = evaluatePeriod(daily, 90, "yoy");
 
   assert.equal(r.baseline, "yoy");
-  assert.equal(r.actualDays, 35);
+  assert.equal(r.actualDays, 36);
   assert.equal(r.truncated, true);
-  assert.equal(r.current.revenue, sumRange(365, 400));
-  assert.equal(r.previous.revenue, sumRange(0, 35));
+  assert.equal(r.current.revenue, sumRange(364, 400));
+  assert.equal(r.previous.revenue, sumRange(0, 36));
 });
 
 test("yoy neutralises a seasonal swing that the adjacent baseline misreads as growth", () => {
@@ -84,6 +101,8 @@ test("yoy neutralises a seasonal swing that the adjacent baseline misreads as gr
 
   // Adjacent comparison reads the seasonal spike as a +100 % "improvement"…
   assert.ok(adjacent.delta.revenue > 0.9);
-  // …while the like-for-like YoY delta is flat.
-  assert.equal(yoy.delta.revenue, 0);
+  // …while the like-for-like YoY delta is near-flat. (Not exactly 0: the 52-week
+  // shift trades one calendar day of drift against a pure yearly period for
+  // same-weekday parity — the deliberate 364-vs-365 choice.)
+  assert.ok(Math.abs(yoy.delta.revenue) < 0.05);
 });

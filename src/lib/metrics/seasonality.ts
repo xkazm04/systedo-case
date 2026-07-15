@@ -30,6 +30,18 @@ export function normalCdf(z: number): number {
 /** UTC day-of-week (0=Sun..6=Sat) for an ISO date string. */
 export const dayOfWeek = (date: string): number => new Date(`${date}T00:00:00Z`).getUTCDay();
 
+/** Floor a de-seasonalisation weight so a tiny (but positive) weekday weight can't
+ *  blow an ordinary day up into a fake spike/drift when a detector divides by it.
+ *  A near-zero weight is usually a sparse/noisy-weekday artefact rather than real
+ *  seasonality, and dividing by e.g. 0.02 multiplies that day 50×. Non-positive
+ *  weights keep the flat-1 fallback (an absent/degenerate weekday); only genuine
+ *  weights in (0, floor) are clamped, so every weight ≥ floor is unchanged and a
+ *  well-behaved series is byte-identical. Shared by anomalies + trends. */
+export const DESEASON_WEIGHT_FLOOR = 0.25;
+export function seasonalWeight(w: number): number {
+  return w > 0 ? Math.max(w, DESEASON_WEIGHT_FLOOR) : 1;
+}
+
 /** Average value per weekday (Sun..Sat) for an additive metric over a trailing
  *  window of whole weeks, normalised so the mean weekday weight is 1. Falls back
  *  to flat weights when there is too little data. Captures the day-of-week
@@ -106,9 +118,12 @@ export interface WeekdayProfilePoint {
  */
 export function weekdayProfile(
   daily: DailyPoint[],
-  key: RawMetric = "revenue"
+  key: RawMetric = "revenue",
+  // Precomputed weekday weights for `key`, shared across a snapshot build (e.g. from
+  // weekdayWeightsBundle / MetricsSnapshot.weekdayWeights) so the profile doesn't
+  // re-derive a pass the engine already ran. Omitted → derived here (identical).
+  weights: number[] = weekdayWeightsFor(daily, key)
 ): WeekdayProfilePoint[] {
-  const weights = weekdayWeightsFor(daily, key);
   let bestDay = 0;
   let worstDay = 0;
   weights.forEach((w, i) => {

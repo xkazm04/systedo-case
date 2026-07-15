@@ -61,7 +61,9 @@ export function selectDigestInsights(
       pno: snap.current.pno,
       goalPno: snap.goals.pno,
       trends: snap.trends,
-      profile: weekdayProfile(data.daily),
+      // Reuse the snapshot's weekday-weights bundle instead of re-deriving a
+      // revenue weekday pass the build already ran.
+      profile: weekdayProfile(data.daily, "revenue", snap.weekdayWeights.revenue),
       funnel: snap.funnel,
       significance: snap.significance,
       baseline: snap.baseline,

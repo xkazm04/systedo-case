@@ -77,8 +77,8 @@ test("resolveChannelTime declines when the mix is absent or doesn't cover the wi
   assert.equal(resolveChannelTime(2, gapped, res.points, res.comparePoints), undefined);
 });
 
-test("schema bump: legacy dataset (no channelDaily) reads at v5 with static channels", () => {
-  assert.equal(SNAPSHOT_SCHEMA_VERSION, 5);
+test("schema bump: legacy dataset (no channelDaily) reads at current schema with static channels", () => {
+  assert.equal(SNAPSHOT_SCHEMA_VERSION, 6);
   const daily = [];
   const base = new Date("2026-01-01T00:00:00Z").getTime();
   for (let i = 0; i < 16; i++) {
@@ -88,7 +88,7 @@ test("schema bump: legacy dataset (no channelDaily) reads at v5 with static chan
   const goals = { pno: 0.15, monthlyRevenue: 100000 };
   const legacy = { channels: CHANNELS, daily, goals }; // NO channelDaily
   const snap = buildMetricsSnapshot(legacy, { key: "8", label: "8", days: 8 });
-  assert.equal(snap.schemaVersion, 5);
+  assert.equal(snap.schemaVersion, 6);
   assert.ok(snap.channels.length > 0);
   for (const row of snap.channels) {
     assert.ok(row.delta, "static rows still carry a delta");

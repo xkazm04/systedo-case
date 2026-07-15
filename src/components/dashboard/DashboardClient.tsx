@@ -25,6 +25,7 @@ import {
   seriesCoverage,
   TREND_METRICS,
   weekdayProfile,
+  weekdayWeightsBundle,
   type Anomaly,
   type PeriodBaseline,
 } from "@/lib/metrics";
@@ -89,9 +90,12 @@ export default function DashboardClient({
   // Full-series detection: the chart maps flagged days to its visible buckets
   // itself, and both anomalies and trends need the whole history for their
   // trailing baselines. The day-of-week profile does too (trailing 12 weeks).
-  const anomalies = detectAnomalies(data.daily, data.goals);
-  const trends = detectTrends(data.daily);
-  const profile = weekdayProfile(data.daily);
+  // Compute the weekday-weights bundle ONCE and share it across all three passes,
+  // which each used to re-derive it (numerically identical — see metrics-spine).
+  const weekdayWeights = weekdayWeightsBundle(data.daily);
+  const anomalies = detectAnomalies(data.daily, data.goals, { weights: weekdayWeights });
+  const trends = detectTrends(data.daily, { weights: weekdayWeights });
+  const profile = weekdayProfile(data.daily, "revenue", weekdayWeights.revenue);
   // How much history the detectors had — so the alerts/insights cards can note
   // honestly when a short series makes detection less sensitive (or impossible)
   // rather than letting an empty feed read as "all clear".

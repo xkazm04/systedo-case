@@ -1,7 +1,7 @@
 /** Monthly revenue goal pacing and a seasonality-aware month-end forecast. */
 
 import type { DailyPoint } from "../types";
-import { dailyRevenueSigma, normalCdf, weekdayWeights } from "./seasonality";
+import { dailyRevenueSigma, dayOfWeek, normalCdf, weekdayWeights } from "./seasonality";
 import { totalsOf } from "./totals";
 import { WINDOWS } from "./config";
 
@@ -18,7 +18,9 @@ export interface MonthlyPacing {
   monthStart: string;
   /** total calendar days in the month */
   daysInMonth: number;
-  /** calendar days elapsed = day-of-month of the latest data point */
+  /** days of the month PRESENT in the series (equals the day-of-month of the latest
+   *  point when the month is gapless; smaller when interior days are missing, so a
+   *  gappy month doesn't read as further along than its data supports) */
   daysElapsed: number;
   /** daysInMonth − daysElapsed */
   daysRemaining: number;
@@ -93,25 +95,30 @@ export function monthlyPacing(
   const ym = last.date.slice(0, 7); // YYYY-MM
   const [year, month] = ym.split("-").map(Number); // month is 1-based
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const daysElapsed = Number(last.date.slice(8, 10)); // day-of-month of latest point
+
+  // The points that actually belong to the current month.
+  const monthDates = daily.filter((p) => p.date.slice(0, 7) === ym);
+  // Count PRESENT days of the month, not the calendar day-of-month of the latest
+  // point: a gappy month (missing days) would otherwise assume more of the month
+  // has elapsed than the data covers and read artificially behind pace. A gapless
+  // month has present-count === day-of-month, so this is a no-op there.
+  const daysElapsed = monthDates.length;
   const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
 
-  const mtd = daily
-    .filter((p) => p.date.slice(0, 7) === ym)
-    .reduce((a, p) => a + p.revenue, 0);
+  const mtd = monthDates.reduce((a, p) => a + p.revenue, 0);
 
   const proratedTarget = goal * (daysElapsed / daysInMonth);
 
-  // Weight every calendar day of the month by its weekday, then scale the MTD
-  // actual by full-month-weight / elapsed-weight to forecast the remainder.
+  // Weight every calendar day of the month by its weekday for the whole-month
+  // total, and the PRESENT days' weekdays for the elapsed weight, then scale the
+  // MTD actual by full-month-weight / elapsed-weight to forecast the remainder.
   const weights = revenueWeights ?? weekdayWeights(daily);
-  let weightElapsed = 0;
   let weightMonth = 0;
   for (let d = 1; d <= daysInMonth; d++) {
-    const w = weights[new Date(Date.UTC(year, month - 1, d)).getUTCDay()];
-    weightMonth += w;
-    if (d <= daysElapsed) weightElapsed += w;
+    weightMonth += weights[new Date(Date.UTC(year, month - 1, d)).getUTCDay()];
   }
+  let weightElapsed = 0;
+  for (const p of monthDates) weightElapsed += weights[dayOfWeek(p.date)];
   const projection = weightElapsed > 0 ? (mtd * weightMonth) / weightElapsed : mtd;
 
   // Confidence band: only the remaining days are uncertain (mtd is banked).
