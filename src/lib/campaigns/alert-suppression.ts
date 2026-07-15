@@ -44,6 +44,13 @@ export interface SuppressionInput {
   now: number;
   /** override the default cooldown window (tests) */
   cooldownMs?: number;
+  /** whether a still-breaching key RE-ALERTS as a reminder once its cooldown
+   *  elapses. Default true — right for a live campaign that is still critical
+   *  ("still broken, nudge me again"). Anomaly keys pass false: each is a discrete
+   *  past (day, metric, kind) that is either new or not — a reminder every cooldown
+   *  while the same day sits in the detection window is pure noise, so an already-
+   *  alerted anomaly key stays suppressed until it stops breaching and ages out. */
+  remindAfterCooldown?: boolean;
 }
 
 export interface SuppressionResult {
@@ -66,6 +73,7 @@ export interface SuppressionResult {
  */
 export function planSuppression(prev: AlertState, input: SuppressionInput): SuppressionResult {
   const cooldownMs = input.cooldownMs ?? ALERT_COOLDOWN_MS;
+  const remindAfterCooldown = input.remindAfterCooldown ?? true;
   const nowISO = new Date(input.now).toISOString();
   const banded = new Set(input.banded ?? []);
   const breaching = new Set(input.breaching);
@@ -84,7 +92,7 @@ export function planSuppression(prev: AlertState, input: SuppressionInput): Supp
       continue;
     }
     const cooled = input.now - Date.parse(ep.lastAlertAt) >= cooldownMs;
-    if (cooled) {
+    if (cooled && remindAfterCooldown) {
       // cooldown elapsed → (re)alert: an ongoing-episode reminder, or a genuine
       // relapse after a recovery that has since cooled.
       const count = ep.count + 1;
@@ -92,7 +100,9 @@ export function planSuppression(prev: AlertState, input: SuppressionInput): Supp
       toAlert.push(key);
       counts[key] = count;
     } else {
-      // within cooldown → suppress; keep lastAlertAt, just group (count++).
+      // within cooldown, OR reminders disabled (anomaly keys) → suppress; keep
+      // lastAlertAt, just group (count++). A discrete anomaly key thus alerts once
+      // and never re-fires while the same day keeps re-surfacing in the window.
       next[key] = { lastAlertAt: ep.lastAlertAt, count: ep.count + 1, active: true };
     }
   }
@@ -193,6 +203,23 @@ export type AlertStatus = "new" | "acknowledged" | "resolved";
  *  field) to `new`. */
 export function alertStatus(a: { status?: AlertStatus }): AlertStatus {
   return a.status ?? "new";
+}
+
+/** The status an ACKNOWLEDGE should persist given the current status, or null for
+ *  a write that must be skipped. Acknowledge advances `new → acknowledged` only:
+ *  it never re-advances an already-acknowledged alert (idempotent) and — the
+ *  guarantee the store's read-check-write enforces — never REGRESSES a `resolved`
+ *  alert back to acknowledged. Pure so the guard is fixture-tested. */
+export function nextAckStatus(current: AlertStatus): AlertStatus | null {
+  return current === "new" ? "acknowledged" : null;
+}
+
+/** Whether a RESOLVE should actually write given the current status. Resolve is
+ *  idempotent and terminal: the first resolve wins the `resolvedBy` back-reference;
+ *  resolving an already-resolved alert is a no-op that leaves that reference intact.
+ *  A `new`/`acknowledged` alert always resolves forward. Pure. */
+export function resolveWrites(current: AlertStatus): boolean {
+  return current !== "resolved";
 }
 
 /** The distinct campaign ids an alert concerns, derived from its items (already

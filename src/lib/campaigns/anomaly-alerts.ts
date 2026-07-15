@@ -97,12 +97,20 @@ export async function evaluateAnomalyAlerts(
   // cooldown tombstones mean a zero-anomaly sync no longer WIPES the memory (the
   // old bug: the next sync re-alerted the very same days). Runs even when there
   // are zero anomalies, so recovered keys age out through the cooldown window.
+  //
+  // remindAfterCooldown:false — one alert per detected (day, metric, kind). Each
+  // key is a discrete PAST day; while it keeps re-surfacing in the detector's
+  // window every 6h sync it must NOT re-alert as a reminder (the campaign-critical
+  // "still broken, nudge me" reminder is wrong for a historical day). The key
+  // simply ages out once the day leaves the window and stops breaching. The
+  // campaign path keeps the default (reminders on) → its behavior is byte-identical.
   const tenantRef = firestore.collection("tenants").doc(tenant);
   const prevState: AlertState = (await tenantRef.get()).data()?.anomalyAlertState ?? {};
   const byKey = new Map(anomalies.map((a) => [anomalyKey(a), a]));
   const { toAlert, nextState } = planSuppression(prevState, {
     breaching: [...byKey.keys()],
     now: Date.now(),
+    remindAfterCooldown: false,
   });
   await tenantRef.set({ anomalyAlertState: nextState }, { merge: true });
 

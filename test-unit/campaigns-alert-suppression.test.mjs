@@ -7,6 +7,8 @@ import assert from "node:assert/strict";
 import {
   planSuppression,
   groupAlertRecords,
+  nextAckStatus,
+  resolveWrites,
   ALERT_COOLDOWN_MS,
 } from "@/lib/campaigns/alert-suppression";
 
@@ -107,6 +109,74 @@ test("distinct keys each get their own episode", () => {
 
 test("the exported cooldown window is a positive constant", () => {
   assert.ok(ALERT_COOLDOWN_MS > 0);
+});
+
+// --- anomaly key policy: one alert per (day,metric), no 6h reminder loop ------
+
+/** Replay with reminders disabled (the anomaly-alerts path). */
+function replayNoReminder(steps) {
+  let state = {};
+  const firedAt = [];
+  steps.forEach((step, i) => {
+    const res = planSuppression(state, {
+      breaching: step.breaching ?? [],
+      now: step.now,
+      cooldownMs: COOLDOWN,
+      remindAfterCooldown: false,
+    });
+    state = res.nextState;
+    for (const key of res.toAlert) firedAt.push({ i, key });
+  });
+  return { firedAt, state };
+}
+
+test("anomaly key alerts once and does NOT re-fire every cooldown while it keeps breaching", () => {
+  // The same past day resurfaces on every 6h sync across many cooldown windows.
+  const day = "2026-07-01|cost|spike";
+  const { firedAt } = replayNoReminder([
+    { breaching: [day], now: 0 },
+    { breaching: [day], now: COOLDOWN + 1 }, // past cooldown, still the same day
+    { breaching: [day], now: 3 * COOLDOWN }, // and again
+    { breaching: [day], now: 10 * COOLDOWN }, // still no reminder
+  ]);
+  assert.equal(firedAt.length, 1, "a discrete anomaly day alerts exactly once");
+  assert.equal(firedAt[0].i, 0);
+});
+
+test("the SAME sequence WITH reminders on (campaign path) does re-fire — behavior is opt-in", () => {
+  // Guards that remindAfterCooldown defaults to the campaign-critical behavior:
+  // omitting it (as evaluateAndAlert does) keeps the reminder, byte-identical.
+  const { firedAt } = replay([
+    { breaching: ["c1"], now: 0 },
+    { breaching: ["c1"], now: COOLDOWN + 1 },
+  ]);
+  assert.equal(firedAt.length, 2, "campaign criticals still get their cooldown reminder");
+});
+
+test("a fresh anomaly on a different day still alerts (new key, new episode)", () => {
+  const { firedAt } = replayNoReminder([
+    { breaching: ["2026-07-01|cost|spike"], now: 0 },
+    { breaching: ["2026-07-01|cost|spike", "2026-07-02|revenue|drop"], now: 100 },
+  ]);
+  assert.deepEqual(
+    firedAt.map((f) => f.key),
+    ["2026-07-01|cost|spike", "2026-07-02|revenue|drop"]
+  );
+  assert.equal(firedAt.filter((f) => f.i === 1).length, 1, "only the new day alerts on step 2");
+});
+
+// --- ack / resolve workflow guards -------------------------------------------
+
+test("nextAckStatus advances only 'new'; never re-advances or regresses", () => {
+  assert.equal(nextAckStatus("new"), "acknowledged");
+  assert.equal(nextAckStatus("acknowledged"), null, "already acknowledged → no-op");
+  assert.equal(nextAckStatus("resolved"), null, "never regress a resolved alert");
+});
+
+test("resolveWrites is idempotent: writes unless already resolved", () => {
+  assert.equal(resolveWrites("new"), true);
+  assert.equal(resolveWrites("acknowledged"), true);
+  assert.equal(resolveWrites("resolved"), false, "re-resolve is a no-op, keeps the original resolvedBy");
 });
 
 // --- inbox grouping ---------------------------------------------------------

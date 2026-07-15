@@ -12,7 +12,18 @@ import { escapeHtml } from "@/lib/html";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
-import { planSuppression, type AlertState, type AlertStatus } from "./alert-suppression";
+import {
+  planSuppression,
+  alertStatus,
+  nextAckStatus,
+  resolveWrites,
+  type AlertState,
+  type AlertStatus,
+} from "./alert-suppression";
+
+/** Max writes per Firestore batch (hard limit is 500). markAlertsRead chunks its
+ *  unread sweep at this size so a tenant with >500 unread never throws. */
+const BATCH_CHUNK = 500;
 
 export type AlertType = "critical" | "digest";
 
@@ -77,24 +88,38 @@ export async function getAlert(tenant: string, id: string): Promise<AlertRecord 
 }
 
 /** Move an alert to `acknowledged`: the operator has taken responsibility for it
- *  without (yet) acting. Idempotent merge; never advances a resolved alert. */
+ *  without (yet) acting. Guarded at the store write via a read-check-write txn so
+ *  it matches its contract exactly: advances `new → acknowledged` only, and NEVER
+ *  regresses a `resolved` alert (nor re-touches an already-acknowledged one). The
+ *  decision is the pure {@link nextAckStatus}; the txn makes it race-safe. */
 export async function acknowledgeAlert(tenant: string, id: string): Promise<void> {
-  await alertsCol(tenant)
-    .doc(id)
-    .set({ status: "acknowledged" satisfies AlertStatus }, { merge: true });
+  const ref = alertsCol(tenant).doc(id);
+  await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    const next = nextAckStatus(alertStatus(snap.data() as { status?: AlertStatus }));
+    if (next) tx.set(ref, { status: next satisfies AlertStatus }, { merge: true });
+  });
 }
 
 /** Close an alert as `resolved`, recording the change-set that resolved it as the
  *  back-reference. Called when a change-set staged off the alert is applied, so the
- *  inbox reflects that the detected problem was actioned. */
+ *  inbox reflects that the detected problem was actioned. Idempotent (guarded by a
+ *  read-check-write txn): the first resolve wins the `resolvedBy` reference and a
+ *  re-resolve is a no-op that leaves it intact — the store never overwrites the
+ *  original resolver. */
 export async function resolveAlert(
   tenant: string,
   id: string,
   changeSetId: string
 ): Promise<void> {
-  await alertsCol(tenant)
-    .doc(id)
-    .set({ status: "resolved" satisfies AlertStatus, resolvedBy: changeSetId }, { merge: true });
+  const ref = alertsCol(tenant).doc(id);
+  await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    if (!resolveWrites(alertStatus(snap.data() as { status?: AlertStatus }))) return;
+    tx.set(ref, { status: "resolved" satisfies AlertStatus, resolvedBy: changeSetId }, { merge: true });
+  });
 }
 
 /** Newest alerts for a tenant's inbox. */
@@ -109,10 +134,17 @@ export async function markAlertsRead(tenant: string, id?: string): Promise<void>
     await alertsCol(tenant).doc(id).set({ read: true }, { merge: true });
     return;
   }
+  // Chunk at the Firestore 500-writes-per-batch limit so a tenant with a large
+  // unread backlog marks everything read across several commits instead of
+  // throwing on the 501st write.
   const snap = await alertsCol(tenant).where("read", "==", false).get();
-  const batch = firestore.batch();
-  snap.forEach((d) => batch.set(d.ref, { read: true }, { merge: true }));
-  await batch.commit();
+  for (let i = 0; i < snap.docs.length; i += BATCH_CHUNK) {
+    const batch = firestore.batch();
+    for (const d of snap.docs.slice(i, i + BATCH_CHUNK)) {
+      batch.set(d.ref, { read: true }, { merge: true });
+    }
+    await batch.commit();
+  }
 }
 
 /** The signed-in user's email, for outbound notifications. */
