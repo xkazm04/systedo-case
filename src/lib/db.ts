@@ -237,6 +237,18 @@ const SCHEMA = `
     PRIMARY KEY (user_id, project_id)
   );
 
+  -- Direction 1: a project's owner-entered finance inputs (the /zisk module's margin
+  -- scenarios, per-period real-numbers override and last-edited per-channel margins),
+  -- as one {realNumbers?, scenarios, channelMargins?, updatedAt} blob. Replaces the
+  -- browser-only localStorage the module used to scatter these across. Absent → the
+  -- module opens on defaults. The apply-to-report blended margin still flows to
+  -- cost_model separately. See src/lib/profit/finance-inputs/.
+  CREATE TABLE IF NOT EXISTS finance_inputs (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- A project's persisted inventory action plan + per-SKU stock-alert episodes, as
   -- one {plan, stockAlerts, updatedAt} blob. The plan is the saved budget-move
   -- recommendation with per-move state (proposed|accepted|dismissed) and the inputs
@@ -409,6 +421,19 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "inventory_plan"),
+  },
+  {
+    version: 11,
+    name: "finance_inputs (owner's margin scenarios + real numbers + channel margins)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS finance_inputs (
+          project_id TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      ),
+    applied: (db) => tableExists(db, "finance_inputs"),
   },
 ];
 

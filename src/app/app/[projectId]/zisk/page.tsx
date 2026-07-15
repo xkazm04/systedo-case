@@ -10,6 +10,7 @@ import { loadProductsFor } from "@/lib/catalog/load";
 import { profitTrend } from "@/lib/profit/trend";
 import type { ProfitTrendPoint, TrendGranularity } from "@/lib/profit/types";
 import { getCostModel } from "@/lib/cost-model/store";
+import { getFinanceInputs } from "@/lib/profit/finance-inputs/store";
 
 
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
@@ -43,6 +44,14 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Shared cost model (A3): seeds the overhead panel and receives this module's
   // blended margin + overhead via "apply to report" — one profit source of truth.
   const costModel = await getCostModel(project.id);
+
+  // Direction 1: the owner's persisted finance inputs (margin scenarios, per-period
+  // real-numbers override, last-edited per-channel margins) — server-resolved so the
+  // module opens on the owner's own numbers on any device, not browser-local state.
+  // null → never entered (the module opens on defaults + runs the one-time
+  // localStorage migration client-side). Passing the prop (even null) also signals
+  // the module to persist; the demo path omits it and stays ephemeral.
+  const financeInputs = await getFinanceInputs(project.id);
 
   // Precompute the channel mix per period on the server; the client only re-applies
   // the (live-editable) margin model on top — no recompute of the underlying mix.
@@ -79,6 +88,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         defaults={margins}
         live={resolved.live}
         syncedAt={resolved.syncedAt}
+        financeInputs={financeInputs}
         costModel={
           costModel
             ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost }

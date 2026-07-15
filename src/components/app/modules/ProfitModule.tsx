@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bulb } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import Sparkline from "@/components/charts/Sparkline";
@@ -26,6 +26,12 @@ import type {
   ProfitTrendPoint,
   ReallocStrategy,
 } from "@/lib/profit/types";
+import {
+  coerceScenarios,
+  coerceRealNumbers,
+  type FinanceInputs,
+  type RealOverride,
+} from "@/lib/profit/finance-inputs/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -187,49 +193,14 @@ const T = {
 
 type ViewMode = "channels" | "products";
 
-// --- scenario persistence (#4) ----------------------------------------------
+// --- legacy localStorage keys (Direction 1 migration) -----------------------
+// The profit inputs used to live in the browser: margin scenarios and the
+// per-period real-numbers override under these two keys. They now persist
+// server-side in the finance-inputs store; these keys are read ONCE on first load
+// (see the migration effect) to lift any existing local values into the store,
+// then cleared. New writes never touch localStorage again.
 
 const scenariosKey = (projectId: string) => `systedo.profit.scenarios.${projectId}`;
-
-/** Coerce an unknown blob from localStorage into a clean scenario list, dropping
- *  anything malformed so a corrupt store degrades to "no saved scenarios". */
-function coerceScenarios(raw: unknown): MarginScenario[] {
-  if (!Array.isArray(raw)) return [];
-  const out: MarginScenario[] = [];
-  for (const s of raw) {
-    if (!s || typeof s !== "object") continue;
-    const o = s as Record<string, unknown>;
-    if (typeof o.id !== "string" || typeof o.name !== "string") continue;
-    if (!Array.isArray(o.margins)) continue;
-    const margins: ChannelMargin[] = [];
-    for (const m of o.margins) {
-      if (m && typeof m === "object") {
-        const mo = m as Record<string, unknown>;
-        if (typeof mo.channel === "string" && typeof mo.marginPct === "number" && Number.isFinite(mo.marginPct)) {
-          margins.push({ channel: mo.channel, marginPct: mo.marginPct });
-        }
-      }
-    }
-    out.push({
-      id: o.id,
-      name: o.name,
-      margins,
-      savedAt: typeof o.savedAt === "number" ? o.savedAt : 0,
-    });
-  }
-  return out;
-}
-
-/** Lazy initializer: read the per-project saved scenarios once, guarding SSR. */
-function loadScenarios(projectId: string): MarginScenario[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(scenariosKey(projectId));
-    return raw ? coerceScenarios(JSON.parse(raw)) : [];
-  } catch {
-    return [];
-  }
-}
 
 /** Compact key metrics for a margin set, for the side-by-side comparison. */
 function scenarioMetrics(rows: ChannelRow[], margins: ChannelMargin[]): ProfitSummary {
@@ -282,36 +253,66 @@ function TrendSpark({
 // "beze změny" state, instead of a local sign-coloured clone.
 
 // --- real-numbers override (#ROB-02) ----------------------------------------
+// The per-period real revenue/spend override (RealOverride) now persists in the
+// finance-inputs store; its legacy localStorage key is migrated once on load.
 
 const realKey = (projectId: string) => `systedo.profit.real.${projectId}`;
 
-interface RealOverride {
-  revenue: number;
-  spend: number;
+/** Read any legacy browser-local finance inputs (scenarios + real numbers) for the
+ *  one-time migration into the server store. Returns null outside the browser or when
+ *  nothing legacy is present. Reuses the shared wire-coercers so the migrated shape is
+ *  identical to a server round-trip. */
+function readLegacyLocal(
+  projectId: string
+): { scenarios: MarginScenario[]; realNumbers: Record<string, RealOverride> } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const rawScenarios = window.localStorage.getItem(scenariosKey(projectId));
+    const rawReal = window.localStorage.getItem(realKey(projectId));
+    if (rawScenarios === null && rawReal === null) return null;
+    const scenarios = rawScenarios ? coerceScenarios(JSON.parse(rawScenarios)) : [];
+    const realNumbers = rawReal ? coerceRealNumbers(JSON.parse(rawReal)) : {};
+    return { scenarios, realNumbers };
+  } catch {
+    return null;
+  }
 }
 
-/** Per-period real revenue/spend the user entered, keyed by project, from
- *  localStorage (SSR-guarded). Malformed entries degrade to "no override". */
-function loadReal(projectId: string): Record<string, RealOverride> {
-  if (typeof window === "undefined") return {};
+/** Drop the legacy browser-local keys after migration, so they are never read again. */
+function clearLegacyLocal(projectId: string): void {
+  if (typeof window === "undefined") return;
   try {
-    const raw = window.localStorage.getItem(realKey(projectId));
-    const o = raw ? JSON.parse(raw) : null;
-    if (!o || typeof o !== "object") return {};
-    const out: Record<string, RealOverride> = {};
-    for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
-      if (v && typeof v === "object") {
-        const r = Number((v as Record<string, unknown>).revenue);
-        const s = Number((v as Record<string, unknown>).spend);
-        out[k] = {
-          revenue: Number.isFinite(r) && r > 0 ? r : 0,
-          spend: Number.isFinite(s) && s > 0 ? s : 0,
-        };
-      }
-    }
-    return out;
+    window.localStorage.removeItem(scenariosKey(projectId));
+    window.localStorage.removeItem(realKey(projectId));
   } catch {
-    return {};
+    /* storage unavailable — nothing to clear */
+  }
+}
+
+/** Seed the live per-channel margins from the saved set (mapped onto the current
+ *  channels, defaulting any new channel), else the defaults. */
+function seedMargins(defaults: ChannelMargin[], saved?: ChannelMargin[]): ChannelMargin[] {
+  if (!saved || saved.length === 0) return defaults;
+  return defaults.map((d) => ({
+    channel: d.channel,
+    marginPct: saved.find((m) => m.channel === d.channel)?.marginPct ?? d.marginPct,
+  }));
+}
+
+/** Persist the owner's finance inputs to the server store (best-effort — the caller
+ *  swallows failures; the wire is re-sanitized server-side regardless). */
+async function postFinanceInputs(
+  projectId: string,
+  body: { scenarios: MarginScenario[]; realNumbers: Record<string, RealOverride>; channelMargins: ChannelMargin[] }
+): Promise<void> {
+  try {
+    await fetch(`/api/projects/${projectId}/finance-inputs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    /* offline / store hiccup — the in-memory state remains the session source of truth */
   }
 }
 
@@ -345,6 +346,7 @@ export default function ProfitModule({
   defaults,
   live = false,
   syncedAt,
+  financeInputs,
   costModel = null,
 }: {
   projectId: string;
@@ -359,6 +361,11 @@ export default function ProfitModule({
   live?: boolean;
   /** ISO timestamp of the last live sync (live only). */
   syncedAt?: string;
+  /** Direction 1: the owner's server-persisted finance inputs (margin scenarios,
+   *  per-period real-numbers override, last-edited per-channel margins). `null` = wired
+   *  but never entered (opens on defaults + runs the one-time localStorage migration);
+   *  `undefined` = not wired (the demo path) → the module stays ephemeral, no persist. */
+  financeInputs?: FinanceInputs | null;
   /** the shared server cost model (A3) — seeds overhead here and receives this
    *  module's blended margin + overhead via "apply to report". null = none saved. */
   costModel?: { grossMarginPct: number; monthlyOverhead: number; perOrderCost: number } | null;
@@ -372,16 +379,25 @@ export default function ProfitModule({
     "365": t("months12"),
   };
 
+  // Direction 1: whether persistence is wired (a real /zisk surface passes the prop,
+  // even when null; the demo omits it → ephemeral, no persist / no migration).
+  const wired = financeInputs !== undefined;
+
   const periods = Object.keys(rowsByPeriod);
   const [period, setPeriod] = useState(periods.includes("90") ? "90" : periods[0]!);
-  const [margins, setMargins] = useState<ChannelMargin[]>(defaults);
+  // Direction 1: the three input surfaces now seed from the SERVER prop (financeInputs),
+  // which is identical on SSR + first client render, so there is no hydration mismatch
+  // and no post-mount hydration dance — the owner's own numbers render on first paint.
+  const [margins, setMargins] = useState<ChannelMargin[]>(() =>
+    seedMargins(defaults, financeInputs?.channelMargins)
+  );
   const [view, setView] = useState<ViewMode>("channels");
   // Real-numbers override (#ROB-02): per-period actual revenue + ad spend, so the
-  // whole view reflects the user's books, not just the margin lens.
-  // Init EMPTY and hydrate from localStorage in an effect below — reading a browser-only
-  // store in a lazy useState initializer makes the first client render differ from the
-  // SSR HTML (React 19 hydration error, torn-down subtree) for any returning user.
-  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>({});
+  // whole view reflects the user's books, not just the margin lens. Seeded from the
+  // server prop (see above).
+  const [realByPeriod, setRealByPeriod] = useState<Record<string, RealOverride>>(
+    () => financeInputs?.realNumbers ?? {}
+  );
 
   const periodRows = useMemo(() => rowsByPeriod[period] ?? [], [rowsByPeriod, period]);
 
@@ -476,44 +492,63 @@ export default function ProfitModule({
     }
   }
 
-  // #4 scenarios — per-project localStorage.
-  const [scenarios, setScenarios] = useState<MarginScenario[]>([]);
+  // #4 scenarios — seeded from the server prop (Direction 1).
+  const [scenarios, setScenarios] = useState<MarginScenario[]>(() => financeInputs?.scenarios ?? []);
   const [scenarioName, setScenarioName] = useState("");
   const [compareId, setCompareId] = useState<string>("");
 
-  // Hydrate both browser-only stores after mount (see realByPeriod init). `hydrated` is
-  // STATE (not a ref) so the persist effects below read `false` on the mount render and
-  // skip — the empty initial state therefore never clobbers the saved data before the
-  // hydrated values land. (ProfitModule remounts on a project route change, so `hydrated`
-  // starts false per project.)
-  const [hydrated, setHydrated] = useState(false);
+  // Direction 1 — one-time localStorage migration + server persistence.
+  // `ready` gates the persist effect so the migration decision lands BEFORE any POST
+  // (and so the initial server-seeded state never round-trips straight back). STATE, not
+  // a ref, so the persist effect re-runs once it flips. Per-project (the module remounts
+  // on a project route change).
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    // Post-mount hydration from localStorage; batched by React, and the whole point
-    // is to set these once right after mount without a hydration mismatch (see
-    // comment above).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRealByPeriod(loadReal(projectId));
-    setScenarios(loadScenarios(projectId));
-    setHydrated(true);
-  }, [projectId]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !hydrated) return;
-    try {
-      window.localStorage.setItem(scenariosKey(projectId), JSON.stringify(scenarios));
-    } catch {
-      /* storage unavailable — keep the in-memory list */
+    // Lift any pre-existing browser-local inputs into the store EXACTLY ONCE (wired
+    // projects only): only when the server has nothing yet — a first-time migration —
+    // so a device that already synced never has its server truth overwritten by stale
+    // local values. Either way the legacy keys are dropped afterwards and never read
+    // again; then `ready` flips to enable persistence. All setState here is the
+    // intended once-per-mount initialization (see the old `hydrated` gate).
+    const legacy = wired ? readLegacyLocal(projectId) : null;
+    if (
+      wired &&
+      !financeInputs &&
+      legacy &&
+      (legacy.scenarios.length > 0 || Object.keys(legacy.realNumbers).length > 0)
+    ) {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setScenarios(legacy.scenarios);
+      setRealByPeriod(legacy.realNumbers);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      void postFinanceInputs(projectId, {
+        scenarios: legacy.scenarios,
+        realNumbers: legacy.realNumbers,
+        channelMargins: margins,
+      });
     }
-  }, [projectId, scenarios, hydrated]);
+    if (wired) clearLegacyLocal(projectId);
+    setReady(true);
+    // Migration runs once per project mount; margins is intentionally read at run time
+    // (its latest value) without re-triggering — the persist effect handles later edits.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, wired]);
 
+  // Debounced persistence: after the migration settles, any change to the three input
+  // surfaces is written back as one blob (700ms after the last edit, so a margin slider
+  // drag is a single POST). Failures are swallowed — the in-memory state is the session
+  // source of truth and a transient store hiccup must never break the module.
   useEffect(() => {
-    if (typeof window === "undefined" || !hydrated) return;
-    try {
-      window.localStorage.setItem(realKey(projectId), JSON.stringify(realByPeriod));
-    } catch {
-      /* storage unavailable — keep the in-memory override */
-    }
-  }, [projectId, realByPeriod, hydrated]);
+    if (!wired || !ready) return;
+    const id = setTimeout(() => {
+      void postFinanceInputs(projectId, {
+        scenarios,
+        realNumbers: realByPeriod,
+        channelMargins: margins,
+      });
+    }, 700);
+    return () => clearTimeout(id);
+  }, [wired, ready, projectId, scenarios, realByPeriod, margins]);
 
   function setMargin(channel: string, pct: number) {
     const clamped = Math.max(0, Math.min(100, pct)) / 100;
