@@ -195,8 +195,12 @@ export function generateTwinReply(
   return generateStructured({
     // llm-tool: twin-reply
     id: "twin-reply",
-    // Light tool -> fast tier: haiku-class CLI in dev, flash-lite-class in prod.
-    tier: "fast",
+    // Quality tier (Sonnet in dev / flash-quality in prod). Looks like a "light"
+    // reply, but the `confidence` score and `risks` list gate auto-send via
+    // decideDraft — and a Tiger benchmark (tiger/models/benchmark-2026-07-15-twin-reply)
+    // showed the fast tier (Haiku) miscalibrates confidence and under-fills risks on
+    // stakes-sensitive replies (2.9/5 vs Sonnet 5.0), so it stays on the quality tier
+    // like its predecessor lead-reply.
     prompt: buildTwinReplyPrompt(req),
     system: TWIN_REPLY_SYSTEM,
     schema: TWIN_REPLY_SCHEMA,

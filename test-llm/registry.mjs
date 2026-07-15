@@ -162,7 +162,6 @@ export const LLM_TOOLS = [
   },
   {
     id: "twin-reply",
-    tier: "fast",
     label: "Odpověď komunikačního dvojčete",
     system:
       "Jsi komunikační dvojče firmy — píšeš odchozí zprávy jejím vlastním hlasem. Dodržuj zadaná pravidla „VŽDY“ a „NIKDY“, neslibuj ceny ani termíny mimo podklady, buď střízlivý v poli confidence a vypiš do risks vše, co má člověk zkontrolovat. Piš česky a vracej pouze validní JSON dle schématu.",
