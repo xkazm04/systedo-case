@@ -33,6 +33,61 @@ export interface TrendOptions {
   weights?: WeekdayWeights;
 }
 
+/** One variance-gated sustained run of weekly moves ending at the latest bucket. */
+export interface WeeklyRun {
+  /** length of the run: this many consecutive same-direction weekly moves reach
+   *  the latest bucket */
+  run: number;
+  direction: "up" | "down";
+  /** the weekly value just before the run began */
+  base: number;
+  /** the latest weekly value */
+  last: number;
+  /** (last − base) / base, signed (0 when base ≤ 0) */
+  cumulativeChange: number;
+}
+
+/**
+ * The engine's ONE variance-gated decline/rise detector. Given weekly bucket
+ * means (oldest → newest) and the per-move noise floor `seMove` (the standard
+ * error of a difference of two 7-day means), walk the moves backward from the
+ * latest bucket and count the run of same-direction moves that each clear
+ * `z · seMove`. Returns null when the run is shorter than `minRun` or has no
+ * direction.
+ *
+ * Shared by {@link detectTrends} (one raw-metric series at a time) and the
+ * campaign slow-bleed rule (a weekly ROAS series bridged through the same ratio
+ * spine), so there is exactly ONE decline implementation rather than two that
+ * drift apart. Pure and total.
+ */
+export function detectWeeklyRun(
+  weekly: number[],
+  seMove: number,
+  minRun: number,
+  z: number
+): WeeklyRun | null {
+  let run = 0;
+  let dir = 0;
+  for (let i = weekly.length - 1; i >= 1; i--) {
+    const diff = weekly[i] - weekly[i - 1];
+    const stepDir = diff > 0 ? 1 : diff < 0 ? -1 : 0;
+    const beyondNoise = seMove > 0 && Math.abs(diff) / seMove >= z;
+    if (stepDir === 0 || !beyondNoise || (dir !== 0 && stepDir !== dir)) break;
+    dir = stepDir;
+    run += 1;
+  }
+  if (run < minRun || dir === 0) return null;
+  const base = weekly[weekly.length - 1 - run]; // the week just before the run
+  const last = weekly[weekly.length - 1];
+  return {
+    run,
+    direction: dir > 0 ? "up" : "down",
+    base,
+    last,
+    cumulativeChange: base > 0 ? (last - base) / base : 0,
+  };
+}
+
 /**
  * Detect sustained trends ending at the latest data: for each raw metric, the
  * de-seasonalised series is averaged into trailing 7-day buckets (anchored on
@@ -74,30 +129,19 @@ export function detectTrends(daily: DailyPoint[], options: TrendOptions = {}): T
     }
 
     // Noise floor: the engine's one (sample) variance estimator over the span →
-    // the standard error of the difference of two independent 7-day means.
+    // the standard error of the difference of two independent 7-day means. The
+    // walk itself (run must reach "now", each move beyond the floor) is the shared
+    // detectWeeklyRun so trends and the campaign slow-bleed can't diverge.
     const span = adj.slice(adj.length - weekCount * 7);
     const seMove = Math.sqrt((2 * sampleVariance(span)) / 7);
 
-    // Walk the moves backwards from the latest week; the run must reach "now".
-    let run = 0;
-    let dir = 0;
-    for (let i = weekly.length - 1; i >= 1; i--) {
-      const diff = weekly[i] - weekly[i - 1];
-      const stepDir = diff > 0 ? 1 : diff < 0 ? -1 : 0;
-      const beyondNoise = seMove > 0 && Math.abs(diff) / seMove >= zThreshold;
-      if (stepDir === 0 || !beyondNoise || (dir !== 0 && stepDir !== dir)) break;
-      dir = stepDir;
-      run += 1;
-    }
-
-    if (run >= minRun && dir !== 0) {
-      const base = weekly[weekly.length - 1 - run]; // the week just before the run
-      const last = weekly[weekly.length - 1];
+    const found = detectWeeklyRun(weekly, seMove, minRun, zThreshold);
+    if (found) {
       out.push({
         metric: key,
-        weeks: run,
-        cumulativeChange: base > 0 ? (last - base) / base : 0,
-        direction: dir > 0 ? "up" : "down",
+        weeks: found.run,
+        cumulativeChange: found.cumulativeChange,
+        direction: found.direction,
       });
     }
   }

@@ -12,6 +12,11 @@ import {
   type CampaignChange,
   type CampaignRow,
 } from "./types";
+import { roas as roasOf } from "@/lib/metrics/ratios";
+import { dayOfWeek, weekdayWeightsOf } from "@/lib/metrics/seasonality";
+import { sampleVariance } from "@/lib/metrics/config";
+import { detectWeeklyRun } from "@/lib/metrics/trends";
+import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 
 // --- thresholds (single source of truth for "below target" colouring) --------
 
@@ -279,22 +284,27 @@ const CHANGE_RULES: ChangeRule[] = [
 // never trip a step-change rule while it quietly slides below target. This rule
 // gives that slow slide a name. It reads ONLY the campaign's existing daily
 // series (cost + conversion value per day — the same spine the trend sparkline
-// already plots), buckets it into consecutive weeks, and fires when the weekly
-// ROAS has fallen for enough weeks, by enough, without a real rebound. Pure trend
-// arithmetic — no fitted model, no new ingestion.
+// already plots), buckets it into consecutive weeks, and delegates the decline
+// verdict to the engine's ONE variance-gated detector (metrics.detectWeeklyRun) —
+// the same one detectTrends uses per raw metric. So a weekday-mix artefact can no
+// longer masquerade as a bleed (the noise floor swallows it), and a genuine slide
+// with a within-noise blip is no longer thrown away by a crude rebound rule. Pure
+// trend arithmetic — no fitted model, no new ingestion.
 
 /** Days per weekly bucket. */
 export const SLOW_BLEED_WEEK_DAYS = 7;
 /** Minimum full weekly buckets required before the rule can fire (≥21 days of
  *  history) — below this it's "insufficient history" and the rule stays silent. */
 export const SLOW_BLEED_MIN_WEEKS = 3;
-/** Minimum cumulative ROAS loss from the first to the last week for the slide to
- *  count as a bleed (−25%). */
+/** Minimum cumulative ROAS loss over the gated decline for the slide to count as a
+ *  bleed (−25%). Measured across the run the noise floor actually validated, which
+ *  equals the whole window when the slide is clean (so the badge is unchanged where
+ *  the crude and gated verdicts agree). */
 export const SLOW_BLEED_MIN_DROP = 0.25;
-/** A week may sit at most this fraction ABOVE its predecessor and still count as
- *  "monotonic-ish" — a bigger week-over-week rebound means the campaign is
- *  recovering, not bleeding, and the rule bows out. */
-export const SLOW_BLEED_REBOUND_TOLERANCE = 0.05;
+/** Per-move noise threshold, in z units of a weekly-mean difference — the same
+ *  bar detectTrends applies. A week-over-week ROAS move must clear this to count
+ *  toward the decline, so ordinary weekly wobble can't string together a "bleed". */
+export const SLOW_BLEED_Z = 1;
 
 /** The minimal per-day shape the slow-bleed detector needs — a structural subset
  *  of {@link DailyPoint}, so a stored campaign series passes straight through. */
@@ -306,20 +316,26 @@ export interface SlowBleedPoint {
 }
 
 export interface SlowBleed {
-  /** how many consecutive weekly buckets the sustained decline spans */
+  /** how many consecutive weekly buckets the gated decline spans (run + 1) */
   weeks: number;
-  /** ROAS of the oldest weekly bucket (the peak of the slide) */
+  /** ROAS of the bucket just before the decline began (the peak of the slide);
+   *  the oldest bucket when the whole window slides */
   roasFrom: number;
   /** ROAS of the most recent weekly bucket */
   roasTo: number;
 }
 
 /** Detect a sustained multi-week ROAS decline in a campaign's daily series.
- *  Deterministic, pure, allocation-light. Returns null (no bleed) for every
- *  non-firing shape: insufficient history, a week with no spend, a flat/volatile
- *  series that doesn't net a 25% loss, or a series that rebounds at any step.
- *  When it fires, `weeks` is the length of the declining window for the badge
- *  ("ROAS klesá už N týdnů"). */
+ *  Deterministic, pure, allocation-light. Buckets the series into full weekly
+ *  ROAS means (via the shared ratio spine), estimates the per-move noise floor
+ *  from the campaign's own de-seasonalised daily ROAS, and delegates the decline
+ *  verdict to the engine's ONE variance-gated detector ({@link detectWeeklyRun}).
+ *  Returns null (no bleed) for every non-firing shape: insufficient history, a
+ *  week with no spend, a flat/volatile series, a slide too shallow to clear the
+ *  25% bar, or one whose recent weekly moves are within noise. When it fires,
+ *  `weeks` is the length of the declining window for the badge ("ROAS klesá už N
+ *  týdnů"). Where the crude and gated verdicts agree (a clean whole-window slide)
+ *  the badge is byte-identical; where they differ, the gated verdict wins. */
 export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): SlowBleed | null {
   if (!points || points.length < SLOW_BLEED_MIN_WEEKS * SLOW_BLEED_WEEK_DAYS) return null;
   // Order ascending by date (stable — the store already returns them ordered, but
@@ -330,6 +346,8 @@ export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): 
   if (weeks < SLOW_BLEED_MIN_WEEKS) return null;
   const used = asc.slice(asc.length - weeks * SLOW_BLEED_WEEK_DAYS);
 
+  // Weekly ROAS via the shared ratio spine: Σvalue / Σcost over each full 7-day
+  // bucket (every weekday present once, so the level is already weekday-balanced).
   const roasByWeek: number[] = [];
   for (let w = 0; w < weeks; w++) {
     let cost = 0;
@@ -342,21 +360,39 @@ export function detectSlowBleed(points: readonly SlowBleedPoint[] | undefined): 
     // A week with no spend has no defined ROAS — the trend is ambiguous, so we
     // decline to call it a bleed rather than guess.
     if (cost <= 0) return null;
-    roasByWeek.push(value / cost);
+    roasByWeek.push(roasOf(value, cost));
   }
+  if (roasByWeek[0]! <= 0) return null;
 
-  const roasFrom = roasByWeek[0]!;
-  const roasTo = roasByWeek[roasByWeek.length - 1]!;
-  if (roasFrom <= 0) return null;
+  // Bridge the campaign series into the dashboard's daily shape (mirroring
+  // anomaly-alerts' toMetricSeries) so the shared de-seasonalisation + variance
+  // helpers estimate the per-move noise floor from the campaign's own daily ROAS,
+  // exactly as detectTrends does per raw metric. This is what turns the crude
+  // "−25% with a 5% rebound tolerance" rule into the engine's one gated detector.
+  const bridged: MetricsDailyPoint[] = used.map((p) => ({
+    date: p.date,
+    visits: 0,
+    cost: Number(p.cost) || 0,
+    conversions: 0,
+    revenue: Number(p.conversionValue) || 0,
+  }));
+  const dayRoas = (p: MetricsDailyPoint) => roasOf(p.revenue, p.cost);
+  const weights = weekdayWeightsOf(bridged, dayRoas);
+  const adj = bridged.map((p) => {
+    const w = weights[dayOfWeek(p.date)] || 1;
+    return dayRoas(p) / (w > 0 ? w : 1);
+  });
+  const seMove = Math.sqrt((2 * sampleVariance(adj)) / SLOW_BLEED_WEEK_DAYS);
 
-  // Sustained: the last week must have lost at least MIN_DROP of the first week…
-  if (roasTo > roasFrom * (1 - SLOW_BLEED_MIN_DROP)) return null;
-  // …and no week may rebound above its predecessor beyond the tolerance (that
-  // rejects "recovering" and "volatile-but-flat-with-a-spike" alike).
-  for (let i = 1; i < roasByWeek.length; i++) {
-    if (roasByWeek[i]! > roasByWeek[i - 1]! * (1 + SLOW_BLEED_REBOUND_TOLERANCE)) return null;
-  }
-  return { weeks, roasFrom, roasTo };
+  // A run of (MIN_WEEKS − 1) same-direction weekly moves spans MIN_WEEKS buckets.
+  const found = detectWeeklyRun(roasByWeek, seMove, SLOW_BLEED_MIN_WEEKS - 1, SLOW_BLEED_Z);
+  if (!found || found.direction !== "down") return null;
+  // Still require a materially deep slide over the gated run (unchanged −25% bar),
+  // so a shallow-but-significant wobble doesn't earn the "bleed" badge.
+  if (found.cumulativeChange > -SLOW_BLEED_MIN_DROP) return null;
+  // `weeks` counts the declining BUCKETS (run + 1); for a clean whole-window slide
+  // the base is the oldest bucket, so the count and endpoints match the crude rule.
+  return { weeks: found.run + 1, roasFrom: found.base, roasTo: found.last };
 }
 
 /** English label lookup keyed by rule id — used by the locale resolver. The
