@@ -53,12 +53,14 @@ test("totalsOf derives CTR/CPC from the pair and falls back to 0 without it", ()
   assert.equal(legacy.revenue, 5000);
 });
 
-test("evaluatePeriod carries CTR/CPC deltas + significance like every metric", () => {
+test("evaluatePeriod carries CTR/CPC deltas; CTR gets a proportion verdict, CPC an orientational read", () => {
   const r = evaluatePeriod(data.daily, 30);
-  for (const key of ["ctr", "cpc"]) {
-    assert.equal(typeof r.delta[key], "number", `${key} delta`);
-    assert.ok(["strong", "weak", "noise"].includes(r.significance[key]), `${key} significance`);
-  }
+  assert.equal(typeof r.delta.ctr, "number", "ctr delta");
+  assert.equal(typeof r.delta.cpc, "number", "cpc delta");
+  // CTR is a rate (clicks/impressions) → a real two-proportion confidence verdict.
+  assert.ok(["strong", "weak", "noise"].includes(r.significance.ctr), "ctr significance");
+  // CPC is a value ratio (cost/clicks) → honest orientational read, no confidence badge.
+  assert.equal(r.significance.cpc, "orientational", "cpc orientational");
   assert.ok(r.current.cpc > 0, "current window has a real CPC");
 });
 

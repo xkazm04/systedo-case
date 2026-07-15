@@ -14,6 +14,7 @@ const T = {
     worseningTitleYoy: "Zhoršení oproti stejnému období loni",
     weakSignal: " · slabý signál",
     strongSignal: " · významné",
+    orientationalSignal: " · orientační (poměrová metrika, bez testu významnosti)",
   },
   en: {
     noChange: "no change",
@@ -24,6 +25,7 @@ const T = {
     worseningTitleYoy: "Deterioration vs the same period last year",
     weakSignal: " · weak signal",
     strongSignal: " · significant",
+    orientationalSignal: " · directional read (ratio metric, no significance test)",
   },
 } as const;
 
@@ -76,12 +78,16 @@ export default function DeltaBadge({
 
   const improving = goodDirection === "up" ? delta > 0 : delta < 0;
   const tone = improving ? "bg-positive-soft text-positive" : "bg-negative-soft text-negative";
+  // Value ratios read "orientational": a coloured directional pill (like a real
+  // change) but the tooltip is explicit that there's no significance test behind it.
   const sigSuffix =
     significance === "weak"
       ? t("weakSignal")
       : significance === "strong"
         ? t("strongSignal")
-        : "";
+        : significance === "orientational"
+          ? t("orientationalSignal")
+          : "";
   const changeTitle = improving
     ? t(baseline === "yoy" ? "improvingTitleYoy" : "improvingTitle")
     : t(baseline === "yoy" ? "worseningTitleYoy" : "worseningTitle");

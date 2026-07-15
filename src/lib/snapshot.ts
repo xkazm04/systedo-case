@@ -127,6 +127,9 @@ const SIG_NOTE: Record<Significance, string> = {
   strong: " · statisticky významné",
   weak: " · slabý signál",
   noise: " · v rámci běžného kolísání",
+  // Value ratios (PNO/ROAS/AOV/CPC): a directional read, no significance test — so
+  // the grounding never lets the model narrate a ratio move as "significant".
+  orientational: " · orientační (poměrová metrika)",
 };
 
 const KIND_LABEL: Record<AnomalyKind, string> = {

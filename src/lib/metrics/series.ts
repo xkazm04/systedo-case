@@ -44,9 +44,16 @@ export type PeriodBaseline = "previous" | "yoy";
  *  points — two of these — so every window up to a year has a year-ago twin. */
 const YOY_SHIFT_DAYS = 365;
 
-/** How trustworthy a period-over-period delta is, from a two-sample comparison
- *  of the daily values: "noise" = within normal variance, "strong" ≈ p < 0.05. */
-export type Significance = "strong" | "weak" | "noise";
+/** How trustworthy a period-over-period delta is.
+ *  - Additive metrics (visits/cost/conversions/revenue/profit) and the RATE ratios
+ *    (CTR, CR) carry a real confidence: "strong" ≈ p < 0.05, "weak" ≈ p < 0.32,
+ *    "noise" = within normal variance. Additive uses a two-sample z on daily
+ *    values; CTR/CR use a two-proportion z on their underlying counts.
+ *  - Value ratios (PNO/ROAS/AOV/CPC) have no sound two-window test — a ratio of
+ *    sums isn't a proportion and daily ratios aren't additive samples — so they
+ *    report "orientational": an honest directional read with NO confidence claim,
+ *    rather than a manufactured badge. */
+export type Significance = "strong" | "weak" | "noise" | "orientational";
 
 export interface PeriodResult {
   current: Totals;
@@ -98,12 +105,19 @@ function meanVar(xs: number[]): { mean: number; variance: number; n: number } {
   return { mean: meanOf(xs), variance: sampleVariance(xs), n: xs.length };
 }
 
-/** Two-sample normal-approx significance of the change in a metric between two
- *  equal-length daily windows, using sample variance and a z-test (z≥2 ≈ "strong",
- *  z≥1 "weak"). A normal approximation on daily values — a deliberate, dependency-
- *  free heuristic for a "is this real or noise?" badge, not a rigorous p-value
- *  (it oversells significance on very short windows). */
-function significanceFor(current: DailyPoint[], previous: DailyPoint[], key: MetricKey): Significance {
+/** Sum of a per-day accessor over a window (0 for an empty window). */
+function sumOf(points: DailyPoint[], get: (p: DailyPoint) => number): number {
+  let s = 0;
+  for (const p of points) s += get(p);
+  return s;
+}
+
+/** Two-sample normal-approx significance of the change in an ADDITIVE metric
+ *  between two equal-length daily windows, using sample variance and a z-test
+ *  (z≥2 ≈ "strong", z≥1 "weak"). A normal approximation on daily values — a
+ *  deliberate, dependency-free heuristic for a "is this real or noise?" badge, not
+ *  a rigorous p-value (it oversells on very short windows). */
+function additiveSignificance(current: DailyPoint[], previous: DailyPoint[], key: MetricKey): Significance {
   const a = meanVar(current.map((p) => dailyValue(p, key)));
   const b = meanVar(previous.map((p) => dailyValue(p, key)));
   if (a.n < 2 || b.n < 2) return "noise";
@@ -111,6 +125,58 @@ function significanceFor(current: DailyPoint[], previous: DailyPoint[], key: Met
   if (!(se > 0)) return a.mean === b.mean ? "noise" : "strong";
   const z = Math.abs(a.mean - b.mean) / se;
   return z >= 2 ? "strong" : z >= 1 ? "weak" : "noise";
+}
+
+/** Two-proportion z-test between two windows for a RATE metric — the statistically
+ *  sound significance for CTR (clicks/impressions) and CR (conversions/visits),
+ *  computed on the underlying COUNTS instead of by (unsoundly) averaging daily
+ *  ratios. Pooled-proportion standard error; z≥2 ≈ "strong", z≥1 "weak". A window
+ *  with no trials (0 impressions / 0 visits) can't be compared → "noise". */
+function proportionSignificance(sa: number, na: number, sb: number, nb: number): Significance {
+  if (!(na > 0) || !(nb > 0)) return "noise";
+  const pa = sa / na;
+  const pb = sb / nb;
+  const pooled = (sa + sb) / (na + nb);
+  const se = Math.sqrt(pooled * (1 - pooled) * (1 / na + 1 / nb));
+  if (!(se > 0)) return pa === pb ? "noise" : "strong";
+  const z = Math.abs(pa - pb) / se;
+  return z >= 2 ? "strong" : z >= 1 ? "weak" : "noise";
+}
+
+/** Per-metric significance of a period-over-period move. Additive metrics keep the
+ *  two-sample daily z; the rate ratios (CTR, CR) get a proper two-proportion z on
+ *  their counts; the value ratios get an honest orientational read (see
+ *  {@link Significance}). */
+function significanceFor(current: DailyPoint[], previous: DailyPoint[], key: MetricKey): Significance {
+  switch (key) {
+    // Rate ratios → two-proportion z on the underlying counts.
+    case "ctr":
+      return proportionSignificance(
+        sumOf(current, (p) => p.clicks ?? 0),
+        sumOf(current, (p) => p.impressions ?? 0),
+        sumOf(previous, (p) => p.clicks ?? 0),
+        sumOf(previous, (p) => p.impressions ?? 0)
+      );
+    case "cr":
+      return proportionSignificance(
+        sumOf(current, (p) => p.conversions),
+        sumOf(current, (p) => p.visits),
+        sumOf(previous, (p) => p.conversions),
+        sumOf(previous, (p) => p.visits)
+      );
+    // Value ratios → no sound two-window test, so an orientational read. Documented
+    // per metric: pno = cost/revenue and roas = revenue/cost are money ratios;
+    // aov = revenue/conversions and cpc = cost/clicks are per-unit means — none is
+    // a proportion, and the old daily-ratio z oversold every one of them.
+    case "pno":
+    case "roas":
+    case "aov":
+    case "cpc":
+      return "orientational";
+    // Additive metrics (visits/cost/conversions/revenue/profit): unchanged.
+    default:
+      return additiveSignificance(current, previous, key);
+  }
 }
 
 /** Slice the last `days` as the current window and compare it against the chosen

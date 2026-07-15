@@ -16,12 +16,16 @@ export interface InsightRank {
   magnitude: number;
 }
 
-/** Sort weight per significance tier — lower sorts first (leads the list). */
-const SIG_ORDER: Record<Significance, number> = { strong: 0, weak: 1, noise: 2 };
+/** Sort weight per significance tier — lower sorts first (leads the list).
+ *  "orientational" (a value-ratio directional read with no significance test) sits
+ *  below the confidently-real weak tier but above confirmed noise, so a ROAS/PNO
+ *  move is still surfaced ahead of a move the engine knows is within variance. */
+const SIG_ORDER: Record<Significance, number> = { strong: 0, weak: 1, orientational: 2, noise: 3 };
 
 /**
- * Compare two insights for display order: strong before weak before noise, and
- * within a tier the larger magnitude first. Returns 0 for an exact tie so a
+ * Compare two insights for display order: strong before weak before orientational
+ * before noise, and within a tier the larger magnitude first. Returns 0 for an
+ * exact tie so a
  * stable sort preserves the caller's authoring order as the final tiebreak
  * (keeps related lines — e.g. a revenue move and its funnel explanation —
  * adjacent). Pure and total.
