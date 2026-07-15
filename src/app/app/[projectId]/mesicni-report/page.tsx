@@ -15,7 +15,7 @@ import { getCostModel } from "@/lib/cost-model/store";
 import { periodProfit, PERIOD_MONTHS, deriveBreakEven } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
 import { listAnnotations } from "@/lib/annotations/store";
-import { cohortsForProject } from "@/lib/ltv/sample";
+import { resolveCohorts } from "@/lib/ltv/resolve";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { isProduct, toProduct } from "@/lib/catalog/offering";
@@ -49,7 +49,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // for the cost-model editor. Only e-shop projects carry a stock/margin catalog.
   let catalogMarginPct: number | null = null;
   if (project.type === "eshop") {
-    const ltv = ltvSummary(cohortsForProject(project));
+    const ltv = ltvSummary(resolveCohorts(project));
     const lastDate = dataset.daily.at(-1)?.date;
     const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
     const catalog = await loadProjectCatalog(project, now);

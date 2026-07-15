@@ -182,11 +182,23 @@ export const ESHOP_COHORTS: Cohort[] = [
  *  project's LTV:CAC / payback so they're not just scaled copies. Still illustrative
  *  (no real cohort/retention data — that's the honest ceiling), now project-grounded. */
 export function cohortsForProject(project: Project): Cohort[] {
+  return varyCohorts(project, ESHOP_COHORTS);
+}
+
+/** Scale a base cohort set to a specific project (the shared engine behind both
+ *  `cohortsForProject` — eshop — and the SaaS/app path in resolveCohorts). Size
+ *  (signups/spend) scales by project magnitude; cohort totals are DERIVED from the
+ *  scaled channels so the blended = per-channel invariant holds; a per-project spend
+ *  shift moves CAC (spend/signups), and a small independent ARPU wobble shifts each
+ *  project's LTV:CAC / payback so surfaces aren't just scaled copies. Deterministic
+ *  per (project, base) — the `projectVary("ltv")` seed makes the sequence stable, so
+ *  the /ltv page and the report read identical numbers. Still illustrative. */
+export function varyCohorts(project: Project, base: Cohort[]): Cohort[] {
   const v = projectVary(project, "ltv");
   // One per-project spend shift so CAC (spend/signups) — not just LTV — differs
   // between projects, rather than magnitude cancelling out in the ratio.
   const spendW = v.wobble(0.12);
-  return ESHOP_COHORTS.map((c) => {
+  return base.map((c) => {
     const channels = c.channels?.map((ch) => ({
       ...ch,
       signups: Math.max(0, v.int(ch.signups)),
