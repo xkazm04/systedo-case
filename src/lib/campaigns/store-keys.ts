@@ -79,9 +79,16 @@ export const SNAPSHOT_ID_SEP = "__";
  *  window they need with a single-field id-range query, no over-fetch, no composite
  *  index. `syncedAt` is a fixed-width ISO string, so lexicographic id order within a
  *  period equals chronological order. Legacy snapshots keep their bare-ISO id (no
- *  `__`) — {@link isLegacySnapshotId} tells them apart. */
-export function snapshotDocId(period: CampaignPeriod, syncedAt: string): string {
-  return `${period}${SNAPSHOT_ID_SEP}${syncedAt}`;
+ *  `__`) — {@link isLegacySnapshotId} tells them apart.
+ *
+ *  `suffix` is an optional per-sync uniqueness tiebreak: the id used to be the bare
+ *  `syncedAt`, so two syncs in the same millisecond collided and one overwrote the
+ *  other. A short random suffix (appended AFTER syncedAt) makes both persist while
+ *  preserving chronological order — syncedAt still dominates the sort, the suffix only
+ *  breaks a same-millisecond tie. */
+export function snapshotDocId(period: CampaignPeriod, syncedAt: string, suffix?: string): string {
+  const base = `${period}${SNAPSHOT_ID_SEP}${syncedAt}`;
+  return suffix ? `${base}${SNAPSHOT_ID_SEP}${suffix}` : base;
 }
 
 /** The half-open document-id range `[gte, lt)` covering exactly one period's

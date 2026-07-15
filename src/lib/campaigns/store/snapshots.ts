@@ -4,7 +4,7 @@
  *  Firestore reader that fetches exactly the window each consumer needs. */
 import "server-only";
 import { FieldPath } from "firebase-admin/firestore";
-import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
+import { tenantDoc, activePeriod, legacyPeriod, type TenantRoot } from "./tenant";
 import { SNAPSHOT_ID_SEP, snapshotIdRange, isLegacySnapshotId } from "../store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "../triage";
 import { diffSnapshots, type SnapshotDoc, type SnapshotEntry } from "./snapshot-diff";
@@ -27,16 +27,17 @@ const KEYED_SNAPSHOT_ID_FLOOR = [...CAMPAIGN_PERIODS]
  * filter a period out in code, and no composite index (the query is single-field on
  * the document id).
  *
- * Legacy un-keyed snapshots (bare-ISO id, no `period`) are the active period's early
- * history and predate every keyed one. They are topped up ONLY while a period's keyed
- * history is still shallower than `want` AND it is the active period — a bounded,
- * self-extinguishing backward-compat path that vanishes once `want` keyed snapshots
- * exist.
+ * Legacy un-keyed snapshots (bare-ISO id, no `period`) predate every keyed one and
+ * belong to the PINNED legacyPeriod (not the live active period — see tenant.legacyPeriod,
+ * which fixes the timeline-pollution on a period switch). They are topped up ONLY while
+ * that period's keyed history is still shallower than `want` AND it IS the legacy period
+ * — a bounded, self-extinguishing backward-compat path that vanishes once `want` keyed
+ * snapshots exist.
  */
 async function readPeriodSnapshots(
   tenant: string,
   requested: CampaignPeriod,
-  active: CampaignPeriod | null,
+  legacy: CampaignPeriod | null,
   want: number
 ): Promise<SnapshotDoc[]> {
   const col = tenantDoc(tenant).collection("snapshots");
@@ -49,7 +50,7 @@ async function readPeriodSnapshots(
     .get();
   const docs = keyed.docs.map((d) => d.data() as SnapshotDoc);
 
-  if (docs.length < want && requested === active) {
+  if (docs.length < want && requested === legacy) {
     const legacy = await col
       .orderBy(FieldPath.documentId(), "desc")
       .where(FieldPath.documentId(), "<", KEYED_SNAPSHOT_ID_FLOOR)
@@ -76,7 +77,7 @@ export async function listSnapshotSummaries(
   const active = await activePeriod(tenant, root);
   const requested = period ?? active;
   if (!requested) return [];
-  const docs = await readPeriodSnapshots(tenant, requested, active, limit);
+  const docs = await readPeriodSnapshots(tenant, requested, await legacyPeriod(tenant, root), limit);
   return docs
     .map((data) => ({
       syncedAt: data.syncedAt,
@@ -103,7 +104,7 @@ export async function getLatestChanges(
   if (!requested) return null;
   // The two newest snapshots OF THE SAME PERIOD — comparing a 7-day window against a
   // 30-day one would report the window change as campaign movement. Read exactly two.
-  const docs = await readPeriodSnapshots(tenant, requested, active, 2);
+  const docs = await readPeriodSnapshots(tenant, requested, await legacyPeriod(tenant, root), 2);
   if (docs.length < 2) return null;
   // Pure diff (names ride on the snapshot entries — no second campaign scan).
   return diffSnapshots(docs[1]!, docs[0]!);

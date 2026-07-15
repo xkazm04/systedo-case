@@ -2,8 +2,9 @@
  *  synced campaign set per period, sync metadata on the tenant root doc, and the
  *  active-period pointer. */
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { firestore } from "@/lib/firebase";
-import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
+import { tenantDoc, activePeriod, legacyPeriod, readTenantRoot, type TenantRoot } from "./tenant";
 import { belongsToPeriod, campaignDocId, snapshotDocId } from "../store-keys";
 import type { Campaign, CampaignPeriod } from "../types";
 import type { SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
@@ -71,7 +72,19 @@ export async function upsertCampaigns(
   // scan needed — so the keyed row can't be shadowed by a stale legacy duplicate in
   // listCampaigns. Legacy docs for campaigns not in this sync stay readable as the
   // active period's data (migration-free tolerance) and are cleared as they re-sync.
-  const stale = await t.collection("campaigns").where("period", "==", meta.period).get();
+  // The root read (in parallel) is for pinning legacyPeriod below — one small doc,
+  // far cheaper than the full-collection scan the period query replaced.
+  const [rootSnap, stale] = await Promise.all([
+    t.get(),
+    t.collection("campaigns").where("period", "==", meta.period).get(),
+  ]);
+  const rootData = rootSnap.data();
+  // PIN the legacy-attribution period once: the active period observed at the first
+  // sync that records it. Never moved afterwards, so switching the active period can no
+  // longer re-attribute old un-keyed snapshots to a different period's timeline.
+  const pinnedLegacyPeriod = (rootData?.legacyPeriod ??
+    rootData?.period ??
+    meta.period) as CampaignPeriod;
 
   const batch = firestore.batch();
   stale.forEach((d) => batch.delete(d.ref));
@@ -94,7 +107,9 @@ export async function upsertCampaigns(
     // form a contiguous, document-id-ordered range, so the health timeline and the
     // change diff read exactly the newest N of the period with one id-range query
     // instead of over-fetching limit×4 / 20 and filtering in code (see snapshots.ts).
-    batch.set(t.collection("snapshots").doc(snapshotDocId(meta.period, syncedAt)), {
+    // A random suffix makes the id collision-proof — two syncs in the same millisecond
+    // used to share the bare-syncedAt id and one clobbered the other; now both persist.
+    batch.set(t.collection("snapshots").doc(snapshotDocId(meta.period, syncedAt, randomUUID().slice(0, 8))), {
       syncedAt,
       period: meta.period,
       campaigns: campaigns.map((c) => ({
@@ -125,6 +140,8 @@ export async function upsertCampaigns(
       source: meta.source,
       period: meta.period,
       syncedAt,
+      // Pinned once; recomputed idempotently from the existing value so it never moves.
+      legacyPeriod: pinnedLegacyPeriod,
       // Additive: only write a real currency (never `undefined`, which Firestore
       // rejects); absent keeps the base-CZK labeling.
       ...(meta.currency ? { currency: meta.currency } : {}),
@@ -170,8 +187,11 @@ export async function listCampaigns(
   const snap = await tenantDoc(tenant).collection("campaigns").orderBy("position", "asc").get();
   const docs = snap.docs.map((d) => d.data());
   if (!requested) return docs.map(toCampaign); // pre-first-sync (empty store)
+  // Legacy (un-keyed) docs are attributed to the PINNED legacyPeriod, not the live
+  // active one, so switching the active period can't steal them into another view.
+  const legacy = await legacyPeriod(tenant, root);
   return docs
-    .filter((d) => belongsToPeriod(d.period as string | undefined, active, requested))
+    .filter((d) => belongsToPeriod(d.period as string | undefined, legacy, requested))
     .map(toCampaign);
 }
 
@@ -180,8 +200,10 @@ export async function getCampaign(
   id: string,
   period?: CampaignPeriod
 ): Promise<Campaign | null> {
-  const active = await activePeriod(tenant);
-  const requested = period ?? active;
+  // One root read → both the active period (the request default) and the pinned
+  // legacyPeriod (the attribution anchor for un-keyed docs).
+  const root = await readTenantRoot(tenant);
+  const requested = period ?? root.activePeriod;
   if (requested) {
     const keyed = await tenantDoc(tenant)
       .collection("campaigns")
@@ -189,11 +211,11 @@ export async function getCampaign(
       .get();
     if (keyed.exists) return toCampaign(keyed.data()!);
   }
-  // Legacy un-keyed doc — only valid as the active period's data.
+  // Legacy un-keyed doc — only valid as the PINNED legacy period's data.
   const doc = await tenantDoc(tenant).collection("campaigns").doc(id).get();
   if (!doc.exists) return null;
   const data = doc.data()!;
-  if (requested && !belongsToPeriod(data.period as string | undefined, active, requested)) {
+  if (requested && !belongsToPeriod(data.period as string | undefined, root.legacyPeriod, requested)) {
     return null;
   }
   return toCampaign(data);

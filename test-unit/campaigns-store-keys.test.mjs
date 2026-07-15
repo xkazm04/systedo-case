@@ -47,6 +47,23 @@ test("snapshot ids are period-keyed, chronologically sortable, and range-scannab
   assert.ok(other < gte || other >= lt);
 });
 
+test("a per-sync suffix makes snapshot ids collision-proof while keeping chronological order", () => {
+  const t = "2026-07-15T10:00:00.000Z";
+  // Two syncs in the SAME millisecond used to share the bare-syncedAt id and clobber
+  // each other; distinct suffixes give distinct, both-persisting ids.
+  const a = snapshotDocId("7d", t, "aaaaaaaa");
+  const b = snapshotDocId("7d", t, "bbbbbbbb");
+  assert.notEqual(a, b);
+  assert.equal(a, "7d__2026-07-15T10:00:00.000Z__aaaaaaaa");
+  // syncedAt still dominates the sort; the suffix only breaks a same-ms tie.
+  assert.ok(snapshotDocId("7d", "2026-07-15T09:00:00.000Z", "zzzzzzzz") < a);
+  // Both suffixed ids still fall inside the period's id-range (reads find them).
+  const { gte, lt } = snapshotIdRange("7d");
+  assert.ok(gte <= a && a < lt && gte <= b && b < lt);
+  // Still a keyed (non-legacy) id.
+  assert.equal(isLegacySnapshotId(a), false);
+});
+
 test("legacy bare-ISO snapshot ids are told apart from keyed ones", () => {
   assert.equal(isLegacySnapshotId("2026-07-15T10:00:00.000Z"), true);
   assert.equal(isLegacySnapshotId(snapshotDocId("30d", "2026-07-15T10:00:00.000Z")), false);
@@ -63,4 +80,15 @@ test("a legacy un-keyed doc is the ACTIVE period's data — nothing else's", () 
   assert.equal(belongsToPeriod(null, "30d", "7d"), false);
   // Before the first sync there is no active period to attribute them to.
   assert.equal(belongsToPeriod(null, null, "30d"), false);
+});
+
+test("PINNED legacy attribution: switching the active period can't steal legacy docs", () => {
+  // Direction 2 fix — the second arg is now the PINNED legacyPeriod (recorded once),
+  // not the live active period. Legacy docs were captured under 7d; the active period
+  // later switched to 30d. They must still belong to 7d, NOT pollute the 30d timeline.
+  const pinned = "7d";
+  assert.equal(belongsToPeriod(null, pinned, "7d"), true); // still their own period
+  assert.equal(belongsToPeriod(null, pinned, "30d"), false); // never leak into the new active one
+  // A period-keyed doc is unaffected by the pin — it matches its own period exactly.
+  assert.equal(belongsToPeriod("30d", pinned, "30d"), true);
 });

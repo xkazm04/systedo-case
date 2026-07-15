@@ -21,6 +21,7 @@ import { performance } from "@/lib/data";
 import { getAdsConnection, getConnectedAccount, type AdsConnection } from "./connection";
 import {
   adsConfigured,
+  classifyLiveError,
   fetchCampaigns as adsFetchCampaigns,
   fetchDailySeriesBundle as adsFetchDailySeriesBundle,
   type DailySeriesBundle,
@@ -89,6 +90,43 @@ export interface AdsConnector {
 /** Compact, persistable summary of a live-fetch error (class + message, capped). */
 function describeError(err: unknown): string {
   return (err instanceof Error ? `${err.name}: ${err.message}` : String(err)).slice(0, 300);
+}
+
+const RETRY_BACKOFF_MS = 500;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Run one live fetch with at most ONE bounded retry before letting the failure
+ * propagate (where withSampleFallback degrades to sample data, byte-identically to
+ * today). A retryable failure is retried exactly once — a fresh token for a 401
+ * (via `refreshToken`), a short backoff for 429/5xx/network — never in a loop. When
+ * the retry still fails, the thrown error is annotated so the degradation reason
+ * records that a retry was attempted and exhausted.
+ */
+async function withLiveRetry<T>(
+  call: () => Promise<T>,
+  opts: { refreshToken?: () => Promise<boolean>; onRetry?: (kind: "token" | "backoff") => void }
+): Promise<T> {
+  try {
+    return await call();
+  } catch (err) {
+    const kind = classifyLiveError(err);
+    if (kind === "permanent") throw err;
+    if (kind === "token") {
+      // No refresher (e.g. Sklik) → nothing fresh to retry with; degrade now.
+      if (!opts.refreshToken || !(await opts.refreshToken())) throw err;
+    } else {
+      await sleep(RETRY_BACKOFF_MS);
+    }
+    opts.onRetry?.(kind);
+    try {
+      return await call();
+    } catch (err2) {
+      // Byte-identical degrade DATA/flags downstream; the reason just notes the retry.
+      if (err2 instanceof Error) err2.message = `${err2.message} [retry:${kind} vyčerpáno]`;
+      throw err2;
+    }
+  }
 }
 
 function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnector {
@@ -201,10 +239,22 @@ function withSampleFallback(
  *  selected customer, behind the shared sample fallback. Behaviour is unchanged
  *  from the pre-registry connector (byte-identical fallback + flags). */
 function googleAdsProvider(
+  userId: string,
   accessToken: string,
   customerId: string,
   fallback: AdsConnector
 ): AdsConnector {
+  // The live token, held mutably so a 401 retry can swap in a freshly-minted one and
+  // the retried call uses it. `refreshToken` returns false when nothing genuinely new
+  // came back (no refresh token, or the same token) so a pointless retry is skipped.
+  let token = accessToken;
+  const refreshToken = async (): Promise<boolean> => {
+    const fresh = await getUserAccessToken(userId, { forceRefresh: true });
+    if (!fresh || fresh === token) return false;
+    token = fresh;
+    return true;
+  };
+
   // ONE date-segmented GAQL read per period, shared by the portfolio series and the
   // per-campaign series (which used to fire two round-trips over the SAME rows). A
   // fresh connector is built per sync, so this per-instance memo never serves stale
@@ -214,7 +264,7 @@ function googleAdsProvider(
   const bundle = (period: CampaignPeriod): Promise<DailySeriesBundle> => {
     let p = bundleByPeriod.get(period);
     if (!p) {
-      p = adsFetchDailySeriesBundle(accessToken, customerId, period);
+      p = withLiveRetry(() => adsFetchDailySeriesBundle(token, customerId, period), { refreshToken });
       bundleByPeriod.set(period, p);
     }
     return p;
@@ -224,8 +274,11 @@ function googleAdsProvider(
     "Google Ads · živá data",
     {
       // adsFetchCampaigns already returns { campaigns, currency } (currency captured
-      // from customer.currency_code in the same GAQL query).
-      fetchCampaigns: (period) => adsFetchCampaigns(accessToken, customerId, period),
+      // from customer.currency_code in the same GAQL query). Each live call gets one
+      // bounded retry (fresh token on 401, short backoff on 429/5xx/network) before
+      // withSampleFallback degrades it.
+      fetchCampaigns: (period) =>
+        withLiveRetry(() => adsFetchCampaigns(token, customerId, period), { refreshToken }),
       fetchSeries: async (period) => (await bundle(period)).portfolio,
       fetchCampaignSeries: async (period) => (await bundle(period)).perCampaign,
     },
@@ -249,17 +302,20 @@ export function sklikConfigured(): boolean {
  *  carries the money-unit self-diagnostic so the sync can record a verdict. */
 function sklikProvider(fallback: AdsConnector, token: string, mode: SklikMoneyMode): AdsConnector {
   const client = new SklikClient(httpSklikTransport(), token);
+  // Sklik has no OAuth refresh, so a 401 has nothing fresh to retry with and degrades
+  // immediately; a 429/5xx/network hiccup still gets the one short-backoff retry before
+  // falling back to sample (same bounded, loop-free contract as Google).
   const connector = withSampleFallback(
     "sklik",
     "Sklik · živá data",
     {
       // Sklik (Seznam) is a Czech platform — money is always native CZK, the base.
       fetchCampaigns: async (period) => ({
-        campaigns: await fetchSklikCampaigns(client, period, mode),
+        campaigns: await withLiveRetry(() => fetchSklikCampaigns(client, period, mode), {}),
         currency: "CZK",
       }),
-      fetchSeries: (period) => fetchSklikSeries(client, period, mode),
-      fetchCampaignSeries: (period) => fetchSklikCampaignSeries(client, period, mode),
+      fetchSeries: (period) => withLiveRetry(() => fetchSklikSeries(client, period, mode), {}),
+      fetchCampaignSeries: (period) => withLiveRetry(() => fetchSklikCampaignSeries(client, period, mode), {}),
     },
     fallback
   );
@@ -286,7 +342,7 @@ type LiveProviderResolver = (ctx: ResolveCtx) => Promise<AdsConnector | null>;
 const resolveGoogle: LiveProviderResolver = async ({ userId, connection, fallback }) => {
   if (!connection || !adsConfigured()) return null;
   const token = await getUserAccessToken(userId);
-  return token ? googleAdsProvider(token, connection.customerId, fallback) : null;
+  return token ? googleAdsProvider(userId, token, connection.customerId, fallback) : null;
 };
 
 /** Sklik applies to a signed-in user with NO Google account connected. It prefers

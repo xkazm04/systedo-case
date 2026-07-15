@@ -18,6 +18,42 @@ import {
 const API_VERSION = "v18";
 const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
 
+/** A Google Ads REST failure carrying the HTTP status, so the connector's live-retry
+ *  can classify it (401 → refresh token & retry once; 429/5xx → back off & retry once;
+ *  400/403 → permanent, degrade immediately). Plain `Error`s (e.g. a network failure
+ *  thrown by fetch) carry no status and are treated as transient by the classifier. */
+export class AdsApiError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "AdsApiError";
+    this.status = status;
+  }
+}
+
+/** How the connector's live-retry should treat a failed live fetch, from its HTTP
+ *  status when present (provider-neutral — any error carrying a numeric `status`):
+ *   - "token"     → 401: the token was accepted as unexpired but rejected (revoked /
+ *                   clock skew). Resolve a FRESH token and retry once.
+ *   - "backoff"   → 429 / 5xx, or a status-less error (a network failure thrown by
+ *                   fetch). Wait a short backoff and retry once.
+ *   - "permanent" → 400 / 403 / any other 4xx. Not worth a retry — degrade immediately.
+ *  Pure (framework-free) so the classification is unit-testable without the network. */
+export function classifyLiveError(err: unknown): "token" | "backoff" | "permanent" {
+  const status = (err as { status?: unknown } | null)?.status;
+  if (typeof status === "number" && Number.isFinite(status)) {
+    if (status === 401) return "token";
+    if (status === 429 || status >= 500) return "backoff";
+    return "permanent"; // 400 / 403 / other 4xx
+  }
+  // No status: a fetch/network failure (TypeError "fetch failed", ECONN…, timeout) is
+  // transient; anything else unrecognised degrades immediately rather than retrying.
+  const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  return err instanceof TypeError || /network|fetch failed|econn|etimedout|timeout|socket/i.test(msg)
+    ? "backoff"
+    : "permanent";
+}
+
 export interface AdsAccount {
   /** customer id, digits only (no dashes) */
   customerId: string;
@@ -90,7 +126,9 @@ async function searchStream(accessToken: string, customerId: string, query: stri
     body: JSON.stringify({ query }),
   });
   if (!res.ok) {
-    throw new Error(`Google Ads searchStream ${res.status}: ${await res.text().catch(() => "")}`);
+    // Structured (status-carrying) so the live-retry can classify it; the message is
+    // byte-identical to before, so a degraded sync's reason label is unchanged.
+    throw new AdsApiError(res.status, `Google Ads searchStream ${res.status}: ${await res.text().catch(() => "")}`);
   }
   // searchStream returns an array of batches, each { results: [...] }.
   const batches = (await res.json()) as Array<{ results?: SearchRow[] }>;

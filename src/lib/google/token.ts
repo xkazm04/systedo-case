@@ -60,14 +60,22 @@ async function refreshAccessToken(
 }
 
 /** A valid Google access token for the user, refreshing if needed. null when the
- *  user has no connected Google account. */
-export async function getUserAccessToken(userId: string): Promise<string | null> {
+ *  user has no connected Google account.
+ *
+ *  `forceRefresh` skips the not-yet-expired short-circuit and mints a new token from
+ *  the refresh token — the single-retry path a live 401 takes: the cached token was
+ *  accepted as unexpired but the API rejected it (revoked / clock skew), so the retry
+ *  must resolve a genuinely fresh one rather than replay the same rejected token. */
+export async function getUserAccessToken(
+  userId: string,
+  opts: { forceRefresh?: boolean } = {}
+): Promise<string | null> {
   const account = await loadGoogleAccount(userId);
   if (!account) return null;
   const { ref, data } = account;
 
-  // Still valid (with a 60s safety margin)?
-  if (data.access_token && data.expires_at && data.expires_at - 60 > nowSec()) {
+  // Still valid (with a 60s safety margin)? Skipped on a forced refresh.
+  if (!opts.forceRefresh && data.access_token && data.expires_at && data.expires_at - 60 > nowSec()) {
     return data.access_token;
   }
   if (!data.refresh_token) return data.access_token ?? null;
