@@ -20,12 +20,13 @@ import {
 } from "@/lib/ai-types";
 import { type LeadSourceSeed } from "@/lib/diagnoses/lead-source-request";
 import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { alreadyResolvedUnchanged, compareOutcome } from "@/lib/diagnoses/outcome";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisAlreadyResolvedNote, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 
 export type { LeadSourceSeed };
 
@@ -86,6 +87,7 @@ export default function LeadSourceDiagnosisPanel({
   initialDiagnosis = null,
   history = [],
   currentDigests,
+  currentMetrics,
 }: {
   seeds: LeadSourceSeed[];
   projectId?: string;
@@ -94,6 +96,10 @@ export default function LeadSourceDiagnosisPanel({
   /** Direction 2: per-source digest of the CURRENT seed request, keyed by source
    *  name (the diagnosis subject), so an older stored diagnosis is badged stale */
   currentDigests?: Record<string, string>;
+  /** Direction 1: CURRENT qualification rate keyed by source name (over ALL current
+   *  sources, not just under-performers — an improved source that dropped off the
+   *  under-performing list still shows its outcome). Missing key → subject gone → no chip. */
+  currentMetrics?: Record<string, number>;
 }) {
   const fmt = useFormatters();
   const t = useT(T);
@@ -112,10 +118,14 @@ export default function LeadSourceDiagnosisPanel({
   const ranThisSession = useRef(false);
   const pendingSubject = useRef("");
   const lastData = useRef<unknown>(null);
+  // Direction 1: subject of the freshly-run diagnosis (set in the effect from the
+  // pending-subject ref, never read from a ref during render), for the note.
+  const [freshSubject, setFreshSubject] = useState<string | null>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, data.meta?.inputDigest ?? "", pendingSubject.current);
+      setFreshSubject(pendingSubject.current);
+      void persist(data.result, data.meta?.inputDigest ?? "", pendingSubject.current, data.meta?.snapshot);
     }
   }, [status, data, persist]);
 
@@ -127,9 +137,21 @@ export default function LeadSourceDiagnosisPanel({
     const cur = currentDigests?.[d.subject];
     return cur ? digestFreshness(d.inputDigest, cur) === "stale" : false;
   };
+  // Direction 1: outcome for a RESOLVED diagnosis — did the source's qualification
+  // rate improve vs the at-diagnosis snapshot? (subject gone from currentMetrics → null).
+  const currentFor = (d: StoredDiagnosis) => currentMetrics?.[d.subject];
+  const outcomeOf = (d: StoredDiagnosis) =>
+    d.status === "resolved" ? compareOutcome(d.snapshot, currentFor(d)) : null;
+  // Direction 1: after a fresh run, note when the source matches a resolved diagnosis
+  // whose qualification rate hasn't moved — "already resolved, unchanged".
+  const alreadyResolvedNote =
+    status === "done" && freshSubject
+      ? alreadyResolvedUnchanged(persistence.history, "lead-source", freshSubject, currentFor)
+      : false;
 
   const resultBody = (r: LeadSourceDiagnosisResult) => (
     <>
+      <DiagnosisAlreadyResolvedNote show={alreadyResolvedNote} />
       <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
       {selected && (
         <p className="text-xs text-muted">
@@ -200,6 +222,7 @@ export default function LeadSourceDiagnosisPanel({
                     onStatus={patchStatus}
                     handoff={handoff}
                     stale={isStale(activeLead)}
+                    outcome={outcomeOf(activeLead)}
                   />
                 ),
               }
@@ -212,6 +235,7 @@ export default function LeadSourceDiagnosisPanel({
               onStatus={patchStatus}
               handoff={handoff}
               stale={isStale(activeLead)}
+              outcome={outcomeOf(activeLead)}
             />
           ) : null
         }
@@ -259,7 +283,7 @@ export default function LeadSourceDiagnosisPanel({
         renderResult={(r) => resultBody(r)}
       />
       <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} outcomeOf={outcomeOf} />
     </div>
   );
 }

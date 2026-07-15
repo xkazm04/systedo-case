@@ -78,6 +78,24 @@ export interface AiMeta {
    *  so the panel persists the digest of what was actually diagnosed (not a client-
    *  sent one) and the stale-badge comparison stays authoritative. */
   inputDigest?: string;
+  /** Direction 1 (the loop closes): the at-diagnosis KEY-METRIC snapshot, extracted
+   *  server-side from the rebuilt request, so the persisted diagnosis records the value
+   *  the diagnosed problem started at — later re-compared to the current value to show
+   *  whether it actually improved. Absent for non-diagnosis tools. */
+  snapshot?: DiagnosisSnapshot;
+}
+
+/** Which key metric a diagnosis snapshot captured — per diagnosis kind. HIGHER is
+ *  better for every one, so the outcome comparison is direction-agnostic. */
+export type DiagnosisMetricKey = "ltvCac" | "qualRate" | "coverage";
+
+/** Direction 1 — the at-diagnosis KEY-METRIC snapshot persisted alongside a diagnosis
+ *  (additive; a pre-Direction-1 record simply has none). One number + which metric it
+ *  is, so the render-time comparison can label + compare it. */
+export interface DiagnosisSnapshot {
+  key: DiagnosisMetricKey;
+  /** the key-metric value at the moment the diagnosis was produced */
+  metric: number;
 }
 
 /** Typed error envelope for the AI routes. Success responses are AiResponse<T>;

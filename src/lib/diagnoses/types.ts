@@ -7,7 +7,13 @@
  *  LOCAL_DB sqlite twin), mirroring organic-channels/twin. Framework-free — the
  *  pure state transitions (append with a per-kind cap, status change) and the wire
  *  sanitizers live here so they are unit-testable without any I/O. */
-import type { CohortDiagnosisResult, LeadSourceDiagnosisResult, LocalDiagnosisResult } from "../ai-types";
+import type {
+  CohortDiagnosisResult,
+  DiagnosisMetricKey,
+  DiagnosisSnapshot,
+  LeadSourceDiagnosisResult,
+  LocalDiagnosisResult,
+} from "../ai-types";
 import { LEAD_SOURCE_CAUSES, LEAD_SOURCE_SEVERITIES } from "../ai-types";
 
 /** The diagnosis tools that persist here (the LTV cohort read, the lead-source root
@@ -42,6 +48,11 @@ interface StoredDiagnosisBase {
   origin: DiagnosisOrigin;
   /** one-line subject for the history row (worst cohort / the source name) */
   subject: string;
+  /** Direction 1 (the loop closes): the at-diagnosis KEY-METRIC snapshot, so the
+   *  outcome (improved / unchanged / worse) can be derived at render against the
+   *  current value. Optional + additive — a pre-Direction-1 record has none and
+   *  simply renders without an outcome chip. */
+  snapshot?: DiagnosisSnapshot;
 }
 
 export interface CohortStoredDiagnosis extends StoredDiagnosisBase {
@@ -202,6 +213,21 @@ export function sanitizeLeadSourceResult(raw: unknown): LeadSourceDiagnosisResul
   return result;
 }
 
+const METRIC_KEY_SET = new Set<string>(["ltvCac", "qualRate", "coverage"]);
+
+/** Coerce an at-diagnosis snapshot from the wire (client-echoed from the result meta)
+ *  into a clean {key, metric}, or null when it isn't a well-formed snapshot. Never
+ *  trust the wire: the key must be a known metric and the value a finite number. */
+export function sanitizeDiagnosisSnapshot(raw: unknown): DiagnosisSnapshot | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const key = o.key;
+  const metric = o.metric;
+  if (!METRIC_KEY_SET.has(key as string)) return null;
+  if (typeof metric !== "number" || !Number.isFinite(metric)) return null;
+  return { key: key as DiagnosisMetricKey, metric };
+}
+
 /** The clean, ready-to-store body a persist request coerces to (id/createdAt are
  *  stamped by the builder, not trusted from the wire). */
 export interface SanitizedDiagnosisInput {
@@ -210,6 +236,9 @@ export interface SanitizedDiagnosisInput {
   inputDigest: string;
   subject: string;
   origin: DiagnosisOrigin;
+  /** Direction 1: the at-diagnosis key-metric snapshot, when the client echoed a
+   *  well-formed one from the result meta (absent → the record has no outcome chip). */
+  snapshot?: DiagnosisSnapshot;
 }
 
 /** Coerce a full persist-request body into a clean input, or null when it does
@@ -234,7 +263,16 @@ export function sanitizeDiagnosisInput(raw: unknown): SanitizedDiagnosisInput | 
       : kind === "lead-source"
         ? (result as LeadSourceDiagnosisResult).likelyCause
         : (result as LocalDiagnosisResult).worstGap);
-  return { kind, result, inputDigest: str(o.inputDigest, 64), subject, origin };
+  const snapshot = sanitizeDiagnosisSnapshot(o.snapshot);
+  const input: SanitizedDiagnosisInput = {
+    kind,
+    result,
+    inputDigest: str(o.inputDigest, 64),
+    subject,
+    origin,
+  };
+  if (snapshot) input.snapshot = snapshot;
+  return input;
 }
 
 /** Assemble a fresh StoredDiagnosis (status `new`, id + timestamp stamped here).
@@ -252,6 +290,7 @@ export function buildStoredDiagnosis(
     inputDigest: input.inputDigest,
     origin: input.origin,
     subject: input.subject,
+    ...(input.snapshot ? { snapshot: input.snapshot } : {}),
   };
   return input.kind === "cohort"
     ? { ...base, kind: "cohort", result: input.result as CohortDiagnosisResult }

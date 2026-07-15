@@ -192,6 +192,12 @@ export default async function LeadQualityModule({
   const currentDigests = projectId
     ? Object.fromEntries(diagnosisSeeds.map((s) => [s.source, inputDigest(seedToRequest(s))]))
     : undefined;
+  // Direction 1: CURRENT qualification rate keyed by source name, over ALL current
+  // sources (not just under-performing seeds) — so a source that improved enough to
+  // leave the under-performing list still shows its resolved diagnosis's outcome.
+  const currentMetrics = projectId
+    ? Object.fromEntries(rows.map((r) => [r.source, r.qualRate]))
+    : undefined;
 
   const alertSeverityLabel: Record<LeadQualityAlert["severity"], string> = {
     critical: t("alertSeverityCritical"),
@@ -468,6 +474,7 @@ export default async function LeadQualityModule({
           initialDiagnosis={initialDiagnosis}
           history={diagnosisHistory}
           currentDigests={currentDigests}
+          currentMetrics={currentMetrics}
         />
       )}
 

@@ -6,14 +6,15 @@
  *  tool. A produced diagnosis is PERSISTED per project (kind "local"): the latest
  *  renders on module load, carries a status lifecycle + a deep-link handoff to the
  *  coverage gaps, and the capped history lists below. Mirrors LtvDiagnosisPanel. */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bulb, Pin, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { LocalDiagnosisRequest, LocalDiagnosisResult } from "@/lib/ai-types";
 import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { alreadyResolvedUnchanged, compareOutcome } from "@/lib/diagnoses/outcome";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisAlreadyResolvedNote, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -120,10 +121,14 @@ export default function LocalDiagnosisPanel({
   // digest of the SERVER-rebuilt request rides the result meta (Direction 1).
   const ranThisSession = useRef(false);
   const lastData = useRef<unknown>(null);
+  // Direction 1: subject of the freshly-run diagnosis (set in the effect, not a ref
+  // read during render), for the "already resolved" note.
+  const [freshSubject, setFreshSubject] = useState<string | null>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstGap);
+      setFreshSubject(data.result.worstGap);
+      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstGap, data.meta?.snapshot);
     }
   }, [status, data, persist]);
 
@@ -132,6 +137,17 @@ export default function LocalDiagnosisPanel({
   const hasGaps = request.gaps.length > 0;
   const isStale = (d: StoredDiagnosis) =>
     currentDigest ? digestFreshness(d.inputDigest, currentDigest) === "stale" : false;
+  // Direction 1: outcome for a RESOLVED diagnosis — did overall coverage % improve vs
+  // the at-diagnosis snapshot? The current value is the (re-derived) request's coverage.
+  const currentMetric = request.coveragePct;
+  const outcomeOf = (d: StoredDiagnosis) =>
+    d.status === "resolved" ? compareOutcome(d.snapshot, currentMetric) : null;
+  // Direction 1: after a fresh run, note when the gap matches a resolved diagnosis whose
+  // coverage hasn't moved — "already resolved, unchanged".
+  const alreadyResolvedNote =
+    status === "done" && freshSubject
+      ? alreadyResolvedUnchanged(persistence.history, "local", freshSubject, () => currentMetric)
+      : false;
 
   return (
     <div className="space-y-4">
@@ -148,6 +164,7 @@ export default function LocalDiagnosisPanel({
                     onStatus={patchStatus}
                     handoff={handoff}
                     stale={isStale(activeLocal)}
+                    outcome={outcomeOf(activeLocal)}
                   />
                 ),
               }
@@ -160,6 +177,7 @@ export default function LocalDiagnosisPanel({
               onStatus={patchStatus}
               handoff={handoff}
               stale={isStale(activeLocal)}
+              outcome={outcomeOf(activeLocal)}
             />
           ) : null
         }
@@ -182,13 +200,14 @@ export default function LocalDiagnosisPanel({
         }
         renderResult={(r) => (
           <>
+            <DiagnosisAlreadyResolvedNote show={alreadyResolvedNote} />
             <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
             <LocalResultBody r={r} t={t} />
           </>
         )}
       />
       <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} outcomeOf={outcomeOf} />
     </div>
   );
 }

@@ -90,6 +90,12 @@ import {
   type LocalDiagnosisIntent,
 } from "@/lib/ai/validation";
 import { inputDigest } from "@/lib/diagnoses/types";
+import {
+  extractCohortSnapshot,
+  extractLeadSourceSnapshot,
+  extractLocalSnapshot,
+} from "@/lib/diagnoses/outcome";
+import type { DiagnosisSnapshot } from "@/lib/ai-types";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import type { GroundingResult, ResolvedDiagnosis } from "./grounding";
 import type { ToneScope } from "@/lib/twin/types";
@@ -254,11 +260,22 @@ function bad(error: string): Response {
 function withDiagnosisMeta(
   gen: () => Promise<AiResponse<unknown>>,
   sample: boolean,
-  digest: string
+  digest: string,
+  // Direction 1 (the loop closes): the at-diagnosis key-metric snapshot, so the panel
+  // persists the value the diagnosed problem started at and can later show the outcome.
+  snapshot: DiagnosisSnapshot | null
 ): () => Promise<AiResponse<unknown>> {
   return async () => {
     const res = await gen();
-    return { ...res, meta: { ...res.meta, sampleGrounded: sample, inputDigest: digest } };
+    return {
+      ...res,
+      meta: {
+        ...res.meta,
+        sampleGrounded: sample,
+        inputDigest: digest,
+        ...(snapshot ? { snapshot } : {}),
+      },
+    };
   };
 }
 
@@ -267,18 +284,22 @@ function withDiagnosisMeta(
 function prepareDiagnosis<T extends { refine?: string }>(
   resolved: ResolvedDiagnosis<T>,
   refine: string | undefined,
-  gen: (request: T) => Promise<AiResponse<unknown>>
+  gen: (request: T) => Promise<AiResponse<unknown>>,
+  // Direction 1: extract the at-diagnosis key-metric snapshot from the SERVER-rebuilt
+  // request (never the wire) — computed on the pure data, before refine is folded in.
+  extractSnapshot: (request: T) => DiagnosisSnapshot | null
 ): Prepared {
   const request = resolved.request;
   // The digest is of the DATA the diagnosis rests on — computed before the transient
   // refine note is folded in, so a re-run steer never reads as a data change.
   const digest = inputDigest(request);
+  const snapshot = extractSnapshot(request);
   if (refine) request.refine = refine;
   return {
     // Cache keyed by the effective project (keyId) + the rebuilt request, so an
     // unowned id can never serve another tenant's cached diagnosis.
     cacheValue: { request, keyId: resolved.keyId },
-    gen: withDiagnosisMeta(() => gen(request), resolved.sample, digest),
+    gen: withDiagnosisMeta(() => gen(request), resolved.sample, digest, snapshot),
   };
 }
 
@@ -313,8 +334,11 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       prepare: async (intent, ctx) => {
         const resolved = await deps.resolveCohortDiagnosis(intent.projectId, ctx.userId);
         if (!resolved) return noDiagnosisData(ctx);
-        return prepareDiagnosis(resolved, intent.refine, (req) =>
-          deps.gen.cohortDiagnosis(req, ctx.locale, ctx.signal)
+        return prepareDiagnosis(
+          resolved,
+          intent.refine,
+          (req) => deps.gen.cohortDiagnosis(req, ctx.locale, ctx.signal),
+          extractCohortSnapshot
         );
       },
     }),
@@ -337,8 +361,11 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       prepare: async (intent, ctx) => {
         const resolved = await deps.resolveLeadSourceDiagnosis(intent.projectId, ctx.userId, intent.source);
         if (!resolved) return noDiagnosisData(ctx);
-        return prepareDiagnosis(resolved, intent.refine, (req) =>
-          deps.gen.leadSourceDiagnosis(req, ctx.locale, ctx.signal)
+        return prepareDiagnosis(
+          resolved,
+          intent.refine,
+          (req) => deps.gen.leadSourceDiagnosis(req, ctx.locale, ctx.signal),
+          extractLeadSourceSnapshot
         );
       },
     }),
@@ -347,8 +374,11 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       prepare: async (intent, ctx) => {
         const resolved = await deps.resolveLocalDiagnosis(intent.projectId, ctx.userId);
         if (!resolved) return noDiagnosisData(ctx);
-        return prepareDiagnosis(resolved, intent.refine, (req) =>
-          deps.gen.localDiagnosis(req, ctx.locale, ctx.signal)
+        return prepareDiagnosis(
+          resolved,
+          intent.refine,
+          (req) => deps.gen.localDiagnosis(req, ctx.locale, ctx.signal),
+          extractLocalSnapshot
         );
       },
     }),

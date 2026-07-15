@@ -6,10 +6,11 @@
  *  both track a diagnosis identically. Presentational — the parent owns the
  *  persistence hook and passes the status callback + the handoff target. */
 import Link from "next/link";
-import { ArrowRight, Check, Clock, Refresh, Target } from "@/components/icons";
+import { ArrowRight, Check, Clock, Refresh, Target, TrendUp, TrendDown } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { DiagnosisStatus, StoredDiagnosis } from "@/lib/diagnoses/types";
+import type { OutcomeVerdict } from "@/lib/diagnoses/outcome";
 import type { DiagnosisSaveErrorKind } from "@/components/ai/useDiagnosisPersistence";
 
 const T = {
@@ -27,6 +28,10 @@ const T = {
     fromDigest: "z týdenního souhrnu",
     stale: "Neaktuální — data se od uložení změnila",
     staleNudge: "Spusťte rozbor znovu pro aktuální čísla.",
+    outcomeImproved: "Zlepšeno {delta}",
+    outcomeUnchanged: "Beze změny",
+    outcomeWorse: "Zhoršeno {delta}",
+    alreadyResolved: "Již řešeno, beze změny — tato diagnóza už byla vyřešena a sledovaná metrika se od té doby nezměnila.",
   },
   en: {
     statusNew: "New",
@@ -42,8 +47,59 @@ const T = {
     fromDigest: "from the weekly digest",
     stale: "Out of date — the data changed since this was saved",
     staleNudge: "Re-run the analysis for current figures.",
+    outcomeImproved: "Improved {delta}",
+    outcomeUnchanged: "Unchanged",
+    outcomeWorse: "Worse {delta}",
+    alreadyResolved: "Already resolved, unchanged — this was resolved earlier and the tracked metric hasn't moved since.",
   },
 } as const;
+
+/** Direction 1 — the outcome chip. For a RESOLVED diagnosis whose subject still
+ *  exists, the CURRENT key metric is re-derived and compared to the at-diagnosis
+ *  snapshot: improved (with the signed delta) / unchanged / worse. This is what
+ *  closes the loop — the operator sees whether the diagnosed problem actually moved,
+ *  not just that a status was flipped. */
+function OutcomeChip({ verdict }: { verdict: OutcomeVerdict }) {
+  const t = useT(T);
+  const fmt = useFormatters();
+  const delta = fmt.fmtSignedPct(verdict.deltaPct);
+  if (verdict.status === "improved") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-pill bg-positive-soft px-2 py-0.5 text-xs font-medium text-positive">
+        <TrendUp width={12} height={12} />
+        {t("outcomeImproved", { delta })}
+      </span>
+    );
+  }
+  if (verdict.status === "worse") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-pill bg-coral-soft px-2 py-0.5 text-xs font-medium text-coral-600">
+        <TrendDown width={12} height={12} />
+        {t("outcomeWorse", { delta })}
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-pill bg-canvas px-2 py-0.5 text-xs font-medium text-muted">
+      {t("outcomeUnchanged")}
+    </span>
+  );
+}
+
+/** Direction 1 — the "already handled" note. Shown after a fresh run whose subject
+ *  matches a resolved diagnosis with an unchanged metric, so a re-diagnosis of an
+ *  already-closed-and-unmoved subject is labelled honestly instead of read as news.
+ *  Display-only — never blocks the run. */
+export function DiagnosisAlreadyResolvedNote({ show }: { show: boolean }) {
+  const t = useT(T);
+  if (!show) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-card border border-line bg-canvas px-3.5 py-2.5 text-xs text-muted">
+      <Clock width={14} height={14} className="mt-0.5 shrink-0 text-muted" />
+      <span className="leading-relaxed">{t("alreadyResolved")}</span>
+    </div>
+  );
+}
 
 /** Direction 2 — the stale marker. A stored diagnosis whose input digest no longer
  *  matches the current data digest (digestFreshness === "stale") is out of date; say
@@ -151,12 +207,15 @@ export function DiagnosisActions({
   onStatus,
   handoff,
   stale = false,
+  outcome = null,
 }: {
   diagnosis: StoredDiagnosis;
   onStatus: (id: string, status: DiagnosisStatus) => void;
   handoff: DiagnosisHandoff;
   /** Direction 2: the diagnosis is out of date vs the current data → badge + nudge */
   stale?: boolean;
+  /** Direction 1: the outcome verdict for a resolved diagnosis (null → no chip) */
+  outcome?: OutcomeVerdict | null;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
@@ -180,6 +239,7 @@ export function DiagnosisActions({
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
       <Pill tone={STATUS_TONE[status]}>{statusLabel(t, status)}</Pill>
+      {outcome && <OutcomeChip verdict={outcome} />}
       {stale && <StaleBadge t={t} />}
       <span className="inline-flex items-center gap-1 text-xs text-muted">
         <Clock width={12} height={12} />
@@ -228,11 +288,14 @@ export function DiagnosisHistory({
   items,
   onStatus,
   isStale,
+  outcomeOf,
 }: {
   items: StoredDiagnosis[];
   onStatus: (id: string, status: DiagnosisStatus) => void;
   /** Direction 2: per-row staleness verdict against the current data digest */
   isStale?: (d: StoredDiagnosis) => boolean;
+  /** Direction 1: per-row outcome verdict (resolved rows only; null → no chip) */
+  outcomeOf?: (d: StoredDiagnosis) => OutcomeVerdict | null;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
@@ -248,6 +311,10 @@ export function DiagnosisHistory({
         {items.map((it) => (
           <li key={it.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-5 py-3">
             <Pill tone={STATUS_TONE[it.status]}>{statusLabel(t, it.status)}</Pill>
+            {(() => {
+              const v = outcomeOf?.(it) ?? null;
+              return v ? <OutcomeChip verdict={v} /> : null;
+            })()}
             {isStale?.(it) && <StaleBadge t={t} />}
             <span className="min-w-0 flex-1 truncate text-sm text-navy-700">{it.subject}</span>
             <span className="inline-flex items-center gap-1 text-xs text-muted">

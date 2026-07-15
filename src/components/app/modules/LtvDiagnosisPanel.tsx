@@ -9,15 +9,16 @@
  *  (Direction 1): the latest renders on module load, carries a status lifecycle and
  *  a deep-link handoff, and the capped history lists below. Renders the diagnosis /
  *  worst cohort / recommendation with the module's card + pill styling. */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Bulb, Sparkles, Target, TrendDown } from "@/components/icons";
 import type { CohortDiagnosisResult } from "@/lib/ai-types";
 import type { CohortMetrics } from "@/lib/ltv/compute";
 import { digestFreshness, type StoredDiagnosis } from "@/lib/diagnoses/types";
+import { alreadyResolvedUnchanged, compareOutcome } from "@/lib/diagnoses/outcome";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { useDiagnosisPersistence } from "@/components/ai/useDiagnosisPersistence";
 import { AiPanelHeader, AiRunButton, AiToolPanel } from "@/components/ai/AiToolPanel";
-import { DiagnosisActions, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
+import { DiagnosisActions, DiagnosisAlreadyResolvedNote, DiagnosisHistory, DiagnosisSampleNote, DiagnosisSaveError } from "@/components/ai/DiagnosisTracking";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -99,6 +100,7 @@ export default function LtvDiagnosisPanel({
   initialDiagnosis = null,
   history = [],
   currentDigest,
+  currentMetric,
 }: {
   /** the computed cohort rows — used only to gate the run (empty → nothing to
    *  diagnose); the diagnosed economics are re-derived server-side (Direction 1) */
@@ -112,6 +114,9 @@ export default function LtvDiagnosisPanel({
   /** Direction 2: the digest of the CURRENT cohort request (server-computed), so a
    *  stored diagnosis computed from older data is badged stale */
   currentDigest?: string;
+  /** Direction 1: the CURRENT worst-cohort LTV:CAC (server-derived from the same rows),
+   *  so a resolved diagnosis shows whether the economics actually improved */
+  currentMetric?: number;
 }) {
   const t = useT(T);
   const tool = useAiTool<CohortDiagnosisResult>("cohort-diagnosis");
@@ -125,10 +130,14 @@ export default function LtvDiagnosisPanel({
   // result meta (Direction 1); `lastData` dedupes the same AiResponse object.
   const ranThisSession = useRef(false);
   const lastData = useRef<unknown>(null);
+  // Direction 1: the subject of the freshly-run diagnosis (set in the persist effect,
+  // not read from a ref during render), so the "already resolved" note can be computed.
+  const [freshSubject, setFreshSubject] = useState<string | null>(null);
   useEffect(() => {
     if (status === "done" && data && ranThisSession.current && data !== lastData.current) {
       lastData.current = data;
-      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstCohort);
+      setFreshSubject(data.result.worstCohort);
+      void persist(data.result, data.meta?.inputDigest ?? "", data.result.worstCohort, data.meta?.snapshot);
     }
   }, [status, data, persist]);
 
@@ -139,6 +148,16 @@ export default function LtvDiagnosisPanel({
   // unknown-age, never a hard stale claim).
   const isStale = (d: StoredDiagnosis) =>
     currentDigest ? digestFreshness(d.inputDigest, currentDigest) === "stale" : false;
+  // Direction 1: the outcome chip for a RESOLVED diagnosis — did the worst-cohort
+  // LTV:CAC actually improve vs the at-diagnosis snapshot? (null → no chip).
+  const outcomeOf = (d: StoredDiagnosis) =>
+    d.status === "resolved" ? compareOutcome(d.snapshot, currentMetric) : null;
+  // Direction 1: after a fresh run, note when its subject matches a resolved diagnosis
+  // whose metric hasn't moved — "already resolved, unchanged" (display-only).
+  const alreadyResolvedNote =
+    status === "done" && freshSubject
+      ? alreadyResolvedUnchanged(persistence.history, "cohort", freshSubject, () => currentMetric)
+      : false;
 
   return (
     <div className="space-y-4">
@@ -155,6 +174,7 @@ export default function LtvDiagnosisPanel({
                     onStatus={patchStatus}
                     handoff={handoff}
                     stale={isStale(activeCohort)}
+                    outcome={outcomeOf(activeCohort)}
                   />
                 ),
               }
@@ -167,6 +187,7 @@ export default function LtvDiagnosisPanel({
               onStatus={patchStatus}
               handoff={handoff}
               stale={isStale(activeCohort)}
+              outcome={outcomeOf(activeCohort)}
             />
           ) : null
         }
@@ -190,13 +211,14 @@ export default function LtvDiagnosisPanel({
         }
         renderResult={(r) => (
           <>
+            <DiagnosisAlreadyResolvedNote show={alreadyResolvedNote} />
             <DiagnosisSampleNote sample={data?.meta?.sampleGrounded ?? false} />
             <CohortResultBody r={r} t={t} />
           </>
         )}
       />
       <DiagnosisSaveError error={saveError} onRetry={retry} onDismiss={clearError} />
-      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} />
+      <DiagnosisHistory items={persistence.history} onStatus={patchStatus} isStale={isStale} outcomeOf={outcomeOf} />
     </div>
   );
 }

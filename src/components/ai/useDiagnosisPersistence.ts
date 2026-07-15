@@ -18,7 +18,12 @@ import {
   type DiagnosisStatus,
   type StoredDiagnosis,
 } from "@/lib/diagnoses/types";
-import type { CohortDiagnosisResult, LeadSourceDiagnosisResult, LocalDiagnosisResult } from "@/lib/ai-types";
+import type {
+  CohortDiagnosisResult,
+  DiagnosisSnapshot,
+  LeadSourceDiagnosisResult,
+  LocalDiagnosisResult,
+} from "@/lib/ai-types";
 
 type DiagResult = CohortDiagnosisResult | LeadSourceDiagnosisResult | LocalDiagnosisResult;
 
@@ -30,8 +35,14 @@ export interface DiagnosisPersistence {
   active: StoredDiagnosis | null;
   /** the capped history (newest-first) for the strip below the panel */
   history: StoredDiagnosis[];
-  /** persist a freshly-run result; no-op when there is no project id */
-  persist: (result: DiagResult, inputDigest: string, subject: string) => Promise<void>;
+  /** persist a freshly-run result; no-op when there is no project id. `snapshot` is
+   *  the at-diagnosis key-metric snapshot from the result meta (Direction 1). */
+  persist: (
+    result: DiagResult,
+    inputDigest: string,
+    subject: string,
+    snapshot?: DiagnosisSnapshot
+  ) => Promise<void>;
   /** move one diagnosis through its status lifecycle */
   patchStatus: (id: string, status: DiagnosisStatus) => Promise<void>;
   /** Direction 3: the last write that failed (null when the last write succeeded) */
@@ -55,14 +66,19 @@ export function useDiagnosisPersistence(
   // reading it during render is never needed.
   const retryRef = useRef<(() => void) | null>(null);
 
-  async function persist(result: DiagResult, digest: string, subject: string) {
+  async function persist(
+    result: DiagResult,
+    digest: string,
+    subject: string,
+    snapshot?: DiagnosisSnapshot
+  ) {
     if (!projectId) return;
     setSaveError(null);
     try {
       const res = await fetch(`/api/projects/${encodeURIComponent(projectId)}/diagnoses`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, result, inputDigest: digest, subject, origin: "manual" }),
+        body: JSON.stringify({ kind, result, inputDigest: digest, subject, snapshot, origin: "manual" }),
       });
       if (!res.ok) throw new Error(`persist failed: ${res.status}`);
       const json = (await res.json()) as { diagnosis?: StoredDiagnosis };
@@ -74,7 +90,7 @@ export function useDiagnosisPersistence(
     } catch {
       // Direction 3: surface it — the operator paid quota for this diagnosis and it
       // did NOT persist. Capture the exact call for a one-tap retry.
-      retryRef.current = () => void persist(result, digest, subject);
+      retryRef.current = () => void persist(result, digest, subject, snapshot);
       setSaveError("save");
     }
   }

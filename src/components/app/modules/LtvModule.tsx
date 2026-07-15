@@ -9,6 +9,7 @@ import LtvProjectionPanel from "@/components/app/modules/LtvProjectionPanel";
 import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 import { buildCohortRequest } from "@/lib/diagnoses/cohort-request";
 import { inputDigest } from "@/lib/diagnoses/types";
+import { extractCohortSnapshot } from "@/lib/diagnoses/outcome";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import Sparkline from "@/components/charts/Sparkline";
 import { cohortTrend } from "@/lib/ltv/compute";
@@ -244,10 +245,12 @@ export default async function LtvModule({
 
   // Direction 2: the digest of the CURRENT cohort request — the SAME builder + rows +
   // summary the /api/ai click path re-derives — so a stored diagnosis computed from
-  // older cohort data is badged stale. Only on a real project (persistence is on).
-  const currentDigest = projectId
-    ? inputDigest(buildCohortRequest(rows, summary, eshop))
-    : undefined;
+  // older cohort data is badged stale. Direction 1: the CURRENT worst-cohort LTV:CAC
+  // (from the same request), so a resolved diagnosis shows whether it improved. Both
+  // only on a real project (persistence is on).
+  const currentRequest = projectId ? buildCohortRequest(rows, summary, eshop) : null;
+  const currentDigest = currentRequest ? inputDigest(currentRequest) : undefined;
+  const currentMetric = currentRequest ? extractCohortSnapshot(currentRequest)?.metric : undefined;
 
   // Project-type-aware labels.
   const L = eshop
@@ -329,6 +332,7 @@ export default async function LtvModule({
         initialDiagnosis={initialDiagnosis}
         history={diagnosisHistory}
         currentDigest={currentDigest}
+        currentMetric={currentMetric}
       />
 
       <LtvProjectionPanel cohorts={cohorts} paidCac={summary.paidCac} />

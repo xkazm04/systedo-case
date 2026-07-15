@@ -22,13 +22,14 @@ import { withMetrics as sourceWithMetrics } from "@/lib/lead-quality/compute";
 import { resolveLeadSources } from "@/lib/lead-quality/resolve";
 import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
 import { planDigestDiagnoses } from "./digest-plan";
+import { extractLeadSourceSnapshot } from "./outcome";
 import { buildStoredDiagnosis, inputDigest, sanitizeDiagnosisInput } from "./types";
 import { recordDiagnosis } from "./store";
 import { durableGuard, refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import type { Project } from "@/lib/projects/types";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, LeadSourceDiagnosisResult } from "@/lib/ai-types";
+import type { AiResponse, LeadSourceDiagnosisRequest, LeadSourceDiagnosisResult } from "@/lib/ai-types";
 
 /** One diagnosis's compact output for the alert / email. */
 export interface DigestDiagnosisPart {
@@ -102,7 +103,7 @@ export async function runTenantDiagnoses(
 async function persistLeadSource(
   projectId: string,
   result: LeadSourceDiagnosisResult,
-  req: unknown,
+  req: LeadSourceDiagnosisRequest,
   subject: string,
   now: Date
 ): Promise<void> {
@@ -112,6 +113,9 @@ async function persistLeadSource(
     inputDigest: inputDigest(req),
     subject,
     origin: "digest",
+    // Direction 1: capture the at-diagnosis key-metric snapshot (the source's qualRate)
+    // so a digest-origin diagnosis also carries an outcome to compare against later.
+    snapshot: extractLeadSourceSnapshot(req),
   });
   if (!input) return;
   await recordDiagnosis(projectId, buildStoredDiagnosis(input, () => crypto.randomUUID(), now));
