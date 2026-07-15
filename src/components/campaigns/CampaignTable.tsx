@@ -225,6 +225,7 @@ export default function CampaignTable({
   changesById,
   onAnalyze,
   period,
+  fmtMoney,
   campaignSeries,
   typeFilter,
   onTypeFilterChange,
@@ -248,6 +249,10 @@ export default function CampaignTable({
   onAnalyze: (campaignId: string) => Promise<boolean> | void;
   /** the synced period the rows cover — budget pacing needs the day count */
   period: CampaignPeriod;
+  /** currency-aware money formatter (Direction 2): fmt.fmtCZK for a CZK/unknown
+   *  account (byte-identical), else the amount labelled in the account's own
+   *  currency. Optional so any legacy caller falls back to CZK formatting. */
+  fmtMoney?: (n: number) => string;
   /** per-campaign daily series (campaign id → points) — when present, each row
    *  gets a cost sparkline so spend spikes/flatlines are visible at a glance */
   campaignSeries?: Record<string, DailyPoint[]>;
@@ -271,6 +276,9 @@ export default function CampaignTable({
   const t = useT(T);
   const errText = useCampaignErrorText();
   const { locale } = useLocale();
+  // Currency-aware money label (Direction 2). Defaults to CZK formatting so a caller
+  // that doesn't pass it — and every CZK account — is byte-identical to before.
+  const money = fmtMoney ?? fmt.fmtCZK;
 
   // Build translated column definitions after hooks run.
   const SORT_COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
@@ -669,7 +677,7 @@ export default function CampaignTable({
                             title={t("budgetCappedTitle", {
                               roas: fmt.fmtMultiple(c.roas),
                               pacing: fmt.fmtPct(pacing.pacing, 0),
-                              budget: fmt.fmtCZK(c.budgetPerDay ?? 0),
+                              budget: money(c.budgetPerDay ?? 0),
                             })}
                           >
                             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
@@ -710,11 +718,11 @@ export default function CampaignTable({
                         })()}
                       </td>
                     )}
-                    <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtCZK(c.cost)}</td>
+                    <td className="tnum px-3 py-3 text-right text-navy-700">{money(c.cost)}</td>
                     <td className="tnum px-3 py-3 text-right text-navy-700">{fmt.fmtInt(c.conversions)}</td>
-                    <td className="tnum px-3 py-3 text-right font-medium text-navy-800">{fmt.fmtCZK(c.conversionValue)}</td>
+                    <td className="tnum px-3 py-3 text-right font-medium text-navy-800">{money(c.conversionValue)}</td>
                     <td className="tnum px-3 py-3 text-right text-navy-700">
-                      {c.conversions > 0 ? fmt.fmtCZK(c.cpa) : "—"}
+                      {c.conversions > 0 ? money(c.cpa) : "—"}
                     </td>
                     <td className={`tnum px-3 py-3 text-right font-medium ${METRIC_TONE_CLASS[roasMetricTone(c.roas, goals?.targetRoas)]}`}>
                       {c.roas > 0 ? fmt.fmtMultiple(c.roas) : "—"}
@@ -811,7 +819,7 @@ export default function CampaignTable({
                             <span className="tnum font-medium text-navy-800">{fmt.fmtInt(c.clicks)}</span>{" "}
                             <span className="tnum text-xs text-muted">
                               (CTR {c.impressions > 0 ? fmt.fmtPct(c.ctr, 2) : "—"} · CPC{" "}
-                              {c.clicks > 0 ? fmt.fmtCZK(c.cpc) : "—"})
+                              {c.clicks > 0 ? money(c.cpc) : "—"})
                             </span>
                           </span>
                           <span className="text-muted" aria-hidden>→</span>
@@ -825,7 +833,7 @@ export default function CampaignTable({
                           {pacing && (
                             <span className="tnum ml-auto text-xs text-muted">
                               {t("funnelBudget", {
-                                budget: fmt.fmtCZK(c.budgetPerDay ?? 0),
+                                budget: money(c.budgetPerDay ?? 0),
                                 pacing: fmt.fmtPct(pacing.pacing, 0),
                               })}
                             </span>
@@ -893,13 +901,13 @@ export default function CampaignTable({
                     <td colSpan={2 + (hasSeries ? 1 : 0)} className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                       Σ {t("footerLabel", { n: seg.count })}
                     </td>
-                    <td className="tnum px-3 py-3 text-right text-navy-800">{fmt.fmtCZK(seg.cost)}</td>
+                    <td className="tnum px-3 py-3 text-right text-navy-800">{money(seg.cost)}</td>
                     <td className="tnum px-3 py-3 text-right text-navy-800">{fmt.fmtInt(seg.conversions)}</td>
                     <td className="tnum px-3 py-3 text-right font-semibold text-navy-800">
-                      {fmt.fmtCZK(seg.conversionValue)}
+                      {money(seg.conversionValue)}
                     </td>
                     <td className="tnum px-3 py-3 text-right text-navy-800">
-                      {seg.conversions > 0 ? fmt.fmtCZK(seg.cpa) : "—"}
+                      {seg.conversions > 0 ? money(seg.cpa) : "—"}
                     </td>
                     <td className={`tnum px-3 py-3 text-right font-semibold ${METRIC_TONE_CLASS[roasMetricTone(seg.roas, goals?.targetRoas)]}`}>
                       {seg.roas > 0 ? fmt.fmtMultiple(seg.roas) : "—"}

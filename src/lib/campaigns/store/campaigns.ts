@@ -17,6 +17,10 @@ export interface SyncMeta {
   /** the ACTIVE period — what the page and the analyze route currently show */
   period: CampaignPeriod;
   syncedAt: string;
+  /** the account's ISO-4217 currency captured at ingestion (Direction 2). Additive
+   *  + optional: docs synced before it existed omit it → the money surfaces treat
+   *  absent/CZK as the base currency, so labels are byte-identical to before. */
+  currency?: string;
   /** true when a live sync silently fell back to sample data (campaigns and/or
    *  series), so the UI can say so instead of labeling demo numbers "živá data" */
   degraded?: boolean;
@@ -37,6 +41,8 @@ export async function upsertCampaigns(
   meta: {
     source: string;
     period: CampaignPeriod;
+    /** the account's captured ISO currency (Direction 2) — additive on the root doc */
+    currency?: string;
     /** live sync fell back to sample data (see connector.SyncDegradation) */
     degraded?: boolean;
     degradedReason?: string | null;
@@ -101,6 +107,9 @@ export async function upsertCampaigns(
       source: meta.source,
       period: meta.period,
       syncedAt,
+      // Additive: only write a real currency (never `undefined`, which Firestore
+      // rejects); absent keeps the base-CZK labeling.
+      ...(meta.currency ? { currency: meta.currency } : {}),
       degraded: meta.degraded ?? false,
       degradedReason: meta.degradedReason ?? null,
       syncedByPeriod: { [meta.period]: syncedAt },
@@ -178,6 +187,7 @@ function syncMetaFromData(r: FirebaseFirestore.DocumentData | undefined): SyncMe
     source: r.source,
     period: r.period as CampaignPeriod,
     syncedAt: r.syncedAt,
+    ...(typeof r.currency === "string" ? { currency: r.currency } : {}),
     degraded: Boolean(r.degraded),
     degradedReason: r.degradedReason ?? null,
     ...(r.syncedByPeriod && typeof r.syncedByPeriod === "object"

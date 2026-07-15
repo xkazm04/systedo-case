@@ -78,6 +78,9 @@ export async function runTenantSync(
   await upsertCampaigns(tenant, campaigns, {
     source: degradation.campaigns ? "sample" : connector.source,
     period,
+    // The account's captured currency (base CZK for sample / a degraded fetch). Lets
+    // the money surfaces label a non-CZK account honestly without converting.
+    currency: connector.currency ?? undefined,
     degraded: degradation.campaigns || degradation.series,
     degradedReason: degradation.reason,
     // A degraded campaign fetch means `campaigns` are sample data with different

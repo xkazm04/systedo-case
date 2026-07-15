@@ -5,6 +5,7 @@ import { ChevronDown, Info, Refresh } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { CAMPAIGN_PERIODS, campaignPeriodLabel, type CampaignPeriod } from "@/lib/campaigns/types";
+import { isForeignCurrency, normalizeCurrency } from "@/lib/campaigns/currency";
 import type { CampaignsMeta } from "./useCampaigns";
 import { useDismiss } from "./useDismiss";
 
@@ -25,6 +26,9 @@ const T = {
     neverSynced: "nesynchronizováno",
     live: "živá data",
     sample: "ukázková data",
+    currencyLabel: "Měna účtu",
+    currencyNote:
+      "Účet je veden v měně {currency}. Částky zobrazujeme v této měně bez přepočtu na Kč.",
   },
   en: {
     trigger: "Data source",
@@ -42,6 +46,9 @@ const T = {
     neverSynced: "not synced",
     live: "live data",
     sample: "sample data",
+    currencyLabel: "Account currency",
+    currencyNote:
+      "This account is billed in {currency}. Amounts are shown in that currency, not converted to CZK.",
   },
 } as const;
 
@@ -157,6 +164,20 @@ export default function SyncProvenance({
               </dd>
             </div>
           </dl>
+
+          {/* account currency (Direction 2): only flagged when it is a captured,
+              non-CZK code — CZK / unknown accounts add no note (nothing changed). */}
+          {isForeignCurrency(meta.currency) && (
+            <div className="mt-2 rounded-lg border border-line bg-canvas/60 px-3 py-2">
+              <p className="flex items-center justify-between gap-3 text-xs">
+                <span className="text-muted">{t("currencyLabel")}</span>
+                <span className="font-semibold text-ink">{normalizeCurrency(meta.currency)}</span>
+              </p>
+              <p className="mt-1 text-[11px] text-muted">
+                {t("currencyNote", { currency: normalizeCurrency(meta.currency) ?? "" })}
+              </p>
+            </div>
+          )}
 
           {/* degradation: human Czech explanation + stored diagnostic reason */}
           {degraded && (

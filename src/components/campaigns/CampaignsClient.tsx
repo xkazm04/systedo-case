@@ -37,6 +37,8 @@ import { loadFilters } from "./table/filters";
 import HealthTimeline from "./HealthTimeline";
 import ReportView from "./ReportView";
 import SyncProvenance from "./SyncProvenance";
+import { LOCALES } from "@/lib/format";
+import { resolveMoneyFormatter } from "@/lib/campaigns/currency";
 
 // Below-fold, heavy panels — code-split so their JS loads after the above-fold
 // triage view (toolbar, account picker, campaign table) rather than in this
@@ -212,6 +214,17 @@ export default function CampaignsClient({
   const [selected, setSelected] = useState<CampaignPeriod | null>(null);
   const period: CampaignPeriod = selected ?? meta?.period ?? "30d";
 
+  // Currency-aware money formatter for the synced surfaces (Direction 2). For a
+  // CZK / unknown / un-captured account this IS fmt.fmtCZK (byte-identical); a
+  // captured non-CZK account (a EUR/PLN Google Ads account) relabels the amount in
+  // its own currency — we relabel, never convert. Used for the money KPIs + handed
+  // to the table so a foreign account never reads its euros as koruny.
+  const fmtMoney = resolveMoneyFormatter({
+    currency: meta?.currency,
+    intlLocale: LOCALES[locale].intlLocale,
+    base: fmt.fmtCZK,
+  });
+
   // The table's type filter, lifted here so the TypeBreakdown cards and the
   // table dropdown drive one state (click a card → the table filters to that
   // type; click again → clear). Initialised from the same stored record the
@@ -378,8 +391,8 @@ export default function CampaignsClient({
 
   const totals = aggregate(campaigns);
   const kpis = [
-    { label: t("kpiCost"), value: fmt.fmtCZK(totals.cost) },
-    { label: t("kpiConvValue"), value: fmt.fmtCZK(totals.conversionValue) },
+    { label: t("kpiCost"), value: fmtMoney(totals.cost) },
+    { label: t("kpiConvValue"), value: fmtMoney(totals.conversionValue) },
     { label: "ROAS", value: fmt.fmtMultiple(totals.roas) },
     { label: "PNO", value: fmt.fmtPct(totals.pno), hint: t("kpiPnoHint", { target: fmt.fmtPct(TARGET_PNO, 0) }) },
   ];
@@ -518,6 +531,7 @@ export default function CampaignsClient({
           changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
           period={period}
+          fmtMoney={fmtMoney}
           campaignSeries={campaignSeries}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}

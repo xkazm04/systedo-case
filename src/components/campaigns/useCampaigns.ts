@@ -39,6 +39,10 @@ export interface CampaignsMeta {
   source: string;
   period: CampaignPeriod;
   syncedAt: string;
+  /** the account's ISO-4217 currency (Direction 2). Absent → the base CZK, so money
+   *  surfaces render exactly as before; a non-CZK code relabels the amounts honestly
+   *  (no conversion). */
+  currency?: string;
   /** the last sync's live fetch fell back to sample data — the UI shows a
    *  truth-in-labeling warning instead of presenting demo numbers as live */
   degraded?: boolean;

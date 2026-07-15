@@ -63,6 +63,11 @@ export interface AdsConnector {
   source: AdsSource;
   /** human label for the source */
   label: string;
+  /** the account's ISO-4217 currency, captured at ingestion and persisted on the
+   *  sync meta so money surfaces can label a non-CZK account honestly (Direction 2).
+   *  Resolved DURING fetchCampaigns (like {@link degradation}), so read it AFTER —
+   *  null until then / when the account provides none (→ treated as the base CZK). */
+  currency: string | null;
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
   /** per-day portfolio totals for the trend chart */
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
@@ -91,6 +96,8 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
   return {
     source: "sample",
     label: "Google Ads · ukázková data",
+    // Sample data is illustrative CZK — the base currency, so labels are unchanged.
+    currency: "CZK",
     degradation: { campaigns: false, series: false, reason: null },
     async fetchCampaigns(period) {
       return sampleCampaigns(period, projectType, seedKey, Date.now(), envelopeFor(period));
@@ -108,7 +115,9 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
  *  before the degrade-to-sample wrapping. Google (@/lib/google/ads) and Sklik
  *  (@/lib/sklik/adapter) each bind their credentials into one of these. */
 interface LiveFetchers {
-  fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
+  /** campaigns + the account's ISO currency (captured in the same fetch — Google
+   *  from customer.currency_code, Sklik always CZK). */
+  fetchCampaigns(period: CampaignPeriod): Promise<{ campaigns: Campaign[]; currency: string | null }>;
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
   fetchCampaignSeries(period: CampaignPeriod): Promise<Record<string, DailyPoint[]>>;
 }
@@ -134,17 +143,23 @@ function withSampleFallback(
   fallback: AdsConnector
 ): AdsConnector {
   const degradation: SyncDegradation = { campaigns: false, series: false, reason: null };
-  return {
+  const connector: AdsConnector = {
     source,
     label,
+    // Defaults to the fallback's currency (base CZK) until a live campaign fetch
+    // resolves the real one; a degraded fetch (sample data shown) keeps the base.
+    currency: fallback.currency,
     degradation,
     async fetchCampaigns(period) {
       try {
-        return await live.fetchCampaigns(period);
+        const { campaigns, currency } = await live.fetchCampaigns(period);
+        connector.currency = currency ?? fallback.currency;
+        return campaigns;
       } catch (err) {
         console.error(`[campaigns] live fetchCampaigns (${source}) failed; serving sample data:`, err);
         degradation.campaigns = true;
         degradation.reason ??= describeError(err);
+        connector.currency = fallback.currency;
         return fallback.fetchCampaigns(period);
       }
     },
@@ -171,6 +186,7 @@ function withSampleFallback(
       }
     },
   };
+  return connector;
 }
 
 /** Live Google Ads provider — REST/GAQL calls bound to the user's OAuth token +
@@ -185,6 +201,8 @@ function googleAdsProvider(
     "google-ads",
     "Google Ads · živá data",
     {
+      // adsFetchCampaigns already returns { campaigns, currency } (currency captured
+      // from customer.currency_code in the same GAQL query).
       fetchCampaigns: (period) => adsFetchCampaigns(accessToken, customerId, period),
       fetchSeries: (period) => adsFetchDailySeries(accessToken, customerId, period),
       fetchCampaignSeries: (period) => adsFetchCampaignDailySeries(accessToken, customerId, period),
@@ -211,7 +229,11 @@ function sklikProvider(fallback: AdsConnector, token: string): AdsConnector {
     "sklik",
     "Sklik · živá data",
     {
-      fetchCampaigns: (period) => fetchSklikCampaigns(client, period),
+      // Sklik (Seznam) is a Czech platform — money is always native CZK, the base.
+      fetchCampaigns: async (period) => ({
+        campaigns: await fetchSklikCampaigns(client, period),
+        currency: "CZK",
+      }),
       fetchSeries: (period) => fetchSklikSeries(client, period),
       fetchCampaignSeries: (period) => fetchSklikCampaignSeries(client, period),
     },

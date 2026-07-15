@@ -24,17 +24,26 @@ function dateRange(days: number): { start: string; end: string } {
   return { start: fmt(start), end: fmt(end) };
 }
 
-/** Fold a Sklik stat row into a mutable DailyPoint accumulator. */
+/** Fold a Sklik stat row into a mutable DailyPoint accumulator. conversionValue is
+ *  accumulated RAW and rounded exactly ONCE at the aggregate boundary
+ *  ({@link finalizePoint}) — summing per-row rounded values drifts by up to half a
+ *  unit per row (mirrors the Google connector's round-once fix). Cost stays on the
+ *  moneyToCzk seam (the single documented CZK/haléře conversion point). */
 function addRow(p: DailyPoint, s: SklikStatRow): void {
   p.cost += moneyToCzk(s.money);
   p.conversions += Number(s.conversions ?? 0);
-  p.conversionValue += Math.round(Number(s.conversionValue ?? 0));
+  p.conversionValue += Number(s.conversionValue ?? 0);
   p.clicks = (p.clicks ?? 0) + Number(s.clicks ?? 0);
   p.impressions = (p.impressions ?? 0) + Number(s.impressions ?? 0);
 }
 
 function emptyPoint(date: string): DailyPoint {
   return { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
+}
+
+/** Round the raw-accumulated conversionValue once, at the aggregate boundary. */
+function finalizePoint(p: DailyPoint): DailyPoint {
+  return { ...p, conversionValue: Math.round(p.conversionValue) };
 }
 
 /** Campaigns + period-aggregated metrics, mapped into the app's Campaign model.
@@ -76,7 +85,8 @@ export async function fetchSklikCampaigns(
       clicks: t.clicks ?? 0,
       cost: t.cost,
       conversions: t.conversions,
-      conversionValue: t.conversionValue,
+      // Round the raw-accumulated value once, at the per-campaign aggregate.
+      conversionValue: Math.round(t.conversionValue),
       // Optional on the model: only emit a positive resolvable budget.
       ...(budgetPerDay > 0 ? { budgetPerDay } : {}),
     } satisfies Campaign;
@@ -105,7 +115,7 @@ export async function fetchSklikSeries(
       byDate.set(s.date, p);
     }
   }
-  return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  return [...byDate.values()].map(finalizePoint).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /** Per-campaign daily series (campaign id → points) for the table sparklines. */
@@ -129,7 +139,9 @@ export async function fetchSklikCampaignSeries(
       addRow(p, s);
       byDate.set(s.date, p);
     }
-    out[String(r.campaignId)] = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+    out[String(r.campaignId)] = [...byDate.values()]
+      .map(finalizePoint)
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
   return out;
 }

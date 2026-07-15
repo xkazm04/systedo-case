@@ -71,7 +71,7 @@ interface SearchRow {
     resourceName?: string;
     amountMicros?: string | number;
   };
-  customer?: { descriptiveName?: string; id?: string };
+  customer?: { descriptiveName?: string; id?: string; currencyCode?: string };
   segments?: { date?: string };
   metrics?: {
     impressions?: string | number;
@@ -269,21 +269,29 @@ async function fetchAccountDailyRaw(
 
 /** Fold one searchStream row into a date-keyed DailyPoint accumulator. Cost micros
  *  are converted to the major unit and rounded PER ROW — the campaigns path's
- *  long-standing behavior (the report path rounds once per day in its own mapper). */
+ *  long-standing behavior (the report path rounds once per day in its own mapper).
+ *  conversionValue is accumulated RAW here and rounded exactly ONCE at the aggregate
+ *  boundary (finalizePoint) — summing already-rounded per-row values drifts by up to
+ *  half a unit per row, which a whole day of micro-conversions can compound. */
 function accumulateDaily(byDate: Map<string, DailyPoint>, date: string, r: SearchRow): void {
   const p =
     byDate.get(date) ??
     { date, cost: 0, conversions: 0, conversionValue: 0, clicks: 0, impressions: 0 };
   p.cost += Math.round(num(r.metrics?.costMicros) / 1_000_000);
   p.conversions += num(r.metrics?.conversions);
-  p.conversionValue += Math.round(num(r.metrics?.conversionsValue));
+  p.conversionValue += num(r.metrics?.conversionsValue);
   p.clicks = (p.clicks ?? 0) + num(r.metrics?.clicks);
   p.impressions = (p.impressions ?? 0) + num(r.metrics?.impressions);
   byDate.set(date, p);
 }
 
+/** Round the raw-accumulated conversionValue once, at the aggregate boundary. */
+function finalizePoint(p: DailyPoint): DailyPoint {
+  return { ...p, conversionValue: Math.round(p.conversionValue) };
+}
+
 const sortByDate = (pts: DailyPoint[]): DailyPoint[] =>
-  pts.sort((a, b) => a.date.localeCompare(b.date));
+  pts.map(finalizePoint).sort((a, b) => a.date.localeCompare(b.date));
 
 /** Sum date-segmented Ads rows into one sorted DailyPoint per day (portfolio total).
  *  Pure — unit-tested on fixtures without credentials. */
@@ -375,14 +383,18 @@ function dateRange(days: number): { start: string; end: string } {
   return { start: fmt(start), end: fmt(end) };
 }
 
-/** Campaigns + aggregated metrics for the period, mapped into the app's model. */
+/** Campaigns + aggregated metrics for the period, mapped into the app's model, plus
+ *  the account's ISO currency code (`customer.currency_code`, captured at ingestion
+ *  so the money surfaces can label a non-CZK account honestly — no conversion). */
 export async function fetchCampaigns(
   accessToken: string,
   customerId: string,
   period: CampaignPeriod
-): Promise<Campaign[]> {
+): Promise<{ campaigns: Campaign[]; currency: string | null }> {
   const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
   // No segments.date in SELECT → metrics aggregate per campaign over the range.
+  // customer.currency_code rides along (one value per account) so the connector can
+  // persist it on the sync meta without a second query.
   const query = `
     SELECT
       campaign.id,
@@ -390,6 +402,7 @@ export async function fetchCampaigns(
       campaign.status,
       campaign.advertising_channel_type,
       campaign_budget.amount_micros,
+      customer.currency_code,
       metrics.impressions,
       metrics.clicks,
       metrics.cost_micros,
@@ -400,7 +413,9 @@ export async function fetchCampaigns(
   `;
   const rows = await searchStream(accessToken, customerId, query);
 
-  return rows
+  const currency = rows.find((r) => r.customer?.currencyCode)?.customer?.currencyCode ?? null;
+
+  const campaigns = rows
     .filter((r) => r.campaign?.id)
     .map((r) => {
       const c = r.campaign!;
@@ -422,4 +437,6 @@ export async function fetchCampaigns(
         ...(budgetPerDay > 0 ? { budgetPerDay } : {}),
       } satisfies Campaign;
     });
+
+  return { campaigns, currency };
 }
