@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň Search · Brand výrazně překonává cílovou PNO a generuje mimořádně vysoký ROAS, brand výkon je na maximu.",
+  "verdict": "Kampaň výrazně překonává cílové PNO a je hlavním ziskovým motorem účtu.",
   "score": 92,
   "recommendations": [
     {
-      "title": "Navýšit rozpočet na brand kampani",
-      "detail": "Při PNO 5,3 % oproti cíli 18 % je prostor investovat výrazně více – otestujte navýšení denního rozpočtu o 30–50 % a sledujte, zda se ROAS udrží nad 10×.",
+      "title": "Navýšit rozpočet",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % je prostor škálovat denní rozpočet o 30–50 % a sledovat, zda ROAS zůstane nad 10×.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit pokrytí brandových variant",
-      "detail": "Přidejte long-tail a misspelling brand klíčová slova, ať kampaň zachytí větší podíl brandového vyhledávání při stále nízké PNO.",
+      "title": "Rozšířit shodu klíčových slov",
+      "detail": "Otestovat širší shodu nebo frázovou shodu u brandových výrazů pro zachycení variant dotazů a dalšího objemu konverzí.",
       "priority": "medium"
     }
   ]

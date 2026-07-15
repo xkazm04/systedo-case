@@ -1,9 +1,9 @@
 {
-  "summary": "Kohorty se v čase zhoršují: CAC roste (1200→1600→2100 Kč), LTV klesá (5400→3800→2200 Kč) a LTV:CAC padá z 4,5× na 1,0×. Kohorta 2025-03 se už nevrací do zisku (návratnost přes horizont) a M3 retence klesla na 31 %. V rámci 2025-03 ji nejvíc táhne dolů Google Ads (CAC 2600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je ziskový (LTV:CAC 6,0×, 90 akvizic). Retenční křivka (100 %→70 %→48 %→31 %) ukazuje setrvalý, nezpomalující pokles bez stabilizace — uživatelé neustále odchází, ne jen v prvním měsíci.",
+  "summary": "Kohorty se zhoršují napříč všemi klíčovými metrikami: CAC roste z 1 200 Kč (2025-01) na 2 100 Kč (2025-03), LTV klesá z 5 400 Kč na 2 200 Kč a LTV:CAC padá z 4,5× přes 2,4× až na 1,0×, kdy se akvizice už vůbec nevrací. Retenční křivka 2025-03 (M0 100 %, M1 70 %, M2 48 %, M3 31 %) ukazuje prudký, nezpomalující pokles bez stabilizace. Kanálový rozpad u 2025-03 odhaluje, že kohortu táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC pouze 0,8×, 150 akvizic), zatímco Organic zůstává silně ziskový (LTV:CAC 6,0×, 90 akvizic) – blended čísla (CAC 1 650 Kč, LTV:CAC 2,6×) tak maskují, že placená akvizice je ztrátová.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) do Organic akvizice (LTV:CAC 6,0×) a pozastavit škálování Google Ads, dokud se CAC nevrátí pod úroveň udržující LTV:CAC alespoň 3×.",
+  "recommendation": "Okamžitě omezit nebo pozastavit rozpočet na Google Ads (LTV:CAC 0,8×) a realokovat akviziční kapacitu i rozpočet směrem k Organic kanálu (LTV:CAC 6,0×), dokud se placená akvizice nevrátí nad práh 3×.",
   "risks": [
-    "Bez zásahu do retence (klesající křivka bez stabilizace) i levnější akvizice z Organic kanálu časem skončí na podobně nízkém LTV.",
-    "Malý vzorek u kanálového rozpadu (150 a 90 akvizic) — závěr o kanálech je třeba ověřit na větším objemu dat."
+    "Omezení Google Ads může snížit celkový objem registrací, protože Organic zatím generuje jen 90 akvizic oproti 150 z placeného kanálu.",
+    "Prudký pokles retence u 2025-03 (M3 31 %) naznačuje problém s produktovým onboardingem nebo fitem, který samotná změna kanálového mixu nevyřeší."
   ]
 }

@@ -1,29 +1,31 @@
 {
-  "titleTag": "Skladování ořechů: jak je uchovat čerstvé a chutné",
-  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si zachovaly chuť a nezoxidovaly. Praktické tipy na teplotu, vlhkost a vhodné obaly pro dlouhou trvanlivost.",
+  "titleTag": "Jak skladovat ořechy: uchování čerstvosti a chuti",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si dlouho udržely čerstvost, chuť a nutriční hodnotu. Praktické tipy na teplotu, vlhkost a obaly.",
   "outline": [
     {
       "heading": "Proč je správné skladování ořechů důležité",
       "points": [
-        "Ořechy obsahují tuky, které snadno žluknou",
-        "Nesprávné skladování vede ke ztrátě chuti a živin",
-        "Riziko plísní při vysoké vlhkosti"
+        "Ořechy obsahují tuky náchylné k žluknutí",
+        "Nesprávné skladování snižuje chuť i nutriční hodnotu",
+        "Vlhkost a teplo urychlují znehodnocení"
       ]
     },
     {
-      "heading": "Optimální podmínky pro skladování",
+      "heading": "Nejlepší podmínky pro skladování",
       "points": [
-        "Teplota a vlhkost prostředí",
-        "Skladování ve spíži vs. v lednici či mrazáku",
-        "Ochrana před světlem a vzduchem"
+        "Skladujte v chladu a suchu, ideálně v lednici nebo mrazáku",
+        "Používejte vzduchotěsné obaly (sklo, vakuové sáčky)",
+        "Chraňte před přímým slunečním světlem",
+        "Skořápkové ořechy vydrží déle než loupané"
       ]
     },
     {
-      "heading": "Vhodné obaly a doba trvanlivosti",
+      "heading": "Jak poznat zkažené ořechy a prodloužit trvanlivost",
       "points": [
-        "Vzduchotěsné nádoby a sáčky",
-        "Skladování loupaných vs. neloupaných ořechů",
-        "Jak poznat zkažené ořechy a maximální doba skladování"
+        "Zkažené ořechy mají hořkou nebo žluklou chuť",
+        "Zkontrolujte barvu a vůni před konzumací",
+        "Mrazení prodlužuje trvanlivost až o několik měsíců",
+        "Nakupujte menší množství pro rychlejší spotřebu"
       ]
     }
   ]

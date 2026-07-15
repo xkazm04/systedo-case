@@ -1,15 +1,15 @@
 {
-  "reply": "Dobrý den, revizi elektroinstalace vám rádi zajistíme. Abychom mohli nabídnout konkrétní časy, pomohl byste nám zjistit ještě pár detailů? Především: jakou máte flexibilitu ohledně termínu a jak časově je to pro vás urgentní? Dále bychom rádi věděli, zda se jedná o novou instalaci nebo revizi stávajícího stavu, a zda máte specifické obavy či problémy, které si chcete vyjasnit. Po těchto informacích vám můžeme nabídnout konkrétní řešení.",
+  "reply": "Dobrý den, revizi elektroinstalace v kanceláři o rozloze cca 200 m² pro Vás rádi zajistíme. Přesný termín Vám potvrdíme, jakmile upřesníme pár detailů níže.",
   "questions": [
-    "Jak časově vás tuto revizi potřebujete a máte flexibilitu ohledně termínu?",
-    "Jde o novu instalaci nebo o revizi stávající elektroinstalace?",
-    "Máte nějaké specifické problémy nebo obavy, které si chcete vyjasnit, nebo jde o standardní audit?"
+    "Kdy proběhla poslední revize a jaká byla stanovena revizní lhůta?",
+    "Jedná se čistě o kancelářský provoz, nebo je v prostoru i serverovna, kuchyňka či jiný prostor s vyšším rizikem?",
+    "Máte preferovaný termín, nebo je nutné revizi provést mimo běžnou provozní dobu?"
   ],
-  "confidence": 70,
+  "confidence": 50,
   "risks": [
-    "Bez informace o skutečné dostupnosti specialistů nelze slibovat konkrétní datum — ověřit interní kapacity",
-    "Cena revize není v podkladech — ověřit cenník podle typu a rozsahu práce",
-    "Nelze určit, zda jde o B2B či B2C kontakt — tón by měl být upraven dle segmentu"
+    "Ve zprávě chybí příjmení tazatele – před odesláním doplnit oslovení příjmením dle vykání.",
+    "Nebyl uveden konkrétní termín ani cena, protože nejsou v podkladech – nutné doplnit až po ověření kapacit.",
+    "Ověřit, zda rozsah 200 m² a typ prostoru odpovídají tomu, na co lze reálně nabídnout termín."
   ],
-  "toneNotes": "Formální oslovení (Dobrý den, vy/vykání), bezprostřední odpověď na dotaz (ANO, revizi zajistíme), profesionální zájem bez slibování termínů, sbírání kvalifikačních informací k dalšímu kroku. Střízlivý přístup — nabízíme řešení na základě detailů."
+  "toneNotes": "Dotaz zodpovězen hned v první větě, důsledně vykáno; oslovení příjmením nebylo možné použít, protože chybí v podkladu – uvedeno v risks; nebyl slíben žádný termín ani cena mimo podklady."
 }

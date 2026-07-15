@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc s efektivním PNO 18,3 % a ROAS 5,4×, konverze rostou o 12 %.",
-  "summary": "Obrat 1 200 000 Kč při nákladech 220 000 Kč znamená zdravý poměr výkonu k investici. PNO 18,3 % je v komfortním pásmu pro lokální podnik a ROAS 5,4× ukazuje, že vložené prostředky se vrací s jasným ziskem. Růst konverzí o 12 % naznačuje, že poptávka i kvalita provozu jdou nahoru současně.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při efektivním PNO 18,3 % a ROAS 5,4×",
+  "summary": "Podnik zaznamenal obrat 1 200 000 Kč při nákladech na reklamu 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že kampaně cílí na relevantní poptávku a rozpočet je vynakládán efektivně.",
   "highlights": [
-    "ROAS 5,4× – z každé investované koruny se vrací přes pět korun obratu",
-    "PNO 18,3 % drží náklady na výkon pod kontrolou i při rostoucím obratu",
-    "Konverze +12 % ukazují zlepšující se kvalitu poptávky, ne jen její objem"
+    "ROAS 5,4× ukazuje, že každá koruna do reklamy se vrací více než pětinásobně",
+    "Konverze vzrostly o 12 %, což signalizuje rostoucí zájem a lepší cílení kampaní",
+    "PNO 18,3 % je pro lokální podnik/služby zdravá hodnota, ponechává prostor pro reinvestici"
   ],
   "watchouts": [
-    "Bez detailu o sezónnosti nelze potvrdit, zda je růst konverzí trvalý trend nebo jednorázový výkyv",
-    "Při dalším škálování rozpočtu je třeba hlídat, zda PNO neroste rychleji než obrat"
+    "Při dalším škálování rozpočtu může PNO začít růst, pokud se nerozšíří i objem poptávky",
+    "Růst konverzí je třeba ověřit i v návaznosti na kvalitu leadů, ne jen jejich počet"
   ],
   "priorities": [
     {
-      "title": "Ověřit udržitelnost růstu konverzí",
-      "detail": "Sledovat vývoj konverzního poměru i v příštím měsíci, aby se potvrdilo, že +12 % není jednorázový efekt sezóny nebo kampaně."
+      "title": "Otestovat postupné navýšení rozpočtu",
+      "detail": "Vzhledem k ROAS 5,4× a zdravému PNO lze zkusit navýšit rozpočet o 10–15 % u nejlépe performujících kampaní a sledovat, zda se PNO udrží pod 20 %."
     },
     {
-      "title": "Otestovat postupné navýšení rozpočtu",
-      "detail": "Vzhledem k ROAS 5,4× zvážit mírné navýšení investice do nejvýkonnějších kanálů a sledovat, zda se PNO udrží pod 20 %."
+      "title": "Prohloubit analýzu kvality konverzí",
+      "detail": "Ověřit, zda 12% nárůst konverzí odpovídá i nárůstu skutečně realizovaných zakázek/tržeb, ne jen počtu poptávek, a případně doladit cílení na kvalitnější publikum."
     }
   ]
 }

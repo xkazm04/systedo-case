@@ -6,12 +6,12 @@
     },
     {
       "type": "p",
-      "text": "Ořechy obsahují oleje, které při špatném skladování rychle žluknou a ztrácí chuť."
+      "text": "Ořechy obsahují tuky, které při špatném skladování rychle žluknou a ztrácejí chuť."
     },
     {
       "type": "ul",
       "items": [
-        "Žluknutí kazí chuť a snižuje nutriční hodnotu",
+        "Žluknutí kazí chuť i vůni ořechů",
         "Vlhkost podporuje plíseň a zkracuje trvanlivost"
       ]
     },
@@ -21,34 +21,35 @@
     },
     {
       "type": "p",
-      "text": "Správné podmínky prodlouží čerstvost ořechů o týdny až měsíce."
+      "text": "Správné podmínky prodlouží čerstvost o týdny až měsíce."
     },
     {
       "type": "ul",
       "items": [
-        "Skladujte v chladu a tmě, ideálně v lednici či mrazáku",
-        "Používejte vzduchotěsné nádoby, aby k ořechům nepronikal vzduch ani vlhkost"
+        "Skladujte v chladu a tmě, ideálně v lednici",
+        "Používejte vzduchotěsné nádoby, aby nenasákly vlhkost ani pachy"
       ]
     },
     {
       "type": "callout",
-      "variant": "tip",
-      "title": "Tip na závěr",
-      "text": "Kupujte ořechy v menším množství, ať je spotřebujete dřív, než začnou žluknout."
+      "variant": "info",
+      "title": "Tip",
+      "text": "Ořechy v skořápce vydrží déle než loupané."
     },
     {
       "type": "cta",
-      "cta": "Vyzkoušejte naše tipy a užijte si čerstvé ořechy déle."
+      "text": "Chcete více praktických tipů na skladování potravin?",
+      "cta": "Přečíst další návody"
     }
   ],
   "faq": [
     {
-      "question": "Jak dlouho vydrží ořechy čerstvé při správném skladování?",
-      "answer": "Ve vzduchotěsné nádobě v chladu a suchu vydrží obvykle několik měsíců, v mrazáku i déle."
+      "question": "Jak dlouho vydrží ořechy čerstvé v lednici?",
+      "answer": "Při správném skladování ve vzduchotěsné nádobě v lednici vydrží ořechy čerstvé i několik měsíců."
     },
     {
-      "question": "Poznám, že ořechy zežloutly?",
-      "answer": "Ano, žluklé ořechy mají hořkou nebo nepříjemnou chuť a nezaměnitelný zápach."
+      "question": "Poznám, že ořechy žluknou?",
+      "answer": "Žluklé ořechy mají hořkou nebo mýdlovou chuť a nepříjemný zápach."
     }
   ]
 }
