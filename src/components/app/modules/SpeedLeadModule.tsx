@@ -20,7 +20,8 @@ import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
 import { promptSafeName } from "@/lib/projects/name";
 import { asRejected, asSent, buildDraft, type DraftSeed } from "@/lib/twin/banking";
-import { decideDraft, REJECT_REASONS, type RejectReason, type TwinChannelConfig, type TwinDraft } from "@/lib/twin/types";
+import { buildEditFact, isMeaningfulEdit } from "@/lib/twin/edit-facts";
+import { decideDraft, REJECT_REASONS, type RejectReason, type TwinChannelConfig, type TwinDraft, type TwinStyleFact } from "@/lib/twin/types";
 import { REASON_LABELS } from "@/components/app/twin/labels";
 import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -79,6 +80,7 @@ const T = {
     cancel: "Zrušit",
     autoApproved: "Schváleno automaticky",
     learned: "Twin se poučil z {n} zamítnutí na poptávkách.",
+    editLearned: "Vaši úpravu jsem uložil jako podklad pro hlas — najdete ji v modulu Twin.",
     nextStepLeadQuality: "Posoudit kvalitu leadů podle zdroje",
     nextStepLeadQualityHint: "Které zdroje plní pipeline a které jen formuláře",
     nextStepOptimize: "Optimalizovat zdroje s pomalou reakcí",
@@ -134,6 +136,7 @@ const T = {
     cancel: "Cancel",
     autoApproved: "Auto-approved",
     learned: "The twin has learned from {n} rejections on enquiries.",
+    editLearned: "I saved your edit as voice material — find it in the Twin module.",
     nextStepLeadQuality: "Assess lead quality by source",
     nextStepLeadQualityHint: "Which sources fill the pipeline vs. just fill forms",
     nextStepOptimize: "Optimise slow-response sources",
@@ -183,8 +186,9 @@ export default function SpeedLeadModule({
   /** the `leads` channel's autonomy config — present ⇒ banking is enabled and a
    *  generated reply flows through the same lifecycle as every other channel. */
   leadsCfg?: TwinChannelConfig;
-  /** upsert a lead draft into the twin's outbox (append, or flip a record by id). */
-  onBankLead?: (draft: TwinDraft) => void;
+  /** upsert a lead draft into the twin's outbox (append, or flip a record by id).
+   *  An optional style fact (a banked pre-send edit) rides the same commit. */
+  onBankLead?: (draft: TwinDraft, fact?: TwinStyleFact) => void;
 }) {
   const project = useProject();
   const fmt = useFormatters();
@@ -217,6 +221,8 @@ export default function SpeedLeadModule({
    *  draft, overwritten by the user's edits or an accepted AI reply. */
   const [replyText, setReplyText] = useState(() => (selected ? draftReply(selected) : null)?.reply ?? "");
   const [copied, setCopied] = useState(false);
+  /** Set when a send banked the human's pre-send edit as a style fact. */
+  const [editBanked, setEditBanked] = useState(false);
   /** Which lead the editor is currently seeded for. When the selection changes we
    *  re-seed the textarea during render (React's "adjust state on prop change"
    *  pattern) rather than in an effect — no cascading render, no stale frame. */
@@ -226,6 +232,7 @@ export default function SpeedLeadModule({
     setSeededLeadId(selectedId);
     setReplyText(draftReply(selected).reply);
     setCopied(false);
+    setEditBanked(false);
     if (aiLeadId && aiLeadId !== selectedId) reset();
   }
 
@@ -355,7 +362,14 @@ export default function SpeedLeadModule({
     if (!bankingOn || !onBankLead || !leadsCfg || !selected || !aiReply) return;
     const now = new Date().toISOString();
     const base = bankedRef.current ?? buildDraft(leadsCfg, seedFor(replyText)!, uid(), now);
-    onBankLead(asSent(base, now));
+    // The human endorsed the edited text by sending it — if the edit rewrote the
+    // generated reply enough to teach from, bank the before/after as a style fact.
+    const L = locale === "en" ? "en" : "cs";
+    const editFact = isMeaningfulEdit(aiReply.reply, replyText)
+      ? buildEditFact(aiReply.reply, replyText, "leads", L, uid(), now)
+      : undefined;
+    onBankLead(asSent(base, now), editFact);
+    setEditBanked(editFact !== undefined);
     bankedRef.current = null;
     bankKeyRef.current = `${selected.id}:${aiReply.reply}`; // don't re-auto-bank
   };
@@ -760,6 +774,12 @@ export default function SpeedLeadModule({
               {respondedAt.has(selected.id) ? t("sent") : t("sendReply")}
             </button>
             <span className="text-xs text-muted">{t("sendDisclaimer")}</span>
+            {editBanked ? (
+              <span className="inline-flex items-center gap-1.5 text-xs text-brand-700">
+                <Sparkles width={13} height={13} />
+                {t("editLearned")}
+              </span>
+            ) : null}
           </div>
         </div>
       </div>

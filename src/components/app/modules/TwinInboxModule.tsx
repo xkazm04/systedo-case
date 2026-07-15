@@ -12,6 +12,7 @@
  *  the seed is read on mount rather than passed as a prop from the server. */
 import { useMemo, useState } from "react";
 import { useProject } from "@/lib/projects/context";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
 import TwinOutbox from "@/components/app/twin/TwinOutbox";
 import NextSteps from "@/components/app/NextSteps";
@@ -24,13 +25,13 @@ import { upsertDraft } from "@/lib/twin/banking";
 import { withArchivedRejects } from "@/lib/twin/archive";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import {
-  avoidDirectives,
   channelConfig,
-  rejectionPatterns,
   resolveVoice,
+  twinAvoidContext,
   type TwinChannel,
   type TwinDraft,
   type TwinState,
+  type TwinStyleFact,
 } from "@/lib/twin/types";
 import type { InboundLead } from "@/lib/speed-lead/sample";
 import type { ProjectType } from "@/lib/projects/types";
@@ -84,6 +85,8 @@ export default function TwinInboxModule({
 }) {
   const project = useProject();
   const t = useT(T);
+  const { locale } = useLocale();
+  const L = locale === "en" ? "en" : "cs";
 
   const { state, commit } = useTwinState(initialState, initialSource);
   const seed = useReplySeed(project.id);
@@ -100,14 +103,21 @@ export default function TwinInboxModule({
    *  plus what humans have already rejected there, so the twin stops repeating it. */
   const leadsVoice = resolveVoice(state.voices, "leads");
   const leadsAvoid = useMemo(
-    () => avoidDirectives(rejectionPatterns(withArchivedRejects(state.drafts, archivedRejects), "leads")),
-    [state.drafts, archivedRejects]
+    () => twinAvoidContext(withArchivedRejects(state.drafts, archivedRejects), "leads", L),
+    [state.drafts, archivedRejects, L]
   );
 
   /** The `leads` channel's autonomy config + a banking sink, so the SpeedLead inbox
-   *  writes its generated replies into the shared outbox through the same gate. */
+   *  writes its generated replies into the shared outbox through the same gate. An
+   *  optional style fact (a banked pre-send edit) rides the SAME commit as the draft,
+   *  so the two writes can't race and clobber each other's slice of the blob. */
   const leadsCfg = channelConfig(state.channels, "leads");
-  const bankLead = (draft: TwinDraft) => commit({ ...state, drafts: upsertDraft(state.drafts, draft) });
+  const bankLead = (draft: TwinDraft, fact?: TwinStyleFact) =>
+    commit({
+      ...state,
+      drafts: upsertDraft(state.drafts, draft),
+      ...(fact ? { facts: [...state.facts, fact] } : {}),
+    });
 
   return (
     <div className="stagger space-y-6">

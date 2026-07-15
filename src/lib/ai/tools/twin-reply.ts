@@ -68,7 +68,10 @@ function buildTwinReplyPrompt(req: TwinReplyRequest): string {
   const brand = txt(req.brand);
   const qualification = txt(req.qualification);
   const examples = cleanList(req.examples, 4);
-  const avoid = cleanList(req.avoid, 3);
+  // Counted-reason directives (≤3) + recent free-text reject notes (≤5). Both are
+  // grounding in this USER prompt only — the system prompt + schema (the golden
+  // fingerprint) are untouched.
+  const avoid = cleanList(req.avoid, 8);
 
   return [
     `Napiš další odchozí zprávu na kanálu: ${channelLabel}.`,

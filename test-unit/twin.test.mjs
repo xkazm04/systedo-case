@@ -13,10 +13,20 @@ import {
   channelConfig,
   decideDraft,
   DEFAULT_AUTO_THRESHOLD,
+  recentRejectNotes,
   rejectionPatterns,
+  rejectNoteDirectives,
   resolveVoice,
   sanitizeTwinState,
+  twinAvoidContext,
+  REJECT_NOTE_CAP,
 } from "@/lib/twin/types";
+import {
+  buildEditFact,
+  editDistanceRatio,
+  isMeaningfulEdit,
+  EDIT_BANK_THRESHOLD,
+} from "@/lib/twin/edit-facts";
 import { deriveReadiness, buildGaps } from "@/lib/twin/readiness";
 import { sampleTwin } from "@/lib/twin/sample";
 import { voiceToWire } from "@/lib/twin/wire";
@@ -135,6 +145,99 @@ test("avoidDirectives turns the top-N tally into prompt instructions", () => {
   ]);
   assert.equal(out.length, 3, "capped at 3 by default");
   assert.match(out[0], /kratší/);
+});
+
+test("avoidDirectives is locale-aware — cs is byte-identical, en is the mirror", () => {
+  const patterns = [{ reason: "too_long", count: 1 }];
+  // The default (no locale) and explicit "cs" must be the exact Czech string as before.
+  assert.equal(
+    avoidDirectives(patterns)[0],
+    "Piš výrazně kratší odpověď — poslední odpovědi byly odmítnuty jako příliš dlouhé.",
+    "cs byte-identical"
+  );
+  assert.deepEqual(avoidDirectives(patterns, "cs"), avoidDirectives(patterns), "explicit cs == default");
+  assert.equal(avoidDirectives(patterns, "en")[0], "Write a markedly shorter reply — recent replies were rejected as too long.");
+  // An unknown locale falls back to cs rather than emitting undefined.
+  assert.equal(avoidDirectives(patterns, "xx")[0], avoidDirectives(patterns, "cs")[0]);
+});
+
+// --- reject notes → avoid context -----------------------------------------
+
+test("recentRejectNotes: newest-first, deduped, clamped, capped, channel-scoped", () => {
+  const drafts = [
+    draft({ id: "a", rejectNote: "moc formální", decidedAt: "2026-01-01T00:00:00.000Z" }),
+    draft({ id: "b", rejectNote: "vynech ceny", decidedAt: "2026-01-03T00:00:00.000Z" }),
+    draft({ id: "c", rejectNote: "MOC formální", decidedAt: "2026-01-02T00:00:00.000Z" }), // dup of a (case-insensitive)
+    draft({ id: "d", rejectNote: "", decidedAt: "2026-01-04T00:00:00.000Z" }), // empty skipped
+    draft({ id: "e", rejectNote: "jiný kanál", channel: "chat", decidedAt: "2026-01-05T00:00:00.000Z" }),
+    draft({ id: "f", rejectNote: "neschválené", status: "approved", decidedAt: "2026-01-06T00:00:00.000Z" }), // not rejected
+  ];
+  const notes = recentRejectNotes(drafts, "email");
+  assert.deepEqual(notes, ["vynech ceny", "MOC formální"], "newest first, dedup keeps the newest form, other channel excluded");
+
+  // Cap and clamp are honoured.
+  const many = Array.from({ length: 10 }, (_, i) =>
+    draft({ id: `n${i}`, rejectNote: `poznámka ${i}`, decidedAt: `2026-02-${String(i + 1).padStart(2, "0")}T00:00:00.000Z` })
+  );
+  assert.equal(recentRejectNotes(many).length, REJECT_NOTE_CAP, "capped at REJECT_NOTE_CAP");
+  assert.equal(recentRejectNotes([draft({ rejectNote: "x".repeat(500) })], undefined, 5, 20)[0].length, 20, "clamped");
+});
+
+test("rejectNoteDirectives prefix the note per locale", () => {
+  const drafts = [draft({ rejectNote: "vynech ceny", decidedAt: "2026-01-01T00:00:00.000Z" })];
+  assert.match(rejectNoteDirectives(drafts, "email", "cs")[0], /^Člověk u dřívějšího zamítnutí napsal: vynech ceny$/);
+  assert.match(rejectNoteDirectives(drafts, "email", "en")[0], /^A human wrote on an earlier rejection: vynech ceny$/);
+});
+
+test("twinAvoidContext: counted directives first, then the free-text notes", () => {
+  const drafts = [
+    draft({ id: "a", rejectReason: "too_long", rejectNote: "moc dlouhé, zkrať", decidedAt: "2026-01-01T00:00:00.000Z" }),
+    draft({ id: "b", rejectReason: "too_long", rejectNote: "moc dlouhé, zkrať", decidedAt: "2026-01-02T00:00:00.000Z" }),
+  ];
+  const ctx = twinAvoidContext(drafts, "email", "cs");
+  assert.match(ctx[0], /kratší/, "directive leads");
+  assert.match(ctx[ctx.length - 1], /Člověk u dřívějšího/, "note trails");
+  // Dedup keeps one note even though two drafts carry it.
+  assert.equal(ctx.filter((l) => /Člověk u dřívějšího/.test(l)).length, 1);
+});
+
+// --- edit-diff learning ----------------------------------------------------
+
+test("editDistanceRatio: 0 identical, 1 fully rewritten, symmetric", () => {
+  assert.equal(editDistanceRatio("ahoj jak se máš", "ahoj jak se máš"), 0);
+  assert.equal(editDistanceRatio("", ""), 0);
+  assert.equal(editDistanceRatio("aaa bbb ccc", "xxx yyy zzz"), 1);
+  assert.equal(
+    editDistanceRatio("ahoj jak se máš", "nazdar jak se máš"),
+    editDistanceRatio("nazdar jak se máš", "ahoj jak se máš"),
+    "symmetric"
+  );
+  // One word of four changed → 0.25.
+  assert.equal(editDistanceRatio("a b c d", "a b c X"), 0.25);
+});
+
+test("isMeaningfulEdit: only a substantive rewrite of a real draft banks", () => {
+  assert.equal(isMeaningfulEdit("", "cokoli"), false, "no original");
+  assert.equal(isMeaningfulEdit("původní text", "   "), false, "emptied");
+  assert.equal(isMeaningfulEdit("stejný text tady", "stejný text tady"), false, "unchanged");
+  assert.equal(isMeaningfulEdit("stejný text tady  ", "stejný text tady"), false, "whitespace-only");
+  // Below threshold: one word of eight.
+  assert.equal(isMeaningfulEdit("a b c d e f g h", "a b c d e f g X"), false);
+  // Above threshold.
+  assert.equal(isMeaningfulEdit("a b c d", "a X Y Z"), true);
+  assert.ok(EDIT_BANK_THRESHOLD > 0 && EDIT_BANK_THRESHOLD < 1);
+});
+
+test("buildEditFact: interview-style fact, locale-aware, side-clamped", () => {
+  const f = buildEditFact("před", "po úpravě", "email", "cs", "id1", "2026-01-01T00:00:00.000Z");
+  assert.equal(f.source, "interview", "renders like an answered gap question");
+  assert.equal(f.scope, "email");
+  assert.equal(f.question, "Úprava před odesláním");
+  assert.match(f.answer, /Upravil odpověď: .*před.* → .*po úpravě.*/);
+  assert.equal(buildEditFact("před", "po", "email", "en", "id2", "t").question, "Pre-send edit");
+  // Each side is clamped independently.
+  const big = buildEditFact("x".repeat(1000), "y".repeat(1000), "email", "cs", "id3", "t", 10);
+  assert.ok(big.answer.includes("x".repeat(10)) && !big.answer.includes("x".repeat(11)));
 });
 
 // --- channelConfig ---------------------------------------------------------

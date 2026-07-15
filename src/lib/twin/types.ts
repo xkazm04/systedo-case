@@ -227,6 +227,10 @@ export function rejectionPatterns(
     .sort((a, b) => b.count - a.count);
 }
 
+/** The locale of the avoid context. The twin's directives are grounding text in the
+ *  USER prompt, so switching them per project locale never moves a golden fingerprint. */
+export type AvoidLocale = "cs" | "en";
+
 /** The Czech instruction each rejection reason turns into, so a tally of past
  *  human "no"s becomes a constraint on the next generation. */
 const AVOID_CS: Record<RejectReason, string> = {
@@ -237,9 +241,92 @@ const AVOID_CS: Record<RejectReason, string> = {
   risky_claim: "Nedávej žádné sliby o cenách, termínech ani výsledcích — poslední odpovědi obsahovaly rizikové sliby.",
 };
 
-/** Top-N rejection reasons rendered as prompt directives. */
-export function avoidDirectives(patterns: { reason: RejectReason; count: number }[], limit = 3): string[] {
-  return patterns.slice(0, limit).map((p) => AVOID_CS[p.reason]);
+/** The English mirror, for an `en` project — the loop was Czech-only before. */
+const AVOID_EN: Record<RejectReason, string> = {
+  off_brand: "Stick precisely to the brand voice — recent replies were rejected as off-brand.",
+  inaccurate: "Claim nothing that isn't in the source material — recent replies were rejected as inaccurate.",
+  too_long: "Write a markedly shorter reply — recent replies were rejected as too long.",
+  wrong_tone: "Adjust the tone (formality and warmth) — recent replies had the wrong tone.",
+  risky_claim: "Make no promises about prices, deadlines or outcomes — recent replies contained risky claims.",
+};
+
+const AVOID_MAP: Record<AvoidLocale, Record<RejectReason, string>> = { cs: AVOID_CS, en: AVOID_EN };
+
+/** Top-N rejection reasons rendered as prompt directives, in the project's locale.
+ *  Defaults to `cs` so existing callers (and the golden) stay byte-identical. */
+export function avoidDirectives(
+  patterns: { reason: RejectReason; count: number }[],
+  locale: AvoidLocale = "cs",
+  limit = 3
+): string[] {
+  const map = AVOID_MAP[locale] ?? AVOID_CS;
+  return patterns.slice(0, limit).map((p) => map[p.reason]);
+}
+
+/** How many free-text reject NOTES fold into the avoid context, and how long each
+ *  may be. Documented bounds: the counted reasons are the strong signal; the notes
+ *  add the specific "why" a human typed, newest first. */
+export const REJECT_NOTE_CAP = 5;
+export const REJECT_NOTE_MAXLEN = 200;
+
+const NOTE_AVOID_PREFIX: Record<AvoidLocale, string> = {
+  cs: "Člověk u dřívějšího zamítnutí napsal: ",
+  en: "A human wrote on an earlier rejection: ",
+};
+
+/** The most-recent, non-empty, de-duplicated reject notes — newest first (by the
+ *  decision stamp), each length-clamped, capped. Pure selection over the same
+ *  drafts the tally reads; the caller merges the bounded archive in first so an old
+ *  lesson survives its draft aging out of the hot blob. */
+export function recentRejectNotes(
+  drafts: TwinDraft[],
+  channel?: TwinChannel,
+  cap = REJECT_NOTE_CAP,
+  maxLen = REJECT_NOTE_MAXLEN
+): string[] {
+  const rejected = drafts
+    .filter((d) => d.status === "rejected" && (!channel || d.channel === channel))
+    .map((d) => ({ note: (d.rejectNote ?? "").trim(), at: d.decidedAt ?? d.createdAt }))
+    .filter((x) => x.note.length > 0)
+    // ISO stamps sort lexicographically; descending = newest first.
+    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0));
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const { note } of rejected) {
+    const clamped = note.slice(0, maxLen);
+    const key = clamped.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(clamped);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+/** Reject notes rendered as avoid-context lines, prefixed per locale. */
+export function rejectNoteDirectives(
+  drafts: TwinDraft[],
+  channel: TwinChannel | undefined,
+  locale: AvoidLocale = "cs",
+  cap = REJECT_NOTE_CAP
+): string[] {
+  const prefix = NOTE_AVOID_PREFIX[locale] ?? NOTE_AVOID_PREFIX.cs;
+  return recentRejectNotes(drafts, channel, cap).map((n) => `${prefix}${n}`);
+}
+
+/** The full avoid context for a channel: the counted-reason directives first (the
+ *  strongest, tallied signal), then the most-recent free-text reject notes (what a
+ *  human actually said). Both locale-aware; pure over drafts the caller has already
+ *  merged with the bounded reject archive. */
+export function twinAvoidContext(
+  drafts: TwinDraft[],
+  channel: TwinChannel | undefined,
+  locale: AvoidLocale = "cs"
+): string[] {
+  const directives = avoidDirectives(rejectionPatterns(drafts, channel), locale);
+  const notes = rejectNoteDirectives(drafts, channel, locale);
+  return [...directives, ...notes];
 }
 
 /* -------------------------------------------------------------------------- */

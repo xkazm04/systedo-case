@@ -27,14 +27,15 @@ import { promptSafeName } from "@/lib/projects/name";
 import { voiceToWire } from "@/lib/twin/wire";
 import { asApproved, asRejected, buildDraft, upsertDraft } from "@/lib/twin/banking";
 import { withArchivedRejects } from "@/lib/twin/archive";
+import { buildEditFact, isMeaningfulEdit } from "@/lib/twin/edit-facts";
 import type { TwinReplyResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
-  avoidDirectives,
   channelConfig,
   decideDraft,
   rejectionPatterns,
   resolveVoice,
+  twinAvoidContext,
   REJECT_REASONS,
   TWIN_CHANNELS,
   type RejectReason,
@@ -82,6 +83,7 @@ const T = {
     autonomyAuto: "Režim: samostatný nad {n} % jistoty",
     manualNote: "Adamant zprávu neodesílá — zkopírujte ji a odešlete svým kanálem.",
     learned: "Twin se poučil z {n} zamítnutí na tomto kanálu.",
+    editLearned: "Vaši úpravu jsem uložil jako podklad pro hlas — najdete ji v modulu Twin.",
   },
   en: {
     channel: "Channel",
@@ -121,6 +123,7 @@ const T = {
     autonomyAuto: "Mode: autonomous above {n}% confidence",
     manualNote: "Adamant does not send messages — copy the text and send it yourself.",
     learned: "The twin has learned from {n} rejections on this channel.",
+    editLearned: "I saved your edit as voice material — find it in the Twin module.",
   },
 } as const;
 
@@ -172,6 +175,9 @@ export default function TwinOutbox({
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<RejectReason>("off_brand");
   const [rejectNote, setRejectNote] = useState("");
+  /** Set when an Approve banked the human's edit as a style fact, so the notice
+   *  shows the learning happened (never a silent bank). */
+  const [editBanked, setEditBanked] = useState(false);
   /** The channel+contact the live draft was generated for — never the live inputs. */
   const [draftContext, setDraftContext] = useState<{ channel: TwinChannel; contact: string } | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -180,10 +186,13 @@ export default function TwinOutbox({
 
   const cfg = channelConfig(state.channels, channel);
   const voice = resolveVoice(state.voices, channel);
-  const patterns = useMemo(
-    () => rejectionPatterns(withArchivedRejects(state.drafts, archivedRejects), channel),
-    [state.drafts, archivedRejects, channel]
+  /** Hot drafts + the bounded reject archive, the single list every learning read
+   *  (the tally, the notes) is derived from so an aged-out lesson still counts. */
+  const merged = useMemo(
+    () => withArchivedRejects(state.drafts, archivedRejects),
+    [state.drafts, archivedRejects]
   );
+  const patterns = useMemo(() => rejectionPatterns(merged, channel), [merged, channel]);
   const rejectedCount = patterns.reduce((n, p) => n + p.count, 0);
 
   const channelDrafts = useMemo(
@@ -211,7 +220,10 @@ export default function TwinOutbox({
     if (!inbound.trim() || ai.status === "loading") return;
     setDraftContext({ channel, contact: contact.trim() });
     setPendingId(null);
-    const avoid = avoidDirectives(patterns);
+    setEditBanked(false);
+    // Counted-reason directives + the recent free-text reject notes, in the project
+    // locale — everything the human has said about past "no"s on this channel.
+    const avoid = twinAvoidContext(merged, channel, L);
     ai.run({
       inbound: inbound.trim(),
       channel,
@@ -286,11 +298,24 @@ export default function TwinOutbox({
   const approve = () => {
     const draft = bankDraft();
     if (!draft) return;
+    const now = new Date().toISOString();
     // A human pressed Approve, so this is never an auto-approval however the gate
     // would have ruled.
-    const approved = asApproved(draft, new Date().toISOString());
-    onCommit({ ...state, drafts: [...state.drafts, approved] });
+    const approved = asApproved(draft, now);
+    // If the human rewrote the generated reply enough to teach from, bank that
+    // before/after as an interview-style style fact — the correction the old outbox
+    // discarded. Capped by MAX_FACTS at the wire (sanitizeTwinState), like every fact.
+    const original = result?.reply ?? "";
+    const editFact = isMeaningfulEdit(original, replyText)
+      ? buildEditFact(original, replyText, channel, L, uid(), now)
+      : null;
+    onCommit({
+      ...state,
+      drafts: [...state.drafts, approved],
+      ...(editFact ? { facts: [...state.facts, editFact] } : {}),
+    });
     setPendingId(approved.id);
+    setEditBanked(editFact !== null);
     ai.reset();
     setSeededReply(null);
     setInbound("");
@@ -382,6 +407,7 @@ export default function TwinOutbox({
               setSeededReply(null);
               setPendingId(null);
               setSendNote(null);
+              setEditBanked(false);
             }}
             className={`${inputClass} mt-1.5 max-w-xs`}
           >
@@ -622,6 +648,12 @@ export default function TwinOutbox({
                 {copied ? t("copied") : t("copy")}
               </button>
             </div>
+          )}
+          {editBanked && (
+            <p className="flex items-center gap-1.5 text-xs text-brand-700">
+              <Sparkles width={13} height={13} />
+              {t("editLearned")}
+            </p>
           )}
           {sendNote && <p className="text-xs text-muted">{sendNote}</p>}
         </>

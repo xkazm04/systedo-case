@@ -311,7 +311,10 @@ export function validateTwinReplyRequest(input: unknown, locale: SupportedLocale
   if (thread.length > 0) value.thread = thread;
   const examples = parseGroundingList(o.examples, 4, 1200);
   if (examples.length > 0) value.examples = examples;
-  const avoid = parseGroundingList(o.avoid, 3, 300);
+  // Room for the counted-reason directives (≤3) plus the recent free-text reject
+  // notes (≤5) the client now folds into the avoid context. Grounding for the USER
+  // prompt only, so a larger cap never moves the twin-reply golden fingerprint.
+  const avoid = parseGroundingList(o.avoid, 8, 300);
   if (avoid.length > 0) value.avoid = avoid;
   const qualification = str(o.qualification);
   if (qualification) value.qualification = qualification.slice(0, 600);
