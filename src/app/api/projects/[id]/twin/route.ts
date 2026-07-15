@@ -5,6 +5,8 @@
  *  organic-channels route's auth shape. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { saveTwin, clearTwin } from "@/lib/twin/store";
+import { archiveDrafts, clearArchive, listArchivedRejects } from "@/lib/twin/archive-store";
+import { partitionDrafts } from "@/lib/twin/archive";
 import { channelConfig, decideDraft, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
 import { readJson } from "@/lib/api/route-utils";
 
@@ -41,8 +43,48 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const body = await readJson(req);
   const state = enforceAutonomy(sanitizeTwinState(body));
-  await saveTwin(project.id, { ...state, updatedAt: new Date().toISOString() });
+
+  // Split live (pending/approved) from terminal (sent/rejected) drafts. Terminal
+  // records beyond the recent window ARCHIVE out of the hot blob instead of being
+  // silently sliced at the wire cap. Eviction from the blob happens ONLY once the
+  // archive write succeeds, so a store hiccup keeps the records hot (retried next
+  // save) rather than losing them. A legacy oversized blob archives on this first
+  // save. `updatedAt` is refreshed AFTER the split so the timestamp isn't archived
+  // stale onto the records.
+  const { hot, archive } = partitionDrafts(state.drafts);
+  let keptDrafts = state.drafts;
+  if (archive.length > 0) {
+    try {
+      await archiveDrafts(project.id, archive);
+      keptDrafts = hot;
+    } catch (err) {
+      console.warn(
+        `[twin] archive failed for ${project.id}; keeping ${archive.length} terminal record(s) hot:`,
+        err
+      );
+    }
+  } else {
+    keptDrafts = hot;
+  }
+
+  await saveTwin(project.id, { ...state, drafts: keptDrafts, updatedAt: new Date().toISOString() });
   return Response.json({ ok: true });
+}
+
+/** The project's recent archived REJECTS — the bounded read the client folds back
+ *  into its rejection tally so learning doesn't regress as older rejects move to
+ *  history. Read-only; owner-checked like the writes. */
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const g = await requireOwnedProject(id, { envelope: "ok" });
+  if ("error" in g) return g.error;
+  let rejects: Awaited<ReturnType<typeof listArchivedRejects>> = [];
+  try {
+    rejects = await listArchivedRejects(g.project.id, 200);
+  } catch (err) {
+    console.warn(`[twin] archived-rejects read failed for ${g.project.id}:`, err);
+  }
+  return Response.json({ rejects });
 }
 
 /** Untrain the twin: back to the seeded per-type sample, empty outbox. */
@@ -52,5 +94,11 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if ("error" in g) return g.error;
   const { project } = g;
   await clearTwin(project.id);
+  // Untrain wipes the outbox history too — the archive is part of "this twin".
+  try {
+    await clearArchive(project.id);
+  } catch (err) {
+    console.warn(`[twin] archive clear failed for ${project.id}:`, err);
+  }
   return Response.json({ ok: true });
 }

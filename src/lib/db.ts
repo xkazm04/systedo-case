@@ -198,6 +198,25 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- The Twin outbox's history store: terminal drafts (sent/rejected) ARCHIVED out
+  -- of the hot twin blob so audit records stop silently vanishing when the blob's
+  -- draft cap is reached. One row per archived draft; the full record is the JSON
+  -- data blob, with channel/status/archived_at columned for the bounded reads
+  -- (rejection-pattern learning, history listing) + oldest-first eviction. Capped
+  -- ~1000/project on write. See src/lib/twin/archive-store.*.
+  CREATE TABLE IF NOT EXISTS twin_archive (
+    project_id  TEXT NOT NULL,
+    id          TEXT NOT NULL,
+    channel     TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    archived_at TEXT NOT NULL,
+    data        TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_twin_archive_project
+    ON twin_archive (project_id, archived_at);
+
   -- Imported CRM leads per project: one {items[], source, syncedAt, updatedAt} blob,
   -- each item a raw lead (source + stage + date + optional value/closeDate). Absent →
   -- the funnel runs on the seeded per-project sample (illustrative). Present → the
@@ -328,7 +347,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (21 tables + projects/cron_runs indexes)",
+    name: "base schema (23 tables + projects/cron_runs/twin_archive indexes)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -434,6 +453,27 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "finance_inputs"),
+  },
+  {
+    version: 12,
+    name: "twin_archive (terminal-draft history so audit records stop vanishing)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS twin_archive (
+          project_id  TEXT NOT NULL,
+          id          TEXT NOT NULL,
+          channel     TEXT NOT NULL,
+          status      TEXT NOT NULL,
+          archived_at TEXT NOT NULL,
+          data        TEXT NOT NULL,
+          PRIMARY KEY (project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_twin_archive_project ON twin_archive (project_id, archived_at)"
+      );
+    },
+    applied: (db) => tableExists(db, "twin_archive"),
   },
 ];
 

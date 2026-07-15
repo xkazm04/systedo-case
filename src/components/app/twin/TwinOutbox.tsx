@@ -26,6 +26,7 @@ import { LoadingTimer, RefineBar, TimeoutState, ToolError, inputClass } from "@/
 import { promptSafeName } from "@/lib/projects/name";
 import { voiceToWire } from "@/lib/twin/wire";
 import { asApproved, asRejected, buildDraft, upsertDraft } from "@/lib/twin/banking";
+import { withArchivedRejects } from "@/lib/twin/archive";
 import type { TwinReplyResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -141,6 +142,7 @@ export default function TwinOutbox({
   channel,
   onChannel,
   onCommit,
+  archivedRejects = [],
   initialContact = "",
   initialInbound = "",
 }: {
@@ -149,6 +151,9 @@ export default function TwinOutbox({
   channel: TwinChannel;
   onChannel: (c: TwinChannel) => void;
   onCommit: (next: TwinState) => void;
+  /** archived rejects (bounded), folded into the rejection tally so learning
+   *  survives drafts aging out of the hot blob into history */
+  archivedRejects?: TwinDraft[];
   /** pre-filled from a hand-off (e.g. the Socials inbox → `replySeedKey`) */
   initialContact?: string;
   initialInbound?: string;
@@ -175,7 +180,10 @@ export default function TwinOutbox({
 
   const cfg = channelConfig(state.channels, channel);
   const voice = resolveVoice(state.voices, channel);
-  const patterns = useMemo(() => rejectionPatterns(state.drafts, channel), [state.drafts, channel]);
+  const patterns = useMemo(
+    () => rejectionPatterns(withArchivedRejects(state.drafts, archivedRejects), channel),
+    [state.drafts, archivedRejects, channel]
+  );
   const rejectedCount = patterns.reduce((n, p) => n + p.count, 0);
 
   const channelDrafts = useMemo(

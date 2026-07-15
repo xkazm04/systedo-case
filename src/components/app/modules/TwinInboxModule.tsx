@@ -16,10 +16,12 @@ import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
 import TwinOutbox from "@/components/app/twin/TwinOutbox";
 import NextSteps from "@/components/app/NextSteps";
 import { useTwinState, type TwinSource } from "@/components/app/twin/useTwinState";
+import { useArchivedRejects } from "@/components/app/twin/useArchivedRejects";
 import { useT } from "@/lib/i18n/client";
 import { parseReplySeed, replySeedKey } from "@/lib/twin/reply-seed";
 import { voiceToWire } from "@/lib/twin/wire";
 import { upsertDraft } from "@/lib/twin/banking";
+import { withArchivedRejects } from "@/lib/twin/archive";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import {
   avoidDirectives,
@@ -85,6 +87,9 @@ export default function TwinInboxModule({
 
   const { state, commit } = useTwinState(initialState, initialSource);
   const seed = useReplySeed(project.id);
+  /** Archived rejects (bounded), folded into every rejection tally so learning
+   *  survives drafts aging out of the hot blob into history. */
+  const archivedRejects = useArchivedRejects(project.id);
 
   const leadsEnabled = state.channels.some((c) => c.channel === "leads" && c.enabled);
   const [channel, setChannel] = useState<TwinChannel>(
@@ -94,7 +99,10 @@ export default function TwinInboxModule({
   /** The voice the `leads` inbox writes in — its own, else the generic register —
    *  plus what humans have already rejected there, so the twin stops repeating it. */
   const leadsVoice = resolveVoice(state.voices, "leads");
-  const leadsAvoid = useMemo(() => avoidDirectives(rejectionPatterns(state.drafts, "leads")), [state.drafts]);
+  const leadsAvoid = useMemo(
+    () => avoidDirectives(rejectionPatterns(withArchivedRejects(state.drafts, archivedRejects), "leads")),
+    [state.drafts, archivedRejects]
+  );
 
   /** The `leads` channel's autonomy config + a banking sink, so the SpeedLead inbox
    *  writes its generated replies into the shared outbox through the same gate. */
@@ -109,6 +117,7 @@ export default function TwinInboxModule({
         channel={channel}
         onChannel={setChannel}
         onCommit={commit}
+        archivedRejects={archivedRejects}
         initialContact={seed?.contact ?? ""}
         initialInbound={seed?.inbound ?? ""}
       />

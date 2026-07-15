@@ -21,6 +21,15 @@ import { deriveReadiness, buildGaps } from "@/lib/twin/readiness";
 import { sampleTwin } from "@/lib/twin/sample";
 import { voiceToWire } from "@/lib/twin/wire";
 import { asApproved, asRejected, asSent, buildDraft, upsertDraft } from "@/lib/twin/banking";
+import {
+  HOT_DRAFTS_CAP,
+  isTerminal,
+  overflowCount,
+  partitionDrafts,
+  RECENT_TERMINAL_WINDOW,
+  TWIN_ARCHIVE_CAP,
+  withArchivedRejects,
+} from "@/lib/twin/archive";
 import { voiceLines } from "@/lib/ai/tools/voice";
 
 const cfg = (over = {}) => ({
@@ -241,6 +250,84 @@ test("a banked+sent lead draft ticks the `activity` readiness milestone", () => 
     "complete",
     "a sent lead draft is real activity — the milestone the leads inbox never used to reach"
   );
+});
+
+// --- archival: the hot ⇄ history split -------------------------------------
+
+const term = (id, status, over = {}) =>
+  draft({ id, status, createdAt: `2026-07-15T00:00:${String(id).padStart(2, "0")}.000Z`, ...over });
+const live = (id, status = "pending") =>
+  draft({ id, status, reply: "x", createdAt: `2026-07-15T00:00:${String(id).padStart(2, "0")}.000Z` });
+
+test("isTerminal marks sent/rejected as audit records, pending/approved as live", () => {
+  assert.equal(isTerminal(draft({ status: "sent" })), true);
+  assert.equal(isTerminal(draft({ status: "rejected" })), true);
+  assert.equal(isTerminal(draft({ status: "pending" })), false);
+  assert.equal(isTerminal(draft({ status: "approved" })), false);
+});
+
+test("partitionDrafts keeps live + a recent-terminal window, archives the older terminal rest", () => {
+  // window+5 terminal drafts + 2 live, with a tiny window to force archival.
+  const terminal = Array.from({ length: 8 }, (_, i) => term(i + 1, i % 2 ? "sent" : "rejected"));
+  const liveDrafts = [live(90, "pending"), live(91, "approved")];
+  const { hot, archive } = partitionDrafts([...terminal, ...liveDrafts], 3, 100);
+
+  // every live draft stays hot, regardless of the window
+  assert.ok(liveDrafts.every((d) => hot.some((h) => h.id === d.id)), "live work is never archived");
+  // exactly `window` newest terminal stay hot; the older 5 archive
+  const hotTerminal = hot.filter(isTerminal);
+  assert.equal(hotTerminal.length, 3, "the recent-terminal window is kept hot");
+  assert.deepEqual(hotTerminal.map((d) => d.id), [6, 7, 8], "the NEWEST terminal drafts are the ones kept");
+  assert.equal(archive.length, 5, "older terminal drafts archive out");
+  assert.deepEqual(archive.map((d) => d.id), [1, 2, 3, 4, 5]);
+  // hot preserves the original chronological order
+  assert.deepEqual(hot.map((d) => d.id), [6, 7, 8, 90, 91]);
+});
+
+test("partitionDrafts archives nothing when terminal drafts fit the window", () => {
+  const drafts = [live(1), term(2, "sent"), term(3, "rejected")];
+  const { hot, archive } = partitionDrafts(drafts, RECENT_TERMINAL_WINDOW, HOT_DRAFTS_CAP);
+  assert.equal(archive.length, 0, "under the window, nothing leaves the hot blob");
+  assert.equal(hot.length, 3);
+});
+
+test("partitionDrafts caps the hot window by the room the blob has after live work", () => {
+  // cap 5, 4 live drafts → room for only 1 terminal even though the window is larger.
+  const drafts = [live(1), live(2), live(3), live(4), term(5, "sent"), term(6, "rejected")];
+  const { hot, archive } = partitionDrafts(drafts, RECENT_TERMINAL_WINDOW, 5);
+  assert.equal(hot.filter(isTerminal).length, 1, "only 1 terminal fits under the cap");
+  assert.deepEqual(hot.filter(isTerminal).map((d) => d.id), [6], "and it is the newest one");
+  assert.equal(archive.length, 1);
+});
+
+test("partitionDrafts never archives live work even past the cap (blob runs over, no loss)", () => {
+  const drafts = Array.from({ length: 7 }, (_, i) => live(i + 1, "pending"));
+  const { hot, archive } = partitionDrafts(drafts, RECENT_TERMINAL_WINDOW, 5);
+  assert.equal(archive.length, 0, "pending work is never evicted");
+  assert.equal(hot.length, 7, "the blob is allowed to run over rather than lose live drafts");
+});
+
+test("overflowCount is the eviction decision, apart from the SQL that performs it", () => {
+  assert.equal(overflowCount(1003, TWIN_ARCHIVE_CAP), 3);
+  assert.equal(overflowCount(TWIN_ARCHIVE_CAP, TWIN_ARCHIVE_CAP), 0);
+  assert.equal(overflowCount(5, TWIN_ARCHIVE_CAP), 0);
+});
+
+test("withArchivedRejects folds history into the tally, de-duped by id", () => {
+  const hot = [draft({ id: "a", status: "rejected", rejectReason: "too_long" })];
+  const archived = [
+    draft({ id: "a", status: "rejected", rejectReason: "too_long" }), // dup of hot — must not double-count
+    draft({ id: "z", status: "rejected", rejectReason: "off_brand" }),
+  ];
+  const merged = withArchivedRejects(hot, archived);
+  assert.equal(merged.length, 2, "the overlapping id is not counted twice");
+  assert.equal(withArchivedRejects(hot, []), hot, "no archive → the hot list unchanged");
+  // the fold is exactly what keeps rejectionPatterns from regressing as rejects age out
+  const p = rejectionPatterns(merged);
+  assert.deepEqual(p, [
+    { reason: "too_long", count: 1 },
+    { reason: "off_brand", count: 1 },
+  ]);
 });
 
 // --- wire conversion -------------------------------------------------------

@@ -248,7 +248,14 @@ export function avoidDirectives(patterns: { reason: RejectReason; count: number 
 
 const MAX_VOICES = TONE_SCOPES.length;
 const MAX_FACTS = 200;
-const MAX_DRAFTS = 200;
+/** The wire boundary's HARD safety ceiling on the drafts array — a bound on the
+ *  POST payload, NOT the hot-blob policy. Sanitize must no longer silently slice
+ *  audit records at 200 (the old MAX_DRAFTS): the server route splits live vs.
+ *  terminal drafts and ARCHIVES the overflow instead (see lib/twin/archive +
+ *  archive-store). This ceiling only guards against a pathological megablob; a
+ *  legacy oversized blob up to this size survives sanitize so the route can archive
+ *  it on first save. */
+const MAX_DRAFTS_WIRE = 2000;
 
 const str = (v: unknown, max: number): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
@@ -382,7 +389,7 @@ export function sanitizeTwinState(raw: unknown): TwinState {
       ? o.facts.map(sanitizeFact).filter((f): f is TwinStyleFact => f !== null).slice(0, MAX_FACTS)
       : [],
     drafts: Array.isArray(o.drafts)
-      ? o.drafts.map(sanitizeDraft).filter((d): d is TwinDraft => d !== null).slice(0, MAX_DRAFTS)
+      ? o.drafts.map(sanitizeDraft).filter((d): d is TwinDraft => d !== null).slice(0, MAX_DRAFTS_WIRE)
       : [],
   };
 }
