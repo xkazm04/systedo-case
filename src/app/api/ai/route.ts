@@ -19,26 +19,6 @@ import {
   generateOnboardingScan,
   generateRepurpose,
 } from "@/lib/ai/tools";
-import {
-  validateAdRequest,
-  validateAnalysisRequest,
-  validateChannelResearchRequest,
-  validateOnboardingScanRequest,
-  validateMonthlyRecapRequest,
-  validateChatRequest,
-  validateArticleDraftRequest,
-  validateBriefRequest,
-  validateCohortDiagnosisRequest,
-  validateComparisonOutlineRequest,
-  validateKeywordClustersRequest,
-  validateTwinReplyRequest,
-  validateTwinStyleRequest,
-  validateLeadSourceDiagnosisRequest,
-  validateLocalDiagnosisRequest,
-  validateLocalReviewReplyRequest,
-  validateLpVariantIdeasRequest,
-  validateRepurposeRequest,
-} from "@/lib/ai/validation";
 import { consume, refund, getUserPlan } from "@/lib/usage";
 import { refundGlobalSpend } from "@/lib/ai/durable-limit";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -47,35 +27,21 @@ import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
 import type { SupportedLocale } from "@/lib/format";
-import type { AiResponse, ChatRequest, MonthlyRecapRequest, LpVariantIdeasRequest, AnalysisPeriod, OnboardingScanRequest } from "@/lib/ai-types";
+import type { AiResponse } from "@/lib/ai-types";
 import { fetchSiteText, FeedFetchError } from "@/lib/onboarding/site-fetch";
-import { buildSnapshot } from "@/lib/snapshot";
-import type { PerformanceData } from "@/lib/types";
-import type { ProjectType } from "@/lib/projects/types";
-import { getProject } from "@/lib/projects/store";
-import { loadBrandContext } from "@/lib/brand/load";
 import { resolveTwinVoice } from "@/lib/twin/load";
-import { getProjectDataset } from "@/lib/project-data/dataset";
-import { resolveReportDataset } from "@/lib/report-metrics/resolve";
-import { staleCaveatText } from "@/lib/report-metrics/freshness";
-import { getAnnotations } from "@/lib/annotations/store";
-import { annotationsGroundingText } from "@/lib/annotations/types";
-import { resolveLeadSignals, resolveLeadSignalsPromptText } from "@/lib/lead-signals/summary";
-import { localSignalsPromptText } from "@/lib/local-signals/summary";
-import { getCompetitors } from "@/lib/competitors/store";
-import { competitorGroundingText } from "@/lib/competitors/grounding";
-import { getCostModel } from "@/lib/cost-model/store";
-import { profitGroundingText, historyGroundingText } from "@/lib/report/recap-context";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
 import { recordRecap, buildStoredRecap, recapInputHash } from "@/lib/recaps";
 import { randomUUID } from "node:crypto";
 import { releaseSlot } from "@/lib/ai/rate-limit";
 import { guardPaidGeneration } from "@/lib/ai/paid-guard";
-import { resolveTenant } from "@/lib/campaigns/connector";
-import { getClientProfile } from "@/lib/campaigns/report-config";
-import { getPatternLines } from "@/lib/patterns/store";
-import { adPatternQuery } from "@/lib/patterns/query";
+import { createModeTable, dispatchMode, type ModeDeps } from "./modes";
+import {
+  resolveGrounding,
+  resolveAdPatterns,
+  resolveBrandContext,
+  resolveLeadGrounding,
+} from "./grounding";
 
 
 /** Cache-then-quota-then-generate for one tool call. An identical (mode, locale,
@@ -154,196 +120,54 @@ async function cachedRespond(
   return Response.json(result);
 }
 
-/** Czech business-type framing per project type — lets a grounded op (monthly
- *  recap) speak the project's language instead of assuming e-commerce. */
-const BUSINESS_TYPE: Record<ProjectType, string> = {
-  eshop: "e-shop (e-commerce)",
-  app: "digitální produkt / aplikace",
-  leadgen: "generování poptávek (leadgen)",
-  content: "obsahový web / publisher",
-  local: "lokální podnik / služby",
+/** The real store-/provider-/network-touching wiring behind every mode. The
+ *  descriptor table (./modes) declares WHAT each tool does; this binds it to the
+ *  concrete generators, grounding resolvers, site fetch and recap persistence. A
+ *  22nd tool adds its generator here and one row there — nothing else in this file. */
+const realDeps: ModeDeps = {
+  gen: {
+    ads: generateAds,
+    brief: generateBrief,
+    analysis: generateAnalysis,
+    monthlyRecap: generateMonthlyRecap,
+    chat: generateChat,
+    twinReply: generateTwinReply,
+    twinStyle: generateTwinStyle,
+    repurpose: generateRepurpose,
+    localReviewReply: generateLocalReviewReply,
+    articleDraft: generateArticleDraft,
+    cohortDiagnosis: generateCohortDiagnosis,
+    keywordClusters: generateKeywordClusters,
+    comparisonOutline: generateComparisonOutline,
+    lpVariantIdeas: generateLpVariantIdeas,
+    leadSourceDiagnosis: generateLeadSourceDiagnosis,
+    localDiagnosis: generateLocalDiagnosis,
+    channelResearch: generateChannelResearch,
+    onboardingScan: generateOnboardingScan,
+  },
+  resolveGrounding,
+  resolveAdPatterns,
+  resolveBrandContext,
+  resolveTwinVoice,
+  resolveLeadGrounding,
+  fetchSiteText,
+  // A fetch failure is a clear 422 (bad/unreachable URL), not a generic generation
+  // error — byte-identical to the old inline onboarding-scan catch.
+  onFetchError: (err) => {
+    const msg = err instanceof FeedFetchError ? err.message : "Web se nepodařilo načíst.";
+    return Response.json({ error: msg, code: "invalid" }, { status: 422 });
+  },
+  recap: {
+    record: recordRecap,
+    build: buildStoredRecap,
+    inputHash: recapInputHash,
+    uuid: randomUUID,
+  },
 };
 
-/** Resolve the dataset a grounded op (chat, monthly recap) reads, with tenancy. A
- *  demo project id is public; a real project id must belong to the caller. `keyId`
- *  keys the response cache by the EFFECTIVE grounding, so an unowned id can never
- *  serve another tenant's cached answer — it degrades to the shared base result.
- *  `businessType` frames per-type recaps (undefined for the base fallback). */
-async function resolveGrounding(
-  projectId: string | undefined,
-  userId: string | null,
-  locale: SupportedLocale,
-  // R02: the recap period, so the lead-signals breakdown scales to the SAME period
-  // lead total the report tile shows (reconciled tile ↔ narrative). Undefined → the
-  // sample totals are left unscaled (callers that don't render a report tile).
-  period?: AnalysisPeriod
-): Promise<{ data?: PerformanceData; keyId: string; businessType?: string; projectType?: ProjectType; groundingContext?: string }> {
-  if (!projectId) return { keyId: "base" };
-  // The period lead total = the tile's conversion figure (buildSnapshot drives both).
-  const targetLeads = (data: PerformanceData) =>
-    period ? buildSnapshot(period, "previous", data).current.conversions : undefined;
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) {
-    const data = getProjectDataset(demo);
-    const localText = await localSignalsPromptText(demo, locale);
-const lead = await resolveLeadSignals(demo, targetLeads(data));
-    const comp = await mergeGrounding(demo.id, lead.text, localText, data, locale, windowDaysFor(period), period, lead.version);
-    return {
-      data,
-      // C3: the grounding inputs' versions enter the cache key so edits re-generate.
-      keyId: comp.keySuffix ? `${demo.id}#${comp.keySuffix}` : demo.id,
-      businessType: BUSINESS_TYPE[demo.type],
-      // R01: raw type shapes the recap DATA block's metric vocabulary.
-      projectType: demo.type,
-      // C2 lead-source + C3 competitors + profit/history → deeper recap grounding.
-      groundingContext: comp.text,
-    };
-  }
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) {
-      // A1: ground on the project's LIVE Ads data when synced, else the sample spine.
-      // A live sync's timestamp keys the cache so a re-sync serves fresh, not stale.
-      const resolved = await resolveReportDataset(project);
-      const localText = await localSignalsPromptText(project, locale);
-const lead = await resolveLeadSignals(project, targetLeads(resolved.data));
-      const comp = await mergeGrounding(project.id, lead.text, localText, resolved.data, locale, windowDaysFor(period), period, lead.version);
-      // D1: when the live series is stale, the recap gets a one-line caveat so the
-      // narrative acknowledges the data age instead of presenting month-old numbers
-      // as current. USER-prompt only (groundingContext) — no system-prompt / golden
-      // fingerprint change. Empty (byte-identical prompt) when fresh or on sample.
-      const staleText = resolved.stale ? staleCaveatText(resolved.syncedAt, new Date(), locale) : "";
-      // Staleness flips once for a FIXED syncedAt, so it enters the cache key too —
-      // a stale request must never be served a fresh-cached answer (or vice-versa).
-      const base =
-        resolved.live && resolved.syncedAt
-          ? `${project.id}@${resolved.syncedAt}${resolved.stale ? "#stale" : ""}`
-          : project.id;
-      const groundingContext = [comp.text, staleText || null].filter(Boolean).join(" ") || undefined;
-      return {
-        data: resolved.data,
-        keyId: comp.keySuffix ? `${base}#${comp.keySuffix}` : base,
-        businessType: BUSINESS_TYPE[project.type],
-        projectType: project.type,
-        groundingContext,
-      };
-    }
-  }
-  return { keyId: "base" };
-}
-
-/** Resolve the account's winning-pattern lines relevant to this ad brief (RAG),
- *  tenancy-checked through resolveTenant — the SAME boundary the /api/patterns
- *  routes use. Project-gated like resolveBrandContext: no projectId → `[]`, so the
- *  demo / no-project path (and its cache entry) is byte-identical to before. The
- *  lines enter the request → the input-hash cache key, so a real library serves
- *  fresh + tenant-scoped and can't collide with another account's same-brief ad.
- *  Query embeddings are content-cached (lib/patterns/embeddings), so a repeat that
- *  hits the response cache re-embeds nothing. */
-async function resolveAdPatterns(
-  projectId: string | undefined,
-  userId: string | null,
-  req: { product: string; benefits: string; audience: string }
-): Promise<string[]> {
-  if (!projectId) return [];
-  const tenant = await resolveTenant(userId, projectId);
-  const { pnoGoal } = await getClientProfile(tenant);
-  // projectId is threaded so the tenant's LIVE LP-experiment winners (project-scoped)
-  // join the tenant-scoped pattern grounding — an account-proven creative angle from a
-  // real, significant experiment. Sample/demo projects persist no experiments → no-op.
-  return getPatternLines(tenant, adPatternQuery(req), 6, pnoGoal, projectId);
-}
-
-/** B1 — resolve a project's brand grounding (what it sells + how it talks) for the
- *  content tools (brief, article-draft), with the same demo-public / user-owned
- *  tenancy as resolveGrounding. Returns "" when there's no project or no catalogue,
- *  so the prompt stays byte-identical to the ungrounded path. Reuses the shared
- *  loadBrandContext the social/WeekPlanner endpoints already use, so all content
- *  surfaces ground from one derivation. */
-async function resolveBrandContext(
-  projectId: string | undefined,
-  userId: string | null,
-  locale: SupportedLocale
-): Promise<string> {
-  if (!projectId) return "";
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return loadBrandContext(demo, locale);
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) return loadBrandContext(project, locale);
-  }
-  return "";
-}
-
-/** Combine the recap grounding inputs into one block: lead-signals (C2), the
- *  competitor set (C3), true net profit (A3 cost model) and the 12-month history.
- *  `keySuffix` carries the competitor + cost-model versions so an edit invalidates
- *  the recap cache. */
-async function mergeGrounding(
-  projectId: string,
-  leadText: string | null,
-  // R06: map-pack coverage + review sentiment for a local project (null otherwise),
-  // resolved by the caller (it needs the project object, not just the id).
-  localText: string | null,
-  data: PerformanceData | undefined,
-  locale: SupportedLocale,
-  // Direction 2: the analyzed window (days) for the "Poznámky klienta" annotations
-  // block, so only in-window client notes ground the narrative.
-  windowDays: number,
-// Profit-trajectory grounding: the recap period, so the profit line covers the
-  // ANALYZED window (not a hardcoded 30d) with its net-profit trend direction.
-  period?: AnalysisPeriod,
-  // Imported-leads version (the import's syncedAt when live, else undefined) so a
-  // re-import invalidates the recap cache — the lead grounding text is real data.
-  leadVersion?: string
-): Promise<{ text?: string; keySuffix?: string }> {
-  const [set, costModel, annotations] = await Promise.all([
-    getCompetitors(projectId),
-    getCostModel(projectId),
-    getAnnotations(projectId).catch(() => null),
-  ]);
-  const merged = [
-    leadText,
-    localText,
-    competitorGroundingText(set, locale),
-    profitGroundingText(data, costModel, locale, period),
-    historyGroundingText(data, locale, costModel),
-    // Direction 2: in-window "what happened here" notes. USER-prompt only (no
-    // system-prompt/fingerprint change); "" when there are no in-window notes, so
-    // the prompt stays byte-identical for projects without annotations.
-    annotationsGroundingText(annotations?.items ?? [], data, windowDays, locale),
-  ]
-    .filter(Boolean)
-    .join(" ");
-  const keySuffix = [set?.updatedAt, costModel?.updatedAt, annotations?.updatedAt, leadVersion]
-    .filter(Boolean)
-    .join("|");
-  return { text: merged || undefined, keySuffix: keySuffix || undefined };
-}
-
-/** The analyzed-window length (days) per recap period, for the annotations block.
- *  Undefined period (e.g. chat) → a 90-day default so recent notes still ground. */
-const RECAP_WINDOW_DAYS: Record<AnalysisPeriod, number> = { "30d": 30, "90d": 90, "12m": 365 };
-function windowDaysFor(period?: AnalysisPeriod): number {
-  return period ? RECAP_WINDOW_DAYS[period] : 90;
-}
-
-/** D4: the account's lead-quality / CVR grounding for LP-experiment hypotheses,
- *  tenancy-checked (demo public, real id owner-only). Leadgen/local only (else the
- *  summary is null). keyId keys the cache by the effective project. */
-async function resolveLeadGrounding(
-  projectId: string | undefined,
-  userId: string | null
-): Promise<{ text?: string; keyId: string }> {
-  if (!projectId) return { keyId: "base" };
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return { text: (await resolveLeadSignalsPromptText(demo)) ?? undefined, keyId: demo.id };
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) return { text: (await resolveLeadSignalsPromptText(project)) ?? undefined, keyId: project.id };
-  }
-  return { keyId: "base" };
-}
+/** Built once at module load — the descriptor table is pure per-request state-free
+ *  policy; only its injected deps touch the world. */
+const MODE_TABLE = createModeTable(realDeps);
 
 export async function POST(request: Request) {
   // Abuse guards first — this endpoint is a public, unauthenticated POST that
@@ -368,7 +192,6 @@ export async function POST(request: Request) {
     const locale = await getServerLocale();
     // Resolved once: powers the daily quota AND per-project grounding tenancy.
     const userId = await currentUserId();
-    const bad = (error: string) => Response.json({ error, code: "invalid" }, { status: 422 });
 
     // Identity attribution for telemetry (per-user + per-project spend). Best-effort:
     // the projectId is taken from the payload when the caller names one — read back
@@ -390,205 +213,15 @@ export async function POST(request: Request) {
 
     // Every tool call carries request.signal: when the client aborts (timeout,
     // re-run, closed tab), the wrapper kills the Claude CLI child / cancels the
-    // provider request instead of burning a concurrency slot on unread output.
-    switch (mode) {
-      case "ads": {
-        const p = validateAdRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Ground the creative in the account's own winning patterns (RAG), resolved
-        // server-side (tenancy via resolveTenant) and injected into the USER prompt
-        // only. Enters p.value → the input-hash cache key, so a changed library
-        // serves fresh and two accounts with the same brief never share a pattern-
-        // grounded ad. Empty for demo/no-project → prompt + cache unchanged.
-        const patterns = await resolveAdPatterns(projectIdStr, userId, p.value);
-        // Only attach when non-empty so the demo / no-library path keeps the exact
-        // request shape (and thus the exact cache key + prompt) it had before.
-        if (patterns.length > 0) p.value.patterns = patterns;
-        return cachedRespond("ads", p.value, locale, userId, () => generateAds(p.value, locale, request.signal));
-      }
-      case "brief": {
-        const p = validateBriefRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Ground the brief in the project's real product/voice (B1). Server-derived
-        // so the client can't spoof it; enters the cache key so different brands
-        // don't collide. Empty for public/demo-less calls → prompt unchanged.
-        p.value.brand = await resolveBrandContext(p.value.projectId, userId, locale);
-        return cachedRespond("brief", p.value, locale, userId, () => generateBrief(p.value, locale, request.signal));
-      }
-      case "analysis": {
-        const p = validateAnalysisRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Ground the analysis in the caller's OWN project dataset — the same
-        // tenancy-checked resolution chat + monthly-recap use. No project → data
-        // undefined, so the value (and thus the cache key + prompt + demo) stays
-        // byte-identical to the ungrounded path; a real project keys the cache by
-        // the EFFECTIVE grounding (keyId) so an unowned id degrades to base.
-        const { data, keyId } = await resolveGrounding(projectIdStr, userId, locale);
-        const value = data ? { ...p.value, projectId: keyId } : p.value;
-        return cachedRespond("analysis", value, locale, userId, () =>
-          generateAnalysis(p.value, locale, request.signal, data)
-        );
-      }
-      case "monthly-recap": {
-        const p = validateMonthlyRecapRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Tenancy-checked per-project grounding + business-type framing; cache by
-        // the EFFECTIVE project (keyId) so an unowned id degrades to base.
-        const { data, keyId, businessType, projectType, groundingContext } = await resolveGrounding(p.value.projectId, userId, locale, p.value.period);
-        const value: MonthlyRecapRequest = { ...p.value, projectId: keyId };
-        // Direction 1: persist the recap so the report can render it on load instead
-        // of regenerating every visit. Only for a REAL, owned project — `data` is
-        // defined for demo + owned, so we additionally exclude demo (public/shared)
-        // and require the original id; an unowned id degrades to keyId "base" with
-        // `data` undefined and never reaches here, so a caller can't write to a
-        // project they don't own. The input hash (period + locale + type + dataset)
-        // is stored so the page can flag a stored recap stale when the data changed.
-        const projectId = p.value.projectId;
-        const isDemo = projectId ? DEMO_PROJECTS.some((d) => d.id === projectId) : false;
-        const persistTarget = data && projectId && !isDemo ? projectId : null;
-        return cachedRespond("monthly-recap", value, locale, userId, async () => {
-          const res = await generateMonthlyRecap(p.value, locale, request.signal, data, businessType, groundingContext, projectType);
-          if (persistTarget && !res.meta?.demo) {
-            const inputHash = recapInputHash(locale, p.value.period, projectType, data);
-            // Persistence is best-effort: a store hiccup must never fail the (already
-            // paid-for) generation the caller is waiting on.
-            await recordRecap(
-              persistTarget,
-              buildStoredRecap({ period: p.value.period, result: res.result, inputHash, locale }, randomUUID)
-            ).catch(() => {});
-          }
-          return res;
-        });
-      }
-      case "chat": {
-        const p = validateChatRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Tenancy-checked grounding; cache by the EFFECTIVE project (keyId), so an
-        // unowned id degrades to base and never serves another tenant's answer.
-        const { data, keyId } = await resolveGrounding(p.value.projectId, userId, locale);
-        const value: ChatRequest = { ...p.value, projectId: keyId };
-        return cachedRespond("chat", value, locale, userId, () =>
-          generateChat(p.value, locale, request.signal, data)
-        );
-      }
-      case "twin-reply": {
-        const p = validateTwinReplyRequest(body, locale);
-        if (p.valid) {
-          // Ground the reply in the project's real offering (what they sell + how
-          // they talk), upgrading the plain brand name the client sends. Falls back
-          // to that name when there's no catalog. USER-prompt only → golden holds.
-          p.value.brand = (await resolveBrandContext(p.value.projectId, userId, locale)) || p.value.brand;
-        }
-        return p.valid ? cachedRespond("twin-reply", p.value, locale, userId, () => generateTwinReply(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "twin-style": {
-        const p = validateTwinStyleRequest(body, locale);
-        if (p.valid) {
-          // Same brand grounding: a voice distilled with no idea what the business
-          // sells drifts into generic "be friendly and professional" advice.
-          p.value.brand = (await resolveBrandContext(p.value.projectId, userId, locale)) || p.value.brand;
-        }
-        return p.valid ? cachedRespond("twin-style", p.value, locale, userId, () => generateTwinStyle(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "repurpose": {
-        const p = validateRepurposeRequest(body, locale);
-        if (p.valid) {
-          // Write the variant in the twin's trained voice. A newsletter is an email,
-          // everything else is a social post — so the scope follows the channel and
-          // falls back to the generic register. Resolved server-side (tenancy-checked)
-          // and injected into the USER prompt only, so the golden holds. Because the
-          // voice enters `p.value`, retraining it naturally busts the response cache.
-          const scope = p.value.channels.includes("Newsletter") ? "email" : "social";
-          p.value.voice = await resolveTwinVoice(p.value.projectId, userId, scope);
-        }
-        return p.valid ? cachedRespond("repurpose", p.value, locale, userId, () => generateRepurpose(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "local-review-reply": {
-        const p = validateLocalReviewReplyRequest(body, locale);
-        return p.valid ? cachedRespond("local-review-reply", p.value, locale, userId, () => generateLocalReviewReply(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "article-draft": {
-        const p = validateArticleDraftRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Same brand grounding as the brief so the drafted article stays on-brand (B1).
-        p.value.brand = await resolveBrandContext(p.value.projectId, userId, locale);
-        return cachedRespond("article-draft", p.value, locale, userId, () => generateArticleDraft(p.value, locale, request.signal));
-      }
-      case "cohort-diagnosis": {
-        const p = validateCohortDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("cohort-diagnosis", p.value, locale, userId, () => generateCohortDiagnosis(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "keyword-clusters": {
-        const p = validateKeywordClustersRequest(body, locale);
-        return p.valid ? cachedRespond("keyword-clusters", p.value, locale, userId, () => generateKeywordClusters(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "comparison-outline": {
-        const p = validateComparisonOutlineRequest(body, locale);
-        return p.valid ? cachedRespond("comparison-outline", p.value, locale, userId, () => generateComparisonOutline(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "lp-variant-ideas": {
-        const p = validateLpVariantIdeasRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // D4: ground the challenger hypotheses in the account's lead-quality / CVR
-        // picture (tenancy-checked), cache by the effective project so an unowned id
-        // degrades to base and can't serve another tenant's grounded variants.
-        const { text, keyId } = await resolveLeadGrounding(p.value.projectId, userId);
-        const value: LpVariantIdeasRequest = { ...p.value, projectId: keyId };
-        return cachedRespond("lp-variant-ideas", value, locale, userId, () =>
-          generateLpVariantIdeas(p.value, locale, request.signal, text)
-        );
-      }
-      case "lead-source-diagnosis": {
-        const p = validateLeadSourceDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("lead-source-diagnosis", p.value, locale, userId, () => generateLeadSourceDiagnosis(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "local-diagnosis": {
-        const p = validateLocalDiagnosisRequest(body, locale);
-        return p.valid ? cachedRespond("local-diagnosis", p.value, locale, userId, () => generateLocalDiagnosis(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "channel-research": {
-        const p = validateChannelResearchRequest(body, locale);
-        return p.valid ? cachedRespond("channel-research", p.value, locale, userId, () => generateChannelResearch(p.value, locale, request.signal)) : bad(p.error);
-      }
-      case "onboarding-scan": {
-        // This mode makes the server fetch a caller-supplied URL. Even behind the
-        // SSRF guard, only signed-in users may drive that outbound fetch — an
-        // anonymous caller must not be able to use us as a fetch proxy.
-        if (!userId) {
-          return Response.json(
-            { error: "Pro sken webu se přihlaste.", code: "auth" },
-            { status: 401 }
-          );
-        }
-        const p = validateOnboardingScanRequest(body, locale);
-        if (!p.valid) return bad(p.error);
-        // Fetch the user's OWN homepage server-side (SSRF-guarded) and inject the
-        // extracted text — the client never supplies page content. A fetch failure is
-        // a clear 422 (bad/unreachable URL), not a generic generation error. Cache by
-        // the client value (url/type/brand), not the fetched text.
-        let site: { title: string; description: string; text: string };
-        try {
-          site = await fetchSiteText(p.value.url);
-        } catch (err) {
-          const msg = err instanceof FeedFetchError ? err.message : "Web se nepodařilo načíst.";
-          return Response.json({ error: msg, code: "invalid" }, { status: 422 });
-        }
-        if (site.text.length < 40) {
-          return bad("Na webu jsem nenašel dost textu ke skenu. Zkuste jinou stránku (např. hlavní).");
-        }
-        const full: OnboardingScanRequest = {
-          ...p.value,
-          pageText: site.text,
-          ...(site.title ? { siteTitle: site.title } : {}),
-          ...(site.description ? { siteDescription: site.description } : {}),
-        };
-        return cachedRespond("onboarding-scan", p.value, locale, userId, () =>
-          generateOnboardingScan(full, locale, request.signal)
-        );
-      }
-      default:
-        return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
-    }
+    // provider request instead of burning a concurrency slot on unread output. The
+    // per-mode policy (validate / ground / persist / cache-key-rewrite) lives in the
+    // descriptor table (./modes); this dispatch is the ONE generic loop over it.
+    return await dispatchMode(
+      MODE_TABLE,
+      typeof mode === "string" ? mode : "",
+      { body, locale, userId, projectIdStr, signal: request.signal },
+      cachedRespond
+    );
   } catch (err) {
     // A BYOM user fault (bad/expired key, their account out of credit, a model they
     // picked that isn't available) reaches here from the wrapper — surface it with
