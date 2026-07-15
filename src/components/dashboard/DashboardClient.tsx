@@ -18,6 +18,7 @@ import {
   detectAnomalies,
   detectTrends,
   evaluatePeriod,
+  explainAnomalies,
   monthlyAttainmentHistory,
   monthlyPacing,
   PERIODS,
@@ -122,6 +123,11 @@ export default function DashboardClient({
   const windowDates = new Set(result.points.map((p) => p.date));
   const periodAnomalies = anomalies.filter((a) => windowDates.has(a.date));
   const topAnomalies = [...periodAnomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 6);
+  // Label each surfaced anomaly against the dataset's event calendar (authored
+  // events + client annotations, unified upstream into data.events): a flagged day
+  // inside a known event reads as "expected" rather than an alarm. Never suppresses
+  // — impact below still counts every anomaly. Pure join; detection is unchanged.
+  const explainedTop = explainAnomalies(topAnomalies, data.events);
   const impact = anomalyImpact(periodAnomalies);
 
   // WHY the revenue moved — split across traffic / conversion rate / AOV — but
@@ -211,7 +217,7 @@ export default function DashboardClient({
           <div className={`grid gap-6 ${hasAlerts ? "md:grid-cols-2" : ""}`}>
             {hasAlerts && (
               <AlertsPanel
-                topAnomalies={topAnomalies}
+                topAnomalies={explainedTop}
                 count={periodAnomalies.length}
                 impact={impact}
                 period={period}

@@ -8,6 +8,7 @@ import {
   type Anomaly,
   type AnomalyImpact,
   type Coverage,
+  type ExplainedAnomaly,
   type PeriodDef,
 } from "@/lib/metrics";
 import type { Formatters, SupportedLocale } from "@/lib/format";
@@ -30,6 +31,8 @@ const T = {
     anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
     anomalyGoalBreach: "Překročení cílového PNO ({pno})",
     coverageDegraded: "Kratší historie dat — méně citlivá detekce, slabší události nemusí být zachyceny.",
+    explainedBy: "odpovídá události: {title}",
+    explainedTitle: "Tento den spadá do známé události — odchylka je nejspíš očekávaná (dopad se stále počítá).",
   },
   en: {
     alerts: "Alerts",
@@ -45,6 +48,8 @@ const T = {
     anomalyOutage: "{metric} — outage (value near zero)",
     anomalyGoalBreach: "PNO target breached ({pno})",
     coverageDegraded: "Short data history — less sensitive detection; weaker events may be missed.",
+    explainedBy: "matches event: {title}",
+    explainedTitle: "This day falls within a known event — the deviation is likely expected (impact is still counted).",
   },
 } as const;
 
@@ -93,7 +98,7 @@ export default function AlertsPanel({
   onFocus,
   coverage = "full",
 }: {
-  topAnomalies: Anomaly[];
+  topAnomalies: ExplainedAnomaly[];
   count: number;
   impact: AnomalyImpact;
   period: PeriodDef;
@@ -137,6 +142,12 @@ export default function AlertsPanel({
       <ul className="mt-3 space-y-3">
         {topAnomalies.map((a, i) => {
           const ins = anomalyLine(a, fmt, t, locale);
+          // An anomaly the calendar explains (a known event/annotation on/near the
+          // day) renders CALMER — a muted marker instead of a red/green alarm — plus
+          // a "matches event" sub-line. It is never suppressed: it still lists and
+          // still counts toward the impact. Unexplained rows are byte-identical
+          // (`explained` is false → the original tone expression is evaluated).
+          const explained = !!a.explanation;
           return (
             <li key={i}>
               {/* the alert and the chart's anomaly diamond describe the same
@@ -150,13 +161,20 @@ export default function AlertsPanel({
               >
                 <span
                   className={`mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full ${
-                    ins.tone === "good" ? "bg-positive-soft text-positive" : "bg-coral-soft text-coral-600"
+                    explained
+                      ? "bg-navy-50 text-muted"
+                      : ins.tone === "good" ? "bg-positive-soft text-positive" : "bg-coral-soft text-coral-600"
                   }`}
                 >
                   {ins.tone === "good" ? <TrendUp width={12} height={12} /> : <TrendDown width={12} height={12} />}
                 </span>
                 <span className="leading-snug text-navy-700 group-hover:text-navy-800">
                   <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span> — {ins.text}
+                  {a.explanation && (
+                    <span className="mt-0.5 block text-xs text-muted" title={t("explainedTitle")}>
+                      {t("explainedBy", { title: a.explanation })}
+                    </span>
+                  )}
                 </span>
               </button>
             </li>

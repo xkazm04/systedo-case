@@ -14,6 +14,7 @@ export * from "./pacing";
 export * from "./channels";
 export * from "./insight-rank";
 export * from "./anomalies";
+export * from "./explain";
 export * from "./funnel";
 export * from "./trends";
 export * from "./meta";
