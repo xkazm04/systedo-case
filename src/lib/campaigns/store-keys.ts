@@ -69,6 +69,40 @@ export function campaignDocId(period: CampaignPeriod, campaignId: string): strin
   return `${period}_${campaignId}`;
 }
 
+/** Separator between a snapshot id's parts. Kept out of `campaignDocId`'s single
+ *  `_` so a snapshot id is unambiguously distinguishable from a legacy bare-ISO one
+ *  (ISO timestamps never contain `__`). */
+export const SNAPSHOT_ID_SEP = "__";
+
+/** Snapshot doc id — period-prefixed so a period's snapshots form a contiguous,
+ *  document-id-ordered range (see {@link snapshotIdRange}): reads fetch exactly the
+ *  window they need with a single-field id-range query, no over-fetch, no composite
+ *  index. `syncedAt` is a fixed-width ISO string, so lexicographic id order within a
+ *  period equals chronological order. Legacy snapshots keep their bare-ISO id (no
+ *  `__`) — {@link isLegacySnapshotId} tells them apart. */
+export function snapshotDocId(period: CampaignPeriod, syncedAt: string): string {
+  return `${period}${SNAPSHOT_ID_SEP}${syncedAt}`;
+}
+
+/** The half-open document-id range `[gte, lt)` covering exactly one period's
+ *  snapshots. Used with `orderBy(documentId, "desc").limit(n)` to read the n
+ *  newest snapshots of a period directly — a single-field (`__name__`) query that
+ *  needs no composite index. */
+export function snapshotIdRange(period: CampaignPeriod): { gte: string; lt: string } {
+  const prefix = `${period}${SNAPSHOT_ID_SEP}`;
+  //  (a Private-Use-Area code point) sorts after any realistic id
+  // character, so [prefix, prefix+) is exactly this period's id range and
+  // never spills into another period's ids.
+  return { gte: prefix, lt: `${prefix}` };
+}
+/** Is this a legacy, pre-keying snapshot id? Legacy snapshots were keyed by the
+ *  bare `syncedAt` ISO string, which never contains the `__` separator a keyed id
+ *  always carries. Lets the reader tell an un-keyed legacy snapshot apart from a
+ *  period-keyed one without a `period` field. */
+export function isLegacySnapshotId(id: string): boolean {
+  return !id.includes(SNAPSHOT_ID_SEP);
+}
+
 /** Portfolio-series doc id (legacy single doc was `latest`). */
 export function seriesDocId(period: CampaignPeriod): string {
   return period;

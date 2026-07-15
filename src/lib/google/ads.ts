@@ -358,6 +358,27 @@ export async function fetchCampaignDailySeries(
   );
 }
 
+/** The portfolio series AND the per-campaign series in ONE date-segmented GAQL
+ *  read. {@link fetchDailySeries} and {@link fetchCampaignDailySeries} issue the
+ *  SAME query and map its rows two ways (summed vs kept per campaign); fetching the
+ *  rows once and mapping twice halves the sync's daily-series round-trips. Adding
+ *  `campaign.id` to the SELECT does not change the summed portfolio result — the
+ *  portfolio mapper ignores it — so `portfolio` is byte-identical to
+ *  `fetchDailySeries`. The connector memoises this per period so its `fetchSeries`
+ *  and `fetchCampaignSeries` share the single fetch. */
+export interface DailySeriesBundle {
+  portfolio: DailyPoint[];
+  perCampaign: Record<string, DailyPoint[]>;
+}
+export async function fetchDailySeriesBundle(
+  accessToken: string,
+  customerId: string,
+  period: CampaignPeriod
+): Promise<DailySeriesBundle> {
+  const rows = await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"]);
+  return { portfolio: mapRowsToDailySeries(rows), perCampaign: mapRowsToCampaignDailySeries(rows) };
+}
+
 const CHANNEL_TYPE: Record<string, CampaignType> = {
   SEARCH: "search",
   PERFORMANCE_MAX: "performance_max",

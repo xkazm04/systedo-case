@@ -22,8 +22,8 @@ import { getAdsConnection, getConnectedAccount, type AdsConnection } from "./con
 import {
   adsConfigured,
   fetchCampaigns as adsFetchCampaigns,
-  fetchCampaignDailySeries as adsFetchCampaignDailySeries,
-  fetchDailySeries as adsFetchDailySeries,
+  fetchDailySeriesBundle as adsFetchDailySeriesBundle,
+  type DailySeriesBundle,
 } from "@/lib/google/ads";
 import { getUserAccessToken } from "@/lib/google/token";
 import {
@@ -205,6 +205,20 @@ function googleAdsProvider(
   customerId: string,
   fallback: AdsConnector
 ): AdsConnector {
+  // ONE date-segmented GAQL read per period, shared by the portfolio series and the
+  // per-campaign series (which used to fire two round-trips over the SAME rows). A
+  // fresh connector is built per sync, so this per-instance memo never serves stale
+  // data across syncs; a rejected fetch is cached too, so a failing series doesn't
+  // re-query — both fetchers then degrade off the one failure, as before.
+  const bundleByPeriod = new Map<CampaignPeriod, Promise<DailySeriesBundle>>();
+  const bundle = (period: CampaignPeriod): Promise<DailySeriesBundle> => {
+    let p = bundleByPeriod.get(period);
+    if (!p) {
+      p = adsFetchDailySeriesBundle(accessToken, customerId, period);
+      bundleByPeriod.set(period, p);
+    }
+    return p;
+  };
   return withSampleFallback(
     "google-ads",
     "Google Ads · živá data",
@@ -212,8 +226,8 @@ function googleAdsProvider(
       // adsFetchCampaigns already returns { campaigns, currency } (currency captured
       // from customer.currency_code in the same GAQL query).
       fetchCampaigns: (period) => adsFetchCampaigns(accessToken, customerId, period),
-      fetchSeries: (period) => adsFetchDailySeries(accessToken, customerId, period),
-      fetchCampaignSeries: (period) => adsFetchCampaignDailySeries(accessToken, customerId, period),
+      fetchSeries: async (period) => (await bundle(period)).portfolio,
+      fetchCampaignSeries: async (period) => (await bundle(period)).perCampaign,
     },
     fallback
   );

@@ -9,6 +9,9 @@ import {
   campaignDocId,
   campaignSeriesDocId,
   seriesDocId,
+  snapshotDocId,
+  snapshotIdRange,
+  isLegacySnapshotId,
 } from "@/lib/campaigns/store-keys";
 
 test("doc ids are period-prefixed and collision-free across periods", () => {
@@ -24,6 +27,32 @@ test("doc ids are period-prefixed and collision-free across periods", () => {
 test("a period-keyed doc matches exactly its own period", () => {
   assert.equal(belongsToPeriod("7d", "30d", "7d"), true);
   assert.equal(belongsToPeriod("7d", "7d", "30d"), false);
+});
+
+test("snapshot ids are period-keyed, chronologically sortable, and range-scannable", () => {
+  const a = snapshotDocId("7d", "2026-07-15T10:00:00.000Z");
+  const b = snapshotDocId("7d", "2026-07-15T11:00:00.000Z");
+  assert.equal(a, "7d__2026-07-15T10:00:00.000Z");
+  // Within a period, lexicographic id order == chronological (fixed-width ISO).
+  assert.ok(a < b);
+  // Different periods never collide.
+  assert.notEqual(snapshotDocId("7d", "2026-07-15T10:00:00.000Z"), snapshotDocId("30d", "2026-07-15T10:00:00.000Z"));
+
+  // The id-range covers exactly one period's keyed ids and nothing else's.
+  const { gte, lt } = snapshotIdRange("7d");
+  assert.ok(gte <= a && a < lt);
+  assert.ok(gte <= b && b < lt);
+  // A different period's id falls outside the 7d range.
+  const other = snapshotDocId("30d", "2026-07-15T10:00:00.000Z");
+  assert.ok(other < gte || other >= lt);
+});
+
+test("legacy bare-ISO snapshot ids are told apart from keyed ones", () => {
+  assert.equal(isLegacySnapshotId("2026-07-15T10:00:00.000Z"), true);
+  assert.equal(isLegacySnapshotId(snapshotDocId("30d", "2026-07-15T10:00:00.000Z")), false);
+  // Legacy ids sort below the keyed range floor, so a documentId<FLOOR scan finds them.
+  const { gte } = snapshotIdRange("30d"); // "30d__" — the lexicographic floor of keyed ids
+  assert.ok("2026-07-15T10:00:00.000Z" < gte);
 });
 
 test("a legacy un-keyed doc is the ACTIVE period's data — nothing else's", () => {

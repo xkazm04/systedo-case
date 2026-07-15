@@ -4,7 +4,7 @@
 import "server-only";
 import { firestore } from "@/lib/firebase";
 import { tenantDoc, activePeriod, type TenantRoot } from "./tenant";
-import { belongsToPeriod, campaignDocId } from "../store-keys";
+import { belongsToPeriod, campaignDocId, snapshotDocId } from "../store-keys";
 import type { Campaign, CampaignPeriod } from "../types";
 import type { SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
 
@@ -62,35 +62,46 @@ export async function upsertCampaigns(
 ): Promise<void> {
   const t = tenantDoc(tenant);
   const syncedAt = new Date().toISOString();
-  const batch = firestore.batch();
 
-  // Clear this period's campaigns (plus any legacy un-keyed docs — once the
-  // active period moves they could no longer be attributed reliably; the old
-  // store wiped everything on every sync, so this deletes strictly less),
-  // then write the new set with a stable position under period-prefixed ids.
-  const existing = await t.collection("campaigns").get();
-  existing.forEach((d) => {
-    const p = d.data().period as string | undefined;
-    if (p === meta.period || p == null) batch.delete(d.ref);
-  });
-  campaigns.forEach((c, i) =>
+  // Read diet: clear ONLY this period's stored campaigns, via a single-field
+  // `period` equality query (auto-indexed, no composite index) instead of reading
+  // the ENTIRE campaigns collection every sync and filtering in code. Other periods'
+  // docs are never read. Any legacy un-keyed twin of an incoming campaign (bare-id
+  // doc, no `period` field) is dropped deterministically below by its own id — no
+  // scan needed — so the keyed row can't be shadowed by a stale legacy duplicate in
+  // listCampaigns. Legacy docs for campaigns not in this sync stay readable as the
+  // active period's data (migration-free tolerance) and are cleared as they re-sync.
+  const stale = await t.collection("campaigns").where("period", "==", meta.period).get();
+
+  const batch = firestore.batch();
+  stale.forEach((d) => batch.delete(d.ref));
+  campaigns.forEach((c, i) => {
+    // Drop a legacy bare-id twin if present (delete of a missing doc is a free no-op).
+    batch.delete(t.collection("campaigns").doc(c.id));
     batch.set(t.collection("campaigns").doc(campaignDocId(meta.period, c.id)), {
       ...c,
       position: i,
       period: meta.period,
-    })
-  );
+    });
+  });
 
   // Append-only snapshot of this sync (one doc per sync) for change diffing,
   // tagged with its period so diffs and the health timeline never compare a
   // 7-day window against a 90-day one. Skipped for a degraded sample-fallback
   // sync so the diff history stays live-only.
   if (meta.appendSnapshot !== false) {
-    batch.set(t.collection("snapshots").doc(syncedAt), {
+    // Period-keyed snapshot id (was the bare `syncedAt`): a period's snapshots now
+    // form a contiguous, document-id-ordered range, so the health timeline and the
+    // change diff read exactly the newest N of the period with one id-range query
+    // instead of over-fetching limit×4 / 20 and filtering in code (see snapshots.ts).
+    batch.set(t.collection("snapshots").doc(snapshotDocId(meta.period, syncedAt)), {
       syncedAt,
       period: meta.period,
       campaigns: campaigns.map((c) => ({
         campaignId: c.id,
+        // Name rides on the snapshot so the change diff labels campaigns without a
+        // second full campaign scan (getLatestChanges used to re-read every campaign).
+        name: c.name,
         status: c.status,
         cost: c.cost,
         conversions: c.conversions,
