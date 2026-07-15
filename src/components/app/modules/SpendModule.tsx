@@ -8,6 +8,8 @@ import { useMemo, useState } from "react";
 import { Download } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { useFormatters } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { LOCALES } from "@/lib/format";
 import type { SpendEntry } from "@/lib/spend/sample";
 import { byModel, byOperation, costShare, filterSpend, totals } from "@/lib/spend/compute";
 import { toCsv, downloadText } from "@/lib/export";
@@ -33,11 +35,27 @@ const T = {
   },
 } as const;
 
-const usd = (n: number) => `$${n.toFixed(n < 1 ? 4 : 2)}`;
-
 export default function SpendModule({ entries, isLive = false }: { entries: SpendEntry[]; isLive?: boolean }) {
   const t = useT(T);
   const { fmtInt, fmtPct } = useFormatters();
+  const { locale } = useLocale();
+  // LLM spend is genuinely metered in USD (OpenAI/OpenRouter/Anthropic bill in dollars),
+  // so this stays an explicit USD override rather than the app's CZK formatter — but it
+  // now respects the active locale's grouping/decimals (via the shared LOCALES config)
+  // instead of the old hardcoded "$x.xx" that ignored locale entirely. Sub-dollar costs
+  // keep 4 decimals (an LLM call can cost $0.0003); $1+ uses 2.
+  const usd = useMemo(() => {
+    const intlLocale = LOCALES[locale].intlLocale;
+    return (n: number) =>
+      Number.isFinite(n)
+        ? new Intl.NumberFormat(intlLocale, {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: n < 1 ? 4 : 2,
+            maximumFractionDigits: n < 1 ? 4 : 2,
+          }).format(n)
+        : "—";
+  }, [locale]);
   const [windowDays, setWindowDays] = useState(30);
 
   const visible = useMemo(() => filterSpend(entries, windowDays), [entries, windowDays]);

@@ -5,6 +5,7 @@ import { buildCohortCsv } from "@/lib/ltv/compute";
 import type { CohortMetrics } from "@/lib/ltv/compute";
 import { downloadText } from "@/lib/export";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: { download: "Stáhnout report" },
@@ -17,8 +18,9 @@ const T = {
  *  server component. */
 export default function LtvReportButton({ rows }: { rows: CohortMetrics[] }) {
   const t = useT(T);
+  const { locale } = useLocale();
   function onDownload() {
-    downloadText("kohorty-cac-ltv.csv", buildCohortCsv(rows));
+    downloadText("kohorty-cac-ltv.csv", buildCohortCsv(rows, locale));
   }
   return (
     <button

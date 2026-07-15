@@ -18,37 +18,39 @@ export interface CostModelView {
 const T = {
   cs: {
     active: "Zisk po nákladech · marže {m} · režie {o}/měs · {f}/obj.",
-    breakEven: "Bod zvratu podle marže: ROAS {roas} (hrubý)",
-    breakEvenLoaded: ", s režií ROAS {roas}",
+    breakEven: "Bod zvratu podle marže: ROAS {roas} · PNO {pno} (hrubý)",
+    breakEvenLoaded: ", s režií ROAS {roas} · PNO {pno}",
     inactive: "Zisk je zatím jen příspěvek (obrat − reklama). Zadejte marži a režii pro skutečný zisk po nákladech.",
     set: "Zadat marži",
     edit: "Upravit",
     remove: "Zrušit model",
     margin: "Hrubá marže (%)",
-    overhead: "Měsíční režie (Kč)",
-    perOrder: "Náklad na objednávku (Kč)",
+    overhead: "Měsíční režie ({unit})",
+    perOrder: "Náklad na objednávku ({unit})",
     save: "Uložit",
     saving: "Ukládám…",
     failed: "Uložení se nezdařilo.",
     fromCatalog: "Z katalogu: {m}",
     applyCatalog: "Použít",
+    currencyUnit: "Kč",
   },
   en: {
     active: "Profit after costs · margin {m} · overhead {o}/mo · {f}/order",
-    breakEven: "Margin-based break-even: ROAS {roas} (gross)",
-    breakEvenLoaded: ", with overhead ROAS {roas}",
+    breakEven: "Margin-based break-even: ROAS {roas} · PNO {pno} (gross)",
+    breakEvenLoaded: ", with overhead ROAS {roas} · PNO {pno}",
     inactive: "Profit is still contribution (revenue − ads). Enter margin & overhead for true net profit after costs.",
     set: "Set margin",
     edit: "Edit",
     remove: "Remove model",
     margin: "Gross margin (%)",
-    overhead: "Monthly overhead (Kč)",
-    perOrder: "Cost per order (Kč)",
+    overhead: "Monthly overhead ({unit})",
+    perOrder: "Cost per order ({unit})",
     save: "Save",
     saving: "Saving…",
     failed: "Save failed.",
     fromCatalog: "From catalog: {m}",
     applyCatalog: "Apply",
+    currencyUnit: "USD",
   },
 } as const;
 
@@ -68,6 +70,7 @@ export default function CostModelEditor({
 }) {
   const t = useT(T);
   const { fmtPct, fmtCZK, fmtMultiple } = useFormatters();
+  const unit = t("currencyUnit");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,14 +120,19 @@ export default function CostModelEditor({
     ? { cls: "bg-positive-soft text-positive", text: t("active", { m: fmtPct(model.grossMarginPct, 0), o: fmtCZK(model.monthlyOverhead), f: fmtCZK(model.perOrderCost) }) }
     : { cls: "bg-canvas text-muted", text: t("inactive") };
 
-  // Direction 2: the margin-derived break-even ROAS as the target the profit line
-  // is judged against — gross (1/margin) always, plus the overhead-loaded variant
-  // when the model carries overhead/fulfilment. Only when a model exists.
+  // Direction 2/3: the margin-derived break-even as the target the profit line is
+  // judged against — both the ROAS (1/margin) and the PNO (= margin) variants, gross
+  // always, plus the overhead-loaded pair when the model carries overhead/fulfilment.
+  // Only when a model exists. PNO is the cost/revenue ratio Czech e-shops manage to,
+  // so it belongs beside ROAS everywhere break-even shows.
   const breakEvenText =
     model && breakEven && Number.isFinite(breakEven.grossRoas)
-      ? t("breakEven", { roas: fmtMultiple(breakEven.grossRoas) }) +
-        (breakEven.loadedRoas !== undefined && Number.isFinite(breakEven.loadedRoas)
-          ? t("breakEvenLoaded", { roas: fmtMultiple(breakEven.loadedRoas) })
+      ? t("breakEven", { roas: fmtMultiple(breakEven.grossRoas), pno: fmtPct(breakEven.grossPno, 0) }) +
+        (breakEven.loadedRoas !== undefined &&
+        Number.isFinite(breakEven.loadedRoas) &&
+        breakEven.loadedPno !== undefined &&
+        Number.isFinite(breakEven.loadedPno)
+          ? t("breakEvenLoaded", { roas: fmtMultiple(breakEven.loadedRoas), pno: fmtPct(breakEven.loadedPno, 0) })
           : "")
       : null;
 
@@ -170,8 +178,8 @@ export default function CostModelEditor({
               </button>
             )}
           </div>
-          <Field label={t("overhead")} value={overhead} onChange={setOverhead} />
-          <Field label={t("perOrder")} value={perOrder} onChange={setPerOrder} />
+          <Field label={t("overhead", { unit })} value={overhead} onChange={setOverhead} />
+          <Field label={t("perOrder", { unit })} value={perOrder} onChange={setPerOrder} />
           <div className="sm:col-span-3 flex items-center gap-2">
             <button
               type="button"

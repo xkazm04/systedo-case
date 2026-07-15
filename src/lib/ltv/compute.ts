@@ -4,6 +4,7 @@
 import type { Cohort, CohortChannel } from "./sample";
 import { isPaidChannel } from "./sample";
 import { csvNum, csvCell } from "@/lib/export";
+import type { SupportedLocale } from "@/lib/format";
 
 export const LTV_HORIZON = 12;
 
@@ -308,13 +309,22 @@ export function cohortTrend(rows: CohortMetrics[]): CohortTrend | null {
  *  importing it from this module path. */
 export { csvCell };
 
+/** Localized CSV column headers. The number CELLS stay cs-formatted (csvNum → decimal
+ *  comma) regardless of locale so a cs-locale sheet parses them; only the header row is
+ *  localized. `cs` is byte-identical to the original hardcoded header. */
+const CSV_HEADERS: Record<SupportedLocale, string[]> = {
+  cs: ["Kohorta", "Registrace", "CAC", "M3 retence", "LTV", "LTV:CAC", "Návratnost (měs.)"],
+  en: ["Cohort", "Sign-ups", "CAC", "M3 retention", "LTV", "LTV:CAC", "Payback (mo.)"],
+};
+
 /** Build a CSV of the cohort table (header + one row per cohort). Integer cells
  *  stay raw; the ratio cells (M3 retention, LTV:CAC) render via `csvNum` so a
  *  cs-locale sheet parses them as numbers — csvCell then quotes the embedded
- *  decimal comma per RFC-4180. CRLF line endings; every cell escaped. Pure — no
+ *  decimal comma per RFC-4180. The header row is locale-aware (defaults to cs, so the
+ *  cs export is byte-identical). CRLF line endings; every cell escaped. Pure — no
  *  DOM, safe to unit-test. */
-export function buildCohortCsv(rows: CohortMetrics[]): string {
-  const header = ["Kohorta", "Registrace", "CAC", "M3 retence", "LTV", "LTV:CAC", "Návratnost (měs.)"];
+export function buildCohortCsv(rows: CohortMetrics[], locale: SupportedLocale = "cs"): string {
+  const header = CSV_HEADERS[locale] ?? CSV_HEADERS.cs;
   const lines = [header.map(csvCell).join(",")];
   for (const r of rows) {
     lines.push(
