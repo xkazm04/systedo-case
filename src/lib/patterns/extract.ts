@@ -350,10 +350,11 @@ export async function extractPatterns(
 }
 
 /** The fresh data a contradiction check judges saved pins against: the tenant's own
- *  campaign set + the channel-performance rows, at the tenant's agreed PNO target. */
+ *  campaign set, at the tenant's agreed PNO target. (No channel-performance rows: the
+ *  distribution module is sample-only — there is no live per-tenant channel source —
+ *  so targeting pins are EXEMPT from contradiction rather than judged against demo CTRs.) */
 export interface MiningContext {
   campaigns: Campaign[];
-  channels: ChannelPerf[];
   pnoGoal: number;
 }
 
@@ -367,7 +368,7 @@ export async function extractPatternsWithContext(
 ): Promise<{ patterns: Pattern[]; context: MiningContext }> {
   const experimentPatterns = await extractExperimentPatterns(projectId);
   const campaigns = await listCampaigns(tenant);
-  const context: MiningContext = { campaigns, channels: SAMPLE_ATTRIBUTION, pnoGoal };
+  const context: MiningContext = { campaigns, pnoGoal };
   if (campaigns.length === 0) return { patterns: experimentPatterns, context };
   const histories = await getReportHistories(tenant);
   return {
@@ -388,7 +389,6 @@ export async function extractPatternsWithContext(
 
 const SCALING_PREFIX = "Vzor pro škálování: ";
 const BEST_TYPE_SUFFIX = " je nejefektivnější typ";
-const OVER_CHANNEL_PREFIX = "Nadvýkonný kanál: ";
 
 /** Strip the display quotes („NAME" / "NAME") + whitespace around a subject pulled
  *  from a pattern title. */
@@ -404,22 +404,6 @@ function reverseTypeLabels(): Map<string, CampaignType> {
   return m;
 }
 
-/** Per-channel CTR + the mean CTR of its PEERS (same recipe as mineTargetingPatterns),
- *  or an empty map when there are too few channels to have peers. */
-function channelCtrTable(channels: ChannelPerf[]): Map<string, { ctr: number; peer: number }> {
-  const rows = channels
-    .filter((c) => c.reach > 0)
-    .map((c) => ({ channel: c.channel, ctr: c.clicks / c.reach }));
-  const m = new Map<string, { ctr: number; peer: number }>();
-  if (rows.length < 3) return m;
-  rows.forEach((r, i) => {
-    const others = rows.filter((_, j) => j !== i);
-    const peer = others.reduce((a, o) => a + o.ctr, 0) / others.length;
-    m.set(r.channel, { ctr: r.ctr, peer });
-  });
-  return m;
-}
-
 /** Does fresh data now contradict this SAVED pattern's positive claim? Pure. */
 function patternContradicted(
   p: Pattern,
@@ -427,7 +411,6 @@ function patternContradicted(
     rows: ReturnType<typeof withMetrics>[];
     types: ReturnType<typeof groupByType>;
     labelToType: Map<string, CampaignType>;
-    channelCtr: Map<string, { ctr: number; peer: number }>;
     targetRoas: number;
   }
 ): boolean {
@@ -447,17 +430,16 @@ function patternContradicted(
     const g = ctx.types.find((t) => t.type === type);
     return !!g && g.total.cost > 0 && g.total.roas < ctx.targetRoas;
   }
-  // 3. Over-performing CHANNEL → contradicted when it no longer beats its peers' CTR.
-  if (p.category === "targeting" && p.title.startsWith(OVER_CHANNEL_PREFIX)) {
-    const channel = p.title.slice(OVER_CHANNEL_PREFIX.length).trim();
-    const e = ctx.channelCtr.get(channel);
-    return !!e && e.ctr < e.peer;
-  }
-  // EXEMPT (no reliably re-checkable positive subject): budget traps + underperforming
-  // channels are cautions (a recovery isn't a contradiction of a warning); brand-search
-  // is evergreen structural advice; creative winners are experiment-proven, not campaign
-  // metrics; trend / portfolio-at-target are historical. Hand-written pins that match no
-  // template also land here — we never flag what we can't confidently judge.
+  // EXEMPT (no reliably re-checkable positive subject against LIVE tenant data):
+  //  - TARGETING pins ("Nadvýkonný kanál: …"): the distribution module is sample-only
+  //    (no live per-tenant channel-performance source), so a channel pin could only be
+  //    judged against demo CTRs — which would falsely contradict a true lesson (or hide
+  //    a real crater). Exempting is honest; judging against sample data was worse.
+  //  - budget traps + underperforming channels are cautions (a recovery isn't a
+  //    contradiction of a warning); brand-search is evergreen structural advice; creative
+  //    winners are experiment-proven, not campaign metrics; trend / portfolio-at-target
+  //    are historical. Hand-written pins that match no template also land here — we never
+  //    flag what we can't confidently judge.
   return false;
 }
 
@@ -470,7 +452,6 @@ export function contradictedSavedIds(saved: Pattern[], ctx: MiningContext): Set<
     rows: ctx.campaigns.map(withMetrics),
     types: groupByType(ctx.campaigns),
     labelToType: reverseTypeLabels(),
-    channelCtr: channelCtrTable(ctx.channels),
     targetRoas: 1 / ctx.pnoGoal,
   };
   for (const p of saved) {

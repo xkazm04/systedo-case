@@ -70,27 +70,15 @@ test("best-type pin: holds while that type still clears target", () => {
   assert.ok(!contradictedSavedIds([s], strongSearch).has(s.id));
 });
 
-// --- over-performing channel (targeting, names a channel) ---------------------
+// --- over-performing channel (targeting) is now EXEMPT ------------------------
+// The distribution module is sample-only (no live per-tenant channel-performance
+// source), so a channel pin could only be judged against demo CTRs — which would
+// falsely contradict a true lesson. Targeting pins are therefore never flagged.
 
-test("over-channel pin: FIRES when the channel drops below its peers' mean CTR", () => {
+test("over-channel pin: EXEMPT — never flagged (no live channel source to judge it)", () => {
   const s = saved("Nadvýkonný kanál: Newsletter", "targeting");
-  // Newsletter CTR 0.02 vs peers ~0.15/0.20 → below peer mean.
-  const channels = [
-    { channel: "Newsletter", reach: 10_000, clicks: 200 },
-    { channel: "LinkedIn", reach: 10_000, clicks: 1_500 },
-    { channel: "Instagram", reach: 10_000, clicks: 2_000 },
-  ];
-  assert.ok(contradictedSavedIds([s], ctx([camp("x", "search", 1, 1)], channels)).has(s.id));
-});
-
-test("over-channel pin: holds while the channel still beats its peers", () => {
-  const s = saved("Nadvýkonný kanál: Newsletter", "targeting");
-  const channels = [
-    { channel: "Newsletter", reach: 10_000, clicks: 2_500 },
-    { channel: "LinkedIn", reach: 10_000, clicks: 300 },
-    { channel: "Instagram", reach: 10_000, clicks: 400 },
-  ];
-  assert.ok(!contradictedSavedIds([s], ctx([camp("x", "search", 1, 1)], channels)).has(s.id));
+  // Even with fresh campaigns present, a targeting pin is not judged.
+  assert.ok(!contradictedSavedIds([s], ctx([camp("x", "search", 1, 1)])).has(s.id));
 });
 
 // --- exempt kinds (no re-checkable positive subject) --------------------------
