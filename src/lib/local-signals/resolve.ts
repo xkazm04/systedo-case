@@ -129,10 +129,12 @@ export interface ResolvedCoverage {
 
 /** The active coverage matrix for a project (D1): live page-presence resolved OVER the
  *  catalog-seeded targets per (service, locality). A matching imported row flips the
- *  target's `hasPage`; when a page is marked absent its rank is cleared to null (no page
- *  → no rank). Combos the import doesn't mention keep their seeded values, and a project
- *  with no coverage section returns the seed array BYTE-IDENTICAL (same reference). Same
- *  live-over-sample seam as ladder/reviews/locations. */
+ *  target's `hasPage`; combos the import doesn't mention keep their seeded `hasPage`.
+ *  The `rank` column is nulled on EVERY combo once coverage is live — the import has no
+ *  rank data, so the seeded rank is fiction that must not ride under the live label (no
+ *  live rank → no rank). A project with no coverage section returns the seed array
+ *  BYTE-IDENTICAL (same reference, seeded ranks intact — it stays clearly illustrative).
+ *  Same live-over-sample seam as ladder/reviews/locations. */
 export async function resolveCoverage(
   projectId: string,
   seed: LocalTarget[]
@@ -146,10 +148,14 @@ export async function resolveCoverage(
   const coverage = signals?.coverage;
   if (coverage && coverage.rows.length > 0) {
     const byKey = new Map(coverage.rows.map((r) => [coverageKey(r.service, r.locality), r]));
+    // The coverage import carries page-PRESENCE only, never a rank. The seed's rank is
+    // deterministic fiction (targetsFromCatalog's `seed01(k+":rank")` hash), so under the
+    // live-coverage label it must NOT masquerade as a real SERP position — null it on
+    // every combo (rank truth lives in the imported ladder, tracked by keyword×area
+    // elsewhere). Keeps `coveredButWeak` honest instead of a fabricated KPI.
     const targets = seed.map((t) => {
       const hit = byKey.get(coverageKey(t.service, t.area));
-      if (!hit) return t;
-      return { ...t, hasPage: hit.hasPage, rank: hit.hasPage ? t.rank : null };
+      return { ...t, hasPage: hit ? hit.hasPage : t.hasPage, rank: null };
     });
     return {
       targets,

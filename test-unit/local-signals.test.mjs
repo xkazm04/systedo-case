@@ -433,6 +433,26 @@ test("resolveCoverage: seed byte-identical without import; live overlays page-pr
   await clearLocalSignals("proj-cov");
 });
 
+test("resolveCoverage: live coverage nulls the seeded rank even where the page stays present", async () => {
+  // The coverage import carries page-PRESENCE only — the seed's rank is deterministic
+  // fiction, so under a live-coverage label it must not read as a real SERP position.
+  const seed = [TGT({ hasPage: true, rank: 4 })]; // seeded rank present
+  await saveLocalSignals("proj-cov-rank", {
+    meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    coverage: {
+      meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 1 },
+      rows: [{ service: "Montáž klimatizací", locality: "Praha", hasPage: true }], // page stays
+    },
+  });
+  const after = await resolveCoverage("proj-cov-rank", seed);
+  assert.equal(after.live, true);
+  const praha = after.targets.find((t) => t.area === "Praha");
+  assert.equal(praha.hasPage, true, "page present");
+  assert.equal(praha.rank, null, "seeded rank nulled under the live label (no live rank source)");
+  await clearLocalSignals("proj-cov-rank");
+});
+
 test("profilesFromReviews: per-area count + weighted average rating", () => {
   const profiles = profilesFromReviews([
     { id: "1", author: "A", area: "Praha", rating: 5, text: "", daysAgo: 1 },
