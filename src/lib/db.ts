@@ -420,7 +420,7 @@ type Migration = {
 const MIGRATIONS: Migration[] = [
   {
     version: 1,
-    name: "base schema (23 tables + projects/cron_runs/twin_archive indexes)",
+    name: "base schema (28 tables + projects/cron_runs/twin_archive/campaign_docs indexes)",
     up: (db) => db.exec(SCHEMA),
     // rate_limits is the always-on table; its presence means the base schema ran.
     applied: (db) => tableExists(db, "rate_limits"),
@@ -622,6 +622,11 @@ const MIGRATIONS: Migration[] = [
 
 const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
 
+/** The ordered migration version numbers. Exported so a unit test can pin the
+ *  MIGRATIONS header's contract — unique + contiguous from 1 — and fail the suite
+ *  the moment a version is skipped or duplicated (nothing else asserts it). */
+export const MIGRATION_VERSIONS: readonly number[] = MIGRATIONS.map((m) => m.version);
+
 /** The `schema_version` ledger: one row per applied migration. */
 const VERSION_TABLE = `CREATE TABLE IF NOT EXISTS schema_version (
   version    INTEGER PRIMARY KEY,
@@ -764,7 +769,7 @@ export function getDb(): DatabaseSync {
     // 5s is generous for this low-write workload.
     db.exec("PRAGMA busy_timeout = 5000;");
     // Enforce declared foreign keys (off by default per-connection in SQLite). The
-    // current 18-table schema declares none, so this is forward-looking hygiene; it
+    // current 28-table schema declares none, so this is forward-looking hygiene; it
     // must be set here because rebuildTable toggles it and PRAGMAs are per-connection.
     db.exec("PRAGMA foreign_keys = ON;");
     g.__systedoDb = db;

@@ -8,6 +8,7 @@ import {
   firebasePreflight,
   readinessMatrix,
   cronsStale,
+  productionWarnings,
 } from "@/lib/readiness";
 
 const NO_FILE = { keyFilePresent: false };
@@ -132,6 +133,20 @@ test("cronsStale: an unparseable finishedAt is skipped, not flagged", () => {
   const now = Date.parse("2026-07-15T12:00:00.000Z");
   const stale = cronsStale([{ cron: "sync", finishedAt: "not-a-date" }], { sync: 1 }, now);
   assert.deepEqual(stale, []);
+});
+
+test("productionWarnings: prod + missing CRON_SECRET → one warning; set → none", () => {
+  const missing = productionWarnings({ NODE_ENV: "production" });
+  assert.equal(missing.length, 1);
+  assert.match(missing[0], /CRON_SECRET/);
+  assert.match(missing[0], /401/); // says what actually breaks at runtime
+  assert.deepEqual(productionWarnings({ NODE_ENV: "production", CRON_SECRET: "c" }), []);
+});
+
+test("productionWarnings: non-prod is never warned (dev/local unaffected)", () => {
+  assert.deepEqual(productionWarnings({}), []);
+  assert.deepEqual(productionWarnings({ NODE_ENV: "development" }), []);
+  assert.deepEqual(productionWarnings({ LOCAL_DB: "true" }), []);
 });
 
 test("cronsStale returns a sorted list", () => {

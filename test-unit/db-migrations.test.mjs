@@ -5,9 +5,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { runMigrations, rebuildTable } from "@/lib/db";
+import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
 const LATEST = 16;
+
+test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
+  const v = [...MIGRATION_VERSIONS];
+  assert.equal(new Set(v).size, v.length, "versions must be unique");
+  assert.deepEqual(v, [...v].sort((a, b) => a - b), "versions must be ascending");
+  assert.deepEqual(
+    v,
+    Array.from({ length: v.length }, (_, i) => i + 1),
+    "versions must be contiguous from 1 (no skipped version)"
+  );
+  assert.equal(v[v.length - 1], LATEST);
+});
 
 const cols = (db, table) =>
   db

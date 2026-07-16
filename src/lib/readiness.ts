@@ -93,6 +93,31 @@ export function readinessMatrix(env: Env, probes: FirebaseProbes): ReadinessMatr
   };
 }
 
+/**
+ * Non-fatal production readiness warnings — configuration that boots fine but
+ * silently degrades a surface at RUNTIME, surfaced loudly at boot (see
+ * firebase.ts) instead of failing the deploy.
+ *
+ * CRON_SECRET is the one such gate today. Unlike the Firebase credential
+ * preflight (which THROWS, because with no data backend nothing works), a missing
+ * CRON_SECRET is deliberately a WARN, not a throw: the site still serves every
+ * page without it — only the scheduled crons and /api/health 401 at runtime.
+ * Refusing to boot the whole product over a background-job secret would be a worse
+ * failure than the one it guards against, so we log-loud-and-continue and let the
+ * operator fix it. Returns the human-readable warning lines (empty outside prod).
+ */
+export function productionWarnings(env: Env): string[] {
+  if (env.NODE_ENV !== "production") return [];
+  const warnings: string[] = [];
+  if (!env.CRON_SECRET) {
+    warnings.push(
+      "CRON_SECRET is unset in production — the scheduled crons and /api/health will " +
+        "401 at runtime. Set CRON_SECRET to enable them."
+    );
+  }
+  return warnings;
+}
+
 /** The last-run marker /api/health projects per cron (a subset of CronHealth). */
 export type CronLastRun = { cron: string; finishedAt: string };
 

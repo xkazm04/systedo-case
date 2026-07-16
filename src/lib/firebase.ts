@@ -23,7 +23,7 @@ import {
 } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { firebasePreflight } from "@/lib/readiness";
+import { firebasePreflight, productionWarnings } from "@/lib/readiness";
 
 const KEY_PATH = process.env.GOOGLE_APPLICATION_CREDENTIALS ?? ".data/firebase-sa.json";
 
@@ -39,6 +39,13 @@ function resolveCredential(): Credential {
 function init(): App {
   const apps = getApps();
   if (apps.length) return apps[0]!;
+
+  // Warn loud (but don't throw) at boot on non-fatal prod misconfig — a missing
+  // CRON_SECRET boots fine yet 401s every cron + /api/health at runtime, so make
+  // it visible in the deploy logs rather than a silent runtime surprise.
+  for (const warning of productionWarnings(process.env)) {
+    console.error(`[readiness] ${warning}`);
+  }
 
   // Fail loud before touching a provider: refuse a silent ADC fallthrough in prod.
   const preflight = firebasePreflight(process.env, { keyFilePresent: existsSync(KEY_PATH) });

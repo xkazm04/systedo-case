@@ -13,13 +13,35 @@
  *
  *  Preserves the exact prior semantics: `allowZero: false` ⇢ `n > 0`, `allowZero:
  *  true` ⇢ `n >= 0`; a non-finite / out-of-range value falls back to `fallback`, and
- *  a valid value is floored to an integer. */
+ *  a valid value is floored to an integer.
+ *
+ *  A MALFORMED value (the var is SET but doesn't parse to a usable integer, e.g. a
+ *  typo like `AI_RPM=1O`) used to fall back to the default in total silence, so a
+ *  misconfigured cap looked like it applied. It now logs a warning ONCE per key
+ *  (the `warnedKeys` set below dedupes across the process — this is called on hot
+ *  paths, so it must not log every request). It still never throws and still
+ *  returns the default: a bad knob degrades to the safe default, loudly. An
+ *  UNSET/empty var is the normal "use the default" case and stays silent. */
+const warnedKeys = new Set<string>();
+
 export function envInt(
   name: string,
   fallback: number,
   opts: { allowZero?: boolean } = {}
 ): number {
-  const n = Number(process.env[name]);
+  const raw = process.env[name];
+  const n = Number(raw);
   const inRange = opts.allowZero ? n >= 0 : n > 0;
-  return Number.isFinite(n) && inRange ? Math.floor(n) : fallback;
+  if (Number.isFinite(n) && inRange) return Math.floor(n);
+
+  // Malformed (set but unusable) → warn once; unset/empty → stay silent.
+  if (raw !== undefined && raw.trim() !== "" && !warnedKeys.has(name)) {
+    warnedKeys.add(name);
+    console.warn(
+      `[env] ${name}="${raw}" is not a valid ${
+        opts.allowZero ? "non-negative" : "positive"
+      } integer — using default ${fallback}.`
+    );
+  }
+  return fallback;
 }
