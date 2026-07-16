@@ -19,6 +19,7 @@ import { evaluate } from "@/lib/lp-exp/compute";
 import { SAMPLE_EXPERIMENTS, type LpExperiment } from "@/lib/lp-exp/sample";
 import { listExperiments } from "@/lib/lp-exp/store";
 import { SAMPLE_ATTRIBUTION, type ChannelPerf } from "@/lib/distribution/sample";
+import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
 import type { Pattern, PatternCategory } from "./types";
 
@@ -267,6 +268,25 @@ export function promptSafePatterns(patterns: Pattern[], excludeSampleLessons: bo
   if (!excludeSampleLessons) return patterns;
   const sampleIds = new Set(sampleLessonPatterns().map((p) => p.id));
   return patterns.filter((p) => !sampleIds.has(p.id));
+}
+
+/** Policy: may demo-derived SAMPLE lessons ride into this tenant's PROMPT
+ *  (getPatternLines)? Only on the demo / anonymous surface, where the whole
+ *  experience is illustrative:
+ *
+ *    - anonymous visitor (the shared `sample` tenant)  → YES (labeled "(ukázková lekce)")
+ *    - a public DEMO project (sample spine)            → YES
+ *    - a REAL authenticated tenant                     → NO — whether live-synced,
+ *      sample-fallback, OR never-synced (null sync meta). A real account must never see
+ *      demo lessons framed as its OWN proven wins; the never-synced case reading as
+ *      "not live" and keeping them was the false-framing bug this closes.
+ *
+ *  This replaces the old liveness inference (getSyncMeta) inside getPatternLines: the
+ *  decision is purely demo/anon-vs-real, so the prompt path needs NO sync-meta read.
+ *  The library UI (getLibrary) still shows sample lessons to everyone, labeled — that
+ *  surface is unchanged. Pure. */
+export function sampleLessonsAllowed(tenant: string, projectId?: string | null): boolean {
+  return tenant === "sample" || (!!projectId && DEMO_PROJECTS.some((p) => p.id === projectId));
 }
 
 /** How many chars of raw `evidence` may ride into a prompt line. Auto-mined evidence

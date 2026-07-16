@@ -4,7 +4,6 @@
  *  ones a user chose to keep. Server-only. */
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
-import { getSyncMeta } from "@/lib/campaigns/store";
 import {
   contradictedSavedIds,
   extractPatternsWithContext,
@@ -88,15 +87,6 @@ export async function getLibrary(
   };
 }
 
-/** Is this tenant's stored campaign set LIVE account data? True only when the
- *  last sync came from a live source and did NOT degrade to the sample fallback —
- *  the same truth-in-labeling signal the campaigns UI uses (SyncMeta.source +
- *  degraded). Never-synced / sample / degraded tenants read as not-live. */
-async function isLiveTenant(tenant: string): Promise<boolean> {
-  const meta = await getSyncMeta(tenant);
-  return Boolean(meta && meta.source !== "sample" && !meta.degraded);
-}
-
 /** Semantic search over the tenant's library (saved + auto): ranks patterns by
  *  cosine similarity to the query. Falls back to substring matching when
  *  embeddings are unavailable (`semantic: false`). */
@@ -136,24 +126,29 @@ export async function searchPatterns(
  *  With a `query` (the current portfolio situation) and embeddings available, the
  *  patterns are ranked by *semantic relevance* to that situation (RAG) — so the
  *  model sees the lessons that actually apply now. Falls back to deterministic
- *  order (saved first, then auto) when no query / embeddings are unavailable. */
+ *  order (saved first, then auto) when no query / embeddings are unavailable.
+ *
+ *  `sampleAllowed` (the caller's provenance verdict via `sampleLessonsAllowed`) decides
+ *  whether demo-derived sample lessons may appear: only on the demo / anonymous surface.
+ *  A real authenticated tenant — live, sample-fallback, or never-synced — excludes them,
+ *  so this path no longer reads sync meta (Direction 3: the never-synced false-framing
+ *  is closed AND the duplicate getSyncMeta the callers already did is gone). */
 export async function getPatternLines(
   tenant: string,
   query?: string,
   limit = 6,
   pnoGoal?: number,
-  projectId?: string
+  projectId?: string,
+  sampleAllowed = false
 ): Promise<string[]> {
-  const [{ auto, saved }, live] = await Promise.all([
-    getLibrary(tenant, pnoGoal, projectId),
-    isLiveTenant(tenant),
-  ]);
-  // Prompt integrity: a live tenant's "proven patterns from this account" block
-  // must not carry the demo-derived sample lessons (see promptSafePatterns) —
-  // only lessons mined from their real data and their own manual saves. Direction 2:
-  // a saved pin fresh data now contradicts is also dropped (getLibrary flagged it) —
-  // a stale scaling template must not keep grounding prompts after its campaign craters.
-  const all = promptSafePatterns([...saved, ...auto], live).filter((p) => !p.contradicted);
+  const { auto, saved } = await getLibrary(tenant, pnoGoal, projectId);
+  // Prompt integrity: a real account's "proven patterns from this account" block must
+  // not carry the demo-derived sample lessons (see promptSafePatterns) — only lessons
+  // mined from their real data and their own manual saves. Demo/anon keeps them (labeled).
+  // Direction 2: a saved pin fresh data now contradicts is also dropped (getLibrary
+  // flagged it) — a stale scaling template must not keep grounding prompts after its
+  // campaign craters.
+  const all = promptSafePatterns([...saved, ...auto], !sampleAllowed).filter((p) => !p.contradicted);
   if (all.length === 0) return [];
   // Each line carries a compact evidence clause when the pattern has proof (which
   // win backs it) — dynamic USER-prompt content, so the fingerprint goldens hold.

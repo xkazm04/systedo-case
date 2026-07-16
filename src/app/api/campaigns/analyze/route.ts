@@ -5,6 +5,7 @@ import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
+import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
 import { getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
@@ -159,7 +160,14 @@ export async function POST(request: Request) {
     // the eval alongside the tenant's campaign-mined patterns — the same handoff the
     // ads prompt path makes. Sample/demo projects persist no experiments → no-op.
     const patternLines = patternQuery
-      ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId)
+      ? await getPatternLines(
+          tenant,
+          patternQuery,
+          6,
+          client.pnoGoal,
+          projectId,
+          sampleLessonsAllowed(tenant, projectId)
+        )
       : undefined;
 
     // The eval input the prompt + cache key are a pure function of (locale/signal are

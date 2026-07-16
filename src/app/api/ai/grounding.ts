@@ -30,6 +30,7 @@ import { annotationsGroundingText } from "@/lib/annotations/types";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getPatternLines } from "@/lib/patterns/store";
+import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { adPatternQuery } from "@/lib/patterns/query";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 
@@ -216,7 +217,16 @@ export async function resolveAdPatterns(
   // projectId is threaded so the tenant's LIVE LP-experiment winners (project-scoped)
   // join the tenant-scoped pattern grounding — an account-proven creative angle from a
   // real, significant experiment. Sample/demo projects persist no experiments → no-op.
-  return getPatternLines(tenant, adPatternQuery(req), 6, pnoGoal, projectId);
+  // sampleAllowed: only the demo/anon surface keeps the demo-derived sample lessons; a
+  // real account (incl. never-synced) excludes them so the block isn't falsely framed.
+  return getPatternLines(
+    tenant,
+    adPatternQuery(req),
+    6,
+    pnoGoal,
+    projectId,
+    sampleLessonsAllowed(tenant, projectId)
+  );
 }
 
 /** B1 — resolve a project's brand grounding (what it sells + how it talks) for the

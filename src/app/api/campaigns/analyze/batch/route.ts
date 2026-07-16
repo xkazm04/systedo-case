@@ -13,6 +13,7 @@
 import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { getPatternLines } from "@/lib/patterns/store";
+import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
 import { consume, getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
@@ -168,6 +169,9 @@ export async function POST(request: Request) {
     const locale = await getServerLocale();
     // Resolve the tenant's client profile once for the whole batch.
     const client = await getClientProfile(tenant);
+    // Sample-lessons policy is constant for the batch (same tenant + project): only the
+    // demo/anon surface keeps the demo-derived lessons; a real account excludes them.
+    const sampleAllowed = sampleLessonsAllowed(tenant, projectId);
 
     for (let i = 0; i < pending.length; i++) {
       const target = pending[i]!;
@@ -195,7 +199,7 @@ export async function POST(request: Request) {
       // projectId threads the project's live LP-experiment winners into each eval's
       // grounding, matching the single analyze route + the ads prompt path.
       const patternLines = patternQuery
-        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId)
+        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId, sampleAllowed)
         : undefined;
 
       try {
