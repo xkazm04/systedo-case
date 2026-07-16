@@ -42,6 +42,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         areas={localities.map((l) => l.name)}
         businessName={project.name}
         businessType={businessTypeFromServices(services)}
+        live={resolved.live}
         projectId={projectId}
         initialState={initialState ?? undefined}
       />

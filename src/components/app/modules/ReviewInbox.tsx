@@ -9,7 +9,7 @@
  *  feed. Ported in spirit from the local-SEO app's ReviewInbox. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pill, TONE_TEXT } from "@/components/ui";
-import { Bolt, Bookmark, Check, Copy, Info, Refresh, Search, Sparkles } from "@/components/icons";
+import { Bolt, Bookmark, Check, Copy, Info, Refresh, Search, Sparkles, TrendUp, TrendDown } from "@/components/icons";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
@@ -27,6 +27,7 @@ import {
   type SortKey,
   type StatusFilter,
 } from "@/lib/reviews/compute";
+import { responseHealth } from "@/lib/reviews/health";
 
 const T = {
   cs: {
@@ -36,6 +37,12 @@ const T = {
     statusAll: "Vše", statusUnanswered: "Bez odpovědi", statusAnswered: "Zodpovězené", statusFlagged: "Označené",
     sortNewest: "Nejnovější", sortOldest: "Nejstarší", sortRatingDesc: "Nejvyšší hodnocení", sortRatingAsc: "Nejnižší hodnocení",
     unanswered: "Bez odpovědi", avg: "Průměr", total: "Recenzí",
+    healthTitle: "Kondice odpovídání",
+    replyRate: "Míra odpovědí", medianAge: "Medián stáří (odpovězené)", trend: "Trend sentimentu",
+    days: "{n} dní", noAnswered: "—",
+    trendUp: "roste", trendDown: "klesá", trendFlat: "stabilní",
+    healthNote: "Míra odpovědí = zodpovězené / celkem. „Medián stáří“ bere stáří zodpovězených recenzí (čas odpovědi se neukládá, jde o poctivý odhad). Trend porovnává podíl kladných ve starší a novější polovině okna.",
+    sampleTag: "Ukázková data",
     empty: "Žádné recenze neodpovídají filtru.",
     daysAgo: "před {n} dny", today: "dnes",
     suggest: "Navrhnout odpověď", suggestAgain: "Navrhnout znovu", generating: "Generuji…",
@@ -52,6 +59,12 @@ const T = {
     statusAll: "All", statusUnanswered: "Unanswered", statusAnswered: "Answered", statusFlagged: "Flagged",
     sortNewest: "Newest", sortOldest: "Oldest", sortRatingDesc: "Highest rating", sortRatingAsc: "Lowest rating",
     unanswered: "Unanswered", avg: "Average", total: "Reviews",
+    healthTitle: "Response health",
+    replyRate: "Reply rate", medianAge: "Median age (answered)", trend: "Sentiment trend",
+    days: "{n} days", noAnswered: "—",
+    trendUp: "rising", trendDown: "falling", trendFlat: "flat",
+    healthNote: "Reply rate = answered / total. “Median age” uses the age of answered reviews (reply times aren't stored — an honest proxy). Trend compares the positive share of the older vs newer half of the window.",
+    sampleTag: "Sample data",
     empty: "No reviews match the filter.",
     daysAgo: "{n} days ago", today: "today",
     suggest: "Suggest reply", suggestAgain: "Suggest again", generating: "Generating…",
@@ -82,6 +95,13 @@ function ratingTone(rating: number): "positive" | "coral" | "negative" {
   return "negative";
 }
 
+/** Sentiment-trend colour: rising green, falling red, flat muted. */
+const TREND_TEXT: Record<"up" | "down" | "flat", string> = {
+  up: "text-positive",
+  down: "text-negative",
+  flat: "text-muted",
+};
+
 export interface ReviewInboxState {
   answered: string[];
   flagged: string[];
@@ -95,6 +115,7 @@ export default function ReviewInbox({
   areas,
   businessName,
   businessType,
+  live,
   projectId,
   initialState,
 }: {
@@ -102,6 +123,8 @@ export default function ReviewInbox({
   areas: string[];
   businessName?: string;
   businessType?: string;
+  /** true when the reviews are imported (not the sample) — labels the health strip */
+  live?: boolean;
   projectId: string;
   initialState?: ReviewInboxState;
 }) {
@@ -183,6 +206,10 @@ export default function ReviewInbox({
     [reviews, answered, flagged]
   );
   const s = useMemo(() => sentiment(augmented), [augmented]);
+  // Response health closes the reply loop (D2): reply-rate, median answered-age and a
+  // sentiment trend arrow — all pure derivations over the same triaged review set, so the
+  // strip updates the instant a review is marked answered.
+  const h = useMemo(() => responseHealth(augmented), [augmented]);
   const visible = useMemo(() => sortReviews(filterReviews(augmented, filter), sort), [augmented, filter, sort]);
 
   function suggest(r: ReviewItem) {
@@ -266,6 +293,30 @@ export default function ReviewInbox({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Response health strip (D2) — reply-rate, median answered-age, sentiment trend */}
+      <div className="card p-5">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("healthTitle")}</p>
+            {!live && <Pill tone="coral"><Info width={12} height={12} />{t("sampleTag")}</Pill>}
+          </div>
+          <Stat label={t("replyRate")} value={`${fmt.fmtPct(h.replyRate, 0)}`} tone={h.replyRate < 0.5 ? "coral" : "positive"} />
+          <Stat
+            label={t("medianAge")}
+            value={h.medianResponseAgeDays === null ? t("noAnswered") : t("days", { n: fmt.fmtInt(h.medianResponseAgeDays) })}
+          />
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("trend")}</p>
+            <p className={"tnum mt-1 flex items-center gap-1.5 text-xl font-semibold " + TREND_TEXT[h.trend]}>
+              {h.trend === "up" && <TrendUp width={18} height={18} />}
+              {h.trend === "down" && <TrendDown width={18} height={18} />}
+              <span className="text-base">{t(h.trend === "up" ? "trendUp" : h.trend === "down" ? "trendDown" : "trendFlat")}</span>
+            </p>
+          </div>
+        </div>
+        <p className="mt-3 border-t border-line pt-3 text-xs text-muted">{t("healthNote")}</p>
       </div>
 
       {/* Toolbar */}

@@ -1114,6 +1114,13 @@ export interface LocalDiagnosisReviews {
   avg: number;
   /** true when the reviews are imported (not the sample) */
   live: boolean;
+  /** reply-health from the inbox triage, present only when triage is loaded (D2) */
+  replyRate?: number;
+  /** median age (days) of answered reviews — proxy for response age (reply dates
+   *  aren't stored); present with replyRate, null when nothing is answered */
+  medianResponseAgeDays?: number | null;
+  /** newer-vs-older sentiment direction over the window: "up" | "down" | "flat" */
+  sentimentTrend?: "up" | "down" | "flat";
 }
 
 /** Location-roster attention rollup, when a location roster is available. */

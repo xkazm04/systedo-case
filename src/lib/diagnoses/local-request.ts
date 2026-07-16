@@ -10,7 +10,8 @@ import { gaps, localSummary } from "../local/compute";
 import type { KeywordRank } from "../mappack/sample";
 import { changeSinceLast, ladderSpanDays } from "../mappack/compute";
 import type { ReviewItem } from "../reviews/sample";
-import { sentiment } from "../reviews/compute";
+import { sentiment, type InboxReview } from "../reviews/compute";
+import { responseHealth } from "../reviews/health";
 import type { LocationRow } from "../locations/sample";
 import { needsAttention } from "../locations/compute";
 
@@ -91,10 +92,15 @@ export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDi
     };
   }
 
-  // Review sentiment (the resolved reviews carry no per-review answered flag, so the
-  // rollup reads sentiment only — the panel/module surface the reply queue).
+  // Review sentiment, plus reply-health from the inbox triage when it is loaded (D2).
+  // The answered flag is the inbox's per-review triage overlaid on the resolved set.
   if (input.reviews.length > 0) {
-    const st = sentiment(input.reviews);
+    const answeredSet = input.answeredReviewIds ? new Set(input.answeredReviewIds) : null;
+    const withState: InboxReview[] = input.reviews.map((r) => ({
+      ...r,
+      answered: answeredSet ? answeredSet.has(r.id) : false,
+    }));
+    const st = sentiment(withState);
     req.reviews = {
       total: st.total,
       positive: st.positive,
@@ -103,6 +109,14 @@ export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDi
       avg: st.avg,
       live: input.reviewsLive,
     };
+    // Reply-health only when triage is actually loaded — otherwise "0 % answered" would
+    // be an artefact of missing state, not a real backlog.
+    if (answeredSet) {
+      const h = responseHealth(withState);
+      req.reviews.replyRate = h.replyRate;
+      req.reviews.medianResponseAgeDays = h.medianResponseAgeDays;
+      req.reviews.sentimentTrend = h.trend;
+    }
   }
 
   // Location-roster attention rollup, when a roster is available.

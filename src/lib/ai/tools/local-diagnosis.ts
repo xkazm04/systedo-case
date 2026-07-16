@@ -72,14 +72,26 @@ function ladderLine(req: LocalDiagnosisRequest): string | null {
   )}.${trend}`;
 }
 
-/** The review-sentiment rollup as a prompt line, when present. */
+/** The review-sentiment rollup as a prompt line, when present. Reply-health (D2) is
+ *  appended only when the inbox triage was loaded (replyRate present) — user-prompt
+ *  only; the system prompt + schema (the eval fingerprint) are untouched. */
 function reviewsLine(req: LocalDiagnosisRequest): string | null {
   const r = req.reviews;
   if (!r || r.total === 0) return null;
   const src = r.live ? "živá data" : "ukázková data";
-  return `Recenze [zdroj: ${src}]: ${fmtInt(r.total)} hodnocení, průměr ${r.avg.toFixed(
+  let line = `Recenze [zdroj: ${src}]: ${fmtInt(r.total)} hodnocení, průměr ${r.avg.toFixed(
     1
   )}★; pozitivních ${fmtInt(r.positive)}, neutrálních ${fmtInt(r.neutral)}, negativních ${fmtInt(r.negative)}.`;
+  if (typeof r.replyRate === "number") {
+    const trend =
+      r.sentimentTrend === "up" ? "roste" : r.sentimentTrend === "down" ? "klesá" : "stabilní";
+    const age =
+      typeof r.medianResponseAgeDays === "number"
+        ? `, medián stáří zodpovězených ${fmtInt(r.medianResponseAgeDays)} dní`
+        : "";
+    line += ` Odpovězeno ${fmtPct(r.replyRate, 0)}${age}; sentiment ${trend}.`;
+  }
+  return line;
 }
 
 /** The location-roster attention rollup as a prompt line, when present. */
