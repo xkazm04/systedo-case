@@ -41,7 +41,13 @@ import type { SupportedLocale } from "@/lib/format";
 import type { AiResponse } from "@/lib/ai-types";
 import { fetchSiteText, FeedFetchError } from "@/lib/onboarding/site-fetch";
 import { resolveTwinVoice } from "@/lib/twin/load";
-import { getCachedAi, hashAiInput, setCachedAi } from "@/lib/ai/response-cache";
+import {
+  getCachedAi,
+  getCachedAiDurable,
+  hashAiInput,
+  setCachedAi,
+  setCachedAiDurable,
+} from "@/lib/ai/response-cache";
 import { recordRecap, buildStoredRecap, recapInputHash } from "@/lib/recaps";
 import { randomUUID } from "node:crypto";
 import { createModeTable, type ModeDeps } from "./modes";
@@ -145,6 +151,16 @@ export async function runMetered(
     return { ok: true, result: cached, cached: true };
   }
 
+  // L1 miss → consult the durable L2 (cross-instance; survives a deploy that wiped
+  // this instance's L1). A durable hit is promoted into L1 by getCachedAiDurable and,
+  // like an L1 hit, did zero provider work — so refund the ceiling unit the same way.
+  // One durable-store round-trip on this miss path only; the hot L1 path is untouched.
+  const durable = await getCachedAiDurable(key);
+  if (durable) {
+    await refundGlobalSpend(1);
+    return { ok: true, result: durable, cached: true };
+  }
+
   // Per-user daily AI quota (signed-in users) — charged only on a real generation,
   // and SKIPPED for BYOM-served calls (the BYOM plan is unlimited by design; the
   // per-IP durable guard still bounds abuse).
@@ -190,7 +206,8 @@ export async function runMetered(
     await refundGlobalSpend(1);
   }
 
-  setCachedAi(key, result);
+  setCachedAi(key, result); // L1 (process-local, synchronous)
+  setCachedAiDurable(mode, key, result); // L2 (durable, fire-and-forget — never awaited)
   return { ok: true, result, cached: false };
 }
 

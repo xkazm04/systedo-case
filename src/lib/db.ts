@@ -346,6 +346,26 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_cron_runs_cron
     ON cron_runs (cron, finished_at);
+
+  -- Durable L2 for the /api/ai response cache: one row per cached (mode+locale+
+  -- provider+input) result, so an identical request served on ANOTHER instance (or
+  -- after a deploy) reuses a recent result instead of re-paying a model call. The
+  -- process-local L1 (src/lib/ai/response-cache.ts) is still consulted first; this
+  -- backs it durably. cache_key is the sha256 input hash; tool (the mode id) is
+  -- columned for the per-tool entry cap; data is the JSON AiResponse; expires +
+  -- created_at are epoch ms (TTL check on read, oldest-first eviction on write).
+  -- Best-effort by contract — a miss/hiccup never fails a response. Mirrors the
+  -- Firestore aiResponseCache collection. See src/lib/ai/response-cache-store.*.
+  CREATE TABLE IF NOT EXISTS ai_response_cache (
+    cache_key  TEXT PRIMARY KEY,
+    tool       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    expires    INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_ai_response_cache_tool
+    ON ai_response_cache (tool, created_at);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -530,6 +550,25 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "project_goal"),
+  },
+  {
+    version: 15,
+    name: "ai_response_cache (durable L2 for the /api/ai response cache → survives deploys)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS ai_response_cache (
+          cache_key  TEXT PRIMARY KEY,
+          tool       TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          expires    INTEGER NOT NULL,
+          created_at INTEGER NOT NULL
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_ai_response_cache_tool ON ai_response_cache (tool, created_at)"
+      );
+    },
+    applied: (db) => tableExists(db, "ai_response_cache"),
   },
 ];
 
