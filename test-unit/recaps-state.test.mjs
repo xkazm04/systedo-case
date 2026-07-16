@@ -15,6 +15,8 @@ import {
   isRecapStale,
   latestForPeriod,
   recapInputHash,
+  recapInputHashLegacy,
+  recapCurrentHashes,
   RECAP_HISTORY_CAP,
 } from "@/lib/recaps/types";
 
@@ -97,6 +99,13 @@ test("isRecapStale is true iff the stored input hash differs from the current on
   assert.equal(isRecapStale(r, "H2"), true); // data changed → stale
 });
 
+test("isRecapStale accepts a dual-acceptance set: fresh iff the stored hash matches any", () => {
+  const r = recap("30d", { inputHash: "LEGACY" });
+  assert.equal(isRecapStale(r, ["NEW", "LEGACY"]), false); // matches the legacy member → fresh
+  assert.equal(isRecapStale(r, ["NEW", "OTHER"]), true); // matches neither → stale
+  assert.equal(isRecapStale(recap("30d", { inputHash: "NEW" }), ["NEW", "LEGACY"]), false);
+});
+
 test("recapInputHash is stable for equal inputs and flips on any determinant", () => {
   const data = { daily: [{ date: "2025-01-01", revenue: 100 }] };
   const base = recapInputHash("cs", "30d", "eshop", data);
@@ -106,4 +115,41 @@ test("recapInputHash is stable for equal inputs and flips on any determinant", (
   assert.notEqual(base, recapInputHash("cs", "90d", "eshop", data), "period");
   assert.notEqual(base, recapInputHash("cs", "30d", "leadgen", data), "project type");
   assert.notEqual(base, recapInputHash("cs", "30d", "eshop", { daily: [{ date: "2025-01-01", revenue: 200 }] }), "dataset numbers");
+});
+
+test("recapInputHash digests the series cheaply: same count/dates/totals digest equal", () => {
+  // Two series with identical row count, window bounds, and additive totals summarize
+  // the same → they digest equal (the recap over them is the same), even if the rows
+  // differ in a way that preserves every total. Regenerating with re-fetched-but-equal
+  // numbers therefore does NOT flip a recap stale.
+  const a = { daily: [{ date: "2025-01-01", visits: 10, cost: 5, conversions: 1, revenue: 100 }, { date: "2025-01-02", visits: 20, cost: 5, conversions: 1, revenue: 100 }] };
+  const b = { daily: [{ date: "2025-01-01", visits: 15, cost: 5, conversions: 1, revenue: 100 }, { date: "2025-01-02", visits: 15, cost: 5, conversions: 1, revenue: 100 }] };
+  assert.equal(recapInputHash("cs", "30d", "eshop", a), recapInputHash("cs", "30d", "eshop", b), "equal totals+count+bounds → equal");
+  // A changed total, row count, or window bound flips it.
+  const more = { daily: [...a.daily, { date: "2025-01-03", visits: 1, cost: 1, conversions: 0, revenue: 1 }] };
+  assert.notEqual(recapInputHash("cs", "30d", "eshop", a), recapInputHash("cs", "30d", "eshop", more), "extra row → stale");
+  assert.notEqual(recapInputHash("cs", "30d", "eshop", a), recapInputHash("cs", "30d", "eshop", undefined), "empty vs populated");
+});
+
+test("dual-acceptance: a recap stored with the LEGACY hash still reads fresh", () => {
+  const data = { daily: [{ date: "2025-01-01", visits: 10, cost: 5, conversions: 1, revenue: 100 }] };
+  // A recap persisted before the digest optimization carries the legacy whole-dataset
+  // hash. On the same current inputs, recapCurrentHashes offers both formats, so it is
+  // NOT flagged stale on deploy.
+  const legacy = recapInputHashLegacy("cs", "30d", "eshop", data);
+  const stored = recap("30d", { inputHash: legacy });
+  const hashes = recapCurrentHashes("cs", "30d", "eshop", data);
+  assert.notEqual(hashes[0], legacy, "new format differs from legacy");
+  assert.equal(hashes[1], legacy, "legacy member reproduces the old hash");
+  assert.equal(isRecapStale(stored, hashes), false, "legacy-stored recap reads fresh");
+});
+
+test("dual-acceptance: changed data flips both new- and legacy-stored recaps stale", () => {
+  const before = { daily: [{ date: "2025-01-01", visits: 10, cost: 5, conversions: 1, revenue: 100 }] };
+  const after = { daily: [{ date: "2025-01-01", visits: 10, cost: 5, conversions: 1, revenue: 250 }] };
+  const newStored = recap("30d", { inputHash: recapInputHash("cs", "30d", "eshop", before) });
+  const legacyStored = recap("30d", { inputHash: recapInputHashLegacy("cs", "30d", "eshop", before) });
+  const nowHashes = recapCurrentHashes("cs", "30d", "eshop", after);
+  assert.equal(isRecapStale(newStored, nowHashes), true, "new-format recap goes stale on data change");
+  assert.equal(isRecapStale(legacyStored, nowHashes), true, "legacy-format recap goes stale on data change");
 });

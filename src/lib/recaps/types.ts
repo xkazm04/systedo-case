@@ -43,10 +43,9 @@ export interface RecapState {
 }
 
 // --------------------------------------------------------------------------
-// Input hash — the staleness signal. Reuses the exact hashing the /api/ai
-// response cache uses (mode + locale + a stable JSON of the determining inputs),
-// so the value the route stores at generation time and the value the report page
-// recomputes on load are computed the same way on both sides.
+// Input hash — the staleness signal. The report page recomputes it on load and
+// compares against the value the route stored at generation time; an equal hash
+// means "still current".
 //
 // The recap's content is a function of: the period, the locale it's written in, the
 // project type (which frames the metric vocabulary) and the resolved dataset (the
@@ -54,12 +53,81 @@ export interface RecapState {
 // edits (competitor set, client notes) are deliberately NOT folded in: both sides
 // resolve the dataset identically and cheaply, whereas reconstructing every grounding
 // version string on the page would be fragile and risk false "stale" flags.
+//
+// The dataset's signal is a CHEAP DIGEST of the daily series, not a JSON dump of it:
+// the report page computes this hash three times per load (one per period) and the
+// route once per generation, over a ~400–730-row series. Rather than JSON-stringify
+// every row (and the whole PerformanceData around it) each time, {@link seriesDigest}
+// takes a single O(n) pass and reduces the series to its staleness-bearing shape — row
+// count, window first/last date, and the rounded totals of each additive field. Any
+// real move in the numbers shifts a total, the count, or the date range; two series
+// with identical shape+totals summarize identically, so they honestly digest equal.
+//
+// DUAL-ACCEPTANCE: recaps persisted before this optimization carry the OLD whole-
+// dataset hash. A stored hash that matches EITHER the new digest hash OR the
+// deprecated {@link recapInputHashLegacy} (both computed from the SAME current inputs)
+// reads fresh, so no recap flips stale merely because the hash format changed on
+// deploy. New writes store only the new hash; the legacy path is kept until stored
+// recaps naturally regenerate and age it out.
 // --------------------------------------------------------------------------
+
+/** Cheap, deterministic digest of the resolved daily series — one O(n) pass over the
+ *  additive fields instead of JSON-stringifying the whole dataset. Captures exactly
+ *  what makes a recap stale when the numbers move: the row count, the window's first
+ *  and last date, and the rounded totals of each additive field (paid-traffic pair
+ *  included when present, 0 when a dataset lacks it). Pure. */
+function seriesDigest(data: PerformanceData | undefined): string {
+  const daily = data?.daily ?? [];
+  const n = daily.length;
+  if (n === 0) return "0|-|-|0|0|0|0|0|0";
+  let visits = 0,
+    cost = 0,
+    conversions = 0,
+    revenue = 0,
+    impressions = 0,
+    clicks = 0;
+  for (const d of daily) {
+    visits += d.visits || 0;
+    cost += d.cost || 0;
+    conversions += d.conversions || 0;
+    revenue += d.revenue || 0;
+    impressions += d.impressions || 0;
+    clicks += d.clicks || 0;
+  }
+  return [
+    n,
+    daily[0]?.date ?? "-",
+    daily[n - 1]?.date ?? "-",
+    Math.round(visits),
+    Math.round(cost),
+    Math.round(conversions),
+    Math.round(revenue),
+    Math.round(impressions),
+    Math.round(clicks),
+  ].join("|");
+}
 
 /** Stable hash of the inputs a recap is a function of. The same function is called by
  *  the route (at generation, with the resolved dataset) and by the report page (on
- *  load, with the same resolved dataset) — an equal hash means "still current". */
+ *  load, with the same resolved dataset) — an equal hash means "still current". The
+ *  `v2` marker keeps this namespace disjoint from {@link recapInputHashLegacy}. */
 export function recapInputHash(
+  locale: SupportedLocale | string,
+  period: AnalysisPeriod,
+  projectType: ProjectType | undefined,
+  data: PerformanceData | undefined
+): string {
+  return createHash("sha256")
+    .update(`monthly-recap ${locale} app v2 ${period} ${projectType ?? "null"} ${seriesDigest(data)}`)
+    .digest("hex");
+}
+
+/** @deprecated The pre-digest whole-dataset hash (mode + locale + a stable JSON of
+ *  period/projectType/data). Kept ONLY for dual-acceptance: a recap persisted with
+ *  this format still reads fresh (via {@link recapCurrentHashes}) until it naturally
+ *  regenerates into the new format. Do NOT add new write call sites — new writes use
+ *  {@link recapInputHash}. */
+export function recapInputHashLegacy(
   locale: SupportedLocale | string,
   period: AnalysisPeriod,
   projectType: ProjectType | undefined,
@@ -71,10 +139,30 @@ export function recapInputHash(
     .digest("hex");
 }
 
+/** The hashes a stored recap may match to count as CURRENT: the new series-digest hash
+ *  AND (dual-acceptance) the deprecated whole-dataset hash — both from the SAME current
+ *  inputs. The report page passes this to {@link isRecapStale} so a recap written under
+ *  the old format is not falsely flagged stale on deploy. New writes persist only the
+ *  first element. */
+export function recapCurrentHashes(
+  locale: SupportedLocale | string,
+  period: AnalysisPeriod,
+  projectType: ProjectType | undefined,
+  data: PerformanceData | undefined
+): [string, string] {
+  return [
+    recapInputHash(locale, period, projectType, data),
+    recapInputHashLegacy(locale, period, projectType, data),
+  ];
+}
+
 /** Whether a stored recap no longer matches the current inputs (data / period /
- *  locale / project type changed since it was generated). Pure. */
-export function isRecapStale(stored: StoredRecap, currentHash: string): boolean {
-  return stored.inputHash !== currentHash;
+ *  locale / project type changed since it was generated). Accepts a single hash or the
+ *  dual-acceptance set from {@link recapCurrentHashes} — stale iff the stored hash
+ *  matches NONE of the accepted hashes. Pure. */
+export function isRecapStale(stored: StoredRecap, currentHash: string | readonly string[]): boolean {
+  const accepted = typeof currentHash === "string" ? [currentHash] : currentHash;
+  return !accepted.includes(stored.inputHash);
 }
 
 // --------------------------------------------------------------------------

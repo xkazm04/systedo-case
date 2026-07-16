@@ -5,7 +5,7 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import MonthlyReport, { type RecapHistoryItem } from "@/components/app/modules/MonthlyReport";
 import { getServerLocale } from "@/lib/i18n/locale";
-import { getRecaps, historyForPeriod, recapInputHash, isRecapStale } from "@/lib/recaps";
+import { getRecaps, historyForPeriod, recapCurrentHashes, isRecapStale } from "@/lib/recaps";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { assembleReport } from "@/lib/report/assemble";
@@ -107,11 +107,14 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const recapState = await getRecaps(project.id).catch(() => null);
   const recaps = {} as Record<AnalysisPeriod, RecapHistoryItem[]>;
   for (const p of ANALYSIS_PERIODS) {
-    const currentHash = recapInputHash(locale, p, project.type, dataset);
+    // Dual-acceptance: a stored recap matching EITHER the new series-digest hash or the
+    // deprecated whole-dataset hash reads fresh, so recaps written before the digest
+    // optimization don't flip stale on deploy — only a real data change does.
+    const currentHashes = recapCurrentHashes(locale, p, project.type, dataset);
     recaps[p] = historyForPeriod(recapState, p).map((it) => ({
       id: it.id,
       createdAt: it.createdAt,
-      stale: isRecapStale(it, currentHash),
+      stale: isRecapStale(it, currentHashes),
       result: it.result,
     }));
   }
