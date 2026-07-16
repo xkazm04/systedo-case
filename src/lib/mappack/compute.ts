@@ -1,6 +1,7 @@
 /** Map-pack rollups: share-of-voice from map-pack CTR + ranking-ladder trends.
  *  Pure (only the row types), so it has a matching test-unit. */
 import type { KeywordRank, MapListing } from "./sample";
+import { detectWeeklyRun } from "@/lib/metrics/trends";
 
 /** Illustrative map-pack click weights by position (1-indexed) — the top of the
  *  pack takes the lion's share, decaying fast. Used to turn ranks into a
@@ -71,29 +72,39 @@ export function ladderSpanDays(rows: Pick<KeywordRank, "history">[]): number {
   return rows.reduce((m, r) => Math.max(m, observedSpanDays(r)), 0);
 }
 
-export interface LadderTrend {
-  /** positions climbed over the full tracked window (oldest − newest rank) */
-  delta: number;
-  /** rank change since the previous observation; null with <2 points */
-  sinceLast: number | null;
-  /** days between first and last observation */
-  spanDays: number;
-  /** improvement per 30 days over the span; null when the span is too short (<14d) */
-  velocity30: number | null;
+/** Consecutive worsening imports required to call a keyword's rank in sustained
+ *  decline (D3). A run of `minRun` moves spans `minRun`+1 observations. */
+export const RANK_DECLINE_MIN_RUN = 3;
+/** Cumulative positions the rank must lose across the run to clear the magnitude bar,
+ *  so a single blip isn't mistaken for a trend. */
+export const RANK_DECLINE_MIN_DROP = 3;
+
+export interface RankDecline {
+  /** consecutive worsening imports reaching the latest observation */
+  run: number;
+  /** positions lost from just before the run to the latest (last − base rank, >0) */
+  droppedBy: number;
 }
 
-/** Time-anchored trend for one keyword: full-window climb, change since the last
- *  import, the observed span in days, and a ~30-day velocity where the span
- *  supports it (≥14 days). Pure. */
-export function ladderTrend(k: Pick<KeywordRank, "history">): LadderTrend {
-  const spanDays = observedSpanDays(k);
-  const delta = ladderDelta(k);
-  return {
-    delta,
-    sinceLast: changeSinceLast(k),
-    spanDays,
-    velocity30: spanDays >= 14 ? (delta / spanDays) * 30 : null,
-  };
+/** Sustained multi-import rank decline for one keyword (D3). REUSES the metrics
+ *  engine's single decline detector, {@link detectWeeklyRun}: a rank series is
+ *  irregular and integer-valued (monthly-ish imports, not the daily grid the weekly-
+ *  seasonality model needs), so the *bucketing* half of detectTrends doesn't fit — but
+ *  detectWeeklyRun itself is a general "run of same-direction moves beyond a noise
+ *  floor, reaching the latest point" walk, which fits the ladder history exactly. We
+ *  feed the raw rank series with a noise floor of 1 (ranks are integers; any move of
+ *  ≥1 position is real) and z = 1. Fires only on a WORSENING run (rank number
+ *  INCREASING = detectWeeklyRun's "up") of ≥ RANK_DECLINE_MIN_RUN moves whose total
+ *  drop clears RANK_DECLINE_MIN_DROP positions. A recovering or flat series, or a
+ *  history too short for a full run, returns null. Pure. */
+export function rankDecline(k: Pick<KeywordRank, "history">): RankDecline | null {
+  const ranks = k.history.map((p) => p.rank);
+  if (ranks.length < RANK_DECLINE_MIN_RUN + 1) return null;
+  const found = detectWeeklyRun(ranks, 1, RANK_DECLINE_MIN_RUN, 1);
+  if (!found || found.direction !== "up") return null; // "up" in rank number = worse
+  const droppedBy = found.last - found.base;
+  if (droppedBy < RANK_DECLINE_MIN_DROP) return null;
+  return { run: found.run, droppedBy };
 }
 
 /** Ladder ordered by the best current position first, then biggest climb. */

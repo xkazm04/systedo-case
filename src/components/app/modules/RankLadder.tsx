@@ -5,7 +5,7 @@
 import { Pill } from "@/components/ui";
 import type { PillTone } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
-import { changeSinceLast, ladderSpanDays, sortLadder } from "@/lib/mappack/compute";
+import { changeSinceLast, ladderSpanDays, rankDecline, sortLadder } from "@/lib/mappack/compute";
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
 
 const T = {
@@ -20,6 +20,10 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "beze změny",
+    declining: "klesá",
+    decliningTitle: "Klesá {run} importy v řadě (−{drop} pozic)",
+    untracked: "mimo import",
+    untrackedTitle: "V posledním importu chybí — historie zachována",
   },
   en: {
     title: "Keyword ranking ladder",
@@ -32,6 +36,10 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "no change",
+    declining: "declining",
+    decliningTitle: "Declining {run} imports in a row (−{drop} positions)",
+    untracked: "off import",
+    untrackedTitle: "Absent from the last import — history preserved",
   },
 } as const;
 
@@ -99,9 +107,31 @@ export default async function RankLadder({ rows }: { rows: KeywordRank[] }) {
               // Change column shows the move since the LAST import (null for a
               // first/single observation → "beze změny"), not the whole-window climb.
               const delta = changeSinceLast(r) ?? 0;
+              // Sustained multi-import decline (D3) — a small honest badge, distinct
+              // from the single-step "since last import" move in the change column.
+              const decline = rankDecline(r);
               return (
                 <tr key={r.id} className="border-b border-line/70 last:border-0">
-                  <td className="px-5 py-3 font-medium text-navy-800">{r.keyword}</td>
+                  <td className="px-5 py-3 font-medium text-navy-800">
+                    <span className="flex flex-wrap items-center gap-1.5">
+                      {r.keyword}
+                      {decline && (
+                        <Pill
+                          tone="coral"
+                          className="text-[10px]"
+                        >
+                          <span title={t("decliningTitle", { run: decline.run, drop: decline.droppedBy })}>
+                            ▼ {t("declining")}
+                          </span>
+                        </Pill>
+                      )}
+                      {r.untracked && (
+                        <Pill tone="neutral" className="text-[10px]">
+                          <span title={t("untrackedTitle")}>{t("untracked")}</span>
+                        </Pill>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <Sparkline history={r.history} maxRank={maxRank} />
                   </td>

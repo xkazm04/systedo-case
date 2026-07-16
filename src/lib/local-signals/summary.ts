@@ -12,7 +12,7 @@ import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { resolveLocalLadder, resolveReviews } from "@/lib/local-signals/resolve";
-import { changeSinceLast, ladderSpanDays } from "@/lib/mappack/compute";
+import { changeSinceLast, ladderSpanDays, rankDecline } from "@/lib/mappack/compute";
 import { reviewsForProject } from "@/lib/reviews/sample";
 import { bandOf } from "@/lib/reviews/compute";
 import { fmtInt, fmtPct } from "@/lib/format";
@@ -56,6 +56,15 @@ export async function localSignalsPromptText(
   }
   const hasTrend = spanDays > 0 && improved + declined > 0;
   const netStr = `${netSinceLast > 0 ? "+" : ""}${netSinceLast}`;
+
+  // Sustained multi-import decline (D3): keywords worsening ≥3 imports in a row past
+  // the magnitude bar — a stronger, more actionable signal than a single-step slip, so
+  // the recap can call out a real downtrend the client should chase (grounding text
+  // only; no schema/fingerprint touched). Worst offenders first.
+  const declining = ladder
+    .map((k) => ({ k, d: rankDecline(k) }))
+    .filter((x): x is { k: (typeof ladder)[number]; d: NonNullable<ReturnType<typeof rankDecline>> } => x.d !== null)
+    .sort((a, b) => b.d.droppedBy - a.d.droppedBy);
 
   // Review sentiment.
   const n = reviews.length;
@@ -104,6 +113,14 @@ export async function localSignalsPromptText(
         )} kombinací zlepšeno, ${fmtInt(declined)} zhoršeno (čistý posun ${netStr}).`
       );
     }
+    if (declining.length > 0) {
+      const worst = declining[0]!;
+      lines.push(
+        `- Trvalý pokles: ${fmtInt(declining.length)} klíčových slov klesá ${fmtInt(
+          worst.d.run
+        )}+ importy v řadě; nejhorší „${worst.k.keyword}" ztratil ${fmtInt(worst.d.droppedBy)} pozic.${ladderTag}`
+      );
+    }
     if (n > 0) {
       lines.push(
         `- Recenze: ${fmtInt(n)} hodnocení, průměr ${avgStars.toFixed(1)}★; pozitivních ${fmtInt(
@@ -126,6 +143,14 @@ export async function localSignalsPromptText(
         `- Rank trend over ${fmtInt(spanDays)} days: since the last import ${fmtInt(
           improved
         )} combos improved, ${fmtInt(declined)} declined (net move ${netStr}).`
+      );
+    }
+    if (declining.length > 0) {
+      const worst = declining[0]!;
+      lines.push(
+        `- Sustained decline: ${fmtInt(declining.length)} keywords worsening ${fmtInt(
+          worst.d.run
+        )}+ imports in a row; worst „${worst.k.keyword}" lost ${fmtInt(worst.d.droppedBy)} positions.${ladderTag}`
       );
     }
     if (n > 0) {

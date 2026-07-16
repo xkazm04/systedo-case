@@ -6,8 +6,8 @@ import {
   changeSinceLast,
   ladderDelta,
   ladderSpanDays,
-  ladderTrend,
   observedSpanDays,
+  rankDecline,
   shareOfVoice,
   sortByRank,
   sortLadder,
@@ -71,14 +71,22 @@ test("observedSpanDays + ladderSpanDays reflect the real dated window", () => {
   assert.equal(ladderSpanDays(rows), 20); // widest window wins
 });
 
-test("ladderTrend gives delta, sinceLast, span and a 30-day velocity where span supports it", () => {
-  const t = ladderTrend({ history: hist([10, 6, 4], 15) }); // span 30d, climbed 6
-  assert.equal(t.delta, 6);
-  assert.equal(t.sinceLast, 2);
-  assert.equal(t.spanDays, 30);
-  assert.ok(Math.abs(t.velocity30 - 6) < 1e-9); // 6 positions / 30d × 30
-  // too-short span → no velocity
-  assert.equal(ladderTrend({ history: hist([5, 3], 3) }).velocity30, null);
+test("rankDecline: fires on ≥3 consecutive worsening imports past the magnitude bar", () => {
+  const d = rankDecline({ history: hist([3, 4, 6, 9]) }); // worsened 3 imports in a row
+  assert.ok(d, "sustained worsening run detected");
+  assert.equal(d.run, 3);
+  assert.equal(d.droppedBy, 6); // 9 − 3
+});
+
+test("rankDecline: sparse history (too few points for a full run) does NOT fire", () => {
+  assert.equal(rankDecline({ history: hist([3, 6, 9]) }), null); // only 2 moves < minRun
+  assert.equal(rankDecline({ history: hist([9]) }), null);
+});
+
+test("rankDecline: a recovering (improving) series does NOT fire", () => {
+  assert.equal(rankDecline({ history: hist([9, 7, 5, 3]) }), null); // ranks improving
+  // A run that recovers at the very end breaks (run must reach the latest point).
+  assert.equal(rankDecline({ history: hist([3, 5, 7, 6]) }), null);
 });
 
 test("sortLadder puts the best current position first", () => {
