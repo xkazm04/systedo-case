@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   CAMPAIGN_TYPE_COLORS,
   CAMPAIGN_TYPE_LABELS,
@@ -67,9 +68,26 @@ export default function TypeBreakdown({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
-  const groups = groupByType(campaigns);
-  const totalCost = aggregate(campaigns).cost || 1;
+  const groups = useMemo(() => groupByType(campaigns), [campaigns]);
+  const totalCost = useMemo(() => aggregate(campaigns).cost || 1, [campaigns]);
   const targetRoas = goals && goals.targetRoas > 0 ? goals.targetRoas : TARGET_ROAS;
+
+  // The per-type attention rollup is the expensive pass here: withMetrics + the
+  // full triage rule engine over every campaign in every group, on each render.
+  // Memoise it on [campaigns, goals] so it survives the frequent parent
+  // re-renders (a card click, an alert refresh, a period toggle). `changesById`
+  // is intentionally NOT a dep: it is rebuilt (Object.fromEntries) fresh on every
+  // parent render, yet its CONTENT only changes when a new sync also gives
+  // `campaigns` a new identity — so keying on it would bust the memo every render
+  // for an identical result.
+  const attentionByType = useMemo(() => {
+    const out: Partial<Record<CampaignType, number>> = {};
+    for (const g of groups) {
+      out[g.type] = summarize(g.campaigns.map(withMetrics), changesById, goals).attention;
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see note above: changesById co-varies with `campaigns` identity
+  }, [groups, goals]);
 
   return (
     <section>
@@ -85,7 +103,7 @@ export default function TypeBreakdown({
           const convValue = fmt.fmtCZKCompactA11y(tot.conversionValue);
           // Per-type triage rollup — an aggregate ROAS can look fine while the
           // group hides two critical campaigns; the pill stops that masking.
-          const attention = summarize(g.campaigns.map(withMetrics), changesById, goals).attention;
+          const attention = attentionByType[g.type] ?? 0;
           const attentionKey =
             attention === 1 ? "attention1" : attention >= 2 && attention <= 4 ? "attention234" : "attentionN";
           const active = activeType === g.type;

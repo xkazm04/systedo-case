@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Bolt, ChevronDown, Download, Gauge, Search, Sparkles, TrendDown } from "@/components/icons";
 import {
   CAMPAIGN_STATUSES,
@@ -12,7 +12,6 @@ import {
   campaignStatusLabel,
   dailyMetricValues,
   seriesSupportsMetric,
-  withMetrics,
   type Campaign,
   type CampaignChange,
   type CampaignPeriod,
@@ -21,13 +20,10 @@ import {
   type SeriesMetric,
 } from "@/lib/campaigns/types";
 import {
-  SEVERITY_RANK,
   pnoMetricTone,
   roasMetricTone,
   severityLabel,
   triageReasonLabel,
-  summarize,
-  triage,
   triageWeight,
   type MetricTone,
   type Severity,
@@ -46,6 +42,7 @@ import { SORT_KEYS, loadSort, saveSort, type SortKey, type SortState } from "./t
 import { loadFilters, saveFilters } from "./table/filters";
 import { useBatchRunner } from "./table/useBatchRunner";
 import { exportCampaignsCsv } from "./table/csv";
+import { deriveCampaignRows, filterCampaignRows, sortCampaignRows } from "./table/derive";
 
 const T = {
   cs: {
@@ -385,46 +382,33 @@ export default function CampaignTable({
     cpc: t("trendCpc"),
   };
 
-  // Derive once, then filter + sort. The helpers are pure and Next's React
-  // Compiler memoizes the component, so we compute the view directly.
-  const all = campaigns.map(withMetrics);
-  const summary = summarize(all, changesById, goals, campaignSeries); // portfolio-wide — independent of the active filters
+  // The expensive layer — withMetrics + the full triage rule engine per campaign
+  // (including the slow-bleed scan over each campaign's daily series) + the
+  // portfolio summary — memoised on its REAL data inputs. Typing in the search
+  // box (below) mutates only local `query` state, so this memo is preserved and
+  // the rule engine never re-runs per keystroke; only the filter layer does.
+  const { all, rows: allRows, summary } = useMemo(
+    () => deriveCampaignRows(campaigns, changesById, goals, campaignSeries),
+    [campaigns, changesById, goals, campaignSeries]
+  );
+
   const q = query.trim().toLowerCase();
   const filtersActive =
     q !== "" || typeFilter !== "all" || statusFilter !== "all" || attentionOnly;
 
-  // Each row carries its triage result so the badge, the filter, the sort and
-  // the batch queue all read the same classification.
-  const allRows = all.map((c) => ({ c, tr: triage(c, changesById[c.id], goals, campaignSeries?.[c.id]) }));
-  // Flagged rows still lacking a report — the "evaluate all flagged" queue.
+  // Flagged rows still lacking a report — the "evaluate all flagged" queue. A
+  // cheap filter over the already-triaged rows (and consumed by the earlier
+  // `runFlaggedBatch` closure), so it stays a plain derivation — the expensive
+  // triage pass it reads from is what's memoised, above.
   const batchPending = allRows.filter(({ c, tr }) => tr.severity !== "ok" && !reports[c.id]);
-  const view = allRows
-    .filter(({ c, tr }) => {
-      if (typeFilter !== "all" && c.type !== typeFilter) return false;
-      if (statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (attentionOnly && tr.severity === "ok") return false;
-      if (q && !c.name.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  view.sort((a, b) => {
-    let cmp: number;
-    if (sort.key === "severity") {
-      cmp = SEVERITY_RANK[a.tr.severity] - SEVERITY_RANK[b.tr.severity];
-      if (cmp === 0) cmp = a.c.cost - b.c.cost; // tie-break: bigger spend first
-    } else if (sort.key === "name") {
-      cmp = a.c.name.localeCompare(b.c.name, "cs");
-    } else {
-      // "—" rows (no revenue → PNO=0, no conversions → CPA=0 from safe()) are the
-      // WORST on these "lower is better" metrics, not the best — map them to +∞ so
-      // a worst-first (desc) sort surfaces them instead of burying them next to the
-      // healthiest campaigns. ROAS/cost/conversions/value keep their real 0.
-      const lowerIsBetter = sort.key === "pno" || sort.key === "cpa";
-      const av = lowerIsBetter && a.c[sort.key] <= 0 ? Infinity : a.c[sort.key];
-      const bv = lowerIsBetter && b.c[sort.key] <= 0 ? Infinity : b.c[sort.key];
-      cmp = av === bv ? 0 : av < bv ? -1 : 1;
-    }
-    return sort.dir === "asc" ? cmp : -cmp;
-  });
+
+  // Cheap layers over the already-triaged rows: the filter re-runs on a search
+  // keystroke (only `q` changed), the sort only when the sort state changes.
+  const filtered = useMemo(
+    () => filterCampaignRows(allRows, { query: q, typeFilter, statusFilter, attentionOnly }),
+    [allRows, q, typeFilter, statusFilter, attentionOnly]
+  );
+  const view = useMemo(() => sortCampaignRows(filtered, sort), [filtered, sort]);
 
   // Export the *currently filtered + sorted* view as a cs-CZ-friendly CSV (the
   // deliverable agencies actually hand to clients), carrying triage severity, the
