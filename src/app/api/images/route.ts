@@ -13,6 +13,7 @@ import { generateImageSet } from "@/lib/images/studio";
 import {
   deleteCreative,
   listCreatives,
+  recordLeonardoImageIds,
   saveCreative,
   IMAGE_LIBRARY_OFFLINE,
   IMAGE_LIBRARY_OFFLINE_NOTICE,
@@ -155,10 +156,23 @@ export async function POST(request: Request) {
     // Persist the winner to the tenant's library (signed-in + real generation).
     let savedId: string | undefined;
     if (uid && result.source === "leonardo") {
+      const tenant = await resolveTenant(uid, projectId);
+      // Allowlist EVERY candidate's Leonardo id for this tenant so /api/images/nobg
+      // can verify ownership before running a paid provider op on a raw image id.
+      // Best-effort: a record failure must not fail the generation (nobg for these
+      // ids would then 404 — logged so the degradation is visible).
+      try {
+        await recordLeonardoImageIds(
+          tenant,
+          result.images.map((i) => i.leonardoImageId).filter((id): id is string => Boolean(id))
+        );
+      } catch (err) {
+        console.error("[images] leonardo id allowlist record failed (non-fatal):", err);
+      }
       const winner = result.images.find((i) => i.winner) ?? result.images[0];
       if (winner) {
         try {
-          savedId = await saveCreative(await resolveTenant(uid, projectId), {
+          savedId = await saveCreative(tenant, {
             buffer: winner.buffer,
             mime: winner.mime,
             prompt: result.prompt,
