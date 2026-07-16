@@ -85,10 +85,14 @@ import {
   validateLocalReviewReplyRequest,
   validateLpVariantIdeasRequest,
   validateRepurposeRequest,
+  validateSocialRequest,
   type CohortDiagnosisIntent,
   type LeadSourceDiagnosisIntent,
   type LocalDiagnosisIntent,
+  type SocialDraftRequest,
 } from "@/lib/ai/validation";
+import type { SocialSkillInput } from "@/lib/ai/tools/social";
+import type { SocialDraftResult } from "@/lib/social/types";
 import { inputDigest } from "@/lib/diagnoses/types";
 import {
   extractCohortSnapshot,
@@ -189,6 +193,9 @@ export interface ModeDeps {
     localDiagnosis: Gen<LocalDiagnosisRequest>;
     channelResearch: Gen<ChannelResearchRequest>;
     onboardingScan: Gen<OnboardingScanRequest>;
+    // Direction 1: social rides the mode table. Its grounding (perf/brand/competitor)
+    // and twin voice are resolved into the SocialSkillInput before generation.
+    social: Gen<SocialSkillInput, [], SocialDraftResult>;
   };
   resolveGrounding: (
     projectId: string | undefined,
@@ -211,6 +218,14 @@ export interface ModeDeps {
     userId: string | null,
     scope: ToneScope
   ) => Promise<TwinReplyVoice | undefined>;
+  /** Direction 1: the social tool's server-side grounding — the "what's working" +
+   *  competitor text, and the effective brand voice (override → auto-brand → none). */
+  resolveSocialContext: (
+    projectId: string | undefined,
+    userId: string | null,
+    locale: SupportedLocale,
+    brandOverride?: string
+  ) => Promise<{ grounding: string; brand: string | undefined }>;
   resolveLeadGrounding: (
     projectId: string | undefined,
     userId: string | null
@@ -452,6 +467,32 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       },
     }),
 
+    // ── social: server-resolved perf/brand/competitor grounding + the trained twin
+    //    voice enter the SocialSkillInput (→ cache key + prompt). The brand grounds the
+    //    SYSTEM persona (input-aware skill), so it must be resolved before generation.
+    //    cacheValue == the fully-grounded input, so a data/brand change busts the cache. ──
+    social: defineMode<SocialDraftRequest>({
+      validate: validateSocialRequest,
+      prepare: async (value, ctx) => {
+        const { grounding, brand } = await deps.resolveSocialContext(
+          value.projectId,
+          ctx.userId,
+          ctx.locale,
+          value.brand
+        );
+        const voice = await deps.resolveTwinVoice(value.projectId, ctx.userId, "social");
+        const input: SocialSkillInput = {
+          topic: value.topic,
+          tone: value.tone,
+          platforms: value.platforms,
+          ...(grounding ? { grounding } : {}),
+          ...(brand ? { brand } : {}),
+          ...(voice ? { voice } : {}),
+        };
+        return { cacheValue: input, gen: () => deps.gen.social(input, ctx.locale, ctx.signal) };
+      },
+    }),
+
     // ── dataset-grounded tools: resolveGrounding returns { data, keyId, … }. The
     //    cacheValue rewrites projectId → the EFFECTIVE keyId so an unowned id
     //    degrades to base; the GENERATOR still gets the ORIGINAL value + data. ──
@@ -563,6 +604,27 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
 
 // ─── the generic dispatch loop (replaces the 18-arm switch) ─────────────────────
 
+/** Resolve one tool call to a `Prepared` (the cacheValue + metered generation) or a
+ *  short-circuit `Response` (unknown mode → 400, guard block, validation 422, or a
+ *  prepare() early-out). The metering step is deliberately NOT here: both the /api/ai
+ *  dispatch (dispatchMode) and the two delegate routes (social/draft, campaigns/
+ *  analyze) share this, then feed the result into the metering core their own way. */
+export async function resolvePrepared(
+  table: Record<string, ErasedMode>,
+  mode: string,
+  ctx: DispatchCtx
+): Promise<Prepared | Response> {
+  const desc = table[mode];
+  if (!desc) return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
+  if (desc.guard) {
+    const g = desc.guard(ctx);
+    if (g) return g;
+  }
+  const v = desc.validate(ctx.body, ctx.locale);
+  if (!v.valid) return bad(v.error);
+  return desc.prepare(v.value, ctx);
+}
+
 /** Run one tool call through its descriptor: guard → validate → prepare →
  *  cachedRespond. `cachedRespond` stays in route.ts (quota/refund semantics
  *  untouched) and is injected so this loop owns none of the metering. An unknown
@@ -579,15 +641,7 @@ export async function dispatchMode(
     gen: () => Promise<AiResponse<unknown>>
   ) => Promise<Response>
 ): Promise<Response> {
-  const desc = table[mode];
-  if (!desc) return Response.json({ error: "Neznámý režim nástroje.", code: "invalid" }, { status: 400 });
-  if (desc.guard) {
-    const g = desc.guard(ctx);
-    if (g) return g;
-  }
-  const v = desc.validate(ctx.body, ctx.locale);
-  if (!v.valid) return bad(v.error);
-  const prepared = await desc.prepare(v.value, ctx);
+  const prepared = await resolvePrepared(table, mode, ctx);
   if (prepared instanceof Response) return prepared;
   return cachedRespond(mode, prepared.cacheValue, ctx.locale, ctx.userId, prepared.gen);
 }

@@ -9,6 +9,7 @@
  *  triad; that copy is gone — they all call the single `resolveProjectAccess` helper
  *  and branch on its `kind`. */
 import type { SupportedLocale } from "@/lib/format";
+import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import type { PerformanceData } from "@/lib/types";
 import type { ProjectType, Project } from "@/lib/projects/types";
 import type { AnalysisPeriod } from "@/lib/ai-types";
@@ -232,6 +233,59 @@ export async function resolveBrandContext(
   const access = await resolveProjectAccess(projectId, userId);
   if (access.kind === "none") return "";
   return loadBrandContext(access.project, locale);
+}
+
+// ─── social drafting grounding (Direction 1: social rides the mode table) ────────
+//
+// The social tool used to resolve its own grounding inline in /api/social/draft. It
+// is now a mode-table row, so its "what's actually working" + brand + competitor
+// grounding lives here alongside every other tool's, with the SAME demo-public /
+// owner-only tenancy (resolveProjectAccess). The twin voice is resolved separately via
+// the existing resolveTwinVoice dep. Social grounds off the base/sample dataset (like
+// the old route) — not the live-Ads resolveReportDataset the recap uses.
+
+/** Compact "what's actually working" grounding from the project's data, so AI social
+ *  posts lean into the brand's proven channels + trend instead of generic ideas. Pure
+ *  (moved verbatim from the old /api/social/draft route). */
+export function perfGrounding(data?: PerformanceData): string {
+  const snap = buildSnapshot("90d", "previous", data);
+  const top = [...snap.channels]
+    .filter((c) => c.roas > 0)
+    .sort((a, b) => b.roas - a.roas)
+    .slice(0, 2);
+  return [
+    `Klient ${snap.client.name} (${snap.client.segment}); obrat meziobdobně ${fmtSignedPct(snap.delta.revenue)}.`,
+    top.length
+      ? `Nejsilnější kanály podle ROAS: ${top.map((c) => `${c.channel} ${fmtMultiple(c.roas)}`).join(", ")}.`
+      : "",
+    "Drž se osvědčených témat a produktů značky.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** Resolve the social tool's server-side grounding for a project, tenancy-checked
+ *  (demo public, real id owner-only). Returns the "what's working" + competitor
+ *  grounding text and the effective brand voice: the caller's `brandOverride` when
+ *  they typed one, else the project's auto-derived catalogue voice (C1), else
+ *  undefined. `grounding` is "" and `brand` is the override when no project resolves —
+ *  byte-identical to the old route's ungrounded path. */
+export async function resolveSocialContext(
+  projectId: string | undefined,
+  userId: string | null,
+  locale: SupportedLocale,
+  brandOverride?: string
+): Promise<{ grounding: string; brand: string | undefined }> {
+  const access = await resolveProjectAccess(projectId, userId);
+  if (access.kind === "none") return { grounding: "", brand: brandOverride };
+  const project = access.project;
+  const data = getProjectDataset(project);
+  const [autoBrand, competitors] = await Promise.all([
+    loadBrandContext(project, locale),
+    getCompetitors(project.id).then((set) => competitorGroundingText(set, locale)),
+  ]);
+  const grounding = [perfGrounding(data), competitors].filter(Boolean).join(" ");
+  return { grounding, brand: brandOverride ?? (autoBrand || undefined) };
 }
 
 // ─── Direction 1 — diagnoses ground themselves ──────────────────────────────────

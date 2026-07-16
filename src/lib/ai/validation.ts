@@ -50,6 +50,7 @@ import {
   type Tone,
 } from "../ai-types";
 import { REPURPOSE_CHANNELS } from "../distribution/generate";
+import { isSocialPlatform, type SocialPlatform } from "../social/types";
 import { isCampaignPeriod } from "../campaigns/types";
 import { PROJECT_TYPES } from "../projects/types";
 import { TONE_SCOPES, TWIN_CHANNELS } from "../twin/types";
@@ -420,6 +421,45 @@ export function validateRepurposeRequest(input: unknown, locale: SupportedLocale
   if (projectId) value.projectId = projectId.slice(0, 128);
   const refine = parseRefineNote(o);
   if (refine) value.refine = refine;
+  return { valid: true, value };
+}
+
+/** The social-drafting request (Direction 1: social rides the /api/ai mode table).
+ *  The wire body carries topic / tone / platforms plus an optional brand-voice
+ *  override, the grounding projectId, and a refine note; the server resolves the
+ *  performance/brand/competitor grounding + twin voice from the project. */
+export interface SocialDraftRequest {
+  topic: string;
+  tone: Tone;
+  platforms: SocialPlatform[];
+  /** optional brand-voice override; blank falls back to the project's auto-brand */
+  brand?: string;
+  /** grounding hint — the server resolves + tenancy-checks it */
+  projectId?: string;
+}
+
+/** Validate a social-draft request. Mirrors the old /api/social/draft `parse()` (topic
+ *  2–200, a known tone defaulting to "pratelsky", ≥1 known platform) and adds the
+ *  brand / projectId / refine fields the mode row + template path both read. */
+export function validateSocialRequest(input: unknown, locale: SupportedLocale = "cs"): Valid<SocialDraftRequest> {
+  if (typeof input !== "object" || input === null) {
+    return { valid: false, error: t(locale, "Chybí data požadavku.", "Missing request data.") };
+  }
+  const o = input as Record<string, unknown>;
+  const topic = str(o.topic);
+  if (topic.length < 2 || topic.length > 200) {
+    return { valid: false, error: t(locale, "Zadejte téma (2–200 znaků).", "Please enter a topic (2–200 characters).") };
+  }
+  const tone: Tone = (TONES as readonly string[]).includes(str(o.tone)) ? (o.tone as Tone) : "pratelsky";
+  const platforms = (Array.isArray(o.platforms) ? o.platforms : []).filter(isSocialPlatform) as SocialPlatform[];
+  if (platforms.length === 0) {
+    return { valid: false, error: t(locale, "Vyberte alespoň jednu platformu.", "Please select at least one platform.") };
+  }
+  const value: SocialDraftRequest = { topic: topic.slice(0, 200), tone, platforms };
+  const brand = str(o.brand);
+  if (brand) value.brand = brand.slice(0, 120);
+  const projectId = str(o.projectId);
+  if (projectId) value.projectId = projectId.slice(0, 128);
   return { valid: true, value };
 }
 

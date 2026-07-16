@@ -2,26 +2,27 @@
  *  platform. Two modes:
  *   - template (default): deterministic, instant, free.
  *   - ai:true: the LLM social tool (richer copy), IP-throttled + per-user AI quota,
- *     with the deterministic templates as the demo fallback. */
+ *     with the deterministic templates as the demo fallback.
+ *
+ *  Direction 1 ("everyone rides one chokepoint"): the AI path is now a THIN DELEGATE.
+ *  The social tool is a real /api/ai mode row (src/app/api/ai/modes.ts): its server-
+ *  side grounding (perf / brand / competitor) + trained twin voice are resolved in the
+ *  row's prepare(), and the generation runs through the shared `runMetered` core — so
+ *  social inherits the response cache, the cache-hit ceiling refund, the demo refund
+ *  (canned templates no longer bill as real) and abort, exactly like the other tools.
+ *  This route keeps only what is genuinely route-specific: the free template mode, the
+ *  IP throttle + concurrency slot, and reshaping the AiResponse into the {drafts,
+ *  source, model, tookMs} envelope its clients already consume (so they don't change). */
 import { currentUserId } from "@/lib/session";
-import { generateSocialPosts } from "@/lib/ai/tools";
-import { consume, getUserPlan } from "@/lib/usage";
+import { getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
+import { enterLlmRequestContext } from "@/lib/llm/request-context";
 import { ByomUserError } from "@/lib/llm/errors";
 import { getServerLocale } from "@/lib/i18n/locale";
-import type { SupportedLocale } from "@/lib/format";
-import { buildSnapshot } from "@/lib/snapshot";
-import type { PerformanceData } from "@/lib/types";
-import { getProject } from "@/lib/projects/store";
-import { getProjectDataset } from "@/lib/project-data/dataset";
-import { loadBrandContext } from "@/lib/brand/load";
-import { resolveTwinVoice } from "@/lib/twin/load";
-import { getCompetitors } from "@/lib/competitors/store";
-import { competitorGroundingText } from "@/lib/competitors/grounding";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
-import { fmtMultiple, fmtSignedPct } from "@/lib/format";
 import { draftPosts } from "@/lib/social/draft";
-import { TONES, isSocialPlatform, type SocialPlatform, type Tone } from "@/lib/social/types";
+import type { SocialDraftResult } from "@/lib/social/types";
+import type { AiResponse } from "@/lib/ai-types";
+import { validateSocialRequest } from "@/lib/ai/validation";
 import {
   RATE_RULES,
   acquireSlot,
@@ -32,120 +33,31 @@ import {
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
-
-
-const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
-
-/** Resolve the caller's own dataset for grounding, tenancy-checked (a demo id is
- *  public; a real id must belong to the caller) — so "what's working" reflects
- *  THIS project, not the shared case-study tenant. Undefined → base fallback. */
-async function resolveDataset(
-  projectId: string | undefined,
-  userId: string | null
-): Promise<PerformanceData | undefined> {
-  if (!projectId) return undefined;
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return getProjectDataset(demo);
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) return getProjectDataset(project);
-  }
-  return undefined;
-}
-
-/** C1 — when the caller left the brand-voice field blank, fall back to the project's
- *  auto-derived brand context (what it sells + how it talks) so AI posts are on-brand
- *  by default. Tenancy-checked like resolveDataset; undefined when nothing real. */
-async function resolveBrandFallback(
-  projectId: string | undefined,
-  userId: string | null,
-  locale: SupportedLocale
-): Promise<string | undefined> {
-  if (!projectId) return undefined;
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return (await loadBrandContext(demo, locale)) || undefined;
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) return (await loadBrandContext(project, locale)) || undefined;
-  }
-  return undefined;
-}
-
-/** C3 — the project's competitor grounding for social copy, tenancy-checked (demo
- *  public, real id owner-only). "" when no competitor set. */
-async function resolveCompetitorGrounding(
-  projectId: string | undefined,
-  userId: string | null,
-  locale: SupportedLocale
-): Promise<string> {
-  if (!projectId) return "";
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return competitorGroundingText(await getCompetitors(demo.id), locale);
-  if (userId) {
-    const project = await getProject(userId, projectId);
-    if (project) return competitorGroundingText(await getCompetitors(project.id), locale);
-  }
-  return "";
-}
-
-/** Compact "what's actually working" grounding from the project's data, so AI
- *  social posts lean into the brand's proven channels + trend instead of generic
- *  ideas (the tool previously got only topic/tone/platforms — no performance signal). */
-function perfGrounding(data?: PerformanceData): string {
-  const snap = buildSnapshot("90d", "previous", data);
-  const top = [...snap.channels]
-    .filter((c) => c.roas > 0)
-    .sort((a, b) => b.roas - a.roas)
-    .slice(0, 2);
-  return [
-    `Klient ${snap.client.name} (${snap.client.segment}); obrat meziobdobně ${fmtSignedPct(snap.delta.revenue)}.`,
-    top.length
-      ? `Nejsilnější kanály podle ROAS: ${top.map((c) => `${c.channel} ${fmtMultiple(c.roas)}`).join(", ")}.`
-      : "",
-    "Drž se osvědčených témat a produktů značky.",
-  ]
-    .filter(Boolean)
-    .join(" ");
-}
-
-function parse(body: { topic?: unknown; tone?: unknown; platforms?: unknown }):
-  | { ok: true; topic: string; tone: Tone; platforms: SocialPlatform[] }
-  | { ok: false; error: string; status: number } {
-  const topic = str(body.topic);
-  if (topic.length < 2 || topic.length > 200) {
-    return { ok: false, error: "Zadejte téma (2–200 znaků).", status: 422 };
-  }
-  const tone: Tone = (TONES as readonly string[]).includes(str(body.tone)) ? (body.tone as Tone) : "pratelsky";
-  const platforms = (Array.isArray(body.platforms) ? body.platforms : []).filter(isSocialPlatform) as SocialPlatform[];
-  if (platforms.length === 0) {
-    return { ok: false, error: "Vyberte alespoň jednu platformu.", status: 422 };
-  }
-  return { ok: true, topic, tone, platforms };
-}
+import type { DispatchCtx } from "@/app/api/ai/modes";
+import { MODE_TABLE, runMetered } from "@/app/api/ai/dispatch";
 
 export async function POST(request: Request) {
   if (tooLarge(request)) return payloadTooLarge("Požadavek je příliš velký.");
 
-  let body: { topic?: unknown; tone?: unknown; platforms?: unknown; ai?: unknown; brand?: unknown; projectId?: unknown };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Neplatný JSON." }, { status: 400 });
   }
 
-  const parsed = parse(body);
-  if (!parsed.ok) return Response.json({ error: parsed.error }, { status: parsed.status });
-  const { topic, tone, platforms } = parsed;
-  const brand = str(body.brand) || undefined;
-  const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const parsed = validateSocialRequest(body, await getServerLocale());
+  if (!parsed.valid) return Response.json({ error: parsed.error }, { status: 422 });
+  const value = parsed.value;
 
   // Template mode — deterministic, instant, no quota. Carry the project brand so
   // captions never sign off as a placeholder company.
-  if (body.ai !== true) {
-    return Response.json({ drafts: draftPosts(topic, tone, platforms, brand), source: "template" });
+  if ((body as { ai?: unknown }).ai !== true) {
+    return Response.json({ drafts: draftPosts(value.topic, value.tone, value.platforms, value.brand), source: "template" });
   }
 
-  // AI mode — a paid model call: throttle + per-user daily quota.
+  // AI mode — a paid model call: throttle + per-user daily quota (the latter now
+  // charged inside runMetered, not here).
   const limited = await durableGuard(clientIp(request), [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()], { spendUnits: 1 });
   if (!limited.ok) {
     return tooManyRequests(
@@ -161,49 +73,36 @@ export async function POST(request: Request) {
     const userId = await currentUserId();
     const plan = userId ? await getUserPlan(userId) : "free";
     // BYOM: an entitled caller runs "social" on their assigned provider (matrix
-    // override or global active); BYOM-served calls skip the per-user quota.
-    const byom = await enterByomForOperation(userId, plan, "social");
-    if (userId && !byom) {
-      const quota = await consume(userId, "aiEval");
-      if (!quota.ok) {
-        return Response.json(
-          {
-            error: `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
-            upgradeUrl: "/cena",
-          },
-          { status: 429 }
-        );
-      }
-    }
-
+    // override or global active); BYOM-served calls skip the per-user quota. Entered
+    // BEFORE runMetered, which reads it back for the cache bucket + quota-skip.
+    await enterByomForOperation(userId, plan, "social");
     const locale = await getServerLocale();
-    const dataset = await resolveDataset(projectId, userId);
-    // On-brand by default (C1): an empty brand field falls back to the project's
-    // auto-derived catalogue voice, so posts never default to a generic sortiment.
-    const effectiveBrand = brand ?? (await resolveBrandFallback(projectId, userId, locale));
-    // The twin's trained `social` voice, resolved server-side (tenancy-checked) so a
-    // client can never dictate another tenant's brand voice. Undefined = untrained,
-    // in which case the tool's own "write plainly, on brand" rules govern.
-    const voice = await resolveTwinVoice(projectId, userId, "social");
-    // C3: fold the competitor set into "what's working" so copy can lean on real
-    // differentiators vs. the market instead of generic claims.
-    const competitors = await resolveCompetitorGrounding(projectId, userId, locale);
-    const response = await generateSocialPosts({
-      topic,
-      tone,
-      platforms,
-      grounding: [perfGrounding(dataset), competitors].filter(Boolean).join(" "),
-      brand: effectiveBrand,
-      voice,
-      locale,
-      // Client abort propagation: a closed tab / re-run stops the provider work.
-      signal: request.signal,
+    enterLlmRequestContext({
+      ...(userId ? { userId } : {}),
+      ...(value.projectId ? { projectId: value.projectId } : {}),
     });
+
+    // The social mode row resolves the server-side grounding (perf / brand /
+    // competitor) + trained twin voice into the SocialSkillInput, then hands back the
+    // cacheValue + metered generation. No guard on this row, so prepare() is called
+    // directly with the already-validated value.
+    const ctx: DispatchCtx = {
+      body,
+      locale,
+      userId,
+      projectIdStr: value.projectId,
+      signal: request.signal,
+    };
+    const prepared = await MODE_TABLE["social"].prepare(value, ctx);
+    if (prepared instanceof Response) return prepared;
+    const metered = await runMetered("social", prepared.cacheValue, locale, userId, prepared.gen);
+    if (!metered.ok) return metered.response;
+    const res = metered.result as AiResponse<SocialDraftResult>;
     return Response.json({
-      drafts: response.result.posts,
-      source: response.meta.demo ? "demo" : "ai",
-      model: response.meta.model,
-      tookMs: response.meta.tookMs,
+      drafts: res.result.posts,
+      source: res.meta.demo ? "demo" : "ai",
+      model: res.meta.model,
+      tookMs: res.meta.tookMs,
     });
   } catch (err) {
     if (err instanceof ByomUserError) {

@@ -57,7 +57,7 @@ function harness(overrides = {}) {
       "ads", "brief", "analysis", "monthlyRecap", "chat", "twinReply", "twinStyle",
       "repurpose", "localReviewReply", "articleDraft", "cohortDiagnosis",
       "keywordClusters", "comparisonOutline", "lpVariantIdeas", "leadSourceDiagnosis",
-      "localDiagnosis", "channelResearch", "onboardingScan",
+      "localDiagnosis", "channelResearch", "onboardingScan", "social",
     ].map((n) => [n, genRecorder(n)])
   );
   const recapCalls = [];
@@ -78,6 +78,10 @@ function harness(overrides = {}) {
     resolveTwinVoice: async (...a) => {
       calls.push({ name: "resolveTwinVoice", args: a });
       return VOICE;
+    },
+    resolveSocialContext: async (...a) => {
+      calls.push({ name: "resolveSocialContext", args: a });
+      return { grounding: "GROUNDING", brand: "BRANDVOICE" };
     },
     resolveLeadGrounding: async (...a) => {
       calls.push({ name: "resolveLeadGrounding", args: a });
@@ -153,6 +157,8 @@ test("cohort-diagnosis: intent → server-rebuilt request; client numbers ignore
   const prepared = await prepare(table, "cohort-diagnosis", intent);
   assert.deepEqual(calls[0], { name: "resolveCohortDiagnosis", args: ["pid", "u1"] });
   // cacheValue rewrites to { request, keyId } — the effective grounding, not the body.
+  // prepareDiagnosis server-injects the honest `sample` provenance flag into the
+  // rebuilt request (after the digest, so the stale badge is unaffected).
   assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "cohort-req", sample: true }, keyId: "CKID" });
   const res = await prepared.gen();
   // The generator got the REBUILT request (sentinel), never the client's fake numbers.
@@ -278,6 +284,39 @@ test("repurpose: email scope when a Newsletter channel is present", async () => 
   const value = { projectId: "proj", channels: ["Newsletter", "Instagram"] };
   await prepare(table, "repurpose", value);
   assert.deepEqual(calls[0].args, ["proj", "u1", "email"]);
+});
+
+// ── social (Direction 1: rides the mode table): server-resolved perf/brand/
+//    competitor grounding + trained twin voice enter the SocialSkillInput; cacheValue
+//    IS that fully-grounded input; the generator gets (input, locale, signal). ──
+test("social: grounding + twin voice enter the input; cacheValue is that input", async () => {
+  const { table, calls } = harness();
+  const value = { topic: "T", tone: "pratelsky", platforms: ["instagram"], brand: "orig", projectId: "proj" };
+  const prepared = await prepare(table, "social", value);
+  // resolveSocialContext(projectId, userId, locale, brandOverride) then resolveTwinVoice.
+  assert.deepEqual(calls[0], { name: "resolveSocialContext", args: ["proj", "u1", LOCALE, "orig"] });
+  assert.deepEqual(calls[1], { name: "resolveTwinVoice", args: ["proj", "u1", "social"] });
+  assert.deepEqual(prepared.cacheValue, {
+    topic: "T",
+    tone: "pratelsky",
+    platforms: ["instagram"],
+    grounding: "GROUNDING",
+    brand: "BRANDVOICE",
+    voice: VOICE,
+  });
+  await prepared.gen();
+  const g = calls.find((c) => c.name === "social");
+  assert.deepEqual(g.args, [prepared.cacheValue, LOCALE, SIGNAL]);
+});
+
+test("social: no grounding/brand/voice → omitted (byte-identical input shape)", async () => {
+  const { table } = harness({
+    resolveSocialContext: async () => ({ grounding: "", brand: undefined }),
+    resolveTwinVoice: async () => undefined,
+  });
+  const value = { topic: "T", tone: "pratelsky", platforms: ["facebook"] };
+  const prepared = await prepare(table, "social", value);
+  assert.deepEqual(prepared.cacheValue, { topic: "T", tone: "pratelsky", platforms: ["facebook"] });
 });
 
 // ── analysis: grounds off projectIdStr; cacheValue rewrites projectId only when

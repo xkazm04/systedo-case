@@ -6,9 +6,11 @@ import { generateCampaignEvaluation } from "@/lib/ai/tools";
 import { validateEvaluationRequest } from "@/lib/ai/validation";
 import { getPatternLines } from "@/lib/patterns/store";
 import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
-import { consume, getUserPlan } from "@/lib/usage";
+import { getUserPlan } from "@/lib/usage";
 import { enterByomForOperation } from "@/lib/llm/byom/request";
 import { ByomUserError } from "@/lib/llm/errors";
+import type { AiResponse, CampaignReportResult } from "@/lib/ai-types";
+import { runMetered } from "@/app/api/ai/dispatch";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -132,22 +134,12 @@ export async function POST(request: Request) {
 
     try {
     // BYOM: run "campaign-eval" on the caller's assigned provider (matrix override
-    // or global active); BYOM-served calls skip the per-user quota.
+    // or global active); BYOM-served calls skip the per-user quota. Entered BEFORE
+    // runMetered, which reads it back for the cache bucket + quota-skip. The per-user
+    // daily quota + the global-ceiling / demo refund are now applied inside runMetered
+    // (Direction 1 — one metering chokepoint), not re-implemented here.
     const byomPlan = userId ? await getUserPlan(userId) : "free";
-    const byom = await enterByomForOperation(userId, byomPlan, "campaign-eval");
-    // Per-user daily quota — only counts an actual (non-cached, non-BYOM) LLM call.
-    if (userId && !byom) {
-      const quota = await consume(userId, "aiEval");
-      if (!quota.ok) {
-        return Response.json(
-          {
-            error: `Denní limit AI vyhodnocení vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
-            upgradeUrl: "/cena",
-          },
-          { status: 429 }
-        );
-      }
-    }
+    await enterByomForOperation(userId, byomPlan, "campaign-eval");
 
     // The tenant's client profile grounds the prompt identity + PNO goal AND the
     // bar its own winning patterns are mined against — resolved once here so the
@@ -164,22 +156,38 @@ export async function POST(request: Request) {
       ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal)
       : undefined;
 
+    // The eval input the prompt + cache key are a pure function of (locale/signal are
+    // wrapper concerns, folded in only at the generation call).
+    const evalInput = {
+      scope,
+      target,
+      campaigns,
+      period: meta.period,
+      patternLines,
+      changes: changes ?? undefined,
+      client,
+      // Platform-aware persona: a Sklik-sourced tenant gets Sklik vocabulary + no
+      // Google-only recommendations (google-ads / sample stay byte-identical).
+      source: meta.source,
+    };
+    const locale = await getServerLocale();
+
     try {
-      const response = await generateCampaignEvaluation({
-        scope,
-        target,
-        campaigns,
-        period: meta.period,
-        patternLines,
-        changes: changes ?? undefined,
-        locale: await getServerLocale(),
-        client,
-        // Platform-aware persona: a Sklik-sourced tenant gets Sklik vocabulary + no
-        // Google-only recommendations (google-ads / sample stay byte-identical).
-        source: meta.source,
-        // Client abort propagation: a closed tab / re-run stops the provider work.
-        signal: request.signal,
-      });
+      // Route the paid generation through the shared metering core: it charges the
+      // per-user daily quota, refunds the ceiling on a cache hit, and — the robustness
+      // win — refunds both when the tool degrades to its deterministic demo (a keyless
+      // fallback no longer bills as a real evaluation). A quota-exhausted caller gets
+      // the shared 429. The DB report cache above already deduped identical inputs.
+      const metered = await runMetered("campaign-eval", evalInput, locale, userId, () =>
+        generateCampaignEvaluation({
+          ...evalInput,
+          locale,
+          // Client abort propagation: a closed tab / re-run stops the provider work.
+          signal: request.signal,
+        })
+      );
+      if (!metered.ok) return metered.response;
+      const response = metered.result as AiResponse<CampaignReportResult>;
       const report = await saveReport(tenant, {
         scope,
         campaignId: reportCampaignId,
