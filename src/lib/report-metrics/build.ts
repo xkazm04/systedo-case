@@ -17,6 +17,15 @@ import type { MetricRow } from "./types";
  *    Ads sync has no data for. Neutralize to [] (consumers suppress the block).
  *  - `events` is the demo story-event calendar ("Black Friday — špička poptávky",
  *    etc.) annotated onto sample dates; dropping it keeps demo events off real dates.
+ *  - `meta` on the sample spine is {disclaimer, asOf, days, seed}: the sample-data
+ *    disclaimer, the sample series' span, and a determinism seed the live series has
+ *    no analogue for. Riding it under "Živá data" is the exact confusion the seam
+ *    exists to prevent, so overwrite it FROM THE ROWS: asOf = last synced date,
+ *    days = row count, disclaimer = "" (the numbers are real; the sample disclaimer
+ *    must not travel), seed = 0 (no fabricated determinism).
+ *  - `client` is retained (name/domain/segment are the project's real labels); its
+ *    `currency` stays the CZK default the whole app assumes today — capturing a live
+ *    account's real currency code is a separate, additive ingestion change.
  *  `goals` is retained: it is a forward-looking target (the pacing/anomaly engine
  *  needs a non-zero PNO threshold), not a fabricated historical result. */
 export function buildLiveDataset(project: Project, rows: MetricRow[]): PerformanceData {
@@ -35,5 +44,11 @@ export function buildLiveDataset(project: Project, rows: MetricRow[]): Performan
       ...(r.impressions !== undefined ? { impressions: Math.round(r.impressions) } : {}),
       ...(r.clicks !== undefined ? { clicks: Math.round(r.clicks) } : {}),
     }));
-  return { ...base, channels: [], events: undefined, daily };
+  const meta = {
+    disclaimer: "",
+    asOf: daily.length > 0 ? daily[daily.length - 1]!.date : base.meta.asOf,
+    days: daily.length,
+    seed: 0,
+  };
+  return { ...base, channels: [], events: undefined, daily, meta };
 }

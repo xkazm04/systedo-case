@@ -29,6 +29,7 @@ const { mapAdsRowsToMetrics } = await import("@/lib/report-metrics/map");
 const { buildLiveDataset } = await import("@/lib/report-metrics/build");
 const { getReportMetrics, saveReportMetrics, clearReportMetrics } = await import("@/lib/report-metrics/store");
 const { resolveReportDataset } = await import("@/lib/report-metrics/resolve");
+const { getProjectDataset } = await import("@/lib/project-data/dataset");
 
 const PROJECT = { id: "proj-ads", name: "Acme s.r.o.", type: "eshop", domain: "acme.cz" };
 
@@ -80,6 +81,19 @@ test("builder: keeps the project's client label + goals, swaps in the live serie
   assert.equal(data.daily.length, 2);
   assert.equal(data.daily[0].date, "2026-06-01"); // sorted ascending
   assert.equal(data.daily[1].revenue, 4800);
+});
+
+test("builder: overwrites the sample spine's meta so no sample provenance rides live data", () => {
+  const sample = getProjectDataset(PROJECT);
+  const data = buildLiveDataset(PROJECT, [
+    { date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 },
+    { date: "2026-06-03", visits: 8, cost: 2, conversions: 2, revenue: 2400 },
+  ]);
+  assert.equal(data.meta.asOf, "2026-06-03", "asOf = last synced date, not the sample span");
+  assert.equal(data.meta.days, 2, "days = synced row count");
+  assert.equal(data.meta.disclaimer, "", "the sample-data disclaimer must not ride real numbers");
+  assert.equal(data.meta.seed, 0, "no fabricated determinism seed");
+  assert.notEqual(data.meta.asOf, sample.meta.asOf, "meta no longer describes the sample series");
 });
 
 test("resolver: no synced rows → sample dataset, live=false", async () => {
