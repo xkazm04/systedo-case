@@ -61,11 +61,17 @@ const T = {
 export default function AlertsInbox({
   refreshKey,
   onStaged,
+  onAlertsChange,
 }: {
   refreshKey: number;
   /** called after a change-set is staged from an alert, so the parent can reload
    *  the control plane to surface the new pending proposal. */
   onStaged?: () => void;
+  /** report the loaded alert list up to the parent (Direction 2): this component
+   *  is the SINGLE /api/alerts owner, so CampaignsClient derives its
+   *  campaign→alert map from this instead of fetching the endpoint a second time.
+   *  Pass a stable (useState setter / useCallback) reference. */
+  onAlertsChange?: (alerts: AlertRecord[]) => void;
 }) {
   const { status } = useSession();
   const project = useOptionalProject();
@@ -96,6 +102,13 @@ export default function AlertsInbox({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (status === "authenticated") void load();
   }, [status, load, refreshKey]);
+
+  // Hand the loaded alerts to the parent so it can derive its campaign→alert map
+  // without a duplicate fetch. Fires only when the list identity changes (a load
+  // or an optimistic mark-read), not on unrelated re-renders.
+  useEffect(() => {
+    onAlertsChange?.(alerts);
+  }, [alerts, onAlertsChange]);
 
   const markAllRead = async () => {
     try {

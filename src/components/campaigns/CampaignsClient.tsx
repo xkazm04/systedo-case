@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
@@ -243,37 +243,21 @@ export default function CampaignsClient({
 
   // Map campaign id → the id of a stageable critical alert naming it. A critical
   // table row uses this to stage a change-set pre-scoped to that campaign's alert
-  // — the fully-scoped path the control-plane route supports. Rebuilt whenever a
-  // sync may have minted or resolved alerts (alertRefresh).
-  const [alertByCampaign, setAlertByCampaign] = useState<Map<string, string>>(new Map());
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      if (!authed) {
-        if (!cancelled) setAlertByCampaign(new Map());
-        return;
-      }
-      try {
-        const res = await fetch(pid ? `/api/alerts?projectId=${encodeURIComponent(pid)}` : "/api/alerts");
-        if (!res.ok) return;
-        const json = (await res.json()) as { alerts?: AlertRecord[] };
-        if (cancelled) return;
-        const map = new Map<string, string>();
-        for (const a of json.alerts ?? []) {
-          // Mirrors AlertsInbox's canStage: a critical, not-yet-resolved alert
-          // that names campaigns can seed a scoped change-set.
-          if (a.type !== "critical" || alertStatus(a) === "resolved") continue;
-          for (const cid of alertCampaignIds(a)) if (!map.has(cid)) map.set(cid, a.id);
-        }
-        setAlertByCampaign(map);
-      } catch {
-        /* non-critical chrome */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authed, pid, alertRefresh]);
+  // — the fully-scoped path the control-plane route supports. Direction 2: the
+  // alerts come from AlertsInbox (the single /api/alerts owner, reporting via
+  // onAlertsChange) instead of a second fetch of the same endpoint — so one sync
+  // triggers one alerts request, not two. The map is derived from that list.
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
+  const alertByCampaign = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of alerts) {
+      // Mirrors AlertsInbox's canStage: a critical, not-yet-resolved alert that
+      // names campaigns can seed a scoped change-set.
+      if (a.type !== "critical" || alertStatus(a) === "resolved") continue;
+      for (const cid of alertCampaignIds(a)) if (!map.has(cid)) map.set(cid, a.id);
+    }
+    return map;
+  }, [alerts]);
 
   // Stage a change-set for one critical row: prefer the campaign's own alert (the
   // route's fully-scoped path); otherwise fall back to a campaign-scoped create.
@@ -450,6 +434,7 @@ export default function CampaignsClient({
           <ActivityFeed refreshKey={alertRefresh} />
           <AlertsInbox
             refreshKey={alertRefresh}
+            onAlertsChange={setAlerts}
             onStaged={() => {
               // A change-set was staged from an alert: reload the control plane so
               // the pending proposal surfaces, and refresh the activity thread.
