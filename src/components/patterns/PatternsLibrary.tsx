@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { formatPatternAge } from "@/lib/patterns/age";
 import { Bulb, Check, Close, Search, Sparkles } from "@/components/icons";
 import {
   PATTERN_CATEGORIES,
@@ -36,6 +38,9 @@ const T = {
     noAutoFilterMatch: "Žádný rozpoznaný vzor neodpovídá filtru.",
     relevanceTitle: "Relevance k dotazu",
     relevanceLabel: "relevance",
+    contradictedLabel: "Již neodpovídá datům",
+    contradictedTitle: "Čerstvě vytěžená data odporují tomuto uloženému vzoru — zvažte jeho odebrání.",
+    savedAgePrefix: "Uloženo",
     removeLabel: "Odebrat",
     saveLabel: "Uložit",
     addCustomTitle: "Přidat vlastní vzor",
@@ -68,6 +73,9 @@ const T = {
     noAutoFilterMatch: "No detected pattern matches the filter.",
     relevanceTitle: "Relevance to query",
     relevanceLabel: "relevance",
+    contradictedLabel: "No longer matches the data",
+    contradictedTitle: "Freshly mined data contradicts this saved pattern — consider removing it.",
+    savedAgePrefix: "Saved",
     removeLabel: "Remove",
     saveLabel: "Save",
     addCustomTitle: "Add custom pattern",
@@ -87,6 +95,8 @@ export default function PatternsLibrary() {
   const project = useOptionalProject();
   const pid = project?.id;
   const t = useT(T);
+  const { locale } = useLocale();
+  const L = locale === "en" ? "en" : "cs";
   const [auto, setAuto] = useState<Pattern[]>([]);
   const [saved, setSaved] = useState<Pattern[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +149,17 @@ export default function PatternsLibrary() {
     relBounds.max > relBounds.min ? (r - relBounds.min) / (relBounds.max - relBounds.min) : 1;
 
   const authed = authStatus === "authenticated";
+
+  // Shared presentation props every card carries (relevance meter labels + the
+  // Direction-2 pin-freshness: contradiction warning + save-age note).
+  const cardCommon = {
+    relevanceTitle: t("relevanceTitle"),
+    relevanceLabel: t("relevanceLabel"),
+    contradictedLabel: t("contradictedLabel"),
+    contradictedTitle: t("contradictedTitle"),
+    savedAgePrefix: t("savedAgePrefix"),
+    locale: L,
+  } as const;
 
   const runSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -292,8 +313,7 @@ export default function PatternsLibrary() {
                   p={r}
                   relevance={semantic ? norm(r.relevance) : undefined}
                   action={actionFor(r)}
-                  relevanceTitle={t("relevanceTitle")}
-                  relevanceLabel={t("relevanceLabel")}
+                  {...cardCommon}
                 />
               ))}
             </div>
@@ -315,7 +335,7 @@ export default function PatternsLibrary() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {visibleSaved.map((p) => (
-                  <PatternCard key={p.id} p={p} action={actionFor(p)} relevanceTitle={t("relevanceTitle")} relevanceLabel={t("relevanceLabel")} />
+                  <PatternCard key={p.id} p={p} action={actionFor(p)} {...cardCommon} />
                 ))}
               </div>
             )}
@@ -335,7 +355,7 @@ export default function PatternsLibrary() {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {visibleAuto.map((p) => (
-                  <PatternCard key={p.id} p={p} action={actionFor(p)} relevanceTitle={t("relevanceTitle")} relevanceLabel={t("relevanceLabel")} />
+                  <PatternCard key={p.id} p={p} action={actionFor(p)} {...cardCommon} />
                 ))}
               </div>
             )}
@@ -354,15 +374,34 @@ function PatternCard({
   relevance,
   relevanceTitle,
   relevanceLabel,
+  contradictedLabel,
+  contradictedTitle,
+  savedAgePrefix,
+  locale,
 }: {
   p: Pattern;
   action?: { label: string; icon: "save" | "remove"; busy: boolean; onClick: () => void };
   relevance?: number;
   relevanceTitle: string;
   relevanceLabel: string;
+  contradictedLabel: string;
+  contradictedTitle: string;
+  savedAgePrefix: string;
+  locale: "cs" | "en";
 }) {
+  // Age note reads only on SAVED patterns (auto patterns carry no createdAt → "").
+  const age = formatPatternAge(p.createdAt, locale);
   return (
-    <div className="card flex flex-col p-4">
+    <div className={`card flex flex-col p-4 ${p.contradicted ? "border-coral-400/50" : ""}`}>
+      {p.contradicted && (
+        <span
+          className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-pill bg-negative-soft px-2.5 py-1 text-xs font-medium text-negative"
+          title={contradictedTitle}
+        >
+          <Close width={12} height={12} />
+          {contradictedLabel}
+        </span>
+      )}
       {relevance !== undefined && (
         <span className="mb-2.5 flex items-center gap-2" title={relevanceTitle}>
           <span className="h-1 flex-1 overflow-hidden rounded-full bg-navy-50" aria-hidden>
@@ -398,6 +437,11 @@ function PatternCard({
         <p className="mt-2 flex items-start gap-1.5 border-t border-line pt-2 text-xs text-muted">
           <Bulb width={13} height={13} className="mt-0.5 shrink-0 text-brand-500" />
           {p.evidence}
+        </p>
+      )}
+      {age && (
+        <p className="mt-2 text-[11px] uppercase tracking-wide text-muted">
+          {savedAgePrefix} {age}
         </p>
       )}
     </div>

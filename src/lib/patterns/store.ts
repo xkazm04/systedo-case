@@ -5,7 +5,13 @@
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { getSyncMeta } from "@/lib/campaigns/store";
-import { extractPatterns, patternPromptLine, promptSafePatterns, sampleLessonPatterns } from "./extract";
+import {
+  contradictedSavedIds,
+  extractPatternsWithContext,
+  patternPromptLine,
+  promptSafePatterns,
+  sampleLessonPatterns,
+} from "./extract";
 import { cosine, embedTexts } from "./embeddings";
 import { isPatternCategory, type Pattern, type PatternCategory, type RankedPattern } from "./types";
 
@@ -58,14 +64,28 @@ export async function getLibrary(
   pnoGoal?: number,
   projectId?: string
 ): Promise<{ auto: Pattern[]; saved: Pattern[] }> {
-  const [mined, saved] = await Promise.all([extractPatterns(tenant, pnoGoal, projectId), listSavedPatterns(tenant)]);
+  const [{ patterns: mined, context }, saved] = await Promise.all([
+    extractPatternsWithContext(tenant, pnoGoal, projectId),
+    listSavedPatterns(tenant),
+  ]);
   // Campaign-mined patterns + the demo-derived creative/targeting sample lessons.
   // The library is a lessons surface, so sample lessons show for every tenant
   // (their insight says "(ukázková lekce)"); the AI-prompt path filters them out
   // for live tenants in getPatternLines instead.
   const auto = [...mined, ...sampleLessonPatterns()];
   const savedTitles = new Set(saved.map((p) => p.title.toLowerCase()));
-  return { auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())), saved };
+  // Direction 2: flag saved pins that fresh mined data now contradicts (named
+  // campaign/type/channel fell below target since it was pinned). The flag drives
+  // the library warning + the prompt exclusion in getPatternLines; the pin itself
+  // is never deleted — the user unpins.
+  const contradicted = contradictedSavedIds(saved, context);
+  const annotatedSaved = contradicted.size
+    ? saved.map((p) => (contradicted.has(p.id) ? { ...p, contradicted: true } : p))
+    : saved;
+  return {
+    auto: auto.filter((p) => !savedTitles.has(p.title.toLowerCase())),
+    saved: annotatedSaved,
+  };
 }
 
 /** Is this tenant's stored campaign set LIVE account data? True only when the
@@ -130,8 +150,10 @@ export async function getPatternLines(
   ]);
   // Prompt integrity: a live tenant's "proven patterns from this account" block
   // must not carry the demo-derived sample lessons (see promptSafePatterns) —
-  // only lessons mined from their real data and their own manual saves.
-  const all = promptSafePatterns([...saved, ...auto], live);
+  // only lessons mined from their real data and their own manual saves. Direction 2:
+  // a saved pin fresh data now contradicts is also dropped (getLibrary flagged it) —
+  // a stale scaling template must not keep grounding prompts after its campaign craters.
+  const all = promptSafePatterns([...saved, ...auto], live).filter((p) => !p.contradicted);
   if (all.length === 0) return [];
   // Each line carries a compact evidence clause when the pattern has proof (which
   // win backs it) — dynamic USER-prompt content, so the fingerprint goldens hold.

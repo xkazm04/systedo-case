@@ -10,6 +10,7 @@ import {
   groupByType,
   withMetrics,
   type Campaign,
+  type CampaignType,
 } from "@/lib/campaigns/types";
 import { getReportHistories, listCampaigns } from "@/lib/campaigns/store";
 import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
@@ -325,9 +326,135 @@ export async function extractPatterns(
   pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO,
   projectId?: string
 ): Promise<Pattern[]> {
+  return (await extractPatternsWithContext(tenant, pnoGoal, projectId)).patterns;
+}
+
+/** The fresh data a contradiction check judges saved pins against: the tenant's own
+ *  campaign set + the channel-performance rows, at the tenant's agreed PNO target. */
+export interface MiningContext {
+  campaigns: Campaign[];
+  channels: ChannelPerf[];
+  pnoGoal: number;
+}
+
+/** As `extractPatterns`, but also returns the fresh `MiningContext` it loaded, so the
+ *  caller (getLibrary) can run the contradiction check without a second campaign read
+ *  — one load feeds both the auto patterns and the pin-freshness verdict. */
+export async function extractPatternsWithContext(
+  tenant: string,
+  pnoGoal: number = PAID_PORTFOLIO_TARGET_PNO,
+  projectId?: string
+): Promise<{ patterns: Pattern[]; context: MiningContext }> {
   const experimentPatterns = await extractExperimentPatterns(projectId);
   const campaigns = await listCampaigns(tenant);
-  if (campaigns.length === 0) return experimentPatterns;
+  const context: MiningContext = { campaigns, channels: SAMPLE_ATTRIBUTION, pnoGoal };
+  if (campaigns.length === 0) return { patterns: experimentPatterns, context };
   const histories = await getReportHistories(tenant);
-  return [...minePatterns(campaigns, histories, pnoGoal), ...experimentPatterns];
+  return {
+    patterns: [...minePatterns(campaigns, histories, pnoGoal), ...experimentPatterns],
+    context,
+  };
+}
+
+// ─── Direction 2 — pinned patterns stop being immortal ───────────────────────────
+//
+// A saved pin is frozen text: a scaling template stays in the prompts long after its
+// campaign craters, because (unlike auto patterns, which are re-mined every request)
+// nothing re-checks it. The pure check below re-derives the SUBJECT of an identifiable
+// pin from fresh mined data and asks "does the claim still hold?". Only kinds whose
+// title names a re-checkable subject are judged; everything else is EXEMPT (documented
+// per branch). A contradicted pin is never deleted — it is excluded from prompts and
+// flagged in the UI so the human unpins.
+
+const SCALING_PREFIX = "Vzor pro škálování: ";
+const BEST_TYPE_SUFFIX = " je nejefektivnější typ";
+const OVER_CHANNEL_PREFIX = "Nadvýkonný kanál: ";
+
+/** Strip the display quotes („NAME" / "NAME") + whitespace around a subject pulled
+ *  from a pattern title. */
+function unquote(s: string): string {
+  return s.replace(/^[\s„“”"'‚‘’]+|[\s„“”"'‚‘’]+$/gu, "").trim();
+}
+
+function reverseTypeLabels(): Map<string, CampaignType> {
+  const m = new Map<string, CampaignType>();
+  for (const [type, label] of Object.entries(CAMPAIGN_TYPE_LABELS)) {
+    m.set(label, type as CampaignType);
+  }
+  return m;
+}
+
+/** Per-channel CTR + the mean CTR of its PEERS (same recipe as mineTargetingPatterns),
+ *  or an empty map when there are too few channels to have peers. */
+function channelCtrTable(channels: ChannelPerf[]): Map<string, { ctr: number; peer: number }> {
+  const rows = channels
+    .filter((c) => c.reach > 0)
+    .map((c) => ({ channel: c.channel, ctr: c.clicks / c.reach }));
+  const m = new Map<string, { ctr: number; peer: number }>();
+  if (rows.length < 3) return m;
+  rows.forEach((r, i) => {
+    const others = rows.filter((_, j) => j !== i);
+    const peer = others.reduce((a, o) => a + o.ctr, 0) / others.length;
+    m.set(r.channel, { ctr: r.ctr, peer });
+  });
+  return m;
+}
+
+/** Does fresh data now contradict this SAVED pattern's positive claim? Pure. */
+function patternContradicted(
+  p: Pattern,
+  ctx: {
+    rows: ReturnType<typeof withMetrics>[];
+    types: ReturnType<typeof groupByType>;
+    labelToType: Map<string, CampaignType>;
+    channelCtr: Map<string, { ctr: number; peer: number }>;
+    targetRoas: number;
+  }
+): boolean {
+  // 1. Scaling template names a campaign → contradicted when that campaign now reads
+  //    BELOW the tenant's target ROAS (the pin says "scale this"; the data says stop).
+  if (p.category === "budget" && p.title.startsWith(SCALING_PREFIX)) {
+    const name = unquote(p.title.slice(SCALING_PREFIX.length)).toLowerCase();
+    const row = ctx.rows.find((r) => r.name.trim().toLowerCase() === name);
+    return !!row && row.roas > 0 && row.roas < ctx.targetRoas;
+  }
+  // 2. Best-performing TYPE → contradicted when that type's fresh aggregate falls
+  //    below target (it is no longer the efficient base the pin claims).
+  if (p.category === "structure" && p.title.endsWith(BEST_TYPE_SUFFIX)) {
+    const label = p.title.slice(0, p.title.length - BEST_TYPE_SUFFIX.length).trim();
+    const type = ctx.labelToType.get(label);
+    if (!type) return false;
+    const g = ctx.types.find((t) => t.type === type);
+    return !!g && g.total.cost > 0 && g.total.roas < ctx.targetRoas;
+  }
+  // 3. Over-performing CHANNEL → contradicted when it no longer beats its peers' CTR.
+  if (p.category === "targeting" && p.title.startsWith(OVER_CHANNEL_PREFIX)) {
+    const channel = p.title.slice(OVER_CHANNEL_PREFIX.length).trim();
+    const e = ctx.channelCtr.get(channel);
+    return !!e && e.ctr < e.peer;
+  }
+  // EXEMPT (no reliably re-checkable positive subject): budget traps + underperforming
+  // channels are cautions (a recovery isn't a contradiction of a warning); brand-search
+  // is evergreen structural advice; creative winners are experiment-proven, not campaign
+  // metrics; trend / portfolio-at-target are historical. Hand-written pins that match no
+  // template also land here — we never flag what we can't confidently judge.
+  return false;
+}
+
+/** The ids of SAVED patterns fresh data now contradicts. Empty when there is no fresh
+ *  campaign data to judge against (a pin can't be contradicted by nothing). Pure. */
+export function contradictedSavedIds(saved: Pattern[], ctx: MiningContext): Set<string> {
+  const out = new Set<string>();
+  if (ctx.campaigns.length === 0) return out;
+  const judge = {
+    rows: ctx.campaigns.map(withMetrics),
+    types: groupByType(ctx.campaigns),
+    labelToType: reverseTypeLabels(),
+    channelCtr: channelCtrTable(ctx.channels),
+    targetRoas: 1 / ctx.pnoGoal,
+  };
+  for (const p of saved) {
+    if (patternContradicted(p, judge)) out.add(p.id);
+  }
+  return out;
 }

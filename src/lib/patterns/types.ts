@@ -31,6 +31,12 @@ export interface Pattern {
   /** how it was created: derived from data vs hand-saved */
   source: "auto" | "manual";
   createdAt: string;
+  /** Direction 2 (library surface only): fresh mined data now contradicts this
+   *  SAVED pattern's claim — the named campaign/type/channel fell below target since
+   *  it was pinned. Set by `getLibrary`; a contradicted pin is excluded from prompts
+   *  (`getPatternLines`) and flagged in the UI so the user unpins. Never persisted,
+   *  never set on auto/prompt-path patterns. */
+  contradicted?: boolean;
 }
 
 export function isPatternCategory(v: unknown): v is PatternCategory {
