@@ -7,7 +7,7 @@
  *
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
-import { claimWeeklyDigest } from "@/lib/cron/sent-guard";
+import { claimWeeklyDigest, releaseWeeklyDigest } from "@/lib/cron/sent-guard";
 import { isoWeekKey } from "@/lib/cron/schedule";
 import { recordCronRun } from "@/lib/cron/run";
 import { getLatestChanges, getSyncMeta, listCampaigns } from "@/lib/campaigns/store";
@@ -107,6 +107,13 @@ export async function GET(request: Request) {
         return;
       }
 
+      // Claim/release pairing (mirrors the report cron): the claim above is
+      // released in the catch below when NOTHING was delivered, so a transient
+      // failure doesn't silently consume the tenant's whole week. Once the first
+      // durable channel (the in-app digest alert) lands, the claim stands —
+      // at-most-once for what was delivered.
+      let deliveredAnything = false;
+      try {
       const totals = aggregate(campaigns);
       const rows = campaigns.map(withMetrics);
       // Change-aware: a cratering campaign counts as critical in the weekly
@@ -141,6 +148,7 @@ export async function GET(request: Request) {
         (aiOps.warn ? " · AI běží převážně v ukázkovém režimu" : "");
 
       await recordAlert(tenant, { type: "digest", title, body, items });
+      deliveredAnything = true;
       await sendWebhook(`Adamant — ${title}: ${body}`);
 
       // "Diagnóza týdne" + "Přehled týdne": once per project per digest (the weekly
@@ -235,6 +243,20 @@ export async function GET(request: Request) {
         sent: true,
         ...(diagnosisNotes ? { diagnosisNotes } : {}),
       });
+      } catch (err) {
+        // Nothing reached the tenant → hand the week back so the next run
+        // retries it; the sibling report cron documents the same pairing. If
+        // even one channel landed, keep the claim (no double-send). The release
+        // itself is best-effort — never mask the original error.
+        if (!deliveredAnything) {
+          try {
+            await releaseWeeklyDigest(tenant, isoWeekKey(now));
+          } catch (relErr) {
+            console.error(`[cron] digest claim release failed for ${tenant}:`, relErr);
+          }
+        }
+        throw err; // onError records the failure per pair
+      }
     },
     (pair, err) => {
       const { userId, target } = pair;

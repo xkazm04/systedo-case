@@ -24,3 +24,16 @@ export async function claimSentPeriod(
     .run(tenant, kind, period, new Date().toISOString());
   return Number(changes) > 0;
 }
+
+/** Release a claim: delete the row ONLY when it still holds this exact period —
+ *  a later period's claim is left untouched (the WHERE makes it a targeted no-op).
+ *  node:sqlite is synchronous, so the conditional delete is atomic. */
+export async function releaseSentPeriod(
+  tenant: string,
+  kind: string,
+  period: string
+): Promise<void> {
+  getDb()
+    .prepare(`DELETE FROM cron_sent_guard WHERE tenant = ? AND kind = ? AND period = ?`)
+    .run(tenant, kind, period);
+}

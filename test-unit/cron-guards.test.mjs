@@ -78,3 +78,21 @@ test("local claimSentPeriod: first claim wins, same-period re-fire refused, new 
   const other = "u_guardtest_proj_p2_9999999999";
   assert.equal(await claimSentPeriod(other, "digest-weekly", "2026-07-13"), true);
 });
+
+test("local releaseSentPeriod: a released claim is retryable, a moved-on period is untouched", async () => {
+  const { claimSentPeriod, releaseSentPeriod } = await import("@/lib/cron/sent-guard.local");
+  const tenant = "u_guardtest_proj_p3_5555555555";
+
+  // Claim → total failure → release → the SAME period is claimable again
+  // (the digest retries the lost week instead of silently consuming it).
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-13"), true);
+  await releaseSentPeriod(tenant, "digest-weekly", "2026-07-13");
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-13"), true);
+  // …and the re-claim is guarded again.
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-13"), false);
+
+  // Releasing a STALE period is a no-op: the current claim stands.
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-20"), true);
+  await releaseSentPeriod(tenant, "digest-weekly", "2026-07-13");
+  assert.equal(await claimSentPeriod(tenant, "digest-weekly", "2026-07-20"), false);
+});

@@ -4,6 +4,7 @@
  *  LOCAL_DB path never pulls firebase-admin in. Mirrors the local backend's
  *  interface. */
 import { firestore } from "@/lib/firebase";
+import { FieldValue } from "firebase-admin/firestore";
 import { isNewPeriod } from "./schedule";
 
 function guardRef(tenant: string, kind: string) {
@@ -25,5 +26,22 @@ export async function claimSentPeriod(
     if (!isNewPeriod(previous, period)) return false; // already claimed
     tx.set(ref, { period, claimedAt: new Date().toISOString() }, { merge: true });
     return true;
+  });
+}
+
+/** Release a claim: clear the recorded period ONLY when it is still this exact
+ *  one (transaction-guarded), so a later period's claim is never clobbered. */
+export async function releaseSentPeriod(
+  tenant: string,
+  kind: string,
+  period: string
+): Promise<void> {
+  const ref = guardRef(tenant, kind);
+  await firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const previous = (snap.data() as { period?: string } | undefined)?.period;
+    if (previous === period) {
+      tx.set(ref, { period: FieldValue.delete() }, { merge: true });
+    }
   });
 }

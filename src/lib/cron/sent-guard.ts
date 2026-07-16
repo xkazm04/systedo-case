@@ -30,3 +30,21 @@ export async function claimSentPeriod(
 export function claimWeeklyDigest(tenant: string, week: string): Promise<boolean> {
   return claimSentPeriod(tenant, "digest-weekly", week);
 }
+
+/** Release a claim taken by {@link claimSentPeriod} when NOTHING was delivered
+ *  (a throw before the first channel landed), so a later run of the SAME period
+ *  retries instead of the tenant silently losing it. Mirrors the report cron's
+ *  claimReportDay/releaseReportDay pairing. Only clears the exact
+ *  (tenant, kind, period) claim — a no-op if the period has since moved on. */
+export async function releaseSentPeriod(
+  tenant: string,
+  kind: SentGuardKind,
+  period: string
+): Promise<void> {
+  return (await backend()).releaseSentPeriod(tenant, kind, period);
+}
+
+/** The digest weekly release: undo this ISO week's claim on total failure. */
+export function releaseWeeklyDigest(tenant: string, week: string): Promise<void> {
+  return releaseSentPeriod(tenant, "digest-weekly", week);
+}
