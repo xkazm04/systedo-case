@@ -208,7 +208,18 @@ export const socialSkill: Skill<SocialSkillInput, SocialDraftResult> = {
   temperature: 0.9,
   buildPrompt: (i) => buildSocialPrompt(i.topic, i.tone, i.platforms, i.grounding, i.voice, i.refine),
   normalize: normalizeSocial,
-  validate: validateSocial,
+  // Input-aware (Direction 2): require a post per REQUESTED platform, so an empty/partial
+  // answer fails → the wrapper's one repair re-prompt fires instead of the normalizer
+  // silently backfilling the gap from the canned templates with meta.demo still false.
+  validate: (parsed, i) => validateSocial(parsed, i.platforms),
+  // Honesty signal carried ON THE CONTRACT: a fully-backfilled answer is a demo (refund
+  // fires), a partly-backfilled one is partialDemo. runSkill translates this to meta —
+  // so a registry-driven run of this skill preserves the same billing honesty as the
+  // dedicated wrapper below, instead of regressing to canned-billed-as-real.
+  backfill: (parsed, i) => {
+    const { modelCount } = normalizeSocialTracked(parsed, i);
+    return modelCount === 0 ? "full" : modelCount < i.platforms.length ? "partial" : "none";
+  },
   demo: (i) => ({ posts: socialFallback(i) }),
 };
 
@@ -219,26 +230,23 @@ export function generateSocialPosts(req: SocialSkillInput & {
   signal?: AbortSignal;
 }): Promise<AiResponse<SocialDraftResult>> {
   const { locale, signal, ...input } = req;
-  // Track whether the normalizer had to fall back to the canned templates, so a fully
-  // canned answer bills as demo (refund fires) and a partly canned one surfaces honestly
-  // (Direction 2). `full`/`partial`/`none` is set during normalize below.
+  // The honesty is now expressed ON the skill contract: skillToGenerateArgs binds the
+  // strict input-aware `validate` (empty/partial answer → the one repair re-prompt
+  // fires, not a silent canned backfill), and we read `socialSkill.backfill` to set
+  // meta.demo (full → refund) / partialDemo. Any future SDK-driven consumer reads the
+  // SAME contract fields — the fix lives on the plugin, not this one wrapper. The
+  // generateStructured call stays tagged here so the prove-once gate still covers it.
   let backfill: "none" | "partial" | "full" = "none";
   return generateStructured({
     // llm-tool: social
     ...skillToGenerateArgs(socialSkill, input),
-    // Input-bound so the wrapper's single repair re-prompt fires on an empty/partial
-    // set (the skill's own validate — over-limit only — runs when requested is absent).
-    validate: (parsed) => validateSocial(parsed, input.platforms),
     normalize: (parsed) => {
-      const { result, modelCount } = normalizeSocialTracked(parsed, input);
-      backfill = modelCount === 0 ? "full" : modelCount < input.platforms.length ? "partial" : "none";
-      return result;
+      backfill = socialSkill.backfill ? socialSkill.backfill(parsed, input) : "none";
+      return socialSkill.normalize(parsed, input);
     },
     locale,
     signal,
   }).then((res) => {
-    // A no-provider demo already has meta.demo=true; only adjust a real-provider run
-    // whose output had to be (fully/partly) backfilled from the templates.
     if (!res.meta.demo) {
       if (backfill === "full") res.meta.demo = true;
       else if (backfill === "partial") res.meta.partialDemo = true;

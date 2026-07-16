@@ -37,8 +37,20 @@ export interface Skill<I, O> {
   normalize: (parsed: unknown, input: I) => O;
   /** deterministic fallback when no provider is available */
   demo: (input: I) => O;
-  /** optional raw-output domain check (empty = valid) */
-  validate?: (parsed: unknown) => string[];
+  /** optional raw-output domain check (empty = valid). Input-aware like
+   *  `normalize`, so a validator can require the output cover what was asked (e.g.
+   *  a post per REQUESTED platform) — the check that makes the wrapper's single
+   *  repair re-prompt fire on an empty/partial answer instead of the normalizer
+   *  silently backfilling it from the demo floor. Input-independent validators
+   *  ignore the 2nd arg. */
+  validate?: (parsed: unknown, input: I) => string[];
+  /** optional honesty signal: did the normalized result have to be backfilled from
+   *  the demo floor, and how much? `"full"` → the answer is entirely canned (the
+   *  caller sets `meta.demo`, so the refund fires); `"partial"` → some fields were
+   *  canned (`meta.partialDemo`); `"none"` → a real answer. Lives on the contract so
+   *  a registry-driven skill run (via `runSkill`) preserves the same billing honesty
+   *  the tool's own wrapper has, instead of regressing to canned-billed-as-real. */
+  backfill?: (parsed: unknown, input: I) => "none" | "partial" | "full";
 }
 
 /** Adapt a skill + input into the wrapper's GenerateArgs. The resulting object is
@@ -55,7 +67,9 @@ export function skillToGenerateArgs<I, O>(skill: Skill<I, O>, input: I): Generat
     prompt: skill.buildPrompt(input),
     normalize: (parsed) => skill.normalize(parsed, input),
     demo: () => skill.demo(input),
-    validate: skill.validate,
+    // Bind the input-aware validator to THIS input, so the wrapper still sees the
+    // plain `(parsed) => string[]` shape it always has (mirrors `normalize`).
+    validate: skill.validate ? (parsed: unknown) => skill.validate!(parsed, input) : undefined,
   };
 }
 
