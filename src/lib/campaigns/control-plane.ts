@@ -19,6 +19,7 @@ import {
   planApproveClaim,
   planRevertClaim,
   settledApplyStatus,
+  settledRevertStatus,
   DEFAULT_POLICY,
   GuardrailError,
   NoSnapshotsError,
@@ -327,17 +328,32 @@ export async function revertChangeSet(
   });
   const budgetOk = !hasBudgetSnaps || (budgetResult?.ok ?? false);
   const resumeOk = [...resumeById.values()].every((r) => r.ok);
-  const detail =
-    budgetOk && resumeOk
-      ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
-      : `Obnovení částečně selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}.`;
+  // Honest settle, mirroring the apply side: "reverted" is written ONLY when the
+  // whole restore landed. A (partial) failure returns the set to "applied" so
+  // planRevertClaim lets the operator retry — the restore is an idempotent
+  // absolute snapshot write, so re-running it is safe, whereas settling
+  // "reverted" here would be terminal (planRevertClaim no-ops it) while the live
+  // budgets still hold the applied values.
+  const status = settledRevertStatus(budgetOk, resumeOk);
+  const reverted = status === "reverted";
+  const detail = reverted
+    ? "Rozpočty obnoveny na přesné hodnoty a pozastavené kampaně znovu spuštěny (ze snímku)."
+    : `Obnovení selhalo: ${budgetResult && !budgetResult.ok ? budgetResult.error : "resume kampaně se nezdařilo"}. Balíček zůstává aplikovaný — vrácení lze bezpečně opakovat.`;
 
-  const updated: Partial<ChangeSet> = { status: "reverted", revertedAt: new Date().toISOString(), results };
+  const updated: Partial<ChangeSet> = {
+    status,
+    results,
+    // Stamp revertedAt only when the revert actually landed — a failed restore
+    // must not carry a timestamp claiming it happened.
+    ...(reverted ? { revertedAt: new Date().toISOString() } : {}),
+  };
   await changeSetsCol(tenant).doc(id).set(updated, { merge: true });
 
   await recordActivity(tenant, {
     kind: "budget_shift",
-    title: `Vrácen změnový balíček (${cs.moves.length} přesunů)`,
+    title: reverted
+      ? `Vrácen změnový balíček (${cs.moves.length} přesunů)`
+      : `Vrácení změnového balíčku selhalo (${cs.moves.length} přesunů)`,
     detail,
     actor: "Vy",
   });

@@ -196,6 +196,17 @@ export function settledApplyStatus(results: MoveResult[]): "applied" | "failed" 
   return results.length > 0 && results.every((r) => !r.ok) ? "failed" : "applied";
 }
 
+/** The honest terminal status for a revert that has finished its restore loop:
+ *  it settles `reverted` ONLY when the whole restore landed (the budget snapshot
+ *  write succeeded and every paused campaign resumed). Any failure keeps the set
+ *  `applied`, so {@link planRevertClaim} lets the operator RETRY — the restore is
+ *  an ABSOLUTE snapshot write (idempotent), so the one state where a retry is
+ *  needed is exactly the one where it is safe. Mirrors {@link settledApplyStatus}
+ *  on the apply side: never write a terminal status the live account contradicts. */
+export function settledRevertStatus(budgetOk: boolean, resumeOk: boolean): "reverted" | "applied" {
+  return budgetOk && resumeOk ? "reverted" : "applied";
+}
+
 /** Whether a change-set carries at least one restore snapshot (budget or status) —
  *  i.e. at least one forward move actually landed, so a revert has something exact
  *  to restore. The sole gate for allowing a revert. */

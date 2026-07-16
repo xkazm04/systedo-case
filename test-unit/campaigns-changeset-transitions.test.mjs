@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import {
   isStaleClaim,
   settledApplyStatus,
+  settledRevertStatus,
   hasRestoreSnapshots,
   planApproveClaim,
   planRevertClaim,
@@ -31,6 +32,18 @@ test("any move landing settles the set to 'applied'", () => {
 
 test("an empty result list settles 'applied' (never happens — a set has >=1 move)", () => {
   assert.equal(settledApplyStatus([]), "applied");
+});
+
+// --- settledRevertStatus: a failed restore must NOT settle "reverted" --------
+
+test("a fully-landed restore settles 'reverted'", () => {
+  assert.equal(settledRevertStatus(true, true), "reverted");
+});
+
+test("any restore failure keeps the set 'applied' so the (idempotent) revert can be retried", () => {
+  assert.equal(settledRevertStatus(false, true), "applied");
+  assert.equal(settledRevertStatus(true, false), "applied");
+  assert.equal(settledRevertStatus(false, false), "applied");
 });
 
 // --- isStaleClaim: a transient claim ages out at the TTL ---------------------
