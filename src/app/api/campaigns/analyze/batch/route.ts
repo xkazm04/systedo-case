@@ -192,8 +192,10 @@ export async function POST(request: Request) {
           : target.campaign
             ? campaignPatternQuery(target.campaign)
             : "";
+      // projectId threads the project's live LP-experiment winners into each eval's
+      // grounding, matching the single analyze route + the ads prompt path.
       const patternLines = patternQuery
-        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal)
+        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId)
         : undefined;
 
       try {

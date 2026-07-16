@@ -5,7 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { firestore } from "@/lib/firebase";
 import { getSyncMeta } from "@/lib/campaigns/store";
-import { extractPatterns, promptSafePatterns, sampleLessonPatterns } from "./extract";
+import { extractPatterns, patternPromptLine, promptSafePatterns, sampleLessonPatterns } from "./extract";
 import { cosine, embedTexts } from "./embeddings";
 import { isPatternCategory, type Pattern, type PatternCategory, type RankedPattern } from "./types";
 
@@ -83,9 +83,10 @@ async function isLiveTenant(tenant: string): Promise<boolean> {
 export async function searchPatterns(
   tenant: string,
   query: string,
-  pnoGoal?: number
+  pnoGoal?: number,
+  projectId?: string
 ): Promise<{ results: RankedPattern[]; semantic: boolean }> {
-  const { auto, saved } = await getLibrary(tenant, pnoGoal);
+  const { auto, saved } = await getLibrary(tenant, pnoGoal, projectId);
   const all = [...saved, ...auto];
   if (all.length === 0) return { results: [], semantic: false };
 
@@ -132,7 +133,9 @@ export async function getPatternLines(
   // only lessons mined from their real data and their own manual saves.
   const all = promptSafePatterns([...saved, ...auto], live);
   if (all.length === 0) return [];
-  const line = (p: Pattern) => `- ${p.title}: ${p.insight}`;
+  // Each line carries a compact evidence clause when the pattern has proof (which
+  // win backs it) — dynamic USER-prompt content, so the fingerprint goldens hold.
+  const line = patternPromptLine;
 
   if (query && all.length > 1) {
     const texts = all.map((p) => `${p.title}. ${p.insight} ${p.evidence}`.trim());

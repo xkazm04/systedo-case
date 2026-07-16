@@ -155,8 +155,11 @@ export async function POST(request: Request) {
     // so a per-campaign eval is grounded too, not just the portfolio verdict.
     const patternQuery =
       scope === "overall" ? overallPatternQuery(campaigns) : target ? campaignPatternQuery(target) : "";
+    // projectId is threaded so a live LP-experiment winner (project-scoped) grounds
+    // the eval alongside the tenant's campaign-mined patterns — the same handoff the
+    // ads prompt path makes. Sample/demo projects persist no experiments → no-op.
     const patternLines = patternQuery
-      ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal)
+      ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId)
       : undefined;
 
     // The eval input the prompt + cache key are a pure function of (locale/signal are

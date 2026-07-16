@@ -58,7 +58,9 @@ export async function POST(request: Request) {
     const tenant = await resolveTenant(userId, projectId);
     // Rank against auto-patterns mined at the tenant's own PNO target.
     const { pnoGoal } = await getClientProfile(tenant);
-    const { results, semantic } = await searchPatterns(tenant, query, pnoGoal);
+    // Thread the project so semantic search ranks over the same live experiment
+    // winners the ads prompt + library GET see (not just campaign-mined patterns).
+    const { results, semantic } = await searchPatterns(tenant, query, pnoGoal, projectId ?? undefined);
     return Response.json({ results: results.slice(0, 12), semantic });
   } catch (err) {
     console.error("[patterns] search failed:", err);

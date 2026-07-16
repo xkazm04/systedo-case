@@ -18,7 +18,9 @@ export async function GET(request: Request) {
     // Mine auto-patterns against the tenant's own agreed PNO target, so the
     // library judges wins by the same bar the reports/alerts use.
     const { pnoGoal } = await getClientProfile(tenant);
-    return Response.json(await getLibrary(tenant, pnoGoal));
+    // Thread the project so the tenant's LIVE LP-experiment winners (project-scoped)
+    // surface in the library too — the same grounding the ads prompt path resolves.
+    return Response.json(await getLibrary(tenant, pnoGoal, projectId ?? undefined));
   } catch (err) {
     console.error("[patterns] library failed:", err);
     return Response.json({ auto: [], saved: [] });

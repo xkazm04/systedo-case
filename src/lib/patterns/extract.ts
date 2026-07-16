@@ -262,10 +262,36 @@ export function sampleLessonPatterns(): Pattern[] {
  *  them: there the whole surface is illustrative. Matching is by the stable id
  *  (sha1 of title), so a manually SAVED copy of a sample lesson gets a random
  *  store id and is deliberately kept — the user chose to endorse it. Pure. */
-export function promptSafePatterns(patterns: Pattern[], liveTenant: boolean): Pattern[] {
-  if (!liveTenant) return patterns;
+export function promptSafePatterns(patterns: Pattern[], excludeSampleLessons: boolean): Pattern[] {
+  if (!excludeSampleLessons) return patterns;
   const sampleIds = new Set(sampleLessonPatterns().map((p) => p.id));
   return patterns.filter((p) => !sampleIds.has(p.id));
+}
+
+/** How many chars of raw `evidence` may ride into a prompt line. Auto-mined evidence
+ *  is a single short sentence; a hand-written pin can be up to 400 — cap it so the
+ *  clause stays compact and never dominates the lesson it backs. */
+const EVIDENCE_CLAUSE_MAX = 140;
+
+/** Collapse whitespace + cap the evidence to a short clause (…-elided past the cap).
+ *  "" when the pattern carries no proof, so the line falls back to insight-only. Pure. */
+export function compactEvidence(evidence: string | undefined): string {
+  const s = (evidence ?? "").replace(/\s+/g, " ").trim();
+  if (!s) return "";
+  return s.length <= EVIDENCE_CLAUSE_MAX ? s : `${s.slice(0, EVIDENCE_CLAUSE_MAX - 1).trimEnd()}…`;
+}
+
+/** A pattern's PROMPT line (RAG grounding): the reusable insight, PLUS a compact
+ *  evidence clause when the pattern carries proof — so the model sees WHICH win
+ *  (which campaign / experiment / channel) backs the lesson, not just the claim.
+ *
+ *  This is dynamic USER-prompt content: the ads + campaign-eval SYSTEM prompts and
+ *  schemas are fingerprint-pinned (scripts/llm-eval.mjs), and pattern lines are
+ *  injected into the user prompt at request time, so widening the line format does
+ *  NOT move any golden snapshot. Pure — directly unit-testable. */
+export function patternPromptLine(p: Pattern): string {
+  const ev = compactEvidence(p.evidence);
+  return ev ? `- ${p.title}: ${p.insight} (doloženo: ${ev})` : `- ${p.title}: ${p.insight}`;
 }
 
 /** LIVE creative-pattern handoff: mine a PROJECT's own PERSISTED landing-page
