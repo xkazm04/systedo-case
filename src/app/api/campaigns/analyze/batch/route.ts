@@ -12,7 +12,7 @@
  *  LLM chokepoint is touched. */
 import { currentUserId } from "@/lib/session";
 import { generateCampaignEvaluation } from "@/lib/ai/tools";
-import { getPatternLines } from "@/lib/patterns/store";
+import { getPatternLines, newPatternRequestCache } from "@/lib/patterns/store";
 import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { overallPatternQuery, campaignPatternQuery } from "@/lib/patterns/query";
 import { consume, getUserPlan } from "@/lib/usage";
@@ -172,6 +172,10 @@ export async function POST(request: Request) {
     // Sample-lessons policy is constant for the batch (same tenant + project): only the
     // demo/anon surface keeps the demo-derived lessons; a real account excludes them.
     const sampleAllowed = sampleLessonsAllowed(tenant, projectId);
+    // The mined library is identical for every target in this batch (same tenant,
+    // PNO goal, project) — memoize it so the whole walk pays for one store scan, not
+    // one per campaign. Request-scoped: it falls out of scope when the batch ends.
+    const patternCache = newPatternRequestCache();
 
     for (let i = 0; i < pending.length; i++) {
       const target = pending[i]!;
@@ -199,7 +203,7 @@ export async function POST(request: Request) {
       // projectId threads the project's live LP-experiment winners into each eval's
       // grounding, matching the single analyze route + the ads prompt path.
       const patternLines = patternQuery
-        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId, sampleAllowed)
+        ? await getPatternLines(tenant, patternQuery, 6, client.pnoGoal, projectId, sampleAllowed, patternCache)
         : undefined;
 
       try {
