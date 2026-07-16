@@ -32,23 +32,28 @@ let briefSkill;
 let campaignEvalSkill;
 let socialSkill;
 let GATE_COVERED_SKILL_IDS;
+let GATE_COVERED_IDS;
 let skillRegistry;
+let LLM_TOOLS;
 
 before(async () => {
   register(JSON_HOOK, import.meta.url);
-  const [types, brief, campaignEval, social, registry] = await Promise.all([
+  const [types, brief, campaignEval, social, registry, gate] = await Promise.all([
     import("@/lib/skills/types"),
     import("@/lib/ai/tools/brief"),
     import("@/lib/ai/tools/campaign-eval"),
     import("@/lib/ai/tools/social"),
     import("@/lib/skills/registry"),
+    import("../test-llm/registry.mjs"),
   ]);
   skillToGenerateArgs = types.skillToGenerateArgs;
   briefSkill = brief.briefSkill;
   campaignEvalSkill = campaignEval.campaignEvalSkill;
   socialSkill = social.socialSkill;
   GATE_COVERED_SKILL_IDS = registry.GATE_COVERED_SKILL_IDS;
+  GATE_COVERED_IDS = registry.GATE_COVERED_IDS;
   skillRegistry = registry.skillRegistry;
+  LLM_TOOLS = gate.LLM_TOOLS;
 });
 
 // --- brief: a plain single-object input, static system --------------------------
@@ -164,14 +169,33 @@ test("social normalizer fills any platform the model skipped (input-aware)", () 
   assert.ok(out.posts[1].content.length > 0); // filled, not empty
 });
 
-// --- registry governance: the admitted set equals the gate-covered set -----------
+// --- registry governance: the admission list mirrors the gate, no divergence ------
 
-test("registry admits exactly the gate-covered skills", () => {
-  const listed = new Set(skillRegistry.list().map((s) => s.id));
-  assert.deepEqual(listed, new Set(GATE_COVERED_SKILL_IDS));
-  // The five core marketing tools are all present.
+test("the admission list IS the gate's id set (no silent divergence)", () => {
+  // The load-bearing guard: GATE_COVERED_SKILL_IDS is a hand-kept MIRROR of the
+  // read-only gate fixture (test-llm/registry.mjs). If the two ever diverge — a tool
+  // added to the gate but not admitted here, or vice versa — this fails, which is the
+  // whole point: the old hardcoded 5-id set silently covered a quarter of the gate.
+  const gateIds = new Set(LLM_TOOLS.map((t) => t.id));
+  assert.deepEqual(new Set(GATE_COVERED_SKILL_IDS), gateIds);
+  // And the ordered mirror array has no dupes / omissions vs. the Set it feeds.
+  assert.equal(GATE_COVERED_IDS.length, gateIds.size);
+  assert.deepEqual(new Set(GATE_COVERED_IDS), gateIds);
+});
+
+test("every registered skill is gate-covered (admitted ⊆ gate)", () => {
+  const listed = skillRegistry.list().map((s) => s.id);
+  // The registry admits a SUBSET of the gate-covered ids (the core tools migrated to
+  // the SDK so far) — never an unproven one.
+  for (const id of listed) {
+    assert.ok(GATE_COVERED_SKILL_IDS.has(id), `registered skill ${id} must be gate-covered`);
+    assert.ok(listed.length > 0);
+  }
+  // The five core marketing tools are all present and reported covered.
+  const bySummary = new Map(skillRegistry.list().map((s) => [s.id, s]));
   for (const id of ["ads", "brief", "analysis", "campaign-eval", "social"]) {
-    assert.ok(listed.has(id), `registry should list ${id}`);
+    assert.ok(bySummary.has(id), `registry should list ${id}`);
+    assert.equal(bySummary.get(id).covered, true, `${id} should be covered`);
   }
 });
 
