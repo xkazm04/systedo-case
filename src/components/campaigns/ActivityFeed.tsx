@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Clock, Refresh, Bolt, Bell, Document, Info, Download } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { toCsv, downloadText } from "@/lib/export";
 import { useOptionalProject } from "@/lib/projects/context";
 import type { ActivityKind, ActivityRecord } from "@/lib/campaigns/activity";
+import { useAuthedResource } from "./useAuthedResource";
 import { useDismiss } from "./useDismiss";
 import { revealThreadTarget, THREAD_ANCHORS } from "./thread";
 
@@ -63,7 +64,6 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
-  const [items, setItems] = useState<ActivityRecord[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
   const fmt = useFormatters();
@@ -78,21 +78,13 @@ export default function ActivityFeed({ refreshKey }: { refreshKey: number }) {
     update: t("kindUpdate"),
   };
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch(pid ? `/api/activity?projectId=${encodeURIComponent(pid)}` : "/api/activity");
-      if (!res.ok) return;
-      const json = (await res.json()) as { activity?: ActivityRecord[] };
-      setItems(json.activity ?? []);
-    } catch {
-      /* non-critical chrome */
-    }
+  const fetchActivity = useCallback(async (): Promise<ActivityRecord[] | undefined> => {
+    const res = await fetch(pid ? `/api/activity?projectId=${encodeURIComponent(pid)}` : "/api/activity");
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { activity?: ActivityRecord[] };
+    return json.activity ?? [];
   }, [pid]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (status === "authenticated") void load();
-  }, [status, load, refreshKey]);
+  const { data: items } = useAuthedResource<ActivityRecord[]>(fetchActivity, [], refreshKey);
 
   const exportCsv = () => {
     const rows = items.map((a) => [fmt.fmtDateTime(a.at), kindLabel[a.kind], a.title, a.detail, a.actor ?? ""]);

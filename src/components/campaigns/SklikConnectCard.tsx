@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Check, Close, Info } from "@/components/icons";
 import { Button } from "@/components/ui";
 import { useT } from "@/lib/i18n/client";
+import { useAuthedResource } from "./useAuthedResource";
 
 const T = {
   cs: {
@@ -69,27 +70,18 @@ function messageForCode(code: string | undefined, t: (k: keyof typeof T.cs) => s
 export default function SklikConnectCard() {
   const { status: authStatus } = useSession();
   const t = useT(T);
-  const [status, setStatus] = useState<SklikStatus | null>(null);
   const [token, setToken] = useState("");
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/campaigns/sklik");
-      if (!res.ok) return;
-      const json = (await res.json()) as { connection: SklikStatus };
-      setStatus(json.connection);
-    } catch {
-      /* leave status null → the form still renders */
-    }
+  const fetchStatus = useCallback(async (): Promise<SklikStatus | null | undefined> => {
+    const res = await fetch("/api/campaigns/sklik");
+    if (!res.ok) return undefined; // leave status as-is → the form still renders
+    const json = (await res.json()) as { connection: SklikStatus };
+    return json.connection;
   }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (authStatus === "authenticated") void load();
-  }, [authStatus, load]);
+  const { data: status, setData: setStatus } = useAuthedResource<SklikStatus | null>(fetchStatus, null);
 
   if (authStatus === "loading") return null;
 

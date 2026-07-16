@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Bolt, Check, Refresh, Info } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
+import { useAuthedResource } from "./useAuthedResource";
 import {
   projectedValueGain,
   projectedProfitGain,
@@ -115,8 +116,6 @@ export default function ControlPlane({
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
-  const [sets, setSets] = useState<ChangeSet[]>([]);
-  const [loaded, setLoaded] = useState(false);
   const { busy, error, setError, run } = useAsyncAction();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const fmt = useFormatters();
@@ -131,25 +130,15 @@ export default function ControlPlane({
     failed: t("statusFailed"),
   };
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch(pid ? `/api/campaigns/control-plane?projectId=${encodeURIComponent(pid)}` : "/api/campaigns/control-plane");
-      if (!res.ok) return;
-      const json = (await res.json()) as { changeSets?: ChangeSet[] };
-      setSets(json.changeSets ?? []);
-    } catch {
-      /* non-critical */
-    } finally {
-      setLoaded(true);
-    }
+  // Reload on auth resolve and whenever the BudgetMoves panel proposes a new
+  // change-set (refreshKey bump), so a fresh proposal surfaces here at once.
+  const fetchSets = useCallback(async (): Promise<ChangeSet[] | undefined> => {
+    const res = await fetch(pid ? `/api/campaigns/control-plane?projectId=${encodeURIComponent(pid)}` : "/api/campaigns/control-plane");
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { changeSets?: ChangeSet[] };
+    return json.changeSets ?? [];
   }, [pid]);
-
-  useEffect(() => {
-    // Reload on auth resolve and whenever the BudgetMoves panel proposes a new
-    // change-set (refreshKey bump), so a fresh proposal surfaces here at once.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (status === "authenticated") void load();
-  }, [status, load, refreshKey]);
+  const { data: sets, loading, reload: load } = useAuthedResource<ChangeSet[]>(fetchSets, [], refreshKey);
 
   const act = (action: "create" | "approve" | "revert", id?: string, override?: boolean) =>
     run(
@@ -166,7 +155,7 @@ export default function ControlPlane({
       { serverError: t("errorServer"), onSettled: () => setConfirmId(null) }
     );
 
-  if (status !== "authenticated" || !loaded) return null;
+  if (status !== "authenticated" || loading) return null;
 
   const pending = sets.find((s) => s.status === "pending");
 

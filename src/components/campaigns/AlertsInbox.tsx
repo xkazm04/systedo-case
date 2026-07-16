@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowRight, Bell, Bolt, Check } from "@/components/icons";
@@ -13,7 +13,15 @@ import {
   alertCampaignIds,
   isAlertActionable,
 } from "@/lib/campaigns/alert-suppression";
+import { useAuthedResource } from "./useAuthedResource";
 import { useDismiss } from "./useDismiss";
+
+/** The inbox payload: the alert list + the server's unread count, loaded together
+ *  so the badge and the list can never disagree. */
+interface Inbox {
+  alerts: AlertRecord[];
+  unread: number;
+}
 import { THREAD_ANCHORS } from "./thread";
 
 const T = {
@@ -76,8 +84,6 @@ export default function AlertsInbox({
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
-  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
-  const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [actionErr, setActionErr] = useState<string | null>(null);
@@ -85,23 +91,20 @@ export default function AlertsInbox({
   const fmt = useFormatters();
   const t = useT(T);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch(pid ? `/api/alerts?projectId=${encodeURIComponent(pid)}` : "/api/alerts");
-      if (!res.ok) return;
-      const json = (await res.json()) as { alerts?: AlertRecord[]; unread?: number };
-      setAlerts(json.alerts ?? []);
-      setUnread(json.unread ?? 0);
-    } catch {
-      /* non-critical chrome */
-    }
+  // Reload alerts when auth resolves or a sync may have minted new ones
+  // (refreshKey). This is the SINGLE /api/alerts owner on the page.
+  const fetchInbox = useCallback(async (): Promise<Inbox | undefined> => {
+    const res = await fetch(pid ? `/api/alerts?projectId=${encodeURIComponent(pid)}` : "/api/alerts");
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { alerts?: AlertRecord[]; unread?: number };
+    return { alerts: json.alerts ?? [], unread: json.unread ?? 0 };
   }, [pid]);
-
-  useEffect(() => {
-    // Reload alerts when auth resolves or a sync may have minted new ones.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (status === "authenticated") void load();
-  }, [status, load, refreshKey]);
+  const { data: inbox, setData: setInbox, reload: load } = useAuthedResource<Inbox>(
+    fetchInbox,
+    { alerts: [], unread: 0 },
+    refreshKey
+  );
+  const { alerts, unread } = inbox;
 
   // Hand the loaded alerts to the parent so it can derive its campaign→alert map
   // without a duplicate fetch. Fires only when the list identity changes (a load
@@ -121,8 +124,7 @@ export default function AlertsInbox({
       // the unread badge and mark every alert read while the server persisted nothing,
       // so the operator believes critical-campaign alerts were acknowledged.
       if (!res.ok) return;
-      setAlerts((a) => a.map((x) => ({ ...x, read: true })));
-      setUnread(0);
+      setInbox((d) => ({ alerts: d.alerts.map((x) => ({ ...x, read: true })), unread: 0 }));
     } catch {
       /* ignore */
     }
