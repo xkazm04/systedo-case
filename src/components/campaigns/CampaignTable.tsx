@@ -35,6 +35,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import Sparkline from "@/components/charts/Sparkline";
 import ReportView from "./ReportView";
+import PillButton from "./PillButton";
 import TriageBanner from "./TriageBanner";
 import { useCampaignErrorText, type CampaignError } from "./errors";
 import SortHeader from "./table/SortHeader";
@@ -731,12 +732,12 @@ export default function CampaignTable({
                           />
                         </button>
                       ) : (
-                        <button
-                          type="button"
+                        <PillButton
+                          size="compact"
+                          press
                           onClick={() => analyze(c.id)}
                           disabled={isAnalyzing}
                           title={needsAttention ? t("analyzePriorityTitle") : undefined}
-                          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {isAnalyzing ? (
                             <>
@@ -749,7 +750,7 @@ export default function CampaignTable({
                               {t("analyze")}
                             </>
                           )}
-                        </button>
+                        </PillButton>
                       )}
                     </td>
                   </tr>

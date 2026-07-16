@@ -105,6 +105,7 @@ const STATUS_STYLE: Record<ChangeSetStatus, string> = {
 export default function ControlPlane({
   refreshKey = 0,
   hideProposeButton = false,
+  fmtMoney,
 }: {
   refreshKey?: number;
   /** Suppress the header's bare "Navrhnout změnový balíček" button. Set when the
@@ -112,6 +113,10 @@ export default function ControlPlane({
    *  affordance, so the co-located budget-governance section has ONE way to
    *  propose (see CampaignsClient). */
   hideProposeButton?: boolean;
+  /** Currency-aware money formatter (Direction 2), threaded from CampaignsClient so
+   *  the simulation cells label a foreign account in its own currency — the SAME
+   *  formatter the campaign table uses. Omitted / CZK → fmt.fmtCZK, byte-identical. */
+  fmtMoney?: (n: number) => string;
 }) {
   const { status } = useSession();
   const project = useOptionalProject();
@@ -119,6 +124,8 @@ export default function ControlPlane({
   const { busy, error, setError, run } = useAsyncAction();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const fmt = useFormatters();
+  // Currency-aware for a captured non-CZK account; fmt.fmtCZK (byte-identical) otherwise.
+  const money = fmtMoney ?? fmt.fmtCZK;
   const t = useT(T);
 
   const STATUS_LABEL: Record<ChangeSetStatus, string> = {
@@ -211,7 +218,7 @@ export default function ControlPlane({
                 {/* signed helper: a reversal change-set negates estValueGain, so a
                     hand-written "+" here would render "+−…" */}
                 <span className="tnum text-muted">
-                  {fmt.fmtCZK(m.amount)} · {fmt.fmtSignedCZK(m.estValueGain)}
+                  {money(m.amount)} · {fmt.fmtSignedCZK(m.estValueGain)}
                 </span>
               </li>
             ))}
@@ -226,10 +233,10 @@ export default function ControlPlane({
               <div className="mt-3 grid grid-cols-3 gap-3 text-center">
                 <SimCell label="ROAS" before={fmt.fmtMultiple(pending.simulation.before.roas)} after={fmt.fmtMultiple(pending.simulation.after.roas)} />
                 <SimCell label="COS" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
-                <SimCell label={t("convValue")} before={fmt.fmtCZK(pending.simulation.before.conversionValue)} after={fmt.fmtCZK(pending.simulation.after.conversionValue)} />
+                <SimCell label={t("convValue")} before={money(pending.simulation.before.conversionValue)} after={money(pending.simulation.after.conversionValue)} />
               </div>
               <p className="mt-2 text-xs text-muted">
-                {t("projectedGain")} <strong className="text-navy-700">{fmt.fmtCZK(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
+                {t("projectedGain")} <strong className="text-navy-700">{money(projectedValueGain(pending.simulation))}</strong> {t("linEst")}
               </p>
               {simulationConfidence(pending.moves) === "low" && (
                 <p
@@ -250,7 +257,7 @@ export default function ControlPlane({
             return profit === undefined ? null : (
               <p className="mt-1 text-xs text-muted">
                 {t("projectedProfit")}{" "}
-                <strong className="text-positive">{fmt.fmtCZK(profit)}</strong>{" "}
+                <strong className="text-positive">{money(profit)}</strong>{" "}
                 <span className="text-muted">{t("marginStated", { m: fmt.fmtPct(pending.marginPct!, 0) })}</span>
               </p>
             );

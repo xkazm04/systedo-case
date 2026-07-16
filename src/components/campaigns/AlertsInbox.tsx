@@ -15,6 +15,7 @@ import {
 } from "@/lib/campaigns/alert-suppression";
 import { useAuthedResource } from "./useAuthedResource";
 import { useDismiss } from "./useDismiss";
+import PillButton from "./PillButton";
 
 /** The inbox payload: the alert list + the server's unread count, loaded together
  *  so the badge and the list can never disagree. */
@@ -280,15 +281,10 @@ export default function AlertsInbox({
                     {(canStage || canAck) && (
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         {canStage && (
-                          <button
-                            type="button"
-                            onClick={() => stage(a.id)}
-                            disabled={acting}
-                            className="inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
-                          >
+                          <PillButton size="micro" onClick={() => stage(a.id)} disabled={acting}>
                             <Bolt width={12} height={12} />
                             {acting ? t("staging") : t("stage")}
-                          </button>
+                          </PillButton>
                         )}
                         {canAck && (
                           <button

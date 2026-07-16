@@ -8,6 +8,7 @@ import { simulationConfidence } from "@/lib/campaigns/simulate";
 import { withMetrics, CAMPAIGN_PERIOD_DAYS, type Campaign, type CampaignPeriod } from "@/lib/campaigns/types";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import PillButton from "./PillButton";
 
 const T = {
   cs: {
@@ -103,6 +104,7 @@ export default function BudgetMoves({
   campaigns,
   marginPct = null,
   period,
+  fmtMoney,
   onProposed,
 }: {
   campaigns: Campaign[];
@@ -114,6 +116,12 @@ export default function BudgetMoves({
    *  the live mutation can actually move (MIN_DAILY_CZK floor), so the preview and
    *  the applied change-set reconcile. Omitted → no floor (unchanged). */
   period?: CampaignPeriod;
+  /** Currency-aware money formatter (Direction 2), threaded from CampaignsClient so
+   *  the move amounts + impact cells label a foreign account in its own currency —
+   *  the SAME formatter the campaign table uses. Omitted / CZK → fmt.fmtCZK,
+   *  byte-identical. (The signed gain/saving cells keep fmt.fmtSignedCZK: there is no
+   *  currency-aware SIGNED formatter yet, so they stay CZK for now.) */
+  fmtMoney?: (n: number) => string;
   onProposed?: () => void;
 }) {
   const { status } = useSession();
@@ -141,6 +149,8 @@ export default function BudgetMoves({
   // value gain. Only when a persisted margin was threaded in.
   const profitGain = margin !== undefined ? valueGain * margin : undefined;
   const fmt = useFormatters();
+  // Currency-aware for a captured non-CZK account; fmt.fmtCZK (byte-identical) otherwise.
+  const money = fmtMoney ?? fmt.fmtCZK;
   const t = useT(T);
 
   const [busy, setBusy] = useState(false);
@@ -201,12 +211,12 @@ export default function BudgetMoves({
                       {t("pauseMove", { name: m.fromName })}
                     </span>
                     <span className="tnum text-negative">
-                      {t("pauseMoveSpend", { amount: fmt.fmtCZK(m.amount) })}
+                      {t("pauseMoveSpend", { amount: money(m.amount) })}
                     </span>
                   </div>
                 ) : (
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-sm">
-                    <span className="font-semibold text-navy-800">{t("move", { amount: fmt.fmtCZK(m.amount) })}</span>
+                    <span className="font-semibold text-navy-800">{t("move", { amount: money(m.amount) })}</span>
                     <span className="inline-flex items-center gap-1.5 text-navy-700">
                       {t("fromLabel")} <span className="font-medium">{m.fromName}</span>
                       <span className="tnum text-negative">{t("roasLabel")} {fmt.fmtMultiple(m.fromRoas)}</span>
@@ -256,16 +266,10 @@ export default function BudgetMoves({
                   {t("proposed")}
                 </span>
               ) : (
-                <button
-                  type="button"
-                  onClick={propose}
-                  disabled={busy}
-                  title={t("proposeTitle")}
-                  className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-60"
-                >
+                <PillButton size="md" onClick={propose} disabled={busy} title={t("proposeTitle")}>
                   <Bolt width={15} height={15} />
                   {busy ? t("proposing") : t("propose")}
-                </button>
+                </PillButton>
               )
             ) : (
               <span className="text-xs text-muted">{t("signIn")}</span>
@@ -290,8 +294,8 @@ export default function BudgetMoves({
             />
             <Impact
               label={t("convValue")}
-              before={fmt.fmtCZK(before.conversionValue)}
-              after={fmt.fmtCZK(after.conversionValue)}
+              before={money(before.conversionValue)}
+              after={money(after.conversionValue)}
               good={valueGain >= 0}
             />
             <div className="bg-surface p-3">

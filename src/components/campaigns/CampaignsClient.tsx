@@ -33,6 +33,7 @@ import AdsAccountPicker from "./AdsAccountPicker";
 import AlertsInbox from "./AlertsInbox";
 import ActivityFeed from "./ActivityFeed";
 import CampaignTable from "./CampaignTable";
+import PillButton from "./PillButton";
 import { loadFilters } from "./table/filters";
 import HealthTimeline from "./HealthTimeline";
 import ReportView from "./ReportView";
@@ -359,15 +360,10 @@ export default function CampaignsClient({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => sync(period)}
-          disabled={syncing}
-          className="mt-4 inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <PillButton size="lg" press onClick={() => sync(period)} disabled={syncing} className="mt-4">
           <Refresh width={17} height={17} className={syncing ? "animate-spin" : ""} />
           {syncing ? t("syncing") : t("syncButton")}
-        </button>
+        </PillButton>
         {error && <p className="mt-4 text-sm text-negative">{errText(error)}</p>}
       </div>
     );
@@ -382,7 +378,7 @@ export default function CampaignsClient({
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="stagger space-y-8">
       {/* Portfolio KPIs, minimized to badges in the page header (opposite the
           title) via a portal into ModulePage's header slot. */}
       {headerHost &&
@@ -553,9 +549,10 @@ export default function CampaignsClient({
           campaigns={campaigns}
           marginPct={marginPct}
           period={period}
+          fmtMoney={fmtMoney}
           onProposed={() => setControlPlaneRefresh((n) => n + 1)}
         />
-        <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton />
+        <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton fmtMoney={fmtMoney} />
       </section>
 
       {/* portfolio AI evaluation */}
@@ -600,12 +597,7 @@ export default function CampaignsClient({
                 )}
               </Button>
             )}
-            <button
-              type="button"
-              onClick={() => analyze("overall", null, period)}
-              disabled={overallBusy}
-              className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <PillButton size="md" press onClick={() => analyze("overall", null, period)} disabled={overallBusy}>
               {overallBusy ? (
                 <>
                   <Gauge width={16} height={16} className="animate-pulse" />
@@ -617,7 +609,7 @@ export default function CampaignsClient({
                   {overall ? t("reevaluate") : t("evaluate")}
                 </>
               )}
-            </button>
+            </PillButton>
           </div>
         </div>
 
