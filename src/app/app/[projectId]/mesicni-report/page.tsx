@@ -9,6 +9,7 @@ import { getRecaps, historyForPeriod, recapInputHash, isRecapStale } from "@/lib
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { assembleReport } from "@/lib/report/assemble";
+import { getProjectGoal } from "@/lib/goals/store";
 import { getCostModel } from "@/lib/cost-model/store";
 import { PERIOD_MONTHS, deriveBreakEven } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
@@ -31,6 +32,13 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // A3: a saved cost model turns the pre-COGS contribution into TRUE net profit
   // after margin + overhead. Only e-shop reports carry a profit line.
   const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+  // Direction 2: the project's REAL monthly revenue goal (over the illustrative
+  // sample goal). Revenue-based → e-shop only. Absent → the sample goal, and the
+  // pacing/attainment surfaces carry an honest "ukázkový cíl" label.
+  const projectGoal = project.type === "eshop" ? await getProjectGoal(project.id) : null;
+  const goalHistory = projectGoal?.history ?? [];
+  const monthlyRevenueGoal = projectGoal?.goal ?? dataset.goals.monthlyRevenue;
+  const sampleGoal = project.type === "eshop" && !projectGoal;
   // C3: the project's competitor set grounds the AI narrative "vs. the market".
   const competitorSet = await getCompetitors(project.id);
   // Direction 2: the project's "what happened here" annotations — rendered as chart
@@ -76,6 +84,8 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     type: project.type,
     live: resolved.live,
     costModel,
+    goalHistory,
+    monthlyRevenueGoal,
   });
 
   // Direction 2: the tenant's margin-derived break-even, surfaced on the report's
@@ -120,6 +130,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         syncedAt={resolved.syncedAt}
         stale={resolved.stale}
         customerId={resolved.customerId}
+        showGoal={project.type === "eshop"}
+        goal={monthlyRevenueGoal}
+        goalHistory={goalHistory}
+        sampleGoal={sampleGoal}
         showCostModel={project.type === "eshop"}
         costModel={costModel ? { grossMarginPct: costModel.grossMarginPct, monthlyOverhead: costModel.monthlyOverhead, perOrderCost: costModel.perOrderCost } : null}
         breakEven={breakEven}

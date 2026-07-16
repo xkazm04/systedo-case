@@ -19,6 +19,7 @@ import {
 import { getReportConfig } from "./report-config";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { getCostModel } from "@/lib/cost-model/store";
+import { getProjectGoal } from "@/lib/goals/store";
 import { assembleReport } from "@/lib/report/assemble";
 import { getRecaps, latestForPeriod } from "@/lib/recaps";
 import type { ReportSnap, ReportTileSpec } from "@/lib/report/compute";
@@ -64,11 +65,16 @@ async function buildSharedMonthlyReport(project: Project | undefined): Promise<S
   try {
     const resolved = await resolveReportDataset(project);
     const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+    // Direction 2: resolve the project's REAL goal (over the sample) so the shared
+    // link's attainment matches the in-app report exactly.
+    const projectGoal = project.type === "eshop" ? await getProjectGoal(project.id) : null;
     const { tiles, snaps, attainment } = assembleReport({
       dataset: resolved.data,
       type: project.type,
       live: resolved.live,
       costModel,
+      goalHistory: projectGoal?.history ?? [],
+      ...(projectGoal ? { monthlyRevenueGoal: projectGoal.goal } : {}),
     });
     // The newest persisted recap for the shown period (the in-app report renders this
     // same stored narrative on load) — omitted when the tenant has never generated one.

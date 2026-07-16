@@ -132,6 +132,16 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- Per-project monthly REVENUE goal + its change timeline ({goal, history[]} blob),
+  -- so the live report's pacing/attainment judge against the client's real target
+  -- rather than the illustrative sample goal. Project-scoped (NOT the account-scoped
+  -- report-config goal). Absent → the sample goal, labeled "ukázkový cíl". See src/lib/goals/.
+  CREATE TABLE IF NOT EXISTS project_goal (
+    project_id TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
   -- The Kanály module's organic (zero ad-spend) visibility plan: per-project tracked
   -- channel status (the checklist) + an optional pinned AI plan, as one {statuses,
   -- plan?} blob. Absent → the module runs on the seeded per-type sample with no
@@ -507,6 +517,19 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "sklik_connection"),
+  },
+  {
+    version: 14,
+    name: "project_goal (per-project monthly revenue goal + change history → real live-report target)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS project_goal (
+          project_id TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )`
+      ),
+    applied: (db) => tableExists(db, "project_goal"),
   },
 ];
 

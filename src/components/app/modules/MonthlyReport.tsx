@@ -19,6 +19,8 @@ import CostModelEditor, { type CostModelView } from "@/components/app/modules/Co
 import type { BreakEven } from "@/lib/cost-model/compute";
 import CompetitorEditor from "@/components/app/modules/CompetitorEditor";
 import type { Competitor } from "@/lib/competitors/types";
+import GoalEditor from "@/components/app/modules/GoalEditor";
+import type { GoalChange } from "@/lib/metrics/goal-history";
 import ReportBeyond, { type ReportBeyondData } from "@/components/app/modules/ReportBeyond";
 import Modal from "@/components/app/Modal";
 import type { Annotation } from "@/lib/annotations/types";
@@ -56,6 +58,7 @@ const T = {
     attainmentSub: "{hits} z {total} uzavřených měsíců",
     attainmentHit: "cíl splněn", attainmentMiss: "cíl nesplněn",
     pctOfGoal: "{pct} cíle",
+    sampleGoalLabel: "ukázkový cíl",
   },
   en: {
     heading: "Monthly report", periodLabel: "Period", print: "Print / PDF", downloadMd: "Download .md",
@@ -88,6 +91,7 @@ const T = {
     attainmentSub: "{hits} of {total} closed months",
     attainmentHit: "target met", attainmentMiss: "target missed",
     pctOfGoal: "{pct} of target",
+    sampleGoalLabel: "sample goal",
   },
 } as const;
 
@@ -112,6 +116,10 @@ export default function MonthlyReport({
   syncedAt,
   stale = false,
   customerId,
+  showGoal = false,
+  goal,
+  goalHistory = [],
+  sampleGoal = false,
   showCostModel = false,
   costModel = null,
   breakEven = null,
@@ -142,6 +150,15 @@ export default function MonthlyReport({
   stale?: boolean;
   /** the ad account behind the live data */
   customerId?: string;
+  /** Direction 2: show the revenue-goal editor (e-shop only) */
+  showGoal?: boolean;
+  /** Direction 2: the monthly revenue goal in force now — the real one, or the sample fallback */
+  goal?: number;
+  /** Direction 2: the project's saved goal-change history (for the editor) */
+  goalHistory?: GoalChange[];
+  /** Direction 2: true when `goal` is the illustrative sample goal (no real goal set) —
+   *  the pacing/attainment surfaces then carry an honest "ukázkový cíl" label */
+  sampleGoal?: boolean;
   /** A3: show the cost-model control (e-shop only) so profit reflects real margin */
   showCostModel?: boolean;
   /** the saved cost model, or null when profit is still pre-COGS contribution */
@@ -337,6 +354,12 @@ export default function MonthlyReport({
             <div className="flex items-center gap-2 text-sm font-semibold text-navy-800">
               <Gauge width={16} height={16} className="text-brand-600" />
               {t("attainmentHeading")}
+              {/* Direction 2: judged against the illustrative sample goal — say so. */}
+              {sampleGoal && (
+                <span className="rounded-pill bg-canvas px-2 py-0.5 text-xs font-medium text-muted">
+                  {t("sampleGoalLabel")}
+                </span>
+              )}
             </div>
             <span className="text-xs text-muted">
               {t("attainmentSub", {
@@ -459,6 +482,12 @@ export default function MonthlyReport({
       >
         <p className="text-sm leading-relaxed text-navy-700">{t("unlinkDesc")}</p>
       </Modal>
+
+      {/* Direction 2: the real monthly revenue goal — the target pacing/attainment
+          judge against (e-shop). Replaces the illustrative "ukázkový cíl". */}
+      {showGoal && projectId && typeof goal === "number" && (
+        <GoalEditor projectId={projectId} goal={goal} sampleGoal={sampleGoal} history={goalHistory} />
+      )}
 
       {/* A3: cost model — true net profit after COGS + overhead (e-shop). */}
       {showCostModel && projectId && <CostModelEditor projectId={projectId} model={costModel} breakEven={breakEven} catalogMarginPct={catalogMarginPct} />}
