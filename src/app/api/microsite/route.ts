@@ -19,6 +19,7 @@ import {
   getMicrositeForTenant,
   enableMicrosite,
   disableMicrosite,
+  MicrositeSlugError,
 } from "@/lib/microsite";
 
 
@@ -84,14 +85,27 @@ export async function POST(request: Request) {
   }
 
   const periodDays = Number(body.periodDays);
-  const microsite = await enableMicrosite(tenant, {
-    slug,
-    clientName: identity.clientName,
-    segment: typeof body.segment === "string" ? body.segment : ownSite?.segment,
-    brandName: identity.brandName,
-    accentColor: identity.accentColor,
-    periodDays: Number.isFinite(periodDays) ? periodDays : ownSite?.periodDays,
-  });
+  let microsite;
+  try {
+    microsite = await enableMicrosite(tenant, {
+      slug,
+      clientName: identity.clientName,
+      segment: typeof body.segment === "string" ? body.segment : ownSite?.segment,
+      brandName: identity.brandName,
+      accentColor: identity.accentColor,
+      periodDays: Number.isFinite(periodDays) ? periodDays : ownSite?.periodDays,
+    });
+  } catch (err) {
+    // The store now enforces slug shape + ownership itself (the getMicrosite
+    // pre-check above misses DISABLED foreign sites, which don't round-trip
+    // through it) — map its typed refusals to the same client-facing errors.
+    if (err instanceof MicrositeSlugError) {
+      return err.code === "invalid-slug"
+        ? Response.json({ error: "Z názvu nelze vytvořit URL." }, { status: 422 })
+        : Response.json({ error: "Tato adresa je už obsazená, zvolte jiný název." }, { status: 409 });
+    }
+    throw err;
+  }
   await recordActivity(tenant, {
     kind: "update", module: "reporty", severity: "success",
     title: "Klientská microsite publikována", detail: identity.clientName, actor: "Vy",

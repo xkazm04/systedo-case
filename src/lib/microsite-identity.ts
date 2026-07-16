@@ -33,6 +33,17 @@ export const DEFAULT_MICROSITE_IDENTITY: MicrositeIdentity = {
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
+/** Shape a public microsite slug must have: it becomes both a Firestore doc id and
+ *  a public /m/{slug} route segment, so only lowercase alphanumerics and dashes,
+ *  bounded length. Kept pure here (no firebase) so the server store, the route AND
+ *  unit tests can all import it. */
+export const MICROSITE_SLUG_RE = /^[a-z0-9-]{3,40}$/;
+
+/** Whether `slug` is a valid public microsite slug (see MICROSITE_SLUG_RE). */
+export function isValidMicrositeSlug(slug: string): boolean {
+  return MICROSITE_SLUG_RE.test(slug);
+}
+
 /** First trimmed, non-empty (and optionally valid) string among candidates. */
 function firstString(
   values: Array<string | undefined>,

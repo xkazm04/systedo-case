@@ -11,6 +11,7 @@
  *  its synced series — the snapshot shape is unchanged. Server-only (Firestore
  *  registry). */
 import { firestore } from "@/lib/firebase";
+import { isValidMicrositeSlug } from "@/lib/microsite-identity";
 import { scaledDataset, seedScale } from "@/lib/project-data/dataset";
 import { buildMetricsSnapshot, type MetricsSnapshot } from "@/lib/metrics";
 import { snapshotToArticle } from "@/lib/snapshot-to-article";
@@ -105,11 +106,43 @@ export async function listEnabledSlugs(): Promise<string[]> {
   }
 }
 
-/** Create or update a tenant's microsite. The slug is stable once set. */
+/** Thrown by enableMicrosite when the requested slug is malformed or already owned
+ *  by another tenant — the route maps `code` to a 422 / 409. */
+export class MicrositeSlugError extends Error {
+  constructor(
+    public readonly code: "invalid-slug" | "slug-taken",
+    message: string
+  ) {
+    super(message);
+    this.name = "MicrositeSlugError";
+  }
+}
+
+/** Create or update a tenant's microsite. The slug is stable once set, and that is
+ *  now ENFORCED here (not just promised): the write is refused when the slug is
+ *  malformed, is the built-in demo's reserved slug, or the registry doc already
+ *  belongs to a DIFFERENT tenant — upsert-by-slug previously let any tenant
+ *  silently overwrite another tenant's public /m/{slug} page (tenant, branding and
+ *  all), hijacking its stable URL. */
 export async function enableMicrosite(
   tenant: string,
   input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number }
 ): Promise<MicrositeConfig> {
+  if (!isValidMicrositeSlug(input.slug)) {
+    throw new MicrositeSlugError("invalid-slug", `Invalid microsite slug: "${input.slug}"`);
+  }
+  // The built-in demo slug is reserved for its own tenant — it exists even when no
+  // Firestore doc does, so the ownership read below cannot protect it.
+  if (input.slug === DEMO_MICROSITE.slug && tenant !== DEMO_MICROSITE.tenant) {
+    throw new MicrositeSlugError("slug-taken", `Slug "${input.slug}" is reserved`);
+  }
+  // Ownership: an existing doc (enabled OR disabled) pins the slug to its tenant.
+  // This read intentionally does NOT swallow Firestore errors — a failed check must
+  // fail the write, never silently allow a takeover.
+  const existing = await registry().doc(input.slug).get();
+  if (existing.exists && (existing.data() as MicrositeConfig).tenant !== tenant) {
+    throw new MicrositeSlugError("slug-taken", `Slug "${input.slug}" belongs to another tenant`);
+  }
   const cfg: MicrositeConfig = {
     slug: input.slug,
     tenant,

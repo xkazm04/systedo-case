@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_MICROSITE_IDENTITY,
+  isValidMicrositeSlug,
   resolveMicrositeIdentity,
 } from "@/lib/microsite-identity";
 
@@ -79,4 +80,23 @@ test("invalid accent hex is rejected and falls through", () => {
 test("all accents invalid → default accent", () => {
   const id = resolveMicrositeIdentity({ accentColor: "#fff" }, { accentColor: "rgb(0,0,0)" });
   assert.equal(id.accentColor, DEFAULT_MICROSITE_IDENTITY.accentColor);
+});
+
+// ---- public slug validation (the /m/{slug} doc id + route segment) ----
+
+test("isValidMicrositeSlug accepts lowercase alnum-dash, 3-40 chars", () => {
+  assert.ok(isValidMicrositeSlug("mionelo"));
+  assert.ok(isValidMicrositeSlug("abc"));
+  assert.ok(isValidMicrositeSlug("client-42"));
+  assert.ok(isValidMicrositeSlug("a".repeat(40)));
+});
+
+test("isValidMicrositeSlug rejects empty, short, uppercase and path-ish slugs", () => {
+  assert.ok(!isValidMicrositeSlug(""));
+  assert.ok(!isValidMicrositeSlug("ab")); // below minimum length
+  assert.ok(!isValidMicrositeSlug("Mionelo")); // uppercase
+  assert.ok(!isValidMicrositeSlug("a/b")); // path-ish → would escape the route segment
+  assert.ok(!isValidMicrositeSlug("a..b"));
+  assert.ok(!isValidMicrositeSlug("s l u g"));
+  assert.ok(!isValidMicrositeSlug("a".repeat(41))); // over maximum length
 });
