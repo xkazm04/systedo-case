@@ -38,6 +38,52 @@ export function assetGroupCsv(group: AssetGroup, meta: AssetGroupExportMeta): st
   return [headers.map(csvCell).join(","), row.map(csvCell).join(",")].join("\r\n");
 }
 
+/** One row of a catalog-wide RSA export: an asset group + its Editor names + whether
+ *  it came from AI copy or the deterministic feed floor (so the export is honest about
+ *  which SKUs were model-written and which are the assembled fallback). */
+export interface CatalogAdCopyExportRow {
+  group: AssetGroup;
+  meta: AssetGroupExportMeta;
+  source: "ai" | "floor";
+}
+
+/** Human, localized label for the export's Source column — AI copy vs the assembled
+ *  feed floor. Kept tiny + pure so the CSV exporter stays framework-free. */
+export function adCopySourceLabel(source: "ai" | "floor", locale: "cs" | "en" = "cs"): string {
+  if (source === "ai") return "AI";
+  return locale === "en" ? "Feed draft" : "Návrh z feedu";
+}
+
+/** Build ONE Google Ads Editor RSA CSV over an ENTIRE catalog's worth of asset groups
+ *  — one row per SKU, a uniform column grid (`Headline 1..maxH`, `Description 1..maxD`)
+ *  sized to the widest row so Editor matches every column by header, plus a trailing
+ *  `Source` column labeling each row AI vs the deterministic feed floor. The single-SKU
+ *  {@link assetGroupCsv} stays for the per-item export; this is the "export everything"
+ *  companion. Long headlines stay out of the RSA grid (a PMax asset type), same as the
+ *  single exporter. Comma-delimited, CRLF, RFC 4180-escaped. Pure. */
+export function catalogAdCopyCsv(rows: CatalogAdCopyExportRow[], locale: "cs" | "en" = "cs"): string {
+  const maxH = Math.max(1, ...rows.map((r) => r.group.headlines.length));
+  const maxD = Math.max(1, ...rows.map((r) => r.group.descriptions.length));
+  const headlineCols = Array.from({ length: maxH }, (_, i) => `Headline ${i + 1}`);
+  const descCols = Array.from({ length: maxD }, (_, i) => `Description ${i + 1}`);
+  const headers = ["Campaign", "Ad group", ...headlineCols, ...descCols, "Final URL", "Source"];
+  const pad = (assets: { text: string }[], n: number): string[] =>
+    Array.from({ length: n }, (_, i) => assets[i]?.text ?? "");
+  const lines = [headers.map(csvCell).join(",")];
+  for (const r of rows) {
+    const row = [
+      r.meta.campaign,
+      r.meta.assetGroupName,
+      ...pad(r.group.headlines, maxH),
+      ...pad(r.group.descriptions, maxD),
+      r.group.finalUrl,
+      adCopySourceLabel(r.source, locale),
+    ];
+    lines.push(row.map(csvCell).join(","));
+  }
+  return lines.join("\r\n");
+}
+
 /** Build a plain-text dump of every asset, grouped by section, for "copy all".
  *  Pure; the caller writes it to the clipboard. */
 export function assetGroupPlainText(group: AssetGroup, meta: AssetGroupExportMeta): string {
