@@ -30,7 +30,31 @@ export function isSocialPlatform(v: unknown): v is SocialPlatform {
 // "publishing" is a transient claim state: the publish cron flips a due post
 // scheduled→publishing atomically before calling the provider, so overlapping runs
 // can't both publish it. It settles to published/failed once the provider returns.
+// The claim is LEASED, not permanent: `claimedAt` is stamped when it is taken, and
+// a claim older than PUBLISH_CLAIM_TTL_MS (the claimer crashed/timed out mid-
+// publish) is settled to "failed" by the cron's stale-claim sweep — never left in
+// limbo the UI has no terminal meaning for.
 export type PostStatus = "draft" | "scheduled" | "publishing" | "published" | "failed";
+
+/** How long a "publishing" claim may sit before the next cron run may treat it as
+ *  STRANDED (the claimer crashed before the status settled) and fail it out.
+ *  2× the cron route's maxDuration (300 s) — comfortably longer than any live
+ *  publish, short enough that a stranded post surfaces within minutes. */
+export const PUBLISH_CLAIM_TTL_MS = 10 * 60 * 1000;
+
+/** Whether a "publishing" claim taken at `claimedAt` is old enough to be treated
+ *  as stranded. A missing or unparseable stamp counts as stale — a legacy claim we
+ *  can't date is one we must be able to recover, never one stuck forever. */
+export function isStalePublishClaim(
+  claimedAt: string | undefined,
+  now: number,
+  ttlMs = PUBLISH_CLAIM_TTL_MS
+): boolean {
+  if (!claimedAt) return true;
+  const at = Date.parse(claimedAt);
+  if (Number.isNaN(at)) return true;
+  return now - at >= ttlMs;
+}
 
 export const POST_STATUS_LABELS: Record<PostStatus, string> = {
   draft: "Koncept",
@@ -56,6 +80,11 @@ export interface SocialPost {
   status: PostStatus;
   /** ISO time the post is scheduled to publish (scheduled status) */
   scheduledAt?: string;
+  /** ISO time the current "publishing" claim was taken (stamped by the atomic
+   *  scheduled→publishing claim). Lets the stale-claim sweep tell a live publish
+   *  from a stranded one; absent on posts never claimed or claimed before the
+   *  lease existed (treated as stale → recoverable). */
+  claimedAt?: string;
   publishedAt?: string;
   createdAt: string;
   /** URL of the published post (a real permalink, or a demo.social preview marker) */
