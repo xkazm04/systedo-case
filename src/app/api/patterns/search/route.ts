@@ -7,7 +7,7 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { getClientProfile } from "@/lib/campaigns/report-config";
 import { searchPatterns } from "@/lib/patterns/store";
-import { consume } from "@/lib/usage";
+import { consume, refund } from "@/lib/usage";
 import { RATE_RULES, clientIp, tooManyRequests } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 
@@ -61,8 +61,15 @@ export async function POST(request: Request) {
     // Thread the project so semantic search ranks over the same live experiment
     // winners the ads prompt + library GET see (not just campaign-mined patterns).
     const { results, semantic } = await searchPatterns(tenant, query, pnoGoal, projectId ?? undefined);
+    // The daily quota is for the PAID embedding path only. When embeddings are
+    // unavailable the search degrades to a free substring match (`semantic: false`) —
+    // refund the unit so a keyless/degraded deployment doesn't silently exhaust the
+    // shared aiEval budget on free searches (mirrors the sync route's refund-on-degrade).
+    if (userId && !semantic) await refund(userId, "aiEval");
     return Response.json({ results: results.slice(0, 12), semantic });
   } catch (err) {
+    // A thrown search did no billable work — refund so a transient failure eats no quota.
+    if (userId) await refund(userId, "aiEval");
     console.error("[patterns] search failed:", err);
     return Response.json({ error: "Hledání se nezdařilo." }, { status: 502 });
   }
