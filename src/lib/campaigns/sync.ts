@@ -8,6 +8,7 @@
  *  Server-only. */
 import "server-only";
 import type { AdsConnector } from "./connector";
+import type { DailySeriesBundle } from "@/lib/google/ads";
 import { getLatestChanges, saveCampaignSeries, saveSeries, upsertCampaigns } from "./store";
 import { evaluateAndAlert } from "./alerts";
 import { evaluateAnomalyAlerts } from "./anomaly-alerts";
@@ -43,7 +44,16 @@ export interface TenantSyncResult {
 export async function runTenantSync(
   connector: AdsConnector,
   tenant: string,
-  opts: { userId: string | null; period: CampaignPeriod; actor: string }
+  opts: {
+    userId: string | null;
+    period: CampaignPeriod;
+    actor: string;
+    /** Direction 3: the account's period series pre-fetched from the ONE shared 400d
+     *  read (report + campaigns dedup). When present AND the campaign fetch was live
+     *  (not degraded to sample), it is used instead of issuing the connector's own
+     *  date-segmented query. Absent (the manual single-surface sync paths) → unchanged. */
+    seriesBundle?: DailySeriesBundle;
+  }
 ): Promise<TenantSyncResult> {
   const { userId, period, actor } = opts;
 
@@ -54,20 +64,29 @@ export async function runTenantSync(
   // degradation outcome of BOTH fetches.
   let series: DailyPoint[] = [];
   let seriesOk = false;
-  try {
-    series = await connector.fetchSeries(period);
-    seriesOk = true;
-  } catch (err) {
-    console.error(`[campaigns] series sync failed for ${tenant}:`, err);
-  }
-
-  // Per-campaign daily series (table sparklines) — same best-effort +
-  // only-overwrite-on-success contract as the portfolio series.
   let campaignSeries: Record<string, DailyPoint[]> | null = null;
-  try {
-    campaignSeries = await connector.fetchCampaignSeries(period);
-  } catch (err) {
-    console.error(`[campaigns] campaign series sync failed for ${tenant}:`, err);
+  // Direction 3: a live pre-fetched bundle from the shared read serves both series
+  // without a second query. Only when the campaign fetch was genuinely live — a
+  // degraded fetch means `campaigns` are SAMPLE data, so pairing them with live series
+  // would mismatch; fall through to the connector's own (also-degrading) fetch there.
+  if (opts.seriesBundle && !connector.degradation.campaigns) {
+    series = opts.seriesBundle.portfolio;
+    seriesOk = true;
+    campaignSeries = opts.seriesBundle.perCampaign;
+  } else {
+    try {
+      series = await connector.fetchSeries(period);
+      seriesOk = true;
+    } catch (err) {
+      console.error(`[campaigns] series sync failed for ${tenant}:`, err);
+    }
+    // Per-campaign daily series (table sparklines) — same best-effort +
+    // only-overwrite-on-success contract as the portfolio series.
+    try {
+      campaignSeries = await connector.fetchCampaignSeries(period);
+    } catch (err) {
+      console.error(`[campaigns] campaign series sync failed for ${tenant}:`, err);
+    }
   }
 
   // Truth-in-labeling: when a live fetch silently fell back to the sample

@@ -96,7 +96,7 @@ export async function listAccessibleCustomers(accessToken: string): Promise<stri
   return (json.resourceNames ?? []).map((rn) => rn.split("/")[1]!).filter(Boolean);
 }
 
-interface SearchRow {
+export interface SearchRow {
   campaign?: {
     id?: string;
     name?: string;
@@ -415,6 +415,41 @@ export async function fetchDailySeriesBundle(
 ): Promise<DailySeriesBundle> {
   const rows = await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"]);
   return { portfolio: mapRowsToDailySeries(rows), perCampaign: mapRowsToCampaignDailySeries(rows) };
+}
+
+/** Keep only rows on/after `startInclusive` (YYYY-MM-DD). searchStream dates are
+ *  YYYY-MM-DD strings, so a lexical `>=` is a correct calendar comparison. Pure —
+ *  the byte-identical guarantee of the Direction-3 shared fetch rests on this: a
+ *  400d fetch sliced from the campaign window's start equals the narrower window's
+ *  own fetch (both share today's end date within a run). */
+export function filterRowsFromDate(rows: SearchRow[], startInclusive: string): SearchRow[] {
+  return rows.filter((r) => (r.segments?.date ?? "") >= startInclusive);
+}
+
+/** Direction 3 — ONE date-segmented read per account, serving BOTH the monthly
+ *  report AND the campaigns period series. The report needs the widest window
+ *  (`reportDays`, ~400d); the campaigns series needs only `campaignPeriod` days — a
+ *  strict subset. So fetch the report window ONCE (with `campaign.id`, which the
+ *  report's per-date sum ignores → its output is byte-identical to the campaign.id-
+ *  free {@link fetchAccountDailyRows}) and slice it to the campaign window for the
+ *  portfolio + per-campaign series (byte-identical to {@link fetchDailySeriesBundle}
+ *  for that period). Halves the linked project's daily-series round-trips on a
+ *  report-refresh run. The caller passes the raw report rows to the report mapper. */
+export async function fetchAccountDailyShared(
+  accessToken: string,
+  customerId: string,
+  reportDays: number,
+  campaignPeriod: CampaignPeriod
+): Promise<{ reportRows: SearchRow[]; bundle: DailySeriesBundle }> {
+  const digits = customerId.replace(/\D/g, "");
+  const reportRows = await fetchAccountDailyRaw(accessToken, digits, reportDays, ["campaign.id"]);
+  // Slice the report window down to the campaign window (both end today within a run).
+  const { start } = dateRange(CAMPAIGN_PERIOD_DAYS[campaignPeriod]);
+  const periodRows = filterRowsFromDate(reportRows, start);
+  return {
+    reportRows,
+    bundle: { portfolio: mapRowsToDailySeries(periodRows), perCampaign: mapRowsToCampaignDailySeries(periodRows) },
+  };
 }
 
 const CHANNEL_TYPE: Record<string, CampaignType> = {

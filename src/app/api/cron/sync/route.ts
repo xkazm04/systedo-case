@@ -17,7 +17,8 @@ import { runTenantSync } from "@/lib/campaigns/sync";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { getReportMetrics } from "@/lib/report-metrics/store";
-import { syncReportMetricsFromAds } from "@/lib/report-metrics/sync";
+import { syncReportMetricsFromAds, syncReportMetricsShared, type SyncResult } from "@/lib/report-metrics/sync";
+import type { DailySeriesBundle } from "@/lib/google/ads";
 import { isResyncDue } from "@/lib/report-metrics/freshness";
 import { recordCronRun } from "@/lib/cron/run";
 import { planSyncTargets } from "./plan";
@@ -68,6 +69,29 @@ export async function GET(request: Request) {
     ]);
     const targets = planSyncTargets({ accounts, projects });
     for (const target of targets) {
+    // Report-metrics refresh for the LINKED project behind this target. Only a
+    // project that carries its own adsCustomerId can sync a report (the sync resolves
+    // the account from the project, never from the active connection), so the unmapped
+    // single-project fallback is skipped here. Resolve the due-gate UP FRONT so a due
+    // report can share ONE date-segmented Ads read with the campaigns series below
+    // (Direction 3). The due-gate keeps a report refresh to ~once/day/project.
+    const linked = target.projectId
+      ? projects.find((p) => p.id === target.projectId && p.adsCustomerId)
+      : undefined;
+    let reportDue = false;
+    if (linked) {
+      try {
+        const existing = await getReportMetrics(linked.id);
+        reportDue = isResyncDue(existing?.meta.syncedAt, new Date());
+      } catch {
+        reportDue = false; // a read hiccup → treat as not-due; the next run retries
+      }
+    }
+    // The shared report sync — fetch 400d ONCE, persist the report, and return the
+    // campaigns period series sliced from the SAME rows. Populated inside the
+    // campaigns try (it needs the resolved campaign `period` for the slice).
+    let reportSync: { result: SyncResult; bundle: DailySeriesBundle | null } | null = null;
+
     try {
       const { connector, tenant } = await resolveCampaignContext(
         userId,
@@ -78,6 +102,16 @@ export async function GET(request: Request) {
       const meta = await getSyncMeta(tenant);
       const period: CampaignPeriod = meta?.period ?? "30d";
 
+      // Direction 3: when the report is due, the shared 400d read persists the report
+      // AND yields the campaigns period series — one query instead of two. Injected
+      // into runTenantSync so it doesn't issue its own date-segmented query. A
+      // credential-gated / degraded shared fetch returns a null bundle → runTenantSync
+      // fetches its own series, byte-identical to before. syncReportMetricsShared never
+      // throws (classified result), so a report-sync failure can't disturb the sync.
+      if (linked && reportDue) {
+        reportSync = await syncReportMetricsShared(linked, userId, period);
+      }
+
       // The shared pipeline (fetch → persist with truthful degradation labeling
       // → change-aware + anomaly alerts → activity timeline). It also carries
       // the only-overwrite-on-success series guard the manual route had and this
@@ -86,6 +120,7 @@ export async function GET(request: Request) {
         userId,
         period,
         actor: "Automatická synchronizace",
+        ...(reportSync?.bundle ? { seriesBundle: reportSync.bundle } : {}),
       });
 
       results.push({ userId, projectId: target.projectId, customerId: target.customerId ?? undefined, reason: target.reason, ok: true, alerted, anomalies });
@@ -101,28 +136,24 @@ export async function GET(request: Request) {
       });
     }
 
-    // Report-metrics refresh for the LINKED project behind this target. Only a
-    // project that carries its own adsCustomerId can sync a report (the sync
-    // resolves the account from the project, never from the active connection), so
-    // the unmapped single-project fallback is skipped here. The due-gate keeps this
-    // to ~once/day/project; syncReportMetricsFromAds does the rest of the gating
-    // (save-only-on-success, classified errors, never throws), so a report-sync
-    // failure never disturbs the campaign sync above.
-    const linked = target.projectId
-      ? projects.find((p) => p.id === target.projectId && p.adsCustomerId)
-      : undefined;
+    // Report-metrics bookkeeping. The fetch/persist already ran above (shared) when
+    // due and the campaign context resolved; if the campaigns try threw BEFORE that,
+    // sync the report STANDALONE (its own 400d read) so its refresh stays independent
+    // of the campaigns fetch — the pre-Direction-3 behaviour.
     if (linked) {
-      try {
-        const existing = await getReportMetrics(linked.id);
-        if (!isResyncDue(existing?.meta.syncedAt, new Date())) {
-          reportResults.push({ userId, projectId: linked.id, ok: true, skipped: true });
-        } else {
-          const r = await syncReportMetricsFromAds(linked, userId);
-          reportResults.push({ userId, projectId: linked.id, ok: r.ok, ...(r.error ? { error: r.error } : {}) });
+      if (!reportDue) {
+        reportResults.push({ userId, projectId: linked.id, ok: true, skipped: true });
+      } else {
+        let result = reportSync?.result;
+        if (!result) {
+          try {
+            result = await syncReportMetricsFromAds(linked, userId);
+          } catch (err) {
+            console.error(`[cron] report-metrics sync failed for ${userId}/${linked.id}:`, err);
+            result = { ok: false, error: err instanceof Error ? err.message : String(err) };
+          }
         }
-      } catch (err) {
-        console.error(`[cron] report-metrics sync failed for ${userId}/${linked.id}:`, err);
-        reportResults.push({ userId, projectId: linked.id, ok: false, error: err instanceof Error ? err.message : String(err) });
+        reportResults.push({ userId, projectId: linked.id, ok: result.ok, ...(result.error ? { error: result.error } : {}) });
       }
     }
     }
