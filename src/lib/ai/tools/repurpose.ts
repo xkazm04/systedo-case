@@ -78,24 +78,67 @@ const REPURPOSE_SCHEMA = {
 const channelLimit = (channel: string): number =>
   CHANNEL_LIMITS[channel as keyof typeof CHANNEL_LIMITS] ?? 1000;
 
-/** Flag any requested-channel variant over its limit, or a non-object / truncated
- *  parse, so the wrapper re-prompts once before the normalizer clamps + fills. */
+/** Flag any requested-channel variant over its limit, a non-object / truncated
+ *  parse, AND — the honesty check social.ts pioneered — any REQUESTED channel with no
+ *  usable variant, so an empty/partial response fails and the wrapper's single repair
+ *  re-prompt fires. Without this an empty `variants` array passed validation, skipped
+ *  the repair, and normalize() backfilled every channel from the canned templates while
+ *  meta.demo stayed false — i.e. canned content billed as a real generation. */
 export function validateRepurpose(channels: string[], parsed: unknown): string[] {
   return withObjectGuard((o): string[] => {
-    if (!Array.isArray(o.variants)) return [];
+    const raw = Array.isArray(o.variants) ? o.variants : [];
     const v: string[] = [];
-    for (const item of o.variants) {
+    const withText = new Set<string>();
+    for (const item of raw) {
       if (!item || typeof item !== "object") continue;
       const x = item as Record<string, unknown>;
       const channel = txt(x.channel);
-      const limit = channelLimit(channel);
+      if (!channels.includes(channel)) continue;
       const text = txt(x.text);
-      if (channels.includes(channel) && text.length > limit) {
+      const limit = channelLimit(channel);
+      if (text.length > limit) {
         v.push(`Varianta pro ${channel} má ${text.length} znaků (limit ${limit}).`);
+      }
+      if (text) withText.add(channel);
+    }
+    for (const channel of channels) {
+      if (!withText.has(channel)) {
+        v.push(`Chybí varianta pro kanál ${channel} — vrať právě jednu variantu pro každý požadovaný kanál.`);
       }
     }
     return v;
   })(parsed);
+}
+
+/** Reconcile the model's variants against the requested channels AND report how many
+ *  channels the MODEL actually filled (vs. backfilled from templates), so the caller
+ *  can flag a fully/partly canned answer honestly. `modelCount` is the number of
+ *  requested channels the model supplied real content for. Mirrors social's
+ *  normalizeSocialTracked. */
+export function normalizeRepurposeTracked(
+  parsed: unknown,
+  channels: string[],
+  req: Pick<RepurposeRequest, "title" | "url">
+): { result: RepurposeResult; modelCount: number } {
+  const o = parsed as Record<string, unknown> | null;
+  const raw = Array.isArray(o?.variants) ? o.variants : [];
+  const byChannel = new Map<string, string>();
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const x = item as Record<string, unknown>;
+    const channel = txt(x.channel);
+    if (!channels.includes(channel)) continue;
+    const text = txt(x.text);
+    if (text && !byChannel.has(channel)) {
+      byChannel.set(channel, clamp(text, channelLimit(channel)));
+    }
+  }
+  const t = new Map(repurpose({ title: req.title, url: req.url }).map((r) => [r.channel, r.text]));
+  const variants = channels.map((channel) => ({
+    channel,
+    text: byChannel.get(channel) ?? clamp(t.get(channel) ?? "", channelLimit(channel)),
+  }));
+  return { result: { variants }, modelCount: byChannel.size };
 }
 
 export function generateRepurpose(
@@ -111,41 +154,13 @@ export function generateRepurpose(
 
   // The deterministic repurpose() is both the keyless demo and the floor for any
   // channel the model skips.
-  const templates = (): Map<string, string> =>
-    new Map(repurpose({ title: req.title, url: req.url }).map((r) => [r.channel, r.text]));
+  const fallback = (): RepurposeResult =>
+    normalizeRepurposeTracked({ variants: [] }, channels, req).result;
 
-  const fallback = (): RepurposeResult => {
-    const t = templates();
-    return {
-      variants: channels.map((channel) => ({
-        channel,
-        text: clamp(t.get(channel) ?? "", channelLimit(channel)),
-      })),
-    };
-  };
-
-  const normalize = (parsed: unknown): RepurposeResult => {
-    const o = parsed as Record<string, unknown> | null;
-    const raw = Array.isArray(o?.variants) ? o.variants : [];
-    const byChannel = new Map<string, string>();
-    for (const item of raw) {
-      if (!item || typeof item !== "object") continue;
-      const x = item as Record<string, unknown>;
-      const channel = txt(x.channel);
-      if (!channels.includes(channel)) continue;
-      const text = txt(x.text);
-      if (text && !byChannel.has(channel)) {
-        byChannel.set(channel, clamp(text, channelLimit(channel)));
-      }
-    }
-    const t = templates();
-    return {
-      variants: channels.map((channel) => ({
-        channel,
-        text: byChannel.get(channel) ?? clamp(t.get(channel) ?? "", channelLimit(channel)),
-      })),
-    };
-  };
+  // Track whether the normalizer had to fall back to the canned templates, so a fully
+  // canned answer bills as demo (refund fires) and a partly canned one surfaces
+  // honestly — mirroring generateSocialPosts / generateArticleDraft.
+  let backfill: "none" | "partial" | "full" = "none";
 
   return generateStructured({
     // llm-tool: repurpose
@@ -156,10 +171,22 @@ export function generateRepurpose(
     system: REPURPOSE_SYSTEM,
     schema: REPURPOSE_SCHEMA,
     temperature: 0.8,
-    normalize,
+    normalize: (parsed) => {
+      const { result, modelCount } = normalizeRepurposeTracked(parsed, channels, req);
+      backfill = modelCount === 0 ? "full" : modelCount < channels.length ? "partial" : "none";
+      return result;
+    },
     validate: (parsed) => validateRepurpose(channels, parsed),
     demo: fallback,
     locale,
     signal,
+  }).then((res) => {
+    // A no-provider demo already has meta.demo=true; only adjust a real-provider run
+    // whose output had to be (fully/partly) backfilled from the templates.
+    if (!res.meta.demo) {
+      if (backfill === "full") res.meta.demo = true;
+      else if (backfill === "partial") res.meta.partialDemo = true;
+    }
+    return res;
   });
 }
