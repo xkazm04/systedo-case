@@ -6,13 +6,13 @@
     },
     {
       "type": "p",
-      "text": "Ořechy obsahují tuky, které při špatném skladování rychle žluknou a ztrácejí chuť."
+      "text": "Ořechy obsahují tuky, které snadno žluknou. Nesprávné skladování zkracuje jejich trvanlivost a mění chuť i vůni."
     },
     {
       "type": "ul",
       "items": [
-        "Žluknutí kazí chuť i vůni ořechů",
-        "Vlhkost podporuje plíseň a zkracuje trvanlivost"
+        "Žluknutí kazí chuť a snižuje kvalitu ořechů",
+        "Vlhkost podporuje plíseň a ztrátu křupavosti"
       ]
     },
     {
@@ -21,20 +21,20 @@
     },
     {
       "type": "p",
-      "text": "Správné podmínky prodlouží čerstvost o týdny až měsíce."
+      "text": "Klíčem je chlad, tma a vzduchotěsný obal. Tak si ořechy udrží čerstvost i chuť po mnohem delší dobu."
     },
     {
       "type": "ul",
       "items": [
-        "Skladujte v chladu a tmě, ideálně v lednici",
-        "Používejte vzduchotěsné nádoby, aby nenasákly vlhkost ani pachy"
+        "Skladujte v chladu a temnu, ideálně v lednici nebo mrazáku",
+        "Používejte vzduchotěsné nádoby, které brání kontaktu se vzduchem a vlhkostí"
       ]
     },
     {
       "type": "callout",
       "variant": "info",
       "title": "Tip",
-      "text": "Ořechy v skořápce vydrží déle než loupané."
+      "text": "Kupujte ořechy v menším množství, pokud je nespotřebujete rychle – čerstvost je klíčová."
     },
     {
       "type": "cta",
@@ -44,12 +44,12 @@
   ],
   "faq": [
     {
-      "question": "Jak dlouho vydrží ořechy čerstvé v lednici?",
-      "answer": "Při správném skladování ve vzduchotěsné nádobě v lednici vydrží ořechy čerstvé i několik měsíců."
+      "question": "Jak dlouho vydrží ořechy čerstvé?",
+      "answer": "Při správném skladování v chladu a vzduchotěsné nádobě vydrží ořechy čerstvé několik měsíců, v mrazáku i déle."
     },
     {
-      "question": "Poznám, že ořechy žluknou?",
-      "answer": "Žluklé ořechy mají hořkou nebo mýdlovou chuť a nepříjemný zápach."
+      "question": "Musí se ořechy skladovat v lednici?",
+      "answer": "Není to nutné, ale chladné a tmavé místo výrazně zpomaluje žluknutí a prodlužuje trvanlivost."
     }
   ]
 }

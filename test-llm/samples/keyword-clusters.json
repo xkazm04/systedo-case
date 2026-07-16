@@ -2,21 +2,21 @@
   "clusters": [
     {
       "topic": "Vlašské ořechy",
+      "intent": "informational",
       "pillar": "vlašské ořechy",
       "supporting": [
         "vlašské ořechy cena",
         "vlašské ořechy zdraví"
-      ],
-      "intent": "commercial/informational"
+      ]
     },
     {
       "topic": "Mandle",
+      "intent": "informational",
       "pillar": "mandle",
       "supporting": [
         "mandle cena",
         "mandle pražené"
-      ],
-      "intent": "commercial/informational"
+      ]
     }
   ]
 }

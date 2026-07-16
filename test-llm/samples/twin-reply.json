@@ -1,15 +1,15 @@
 {
-  "reply": "Dobrý den, revizi elektroinstalace v kanceláři o rozloze cca 200 m² pro Vás rádi zajistíme. Přesný termín Vám potvrdíme, jakmile upřesníme pár detailů níže.",
+  "reply": "Dobrý den, pane [Příjmení], rádi bychom vám s revizí elektroinstalace pomohli. Mohl byste mi prosím upřesnit pár detailů, abychom mohli poptávku správně zpracovat?",
   "questions": [
-    "Kdy proběhla poslední revize a jaká byla stanovena revizní lhůta?",
-    "Jedná se čistě o kancelářský provoz, nebo je v prostoru i serverovna, kuchyňka či jiný prostor s vyšším rizikem?",
-    "Máte preferovaný termín, nebo je nutné revizi provést mimo běžnou provozní dobu?"
+    "Jaké je stáří objektu / elektroinstalace a kdy proběhla poslední revize?",
+    "Jedná se o kanceláře v provozu, nebo bude prostor při revizi prázdný?",
+    "Jaká je preferovaná lokalita a orientační termín z vaší strany?"
   ],
-  "confidence": 50,
+  "confidence": 40,
   "risks": [
-    "Ve zprávě chybí příjmení tazatele – před odesláním doplnit oslovení příjmením dle vykání.",
-    "Nebyl uveden konkrétní termín ani cena, protože nejsou v podkladech – nutné doplnit až po ověření kapacit.",
-    "Ověřit, zda rozsah 200 m² a typ prostoru odpovídají tomu, na co lze reálně nabídnout termín."
+    "V podkladech není termín ani cena za revizi 200 m² kanceláří – nutno doplnit před odesláním nabídky.",
+    "Neznáme jméno (příjmení) klienta z dodané zprávy – nutno dohledat/doplnit oslovení.",
+    "Ověřit, zda firma revize tohoto rozsahu a typu prostoru vůbec realizuje."
   ],
-  "toneNotes": "Dotaz zodpovězen hned v první větě, důsledně vykáno; oslovení příjmením nebylo možné použít, protože chybí v podkladu – uvedeno v risks; nebyl slíben žádný termín ani cena mimo podklady."
+  "toneNotes": "Oslovení příjmením s vykáním ponecháno jako placeholder [Příjmení], protože není v podkladech uvedeno. Odpověď na dotaz (převzetí poptávky) je hned v první větě. Termín ani cena nejsou slíbeny, místo toho jsou položeny doplňující otázky."
 }

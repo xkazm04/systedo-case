@@ -1,9 +1,9 @@
 {
-  "summary": "Pokrytí lokálních kombinací služba×lokalita je jen 43 % (3 ze 7), přičemž mezerám uniká 3 100 hledání/měs. Největší neobsazený objem je Bělení zubů — Praha (1 400/měs.), navíc mapa-pack výkon se za 30 dní zhoršil (čistý posun −5) a v top 3 je jen 40 % kombinací.",
+  "summary": "Pokrytí lokální viditelnosti je nízké (43 %, 3 ze 7 kombinací služba×lokalita). Největší neobsloužená poptávka je Bělení zubů v Praze s 1 400 hledáními/měs. bez vlastní stránky. Mapa-pack výkon zároveň klesá (trend −5 za 30 dní, průměrná pozice 6,2), takže bez zásahu klinika ztrácí viditelnost i v pokrytých lokalitách.",
   "worstGap": "Bělení zubů — Praha",
-  "recommendation": "Vytvořit dedikovanou lokální servisní stránku „Bělení zubů Praha“ s NAP daty, lokálními referencemi a interním prolinkem z hlavní GBP kategorie, čímž se osloví největší neobsazený objem (1 400 hledání/měs.).",
+  "recommendation": "Vytvořit dedikovanou lokální servisní stránku pro „Bělení zubů — Praha“ (unikátní obsah, lokální signály, interní prolinkování), protože jde o mezeru s nejvyšším objemem hledání (1 400/měs.) bez pokrytí.",
   "risks": [
-    "Trend mapa-pack pozic je za 30 dní záporný (−5), takže nová stránka nemusí zabrat, pokud se neřeší i pokles pozic u již pokrytých kombinací.",
-    "22 negativních recenzí (10 % z 214) může brzdit konverzi i nově získané viditelnosti, pokud se neřeší souběžně."
+    "Klesající mapa-pack trend (−5 za 30 dní) může nová stránka bez doprovodné práce na GBP profilu a recenzích jen částečně kompenzovat.",
+    "22 negativních recenzí z 214 může oslabit důvěryhodnost nové stránky, pokud nebudou souběžně řešeny."
   ]
 }

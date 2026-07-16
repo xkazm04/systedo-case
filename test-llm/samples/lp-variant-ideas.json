@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B2 · Konkrétní přínos (rychlost přehledu)",
-      "hypothesis": "Nadpis zaměřený na konkrétní přínos (přehled o projektech na jednom místě) zvýší konverzi lépe než obecný popis produktu, protože návštěvník okamžitě pochopí hodnotu bez nutnosti číst další text.",
-      "headline": "Všechny projekty a úkoly na jednom místě",
+      "label": "B2 · Konkrétní přínos v čase",
+      "hypothesis": "Headline s konkrétním, měřitelným přínosem (úspora času) zvýší konverzi lépe než obecný popis produktu.",
+      "headline": "Mějte projekty pod kontrolou bez zbytečných porad a tabulek",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní přínos místo obecného popisu snižuje kognitivní zátěž a zrychluje rozhodnutí, na rozdíl od kontroly i zamítnuté varianty s dlouhým formulářem."
+      "rationale": "Konkrétní přínos místo obecného popisu produktu cílí přímo na bolest zákazníka, a na rozdíl od slevy nebo dlouhého formuláře nesnižuje důvěryhodnost ani nezvyšuje bariéru vstupu."
     },
     {
-      "label": "C2 · Sociální důkaz",
-      "hypothesis": "Zdůraznění, že nástroj již používají jiné týmy pro řízení projektů, zvýší důvěru a konverzi oproti obecnému popisu produktu.",
-      "headline": "Nástroj pro řízení projektů, kterému týmy důvěřují",
-      "primaryCTA": "Chci to vidět v akci",
-      "rationale": "Sociální důkaz řeší nedůvěru u návštěvníků, kterou obecný popis produktu ani sleva nedokázaly překonat."
+      "label": "C2 · Sociální důkaz a jistota",
+      "hypothesis": "Zdůraznění důvěryhodnosti (používání jinými týmy) sníží vnímané riziko a zvýší konverzi oproti neutrální kontrole.",
+      "headline": "Nástroj pro řízení projektů, kterému věří stovky týmů",
+      "primaryCTA": "Začít se svým týmem",
+      "rationale": "Sociální důkaz řeší nedůvěru u nového návštěvníka, aniž by vyžadoval slevu nebo dlouhý formulář, které v minulosti konverzi snížily."
     },
     {
-      "label": "D · Jednoduchost místo funkcí",
-      "hypothesis": "Zdůraznění jednoduchosti a rychlého startu (bez nutnosti sledovat funkce) sníží vnímanou bariéru vstupu a zvýší konverzi oproti obecnému popisu produktu.",
-      "headline": "Řízení projektů, které zvládnete za pět minut",
-      "primaryCTA": "Začít hned",
-      "rationale": "Jednoduchý start cílí na obavu z komplikovaného nastavení, na rozdíl od kontroly, sleva testovala cenu a dlouhý formulář testoval bariéru registrace."
+      "label": "D · Jednoduchost nasazení",
+      "hypothesis": "Zvýraznění rychlého a jednoduchého nasazení (bez nutnosti zdlouhavého onboardingu) sníží obavu z komplikovaného přechodu a zvýší konverzi.",
+      "headline": "Rozjeďte projektové řízení týmu za pár minut, ne za týdny",
+      "primaryCTA": "Spustit nástroj hned",
+      "rationale": "Řeší obavu z náročné implementace, což je jiná hypotéza než sociální důkaz nebo konkrétní přínos, a zároveň se vyhýbá chybám poražených variant (sleva, dlouhý formulář)."
     }
   ]
 }

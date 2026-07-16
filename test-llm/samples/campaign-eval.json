@@ -1,15 +1,15 @@
 {
-  "verdict": "Kampaň výrazně překonává cílové PNO a je hlavním ziskovým motorem účtu.",
+  "verdict": "Brand kampaň výrazně překonává cílové PNO a generuje vysoce efektivní návratnost, prostor je v opatrné expanzi rozpočtu.",
   "score": 92,
   "recommendations": [
     {
-      "title": "Navýšit rozpočet",
-      "detail": "Při PNO 5,3 % oproti cíli 18 % je prostor škálovat denní rozpočet o 30–50 % a sledovat, zda ROAS zůstane nad 10×.",
+      "title": "Navyš rozpočet na brand kampani",
+      "detail": "Při PNO 5,3 % oproti cíli 18 % má kampaň velkou rezervu – postupně navyšuj denní rozpočet a sleduj, zda ROAS zůstává nad 10×.",
       "priority": "high"
     },
     {
-      "title": "Rozšířit shodu klíčových slov",
-      "detail": "Otestovat širší shodu nebo frázovou shodu u brandových výrazů pro zachycení variant dotazů a dalšího objemu konverzí.",
+      "title": "Ochraň brand shodu proti konkurenci",
+      "detail": "Zkontroluj Auction Insights, zda konkurenti nelicitují na tvou značku, a případně přidej exact/phrase shody na klíčové brand fráze.",
       "priority": "medium"
     }
   ]

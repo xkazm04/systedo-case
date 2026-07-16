@@ -1,9 +1,10 @@
 {
-  "summary": "Kohorty se zhoršují napříč všemi klíčovými metrikami: CAC roste z 1 200 Kč (2025-01) na 2 100 Kč (2025-03), LTV klesá z 5 400 Kč na 2 200 Kč a LTV:CAC padá z 4,5× přes 2,4× až na 1,0×, kdy se akvizice už vůbec nevrací. Retenční křivka 2025-03 (M0 100 %, M1 70 %, M2 48 %, M3 31 %) ukazuje prudký, nezpomalující pokles bez stabilizace. Kanálový rozpad u 2025-03 odhaluje, že kohortu táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC pouze 0,8×, 150 akvizic), zatímco Organic zůstává silně ziskový (LTV:CAC 6,0×, 90 akvizic) – blended čísla (CAC 1 650 Kč, LTV:CAC 2,6×) tak maskují, že placená akvizice je ztrátová.",
+  "summary": "Kohorty se zhoršují: CAC roste (1200→2100 Kč), LTV klesá (5400→2200 Kč) a M3 retence padá (62%→31%). Kohorta 2025-03 je za hranicí rentability (LTV:CAC 1,0×, návratnost se nevrací), přičemž ji táhne dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je stále silně ziskový (LTV:CAC 6,0×, 90 akvizic). Retenční křivka M0→M3 (100 %→70 %→48 %→31 %) ukazuje strmý, zrychlující se pokles bez stabilizace.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit nebo pozastavit rozpočet na Google Ads (LTV:CAC 0,8×) a realokovat akviziční kapacitu i rozpočet směrem k Organic kanálu (LTV:CAC 6,0×), dokud se placená akvizice nevrátí nad práh 3×.",
+  "recommendation": "Okamžitě omezit/přehodnotit akvizici přes Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×) a přesunout rozpočet do Organic kanálu, který má LTV:CAC 6,0×.",
   "risks": [
-    "Omezení Google Ads může snížit celkový objem registrací, protože Organic zatím generuje jen 90 akvizic oproti 150 z placeného kanálu.",
-    "Prudký pokles retence u 2025-03 (M3 31 %) naznačuje problém s produktovým onboardingem nebo fitem, který samotná změna kanálového mixu nevyřeší."
+    "Trend napříč třemi kohortami je konzistentně negativní, nejde o výkyv jedné kohorty",
+    "Retenční křivka 2025-03 nemá náznak stabilizace do M3, pokles může pokračovat i po M3",
+    "Blended metriky (CAC 1650 Kč, LTV:CAC 2,6×) maskují, že nejnovější kohorta je již ztrátová"
   ]
 }
