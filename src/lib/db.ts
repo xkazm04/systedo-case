@@ -393,6 +393,26 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_campaign_docs_period
     ON campaign_docs (tenant, collection, period);
+
+  -- LOCAL_DB mode only: the generic per-tenant document twin behind the non-campaign
+  -- stores that hold real user state — the keyword-research library (collection
+  -- keywordLists), the saved winning-patterns library (patterns) and the social
+  -- posts + inbox (social_posts / social_messages) — so those surfaces work fully
+  -- offline instead of hard-500ing when Firestore is unreachable. One row per
+  -- (tenant, collection, doc_id); data is the doc's JSON, mirroring a Firestore
+  -- document under tenants/{tenant}/{collection}/{doc_id}. Unlike campaign_docs there
+  -- is no columned field mirror: these collections order/query via
+  -- json_extract(data, '$.field') over small per-tenant sets. Mirrors
+  -- tenants/{tenant}/... ; see src/lib/tenant-docs/local.ts + backend.ts. Untouched
+  -- when LOCAL_DB is off.
+  CREATE TABLE IF NOT EXISTS tenant_docs (
+    tenant     TEXT NOT NULL,
+    collection TEXT NOT NULL,
+    doc_id     TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (tenant, collection, doc_id)
+  );
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -617,6 +637,22 @@ const MIGRATIONS: Migration[] = [
       );
     },
     applied: (db) => tableExists(db, "campaign_docs"),
+  },
+  {
+    version: 17,
+    name: "tenant_docs (generic doc twin → keywords/patterns/social work offline)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS tenant_docs (
+          tenant     TEXT NOT NULL,
+          collection TEXT NOT NULL,
+          doc_id     TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (tenant, collection, doc_id)
+        )`
+      ),
+    applied: (db) => tableExists(db, "tenant_docs"),
   },
 ];
 

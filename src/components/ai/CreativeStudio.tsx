@@ -58,6 +58,8 @@ const T = {
     improveByDefects: "Vylepšit podle defektů",
     libraryHeading: "Knihovna vizuálů",
     librarySaved: "{n} uloženo",
+    libraryOffline:
+      "Knihovna vizuálů běží na cloudovém úložišti, které v offline režimu není dostupné. Vygenerované vizuály se zde teď neukládají.",
     downloadAriaLabel: "Stáhnout",
     deleteAriaLabel: "Smazat",
     candidateAlt: "Kandidát {n}",
@@ -117,6 +119,8 @@ const T = {
     improveByDefects: "Improve based on defects",
     libraryHeading: "Visual library",
     librarySaved: "{n} saved",
+    libraryOffline:
+      "The visual library runs on cloud storage, which isn't reachable in offline mode. Generated visuals aren't saved here right now.",
     downloadAriaLabel: "Download",
     deleteAriaLabel: "Delete",
     candidateAlt: "Candidate {n}",
@@ -202,6 +206,9 @@ export default function CreativeStudio() {
   const [errorUpgrade, setErrorUpgrade] = useState<string | undefined>(undefined);
 
   const [library, setLibrary] = useState<CreativeSummary[]>([]);
+  // Set when the bucket-backed library is unavailable offline — the surface shows a
+  // labeled notice instead of silently rendering an empty library.
+  const [libraryOffline, setLibraryOffline] = useState(false);
   const [delBusy, setDelBusy] = useState<string | null>(null);
   // Background-removal results, keyed by Leonardo image id.
   const [nobg, setNobg] = useState<Record<string, NobgEntry>>({});
@@ -281,8 +288,9 @@ export default function CreativeStudio() {
     try {
       const res = await fetch(pid ? `/api/images?projectId=${encodeURIComponent(pid)}` : "/api/images");
       if (!res.ok) return;
-      const json = (await res.json()) as { creatives?: CreativeSummary[] };
+      const json = (await res.json()) as { creatives?: CreativeSummary[]; offline?: boolean };
       setLibrary(json.creatives ?? []);
+      setLibraryOffline(Boolean(json.offline));
     } catch {
       /* non-critical */
     }
@@ -661,6 +669,14 @@ export default function CreativeStudio() {
           )}
         </div>
       </div>
+
+      {/* bucket-backed library unavailable offline — honest labeled notice */}
+      {authStatus === "authenticated" && libraryOffline && (
+        <section>
+          <h2 className="mb-2 text-sm font-semibold text-navy-800">{t("libraryHeading")}</h2>
+          <p className="card border-dashed p-3 text-xs text-muted">{t("libraryOffline")}</p>
+        </section>
+      )}
 
       {/* persisted asset library */}
       {authStatus === "authenticated" && library.length > 0 && (

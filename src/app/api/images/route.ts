@@ -10,7 +10,13 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { consume, refund } from "@/lib/usage";
 import { generateImageSet } from "@/lib/images/studio";
-import { deleteCreative, listCreatives, saveCreative } from "@/lib/images/store";
+import {
+  deleteCreative,
+  listCreatives,
+  saveCreative,
+  IMAGE_LIBRARY_OFFLINE,
+  IMAGE_LIBRARY_OFFLINE_NOTICE,
+} from "@/lib/images/store";
 import { getStylePrior } from "@/lib/images/attribution";
 import {
   MAX_IMAGE_CANDIDATES,
@@ -206,6 +212,11 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const uid = await currentUserId();
   if (!uid) return Response.json({ creatives: [] });
+  // Offline: the bucket-backed library is unavailable — return an empty list plus a
+  // labeled cs/en notice so the surface says so honestly instead of the fetch 500ing.
+  if (IMAGE_LIBRARY_OFFLINE) {
+    return Response.json({ creatives: [], offline: true, notice: IMAGE_LIBRARY_OFFLINE_NOTICE });
+  }
   const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
   const creatives = await listCreatives(await resolveTenant(uid, projectId));
   return Response.json({ creatives });

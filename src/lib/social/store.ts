@@ -1,9 +1,18 @@
-/** Per-tenant social store (Firestore): scheduled/published posts + the comms
- *  inbox. Sample inbound messages are seeded on first read so the inbox demos
- *  without real webhooks. Server-only. */
+/** Per-tenant social store: scheduled/published posts + the comms inbox. Sample
+ *  inbound messages are seeded on first read so the inbox demos without real
+ *  webhooks. Server-only.
+ *
+ *  Offline parity — verdict: REAL user state (authored posts/drafts + the inbox and
+ *  its reply status), so it carries a sqlite twin. Raw document access dispatches
+ *  through the generic tenant-docs backend (Firestore vs node:sqlite `tenant_docs`,
+ *  migration v17), so the whole social surface works offline under LOCAL_DB with a
+ *  byte-identical Firestore path — including the atomic scheduled→publishing claim
+ *  (compareAndSet → a Firestore transaction) and the inbox seed (batchSet → a
+ *  Firestore batch). Domain logic (id minting, the sample messages, due filtering,
+ *  receivedAt sort) stays here; only the document access is dispatched. */
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { firestore } from "@/lib/firebase";
+import { tenantDocs } from "@/lib/tenant-docs/backend";
 import {
   type PostStatus,
   type SocialMessage,
@@ -11,12 +20,8 @@ import {
   type SocialPost,
 } from "./types";
 
-function postsCol(tenant: string) {
-  return firestore.collection("tenants").doc(tenant).collection("social_posts");
-}
-function messagesCol(tenant: string) {
-  return firestore.collection("tenants").doc(tenant).collection("social_messages");
-}
+const POSTS = "social_posts";
+const MESSAGES = "social_messages";
 
 // --- posts ------------------------------------------------------------------
 
@@ -42,13 +47,16 @@ export async function createPost(tenant: string, input: CreatePostInput): Promis
     ...(input.externalUrl ? { externalUrl: input.externalUrl } : {}),
     ...(input.simulated !== undefined ? { simulated: input.simulated } : {}),
   };
-  await postsCol(tenant).doc(id).set(post);
+  await (await tenantDocs()).setDoc(tenant, POSTS, id, post);
   return { id, ...post };
 }
 
 export async function listPosts(tenant: string, limit = 50): Promise<SocialPost[]> {
-  const snap = await postsCol(tenant).orderBy("createdAt", "desc").limit(limit).get();
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<SocialPost, "id">) }));
+  const rows = await (await tenantDocs()).listDocs(tenant, POSTS, {
+    orderBy: { field: "createdAt", dir: "desc" },
+    limit,
+  });
+  return rows.map((r) => ({ id: r.id, ...(r.data as Omit<SocialPost, "id">) }));
 }
 
 export async function updatePost(
@@ -56,13 +64,13 @@ export async function updatePost(
   id: string,
   patch: Partial<SocialPost>
 ): Promise<void> {
-  await postsCol(tenant).doc(id).set(patch, { merge: true });
+  await (await tenantDocs()).setDoc(tenant, POSTS, id, patch, { merge: true });
 }
 
 export async function deletePost(tenant: string, id: string): Promise<boolean> {
-  const ref = postsCol(tenant).doc(id);
-  if (!(await ref.get()).exists) return false;
-  await ref.delete();
+  const store = await tenantDocs();
+  if (!(await store.getDoc(tenant, POSTS, id))) return false;
+  await store.deleteDoc(tenant, POSTS, id);
   return true;
 }
 
@@ -70,9 +78,9 @@ export async function deletePost(tenant: string, id: string): Promise<boolean> {
  *  scheduledAt in the past — a "scheduled" post with no scheduledAt is malformed and
  *  must NOT be treated as due-now (the old `?? "" <= nowIso` published it immediately). */
 export async function listDueScheduled(tenant: string, nowIso: string): Promise<SocialPost[]> {
-  const snap = await postsCol(tenant).where("status", "==", "scheduled").get();
-  return snap.docs
-    .map((d) => ({ id: d.id, ...(d.data() as Omit<SocialPost, "id">) }))
+  const rows = await (await tenantDocs()).queryEq(tenant, POSTS, "status", "scheduled");
+  return rows
+    .map((r) => ({ id: r.id, ...(r.data as Omit<SocialPost, "id">) }))
     .filter((p) => p.scheduledAt != null && p.scheduledAt <= nowIso);
 }
 
@@ -81,15 +89,14 @@ export async function listDueScheduled(tenant: string, nowIso: string): Promise<
  *  post was already claimed/published (an overlapping cron run) or vanished — so the
  *  provider is called at most once per post even across concurrent runs. */
 export async function claimScheduledPost(tenant: string, id: string): Promise<boolean> {
-  const ref = postsCol(tenant).doc(id);
   try {
-    return await firestore.runTransaction(async (tx) => {
-      const snap = await tx.get(ref);
-      if (!snap.exists) return false;
-      if ((snap.data() as SocialPost).status !== "scheduled") return false;
-      tx.set(ref, { status: "publishing" satisfies PostStatus }, { merge: true });
-      return true;
-    });
+    return await (await tenantDocs()).compareAndSet(
+      tenant,
+      POSTS,
+      id,
+      { field: "status", equals: "scheduled" },
+      { status: "publishing" satisfies PostStatus }
+    );
   } catch (err) {
     console.error(`[social] claim failed for ${id}:`, err);
     return false;
@@ -106,33 +113,33 @@ const SAMPLE_MESSAGES: Omit<SocialMessage, "id" | "receivedAt" | "status">[] = [
 ];
 
 async function seedSampleMessages(tenant: string): Promise<void> {
-  const batch = firestore.batch();
   const now = Date.now();
-  SAMPLE_MESSAGES.forEach((m, i) => {
-    const id = `sample_${i}`;
-    batch.set(messagesCol(tenant).doc(id), {
+  const docs = SAMPLE_MESSAGES.map((m, i) => ({
+    id: `sample_${i}`,
+    data: {
       ...m,
       receivedAt: new Date(now - (i + 1) * 3_600_000).toISOString(),
-      status: "open",
-    });
-  });
-  await batch.commit();
+      status: "open" as const,
+    },
+  }));
+  await (await tenantDocs()).batchSet(tenant, MESSAGES, docs);
 }
 
 export async function listMessages(tenant: string): Promise<SocialMessage[]> {
-  let snap = await messagesCol(tenant).get();
-  if (snap.empty) {
+  const store = await tenantDocs();
+  let rows = await store.listDocs(tenant, MESSAGES);
+  if (rows.length === 0) {
     await seedSampleMessages(tenant);
-    snap = await messagesCol(tenant).get();
+    rows = await store.listDocs(tenant, MESSAGES);
   }
-  return snap.docs
-    .map((d) => ({ id: d.id, ...(d.data() as Omit<SocialMessage, "id">) }))
+  return rows
+    .map((r) => ({ id: r.id, ...(r.data as Omit<SocialMessage, "id">) }))
     .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 }
 
 export async function markReplied(tenant: string, id: string, reply: string): Promise<boolean> {
-  const ref = messagesCol(tenant).doc(id);
-  if (!(await ref.get()).exists) return false;
-  await ref.set({ status: "replied", reply }, { merge: true });
+  const store = await tenantDocs();
+  if (!(await store.getDoc(tenant, MESSAGES, id))) return false;
+  await store.setDoc(tenant, MESSAGES, id, { status: "replied", reply }, { merge: true });
   return true;
 }
