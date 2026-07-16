@@ -23,13 +23,19 @@ register("./json-loader.mjs", import.meta.url);
 const {
   parseRankRows,
   ladderFromRows,
+  ladderKey,
   mergeLadder,
   normalizeLadder,
   normalizeSignals,
   parseReviewRows,
+  parseReviews,
+  parseReviewDate,
+  reviewDateAmbiguous,
   parseGbpRows,
 } = await import("@/lib/local-signals/import");
-const { getLocalSignals, saveLocalSignals, clearLocalSignals } = await import("@/lib/local-signals/store");
+const { getLocalSignals, saveLocalSignals, clearLocalSignals, mutateLocalSignals } = await import(
+  "@/lib/local-signals/store"
+);
 const { resolveLocalLadder, resolveReviews, resolveLocations } = await import("@/lib/local-signals/resolve");
 
 test("parser: header detection, mixed separators, dedup (last wins), rank clamp", () => {
@@ -84,6 +90,111 @@ test("mergeLadder: stamps each import, appends dated points, keeps HISTORY_CAP",
     capped = mergeLadder(capped, [{ keyword: "k", area: "A", rank: 20 - (i % 5) }], at);
   }
   assert.equal(capped[0].history.length, 12);
+});
+
+// ── D2: subset retention, slug collision, atomic mutate, ambiguous dates ─────
+test("mergeLadder: a subset re-import RETAINS omitted keywords, flags them untracked", () => {
+  let ladder = mergeLadder(
+    [],
+    [
+      { keyword: "zubař", area: "Praha", rank: 5 },
+      { keyword: "implantáty", area: "Praha", rank: 8 },
+    ],
+    "2026-05-01T00:00:00Z"
+  );
+  // Second import covers ONLY zubař — implantáty must survive with its history intact.
+  ladder = mergeLadder(ladder, [{ keyword: "zubař", area: "Praha", rank: 3 }], "2026-06-01T00:00:00Z");
+  const byKw = Object.fromEntries(ladder.map((k) => [k.keyword, k]));
+  assert.equal(ladder.length, 2, "omitted keyword not deleted");
+  assert.equal(byKw["zubař"].current, 3);
+  assert.equal(byKw["zubař"].untracked, false, "re-imported keyword is tracked");
+  assert.equal(byKw["implantáty"].current, 8, "omitted keyword keeps its position");
+  assert.equal(byKw["implantáty"].history.length, 1, "omitted keyword history preserved, no new point");
+  assert.equal(byKw["implantáty"].untracked, true, "omitted keyword flagged untracked");
+  // Re-including it clears the flag and appends a point.
+  const back = mergeLadder(ladder, [{ keyword: "implantáty", area: "Praha", rank: 6 }], "2026-07-01T00:00:00Z");
+  const impl = back.find((k) => k.keyword === "implantáty");
+  assert.equal(impl.untracked, false);
+  assert.equal(impl.history.length, 2);
+  assert.equal(impl.current, 6);
+});
+
+test("mergeLadder: 'Praha 4' vs 'Praha-4' do NOT collide (slug-collision fix)", () => {
+  assert.notEqual(ladderKey("zubař", "Praha 4"), ladderKey("zubař", "Praha-4"));
+  const ladder = mergeLadder(
+    [],
+    [
+      { keyword: "zubař", area: "Praha 4", rank: 3 },
+      { keyword: "zubař", area: "Praha-4", rank: 9 },
+    ],
+    "2026-06-01T00:00:00Z"
+  );
+  assert.equal(ladder.length, 2, "two distinct areas stay two rows");
+  assert.equal(new Set(ladder.map((k) => k.id)).size, 2, "ids are unique");
+});
+
+test("mergeLadder: legacy slug-id rows re-key by keyword×area pair (history preserved)", () => {
+  // A pre-fix stored row carries the old `area-keyword` slug id but real keyword/area.
+  const legacy = [
+    { id: "praha-zubař", keyword: "zubař", area: "Praha", history: [{ rank: 7, at: "2026-05-01" }], current: 7, best: 7 },
+  ];
+  const merged = mergeLadder(legacy, [{ keyword: "zubař", area: "Praha", rank: 4 }], "2026-06-01T00:00:00Z");
+  assert.equal(merged.length, 1, "matched legacy row by pair, not a new entry");
+  assert.equal(merged[0].history.length, 2, "history appended onto the legacy row");
+  assert.equal(merged[0].current, 4);
+});
+
+test("parseReviewDate: ambiguous US/EU slash date is REJECTED, not mis-parsed", () => {
+  // 05/01/2026 — could be 5 Jan (US) or 1 May (EU); both plausible → rejected.
+  assert.equal(parseReviewDate("05/01/2026"), null);
+  assert.equal(reviewDateAmbiguous("05/01/2026"), true);
+  // 25/12/2026 — 25 can only be a day → unambiguous, day-first.
+  assert.equal(parseReviewDate("25/12/2026"), "2026-12-25");
+  assert.equal(reviewDateAmbiguous("25/12/2026"), false);
+  // Dot dates stay European day-first (unambiguous by convention).
+  assert.equal(parseReviewDate("01.05.2026"), "2026-05-01");
+  assert.equal(reviewDateAmbiguous("01.05.2026"), false);
+  // ISO passes through; garbage is 'none', not 'ambiguous'.
+  assert.equal(parseReviewDate("2026-06-01"), "2026-06-01");
+  assert.equal(reviewDateAmbiguous("hello"), false);
+});
+
+test("parseReviews: counts ambiguous rows; unambiguous rows unchanged", () => {
+  const { items, ambiguous } = parseReviews(
+    [
+      "autor,hodnocení,text,datum,oblast",
+      "Jana K.,5,OK,2026-06-01,Praha", // ISO → kept
+      "Petr M.,4,Fajn,05/01/2026,Brno", // ambiguous slash → rejected + counted
+      "Eva H.,3,Dobré,25/12/2026,Praha", // unambiguous slash → kept
+    ].join("\n")
+  );
+  assert.equal(items.length, 2);
+  assert.equal(ambiguous, 1);
+  assert.equal(items[1].at, "2026-12-25");
+});
+
+test("mutateLocalSignals: atomic section update preserves the OTHER sections", async () => {
+  // Seed ranks, then a reviews mutate and a gbp mutate — each must keep the rest.
+  await mutateLocalSignals("proj-atomic", () => ({
+    meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 1 },
+    ladder: ladderFromRows([{ keyword: "zubař", area: "Praha", rank: 3 }], "2026-07-01T00:00:00Z"),
+  }));
+  await mutateLocalSignals("proj-atomic", (prev) => ({
+    meta: prev.meta,
+    ladder: prev.ladder,
+    reviews: { meta: { source: "import", syncedAt: "2026-07-02T00:00:00Z", rowCount: 1 }, items: parseReviewRows("Jana,5,Skvělé,2026-06-01,Praha") },
+  }));
+  await mutateLocalSignals("proj-atomic", (prev) => ({
+    meta: prev.meta,
+    ladder: prev.ladder,
+    ...(prev.reviews ? { reviews: prev.reviews } : {}),
+    gbp: { meta: { source: "gbp", syncedAt: "2026-07-03T00:00:00Z", rowCount: 1 }, rows: parseGbpRows("Praha,connected,128,4.8,2") },
+  }));
+  const final = await getLocalSignals("proj-atomic");
+  assert.equal(final.ladder.length, 1, "ladder survived both later mutates");
+  assert.ok(final.reviews && final.reviews.items.length === 1, "reviews survived the gbp mutate");
+  assert.ok(final.gbp && final.gbp.rows.length === 1, "gbp present");
+  await clearLocalSignals("proj-atomic");
 });
 
 test("normalizeLadder: reads a LEGACY bare-number history cleanly (dual-shape)", () => {

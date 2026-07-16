@@ -23,6 +23,21 @@ export async function saveLocalSignals(projectId: string, signals: LocalSignals)
   return (await backend()).saveLocalSignals(projectId, signals);
 }
 
+/** ATOMIC per-project read-modify-write (D2). The `mutator` receives the current
+ *  NORMALIZED blob (or null when never imported) and returns the next one; the read
+ *  and the write happen inside ONE backend transaction (sqlite BEGIN IMMEDIATE /
+ *  Firestore runTransaction), so two concurrent section imports (e.g. reviews + GBP)
+ *  can no longer read the same base and clobber each other's section. Returns the
+ *  written blob. Use this for every import instead of get-then-save. */
+export async function mutateLocalSignals(
+  projectId: string,
+  mutator: (prev: LocalSignals | null) => LocalSignals
+): Promise<LocalSignals> {
+  return (await backend()).mutateLocalSignals(projectId, (raw) =>
+    mutator(raw ? normalizeSignals(raw) : null)
+  );
+}
+
 /** Drop a project's local signals (→ reverts the ladder to sample). */
 export async function clearLocalSignals(projectId: string): Promise<void> {
   return (await backend()).clearLocalSignals(projectId);

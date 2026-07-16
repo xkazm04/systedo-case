@@ -7,11 +7,16 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import {
   parseRankRows,
-  parseReviewRows,
+  parseReviews,
   parseGbpRows,
   mergeLadder,
 } from "@/lib/local-signals/import";
-import { getLocalSignals, saveLocalSignals, clearLocalSignals } from "@/lib/local-signals/store";
+import {
+  getLocalSignals,
+  saveLocalSignals,
+  clearLocalSignals,
+  mutateLocalSignals,
+} from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
 import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
 import { tooLarge } from "@/lib/ai/rate-limit";
@@ -72,7 +77,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return apiError(413, "Import je příliš velký.", "content-too-long", { envelope: "ok" });
   }
 
-  const prev = await getLocalSignals(project.id);
   const now = new Date().toISOString();
   const meta = (rowCount: number): LocalSignalsMeta => ({
     source,
@@ -81,18 +85,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ...(source === "url" ? { sourceUrl: url } : {}),
   });
 
+  // Every section persists through an ATOMIC read-modify-write (D2): the prev blob is
+  // read and the next written in ONE transaction, so a concurrent import of a DIFFERENT
+  // section can no longer read the same base and clobber this one's write.
   if (kind === "reviews") {
-    const items = parseReviewRows(text);
+    const { items, ambiguous } = parseReviews(text);
     if (items.length === 0) {
-      return apiError(400, "Nenašel jsem žádné recenze. Formát: autor, hodnocení, text, datum, oblast.", "unprocessable", { envelope: "ok" });
+      const msg =
+        ambiguous > 0
+          ? `Nenašel jsem žádné použitelné recenze — ${ambiguous} řádků mělo nejednoznačné datum (den/měsíc). Použijte formát RRRR-MM-DD.`
+          : "Nenašel jsem žádné recenze. Formát: autor, hodnocení, text, datum, oblast.";
+      return apiError(400, msg, "unprocessable", { envelope: "ok" });
     }
-    await saveLocalSignals(project.id, {
+    await mutateLocalSignals(project.id, (prev) => ({
       meta: ladderMeta(prev, source, url),
       ladder: prev?.ladder ?? [],
       ...(prev?.gbp ? { gbp: prev.gbp } : {}),
       reviews: { meta: meta(items.length), items },
-    });
-    return Response.json({ ok: true, rowCount: items.length });
+    }));
+    return Response.json({ ok: true, rowCount: items.length, ...(ambiguous > 0 ? { ambiguous } : {}) });
   }
 
   if (kind === "gbp") {
@@ -100,28 +111,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (rows.length === 0) {
       return apiError(400, "Nenašel jsem žádné pobočky. Formát: pobočka, stav, počet recenzí, hodnocení, nezodpovězené.", "unprocessable", { envelope: "ok" });
     }
-    await saveLocalSignals(project.id, {
+    await mutateLocalSignals(project.id, (prev) => ({
       meta: ladderMeta(prev, source, url),
       ladder: prev?.ladder ?? [],
       ...(prev?.reviews ? { reviews: prev.reviews } : {}),
       gbp: { meta: meta(rows.length), rows },
-    });
+    }));
     return Response.json({ ok: true, rowCount: rows.length });
   }
 
-  // kind === "ranks": append to the previously-imported ladder so per-keyword rank
-  // history accumulates across monthly imports (the climb/trend/best the module exists
-  // to show), instead of resetting to a single point on every upload.
+  // kind === "ranks": UNION-merge onto the previously-imported ladder so per-keyword
+  // rank history accumulates across monthly imports (the climb/trend/best the module
+  // exists to show) AND a subset re-import never drops omitted keywords (they are kept
+  // and flagged 'untracked'), instead of resetting to a single point on every upload.
   const rows = parseRankRows(text);
   if (rows.length === 0) {
     return apiError(400, "Nenašel jsem žádné pozice. Formát: klíčové slovo, oblast, pozice.", "unprocessable", { envelope: "ok" });
   }
-  await saveLocalSignals(project.id, {
+  await mutateLocalSignals(project.id, (prev) => ({
     meta: meta(rows.length),
     ladder: mergeLadder(prev?.ladder ?? [], rows, now),
     ...(prev?.reviews ? { reviews: prev.reviews } : {}),
     ...(prev?.gbp ? { gbp: prev.gbp } : {}),
-  });
+  }));
   return Response.json({ ok: true, rowCount: rows.length });
 }
 

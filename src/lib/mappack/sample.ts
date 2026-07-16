@@ -66,6 +66,10 @@ export interface KeywordRank {
   history: RankPoint[];
   current: number;
   best: number;
+  /** D2 retention flag: true when this keyword was in the tracked set but ABSENT from
+   *  the most recent import (its history is preserved, not deleted). Undefined/false =
+   *  present in the last import. Only imported ladders set it; the sample never does. */
+  untracked?: boolean;
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10;

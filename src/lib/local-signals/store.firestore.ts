@@ -28,6 +28,34 @@ export async function saveLocalSignals(projectId: string, signals: LocalSignals)
   });
 }
 
+/** Atomic read-modify-write inside a Firestore transaction (D2): the doc is read and
+ *  written in one transaction, so two concurrent section imports don't read the same
+ *  base and clobber each other (Firestore retries the loser against the fresh doc).
+ *  The mutator gets the RAW parsed blob (the dispatcher normalizes before calling). */
+export async function mutateLocalSignals(
+  projectId: string,
+  mutator: (prev: LocalSignals | null) => LocalSignals
+): Promise<LocalSignals> {
+  const ref = signalsDoc(projectId);
+  return firestore.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    let prev: LocalSignals | null = null;
+    if (doc.exists) {
+      const raw = doc.data()?.data;
+      if (typeof raw === "string") {
+        try {
+          prev = JSON.parse(raw) as LocalSignals;
+        } catch {
+          prev = null;
+        }
+      }
+    }
+    const next = mutator(prev);
+    tx.set(ref, { data: JSON.stringify(next), updatedAt: new Date().toISOString() });
+    return next;
+  });
+}
+
 export async function clearLocalSignals(projectId: string): Promise<void> {
   await signalsDoc(projectId).delete();
 }

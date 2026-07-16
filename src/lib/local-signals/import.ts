@@ -20,6 +20,17 @@ const COL: Record<string, "keyword" | "area" | "rank"> = {
   rank: "rank", pozice: "rank", position: "rank", pořadí: "rank", poradi: "rank",
 };
 
+/** The canonical identity of a keyword×area row — case/whitespace-normalized and
+ *  joined with a pipe (a delimiter that cannot appear in the collapsed slug the old
+ *  id used). This is BOTH the dedup key and the persisted `id`, so two visually-close
+ *  areas like „Praha 4" and „Praha-4" no longer collapse to the same slug id and get
+ *  merged into one keyword's history (D2 slug-collision fix). Legacy slug ids (`area-
+ *  keyword`) still READ fine — the merge matches on this pair derived from the row's
+ *  keyword/area fields, never on the stored id string, so old blobs re-key cleanly. */
+export function ladderKey(keyword: string, area: string): string {
+  return `${keyword.trim().toLowerCase()}|${area.trim().toLowerCase()}`;
+}
+
 function splitCells(line: string): string[] {
   // Accept comma, semicolon or tab separators (Sklik/GBP/Sheets exports vary).
   return line.split(/[,;\t]/).map((c) => c.trim());
@@ -55,7 +66,7 @@ export function parseRankRows(text: string): ParsedRankRow[] {
     const rankRaw = Number(cells[idx.rank]?.replace(/[^\d.]/g, ""));
     if (!keyword || !area || !Number.isFinite(rankRaw) || rankRaw < 1) continue;
     const rank = Math.min(100, Math.round(rankRaw));
-    byKey.set(`${keyword.toLowerCase()}|${area.toLowerCase()}`, { keyword, area, rank });
+    byKey.set(ladderKey(keyword, area), { keyword, area, rank });
   }
   return [...byKey.values()];
 }
@@ -66,12 +77,13 @@ export function parseRankRows(text: string): ParsedRankRow[] {
 export function ladderFromRows(rows: ParsedRankRow[], at: string = todayISO()): KeywordRank[] {
   const day = at.slice(0, 10);
   return rows.map((r) => ({
-    id: `${r.area}-${r.keyword}`.toLowerCase().replace(/\s+/g, "-"),
+    id: ladderKey(r.keyword, r.area),
     keyword: r.keyword,
     area: r.area,
     history: [{ rank: r.rank, at: day }],
     current: r.rank,
     best: r.rank,
+    untracked: false,
   }));
 }
 
@@ -86,28 +98,50 @@ function todayISO(): string {
  *  DATE-STAMPED rank to the matching keyword×area history instead of resetting it to a
  *  single point. Without this, every import replaced history with one point, so the
  *  module's "climb / trend / best position" — its whole point — stayed flat forever on
- *  real data. `prev` is expected already-normalized (RankPoint[] history); a keyword
- *  absent from `prev` is a first-time entry, and a keyword no longer imported drops out
- *  (the import defines the current tracked set). The new point is stamped at `at`. */
+ *  real data. `prev` is expected already-normalized (RankPoint[] history).
+ *
+ *  RETENTION POLICY (D2): the import is a UNION with `prev`, not a replacement. A
+ *  keyword present in the import gets its new dated point appended and is flagged
+ *  `untracked: false`. A keyword in `prev` that the import OMITS is NOT deleted — its
+ *  history is preserved untouched and it is flagged `untracked: true` ("not in the last
+ *  import") so a partial/subset upload never silently drops a tracked keyword's climb.
+ *  A keyword only in the import is a first-time entry. Matching is on the normalized
+ *  keyword×area pair (ladderKey), so legacy slug ids re-key cleanly. Stamped at `at`. */
 export function mergeLadder(
   prev: KeywordRank[],
   rows: ParsedRankRow[],
   at: string = todayISO()
 ): KeywordRank[] {
-  const byId = new Map(prev.map((k) => [k.id, k]));
-  return ladderFromRows(rows, at).map((fresh) => {
-    const existing = byId.get(fresh.id);
-    if (!existing) return fresh; // first import for this keyword×area
-    const history = [...existing.history, ...fresh.history].slice(-HISTORY_CAP);
-    return {
-      ...existing,
-      keyword: fresh.keyword,
-      area: fresh.area,
+  const fresh = ladderFromRows(rows, at);
+  const freshByKey = new Map(fresh.map((k) => [ladderKey(k.keyword, k.area), k]));
+  const out: KeywordRank[] = [];
+  const seen = new Set<string>();
+
+  // Prev order first: update in place when re-imported, else retain + flag untracked.
+  for (const p of prev) {
+    const key = ladderKey(p.keyword, p.area);
+    seen.add(key);
+    const f = freshByKey.get(key);
+    if (!f) {
+      out.push({ ...p, untracked: true }); // omitted from this import → retained, flagged
+      continue;
+    }
+    const history = [...p.history, ...f.history].slice(-HISTORY_CAP);
+    out.push({
+      ...p,
+      keyword: f.keyword,
+      area: f.area,
       history,
-      current: fresh.current,
-      best: Math.min(...history.map((p) => p.rank)),
-    };
-  });
+      current: f.current,
+      best: Math.min(...history.map((pt) => pt.rank)),
+      untracked: false,
+    });
+  }
+  // New keywords the import introduced.
+  for (const f of fresh) {
+    if (!seen.has(ladderKey(f.keyword, f.area))) out.push(f);
+  }
+  return out;
 }
 
 /** Coerce a stored history value into the dated RankPoint[] shape. Reads BOTH shapes
@@ -142,7 +176,7 @@ function coerceHistory(raw: unknown, anchorISO: string): RankPoint[] {
 export function normalizeLadder(ladder: unknown, anchorISO: string): KeywordRank[] {
   if (!Array.isArray(ladder)) return [];
   return ladder.map((k) => {
-    const row = k as Partial<KeywordRank> & { history?: unknown };
+    const row = k as Partial<KeywordRank> & { history?: unknown; untracked?: unknown };
     const history = coerceHistory(row.history, anchorISO);
     return {
       id: String(row.id ?? ""),
@@ -151,6 +185,9 @@ export function normalizeLadder(ladder: unknown, anchorISO: string): KeywordRank
       history,
       current: history.length ? history[history.length - 1]!.rank : Number(row.current ?? 0),
       best: history.length ? Math.min(...history.map((p) => p.rank)) : Number(row.best ?? 0),
+      // Preserve the D2 retention flag across reads (a subset re-import flags omitted
+      // keywords 'untracked'; that flag must survive normalization, not reset to false).
+      ...(row.untracked === true ? { untracked: true } : {}),
     };
   });
 }
@@ -209,33 +246,84 @@ function splitCsvLine(line: string, delim: string): string[] {
   return out.map((s) => s.trim());
 }
 
-/** Parse a date cell to YYYY-MM-DD, or null when unrecognisable. Accepts ISO,
- *  Czech `D.M.YYYY` / `D/M/YYYY`, and anything Date.parse understands. */
-export function parseReviewDate(raw: string): string | null {
-  const s = raw.trim();
-  if (!s) return null;
-  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  m = s.match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
-  if (m) {
-    const day = m[1]!.padStart(2, "0");
-    const mon = m[2]!.padStart(2, "0");
-    if (Number(mon) < 1 || Number(mon) > 12 || Number(day) < 1 || Number(day) > 31) return null;
-    return `${m[3]}-${mon}-${day}`;
-  }
-  const t = Date.parse(s);
-  return Number.isFinite(t) ? new Date(t).toISOString().slice(0, 10) : null;
+/** Classify a date cell (D2 ambiguity guard).
+ *  - `ok`         → a confidently-parsed YYYY-MM-DD.
+ *  - `ambiguous`  → a SLASH date `A/B/YYYY` where both A and B are 1..12 and differ,
+ *                   so day-first (Czech, `D/M`) and month-first (US, `M/D`) disagree
+ *                   and BOTH are plausible. We refuse to guess — the caller counts and
+ *                   rejects the row rather than silently mis-dating a review.
+ *  - `none`       → unrecognisable / out of range.
+ *  Policy by separator: ISO is unambiguous; DOT dates `D.M.YYYY` are European day-first
+ *  by convention (never treated as ambiguous); only SLASH dates carry US/EU ambiguity.
+ *  A slash date with one value > 12 disambiguates (that value is the day). */
+type DateVerdict = { kind: "ok"; at: string } | { kind: "ambiguous" } | { kind: "none" };
+
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
 }
 
-/** Parse a pasted/CSV review export → imported reviews. Tolerant: a header row maps
- *  columns by name (cs/en); without one it assumes author, rating, text, date, area.
- *  Ratings clamp to 1..5; a row with no parseable date or no content is dropped. */
-export function parseReviewRows(text: string): ImportedReview[] {
+function classifyReviewDate(raw: string): DateVerdict {
+  const s = raw.trim();
+  if (!s) return { kind: "none" };
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return { kind: "ok", at: `${m[1]}-${m[2]}-${m[3]}` };
+  // Dot-separated → European day-first, unambiguous.
+  m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+  if (m) {
+    const day = Number(m[1]);
+    const mon = Number(m[2]);
+    if (mon < 1 || mon > 12 || day < 1 || day > 31) return { kind: "none" };
+    return { kind: "ok", at: `${m[3]}-${pad2(mon)}-${pad2(day)}` };
+  }
+  // Slash-separated → potentially ambiguous between D/M and M/D.
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (a >= 1 && a <= 12 && b >= 1 && b <= 12 && a !== b) return { kind: "ambiguous" };
+    // One value is >12 (or they're equal) → resolvable. Day-first preference.
+    const day = a > 12 ? a : b > 12 ? b : a;
+    const mon = a > 12 ? b : b > 12 ? a : b;
+    if (mon < 1 || mon > 12 || day < 1 || day > 31) return { kind: "none" };
+    return { kind: "ok", at: `${m[3]}-${pad2(mon)}-${pad2(day)}` };
+  }
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? { kind: "ok", at: new Date(t).toISOString().slice(0, 10) } : { kind: "none" };
+}
+
+/** Parse a date cell to YYYY-MM-DD, or null when unrecognisable OR ambiguous. Accepts
+ *  ISO, Czech `D.M.YYYY`, and disambiguable slash dates; an ambiguous US/EU slash date
+ *  (both parts 1..12) returns null so it is never silently mis-parsed — use
+ *  {@link reviewDateAmbiguous} to tell an ambiguous rejection from an unparseable one. */
+export function parseReviewDate(raw: string): string | null {
+  const v = classifyReviewDate(raw);
+  return v.kind === "ok" ? v.at : null;
+}
+
+/** True when a date cell is rejected specifically because it is US/EU-ambiguous. */
+export function reviewDateAmbiguous(raw: string): boolean {
+  return classifyReviewDate(raw).kind === "ambiguous";
+}
+
+/** The result of a tolerant review parse: the kept reviews plus how many rows were
+ *  REJECTED specifically for an ambiguous US/EU slash date (surfaced to the importer
+ *  so the user learns their dates were dropped rather than silently mis-dated). */
+export interface ParsedReviews {
+  items: ImportedReview[];
+  /** rows dropped because their date was US/EU-ambiguous (never silently mis-parsed) */
+  ambiguous: number;
+}
+
+/** Parse a pasted/CSV review export → imported reviews + an ambiguous-date count.
+ *  Tolerant: a header row maps columns by name (cs/en); without one it assumes author,
+ *  rating, text, date, area. Ratings clamp to 1..5; a row with no content is dropped; a
+ *  row whose date is ambiguous (D/M vs M/D both plausible) is REJECTED and counted. */
+export function parseReviews(text: string): ParsedReviews {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  if (lines.length === 0) return [];
+  if (lines.length === 0) return { items: [], ambiguous: 0 };
 
   const delim = detectDelimiter(lines[0]!);
   const firstCells = splitCsvLine(lines[0]!, delim).map((c) => c.toLowerCase());
@@ -250,15 +338,20 @@ export function parseReviewRows(text: string): ImportedReview[] {
   }
 
   const out: ImportedReview[] = [];
+  let ambiguous = 0;
   let n = 0;
   for (const line of lines.slice(hasHeader ? 1 : 0)) {
     const cells = splitCsvLine(line, delim);
     const author = cells[idx.author]?.trim() ?? "";
     const ratingRaw = Number((cells[idx.rating] ?? "").replace(",", ".").replace(/[^\d.]/g, ""));
     const reviewText = cells[idx.text]?.trim() ?? "";
-    const at = parseReviewDate(cells[idx.at] ?? "");
+    const rawDate = cells[idx.at] ?? "";
+    const at = parseReviewDate(rawDate);
     const area = cells[idx.area]?.trim() ?? "";
-    if (!at) continue; // a review with no "when" is noise
+    if (!at) {
+      if (reviewDateAmbiguous(rawDate)) ambiguous++; // rejected, not silently mis-parsed
+      continue; // a review with no confident "when" is noise
+    }
     if (!Number.isFinite(ratingRaw) || ratingRaw < 1) continue;
     if (!reviewText && !author) continue; // need some content to be a review
     out.push({
@@ -270,7 +363,12 @@ export function parseReviewRows(text: string): ImportedReview[] {
       at,
     });
   }
-  return out;
+  return { items: out, ambiguous };
+}
+
+/** Back-compat thin wrapper — just the kept reviews (drops the ambiguous count). */
+export function parseReviewRows(text: string): ImportedReview[] {
+  return parseReviews(text).items;
 }
 
 // ── GBP import (D3) ──────────────────────────────────────────────────────────
