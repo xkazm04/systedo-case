@@ -6,8 +6,9 @@
 import { randomBytes } from "node:crypto";
 import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
-import type { CampaignReport, ReportHistoryPoint } from "../ai-types";
+import type { CampaignReport, ReportHistoryPoint, AnalysisPeriod, MonthlyRecapResult } from "../ai-types";
 import type { Campaign, DailyPoint } from "./types";
+import type { Project, ProjectType } from "@/lib/projects/types";
 import {
   getReportHistory,
   getReportsForPeriod,
@@ -16,9 +17,80 @@ import {
   listCampaigns,
 } from "./store";
 import { getReportConfig } from "./report-config";
+import { resolveReportDataset } from "@/lib/report-metrics/resolve";
+import { getCostModel } from "@/lib/cost-model/store";
+import { assembleReport } from "@/lib/report/assemble";
+import { getRecaps, latestForPeriod } from "@/lib/recaps";
+import type { ReportSnap, ReportTileSpec } from "@/lib/report/compute";
+import type { MonthAttainment } from "@/lib/metrics";
 
 /** How long a freshly-created share link stays live. */
 export const SHARE_TTL_DAYS = 30;
+
+/** The period the shared client report renders as its primary view (the in-app
+ *  report's default). Snaps for all periods are captured; this one is shown. */
+const SHARED_REPORT_PERIOD: AnalysisPeriod = "30d";
+
+/** Direction 1: the in-app Monthly Report's tile model, snapshotted into the share so
+ *  the client link shows the SAME type-aware report the tenant sees — not just the
+ *  campaigns-portfolio eval. Assembled by the one shared helper (report/assemble.ts),
+ *  so the numbers are pinned equal to the in-app report for the same inputs. Optional
+ *  on {@link SharedReport}: a link created before this shipped has no payload and the
+ *  public page falls back to the legacy layout. */
+export interface SharedMonthlyReport {
+  projectName: string;
+  logoUrl?: string;
+  accentColor?: string;
+  /** drives the type-aware tile labels the shared page renders */
+  type: ProjectType;
+  /** the snapshot was taken from the client's own synced Ads data (vs the sample spine) */
+  live: boolean;
+  tiles: ReportTileSpec[];
+  /** per-period figures + deltas (all periods captured; `period` names the shown one) */
+  snaps: Record<AnalysisPeriod, ReportSnap>;
+  /** which period the shared page renders as primary */
+  period: AnalysisPeriod;
+  /** goal-attainment track record (e-shop only; [] otherwise) */
+  attainment: MonthAttainment[];
+  /** the newest persisted recap for `period` at share time, when one exists */
+  recap?: { result: MonthlyRecapResult; createdAt: string } | null;
+}
+
+/** Build the Monthly Report tile-model snapshot for a project, or null when there's
+ *  no project context (an anonymous / project-less share keeps the legacy layout).
+ *  Best-effort — a store hiccup degrades to null rather than failing the whole share. */
+async function buildSharedMonthlyReport(project: Project | undefined): Promise<SharedMonthlyReport | null> {
+  if (!project) return null;
+  try {
+    const resolved = await resolveReportDataset(project);
+    const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+    const { tiles, snaps, attainment } = assembleReport({
+      dataset: resolved.data,
+      type: project.type,
+      live: resolved.live,
+      costModel,
+    });
+    // The newest persisted recap for the shown period (the in-app report renders this
+    // same stored narrative on load) — omitted when the tenant has never generated one.
+    const stored = latestForPeriod(await getRecaps(project.id).catch(() => null), SHARED_REPORT_PERIOD);
+    return {
+      projectName: project.name,
+      // Conditional spreads so no `undefined` reaches Firestore (which rejects it).
+      ...(project.logoUrl ? { logoUrl: project.logoUrl } : {}),
+      ...(project.accentColor ? { accentColor: project.accentColor } : {}),
+      type: project.type,
+      live: resolved.live,
+      tiles,
+      snaps,
+      period: SHARED_REPORT_PERIOD,
+      attainment,
+      recap: stored ? { result: stored.result, createdAt: stored.createdAt } : null,
+    };
+  } catch (err) {
+    console.error(`[shared-report] monthly-report snapshot failed for ${project.id}:`, err);
+    return null;
+  }
+}
 
 export interface SharedReport {
   /** the tenant that owns the link (so only its creator can list/revoke it) */
@@ -40,6 +112,11 @@ export interface SharedReport {
   campaigns: Campaign[];
   /** daily portfolio series for the report trend chart */
   series: DailyPoint[];
+  /** Direction 1: the in-app Monthly Report tile model + newest recap, snapshotted so
+   *  the client link renders the SAME type-aware report as the PRIMARY section (the
+   *  campaigns-portfolio eval below becomes a labeled secondary). Absent on links
+   *  created before this shipped → the public page falls back to the legacy layout. */
+  monthlyReport?: SharedMonthlyReport | null;
 }
 
 /** Lightweight row for the "my shared links" management list (no heavy payload). */
@@ -70,7 +147,11 @@ function isExpired(expiresAt: string | undefined): boolean {
 export async function createSharedReport(
   tenant: string,
   accountName: string,
-  brandFallback?: { name?: string; accent?: string; logo?: string }
+  brandFallback?: { name?: string; accent?: string; logo?: string },
+  // Direction 1: the active project — its resolved dataset grounds the Monthly Report
+  // tile-model snapshot captured alongside the portfolio eval. Omitted (anonymous /
+  // project-less share) → no tile payload, the public page keeps the legacy layout.
+  project?: Project
 ): Promise<string | null> {
   const meta = await getSyncMeta(tenant);
   if (!meta) return null;
@@ -94,6 +175,7 @@ export async function createSharedReport(
     history: await getReportHistory(tenant, "overall", null),
     campaigns: await listCampaigns(tenant),
     series: await getSeries(tenant),
+    monthlyReport: await buildSharedMonthlyReport(project),
   };
 
   const token = randomBytes(16).toString("hex");

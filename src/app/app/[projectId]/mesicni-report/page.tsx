@@ -6,13 +6,11 @@ import ModulePage from "@/components/app/ModulePage";
 import MonthlyReport, { type RecapHistoryItem } from "@/components/app/modules/MonthlyReport";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { getRecaps, historyForPeriod, recapInputHash, isRecapStale } from "@/lib/recaps";
-import { buildSnapshot } from "@/lib/snapshot";
-import { cpa, rel, monthlyAttainmentHistory } from "@/lib/metrics";
 import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
-import { reportTilesForType, livePaidTilesForType, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
+import { assembleReport } from "@/lib/report/assemble";
 import { getCostModel } from "@/lib/cost-model/store";
-import { periodProfit, PERIOD_MONTHS, deriveBreakEven } from "@/lib/cost-model/compute";
+import { PERIOD_MONTHS, deriveBreakEven } from "@/lib/cost-model/compute";
 import { getCompetitors } from "@/lib/competitors/store";
 import { listAnnotations } from "@/lib/annotations/store";
 import { resolveCohorts } from "@/lib/ltv/resolve";
@@ -69,109 +67,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     };
   }
 
-  // Tiles follow the project TYPE (leads/CPL for leadgen & local, not e-shop
-  // Obrat/ROAS) — same framing as the overview KPIs, so the two surfaces agree.
-  let tiles = reportTilesForType(project.type);
-  if (costModel) {
-    // Relabel the contribution tile to "Zisk" (net after COGS) and add a margin tile.
-    tiles = tiles.flatMap((t): ReportTileSpec[] =>
-      t.metric === "profit"
-        ? [
-            { ...t, label: "Zisk", labelEn: "Net profit" },
-            { metric: "profitMargin", label: "Zisková marže", labelEn: "Net margin", format: "pct", goodWhenDown: false, hasDelta: false },
-          ]
-        : [t]
-    );
-  }
-  // Direction 1: on the LIVE path only, surface CTR/CPC for the traffic-led report
-  // types — the sync now carries impressions+clicks, so click efficiency is real.
-  // The sample spine has no paid-traffic pair, so these stay off the illustrative
-  // report (they'd read 0). Appended last, after the cost-model relabel.
-  if (resolved.live) tiles = [...tiles, ...livePaidTilesForType(project.type)];
-
-  const snaps = {} as Record<AnalysisPeriod, ReportSnap>;
-  // Direction 2: reference totals for the overhead-loaded break-even (the 12-month
-  // window, so overhead + fulfilment are charged over a full year of ad spend).
-  let ref12: { adCost: number; conversions: number } | null = null;
-  for (const p of ANALYSIS_PERIODS) {
-    const s = buildSnapshot(p, "previous", dataset);
-    const c = s.current;
-    if (p === "12m") ref12 = { adCost: c.cost, conversions: c.conversions };
-    // Prior-period totals: read the comparison window directly (snap.previous)
-    // rather than reconstructing them by inverting the deltas — the inversion
-    // silently returns the CURRENT value when a baseline is zero (1 + 0), faking
-    // a "no change". Cost-per-conversion (CPA) and its delta come from the shared
-    // ratio/delta spine so they can't drift from the rest of the engine.
-    const prev = s.previous;
-    const cpaValue = cpa(c.cost, c.conversions);
-    const prevCost = prev.cost;
-    const prevConv = prev.conversions;
-    const prevCpa = cpa(prevCost, prevConv);
-    const cpaDelta = rel(cpaValue, prevCpa);
-
-    // Profit line: with a cost model → true net profit after COGS + overhead and a
-    // margin-aware POAS; without → pre-COGS contribution (revenue − ad cost).
-    let profit: number;
-    let poas: number;
-    let profitMargin: number | undefined;
-    let profitDelta = s.delta.profit;
-    if (costModel) {
-      const months = PERIOD_MONTHS[p];
-      const pp = periodProfit(
-        { revenue: c.revenue, adCost: c.cost, conversions: c.conversions, months },
-        costModel
-      );
-      profit = pp.netProfit;
-      poas = pp.poas;
-      profitMargin = pp.profitMargin;
-      // The change badge must describe NET profit, not the pre-COGS contribution
-      // delta (s.delta.profit). Once fixed overhead shrinks the denominator, a +8%
-      // contribution swing can be +35% on net profit — pairing the net koruna figure
-      // with the contribution % is a wrong, client-facing number. Recompute the prior
-      // period's net profit from its prior-window totals (snap.previous) and take
-      // the real delta.
-      const prevRevenue = prev.revenue;
-      const prevNet = periodProfit(
-        { revenue: prevRevenue, adCost: prevCost, conversions: prevConv, months },
-        costModel
-      ).netProfit;
-      profitDelta = prevNet !== 0 ? (pp.netProfit - prevNet) / Math.abs(prevNet) : 0;
-    } else {
-      profit = c.profit;
-      poas = c.cost > 0 ? c.profit / c.cost : 0;
-    }
-
-    snaps[p] = {
-      label: s.periodLabel,
-      current: {
-        revenue: c.revenue,
-        roas: c.roas,
-        pno: c.pno,
-        conversions: c.conversions,
-        cost: c.cost,
-        visits: c.visits,
-        cpa: cpaValue,
-        convRate: c.cr,
-        profit,
-        poas,
-        // Live CTR/CPC — derived by totalsOf from the daily impressions/clicks the
-        // Ads sync now carries (0 on the sample spine, but only rendered when live).
-        ctr: c.ctr,
-        cpc: c.cpc,
-        ...(profitMargin !== undefined ? { profitMargin } : {}),
-      },
-      delta: {
-        revenue: s.delta.revenue,
-        pno: s.delta.pno,
-        conversions: s.delta.conversions,
-        cost: s.delta.cost,
-        visits: s.delta.visits,
-        convRate: s.delta.cr,
-        cpa: cpaDelta,
-        profit: profitDelta,
-      },
-    };
-  }
+  // Direction 1: the tile model — tiles + per-period snaps + goal-attainment track
+  // record — is assembled by the ONE shared helper the client-facing shared report
+  // (createSharedReport) also uses, so the emailed link can never drift from these
+  // in-app numbers. The page keeps its e-shop extras (break-even, LTV/stock) below.
+  const { tiles, snaps, attainment, ref12 } = assembleReport({
+    dataset,
+    type: project.type,
+    live: resolved.live,
+    costModel,
+  });
 
   // Direction 2: the tenant's margin-derived break-even, surfaced on the report's
   // cost-model strip as the target the profit line is judged against. Gross (1/margin)
@@ -181,15 +86,6 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     costModel && ref12
       ? deriveBreakEven(costModel, { adCost: ref12.adCost, conversions: ref12.conversions, months: PERIOD_MONTHS["12m"] })
       : null;
-
-  // Goal-attainment track record — did we hit the monthly revenue goal in the last
-  // complete months? Revenue-goal based, so surfaced on e-shop reports only (the
-  // leadgen/local/content tile sets are lead-first and don't quote a revenue goal).
-  // Period-independent, so it reads the same whatever window the user selects.
-  const attainment =
-    project.type === "eshop"
-      ? monthlyAttainmentHistory(dataset.daily, dataset.goals.monthlyRevenue)
-      : [];
 
   // Direction 1: the project's persisted recaps per period, resolved server-side so
   // the narrative renders a stored recap on load instead of regenerating every visit.

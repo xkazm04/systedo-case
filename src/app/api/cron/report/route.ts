@@ -72,13 +72,19 @@ export async function GET(request: Request) {
 
       const accountName = account?.customerName ?? project?.name ?? "Ukázkový účet";
       // Client report brand defaults to the project (client) brand, not the vendor.
-      const token = await createSharedReport(tenant, accountName, {
-        name: project?.name,
-        accent: project?.accentColor,
-        // R08: carry the client logo so a cron-generated report is branded like the
-        // manual share (which already captures it).
-        logo: project?.logoUrl,
-      });
+      const token = await createSharedReport(
+        tenant,
+        accountName,
+        {
+          name: project?.name,
+          accent: project?.accentColor,
+          // R08: carry the client logo so a cron-generated report is branded like the
+          // manual share (which already captures it).
+          logo: project?.logoUrl,
+        },
+        // Direction 1: ground the Monthly Report tile-model snapshot on the linked project.
+        project ?? undefined
+      );
       if (!token) {
         // Claimed but nothing to send — release so a later run today can retry
         // once an evaluation exists.

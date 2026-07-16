@@ -31,11 +31,13 @@ export async function POST(request: Request) {
   const accountName = (await getAdsConnection(userId))?.customerName ?? project?.name ?? "Ukázkový účet";
 
   // Default the client report's brand to the project (client) brand, not the vendor.
-  const token = await createSharedReport(tenant, accountName, {
-    name: project?.name,
-    accent: project?.accentColor,
-    logo: project?.logoUrl,
-  });
+  // The project also grounds the Monthly Report tile-model snapshot (Direction 1).
+  const token = await createSharedReport(
+    tenant,
+    accountName,
+    { name: project?.name, accent: project?.accentColor, logo: project?.logoUrl },
+    project ?? undefined
+  );
   if (!token) {
     return Response.json(
       { error: "Nejdřív vyhodnoťte celé portfolio (tlačítko „Vyhodnotit portfolio“)." },
