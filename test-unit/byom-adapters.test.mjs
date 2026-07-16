@@ -126,7 +126,10 @@ test("runByom gemini: native responseSchema JSON + 429 is a user quota fault", a
     const out = await runByom({ vendor: "gemini", apiKey: "g-key" }, CALL);
     assert.deepEqual(out.parsed, { n: 3 });
     assert.equal(out.usage.totalTokens, 3);
-    assert.match(ok.calls[0].url, /:generateContent\?key=/);
+    // The key must travel in the header, never the URL (URLs land in proxy/APM logs).
+    assert.match(ok.calls[0].url, /:generateContent$/);
+    assert.ok(!ok.calls[0].url.includes("key="));
+    assert.equal(ok.calls[0].opts.headers["x-goog-api-key"], "g-key");
   } finally {
     ok.restore();
   }

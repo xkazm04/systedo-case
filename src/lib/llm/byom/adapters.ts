@@ -273,9 +273,13 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
 async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   const model = byomModel("gemini", call.tier, byom.model, byom.fastModel);
   const base = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta";
-  const res = await fetch(`${base}/models/${model}:generateContent?key=${encodeURIComponent(byom.apiKey)}`, {
+  // The key travels in the x-goog-api-key HEADER (equally supported by the REST
+  // API), never the `?key=` query param: URLs land in proxy/gateway/APM logs and
+  // error messages, so a query-string key would leak the user's plaintext secret
+  // to every layer that logs request URLs. Headers don't.
+  const res = await fetch(`${base}/models/${model}:generateContent`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "x-goog-api-key": byom.apiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: call.system }] },
       contents: [{ parts: [{ text: call.prompt }] }],
