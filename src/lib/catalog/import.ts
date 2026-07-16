@@ -8,7 +8,7 @@
  *  (Baselinker, ShipMonk, Skladon, ERP) IS authoritative for stock/velocity/margin,
  *  so it overwrites those too. Non-product offerings (plans/services) are untouched. */
 import type { Offering, OfferingSource, ProductOffering } from "./offering";
-import { isProduct } from "./offering";
+import { isProduct, MAX_OFFERINGS } from "./offering";
 
 /** Sources authoritative for warehouse-grade fields (stock, velocity, COGS margin). */
 const WAREHOUSE_SOURCES = new Set<OfferingSource>(["baselinker", "shipmonk", "skladon", "erp"]);
@@ -72,6 +72,10 @@ function overlay(existing: ProductOffering, incoming: ProductOffering, now: stri
 export interface MergeResult {
   next: Offering[];
   diff: CatalogDiff;
+  /** Honest, user-facing notices about the merge — currently the catalog-cap notice
+   *  when the merged result had to be trimmed to MAX_OFFERINGS. Empty when nothing was
+   *  dropped. The route surfaces these alongside the parser's warnings. */
+  warnings: string[];
 }
 
 export function mergeCatalog(
@@ -84,7 +88,11 @@ export function mergeCatalog(
   const currentProducts = current.filter(isProduct);
   const byKey = new Map(currentProducts.map((p) => [keyOf(p), p]));
 
-  const merged: ProductOffering[] = [];
+  // Split matched (existing) rows from brand-new ones so the cap rule below is
+  // "existing-first": on overflow we drop the NEWEST feed additions, never the user's
+  // already-curated catalog.
+  const matched: ProductOffering[] = [];
+  const added: ProductOffering[] = [];
   const incomingKeys = new Set<string>();
   const diff: CatalogDiff = {
     incoming: incoming.length,
@@ -105,7 +113,7 @@ export function mergeCatalog(
       diff.added++;
       if (diff.sampleAdded.length < 5) diff.sampleAdded.push(feed.name);
       // A brand-new product with no feed availability defaults to active.
-      merged.push(feed.active === undefined ? { ...feed, active: true } : feed);
+      added.push(feed.active === undefined ? { ...feed, active: true } : feed);
     } else {
       const next = overlay(existing, feed, now);
       if (differs(existing, next)) {
@@ -114,20 +122,38 @@ export function mergeCatalog(
       } else {
         diff.unchanged++;
       }
-      merged.push(next);
+      matched.push(next);
     }
   }
 
   const leftover = currentProducts.filter((p) => !incomingKeys.has(keyOf(p)));
   diff.removed = leftover.length;
 
+  // Order matters for the cap: existing-derived rows first (non-products, matched
+  // updates, then — under merge — untouched leftovers), brand-new feed rows last, so a
+  // trim to MAX_OFFERINGS sheds the newest additions before any curated row.
   const next: Offering[] =
     strategy === "replace"
-      ? [...nonProducts, ...merged]
-      : [...nonProducts, ...merged, ...leftover];
+      ? [...nonProducts, ...matched, ...added]
+      : [...nonProducts, ...matched, ...leftover, ...added];
 
   // "removed" only actually drops rows under replace; report 0 under merge.
   if (strategy === "merge") diff.removed = 0;
 
-  return { next, diff };
+  // THE catalog cap, applied at THIS one boundary on the MERGED (persisted) result, so
+  // the import can never persist more than a later PUT would keep. Honest warning: how
+  // many were dropped and which rule.
+  const warnings: string[] = [];
+  if (next.length > MAX_OFFERINGS) {
+    const dropped = next.length - MAX_OFFERINGS;
+    // Dropped rows are the tail = newest additions first; reflect that in the diff count.
+    const droppedAdded = Math.min(dropped, added.length);
+    diff.added -= droppedAdded;
+    next.length = MAX_OFFERINGS; // trim tail in place
+    warnings.push(
+      `Katalog by přesáhl limit ${MAX_OFFERINGS} položek; ${dropped} nejnovějších položek z feedu nebylo uloženo (stávající položky zůstávají).`
+    );
+  }
+
+  return { next, diff, warnings };
 }

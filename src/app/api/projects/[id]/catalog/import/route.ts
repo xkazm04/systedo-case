@@ -5,7 +5,7 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { listOfferings, saveOfferings } from "@/lib/catalog/store";
 import { sanitizeOfferings } from "@/lib/catalog/validate";
-import { isProduct, type ProductOffering } from "@/lib/catalog/offering";
+import { isProduct, MAX_FEED_ITEMS, type ProductOffering } from "@/lib/catalog/offering";
 import { feedItemsToOfferings, parseFeed, sourceForFormat, type FeedFormat } from "@/lib/catalog/feed";
 import { mergeCatalog, type ImportStrategy } from "@/lib/catalog/import";
 import { FeedFetchError, fetchFeed } from "@/lib/catalog/feed-fetch";
@@ -14,8 +14,6 @@ import { payloadTooLarge, tooLarge } from "@/lib/ai/rate-limit";
 import { emitProjectActivity } from "@/lib/activity/emit";
 import { apiError, asString, badRequest, readJson, trimmedString } from "@/lib/api/route-utils";
 
-/** Guard against a pathological paste (~12 MB of text). */
-const MAX_CONTENT = 12_000_000;
 const FORMATS: FeedFormat[] = ["heureka", "google", "csv"];
 const STRATEGIES: ImportStrategy[] = ["merge", "replace"];
 
@@ -51,7 +49,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     content = asString(body?.content);
   }
   if (!content.trim()) return badRequest("Vložte obsah feedu nebo URL.", "missing-field");
-  if (content.length > MAX_CONTENT) return apiError(413, "Feed je příliš velký.", "content-too-long");
+  // ONE content-size limit for both paths. A pasted body is already rejected above by
+  // tooLarge(CATALOG_MAX_BODY_BYTES); this same ceiling now also bounds a URL-fetched
+  // feed (whose transport cap in feed-fetch is a separate lower-level zip-bomb guard),
+  // replacing the old dead 12 MB check that sat above the 6 MB body guard.
+  if (content.length > CATALOG_MAX_BODY_BYTES) return apiError(413, "Feed je příliš velký.", "content-too-long");
 
   const format = FORMATS.includes(body?.format as FeedFormat) ? (body!.format as FeedFormat) : undefined;
   const strategy = STRATEGIES.includes(body?.strategy as ImportStrategy)
@@ -69,19 +71,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // preserveActiveTriState: a feed that's SILENT on availability must NOT re-activate a
   // manually-paused SKU — sanitize leaves `active` unset so mergeCatalog's overlay keeps
   // the existing paused/active state (see validate.SanitizeOpts, feed.feedItemsToOfferings).
+  // maxItems: MAX_FEED_ITEMS so sanitize doesn't silently pre-clip the feed below the
+  // catalog cap — the one honest cap is applied at merge (see mergeCatalog).
   const incoming = sanitizeOfferings(
     feedItemsToOfferings(parsed.items, id, sourceForFormat(parsed.format), now),
     id,
     now,
-    { preserveActiveTriState: true }
+    { preserveActiveTriState: true, maxItems: MAX_FEED_ITEMS }
   ).filter(isProduct) as ProductOffering[];
 
   // Merge against the STORED catalog (not the demo seed) so a real import stays clean.
   const current = (await listOfferings(uid, id)) ?? [];
-  const { next, diff } = mergeCatalog(current, incoming, strategy, now);
+  const { next, diff, warnings: mergeWarnings } = mergeCatalog(current, incoming, strategy, now);
+  const warnings = [...parsed.warnings, ...mergeWarnings];
 
   if (!apply) {
-    return Response.json({ ok: true, applied: false, format: parsed.format, warnings: parsed.warnings, diff });
+    return Response.json({ ok: true, applied: false, format: parsed.format, warnings, diff });
   }
 
   await saveOfferings(uid, id, next);
@@ -93,5 +98,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     detail: `${parsed.format} · ${next.length} položek`,
     actor: "Vy",
   });
-  return Response.json({ ok: true, applied: true, format: parsed.format, warnings: parsed.warnings, diff, offerings: next, count: next.length });
+  return Response.json({ ok: true, applied: true, format: parsed.format, warnings, diff, offerings: next, count: next.length });
 }

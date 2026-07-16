@@ -9,6 +9,19 @@
  *  sample.ts) so existing inventory/creative modules keep working via `toProduct`. */
 import type { Product } from "./sample";
 
+/** THE catalog cap — the single rule for "how big a project's catalog may get".
+ *  Enforced authoritatively at ONE boundary: mergeCatalog caps the MERGED result to
+ *  this (existing rows kept, newest feed additions dropped, with an honest warning), and
+ *  sanitizeOfferings bounds a PUT payload to the same number. Because merge caps the
+ *  persisted set, a later PUT re-sanitize can never silently drop rows the import kept. */
+export const MAX_OFFERINGS = 500;
+
+/** Feed-ingest safety ceiling (≥ MAX_OFFERINGS): a hard bound on how many rows the
+ *  parser materializes and sanitize normalizes, so a giant paste can't blow up memory.
+ *  It is NOT the catalog cap — it sits well above it precisely so it does NOT silently
+ *  pre-clip a feed below the cap; the honest catalog cap is applied once, at merge. */
+export const MAX_FEED_ITEMS = 5000;
+
 export type OfferingKind = "product" | "plan" | "service";
 
 /** The online/local axis the whole design hangs on: is the offering shipped/served

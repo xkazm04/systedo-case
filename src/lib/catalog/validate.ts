@@ -1,17 +1,17 @@
 /** Sanitize offerings coming from the client before they're persisted. This is the
  *  trust boundary for the catalog store: bound array length + every string, clamp
  *  numbers, coerce enums to valid values, drop malformed rows. Framework-free. */
-import type {
-  Offering,
-  OfferingKind,
-  OfferingNature,
-  OfferingSource,
-  PlanOffering,
-  ProductOffering,
-  ServiceOffering,
+import {
+  MAX_FEED_ITEMS,
+  MAX_OFFERINGS,
+  type Offering,
+  type OfferingKind,
+  type OfferingNature,
+  type OfferingSource,
+  type PlanOffering,
+  type ProductOffering,
+  type ServiceOffering,
 } from "./offering";
-
-const MAX_OFFERINGS = 500;
 const KINDS = new Set<OfferingKind>(["product", "plan", "service"]);
 const NATURES = new Set<OfferingNature>(["online", "local", "hybrid"]);
 const SOURCES = new Set<OfferingSource>([
@@ -47,6 +47,11 @@ export interface SanitizeOpts {
    *  The invariant `active: boolean` is restored by mergeCatalog (overlay preserves the
    *  existing value; a brand-new product defaults to active). */
   preserveActiveTriState?: boolean;
+  /** Array-length cap. Defaults to MAX_OFFERINGS (the catalog cap — the PUT trust
+   *  boundary). The import route raises this to MAX_FEED_ITEMS so sanitize does NOT
+   *  silently pre-clip feed rows below the catalog cap; the single honest cap is then
+   *  applied once, on the MERGED result, by mergeCatalog. */
+  maxItems?: number;
 }
 
 /** Resolve `active` honoring the tri-state option. In strict mode an unknown value
@@ -140,8 +145,9 @@ export function sanitizeOfferings(
   opts: SanitizeOpts = {}
 ): Offering[] {
   if (!Array.isArray(input)) return [];
+  const cap = Math.min(opts.maxItems ?? MAX_OFFERINGS, MAX_FEED_ITEMS);
   const out: Offering[] = [];
-  for (let i = 0; i < input.length && out.length < MAX_OFFERINGS; i++) {
+  for (let i = 0; i < input.length && out.length < cap; i++) {
     const item = input[i];
     if (item && typeof item === "object") {
       const o = sanitizeOne(item as Raw, projectId, i, now, opts);

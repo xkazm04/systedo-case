@@ -6,7 +6,7 @@
  *  Dependency-free: feed XML is flat and machine-generated, so a scoped block
  *  extractor (not a general XML parser) is robust and keeps the project's zero-dep
  *  spirit. Pure — no network, no Date; the import API supplies the bytes + `now`. */
-import type { OfferingSource, ProductOffering } from "./offering";
+import { MAX_FEED_ITEMS, type OfferingSource, type ProductOffering } from "./offering";
 
 export type FeedFormat = "heureka" | "google" | "csv";
 
@@ -34,8 +34,10 @@ export interface ParsedFeed {
   warnings: string[];
 }
 
-/** Hard cap so a giant paste can't blow up memory / the store. */
-const MAX_ITEMS = 2000;
+/** Ingest safety ceiling (memory guard) — NOT the catalog cap. It sits well above
+ *  MAX_OFFERINGS so it never silently pre-clips a feed below the catalog cap; the honest
+ *  catalog cap (MAX_OFFERINGS) is applied once, on the merged result, by mergeCatalog. */
+const MAX_ITEMS = MAX_FEED_ITEMS;
 
 /** The offering source a parsed format maps to. */
 export function sourceForFormat(format: FeedFormat): OfferingSource {
@@ -248,7 +250,9 @@ export function parseFeed(text: string, format?: FeedFormat): ParsedFeed {
   const dropped = raw.length - items.length;
   if (dropped > 0) warnings.push(`Vynecháno ${dropped} řádků bez ID i názvu.`);
   if (items.length > MAX_ITEMS) {
-    warnings.push(`Feed má ${items.length} položek; importuje se prvních ${MAX_ITEMS}.`);
+    // Memory safety, not the catalog cap: say exactly what happened. The catalog cap
+    // (MAX_OFFERINGS) is applied later, on the merged result, with its own warning.
+    warnings.push(`Feed je příliš velký (${items.length} položek); zpracuje se prvních ${MAX_ITEMS}.`);
     items = items.slice(0, MAX_ITEMS);
   }
   if (items.length === 0) warnings.push("Feed neobsahuje žádné použitelné položky.");
