@@ -12,7 +12,12 @@ export async function requireUser(): Promise<{ userId: string } | Response> {
 }
 
 /** A signed-in user on the BYOM plan, or a 401/403 Response. Managing keys
- *  requires the entitlement; reads and deletes do not (see the individual routes). */
+ *  requires the entitlement; reads and deletes do not (see the individual routes).
+ *
+ *  DEV BYPASS: in NON-production environments the `BYOM_MATRIX=true` env flag
+ *  unlocks the entitlement for every signed-in user (byomUnlocked → the pure
+ *  devByomUnlockActive gate in plans.ts). It is hard-gated off under
+ *  NODE_ENV=production, so it cannot void the paid plan in a real deployment. */
 export async function requireByomUser(): Promise<{ userId: string } | Response> {
   const u = await requireUser();
   if (u instanceof Response) return u;

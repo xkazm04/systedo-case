@@ -9,7 +9,7 @@
  *  `plans.ts` so the UI can import them without firebase-admin. */
 import { firestore } from "@/lib/firebase";
 import { LOCAL_DB } from "@/lib/local-mode";
-import { PLANS, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
+import { PLANS, devByomUnlockActive, planHasByom, type Plan, type UsageKind, type UsageStatus } from "@/lib/plans";
 
 interface UsageDoc {
   plan?: Plan;
@@ -49,11 +49,13 @@ export async function getUserPlan(userId: string): Promise<Plan> {
   return (snap.data() as UsageDoc)?.plan ?? "free";
 }
 
-/** BYOM (and the per-operation matrix) is unlocked for a byom-plan user, OR in any
- *  environment with the `BYOM_MATRIX=true` dev flag set — the "development flag OR
- *  billing plan" gate. Reads env, so server-only (kept out of the pure plans.ts). */
+/** BYOM (and the per-operation matrix) is unlocked for a byom-plan user, OR — in
+ *  NON-production only — with the `BYOM_MATRIX=true` dev flag set. The flag is a
+ *  development convenience and is hard-gated off under NODE_ENV=production (see
+ *  devByomUnlockActive), so it can never silently void the paid entitlement in a
+ *  real deployment. Reads env, so server-only (the gate itself is pure plans.ts). */
 export function byomUnlocked(plan: Plan): boolean {
-  return planHasByom(plan) || process.env.BYOM_MATRIX === "true";
+  return planHasByom(plan) || devByomUnlockActive(process.env);
 }
 
 /**
