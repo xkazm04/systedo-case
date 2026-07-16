@@ -1,29 +1,30 @@
 {
-  "titleTag": "Jak skladovat ořechy, aby vydržely déle",
-  "metaDescription": "Zjistěte, jak správně skladovat ořechy – teplota, vlhkost i obaly, které zabrání žluknutí. Praktické tipy pro dlouhou trvanlivost a chuť.",
+  "titleTag": "Jak správně skladovat ořechy: praktický návod",
+  "metaDescription": "Zjistěte, jak skladovat ořechy, aby zůstaly čerstvé a chutné co nejdéle. Tipy na teplotu, vlhkost, obaly a rozpoznání zkažených ořechů.",
   "outline": [
     {
-      "heading": "Proč ořechy žluknou a co tomu brání",
+      "heading": "Proč je správné skladování ořechů důležité",
       "points": [
-        "Vysoký obsah tuků a citlivost na oxidaci",
-        "Vliv světla, tepla a vzdušné vlhkosti",
-        "Rozdíly mezi loupanými a neloupanými ořechy"
+        "Ořechy obsahují tuky náchylné k oxidaci a žluknutí",
+        "Nesprávné skladování zkracuje trvanlivost a mění chuť",
+        "Vliv světla, vzduchu, tepla a vlhkosti na kvalitu"
       ]
     },
     {
-      "heading": "Ideální podmínky pro skladování",
+      "heading": "Nejlepší způsoby skladování podle typu ořechů",
       "points": [
-        "Optimální teplota a vlhkost prostředí",
-        "Skladování v lednici vs. mrazáku",
-        "Vhodné obaly – vzduchotěsné nádoby a sáčky se zipem"
+        "Skladování ve spíži vs. v lednici vs. v mrazáku",
+        "Vhodné obaly: vzduchotěsné nádoby, sklenice, sáčky se zipem",
+        "Rozdíly mezi loupanými a neloupanými ořechy",
+        "Doporučená trvanlivost jednotlivých druhů (vlašské, mandle, kešu)"
       ]
     },
     {
-      "heading": "Jak poznat zkažené ořechy a prodloužit trvanlivost",
+      "heading": "Jak poznat zkažené ořechy a časté chyby",
       "points": [
-        "Typické znaky žluklosti – vůně, chuť, barva",
-        "Doporučená doba skladování podle druhu ořechu",
-        "Tipy pro nákup v menším množství a rotaci zásob"
+        "Známky žluknutí: zápach, hořká chuť, změna barvy",
+        "Chyby jako skladování na slunci nebo v teple kuchyně",
+        "Kdy ořechy raději vyhodit a proč riziko nepodceňovat"
       ]
     }
   ]

@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "B · Konkrétní benefit v nadpisu",
-      "hypothesis": "Nahrazení obecného popisu produktu konkrétním benefitem (úspora času, přehled nad projekty) zvýší konverzní poměr oproti obecné kontrolní variantě.",
-      "headline": "Mějte všechny projekty a úkoly pod kontrolou na jednom místě",
+      "label": "Konkrétní přínos v čísle úspor času",
+      "hypothesis": "Headline zdůrazňující konkrétní přínos (úspora času při plánování) zvýší konverzi oproti obecnému popisu produktu.",
+      "headline": "Přehled o všech projektech na jednom místě – bez chaosu v úkolech",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní přínos místo obecného popisu produktu rychleji odpoví na otázku 'co z toho budu mít'."
+      "rationale": "Konkrétní slib řešení bolesti (chaos v úkolech) je přesvědčivější než obecný popis funkcí."
     },
     {
-      "label": "C · Sociální důkaz a důvěra",
-      "hypothesis": "Přidání důkazu, že nástroj používají jiné týmy a firmy, sníží vnímané riziko vyzkoušení a zvýší konverzní poměr oproti kontrole bez sociálního důkazu.",
+      "label": "Sociální důkaz a důvěra",
+      "hypothesis": "Přidání důkazu, že nástroj používají jiné týmy/firmy, zvýší důvěryhodnost a konverzi oproti čistě produktovému sdělení kontroly.",
       "headline": "Nástroj pro řízení projektů, kterému věří stovky týmů",
-      "primaryCTA": "Zjistit, jak nám ostatní důvěřují",
-      "rationale": "Sociální důkaz snižuje nejistotu u nových návštěvníků a je jiný typ páky než pouhý popis funkcí."
+      "primaryCTA": "Chci to vidět v akci",
+      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí vyzkoušet nový nástroj."
     },
     {
-      "label": "D · Jednoduchost a rychlé nasazení",
-      "hypothesis": "Zdůraznění snadného a rychlého nastavení nástroje na úkoly sníží vnímanou bariéru vstupu a zvýší konverzní poměr oproti obecné kontrolní variantě.",
-      "headline": "Nastavte projektové řízení za pár minut, bez zaškolování",
-      "primaryCTA": "Začít během chvíle",
-      "rationale": "Cílí na obavu z komplikovaného zavádění softwaru, kterou obecný popis produktu neřeší."
+      "label": "Rychlé zahájení bez bariér",
+      "hypothesis": "Zdůraznění snadného a rychlého startu (bez nutnosti složitého nastavení) sníží vnímanou bariéru vstupu a zvýší konverzi oproti obecné variantě.",
+      "headline": "Zorganizujte první projekt za 5 minut",
+      "primaryCTA": "Začít hned teď",
+      "rationale": "Nízká vnímaná časová a technická náročnost motivuje k okamžité akci, na rozdíl od obecného popisu produktu."
     }
   ]
 }

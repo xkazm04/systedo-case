@@ -45,6 +45,27 @@ const RATES: Record<string, Rate> = {
   "gpt-4o-mini": { inPerMTok: 0.15, outPerMTok: 0.6 },
 };
 
+/** Sum two usages into one — used when a call is repaired (a second metered
+ *  re-prompt): both real calls must be reflected, not just the latest. Fields are
+ *  plain counters, so they add; `costUsd` (a provider-reported real dollar figure)
+ *  is summed only when BOTH calls report one — a single missing figure would make a
+ *  half-real total look authoritative, so we drop to undefined and let the estimate
+ *  stand. Undefined operands pass the other through unchanged. */
+export function addUsage(
+  a: TokenUsage | undefined,
+  b: TokenUsage | undefined
+): TokenUsage | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const bothCost = a.costUsd != null && b.costUsd != null;
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    totalTokens: a.totalTokens + b.totalTokens,
+    ...(bothCost ? { costUsd: (a.costUsd ?? 0) + (b.costUsd ?? 0) } : {}),
+  };
+}
+
 /** Estimated USD cost for a call, or 0 when the model has no metered rate. */
 export function estimateCostUsd(model: string, usage: TokenUsage): number {
   const rate = RATES[model];

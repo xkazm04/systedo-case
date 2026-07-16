@@ -1,9 +1,9 @@
 {
-  "summary": "Kohorta 2025-03 je jednoznačně nejhorší: CAC vzrostl na 2 100 Kč, LTV kleslo na 2 200 Kč (LTV:CAC jen 1,0×) a návratnost přesahuje horizont – akvizice se vůbec nevrátí. Retenční křivka (M0 100 % → M1 70 % → M2 48 % → M3 31 %) ukazuje prudký raný odpad, který se zpomaluje, ale zůstává hluboký. Kanálový rozpad odhaluje viníka: Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 z 240 akvizic) kohortu táhne pod nulu, zatímco Organic (LTV:CAC 6,0×, 90 akvizic) je jasně nadprůměrný. Trend napříč třemi kohortami je jednosměrně negativní – CAC roste, LTV klesá, retence se propadá.",
+  "summary": "Ekonomika kohort se meziměsíčně zhoršuje: LTV:CAC kleslo z 4,5× (2025-01) na 2,4× (2025-02) až na 1,0× (2025-03), návratnost CAC se prodloužila ze 4 měsíců na stav, kdy se u nejnovější kohorty vůbec nevrací. M3 retence klesá stejným tempem (62 % → 48 % → 31 %) a retenční křivka 2025-03 ukazuje prudký pád hned v prvním měsíci (M0 100 % → M1 70 %, tedy -30 p.b.) s dalším strmým poklesem do M2 (48 %) a M3 (31 %), což signalizuje problém s early-stage aktivací, ne jen s dlouhodobým churnem. V rámci kohorty 2025-03 táhne výkon dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic zdarma) — blended čísla kohorty tak maskují, že placený kanál je ztrátový.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit nebo pozastavit akvizici z Google Ads (LTV:CAC 0,8×) a realokovat rozpočet do Organic kanálu (LTV:CAC 6,0×), čímž se zvedne blended LTV:CAC nad hranici udržitelnosti.",
+  "recommendation": "Okamžitě omezit nebo pozastavit akvizici přes Google Ads (LTV:CAC 0,8×) a přesměrovat rozpočet i kapacitu na škálování Organic kanálu (LTV:CAC 6,0×), dokud se u placeného kanálu nezlepší CAC nebo M1 aktivace.",
   "risks": [
-    "Bez zásahu se trend napříč kohortami (rostoucí CAC, klesající LTV a retence) pravděpodobně prohloubí i v dalších měsících.",
-    "Prudký pokles retence mezi M0 a M1 naznačuje problém v onboardingu, nejen v kvalitě akvizičního kanálu."
+    "Data jsou blended na úrovni kohorty 2025-01 a 2025-02, takže se u nich může skrývat stejný kanálový problém jako u 2025-03, ale bez rozpadu to nelze potvrdit.",
+    "LTV u 2025-03 je zčásti modelované (retence po M3 dopočítaná), takže reálné LTV:CAC 1,0× může být ještě horší, pokud se pokles zrychlí."
   ]
 }

@@ -14,7 +14,7 @@ import type { AiMeta, AiResponse } from "../ai-types";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
-import { estimateCostUsd, type TokenUsage } from "./cost";
+import { addUsage, estimateCostUsd, type TokenUsage } from "./cost";
 import {
   byomModel,
   claudeModelTag,
@@ -325,7 +325,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
             1
           );
           parsed = second.parsed;
-          usage = second.usage ?? usage;
+          // A repaired call made TWO real metered calls — report their COMBINED usage
+          // (tokens + cost), not just the second's. "Latest wins" here undercounted
+          // telemetry + on-screen cost by a whole paid call on every repair.
+          usage = addUsage(usage, second.usage);
           totalAttempts += second.attempts;
           repaired = true;
         } catch {

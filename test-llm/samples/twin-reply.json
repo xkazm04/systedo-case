@@ -1,16 +1,15 @@
 {
-  "reply": "Dobrý den, pane [PŘÍJMENÍ], termín na revizi elektroinstalace v kanceláři o rozloze cca 200 m² Vám rádi navrhneme. Pro upřesnění rozsahu a nacenění nás prosím ještě doplňte pár informací.",
+  "reply": "Dobrý den, děkujeme za poptávku – rádi se domluvíme na termínu revize elektroinstalace ve Vaší kanceláři (cca 200 m²). Abychom Vám mohli nabídnout konkrétní termín a rozsah prací, potřebovali bychom ještě pár doplňujících informací. Ozveme se Vám s návrhem termínu, jakmile je budeme mít.",
   "questions": [
-    "O jaký typ revize se jedná (pravidelná/výchozí) a kdy proběhla poslední revize?",
-    "Kolik je v prostoru rozvaděčů a jaký je přibližný počet obvodů/zásuvkových a světelných okruhů?",
-    "Jaký termín by Vám vyhovoval a je prostor přístupný i mimo pracovní dobu?"
+    "Jaké je přesné datum poslední revize elektroinstalace v této kanceláři?",
+    "Jde o revizi pravidelnou (periodickou), nebo je požadovaná z jiného důvodu (např. kolaudace, změna nájemce)?",
+    "Jaká je adresa objektu a preferujete termín v konkrétním týdnu, nebo je pro Vás rozhodující co nejdřívější volný termín?"
   ],
-  "confidence": 40,
+  "confidence": 55,
   "risks": [
-    "Nebyl potvrzen konkrétní volný termín – v podkladech není kalendář dostupnosti.",
-    "Nebyla uvedena cena ani cenový odhad – nutno doplnit dle ceníku/kalkulace před odesláním nabídky.",
-    "Chybí příjmení odesílatele – nutno doplnit oslovení dle skutečného kontaktu.",
-    "Neověřeno, zda 200 m² zahrnuje i vedlejší prostory (sklad, sociální zařízení) – může ovlivnit rozsah revize."
+    "Nemáme jméno/příjmení odesílatele – oslovení příjmením podle hlasu značky nelze aplikovat, dokud se nezjistí.",
+    "Zpráva neobsahuje žádný konkrétní termín ani cenu z podkladů – nebylo nic slíbeno, je potřeba doplnit reálnou dostupnost kapacit před odesláním.",
+    "Ověřit, zda 200 m² odpovídá standardní kategorii revize, nebo je nutná individuální kalkulace rozsahu."
   ],
-  "toneNotes": "Oslovení vykáním s příjmením (placeholder, nutno doplnit), na dotaz reagováno hned v první větě, bez slibu termínu či ceny mimo podklady."
+  "toneNotes": "Odpověď reaguje na dotaz hned v první větě (potvrzení zájmu o termín revize). Vykání dodrženo v celé zprávě. Oslovení příjmením nebylo možné použít, protože jméno klienta není v podkladech k dispozici – ponechán neutrální pozdrav 'Dobrý den'. Žádný termín ani cena nebyly slíbeny."
 }
