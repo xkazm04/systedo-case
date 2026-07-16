@@ -511,6 +511,7 @@ export default function CampaignsClient({
           cached={cached}
           changesById={changesById}
           onAnalyze={(id) => analyze("campaign", id, period)}
+          onRefineReport={(id, note) => void analyze("campaign", id, period, note)}
           period={period}
           fmtMoney={fmtMoney}
           campaignSeries={campaignSeries}
@@ -670,6 +671,8 @@ export default function CampaignsClient({
               history={histories["overall"]}
               cached={cached["overall"]}
               stale={staleKeys.includes("overall")}
+              onRefine={(note) => void analyze("overall", null, period, note)}
+              refining={overallBusy}
             />
           </div>
         )}

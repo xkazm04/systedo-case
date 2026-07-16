@@ -20,6 +20,7 @@ import { generateStructured } from "../../llm";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { clamp, txt } from "./_shared";
 import { asRecord, NOT_OBJECT_VIOLATION } from "./_validate";
+import { refineLines } from "./refine";
 
 function socialSystem(brand?: string): string {
   const who = brand ? `pro značku: ${brand}` : "pro značku, jejíž téma a tón dostaneš v zadání";
@@ -47,7 +48,8 @@ function buildSocialPrompt(
   tone: Tone,
   platforms: SocialPlatform[],
   grounding?: string,
-  voice?: TwinReplyVoice
+  voice?: TwinReplyVoice,
+  refine?: string
 ): string {
   return [
     "Napiš příspěvky na sociální sítě pro tyto platformy.",
@@ -65,6 +67,9 @@ function buildSocialPrompt(
     ),
     "",
     `Vrať pole „posts", jeden objekt { platform, content } pro každou platformu. platform musí být jedna z: ${platforms.join(", ")}.`,
+    // A re-run steer rides the USER prompt only (like every other refine-enabled tool),
+    // so the SYSTEM persona + schema — the gate/golden fingerprint — stay byte-identical.
+    ...refineLines(refine),
   ].join("\n");
 }
 
@@ -142,6 +147,8 @@ export interface SocialSkillInput {
    *  writes. Resolved server-side from the project's twin (lib/twin/load) and
    *  injected into the USER prompt only, so the golden holds. */
   voice?: TwinReplyVoice;
+  /** Optional free-text re-run steer, appended to the USER prompt only (Direction 3). */
+  refine?: string;
 }
 
 /** The deterministic per-platform drafts — the demo fallback, and the fill for any
@@ -199,7 +206,7 @@ export const socialSkill: Skill<SocialSkillInput, SocialDraftResult> = {
   system: (i) => socialSystem(i.brand),
   schema: SOCIAL_SCHEMA,
   temperature: 0.9,
-  buildPrompt: (i) => buildSocialPrompt(i.topic, i.tone, i.platforms, i.grounding, i.voice),
+  buildPrompt: (i) => buildSocialPrompt(i.topic, i.tone, i.platforms, i.grounding, i.voice, i.refine),
   normalize: normalizeSocial,
   validate: validateSocial,
   demo: (i) => ({ posts: socialFallback(i) }),

@@ -436,6 +436,8 @@ export interface SocialDraftRequest {
   brand?: string;
   /** grounding hint — the server resolves + tenancy-checks it */
   projectId?: string;
+  /** free-text re-run steer, appended to the USER prompt only (Direction 3) */
+  refine?: string;
 }
 
 /** Validate a social-draft request. Mirrors the old /api/social/draft `parse()` (topic
@@ -460,6 +462,8 @@ export function validateSocialRequest(input: unknown, locale: SupportedLocale = 
   if (brand) value.brand = brand.slice(0, 120);
   const projectId = str(o.projectId);
   if (projectId) value.projectId = projectId.slice(0, 128);
+  const refine = parseRefineNote(o);
+  if (refine) value.refine = refine;
   return { valid: true, value };
 }
 
@@ -1013,14 +1017,19 @@ export function validateEvaluationRequest(input: unknown, locale: SupportedLocal
   if (!isCampaignPeriod(o.period)) {
     return { valid: false, error: t(locale, "Neplatné období.", "Invalid period.") };
   }
+  const refine = parseRefineNote(o);
   if (scope === "campaign") {
     const campaignId = str(o.campaignId);
     if (!campaignId) {
       return { valid: false, error: t(locale, "Chybí ID kampaně.", "Missing campaign ID.") };
     }
-    return { valid: true, value: { scope, campaignId, period: o.period } };
+    const value: EvaluationRequest = { scope, campaignId, period: o.period };
+    if (refine) value.refine = refine;
+    return { valid: true, value };
   }
-  return { valid: true, value: { scope, period: o.period } };
+  const value: EvaluationRequest = { scope, period: o.period };
+  if (refine) value.refine = refine;
+  return { valid: true, value };
 }
 
 const CLUSTER_INTENTS = new Set(["informational", "transactional", "brand", "local"]);

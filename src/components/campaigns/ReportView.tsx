@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Info, Target, TrendDown } from "@/components/icons";
-import { PromptDisclosure, ResultMeta } from "@/components/ai/primitives";
+import { PromptDisclosure, RefineBar, ResultMeta } from "@/components/ai/primitives";
 import {
   evalPriorityLabel,
   type CampaignReport,
@@ -73,6 +73,8 @@ export default function ReportView({
   cached,
   stale,
   clientSafe,
+  onRefine,
+  refining,
 }: {
   report: CampaignReport;
   /** every score this scope/campaign has earned, for the trend timeline */
@@ -86,6 +88,12 @@ export default function ReportView({
   /** client-facing render (public shared link): hide the internal AI chrome —
    *  the model/cost pill and the raw-prompt disclosure a client shouldn't see */
   clientSafe?: boolean;
+  /** Direction 3: when provided (and not clientSafe), a RefineBar steers a re-run of
+   *  THIS report with a free-text note ("kratší", "více na rozpočty"). The note reaches
+   *  the eval prompt and bypasses the report cache, so the steer isn't swallowed. */
+  onRefine?: (note: string) => void;
+  /** true while a (re-)evaluation for this report is in flight — disables the bar */
+  refining?: boolean;
 }) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -216,6 +224,8 @@ export default function ReportView({
           </ol>
         </section>
       )}
+
+      {!clientSafe && onRefine && <RefineBar onRefine={onRefine} disabled={refining} />}
 
       {!clientSafe && <PromptDisclosure prompt={report.meta.prompt} />}
     </div>

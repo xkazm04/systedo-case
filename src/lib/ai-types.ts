@@ -426,6 +426,8 @@ export interface EvaluationRequest {
   /** required when scope === "campaign" */
   campaignId?: string;
   period: CampaignPeriod;
+  /** free-text re-run steer, appended to the eval USER prompt only (Direction 3) */
+  refine?: string;
 }
 
 // ===========================================================================

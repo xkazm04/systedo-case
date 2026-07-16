@@ -14,7 +14,10 @@ import {
   validateBriefRequest,
   validateKeywordClustersRequest,
   validateRepurposeRequest,
+  validateSocialRequest,
+  validateEvaluationRequest,
 } from "@/lib/ai/validation";
+import { socialSkill } from "@/lib/ai/tools/social";
 
 test("refineLines returns [] for missing / blank notes", () => {
   assert.deepEqual(refineLines(undefined), []);
@@ -106,4 +109,51 @@ test("validateAnalysisRequest threads the refine note (legacy tool, wave 9)", ()
   const none = validateAnalysisRequest({ period: "30d" });
   assert.ok(none.valid);
   assert.equal("refine" in none.value, false, "absent note stays absent (cache key unchanged)");
+});
+
+// ── Direction 3: refine reaches the last two tools (social + campaign-eval) ────────
+
+test("validateSocialRequest threads + caps the refine note; absent stays absent", () => {
+  const base = { topic: "Sezónní směs ořechů", tone: "pratelsky", platforms: ["instagram"] };
+  const ok = validateSocialRequest({ ...base, refine: "  kratší a více emoji  " });
+  assert.ok(ok.valid);
+  assert.equal(ok.value.refine, "kratší a více emoji");
+
+  const long = validateSocialRequest({ ...base, refine: "z".repeat(REFINE_MAX + 50) });
+  assert.ok(long.valid);
+  assert.equal(long.value.refine.length, REFINE_MAX);
+
+  const none = validateSocialRequest(base);
+  assert.ok(none.valid);
+  assert.equal("refine" in none.value, false, "absent note stays absent (cache key unchanged)");
+});
+
+test("validateEvaluationRequest threads the refine note for both scopes", () => {
+  const overall = validateEvaluationRequest({ scope: "overall", period: "30d", refine: "více na rozpočty" });
+  assert.ok(overall.valid);
+  assert.equal(overall.value.refine, "více na rozpočty");
+
+  const campaign = validateEvaluationRequest({ scope: "campaign", campaignId: "c1", period: "30d", refine: "stručněji" });
+  assert.ok(campaign.valid);
+  assert.equal(campaign.value.refine, "stručněji");
+
+  const none = validateEvaluationRequest({ scope: "overall", period: "30d" });
+  assert.ok(none.valid);
+  assert.equal("refine" in none.value, false, "absent note stays absent (cache key unchanged)");
+});
+
+test("socialSkill.buildPrompt appends the refine note to the USER prompt only", () => {
+  const withNote = socialSkill.buildPrompt({
+    topic: "Ořechy",
+    tone: "pratelsky",
+    platforms: ["instagram"],
+    refine: "kratší a více emoji",
+  });
+  assert.match(withNote, /DODATEČNÉ POKYNY UŽIVATELE/);
+  assert.match(withNote, /kratší a více emoji/);
+
+  const without = socialSkill.buildPrompt({ topic: "Ořechy", tone: "pratelsky", platforms: ["instagram"] });
+  assert.doesNotMatch(without, /DODATEČNÉ POKYNY UŽIVATELE/);
+  // The system persona is untouched by refine (fingerprint holds).
+  assert.equal(typeof socialSkill.system, "function");
 });

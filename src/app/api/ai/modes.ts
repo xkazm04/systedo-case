@@ -488,6 +488,7 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
           ...(grounding ? { grounding } : {}),
           ...(brand ? { brand } : {}),
           ...(voice ? { voice } : {}),
+          ...(value.refine ? { refine: value.refine } : {}),
         };
         return { cacheValue: input, gen: () => deps.gen.social(input, ctx.locale, ctx.signal) };
       },

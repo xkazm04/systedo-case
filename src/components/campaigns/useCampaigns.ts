@@ -181,7 +181,14 @@ export function useCampaigns() {
    *  so a sequential batch caller (the triage banner's "evaluate all flagged")
    *  can stop at the first error/429 instead of hammering the rate limiter. */
   const analyze = useCallback(
-    async (scope: EvalScope, campaignId: string | null, period: CampaignPeriod): Promise<boolean> => {
+    async (
+      scope: EvalScope,
+      campaignId: string | null,
+      period: CampaignPeriod,
+      // Direction 3: an optional re-run steer. It reaches the eval prompt and bypasses
+      // the report cache (a steered re-run must not be served the previous report).
+      refine?: string
+    ): Promise<boolean> => {
       const key = scope === "overall" ? "overall" : campaignId ?? "overall";
       setAnalyzing((a) => ({ ...a, [key]: true }));
       setAnalyzeErrors((e) => {
@@ -193,7 +200,7 @@ export function useCampaigns() {
         const res = await fetch("/api/campaigns/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ scope, campaignId, period, projectId: pid }),
+          body: JSON.stringify({ scope, campaignId, period, projectId: pid, ...(refine ? { refine } : {}) }),
         });
         const json = await res.json();
         if (!res.ok) {

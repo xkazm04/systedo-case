@@ -104,7 +104,10 @@ export async function POST(request: Request) {
       campaigns,
       changes?.current ?? null
     );
-    const force = new URL(request.url).searchParams.get("force") === "1";
+    // A refine re-run is a deliberate steer: bypass the DB report cache like ?force=1,
+    // since hashEvalInputs doesn't include the refine note (the note would otherwise be
+    // swallowed by the cached report). The response-cache key downstream DOES include it.
+    const force = new URL(request.url).searchParams.get("force") === "1" || Boolean(parsed.value.refine);
     if (!force) {
       const cached = await findCachedReport(tenant, scope, reportCampaignId, meta.period, inputHash);
       if (cached) {
@@ -169,6 +172,10 @@ export async function POST(request: Request) {
       // Platform-aware persona: a Sklik-sourced tenant gets Sklik vocabulary + no
       // Google-only recommendations (google-ads / sample stay byte-identical).
       source: meta.source,
+      // Direction 3: the operator's re-run steer, appended to the USER prompt only. It
+      // rides the eval input → the response-cache key, so a steered re-run isn't served
+      // the previous cached report (matching the ?force bypass on the DB cache above).
+      ...(parsed.value.refine ? { refine: parsed.value.refine } : {}),
     };
     const locale = await getServerLocale();
 

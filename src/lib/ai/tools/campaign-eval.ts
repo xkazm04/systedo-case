@@ -31,6 +31,7 @@ import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { txt, cleanList, cleanTitledList, countTitled } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { missingStrFields, withObjectGuard } from "./_validate";
+import { refineLines } from "./refine";
 
 const EVAL_SYSTEM = `Jsi zkušený český PPC stratég a specialista na Google Ads v marketingové agentuře. Vyhodnocuješ výkon reklamních kampaní a připravuješ klientovi stručný hodnoticí report s konkrétními dalšími kroky.
 
@@ -259,6 +260,8 @@ export interface CampaignEvalInput {
    *  the eval speak Sklik (vocabulary + no Google-only features) via the USER prompt;
    *  "google-ads" / "sample" / undefined keep the byte-identical Google persona. */
   source?: string;
+  /** Optional free-text re-run steer, appended to the USER prompt only (Direction 3). */
+  refine?: string;
 }
 
 /** Assemble the eval user prompt from the grounding input — the base per-scope
@@ -270,7 +273,11 @@ function buildEvalPrompt(i: CampaignEvalInput): string {
     ? buildCampaignPrompt(i.target!, i.campaigns, i.period, i.changes, i.client, i.patternLines ?? [])
     : buildOverallPrompt(i.campaigns, i.period, i.patternLines ?? [], i.changes, i.client);
   const platform = platformEvalLines(i.source);
-  return platform.length ? `${basePrompt}\n${platform.join("\n")}` : basePrompt;
+  const withPlatform = platform.length ? `${basePrompt}\n${platform.join("\n")}` : basePrompt;
+  // A re-run steer rides the USER prompt only (like the platform note above), so the
+  // system persona + schema — the gate/golden fingerprint — stay byte-identical.
+  const refine = refineLines(i.refine);
+  return refine.length ? `${withPlatform}\n${refine.join("\n")}` : withPlatform;
 }
 
 /** The campaign/portfolio-evaluation tool as a Skill SDK plugin. Contract (system +

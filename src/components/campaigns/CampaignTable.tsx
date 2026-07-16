@@ -222,6 +222,7 @@ export default function CampaignTable({
   cached,
   changesById,
   onAnalyze,
+  onRefineReport,
   period,
   fmtMoney,
   campaignSeries,
@@ -245,6 +246,9 @@ export default function CampaignTable({
   /** run one evaluation; resolving `false` signals a failure (the batch queue
    *  stops there instead of hammering the rate limiter) */
   onAnalyze: (campaignId: string) => Promise<boolean> | void;
+  /** Direction 3: re-run one campaign's evaluation with a free-text steer (RefineBar
+   *  in the expanded report). Absent → the report shows no refine affordance. */
+  onRefineReport?: (campaignId: string, note: string) => void;
   /** the synced period the rows cover — budget pacing needs the day count */
   period: CampaignPeriod;
   /** currency-aware money formatter (Direction 2): fmt.fmtCZK for a CZK/unknown
@@ -862,6 +866,8 @@ export default function CampaignTable({
                               history={histories[c.id]}
                               cached={cached[c.id]}
                               stale={staleKeys?.includes(c.id)}
+                              onRefine={onRefineReport ? (note) => onRefineReport(c.id, note) : undefined}
+                              refining={isAnalyzing}
                             />
                           </div>
                         ) : null}

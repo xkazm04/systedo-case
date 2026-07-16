@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Bolt, Check, Sparkles } from "@/components/icons";
+import { RefineBar } from "@/components/ai/primitives";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
 import {
@@ -134,7 +135,7 @@ export default function Composer() {
       return next;
     });
 
-  const suggest = async (ai: boolean) => {
+  const suggest = async (ai: boolean, refine?: string) => {
     if (topic.trim().length < 2 || draftPlatforms.size === 0) return;
     setDrafting(ai ? "ai" : "template");
     setDraftError(null);
@@ -151,6 +152,9 @@ export default function Composer() {
           // R03: carry the project so the server can apply the auto-brand / perf /
           // competitor grounding the "Píše na značku" hint advertises (Composer↔WeekPlanner parity).
           projectId: pid,
+          // Direction 3: a re-run steer ("kratší", "více emoji") rides as `refine` — it
+          // reaches the tool's USER prompt and busts the server's input-hash cache.
+          ...(refine ? { refine } : {}),
         }),
       });
       const json = await res.json();
@@ -320,6 +324,11 @@ export default function Composer() {
               <p className="mt-1 whitespace-pre-line text-xs text-muted">{d.content}</p>
             </div>
           ))}
+          {/* Direction 3: steer an AI draft with a free-text note instead of retyping
+              the form (rides `refine` → the tool's prompt + the input-hash cache). */}
+          {(draftSource === "ai" || draftSource === "demo") && (
+            <RefineBar onRefine={(note) => suggest(true, note)} disabled={Boolean(drafting)} />
+          )}
         </div>
       )}
 
