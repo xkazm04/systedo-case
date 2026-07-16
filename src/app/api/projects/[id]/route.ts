@@ -4,7 +4,15 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
 import { type ProjectPatch } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
-import { badRequest, isProjectType, notFound, readJson } from "@/lib/api/route-utils";
+import {
+  badRequest,
+  isProjectType,
+  isSafeAccentColor,
+  isSafeHttpUrl,
+  notFound,
+  readJson,
+  unprocessable,
+} from "@/lib/api/route-utils";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,8 +26,23 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const patch: ProjectPatch = {};
   if (typeof body.name === "string" && body.name.trim()) patch.name = body.name.trim();
   if (isProjectType(body.type)) patch.type = body.type;
-  if (typeof body.accentColor === "string") patch.accentColor = body.accentColor;
-  if (typeof body.logoUrl === "string") patch.logoUrl = body.logoUrl.trim();
+  // Branding flows into PUBLIC surfaces (the tokenized client share report bakes
+  // accent + logo into its payload), so validate at the boundary like the sibling
+  // sanitizers — an empty string stays allowed (it clears the field).
+  if (typeof body.accentColor === "string") {
+    const accent = body.accentColor.trim();
+    if (accent && !isSafeAccentColor(accent)) {
+      return unprocessable("Neplatná barva — použijte hex zápis (#rrggbb).", "unprocessable");
+    }
+    patch.accentColor = accent;
+  }
+  if (typeof body.logoUrl === "string") {
+    const logoUrl = body.logoUrl.trim();
+    if (logoUrl && !isSafeHttpUrl(logoUrl)) {
+      return unprocessable("Neplatná URL loga — povolené jsou jen http(s) adresy.", "unprocessable");
+    }
+    patch.logoUrl = logoUrl;
+  }
   if (typeof body.domain === "string") patch.domain = body.domain.trim();
   if (typeof body.adsCustomerId === "string") patch.adsCustomerId = body.adsCustomerId;
 

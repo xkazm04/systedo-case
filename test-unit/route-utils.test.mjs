@@ -8,6 +8,8 @@ import {
   asString,
   trimmedString,
   isProjectType,
+  isSafeAccentColor,
+  isSafeHttpUrl,
   badRequest,
   notFound,
   unprocessable,
@@ -115,4 +117,32 @@ test("code catalog: every code is unique + kebab-case (the client's stable contr
   // The auth codes the guard emits must exist in the catalog.
   assert.ok(API_ERROR_CODES.includes("unauthorized"));
   assert.ok(API_ERROR_CODES.includes("not-found"));
+});
+
+// ---- branding-input validators (public share surface safety) ----
+
+test("isSafeAccentColor accepts only #hex colors (3-8 digits)", () => {
+  assert.ok(isSafeAccentColor("#0f766e"));
+  assert.ok(isSafeAccentColor("#fff"));
+  assert.ok(isSafeAccentColor("#FFFFFFCC")); // #rrggbbaa
+  assert.ok(!isSafeAccentColor("teal"));
+  assert.ok(!isSafeAccentColor("0f766e"));
+  assert.ok(!isSafeAccentColor("#12345g"));
+  assert.ok(!isSafeAccentColor("#ff"));
+  assert.ok(!isSafeAccentColor("#123456789"));
+  // The CSS-injection shape the finding names must never pass.
+  assert.ok(!isSafeAccentColor("red;} body{display:none"));
+  assert.ok(!isSafeAccentColor(""));
+});
+
+test("isSafeHttpUrl allows only absolute http(s) URLs", () => {
+  assert.ok(isSafeHttpUrl("https://example.com/logo.png"));
+  assert.ok(isSafeHttpUrl("http://cdn.example.com/a.svg?x=1"));
+  assert.ok(!isSafeHttpUrl("javascript:alert(1)"));
+  assert.ok(!isSafeHttpUrl("data:text/html,<script>1</script>"));
+  assert.ok(!isSafeHttpUrl("//example.com/logo.png")); // protocol-relative
+  assert.ok(!isSafeHttpUrl("/local/logo.png"));
+  assert.ok(!isSafeHttpUrl("ftp://example.com/logo.png"));
+  assert.ok(!isSafeHttpUrl("not a url"));
+  assert.ok(!isSafeHttpUrl(""));
 });

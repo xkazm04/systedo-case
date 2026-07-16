@@ -114,6 +114,29 @@ export function isProjectType(v: unknown): v is ProjectType {
   return typeof v === "string" && (PROJECT_TYPES as readonly string[]).includes(v);
 }
 
+// --- branding-input validators -------------------------------------------------
+// Project accentColor/logoUrl flow into PUBLIC client-facing surfaces (the
+// tokenized share report bakes them into its payload), so they are validated at
+// the write boundary like every other project payload — a downstream renderer is
+// then safe by construction against CSS injection ("red;} body{display:none") and
+// javascript:/data: logo URLs.
+
+/** A safe CSS accent: a #hex color (3-8 hex digits — #rgb…#rrggbbaa). */
+export function isSafeAccentColor(v: string): boolean {
+  return /^#[0-9a-fA-F]{3,8}$/.test(v);
+}
+
+/** A safe, embeddable asset URL: parses as an absolute http(s) URL — everything
+ *  else (javascript:, data:, relative, garbage) is rejected. */
+export function isSafeHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 /** Build a coded error Response for either envelope. Codes are ADDITIVE: when `code`
  *  is omitted the body is the historical `{ error }` / `{ ok:false, error }`, so
  *  callers that never pass a code are byte-for-byte unchanged. */
