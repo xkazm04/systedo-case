@@ -159,9 +159,11 @@ const clampFit = (v: unknown): number => {
   return Math.max(0, Math.min(100, n));
 };
 
-/** The curated per-type plan, grounded in the request context — the keyless demo
- *  and the floor when the model returns nothing usable. Deterministic off the brand. */
-export function demoChannelResearch(req: ChannelResearchRequest): ChannelResearchResult {
+/** The curated per-type plan, grounded in the request context — TAIL-FREE, so it is
+ *  safe to splice into a live model result as a per-field floor (backfilling only the
+ *  summary must not carry the keyless "connect an LLM" disclaimer into a real answer).
+ *  The demo entry points append the tail; live backfill uses this base. */
+export function baseChannelResearch(req: ChannelResearchRequest): ChannelResearchResult {
   const type = resolveType(req.projectType);
   const channels = baseChannelPlan(
     type,
@@ -173,18 +175,28 @@ export function demoChannelResearch(req: ChannelResearchRequest): ChannelResearc
     req.brand
   );
   return {
-    summary: `Plán bezplatných kanálů pro ${req.brand}.` + demoTail("plán na míru"),
+    summary: `Plán bezplatných kanálů pro ${req.brand}.`,
     channels,
   };
 }
 
-/** Map the raw model output into a validated, ranked plan: slugify names into
- *  stable ids (deduped), clamp fit, coerce category/effort to known sets, and cap
- *  the arrays. Falls back to the curated demo when nothing usable survives. */
-function normalizeChannelResearch(
+/** The keyless demo (and the floor when the model returns nothing usable): the
+ *  tail-free base plus the honest "ukázkový výstup — připojte LLM" disclaimer. */
+export function demoChannelResearch(req: ChannelResearchRequest): ChannelResearchResult {
+  const base = baseChannelResearch(req);
+  return { ...base, summary: base.summary + demoTail("plán na míru") };
+}
+
+/** Map the raw model output into a validated, ranked plan: slugify names into stable
+ *  ids (deduped), clamp fit, coerce category/effort to known sets, cap the arrays.
+ *  Also reports whether the plan is the wholesale demo fallback (`canned: true`) — no
+ *  named channel survived normalization — so the caller can bill that case as demo
+ *  (refund fires) instead of charging for the same free curated plan the keyless path
+ *  returns. Backfills only an empty summary from the tail-free base. */
+export function normalizeChannelResearchTracked(
   parsed: unknown,
   req: ChannelResearchRequest
-): ChannelResearchResult {
+): { result: ChannelResearchResult; canned: boolean } {
   const o = parsed as Record<string, unknown> | null;
   const raw = Array.isArray(o?.channels) ? o.channels : [];
   const seen = new Set<string>();
@@ -217,9 +229,16 @@ function normalizeChannelResearch(
     channels.push(channel);
   }
 
-  if (channels.length === 0) return demoChannelResearch(req);
+  // Nothing usable survived → wholesale demo (a FULL demo the caller flags as meta.demo
+  // so the refund fires; the tail is honest here). Otherwise backfill only an empty
+  // summary from the TAIL-FREE base, so a real plan never carries the "connect an LLM"
+  // disclaimer meant for the keyless path.
+  if (channels.length === 0) return { result: demoChannelResearch(req), canned: true };
   channels.sort((a, b) => b.fit - a.fit);
-  return { summary: txt(o?.summary) || demoChannelResearch(req).summary, channels };
+  return {
+    result: { summary: txt(o?.summary) || baseChannelResearch(req).summary, channels },
+    canned: false,
+  };
 }
 
 /** Flag an empty / hollow plan so the wrapper re-prompts once: the plan needs at
@@ -241,6 +260,10 @@ export function generateChannelResearch(
   locale?: SupportedLocale,
   signal?: AbortSignal
 ): Promise<AiResponse<ChannelResearchResult>> {
+  // Direction 2: when nothing usable survives, normalize returns the curated demo
+  // wholesale — flag that case as demo so the refund fires instead of billing the free
+  // plan as a live generation.
+  let fullyCanned = false;
   return generateStructured({
     // llm-tool: channel-research
     id: "channel-research",
@@ -248,10 +271,17 @@ export function generateChannelResearch(
     system: CHANNEL_RESEARCH_SYSTEM,
     schema: CHANNEL_RESEARCH_SCHEMA,
     temperature: 0.6,
-    normalize: (parsed) => normalizeChannelResearch(parsed, req),
+    normalize: (parsed) => {
+      const { result, canned } = normalizeChannelResearchTracked(parsed, req);
+      fullyCanned = canned;
+      return result;
+    },
     validate: (parsed) => validateChannelResearch(parsed),
     demo: () => demoChannelResearch(req),
     locale,
     signal,
+  }).then((res) => {
+    if (!res.meta.demo && fullyCanned) res.meta.demo = true;
+    return res;
   });
 }

@@ -159,13 +159,27 @@ export function normalizeLpVariantIdeas(
   parsed: unknown,
   req: LpVariantIdeasRequest
 ): LpVariantIdeasResult {
+  return normalizeLpVariantIdeasTracked(parsed, req).result;
+}
+
+/** As normalizeLpVariantIdeas, but also reports whether the result is the wholesale
+ *  demo fallback (`canned: true`) — i.e. fewer than TWO distinct, non-banned model
+ *  challengers survived. This is all-or-nothing (an A/B test needs ≥2 arms), so the
+ *  canned case is a FULL demo the caller flags as `meta.demo` (refund fires) instead
+ *  of billing the same free template output as a live generation. */
+export function normalizeLpVariantIdeasTracked(
+  parsed: unknown,
+  req: LpVariantIdeasRequest
+): { result: LpVariantIdeasResult; canned: boolean } {
   const o = parsed as Record<string, unknown> | null;
   const raw = Array.isArray(o?.variants) ? o.variants : [];
   const banned = bannedLabels(req);
   const variants = distinctVariants(raw)
     .filter((v) => !banned.has(labelKey(v.label)))
     .slice(0, 3);
-  return variants.length >= 2 ? { variants } : demoLpVariantIdeas(req);
+  return variants.length >= 2
+    ? { result: { variants }, canned: false }
+    : { result: demoLpVariantIdeas(req), canned: true };
 }
 
 /** Flag an unusable set so the wrapper re-prompts once. A usable output needs at
@@ -226,6 +240,10 @@ export function generateLpVariantIdeas(
    *  so this runtime data leaves the contract unchanged. */
   grounding?: string
 ): Promise<AiResponse<LpVariantIdeasResult>> {
+  // Direction 2: when no usable model challengers survive, normalize falls back to the
+  // deterministic demo wholesale — a FULL demo the wrapper can't see inside. Track it so
+  // that case bills as demo (refund fires) instead of charging for free template output.
+  let fullyCanned = false;
   return generateStructured({
     // llm-tool: lp-variant-ideas
     id: "lp-variant-ideas",
@@ -233,10 +251,17 @@ export function generateLpVariantIdeas(
     system: LP_VARIANT_IDEAS_SYSTEM,
     schema: LP_VARIANT_IDEAS_SCHEMA,
     temperature: 0.8,
-    normalize: (parsed) => normalizeLpVariantIdeas(parsed, req),
+    normalize: (parsed) => {
+      const { result, canned } = normalizeLpVariantIdeasTracked(parsed, req);
+      fullyCanned = canned;
+      return result;
+    },
     validate: (parsed) => validateLpVariantIdeas(parsed, req),
     demo: () => demoLpVariantIdeas(req),
     locale,
     signal,
+  }).then((res) => {
+    if (!res.meta.demo && fullyCanned) res.meta.demo = true;
+    return res;
   });
 }
