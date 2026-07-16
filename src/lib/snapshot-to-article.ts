@@ -42,8 +42,16 @@ function anomalySentence(a: Anomaly): string {
 export function snapshotToArticle(
   snapshot: MetricsSnapshot,
   client: { name: string; segment: string },
-  asOf: string
+  asOf: string,
+  /** Where the numbers came from — drives the perex + FAQ provenance wording so the
+   *  claim travels WITH the content into every surface (incl. the Markdown twin, which
+   *  strips the page-level disclosure). "synced" = the client's real Ads time series;
+   *  "illustrative" = a scaled case-study / sample series (every microsite today, and
+   *  the case-study /clanek/vykon). Defaults to "illustrative" so no caller can
+   *  accidentally certify demo numbers as real — the strongest claim must be opt-in. */
+  provenance: "synced" | "illustrative" = "illustrative"
 ): Article {
+  const synced = provenance === "synced";
   const c = snapshot.current;
   const goalPno = snapshot.goals.pno;
   const pnoUnderGoal = c.pno <= goalPno;
@@ -58,7 +66,10 @@ export function snapshotToArticle(
   const perex =
     `Datový souhrn marketingového výkonu ${client.name} za ${snapshot.period.label}. ` +
     `Obrat ${fmtCZK(c.revenue)} při nákladech ${fmtCZK(c.cost)}, PNO ${fmtPct(c.pno)} ` +
-    `(cíl ${fmtPct(goalPno, 0)}). Automaticky vygenerováno z dashboardu.`;
+    `(cíl ${fmtPct(goalPno, 0)}). ` +
+    (synced
+      ? `Automaticky vygenerováno z dashboardu.`
+      : `Ilustrativní data z případové studie, automaticky vygenerováno z dashboardu.`);
 
   // --- KPI stat block -------------------------------------------------------
   const headlineKeys: MetricKey[] = ["visits", "cost", "conversions", "revenue", "pno", "roas"];
@@ -212,7 +223,9 @@ export function snapshotToArticle(
     {
       q: "Z jakých dat report vychází?",
       a: [
-        `Z reálné časové řady výkonu ${client.name} za ${snapshot.period.label}, ze stejného zdroje jako interaktivní dashboard — čísla se proto vždy shodují.`,
+        synced
+          ? `Z reálné časové řady výkonu ${client.name} za ${snapshot.period.label}, ze stejného zdroje jako interaktivní dashboard — čísla se proto vždy shodují.`
+          : `Z ilustrativní datové řady odvozené z případové studie ${client.name} za ${snapshot.period.label} — stejná čísla jako v interaktivním dashboardu. Nejde o reálná data klienta.`,
       ] as Inline[],
     },
     {

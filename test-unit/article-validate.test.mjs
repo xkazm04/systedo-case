@@ -154,3 +154,25 @@ test("snapshotToArticle output passes the guard (round-trip)", () => {
   // explicit re-validation is idempotent and keeps the same object
   assert.equal(validateArticle(article, "round-trip"), article);
 });
+
+test("snapshotToArticle: provenance drives the perex + FAQ wording (never over-claims)", () => {
+  const snapshot = buildMetricsSnapshot(perfFixture(), { key: "30d", label: "30 dní", days: 30 });
+  const client = { name: "Mionelo", segment: "e-shop" };
+  const provenanceAnswer = (a) => a.faq.find((f) => f.q === "Z jakých dat report vychází?").a.join("");
+
+  // Default (no 4th arg) is illustrative — a caller can't accidentally certify demo
+  // numbers as the client's real series.
+  const dflt = snapshotToArticle(snapshot, client, "2026-05-31");
+  assert.ok(/ilustrativn/i.test(provenanceAnswer(dflt)), "default answer discloses illustrative provenance");
+  assert.ok(/Nejde o reálná data/.test(provenanceAnswer(dflt)), "default answer explicitly disclaims real data");
+  assert.ok(!/reálné časové řady/.test(provenanceAnswer(dflt)), "default answer does NOT claim the real time series");
+  assert.ok(/[Ii]lustrativní data/.test(dflt.meta.perex), "default perex discloses illustrative data");
+
+  const illus = snapshotToArticle(snapshot, client, "2026-05-31", "illustrative");
+  assert.equal(provenanceAnswer(illus), provenanceAnswer(dflt), "explicit illustrative == default");
+
+  // Synced keeps the strong "reálná časová řada" claim.
+  const synced = snapshotToArticle(snapshot, client, "2026-05-31", "synced");
+  assert.ok(/reáln/i.test(provenanceAnswer(synced)), "synced answer claims the real time series");
+  assert.ok(!/ilustrativn/i.test(provenanceAnswer(synced)), "synced answer does not disclaim");
+});

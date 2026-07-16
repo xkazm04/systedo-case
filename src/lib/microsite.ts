@@ -190,7 +190,12 @@ export function buildMicrositeView(config: MicrositeConfig): {
   const article = snapshotToArticle(
     snapshot,
     { name: config.clientName, segment: config.segment },
-    asOf
+    asOf,
+    // Every microsite today is built from a scaled case-study series (scaledDataset),
+    // so the article must carry the SAME illustrative provenance the page chrome
+    // discloses via `config.illustrative` — otherwise the FAQ/perex self-certify demo
+    // numbers as the client's real series (and the Markdown twin has no page banner).
+    config.illustrative === false ? "synced" : "illustrative"
   );
   return { article, snapshot, asOf };
 }

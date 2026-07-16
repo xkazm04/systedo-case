@@ -9,5 +9,8 @@ import { snapshotToArticle } from "@/lib/snapshot-to-article";
 export const reportArticle = snapshotToArticle(
   buildMetricsSnapshot(performance, { key: "90d", label: "90 dní", days: 90 }),
   { name: performance.client.name, segment: performance.client.segment },
-  performance.meta.asOf
+  performance.meta.asOf,
+  // The case-study spine (@/lib/data) is an illustrative sample, not a client's real
+  // synced series — so the report discloses that in its own perex + FAQ.
+  "illustrative"
 );
