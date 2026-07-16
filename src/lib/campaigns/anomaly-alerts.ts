@@ -112,10 +112,14 @@ export async function evaluateAnomalyAlerts(
     now: Date.now(),
     remindAfterCooldown: false,
   });
-  await tenantRef.set({ anomalyAlertState: nextState }, { merge: true });
 
   const fresh = toAlert.map((k) => byKey.get(k)!).filter(Boolean);
-  if (fresh.length === 0) return 0;
+  if (fresh.length === 0) {
+    // Nothing to deliver — still roll the memory forward so cooldown tombstones
+    // age out (a zero-anomaly sync must not wipe or freeze the state).
+    await tenantRef.set({ anomalyAlertState: nextState }, { merge: true });
+    return 0;
+  }
 
   // Most severe first, then cap the spelled-out list.
   const ranked = [...fresh].sort((a, b) => Math.abs(b.z) - Math.abs(a.z));
@@ -135,8 +139,14 @@ export async function evaluateAnomalyAlerts(
   const extra = fresh.length > shown.length ? ` · +${fresh.length - shown.length} dalších` : "";
   const body = shown.map(describe).join(" · ") + extra + moneyTail;
 
-  // Durable in-app record first, then best-effort outbound channels.
+  // Durable in-app record FIRST, then the suppression-state commit, then the
+  // best-effort outbound channels. State-before-delivery was worse here than in
+  // the campaign path: remindAfterCooldown:false means an anomaly whose delivery
+  // threw after the state write would NEVER re-alert — the key just aged out
+  // silently. Written in this order, a crash between the two writes costs at
+  // worst a rare duplicate inbox row on the next sync, never a lost alert.
   await recordAlert(tenant, { type: "critical", title, body, items });
+  await tenantRef.set({ anomalyAlertState: nextState }, { merge: true });
   await recordActivity(tenant, {
     kind: "alert",
     title,

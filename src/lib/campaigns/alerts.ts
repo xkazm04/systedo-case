@@ -181,11 +181,15 @@ export async function evaluateAndAlert(
     banded,
     now: Date.now(),
   });
-  await tenantRef.set({ criticalAlertState: nextState }, { merge: true });
 
   const alertIds = new Set(toAlert);
   const fresh = criticals.filter((c) => alertIds.has(c.id));
-  if (fresh.length === 0) return 0;
+  if (fresh.length === 0) {
+    // Nothing to deliver — still roll the episode memory forward (recovery bands
+    // open/close, cooldown tombstones age out) exactly as before.
+    await tenantRef.set({ criticalAlertState: nextState }, { merge: true });
+    return 0;
+  }
 
   const items: AlertItem[] = fresh.map((c) => ({
     campaignId: c.id,
@@ -195,10 +199,17 @@ export async function evaluateAndAlert(
   const title = `${fresh.length} nových kritických kampaní`;
   const body = items.map((i) => `${i.name} — ${i.reason}`).join(" · ");
 
-  // In-app inbox first — the durable record that never depends on a 3rd party.
+  // In-app inbox first — the durable record that never depends on a 3rd party —
+  // and only THEN commit the suppression state. Committing the state before the
+  // delivery meant a recordAlert throw left the episodes marked "alerted" while
+  // nothing reached the inbox: permanent silence for those campaigns until the
+  // cooldown. In this order a crash between the two writes costs at worst a rare
+  // duplicate inbox row on the next sync (the state still says un-alerted) —
+  // a duplicate is recoverable, a swallowed alert is not.
   // Thread the alert id into the activity feed so the timeline can tie this
   // detection to the change-set later staged from it (alert → change-set → apply).
   const alertId = await recordAlert(tenant, { type: "critical", title, body, items });
+  await tenantRef.set({ criticalAlertState: nextState }, { merge: true });
   await recordActivity(tenant, {
     kind: "alert",
     title,
