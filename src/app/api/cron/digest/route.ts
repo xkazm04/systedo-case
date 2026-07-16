@@ -1,9 +1,10 @@
 /** Weekly digest: a positive, periodic counterpart to the critical-only alert —
  *  for every connected user, email + webhook + in-app a portfolio summary (KPIs,
- *  critical count, top recommended budget moves), plus an "AI provoz" section
- *  rolled up from the LLM telemetry the wrapper already records (calls, est.
- *  cost, demo-rate, repairs, contract drift) — so the operator learns about an
- *  AI cost jump or a silently-down provider without opening anything.
+ *  critical count, top recommended budget moves). The "AI provoz" rollup from the
+ *  LLM telemetry the wrapper records (calls, est. cost, demo-rate, repairs,
+ *  contract drift) is APP-WIDE, so it goes ONLY to the once-per-run operator
+ *  webhook + the cron-run record — never into a tenant's email, which is
+ *  client-facing (the digest fans out per user/account/project).
  *
  *  Guarded by CRON_SECRET; schedule lives in vercel.json (weekly). */
 import { forEachSyncPair, resolvePairTenant } from "@/lib/cron/fan-out";
@@ -68,18 +69,17 @@ export async function GET(request: Request) {
   }[] = [];
 
   // AI operations rollup over the digest window — global (llmTelemetry is
-  // app-wide, not per-tenant), so compute it once per run. Best-effort: the
-  // reader returns [] on failure and a quiet week renders no section at all.
+  // app-wide, not per-tenant), so it is OPERATOR-ONLY: it feeds the once-per-run
+  // operator webhook + the cron-run record below and is never embedded in a
+  // tenant's email — the digest fans out per (user, account, project), and
+  // app-wide call counts / cost / provider health are internal ops data (and a
+  // hint of other tenants' activity) that must not reach a client-facing email.
+  // Best-effort: the reader returns [] on failure.
   const aiEntries = await listLlmTelemetrySince(new Date(Date.now() - 7 * 86_400_000).toISOString());
   // Pass the raw entries too so the summary carries status counts + latency
   // percentiles (surfaced in the extra aiOpsLines status line).
   const aiOps = summarizeAiOps(aggregateTelemetry(aiEntries), aiEntries);
   const aiLines = aiOpsLines(aiOps);
-  const aiHtml = aiLines.length
-    ? `<p style="margin-top:16px"><strong>AI provoz (7 dní)</strong></p><ul>${aiLines
-        .map((l) => `<li style="margin:6px 0">${escapeHtml(l)}</li>`)
-        .join("")}</ul>`
-    : "";
 
   // One fan-out spine: iterate only the LINKED (account, project) pairs
   // planSyncTargets resolves — the sync cron already writes exactly these tenants.
@@ -142,10 +142,11 @@ export async function GET(request: Request) {
       const title = account
         ? `Týdenní souhrn výkonu — ${account.customerName || account.customerId}`
         : "Týdenní souhrn výkonu";
+      // Tenant-facing body: campaign KPIs only — the app-wide AI ops rollup
+      // (including its demo-rate warning) is operator-only, see above.
       const body =
         `ROAS ${fmtMultiple(totals.roas)} · PNO ${fmtPct(totals.pno)} · ` +
-        `${criticals} kritických · ${moves.length} doporučených přesunů` +
-        (aiOps.warn ? " · AI běží převážně v ukázkovém režimu" : "");
+        `${criticals} kritických · ${moves.length} doporučených přesunů`;
 
       await recordAlert(tenant, { type: "digest", title, body, items });
       deliveredAnything = true;
@@ -230,7 +231,6 @@ export async function GET(request: Request) {
           movesHtml +
           insightHtml +
           diagnosisHtml +
-          aiHtml +
           `<p style="margin-top:16px">Otevřete přehled v Adamant pro detail a AI vyhodnocení.</p>`;
         await sendEmail(email, `Adamant: ${title}`, html);
       }
