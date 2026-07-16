@@ -215,24 +215,37 @@ test("diagnosis modes 422 when no project resolves for the caller (unowned / unk
   }
 });
 
-// ── ads: patterns injected into value ONLY when non-empty (route.ts:395-408) ──
-test("ads: non-empty patterns are attached to value; cacheValue is that mutated value", async () => {
+// ── ads: patterns AND brand injected into value ONLY when non-empty (route.ts:395-408
+//    + Direction 2: ads gains brand grounding exactly like brief, off projectIdStr) ──
+test("ads: non-empty patterns + brand are attached to value; cacheValue is that mutated value", async () => {
   const { table, calls } = harness();
   const value = { product: "P", benefits: "B", audience: "A" };
   const prepared = await prepare(table, "ads", value);
   assert.deepEqual(value.patterns, ["PATTERN"], "patterns attached");
+  assert.equal(value.brand, "BRAND", "brand grounding attached (like brief)");
   assert.equal(prepared.cacheValue, value, "cacheValue === mutated value");
+  // Both grounders resolve off the payload-level projectIdStr; resolveAdPatterns first.
   assert.deepEqual(calls[0], { name: "resolveAdPatterns", args: ["pid", "u1", value] });
+  assert.deepEqual(calls[1], { name: "resolveBrandContext", args: ["pid", "u1", LOCALE] });
   await prepared.gen();
-  assert.deepEqual(calls[1], { name: "ads", args: [value, LOCALE, SIGNAL] });
+  assert.deepEqual(calls[2], { name: "ads", args: [value, LOCALE, SIGNAL] });
 });
 
-test("ads: empty patterns leave the value shape untouched (byte-identical cache key)", async () => {
-  const { table } = harness({ resolveAdPatterns: async () => [] });
+test("ads: empty patterns + empty brand leave the value shape untouched (byte-identical cache key)", async () => {
+  const { table } = harness({ resolveAdPatterns: async () => [], resolveBrandContext: async () => "" });
   const value = { product: "P", benefits: "B", audience: "A" };
   const prepared = await prepare(table, "ads", value);
   assert.equal("patterns" in value, false, "no patterns key added");
+  assert.equal("brand" in value, false, "no brand key added → demo/no-catalogue path unchanged");
   assert.equal(prepared.cacheValue, value);
+});
+
+test("ads: brand attaches even when patterns are empty (independent grounding)", async () => {
+  const { table } = harness({ resolveAdPatterns: async () => [] });
+  const value = { product: "P", benefits: "B", audience: "A" };
+  await prepare(table, "ads", value);
+  assert.equal("patterns" in value, false, "no patterns key added");
+  assert.equal(value.brand, "BRAND", "brand still enters the value");
 });
 
 // ── brand-grounded content tools: brand enters value (route.ts:409-417, 510-516) ──

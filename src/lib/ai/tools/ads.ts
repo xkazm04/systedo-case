@@ -37,6 +37,11 @@ function buildAdPrompt(req: AdRequest): string {
     `Hlavní výhody / USP: ${req.benefits}`,
     `Cílová skupina: ${req.audience}`,
     `Tón komunikace: ${TONE_LABELS[req.tone]}`,
+    // Brand grounding (what the project sells + how it talks) rides on the USER prompt
+    // only — like the patterns block and the refine note — so the system prompt + schema
+    // (and the eval/golden fingerprint) stay byte-identical. Empty for the demo / no-
+    // catalogue path, so that prompt is unchanged.
+    ...brandBlock(req.brand),
     "",
     "Vygeneruj:",
     `- 8 nadpisů (headlines), každý max ${AD_LIMITS.headline} znaků, vzájemně se lišící úhlem,`,
@@ -53,6 +58,15 @@ function buildAdPrompt(req: AdRequest): string {
     // prompt + schema stay byte-identical, so the gate/golden fingerprint holds.
     ...refineLines(req.refine),
   ].join("\n");
+}
+
+/** Prompt lines for the project's brand grounding — `[]` when there is no project /
+ *  no catalogue, so the prompt stays byte-identical to the ungrounded path (and to
+ *  the demo). Mirrors the brief tool's brandBlock. USER prompt only. */
+function brandBlock(brand?: string): string[] {
+  const b = (brand ?? "").trim();
+  if (!b) return [];
+  return ["", "Kontext značky (drž se tohoto sortimentu a slovníku, nevymýšlej jiný):", b];
 }
 
 /** Prompt lines for the account's relevant winning patterns — `[]` when the

@@ -411,13 +411,22 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       }),
     }),
 
-    // ── ads: RAG pattern grounding injected into the value ONLY when non-empty, so
-    //    the demo / no-library path keeps its exact request shape → cache key. ──
+    // ── ads: RAG pattern grounding AND brand grounding injected into the value ONLY
+    //    when non-empty, so the demo / no-library / no-catalogue path keeps its exact
+    //    request shape → cache key. Brand mirrors the brief row (resolveBrandContext →
+    //    value.brand, USER-prompt only so the golden holds) but follows THIS row's
+    //    conditional-injection idiom (like patterns) rather than always setting "",
+    //    which is the ads analogue of brief's byte-identical guarantee. Both resolve
+    //    off `projectIdStr` — the payload-level project id the ads tool already uses. ──
     ads: defineMode<AdRequest>({
       validate: validateAdRequest,
       prepare: async (value, ctx) => {
-        const patterns = await deps.resolveAdPatterns(ctx.projectIdStr, ctx.userId, value);
+        const [patterns, brand] = await Promise.all([
+          deps.resolveAdPatterns(ctx.projectIdStr, ctx.userId, value),
+          deps.resolveBrandContext(ctx.projectIdStr, ctx.userId, ctx.locale),
+        ]);
         if (patterns.length > 0) value.patterns = patterns;
+        if (brand) value.brand = brand;
         return { cacheValue: value, gen: () => deps.gen.ads(value, ctx.locale, ctx.signal) };
       },
     }),
