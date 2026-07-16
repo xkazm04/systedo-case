@@ -118,9 +118,11 @@ function hostOf(url: string): string {
   }
 }
 
-/** A generic, deterministic profile from the brand/type — the keyless demo and the
- *  floor for empty fields. Deliberately modest (it invents no specifics). */
-export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanResult {
+/** A generic, deterministic profile from the brand/type — TAIL-FREE, so it is safe as
+ *  the per-field floor for a live scan (backfilling only the summary must not carry the
+ *  keyless "připojte LLM" disclaimer into a real result). Deliberately modest (invents
+ *  no specifics). The demo entry point appends the tail. */
+export function baseOnboardingScan(req: OnboardingScanRequest): OnboardingScanResult {
   const name = txt(req.brand) || hostOf(req.url);
   const type = req.projectType && KNOWN_TYPES.has(req.projectType) ? req.projectType : undefined;
   const offering =
@@ -135,7 +137,7 @@ export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanRe
             : "produkt nebo služba";
   const result: OnboardingScanResult = {
     businessName: name,
-    summary: `Profil firmy „${name}".` + demoTail("sken na míru z vašeho webu"),
+    summary: `Profil firmy „${name}".`,
     offering,
     audience: "zákazníci hledající tuto nabídku",
     toneOfVoice: "přátelský a věcný",
@@ -146,12 +148,21 @@ export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanRe
   return result;
 }
 
+/** The keyless demo: the tail-free base plus the honest "ukázkový výstup — připojte
+ *  LLM" disclaimer on the summary. */
+export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanResult {
+  const base = baseOnboardingScan(req);
+  return { ...base, summary: base.summary + demoTail("sken na míru z vašeho webu") };
+}
+
 function normalizeOnboardingScan(
   parsed: unknown,
   req: OnboardingScanRequest
 ): OnboardingScanResult {
   const o = parsed as Record<string, unknown> | null;
-  const fallback = demoOnboardingScan(req);
+  // Per-field floor is the TAIL-FREE base — a backfilled summary must not carry the
+  // keyless "připojte LLM" disclaimer into a real model scan.
+  const fallback = baseOnboardingScan(req);
 
   const result: OnboardingScanResult = {
     businessName: txt(o?.businessName) || fallback.businessName,

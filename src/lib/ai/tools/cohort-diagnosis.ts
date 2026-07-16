@@ -171,7 +171,9 @@ function normalizeCohortDiagnosis(
 ): CohortDiagnosisResult {
   const o = parsed as Record<string, unknown> | null;
   const labels = new Set(req.cohorts.map((c) => c.month));
-  const fallback = demoCohortDiagnosis(req);
+  // Per-field floor is the TAIL-FREE base — backfilling an empty summary must not carry
+  // the keyless "připojte LLM" disclaimer into a real model diagnosis.
+  const fallback = baseCohortDiagnosis(req);
 
   // Keep the model's worstCohort only when it names a real cohort; otherwise fall
   // back to the deterministically lowest LTV:CAC pick so the field is always valid.
@@ -208,15 +210,23 @@ function validateCohortDiagnosis(parsed: unknown, req: CohortDiagnosisRequest): 
   })(parsed);
 }
 
+/** The keyless demo: the tail-free base plus the honest "ukázkový výstup — připojte
+ *  LLM" disclaimer on the summary. Live per-field backfill uses baseCohortDiagnosis so
+ *  the disclaimer never leaks into a real diagnosis. */
+export function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult {
+  const base = baseCohortDiagnosis(req);
+  return { ...base, summary: base.summary + demoTail("diagnostiku od modelu") };
+}
+
 /** Deterministic, data-driven diagnosis: pick the lowest LTV:CAC cohort and emit
- *  a templated Czech reading. The keyless demo and the floor for empty fields. */
-function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult {
+ *  a templated Czech reading — TAIL-FREE, so it is safe both as the floor for empty
+ *  model fields and as the base the demo wraps with the disclaimer. */
+export function baseCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult {
   const worst = worstCohortOf(req.cohorts);
   if (!worst) {
     return {
       summary:
-        "Nejsou k dispozici žádné kohorty k vyhodnocení. Doplňte akviziční data (CAC, LTV, retenci) z product analytics." +
-        demoTail("diagnostiku od modelu"),
+        "Nejsou k dispozici žádné kohorty k vyhodnocení. Doplňte akviziční data (CAC, LTV, retenci) z product analytics.",
       worstCohort: "—",
       recommendation: "Nejdřív zaveďte měření kohort (registrace → retence → tržby), pak vyhodnoťte ekonomiku.",
     };
@@ -261,7 +271,7 @@ function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosisResult
       worst.ltvCac
     )} (návratnost ${payback}). Při průměru portfolia ${fmtMultiple(req.avgLtvCac)} ${
       belowGoal ? "táhne ekonomiku pod cíl 3×" : "drží blízko cíle"
-    }.${demoTail("diagnostiku od modelu")}`,
+    }.`,
     worstCohort: worst.month,
     recommendation,
     risks: risks.length > 0 ? risks : undefined,
