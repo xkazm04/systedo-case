@@ -108,6 +108,9 @@ export async function runTenantSync(
     // The account's captured currency (base CZK for sample / a degraded fetch). Lets
     // the money surfaces label a non-CZK account honestly without converting.
     currency: connector.currency ?? undefined,
+    // The account's captured IANA time zone (null for sample / Sklik / a degraded
+    // fetch). Persisted additively so the account's clock is part of the provenance.
+    timeZone: connector.timeZone ?? undefined,
     moneyVerdict,
     degraded: degradation.campaigns || degradation.series,
     degradedReason: degradation.reason,

@@ -10,12 +10,14 @@ import {
   adsConfigured,
   fetchAccountDailyRows,
   fetchAccountDailyShared,
+  pickTimeZone,
   type DailySeriesBundle,
+  type SearchRow,
 } from "@/lib/google/ads";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { getUserAccessToken, hasAdsScope } from "@/lib/google/token";
 import { mapAdsRowsToMetrics, type AdsMetricRow } from "./map";
-import { saveReportMetrics } from "./store";
+import { getReportMetrics, saveReportMetrics } from "./store";
 import type { MetricRow } from "./types";
 
 /** Trailing window to fetch — 400d covers the 365d report plus its prior-year delta. */
@@ -53,7 +55,12 @@ async function resolveAdsAccess(project: Project, userId: string | null): Promis
 /** Persist the mapped daily rows as the project's live report source. The ONE place
  *  the sync meta is stamped, so the standalone and shared paths write byte-identical
  *  blobs from the same rows. */
-async function persistMetrics(project: Project, customerId: string, rows: MetricRow[]): Promise<SyncResult> {
+async function persistMetrics(
+  project: Project,
+  customerId: string,
+  rows: MetricRow[],
+  timeZone: string | null
+): Promise<SyncResult> {
   if (rows.length === 0) {
     return { ok: false, error: "Google Ads nevrátil pro účet žádná data za období." };
   }
@@ -64,10 +71,19 @@ async function persistMetrics(project: Project, customerId: string, rows: Metric
       syncedAt: new Date().toISOString(),
       days: SYNC_DAYS,
       rowCount: rows.length,
+      // Additive: only stamp a real zone (never undefined). Absent keeps the UTC window.
+      ...(timeZone ? { timeZone } : {}),
     },
     rows,
   });
   return { ok: true, rowCount: rows.length, customerId };
+}
+
+/** The account time zone captured by the project's PRIOR report sync, used to window
+ *  THIS sync in the account's own clock. null on the first-ever sync (nothing captured
+ *  yet) → UTC fallback, then bootstrapped from this sync's own captured zone onward. */
+async function priorTimeZone(project: Project): Promise<string | null> {
+  return (await getReportMetrics(project.id).catch(() => null))?.meta.timeZone ?? null;
 }
 
 /** The ad account for this project: its OWN explicitly-linked customer id (digits),
@@ -89,8 +105,11 @@ export async function syncReportMetricsFromAds(project: Project, userId: string 
   if (!access.ok) return { ok: false, error: access.error };
 
   try {
-    const rows = mapAdsRowsToMetrics(await fetchAccountDailyRows(access.token, access.customerId, SYNC_DAYS));
-    return await persistMetrics(project, access.customerId, rows);
+    // Window this fetch in the account's clock captured by the prior sync (UTC on the
+    // first-ever one); capture THIS sync's zone off the raw rows to window the next.
+    const rawRows = await fetchAccountDailyRows(access.token, access.customerId, SYNC_DAYS, await priorTimeZone(project));
+    const rows = mapAdsRowsToMetrics(rawRows as AdsMetricRow[]);
+    return await persistMetrics(project, access.customerId, rows, pickTimeZone(rawRows as SearchRow[]));
   } catch (err) {
     console.error(`[report-metrics] Ads sync failed for ${project.id}:`, err);
     return { ok: false, error: "Načtení dat z Google Ads selhalo." };
@@ -118,9 +137,15 @@ export async function syncReportMetricsShared(
       access.token,
       access.customerId,
       SYNC_DAYS,
-      campaignPeriod
+      campaignPeriod,
+      await priorTimeZone(project)
     );
-    const result = await persistMetrics(project, access.customerId, mapAdsRowsToMetrics(reportRows as AdsMetricRow[]));
+    const result = await persistMetrics(
+      project,
+      access.customerId,
+      mapAdsRowsToMetrics(reportRows as AdsMetricRow[]),
+      pickTimeZone(reportRows as SearchRow[])
+    );
     return { result, bundle };
   } catch (err) {
     console.error(`[report-metrics] shared Ads sync failed for ${project.id}:`, err);

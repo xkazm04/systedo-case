@@ -23,6 +23,11 @@ export interface SyncMeta {
    *  + optional: docs synced before it existed omit it → the money surfaces treat
    *  absent/CZK as the base currency, so labels are byte-identical to before. */
   currency?: string;
+  /** the account's IANA time zone captured at ingestion (Google `customer.time_zone`).
+   *  Additive + optional, same contract as `currency`: docs synced before it existed
+   *  omit it → the next window falls back to UTC, byte-identical to before. Persisted so
+   *  the account's clock is an honest part of the provenance record. */
+  timeZone?: string;
   /** Direction 3: the last live Sklik sync's money-unit verdict (diagnostic). Drives
    *  the provenance popover's suspected-haléře note + one-click confirm. Absent for
    *  Google / sample. Never itself changes any number. */
@@ -49,6 +54,8 @@ export async function upsertCampaigns(
     period: CampaignPeriod;
     /** the account's captured ISO currency (Direction 2) — additive on the root doc */
     currency?: string;
+    /** the account's captured IANA time zone — additive on the root doc */
+    timeZone?: string;
     /** the Sklik money-unit verdict (Direction 3) — additive on the root doc */
     moneyVerdict?: SklikMoneyVerdict;
     /** live sync fell back to sample data (see connector.SyncDegradation) */
@@ -145,6 +152,7 @@ export async function upsertCampaigns(
       // Additive: only write a real currency (never `undefined`, which Firestore
       // rejects); absent keeps the base-CZK labeling.
       ...(meta.currency ? { currency: meta.currency } : {}),
+      ...(meta.timeZone ? { timeZone: meta.timeZone } : {}),
       ...(meta.moneyVerdict ? { moneyVerdict: meta.moneyVerdict } : {}),
       degraded: meta.degraded ?? false,
       degradedReason: meta.degradedReason ?? null,
@@ -229,6 +237,7 @@ function syncMetaFromData(r: FirebaseFirestore.DocumentData | undefined): SyncMe
     period: r.period as CampaignPeriod,
     syncedAt: r.syncedAt,
     ...(typeof r.currency === "string" ? { currency: r.currency } : {}),
+    ...(typeof r.timeZone === "string" ? { timeZone: r.timeZone } : {}),
     ...(typeof r.moneyVerdict === "string" ? { moneyVerdict: r.moneyVerdict as SklikMoneyVerdict } : {}),
     degraded: Boolean(r.degraded),
     degradedReason: r.degradedReason ?? null,

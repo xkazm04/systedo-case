@@ -107,7 +107,7 @@ export interface SearchRow {
     resourceName?: string;
     amountMicros?: string | number;
   };
-  customer?: { descriptiveName?: string; id?: string; currencyCode?: string };
+  customer?: { descriptiveName?: string; id?: string; currencyCode?: string; timeZone?: string };
   segments?: { date?: string };
   metrics?: {
     impressions?: string | number;
@@ -292,10 +292,14 @@ async function fetchAccountDailyRaw(
   accessToken: string,
   customerId: string,
   days: number,
-  extraSelect: readonly string[] = []
+  extraSelect: readonly string[] = [],
+  timeZone?: string | null
 ): Promise<SearchRow[]> {
-  const { start, end } = dateRange(days);
-  const columns = [...extraSelect, "segments.date", ...ACCOUNT_DAILY_METRICS];
+  const { start, end } = dateRange(days, timeZone);
+  // customer.time_zone rides along (one value per account) so any caller can capture it
+  // via pickTimeZone and persist it for the NEXT sync's window; the mappers ignore it,
+  // so the summed/per-campaign output stays byte-identical.
+  const columns = [...extraSelect, "segments.date", "customer.time_zone", ...ACCOUNT_DAILY_METRICS];
   const query = `
     SELECT
       ${columns.join(",\n      ")}
@@ -366,9 +370,10 @@ export function mapRowsToCampaignDailySeries(rows: SearchRow[]): Record<string, 
 export async function fetchDailySeries(
   accessToken: string,
   customerId: string,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  timeZone?: string | null
 ): Promise<DailyPoint[]> {
-  return mapRowsToDailySeries(await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period]));
+  return mapRowsToDailySeries(await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], [], timeZone));
 }
 
 /** Account-level daily rows for the last `days` — the series the monthly report's
@@ -378,9 +383,10 @@ export async function fetchDailySeries(
 export async function fetchAccountDailyRows(
   accessToken: string,
   customerId: string,
-  days: number
+  days: number,
+  timeZone?: string | null
 ): Promise<SearchRow[]> {
-  return fetchAccountDailyRaw(accessToken, customerId.replace(/\D/g, ""), days);
+  return fetchAccountDailyRaw(accessToken, customerId.replace(/\D/g, ""), days, [], timeZone);
 }
 
 /** Per-campaign daily series for the period — the same date-segmented metrics as
@@ -389,10 +395,11 @@ export async function fetchAccountDailyRows(
 export async function fetchCampaignDailySeries(
   accessToken: string,
   customerId: string,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  timeZone?: string | null
 ): Promise<Record<string, DailyPoint[]>> {
   return mapRowsToCampaignDailySeries(
-    await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"])
+    await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"], timeZone)
   );
 }
 
@@ -411,9 +418,10 @@ export interface DailySeriesBundle {
 export async function fetchDailySeriesBundle(
   accessToken: string,
   customerId: string,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  timeZone?: string | null
 ): Promise<DailySeriesBundle> {
-  const rows = await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"]);
+  const rows = await fetchAccountDailyRaw(accessToken, customerId, CAMPAIGN_PERIOD_DAYS[period], ["campaign.id"], timeZone);
   return { portfolio: mapRowsToDailySeries(rows), perCampaign: mapRowsToCampaignDailySeries(rows) };
 }
 
@@ -439,12 +447,14 @@ export async function fetchAccountDailyShared(
   accessToken: string,
   customerId: string,
   reportDays: number,
-  campaignPeriod: CampaignPeriod
+  campaignPeriod: CampaignPeriod,
+  timeZone?: string | null
 ): Promise<{ reportRows: SearchRow[]; bundle: DailySeriesBundle }> {
   const digits = customerId.replace(/\D/g, "");
-  const reportRows = await fetchAccountDailyRaw(accessToken, digits, reportDays, ["campaign.id"]);
-  // Slice the report window down to the campaign window (both end today within a run).
-  const { start } = dateRange(CAMPAIGN_PERIOD_DAYS[campaignPeriod]);
+  const reportRows = await fetchAccountDailyRaw(accessToken, digits, reportDays, ["campaign.id"], timeZone);
+  // Slice the report window down to the campaign window (both end today within a run —
+  // the same tz-aware `end`, so the slice boundary stays consistent with the fetch).
+  const { start } = dateRange(CAMPAIGN_PERIOD_DAYS[campaignPeriod], timeZone);
   const periodRows = filterRowsFromDate(reportRows, start);
   return {
     reportRows,
@@ -470,25 +480,73 @@ function num(v: string | number | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function dateRange(days: number): { start: string; end: string } {
-  const end = new Date();
-  const start = new Date(end.getTime() - days * 86_400_000);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  return { start: fmt(start), end: fmt(end) };
+/** Today's calendar date (YYYY-MM-DD) in an IANA time zone. Google Ads `segments.date`
+ *  is expressed in the ACCOUNT's time zone, so a UTC "today" can name the wrong edge
+ *  day for a non-UTC account — a US account late in the UTC day is still on yesterday
+ *  locally; an Asia/Pacific account early in the UTC day is already on tomorrow. When
+ *  `timeZone` is absent or not a resolvable IANA zone, falls back to UTC, byte-identical
+ *  to the old `toISOString().slice(0,10)`. Pure — no I/O, tested at the calendar edges. */
+export function todayInTimeZone(timeZone?: string | null, now: Date = new Date()): string {
+  if (timeZone) {
+    try {
+      // en-CA renders as YYYY-MM-DD; the timeZone option re-expresses the same instant
+      // in the account's local calendar — exactly the day segments.date is keyed on.
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(now);
+    } catch {
+      // Unknown/invalid zone → UTC fallback; a bad tz string must never fail a sync.
+    }
+  }
+  return now.toISOString().slice(0, 10);
+}
+
+/** Shift a YYYY-MM-DD calendar date back `days` days, staying on the calendar. The date
+ *  is a wall-clock day, so epoch math on its UTC midnight is exact — no DST or tz drift
+ *  (a DST transition changes clock times, never which calendar date is `days` before
+ *  another). Pure. */
+export function shiftCalendarDays(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d) - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** GAQL date window [start, end] for the trailing `days`. `end` is today in the
+ *  ACCOUNT's time zone when known (so the edge days align with segments.date), UTC
+ *  otherwise; `start` is `days` calendar days earlier. With no tz this is byte-identical
+ *  to the old UTC computation (`end` = today-UTC, `start` = today − days). */
+function dateRange(days: number, timeZone?: string | null): { start: string; end: string } {
+  const end = todayInTimeZone(timeZone);
+  return { start: shiftCalendarDays(end, days), end };
+}
+
+/** The account's IANA time zone from a searchStream result (one value per account, so
+ *  the first row that carries it wins), or null when the query didn't select/return it.
+ *  Captured at ingestion and persisted additively so later syncs can window in the
+ *  account's own clock. */
+export function pickTimeZone(rows: SearchRow[]): string | null {
+  return rows.find((r) => r.customer?.timeZone)?.customer?.timeZone ?? null;
 }
 
 /** Campaigns + aggregated metrics for the period, mapped into the app's model, plus
- *  the account's ISO currency code (`customer.currency_code`, captured at ingestion
- *  so the money surfaces can label a non-CZK account honestly — no conversion). */
+ *  the account's ISO currency code (`customer.currency_code`) AND its IANA time zone
+ *  (`customer.time_zone`), both captured at ingestion in this one query: currency lets
+ *  the money surfaces label a non-CZK account honestly (no conversion); the time zone
+ *  is persisted additively so the NEXT sync can compute its window in the account's own
+ *  clock. `timeZone` (the last-known account zone from the prior sync's meta) windows
+ *  THIS fetch — null on the first-ever sync → UTC fallback, unchanged. */
 export async function fetchCampaigns(
   accessToken: string,
   customerId: string,
-  period: CampaignPeriod
-): Promise<{ campaigns: Campaign[]; currency: string | null }> {
-  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period]);
+  period: CampaignPeriod,
+  timeZone?: string | null
+): Promise<{ campaigns: Campaign[]; currency: string | null; timeZone: string | null }> {
+  const { start, end } = dateRange(CAMPAIGN_PERIOD_DAYS[period], timeZone);
   // No segments.date in SELECT → metrics aggregate per campaign over the range.
-  // customer.currency_code rides along (one value per account) so the connector can
-  // persist it on the sync meta without a second query.
+  // customer.currency_code + customer.time_zone ride along (one value per account) so the
+  // connector can persist both on the sync meta without a second query.
   const query = `
     SELECT
       campaign.id,
@@ -497,6 +555,7 @@ export async function fetchCampaigns(
       campaign.advertising_channel_type,
       campaign_budget.amount_micros,
       customer.currency_code,
+      customer.time_zone,
       metrics.impressions,
       metrics.clicks,
       metrics.cost_micros,
@@ -508,6 +567,7 @@ export async function fetchCampaigns(
   const rows = await searchStream(accessToken, customerId, query);
 
   const currency = rows.find((r) => r.customer?.currencyCode)?.customer?.currencyCode ?? null;
+  const accountTimeZone = pickTimeZone(rows);
 
   const campaigns = rows
     .filter((r) => r.campaign?.id)
@@ -532,5 +592,5 @@ export async function fetchCampaigns(
       } satisfies Campaign;
     });
 
-  return { campaigns, currency };
+  return { campaigns, currency, timeZone: accountTimeZone };
 }

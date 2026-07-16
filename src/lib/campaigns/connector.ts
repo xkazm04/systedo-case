@@ -71,6 +71,13 @@ export interface AdsConnector {
    *  Resolved DURING fetchCampaigns (like {@link degradation}), so read it AFTER —
    *  null until then / when the account provides none (→ treated as the base CZK). */
   currency: string | null;
+  /** the account's IANA time zone, captured at ingestion (Google `customer.time_zone`)
+   *  and persisted additively on the sync meta so the NEXT sync can compute its GAQL
+   *  date window in the account's own clock (Google Ads `segments.date` is account-
+   *  local, so a UTC window misaligns the edge days for a non-UTC account). Resolved
+   *  DURING fetchCampaigns like {@link currency} — read it AFTER; null until then / for
+   *  sources without a meaningful zone (sample, Sklik) → UTC-window fallback. */
+  timeZone: string | null;
   fetchCampaigns(period: CampaignPeriod): Promise<Campaign[]>;
   /** per-day portfolio totals for the trend chart */
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
@@ -144,6 +151,8 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
     label: "Google Ads · ukázková data",
     // Sample data is illustrative CZK — the base currency, so labels are unchanged.
     currency: "CZK",
+    // Sample series are generated, not fetched over a GAQL window → no account clock.
+    timeZone: null,
     degradation: { campaigns: false, series: false, reason: null },
     async fetchCampaigns(period) {
       return sampleCampaigns(period, projectType, seedKey, Date.now(), envelopeFor(period));
@@ -161,9 +170,10 @@ function sampleProvider(projectType?: ProjectType, seedKey?: string): AdsConnect
  *  before the degrade-to-sample wrapping. Google (@/lib/google/ads) and Sklik
  *  (@/lib/sklik/adapter) each bind their credentials into one of these. */
 interface LiveFetchers {
-  /** campaigns + the account's ISO currency (captured in the same fetch — Google
-   *  from customer.currency_code, Sklik always CZK). */
-  fetchCampaigns(period: CampaignPeriod): Promise<{ campaigns: Campaign[]; currency: string | null }>;
+  /** campaigns + the account's ISO currency AND IANA time zone (all captured in the
+   *  same fetch — Google from customer.currency_code / customer.time_zone; Sklik always
+   *  CZK and no GAQL clock → null zone). */
+  fetchCampaigns(period: CampaignPeriod): Promise<{ campaigns: Campaign[]; currency: string | null; timeZone: string | null }>;
   fetchSeries(period: CampaignPeriod): Promise<DailyPoint[]>;
   fetchCampaignSeries(period: CampaignPeriod): Promise<Record<string, DailyPoint[]>>;
 }
@@ -195,17 +205,22 @@ function withSampleFallback(
     // Defaults to the fallback's currency (base CZK) until a live campaign fetch
     // resolves the real one; a degraded fetch (sample data shown) keeps the base.
     currency: fallback.currency,
+    // Defaults to the fallback's zone (null → UTC window) until a live campaign fetch
+    // captures the real account zone; a degraded fetch keeps the fallback's.
+    timeZone: fallback.timeZone,
     degradation,
     async fetchCampaigns(period) {
       try {
-        const { campaigns, currency } = await live.fetchCampaigns(period);
+        const { campaigns, currency, timeZone } = await live.fetchCampaigns(period);
         connector.currency = currency ?? fallback.currency;
+        connector.timeZone = timeZone ?? fallback.timeZone;
         return campaigns;
       } catch (err) {
         console.error(`[campaigns] live fetchCampaigns (${source}) failed; serving sample data:`, err);
         degradation.campaigns = true;
         degradation.reason ??= describeError(err);
         connector.currency = fallback.currency;
+        connector.timeZone = fallback.timeZone;
         return fallback.fetchCampaigns(period);
       }
     },
@@ -255,6 +270,14 @@ function googleAdsProvider(
     return true;
   };
 
+  // The account's IANA zone, captured by the first live fetchCampaigns of this sync and
+  // then used to window the date-segmented series read below. runTenantSync fetches
+  // campaigns BEFORE the series, so by the time the bundle is built this holds the real
+  // zone; if a caller somehow reads the series first it stays null → UTC window (the
+  // prior behaviour). Only ever set to the captured value, never a stale cross-sync one
+  // (a fresh connector is built per sync).
+  let accountTimeZone: string | null = null;
+
   // ONE date-segmented GAQL read per period, shared by the portfolio series and the
   // per-campaign series (which used to fire two round-trips over the SAME rows). A
   // fresh connector is built per sync, so this per-instance memo never serves stale
@@ -264,7 +287,7 @@ function googleAdsProvider(
   const bundle = (period: CampaignPeriod): Promise<DailySeriesBundle> => {
     let p = bundleByPeriod.get(period);
     if (!p) {
-      p = withLiveRetry(() => adsFetchDailySeriesBundle(token, customerId, period), { refreshToken });
+      p = withLiveRetry(() => adsFetchDailySeriesBundle(token, customerId, period, accountTimeZone), { refreshToken });
       bundleByPeriod.set(period, p);
     }
     return p;
@@ -273,12 +296,17 @@ function googleAdsProvider(
     "google-ads",
     "Google Ads · živá data",
     {
-      // adsFetchCampaigns already returns { campaigns, currency } (currency captured
-      // from customer.currency_code in the same GAQL query). Each live call gets one
-      // bounded retry (fresh token on 401, short backoff on 429/5xx/network) before
-      // withSampleFallback degrades it.
+      // adsFetchCampaigns returns { campaigns, currency, timeZone } (currency from
+      // customer.currency_code, zone from customer.time_zone, both in the same GAQL
+      // query). The captured zone windows the subsequent series read. Each live call
+      // gets one bounded retry (fresh token on 401, short backoff on 429/5xx/network)
+      // before withSampleFallback degrades it.
       fetchCampaigns: (period) =>
-        withLiveRetry(() => adsFetchCampaigns(token, customerId, period), { refreshToken }),
+        withLiveRetry(async () => {
+          const res = await adsFetchCampaigns(token, customerId, period);
+          accountTimeZone = res.timeZone ?? accountTimeZone;
+          return res;
+        }, { refreshToken }),
       fetchSeries: async (period) => (await bundle(period)).portfolio,
       fetchCampaignSeries: async (period) => (await bundle(period)).perCampaign,
     },
@@ -309,10 +337,12 @@ function sklikProvider(fallback: AdsConnector, token: string, mode: SklikMoneyMo
     "sklik",
     "Sklik · živá data",
     {
-      // Sklik (Seznam) is a Czech platform — money is always native CZK, the base.
+      // Sklik (Seznam) is a Czech platform — money is always native CZK, the base. Its
+      // adapter windows dates in its own logic (not GAQL), so it carries no account zone.
       fetchCampaigns: async (period) => ({
         campaigns: await withLiveRetry(() => fetchSklikCampaigns(client, period, mode), {}),
         currency: "CZK",
+        timeZone: null,
       }),
       fetchSeries: (period) => withLiveRetry(() => fetchSklikSeries(client, period, mode), {}),
       fetchCampaignSeries: (period) => withLiveRetry(() => fetchSklikCampaignSeries(client, period, mode), {}),

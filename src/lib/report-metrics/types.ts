@@ -38,6 +38,12 @@ export interface MetricsSyncMeta {
   days: number;
   /** number of daily rows stored */
   rowCount: number;
+  /** the account's IANA time zone (Google `customer.time_zone`), captured at ingestion.
+   *  Additive + optional: blobs synced before it existed omit it → the next sync's
+   *  window falls back to UTC, byte-identical to before. Google Ads `segments.date` is
+   *  account-local, so persisting the zone lets the FOLLOWING sync align its window's
+   *  edge days to the account's calendar rather than UTC. */
+  timeZone?: string;
 }
 
 /** The persisted blob per project: provenance + the daily series. */
