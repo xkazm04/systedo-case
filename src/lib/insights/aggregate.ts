@@ -15,7 +15,7 @@ import { SAMPLE_SOURCES } from "@/lib/lead-quality/sample";
 import { withMetrics as leadMetrics } from "@/lib/lead-quality/compute";
 import { SAMPLE_LEADS } from "@/lib/speed-lead/sample";
 import { SLA_TARGET_MIN } from "@/lib/speed-lead/draft";
-import { SAMPLE_COHORTS } from "@/lib/ltv/sample";
+import { resolveCohorts } from "@/lib/ltv/resolve";
 import { ltvSummary } from "@/lib/ltv/compute";
 import { SAMPLE_EXPERIMENTS } from "@/lib/lp-exp/sample";
 import { evaluate } from "@/lib/lp-exp/compute";
@@ -150,11 +150,16 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
  *  when the catalog has plans / named competitors, else the sample set) — threaded
  *  in by the caller (ProjectOverview) exactly as srovnani-seo/page.tsx resolves them,
  *  so the Overview SEO rec scores the same slate the module shows. The aggregator
- *  stays pure and does NO I/O — same precedent as the localRecs signals above. */
-function appRecs(locale: SupportedLocale, seoQueries: CompareQuery[]): Recommendation[] {
+ *  stays pure and does NO I/O — same precedent as the localRecs signals above.
+ *
+ *  The LTV rec reads the project's RESOLVED cohorts (`resolveCohorts` — the same pure,
+ *  project-varied source the /ltv page consumes), so Overview's "LTV:CAC pod cílem"
+ *  can't contradict the /ltv page it links to. Previously it read the global static
+ *  SAMPLE_COHORTS, giving every app project the identical (and often divergent) rec. */
+function appRecs(project: Project, locale: SupportedLocale, seoQueries: CompareQuery[]): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
-  const ltv = ltvSummary(SAMPLE_COHORTS);
+  const ltv = ltvSummary(resolveCohorts(project));
   if (ltv.avgLtvCac < 3) {
     out.push(rec(locale, "ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
       locale === "en"
@@ -345,7 +350,7 @@ export function collectRecommendations(
     project.type === "eshop"
       ? eshopRecs(project, locale)
       : project.type === "app"
-        ? appRecs(locale, seoQueries ?? SAMPLE_QUERIES)
+        ? appRecs(project, locale, seoQueries ?? SAMPLE_QUERIES)
         : project.type === "leadgen"
           ? leadgenRecs(locale)
           : project.type === "local"
