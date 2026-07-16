@@ -32,15 +32,38 @@ const readStoredOfferings = cache(
  *  projects are never persisted. `stored ?? seed` — an explicitly-empty saved
  *  catalog ([]) is honored; only a never-saved project (null) falls back to the seed. */
 export async function loadProjectCatalog(project: Project, now: Date = new Date()): Promise<Offering[]> {
-  if (project.id.startsWith("demo-")) return getProjectCatalog(project, now);
+  return (await loadProjectCatalogWithSource(project, now)).offerings;
+}
+
+/** As {@link loadProjectCatalog}, but also reports whether the catalog is the user's
+ *  own persisted data (`"catalog"`) or the illustrative seed (`"sample"`) — so a page
+ *  can label the honesty banner truthfully instead of hardcoding `sample`. A demo
+ *  project, an unauthenticated read, or a never-saved project all resolve to the seed
+ *  (`"sample"`); a saved catalog — including an explicitly-empty `[]` — is `"catalog"`. */
+export async function loadProjectCatalogWithSource(
+  project: Project,
+  now: Date = new Date()
+): Promise<{ offerings: Offering[]; source: "catalog" | "sample" }> {
+  if (project.id.startsWith("demo-")) return { offerings: getProjectCatalog(project, now), source: "sample" };
   const userId = await currentUserId();
-  if (!userId) return getProjectCatalog(project, now);
+  if (!userId) return { offerings: getProjectCatalog(project, now), source: "sample" };
   const stored = await readStoredOfferings(userId, project.id);
-  return stored ?? getProjectCatalog(project, now);
+  return stored === null
+    ? { offerings: getProjectCatalog(project, now), source: "sample" }
+    : { offerings: stored, source: "catalog" };
 }
 
 export async function loadProductsFor(project: Project, now: Date = new Date()): Promise<Product[]> {
   return (await loadProjectCatalog(project, now)).filter(isProduct).map(toProduct);
+}
+
+/** Products plus the catalog's provenance (see {@link loadProjectCatalogWithSource}). */
+export async function loadProductsForWithSource(
+  project: Project,
+  now: Date = new Date()
+): Promise<{ products: Product[]; source: "catalog" | "sample" }> {
+  const { offerings, source } = await loadProjectCatalogWithSource(project, now);
+  return { products: offerings.filter(isProduct).map(toProduct), source };
 }
 
 export async function loadPlansFor(project: Project): Promise<PlanOffering[]> {
