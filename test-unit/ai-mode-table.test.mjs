@@ -153,10 +153,10 @@ test("cohort-diagnosis: intent → server-rebuilt request; client numbers ignore
   const prepared = await prepare(table, "cohort-diagnosis", intent);
   assert.deepEqual(calls[0], { name: "resolveCohortDiagnosis", args: ["pid", "u1"] });
   // cacheValue rewrites to { request, keyId } — the effective grounding, not the body.
-  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "cohort-req" }, keyId: "CKID" });
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "cohort-req", sample: true }, keyId: "CKID" });
   const res = await prepared.gen();
   // The generator got the REBUILT request (sentinel), never the client's fake numbers.
-  assert.deepEqual(calls[1], { name: "cohortDiagnosis", args: [{ __sentinel: "cohort-req" }, LOCALE, SIGNAL] });
+  assert.deepEqual(calls[1], { name: "cohortDiagnosis", args: [{ __sentinel: "cohort-req", sample: true }, LOCALE, SIGNAL] });
   assert.equal(res.meta.sampleGrounded, true, "sample provenance rides the meta");
   assert.equal(typeof res.meta.inputDigest, "string", "the rebuilt-request digest rides the meta");
 });
@@ -176,9 +176,9 @@ test("lead-source-diagnosis: picked source is the intent; server rebuilds its me
   const { table, calls } = harness();
   const prepared = await prepare(table, "lead-source-diagnosis", { projectId: "pid", source: "Meta" });
   assert.deepEqual(calls[0], { name: "resolveLeadSourceDiagnosis", args: ["pid", "u1", "Meta"] });
-  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "lead-req", source: "Meta" }, keyId: "LSKID" });
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "lead-req", source: "Meta", sample: false }, keyId: "LSKID" });
   const res = await prepared.gen();
-  assert.deepEqual(calls[1], { name: "leadSourceDiagnosis", args: [{ __sentinel: "lead-req", source: "Meta" }, LOCALE, SIGNAL] });
+  assert.deepEqual(calls[1], { name: "leadSourceDiagnosis", args: [{ __sentinel: "lead-req", source: "Meta", sample: false }, LOCALE, SIGNAL] });
   assert.equal(res.meta.sampleGrounded, false, "a live-lead funnel is NOT sample-grounded");
 });
 
@@ -186,9 +186,9 @@ test("local-diagnosis: intent → server-rebuilt request from the project", asyn
   const { table, calls } = harness();
   const prepared = await prepare(table, "local-diagnosis", { projectId: "pid" });
   assert.deepEqual(calls[0], { name: "resolveLocalDiagnosis", args: ["pid", "u1"] });
-  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "local-req" }, keyId: "LOCKID" });
+  assert.deepEqual(prepared.cacheValue, { request: { __sentinel: "local-req", sample: true }, keyId: "LOCKID" });
   await prepared.gen();
-  assert.deepEqual(calls[1], { name: "localDiagnosis", args: [{ __sentinel: "local-req" }, LOCALE, SIGNAL] });
+  assert.deepEqual(calls[1], { name: "localDiagnosis", args: [{ __sentinel: "local-req", sample: true }, LOCALE, SIGNAL] });
 });
 
 test("diagnosis modes 422 when no project resolves for the caller (unowned / unknown id)", async () => {
