@@ -3,8 +3,8 @@
  *  pure diff lives in ./snapshot-diff (unit-tested); this file is the thin
  *  Firestore reader that fetches exactly the window each consumer needs. */
 import "server-only";
-import { FieldPath } from "firebase-admin/firestore";
-import { tenantDoc, activePeriod, legacyPeriod, type TenantRoot } from "./tenant";
+import { activePeriod, legacyPeriod, type TenantRoot } from "./tenant";
+import { tenantStore } from "./backend";
 import { SNAPSHOT_ID_SEP, snapshotIdRange, isLegacySnapshotId } from "../store-keys";
 import { summarizeSnapshotEntries, type SnapshotSummaryPoint } from "../triage";
 import { diffSnapshots, type SnapshotDoc, type SnapshotEntry } from "./snapshot-diff";
@@ -40,24 +40,19 @@ async function readPeriodSnapshots(
   legacy: CampaignPeriod | null,
   want: number
 ): Promise<SnapshotDoc[]> {
-  const col = tenantDoc(tenant).collection("snapshots");
+  const store = await tenantStore();
   const { gte, lt } = snapshotIdRange(requested);
-  const keyed = await col
-    .orderBy(FieldPath.documentId(), "desc")
-    .where(FieldPath.documentId(), ">=", gte)
-    .where(FieldPath.documentId(), "<", lt)
-    .limit(want)
-    .get();
-  const docs = keyed.docs.map((d) => d.data() as SnapshotDoc);
+  const keyed = await store.idRange(tenant, "snapshots", { gte, lt, limit: want, dir: "desc" });
+  const docs = keyed.map((d) => d.data as SnapshotDoc);
 
   if (docs.length < want && requested === legacy) {
-    const legacy = await col
-      .orderBy(FieldPath.documentId(), "desc")
-      .where(FieldPath.documentId(), "<", KEYED_SNAPSHOT_ID_FLOOR)
-      .limit(want - docs.length)
-      .get();
-    for (const d of legacy.docs) {
-      if (isLegacySnapshotId(d.id)) docs.push(d.data() as SnapshotDoc);
+    const legacyRows = await store.idRange(tenant, "snapshots", {
+      lt: KEYED_SNAPSHOT_ID_FLOOR,
+      limit: want - docs.length,
+      dir: "desc",
+    });
+    for (const d of legacyRows) {
+      if (isLegacySnapshotId(d.id)) docs.push(d.data as SnapshotDoc);
     }
   }
   return docs; // newest → oldest

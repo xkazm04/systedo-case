@@ -3,8 +3,8 @@
  *  active-period pointer. */
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { firestore } from "@/lib/firebase";
-import { tenantDoc, activePeriod, legacyPeriod, readTenantRoot, type TenantRoot } from "./tenant";
+import { activePeriod, legacyPeriod, readTenantRoot, type TenantRoot } from "./tenant";
+import { tenantStore } from "./backend";
 import { belongsToPeriod, campaignDocId, snapshotDocId } from "../store-keys";
 import type { Campaign, CampaignPeriod } from "../types";
 import type { SklikMoneyVerdict } from "@/lib/sklik/money-verdict";
@@ -68,7 +68,7 @@ export async function upsertCampaigns(
     appendSnapshot?: boolean;
   }
 ): Promise<void> {
-  const t = tenantDoc(tenant);
+  const store = await tenantStore();
   const syncedAt = new Date().toISOString();
 
   // Read diet: clear ONLY this period's stored campaigns, via a single-field
@@ -81,11 +81,10 @@ export async function upsertCampaigns(
   // active period's data (migration-free tolerance) and are cleared as they re-sync.
   // The root read (in parallel) is for pinning legacyPeriod below — one small doc,
   // far cheaper than the full-collection scan the period query replaced.
-  const [rootSnap, stale] = await Promise.all([
-    t.get(),
-    t.collection("campaigns").where("period", "==", meta.period).get(),
+  const [rootData, stale] = await Promise.all([
+    store.getRoot(tenant),
+    store.queryEq(tenant, "campaigns", "period", meta.period),
   ]);
-  const rootData = rootSnap.data();
   // PIN the legacy-attribution period once: the active period observed at the first
   // sync that records it. Never moved afterwards, so switching the active period can no
   // longer re-attribute old un-keyed snapshots to a different period's timeline.
@@ -93,12 +92,12 @@ export async function upsertCampaigns(
     rootData?.period ??
     meta.period) as CampaignPeriod;
 
-  const batch = firestore.batch();
-  stale.forEach((d) => batch.delete(d.ref));
+  const batch = store.batch(tenant);
+  stale.forEach((d) => batch.delete("campaigns", d.id));
   campaigns.forEach((c, i) => {
     // Drop a legacy bare-id twin if present (delete of a missing doc is a free no-op).
-    batch.delete(t.collection("campaigns").doc(c.id));
-    batch.set(t.collection("campaigns").doc(campaignDocId(meta.period, c.id)), {
+    batch.delete("campaigns", c.id);
+    batch.set("campaigns", campaignDocId(meta.period, c.id), {
       ...c,
       position: i,
       period: meta.period,
@@ -116,7 +115,7 @@ export async function upsertCampaigns(
     // instead of over-fetching limit×4 / 20 and filtering in code (see snapshots.ts).
     // A random suffix makes the id collision-proof — two syncs in the same millisecond
     // used to share the bare-syncedAt id and one clobbered the other; now both persist.
-    batch.set(t.collection("snapshots").doc(snapshotDocId(meta.period, syncedAt, randomUUID().slice(0, 8))), {
+    batch.set("snapshots", snapshotDocId(meta.period, syncedAt, randomUUID().slice(0, 8)), {
       syncedAt,
       period: meta.period,
       campaigns: campaigns.map((c) => ({
@@ -141,8 +140,7 @@ export async function upsertCampaigns(
   // Sync metadata on the tenant root doc. Firestore rejects `undefined`, so the
   // optional degradation fields are normalised (and cleared on a healthy sync).
   // set+merge deep-merges maps, so syncedByPeriod keeps the other periods.
-  batch.set(
-    t,
+  batch.setRoot(
     {
       source: meta.source,
       period: meta.period,
@@ -192,8 +190,10 @@ export async function listCampaigns(
 ): Promise<Campaign[]> {
   const active = await activePeriod(tenant, root);
   const requested = period ?? active;
-  const snap = await tenantDoc(tenant).collection("campaigns").orderBy("position", "asc").get();
-  const docs = snap.docs.map((d) => d.data());
+  const docs = await (await tenantStore()).listDocs(tenant, "campaigns", {
+    field: "position",
+    dir: "asc",
+  });
   if (!requested) return docs.map(toCampaign); // pre-first-sync (empty store)
   // Legacy (un-keyed) docs are attributed to the PINNED legacyPeriod, not the live
   // active one, so switching the active period can't steal them into another view.
@@ -210,19 +210,16 @@ export async function getCampaign(
 ): Promise<Campaign | null> {
   // One root read → both the active period (the request default) and the pinned
   // legacyPeriod (the attribution anchor for un-keyed docs).
+  const store = await tenantStore();
   const root = await readTenantRoot(tenant);
   const requested = period ?? root.activePeriod;
   if (requested) {
-    const keyed = await tenantDoc(tenant)
-      .collection("campaigns")
-      .doc(campaignDocId(requested, id))
-      .get();
-    if (keyed.exists) return toCampaign(keyed.data()!);
+    const keyed = await store.getDoc(tenant, "campaigns", campaignDocId(requested, id));
+    if (keyed) return toCampaign(keyed);
   }
   // Legacy un-keyed doc — only valid as the PINNED legacy period's data.
-  const doc = await tenantDoc(tenant).collection("campaigns").doc(id).get();
-  if (!doc.exists) return null;
-  const data = doc.data()!;
+  const data = await store.getDoc(tenant, "campaigns", id);
+  if (!data) return null;
   if (requested && !belongsToPeriod(data.period as string | undefined, root.legacyPeriod, requested)) {
     return null;
   }
@@ -250,7 +247,7 @@ function syncMetaFromData(r: FirebaseFirestore.DocumentData | undefined): SyncMe
 /** The tenant's sync metadata. Pass a pre-read `root` (see readTenantRoot) to
  *  derive it from the shared root read instead of issuing another. */
 export async function getSyncMeta(tenant: string, root?: TenantRoot): Promise<SyncMeta | null> {
-  const data = root ? root.data : (await tenantDoc(tenant).get()).data();
+  const data = root ? root.data : await (await tenantStore()).getRoot(tenant);
   return syncMetaFromData(data);
 }
 
@@ -269,7 +266,7 @@ export async function setActivePeriod(
   const syncedAt = meta?.syncedByPeriod?.[period];
   if (!meta || !syncedAt) return null;
   if (meta.period !== period || meta.syncedAt !== syncedAt) {
-    await tenantDoc(tenant).set({ period, syncedAt }, { merge: true });
+    await (await tenantStore()).setRoot(tenant, { period, syncedAt }, { merge: true });
   }
   return { ...meta, period, syncedAt };
 }

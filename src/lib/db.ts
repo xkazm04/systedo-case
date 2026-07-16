@@ -366,6 +366,33 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_ai_response_cache_tool
     ON ai_response_cache (tool, created_at);
+
+  -- LOCAL_DB mode only: the generic per-tenant document twin backing the four
+  -- campaign-data stores (campaigns, series, reports, snapshots + the tenant root)
+  -- so the whole Vykon surface works fully offline instead of hard-500ing when
+  -- Firestore is unreachable. One row per (tenant, collection, doc_id); data is the
+  -- doc's JSON, mirroring a Firestore document. collection is the sub-collection name
+  -- (campaigns/series/reports/snapshots) or the reserved __root__ for the tenant root
+  -- doc. period is an EXTRACTED, INDEXED copy of data.period (null when absent) so the
+  -- hot period equality (the per-sync campaign stale-clear and the per-period report
+  -- lookups) is a single-field indexed probe rather than a JSON scan; other equalities
+  -- (report input_hash) use json_extract over the already-tiny match set. Doc-id range
+  -- reads (the period-keyed snapshot window) rely on the PK's binary doc_id ordering,
+  -- which matches Firestore's document-id byte order for these ASCII+PUA ids. Mirrors
+  -- tenants/{tenant}/... ; see src/lib/campaigns/store/local-docs.ts + backend.ts.
+  -- Untouched when LOCAL_DB is off.
+  CREATE TABLE IF NOT EXISTS campaign_docs (
+    tenant     TEXT NOT NULL,
+    collection TEXT NOT NULL,
+    doc_id     TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    period     TEXT,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (tenant, collection, doc_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_campaign_docs_period
+    ON campaign_docs (tenant, collection, period);
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -569,6 +596,27 @@ const MIGRATIONS: Migration[] = [
       );
     },
     applied: (db) => tableExists(db, "ai_response_cache"),
+  },
+  {
+    version: 16,
+    name: "campaign_docs (generic per-tenant doc twin → Výkon works fully offline)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS campaign_docs (
+          tenant     TEXT NOT NULL,
+          collection TEXT NOT NULL,
+          doc_id     TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          period     TEXT,
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (tenant, collection, doc_id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_campaign_docs_period ON campaign_docs (tenant, collection, period)"
+      );
+    },
+    applied: (db) => tableExists(db, "campaign_docs"),
   },
 ];
 

@@ -3,7 +3,7 @@
  *  fingerprint for cache lookups, and the score-drop regression alert. */
 import "server-only";
 import { createHash } from "node:crypto";
-import { tenantDoc } from "./tenant";
+import { tenantStore } from "./backend";
 import { recordActivity } from "../activity";
 import { recordAlert } from "../alerts";
 import type {
@@ -53,8 +53,11 @@ function toHistoryPoint(r: ReportDoc): ReportHistoryPoint {
  *  need the whole history (score timelines); the period/cache lookups below use a
  *  narrower single-field query instead of scanning the whole collection. */
 async function allReports(tenant: string): Promise<ReportDoc[]> {
-  const snap = await tenantDoc(tenant).collection("reports").orderBy("created_at", "asc").get();
-  return snap.docs.map((d) => d.data() as ReportDoc);
+  const docs = await (await tenantStore()).listDocs(tenant, "reports", {
+    field: "created_at",
+    dir: "asc",
+  });
+  return docs as ReportDoc[];
 }
 
 /** Sort report docs oldest → newest by their ISO `created_at` (the order a plain
@@ -111,7 +114,7 @@ export async function saveReport(
     previous = null;
   }
 
-  await tenantDoc(tenant).collection("reports").add(doc);
+  await (await tenantStore()).addDoc(tenant, "reports", doc);
 
   // Proactive monitoring on the write seam (the gate-locked analyze route needs
   // no edit): a timeline entry per evaluation — AI spend becomes auditable —
@@ -169,8 +172,8 @@ export async function getReportsForPeriodWithHashes(
   const inputHashes: Record<string, string | null> = {};
   // Query just this period's reports (single-field equality → auto-indexed, no
   // whole-collection scan) and sort in code, so last write per key still wins.
-  const snap = await tenantDoc(tenant).collection("reports").where("period", "==", period).get();
-  for (const r of byCreatedAtAsc(snap.docs.map((d) => d.data() as ReportDoc))) {
+  const rows = await (await tenantStore()).queryEq(tenant, "reports", "period", period);
+  for (const r of byCreatedAtAsc(rows.map((d) => d.data as ReportDoc))) {
     const key = reportKey(r);
     reports[key] = toReport(r);
     inputHashes[key] = r.input_hash ?? null;
@@ -216,13 +219,10 @@ export async function findCachedReport(
   // auto-indexed) instead of scanning every stored report. A sha1 hash collides
   // across (scope, campaign, period) only in the astronomically-unlikely case, so
   // the remaining fields are filtered in code over the already-tiny match set.
-  const snap = await tenantDoc(tenant)
-    .collection("reports")
-    .where("input_hash", "==", inputHash)
-    .get();
+  const rows = await (await tenantStore()).queryEq(tenant, "reports", "input_hash", inputHash);
   const matches = byCreatedAtAsc(
-    snap.docs
-      .map((d) => d.data() as ReportDoc)
+    rows
+      .map((d) => d.data as ReportDoc)
       .filter(
         (r) =>
           r.scope === scope &&

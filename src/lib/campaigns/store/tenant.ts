@@ -1,12 +1,11 @@
-/** Shared per-tenant Firestore helpers used across the campaign store's four
- *  concerns (campaigns, series, reports, snapshots). Server-only. */
+/** Shared per-tenant helpers used across the campaign store's four concerns
+ *  (campaigns, series, reports, snapshots). The raw document access dispatches
+ *  through {@link tenantStore} (Firestore in prod, node:sqlite under LOCAL_DB);
+ *  this file owns the shared root read + the period-attribution helpers over it.
+ *  Server-only. */
 import "server-only";
-import { firestore } from "@/lib/firebase";
+import { tenantStore } from "./backend";
 import type { CampaignPeriod } from "../types";
-
-export function tenantDoc(tenant: string) {
-  return firestore.collection("tenants").doc(tenant);
-}
 
 /** One read of the tenant root doc, shared across a request. The root carries the
  *  sync metadata AND the active-period pointer, which the campaign/series/snapshot
@@ -24,8 +23,7 @@ export interface TenantRoot {
 
 /** Read the tenant root doc once and parse the active-period pointer off it. */
 export async function readTenantRoot(tenant: string): Promise<TenantRoot> {
-  const doc = await tenantDoc(tenant).get();
-  const data = doc.data();
+  const data = await (await tenantStore()).getRoot(tenant);
   return {
     data,
     activePeriod: (data?.period as CampaignPeriod | undefined) ?? null,

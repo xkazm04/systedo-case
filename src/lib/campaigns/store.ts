@@ -15,8 +15,9 @@
  *    - `./store/series`    — the daily-series store
  *    - `./store/reports`   — the AI-report store + caching
  *    - `./store/snapshots` — the sync-snapshot / change-diff engine
- *  (`./store/tenant` holds the shared `tenantDoc()`/`activePeriod()` helpers,
- *  used internally by the four and intentionally not part of the public API). */
+ *  (`./store/tenant` holds the shared root-read + `activePeriod()` helpers, and
+ *  `./store/backend` the LOCAL_DB-vs-Firestore document backend the four dispatch
+ *  through — both internal, intentionally not part of the public API). */
 import "server-only";
 
 export * from "./store/campaigns";

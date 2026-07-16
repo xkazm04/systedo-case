@@ -1,0 +1,190 @@
+/** The LOCAL node:sqlite implementation of {@link TenantDocStore} (table
+ *  `campaign_docs`, DDL + migration v16 in src/lib/db.ts). Selected by the
+ *  dispatcher when LOCAL_DB is on, so the four campaign-data stores — and thus the
+ *  whole Výkon surface — work fully offline. Firebase-free by construction (it only
+ *  imports getDb), matching local-mode.ts's contract. Server-only.
+ *
+ *  Storage model: one row per (tenant, collection, doc_id) with the document's
+ *  fields as a JSON `data` blob, mirroring a Firestore document under
+ *  `tenants/{tenant}/{collection}/{doc_id}`. The tenant ROOT doc is stored under
+ *  the reserved collection/id `__root__`. `data.period` is mirrored into an indexed
+ *  `period` column so the hot equality queries stay indexed (see queryEq). */
+import { randomUUID } from "node:crypto";
+import { getDb } from "@/lib/db";
+import type { DocData, TenantBatch, TenantDocStore } from "./backend";
+
+/** Reserved (collection, doc_id) the tenant ROOT doc lives under. `__` cannot
+ *  collide with a real period-keyed id or a Firestore-style collection name used
+ *  by the four stores ("campaigns"/"series"/"reports"/"snapshots"). */
+const ROOT = "__root__";
+
+interface Row {
+  doc_id: string;
+  data: string;
+}
+
+const nowIso = () => new Date().toISOString();
+
+/** The indexed period mirror: only a string `period` field is columned. */
+function periodOf(data: DocData): string | null {
+  return typeof data.period === "string" ? data.period : null;
+}
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/** Deep-merge `incoming` onto `base`, matching Firestore `set(…, {merge:true})`:
+ *  nested maps merge recursively (so syncedByPeriod keeps other periods' entries),
+ *  everything else — scalars and ARRAYS — replaces. `undefined` values are skipped
+ *  (Firestore rejects them; the stores never send them). */
+function deepMerge(base: DocData, incoming: DocData): DocData {
+  const out: DocData = { ...base };
+  for (const [k, v] of Object.entries(incoming)) {
+    if (v === undefined) continue;
+    out[k] = isPlainObject(v) && isPlainObject(out[k]) ? deepMerge(out[k] as DocData, v) : v;
+  }
+  return out;
+}
+
+function rawGet(tenant: string, collection: string, docId: string): DocData | undefined {
+  const r = getDb()
+    .prepare("SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id = ?")
+    .get(tenant, collection, docId) as { data: string } | undefined;
+  return r ? (JSON.parse(r.data) as DocData) : undefined;
+}
+
+function rawSet(tenant: string, collection: string, docId: string, data: DocData): void {
+  getDb()
+    .prepare(
+      `INSERT INTO campaign_docs (tenant, collection, doc_id, data, period, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT (tenant, collection, doc_id) DO UPDATE SET
+         data = excluded.data, period = excluded.period, updated_at = excluded.updated_at`
+    )
+    .run(tenant, collection, docId, JSON.stringify(data), periodOf(data), nowIso());
+}
+
+function rawSetMerge(tenant: string, collection: string, docId: string, data: DocData): void {
+  rawSet(tenant, collection, docId, deepMerge(rawGet(tenant, collection, docId) ?? {}, data));
+}
+
+function rawDelete(tenant: string, collection: string, docId: string): void {
+  getDb()
+    .prepare("DELETE FROM campaign_docs WHERE tenant = ? AND collection = ? AND doc_id = ?")
+    .run(tenant, collection, docId);
+}
+
+export const localTenantStore: TenantDocStore = {
+  async getRoot(tenant) {
+    return rawGet(tenant, ROOT, ROOT);
+  },
+
+  async setRoot(tenant, data, opts) {
+    if (opts.merge) rawSetMerge(tenant, ROOT, ROOT, data);
+    else rawSet(tenant, ROOT, ROOT, data);
+  },
+
+  async getDoc(tenant, collection, docId) {
+    return rawGet(tenant, collection, docId);
+  },
+
+  async setDoc(tenant, collection, docId, data, opts) {
+    if (opts?.merge) rawSetMerge(tenant, collection, docId, data);
+    else rawSet(tenant, collection, docId, data);
+  },
+
+  async addDoc(tenant, collection, data) {
+    rawSet(tenant, collection, randomUUID(), data);
+  },
+
+  async listDocs(tenant, collection, orderBy) {
+    const dir = orderBy.dir === "desc" ? "DESC" : "ASC";
+    // json_extract gives numeric affinity for a number field (position) and text
+    // for an ISO string (created_at) → same ordering a Firestore orderBy yields.
+    const rows = getDb()
+      .prepare(
+        `SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ?
+         ORDER BY json_extract(data, ?) ${dir}`
+      )
+      .all(tenant, collection, `$.${orderBy.field}`) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as DocData);
+  },
+
+  async queryEq(tenant, collection, field, value) {
+    const db = getDb();
+    // `period` is the columned + indexed hot path (per-sync stale-clear, per-period
+    // report lookups); any other field (report input_hash) falls back to a
+    // json_extract scan over the already-tiny match set.
+    const rows = (
+      field === "period"
+        ? db
+            .prepare(
+              "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND period = ?"
+            )
+            .all(tenant, collection, value)
+        : db
+            .prepare(
+              "SELECT doc_id, data FROM campaign_docs WHERE tenant = ? AND collection = ? AND json_extract(data, ?) = ?"
+            )
+            .all(tenant, collection, `$.${field}`, value)
+    ) as unknown as Row[];
+    return rows.map((r) => ({ id: r.doc_id, data: JSON.parse(r.data) as DocData }));
+  },
+
+  async idRange(tenant, collection, opts) {
+    const dir = opts.dir === "desc" ? "DESC" : "ASC";
+    const clauses = ["tenant = ?", "collection = ?"];
+    const params: (string | number)[] = [tenant, collection];
+    if (opts.gte !== undefined) {
+      clauses.push("doc_id >= ?");
+      params.push(opts.gte);
+    }
+    if (opts.lt !== undefined) {
+      clauses.push("doc_id < ?");
+      params.push(opts.lt);
+    }
+    params.push(opts.limit);
+    // Binary (byte-wise) TEXT collation on doc_id matches Firestore's document-id
+    // UTF-8 byte ordering for the ASCII + PUA () ids these stores build.
+    const rows = getDb()
+      .prepare(
+        `SELECT doc_id, data FROM campaign_docs WHERE ${clauses.join(" AND ")}
+         ORDER BY doc_id ${dir} LIMIT ?`
+      )
+      .all(...params) as unknown as Row[];
+    return rows.map((r) => ({ id: r.doc_id, data: JSON.parse(r.data) as DocData }));
+  },
+
+  batch(tenant): TenantBatch {
+    const ops: Array<() => void> = [];
+    return {
+      setRoot(data, opts) {
+        ops.push(() =>
+          opts.merge ? rawSetMerge(tenant, ROOT, ROOT, data) : rawSet(tenant, ROOT, ROOT, data)
+        );
+      },
+      set(collection, docId, data) {
+        ops.push(() => rawSet(tenant, collection, docId, data));
+      },
+      delete(collection, docId) {
+        ops.push(() => rawDelete(tenant, collection, docId));
+      },
+      async commit() {
+        const db = getDb();
+        db.exec("BEGIN");
+        try {
+          for (const op of ops) op();
+          db.exec("COMMIT");
+        } catch (err) {
+          try {
+            db.exec("ROLLBACK");
+          } catch {
+            /* no active transaction to roll back */
+          }
+          throw err;
+        }
+      },
+    };
+  },
+};
