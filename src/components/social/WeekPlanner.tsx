@@ -38,6 +38,7 @@ const T = {
     generating: "Generuji… {done}/{total}",
     genFailed: "Generování se nezdařilo.",
     serverError: "Nepodařilo se spojit se serverem.",
+    partialKept: "Naplánováno {done}/{total} témat — v poli zůstala jen nezpracovaná, spusťte plánování znovu.",
     voiceLabel: "Píše na značku",
     voiceHint: "Odvozeno z vašeho katalogu — příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
   },
@@ -57,6 +58,7 @@ const T = {
     generating: "Generating… {done}/{total}",
     genFailed: "Generation failed.",
     serverError: "Could not reach the server.",
+    partialKept: "Scheduled {done}/{total} topics — only the unprocessed ones were kept below; run the planner again.",
     voiceLabel: "Writing on-brand",
     voiceHint: "Derived from your catalogue — posts stay in your range and vocabulary. Edit in Catalog.",
   },
@@ -213,6 +215,11 @@ export default function WeekPlanner() {
     first.setHours(safeHour, 0, 0, 0);
     if (first.getTime() <= Date.now()) first.setDate(first.getDate() + 1);
     let failed = false;
+    // Retry-safe batching: count topics whose posts ALL persisted, so a mid-batch
+    // failure can drop exactly the succeeded lines from the textarea. The old
+    // "keep everything on failure" retry re-ran topics 1..i-1 from scratch and
+    // double-scheduled every post that had already landed.
+    let doneCount = 0;
     for (let i = 0; i < topicLines.length; i++) {
       try {
         const draftRes = await fetch("/api/social/draft", {
@@ -263,6 +270,7 @@ export default function WeekPlanner() {
           failed = true;
           break;
         }
+        doneCount = i + 1;
         setProgress({ done: i + 1, total: topicLines.length });
       } catch {
         setError(t("serverError"));
@@ -271,8 +279,24 @@ export default function WeekPlanner() {
       }
     }
     setRunning(false);
-    // Keep the topics on any failure so the user can retry without retyping them.
-    if (!failed) setTopics("");
+    if (!failed) {
+      setTopics("");
+    } else {
+      // Keep ONLY the unprocessed topics so a retry doesn't re-run (and
+      // double-schedule) the ones that already persisted. The failed topic
+      // itself stays — at worst its retry re-saves the platforms that landed
+      // before its failure, never whole earlier topics. Slice the FULL textarea
+      // lines (topicLines is capped at 7) so overflow lines survive too.
+      const allLines = topics
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      setTopics(allLines.slice(doneCount).join("\n"));
+      if (doneCount > 0) {
+        const kept = t("partialKept", { done: doneCount, total: topicLines.length });
+        setError((prev) => (prev ? `${prev} ${kept}` : kept));
+      }
+    }
     window.dispatchEvent(new CustomEvent("social:posts-changed"));
     void loadPosts();
   }
