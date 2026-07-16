@@ -67,7 +67,40 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   const customerId = typeof body.customerId === "string" ? body.customerId.replace(/\D/g, "") : "";
   if (!customerId) return Response.json({ error: "Chybí ID účtu." }, { status: 422 });
-  const customerName = typeof body.customerName === "string" ? body.customerName : customerId;
+  // Client-supplied name is only a fallback (capped like report-config's fields) —
+  // when the Ads API is available the authoritative name is derived server-side.
+  let customerName =
+    (typeof body.customerName === "string" ? body.customerName.trim().slice(0, 80) : "") ||
+    customerId;
+
+  // Connecting an account makes it ACTIVE, and the active customerId keys the
+  // tenant (resolveTenant/resolveCampaignContext) — so a phantom/foreign id flips
+  // the user's whole tenant view. Verify against the same authoritative
+  // accessible-ids list GET builds before persisting anything.
+  if (adsConfigured()) {
+    const token = await getUserAccessToken(userId);
+    if (!token) {
+      return Response.json({ error: "Chybí Google autorizace (přihlaste se znovu)." }, { status: 403 });
+    }
+    let ids: string[];
+    try {
+      ids = await listAccessibleCustomers(token);
+    } catch (err) {
+      console.error("[campaigns] connect: listAccessibleCustomers failed:", err);
+      return Response.json({ error: "Nepodařilo se ověřit Google Ads účet." }, { status: 502 });
+    }
+    if (!ids.includes(customerId)) {
+      return Response.json(
+        { error: "Tento Google Ads účet není dostupný pro vaše přihlášení." },
+        { status: 422 }
+      );
+    }
+    try {
+      customerName = (await getAccountName(token, customerId)).name || customerName;
+    } catch {
+      /* name lookup is cosmetic — keep the capped fallback */
+    }
+  }
 
   await addAccount(userId, customerId, customerName);
   return Response.json({ ok: true, active: customerId });
