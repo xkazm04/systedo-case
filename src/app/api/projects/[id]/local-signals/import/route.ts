@@ -9,7 +9,9 @@ import {
   parseRankRows,
   parseReviews,
   parseGbpRows,
+  parseCoverageRows,
   mergeLadder,
+  mergeCoverage,
 } from "@/lib/local-signals/import";
 import {
   getLocalSignals,
@@ -18,7 +20,12 @@ import {
   mutateLocalSignals,
 } from "@/lib/local-signals/store";
 import { fetchFeed, FeedFetchError } from "@/lib/catalog/feed-fetch";
-import type { LocalSignals, LocalSignalsMeta, LocalSignalsSource } from "@/lib/local-signals/types";
+import type {
+  ImportedCoverageRow,
+  LocalSignals,
+  LocalSignalsMeta,
+  LocalSignalsSource,
+} from "@/lib/local-signals/types";
 import { tooLarge } from "@/lib/ai/rate-limit";
 import { envInt } from "@/lib/env";
 import { apiError, asString, enforceUserRate, readJson, trimmedString, WORKSPACE_RATE } from "@/lib/api/route-utils";
@@ -26,10 +33,10 @@ import { apiError, asString, enforceUserRate, readJson, trimmedString, WORKSPACE
 const MAX_BYTES = 256_000;
 /** Pre-parse content-length cap — see the leads import route for the rationale. */
 const MAX_BODY_BYTES = envInt("LOCAL_SIGNALS_MAX_BODY_BYTES", 512_000);
-type Kind = "ranks" | "reviews" | "gbp";
+type Kind = "ranks" | "reviews" | "gbp" | "coverage";
 
 function isKind(v: unknown): v is Kind {
-  return v === "ranks" || v === "reviews" || v === "gbp";
+  return v === "ranks" || v === "reviews" || v === "gbp" || v === "coverage";
 }
 
 /** The top-level meta represents the LADDER section (kept for backward compat). When a
@@ -52,7 +59,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const limited = enforceUserRate(uid, WORKSPACE_RATE.localSignalsImport(), "Příliš mnoho importů. Zkuste to prosím za chvíli.");
   if (limited) return limited;
 
-  const body = await readJson<{ text?: unknown; url?: unknown; kind?: unknown }>(req);
+  const body = await readJson<{ text?: unknown; url?: unknown; kind?: unknown; rows?: unknown }>(req);
   const kind: Kind = isKind(body?.kind) ? body.kind : "ranks";
   const url = trimmedString(body?.url);
 
@@ -101,6 +108,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       meta: ladderMeta(prev, source, url),
       ladder: prev?.ladder ?? [],
       ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+      ...(prev?.coverage ? { coverage: prev.coverage } : {}),
       reviews: { meta: meta(items.length), items },
     }));
     return Response.json({ ok: true, rowCount: items.length, ...(ambiguous > 0 ? { ambiguous } : {}) });
@@ -115,8 +123,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       meta: ladderMeta(prev, source, url),
       ladder: prev?.ladder ?? [],
       ...(prev?.reviews ? { reviews: prev.reviews } : {}),
+      ...(prev?.coverage ? { coverage: prev.coverage } : {}),
       gbp: { meta: meta(rows.length), rows },
     }));
+    return Response.json({ ok: true, rowCount: rows.length });
+  }
+
+  if (kind === "coverage") {
+    // Two feeds share this section: a tolerant CSV (service, locality, hasPage) and a
+    // single-cell manual toggle (a structured `rows` payload). Both UNION-merge onto the
+    // stored coverage so a partial upload or one toggled cell never drops the rest.
+    const rows: ImportedCoverageRow[] = Array.isArray(body?.rows)
+      ? (body.rows as unknown[])
+          .map((r) => {
+            const o = r as { service?: unknown; locality?: unknown; hasPage?: unknown };
+            return { service: trimmedString(o?.service), locality: trimmedString(o?.locality), hasPage: o?.hasPage === true };
+          })
+          .filter((r) => r.service && r.locality)
+      : parseCoverageRows(text);
+    if (rows.length === 0) {
+      return apiError(400, "Nenašel jsem žádné pokrytí. Formát: služba, lokalita, má stránku (ano/ne).", "unprocessable", { envelope: "ok" });
+    }
+    await mutateLocalSignals(project.id, (prev) => {
+      const merged = mergeCoverage(prev?.coverage?.rows ?? [], rows);
+      return {
+        meta: ladderMeta(prev, source, url),
+        ladder: prev?.ladder ?? [],
+        ...(prev?.reviews ? { reviews: prev.reviews } : {}),
+        ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+        coverage: { meta: meta(merged.length), rows: merged },
+      };
+    });
     return Response.json({ ok: true, rowCount: rows.length });
   }
 
@@ -133,6 +170,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ladder: mergeLadder(prev?.ladder ?? [], rows, now),
     ...(prev?.reviews ? { reviews: prev.reviews } : {}),
     ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+    ...(prev?.coverage ? { coverage: prev.coverage } : {}),
   }));
   return Response.json({ ok: true, rowCount: rows.length });
 }
@@ -147,7 +185,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { project } = g;
 
   const source = new URL(req.url).searchParams.get("source");
-  if (source === "reviews" || source === "gbp" || source === "ranks") {
+  if (source === "reviews" || source === "gbp" || source === "ranks" || source === "coverage") {
     const prev = await getLocalSignals(project.id);
     if (!prev) return Response.json({ ok: true });
     const next: LocalSignals = {
@@ -155,9 +193,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       ladder: source === "ranks" ? [] : prev.ladder,
       ...(source !== "reviews" && prev.reviews ? { reviews: prev.reviews } : {}),
       ...(source !== "gbp" && prev.gbp ? { gbp: prev.gbp } : {}),
+      ...(source !== "coverage" && prev.coverage ? { coverage: prev.coverage } : {}),
     };
     // Nothing live left → drop the whole blob so the project cleanly reads as sample.
-    if (next.ladder.length === 0 && !next.reviews && !next.gbp) {
+    if (next.ladder.length === 0 && !next.reviews && !next.gbp && !next.coverage) {
       await clearLocalSignals(project.id);
     } else {
       await saveLocalSignals(project.id, next);

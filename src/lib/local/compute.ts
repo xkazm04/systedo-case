@@ -1,5 +1,24 @@
 /** Local coverage + reputation rollups. Pure. */
 import type { LocalTarget, ReviewProfile } from "./sample";
+import type { ReviewItem } from "@/lib/reviews/sample";
+
+/** Aggregate resolved reviews into per-locality reputation profiles (count + review-
+ *  weighted average rating), so the reputation cards can read GENUINELY live figures
+ *  when reviews are imported — and be labelled live — instead of always showing the
+ *  illustrative sample profiles. Highest review count first. Pure (D1). */
+export function profilesFromReviews(reviews: ReviewItem[]): ReviewProfile[] {
+  const byArea = new Map<string, { reviews: number; ratingSum: number }>();
+  for (const r of reviews) {
+    const key = r.area || "—";
+    const acc = byArea.get(key) ?? { reviews: 0, ratingSum: 0 };
+    acc.reviews += 1;
+    acc.ratingSum += r.rating;
+    byArea.set(key, acc);
+  }
+  return [...byArea.entries()]
+    .map(([area, a]) => ({ area, reviews: a.reviews, rating: a.reviews > 0 ? a.ratingSum / a.reviews : 0 }))
+    .sort((a, b) => b.reviews - a.reviews);
+}
 
 export interface LocalSummary {
   total: number;

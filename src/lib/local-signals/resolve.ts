@@ -7,9 +7,11 @@ import "server-only";
 import type { KeywordRank } from "@/lib/mappack/sample";
 import type { ReviewItem } from "@/lib/reviews/sample";
 import type { LocationRow } from "@/lib/locations/sample";
+import type { LocalTarget } from "@/lib/local/sample";
 import { fromImported } from "@/lib/reviews/compute";
 import { mergeGbp } from "@/lib/locations/compute";
 import { getLocalSignals } from "./store";
+import { coverageKey } from "./import";
 import type { LocalSignalsSource } from "./types";
 
 export interface ResolvedLadder {
@@ -114,4 +116,48 @@ export async function resolveLocations(
     };
   }
   return { rows: sample, source: "sample", live: false };
+}
+
+export interface ResolvedCoverage {
+  /** the seeded coverage targets with live page-presence overlaid where imported */
+  targets: LocalTarget[];
+  source: "sample" | LocalSignalsSource;
+  live: boolean;
+  syncedAt?: string;
+  sourceUrl?: string;
+}
+
+/** The active coverage matrix for a project (D1): live page-presence resolved OVER the
+ *  catalog-seeded targets per (service, locality). A matching imported row flips the
+ *  target's `hasPage`; when a page is marked absent its rank is cleared to null (no page
+ *  → no rank). Combos the import doesn't mention keep their seeded values, and a project
+ *  with no coverage section returns the seed array BYTE-IDENTICAL (same reference). Same
+ *  live-over-sample seam as ladder/reviews/locations. */
+export async function resolveCoverage(
+  projectId: string,
+  seed: LocalTarget[]
+): Promise<ResolvedCoverage> {
+  let signals = null;
+  try {
+    signals = await getLocalSignals(projectId);
+  } catch {
+    signals = null; // store hiccup → seed, never break the matrix
+  }
+  const coverage = signals?.coverage;
+  if (coverage && coverage.rows.length > 0) {
+    const byKey = new Map(coverage.rows.map((r) => [coverageKey(r.service, r.locality), r]));
+    const targets = seed.map((t) => {
+      const hit = byKey.get(coverageKey(t.service, t.area));
+      if (!hit) return t;
+      return { ...t, hasPage: hit.hasPage, rank: hit.hasPage ? t.rank : null };
+    });
+    return {
+      targets,
+      source: coverage.meta.source,
+      live: true,
+      syncedAt: coverage.meta.syncedAt,
+      sourceUrl: coverage.meta.sourceUrl,
+    };
+  }
+  return { targets: seed, source: "sample", live: false };
 }

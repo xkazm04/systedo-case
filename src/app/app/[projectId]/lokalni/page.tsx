@@ -14,8 +14,18 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // renders) come from the SAME shared server resolver the /api/ai click path re-runs
   // (Direction 1), so the page and the diagnosed numbers agree exactly — and the
   // stale-badge digest the panel compares against is computed from this one request.
-  const { request: diagnosisRequest, targets, reviewProfiles, recentReviews, businessType } =
-    await resolveLocalDiagnosisRequest(project);
+  const {
+    request: diagnosisRequest,
+    targets,
+    reviewProfiles,
+    reviewsLive,
+    coverageLive,
+    coverageSource,
+    coverageSyncedAt,
+    coverageSourceUrl,
+    recentReviews,
+    businessType,
+  } = await resolveLocalDiagnosisRequest(project);
   const [initialDiagnosis, diagnosisHistory] = await Promise.all([
     latestDiagnosis(project.id, "local"),
     listDiagnoses(project.id, "local"),
@@ -26,6 +36,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
       <LocalModule
         targets={targets}
         reviews={reviewProfiles}
+        reviewsLive={reviewsLive}
+        coverageLive={coverageLive}
+        coverageSource={coverageSource}
+        coverageSyncedAt={coverageSyncedAt}
+        coverageSourceUrl={coverageSourceUrl}
         recentReviews={recentReviews}
         businessName={project.name}
         businessType={businessType}

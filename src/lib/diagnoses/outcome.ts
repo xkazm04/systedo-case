@@ -41,8 +41,10 @@ export function extractLeadSourceSnapshot(req: LeadSourceDiagnosisRequest): Diag
   return { key: "qualRate", metric: req.qualRate };
 }
 
-/** Overall coverage % — closing the worst gap raises it, so it reads the outcome of
- *  a local diagnosis honestly even though the gap itself has no per-combo coverage. */
+/** Overall coverage % — now GENUINELY movable (D1): coveragePct is derived from the
+ *  resolved coverage matrix (live page-presence over the seed), so publishing a page
+ *  for the worst gap — via the CSV import or a matrix toggle — actually raises it, and
+ *  the outcome chip reflects real progress instead of a snapshot==current constant. */
 export function extractLocalSnapshot(req: LocalDiagnosisRequest): DiagnosisSnapshot {
   return { key: "coverage", metric: req.coveragePct };
 }

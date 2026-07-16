@@ -10,6 +10,10 @@ import type { LocalDiagnosisRequest } from "@/lib/ai-types";
 import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
 import LocalReviews from "@/components/app/modules/LocalReviews";
 import LocalDiagnosisPanel from "@/components/app/modules/LocalDiagnosisPanel";
+import LocalSourcePanel from "@/components/app/modules/LocalSourcePanel";
+import ProvenanceChip from "@/components/app/modules/ProvenanceChip";
+import CoverageCell from "@/components/app/modules/CoverageCell";
+import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
 const T = {
   cs: {
@@ -27,8 +31,9 @@ const T = {
     legend4to10: "4–10",
     legend11plus: "11+",
     legendMissing: "chybí",
+    hasPageNoRank: "má stránku",
     serviceCol: "Služba",
-    positionNote: "Pozice ve výsledcích lokálního vyhledávání. Cíl: posunout slabé pozice (11+) a chybějící kombinace do TOP 3. Seam: rank tracker.",
+    positionNote: "Pozice ve výsledcích lokálního vyhledávání. Klikněte na buňku a přepněte pokrytí (stránka ano/ne). Cíl: posunout slabé pozice (11+) a chybějící kombinace do TOP 3. Seam: rank tracker.",
     gapsTitle: "Mezery v pokrytí",
     gapCount: "{n} chybí",
     localityCol: "Lokalita",
@@ -57,8 +62,9 @@ const T = {
     legend4to10: "4–10",
     legend11plus: "11+",
     legendMissing: "missing",
+    hasPageNoRank: "has page",
     serviceCol: "Service",
-    positionNote: "Rank in local search results. Goal: move weak positions (11+) and missing combinations into TOP 3. Seam: rank tracker.",
+    positionNote: "Rank in local search results. Click a cell to toggle coverage (page yes/no). Goal: move weak positions (11+) and missing combinations into TOP 3. Seam: rank tracker.",
     gapsTitle: "Coverage gaps",
     gapCount: "{n} missing",
     localityCol: "Location",
@@ -80,9 +86,15 @@ const star = (r: number, fmtDecimal: (n: number, digits?: number) => string) =>
   `${fmtDecimal(r, 1)} ★`;
 
 /** Map a local SERP rank to a Pill tone + label, matching the module's color language.
- *  1–3 = positive, 4–10 = warning (negative-soft), 11+ = coral, no page = neutral. */
-function rankCell(t: LocalTarget | undefined, missingLabel: string): { tone: PillTone; label: string } {
-  if (!t || !t.hasPage || t.rank === null) return { tone: "neutral", label: missingLabel };
+ *  1–3 = positive, 4–10 = warning (negative-soft), 11+ = coral, page-but-no-rank =
+ *  navy, no page = neutral. */
+function rankCell(
+  t: LocalTarget | undefined,
+  missingLabel: string,
+  hasPageNoRankLabel: string
+): { tone: PillTone; label: string } {
+  if (!t || !t.hasPage) return { tone: "neutral", label: missingLabel };
+  if (t.rank === null) return { tone: "navy", label: hasPageNoRankLabel }; // page exists, not ranking yet
   if (t.rank <= 3) return { tone: "positive", label: `#${t.rank}` };
   if (t.rank <= 10) return { tone: "negative", label: `#${t.rank}` };
   return { tone: "coral", label: `#${t.rank}` };
@@ -98,6 +110,11 @@ export default async function LocalModule({
   diagnosisRequest,
   initialDiagnosis = null,
   diagnosisHistory = [],
+  reviewsLive = false,
+  coverageLive = false,
+  coverageSource,
+  coverageSyncedAt,
+  coverageSourceUrl,
 }: {
   targets: LocalTarget[];
   reviews: ReviewProfile[];
@@ -106,6 +123,13 @@ export default async function LocalModule({
   /** the project id, so a coverage gap can link into keyword research for it.
    *  Optional: the marketing demo renders this module without a live project route. */
   projectId?: string;
+  /** reputation cards read live per-locality profiles when reviews are imported */
+  reviewsLive?: boolean;
+  /** coverage-matrix provenance (D1) */
+  coverageLive?: boolean;
+  coverageSource?: "sample" | LocalSignalsSource;
+  coverageSyncedAt?: string;
+  coverageSourceUrl?: string;
   /** what this business actually does, derived from the catalog — grounds the AI
    *  review replies instead of a hardcoded industry (BM-L1-07). */
   businessType?: string;
@@ -164,11 +188,23 @@ export default async function LocalModule({
         />
       )}
 
+      {projectId && (
+        <LocalSourcePanel
+          projectId={projectId}
+          kind="coverage"
+          live={coverageLive}
+          source={coverageSource}
+          syncedAt={coverageSyncedAt}
+          sourceUrl={coverageSourceUrl}
+        />
+      )}
+
       <div className="card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-4">
           <h3 className="flex items-center gap-2 text-base font-semibold text-navy-800">
             <Pin width={18} height={18} className="text-brand-accent" />
             {t("positionTitle")}
+            <ProvenanceChip live={coverageLive} />
           </h3>
           <div className="flex items-center gap-2">
             <Pill tone="positive">{t("legendTop3")}</Pill>
@@ -193,10 +229,21 @@ export default async function LocalModule({
                   <td className="px-5 py-3 font-medium text-navy-800">{service}</td>
                   {m.areas.map((area) => {
                     const target = m.cell.get(`${service}|${area}`);
-                    const { tone, label } = rankCell(target, t("rankMissing"));
+                    const { tone, label } = rankCell(target, t("rankMissing"), t("hasPageNoRank"));
                     return (
                       <td key={area} className="px-4 py-3 text-center">
-                        {target ? <Pill tone={tone}>{label}</Pill> : <span className="text-muted">—</span>}
+                        {target ? (
+                          <CoverageCell
+                            projectId={projectId}
+                            service={service}
+                            area={area}
+                            hasPage={target.hasPage}
+                            tone={tone}
+                            label={label}
+                          />
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
                       </td>
                     );
                   })}
@@ -259,7 +306,10 @@ export default async function LocalModule({
       </div>
 
       <div>
-        <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">{t("reputationTitle")}</p>
+        <div className="flex items-center gap-2 px-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("reputationTitle")}</p>
+          <ProvenanceChip live={reviewsLive} />
+        </div>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {reviews.map((r) => (
             <div key={r.area} className="card flex items-center justify-between p-4">

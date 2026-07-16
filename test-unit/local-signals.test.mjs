@@ -32,11 +32,17 @@ const {
   parseReviewDate,
   reviewDateAmbiguous,
   parseGbpRows,
+  parseCoverageRows,
+  parseHasPage,
+  mergeCoverage,
 } = await import("@/lib/local-signals/import");
 const { getLocalSignals, saveLocalSignals, clearLocalSignals, mutateLocalSignals } = await import(
   "@/lib/local-signals/store"
 );
-const { resolveLocalLadder, resolveReviews, resolveLocations } = await import("@/lib/local-signals/resolve");
+const { resolveLocalLadder, resolveReviews, resolveLocations, resolveCoverage } = await import(
+  "@/lib/local-signals/resolve"
+);
+const { profilesFromReviews } = await import("@/lib/local/compute");
 
 test("parser: header detection, mixed separators, dedup (last wins), rank clamp", () => {
   const rows = parseRankRows(
@@ -364,4 +370,87 @@ test("resolveLocations: sample without import; imported GBP merged + unmatched a
   assert.ok(kladno, "unmatched imported row still renders");
   assert.equal(kladno.mapRank, 0); // unknown map rank
   await clearLocalSignals("proj-gbp");
+});
+
+// ── D1: coverage parser + merge + resolve-over-seed + sample composition ─────
+const TGT = (over = {}) => ({ area: "Praha", service: "Montáž klimatizací", monthlyVolume: 800, hasPage: false, rank: null, ...over });
+
+test("parseHasPage: cs/en affirmatives → true, negatives/empty → false", () => {
+  for (const v of ["ano", "yes", "true", "1", "má stránku", "hotovo"]) assert.equal(parseHasPage(v), true, v);
+  for (const v of ["ne", "no", "false", "0", "chybí", "", undefined]) assert.equal(parseHasPage(v), false, String(v));
+});
+
+test("parseCoverageRows: header map (cs/en), hasPage coercion, dedup last-wins", () => {
+  const rows = parseCoverageRows(
+    [
+      "služba,lokalita,má stránku",
+      "Montáž klimatizací,Praha,ano",
+      "montáž klimatizací,praha,ne", // same key (case) → last wins (false)
+      "Servis a revize,Brno,yes",
+      ",Praha,ano", // no service → dropped
+    ].join("\n")
+  );
+  const byKey = Object.fromEntries(rows.map((r) => [`${r.service}|${r.locality}`.toLowerCase(), r.hasPage]));
+  assert.equal(rows.length, 2);
+  assert.equal(byKey["montáž klimatizací|praha"], false, "last write wins");
+  assert.equal(byKey["servis a revize|brno"], true);
+});
+
+test("mergeCoverage: union upsert — a single toggle never drops the other rows", () => {
+  const prev = parseCoverageRows(["Montáž klimatizací,Praha,ne", "Servis a revize,Brno,ano"].join("\n"));
+  const merged = mergeCoverage(prev, [{ service: "Montáž klimatizací", locality: "Praha", hasPage: true }]);
+  const byKey = Object.fromEntries(merged.map((r) => [`${r.service}|${r.locality}`, r.hasPage]));
+  assert.equal(merged.length, 2, "the untouched Brno row survived");
+  assert.equal(byKey["Montáž klimatizací|Praha"], true, "toggled cell updated");
+  assert.equal(byKey["Servis a revize|Brno"], true);
+});
+
+test("resolveCoverage: seed byte-identical without import; live overlays page-presence", async () => {
+  const seed = [TGT({ hasPage: true, rank: 4 }), TGT({ area: "Brno", hasPage: false, rank: null })];
+  const before = await resolveCoverage("proj-cov", seed);
+  assert.equal(before.live, false);
+  assert.equal(before.targets, seed, "same array reference — untouched project byte-identical");
+
+  await saveLocalSignals("proj-cov", {
+    meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    coverage: {
+      meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 2 },
+      rows: [
+        { service: "Montáž klimatizací", locality: "Praha", hasPage: false }, // was true → now false
+        { service: "Montáž klimatizací", locality: "Brno", hasPage: true }, // was false → now true
+      ],
+    },
+  });
+  const after = await resolveCoverage("proj-cov", seed);
+  assert.equal(after.live, true);
+  assert.equal(after.source, "import");
+  const praha = after.targets.find((t) => t.area === "Praha");
+  const brno = after.targets.find((t) => t.area === "Brno");
+  assert.equal(praha.hasPage, false, "page removed");
+  assert.equal(praha.rank, null, "no page → rank cleared");
+  assert.equal(brno.hasPage, true, "page added");
+  await clearLocalSignals("proj-cov");
+});
+
+test("profilesFromReviews: per-area count + weighted average rating", () => {
+  const profiles = profilesFromReviews([
+    { id: "1", author: "A", area: "Praha", rating: 5, text: "", daysAgo: 1 },
+    { id: "2", author: "B", area: "Praha", rating: 3, text: "", daysAgo: 2 },
+    { id: "3", author: "C", area: "Brno", rating: 4, text: "", daysAgo: 3 },
+  ]);
+  const byArea = Object.fromEntries(profiles.map((p) => [p.area, p]));
+  assert.equal(byArea["Praha"].reviews, 2);
+  assert.equal(byArea["Praha"].rating, 4); // (5+3)/2
+  assert.equal(byArea["Brno"].reviews, 1);
+  assert.equal(profiles[0].area, "Praha"); // highest count first
+});
+
+test("sample-flag composition: live coverage alone makes the diagnosis non-sample", () => {
+  // Documents the honest composition: sample ⇔ NONE of ladder/reviews/coverage is live.
+  const compose = (ladderLive, reviewsLive, coverageLive) => !ladderLive && !reviewsLive && !coverageLive;
+  assert.equal(compose(false, false, false), true, "nothing live → sample");
+  assert.equal(compose(false, false, true), false, "coverage live → not sample");
+  assert.equal(compose(true, false, false), false);
+  assert.equal(compose(false, true, false), false);
 });

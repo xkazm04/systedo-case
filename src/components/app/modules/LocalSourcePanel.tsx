@@ -11,7 +11,7 @@ import { useT } from "@/lib/i18n/client";
 import { Check } from "@/components/icons";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
-type Kind = "reviews" | "gbp";
+type Kind = "reviews" | "gbp" | "coverage";
 
 const T = {
   cs: {
@@ -29,6 +29,13 @@ const T = {
     gbpImportHelp: "Vložte řádky ve formátu: pobočka, stav (připojeno/vyžaduje akci/odpojeno), počet recenzí, hodnocení, nezodpovězené. První řádek může být hlavička.",
     gbpPlaceholder: "pobočka, stav, recenze, hodnocení, nezodpovězené\nPraha,připojeno,128,4.8,2",
     gbpUrlPlaceholder: "https://…/pobocky.csv",
+    coverageLive: "Živá data · pokrytí z importu",
+    coverageLiveUrl: "Živá data · pokrytí z URL",
+    coverageSampleNote: "Ukázkové pokrytí (odvozené z katalogu). Naimportujte reálný stav stránek, nebo klikněte na buňku matice a přepněte pokrytí ručně.",
+    coverageImportCta: "Importovat pokrytí",
+    coverageImportHelp: "Vložte řádky ve formátu: služba, lokalita, má stránku (ano/ne). První řádek může být hlavička.",
+    coveragePlaceholder: "služba, lokalita, má stránku\nMontáž klimatizací,Praha,ano",
+    coverageUrlPlaceholder: "https://…/pokryti.csv",
     synced: "synchronizováno {date}",
     refresh: "Aktualizovat z URL",
     revert: "Zpět na ukázková",
@@ -53,6 +60,13 @@ const T = {
     gbpImportHelp: "Paste rows as: location, status (connected/attention/disconnected), review count, rating, unanswered. A header row is optional.",
     gbpPlaceholder: "location, status, reviews, rating, unanswered\nPraha,connected,128,4.8,2",
     gbpUrlPlaceholder: "https://…/locations.csv",
+    coverageLive: "Live data · imported coverage",
+    coverageLiveUrl: "Live data · coverage from URL",
+    coverageSampleNote: "Sample coverage (derived from the catalog). Import your real page status, or click a matrix cell to toggle coverage manually.",
+    coverageImportCta: "Import coverage",
+    coverageImportHelp: "Paste rows as: service, locality, has page (yes/no). A header row is optional.",
+    coveragePlaceholder: "service, locality, has page\nAC installation,Prague,yes",
+    coverageUrlPlaceholder: "https://…/coverage.csv",
     synced: "synced {date}",
     refresh: "Refresh from URL",
     revert: "Back to sample",

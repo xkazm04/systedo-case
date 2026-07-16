@@ -55,12 +55,32 @@ export interface ImportedGbp {
   rows: ImportedGbpRow[];
 }
 
+/** A single imported page-coverage row (D1): whether a dedicated page/microsite
+ *  exists for one service×locality combination. Matched to the catalog-seeded coverage
+ *  matrix tolerantly on read (case/whitespace-insensitive service|locality key). */
+export interface ImportedCoverageRow {
+  service: string;
+  locality: string;
+  /** a dedicated landing/microsite exists for this service×locality */
+  hasPage: boolean;
+}
+
+/** The live coverage section: its own provenance + the imported page-presence rows.
+ *  Fed by a tolerant CSV import AND by per-cell manual toggles on the coverage matrix,
+ *  both riding the same union-merge store seam. */
+export interface ImportedCoverage {
+  meta: LocalSignalsMeta;
+  rows: ImportedCoverageRow[];
+}
+
 /** Persisted per project: the keyword-rank ladder (top-level `meta`+`ladder`, kept
- *  for backward compatibility) plus optional live review and GBP sections, each with
- *  its own provenance. Old `{meta, ladder}` blobs read cleanly (reviews/gbp absent). */
+ *  for backward compatibility) plus optional live review, GBP and coverage sections,
+ *  each with its own provenance. Old `{meta, ladder}` blobs read cleanly (the optional
+ *  sections absent). */
 export interface LocalSignals {
   meta: LocalSignalsMeta;
   ladder: KeywordRank[];
   reviews?: ImportedReviews;
   gbp?: ImportedGbp;
+  coverage?: ImportedCoverage;
 }

@@ -41,13 +41,16 @@ import {
 } from "@/lib/local/sample";
 import { reviewsForProject as reviewInboxForProject } from "@/lib/reviews/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
+import { profilesFromReviews } from "@/lib/local/compute";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { locationsFromCatalog } from "@/lib/locations/sample";
 import {
+  resolveCoverage,
   resolveLocalLadder,
   resolveLocations,
   resolveReviews,
 } from "@/lib/local-signals/resolve";
+import type { LocalSignalsSource } from "@/lib/local-signals/types";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { buildLocalDiagnosisRequest } from "./local-request";
@@ -98,8 +101,15 @@ export interface ResolvedLocalInputs {
   request: LocalDiagnosisRequest;
   sample: boolean;
   targets: LocalTarget[];
-  /** reputation cards read the illustrative profile set (independent of the diagnosis) */
+  /** reputation cards: live per-locality profiles when reviews are imported, else the
+   *  illustrative sample profiles — `reviewsLive` says which, for the provenance chip */
   reviewProfiles: ReviewProfile[];
+  reviewsLive: boolean;
+  /** coverage-matrix provenance (D1): true when live page-presence is overlaid */
+  coverageLive: boolean;
+  coverageSource: "sample" | LocalSignalsSource;
+  coverageSyncedAt?: string;
+  coverageSourceUrl?: string;
   /** live-over-sample recent reviews for the reply queue */
   recentReviews: RecentReview[];
   /** business-type label derived from the catalogue (grounds AI review replies) */
@@ -116,14 +126,20 @@ export async function resolveLocalDiagnosisRequest(
 ): Promise<ResolvedLocalInputs> {
   const localities = localitiesFor(project);
   const services = await loadServicesFor(project);
-  const targets =
+  const seedTargets =
     services.length > 0 ? targetsFromCatalog(services, localities) : targetsForProject(project);
 
-  const [resolvedReviews, resolvedLadder, resolvedLocations] = await Promise.all([
+  const [resolvedReviews, resolvedLadder, resolvedLocations, resolvedCoverage] = await Promise.all([
     resolveReviews(project.id, reviewInboxForProject(project, localities)),
     resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
     resolveLocations(project.id, locationsFromCatalog(project, localities, services)),
+    resolveCoverage(project.id, seedTargets),
   ]);
+
+  // Live page-presence overlaid on the seed drives the whole coverage picture — the
+  // matrix, worstGap, gapVolume AND the round-10 outcome chip's coveragePct (now
+  // genuinely movable, not a snapshot==current constant by construction).
+  const targets = resolvedCoverage.targets;
 
   const request = buildLocalDiagnosisRequest({
     targets,
@@ -149,11 +165,22 @@ export async function resolveLocalDiagnosisRequest(
 
   return {
     request,
-    sample: !resolvedLadder.live && !resolvedReviews.live,
+    // Honest composition (D1): the diagnosis rests on the SAMPLE only when NONE of its
+    // three import-first inputs is live — the ladder, the reviews, AND coverage. Any one
+    // of them being real means the diagnosed picture is grounded in genuine data, so the
+    // panel should not label the whole thing illustrative.
+    sample: !resolvedLadder.live && !resolvedReviews.live && !resolvedCoverage.live,
     targets,
-    // The reputation cards read the illustrative profile set (separate from the
-    // diagnosis, which reads the resolved review sentiment).
-    reviewProfiles: reviewProfilesForProject(project),
+    // Reputation cards read live per-locality profiles when reviews are imported (so the
+    // provenance chip can say so honestly), else the illustrative sample profiles.
+    reviewProfiles: resolvedReviews.live
+      ? profilesFromReviews(resolvedReviews.reviews)
+      : reviewProfilesForProject(project),
+    reviewsLive: resolvedReviews.live,
+    coverageLive: resolvedCoverage.live,
+    coverageSource: resolvedCoverage.source,
+    coverageSyncedAt: resolvedCoverage.syncedAt,
+    coverageSourceUrl: resolvedCoverage.sourceUrl,
     recentReviews,
     businessType,
   };

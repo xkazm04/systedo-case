@@ -3,7 +3,7 @@
  *  rank rows (from any tracker) as `keyword, oblast/area, pozice/rank`. Framework-
  *  free + unit-tested; the store/route just persist what this returns. */
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
-import type { ImportedGbpRow, ImportedReview, LocalSignals } from "./types";
+import type { ImportedCoverageRow, ImportedGbpRow, ImportedReview, LocalSignals } from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -441,6 +441,87 @@ export function parseGbpRows(text: string): ImportedGbpRow[] {
     });
   }
   return [...byName.values()];
+}
+
+// ── Coverage import (D1) ─────────────────────────────────────────────────────
+// Page-presence per service×locality is the 7th import-first seam. Today it is pure
+// catalog seed (targetsFromCatalog.hasPage = a hash threshold no action ever flips);
+// this brings the truth in, fed by a tolerant CSV (service, locality, hasPage) AND by
+// per-cell manual toggles on the matrix. Same tolerant/deduped ingestion conventions.
+
+const COVERAGE_COL: Record<string, "service" | "locality" | "hasPage"> = {
+  service: "service", služba: "service", sluzba: "service", "služba/produkt": "service",
+  locality: "locality", lokalita: "locality", oblast: "locality", město: "locality", mesto: "locality", area: "locality", pobočka: "locality", pobocka: "locality", location: "locality", district: "locality",
+  haspage: "hasPage", page: "hasPage", "má stránku": "hasPage", "ma stranku": "hasPage", stránka: "hasPage", stranka: "hasPage", pokrytí: "hasPage", pokryti: "hasPage", coverage: "hasPage", covered: "hasPage", microsite: "hasPage",
+};
+
+/** Coerce a page-presence cell to a boolean. Explicit negatives (ne/no/false/0/chybí)
+ *  → false; explicit affirmatives (ano/yes/true/1/má stránku/hotovo) → true; an empty
+ *  or unrecognised cell defaults to FALSE (a missing page is the honest default gap). */
+export function parseHasPage(raw: string | undefined): boolean {
+  const s = (raw ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+  if (!s) return false;
+  if (/^(ne|no|false|0|n|chybi|bez|nema|missing|x)$/.test(s) || /chybi|bez stranky|nema/.test(s)) return false;
+  if (/^(ano|yes|true|1|y|a|ma|hotovo|existuje|covered|ok)$/.test(s) || /ma stranku|existuje|hotovo/.test(s)) return true;
+  return false;
+}
+
+/** The canonical identity of a coverage row — same normalization as {@link ladderKey}
+ *  so live coverage overlays the seeded targets by service|locality without diacritic
+ *  or whitespace drift. */
+export function coverageKey(service: string, locality: string): string {
+  return `${service.trim().toLowerCase()}|${locality.trim().toLowerCase()}`;
+}
+
+/** Parse a pasted/CSV coverage export → page-presence rows. Tolerant: a header row maps
+ *  columns by name (cs/en); without one it assumes service, locality, hasPage. Last
+ *  write wins per (case/whitespace-insensitive) service|locality. A row missing the
+ *  service or locality is dropped. */
+export function parseCoverageRows(text: string): ImportedCoverageRow[] {
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const delim = detectDelimiter(lines[0]!);
+  const firstCells = splitCsvLine(lines[0]!, delim).map((c) => c.toLowerCase());
+  const headerCols = firstCells.map((c) => COVERAGE_COL[c]);
+  const hasHeader = headerCols.some(Boolean);
+
+  const idx = { service: 0, locality: 1, hasPage: 2 };
+  if (hasHeader) {
+    headerCols.forEach((col, i) => {
+      if (col) idx[col] = i;
+    });
+  }
+
+  const byKey = new Map<string, ImportedCoverageRow>();
+  for (const line of lines.slice(hasHeader ? 1 : 0)) {
+    const cells = splitCsvLine(line, delim);
+    const service = cells[idx.service]?.trim() ?? "";
+    const locality = cells[idx.locality]?.trim() ?? "";
+    if (!service || !locality) continue;
+    byKey.set(coverageKey(service, locality), { service, locality, hasPage: parseHasPage(cells[idx.hasPage]) });
+  }
+  return [...byKey.values()];
+}
+
+/** Union-merge new coverage rows onto the previously-persisted ones (D1 RETENTION):
+ *  an import (or a single-cell toggle) UPSERTS by service|locality, so a partial upload
+ *  or one toggled cell never drops the other combinations' recorded page-presence. New
+ *  rows win on conflict; untouched combos are preserved verbatim. Pure. */
+export function mergeCoverage(
+  prev: ImportedCoverageRow[],
+  rows: ImportedCoverageRow[]
+): ImportedCoverageRow[] {
+  const byKey = new Map(prev.map((r) => [coverageKey(r.service, r.locality), r]));
+  for (const r of rows) byKey.set(coverageKey(r.service, r.locality), r);
+  return [...byKey.values()];
 }
 
 /** Normalize a persisted LocalSignals blob on read: dual-shape ladder history is
