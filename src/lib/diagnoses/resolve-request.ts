@@ -34,7 +34,6 @@ import { buildLeadSourceSeeds, seedToRequest } from "./lead-source-request";
 
 import {
   SAMPLE_RECENT_REVIEWS,
-  reviewsForProject as reviewProfilesForProject,
   targetsForProject,
   type LocalTarget,
   type ReviewProfile,
@@ -42,6 +41,9 @@ import {
 import { reviewsForProject as reviewInboxForProject } from "@/lib/reviews/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { profilesFromReviews } from "@/lib/local/compute";
+import { businessTypeFromServices } from "@/lib/local/business-type";
+import { currentUserId } from "@/lib/session";
+import { getProjectState } from "@/lib/project-state/store";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { locationsFromCatalog } from "@/lib/locations/sample";
 import {
@@ -129,12 +131,14 @@ export async function resolveLocalDiagnosisRequest(
   const seedTargets =
     services.length > 0 ? targetsFromCatalog(services, localities) : targetsForProject(project);
 
-  const [resolvedReviews, resolvedLadder, resolvedLocations, resolvedCoverage] = await Promise.all([
-    resolveReviews(project.id, reviewInboxForProject(project, localities)),
-    resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
-    resolveLocations(project.id, locationsFromCatalog(project, localities, services)),
-    resolveCoverage(project.id, seedTargets),
-  ]);
+  const [resolvedReviews, resolvedLadder, resolvedLocations, resolvedCoverage, answeredReviewIds] =
+    await Promise.all([
+      resolveReviews(project.id, reviewInboxForProject(project, localities)),
+      resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
+      resolveLocations(project.id, locationsFromCatalog(project, localities, services)),
+      resolveCoverage(project.id, seedTargets),
+      resolveAnsweredTriage(project.id),
+    ]);
 
   // Live page-presence overlaid on the seed drives the whole coverage picture — the
   // matrix, worstGap, gapVolume AND the round-10 outcome chip's coveragePct (now
@@ -147,6 +151,9 @@ export async function resolveLocalDiagnosisRequest(
     ladderLive: resolvedLadder.live,
     reviews: resolvedReviews.reviews,
     reviewsLive: resolvedReviews.live,
+    // The inbox triage feeds BOTH the reconciled unanswered signal (D1) and the
+    // reply-health grounding (D2); undefined when no triage is stored for this user.
+    ...(answeredReviewIds ? { answeredReviewIds } : {}),
     locations: resolvedLocations.rows,
     businessName: project.name,
   });
@@ -157,11 +164,7 @@ export async function resolveLocalDiagnosisRequest(
         .map((r) => ({ id: r.id, area: r.area, author: r.author, rating: r.rating, text: r.text }))
     : SAMPLE_RECENT_REVIEWS;
 
-  const businessType =
-    [...new Set(services.map((s) => s.category).filter(Boolean))]
-      .slice(0, 2)
-      .join(" a ")
-      .toLowerCase() || undefined;
+  const businessType = businessTypeFromServices(services);
 
   return {
     request,
@@ -171,11 +174,12 @@ export async function resolveLocalDiagnosisRequest(
     // panel should not label the whole thing illustrative.
     sample: !resolvedLadder.live && !resolvedReviews.live && !resolvedCoverage.live,
     targets,
-    // Reputation cards read live per-locality profiles when reviews are imported (so the
-    // provenance chip can say so honestly), else the illustrative sample profiles.
-    reviewProfiles: resolvedReviews.live
-      ? profilesFromReviews(resolvedReviews.reviews)
-      : reviewProfilesForProject(project),
+    // ONE reputation truth (D1): the /lokalni reputation cards aggregate the SAME resolved
+    // review set the /recenze inbox renders — live per-locality profiles when reviews are
+    // imported, else the sample INBOX set (reviews/sample), NOT the separate local/sample
+    // reviewProfiles that used to disagree with the inbox's averages. So both surfaces
+    // report the same count and the same review-weighted rating by construction.
+    reviewProfiles: profilesFromReviews(resolvedReviews.reviews),
     reviewsLive: resolvedReviews.live,
     coverageLive: resolvedCoverage.live,
     coverageSource: resolvedCoverage.source,
@@ -184,4 +188,19 @@ export async function resolveLocalDiagnosisRequest(
     recentReviews,
     businessType,
   };
+}
+
+/** The inbox triage's answered review-ids for the current user + project, or undefined
+ *  when no triage is stored (or there is no signed-in user). Best-effort: a store hiccup
+ *  degrades to "no triage" so the diagnosis still resolves on the roster figures alone.
+ *  The "reviews" key mirrors ReviewInbox's persisted state shape (answered/flagged/drafts). */
+async function resolveAnsweredTriage(projectId: string): Promise<string[] | undefined> {
+  try {
+    const uid = await currentUserId();
+    if (!uid) return undefined;
+    const state = await getProjectState<{ answered?: string[] }>(uid, projectId, "reviews");
+    return Array.isArray(state?.answered) ? state.answered : undefined;
+  } catch {
+    return undefined;
+  }
 }

@@ -27,6 +27,10 @@ export interface LocalDiagnosisInputs {
   reviews: ReviewItem[];
   /** whether the reviews are imported (not the sample) */
   reviewsLive: boolean;
+  /** ids of reviews the inbox triage marks answered. `undefined` = triage not loaded
+   *  (leave the roster's unanswered untouched and omit reply-health); an empty array =
+   *  triage loaded, nothing answered yet (reply-health surfaces 0%). */
+  answeredReviewIds?: string[];
   /** the location roster, when available */
   locations?: LocationRow[];
   businessName?: string;
@@ -103,10 +107,22 @@ export function buildLocalDiagnosisRequest(input: LocalDiagnosisInputs): LocalDi
 
   // Location-roster attention rollup, when a roster is available.
   if (input.locations && input.locations.length > 0) {
+    // Reconcile the inbox triage into the roster's unanswered backlog (D1). Precedence:
+    // a triage-answered review is IDENTIFIABLE against the roster only when its locality
+    // matches a roster location's name — those subtract from the roster total; answered
+    // reviews in a locality the roster doesn't list can't be attributed, so the GBP
+    // roster figure wins for them. Clamped at 0 (never negative). With no triage loaded
+    // (answeredReviewIds === undefined) the roster figure passes through unchanged.
+    const rosterUnanswered = input.locations.reduce((a, r) => a + r.unanswered, 0);
+    const rosterAreas = new Set(input.locations.map((l) => l.name));
+    const answeredSet = input.answeredReviewIds ? new Set(input.answeredReviewIds) : null;
+    const identifiableAnswered = answeredSet
+      ? input.reviews.filter((r) => answeredSet.has(r.id) && rosterAreas.has(r.area)).length
+      : 0;
     req.locations = {
       total: input.locations.length,
       attention: input.locations.filter(needsAttention).length,
-      unanswered: input.locations.reduce((a, r) => a + r.unanswered, 0),
+      unanswered: Math.max(0, rosterUnanswered - identifiableAnswered),
     };
   }
 

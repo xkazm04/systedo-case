@@ -11,6 +11,7 @@ import { resolveReviews } from "@/lib/local-signals/resolve";
 import { getProjectState } from "@/lib/project-state/store";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
+import { businessTypeFromServices } from "@/lib/local/business-type";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -40,7 +41,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         reviews={resolved.reviews}
         areas={localities.map((l) => l.name)}
         businessName={project.name}
-        businessType={services[0]?.category}
+        businessType={businessTypeFromServices(services)}
         projectId={projectId}
         initialState={initialState ?? undefined}
       />
