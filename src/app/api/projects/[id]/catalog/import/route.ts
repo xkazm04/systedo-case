@@ -66,10 +66,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const now = new Date().toISOString();
   // Sanitize because the feed text is user-supplied; keep only products.
+  // preserveActiveTriState: a feed that's SILENT on availability must NOT re-activate a
+  // manually-paused SKU — sanitize leaves `active` unset so mergeCatalog's overlay keeps
+  // the existing paused/active state (see validate.SanitizeOpts, feed.feedItemsToOfferings).
   const incoming = sanitizeOfferings(
     feedItemsToOfferings(parsed.items, id, sourceForFormat(parsed.format), now),
     id,
-    now
+    now,
+    { preserveActiveTriState: true }
   ).filter(isProduct) as ProductOffering[];
 
   // Merge against the STORED catalog (not the demo seed) so a real import stays clean.

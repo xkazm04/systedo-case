@@ -35,6 +35,27 @@ const num = (v: unknown, min: number, max: number, fb = 0): number =>
 const optNum = (v: unknown, min: number, max: number): number | undefined =>
   v == null ? undefined : num(v, min, max);
 const bool = (v: unknown, fb = true): boolean => (typeof v === "boolean" ? v : fb);
+
+/** Options that switch sanitize between its two callers. The PUT route (a full,
+ *  trusted-shape catalog the user edited) uses the strict defaults; the feed-import
+ *  route opts into the looser, merge-aware behaviour. */
+export interface SanitizeOpts {
+  /** Preserve the feed availability tri-state: when the incoming row is SILENT on
+   *  `active` (undefined — the feed carried no availability field), leave it unset so
+   *  the downstream merge can keep the user's manual paused/active choice instead of
+   *  defaulting a silent feed to active. Strict mode (default) coerces unknown → true.
+   *  The invariant `active: boolean` is restored by mergeCatalog (overlay preserves the
+   *  existing value; a brand-new product defaults to active). */
+  preserveActiveTriState?: boolean;
+}
+
+/** Resolve `active` honoring the tri-state option. In strict mode an unknown value
+ *  defaults to active; in tri-state mode a silent feed (undefined) stays unset (cast),
+ *  so mergeCatalog — not this boundary — decides the paused/active outcome. */
+function activeFor(v: unknown, opts: SanitizeOpts): boolean {
+  if (typeof v === "boolean") return v;
+  return (opts.preserveActiveTriState && v === undefined ? undefined : true) as boolean;
+}
 const strArr = (v: unknown, maxItems: number, maxLen: number): string[] =>
   Array.isArray(v) ? v.filter((x) => typeof x === "string").slice(0, maxItems).map((x) => (x as string).slice(0, maxLen)) : [];
 
@@ -42,7 +63,7 @@ function oneOf<T extends string>(set: Set<T>, v: unknown, fb: T): T {
   return typeof v === "string" && (set as Set<string>).has(v) ? (v as T) : fb;
 }
 
-function sanitizeOne(raw: Raw, projectId: string, i: number, now: string): Offering | null {
+function sanitizeOne(raw: Raw, projectId: string, i: number, now: string, opts: SanitizeOpts): Offering | null {
   const kind = oneOf(KINDS, raw.kind, "product") as OfferingKind;
   if (typeof raw.kind !== "string" || !KINDS.has(raw.kind as OfferingKind)) return null;
 
@@ -51,7 +72,7 @@ function sanitizeOne(raw: Raw, projectId: string, i: number, now: string): Offer
     projectId,
     name: str(raw.name, 200),
     category: str(raw.category, 120),
-    active: bool(raw.active),
+    active: activeFor(raw.active, opts),
     nature: oneOf(NATURES, raw.nature, "online") as OfferingNature,
     price: num(raw.price, 0, 1e9),
     currency: "CZK",
@@ -112,13 +133,18 @@ function sanitizeOne(raw: Raw, projectId: string, i: number, now: string): Offer
 
 /** Validate + normalize an unknown payload into a bounded Offering[]. Never throws;
  *  invalid rows are dropped. */
-export function sanitizeOfferings(input: unknown, projectId: string, now = new Date().toISOString()): Offering[] {
+export function sanitizeOfferings(
+  input: unknown,
+  projectId: string,
+  now = new Date().toISOString(),
+  opts: SanitizeOpts = {}
+): Offering[] {
   if (!Array.isArray(input)) return [];
   const out: Offering[] = [];
   for (let i = 0; i < input.length && out.length < MAX_OFFERINGS; i++) {
     const item = input[i];
     if (item && typeof item === "object") {
-      const o = sanitizeOne(item as Raw, projectId, i, now);
+      const o = sanitizeOne(item as Raw, projectId, i, now, opts);
       if (o) out.push(o);
     }
   }
