@@ -1,15 +1,16 @@
 {
-  "reply": "Dobrý den, pane [Příjmení], rádi bychom vám s revizí elektroinstalace pomohli. Mohl byste mi prosím upřesnit pár detailů, abychom mohli poptávku správně zpracovat?",
+  "reply": "Dobrý den, pane [PŘÍJMENÍ], termín na revizi elektroinstalace v kanceláři o rozloze cca 200 m² Vám rádi navrhneme. Pro upřesnění rozsahu a nacenění nás prosím ještě doplňte pár informací.",
   "questions": [
-    "Jaké je stáří objektu / elektroinstalace a kdy proběhla poslední revize?",
-    "Jedná se o kanceláře v provozu, nebo bude prostor při revizi prázdný?",
-    "Jaká je preferovaná lokalita a orientační termín z vaší strany?"
+    "O jaký typ revize se jedná (pravidelná/výchozí) a kdy proběhla poslední revize?",
+    "Kolik je v prostoru rozvaděčů a jaký je přibližný počet obvodů/zásuvkových a světelných okruhů?",
+    "Jaký termín by Vám vyhovoval a je prostor přístupný i mimo pracovní dobu?"
   ],
   "confidence": 40,
   "risks": [
-    "V podkladech není termín ani cena za revizi 200 m² kanceláří – nutno doplnit před odesláním nabídky.",
-    "Neznáme jméno (příjmení) klienta z dodané zprávy – nutno dohledat/doplnit oslovení.",
-    "Ověřit, zda firma revize tohoto rozsahu a typu prostoru vůbec realizuje."
+    "Nebyl potvrzen konkrétní volný termín – v podkladech není kalendář dostupnosti.",
+    "Nebyla uvedena cena ani cenový odhad – nutno doplnit dle ceníku/kalkulace před odesláním nabídky.",
+    "Chybí příjmení odesílatele – nutno doplnit oslovení dle skutečného kontaktu.",
+    "Neověřeno, zda 200 m² zahrnuje i vedlejší prostory (sklad, sociální zařízení) – může ovlivnit rozsah revize."
   ],
-  "toneNotes": "Oslovení příjmením s vykáním ponecháno jako placeholder [Příjmení], protože není v podkladech uvedeno. Odpověď na dotaz (převzetí poptávky) je hned v první větě. Termín ani cena nejsou slíbeny, místo toho jsou položeny doplňující otázky."
+  "toneNotes": "Oslovení vykáním s příjmením (placeholder, nutno doplnit), na dotaz reagováno hned v první větě, bez slibu termínu či ceny mimo podklady."
 }

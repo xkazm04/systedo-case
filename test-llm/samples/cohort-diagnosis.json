@@ -1,10 +1,9 @@
 {
-  "summary": "Kohorty se zhoršují: CAC roste (1200→2100 Kč), LTV klesá (5400→2200 Kč) a M3 retence padá (62%→31%). Kohorta 2025-03 je za hranicí rentability (LTV:CAC 1,0×, návratnost se nevrací), přičemž ji táhne dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic), zatímco Organic je stále silně ziskový (LTV:CAC 6,0×, 90 akvizic). Retenční křivka M0→M3 (100 %→70 %→48 %→31 %) ukazuje strmý, zrychlující se pokles bez stabilizace.",
+  "summary": "Kohorta 2025-03 je jednoznačně nejhorší: CAC vzrostl na 2 100 Kč, LTV kleslo na 2 200 Kč (LTV:CAC jen 1,0×) a návratnost přesahuje horizont – akvizice se vůbec nevrátí. Retenční křivka (M0 100 % → M1 70 % → M2 48 % → M3 31 %) ukazuje prudký raný odpad, který se zpomaluje, ale zůstává hluboký. Kanálový rozpad odhaluje viníka: Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 z 240 akvizic) kohortu táhne pod nulu, zatímco Organic (LTV:CAC 6,0×, 90 akvizic) je jasně nadprůměrný. Trend napříč třemi kohortami je jednosměrně negativní – CAC roste, LTV klesá, retence se propadá.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit/přehodnotit akvizici přes Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×) a přesunout rozpočet do Organic kanálu, který má LTV:CAC 6,0×.",
+  "recommendation": "Okamžitě omezit nebo pozastavit akvizici z Google Ads (LTV:CAC 0,8×) a realokovat rozpočet do Organic kanálu (LTV:CAC 6,0×), čímž se zvedne blended LTV:CAC nad hranici udržitelnosti.",
   "risks": [
-    "Trend napříč třemi kohortami je konzistentně negativní, nejde o výkyv jedné kohorty",
-    "Retenční křivka 2025-03 nemá náznak stabilizace do M3, pokles může pokračovat i po M3",
-    "Blended metriky (CAC 1650 Kč, LTV:CAC 2,6×) maskují, že nejnovější kohorta je již ztrátová"
+    "Bez zásahu se trend napříč kohortami (rostoucí CAC, klesající LTV a retence) pravděpodobně prohloubí i v dalších měsících.",
+    "Prudký pokles retence mezi M0 a M1 naznačuje problém v onboardingu, nejen v kvalitě akvizičního kanálu."
   ]
 }

@@ -1,23 +1,23 @@
 {
-  "headline": "Silný měsíc: obrat 1,2 mil. Kč při zdravé rentabilitě a rostoucí konverzi.",
-  "summary": "Podnik dosáhl obratu 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Konverze meziměsíčně vzrostly o 12 %, což potvrzuje, že nastavená kampaňová strategie funguje efektivně.",
+  "headline": "Silný měsíc: obrat 1,2 mil. Kč při PNO 18,3 % a ROAS 5,4×",
+  "summary": "Kampaně vygenerovaly obrat 1 200 000 Kč při nákladech 220 000 Kč, což odpovídá PNO 18,3 % a ROAS 5,4×. Počet konverzí meziměsíčně vzrostl o 12 %, výkon je nad standardem pro lokální podnik a efektivita utracených prostředků se dál zlepšuje.",
   "highlights": [
-    "ROAS 5,4× ukazuje velmi efektivní návratnost investic do reklamy.",
-    "PNO na úrovni 18,3 % svědčí o zdravém poměru nákladů k obratu.",
-    "Konverze vzrostly o 12 %, což signalizuje zlepšující se kvalitu provozu i nabídky."
+    "ROAS 5,4× výrazně převyšuje běžný cíl pro lokální obor",
+    "Konverze meziměsíčně vzrostly o 12 %, poptávka roste rychleji než náklady",
+    "PNO 18,3 % ukazuje efektivní vynakládání rozpočtu vůči obratu"
   ],
   "watchouts": [
-    "Sledovat, zda růst konverzí není tažen jen sezónní poptávkou, aby se předešlo výkyvu příští měsíc.",
-    "I při dobrém PNO hlídat, aby náklady nerostly rychleji než obrat při případném škálování rozpočtu."
+    "Růst konverzí je třeba ověřit i v kvalitě poptávky, ne jen v počtu",
+    "Při zachování tempa růstu bude nutné sledovat, zda nízké PNO vydrží i s navyšováním rozpočtu"
   ],
   "priorities": [
     {
       "title": "Škálovat úspěšné kampaně",
-      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil aktuální dobrý výkon bez výrazného zhoršení PNO."
+      "detail": "Postupně navýšit rozpočet u kampaní s nejlepším ROAS, aby se využil prostor daný nízkým PNO, a sledovat, zda se efektivita udrží."
     },
     {
-      "title": "Analyzovat zdroj konverzního růstu",
-      "detail": "Zjistit, které kanály či úpravy stály za 12% nárůstem konverzí, a tento postup replikovat i v dalších částech účtu."
+      "title": "Prověřit kvalitu nových konverzí",
+      "detail": "Zanalyzovat zdroj a kvalitu nově získaných konverzí (např. dokončené objednávky/poptávky vs. jen odeslané formuláře), aby růst o 12 % odpovídal i reálné obchodní hodnotě."
     }
   ]
 }

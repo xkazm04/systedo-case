@@ -1,38 +1,34 @@
 {
-  "summary": "Firma komunikuje s klienty e-mailem stručně, věcně a zdvořile formálním tónem. Oslovuje jménem s tituly „pan/paní“, hned poděkuje za poptávku a rovnou uvádí konkrétní termín nebo příslib termínu/ceny. Zprávy jsou krátké, bez zbytečných frází, a nabízejí telefonický kontakt pro doplnění.",
-  "directives": "Piš krátké, věcné e-maily. Vždy oslov klienta jménem s titulem (pane/paní + příjmení). Poděkuj za poptávku nebo kontakt. Uveď konkrétní termín, lhůtu nebo datum, kdy bude informace/nabídka doručena. Pokud přesný údaj ještě nemáš, řekni, kdy a jak ho potvrdíš (např. po obhlídce). Nabídni možnost zavolat v případě dotazů. Vyhni se omáčce, zdvořilostním klišé navíc a dlouhým vysvětlením.",
+  "summary": "Firma komunikuje e-mailem stručně a věcně, oslovuje zákazníka jménem a příjmením, ihned potvrzuje přijetí poptávky a uvádí konkrétní termín nebo den, kdy dorazí přesná informace (cena, termín). Tón je klidný, vstřícný, bez zbytečných slov, s nabídkou telefonického kontaktu pro doplnění.",
+  "directives": "Osloví zákazníka \"Dobrý den, [titul] [příjmení]\". Ihned poděkuje nebo potvrdí přijetí poptávky. Uvede konkrétní časový údaj (počet dní, den v týdnu), kdy bude znám přesný termín nebo cena. Nabídne možnost zavolat, pokud zákazník potřebuje cokoliv upřesnit. Nepoužívá emoji, výkřičníky ani prodejní fráze.",
   "traits": [
     "věcný",
     "stručný",
     "zdvořilý",
-    "konkrétní",
-    "spolehlivý"
+    "konkrétní v termínech",
+    "klidný"
   ],
-  "lengthHint": "2-3 krátké věty",
+  "lengthHint": "1-3 krátké věty",
   "constraints": [
     {
       "kind": "do",
-      "rule": "Oslovuj klienta jménem s titulem pane/paní."
+      "rule": "Oslovit zákazníka jménem/příjmením s formálním pozdravem \"Dobrý den, [pane/paní] [příjmení]\""
     },
     {
       "kind": "do",
-      "rule": "Poděkuj za poptávku nebo kontakt hned v úvodu."
+      "rule": "Uvést konkrétní termín nebo den, kdy bude upřesněna cena či termín"
     },
     {
       "kind": "do",
-      "rule": "Uveď konkrétní termín, lhůtu nebo datum dodání informace."
-    },
-    {
-      "kind": "do",
-      "rule": "Nabídni telefonický kontakt pro doplňující dotazy."
+      "rule": "Nabídnout telefonický kontakt pro doplňující dotazy"
     },
     {
       "kind": "dont",
-      "rule": "Nepoužívej dlouhé odstavce ani zbytečné zdvořilostní fráze navíc."
+      "rule": "Nepoužívat emoji ani vykřičníky"
     },
     {
       "kind": "dont",
-      "rule": "Nepiš vágně - vždy dej konkrétní číslo, termín nebo příslib potvrzení."
+      "rule": "Nepoužívat obchodní/prodejní fráze a nadbytečné zdvořilostní výplně"
     }
   ],
   "examples": [
@@ -40,8 +36,9 @@
     "Dobrý den, paní Dvořáková, cenu za servis čtyř jednotek pošlu do pátku. Kdyby cokoliv, volejte."
   ],
   "gapQuestions": [
-    "Jak firma reaguje na stížnost nebo reklamaci klienta?",
-    "Jaký pozdrav a podpis se používá na konci delších e-mailů (např. s kontaktními údaji nebo logem)?",
-    "Jak se komunikuje zpoždění nebo změna dohodnutého termínu?"
+    "Jak firma komunikuje, když termín nebo cenu nestihne dodržet?",
+    "Jaký pozdrav/podpis se používá na konci e-mailu (jméno, pozice, firma)?",
+    "Jak firma reaguje na stížnost nebo nespokojenost klienta v e-mailu?",
+    "Používá firma v e-mailech nějaké fixní formulace pro nabídku dalších služeb?"
   ]
 }

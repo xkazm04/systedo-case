@@ -1,9 +1,9 @@
 {
-  "summary": "Pokrytí lokální viditelnosti je nízké (43 %, 3 ze 7 kombinací služba×lokalita). Největší neobsloužená poptávka je Bělení zubů v Praze s 1 400 hledáními/měs. bez vlastní stránky. Mapa-pack výkon zároveň klesá (trend −5 za 30 dní, průměrná pozice 6,2), takže bez zásahu klinika ztrácí viditelnost i v pokrytých lokalitách.",
+  "summary": "Zubní klinika Dentalis pokrývá vlastními stránkami jen 43 % sledovaných kombinací služba×lokalita, přičemž v mezerách uniká 3 100 hledání měsíčně. Nejvýznamnější neobsazená kombinace je Bělení zubů — Praha s 1 400 hledáními/měs. bez odpovídající stránky. Mapa-pack výkon zároveň klesá (trend −5 za 30 dní, průměrná pozice 6,2, jen 40 % kombinací v top 3), takže bez zásahu se propad prohloubí. Recenze (4,3★, 214 hodnocení) jsou solidním základem, ale samy o sobě chybějící pokrytí nevyřeší.",
   "worstGap": "Bělení zubů — Praha",
-  "recommendation": "Vytvořit dedikovanou lokální servisní stránku pro „Bělení zubů — Praha“ (unikátní obsah, lokální signály, interní prolinkování), protože jde o mezeru s nejvyšším objemem hledání (1 400/měs.) bez pokrytí.",
+  "recommendation": "Vytvořit a publikovat dedikovanou landing page pro Bělení zubů v Praze (lokální on-page optimalizace, NAP, interní prolinkování na GBP) — uzavře mezeru s nejvyšším objemem hledání (1 400/měs.) a nejrychleji zastaví klesající trend mapa-pack pozic.",
   "risks": [
-    "Klesající mapa-pack trend (−5 za 30 dní) může nová stránka bez doprovodné práce na GBP profilu a recenzích jen částečně kompenzovat.",
-    "22 negativních recenzí z 214 může oslabit důvěryhodnost nové stránky, pokud nebudou souběžně řešeny."
+    "Data o mapa-pack pozicích a recenzích jsou označena jako 'živá data', ale přesný zdroj a datum sběru nejsou uvedeny.",
+    "Bez adresování i zbylých dvou mezer (Dentální hygiena — Brno, Implantáty — Ostrava) zůstane celkové pokrytí nízké."
   ]
 }
