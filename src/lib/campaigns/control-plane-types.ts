@@ -66,7 +66,12 @@ export interface StatusSnapshot {
 // Approve/Revert (double-click, retry) can't run the loop twice. They settle to
 // "applied"/"reverted" when the loop finishes. "failed" is a terminal honest state:
 // an apply whose every move failed lands here (never a snapshot-less "applied"), and
-// a stale/stranded "applying" set is recovered here by the next actor.
+// a stale/stranded "applying" set is recovered here by the next actor ONLY when it
+// carries no restore snapshots — the apply loop persists snapshots incrementally, so
+// a stranded set WITH snapshots demonstrably landed moves and recovers to "applied"
+// (revertable) instead. "failed" therefore means "no move left evidence of landing",
+// not a hard guarantee the account was untouched — the mutation audit is the ledger
+// to double-check.
 export type ChangeSetStatus = "pending" | "applying" | "applied" | "reverting" | "reverted" | "failed";
 
 /** How long a transient claim ("applying"/"reverting") may sit before the next
@@ -229,18 +234,23 @@ export type ClaimAction =
 
 /** Decide how to claim a set for APPROVE. Only a `pending` set proceeds to the
  *  apply loop. A stranded `applying` set (claim older than the TTL) is recovered
- *  to a terminal `failed` — we deliberately do NOT re-run the loop, because the
- *  forward apply performs RELATIVE budget shifts (not idempotent) and we can't
- *  know which moves landed before the crash; `failed` is the honest state for an
- *  operator to review. Everything else is a no-op. */
+ *  to a terminal state — we deliberately do NOT re-run the loop, because the
+ *  forward apply performs RELATIVE budget shifts (not idempotent). WHICH terminal
+ *  state depends on the evidence the crashed loop left behind: the apply loop
+ *  persists each move's result + snapshots incrementally, so a stranded set that
+ *  CARRIES restore snapshots demonstrably landed moves on the live account — it
+ *  recovers to `applied` (revertable through those snapshots), never to a
+ *  `failed` that denies money actually moved. Only a snapshot-less stranded set
+ *  recovers to `failed` (no evidence any move landed; the mutation audit is the
+ *  place to double-check). Everything else is a no-op. */
 export function planApproveClaim(
-  cs: Pick<ChangeSet, "status" | "claimedAt">,
+  cs: Pick<ChangeSet, "status" | "claimedAt" | "budgetSnapshots" | "statusSnapshots">,
   now: number,
   ttlMs = CLAIM_TTL_MS
 ): ClaimAction {
   if (cs.status === "pending") return { kind: "proceed" };
   if (cs.status === "applying" && isStaleClaim(cs.claimedAt, now, ttlMs)) {
-    return { kind: "recover", status: "failed" };
+    return { kind: "recover", status: hasRestoreSnapshots(cs) ? "applied" : "failed" };
   }
   return { kind: "noop" };
 }

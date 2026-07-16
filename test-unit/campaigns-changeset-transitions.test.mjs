@@ -92,6 +92,41 @@ test("approve leaves a fresh 'applying' claim alone but recovers a stranded one 
   assert.deepEqual(planApproveClaim({ status: "applying" }, now), { kind: "recover", status: "failed" });
 });
 
+test("a stranded 'applying' set with incrementally-persisted snapshots recovers to 'applied' (revertable), not 'failed'", () => {
+  const now = 10 * CLAIM_TTL_MS;
+  const old = new Date(now - CLAIM_TTL_MS - 1000).toISOString();
+  // Budget snapshot = a budget move demonstrably landed before the crash.
+  assert.deepEqual(
+    planApproveClaim(
+      { status: "applying", claimedAt: old, budgetSnapshots: [{ budgetResourceName: "x", prevMicros: 1 }] },
+      now
+    ),
+    { kind: "recover", status: "applied" }
+  );
+  // A landed pause (status snapshot) is evidence too.
+  assert.deepEqual(
+    planApproveClaim(
+      { status: "applying", claimedAt: old, statusSnapshots: [{ campaignId: "c", campaignName: "C", prevStatus: "enabled" }] },
+      now
+    ),
+    { kind: "recover", status: "applied" }
+  );
+  // Empty snapshot arrays are NOT evidence — recover to 'failed'.
+  assert.deepEqual(
+    planApproveClaim({ status: "applying", claimedAt: old, budgetSnapshots: [], statusSnapshots: [] }, now),
+    { kind: "recover", status: "failed" }
+  );
+  // A fresh claim with snapshots is still an in-progress loop — leave it alone.
+  const freshStamp = new Date(now - 1000).toISOString();
+  assert.deepEqual(
+    planApproveClaim(
+      { status: "applying", claimedAt: freshStamp, budgetSnapshots: [{ budgetResourceName: "x", prevMicros: 1 }] },
+      now
+    ),
+    { kind: "noop" }
+  );
+});
+
 // --- planRevertClaim ---------------------------------------------------------
 
 test("revert proceeds only for an applied set that carries snapshots", () => {

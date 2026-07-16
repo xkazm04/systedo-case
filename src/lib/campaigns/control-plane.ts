@@ -150,9 +150,12 @@ export async function approveChangeSet(
   // inside the txn so a claim is never taken for a set that would be rejected.
   //
   // Recovery: a set stuck in "applying" past the claim TTL (the previous actor
-  // crashed mid-loop) is settled to a terminal "failed" here — NOT re-run, since
-  // the forward apply performs relative budget shifts we can't safely repeat. The
-  // stamp (`claimedAt`) written at claim time makes that distinction time-bounded.
+  // crashed mid-loop) is settled to a terminal state here — NOT re-run, since
+  // the forward apply performs relative budget shifts we can't safely repeat.
+  // Which terminal state is evidence-based (planApproveClaim): the loop persists
+  // snapshots incrementally, so a stranded set carrying snapshots recovers to
+  // "applied" (revertable), a snapshot-less one to "failed". The stamp
+  // (`claimedAt`) written at claim time makes that distinction time-bounded.
   const ref = changeSetsCol(tenant).doc(id);
   const now = Date.now();
   let claim: { recovered: true; cs: ChangeSet } | { recovered: false; cs: ChangeSet };
@@ -184,10 +187,20 @@ export async function approveChangeSet(
 
   if (claim.recovered) {
     // Stranded claim reclaimed to a terminal state; no live mutation to run.
+    // The terminal state is evidence-based (planApproveClaim): the crashed loop
+    // persisted results + snapshots incrementally, so a set carrying snapshots
+    // recovers to "applied" (its landed moves stay revertable), one without
+    // recovers to "failed" — with wording that sends the reviewer to the
+    // mutation audit rather than asserting the account was never touched.
+    const recoveredApplied = claim.cs.status === "applied";
     await recordActivity(tenant, {
       kind: "budget_shift",
-      title: `Uvíznutý balíček obnoven jako selhaný (${claim.cs.moves.length} přesunů)`,
-      detail: "Předchozí aplikace se nedokončila v časovém limitu; balíček označen jako selhaný k prověření.",
+      title: recoveredApplied
+        ? `Uvíznutý balíček obnoven jako aplikovaný (${claim.cs.moves.length} přesunů)`
+        : `Uvíznutý balíček obnoven jako selhaný (${claim.cs.moves.length} přesunů)`,
+      detail: recoveredApplied
+        ? "Předchozí aplikace se nedokončila v časovém limitu, ale část přesunů prokazatelně proběhla (snímky rozpočtů jsou uloženy). Balíček označen jako aplikovaný a lze jej vrátit."
+        : "Předchozí aplikace se nedokončila v časovém limitu a žádný přesun nezanechal snímek. Balíček označen jako selhaný k prověření — skutečný stav účtu ověřte v auditu mutací.",
       actor: "Systém",
       changeSetId: id,
     });
@@ -198,6 +211,19 @@ export async function approveChangeSet(
   const results: MoveResult[] = [];
   const budgetSnapshots: BudgetSnapshot[] = [];
   const statusSnapshots: StatusSnapshot[] = [];
+  // Persist the per-move evidence INCREMENTALLY (best-effort): a crash later in
+  // the loop must not lose the snapshots of moves that already landed on the
+  // live account. Recovery (planApproveClaim) reads exactly this evidence to
+  // settle a stranded set honestly — "applied" with revertable snapshots when
+  // moves landed, "failed" only when nothing left a snapshot. A failed evidence
+  // write must not abort the loop; the final settle below re-writes everything.
+  const persistEvidence = async () => {
+    try {
+      await ref.set({ results, budgetSnapshots, statusSnapshots }, { merge: true });
+    } catch (err) {
+      console.error(`[control-plane] incremental evidence write failed for ${id}:`, err);
+    }
+  };
   for (const m of cs.moves) {
 if (m.kind === "pause") {
       // Pause the zero-return donor; on success snapshot its prior status so the
@@ -206,6 +232,7 @@ if (m.kind === "pause") {
       const r = await applyPause(userId, tenant, m.fromId, m.fromName);
       results.push({ fromName: m.fromName, toName: m.fromName, ok: r.ok, error: r.error });
       if (r.ok) statusSnapshots.push({ campaignId: m.fromId, campaignName: m.fromName, prevStatus: "enabled" });
+      await persistEvidence();
       continue;
     }
     // Audit the move under the same project-scoped tenant this change-set (and its
@@ -219,6 +246,7 @@ if (m.kind === "pause") {
     });
     results.push({ fromName: m.fromName, toName: m.toName, ok: r.ok, error: r.error });
     if (r.ok && r.snapshots) budgetSnapshots.push(...r.snapshots);
+    await persistEvidence();
   }
 
   // Honest terminal status: if EVERY move failed, this set never touched the live
