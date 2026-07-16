@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-16T13:46:26.512Z",
+  "provenAt": "2026-07-16T16:00:59.384Z",
   "files": {
     "src/lib/llm/index.ts": "f57a94de3a4de09cfae59420f104c1b417f4f75422c9d79fc61fc6be11041899",
     "src/lib/llm/claude.ts": "2db390e12a2e9504329dde5b402017d1e9650e3fddfa2dae5c78fc76aefcffa5",
@@ -15,7 +15,7 @@
     "src/lib/ai/tools/refine.ts": "714c216f6716974b2c1e51b14335bd7432679903c148d03ed0de8699f0c3c697",
     "src/lib/ai/tools/social.ts": "595f5e837590f111bde156241d95fb9749862cbfc047edd66679628e71bb2942",
     "src/app/api/social/draft/route.ts": "506f7f7c49aacc2648d28e8fa509fd158009eec36556a19bf276cbac78625041",
-    "src/lib/ai/tools/ads.ts": "ddb3dd1233a9b4ae77510dd97e4b4e9225029efc9295642afd5dc1119064f4ff",
+    "src/lib/ai/tools/ads.ts": "980de0ccb7ef6d0b563cf8826c70f9b072da8a380131a5c8f8af38260883139f",
     "src/lib/ai/tools/brief.ts": "902464a1f650a9c5f3a2cc38163481bb9d0c25026d271cebfd7991b472a03043",
     "src/lib/ai/tools/analysis.ts": "1232ded7e434662868df1de1c498adc9d286c6f8cc8341c4410f733f4bef8454",
     "src/lib/ai/tools/monthly-recap.ts": "2bb10a112a9ffa66b9962bc419d1e451ea47071270e4e368b3421cde21740c1e",
@@ -64,7 +64,7 @@
     "onboarding-scan": "666d9ded19b464d0"
   },
   "tools": {
-    "ads": "2026-07-16T13:46:26.512Z",
+    "ads": "2026-07-16T16:00:59.384Z",
     "brief": "2026-07-16T13:46:26.512Z",
     "analysis": "2026-07-16T13:46:26.512Z",
     "campaign-eval": "2026-07-16T13:46:26.512Z",
