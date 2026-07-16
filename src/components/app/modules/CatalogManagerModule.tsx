@@ -7,19 +7,21 @@
  *  Zisk) read from. Edits persist per project (Save); a product feed (Heureka /
  *  Zboží.cz / Google / CSV) can be imported, and a warehouse/ERP (demo or Baselinker)
  *  can be connected + synced. Demo (`persistable=false`) stays session-only. */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
-import { Plus } from "@/components/icons";
+import { Plus, Search } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
-import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { interpolate, type TFn } from "@/lib/i18n/interpolate";
 import type { Locality, Offering, OfferingKind, OfferingNature } from "@/lib/catalog/offering";
-import { isPlan, isProduct, isService } from "@/lib/catalog/offering";
 import type { CatalogDiff } from "@/lib/catalog/import";
 import { SYNC_PROVIDERS } from "@/lib/inventory/providers";
 import type { PublicConnection } from "@/lib/inventory/connection-store";
 import type { WarehouseConnection } from "@/lib/inventory/warehouse";
 import type { ProjectType } from "@/lib/projects/types";
 import type { IconKey } from "@/lib/projects/icon-keys";
+import { OfferingCard, type OfferingCommit } from "./catalog/OfferingCard";
+import { CATALOG_PAGE_SIZE, INPUT_BASE, offeringMatchesQuery } from "./catalog/offering-edit";
 
 const T = {
   cs: {
@@ -106,6 +108,11 @@ const T = {
     erpItemsPath: "Cesta k položkám (JSON)",
     erpMapping: "Mapování polí",
     erpMappingHint: "Názvy zdrojových polí z odpovědi ERP. SKU a název jsou povinné.",
+    searchPh: "Hledat podle názvu, SKU, kategorie…",
+    filterAll: "Vše",
+    noMatches: "Žádné položky neodpovídají hledání.",
+    loadMore: "Zobrazit další",
+    showing: "Zobrazeno {shown} z {total}",
   },
   en: {
     sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
@@ -191,8 +198,17 @@ const T = {
     erpItemsPath: "Items path (JSON)",
     erpMapping: "Field mapping",
     erpMappingHint: "Source field names from the ERP response. SKU and name are required.",
+    searchPh: "Search by name, SKU, category…",
+    filterAll: "All",
+    noMatches: "No items match your search.",
+    loadMore: "Show more",
+    showing: "Showing {shown} of {total}",
   },
 } as const;
+
+/** The translator type for this module's cs/en table — exported so the extracted
+ *  OfferingCard can type its stable `t` prop against the same keys. */
+export type CatalogT = TFn<keyof (typeof T)["cs"]>;
 
 const KIND_META: Record<OfferingKind, { titleKey: "products" | "plans" | "services"; icon: IconKey }> = {
   product: { titleKey: "products", icon: "catalog" },
@@ -200,8 +216,7 @@ const KIND_META: Record<OfferingKind, { titleKey: "products" | "plans" | "servic
   service: { titleKey: "services", icon: "local" },
 };
 
-const inputBase =
-  "rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
+const inputBase = INPUT_BASE;
 
 const PRIMARY_KIND: Record<ProjectType, OfferingKind> = {
   eshop: "product",
@@ -229,7 +244,15 @@ export default function CatalogManagerModule({
   /** When true, "Save" persists to /api/projects/[id]/catalog; else session-only (demo). */
   persistable?: boolean;
 }) {
-  const t = useT(T);
+  // A locale-memoized translator (same behaviour as useT) with a STABLE identity per
+  // locale — so the memoized OfferingCard re-renders on a real locale change but not on
+  // every parent render (search typing, a sibling's commit).
+  const { locale } = useLocale();
+  const t = useMemo<CatalogT>(() => {
+    const table = T[locale] ?? T.cs;
+    return (key, vars) => interpolate(table[key] ?? T.cs[key] ?? key, vars);
+  }, [locale]);
+
   const [items, setItemsState] = useState<Offering[]>(offerings);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   // Any edit drops us back to "idle" so a stale "Saved" never lingers.
@@ -237,6 +260,21 @@ export default function CatalogManagerModule({
     setItemsState(u);
     setSaveState("idle");
   };
+
+  // Search + kind filter + "show N + load more" pagination, so the manager scales to a
+  // real shop. Below CATALOG_PAGE_SIZE items with no query/filter the list is identical
+  // to before (visibleCount ≥ item count, all kinds grouped).
+  const [query, setQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState<OfferingKind | "all">("all");
+  const [visibleCount, setVisibleCount] = useState(CATALOG_PAGE_SIZE);
+  // Reset the page window whenever the filter narrows/changes — adjusted during render
+  // (not in an effect) so it doesn't trigger a cascading re-render.
+  const filterKey = `${query} ${kindFilter}`;
+  const [lastFilterKey, setLastFilterKey] = useState(filterKey);
+  if (filterKey !== lastFilterKey) {
+    setLastFilterKey(filterKey);
+    setVisibleCount(CATALOG_PAGE_SIZE);
+  }
 
   async function save() {
     setSaveState("saving");
@@ -414,14 +452,17 @@ export default function CatalogManagerModule({
     return isWarehouse ? runSync(mode) : runImport(mode);
   };
 
-  const localityName = (id: string) => localities.find((l) => l.id === id)?.name ?? id;
-
-  function update(id: string, changes: Partial<Offering> & { stock?: number }) {
-    setItems((xs) => xs.map((o) => (o.id === id ? ({ ...o, ...changes } as Offering) : o)));
-  }
-  function remove(id: string) {
-    setItems((xs) => xs.filter((o) => o.id !== id));
-  }
+  // Stable so the memoized OfferingCard doesn't re-render when a sibling commits. The
+  // immutable .map keeps unchanged rows' references, so React.memo skips them.
+  const localityName = useCallback((id: string) => localities.find((l) => l.id === id)?.name ?? id, [localities]);
+  const onCommit = useCallback((id: string, changes: OfferingCommit) => {
+    setItemsState((xs) => xs.map((o) => (o.id === id ? ({ ...o, ...changes } as Offering) : o)));
+    setSaveState("idle");
+  }, []);
+  const onRemove = useCallback((id: string) => {
+    setItemsState((xs) => xs.filter((o) => o.id !== id));
+    setSaveState("idle");
+  }, []);
   function add() {
     const kind = PRIMARY_KIND[projectType];
     // A collision-resistant id: the old per-mount counter reset to 0 on every mount,
@@ -452,7 +493,17 @@ export default function CatalogManagerModule({
   }
 
   const natureCount = (n: OfferingNature) => items.filter((o) => o.nature === n).length;
-  const kinds: OfferingKind[] = (["product", "plan", "service"] as OfferingKind[]).filter((k) =>
+
+  // Filter (kind + search) → paginate → group the visible slice by kind. Empty query +
+  // "all" filter + a small catalog collapses to the original full grouped view.
+  const filtered = items.filter(
+    (o) => (kindFilter === "all" || o.kind === kindFilter) && offeringMatchesQuery(o, query)
+  );
+  const visible = filtered.slice(0, visibleCount);
+  const visibleKinds: OfferingKind[] = (["product", "plan", "service"] as OfferingKind[]).filter((k) =>
+    visible.some((o) => o.kind === k)
+  );
+  const filterKinds: OfferingKind[] = (["product", "plan", "service"] as OfferingKind[]).filter((k) =>
     items.some((o) => o.kind === k)
   );
 
@@ -496,10 +547,51 @@ export default function CatalogManagerModule({
         </p>
       )}
 
-      {/* offerings grouped by kind */}
-      {kinds.map((kind) => {
+      {/* search + kind filter — grounds the manager for a real shop */}
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="relative min-w-[14rem] flex-1">
+            <Search
+              width={15}
+              height={15}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("searchPh")}
+              aria-label={t("searchPh")}
+              className={`${inputBase} w-full pl-8`}
+            />
+          </label>
+          <div className="inline-flex rounded-pill border border-line p-0.5 text-xs">
+            {(["all", ...filterKinds] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setKindFilter(k)}
+                aria-pressed={kindFilter === k}
+                className={`rounded-pill px-3 py-1 font-medium transition-colors ${
+                  kindFilter === k ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                }`}
+              >
+                {k === "all" ? t("filterAll") : t(KIND_META[k].titleKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {items.length > 0 && filtered.length === 0 && (
+        <p className="rounded-card border border-dashed border-line px-4 py-6 text-center text-sm text-muted">
+          {t("noMatches")}
+        </p>
+      )}
+
+      {/* offerings grouped by kind (over the visible, paginated slice) */}
+      {visibleKinds.map((kind) => {
         const meta = KIND_META[kind];
-        const rows = items.filter((o) => o.kind === kind);
+        const rows = visible.filter((o) => o.kind === kind);
         return (
           <section key={kind} className="space-y-2">
             <div className="flex items-center gap-2">
@@ -513,8 +605,8 @@ export default function CatalogManagerModule({
                   key={o.id}
                   o={o}
                   t={t}
-                  onChange={(c) => update(o.id, c)}
-                  onRemove={() => remove(o.id)}
+                  onCommit={onCommit}
+                  onRemove={onRemove}
                   localityName={localityName}
                 />
               ))}
@@ -522,6 +614,20 @@ export default function CatalogManagerModule({
           </section>
         );
       })}
+
+      {/* pagination: show N + load more */}
+      {filtered.length > visible.length && (
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + CATALOG_PAGE_SIZE)}
+            className="rounded-pill border border-line px-3.5 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+          >
+            {t("loadMore")}
+          </button>
+          <span className="text-xs text-muted">{t("showing", { shown: visible.length, total: filtered.length })}</span>
+        </div>
+      )}
 
       {/* actions */}
       <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -858,152 +964,6 @@ export default function CatalogManagerModule({
       {!persistable && (
         <p className="rounded-lg bg-brand-50/60 px-3.5 py-2.5 text-xs text-navy-700">{t("sessionNote")}</p>
       )}
-    </div>
-  );
-}
-
-type TFn = (k: keyof (typeof T)["cs"]) => string;
-
-function OfferingCard({
-  o,
-  t,
-  onChange,
-  onRemove,
-  localityName,
-}: {
-  o: Offering;
-  t: TFn;
-  onChange: (c: Partial<Offering> & { stock?: number }) => void;
-  onRemove: () => void;
-  localityName: (id: string) => string;
-}) {
-  const intervalLabel = isPlan(o) ? t(o.interval === "year" ? "year" : o.interval === "one-off" ? "oneOff" : "month") : "";
-  const priceModelLabel = isService(o) ? t(o.priceModel === "fixed" ? "fixed" : o.priceModel === "quote" ? "quote" : "from") : "";
-
-  return (
-    <div className={`rounded-card border border-line bg-surface px-4 py-3 ${o.active ? "" : "opacity-60"}`}>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <input
-          value={o.name}
-          onChange={(e) => onChange({ name: e.target.value })}
-          placeholder={t("namePh")}
-          className={`${inputBase} min-w-[10rem] flex-1 font-medium`}
-        />
-        <label className="inline-flex items-center gap-1 text-sm text-muted">
-          <input
-            type="number"
-            value={o.price}
-            onChange={(e) => onChange({ price: Number(e.target.value) })}
-            className={`${inputBase} w-24 text-right tnum`}
-          />
-          Kč
-        </label>
-        <label className="inline-flex items-center gap-1 text-sm text-muted" title={t("margin")}>
-          <input
-            type="number"
-            value={o.margin != null ? Math.round(o.margin * 100) : ""}
-            onChange={(e) => onChange({ margin: e.target.value === "" ? undefined : Number(e.target.value) / 100 })}
-            className={`${inputBase} w-16 text-right tnum`}
-          />
-          %
-        </label>
-        <select
-          value={o.nature}
-          onChange={(e) => onChange({ nature: e.target.value as OfferingNature })}
-          className={`${inputBase} cursor-pointer`}
-          aria-label={t("namePh")}
-        >
-          <option value="online">{t("online")}</option>
-          <option value="local">{t("local")}</option>
-          <option value="hybrid">{t("hybrid")}</option>
-        </select>
-        <button
-          type="button"
-          onClick={() => onChange({ active: !o.active })}
-          aria-pressed={o.active}
-          className={`rounded-pill px-2.5 py-1 text-xs font-semibold transition-colors ${
-            o.active ? "bg-positive-soft text-positive" : "bg-navy-50 text-muted"
-          }`}
-        >
-          {t("active")}
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          aria-label={t("remove")}
-          className="grid h-7 w-7 place-items-center rounded-lg text-muted transition-colors hover:bg-coral-soft hover:text-coral-600"
-        >
-          ×
-        </button>
-      </div>
-
-      {/* kind-specific detail line */}
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        {o.category && <span className="font-medium text-navy-700">{o.category}</span>}
-        {isProduct(o) && (
-          <>
-            <span className="tnum">{o.sku}</span>
-            <label className="inline-flex items-center gap-1">
-              {t("stock")}:
-              <input
-                type="number"
-                value={o.stock}
-                onChange={(e) => onChange({ stock: Number(e.target.value) })}
-                className={`${inputBase} w-16 px-2 py-0.5 text-right tnum`}
-              />
-              ks
-            </label>
-            <span className="tnum">
-              {o.dailyVelocity}
-              {t("perDay")}
-            </span>
-          </>
-        )}
-        {isPlan(o) && (
-          <>
-            <span>{intervalLabel}</span>
-            {o.competitors.length > 0 && (
-              <span className="flex flex-wrap items-center gap-1">
-                {t("rivals")}:
-                {o.competitors.map((c) => (
-                  <span key={c.name} className="rounded bg-navy-50 px-1.5 py-0.5 text-[11px] font-medium text-navy-700">
-                    {c.name}
-                  </span>
-                ))}
-              </span>
-            )}
-          </>
-        )}
-        {isService(o) && (
-          <>
-            <span>{priceModelLabel}</span>
-            {o.serviceAreas.length > 0 && (
-              <span className="flex flex-wrap items-center gap-1">
-                {t("areas")}:
-                {o.serviceAreas.map((a) => (
-                  <span key={a} className="rounded bg-brand-50 px-1.5 py-0.5 text-[11px] font-medium text-brand-accent">
-                    {localityName(a)}
-                  </span>
-                ))}
-              </span>
-            )}
-            {o.capacityPerWeek != null && (
-              <span className="tnum">
-                {o.capacityPerWeek}/{t("week")} {t("capacity")}
-              </span>
-            )}
-          </>
-        )}
-        {o.channels.length > 0 && (
-          <span className="flex flex-wrap items-center gap-1">
-            {o.channels.map((c) => (
-              <span key={c} className="rounded-pill bg-canvas px-1.5 py-0.5 text-[11px] text-muted">
-                {c}
-              </span>
-            ))}
-          </span>
-        )}
-      </div>
     </div>
   );
 }

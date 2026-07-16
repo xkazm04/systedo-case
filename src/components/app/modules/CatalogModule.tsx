@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Pill } from "@/components/ui";
-import { Bolt, Check, Copy, Download, Info, Refresh, Sparkles } from "@/components/icons";
+import { Bolt, Check, Copy, Download, Info, Refresh, Search, Sparkles } from "@/components/icons";
 import type { Product } from "@/lib/catalog/sample";
+import { CATALOG_PAGE_SIZE, normalizeText } from "./catalog/offering-edit";
 import {
   buildAssetGroup,
   type Asset,
@@ -25,6 +26,10 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 const T = {
   cs: {
     productFeedLabel: "Produktový feed · {n}",
+    searchProducts: "Hledat produkt…",
+    loadMore: "Zobrazit další",
+    showing: "Zobrazeno {shown} z {total}",
+    noMatches: "Žádné produkty neodpovídají hledání.",
     lowStock: "{n} ks",
     assetGroupSuffix: "Asset group · {sku} ·",
     aiTexts: "AI texty",
@@ -54,6 +59,10 @@ const T = {
   },
   en: {
     productFeedLabel: "Product feed · {n}",
+    searchProducts: "Search a product…",
+    loadMore: "Show more",
+    showing: "Showing {shown} of {total}",
+    noMatches: "No products match your search.",
     lowStock: "{n} units",
     assetGroupSuffix: "Asset group · {sku} ·",
     aiTexts: "AI copy",
@@ -186,6 +195,27 @@ export default function CatalogModule({
   const [sku, setSku] = useState(products[0]?.sku ?? "");
   const product = products.find((p) => p.sku === sku) ?? products[0];
 
+  // Search + "show N + load more" so the feed sidebar scales to a real shop. Below
+  // CATALOG_PAGE_SIZE with an empty query the full list renders exactly as before; the
+  // search box appears only once the list is non-trivial (> 8 items).
+  const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(CATALOG_PAGE_SIZE);
+  // Reset pagination when the query changes — adjusted during render (not in an effect).
+  const [lastQuery, setLastQuery] = useState(query);
+  if (query !== lastQuery) {
+    setLastQuery(query);
+    setVisibleCount(CATALOG_PAGE_SIZE);
+  }
+  const matched = useMemo(() => {
+    const q = normalizeText(query);
+    if (!q) return products;
+    return products.filter((p) =>
+      [p.title, p.sku, p.category, ...p.usps].some((h) => normalizeText(h).includes(q))
+    );
+  }, [products, query]);
+  const visibleProducts = matched.slice(0, visibleCount);
+  const showSearch = products.length > 8;
+
   // Deterministic, offline-always asset group — the floor that renders on a clean
   // checkout and serves as the loading / error / not-yet-generated fallback.
   const deterministic = useMemo(() => (product ? buildAssetGroup(product, brand, domain) : null), [product, brand, domain]);
@@ -239,7 +269,28 @@ export default function CatalogModule({
         <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">
           {t("productFeedLabel", { n: products.length })}
         </p>
-        {products.map((p) => {
+        {showSearch && (
+          <label className="relative block">
+            <Search
+              width={15}
+              height={15}
+              className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"
+            />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("searchProducts")}
+              aria-label={t("searchProducts")}
+              className="w-full rounded-lg border border-line bg-surface py-2 pl-8 pr-2.5 text-sm text-navy-800 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+          </label>
+        )}
+        {matched.length === 0 && (
+          <p className="rounded-card border border-dashed border-line px-3 py-4 text-center text-xs text-muted">
+            {t("noMatches")}
+          </p>
+        )}
+        {visibleProducts.map((p) => {
           const active = p.sku === sku;
           const low = p.stock <= 10;
           return (
@@ -265,6 +316,20 @@ export default function CatalogModule({
             </button>
           );
         })}
+        {matched.length > visibleProducts.length && (
+          <div className="flex flex-col items-center gap-1 pt-1">
+            <button
+              type="button"
+              onClick={() => setVisibleCount((c) => c + CATALOG_PAGE_SIZE)}
+              className="w-full rounded-card border border-line px-3 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+            >
+              {t("loadMore")}
+            </button>
+            <span className="text-[11px] text-muted">
+              {t("showing", { shown: visibleProducts.length, total: matched.length })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* generated asset group */}
