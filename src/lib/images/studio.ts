@@ -28,7 +28,30 @@ export interface StudioImage {
   score: number | null;
   defects: string;
   winner: boolean;
+  /** whether this candidate was actually vision-scored (a real rank), vs. crowned
+   *  arbitrarily because scoring was unavailable/degraded on the live path. The demo
+   *  and any all-null-score set are `false`, so the UI + revenue attribution can tell
+   *  a quality-ranked winner from an arbitrary one. */
+  scored: boolean;
   leonardoImageId?: string;
+}
+
+/** Mark the ranked winner among the candidates (mutates in place). Sorts by score
+ *  desc, then crowns the first. When EVERY candidate came back without a vision score
+ *  (no GEMINI key, or every rateImage failed/429'd), the sort is a no-op tie and the
+ *  first is arbitrary — not "ranked best". We still pick one so the flow has a winner,
+ *  but flag it `scored: false` + a "bez vision skóre" defect so it isn't fed into
+ *  deriveStylePrior / revenue attribution as if quality-ranked. */
+export function crownWinner(images: StudioImage[]): void {
+  images.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const first = images[0];
+  if (!first) return;
+  const anyScored = images.some((im) => im.score !== null);
+  first.winner = true;
+  if (!anyScored) {
+    first.scored = false;
+    first.defects = first.defects || "bez vision skóre";
+  }
 }
 
 export interface StudioResult {
@@ -121,6 +144,8 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
         score: rating.score,
         defects: rating.defects,
         winner: false,
+        // a real numeric score means this candidate was genuinely vision-ranked
+        scored: rating.score !== null,
         leonardoImageId: c.leonardoImageId,
       };
     })
@@ -140,8 +165,7 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     outputTokens: 0,
     at: new Date().toISOString(),
   });
-  images.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  if (images[0]) images[0].winner = true;
+  crownWinner(images);
 
   // Record the generation in the ledger so the reaper can eventually clean it up.
   // The generation is intentionally left in the cloud for now so a follow-up
@@ -183,6 +207,7 @@ function demoResult(req: StudioRequest, count: number): StudioResult {
       score: null,
       defects: "ukázkový režim",
       winner: i === 0,
+      scored: false,
     };
   });
   return { prompt: req.prompt, style: req.style, format: req.format, source: "demo", images };
