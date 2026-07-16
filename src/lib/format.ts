@@ -66,7 +66,45 @@ const RELATIVE_DIVISIONS: [limit: number, unit: Intl.RelativeTimeFormatUnit][] =
   [12, "month"],
 ];
 
-/** Build a full set of formatters bound to one locale + currency. */
+// ─── Module-scope Intl instance memo ─────────────────────────────────────────
+//
+// `Intl.NumberFormat` / `DateTimeFormat` / `RelativeTimeFormat` are STATELESS: a
+// constructed instance freezes its (locale, options) and `.format(x)` depends only
+// on the argument `x` — no per-call or per-request state is retained. Constructing
+// one is, however, comparatively expensive (locale-data lookup), and the hot number
+// formatters (fmtInt/fmtCZK/fmtPct …) used to build a fresh instance on EVERY call —
+// once per cell in a table or chart. Memoizing one instance per (locale,
+// options-kind) at module scope is therefore safe (nothing leaks between callers or
+// requests) and turns those per-render allocations into a Map hit. The kind key
+// folds in the only variable option (`digits`) so each distinct precision gets its
+// own cached instance; the locale prefix keeps cs and en separate.
+const numberFormats = new Map<string, Intl.NumberFormat>();
+function numberFormat(locale: string, kind: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const id = `${locale}|${kind}`;
+  let f = numberFormats.get(id);
+  if (!f) numberFormats.set(id, (f = new Intl.NumberFormat(locale, options)));
+  return f;
+}
+
+const dateTimeFormats = new Map<string, Intl.DateTimeFormat>();
+function dateTimeFormat(locale: string, kind: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const id = `${locale}|${kind}`;
+  let f = dateTimeFormats.get(id);
+  if (!f) dateTimeFormats.set(id, (f = new Intl.DateTimeFormat(locale, options)));
+  return f;
+}
+
+const relativeFormats = new Map<string, Intl.RelativeTimeFormat>();
+function relativeFormat(locale: string, kind: string, options: Intl.RelativeTimeFormatOptions): Intl.RelativeTimeFormat {
+  const id = `${locale}|${kind}`;
+  let f = relativeFormats.get(id);
+  if (!f) relativeFormats.set(id, (f = new Intl.RelativeTimeFormat(locale, options)));
+  return f;
+}
+
+/** Build a full set of formatters bound to one locale + currency. The Intl
+ *  instances behind them are shared module-scope singletons (see the memo above),
+ *  so calling this repeatedly — or per request — allocates no formatters. */
 export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Formatters {
   const { intlLocale, currency } = LOCALES[locale];
 
@@ -77,12 +115,12 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 
   const fmtInt = (n: number): string =>
     Number.isFinite(n)
-      ? new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 0 }).format(Math.round(n))
+      ? numberFormat(intlLocale, "int", { maximumFractionDigits: 0 }).format(Math.round(n))
       : DASH;
 
   const fmtDecimal = (n: number, digits = 1): string =>
     Number.isFinite(n)
-      ? new Intl.NumberFormat(intlLocale, {
+      ? numberFormat(intlLocale, `decimal:${digits}`, {
           minimumFractionDigits: digits,
           maximumFractionDigits: digits,
         }).format(n)
@@ -90,7 +128,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 
   const fmtCZK = (n: number): string =>
     Number.isFinite(n)
-      ? new Intl.NumberFormat(intlLocale, {
+      ? numberFormat(intlLocale, "czk", {
           style: "currency",
           currency,
           maximumFractionDigits: 0,
@@ -99,7 +137,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 
   const fmtCZKCompact = (n: number): string =>
     Number.isFinite(n)
-      ? new Intl.NumberFormat(intlLocale, {
+      ? numberFormat(intlLocale, "czkCompact", {
           style: "currency",
           currency,
           notation: "compact",
@@ -109,7 +147,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 
   const fmtCompact = (n: number): string =>
     Number.isFinite(n)
-      ? new Intl.NumberFormat(intlLocale, {
+      ? numberFormat(intlLocale, "compact", {
           notation: "compact",
           maximumFractionDigits: 1,
         }).format(n)
@@ -121,7 +159,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
    *  keep them that way (or divide by 100) before calling. */
   const fmtPct = (ratio: number, digits = 1): string =>
     Number.isFinite(ratio)
-      ? new Intl.NumberFormat(intlLocale, {
+      ? numberFormat(intlLocale, `pct:${digits}`, {
           style: "percent",
           minimumFractionDigits: digits,
           maximumFractionDigits: digits,
@@ -178,21 +216,21 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   const fmtDate = (iso: string): string => {
     const d = parseDate(iso);
     return d
-      ? new Intl.DateTimeFormat(intlLocale, { day: "numeric", month: "long", year: "numeric" }).format(d)
+      ? dateTimeFormat(intlLocale, "date", { day: "numeric", month: "long", year: "numeric" }).format(d)
       : DASH;
   };
 
   const fmtDateShort = (iso: string): string => {
     const d = parseDate(iso);
     return d
-      ? new Intl.DateTimeFormat(intlLocale, { day: "numeric", month: "numeric" }).format(d)
+      ? dateTimeFormat(intlLocale, "dateShort", { day: "numeric", month: "numeric" }).format(d)
       : DASH;
   };
 
   const fmtMonth = (iso: string): string => {
     const d = parseDate(iso);
     return d
-      ? new Intl.DateTimeFormat(intlLocale, { month: "short", year: "2-digit" }).format(d)
+      ? dateTimeFormat(intlLocale, "month", { month: "short", year: "2-digit" }).format(d)
       : DASH;
   };
 
@@ -201,7 +239,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   const fmtMonthLong = (iso: string): string => {
     const d = parseDate(iso);
     return d
-      ? new Intl.DateTimeFormat(intlLocale, { month: "long", year: "numeric" }).format(d)
+      ? dateTimeFormat(intlLocale, "monthLong", { month: "long", year: "numeric" }).format(d)
       : DASH;
   };
 
@@ -210,7 +248,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   const fmtDateTime = (iso: string): string => {
     const d = parseDate(iso);
     return d
-      ? new Intl.DateTimeFormat(intlLocale, {
+      ? dateTimeFormat(intlLocale, "dateTime", {
           day: "numeric",
           month: "long",
           year: "numeric",
@@ -220,7 +258,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
       : DASH;
   };
 
-  const TIME = new Intl.DateTimeFormat(intlLocale, { hour: "2-digit", minute: "2-digit" });
+  const TIME = dateTimeFormat(intlLocale, "time", { hour: "2-digit", minute: "2-digit" });
 
   /** Clock time of an ISO timestamp ("14:05" cs, "02:05 PM" en) — the scheduled-
    *  post / event-time counterpart of `fmtDateTime`. */
@@ -229,7 +267,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     return d ? TIME.format(d) : DASH;
   };
 
-  const WEEKDAY_SHORT = new Intl.DateTimeFormat(intlLocale, {
+  const WEEKDAY_SHORT = dateTimeFormat(intlLocale, "weekdayShort", {
     weekday: "short",
     day: "numeric",
     month: "numeric",
@@ -248,11 +286,11 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
   const fmtDuration = (totalSec: number): string => {
     if (!Number.isFinite(totalSec)) return DASH;
     if (totalSec < 60) return `${Math.round(totalSec)} s`;
-    const min = new Intl.NumberFormat(intlLocale, { maximumFractionDigits: 1 }).format(totalSec / 60);
+    const min = numberFormat(intlLocale, "duration", { maximumFractionDigits: 1 }).format(totalSec / 60);
     return `${min} min`;
   };
 
-  const RANGE_PARTS = new Intl.DateTimeFormat(intlLocale, {
+  const RANGE_PARTS = dateTimeFormat(intlLocale, "rangeParts", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -291,7 +329,7 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
     return `${a.day}. ${a.month} ${a.year} – ${b.day}. ${b.month} ${b.year}`;
   };
 
-  const RELATIVE = new Intl.RelativeTimeFormat(intlLocale, { numeric: "auto" });
+  const RELATIVE = relativeFormat(intlLocale, "relative", { numeric: "auto" });
 
   /** Relative time ("před 3 dny", "včera", "za 2 týdny"). Accepts a full ISO
    *  timestamp or a date-only string, compared against `now` (injectable). */
