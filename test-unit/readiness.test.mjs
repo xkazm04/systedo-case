@@ -7,6 +7,7 @@ import {
   firebaseCredMode,
   firebasePreflight,
   readinessMatrix,
+  cronsStale,
 } from "@/lib/readiness";
 
 const NO_FILE = { keyFilePresent: false };
@@ -98,4 +99,51 @@ test("readinessMatrix reports present/absent booleans + the cred mode label, no 
   });
   // Whitespace-only ADMIN_EMAILS is treated as absent.
   assert.equal(readinessMatrix({ ADMIN_EMAILS: "  " }, NO_FILE).adminConfigured, false);
+});
+
+test("cronsStale flags only crons whose last run exceeds their allowed max age", () => {
+  const HOUR = 3_600_000;
+  const now = Date.parse("2026-07-15T12:00:00.000Z");
+  const cadence = { sync: 2 * HOUR, digest: 14 * 24 * HOUR };
+  const iso = (msAgo) => new Date(now - msAgo).toISOString();
+
+  const stale = cronsStale(
+    [
+      { cron: "sync", finishedAt: iso(30 * 60_000) }, // 30m ago → fresh (< 2h)
+      { cron: "digest", finishedAt: iso(20 * 24 * HOUR) }, // 20d ago → stale (> 14d)
+    ],
+    cadence,
+    now
+  );
+  assert.deepEqual(stale, ["digest"]);
+});
+
+test("cronsStale: a cron with no cadence entry is not judged", () => {
+  const now = Date.parse("2026-07-15T12:00:00.000Z");
+  const stale = cronsStale(
+    [{ cron: "mystery", finishedAt: "1999-01-01T00:00:00.000Z" }],
+    { sync: 7_200_000 },
+    now
+  );
+  assert.deepEqual(stale, []);
+});
+
+test("cronsStale: an unparseable finishedAt is skipped, not flagged", () => {
+  const now = Date.parse("2026-07-15T12:00:00.000Z");
+  const stale = cronsStale([{ cron: "sync", finishedAt: "not-a-date" }], { sync: 1 }, now);
+  assert.deepEqual(stale, []);
+});
+
+test("cronsStale returns a sorted list", () => {
+  const now = 10_000_000;
+  const stale = cronsStale(
+    [
+      { cron: "sync", finishedAt: new Date(0).toISOString() },
+      { cron: "digest", finishedAt: new Date(0).toISOString() },
+      { cron: "report", finishedAt: new Date(0).toISOString() },
+    ],
+    { sync: 1, digest: 1, report: 1 },
+    now
+  );
+  assert.deepEqual(stale, ["digest", "report", "sync"]);
 });

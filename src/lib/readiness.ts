@@ -92,3 +92,32 @@ export function readinessMatrix(env: Env, probes: FirebaseProbes): ReadinessMatr
     adminConfigured: Boolean((env.ADMIN_EMAILS ?? "").trim()),
   };
 }
+
+/** The last-run marker /api/health projects per cron (a subset of CronHealth). */
+export type CronLastRun = { cron: string; finishedAt: string };
+
+/**
+ * The crons whose most-recent run is older than their allowed max age — the
+ * warning tier /api/health surfaces so a silently-not-firing schedule is visible
+ * without digging through logs. Pure (clock passed in): given the same inputs it
+ * returns the same list, so the staleness rule is unit-testable in isolation.
+ *
+ * `maxAgeMs` is keyed by cron name; a cron with no entry is not judged (returned
+ * as fresh). A run with an unparseable `finishedAt` is skipped rather than
+ * flagged (a bad timestamp is not evidence the cron stopped). Sorted for a stable
+ * projection.
+ */
+export function cronsStale(
+  lastRuns: CronLastRun[],
+  maxAgeMs: Record<string, number>,
+  now: number
+): string[] {
+  const stale: string[] = [];
+  for (const r of lastRuns) {
+    const max = maxAgeMs[r.cron];
+    if (max === undefined) continue; // cadence unknown → not judged
+    const age = now - Date.parse(r.finishedAt);
+    if (Number.isFinite(age) && age > max) stale.push(r.cron);
+  }
+  return stale.sort();
+}
