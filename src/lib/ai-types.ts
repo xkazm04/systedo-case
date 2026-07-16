@@ -64,6 +64,13 @@ export interface AiMeta {
   repaired?: boolean;
   /** limit violations detected in the first model output (before repair/clamp) */
   violations?: string[];
+  /** Direction 2 (demo backfill honesty): true when a real provider ran but SOME of
+   *  the result's fields had to be backfilled from the deterministic demo floor (a
+   *  partly-canned answer). Distinct from `demo` (fully canned → billing refunded):
+   *  a partial answer still did real work for its non-canned parts, so it is NOT
+   *  refunded — this flag only surfaces the mix honestly in the UI. When every field
+   *  is canned the tool sets `demo: true` instead (and the refund path fires). */
+  partialDemo?: boolean;
   /** token usage when the provider reports it (Gemini); absent for the Claude
    *  subscription path */
   usage?: { inputTokens: number; outputTokens: number; totalTokens: number };

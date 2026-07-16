@@ -280,6 +280,10 @@ export function generateArticleDraft(
 ): Promise<AiResponse<ArticleDraftResult>> {
   const fallback = (): ArticleDraftResult => demoArticleDraft(req);
 
+  // Direction 2: track whether the body / FAQ had to be backfilled from the demo floor
+  // so a fully canned draft bills as demo (refund fires) and a partly canned one
+  // surfaces honestly. Set during normalize below.
+  let backfill: "none" | "partial" | "full" = "none";
   const normalize = (parsed: unknown): ArticleDraftResult => {
     const o = parsed as Record<string, unknown> | null;
     const raw = Array.isArray(o?.blocks) ? o.blocks : [];
@@ -288,6 +292,9 @@ export function generateArticleDraft(
       .filter((b): b is Block => b !== null);
     const faq = normalizeFaq(o?.faq);
     const demo = fallback();
+    const blocksCanned = blocks.length === 0;
+    const faqCanned = faq.length === 0;
+    backfill = blocksCanned && faqCanned ? "full" : blocksCanned || faqCanned ? "partial" : "none";
     return {
       blocks: blocks.length ? blocks : demo.blocks,
       faq: faq.length ? faq : demo.faq,
@@ -306,5 +313,11 @@ export function generateArticleDraft(
     demo: fallback,
     locale,
     signal,
+  }).then((res) => {
+    if (!res.meta.demo) {
+      if (backfill === "full") res.meta.demo = true;
+      else if (backfill === "partial") res.meta.partialDemo = true;
+    }
+    return res;
   });
 }

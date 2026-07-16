@@ -177,14 +177,14 @@ function demoKeywordClusters(req: KeywordClustersRequest): KeywordClustersResult
   return { clusters };
 }
 
-/** Map the raw model output into validated clusters, dropping any keyword that
- *  wasn't in the INPUT set (the model must not invent keywords) and summing
- *  totalVolume from the supplied volumes. Falls back to the deterministic demo
- *  when nothing usable survives. */
-function normalizeKeywordClusters(
+/** The model-derived clusters alone (no demo fallback) — every keyword validated
+ *  against the input set (the model must not invent keywords) and totalVolume summed
+ *  from the supplied volumes. Empty when nothing usable survived; the caller decides
+ *  whether to fall back to the deterministic demo. */
+export function keywordClustersFromModel(
   parsed: unknown,
   req: KeywordClustersRequest
-): KeywordClustersResult {
+): KeywordCluster[] {
   const o = parsed as Record<string, unknown> | null;
   const raw = Array.isArray(o?.clusters) ? o.clusters : [];
   const index = inputIndex(req.keywords);
@@ -232,7 +232,7 @@ function normalizeKeywordClusters(
     clusters.push(cluster);
   }
 
-  return clusters.length > 0 ? { clusters } : demoKeywordClusters(req);
+  return clusters;
 }
 
 /** Flag an empty / invalid clustering so the wrapper re-prompts once: every
@@ -264,6 +264,11 @@ export function generateKeywordClusters(
   locale?: SupportedLocale,
   signal?: AbortSignal
 ): Promise<AiResponse<KeywordClustersResult>> {
+  // Direction 2: keyword-clusters is all-or-nothing — when the model produces no
+  // usable cluster the normalizer falls back to the deterministic demo wholesale, so
+  // that case is a FULL demo (refund fires). There is no partial state: invalid
+  // keywords are dropped, but any surviving model cluster keeps the answer real.
+  let fullyCanned = false;
   return generateStructured({
     // llm-tool: keyword-clusters
     id: "keyword-clusters",
@@ -273,10 +278,17 @@ export function generateKeywordClusters(
     system: KEYWORD_CLUSTERS_SYSTEM,
     schema: KEYWORD_CLUSTERS_SCHEMA,
     temperature: 0.5,
-    normalize: (parsed) => normalizeKeywordClusters(parsed, req),
+    normalize: (parsed) => {
+      const clusters = keywordClustersFromModel(parsed, req);
+      fullyCanned = clusters.length === 0;
+      return clusters.length > 0 ? { clusters } : demoKeywordClusters(req);
+    },
     validate: (parsed) => validateKeywordClusters(parsed, req),
     demo: () => demoKeywordClusters(req),
     locale,
     signal,
+  }).then((res) => {
+    if (!res.meta.demo && fullyCanned) res.meta.demo = true;
+    return res;
   });
 }

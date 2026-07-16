@@ -259,6 +259,10 @@ export function generateComparisonOutline(
 ): Promise<AiResponse<ComparisonOutlineResult>> {
   const fallback = (): ComparisonOutlineResult => demoComparisonOutline(req);
 
+  // Direction 2: count how many of the five fields had to be backfilled from the demo
+  // scaffold, so an all-canned page bills as demo (refund fires) and a partly canned
+  // one surfaces honestly. Set during normalize below.
+  let backfill: "none" | "partial" | "full" = "none";
   const normalize = (parsed: unknown): ComparisonOutlineResult => {
     const o = parsed as Record<string, unknown> | null;
     const demo = fallback();
@@ -269,6 +273,8 @@ export function generateComparisonOutline(
     const comparisonCriteria = cleanList(o?.comparisonCriteria, 8).map((c) => c.slice(0, 80));
     const verdict = txt(o?.verdict);
     const faq = normalizeFaq(o?.faq);
+    const canned = [!txt(o?.h1), sections.length === 0, comparisonCriteria.length === 0, !verdict, faq.length === 0].filter(Boolean).length;
+    backfill = canned === 0 ? "none" : canned === 5 ? "full" : "partial";
     return {
       h1: h1.slice(0, 200),
       sections: sections.length ? sections : demo.sections,
@@ -290,5 +296,11 @@ export function generateComparisonOutline(
     demo: fallback,
     locale,
     signal,
+  }).then((res) => {
+    if (!res.meta.demo) {
+      if (backfill === "full") res.meta.demo = true;
+      else if (backfill === "partial") res.meta.partialDemo = true;
+    }
+    return res;
   });
 }

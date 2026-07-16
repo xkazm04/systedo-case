@@ -19,7 +19,7 @@ import { draftPosts } from "../../social/draft";
 import { generateStructured } from "../../llm";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
 import { clamp, txt } from "./_shared";
-import { withObjectGuard } from "./_validate";
+import { asRecord, NOT_OBJECT_VIOLATION } from "./_validate";
 
 function socialSystem(brand?: string): string {
   const who = brand ? `pro značku: ${brand}` : "pro značku, jejíž téma a tón dostaneš v zadání";
@@ -89,12 +89,22 @@ const SOCIAL_SCHEMA = {
   propertyOrdering: ["posts"],
 };
 
-/** Flag any post over its platform limit, or a non-object / truncated parse, so the
- *  wrapper re-prompts once before the normalizer clamps + fills from the templates. */
-export const validateSocial = withObjectGuard((o): string[] => {
-  if (!Array.isArray(o.posts)) return [];
+/** Flag output the wrapper should re-prompt once before the normalizer papers over it:
+ *  a non-object / truncated parse, any post over its platform limit, and — when the
+ *  requested platforms are supplied (Direction 2) — any REQUESTED platform missing a
+ *  usable post. The old validator only checked the character limit, so an empty or
+ *  partial response passed, skipped the one repair re-prompt, and normalizeSocial
+ *  backfilled every gap from the canned templates while meta.demo stayed false — i.e.
+ *  canned content billed as a real generation. Requiring a post per requested platform
+ *  makes that empty/partial case fail → the repair fires; if it STILL comes back short,
+ *  generateSocialPosts flags the canned result honestly (see there). */
+export function validateSocial(parsed: unknown, requested?: readonly SocialPlatform[]): string[] {
+  const o = asRecord(parsed);
+  if (!o) return [NOT_OBJECT_VIOLATION];
+  const posts = Array.isArray(o.posts) ? o.posts : [];
   const v: string[] = [];
-  for (const item of o.posts) {
+  const withContent = new Set<SocialPlatform>();
+  for (const item of posts) {
     if (!item || typeof item !== "object") continue;
     const x = item as Record<string, unknown>;
     const platform = txt(x.platform).toLowerCase() as SocialPlatform;
@@ -103,9 +113,17 @@ export const validateSocial = withObjectGuard((o): string[] => {
     if (limit && content.length > limit) {
       v.push(`Příspěvek pro ${platform} má ${content.length} znaků (limit ${limit}).`);
     }
+    if (content) withContent.add(platform);
+  }
+  if (requested) {
+    for (const p of requested) {
+      if (!withContent.has(p)) {
+        v.push(`Chybí příspěvek pro platformu ${p} — vrať právě jeden příspěvek pro každou požadovanou platformu.`);
+      }
+    }
   }
   return v;
-});
+}
 
 /** Everything the social prompt + demo + normalizer are a pure function of. The
  *  brand grounds the SYSTEM persona (unlike most tools, whose grounding rides the
@@ -136,7 +154,14 @@ function socialFallback(i: SocialSkillInput): { platform: SocialPlatform; conten
  *  platform limit, keep the first per platform, and fill any skipped platform with
  *  the deterministic draft. Needs the request `input` (the requested platforms) —
  *  which is exactly why the Skill normalizer is input-aware. */
-function normalizeSocial(parsed: unknown, i: SocialSkillInput): SocialDraftResult {
+/** Reconcile the model's posts against the requested platforms AND report how many
+ *  platforms the MODEL actually filled (vs. backfilled from templates), so the caller
+ *  can flag a fully/partly canned answer honestly (Direction 2). `modelCount` is the
+ *  number of requested platforms the model supplied real content for. */
+export function normalizeSocialTracked(
+  parsed: unknown,
+  i: SocialSkillInput
+): { result: SocialDraftResult; modelCount: number } {
   const requested = i.platforms;
   const o = parsed as Record<string, unknown>;
   const raw = Array.isArray(o?.posts) ? o.posts : [];
@@ -156,7 +181,11 @@ function normalizeSocial(parsed: unknown, i: SocialSkillInput): SocialDraftResul
     platform: p,
     content: byPlatform.get(p) ?? clamp(templates.get(p) ?? "", PLATFORM_LIMITS[p]),
   }));
-  return { posts };
+  return { result: { posts }, modelCount: byPlatform.size };
+}
+
+function normalizeSocial(parsed: unknown, i: SocialSkillInput): SocialDraftResult {
+  return normalizeSocialTracked(parsed, i).result;
 }
 
 /** The social-post-drafting tool as a Skill SDK plugin. Contract unchanged; the
@@ -183,10 +212,30 @@ export function generateSocialPosts(req: SocialSkillInput & {
   signal?: AbortSignal;
 }): Promise<AiResponse<SocialDraftResult>> {
   const { locale, signal, ...input } = req;
+  // Track whether the normalizer had to fall back to the canned templates, so a fully
+  // canned answer bills as demo (refund fires) and a partly canned one surfaces honestly
+  // (Direction 2). `full`/`partial`/`none` is set during normalize below.
+  let backfill: "none" | "partial" | "full" = "none";
   return generateStructured({
     // llm-tool: social
     ...skillToGenerateArgs(socialSkill, input),
+    // Input-bound so the wrapper's single repair re-prompt fires on an empty/partial
+    // set (the skill's own validate — over-limit only — runs when requested is absent).
+    validate: (parsed) => validateSocial(parsed, input.platforms),
+    normalize: (parsed) => {
+      const { result, modelCount } = normalizeSocialTracked(parsed, input);
+      backfill = modelCount === 0 ? "full" : modelCount < input.platforms.length ? "partial" : "none";
+      return result;
+    },
     locale,
     signal,
+  }).then((res) => {
+    // A no-provider demo already has meta.demo=true; only adjust a real-provider run
+    // whose output had to be (fully/partly) backfilled from the templates.
+    if (!res.meta.demo) {
+      if (backfill === "full") res.meta.demo = true;
+      else if (backfill === "partial") res.meta.partialDemo = true;
+    }
+    return res;
   });
 }
