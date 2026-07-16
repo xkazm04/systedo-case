@@ -68,22 +68,39 @@ export const RATE_RULES = {
  *  anything further left is client-supplied and must not be trusted. */
 const TRUSTED_PROXY_HOPS = envInt("TRUSTED_PROXY_HOPS", 1);
 
+/** Is the platform connecting-IP header (x-real-ip / x-vercel-forwarded-for)
+ *  trustworthy on THIS deployment? Only when a proxy in front of the app strips /
+ *  overwrites those headers — true on Vercel (the platform sets VERCEL=1 and its
+ *  edge overwrites them), or when the operator explicitly attests to it with
+ *  TRUSTED_PROXY=true|1. Anywhere else (bare Node, Docker, a pass-through proxy)
+ *  a client can forge x-real-ip, so it must be ignored. FAIL-SAFE: default is
+ *  untrusted. Read at call time so tests / runtime config changes apply. */
+function platformIpHeaderTrusted(): boolean {
+  if (process.env.VERCEL) return true;
+  const flag = process.env.TRUSTED_PROXY?.trim().toLowerCase();
+  return flag === "true" || flag === "1";
+}
+
 /** Best-effort client IP, resistant to x-forwarded-for spoofing.
  *
  *  A client can prepend arbitrary `x-forwarded-for` entries, so the *leftmost*
  *  value is attacker-controlled — taking it (the previous behaviour) let a caller
  *  rotate the header to land in a fresh rate-limit bucket on every request,
  *  defeating the per-IP caps that are the only budget guard for anonymous users.
- *  We instead prefer the platform's verified connecting-IP header (x-real-ip /
- *  x-vercel-forwarded-for, which the proxy sets and a client cannot forge), and
- *  otherwise read XFF from the RIGHT, stepping in by the configured trusted-hop
- *  count. Falls back to a shared "unknown" bucket so a missing header still counts
- *  toward *some* limit. */
+ *  The platform's connecting-IP header (x-real-ip / x-vercel-forwarded-for) is
+ *  preferred ONLY when the deployment attests that a proxy overwrites it (Vercel,
+ *  or TRUSTED_PROXY=true — see platformIpHeaderTrusted): off-platform those
+ *  headers are client-forgeable and previously bypassed every per-IP cap.
+ *  Otherwise we read XFF from the RIGHT, stepping in by the configured
+ *  trusted-hop count. Falls back to a shared "unknown" bucket so a missing
+ *  header still counts toward *some* limit. */
 export function clientIp(request: Request): string {
-  const trusted =
-    request.headers.get("x-real-ip")?.trim() ||
-    request.headers.get("x-vercel-forwarded-for")?.trim();
-  if (trusted) return trusted;
+  if (platformIpHeaderTrusted()) {
+    const trusted =
+      request.headers.get("x-real-ip")?.trim() ||
+      request.headers.get("x-vercel-forwarded-for")?.trim();
+    if (trusted) return trusted;
+  }
 
   const fwd = request.headers.get("x-forwarded-for");
   if (fwd) {

@@ -19,12 +19,54 @@ const req = (headers) => new Request("https://x.test/api", { headers });
 
 // ---- clientIp: x-forwarded-for spoof resistance (the load-bearing guard) ----
 
-test("clientIp prefers the platform's verified connecting-IP header over XFF", () => {
-  assert.equal(clientIp(req({ "x-real-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1" })), "9.9.9.9");
-  assert.equal(
-    clientIp(req({ "x-vercel-forwarded-for": "8.8.8.8", "x-forwarded-for": "1.1.1.1" })),
-    "8.8.8.8"
-  );
+/** Run `fn` with a temporary env override, restoring the prior values after. */
+function withEnv(overrides, fn) {
+  const prior = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    prior[k] = process.env[k];
+    if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
+  try {
+    fn();
+  } finally {
+    for (const [k, v] of Object.entries(prior)) {
+      if (v === undefined) delete process.env[k];
+      else process.env[k] = v;
+    }
+  }
+}
+
+test("clientIp prefers the platform connecting-IP header only behind a trusted proxy", () => {
+  // Trusted deployment (operator attests TRUSTED_PROXY, or Vercel sets VERCEL).
+  withEnv({ TRUSTED_PROXY: "true", VERCEL: undefined }, () => {
+    assert.equal(clientIp(req({ "x-real-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1" })), "9.9.9.9");
+    assert.equal(
+      clientIp(req({ "x-vercel-forwarded-for": "8.8.8.8", "x-forwarded-for": "1.1.1.1" })),
+      "8.8.8.8"
+    );
+    assert.equal(clientIp(req({ "x-real-ip": "  7.7.7.7  " })), "7.7.7.7");
+  });
+  withEnv({ TRUSTED_PROXY: undefined, VERCEL: "1" }, () => {
+    assert.equal(clientIp(req({ "x-real-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1" })), "9.9.9.9");
+  });
+});
+
+test("clientIp ignores forgeable x-real-ip when no trusted proxy is attested", () => {
+  // FAIL-SAFE default: off-platform a client can forge x-real-ip, so it must not
+  // mint fresh rate-limit buckets — the spoof-resistant XFF path decides instead.
+  withEnv({ TRUSTED_PROXY: undefined, VERCEL: undefined }, () => {
+    assert.equal(
+      clientIp(req({ "x-real-ip": "forged", "x-forwarded-for": "evil, 2.2.2.2" })),
+      "2.2.2.2"
+    );
+    assert.equal(clientIp(req({ "x-vercel-forwarded-for": "forged" })), "unknown");
+    assert.equal(clientIp(req({ "x-real-ip": "forged" })), "unknown");
+  });
+  // An explicit "false"/garbage value stays untrusted.
+  withEnv({ TRUSTED_PROXY: "false", VERCEL: undefined }, () => {
+    assert.equal(clientIp(req({ "x-real-ip": "forged", "x-forwarded-for": "3.3.3.3" })), "3.3.3.3");
+  });
 });
 
 test("clientIp reads XFF from the RIGHT, ignoring client-prepended entries", () => {
@@ -37,7 +79,6 @@ test("clientIp reads XFF from the RIGHT, ignoring client-prepended entries", () 
 
 test("clientIp trims whitespace and falls back to a shared bucket when unknown", () => {
   assert.equal(clientIp(req({ "x-forwarded-for": "  1.1.1.1 , 2.2.2.2  " })), "2.2.2.2");
-  assert.equal(clientIp(req({ "x-real-ip": "  7.7.7.7  " })), "7.7.7.7");
   assert.equal(clientIp(req({})), "unknown");
   assert.equal(clientIp(req({ "x-forwarded-for": "" })), "unknown");
 });
