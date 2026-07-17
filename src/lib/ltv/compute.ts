@@ -59,6 +59,8 @@ export interface LtvSummary {
   paidCac: number;
   /** signups won through paid channels (excludes free/organic) */
   paidSignups: number;
+  /** blended LTV per user / blended paid CAC (signup-weighted ratio-of-totals, matching
+   *  ltvProjection) — NOT an unweighted mean of per-cohort ratios */
   avgLtvCac: number;
   avgPayback: number | null;
 }
@@ -391,12 +393,20 @@ export function ltvSummary(cohorts: Cohort[]): LtvSummary {
     }
   }
 
+  // avgLtvCac is blended LTV / blended paid CAC — a ratio-of-signup-weighted-totals,
+  // consistent with `ltvProjection` (and with `blendedCac`/`paidCac` here). Previously
+  // it was an unweighted mean of per-cohort ratios, so a 10-signup cohort swung the
+  // headline "target ≥ 3×" verdict (and the Overview alert severity) as hard as a
+  // 300-signup one, disagreeing with what blended LTV / blended CAC actually says.
+  const paidCac = paidSignups > 0 ? paidSpend / paidSignups : 0;
+  const blendedLtvPerUser = signups > 0 ? rows.reduce((a, r) => a + r.ltv * r.signups, 0) / signups : 0;
+
   return {
     signups,
     blendedCac: signups > 0 ? spend / signups : 0,
-    paidCac: paidSignups > 0 ? paidSpend / paidSignups : 0,
+    paidCac,
     paidSignups,
-    avgLtvCac: rows.length ? rows.reduce((a, r) => a + r.ltvCac, 0) / rows.length : 0,
+    avgLtvCac: paidCac > 0 ? blendedLtvPerUser / paidCac : 0,
     avgPayback: paybacks.length ? paybacks.reduce((a, p) => a + p, 0) / paybacks.length : null,
   };
 }

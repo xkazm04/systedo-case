@@ -19,6 +19,21 @@ test("ltvSummary blends CAC across cohorts", () => {
   assert.equal(s.signups, 300);
   assert.ok(Math.abs(s.blendedCac - 260_000 / 300) < 0.01); // total spend / total signups
   assert.ok(s.avgLtvCac > 0);
+  // avgLtvCac == blended LTV per user / blended paid CAC (signup-weighted ratio-of-totals)
+  const rows = [cohort, { ...cohort, signups: 200, spend: 160_000 }].map((c) => withMetrics(c));
+  const blendedLtv = rows.reduce((a, r) => a + r.ltv * r.signups, 0) / s.signups;
+  assert.ok(Math.abs(s.avgLtvCac - blendedLtv / s.paidCac) < 1e-9);
+});
+
+test("avgLtvCac is signup-weighted, not an unweighted mean of per-cohort ratios", () => {
+  // A tiny cheap-CAC cohort (huge per-cohort ratio) must NOT swing the blend like a mean.
+  const big = { month: "Big", signups: 300, spend: 300_000, arpu: 300, retention: [1, 0.7, 0.5, 0.4] };
+  const tiny = { month: "Tiny", signups: 5, spend: 500, arpu: 300, retention: [1, 0.7, 0.5, 0.4] }; // CAC 100
+  const rows = [big, tiny].map((c) => withMetrics(c));
+  const mean = rows.reduce((a, r) => a + r.ltvCac, 0) / rows.length; // the old formula
+  const s = ltvSummary([big, tiny]);
+  // the blended ratio stays near the dominant big cohort, far below the ratio-mean
+  assert.ok(s.avgLtvCac < mean, "signup-weighted blend is not inflated by the tiny cohort");
 });
 
 test("a cohort without channels still yields the blended value (no regression)", () => {
