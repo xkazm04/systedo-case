@@ -17,6 +17,7 @@ const T = {
     synced: "synchronizováno {date}",
     refresh: "Aktualizovat z URL",
     revert: "Zpět na ukázková",
+    revertConfirm: "Přepnout zpět na ukázková data? Naimportované pozice (včetně historie) se odstraní a nahradí ukázkovými.",
     sampleNote: "Ukázkové pozice (ilustrativní). Naimportujte reálné pozice z libovolného rank trackeru.",
     importCta: "Importovat pozice",
     importHelp: "Vložte řádky ve formátu: klíčové slovo, oblast, pozice (oddělené čárkou, středníkem nebo tabem). První řádek může být hlavička.",
@@ -34,6 +35,7 @@ const T = {
     synced: "synced {date}",
     refresh: "Refresh from URL",
     revert: "Back to sample",
+    revertConfirm: "Switch back to sample data? Your imported rankings (including their history) will be removed and replaced with the sample.",
     sampleNote: "Sample rankings (illustrative). Import your real positions from any rank tracker.",
     importCta: "Import rankings",
     importHelp: "Paste rows as: keyword, area, position (comma-, semicolon- or tab-separated). A header row is optional.",
@@ -94,10 +96,18 @@ export default function LocalLadderSource({
   }
 
   async function revert() {
+    // Destructive: dropping the imported rankings history is irreversible, so gate it
+    // behind a confirm and, unlike the old fire-and-forget, mirror submit()'s error
+    // handling (check res.ok, surface a message, catch) instead of a silent no-op.
+    if (typeof window !== "undefined" && !window.confirm(t("revertConfirm"))) return;
     setBusy(true);
+    setMsg(null);
     try {
-      await fetch(`/api/projects/${projectId}/local-signals/import`, { method: "DELETE" });
-      router.refresh();
+      const res = await fetch(`/api/projects/${projectId}/local-signals/import`, { method: "DELETE" });
+      if (res.ok) router.refresh();
+      else setMsg(t("failed"));
+    } catch {
+      setMsg(t("failed"));
     } finally {
       setBusy(false);
     }
