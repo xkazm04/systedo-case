@@ -9,8 +9,10 @@ import {
   articleFrontMatter,
   articleToMarkdown,
   blockToMarkdown,
+  escapeMd,
   faqToMarkdown,
   inlineToMarkdown,
+  mdHref,
 } from "@/lib/article-markdown";
 import { BLOCK_TYPES } from "@/lib/article-validate";
 
@@ -61,6 +63,33 @@ test("inline links stay first-class ([text](href)) and bold becomes **text**", (
     md,
     "Vyberte [kvalitní ořechy](https://www.mionelo.cz) — **opravdu** se to vyplatí, viz [skladování](#skladovani)."
   );
+});
+
+test("content metacharacters are escaped so text can't inject Markdown", () => {
+  // plain text with emphasis/heading/bracket metachars is neutralized
+  assert.equal(escapeMd("Nuts & Co. [CZ] *sale* _now_ #1"), "Nuts & Co. \\[CZ\\] \\*sale\\* \\_now\\_ \\#1");
+  // link text with a `]` and an href with a `)` no longer break `[text](href)`
+  const md = inlineToMarkdown([
+    { text: "cena [akce]", href: "https://x.example/a(b)c", kind: "external" },
+  ]);
+  assert.equal(md, "[cena \\[akce\\]](https://x.example/a%28b%29c)");
+  // a bold run containing ** no longer terminates early
+  assert.equal(inlineToMarkdown([{ text: "a**b", bold: true }]), "**a\\*\\*b**");
+});
+
+test("mdHref absolutizes site-relative paths against baseUrl and encodes parens", () => {
+  assert.equal(mdHref("/clanek/foo.svg", "https://systedo.cz"), "https://systedo.cz/clanek/foo.svg");
+  assert.equal(mdHref("/dashboard", "https://systedo.cz/"), "https://systedo.cz/dashboard");
+  // absolute hrefs and in-page anchors are left as-is (only parens encoded)
+  assert.equal(mdHref("https://x.example/p(q)", "https://systedo.cz"), "https://x.example/p%28q%29");
+  assert.equal(mdHref("/clanek/foo.svg"), "/clanek/foo.svg");
+  // articleToMarkdown threads baseUrl to figure src / links
+  const doc = articleToMarkdown(
+    { meta: { title: "T", perex: "P", author: "A", role: "R", dateISO: "2026-01-01", readingMinutes: 1, category: "C", tags: [] }, blocks: [SAMPLE_BLOCKS.figure], faq: [{ q: "Q?", a: ["A."] }] },
+    undefined,
+    "https://systedo.cz"
+  );
+  assert.match(doc, /!\[přehled druhů\]\(https:\/\/systedo\.cz\/clanek\/prehled\.svg\)/);
 });
 
 test("headings, lists and callouts serialize with their Markdown shapes", () => {

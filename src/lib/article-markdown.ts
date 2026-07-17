@@ -24,13 +24,32 @@ export const CS_MARKDOWN_LABELS: MarkdownLabels = {
   faqHeading: "Časté dotazy (FAQ)",
 };
 
-/** Inline runs with links preserved (`[text](href)`) and bold as `**text**`. */
-export function inlineToMarkdown(content: Inline[]): string {
+/** Backslash-escape the Markdown metacharacters that would otherwise turn a
+ *  plain text run into unintended emphasis / a heading / a link on the portable
+ *  twin. The typed block model guarantees Markdown-*structure* but not
+ *  Markdown-*safe text* — client names, segments and future AI drafts can carry
+ *  any of these. */
+export function escapeMd(s: string): string {
+  return s.replace(/[\\`*_[\]<>#]/g, "\\$&");
+}
+
+/** Prepare an href for `[text](href)`: absolutize a site-relative path against
+ *  `baseUrl` when given (so images/links survive leaving the site), and
+ *  percent-encode the parens that would otherwise break the link syntax. */
+export function mdHref(href: string, baseUrl?: string): string {
+  const abs = baseUrl && href.startsWith("/") ? `${baseUrl.replace(/\/+$/, "")}${href}` : href;
+  return abs.replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
+
+/** Inline runs with links preserved (`[text](href)`) and bold as `**text**`.
+ *  Text runs and link text are metachar-escaped; hrefs are prepared via
+ *  {@link mdHref} (optionally absolutized against `baseUrl`). */
+export function inlineToMarkdown(content: Inline[], baseUrl?: string): string {
   return content
     .map((node) => {
-      if (typeof node === "string") return node;
-      if ("bold" in node) return `**${node.text}**`;
-      return `[${node.text}](${node.href})`;
+      if (typeof node === "string") return escapeMd(node);
+      if ("bold" in node) return `**${escapeMd(node.text)}**`;
+      return `[${escapeMd(node.text)}](${mdHref(node.href, baseUrl)})`;
     })
     .join("");
 }
@@ -38,40 +57,44 @@ export function inlineToMarkdown(content: Inline[]): string {
 /** One Block as a Markdown fragment (no trailing newline). The switch is
  *  exhaustive over the Block union, so adding a block type to the model won't
  *  compile until it learns to serialize itself. */
-export function blockToMarkdown(block: Block, labels: MarkdownLabels = CS_MARKDOWN_LABELS): string {
+export function blockToMarkdown(
+  block: Block,
+  labels: MarkdownLabels = CS_MARKDOWN_LABELS,
+  baseUrl?: string
+): string {
   switch (block.type) {
     case "h2":
-      return `## ${block.text}`;
+      return `## ${escapeMd(block.text)}`;
     case "h3":
-      return `### ${block.text}`;
+      return `### ${escapeMd(block.text)}`;
     case "p":
-      return inlineToMarkdown(block.content);
+      return inlineToMarkdown(block.content, baseUrl);
     case "ul":
-      return block.items.map((it) => `- ${inlineToMarkdown(it)}`).join("\n");
+      return block.items.map((it) => `- ${inlineToMarkdown(it, baseUrl)}`).join("\n");
     case "ol":
-      return block.items.map((it, i) => `${i + 1}. ${inlineToMarkdown(it)}`).join("\n");
+      return block.items.map((it, i) => `${i + 1}. ${inlineToMarkdown(it, baseUrl)}`).join("\n");
     case "callout":
-      return [`> **${block.title ?? labels.calloutTitle}**`, `> ${inlineToMarkdown(block.content)}`].join("\n");
+      return [`> **${escapeMd(block.title ?? labels.calloutTitle)}**`, `> ${inlineToMarkdown(block.content, baseUrl)}`].join("\n");
     case "quote": {
-      const quote = `> ${inlineToMarkdown(block.content)}`;
-      return block.cite ? `${quote}\n> — ${block.cite}` : quote;
+      const quote = `> ${inlineToMarkdown(block.content, baseUrl)}`;
+      return block.cite ? `${quote}\n> — ${escapeMd(block.cite)}` : quote;
     }
     case "cta":
-      return `> **${block.text}** — [${block.cta}](${block.href})`;
+      return `> **${escapeMd(block.text)}** — [${escapeMd(block.cta)}](${mdHref(block.href, baseUrl)})`;
     case "stat":
-      return block.items.map((s) => `- **${s.value}** — ${s.label}`).join("\n");
+      return block.items.map((s) => `- **${escapeMd(s.value)}** — ${escapeMd(s.label)}`).join("\n");
     case "figure": {
-      const img = `![${block.alt}](${block.src})`;
-      return block.caption ? `${img}\n*${block.caption}*` : img;
+      const img = `![${escapeMd(block.alt)}](${mdHref(block.src, baseUrl)})`;
+      return block.caption ? `${img}\n*${escapeMd(block.caption)}*` : img;
     }
     case "table": {
-      const head = `| ${block.header.map(escapeCell).join(" | ")} |`;
+      const head = `| ${block.header.map((h) => escapeCell(escapeMd(h))).join(" | ")} |`;
       const divider = `| ${block.header.map(() => "---").join(" | ")} |`;
       const body = block.rows.map(
-        (row) => `| ${row.map((cell) => escapeCell(inlineToMarkdown(cell))).join(" | ")} |`
+        (row) => `| ${row.map((cell) => escapeCell(inlineToMarkdown(cell, baseUrl))).join(" | ")} |`
       );
       const table = [head, divider, ...body].join("\n");
-      return block.caption ? `${table}\n*${block.caption}*` : table;
+      return block.caption ? `${table}\n*${escapeMd(block.caption)}*` : table;
     }
   }
 }
@@ -100,23 +123,34 @@ export function articleFrontMatter(meta: Article["meta"]): string {
 }
 
 /** The FAQ as a trailing Markdown section (empty string when there is none). */
-export function faqToMarkdown(faq: FaqItem[], labels: MarkdownLabels = CS_MARKDOWN_LABELS): string {
+export function faqToMarkdown(
+  faq: FaqItem[],
+  labels: MarkdownLabels = CS_MARKDOWN_LABELS,
+  baseUrl?: string
+): string {
   if (faq.length === 0) return "";
   const lines = [`## ${labels.faqHeading}`, ""];
-  for (const f of faq) lines.push(`**${f.q}**`, "", inlineToMarkdown(f.a), "");
+  for (const f of faq) lines.push(`**${escapeMd(f.q)}**`, "", inlineToMarkdown(f.a, baseUrl), "");
   return lines.join("\n").trimEnd();
 }
 
 /** The whole article as one portable Markdown document: front matter, H1 +
  *  perex, every block, and the FAQ section. Lossless for links and bold —
- *  the payoff of the typed block model over scraped HTML. */
-export function articleToMarkdown(a: Article, labels: MarkdownLabels = CS_MARKDOWN_LABELS): string {
-  const parts = [articleFrontMatter(a.meta), "", `# ${a.meta.title}`, "", `_${a.meta.perex}_`, ""];
+ *  the payoff of the typed block model over scraped HTML. Content metachars are
+ *  escaped so the text can't inject Markdown; pass `baseUrl` to absolutize
+ *  site-relative image/link hrefs for audiences off the site (AI crawlers,
+ *  `.md` exports). */
+export function articleToMarkdown(
+  a: Article,
+  labels: MarkdownLabels = CS_MARKDOWN_LABELS,
+  baseUrl?: string
+): string {
+  const parts = [articleFrontMatter(a.meta), "", `# ${escapeMd(a.meta.title)}`, "", `_${escapeMd(a.meta.perex)}_`, ""];
   for (const block of a.blocks) {
-    const md = blockToMarkdown(block, labels);
+    const md = blockToMarkdown(block, labels, baseUrl);
     if (md) parts.push(md, "");
   }
-  const faqMd = faqToMarkdown(a.faq, labels);
+  const faqMd = faqToMarkdown(a.faq, labels, baseUrl);
   if (faqMd) parts.push(faqMd, "");
   return parts.join("\n").trimEnd() + "\n";
 }
