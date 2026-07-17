@@ -19,7 +19,21 @@ export const metadata: Metadata = {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={null}>
+    // The prerendered static shell IS this fallback under Cache Components, so a
+    // `null` here is a white flash on every cold entry to the authed surface. Match
+    // the sibling /app/page.tsx pattern: a `role="status"` shell that announces
+    // "loading" to assistive tech instead of dead silence.
+    <Suspense
+      fallback={
+        <div
+          role="status"
+          className="animate-loading-reveal flex min-h-[55vh] items-center justify-center"
+          aria-busy="true"
+        >
+          <span className="sr-only">Načítání… · Loading…</span>
+        </div>
+      }
+    >
       <AuthGate>{children}</AuthGate>
     </Suspense>
   );
