@@ -151,6 +151,11 @@ export class ByomUserError extends Error {
  *  statuses that clearly indicate the user's key/account/model choice are user
  *  faults; a bare 400 is treated as our malformed request unless the body names
  *  the model (some vendors reject an unavailable model with 400, not 404). */
+/** A 429 body that names exhausted quota/credit/billing is a real user fault (top
+ *  up); a bare 429 (or one that just says "rate limited"/"too many requests") is a
+ *  transient throttle we should retry, not a hard error. */
+const BYOM_QUOTA_EXHAUSTED = /quota|credit|billing|insufficient|exceeded|balance|out of/i;
+
 export function classifyByomHttp(
   vendor: string,
   status: number,
@@ -164,7 +169,17 @@ export function classifyByomHttp(
     case 402:
       return new ByomUserError("quota", vendor, `Účet u ${vendor} nemá dostatečný kredit.`, status);
     case 429:
-      return new ByomUserError("quota", vendor, `Vyčerpán limit nebo kredit vašeho účtu u ${vendor}.`, status);
+      // A 429 conflates two very different conditions: "slow down for a second"
+      // (transient throttle — retryable, often with Retry-After) and "you are out of
+      // credit" (a real user fault). Only treat it as a user quota fault when the body
+      // names exhausted quota/credit/billing; otherwise return null so the recoverable
+      // path applies (the adapter honors any Retry-After with bounded backoff, else a
+      // retryable server error), instead of a hard "top up your account" dead end. See
+      // the deliberate 402 case above for the unambiguous exhausted-credit signal.
+      if (BYOM_QUOTA_EXHAUSTED.test(bodyText)) {
+        return new ByomUserError("quota", vendor, `Vyčerpán limit nebo kredit vašeho účtu u ${vendor}.`, status);
+      }
+      return null; // transient throttle — recoverable (retry/backoff/fallback)
     case 404:
       return new ByomUserError("model", vendor, `Zvolený model není u ${vendor} dostupný.`, status);
     case 400:

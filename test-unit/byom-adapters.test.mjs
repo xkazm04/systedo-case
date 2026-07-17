@@ -28,7 +28,12 @@ test("classifyByomHttp: user faults vs recoverable", () => {
   assert.equal(classifyByomHttp("openai", 401)?.code, "auth");
   assert.equal(classifyByomHttp("openai", 403)?.code, "permission");
   assert.equal(classifyByomHttp("openai", 402)?.code, "quota");
-  assert.equal(classifyByomHttp("openai", 429)?.code, "quota");
+  // 429 is a user quota fault ONLY when the body names exhausted quota/credit; a bare
+  // 429 (a transient throttle burst) is recoverable so retry/backoff/fallback applies.
+  assert.equal(classifyByomHttp("openai", 429, "You exceeded your current quota")?.code, "quota");
+  assert.equal(classifyByomHttp("openai", 429, "insufficient credit")?.code, "quota");
+  assert.equal(classifyByomHttp("openai", 429), null);
+  assert.equal(classifyByomHttp("openai", 429, "rate limit reached, retry shortly"), null);
   assert.equal(classifyByomHttp("openai", 404)?.code, "model");
   // 400 naming the model is a user model choice; a bare 400 is our request.
   assert.equal(classifyByomHttp("openai", 400, "unknown model gpt-x")?.code, "model");

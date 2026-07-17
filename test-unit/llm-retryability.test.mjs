@@ -106,12 +106,26 @@ test("openai: 429 WITH Retry-After → rate_limited (retryable) carrying retryAf
   }
 });
 
-test("openai: 429 WITHOUT Retry-After stays a user quota fault (unchanged)", async () => {
+test("openai: 429 whose body names exhausted quota → user quota fault", async () => {
   const f = stubFetch([{ status: 429, body: { error: "quota" } }]);
   try {
     await assert.rejects(
       () => runByom({ vendor: "openai", apiKey: "sk" }, CALL),
       (e) => e instanceof ByomUserError && e.code === "quota"
+    );
+  } finally {
+    f.restore();
+  }
+});
+
+test("openai: bare 429 (transient throttle, no Retry-After, no quota body) → retryable server error, NOT a user fault", async () => {
+  // A momentary throttle burst must not become a hard "top up your account" dead end;
+  // it falls through to the retry/fallback machinery instead of surfacing to the user.
+  const f = stubFetch([{ status: 429, body: { error: "too many requests, slow down" } }]);
+  try {
+    await assert.rejects(
+      () => runByom({ vendor: "openai", apiKey: "sk" }, CALL),
+      (e) => e instanceof LlmCallError && e.code === "server" && e.retryable && !(e instanceof ByomUserError)
     );
   } finally {
     f.restore();
