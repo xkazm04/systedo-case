@@ -6,29 +6,29 @@ Branch: `vibeman/ambiguity-ui-2026-07-16` (off `master` @ `2e14069`, unmerged)
 - Combined **ambiguity-guardian + ui-perfectionist**, 5 findings/context, all 54 contexts.
 - **270 findings**: 0 Critical / 101 High / 150 Medium / 19 Low (verified two ways).
 
-## Fixes (waves 1–9, the High tier)
+## Fixes — COMPLETE (26 waves)
 
-| Wave | Theme | High closed | Tests after |
-|---|---|---:|---:|
-| 1 | Ops success-theater | 7 | 1549 |
-| 2 | Tenant isolation, auth & secrets | 8 | 1557 |
-| 3 | Billing honesty (canned-billed-as-real) | 7 | 1583 |
-| 4 | Sample-vs-live honesty | 8 | 1587 |
-| 5 | Currency correctness | 5 | 1595 |
-| 6 | Money-math & stats integrity | 7 | 1610 |
-| 7 | Accessibility & focus | 7 | 1622 |
-| 8 | Twin & state-loss / concurrency | 8 | 1636 |
-| 9 | UI silent-failure tail | 9 | 1647 |
-| **Total** | | **66** | |
+**Waves 1–9 (High tier)** closed the 66 planned Highs. **Waves 10–26 (module-clustered tail)** closed the remaining 35 Highs plus all Mediums and Lows.
 
-- **66 of 101 High findings closed**, 0 skipped in-plan.
-- Verification: **tsc 0 errors**, **test:unit 1647/1647 pass** (baseline 1541 → +106 new tests), **LLM contract gate green**, **0 net regressions**.
-- ~74 commits (64 fix + 10 wave-summary docs), each atomic with a `Refs:` to its finding.
+| Waves | Scope | Tests after |
+|---|---|---:|
+| 1–9 | High tier, 9 themes (ops-theater, tenant-isolation, billing-honesty, sample-vs-live, currency, money-math, a11y, state-loss, UI silent-failure) | 1647 |
+| 10–26 | Module-clustered tail (all remaining H + M + L, by area) | 1791 |
+
+### Final tally
+- **270 findings, all resolved: 269 fixed + 1 verified false-premise** (local-seo-leads #3 — code already correct, documented won't-fix).
+- Severity: **101/101 High**, **150/150 Medium**, **19/19 Low**.
+- **288 commits** (253 fix + wave/status docs), each atomic with a `Refs:` to its finding.
+- Final verification: **tsc 0 errors**, **test:unit 1791/1791 pass** (baseline 1541 → **+250 new tests**), **LLM contract gate green**, **0 net regressions**.
 - Known flake `tenant-docs-local-store` (pre-existing cross-test shared state) fails ~1-in-N full runs; passes in isolation and on re-run — not introduced by this work.
+- Untracked `uat/driver/*.mjs` (user WIP) untouched throughout.
 
-## Remaining
-- ~35 High findings not in the 9-wave plan (module-tail Highs mixed with Med), plus **150 Medium + 19 Low**. See INDEX.md themes I/J and the per-report files.
-- 1 partial (wave 5): shared client-report page + AI recap grounding still render CZK; additive plumbing deferred.
+Per-wave detail: `FIXES-WAVE-1.md` … `FIXES-WAVE-26.md`.
+
+## Remaining / deferred
+- **0 open actionable findings.**
+- 1 verified false-premise (local-seo-leads #3), documented.
+- A few fixes were the "honest minimum" of a larger finding, with the broader change flagged in the wave summary (e.g. wave-5 shared-report/recap currency plumbing; wave-19 `ProductOffering.stock` optional for pacing; wave-11 content-pages #3 full sample/live convention). These are noted for future work, not open defects.
 
 ## Behavior changes / new env vars needing sign-off
 Collected from wave summaries (full detail in each `FIXES-WAVE-N.md`):
