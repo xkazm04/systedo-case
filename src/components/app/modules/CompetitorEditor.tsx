@@ -10,6 +10,11 @@ import { useT } from "@/lib/i18n/client";
 import { Check } from "@/components/icons";
 import type { Competitor } from "@/lib/competitors/types";
 
+/** Advertised (and enforced) cap on named competitors. The editor never keeps more
+ *  than this many real names, and the hint text is derived from it — so the "max N"
+ *  copy and what Save posts can't drift apart. */
+const MAX_COMPETITORS = 8;
+
 const T = {
   cs: {
     active: "Narativ porovnává s trhem",
@@ -20,7 +25,7 @@ const T = {
     save: "Uložit",
     saving: "Ukládám…",
     clear: "Zrušit",
-    hint: "Jen jména (max 8). AI je použije pro srovnání, nevymýšlí jejich čísla.",
+    hint: "Jen jména (max {max}). AI je použije pro srovnání, nevymýšlí jejich čísla.",
     failed: "Uložení se nezdařilo.",
   },
   en: {
@@ -32,7 +37,7 @@ const T = {
     save: "Save",
     saving: "Saving…",
     clear: "Remove",
-    hint: "Names only (max 8). AI uses them for comparison, never fabricates their numbers.",
+    hint: "Names only (max {max}). AI uses them for comparison, never fabricates their numbers.",
     failed: "Save failed.",
   },
 } as const;
@@ -60,15 +65,17 @@ export default function CompetitorEditor({
     setNames((prev) => {
       const next = [...prev];
       next[i] = v;
-      // keep exactly one trailing blank
-      const trimmed = next.filter((n, idx) => n.trim() || idx === next.length - 1);
-      if (trimmed[trimmed.length - 1]?.trim()) trimmed.push("");
-      return trimmed.slice(0, 9);
+      // Real names only, capped at the advertised limit (counting names, not input
+      // slots — the old `slice(0, 9)` counted "8 names + 1 blank" and let a filled
+      // 9th slot post 9 competitors past the "max 8" copy).
+      const real = next.map((n) => n).filter((n) => n.trim()).slice(0, MAX_COMPETITORS);
+      // Add a trailing blank to type into only while under the cap.
+      return real.length < MAX_COMPETITORS ? [...real, ""] : real;
     });
   }
 
   async function save() {
-    const competitors = names.map((n) => n.trim()).filter(Boolean).map((name) => ({ name }));
+    const competitors = names.map((n) => n.trim()).filter(Boolean).slice(0, MAX_COMPETITORS).map((name) => ({ name }));
     if (!competitors.length) return clear();
     setBusy(true);
     setErr(null);
@@ -152,7 +159,7 @@ export default function CompetitorEditor({
             </button>
             {err && <span className="text-negative">{err}</span>}
           </div>
-          <p className="text-muted">{t("hint")}</p>
+          <p className="text-muted">{t("hint", { max: MAX_COMPETITORS })}</p>
         </div>
       )}
     </div>
