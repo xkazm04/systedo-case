@@ -55,6 +55,10 @@ const PERIOD_DAYS: Record<AnalysisPeriod, number> = { "30d": 30, "90d": 90, "12m
 export interface Snapshot {
   period: AnalysisPeriod;
   periodLabel: string;
+  /** the latest data date the snapshot was built at (ISO yyyy-mm-dd) — the period
+   *  window is [asOf − (PERIOD_DAYS[period] − 1), asOf]. Lets consumers window the
+   *  full-series `anomalies`/`trends` (see MetricsSnapshot). Empty on an empty series. */
+  asOf: string;
   /** the comparison baseline the deltas were computed against */
   baseline: PeriodBaseline;
   /** true when the series couldn't fill the requested window (span < period days)
@@ -100,6 +104,7 @@ export function buildSnapshot(
   return {
     period,
     periodLabel: ANALYSIS_PERIOD_LABELS[period],
+    asOf: data.daily.length ? data.daily[data.daily.length - 1].date : "",
     baseline: snap.baseline,
     truncated: snap.truncated,
     current: snap.current,
@@ -276,8 +281,19 @@ export function snapshotToPromptText(s: Snapshot, projectType?: ProjectType): st
     );
   }
 
-  if (s.anomalies.length > 0) {
-    const top = [...s.anomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 5);
+  // `anomalies` is FULL-SERIES (see MetricsSnapshot), but this block is headlined
+  // "v období" and ddmm() drops the year, so an out-of-window spike would render as
+  // e.g. "14.5." beside a last-7-days recap. Restrict to the period window exactly as
+  // snapshot-to-article does, so the grounding can never assert an in-period event
+  // that fell outside the period.
+  const windowStart = s.asOf
+    ? new Date(new Date(`${s.asOf}T00:00:00Z`).getTime() - (PERIOD_DAYS[s.period] - 1) * 86_400_000)
+        .toISOString()
+        .slice(0, 10)
+    : "";
+  const inPeriodAnomalies = s.anomalies.filter((a) => a.date >= windowStart && a.date <= s.asOf);
+  if (inPeriodAnomalies.length > 0) {
+    const top = [...inPeriodAnomalies].sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 5);
     lines.push(
       "",
       "Významné události v období (anomálie vs. očekávání):",

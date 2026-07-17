@@ -70,9 +70,16 @@ export interface MetricsSnapshot {
   buckets: Bucket[];
   /** channel rows carrying period-over-period deltas */
   channels: ChannelRow[];
-  /** flagged days (spike/drop/outage/goal-breach) */
+  /** flagged days (spike/drop/outage/goal-breach). NOTE: FULL-SERIES, not windowed
+   *  to `period` — the detector scans the whole daily feed so short-window snapshots
+   *  still see recent history. A consumer that presents these as "events in the
+   *  period" MUST filter by the period window itself (`date >= asOf − (days − 1)`),
+   *  as `snapshot-to-article` and the AI grounding (`snapshotToPromptText`) do. */
   anomalies: Anomaly[];
-  /** sustained multi-week drifts ending at the latest data ("slow bleed") */
+  /** sustained multi-week drifts ending at the latest data ("slow bleed").
+   *  FULL-SERIES by construction (a drift is measured back from `asOf`); its span
+   *  can exceed `period.days`, so it is reported as a current trajectory, not an
+   *  "in-period event". */
   trends: Trend[];
   /** funnel-consistency attribution of the revenue move (traffic vs conversion
    *  rate vs AOV), present only when the revenue delta is statistically strong and
