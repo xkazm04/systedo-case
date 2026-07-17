@@ -14,6 +14,10 @@ export interface ResolvedChannels {
   statuses: Record<string, ChannelStatus>;
   /** "sample" (seeded, illustrative) or "ai" (a plan the user generated + pinned) */
   source: "sample" | "ai";
+  /** true when the store READ failed (not the same as "never tracked"): the sample
+   *  is shown as a stand-in but any pinned plan/status may still exist. The UI must
+   *  surface this and refuse status writes so a save can't clobber the real state. */
+  degraded: boolean;
   /** ISO timestamp of the last save, when there is saved state */
   updatedAt?: string;
 }
@@ -26,19 +30,24 @@ export async function resolveOrganicChannels(
   sample: OrganicChannel[]
 ): Promise<ResolvedChannels> {
   let state = null;
+  let degraded = false;
   try {
     state = await getOrganicChannels(projectId);
   } catch {
-    state = null; // store hiccup → sample, never break the module
+    // Store read failed. Show the sample as a stand-in, but flag `degraded` so the
+    // caller can distinguish this from a genuine "never tracked" empty state and
+    // refuse status writes — a save here would overwrite the (still-present) real plan.
+    degraded = true;
   }
   if (!state) {
-    return { channels: sample, statuses: {}, source: "sample" };
+    return { channels: sample, statuses: {}, source: "sample", degraded };
   }
   const pinned = state.plan && state.plan.length > 0;
   return {
     channels: pinned ? state.plan! : sample,
     statuses: state.statuses ?? {},
     source: pinned ? "ai" : "sample",
+    degraded: false,
     updatedAt: state.updatedAt,
   };
 }

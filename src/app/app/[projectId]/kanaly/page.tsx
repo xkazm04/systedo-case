@@ -50,6 +50,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         channels={resolved.channels}
         statuses={resolved.statuses}
         source={resolved.source}
+        degraded={resolved.degraded}
         projectType={project.type}
         grounding={grounding}
       />

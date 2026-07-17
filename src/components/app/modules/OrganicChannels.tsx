@@ -68,6 +68,8 @@ const T = {
     markNotStarted: "Nezačato",
     markActive: "Probíhá",
     markDone: "Hotovo",
+    degradedBanner: "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení — změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
+    defaultTopic: "{channel}: příspěvek pro {brand}",
   },
   en: {
     sourceSample: "Sample plan",
@@ -105,6 +107,8 @@ const T = {
     markNotStarted: "Not started",
     markActive: "In progress",
     markDone: "Done",
+    degradedBanner: "Couldn't load your saved plan. Showing a read-only sample — status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
+    defaultTopic: "{channel}: post for {brand}",
   },
 } as const;
 
@@ -138,12 +142,15 @@ export default function OrganicChannels({
   channels: initialChannels,
   statuses: initialStatuses,
   source: initialSource,
+  degraded = false,
   projectType,
   grounding,
 }: {
   channels: OrganicChannel[];
   statuses: Record<string, ChannelStatus>;
   source: "sample" | "ai";
+  /** the saved plan couldn't be read — show a read-only banner + block status writes */
+  degraded?: boolean;
   projectType: ProjectType;
   grounding: ChannelGrounding;
 }) {
@@ -185,6 +192,9 @@ export default function OrganicChannels({
   };
 
   const setStatus = (id: string, status: ChannelStatus) => {
+    // Read failed: the sample is a stand-in over a plan that may still exist — writing
+    // now (a whole-state POST) would clobber it. Refuse until a successful re-read.
+    if (degraded) return;
     setStatuses((prev) => {
       const next = { ...prev };
       if (status === "not-started") delete next[id];
@@ -229,7 +239,7 @@ export default function OrganicChannels({
    *  session bridge, then route there — the "research → playbook → draft" loop. */
   const createContent = (channel: OrganicChannel) => {
     const topic =
-      channel.contentAngle || `${channel.name}: příspěvek pro ${project.name}`;
+      channel.contentAngle || t("defaultTopic", { channel: channel.name, brand: project.name });
     try {
       sessionStorage.setItem(
         briefSeedKey(project.id),
@@ -277,6 +287,15 @@ export default function OrganicChannels({
           )}
         </div>
       </div>
+
+      {degraded && (
+        <div
+          role="status"
+          className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
+        >
+          {t("degradedBanner")}
+        </div>
+      )}
 
       {/* AI generation states */}
       {ai.status === "loading" && <LoadingTimer expectedMs={ai.expectedMs} />}
@@ -449,8 +468,9 @@ export default function OrganicChannels({
                     key={st}
                     type="button"
                     onClick={() => setStatus(open.id, st)}
+                    disabled={degraded}
                     aria-pressed={statusOf(open.id) === st}
-                    className={`rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    className={`rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                       statusOf(open.id) === st
                         ? "border-brand-400 bg-brand-50 text-brand-800"
                         : "border-line text-muted hover:border-navy-200"
