@@ -22,7 +22,14 @@ import { mapAdsRowsToMetrics, type AdsMetricRow } from "./map";
 import { getReportMetrics, saveReportMetrics } from "./store";
 import type { MetricRow } from "./types";
 
-/** Trailing window to fetch — 400d covers the 365d report plus its prior-year delta. */
+/** Trailing window to fetch. 400d supports the 365-day report tiles and their
+ *  period-over-period deltas on shorter windows. It does NOT reach the 12-month
+ *  *year-over-year* grounding: that needs a full current year plus a full prior year
+ *  (~730d), and recap-context gates it behind HISTORY_MIN_DAYS = 700 (plus a
+ *  snap.truncated guard), so live-synced projects intentionally never unlock the YoY
+ *  narrative — only the ~730d sample spine does. Do NOT lower that gate to 400 to
+ *  "enable" YoY; raise SYNC_DAYS to ~740 instead (a quota/cost decision) if live YoY
+ *  grounding is wanted. */
 const SYNC_DAYS = 400;
 
 export interface SyncResult {
@@ -31,6 +38,12 @@ export interface SyncResult {
   customerId?: string;
   /** user-facing Czech reason when ok is false */
   error?: string;
+  /** true when the fetch SUCCEEDED but returned 0 rows (dormant/emptied account) —
+   *  distinct from a broken integration. On this branch the previous blob is
+   *  intentionally kept (see persistMetrics), so the caller can distinguish "account
+   *  genuinely has no data" from "fetch failed" and offer clearReportMetrics / stop
+   *  counting it as a hard cron failure, rather than reading the generic error. */
+  emptyWindow?: boolean;
 }
 
 /** Ads access for a project's report sync: the developer token, a signed-in user with
@@ -65,7 +78,13 @@ async function persistMetrics(
   currencyCode: string | null
 ): Promise<SyncResult> {
   if (rows.length === 0) {
-    return { ok: false, error: "Google Ads nevrátil pro účet žádná data za období." };
+    // Keep-last-known-good: a 0-row fetch writes NOTHING, so the previously stored
+    // series (and its syncedAt) survives — this protects a live report from being
+    // wiped by a transient empty response. The trade-off: a genuinely dormant account
+    // keeps showing months-old numbers as "live" until someone manually clears it
+    // (clearReportMetrics). `emptyWindow` marks this as a real empty account, not a
+    // broken integration, so the caller can act on that distinction.
+    return { ok: false, emptyWindow: true, error: "Google Ads nevrátil pro účet žádná data za období." };
   }
   // Additive: only stamp a well-formed ISO-4217 code (junk degrades to base CZK, so the
   // report is byte-identical to before for CZK / un-captured accounts).
