@@ -112,18 +112,32 @@ export function detectAnomalies(
     { key: "ctr", value: (p) => ctr(p.clicks ?? 0, p.impressions ?? 0), present: (p) => (p.impressions ?? 0) > 0 },
     { key: "cpc", value: (p) => cpc(p.cost, p.clicks ?? 0), present: (p) => (p.clicks ?? 0) > 0 },
   ];
+  // Score present days against a baseline built ONLY from present days. "Not measured"
+  // (an absent denominator forces the ratio to 0) is not "measured as zero": a paid
+  // channel that launched mid-series, or runs on some days only, would otherwise seed
+  // the baseline with zero placeholders — halving the true mean and inflating std, so
+  // every real launch day reads as a spike and genuine collapses hide under the bar.
+  // Require at least half the window in real present days before scoring, and weight
+  // weekdays over present days too, so an absent day can't drag its weekday toward 0.
+  const minPresent = Math.max(2, Math.ceil(window / 2));
   for (const spec of ratioSpecs) {
-    if (!daily.some(spec.present)) continue; // legacy series: field never captured
-    const weights = weekdayWeightsOf(daily, spec.value);
+    const presentDays = daily.filter(spec.present);
+    if (presentDays.length === 0) continue; // legacy series: field never captured
+    const weights = weekdayWeightsOf(presentDays, spec.value);
     const adj = daily.map((p) => spec.value(p) / seasonalWeight(weights[dayOfWeek(p.date)]));
     for (let i = window; i < daily.length; i++) {
       if (!spec.present(daily[i])) continue; // no denominator that day → not a ratio event
-      const base = adj.slice(i - window, i);
+      const base: number[] = [];
+      for (let j = i - window; j < i; j++) if (spec.present(daily[j])) base.push(adj[j]);
+      if (base.length < minPresent) continue; // too little real history to score honestly
       const std = sampleStd(base);
       if (!(std > 0)) continue;
       const mean = meanOf(base);
       const z = (adj[i] - mean) / std;
-      if (Math.abs(z) < effThreshold) continue;
+      // Recalibrate the bar for THIS point's present-day sample size (the raw-metric
+      // loops read a fixed `window`; here the baseline length varies) so the sample-
+      // variance z stays on the same footing as effThreshold.
+      if (Math.abs(z) < anomalyThreshold(threshold, base.length)) continue;
       const expected = mean * seasonalWeight(weights[dayOfWeek(daily[i].date)]);
       const observed = spec.value(daily[i]);
       const nearZero = expected > 0 && observed <= expected * 0.1;
@@ -185,19 +199,22 @@ export function anomalyImpact(anomalies: Anomaly[]): AnomalyImpact {
   let revenue = 0; // adverse revenue (shortfalls, ≤ 0)
   let cost = 0; // adverse cost (overspend, ≥ 0)
   let gained = 0; // windfalls + savings, ≥ 0
-  let count = 0;
+  // Count DISTINCT dates, not anomaly records: an outage day usually fires both a
+  // revenue drop and a cost anomaly for the same date, and `count` is documented as
+  // "days carrying a monetary effect" — so a single bad day must count once.
+  const days = new Set<string>();
   for (const a of anomalies) {
     if (a.metric === "revenue") {
       const d = a.observed - a.expected;
       if (d < 0) revenue += d;
       else gained += d;
-      count += 1;
+      days.add(a.date);
     } else if (a.metric === "cost") {
       const d = a.observed - a.expected;
       if (d > 0) cost += d;
       else gained += -d; // cost below expected = a saving
-      count += 1;
+      days.add(a.date);
     }
   }
-  return { revenue, cost, net: revenue - cost, gained, count };
+  return { revenue, cost, net: revenue - cost, gained, count: days.size };
 }

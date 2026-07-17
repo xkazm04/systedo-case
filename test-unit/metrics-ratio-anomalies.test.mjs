@@ -64,6 +64,50 @@ test("a day that scales impressions AND clicks together keeps CTR quiet", () => 
   );
 });
 
+/** 60 days where the paid channel LAUNCHES on day `launchAt`: earlier days carry no
+ *  impressions/clicks (the pair is absent), later days a steady ~3 % CTR. */
+function launchingPaidSeries(launchAt, mutateLast) {
+  const out = [];
+  const base = new Date("2026-01-05T00:00:00Z").getTime();
+  for (let i = 0; i < 60; i++) {
+    const iso = new Date(base + i * 86_400_000).toISOString().slice(0, 10);
+    const p = { date: iso, visits: 1000, cost: 0, conversions: 40, revenue: 12000 };
+    if (i >= launchAt) {
+      p.impressions = 10000;
+      p.clicks = 300 + (i % 5) * 2; // CTR ~3.00–3.08 %
+      p.cost = 3000 + (i % 3) * 10;
+    }
+    if (i === 59) mutateLast?.(p);
+    out.push(p);
+  }
+  return out;
+}
+
+test("a paid channel that launches mid-series steady fires no false ratio spike", () => {
+  // Before the present-only baseline fix, the absent pre-launch days entered the CTR
+  // baseline as ctr(0,0)=0 placeholders, halving the mean and inflating std so the
+  // first real launch days read as huge spikes. A steady post-launch CTR must be quiet.
+  const daily = launchingPaidSeries(30);
+  const anomalies = detectAnomalies(daily, { pno: 0.18 });
+  assert.equal(
+    anomalies.some((a) => a.metric === "ctr" || a.metric === "cpc"),
+    false,
+    "no false ratio anomaly from zero placeholders on the pre-launch days"
+  );
+});
+
+test("a genuine CTR collapse on a mid-launch channel still fires", () => {
+  // The present-only baseline must not over-suppress: a real collapse after enough
+  // present days still scores against the present-day baseline.
+  const daily = launchingPaidSeries(20, (p) => {
+    p.clicks = 90; // CTR 0.9 % vs a ~3 % present baseline
+  });
+  const anomalies = detectAnomalies(daily, { pno: 0.18 });
+  const ctr = anomalies.find((a) => a.metric === "ctr" && a.date === daily[59].date);
+  assert.ok(ctr, "the collapse is still flagged against the present-day baseline");
+  assert.ok(ctr.z < 0, "signed negative — a fall");
+});
+
 test("a legacy series without impressions/clicks produces no ratio anomalies", () => {
   const daily = paidSeries((p) => {
     p.clicks = 90;

@@ -109,6 +109,21 @@ test("degraded coverage still surfaces a clear spike (no more 29-day cliff)", ()
   );
 });
 
+test("anomalyImpact.count counts DISTINCT days, not anomaly records", () => {
+  // A single outage day fires both a revenue drop and a cost anomaly — the interface
+  // documents `count` as "days carrying a monetary effect", so the shared date counts
+  // once. A second bad date makes it two.
+  const anomalies = [
+    { date: "2026-05-10", metric: "revenue", observed: 5000, expected: 12000, z: -4, kind: "drop" },
+    { date: "2026-05-10", metric: "cost", observed: 9000, expected: 3000, z: 4, kind: "spike" },
+    { date: "2026-05-12", metric: "cost", observed: 8000, expected: 3000, z: 3.5, kind: "spike" },
+  ];
+  const impact = anomalyImpact(anomalies);
+  assert.equal(impact.count, 2, "two distinct affected dates, not three anomaly records");
+  assert.equal(impact.revenue, -7000, "revenue shortfall summed");
+  assert.equal(impact.cost, 6000 + 5000, "both cost overspends summed");
+});
+
 test("insufficient coverage returns no anomalies", () => {
   const base = new Date("2026-02-02T00:00:00Z").getTime();
   const daily = [];
