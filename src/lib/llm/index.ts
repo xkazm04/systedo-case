@@ -382,11 +382,11 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         ...attribution,
       });
 
-      // Also mirror the corrupt case to LightTrack (the durable entry above already
-      // carries status "corrupt" for the Firestore-backed dashboards).
-      if (corrupt) {
-        recordLlmError(model, toolId, "corrupted/truncated structured output (missing required fields)");
-      }
+      // The corrupt case needs no separate LightTrack error mirror: recordLlmCall
+      // above already forwarded status "corrupt" (mapped to a LightTrack "error"
+      // event) via trackLlmEvent, and the durable Firestore entry carries the same
+      // status for the app's dashboards. A second recordLlmError here would make one
+      // corrupt generation double-emit (a "success"/"error" pair) in LightTrack.
 
       success = { parsed, meta };
       break;

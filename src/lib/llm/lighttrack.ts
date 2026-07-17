@@ -100,6 +100,14 @@ export function trackLlmEvent(entry: LlmTelemetryEntry): void {
     if (entry.repaired) tags.push("repaired");
     if (entry.fellBack) tags.push("fell_back");
 
+    // Forward the app's OWN classified status instead of a blanket "success", so
+    // LightTrack's success-rate / error-spike monitoring agrees with the app's
+    // Firestore truth: a corrupt/truncated output reads as "error" (and its single
+    // event replaces the separate recordLlmError mirror the chokepoint used to also
+    // send, so a corrupt call no longer double-emits). A legacy entry with no status
+    // (or an explicit success/repaired) stays "success".
+    const status = entry.status === "corrupt" || entry.status === "error" ? "error" : "success";
+
     const body: Record<string, unknown> = {
       provider: normProvider(entry.provider || entry.model),
       model: entry.model,
@@ -107,7 +115,7 @@ export function trackLlmEvent(entry: LlmTelemetryEntry): void {
       cost_usd: entry.estCostUsd,
       latency_ms: entry.tookMs,
       operation: operationFor(entry),
-      status: "success",
+      status,
       source: SOURCE,
       tags,
       metadata: {
