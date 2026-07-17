@@ -45,8 +45,16 @@ export function deriveBrandContext(
 
   const cats = topBy(active, (o) => o.category, 4);
 
-  const prices = active.map((o) => o.price).filter((p) => p > 0).sort((a, b) => a - b);
-  const currency = active.find((o) => o.currency)?.currency || "Kč";
+  // Price band is a WHOLE-catalogue fact, so band it within the single dominant
+  // currency (the most frequent one among priced offerings) — never mix Kč + EUR
+  // amounts into one misleading range. Offerings in other currencies are omitted
+  // from the band rather than silently merged.
+  const priced = active.filter((o) => o.price > 0);
+  const currency = topBy(priced, (o) => o.currency || "Kč", 1)[0] || "Kč";
+  const prices = priced
+    .filter((o) => (o.currency || "Kč") === currency)
+    .map((o) => o.price)
+    .sort((a, b) => a - b);
   const band = prices.length ? `${prices[0]}–${prices[prices.length - 1]} ${currency}` : "";
 
   const pointItems: string[] = [];
@@ -62,7 +70,11 @@ export function deriveBrandContext(
     4
   );
 
-  const nature = active[0]?.nature ?? "online";
+  // Nature is a whole-catalogue fact too: use the single shared nature when every
+  // active offering agrees, else "hybrid" (mixed online/local) — never let an
+  // arbitrary first element assert "sells online" for a mostly in-person business.
+  const natures = new Set(active.map((o) => o.nature).filter(Boolean));
+  const nature = natures.size === 1 ? [...natures][0]! : natures.size > 1 ? "hybrid" : "online";
 
   // Grounds public-facing captions/articles — feed the clean brand only, never
   // "Dentalis (demo)" (L1-19); the canonical resolver strips the marker.

@@ -59,6 +59,35 @@ test("en: localized labels + guardrail", () => {
   assert.match(out, /don't invent other products/);
 });
 
+test("nature is aggregated: a mixed online/local catalogue reads as hybrid", () => {
+  const out = deriveBrandContext(project, [
+    product({ id: "a", nature: "online" }),
+    product({ id: "b", nature: "local" }),
+  ]);
+  // must NOT assert the first element's nature; mixed → "online i naživo"
+  assert.match(out, /Prodává online i naživo\./);
+});
+
+test("nature: an all-in-person catalogue is not mislabeled as online", () => {
+  const out = deriveBrandContext(project, [
+    product({ id: "a", nature: "local" }),
+    product({ id: "b", nature: "local" }),
+  ]);
+  assert.match(out, /Prodává naživo \/ s provozovnou\./);
+  assert.doesNotMatch(out, /Prodává online\./);
+});
+
+test("price band is banded within the dominant currency, never mixing Kč + EUR", () => {
+  const out = deriveBrandContext(project, [
+    product({ id: "a", price: 120, currency: "Kč" }),
+    product({ id: "b", price: 450, currency: "Kč" }),
+    product({ id: "c", price: 99, currency: "EUR" }),
+  ]);
+  assert.match(out, /120–450 Kč/); // dominant currency (Kč: 2 vs EUR: 1)
+  assert.doesNotMatch(out, /99/); // the EUR amount is not merged into the Kč band
+  assert.doesNotMatch(out, /EUR/);
+});
+
 test("category frequency ranks the sortiment (most common first)", () => {
   const out = deriveBrandContext(project, [
     product({ id: "a", category: "Ořechy" }),
