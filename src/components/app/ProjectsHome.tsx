@@ -42,6 +42,7 @@ const T = {
     connectTo: "Přiřadit k projektu",
     cancel: "Zrušit",
     linking: "Přiřazuji…",
+    linkFailed: "Přiřazení účtu se nezdařilo. Zkuste to prosím znovu.",
     duplicate: "Duplikovat jako šablonu",
     dupTitle: "Duplikovat jako šablonu",
     dupLead: "Vytvoří nový samostatný projekt a zkopíruje do něj nastavení tohoto projektu. Nový klient začíná s prázdnými daty — zkopíruje se jen scaffold, ne provozní data ani přístupy.",
@@ -73,6 +74,7 @@ const T = {
     connectTo: "Map to a project",
     cancel: "Cancel",
     linking: "Linking…",
+    linkFailed: "Couldn't map the account. Please try again.",
     duplicate: "Duplicate as template",
     dupTitle: "Duplicate as template",
     dupLead: "Creates a new, independent project and copies this project's setup into it. A new client starts with empty data — only the scaffold is copied, never operating data or credentials.",
@@ -229,17 +231,25 @@ function UnmappedAccountsCallout({
   const router = useRouter();
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   async function link(customerId: string, projectId: string) {
     setBusyId(customerId);
+    setLinkError(null);
     try {
-      await fetch(`/api/projects/${projectId}`, {
+      // A resolved fetch is not a success: a failed PATCH must not silently close
+      // the picker and refresh (the account would just reappear unmapped with no
+      // explanation) — surface the failure and keep the picker open to retry.
+      const res = await fetch(`/api/projects/${projectId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ adsCustomerId: customerId }),
       });
+      if (!res.ok) throw new Error();
       setOpenFor(null);
       router.refresh();
+    } catch {
+      setLinkError(t("linkFailed"));
     } finally {
       setBusyId(null);
     }
@@ -307,6 +317,11 @@ function UnmappedAccountsCallout({
           </li>
         ))}
       </ul>
+      {linkError && (
+        <p role="alert" className="mt-3 text-sm text-negative">
+          {linkError}
+        </p>
+      )}
     </div>
   );
 }
