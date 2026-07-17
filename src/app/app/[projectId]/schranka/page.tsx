@@ -23,7 +23,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   ]);
 
   return (
-    <ModulePage moduleKey="schranka" sample>
+    <ModulePage moduleKey="schranka" sample={resolved.source !== "trained"}>
       <TwinInboxModule
         state={resolved.state}
         source={resolved.source}

@@ -18,8 +18,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // A2 seam: the keyword-rank ladder runs on imported/synced ranks when present,
   // else the sample ladder. The competitor map-pack stays sample (no clean API).
   const ladder = await resolveLocalLadder(project.id, keywordLadder(project, localities, services));
+  // The competitor map-pack is always sample (no clean SERP API), so the page carries
+  // the illustrative note; the keyword ladder shows its own live/sample source badge.
   return (
-    <ModulePage moduleKey="mapa">
+    <ModulePage moduleKey="mapa" sample>
       <MapPackModule
         packs={packs}
         ladder={ladder.ladder}

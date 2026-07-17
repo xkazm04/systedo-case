@@ -32,8 +32,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const storedCompetitors = competitorSet?.competitors.map((c) => c.name) ?? [];
   const generated = comparisonQueriesFromCatalog(project.name, plans, storedCompetitors);
   const queries = generated.length > 0 ? generated : SAMPLE_QUERIES;
+  // Sample only when we fell back to the seeded query set; queries generated from the
+  // real catalog + stored competitors (priced with real channel economics) are not.
   return (
-    <ModulePage moduleKey="srovnani-seo" sample>
+    <ModulePage moduleKey="srovnani-seo" sample={generated.length === 0}>
       <CompareSeoModule queries={queries} seoChannel={seoChannel} />
     </ModulePage>
   );
