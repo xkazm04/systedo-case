@@ -9,6 +9,7 @@ import {
   CAMPAIGN_TYPES,
   aggregate,
   budgetPacing,
+  activeBudgetDays,
   campaignStatusLabel,
   dailyMetricValues,
   seriesSupportsMetric,
@@ -609,7 +610,9 @@ export default function CampaignTable({
               const needsAttention = triageResult.severity !== "ok";
               // "Winner starved by its budget" — profitable yet pacing at/above
               // its budget; null when the row carries no budget (no mis-flags).
-              const pacing = budgetPacing(c, period);
+              // When a per-campaign daily series exists, pace against the days the
+              // campaign actually spent (partial-window winners stop hiding).
+              const pacing = budgetPacing(c, period, activeBudgetDays(campaignSeries?.[c.id], period));
               return (
                 <Fragment key={c.id}>
                   <tr className="border-b border-line/70 hover:bg-canvas/60">

@@ -9,6 +9,7 @@ import {
   CAMPAIGN_PERIOD_DAYS,
   TARGET_ROAS,
   budgetPacing,
+  activeBudgetDays,
   withMetrics,
 } from "@/lib/campaigns/types";
 import { sampleCampaigns } from "@/lib/campaigns/sample";
@@ -71,6 +72,37 @@ test("capped fires only for enabled, at/above-target campaigns pacing at the thr
     "30d"
   );
   assert.equal(paused.capped, false);
+});
+
+test("activeBudgetDays counts days that actually spent, clamped to [1, period days]", () => {
+  const pt = (cost) => ({ cost });
+  // 6 spending days in a 30-day window → 6.
+  const series6 = [...Array(6)].map(() => pt(50)).concat([...Array(4)].map(() => pt(0)));
+  assert.equal(activeBudgetDays(series6, "30d"), 6);
+  // Never exceeds the period day count even if the series is longer / overdelivers.
+  const series40 = [...Array(40)].map(() => pt(10));
+  assert.equal(activeBudgetDays(series40, "30d"), CAMPAIGN_PERIOD_DAYS["30d"]);
+  // Empty / all-zero / missing series → null (fall back to the full-period baseline).
+  assert.equal(activeBudgetDays([], "30d"), null);
+  assert.equal(activeBudgetDays([pt(0), pt(0)], "30d"), null);
+  assert.equal(activeBudgetDays(undefined, "30d"), null);
+});
+
+test("a partial-window winner is paced against active days, tightening never loosening", () => {
+  // Spent 100/day for only 6 days of a 30-day window at a 100/day budget: full-period
+  // pacing badly under-reads (0.2); active-days pacing sees the budget-capped winner.
+  const dailySpend = 100;
+  const r = row({ dailySpend: (dailySpend * 6) / CAMPAIGN_PERIOD_DAYS["30d"], budgetPerDay: 100 });
+  const full = budgetPacing(r, "30d");
+  const active = budgetPacing(r, "30d", 6);
+  assert.ok(active.pacing > full.pacing, "active-days pacing must be higher (tighter)");
+  assert.ok(Math.abs(active.pacing - 1) < 1e-9, "6 days × 100 spend / (6 × 100 budget) == 1");
+  assert.equal(active.capped, true);
+  assert.equal(full.capped, false); // the bug: the starved winner was missed
+  // A bogus activeDays above the period can only fall back to the full baseline (clamp).
+  assert.equal(budgetPacing(r, "30d", 999).pacing, full.pacing);
+  // Non-positive activeDays is ignored (full-period baseline).
+  assert.equal(budgetPacing(r, "30d", 0).pacing, full.pacing);
 });
 
 test("sample campaigns carry a deterministic positive daily budget", () => {

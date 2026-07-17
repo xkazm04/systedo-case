@@ -305,8 +305,16 @@ export function aggregate(rows: Campaign[]): CampaignTotals {
 export const BUDGET_CAP_PACING_MIN = 0.95;
 
 export interface BudgetPacing {
-  /** share of the period budget actually spent = cost / (days × budgetPerDay).
-   *  Can exceed 1 — Google may overdeliver on individual days. */
+  /** share of the period budget actually spent = cost / (activeDays × budgetPerDay).
+   *  Can exceed 1 — Google may overdeliver on individual days.
+   *
+   *  KNOWN under-estimate when `activeDays` is unavailable: the denominator then
+   *  assumes the campaign ran (and was budgeted) the FULL period, so a campaign
+   *  that only existed / delivered for part of the window — young, recently
+   *  un-paused, or recently re-budgeted — paces low even while spending 100 % of
+   *  its budget every live day. When the per-campaign daily series is passed, the
+   *  denominator uses the count of days that actually spent, so the metric only
+   *  tightens (catches those starved winners), never loosens. */
   pacing: number;
   /** the classic "winner starved by its budget": enabled, ROAS at/above target,
    *  yet pacing at/above BUDGET_CAP_PACING_MIN — the highest-leverage place to
@@ -314,16 +322,38 @@ export interface BudgetPacing {
   capped: boolean;
 }
 
+/** Days a campaign's daily series actually spent (cost > 0), clamped to [1, period
+ *  days]. The honest denominator for pacing: a campaign live for 6 of 30 days should
+ *  be judged against those 6 days, not the full window. Clamped at period days so a
+ *  series with overdelivery days can only TIGHTEN pacing, never loosen it below the
+ *  full-period baseline; floored at 1 so a non-empty series never divides by zero. */
+export function activeBudgetDays(points: DailyPoint[] | undefined, period: CampaignPeriod): number | null {
+  if (!points || points.length === 0) return null;
+  const spent = points.filter((p) => p.cost > 0).length;
+  if (spent === 0) return null;
+  return Math.min(spent, CAMPAIGN_PERIOD_DAYS[period]);
+}
+
 /** Pure pacing computation for one campaign over the synced period. Returns
  *  null when the campaign has no (positive) daily budget — older synced docs
- *  and live rows without a resolvable budget stay unflagged, never mis-flagged. */
+ *  and live rows without a resolvable budget stay unflagged, never mis-flagged.
+ *
+ *  `activeDays` (from {@link activeBudgetDays}) overrides the full-period day count
+ *  in the denominator when the per-campaign daily series is available, so partial-
+ *  window campaigns are paced against the days they actually ran. Absent → the
+ *  documented full-period under-estimate. */
 export function budgetPacing(
   c: Pick<CampaignRow, "cost" | "roas" | "status" | "budgetPerDay">,
-  period: CampaignPeriod
+  period: CampaignPeriod,
+  activeDays?: number | null
 ): BudgetPacing | null {
   const budget = c.budgetPerDay;
   if (typeof budget !== "number" || budget <= 0) return null;
-  const pacing = c.cost / (CAMPAIGN_PERIOD_DAYS[period] * budget);
+  const days =
+    typeof activeDays === "number" && activeDays > 0
+      ? Math.min(activeDays, CAMPAIGN_PERIOD_DAYS[period])
+      : CAMPAIGN_PERIOD_DAYS[period];
+  const pacing = c.cost / (days * budget);
   const capped =
     c.status === "enabled" && c.roas >= TARGET_ROAS && pacing >= BUDGET_CAP_PACING_MIN;
   return { pacing, capped };
