@@ -71,6 +71,7 @@ const T = {
     copy: "Kopírovat",
     copied: "Zkopírováno",
     autoApproved: "Schváleno automaticky",
+    editDraft: "Upravit",
     needsReview: "Čeká na schválení",
     approved: "Schváleno",
     sent: "Odesláno",
@@ -113,6 +114,7 @@ const T = {
     copy: "Copy",
     copied: "Copied",
     autoApproved: "Auto-approved",
+    editDraft: "Edit",
     needsReview: "Awaiting approval",
     approved: "Approved",
     sent: "Sent",
@@ -192,6 +194,12 @@ export default function TwinOutbox({
     inbound: string;
   } | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  /** The id the autonomy gate auto-banked as approved (mirror of autoBankedIdRef for
+   *  render), and whether the human has re-opened it to revise. While auto-banked and
+   *  not being revised, the reply is read-only and Send is offered; "Edit" flips the
+   *  record back to needs-review so a human correction is never silently discarded. */
+  const [autoBankedId, setAutoBankedId] = useState<string | null>(null);
+  const [reviewingAuto, setReviewingAuto] = useState(false);
 
   const ai = useAiTool<TwinReplyResult>("twin-reply", channel);
 
@@ -232,6 +240,8 @@ export default function TwinOutbox({
     setDraftContext({ channel, contact: contact.trim(), inbound: inbound.trim() });
     setPendingId(null);
     setEditBanked(false);
+    setAutoBankedId(null);
+    setReviewingAuto(false);
     // Counted-reason directives + the recent free-text reject notes, in the project
     // locale — everything the human has said about past "no"s on this channel.
     const avoid = twinAvoidContext(merged, channel, L);
@@ -304,29 +314,59 @@ export default function TwinOutbox({
       new Date().toISOString()
     );
     onCommit({ ...state, drafts: [...state.drafts, draft] });
+    // Surface the banked record: mirror the id into render state so the reply locks
+    // read-only + an Edit affordance appears, and set pendingId so the approved→Send
+    // banner shows for auto-approved drafts (it never did before, so Send was hidden).
+    setAutoBankedId(id);
+    setReviewingAuto(false);
+    setPendingId(id);
   }, [result, verdict, draftContext, cfg, state, onCommit]);
+
+  /** Re-open an auto-approved draft for human revision. The machine approval no longer
+   *  holds once a person edits it, so flip the banked record back to needs-review (so
+   *  the edit can't be silently discarded and Send delivers the wrong text), unlock the
+   *  textarea, and hide the Send banner until the human re-approves the revised reply. */
+  const reviseAuto = () => {
+    if (!autoBankedId) return;
+    const banked = state.drafts.find((d) => d.id === autoBankedId);
+    if (banked) {
+      const reopened: TwinDraft = { ...banked, status: "pending", autoApproved: false };
+      onCommit({ ...state, drafts: upsertDraft(state.drafts, reopened) });
+    }
+    setReviewingAuto(true);
+    setPendingId(null);
+  };
 
   const approve = () => {
     const draft = bankDraft();
     if (!draft) return;
     const now = new Date().toISOString();
+    // If the gate already banked this message (an auto channel, then revised), approving
+    // must FLIP that record in place — not append a duplicate — mirroring confirmReject's
+    // upsert-by-id. Otherwise a fresh human approval appends a new record.
+    const bankedId = autoBankedIdRef.current;
+    const existing = bankedId ? state.drafts.find((d) => d.id === bankedId) ?? null : null;
     // A human pressed Approve, so this is never an auto-approval however the gate
-    // would have ruled.
-    const approved = asApproved(draft, now);
+    // would have ruled. The edited reply (replyText) is what gets banked.
+    const approved = asApproved(existing ? { ...existing, reply: replyText } : draft, now);
     // If the human rewrote the generated reply enough to teach from, bank that
     // before/after as an interview-style style fact — the correction the old outbox
-    // discarded. Capped by MAX_FACTS at the wire (sanitizeTwinState), like every fact.
+    // discarded (silently, for auto-approved drafts especially). Capped by MAX_FACTS at
+    // the wire (sanitizeTwinState), like every fact.
     const original = result?.reply ?? "";
     const editFact = isMeaningfulEdit(original, replyText)
       ? buildEditFact(original, replyText, channel, L, uid(), now)
       : null;
     onCommit({
       ...state,
-      drafts: [...state.drafts, approved],
+      drafts: existing ? upsertDraft(state.drafts, approved) : [...state.drafts, approved],
       ...(editFact ? { facts: [...state.facts, editFact] } : {}),
     });
     setPendingId(approved.id);
     setEditBanked(editFact !== null);
+    autoBankedIdRef.current = null;
+    setAutoBankedId(null);
+    setReviewingAuto(false);
     ai.reset();
     setSeededReply(null);
     setInbound("");
@@ -346,6 +386,9 @@ export default function TwinOutbox({
     const rejected = asRejected(banked ?? draft, now, rejectReason, rejectNote);
     onCommit({ ...state, drafts: upsertDraft(state.drafts, rejected) });
     autoBankedIdRef.current = null;
+    setAutoBankedId(null);
+    setReviewingAuto(false);
+    setPendingId(null);
     setRejecting(null);
     setRejectNote("");
     ai.reset();
@@ -419,6 +462,8 @@ export default function TwinOutbox({
               setPendingId(null);
               setSendNote(null);
               setEditBanked(false);
+              setAutoBankedId(null);
+              setReviewingAuto(false);
             }}
             className={`${inputClass} mt-1.5 max-w-xs`}
           >
@@ -511,11 +556,17 @@ export default function TwinOutbox({
                 </div>
               </div>
 
+              {/* An auto-approved draft is banked verbatim — lock the reply so an edit
+                  can't diverge from the sent/stored text unseen. "Edit" (below) unlocks
+                  it and converts the record to needs-review. */}
               <textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
+                readOnly={autoBankedId !== null && !reviewingAuto}
                 rows={7}
-                className="w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                className={`w-full resize-y rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-navy-800 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200 ${
+                  autoBankedId !== null && !reviewingAuto ? "cursor-not-allowed opacity-70" : ""
+                }`}
               />
 
               {result.risks.length > 0 && (
@@ -623,13 +674,23 @@ export default function TwinOutbox({
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center gap-2">
-                  {verdict?.autoApproved ? (
-                    // Already banked by the autonomy gate — offering "Approve" here
-                    // would create a second, duplicate record.
-                    <Pill tone="positive">
-                      <Check width={12} height={12} />
-                      {t("autoApproved")}
-                    </Pill>
+                  {autoBankedId !== null && !reviewingAuto ? (
+                    // Already banked as approved by the autonomy gate. Offering "Approve"
+                    // would duplicate the record; instead show the pill + an Edit that
+                    // re-opens it for revision (so a correction is never silently lost).
+                    <>
+                      <Pill tone="positive">
+                        <Check width={12} height={12} />
+                        {t("autoApproved")}
+                      </Pill>
+                      <button
+                        type="button"
+                        onClick={reviseAuto}
+                        className="inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-2 text-xs font-semibold text-muted transition-colors hover:text-navy-800"
+                      >
+                        {t("editDraft")}
+                      </button>
+                    </>
                   ) : (
                     <button
                       type="button"
