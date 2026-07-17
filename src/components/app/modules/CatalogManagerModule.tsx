@@ -507,6 +507,14 @@ export default function CatalogManagerModule({
     items.some((o) => o.kind === k)
   );
 
+  // If the active kind filter's option no longer exists (its last item was removed, or a
+  // Replace import swapped the catalog), its button vanishes but the filter would stay
+  // set — leaving a "no matches" dead-end with no visible active filter. Reset to "all"
+  // during render (same render-time-adjustment pattern as the pagination window above).
+  if (kindFilter !== "all" && !filterKinds.includes(kindFilter)) {
+    setKindFilter("all");
+  }
+
   return (
     <div className="stagger space-y-5">
       {/* source strip — compact badge built from the connection data (the full WMS
