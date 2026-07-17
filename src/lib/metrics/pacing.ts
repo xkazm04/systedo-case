@@ -23,7 +23,9 @@ export interface MonthlyPacing {
    *  point when the month is gapless; smaller when interior days are missing, so a
    *  gappy month doesn't read as further along than its data supports) */
   daysElapsed: number;
-  /** daysInMonth − daysElapsed */
+  /** daysInMonth − daysElapsed. Counts missing INTERIOR days as remaining too, so it
+   *  can exceed the calendar days actually still ahead when the month is gappy — used
+   *  for the projection band/weights; the prescription fields divide by future days. */
   daysRemaining: number;
   /** the whole month is represented in the data (no days left to project) */
   complete: boolean;
@@ -56,13 +58,14 @@ export interface MonthlyPacing {
   /** projection ≥ goal */
   willHitGoal: boolean;
   /** revenue/day the remaining days must average for the month to still hit the
-   *  goal: max(0, goal − mtd) / daysRemaining. 0 when the month is complete or
-   *  the goal is already banked — the prescription behind "behind plan". */
+   *  goal: max(0, goal − mtd) / futureDays (calendar days still AHEAD, not interior
+   *  gaps). 0 when no future days remain or the goal is already banked — the
+   *  prescription behind "behind plan". */
   requiredDailyRevenue: number;
   /** revenue/day the remaining days are expected to deliver at the current pace,
-   *  implied by the seasonality-weighted projection ((projection − mtd) /
-   *  daysRemaining) — so it already carries the weekday shape of the recent past
-   *  rather than a flat linear run-rate. 0 when the month is complete. */
+   *  implied by the seasonality-weighted projection ((projection − mtd) / futureDays)
+   *  — so it already carries the weekday shape of the recent past rather than a flat
+   *  linear run-rate. 0 when no future days remain. */
   recentDailyRevenue: number;
   /** requiredDailyRevenue / recentDailyRevenue — how much the remaining pace must
    *  accelerate (> 1 = behind, ≤ 1 = current pace suffices); 0 when recent is 0 */
@@ -105,6 +108,12 @@ export function monthlyPacing(
   // month has present-count === day-of-month, so this is a no-op there.
   const daysElapsed = monthDates.length;
   const daysRemaining = Math.max(0, daysInMonth - daysElapsed);
+  // Calendar days genuinely still AHEAD of the latest point. `daysRemaining`
+  // (= daysInMonth − present-count) also counts missing INTERIOR days — days already
+  // behind "today" — as remaining, which is right for weighting the projection but
+  // wrong for the prescription: dividing the shortfall by phantom past days understates
+  // the required daily pace, making a barely-recoverable month read as comfortable.
+  const futureDays = Math.max(0, daysInMonth - Number(last.date.slice(8, 10)));
 
   const mtd = monthDates.reduce((a, p) => a + p.revenue, 0);
 
@@ -135,8 +144,8 @@ export function monthlyPacing(
 
   // Required-pace prescription: what the remaining days must average vs what
   // they are on track to deliver, and the extra daily spend the gap implies.
-  const requiredDailyRevenue = daysRemaining > 0 ? Math.max(0, goal - mtd) / daysRemaining : 0;
-  const recentDailyRevenue = daysRemaining > 0 ? Math.max(0, projection - mtd) / daysRemaining : 0;
+  const requiredDailyRevenue = futureDays > 0 ? Math.max(0, goal - mtd) / futureDays : 0;
+  const recentDailyRevenue = futureDays > 0 ? Math.max(0, projection - mtd) / futureDays : 0;
   const requiredVsRecent = recentDailyRevenue > 0 ? requiredDailyRevenue / recentDailyRevenue : 0;
   const recentRoas = totalsOf(daily.slice(-ROAS_WINDOW_DAYS)).roas;
   const impliedExtraDailySpend =

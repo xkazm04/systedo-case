@@ -73,6 +73,38 @@ test("complete month: all prescription fields settle to 0", () => {
   assert.equal(p.impliedExtraDailySpend, 0);
 });
 
+test("gappy month: prescription divides by FUTURE days, not phantom interior gaps", () => {
+  // May with 5 missing INTERIOR days, latest point 2026-05-25. present-count = 20, so
+  // daysRemaining = 31 − 20 = 11, but only 31 − 25 = 6 calendar days are still ahead.
+  // The required/recent daily pace must divide the shortfall by the 6 real future days.
+  const out = [];
+  const leadIn = new Date("2026-03-22T00:00:00Z").getTime();
+  for (let i = 0; i < 40; i++) {
+    const d = new Date(leadIn + i * 86_400_000).toISOString().slice(0, 10);
+    if (d.slice(0, 7) === "2026-05") continue;
+    out.push({ date: d, visits: 100, cost: 100, conversions: 2, revenue: 1000 });
+  }
+  const gaps = new Set(["2026-05-06", "2026-05-07", "2026-05-13", "2026-05-14", "2026-05-20"]);
+  for (let dm = 1; dm <= 25; dm++) {
+    const iso = `2026-05-${String(dm).padStart(2, "0")}`;
+    if (gaps.has(iso)) continue;
+    out.push({ date: iso, visits: 100, cost: 100, conversions: 2, revenue: 1000 });
+  }
+  assert.equal(out[out.length - 1].date, "2026-05-25");
+  const p = monthlyPacing(out, 40_000);
+
+  assert.ok(p);
+  assert.equal(p.daysElapsed, 20, "20 present May days");
+  assert.equal(p.daysRemaining, 11, "daysRemaining still counts interior gaps (projection weight)");
+  assert.equal(p.mtd, 20_000);
+  // Required = (40 000 − 20 000) / 6 future days — NOT / 11.
+  approx(p.requiredDailyRevenue, 20_000 / 6, 1e-9);
+  assert.ok(
+    p.requiredDailyRevenue > 20_000 / 11,
+    "required pace is not diluted by the 5 phantom interior days"
+  );
+});
+
 test("zero-spend series: implied extra spend guards the unknown ROAS", () => {
   const daily = days("2026-03-20", 56, { visits: 100, cost: 0, conversions: 2, revenue: 1000 });
   const p = monthlyPacing(daily, 40_000);
