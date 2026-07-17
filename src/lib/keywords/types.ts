@@ -49,14 +49,23 @@ export interface RawKeywordIdea {
 }
 
 /** Merge two raw idea lists (the Google/sample base + Sklik suggestions), deduped by
- *  keyword (case-insensitive, trimmed), preserving first-seen order. DEDUPE RULE — keep
- *  the RICHER record: the one with the higher avgMonthlySearches wins (a real volume
- *  beats a conservative default); ties keep whichever carries CPC bid data; still tied →
- *  keep the first (base) record. The kept record's own `source` label is preserved, so a
+ *  keyword (case-insensitive, trimmed), preserving first-seen order. DEDUPE RULE —
+ *  provenance first: a real provider record (google/sklik) always beats a `sample`
+ *  record regardless of the sample's fabricated volume. Real-vs-real (or same-source)
+ *  then keeps the RICHER record: the one with the higher avgMonthlySearches wins (a real
+ *  volume beats a conservative default); ties keep whichever carries CPC bid data; still
+ *  tied → keep the first (base) record. The kept record's own `source` label is preserved, so a
  *  keyword both providers return is attributed to whichever actually supplied the
  *  numbers shown. Pure — no I/O; the engine tags each side's `source` before calling. */
 export function mergeRawIdeas(base: RawKeywordIdea[], extra: RawKeywordIdea[]): RawKeywordIdea[] {
   const richer = (a: RawKeywordIdea, b: RawKeywordIdea): RawKeywordIdea => {
+    // Provenance trumps volume: a real Sklik measurement must never lose to a
+    // fabricated sample volume (the sample generator scales head terms to ~9000,
+    // which would otherwise beat Sklik's real figure and discard it). The volume
+    // rule below applies only real-vs-real (e.g. google vs sklik) and same-source.
+    const aSample = a.source === "sample";
+    const bSample = b.source === "sample";
+    if (aSample !== bSample) return aSample ? b : a;
     if (b.avgMonthlySearches > a.avgMonthlySearches) return b;
     if (b.avgMonthlySearches < a.avgMonthlySearches) return a;
     const aHasBid = a.highBidCzk > 0 || a.lowBidCzk > 0;
