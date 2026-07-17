@@ -19,18 +19,19 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // Static share surface speaks Czech — see the DECISION note on SITE_DESCRIPTION
+  // in lib/site.ts (matches the Czech opengraph-image + the lang="cs" default).
   title: {
-    default: "Adamant — AI ad intelligence",
+    default: "Adamant — AI reklamní inteligence",
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME }],
-  keywords: ["Adamant", "advertising", "ads", "PPC", "marketing", "dashboard", "AI", "adtech"],
+  keywords: ["Adamant", "reklama", "advertising", "PPC", "marketing", "dashboard", "AI", "adtech"],
   openGraph: {
-    title: "Adamant — AI ad intelligence",
-    description:
-      "The AI workspace for advertising. A rare breed in adtech — be adamant about your ads.",
+    title: "Adamant — AI reklamní inteligence",
+    description: SITE_DESCRIPTION,
     type: "website",
   },
   // Illustrative case study with synthetic data: keep preview deploys and local
