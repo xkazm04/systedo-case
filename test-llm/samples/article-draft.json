@@ -6,13 +6,13 @@
     },
     {
       "type": "p",
-      "text": "Ořechy a semínka obsahují tuky, které na vzduchu a světle časem žluknou. Špatné skladování navíc snadno přivodí vlhkost a following plíseň."
+      "text": "Ořechy a semínka obsahují tuky, které snadno žluknou. Špatné skladování zkracuje jejich trvanlivost a mění chuť i vůni."
     },
     {
       "type": "ul",
       "items": [
-        "Žluknutí kazí chuť i vůni ořechů",
-        "Vlhkost podporuje růst plísní a bakterií"
+        "Žluknutí — oxidace tuků kazí chuť i vůni",
+        "Vlhkost — podporuje plíseň a ztrátu křupavosti"
       ]
     },
     {
@@ -26,29 +26,29 @@
     {
       "type": "ul",
       "items": [
-        "Skladujte na chladném a tmavém místě, ideálně v lednici či mrazáku",
-        "Používejte vzduchotěsné nádoby, které zabrání kontaktu s kyslíkem a vlhkostí"
+        "Chlad a tma — ideálně lednice nebo mraznička, mimo dosah slunce",
+        "Vzduchotěsné nádoby — omezí kontakt s kyslíkem a vlhkostí"
       ]
     },
     {
       "type": "callout",
-      "variant": "tip",
-      "title": "Rychlý tip",
-      "text": "Kupujte ořechy v menším množství a doplňujte zásoby častěji – zůstanou déle čerstvé."
+      "variant": "info",
+      "title": "Tip",
+      "text": "Kupujte menší množství, která spotřebujete do pár týdnů — čerstvost se tak udrží nejlépe."
     },
     {
       "type": "cta",
-      "cta": "Chcete více praktických rad o skladování potravin? Přihlaste se k odběru novinek."
+      "cta": "Naplánujte si nákup ořechů podle spotřeby a skladujte je chytře."
     }
   ],
   "faq": [
     {
-      "question": "Jak poznám, že ořechy už žluknou?",
-      "answer": "Žluklé ořechy mají nahořklou chuť a nepříjemný, mírně olejovitý zápach."
+      "question": "Jak dlouho vydrží ořechy v lednici?",
+      "answer": "Ve vzduchotěsné nádobě v lednici vydrží obvykle 3 až 6 měsíců čerstvé."
     },
     {
-      "question": "Mohu ořechy mrazit?",
-      "answer": "Ano, mražení ve vzduchotěsném sáčku prodlouží jejich trvanlivost i o několik měsíců."
+      "question": "Můžu ořechy mrazit?",
+      "answer": "Ano, mražení ve vzduchotěsném sáčku prodlouží trvanlivost až na rok."
     }
   ]
 }

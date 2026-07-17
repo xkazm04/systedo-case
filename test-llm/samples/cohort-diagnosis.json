@@ -1,9 +1,9 @@
 {
-  "summary": "Ekonomika kohort se meziměsíčně zhoršuje: LTV:CAC kleslo z 4,5× (2025-01) na 2,4× (2025-02) až na 1,0× (2025-03), návratnost CAC se prodloužila ze 4 měsíců na stav, kdy se u nejnovější kohorty vůbec nevrací. M3 retence klesá stejným tempem (62 % → 48 % → 31 %) a retenční křivka 2025-03 ukazuje prudký pád hned v prvním měsíci (M0 100 % → M1 70 %, tedy -30 p.b.) s dalším strmým poklesem do M2 (48 %) a M3 (31 %), což signalizuje problém s early-stage aktivací, ne jen s dlouhodobým churnem. V rámci kohorty 2025-03 táhne výkon dolů kanál Google Ads (CAC 2 600 Kč, LTV:CAC jen 0,8×, 150 akvizic), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic zdarma) — blended čísla kohorty tak maskují, že placený kanál je ztrátový.",
+  "summary": "Kohorty se v čase zhoršují: LTV:CAC klesl z 4,5× (2025-01) na 1,0× (2025-03), CAC roste (1 200→2 100 Kč) a M3 retence padá (62 %→31 %) s exponenciálním tvarem poklesu (100→70→48→31 %). U 2025-03 se návratnost investice vůbec nevrací v horizontu a kanálový rozpad ukazuje, že kohortu táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic) proti ziskovému Organic (LTV:CAC 6,0×, 90 akvizic zdarma).",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit nebo pozastavit akvizici přes Google Ads (LTV:CAC 0,8×) a přesměrovat rozpočet i kapacitu na škálování Organic kanálu (LTV:CAC 6,0×), dokud se u placeného kanálu nezlepší CAC nebo M1 aktivace.",
+  "recommendation": "Okamžitě omezit/přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) směrem k Organic akvizici a zlepšit onboarding/retenci v M1–M2, kde dochází k největšímu propadu (70 %→48 %).",
   "risks": [
-    "Data jsou blended na úrovni kohorty 2025-01 a 2025-02, takže se u nich může skrývat stejný kanálový problém jako u 2025-03, ale bez rozpadu to nelze potvrdit.",
-    "LTV u 2025-03 je zčásti modelované (retence po M3 dopočítaná), takže reálné LTV:CAC 1,0× může být ještě horší, pokud se pokles zrychlí."
+    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je ztrátová.",
+    "Bez zásahu do retence v M1 se návratnost dalších kohort dál prodlouží nad únosný horizont."
   ]
 }
