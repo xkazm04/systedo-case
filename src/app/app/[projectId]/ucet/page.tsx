@@ -24,7 +24,9 @@ export default async function Page({
   const session = await currentSession();
   const su = session?.user;
   const user = {
-    id: su?.id ?? "—",
+    // Typed absence, not a display em-dash smuggled into the data model — the
+    // component renders the dash. Anything keying/comparing on user.id sees null.
+    id: su?.id ?? null,
     name: su?.name ?? "",
     email: su?.email ?? "",
     image: su?.image ?? null,
@@ -34,10 +36,14 @@ export default async function Page({
     oauth: !DEV_AUTH && Boolean(su),
     devMode: DEV_AUTH,
   };
-  // Real session metadata (only meaningful for a real DB session — dev-auth is synthetic).
-  const expiresDate = !DEV_AUTH && session?.expires ? session.expires.slice(0, 10) : null;
-  // null = backend read failed → the UI shows "unavailable" rather than a false "0".
-  const sessionCount = !DEV_AUTH && su?.id ? await activeSessionCount(su.id) : 0;
+  // Real session metadata (only meaningful for a real DB session — dev-auth is
+  // synthetic). Pass the full ISO instant and let the client format it in the
+  // user's locale + timezone; slicing to 10 chars truncated in UTC, so a session
+  // expiring after midnight CET rendered as the previous day for Czech users.
+  const expiresDate = !DEV_AUTH && session?.expires ? session.expires : null;
+  // null = dev-auth OR a failed backend read (both unknowable) → the UI shows
+  // "unavailable" rather than asserting a measured "0 active sessions".
+  const sessionCount = !DEV_AUTH && su?.id ? await activeSessionCount(su.id) : null;
 
   async function signOutAction() {
     "use server";

@@ -7,7 +7,7 @@
  *  files nothing on the server, so the copy says so explicitly rather than dressing
  *  a no-op as a destructive confirm. Account epic (consolidation phase 6). */
 import { useState } from "react";
-import { useT } from "@/lib/i18n/client";
+import { useT, useFormatters } from "@/lib/i18n/client";
 import { initials } from "@/lib/branding/compute";
 import { maskEmail, securityChecklist, type AccountFacts, type CheckState } from "@/lib/account/compute";
 
@@ -70,8 +70,10 @@ export default function AccountSecurity({
   signOutEverywhereAction,
   demo = false,
 }: {
-  user: { id: string; name: string; email: string; image?: string | null };
+  user: { id: string | null; name: string; email: string; image?: string | null };
   facts: AccountFacts;
+  /** ISO instant the current session expires, or null (dev-auth / no real session);
+   *  formatted here in the user's locale + timezone to avoid a UTC off-by-one. */
   expiresDate: string | null;
   /** active session count, or null when the backend read failed (render "unavailable") */
   sessionCount: number | null;
@@ -85,6 +87,7 @@ export default function AccountSecurity({
   demo?: boolean;
 }) {
   const t = useT(T);
+  const fmt = useFormatters();
   const [requested, setRequested] = useState(false);
   const checks = securityChecklist(facts);
 
@@ -118,7 +121,7 @@ export default function AccountSecurity({
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{t("userId")}</dt>
-            <dd className="tnum truncate text-navy-700">{user.id}</dd>
+            <dd className="tnum truncate text-navy-700">{user.id ?? "—"}</dd>
           </div>
         </dl>
       </div>
@@ -156,7 +159,7 @@ export default function AccountSecurity({
                 ) : (
                   sessionCount > 0 && <p>{t("activeSessions", { n: sessionCount })}</p>
                 )}
-                {expiresDate && <p className="tnum">{t("validUntil", { d: expiresDate })}</p>}
+                {expiresDate && <p className="tnum">{t("validUntil", { d: fmt.fmtDate(expiresDate) })}</p>}
               </div>
             )}
             <div className="flex flex-wrap items-center gap-3">
@@ -183,7 +186,7 @@ export default function AccountSecurity({
         {requested ? (
           <div className="rounded-lg bg-canvas px-4 py-3 text-sm text-navy-700">
             <p>{t("deleteRequested")}</p>
-            <a href={`mailto:${SUPPORT_EMAIL}?subject=Account%20deletion%20request%20(${encodeURIComponent(user.id)})`} className="mt-1 inline-block font-semibold text-brand-accent hover:text-brand-800">
+            <a href={`mailto:${SUPPORT_EMAIL}?subject=Account%20deletion%20request%20(${encodeURIComponent(user.id ?? "")})`} className="mt-1 inline-block font-semibold text-brand-accent hover:text-brand-800">
               {t("deleteMail")} · {SUPPORT_EMAIL}
             </a>
           </div>
