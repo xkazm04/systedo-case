@@ -64,6 +64,25 @@ test("hashAiInput is stable for identical inputs and splits by mode/locale/provi
   assert.notEqual(base, hashAiInput("ads", "cs", { topic: "ořechy", n: 4 }), "different value → different key");
 });
 
+test("hashAiInput is key-order-invariant: logically identical inputs hash identically", () => {
+  // Same fields, different insertion order (a hand-written client / different
+  // serializer) must land in the SAME cache bucket — the determinism the docblock
+  // promised but plain JSON.stringify never delivered.
+  const a = hashAiInput("ads", "cs", { topic: "ořechy", n: 3, nested: { x: 1, y: 2 } });
+  const b = hashAiInput("ads", "cs", { nested: { y: 2, x: 1 }, n: 3, topic: "ořechy" });
+  assert.equal(a, b, "reordered keys → same key");
+});
+
+test("hashAiInput: a providerTag with an embedded space can't collide with a different (tag, value) pair", () => {
+  // Old space-join let a tag boundary shift into the value field; canonical JSON
+  // keeps the fields structurally separate.
+  assert.notEqual(
+    hashAiInput("ads", "cs", { v: 1 }, "byom:x "),
+    hashAiInput("ads", "cs", { v: 1 }, "byom:x"),
+    "trailing-space tag stays a distinct bucket"
+  );
+});
+
 // --- L2 local backend: roundtrip -----------------------------------------------------
 
 test("L2 roundtrip: a written entry reads back with its value + expiry", async () => {
