@@ -44,6 +44,7 @@ const T = {
     colReach: "Dosah",
     colClicks: "Prokliky",
     colShare: "Podíl",
+    attributionEmpty: "Zatím žádná data atribuce — připojte analytiku a řádky se doplní.",
     nextStepLabel: "Naplánovat publikaci",
     nextStepHint: "Vydat varianty v centru sociálních sítí",
     // VariantCard
@@ -100,6 +101,7 @@ const T = {
     colReach: "Reach",
     colClicks: "Clicks",
     colShare: "Share",
+    attributionEmpty: "No attribution data yet — connect analytics and rows will fill in.",
     nextStepLabel: "Schedule publication",
     nextStepHint: "Publish variants in the social center",
     // VariantCard
@@ -162,7 +164,10 @@ export default function DistributionModule({
   const fmt = useFormatters();
   const variants = repurpose(source);
   const totalClicks = attribution.reduce((a, c) => a + c.clicks, 0);
-  const best = attribution.reduce((a, b) => (b.clicks > a.clicks ? b : a), attribution[0]!);
+  // `attribution` may be empty (a project with no channel data yet — the type permits
+  // it). Guard the reduce seed + downstream `.channel` access so the module renders a
+  // graceful empty state instead of unmounting with a client error.
+  const best = attribution.length > 0 ? attribution.reduce((a, b) => (b.clicks > a.clicks ? b : a)) : null;
 
   return (
     <div className="stagger space-y-6">
@@ -206,7 +211,7 @@ export default function DistributionModule({
               {t("attributionDescPost")}
             </p>
           </div>
-          <Pill tone="positive">{t("bestClicks", { n: best.channel })}</Pill>
+          {best && <Pill tone="positive">{t("bestClicks", { n: best.channel })}</Pill>}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -221,6 +226,13 @@ export default function DistributionModule({
               </tr>
             </thead>
             <tbody>
+              {attribution.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-muted">
+                    {t("attributionEmpty")}
+                  </td>
+                </tr>
+              )}
               {attribution.map((c) => (
                 <tr key={c.channel} className="border-b border-line/70 last:border-0">
                   <td className="px-5 py-3 font-medium text-navy-800">{c.channel}</td>
