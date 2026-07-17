@@ -22,6 +22,7 @@ import { promptSafeName } from "@/lib/projects/name";
 import { formatVoiceAge, shouldNudgeRetrain, voiceTrainedAt, RETRAIN_MARGIN } from "@/lib/twin/voice-age";
 import type { TwinStyleResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
+import { SCOPE_LABELS } from "./labels";
 import {
   TONE_SCOPES,
   type ToneScope,
@@ -102,17 +103,6 @@ const T = {
     retrainNudge: "{n}+ new materials banked since the last training — consider re-training the voice.",
   },
 } as const;
-
-const SCOPE_LABELS: Record<ToneScope, { cs: string; en: string }> = {
-  generic: { cs: "Obecný registr", en: "Generic register" },
-  leads: { cs: "Poptávky", en: "Enquiries" },
-  email: { cs: "E-mail", en: "Email" },
-  chat: { cs: "Chat", en: "Chat" },
-  social: { cs: "Sociální sítě", en: "Social" },
-  reviews: { cs: "Recenze", en: "Reviews" },
-  sms: { cs: "SMS", en: "SMS" },
-  whatsapp: { cs: "WhatsApp", en: "WhatsApp" },
-};
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 

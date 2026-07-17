@@ -20,7 +20,7 @@ import { useT } from "@/lib/i18n/client";
 import { Pill } from "@/components/ui";
 import { Check, Close, Copy, Send, Sparkles } from "@/components/icons";
 import TwinOutboxHistory from "./TwinOutboxHistory";
-import { REASON_LABELS } from "./labels";
+import { CHANNEL_LABELS, REASON_LABELS } from "./labels";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, TimeoutState, ToolError, inputClass } from "@/components/ai/primitives";
 import { promptSafeName } from "@/lib/projects/name";
@@ -141,15 +141,6 @@ const T = {
   },
 } as const;
 
-const CHANNEL_LABELS: Record<TwinChannel, { cs: string; en: string }> = {
-  leads: { cs: "Poptávky", en: "Enquiries" },
-  email: { cs: "E-mail", en: "Email" },
-  chat: { cs: "Chat", en: "Chat" },
-  social: { cs: "Sociální sítě", en: "Social" },
-  reviews: { cs: "Recenze", en: "Reviews" },
-  sms: { cs: "SMS", en: "SMS" },
-  whatsapp: { cs: "WhatsApp", en: "WhatsApp" },
-};
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 

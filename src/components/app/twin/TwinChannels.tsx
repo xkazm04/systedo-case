@@ -14,6 +14,7 @@ import { useT } from "@/lib/i18n/client";
 import { Info } from "@/components/icons";
 import type { ConnectorInfo } from "@/lib/twin/connectors";
 import { formatVoiceAge, shouldNudgeRetrain, voiceTrainedAt } from "@/lib/twin/voice-age";
+import { CHANNEL_LABELS } from "./labels";
 import {
   AUTONOMY_LEVELS,
   channelConfig,
@@ -68,16 +69,6 @@ const T = {
     retrainNudgeTitle: "New materials banked since the voice was trained — consider re-training.",
   },
 } as const;
-
-const CHANNEL_LABELS: Record<TwinChannel, { cs: string; en: string }> = {
-  leads: { cs: "Poptávky", en: "Enquiries" },
-  email: { cs: "E-mail", en: "Email" },
-  chat: { cs: "Chat", en: "Chat" },
-  social: { cs: "Sociální sítě", en: "Social" },
-  reviews: { cs: "Recenze", en: "Reviews" },
-  sms: { cs: "SMS", en: "SMS" },
-  whatsapp: { cs: "WhatsApp", en: "WhatsApp" },
-};
 
 const AUTONOMY_LABEL: Record<Autonomy, keyof (typeof T)["cs"]> = {
   review: "autonomyReview",
