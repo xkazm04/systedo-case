@@ -205,10 +205,44 @@ export default function CampaignsClient({
   // Portal host for the header badges (rendered into ModulePage's header slot,
   // opposite the title). Resolved after mount so the target div exists in the DOM.
   const [headerHost, setHeaderHost] = useState<HTMLElement | null>(null);
+  // When the header slot never commits (a Suspense/streaming boundary, a layout
+  // refactor, or a page that reuses this component without the slot) fall back to
+  // rendering the KPI badges in-flow instead of losing them silently.
+  const [inlineKpiFallback, setInlineKpiFallback] = useState(false);
   useEffect(() => {
-    // Resolve the portal target once the header is committed to the DOM.
-    const resolveHost = () => setHeaderHost(document.getElementById("module-header-actions"));
-    resolveHost();
+    const slotId = "module-header-actions";
+    // Try to bind the portal host; returns whether the slot was found.
+    const resolveHost = (): boolean => {
+      const el = document.getElementById(slotId);
+      if (el) {
+        setHeaderHost(el);
+        setInlineKpiFallback(false);
+      }
+      return Boolean(el);
+    };
+    if (resolveHost()) return;
+    // Not committed on this frame — watch the DOM for it rather than giving up
+    // after a single query, and only fall back (+ warn in dev) if it truly never
+    // appears, so the common case never flashes an in-flow row.
+    const obs = new MutationObserver(() => {
+      if (resolveHost()) {
+        obs.disconnect();
+        clearTimeout(timer);
+      }
+    });
+    obs.observe(document.body, { childList: true, subtree: true });
+    const timer = setTimeout(() => {
+      if (!document.getElementById(slotId)) {
+        setInlineKpiFallback(true);
+        if (process.env.NODE_ENV !== "production") {
+          console.warn(`[CampaignsClient] header slot #${slotId} never appeared — KPI badges render in-flow.`);
+        }
+      }
+    }, 3000);
+    return () => {
+      obs.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
   // The user's explicit pick wins; otherwise mirror the synced period (so the
   // toolbar highlight matches the data on screen after a reload) and default to 30d.
@@ -401,23 +435,23 @@ export default function CampaignsClient({
   return (
     <div className="stagger space-y-8">
       {/* Portfolio KPIs, minimized to badges in the page header (opposite the
-          title) via a portal into ModulePage's header slot. */}
-      {headerHost &&
-        createPortal(
-          <>
-            {kpis.map((k) => (
-              <span
-                key={k.label}
-                title={k.hint}
-                className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs"
-              >
-                <span className="text-muted">{k.label}</span>
-                <span className="tnum font-semibold text-navy-800">{k.value}</span>
-              </span>
-            ))}
-          </>,
-          headerHost
-        )}
+          title) via a portal into ModulePage's header slot. Falls back to an
+          in-flow row if that slot never commits, so the totals never vanish. */}
+      {(() => {
+        const kpiBadges = kpis.map((k) => (
+          <span
+            key={k.label}
+            title={k.hint}
+            className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-2.5 py-1 text-xs"
+          >
+            <span className="text-muted">{k.label}</span>
+            <span className="tnum font-semibold text-navy-800">{k.value}</span>
+          </span>
+        ));
+        if (headerHost) return createPortal(<>{kpiBadges}</>, headerHost);
+        if (inlineKpiFallback) return <div className="flex flex-wrap gap-2">{kpiBadges}</div>;
+        return null;
+      })()}
 
       {/* toolbar */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
