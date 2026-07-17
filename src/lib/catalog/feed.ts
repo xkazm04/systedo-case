@@ -70,13 +70,25 @@ function tagText(block: string, name: string): string | undefined {
 
 const first = (...vals: (string | undefined)[]): string | undefined => vals.find((v) => v != null && v !== "");
 
-/** Parse a feed price string ("249", "249.00", "1 299,00 Kč", "12.99 CZK") to a number. */
+/** Parse a feed price string ("249", "249.00", "1 299,00 Kč", "12.99 CZK", "1.299 Kč")
+ *  to a number. A lone dot/comma is normally the decimal point, EXCEPT the cs "dot as
+ *  thousands, no decimals" shape ("1.299", "1.299.000") — one separator, each group
+ *  exactly 3 digits — which is read as thousands so "1.299 Kč" is 1299, not 1.299. */
 export function parseFeedPrice(s?: string): number {
   if (!s) return 0;
   let x = s.replace(/[^\d.,-]/g, "");
-  // Both separators present → "." is thousands, "," is the decimal (cs formatting).
-  if (x.includes(",") && x.includes(".")) x = x.replace(/\./g, "").replace(",", ".");
-  else x = x.replace(",", ".");
+  if (x.includes(",") && x.includes(".")) {
+    // Both separators present → "." is thousands, "," is the decimal (cs formatting).
+    x = x.replace(/\./g, "").replace(",", ".");
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(x)) {
+    // Lone dot(s) grouping in 3s with no decimal part → thousands separator (cs "1.299").
+    x = x.replace(/\./g, "");
+  } else if (/^\d{1,3}(,\d{3})+$/.test(x)) {
+    // Lone comma(s) grouping in 3s with no decimal part → thousands separator ("1,299").
+    x = x.replace(/,/g, "");
+  } else {
+    x = x.replace(",", ".");
+  }
   const m = x.match(/-?\d+(?:\.\d+)?/);
   const n = m ? Number(m[0]) : 0;
   return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -148,7 +160,9 @@ function parseGoogle(text: string): FeedItem[] {
     return {
       id: first(tagText(b, "g:id"), tagText(b, "id")) ?? "",
       title: first(tagText(b, "g:title"), tagText(b, "title")) ?? "",
-      price: parseFeedPrice(first(tagText(b, "g:price"), tagText(b, "g:sale_price"))),
+      // Merchant Center rule: when g:sale_price is present it IS the current selling
+      // price; g:price is the crossed-out base. Prefer sale_price, fall back to price.
+      price: parseFeedPrice(first(tagText(b, "g:sale_price"), tagText(b, "g:price"))),
       category: first(tagText(b, "g:product_type"), tagText(b, "g:google_product_category")),
       ean: tagText(b, "g:gtin"),
       brand: tagText(b, "g:brand"),

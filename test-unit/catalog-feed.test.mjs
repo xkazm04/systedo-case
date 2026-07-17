@@ -64,7 +64,28 @@ test("parseFeedPrice handles cs/int/decimal/thousands formatting", () => {
   assert.equal(parseFeedPrice("149.00 CZK"), 149);
   assert.equal(parseFeedPrice("1 299,00 Kč"), 1299);
   assert.equal(parseFeedPrice("1.299,00"), 1299);
+  // cs "dot as thousands, no decimals" — a lone dot grouping in 3s is thousands, not
+  // a decimal point (regression: "1.299 Kč" used to parse as 1.299 CZK, 1000× off).
+  assert.equal(parseFeedPrice("1.299 Kč"), 1299);
+  assert.equal(parseFeedPrice("1.299.000"), 1299000);
+  assert.equal(parseFeedPrice("1,299"), 1299); // lone comma grouping in 3s → thousands
+  assert.equal(parseFeedPrice("12.99 CZK"), 12.99); // a genuine 2-decimal price is untouched
+  assert.equal(parseFeedPrice("249.00"), 249);
   assert.equal(parseFeedPrice(undefined), 0);
+});
+
+test("Google feed prefers g:sale_price over g:price (active sale is the selling price)", () => {
+  const xml = `<?xml version="1.0"?>
+<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0"><channel>
+  <item>
+    <g:id>S-1</g:id><g:title>Sale item</g:title>
+    <g:price>499 CZK</g:price>
+    <g:sale_price>349 CZK</g:sale_price>
+    <g:availability>in stock</g:availability>
+  </item>
+</channel></rss>`;
+  const { items } = parseFeed(xml);
+  assert.equal(items[0].price, 349, "imports the sale price, not the crossed-out base");
 });
 
 test("detectFeedFormat recognizes each shape", () => {
