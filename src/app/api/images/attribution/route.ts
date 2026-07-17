@@ -21,12 +21,17 @@ import { isImageStyle } from "@/lib/images/types";
 
 export async function GET(request: Request) {
   const userId = await currentUserId();
-  if (!userId) return Response.json({ links: [], leaderboard: [], prior: { style: null, hint: "" } });
+  // signedIn:false lets the client render a "please sign in" empty state instead
+  // of a false "empty library" — the sibling write verbs already 401, so a 200
+  // empty list here was indistinguishable from a session expiry (matches the
+  // `offline: true` self-describing pattern the images GET already uses).
+  if (!userId)
+    return Response.json({ links: [], leaderboard: [], prior: { style: null, hint: "" }, signedIn: false });
   const projectId = new URL(request.url).searchParams.get("projectId") || undefined;
   const tenant = await resolveTenant(userId, projectId);
   const links = await listCreativeLinks(tenant);
   const leaderboard = styleLeaderboard(links);
-  return Response.json({ links, leaderboard, prior: deriveStylePrior(leaderboard) });
+  return Response.json({ links, leaderboard, prior: deriveStylePrior(leaderboard), signedIn: true });
 }
 
 export async function POST(request: Request) {

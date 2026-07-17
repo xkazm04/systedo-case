@@ -34,6 +34,7 @@ const T = {
     deleteRecordAriaLabel: "Smazat záznam",
     impressionsSuffix: " imprese",
     roasLabel: "ROAS",
+    sessionExpired: "Vaše přihlášení vypršelo. Přihlaste se znovu pro zobrazení atribuce kreativ.",
   },
   en: {
     sectionHeading: "Creative performance by style",
@@ -59,6 +60,7 @@ const T = {
     deleteRecordAriaLabel: "Delete record",
     impressionsSuffix: " impressions",
     roasLabel: "ROAS",
+    sessionExpired: "Your session has expired. Sign in again to see creative attribution.",
   },
 } as const;
 
@@ -76,6 +78,9 @@ export default function CreativeAttribution() {
   const [leaderboard, setLeaderboard] = useState<StyleStat[]>([]);
   const [prior, setPrior] = useState<StylePrior>({ style: null, hint: "" });
   const [loaded, setLoaded] = useState(false);
+  // false only when the server reports the session is gone (mid-session expiry):
+  // lets us show a sign-in prompt instead of a false "no creatives yet" empty state.
+  const [signedIn, setSignedIn] = useState(true);
   const [style, setStyle] = useState<ImageStyle>("vibrant");
   const [campaignName, setCampaignName] = useState("");
   const [metrics, setMetrics] = useState<CreativeMetrics>(EMPTY_METRICS);
@@ -99,7 +104,9 @@ export default function CreativeAttribution() {
         links?: CreativeLink[];
         leaderboard?: StyleStat[];
         prior?: StylePrior;
+        signedIn?: boolean;
       };
+      setSignedIn(json.signedIn !== false);
       setLinks(json.links ?? []);
       setLeaderboard(json.leaderboard ?? []);
       setPrior(json.prior ?? { style: null, hint: "" });
@@ -158,6 +165,12 @@ export default function CreativeAttribution() {
         <Sparkles width={16} height={16} className="text-brand-accent" />
         <h3 className="text-base font-semibold text-navy-800">{t("sectionHeading")}</h3>
       </div>
+
+      {!signedIn && (
+        <div className="rounded-card border border-line bg-surface-muted px-4 py-3 text-sm text-muted">
+          {t("sessionExpired")}
+        </div>
+      )}
 
       {prior.hint && (
         <div className="flex items-start gap-2 rounded-card border border-brand-200 bg-brand-50 px-4 py-3">
