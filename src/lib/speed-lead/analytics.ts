@@ -28,10 +28,15 @@ export interface ChannelStat {
 export interface ResponseAnalytics {
   /** Median measured response time (seconds) across answered leads; null if none. */
   medianResponseSec: number | null;
-  /** Fraction (0–1) of leads within SLA; null when no lead can be judged yet. */
+  /** Fraction (0–1) of leads with a SETTLED SLA outcome (answered-within-target or
+   *  breached) that hit the target; null when no lead can be judged yet. Open, not-yet-
+   *  breached leads are NOT judged — counting them as hits made the band non-monotonic
+   *  (a flattering 100% exactly when fresh leads pile up unanswered). */
   withinSlaRate: number | null;
-  /** How many leads contributed to the SLA-hit rate. */
+  /** How many leads have a settled outcome behind the SLA-hit rate. */
   judged: number;
+  /** Open leads still within target — pending, deliberately excluded from `judged`. */
+  atRisk: number;
   /** How many leads have a measured response time. */
   answered: number;
   /** Per-channel averages, only for channels with ≥1 answered lead. */
@@ -46,8 +51,11 @@ export function median(values: number[]): number | null {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
-/** Roll per-lead outcomes up into the analytics-band figures.
- *  An SLA "hit" = answered within target, OR still open and not yet breached. */
+/** Roll per-lead outcomes up into the analytics-band figures. The SLA rate scores only
+ *  SETTLED outcomes — answered-within-target (hit) and breached (miss). An open,
+ *  not-yet-breached lead has no verdict yet, so it is counted in `atRisk`, never as a
+ *  hit; pre-counting it as a win made the rate drop as time passed and read 100% when
+ *  fresh leads were piling up unanswered — the opposite of the signal this product sells. */
 export function computeResponseAnalytics(outcomes: LeadOutcome[]): ResponseAnalytics {
   const responseTimes = outcomes
     .map((o) => o.responseSec)
@@ -55,17 +63,17 @@ export function computeResponseAnalytics(outcomes: LeadOutcome[]): ResponseAnaly
 
   let hits = 0;
   let judged = 0;
+  let atRisk = 0;
   for (const o of outcomes) {
     if (o.responseSec != null) {
       judged += 1;
       if (o.responseSec <= SLA_TARGET_SEC) hits += 1;
     } else if (o.breached) {
-      // An open, already-breached lead is a definite miss.
+      // An open, already-breached lead is a definite miss — a settled verdict.
       judged += 1;
     } else {
-      // Open and still within target → currently a hit, but may flip later.
-      judged += 1;
-      hits += 1;
+      // Open and still within target → no verdict yet; visible as at-risk, not a win.
+      atRisk += 1;
     }
   }
 
@@ -86,6 +94,7 @@ export function computeResponseAnalytics(outcomes: LeadOutcome[]): ResponseAnaly
     medianResponseSec: median(responseTimes),
     withinSlaRate: judged === 0 ? null : hits / judged,
     judged,
+    atRisk,
     answered: responseTimes.length,
     byChannel,
   };

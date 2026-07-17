@@ -41,6 +41,7 @@ const T = {
     sentCount: "z {n} odeslaných",
     noSent: "zatím bez odeslání",
     judged: "{n} z {total} hodnoceno",
+    atRiskPending: "{n} čeká na odpověď",
     leadsOverSla_one: "lead po SLA",
     leadsOverSla_few: "leady po SLA",
     leadsOverSla_many: "leadů po SLA",
@@ -97,6 +98,7 @@ const T = {
     sentCount: "of {n} sent",
     noSent: "none sent yet",
     judged: "{n} of {total} judged",
+    atRiskPending: "{n} awaiting reply",
     leadsOverSla_one: "lead past SLA",
     leadsOverSla_few: "leads past SLA",
     leadsOverSla_many: "leads past SLA",
@@ -434,7 +436,10 @@ export default function SpeedLeadModule({
               </Pill>
             ) : null}
           </div>
-          <p className="text-[11px] text-muted">{t("judged", { n: analytics.judged, total: leads.length })}</p>
+          <p className="text-[11px] text-muted">
+            {t("judged", { n: analytics.judged, total: leads.length })}
+            {analytics.atRisk > 0 ? ` · ${t("atRiskPending", { n: analytics.atRisk })}` : ""}
+          </p>
         </div>
         <div className="min-w-[160px] flex-1 border-l border-line pl-3">
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted">{t("avgByChannel")}</p>

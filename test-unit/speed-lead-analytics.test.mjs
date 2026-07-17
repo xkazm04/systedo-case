@@ -25,16 +25,27 @@ test("computeResponseAnalytics scores answered leads against the 5-min SLA", () 
   assert.equal(a.withinSlaRate, 0.5);
 });
 
-test("open leads count toward SLA by current breach state, not the median", () => {
+test("only SETTLED outcomes are judged; an open on-track lead is at-risk, not a hit", () => {
   const a = computeResponseAnalytics([
     { channel: "chat", responseSec: 60, breached: false }, // answered hit
-    { channel: "email", responseSec: null, breached: false }, // open, on track → hit
+    { channel: "email", responseSec: null, breached: false }, // open, on track → at risk
     { channel: "email", responseSec: null, breached: true }, // open, breached → miss
   ]);
   assert.equal(a.answered, 1);
   assert.equal(a.medianResponseSec, 60); // only the answered one
-  assert.equal(a.judged, 3);
-  assert.equal(a.withinSlaRate, 2 / 3);
+  assert.equal(a.judged, 2); // the hit + the breached miss; the open on-track lead is NOT judged
+  assert.equal(a.atRisk, 1);
+  assert.equal(a.withinSlaRate, 0.5); // 1 hit / 2 settled
+});
+
+test("all-fresh inbox: no verdicts yet → null rate, not a flattering 100%", () => {
+  const a = computeResponseAnalytics([
+    { channel: "form", responseSec: null, breached: false },
+    { channel: "call", responseSec: null, breached: false },
+  ]);
+  assert.equal(a.withinSlaRate, null); // was 1.0 under the old optimistic rule
+  assert.equal(a.judged, 0);
+  assert.equal(a.atRisk, 2);
 });
 
 test("byChannel averages only answered leads; no data → null rate", () => {
