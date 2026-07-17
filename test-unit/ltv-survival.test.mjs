@@ -1,7 +1,7 @@
 /** Unit tests for the retention survival curve + sparkline helpers (feature #1). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withMetrics, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
+import { withMetrics, survivalCurve, survivalSparkline, sparklinePoints } from "@/lib/ltv/compute";
 
 const base = { month: "Led", signups: 100, spend: 100_000, arpu: 300, retention: [1, 0.7, 0.5, 0.4] };
 
@@ -14,6 +14,17 @@ test("withMetrics exposes a 12-month survival curve split into observed/modeled"
   // every survival value is a sane fraction in [0,1] and the tail keeps decaying
   for (const s of m.survival) assert.ok(s >= 0 && s <= 1);
   assert.ok(m.survival[11] <= m.survival[4]);
+});
+
+test("survivalCurve degrades to [] on empty retention (no NaN poisoning)", () => {
+  assert.deepEqual(survivalCurve([], 12), []);
+  // and withMetrics on an empty-retention cohort yields finite (zero) metrics, not NaN
+  const m = withMetrics({ ...base, retention: [] });
+  assert.deepEqual(m.survival, []);
+  assert.equal(m.observedMonths, 0);
+  assert.equal(m.ltv, 0);
+  assert.ok(Number.isFinite(m.ltvCac));
+  assert.equal(m.paybackMonth, null);
 });
 
 test("observedMonths never exceeds the 12-month horizon", () => {

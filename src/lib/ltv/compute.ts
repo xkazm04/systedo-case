@@ -79,8 +79,13 @@ export function tailRatio(retention: number[]): number {
  *  tail (the confidence band uses the clamp bounds). Exported & pure so the
  *  interactive projection and the unit tests can reuse it. */
 export function survivalCurve(retention: number[], horizon: number, ratioOverride?: number): number[] {
-  const out = retention.slice(0, horizon);
   const n = retention.length;
+  // No observed retention → no curve to extrapolate. Without this guard `retention[n-1]`
+  // is undefined and every extrapolated month becomes NaN, poisoning ltv / ltvCac /
+  // sparklines with "NaN Kč" instead of degrading to zero. (Plausible once a real
+  // integration feeds an empty retention array for a brand-new month.)
+  if (n === 0) return [];
+  const out = retention.slice(0, horizon);
   const ratio = ratioOverride ?? tailRatio(retention);
   let last = retention[n - 1]!;
   for (let m = n; m < horizon; m++) {
