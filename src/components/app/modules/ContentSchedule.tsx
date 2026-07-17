@@ -18,6 +18,7 @@ const T = {
     ideasTitle: "Náměty na příspěvky",
     ideasEmpty: "Všechny náměty naplánovány.",
     schedule: "Naplánovat",
+    calendarFull: "Kalendář je plný — publikujte nebo uvolněte den, než naplánujete další příspěvek.",
     calendarTitle: "Kalendář (4 týdny)",
     ideaCount: "Náměty", scheduledCount: "Naplánováno", publishedCount: "Publikováno",
     publish: "Publikovat", unschedule: "Zpět do námětů",
@@ -32,6 +33,7 @@ const T = {
     ideasTitle: "Post ideas",
     ideasEmpty: "Every idea is scheduled.",
     schedule: "Schedule",
+    calendarFull: "The calendar is full — publish or free up a day before scheduling another post.",
     calendarTitle: "Calendar (4 weeks)",
     ideaCount: "Ideas", scheduledCount: "Scheduled", publishedCount: "Published",
     publish: "Publish", unschedule: "Back to ideas",
@@ -81,6 +83,8 @@ export default function ContentSchedule({
   const counts = useMemo(() => statusCounts(posts), [posts]);
   const queue = useMemo(() => ideas(posts), [posts]);
   const grid = useMemo(() => calendarGrid(posts), [posts]);
+  // Every day already at capacity → scheduling would strand a post; disable it.
+  const boardFull = useMemo(() => nextFreeDay(posts) === null, [posts]);
 
   // Persist the whole board to the project (per-user, server-side). Best-effort:
   // the local state is already updated, so a save failure never blocks the UI.
@@ -98,6 +102,9 @@ export default function ContentSchedule({
   function schedule(id: string) {
     const cur = postsRef.current;
     const day = nextFreeDay(cur);
+    // Calendar full: don't overbook the last day (nextFreeDay now returns null) —
+    // the "Naplánovat" buttons are disabled in this state, so this is a belt-and-braces guard.
+    if (day === null) return;
     const next = cur.map((p) => (p.id === id ? { ...p, status: "scheduled" as PostStatus, day } : p));
     setPosts(next);
     persist(next, "scheduled");
@@ -173,7 +180,9 @@ export default function ContentSchedule({
                     <button
                       type="button"
                       onClick={() => schedule(p.id)}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-accent"
+                      disabled={boardFull}
+                      title={boardFull ? t("calendarFull") : undefined}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line disabled:hover:text-navy-800"
                     >
                       <Plus width={13} height={13} />{t("schedule")}
                     </button>
@@ -192,8 +201,8 @@ export default function ContentSchedule({
                       <button
                         type="button"
                         onClick={() => draftCopy(p)}
-                        disabled={draftingId === p.id}
-                        className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent transition-opacity hover:opacity-80 disabled:opacity-50"
+                        disabled={draftingId !== null}
+                        className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Sparkles width={13} height={13} />
                         {draftingId === p.id ? t("drafting") : t("rewrite")}
@@ -203,8 +212,8 @@ export default function ContentSchedule({
                     <button
                       type="button"
                       onClick={() => draftCopy(p)}
-                      disabled={draftingId === p.id}
-                      className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-brand-300/60 bg-brand-500/8 px-3 py-1.5 text-xs font-semibold text-brand-accent transition-colors hover:bg-brand-500/14 disabled:opacity-50"
+                      disabled={draftingId !== null}
+                      className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-brand-300/60 bg-brand-500/8 px-3 py-1.5 text-xs font-semibold text-brand-accent transition-colors hover:bg-brand-500/14 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Sparkles width={13} height={13} />
                       {draftingId === p.id ? t("drafting") : t("draftCopy")}

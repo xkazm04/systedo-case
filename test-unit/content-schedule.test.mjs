@@ -51,6 +51,18 @@ test("nextFreeDay finds the first under-capacity day", () => {
   assert.equal(nextFreeDay([], 2), 0);
 });
 
+test("nextFreeDay returns null when every day is at capacity (no overbooking)", () => {
+  // Fill all 28 days to capacity 2 → no free day.
+  const full = [];
+  for (let d = 0; d < WINDOW_DAYS; d++) {
+    full.push(post({ id: `a${d}`, day: d }), post({ id: `b${d}`, day: d }));
+  }
+  assert.equal(nextFreeDay(full, 2), null);
+  // one freed slot on the last day → that day, not null
+  full.pop();
+  assert.equal(nextFreeDay(full, 2), WINDOW_DAYS - 1);
+});
+
 test("initialPosts is deterministic and catalog-grounded", () => {
   const project = { id: "demo-local", type: "local" };
   const localities = [{ id: "praha", name: "Praha", region: "Praha" }];
@@ -67,5 +79,24 @@ test("initialPosts is deterministic and catalog-grounded", () => {
     if (p.status === "idea") assert.equal(p.day, null);
     else assert.ok(p.day >= 0 && p.day < WINDOW_DAYS);
     assert.ok(p.title.includes(p.service) || p.title.includes(p.area));
+  }
+});
+
+test("initialPosts seeds published in the past half and scheduled in the upcoming half", () => {
+  // Enough combos that both statuses appear; the day anchor must read chronologically.
+  const project = { id: "chrono-demo", type: "local" };
+  const localities = [
+    { id: "praha", name: "Praha" },
+    { id: "brno", name: "Brno" },
+  ];
+  const services = Array.from({ length: 6 }, (_, i) => ({
+    id: `s${i}`,
+    name: `Sluzba ${i}`,
+    serviceAreas: ["praha", "brno"],
+  }));
+  const half = Math.floor(WINDOW_DAYS / 2);
+  for (const p of initialPosts(project, services, localities, 12)) {
+    if (p.status === "published") assert.ok(p.day < half, `published on day ${p.day} not < ${half}`);
+    if (p.status === "scheduled") assert.ok(p.day >= half, `scheduled on day ${p.day} not >= ${half}`);
   }
 });

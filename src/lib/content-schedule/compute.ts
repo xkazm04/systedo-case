@@ -30,11 +30,12 @@ export function calendarGrid(posts: ContentPost[]): ContentPost[][] {
 }
 
 /** First day (0–27) holding fewer than `capacity` posts — where the next idea
- *  drops when scheduled. Returns the last day if the window is full. */
-export function nextFreeDay(posts: ContentPost[], capacity = 2): number {
+ *  drops when scheduled. Returns `null` when every day is already at capacity, so
+ *  callers must handle "the window is full" instead of overbooking the last day. */
+export function nextFreeDay(posts: ContentPost[], capacity = 2): number | null {
   const grid = calendarGrid(posts);
   for (let d = 0; d < WINDOW_DAYS; d++) {
     if (grid[d].length < capacity) return d;
   }
-  return WINDOW_DAYS - 1;
+  return null;
 }
