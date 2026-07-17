@@ -7,14 +7,25 @@ import { SALES_EMAIL } from "@/lib/site";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
-export const metadata: Metadata = {
-  title: "Pricing — Adamant",
-  description:
-    "Adamant plans: free to try, Pro for daily work across multiple Google Ads accounts, automatic sync and weekly reports.",
-};
+/** Localized so a shared pricing link (the page most likely to be shared) gets a
+ *  locale-consistent SERP/social snippet — the body already localizes via getT, but
+ *  the metadata was a static English export. */
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT(T);
+  return {
+    title: t("metaTitle"),
+    description: t("metaDescription"),
+    alternates: { canonical: "/cena" },
+  };
+}
 
 const T = {
   cs: {
+    metaTitle: "Ceník — Adamant",
+    metaDescription:
+      "Plány Adamant: zdarma na vyzkoušení, Pro pro každodenní práci s více účty Google Ads, automatická synchronizace a týdenní reporty.",
+    mailtoPro: "Zájem o Adamant Pro",
+    mailtoByom: "Zájem o Adamant Vlastní klíč",
     eyebrow: "Ceník",
     heading: "Začněte zdarma, rozšiřte podle potřeby",
     subheading:
@@ -30,6 +41,11 @@ const T = {
     disclaimerSuffix: "v uživatelově dokumentu. Limity jsou denní a počítají se v UTC.",
   },
   en: {
+    metaTitle: "Pricing — Adamant",
+    metaDescription:
+      "Adamant plans: free to try, Pro for daily work across multiple Google Ads accounts, automatic sync and weekly reports.",
+    mailtoPro: "Interested in Adamant Pro",
+    mailtoByom: "Interested in Adamant — own key",
     eyebrow: "Pricing",
     heading: "Start free, scale when you need to",
     subheading:
@@ -185,11 +201,9 @@ export default async function PricingPage() {
                 // mailto seam. Only the featured plan gets the primary button so Pro
                 // stays the visual hero next to the cheaper BYOM card.
                 <Button
-                  href={
-                    plan.id === "byom"
-                      ? `mailto:${SALES_EMAIL}?subject=Z%C3%A1jem%20o%20Adamant%20Vlastn%C3%AD%20kl%C3%AD%C4%8D`
-                      : `mailto:${SALES_EMAIL}?subject=Z%C3%A1jem%20o%20Adamant%20Pro`
-                  }
+                  href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
+                    t(plan.id === "byom" ? "mailtoByom" : "mailtoPro")
+                  )}`}
                   variant={plan.featured ? "primary" : "secondary"}
                   size="lg"
                   className="mt-7 active:scale-[0.99]"
