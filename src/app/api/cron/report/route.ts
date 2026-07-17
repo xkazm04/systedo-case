@@ -133,13 +133,27 @@ export async function GET(request: Request) {
       }
       const { delivered, shouldMarkSent } = summarizeDelivery(outcomes);
 
-      await sendWebhook(`${brand} — ${title}: ${url}`);
-      await recordAlert(tenant, {
-        type: "digest",
-        title: "Klientský report odeslán",
-        body: `${title} · ${delivered}/${recipients.length} příjemců`,
-        items: [],
-      });
+      // Only announce an outcome that actually happened. A "sent" alert (+ webhook) must
+      // fire solely when >=1 recipient received the report — otherwise the inbox shows a
+      // success for a report nobody got, and the retry later logs a duplicate "sent".
+      // A total failure with recipients present records a retry notice instead (the day
+      // claim is released below); no recipients → nothing was attempted, so no alert.
+      if (delivered > 0) {
+        await sendWebhook(`${brand} — ${title}: ${url}`);
+        await recordAlert(tenant, {
+          type: "digest",
+          title: "Klientský report odeslán",
+          body: `${title} · ${delivered}/${recipients.length} příjemců`,
+          items: [],
+        });
+      } else if (recipients.length > 0) {
+        await recordAlert(tenant, {
+          type: "digest",
+          title: "Odeslání reportu selhalo — zkusíme znovu",
+          body: `${title} · 0/${recipients.length} příjemců`,
+          items: [],
+        });
+      }
       // The day was already claimed (lastSentDay set) before sending, so ≥1
       // delivery needs no further mark. A TOTAL failure RELEASES the claim so the
       // next run retries the whole batch instead of the day staying silently sent.
