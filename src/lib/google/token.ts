@@ -59,8 +59,13 @@ async function refreshAccessToken(
   return { access_token: json.access_token, expires_at: nowSec() + (json.expires_in ?? 3600) };
 }
 
-/** A valid Google access token for the user, refreshing if needed. null when the
- *  user has no connected Google account.
+/** A *usable* Google access token for the user, refreshing if needed. Returns null
+ *  when the user has no connected Google account OR when the cached token is expired
+ *  and no fresh one can be minted (no refresh token / refresh failed). The contract
+ *  is strict: a non-null return is a token the caller may treat as live; null means
+ *  "go sample / prompt re-consent". It never hands back a token it KNOWS is expired,
+ *  which previously made `resolveGoogle` build a live provider that 401s on every
+ *  fetch and degrades to sample every single sync.
  *
  *  `forceRefresh` skips the not-yet-expired short-circuit and mints a new token from
  *  the refresh token — the single-retry path a live 401 takes: the cached token was
@@ -74,17 +79,24 @@ export async function getUserAccessToken(
   if (!account) return null;
   const { ref, data } = account;
 
-  // Still valid (with a 60s safety margin)? Skipped on a forced refresh.
-  if (!opts.forceRefresh && data.access_token && data.expires_at && data.expires_at - 60 > nowSec()) {
-    return data.access_token;
+  // Still valid (with a 60s safety margin)?
+  const stillValid = Boolean(data.access_token && data.expires_at && data.expires_at - 60 > nowSec());
+  // Short-circuit an unexpired token unless a live 401 forced a refresh.
+  if (!opts.forceRefresh && stillValid) return data.access_token!;
+
+  if (data.refresh_token) {
+    const refreshed = await refreshAccessToken(data.refresh_token);
+    if (refreshed) {
+      await ref.update({ access_token: refreshed.access_token, expires_at: refreshed.expires_at });
+      return refreshed.access_token;
+    }
   }
-  if (!data.refresh_token) return data.access_token ?? null;
 
-  const refreshed = await refreshAccessToken(data.refresh_token);
-  if (!refreshed) return data.access_token ?? null;
-
-  await ref.update({ access_token: refreshed.access_token, expires_at: refreshed.expires_at });
-  return refreshed.access_token;
+  // No refresh token, or the refresh call failed. Only hand back the cached token if
+  // it is genuinely still valid (the forceRefresh-after-401 race may still hold a good
+  // token worth one replay); NEVER return a token we know is expired — signal failure
+  // with null so the caller skips the live provider and prompts re-consent.
+  return stillValid ? data.access_token! : null;
 }
 
 /** Whether the user has a connected Google account with the adwords scope. */
