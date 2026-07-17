@@ -131,7 +131,10 @@ export default function ReadingProgress({ readingMinutes }: { readingMinutes?: n
       </div>
 
       {resume && (
-        <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-4 print:hidden">
+        // Sits above the bottom-6 copy toasts (ShareBar / permalinks / Markdown)
+        // so a toast fired while the chip is showing doesn't bury its controls
+        // for ~2 s (article-reading #3).
+        <div className="fixed inset-x-0 bottom-20 z-40 flex justify-center px-4 print:hidden">
           <div className="animate-drop flex items-center gap-1.5">
             <button
               type="button"
