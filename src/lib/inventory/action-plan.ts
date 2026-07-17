@@ -60,27 +60,36 @@ export interface InventoryActionPlan {
 export function buildActionPlan(stock: StockRow[], changeSet: BudgetChangeSet): InventoryActionPlan {
   const bySku = new Map(stock.map((r) => [r.product.sku, r]));
 
-  const actions: InventoryAction[] = changeSet.moves.map((m) => {
-    const donor = bySku.get(m.fromSku);
-    const recipient = bySku.get(m.toSku);
-    const stockoutInDays =
-      donor && Number.isFinite(donor.stockoutDays) ? donor.stockoutDays : null;
-    return {
-      fromSku: m.fromSku,
-      fromTitle: m.fromTitle,
-      toSku: m.toSku,
-      toTitle: m.toTitle,
-      category: m.category,
-      amountCzk: m.amountCzk,
-      donorStatus: donor?.status ?? "low",
-      stockoutAt: donor?.stockoutAt ?? null,
-      stockoutInDays,
-      donorMargin: donor?.margin ?? 0,
-      recipientMargin: recipient?.margin ?? 0,
-      valueAtRisk: donor?.coverValue ?? 0,
-      channels: SKU_AD_CHANNELS,
-    };
-  });
+  const actions: InventoryAction[] = changeSet.moves
+    // Drop any move whose donor SKU isn't in this stock snapshot: that means the
+    // change-set was computed from a different (older/filtered) stock array, so joining
+    // it here would fabricate the donor's status/margin/value-at-risk (the old code
+    // defaulted them to "low" / 0, indistinguishable from a genuine low-stock donor).
+    // Excluding them keeps the plan — and the guardrail check below — grounded only in
+    // moves we can honestly describe, rather than passing invented context to a real apply.
+    .filter((m) => bySku.has(m.fromSku))
+    .map((m) => {
+      const donor = bySku.get(m.fromSku)!;
+      const recipient = bySku.get(m.toSku);
+      const stockoutInDays = Number.isFinite(donor.stockoutDays) ? donor.stockoutDays : null;
+      return {
+        fromSku: m.fromSku,
+        fromTitle: m.fromTitle,
+        toSku: m.toSku,
+        toTitle: m.toTitle,
+        category: m.category,
+        amountCzk: m.amountCzk,
+        donorStatus: donor.status,
+        stockoutAt: donor.stockoutAt,
+        stockoutInDays,
+        donorMargin: donor.margin,
+        // recipient may legitimately be absent (spend flows to a new/other SKU); its
+        // margin is a display-only tilt, so a 0 default here is honest, not fabricated.
+        recipientMargin: recipient?.margin ?? 0,
+        valueAtRisk: donor.coverValue,
+        channels: SKU_AD_CHANNELS,
+      };
+    });
 
   // Govern the plan with the EXACT ControlPolicy the ad-ops control plane enforces
   // (DEFAULT_POLICY, via the same checkPolicy), mapping each inventory move to the
