@@ -16,7 +16,9 @@
  *      wobble. Applied UNIFORMLY across visits/cost/conversions/revenue so every
  *      derived ratio (ROAS, PNO, CPA, conversion rate) is pointwise identical to
  *      the scaled base — only WHICH days are high or low changes, never the unit
- *      economics. See applyProjectShape for the documented bounds.
+ *      economics. See applyProjectShape for the documented bounds. (Exception:
+ *      conversions are floored at 1 on any day whose scaled value is positive but
+ *      rounds to 0, so low-volume days stay ratio-safe — see roundCount.)
  *
  *  Live seam (Phase D): for a project with a connected Ads/analytics source,
  *  replace the scaled base with the project's synced data — the rest of the app
@@ -62,7 +64,9 @@ export function scaledDataset(
       date: d.date,
       visits: Math.round(d.visits * scale),
       cost: Math.round((d.cost * scale) / efficiency),
-      conversions: Math.round(d.conversions * scale),
+      // Floor a positive scaled count at 1 so a low-magnitude client never shows a
+      // day with conversions=0 but cost>0 (which would break CPA / conv-rate).
+      conversions: roundCount(d.conversions * scale),
       revenue: Math.round(d.revenue * scale),
     })),
   };
@@ -116,6 +120,19 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
+/** Round a volume count, but never quantize a POSITIVE value down to 0. On a
+ *  low-magnitude / low-type project (combined scale can sit near 0.3, then a shape
+ *  factor as low as 0.75), a base day with 2–4 conversions rounds to 0 while
+ *  cost/revenue (larger numerators) round nonzero — so the day shows conversions=0
+ *  with spend>0, making CPA=cost/0 and conv-rate=0 on any daily drilldown. Flooring
+ *  a positive scaled value at 1 keeps every day's derived ratios finite. This is the
+ *  one documented exception to the "per-day ratios pointwise identical" invariant:
+ *  as counts approach 0, integer quantization dominates and can't be avoided. */
+function roundCount(v: number): number {
+  const r = Math.round(v);
+  return r === 0 && v > 0 ? 1 : r;
+}
+
 /** The per-day multiplicative shape factors for a project over `dates`, one per
  *  day, each already clamped to the [FACTOR_MIN, FACTOR_MAX] envelope. Exported for
  *  tests (determinism + bounds). Deterministic in the project id + type:
@@ -157,7 +174,9 @@ export function projectShapeFactors(project: Project, dates: string[]): number[]
  *  shape factors. Applied UNIFORMLY to every volume metric on a day, so per-day
  *  derived ratios (ROAS/PNO/CPA/conv-rate) are pointwise IDENTICAL to `base` — only
  *  the temporal shape (which days run hot/cold, the weekday profile, the gentle
- *  trend) changes. Totals stay inside the envelope: the weekday tilt is mean-1 by
+ *  trend) changes. The one exception is integer quantization at low magnitudes:
+ *  conversions are floored at 1 on a positive-but-sub-0.5 day (roundCount) so a
+ *  quiet day never reads conversions=0 with cost>0. Totals stay inside the envelope: the weekday tilt is mean-1 by
  *  construction, the trend is symmetric, the wobble is small and zero-mean, and the
  *  per-day clamp bounds any residual drift. Pure; leaves client/goals/meta/events/
  *  channels untouched. */
@@ -172,7 +191,7 @@ export function applyProjectShape(base: PerformanceData, project: Project): Perf
       ...d,
       visits: Math.round(d.visits * f),
       cost: Math.round(d.cost * f),
-      conversions: Math.round(d.conversions * f),
+      conversions: roundCount(d.conversions * f),
       revenue: Math.round(d.revenue * f),
     };
     // Scale the optional paid-traffic pair too when a (future live) series carries

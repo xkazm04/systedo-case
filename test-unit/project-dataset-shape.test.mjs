@@ -118,6 +118,21 @@ test("uniform scaling keeps per-day ratios (ROAS/PNO) pointwise identical", () =
   assert.ok(checked > 100, "checked a meaningful number of days");
 });
 
+test("low-magnitude days never show conversions=0 with cost>0 (ratio-safe)", () => {
+  // A tiny scale drives conversions toward 0 while cost stays nonzero — the exact
+  // condition that made CPA=cost/0 / conv-rate=0. roundCount floors a positive
+  // scaled conversion count at 1, so no spend-day is left with zero conversions.
+  const tiny = scaledDataset(0.02, { name: "Small" }, 1.5);
+  for (const d of tiny.daily) {
+    if (d.cost > 0) assert.ok(d.conversions >= 1, `day ${d.date}: cost>0 but conversions=${d.conversions}`);
+  }
+  // Same guarantee through the project shape path at a low-type magnitude.
+  const shaped = getProjectDataset(project("tiny-content", "content"));
+  for (const d of shaped.daily) {
+    if (d.cost > 0) assert.ok(d.conversions >= 1, `shaped ${d.date}: cost>0 but conversions=${d.conversions}`);
+  }
+});
+
 test("non-project path (scaledDataset) is byte-identical — never re-shaped", () => {
   // The microsite/fixed-label callers must be untouched by Direction 1.
   const a = scaledDataset(1.5, { name: "Acme", domain: "acme.cz" }, 1.2);
