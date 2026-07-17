@@ -17,24 +17,30 @@ const DATA: Row[] = [
 const W = 520;
 const ROW_H = 40;
 const PAD = { t: 8, r: 44, b: 8, l: 132 };
-const MAX = 40;
 
 export function CompetitorBars({
   data = DATA,
   label = "Share of map-pack clicks",
+  max,
 }: {
   data?: Row[];
   label?: string;
+  /** Scale ceiling. Defaults to the local max × 1.15 (headroom for the value label),
+   *  so bars scale to the largest value in THIS dataset rather than a fixed 40 — a
+   *  caller passing a share above the old constant no longer overflows the plot. Bars
+   *  are thus scaled to the local max, not to 100%. */
+  max?: number;
 }) {
   const H = PAD.t + PAD.b + data.length * ROW_H;
   const plotW = W - PAD.l - PAD.r;
   const barH = 18;
+  const scaleMax = max ?? Math.max(1, ...data.map((d) => d.value)) * 1.15;
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" role="img" aria-label={label}>
       {data.map((d, i) => {
         const cy = PAD.t + i * ROW_H + ROW_H / 2;
-        const w = (d.value / MAX) * plotW;
+        const w = (d.value / scaleMax) * plotW;
         return (
           <g key={d.name}>
             {/* label */}
