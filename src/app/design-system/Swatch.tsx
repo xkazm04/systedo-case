@@ -31,7 +31,11 @@ export default function Swatch({ token, big = false }: { token: ColorToken; big?
     >
       <div
         className={`flex ${big ? "h-20" : "h-16"} items-end justify-between rounded-xl border border-line/60 p-2 transition-shadow group-hover:shadow-card`}
-        style={{ background: `var(${token.cssVar})`, color: readableInkOn(token.value) }}
+        // Paint from the parsed hex (the value shown as the label), not the live
+        // `var(--color-…)`: dark mode redefines several tokens, so the live var and
+        // the ink readableInkOn() picked for the light hex would disagree. One hex →
+        // background + label + ink, always consistent across themes.
+        style={{ background: token.value, color: readableInkOn(token.value) }}
       >
         <span className="tnum text-[13px] font-medium opacity-90">{token.step ?? token.name}</span>
         <span aria-hidden className="opacity-0 transition-opacity group-hover:opacity-90 group-focus-visible:opacity-90">

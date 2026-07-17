@@ -26,10 +26,19 @@ export function contrastRatio(hexA: string, hexB: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** Dark ink literal (the light-theme value of `--color-ink`). Returned as a
+ *  fixed hex rather than `var(--color-ink)`: the swatch is painted from the
+ *  parsed light-mode hex passed in here, so the ink must be chosen for THAT pixel
+ *  and stay put — `var(--color-ink)` flips to near-white in dark mode and would
+ *  paint white ink on a light swatch (the exact contrast failure this prevents). */
+const INK_DARK = "#0d1a24";
+
 /** Pick readable foreground ink (dark or white) for a given swatch colour, so
- *  the on-swatch label stays legible across the whole ramp automatically. */
+ *  the on-swatch label stays legible across the whole ramp automatically. Both
+ *  returns are theme-independent literals — pair with a swatch painted from the
+ *  same hex (not a live theme variable) so ink and background can't disagree. */
 export function readableInkOn(hex: string): string {
   return /^#[0-9a-f]{3,6}$/i.test(hex.trim()) && luminance(hex) > 0.45
-    ? "var(--color-ink)"
+    ? INK_DARK
     : "#ffffff";
 }
