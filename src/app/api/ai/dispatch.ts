@@ -169,13 +169,20 @@ export async function runMetered(
     const quota = await consume(userId, "aiEval");
     if (!quota.ok) {
       await refundGlobalSpend(1); // no generation will run — release the ceiling unit.
+      // A BYOM subscriber only reaches this app-funded counter when their own key
+      // is missing/failing (a BYOM-served call skips metering entirely). Telling
+      // them to "upgrade" (/cena) is nonsensical — they own the top AI tier — so
+      // point them at fixing the key instead and drop the upgrade CTA.
+      const onByomPlan = quota.status.plan === "byom";
       return {
         ok: false,
         response: Response.json(
           {
-            error: `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
+            error: onByomPlan
+              ? `Denní limit záložního generování přes náš klíč vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Přidejte nebo obnovte vlastní API klíč pro neomezené generování.`
+              : `Denní limit AI generování vyčerpán (${quota.status.used.aiEval}/${quota.status.limits.aiEval}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
             code: "quota",
-            upgradeUrl: "/cena",
+            ...(onByomPlan ? {} : { upgradeUrl: "/cena" }),
           },
           { status: 429 }
         ),

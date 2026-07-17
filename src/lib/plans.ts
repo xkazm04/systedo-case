@@ -91,7 +91,10 @@ export const PLAN_INFO: PlanInfo[] = [
       "Neomezená AI generování přes vlastní klíč",
       "OpenAI, Gemini nebo Claude — přepínání modelů",
       "Platíte tokeny přímo poskytovateli",
-      "Bez denního limitu na AI nástroje",
+      "Bez denního limitu na AI nástroje (přes vlastní klíč)",
+      // Honest disclosure: when the user's own key is missing/failing, generation
+      // falls back to our app-funded provider, capped like Free (PLANS.byom).
+      `Záložní generování přes náš klíč: ${PLANS.byom.aiEval}/den`,
       "Přístup ke všem AI nástrojům v aplikaci",
     ],
   },
