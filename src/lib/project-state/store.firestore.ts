@@ -19,7 +19,15 @@ export async function getProjectState<T>(userId: string, projectId: string, key:
   if (typeof raw !== "string") return null;
   try {
     return JSON.parse(raw) as T;
-  } catch {
+  } catch (err) {
+    // A corrupt blob and a never-saved key both collapse to null here, so the
+    // caller reseeds and the next save overwrites the still-recoverable original.
+    // At minimum leave a diagnosable trail (never silently swallow) so a prod
+    // corruption is discoverable rather than an invisible data loss.
+    console.error(
+      `[project-state] corrupt blob for (${userId}, ${projectId}, ${key}) — reseeding will clobber it`,
+      err
+    );
     return null;
   }
 }

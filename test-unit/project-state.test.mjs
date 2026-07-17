@@ -21,6 +21,7 @@ process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true"; // route the dispatcher to the node:sqlite backend
 
 const { getProjectState, saveProjectState } = await import("@/lib/project-state/store");
+const { getDb } = await import("@/lib/db");
 
 const U = "user-1";
 const P = "proj-1";
@@ -40,6 +41,30 @@ test("saving again replaces the whole blob", async () => {
   const got = await getProjectState(U, P, "content-schedule");
   assert.equal(got.length, 1);
   assert.equal(got[0].status, "published");
+});
+
+test("a corrupt blob reads back null (and logs) rather than throwing", async () => {
+  // Simulate an interrupted write / manual DB edit: store unparseable JSON directly.
+  getDb()
+    .prepare(
+      `INSERT INTO project_state (user_id, project_id, key, data, updated_at)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (user_id, project_id, key)
+       DO UPDATE SET data = excluded.data`
+    )
+    .run(U, P, "corrupt-key", "{not valid json", new Date().toISOString());
+  // Swallow the diagnostic console.error the store emits on the corrupt path.
+  const origErr = console.error;
+  let logged = false;
+  console.error = () => {
+    logged = true;
+  };
+  try {
+    assert.equal(await getProjectState(U, P, "corrupt-key"), null);
+  } finally {
+    console.error = origErr;
+  }
+  assert.ok(logged, "corrupt blob is logged, not silently swallowed");
 });
 
 test("distinct keys and projects are isolated", async () => {
