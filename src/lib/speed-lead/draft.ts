@@ -13,13 +13,27 @@ export interface Draft {
 
 const firstName = (name: string) => name.split(" ")[0] ?? name;
 
-export function draftReply(lead: InboundLead): Draft {
+/** Channel-aware contact-back sentence: promise the follow-up on the channel the lead
+ *  actually used, never a phone call "within minutes" for an email with no number. Kept
+ *  honest ("co nejdříve", not a hard minutes commitment). */
+const CONTACT_BACK: Record<InboundLead["channel"], string> = {
+  call: "ozveme se Vám zpět telefonicky co nejdříve",
+  form: "ozveme se Vám na uvedený kontakt co nejdříve",
+  chat: "odpovíme Vám zde co nejdříve",
+  email: "odpovíme Vám na e-mail co nejdříve",
+};
+
+/** A deterministic first-response draft for an inbound lead. `brand` is the project's
+ *  own team/brand name for the sign-off (absent → a neutral "náš tým", never a
+ *  placeholder). The contact-back promise follows the lead's channel. */
+export function draftReply(lead: InboundLead, brand?: string): Draft {
+  const contact = CONTACT_BACK[lead.channel];
+  const signoff = brand?.trim() ? `S pozdravem,\n${brand.trim()}` : "S pozdravem,\nnáš tým";
   const reply = `Dobrý den, ${firstName(lead.name)},
 
-děkujeme za poptávku — ráda/rád ji posunu dál. Abychom Vám připravili přesnou nabídku, ozvu se do pár minut telefonicky; mezitím prosím o doplnění pár detailů níže.
+děkujeme za poptávku — rádi ji posuneme dál. Abychom Vám připravili přesnou nabídku, ${contact}; mezitím prosím o doplnění pár detailů níže.
 
-S pozdravem,
-tým`;
+${signoff}`;
 
   return {
     reply,

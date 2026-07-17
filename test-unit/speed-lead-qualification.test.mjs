@@ -16,6 +16,9 @@ import {
   coerceSnippets,
   DEFAULT_SNIPPETS,
 } from "@/lib/speed-lead/snippets";
+import { draftReply } from "@/lib/speed-lead/draft";
+
+const lead = (channel) => ({ id: "x", name: "Jana Nováková", channel, message: "...", minutesAgo: 2 });
 
 test("empty qualification scores 0, is cold, and counts no answered fields", () => {
   assert.equal(qualificationScore(EMPTY_QUALIFICATION), 0);
@@ -78,6 +81,26 @@ test("expandSnippet replaces every {jméno} / {kanál} and leaves unknowns intac
   assert.equal(expandSnippet("ahoj {neznámé}", { jméno: "A", kanál: "B" }), "ahoj {neznámé}");
   // No placeholders → unchanged.
   assert.equal(expandSnippet("bez proměnných", { jméno: "A", kanál: "B" }), "bez proměnných");
+});
+
+test("draftReply promises the follow-up on the lead's OWN channel, never a blind phone call", () => {
+  assert.match(draftReply(lead("email")).reply, /odpovíme Vám na e-mail/);
+  assert.match(draftReply(lead("chat")).reply, /odpovíme Vám zde/);
+  assert.match(draftReply(lead("form")).reply, /na uvedený kontakt/);
+  assert.match(draftReply(lead("call")).reply, /telefonicky/);
+  // An email lead must NOT be promised a phone call.
+  assert.doesNotMatch(draftReply(lead("email")).reply, /telefonicky/);
+  // Greets by first name.
+  assert.match(draftReply(lead("email")).reply, /Dobrý den, Jana,/);
+});
+
+test("draftReply drops the gendered ráda/rád and signs off with the brand when given", () => {
+  const neutral = draftReply(lead("form")).reply;
+  assert.doesNotMatch(neutral, /ráda\/rád/);
+  assert.match(neutral, /rádi ji posuneme/); // neutral team voice
+  assert.match(neutral, /S pozdravem,\nnáš tým/); // no placeholder when no brand
+  const branded = draftReply(lead("form"), "Adamant").reply;
+  assert.match(branded, /S pozdravem,\nAdamant/);
 });
 
 test("coerceSnippets keeps valid entries, drops malformed, falls back to defaults", () => {
