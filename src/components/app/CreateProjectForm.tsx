@@ -43,6 +43,9 @@ const T = {
     legendCore: "vždy zapnuto",
     legendOn: "zapnuto",
     legendProposed: "navrženo",
+    proposedUnavailable: "Navržený modul — zatím není k dispozici.",
+    prototypeNote:
+      "Vlastní výběr modulů zatím neukládáme — nový projekt se založí s výchozí sadou pro zvolený typ. Moduly upravíte kdykoli později.",
     natureHeading: "Povaha podnikání",
     natureHint: "Určuje výchozí katalog nového projektu (online prodej vs. lokální provozovna). Kdykoli upravíte v Katalogu.",
     onlineLabel: "Online",
@@ -66,6 +69,9 @@ const T = {
     legendCore: "always on",
     legendOn: "on",
     legendProposed: "proposed",
+    proposedUnavailable: "Proposed module — not available yet.",
+    prototypeNote:
+      "Custom module selection isn't saved yet — the project is created with the default set for the chosen type. You can adjust modules anytime later.",
     natureHeading: "Business nature",
     natureHint: "Sets the new project's starter catalog (online sales vs. a local presence). Edit anytime in Catalog.",
     onlineLabel: "Online",
@@ -226,6 +232,17 @@ export default function CreateProjectForm({
                                 </span>
                               ) : st === "no" ? (
                                 <span className="text-navy-200">·</span>
+                              ) : st === "add" ? (
+                                // Proposed additions are NOT wired into the real
+                                // registry (create-project-packages.ts) — a toggle
+                                // here could never take effect, so show it as a
+                                // read-only proposed mark instead of a false control.
+                                <span
+                                  title={t("proposedUnavailable")}
+                                  className="mx-auto block cursor-not-allowed font-bold text-coral-400/60"
+                                >
+                                  +
+                                </span>
                               ) : (
                                 <button
                                   type="button"
@@ -238,10 +255,8 @@ export default function CreateProjectForm({
                                   <span
                                     className={`grid h-5 w-5 place-items-center rounded-md border transition-colors ${
                                       on
-                                        ? st === "add"
-                                          ? "border-coral-500 bg-coral-500 text-white"
-                                          : "border-brand-600 bg-brand-600 text-white"
-                                        : `bg-surface text-transparent ${st === "add" ? "border-dashed border-coral-300" : "border-navy-300"}`
+                                        ? "border-brand-600 bg-brand-600 text-white"
+                                        : "bg-surface text-transparent border-navy-300"
                                     }`}
                                   >
                                     <Check width={13} height={13} />
@@ -323,6 +338,15 @@ export default function CreateProjectForm({
       {draft.error && (
         <p className="rounded-lg bg-negative-soft px-3.5 py-2.5 text-sm text-negative" role="alert">
           {draft.error}
+        </p>
+      )}
+
+      {/* Honest disclosure: the custom on/off selection isn't persisted yet, so the
+          new project ships with the type's default package. Shown only when the
+          user has diverged from that default (so the common path stays quiet). */}
+      {!atDefault && (
+        <p className="rounded-lg border border-line bg-canvas px-3.5 py-2.5 text-xs text-muted">
+          {t("prototypeNote")}
         </p>
       )}
 
