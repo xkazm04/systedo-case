@@ -28,6 +28,8 @@ const T = {
     send: "Odeslat",
     retry: "Zkusit znovu",
     clear: "Vymazat konverzaci",
+    errorSend: "Nepodařilo se odeslat zprávu.",
+    errorGeneric: "Chyba",
     wins: "Co se daří",
     risks: "Na co si dát pozor",
     actions: "Doporučené kroky",
@@ -45,6 +47,8 @@ const T = {
     send: "Send",
     retry: "Retry",
     clear: "Clear conversation",
+    errorSend: "Could not send the message.",
+    errorGeneric: "Error",
     wins: "What’s working",
     risks: "Watch out for",
     actions: "Recommended actions",
@@ -70,7 +74,14 @@ function loadStoredMessages(bucket: string): ChatTurn[] {
  *  conversation persists per `bucket` (project id, or a shared demo bucket) in
  *  localStorage: restored on mount, capped, and written only on SETTLED turns so a
  *  pending / errored exchange never leaves a dangling question in storage. */
-function useReportChat(period: AnalysisPeriod, bucket: string, projectId?: string) {
+function useReportChat(
+  period: AnalysisPeriod,
+  bucket: string,
+  // Localized failure strings — the hook has no access to the component's `useT(T)`
+  // table, so its two error fallbacks are threaded in (were inlined Czech).
+  errors: { send: string; generic: string },
+  projectId?: string
+) {
   // Restore the conversation once, via a lazy initializer (SSR-guarded inside
   // loadStoredMessages) — the repo's per-project persistence pattern (see
   // CampaignTable / useSnippetLibrary), never read in a render or effect body.
@@ -123,12 +134,12 @@ function useReportChat(period: AnalysisPeriod, bucket: string, projectId?: strin
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data?.error ?? "Chyba");
+        setError(data?.error ?? errors.generic);
         return;
       }
       setMessages((m) => [...m, { role: "assistant", content: data.result.reply }]);
     } catch {
-      setError("Nepodařilo se odeslat zprávu.");
+      setError(errors.send);
     } finally {
       setPending(false);
     }
@@ -186,7 +197,12 @@ export default function ReportChat({
 }) {
   const t = useT(T);
   const bucket = storageBucket ?? projectId ?? "demo";
-  const { messages, pending, error, send, retry, clear } = useReportChat(period, bucket, projectId);
+  const { messages, pending, error, send, retry, clear } = useReportChat(
+    period,
+    bucket,
+    { send: t("errorSend"), generic: t("errorGeneric") },
+    projectId
+  );
   const scrollRef = useRef<HTMLDivElement>(null);
   const sourceNote = live ? t("liveData") : t("illustrativeData");
 
