@@ -2,6 +2,7 @@
  *  client+server contract (../ai-types) so the client never pulls in server-only
  *  validation logic — the route handlers import these, the UI imports the types. */
 
+import { AD_FIELD_LIMITS, BRIEF_FIELD_LIMITS } from "./field-limits";
 import {
   ANALYSIS_PERIODS,
   CONTENT_TYPES,
@@ -91,13 +92,13 @@ export function validateAdRequest(input: unknown, locale: SupportedLocale = "cs"
   const platform = o.platform as Platform;
   const tone = o.tone as Tone;
 
-  if (product.length < 2 || product.length > 200) {
+  if (product.length < AD_FIELD_LIMITS.product.min || product.length > AD_FIELD_LIMITS.product.max) {
     return { valid: false, error: t(locale, "Vyplňte název produktu nebo služby (2–200 znaků).", "Please fill in the product or service name (2–200 characters).") };
   }
-  if (benefits.length < 2 || benefits.length > 600) {
+  if (benefits.length < AD_FIELD_LIMITS.benefits.min || benefits.length > AD_FIELD_LIMITS.benefits.max) {
     return { valid: false, error: t(locale, "Vyplňte hlavní výhody (2–600 znaků).", "Please fill in the main benefits (2–600 characters).") };
   }
-  if (audience.length < 2 || audience.length > 300) {
+  if (audience.length < AD_FIELD_LIMITS.audience.min || audience.length > AD_FIELD_LIMITS.audience.max) {
     return { valid: false, error: t(locale, "Vyplňte cílovou skupinu (2–300 znaků).", "Please fill in the target audience (2–300 characters).") };
   }
   if (!PLATFORMS.includes(platform)) {
@@ -122,13 +123,13 @@ export function validateBriefRequest(input: unknown, locale: SupportedLocale = "
   const audience = str(o.audience);
   const contentType = o.contentType as ContentType;
 
-  if (topic.length < 2 || topic.length > 200) {
+  if (topic.length < BRIEF_FIELD_LIMITS.topic.min || topic.length > BRIEF_FIELD_LIMITS.topic.max) {
     return { valid: false, error: t(locale, "Vyplňte téma obsahu (2–200 znaků).", "Please fill in the content topic (2–200 characters).") };
   }
-  if (primaryKeyword.length < 2 || primaryKeyword.length > 120) {
+  if (primaryKeyword.length < BRIEF_FIELD_LIMITS.primaryKeyword.min || primaryKeyword.length > BRIEF_FIELD_LIMITS.primaryKeyword.max) {
     return { valid: false, error: t(locale, "Vyplňte hlavní klíčové slovo (2–120 znaků).", "Please fill in the primary keyword (2–120 characters).") };
   }
-  if (audience.length < 2 || audience.length > 300) {
+  if (audience.length < BRIEF_FIELD_LIMITS.audience.min || audience.length > BRIEF_FIELD_LIMITS.audience.max) {
     return { valid: false, error: t(locale, "Vyplňte cílovou skupinu (2–300 znaků).", "Please fill in the target audience (2–300 characters).") };
   }
   if (!CONTENT_TYPES.includes(contentType)) {

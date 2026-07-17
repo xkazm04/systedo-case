@@ -67,6 +67,16 @@ test("clusterToBriefRequest falls back to the pillar when the topic is empty", (
   assert.equal(req.contentType, "kategorie");
 });
 
+test("clusterToBriefRequest blanks an audience below the validator floor", () => {
+  const cluster = { topic: "Skladování", pillar: "skladování ořechů", supporting: [], totalVolume: 0 };
+  // A 1-char audience would look filled but fail validateBriefRequest's 2-char floor.
+  const req = clusterToBriefRequest(cluster, [], { audience: "A" });
+  assert.equal(req.audience, "");
+  // A valid audience passes through untouched.
+  const ok = clusterToBriefRequest(cluster, [], { audience: "Domácí pekaři" });
+  assert.equal(ok.audience, "Domácí pekaři");
+});
+
 test("briefToArticleDraftRequest is the ArticleDraftPanel subset plus audience", () => {
   const req = briefToArticleDraftRequest(brief(), { audience: "Pekaři", contentType: "blog" });
   assert.equal(req.titleTag, "Skladování ořechů: průvodce");

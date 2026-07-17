@@ -5,10 +5,17 @@
  *  everything an AdRequest needs already exists on the brief side. */
 
 import type { AdRequest, BriefResult } from "../ai-types";
+import { AD_FIELD_LIMITS } from "./field-limits";
 
 /** Server-side caps for the ad-request fields (see validateAdRequest) — the seed
- *  must respect them so a handed-off form submits without edits. */
-export const AD_SEED_LIMITS = { product: 200, benefits: 600, audience: 300 } as const;
+ *  must respect them so a handed-off form submits without edits. Derived from the
+ *  single AD_FIELD_LIMITS source shared with the validator; the seed also honors the
+ *  MINs below (a field under its floor is omitted, not emitted too-short). */
+export const AD_SEED_LIMITS = {
+  product: AD_FIELD_LIMITS.product.max,
+  benefits: AD_FIELD_LIMITS.benefits.max,
+  audience: AD_FIELD_LIMITS.audience.max,
+} as const;
 
 /** Join list items with ", " up to `max` characters WITHOUT cutting an item in
  *  half — a truncated benefit ("doprava zda") reads worse than one fewer. Always
@@ -35,10 +42,14 @@ export function briefToAdSeed(topic: string, audience: string, brief: BriefResul
     points.length > 0 ? points : brief.keywords,
     AD_SEED_LIMITS.benefits
   );
-  const product = (topic.trim() || brief.h1 || brief.titleTag).slice(0, AD_SEED_LIMITS.product);
-  const seed: Partial<AdRequest> = { product };
-  const aud = audience.trim().slice(0, AD_SEED_LIMITS.audience);
-  if (aud) seed.audience = aud;
-  if (benefits) seed.benefits = benefits;
+  const product = (topic.trim() || brief.h1 || brief.titleTag).slice(0, AD_FIELD_LIMITS.product.max);
+  // Only emit a field that clears the validator's MIN; a shorter value would advertise
+  // "submits without edits" then be rejected at the ad step. Below the floor, omit it
+  // so the handed-off form opens with an honest empty (required) field instead.
+  const seed: Partial<AdRequest> = {};
+  if (product.length >= AD_FIELD_LIMITS.product.min) seed.product = product;
+  const aud = audience.trim().slice(0, AD_FIELD_LIMITS.audience.max);
+  if (aud.length >= AD_FIELD_LIMITS.audience.min) seed.audience = aud;
+  if (benefits.length >= AD_FIELD_LIMITS.benefits.min) seed.benefits = benefits;
   return seed;
 }

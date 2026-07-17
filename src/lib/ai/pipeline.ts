@@ -17,6 +17,7 @@ import type {
   Tone,
 } from "../ai-types";
 import { blockToMarkdown, faqToMarkdown, type MarkdownLabels } from "../article-markdown";
+import { BRIEF_FIELD_LIMITS } from "./field-limits";
 
 /** Server-side cap on the clustering input (validateKeywordClustersRequest). */
 export const PIPELINE_KEYWORDS_MAX = 60;
@@ -68,10 +69,14 @@ export function clusterToBriefRequest(
       volume: volumeByKeyword.get(keyword.toLowerCase()) ?? 0,
       competition: "",
     }));
+  // Respect the validator's MIN floor on audience: a 1-char audience would look
+  // filled yet be rejected by validateBriefRequest at the brief step. Below the
+  // floor, blank it so the wizard shows an honest empty required field.
+  const audience = opts.audience.trim().slice(0, BRIEF_FIELD_LIMITS.audience.max);
   return {
-    topic: cluster.topic.trim().slice(0, 200) || cluster.pillar.slice(0, 200),
-    primaryKeyword: cluster.pillar.trim().slice(0, 120),
-    audience: opts.audience.trim().slice(0, 300),
+    topic: cluster.topic.trim().slice(0, BRIEF_FIELD_LIMITS.topic.max) || cluster.pillar.slice(0, BRIEF_FIELD_LIMITS.topic.max),
+    primaryKeyword: cluster.pillar.trim().slice(0, BRIEF_FIELD_LIMITS.primaryKeyword.max),
+    audience: audience.length >= BRIEF_FIELD_LIMITS.audience.min ? audience : "",
     contentType: opts.contentType ?? "blog",
     keywords: keywords.length > 0 ? keywords : undefined,
   };
