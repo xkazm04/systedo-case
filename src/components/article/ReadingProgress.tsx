@@ -8,6 +8,7 @@ import {
   parseReadingPosition,
   readingPositionKey,
   remainingMinutes,
+  resumeScrollTop,
   shouldOfferResume,
   type ReadingPosition,
 } from "./reading-resume";
@@ -111,8 +112,12 @@ export default function ReadingProgress({ readingMinutes }: { readingMinutes?: n
 
   const resumeReading = () => {
     if (!resume) return;
+    // Resume by the stored progress *fraction* against the current layout, not
+    // the saved pixel offset — cross-device / post-edit the absolute y would land
+    // the reader in an unrelated section (article-reading #1).
+    const max = document.documentElement.scrollHeight - window.innerHeight;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: resume.y, behavior: reduced ? "auto" : "smooth" });
+    window.scrollTo({ top: resumeScrollTop(resume.p, max), behavior: reduced ? "auto" : "smooth" });
     setResume(null);
   };
 
