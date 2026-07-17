@@ -42,8 +42,12 @@ export default function LocaleShowcase() {
 
   return (
     <div className="space-y-4">
+      {/* A two-state value switch, not a WAI-ARIA tabs widget (no tabpanels /
+          roving focus / arrow-key nav) — so it's a group of aria-pressed toggle
+          buttons rather than role="tablist"/"tab", which would promise behaviour
+          this control doesn't implement. */}
       <div
-        role="tablist"
+        role="group"
         aria-label="Výběr jazyka a měny"
         className="inline-flex rounded-pill border border-line bg-surface p-1"
       >
@@ -51,8 +55,7 @@ export default function LocaleShowcase() {
           <button
             key={loc}
             type="button"
-            role="tab"
-            aria-selected={locale === loc}
+            aria-pressed={locale === loc}
             onClick={() => setLocale(loc)}
             className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
               locale === loc ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
