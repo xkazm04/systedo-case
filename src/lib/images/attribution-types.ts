@@ -90,21 +90,36 @@ export interface StylePrior {
   hint: string;
 }
 
-/** Distil the leaderboard into a prior for the next generation: prefer the
- *  highest-ROAS style with real spend; fall back to the best vision score. */
-export function deriveStylePrior(stats: StyleStat[]): StylePrior {
-  const withSpend = stats.filter((s) => s.totalCost > 0);
-  const best = withSpend[0] ?? stats.find((s) => s.avgVisionScore != null) ?? null;
-  if (!best) return { style: null, hint: "" };
+/** A style must actually convert before we crown it a "best converting" prior:
+ *  spend alone (with ROAS 0) proves the opposite, so require positive ROAS and
+ *  at least one real conversion. */
+const PRIOR_MIN_CONVERSIONS = 1;
 
-  if (best.totalCost > 0) {
+/** Distil the leaderboard into a prior for the next generation: prefer the
+ *  highest-ROAS style that actually earned (positive ROAS + a real conversion);
+ *  otherwise fall back to the best average vision score. */
+export function deriveStylePrior(stats: StyleStat[]): StylePrior {
+  // stats arrives sorted by ROAS desc, so the first profitable entry is the top
+  // earner; still filter explicitly rather than trust the upstream sort.
+  const profitable = stats.filter(
+    (s) => s.totalCost > 0 && s.roas > 0 && s.conversions >= PRIOR_MIN_CONVERSIONS,
+  );
+  if (profitable[0]) {
+    const best = profitable[0];
     return {
       style: best.style,
       hint: `Drž se vizuálního stylu „${best.label}" — historicky nejlépe konvertuje (ROAS ${fmtMultiple(best.roas)}).`,
     };
   }
-  return {
-    style: best.style,
-    hint: `Drž se vizuálního stylu „${best.label}" — dosud nejvyšší kvalita vizuálů.`,
-  };
+
+  const bestVision = stats
+    .filter((s) => s.avgVisionScore != null)
+    .sort((a, b) => (b.avgVisionScore ?? 0) - (a.avgVisionScore ?? 0))[0];
+  if (bestVision) {
+    return {
+      style: bestVision.style,
+      hint: `Drž se vizuálního stylu „${bestVision.label}" — dosud nejvyšší kvalita vizuálů.`,
+    };
+  }
+  return { style: null, hint: "" };
 }
