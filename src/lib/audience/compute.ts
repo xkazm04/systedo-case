@@ -159,11 +159,14 @@ export interface SegmentPremiumRow {
 }
 
 export interface RateCard {
-  /** active subscribers reachable per send */
+  /** active subscribers (funnel.activeSubscribers) — reported for context only; the
+   *  price is NOT derived from this to avoid mixing it with the segment population */
   activeReach: number;
-  /** blended open rate across segments, weighted by subscribers (0–1) */
+  /** blended open rate across segments, weighted by subscribers (0–1) =
+   *  opensPerSend ÷ total segment subscribers */
   blendedOpenRate: number;
-  /** estimated opens per send (activeReach × blendedOpenRate) */
+  /** opens delivered per send = Σ(segment subscribers × segment open rate). One
+   *  population (segment subscribers), so pricing can't double-count inactive openers */
   opensPerSend: number;
   /** suggested slot price floor / ceiling per send (CZK) */
   priceFloor: number;
@@ -186,12 +189,15 @@ export function rateCard(
 ): RateCard {
   const activeReach = Math.max(0, funnel.activeSubscribers);
 
-  // Subscriber-weighted blended open rate across segments.
+  // Price on ONE population: opens delivered per send = Σ(segment subscribers × their
+  // open rate). Previously the blend was per *total* subscriber but multiplied by the
+  // *active* count — two different populations, so an inactive low-open segment dragged
+  // the blend down AND the active discount was applied on top (double-counted against
+  // the seller, under-pricing the slot). blendedOpenRate is now just the reporting view
+  // of that same figure (opens ÷ subscribers) and activeReach is informational only.
   const segSubs = segments.reduce((a, sg) => a + sg.subscribers, 0);
-  const blendedOpenRate =
-    segSubs > 0 ? segments.reduce((a, sg) => a + sg.openRate * sg.subscribers, 0) / segSubs : 0;
-
-  const opensPerSend = activeReach * blendedOpenRate;
+  const opensPerSend = segments.reduce((a, sg) => a + sg.openRate * sg.subscribers, 0);
+  const blendedOpenRate = segSubs > 0 ? opensPerSend / segSubs : 0;
   const per1000 = opensPerSend / 1000;
   const priceFloor = per1000 * band.cpmFloor;
   const priceCeil = per1000 * band.cpmCeil;

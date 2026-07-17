@@ -117,6 +117,26 @@ test("rateCard: per-segment premium is openRate vs. blended, sorted desc", () =>
   assert.ok(Math.abs(c.segments[1].premium + 0.5) < 1e-9);
 });
 
+test("rateCard: opens are Σ(segment subs × open rate), not active-reach × blend", () => {
+  // Active count (5000) differs from total segment subscribers (10000, incl. an
+  // inactive low-open segment). The old formula multiplied a whole-list blend by the
+  // active count, double-counting the inactive segment and UNDER-pricing the slot.
+  const funnel = { visitors: 0, subscribers: 10_000, activeSubscribers: 5000 };
+  const segments = [
+    { name: "Active", subscribers: 8000, openRate: 0.5, rpm: 0 },
+    { name: "Neaktivní", subscribers: 2000, openRate: 0.05, rpm: 0 },
+  ];
+  const c = rateCard(funnel, segments, { cpmFloor: 100, cpmCeil: 300 });
+  // opens = 8000*0.5 + 2000*0.05 = 4100 (one population, no active discount on top).
+  assert.ok(Math.abs(c.opensPerSend - 4100) < 1e-9);
+  // blendedOpenRate is the reporting view = opens / total subs = 4100/10000 = 0.41.
+  assert.ok(Math.abs(c.blendedOpenRate - 0.41) < 1e-9);
+  // activeReach is reported but NOT folded into the price.
+  assert.equal(c.activeReach, 5000);
+  // Old buggy price would have been 5000*0.41/1000*CPM — strictly lower. per-1000 = 4.1.
+  assert.ok(Math.abs(c.priceFloor - 410) < 1e-9); // 4.1 * 100
+});
+
 test("rateCard: zero reach / no segments yields a safe zeroed card (no NaN)", () => {
   const c = rateCard({ visitors: 0, subscribers: 0, activeSubscribers: 0 }, [], {
     cpmFloor: 100,
