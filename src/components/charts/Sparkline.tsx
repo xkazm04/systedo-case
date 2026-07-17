@@ -7,7 +7,8 @@
  *  and a fixed `domain` for cross-chart comparability. Used in the hero, every
  *  KPI card, the campaign table and the app modules. */
 
-import { fmtSignedPct } from "@/lib/format";
+import { createFormatters, DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
+import { trendAriaLabel } from "./trendLabel";
 
 type Direction = "up" | "down";
 
@@ -59,10 +60,14 @@ interface SparklineProps {
   /** explicit aria-label; overrides `describe` and promotes the SVG to an image
    *  in the accessibility tree (otherwise the chart is decorative/aria-hidden) */
   label?: string;
-  /** Build the generated aria-label from already-formatted endpoints + percent.
-   *  Defaults to a cs-CZ phrasing; pass this (with a locale-aware `formatValue`)
-   *  to localise the label — this component is dependency-free and has no locale
-   *  of its own, so the single formatting source stays at the call site. */
+  /** Locale for the generated aria-label's phrasing AND its percent formatting
+   *  (comma vs. dot decimal). Defaults to cs so existing callers are unchanged;
+   *  pass `"en"` (with a locale-aware `formatValue` for the endpoints) so an
+   *  en-locale screen reader doesn't hear a Czech sentence. Ignored when an
+   *  explicit `label` or `describeLabel` is supplied. */
+  locale?: SupportedLocale;
+  /** Override the generated aria-label from already-formatted endpoints +
+   *  percent. When omitted, the label is built by `trendAriaLabel(locale, …)`. */
   describeLabel?: (parts: { start: string; end: string; pct: string }) => string;
   className?: string;
 }
@@ -97,6 +102,7 @@ export default function Sparkline({
   describe = false,
   formatValue,
   label,
+  locale = DEFAULT_LOCALE,
   describeLabel,
   className,
 }: SparklineProps) {
@@ -163,13 +169,14 @@ export default function Sparkline({
   if (!a11yLabel && describe) {
     const fmt = formatValue ?? ((n: number) => String(n));
     const pct = pctChange(first, last);
-    // Route the percent through the shared signed formatter (comma decimal +
-    // true minus in cs), matching the default cs phrasing of `describeLabel`.
-    const pctStr = fmtSignedPct(pct / 100, Number.isInteger(pct) ? 0 : 1);
+    // Route the percent through the locale's signed formatter (comma decimal +
+    // true minus in cs; dot + ASCII minus in en) so it matches the phrasing.
+    const pctStr = createFormatters(locale).fmtSignedPct(
+      pct / 100,
+      Number.isInteger(pct) ? 0 : 1
+    );
     const parts = { start: fmt(first), end: fmt(last), pct: pctStr };
-    a11yLabel = describeLabel
-      ? describeLabel(parts)
-      : `Trend od ${parts.start} do ${parts.end}, změna ${parts.pct}`;
+    a11yLabel = describeLabel ? describeLabel(parts) : trendAriaLabel(locale, parts);
   }
 
   return (
