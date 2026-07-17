@@ -200,6 +200,38 @@ export interface NewProjectInput {
   domain?: string;
 }
 
-/** Patchable fields on an existing project. */
+/** Patchable fields on an existing project. A field left `undefined` is "leave
+ *  as-is"; an empty/whitespace string on a nullable field (logoUrl/domain/
+ *  adsCustomerId) CLEARS it. A blank `name` is rejected (see normalizeProjectPatch),
+ *  not applied — a project always has a display name. */
 export type ProjectPatch = Partial<Pick<Project, "name" | "type" | "accentColor" | "logoUrl" | "domain" | "adsCustomerId">>;
+
+/** A ProjectPatch resolved to its stored representation: only the keys actually
+ *  being changed are present; a nullable field carries `null` to CLEAR it (vs.
+ *  absent = leave as-is). Both store backends run patches through
+ *  `normalizeProjectPatch` so they persist IDENTICAL data for identical calls —
+ *  the local backend maps `null` → SQL NULL, Firestore → FieldValue.delete(). */
+export interface NormalizedProjectPatch {
+  name?: string;
+  type?: ProjectType;
+  accentColor?: string;
+  logoUrl?: string | null;
+  domain?: string | null;
+  adsCustomerId?: string | null;
+}
+
+/** Single source of truth for patch normalization, shared by both store backends so
+ *  their stored representation can't drift (only their read-back shape used to be
+ *  forced to converge). Trims text fields; an empty/whitespace nullable field becomes
+ *  `null` (clear). A key absent from the input stays absent from the output. */
+export function normalizeProjectPatch(patch: ProjectPatch): NormalizedProjectPatch {
+  const out: NormalizedProjectPatch = {};
+  if (patch.name !== undefined) out.name = patch.name;
+  if (patch.type !== undefined) out.type = patch.type;
+  if (patch.accentColor !== undefined) out.accentColor = patch.accentColor;
+  if (patch.logoUrl !== undefined) out.logoUrl = patch.logoUrl.trim() || null;
+  if (patch.domain !== undefined) out.domain = patch.domain.trim() || null;
+  if (patch.adsCustomerId !== undefined) out.adsCustomerId = patch.adsCustomerId.trim() || null;
+  return out;
+}
 

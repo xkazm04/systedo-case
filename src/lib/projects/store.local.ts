@@ -11,6 +11,7 @@ import { ensureLocalUser } from "@/lib/users/local";
 import {
   PROJECT_TYPE_META,
   coerceProjectType,
+  normalizeProjectPatch,
   type NewProjectInput,
   type Project,
   type ProjectPatch,
@@ -97,16 +98,17 @@ export async function updateProject(
     .get(projectId, userId) as ProjectRow | undefined;
   if (!row) return null;
 
+  // Normalize once (shared with the Firestore backend) so both persist identically:
+  // trims text, empty string on a nullable field → null (clear), key absent → leave.
+  const norm = normalizeProjectPatch(patch);
   const next: ProjectRow = {
     ...row,
-    name: patch.name ?? row.name,
-    type: patch.type ?? row.type,
-    accent_color: patch.accentColor ?? row.accent_color,
-    // `undefined` means "leave as-is"; an empty string clears the field.
-    logo_url: patch.logoUrl !== undefined ? patch.logoUrl.trim() || null : row.logo_url,
-    domain: patch.domain !== undefined ? patch.domain.trim() || null : row.domain,
-    ads_customer_id:
-      patch.adsCustomerId !== undefined ? patch.adsCustomerId || null : row.ads_customer_id,
+    name: norm.name ?? row.name,
+    type: norm.type ?? row.type,
+    accent_color: norm.accentColor ?? row.accent_color,
+    logo_url: "logoUrl" in norm ? norm.logoUrl ?? null : row.logo_url,
+    domain: "domain" in norm ? norm.domain ?? null : row.domain,
+    ads_customer_id: "adsCustomerId" in norm ? norm.adsCustomerId ?? null : row.ads_customer_id,
     updated_at: new Date().toISOString(),
   };
   db.prepare(

@@ -6,10 +6,12 @@
  *  Selected by the dispatcher in `store.ts` when LOCAL_DB is off. Importing this
  *  module pulls in `@/lib/firebase`, so the dispatcher loads it lazily and the
  *  LOCAL_DB path never touches it. */
+import { FieldValue } from "firebase-admin/firestore";
 import { firestore } from "@/lib/firebase";
 import {
   PROJECT_TYPE_META,
   coerceProjectType,
+  normalizeProjectPatch,
   type NewProjectInput,
   type Project,
   type ProjectPatch,
@@ -58,7 +60,9 @@ export async function createProject(userId: string, input: NewProjectInput): Pro
     name: input.name.trim() || PROJECT_TYPE_META[input.type].label,
     type: input.type,
     accentColor: input.accentColor || PROJECT_TYPE_META[input.type].defaultAccent,
-    ...(input.domain ? { domain: input.domain.trim() } : {}),
+    // `input.domain?.trim()` (not `input.domain`) so a whitespace-only value doesn't
+    // store `domain: ""` here while the local backend omits it — same guard as local.
+    ...(input.domain?.trim() ? { domain: input.domain.trim() } : {}),
     createdAt: now,
     updatedAt: now,
   };
@@ -75,10 +79,25 @@ export async function updateProject(
   const ref = projectsCol(userId).doc(projectId);
   const doc = await ref.get();
   if (!doc.exists) return null;
-  // Drop undefined keys so we never write `undefined` into Firestore.
-  const clean = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
-  await ref.set({ ...clean, updatedAt: new Date().toISOString() }, { merge: true });
-  return toProject(projectId, { ...doc.data(), ...clean, updatedAt: new Date().toISOString() });
+  // Normalize once (shared with the local backend) so both persist identically:
+  // trims text, empty string on a nullable field → CLEAR. A cleared field maps to
+  // FieldValue.delete() so the key is removed rather than stored as "" (which is
+  // what let a `where("domain","!=",null)` query or a direct read drift from local).
+  const norm = normalizeProjectPatch(patch);
+  const updatedAt = new Date().toISOString();
+  const write: Record<string, unknown> = { updatedAt };
+  const merged: FirebaseFirestore.DocumentData = { ...doc.data(), updatedAt };
+  for (const [k, v] of Object.entries(norm)) {
+    if (v === null) {
+      write[k] = FieldValue.delete();
+      delete merged[k];
+    } else {
+      write[k] = v;
+      merged[k] = v;
+    }
+  }
+  await ref.set(write, { merge: true });
+  return toProject(projectId, merged);
 }
 
 /** Delete a project. (Data modules still key on the per-user tenant in v1, so
