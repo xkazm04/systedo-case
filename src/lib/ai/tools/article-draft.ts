@@ -261,16 +261,44 @@ function demoArticleDraft(req: ArticleDraftRequest): ArticleDraftResult {
   return { blocks, faq };
 }
 
-/** Flag a draft with no usable body blocks so the wrapper can re-prompt once. */
-export function validateArticleDraft(parsed: unknown): string[] {
+/** Flag a draft with no usable body blocks so the wrapper can re-prompt once.
+ *  When the brief asked for FAQs (`expectFaq`), an empty/invalid `faq` is flagged
+ *  too, so the repair pass fires instead of the normalizer silently splicing
+ *  demo placeholder copy into a real draft (the FAQ was the one backfill surface
+ *  the validator didn't cover). */
+export function validateArticleDraft(parsed: unknown, expectFaq = false): string[] {
   return withObjectGuard((o) => {
+    const v: string[] = [];
     const raw = Array.isArray(o.blocks) ? o.blocks : [];
     const valid = raw.map((b, i) => toBlock(b, i)).filter((b): b is Block => b !== null);
     if (valid.length === 0) {
-      return ["Návrh neobsahuje žádný platný blok textu — vrať tělo článku jako pole „blocks“."];
+      v.push("Návrh neobsahuje žádný platný blok textu — vrať tělo článku jako pole „blocks“.");
     }
-    return [];
+    if (expectFaq && normalizeFaq(o.faq).length === 0) {
+      v.push("Chybí sekce častých dotazů — vrať odpovědi na otázky z briefu v poli „faq“.");
+    }
+    return v;
   })(parsed);
+}
+
+/** Neutral placeholders for the PARTIAL-backfill path (a real model answered but
+ *  left one half empty). Unlike demoArticleDraft — the keyless preview whose
+ *  "Ukázkový koncept / připojte LLM" copy is honest only when the whole draft is
+ *  canned — this carries no demo marketing, which reads as nonsense spliced into
+ *  a provider-generated draft. An empty FAQ is left empty so the panel renders
+ *  its own empty state rather than a fake "Doplní AI po nastavení LLM." answer. */
+function neutralArticleBackfill(req: ArticleDraftRequest): ArticleDraftResult {
+  return {
+    blocks: [
+      {
+        type: "p",
+        content: [
+          `Tělo článku „${req.h1 || req.titleTag}“ se nepodařilo vygenerovat — zkuste generování zopakovat.`,
+        ],
+      },
+    ],
+    faq: [],
+  };
 }
 
 export function generateArticleDraft(
@@ -291,13 +319,21 @@ export function generateArticleDraft(
       .map((b, i) => toBlock(b, i))
       .filter((b): b is Block => b !== null);
     const faq = normalizeFaq(o?.faq);
-    const demo = fallback();
     const blocksCanned = blocks.length === 0;
     const faqCanned = faq.length === 0;
     backfill = blocksCanned && faqCanned ? "full" : blocksCanned || faqCanned ? "partial" : "none";
+    // Fully canned → the rich keyless demo draft (honest: meta.demo is set below,
+    // refund fires). Partial → keep the model's real half and backfill the empty
+    // half with NEUTRAL copy, never the keyless "connect an LLM" marketing that
+    // used to leak verbatim into a provider-generated draft.
+    if (backfill === "full") {
+      const demo = fallback();
+      return { blocks: demo.blocks, faq: demo.faq };
+    }
+    const neutral = neutralArticleBackfill(req);
     return {
-      blocks: blocks.length ? blocks : demo.blocks,
-      faq: faq.length ? faq : demo.faq,
+      blocks: blocks.length ? blocks : neutral.blocks,
+      faq: faq.length ? faq : neutral.faq,
     };
   };
 
@@ -309,7 +345,7 @@ export function generateArticleDraft(
     schema: ARTICLE_DRAFT_SCHEMA,
     temperature: 0.8,
     normalize,
-    validate: validateArticleDraft,
+    validate: (parsed) => validateArticleDraft(parsed, req.faq.length > 0),
     demo: fallback,
     locale,
     signal,
