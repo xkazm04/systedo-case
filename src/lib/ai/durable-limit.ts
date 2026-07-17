@@ -188,6 +188,30 @@ export async function chargeGlobalSpend(units: number): Promise<void> {
   }
 }
 
+/** Read-only peek at the GLOBAL daily spend ceiling: today's used count and the
+ *  configured ceiling, WITHOUT charging anything. Backs the preflight banner's
+ *  shared-capacity warning so a user learns the global budget is spent BEFORE
+ *  filling a form and burning a request on a 429 that lasts until UTC midnight —
+ *  the one budget gate the per-IP peek was blind to. Reads the same
+ *  `_global_YYYY-MM-DD` doc `durableGuard` writes (a plain get, no transaction,
+ *  mirroring `peekDurableRemaining`). Best-effort: returns `{ used: 0, ceiling }`
+ *  when the ceiling is disabled or Firestore is unreachable, so a peek can never
+ *  brick the free status endpoint. */
+export async function peekGlobalSpend(): Promise<{ used: number; ceiling: number }> {
+  const ceiling = globalDailyCeiling();
+  if (ceiling === 0) return { used: 0, ceiling: 0 };
+  const now = Date.now();
+  const day = new Date(now).toISOString().slice(0, 10);
+  try {
+    const snap = await firestore.collection(COLL).doc(`_global_${day}`).get();
+    const used = (snap.data()?.count as number) ?? 0;
+    return { used: Math.max(0, used), ceiling };
+  } catch (err) {
+    console.error("[durable-limit] global-spend peek failed:", err);
+    return { used: 0, ceiling };
+  }
+}
+
 /** Read-only peek at the durable counters: how many requests remain per rule for
  *  `ip`, WITHOUT incrementing anything — the data behind the preflight
  *  /api/ai/status endpoint. Reads the same Firestore docs durableGuard writes

@@ -22,6 +22,9 @@ const T = {
     exhaustedTitle: "Dnešní limit AI generování je vyčerpán",
     exhaustedBodyIp: "Zkuste to prosím znovu zítra.",
     exhaustedBodyPlan: "Zkuste to zítra, nebo přejděte na vyšší plán.",
+    capacityTitle: "AI je dočasně na denním limitu",
+    capacityBody:
+      "Denní kapacita AI generování je pro dnešek vyčerpána napříč všemi uživateli. Zkuste to prosím zítra.",
     lowRemaining: "Zbývá {n} generování dnes.",
     upgradeCta: "Přejít na ceník",
     providerAvailable: "dostupný",
@@ -37,6 +40,9 @@ const T = {
     exhaustedTitle: "Today's AI generation limit is spent",
     exhaustedBodyIp: "Please try again tomorrow.",
     exhaustedBodyPlan: "Try again tomorrow, or upgrade your plan.",
+    capacityTitle: "AI is at today's shared limit",
+    capacityBody:
+      "Today's AI generation capacity is spent across all users. Please try again tomorrow.",
     lowRemaining: "{n} generations left today.",
     upgradeCta: "See pricing",
     providerAvailable: "available",
@@ -67,15 +73,19 @@ export default function AiPreflight() {
       ? t("demoTitle")
       : notice.kind === "degraded"
         ? t("degradedTitle")
-        : t("exhaustedTitle");
+        : notice.kind === "capacity"
+          ? t("capacityTitle")
+          : t("exhaustedTitle");
   const body =
     notice.kind === "demo"
       ? t("demoBody")
       : notice.kind === "degraded"
         ? t("degradedBody")
-        : notice.metered
-          ? t("exhaustedBodyPlan")
-          : t("exhaustedBodyIp");
+        : notice.kind === "capacity"
+          ? t("capacityBody")
+          : notice.metered
+            ? t("exhaustedBodyPlan")
+            : t("exhaustedBodyIp");
   return (
     <div
       role="status"

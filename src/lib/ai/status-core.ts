@@ -47,6 +47,11 @@ export interface AiStatusPayload {
   limits: { perMin: number; perDay: number };
   /** signed-in per-plan AI quota (aiEval), when the caller is authenticated */
   usage?: { used: number; limit: number };
+  /** shared GLOBAL daily spend ceiling across ALL callers (from the durable
+   *  guard's `_global_` doc). A generation is refused once used >= ceiling even
+   *  when the caller's own per-IP/plan budget is fine — the gate the per-IP peek
+   *  was blind to. Absent when the ceiling is disabled. */
+  global?: { used: number; ceiling: number };
 }
 
 /** Resolve which path would serve a generation, given the environment-preferred
@@ -120,7 +125,7 @@ export function latencyByTool(
 /** Below this many generations left for the day, the banner starts warning. */
 export const PREFLIGHT_LOW_REMAINING = 5;
 
-export type PreflightKind = "demo" | "exhausted" | "degraded" | "low" | null;
+export type PreflightKind = "demo" | "capacity" | "exhausted" | "degraded" | "low" | null;
 
 export interface PreflightNotice {
   kind: PreflightKind;
@@ -140,6 +145,13 @@ export interface PreflightNotice {
  *  already handled by the 429 countdown. */
 export function preflightNotice(s: AiStatusPayload): PreflightNotice {
   if (s.demo) return { kind: "demo", remaining: 0, metered: Boolean(s.usage) };
+  // The shared global daily ceiling blocks EVERY caller regardless of their own
+  // budget, and its lockout runs until UTC midnight (the longest of any state),
+  // so it must warn even when the per-IP/plan peek still shows plenty. It isn't
+  // the caller's fault, so it is a distinct "capacity" state (no upgrade CTA).
+  if (s.global && s.global.ceiling > 0 && s.global.used >= s.global.ceiling) {
+    return { kind: "capacity", remaining: 0, metered: false };
+  }
   const metered = Boolean(s.usage);
   const remaining = s.usage
     ? Math.max(0, s.usage.limit - s.usage.used)

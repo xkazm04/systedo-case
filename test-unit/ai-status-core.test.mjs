@@ -54,6 +54,26 @@ test("demo mode outranks every budget state", () => {
   assert.equal(n.kind, "demo");
 });
 
+test("global daily ceiling: a spent shared budget raises 'capacity' even when the caller's own budget is fine", () => {
+  // per-IP budget plentiful, but the shared global ceiling is exhausted → the
+  // caller WILL 429 until UTC midnight, so the banner must warn (not stay quiet).
+  const spent = preflightNotice(status({ global: { used: 2000, ceiling: 2000 } }));
+  assert.equal(spent.kind, "capacity");
+  assert.equal(spent.metered, false, "shared capacity is not the caller's fault → no upgrade CTA");
+
+  // ceiling not yet reached → no capacity notice
+  const ok = preflightNotice(status({ global: { used: 10, ceiling: 2000 } }));
+  assert.equal(ok.kind, null);
+
+  // a disabled ceiling (0) never triggers capacity
+  const off = preflightNotice(status({ global: { used: 5, ceiling: 0 } }));
+  assert.equal(off.kind, null);
+
+  // demo still outranks a spent global ceiling
+  const demo = preflightNotice(status({ demo: true, global: { used: 2000, ceiling: 2000 } }));
+  assert.equal(demo.kind, "demo");
+});
+
 test("anonymous daily budget: low then exhausted; per-minute alone is ignored", () => {
   const low = preflightNotice(
     status({ remaining: { perMin: 8, perDay: PREFLIGHT_LOW_REMAINING } })

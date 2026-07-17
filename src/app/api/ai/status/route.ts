@@ -21,7 +21,7 @@ import { aggregateTelemetry, listLlmTelemetry } from "@/lib/llm/telemetry";
 import { summarizeAiOps } from "@/lib/llm/telemetry-ops";
 import { getUsage } from "@/lib/usage";
 import { RATE_RULES, clientIp } from "@/lib/ai/rate-limit";
-import { peekDurableRemaining } from "@/lib/ai/durable-limit";
+import { peekDurableRemaining, peekGlobalSpend } from "@/lib/ai/durable-limit";
 import { latencyByTool, resolveWouldServe, type AiStatusPayload } from "@/lib/ai/status-core";
 import { providerOrder, type ProviderName } from "@/lib/llm/provider-order";
 
@@ -35,7 +35,13 @@ export async function GET(request: Request) {
   // Read-only peek at the same rules — and the same durable counters — the paid
   // route enforces, so the preflight number matches what a POST would hit.
   const rules = [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()];
-  const [perMin, perDay] = await peekDurableRemaining(clientIp(request), rules);
+  const [[perMin, perDay], globalSpend] = await Promise.all([
+    peekDurableRemaining(clientIp(request), rules),
+    // The shared global daily ceiling: gates every caller, but the per-IP peek
+    // above can't see it, so a spent global budget would otherwise 429 with no
+    // preflight warning. Peek it here so the banner can warn up front.
+    peekGlobalSpend(),
+  ]);
 
   // Per-provider health keyed by name, so the diagnostic list below renders in
   // the same environment-preferred order the wrapper actually tries.
@@ -58,6 +64,11 @@ export async function GET(request: Request) {
     remaining: { perMin, perDay },
     limits: { perMin: rules[0].limit, perDay: rules[1].limit },
   };
+
+  // Surface the shared global daily ceiling only when it is enabled; when spent,
+  // preflightNotice raises a "capacity" warning even if the caller's own budget
+  // looks fine (the case with the longest, until-midnight lockout).
+  if (globalSpend.ceiling > 0) payload.global = globalSpend;
 
   // Recent demo share from the wrapper's own telemetry: the availability probe
   // is cached, so a provider that silently went down after the probe shows up
