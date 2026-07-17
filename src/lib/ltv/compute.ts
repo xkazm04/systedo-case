@@ -274,8 +274,12 @@ export interface CohortTrend {
   toMonth: string;
   /** newest − oldest CAC (CZK); positive means CAC went up */
   cacDelta: number;
+  /** relative change of CAC as a fraction (+0.12 = +12 %), null if oldest CAC is 0 */
+  cacDeltaPct: number | null;
   /** newest − oldest LTV (CZK); positive means LTV went up */
   ltvDelta: number;
+  /** relative change of LTV as a fraction (+0.12 = +12 %), null if oldest LTV is 0 */
+  ltvDeltaPct: number | null;
   /** newest − oldest LTV:CAC ratio (absolute, e.g. +0.4×) */
   ltvCacDelta: number;
   /** relative change of LTV:CAC as a fraction (+0.12 = +12 %), null if oldest is 0 */
@@ -290,14 +294,21 @@ export function cohortTrend(rows: CohortMetrics[]): CohortTrend | null {
   if (rows.length < 2) return null;
   const oldest = rows[0]!;
   const newest = rows[rows.length - 1]!;
+  const cacDelta = newest.cac - oldest.cac;
+  const ltvDelta = newest.ltv - oldest.ltv;
   const ltvCacDelta = newest.ltvCac - oldest.ltvCac;
   const direction: TrendDirection =
     ltvCacDelta > 0 ? "improving" : ltvCacDelta < 0 ? "worsening" : "flat";
+  // Compute the relative percentages here, against this cohort's OWN "from" endpoint,
+  // rather than letting the view re-derive the base by positional `rows[0]` indexing
+  // (a hidden ordering contract that silently breaks if a caller sorts rows differently).
   return {
     fromMonth: oldest.month,
     toMonth: newest.month,
-    cacDelta: newest.cac - oldest.cac,
-    ltvDelta: newest.ltv - oldest.ltv,
+    cacDelta,
+    cacDeltaPct: oldest.cac !== 0 ? cacDelta / oldest.cac : null,
+    ltvDelta,
+    ltvDeltaPct: oldest.ltv !== 0 ? ltvDelta / oldest.ltv : null,
     ltvCacDelta,
     ltvCacDeltaPct: oldest.ltvCac > 0 ? ltvCacDelta / oldest.ltvCac : null,
     direction,

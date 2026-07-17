@@ -128,12 +128,6 @@ function ratioTone(r: number): string {
   return "text-negative";
 }
 
-/** Render an absolute delta as a signed percent of its base ("+12.4 %"), falling
- *  back to "—" when the base is zero (no meaningful relative change). */
-function fmtSignedPctSafe(fmtSignedPct: (v: number) => string, delta: number, base: number): string {
-  return base !== 0 ? fmtSignedPct(delta / base) : "—";
-}
-
 /** Blended per-channel economics across all cohorts that carry a breakdown:
  *  spend-weighted CAC, signup-weighted payback, and the resulting LTV per signup. */
 interface BlendedChannel {
@@ -346,8 +340,8 @@ export default async function LtvModule({
                 {t("trendSub", {
                   from: trend.fromMonth,
                   to: trend.toMonth,
-                  cacDelta: fmtSignedPctSafe(fmt.fmtSignedPct, trend.cacDelta, rows[0]!.cac),
-                  ltvDelta: fmtSignedPctSafe(fmt.fmtSignedPct, trend.ltvDelta, rows[0]!.ltv),
+                  cacDelta: trend.cacDeltaPct != null ? fmt.fmtSignedPct(trend.cacDeltaPct) : "—",
+                  ltvDelta: trend.ltvDeltaPct != null ? fmt.fmtSignedPct(trend.ltvDeltaPct) : "—",
                   ltvCacDelta: trend.ltvCacDeltaPct != null ? fmt.fmtSignedPct(trend.ltvCacDeltaPct) : "—",
                 })}
               </p>

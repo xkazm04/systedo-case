@@ -17,6 +17,20 @@ test("cohortTrend reports improving when newest LTV:CAC rises", () => {
   assert.ok(t.ltvCacDelta > 0); // ratio went up
   assert.ok(t.cacDelta < 0); // CAC fell (60000/100 < 100000/100)
   assert.ok(t.ltvCacDeltaPct > 0);
+  // relative percentages are computed against the "from" (oldest) endpoint here,
+  // not re-derived by the view from rows[0] (no hidden ordering contract).
+  assert.equal(t.cacDeltaPct, t.cacDelta / oldest.cac); // −40% (60k vs 100k CAC)
+  assert.equal(t.ltvDeltaPct, oldest.ltv !== 0 ? t.ltvDelta / oldest.ltv : null);
+  assert.equal(t.ltvDelta, 0); // same arpu/retention → LTV unchanged
+  assert.equal(t.ltvDeltaPct, 0);
+});
+
+test("cohortTrend relative deltas are null when the oldest endpoint is zero", () => {
+  const zeroCac = withMetrics({ ...base, spend: 0 }); // cac = 0
+  const newest = withMetrics({ ...base, month: "Úno", spend: 60_000 });
+  const t = cohortTrend([zeroCac, newest]);
+  assert.ok(t);
+  assert.equal(t.cacDeltaPct, null); // oldest CAC is 0 → no meaningful relative change
 });
 
 test("cohortTrend reports worsening when newest LTV:CAC falls", () => {
