@@ -24,6 +24,7 @@ const T = {
     searchArea: "Vyhledávací oblast",
     liveMap: "Mapa · OpenStreetMap (ukázková pozice)",
     tilesUnavailable: "Mapové dlaždice nejsou dostupné — pořadí vedle stále ukazuje každého konkurenta.",
+    mapUnavailable: "Mapu se nepodařilo načíst — pořadí vedle stále ukazuje každého konkurenta.",
     noGeo: "Pro tuto oblast zatím nejsou souřadnice.",
     you: "vy",
     competitor: "konkurent",
@@ -38,6 +39,7 @@ const T = {
     searchArea: "Search area",
     liveMap: "Map · OpenStreetMap (sample ranking)",
     tilesUnavailable: "Map tiles unavailable — the ranked listings alongside still show every competitor.",
+    mapUnavailable: "The map failed to load — the ranked listings alongside still show every competitor.",
     noGeo: "No coordinates for this area yet.",
     you: "you",
     competitor: "competitor",
@@ -60,10 +62,15 @@ function markerHtml(rank: number, you: boolean): string {
   );
 }
 
-function LeafletMap({ points, label }: { points: MapListing[]; label: string }) {
+function LeafletMap({ points }: { points: MapListing[] }) {
   const t = useT(T);
   const ref = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
+  // Two distinct failure modes with honest, DIFFERENT copy: the Leaflet module itself
+  // failed to import (libFailed) vs. the tiles won't load though the map rendered
+  // (tilesFailed, e.g. offline / CDN blocked). A geo-less pack is handled before the
+  // effect ever runs (see the early return below).
+  const [libFailed, setLibFailed] = useState(false);
+  const [tilesFailed, setTilesFailed] = useState(false);
 
   useEffect(() => {
     if (!ref.current || points.length === 0) return;
@@ -79,11 +86,18 @@ function LeafletMap({ points, label }: { points: MapListing[]; label: string }) 
           scrollWheelZoom: false, // don't hijack page scroll inside the dashboard
           attributionControl: true,
         });
-        L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        const tiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
           subdomains: "abcd",
           maxZoom: 20,
           attribution: "&copy; OpenStreetMap &copy; CARTO",
-        }).addTo(map);
+        });
+        // Debounce transient single-tile 404s: only surface the "tiles unavailable"
+        // note once several tiles fail (offline / CDN blocked), not on one blip.
+        let tileErrors = 0;
+        tiles.on("tileerror", () => {
+          if (++tileErrors >= 3 && !cancelled) setTilesFailed(true);
+        });
+        tiles.addTo(map);
 
         const you = points.find((p) => p.you) ?? points[0];
         L.circle([you.lat, you.lng], {
@@ -112,7 +126,7 @@ function LeafletMap({ points, label }: { points: MapListing[]; label: string }) 
       })
       .catch((err) => {
         console.warn("[map] Leaflet failed to load — rendering fallback:", err);
-        if (!cancelled) setFailed(true);
+        if (!cancelled) setLibFailed(true);
       });
 
     return () => {
@@ -121,10 +135,19 @@ function LeafletMap({ points, label }: { points: MapListing[]; label: string }) 
     };
   }, [points]);
 
-  if (failed) {
+  // The exact degradation the port comment promised: a pack with no coordinates (or no
+  // listings) shows an explanatory note, never a blank grey box.
+  if (points.length === 0) {
     return (
       <div className="grid h-full w-full place-items-center bg-surface px-6 text-center">
-        <p className="max-w-xs text-xs text-muted">{label}</p>
+        <p className="max-w-xs text-xs text-muted">{t("noGeo")}</p>
+      </div>
+    );
+  }
+  if (libFailed || tilesFailed) {
+    return (
+      <div className="grid h-full w-full place-items-center bg-surface px-6 text-center">
+        <p className="max-w-xs text-xs text-muted">{libFailed ? t("mapUnavailable") : t("tilesUnavailable")}</p>
       </div>
     );
   }
@@ -176,7 +199,7 @@ export default function MapPackClient({ areas }: { areas: AreaPack[] }) {
             <span className="text-brand-accent">{t("liveMap")}</span>
           </figcaption>
           <div className="aspect-[16/10] w-full">
-            <LeafletMap key={selected.areaId} points={selected.listings} label={t("tilesUnavailable")} />
+            <LeafletMap key={selected.areaId} points={selected.listings} />
           </div>
           <div className="flex items-center justify-between border-t border-line px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             <span className="flex items-center gap-2">
