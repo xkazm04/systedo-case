@@ -118,8 +118,10 @@ const REPORTY_T = {
   },
 } as const;
 
-/** No-op for the public demo's Account surface — there's no real session to end,
- *  so sign-out / revoke do nothing here (the buttons are shown for the tour). */
+/** Placeholder action for the public demo's Account surface — there's no real
+ *  session to end, so the sign-out / revoke controls are rendered disabled (see
+ *  AccountSecurity's `demo` prop) and this is never actually invoked. Kept only to
+ *  satisfy the required action props. */
 async function demoAccountAction() {
   "use server";
 }
@@ -532,6 +534,7 @@ export default async function DemoModule({
             sessionCount={2}
             signOutAction={demoAccountAction}
             signOutEverywhereAction={demoAccountAction}
+            demo
           />
         </ModulePage>
       );

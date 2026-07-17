@@ -24,6 +24,7 @@ const T = {
     signOutAllNote: "Odhlásí tebe ze všech zařízení a odvolá všechny aktivní relace.",
     activeSessions: "Aktivních relací: {n}", validUntil: "Aktuální relace platná do {d}",
     devNote: "Vývojové přihlášení (DEV_AUTH) — správa relací a odhlášení jsou dostupné jen v produkčním režimu.",
+    demoNote: "V ukázce nedostupné — bez přihlášení není žádná relace, kterou by šlo ukončit.",
     danger: "Nebezpečná zóna", deleteTitle: "Smazání účtu",
     deleteBody: "Smazání účtu je nevratné — odstraní všechny projekty a data. Zpracováváme ho ručně.",
     deleteBtn: "Požádat o smazání účtu", deleteConfirm: "Opravdu chci smazat účet",
@@ -41,6 +42,7 @@ const T = {
     signOutAllNote: "Signs you out on every device and revokes all active sessions.",
     activeSessions: "Active sessions: {n}", validUntil: "Current session valid until {d}",
     devNote: "Dev sign-in (DEV_AUTH) — session management and sign-out are available only in production mode.",
+    demoNote: "Unavailable in the demo — with no sign-in there's no session to end.",
     danger: "Danger zone", deleteTitle: "Delete account",
     deleteBody: "Deleting your account is irreversible — it removes all projects and data. We handle it manually.",
     deleteBtn: "Request account deletion", deleteConfirm: "Yes, delete my account",
@@ -63,6 +65,7 @@ export default function AccountSecurity({
   sessionCount,
   signOutAction,
   signOutEverywhereAction,
+  demo = false,
 }: {
   user: { id: string; name: string; email: string; image?: string | null };
   facts: AccountFacts;
@@ -70,6 +73,10 @@ export default function AccountSecurity({
   sessionCount: number;
   signOutAction: () => void;
   signOutEverywhereAction: () => void;
+  /** Public /dashboard demo: there is no real session, so the sign-out / revoke
+   *  actions are shown disabled with an explanation instead of being live controls
+   *  wired to a silent server no-op (which reads as a bug, not a tour). */
+  demo?: boolean;
 }) {
   const t = useT(T);
   const [confirming, setConfirming] = useState(false);
@@ -142,17 +149,17 @@ export default function AccountSecurity({
             )}
             <div className="flex flex-wrap items-center gap-3">
               <form action={signOutAction}>
-                <button type="submit" className="rounded-pill bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900">
+                <button type="submit" disabled={demo} title={demo ? t("demoNote") : undefined} className="rounded-pill bg-navy-800 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-navy-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-navy-800">
                   {t("signOut")}
                 </button>
               </form>
               <form action={signOutEverywhereAction}>
-                <button type="submit" className="rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-negative/50 hover:text-negative">
+                <button type="submit" disabled={demo} title={demo ? t("demoNote") : undefined} className="rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 transition-colors hover:border-negative/50 hover:text-negative disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line disabled:hover:text-navy-700">
                   {t("signOutAll")}
                 </button>
               </form>
             </div>
-            <p className="mt-2 text-xs text-muted">{t("signOutAllNote")}</p>
+            <p className="mt-2 text-xs text-muted">{demo ? t("demoNote") : t("signOutAllNote")}</p>
           </>
         )}
       </div>
