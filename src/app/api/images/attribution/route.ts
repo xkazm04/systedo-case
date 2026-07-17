@@ -77,8 +77,10 @@ export async function PATCH(request: Request) {
 
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const tenant = await resolveTenant(userId, projectId);
-  await updateCreativeMetrics(tenant, linkId, parsed.metrics);
-  return Response.json({ ok: true });
+  // 404 (not a silent 200) when the link is gone — set(merge) would otherwise
+  // upsert a phantom, style-less row that poisons the style prior.
+  const ok = await updateCreativeMetrics(tenant, linkId, parsed.metrics);
+  return Response.json({ ok }, { status: ok ? 200 : 404 });
 }
 
 export async function DELETE(request: Request) {

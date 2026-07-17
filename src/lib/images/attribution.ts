@@ -11,7 +11,7 @@ import {
   type CreativeMetrics,
   type StylePrior,
 } from "./attribution-types";
-import type { ImageStyle } from "./types";
+import { isImageStyle, type ImageStyle } from "./types";
 
 function attrCol(tenant: string) {
   return firestore.collection("tenants").doc(tenant).collection("creativeAttribution");
@@ -20,7 +20,14 @@ function attrCol(tenant: string) {
 export async function listCreativeLinks(tenant: string): Promise<CreativeLink[]> {
   try {
     const snap = await attrCol(tenant).orderBy("createdAt", "desc").get();
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CreativeLink, "id">) }));
+    return (
+      snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<CreativeLink, "id">) }))
+        // Defensively drop style-less docs: a stale-linkId PATCH used to upsert a
+        // metric-only phantom row (no style/format/prompt); such rows have an
+        // `undefined` style bucket and would skew styleLeaderboard/deriveStylePrior.
+        .filter((l) => isImageStyle(l.style))
+    );
   } catch (err) {
     console.error(`[attribution] list failed for ${tenant}:`, err);
     return [];
@@ -55,12 +62,19 @@ export async function recordCreativeLink(
   return { id: ref.id, ...doc };
 }
 
+/** Set a link's metrics. Returns false when the link doesn't exist so the route
+ *  can 404 instead of silently upserting a phantom, style-less row (Firestore
+ *  set(merge) is upsert, not update) that would poison the leaderboard. */
 export async function updateCreativeMetrics(
   tenant: string,
   linkId: string,
   metrics: CreativeMetrics
-): Promise<void> {
-  await attrCol(tenant).doc(linkId).set({ metrics }, { merge: true });
+): Promise<boolean> {
+  const ref = attrCol(tenant).doc(linkId);
+  const doc = await ref.get();
+  if (!doc.exists) return false;
+  await ref.update({ metrics });
+  return true;
 }
 
 export async function deleteCreativeLink(tenant: string, linkId: string): Promise<void> {
