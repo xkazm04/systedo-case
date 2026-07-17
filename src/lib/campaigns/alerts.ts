@@ -29,9 +29,18 @@ const BATCH_CHUNK = 500;
 export type AlertType = "critical" | "digest";
 
 export interface AlertItem {
+  /** The campaign this item concerns. For an anomaly item (`kind: "anomaly"`) this
+   *  is a SYNTHETIC key (`ANOMALY_CAMPAIGN_ID_PREFIX + anomalyKey`, e.g.
+   *  "anomaly:2026-07-10|cost|spike"), NOT a resolvable campaign id — consumers that
+   *  scope real campaigns (alertCampaignIds → the alert→change-set flow) must skip
+   *  these, or they scope donors to ids that match no campaign and dead-end. */
   campaignId: string;
   name: string;
   reason: string;
+  /** Discriminates a real campaign alert from a synthetic anomaly item. Absent is
+   *  treated as "campaign" for backward-compat with records written before the field
+   *  existed (the prefix on `campaignId` is the durable guard for those). */
+  kind?: "campaign" | "anomaly";
 }
 
 export interface AlertDoc {

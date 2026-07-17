@@ -10,6 +10,9 @@ import {
   nextAckStatus,
   resolveWrites,
   ALERT_COOLDOWN_MS,
+  alertCampaignIds,
+  isAlertActionable,
+  ANOMALY_CAMPAIGN_ID_PREFIX,
 } from "@/lib/campaigns/alert-suppression";
 
 const COOLDOWN = 1000; // 1s window for deterministic sequences
@@ -212,4 +215,33 @@ test("groupAlertRecords keeps different campaign sets as separate rows", () => {
   ]);
   assert.equal(groups.length, 2);
   assert.deepEqual(groups.map((g) => g.count).sort(), [1, 2]);
+});
+
+test("alertCampaignIds skips synthetic anomaly items so the change-set flow never dead-ends", () => {
+  // A campaign critical resolves to its real id; a kind:"anomaly" item is skipped.
+  const mixed = {
+    type: "critical",
+    items: [
+      { campaignId: "1001", name: "Brand", reason: "x" },
+      { campaignId: `${ANOMALY_CAMPAIGN_ID_PREFIX}2026-07-10|cost|spike`, kind: "anomaly", name: "y", reason: "z" },
+    ],
+  };
+  assert.deepEqual(alertCampaignIds(mixed), ["1001"]);
+
+  // A pure-anomaly alert scopes to NOTHING (so the route returns a clear 422,
+  // rather than scoping donors to ids that match no campaign).
+  const anomalyOnly = {
+    type: "critical",
+    items: [{ campaignId: `${ANOMALY_CAMPAIGN_ID_PREFIX}2026-07-10|cost|spike`, kind: "anomaly", name: "y", reason: "z" }],
+  };
+  assert.deepEqual(alertCampaignIds(anomalyOnly), []);
+  // ...and is therefore NOT actionable as an alert→change-set source.
+  assert.equal(isAlertActionable({ ...anomalyOnly, status: "new" }), false);
+
+  // Legacy anomaly records (no `kind`, only the id prefix) are still skipped.
+  const legacy = {
+    type: "critical",
+    items: [{ campaignId: `${ANOMALY_CAMPAIGN_ID_PREFIX}old`, name: "y", reason: "z" }],
+  };
+  assert.deepEqual(alertCampaignIds(legacy), []);
 });

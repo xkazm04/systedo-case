@@ -14,7 +14,7 @@ import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
 import { recordActivity } from "./activity";
-import { planSuppression, type AlertState } from "./alert-suppression";
+import { planSuppression, ANOMALY_CAMPAIGN_ID_PREFIX, type AlertState } from "./alert-suppression";
 import { getClientProfile } from "./report-config";
 import { PAID_PORTFOLIO_TARGET_PNO } from "@/lib/targets";
 
@@ -126,7 +126,10 @@ export async function evaluateAnomalyAlerts(
   const shown = ranked.slice(0, MAX_ITEMS);
 
   const items: AlertItem[] = shown.map((a) => ({
-    campaignId: `anomaly:${anomalyKey(a)}`,
+    // Synthetic key, not a real campaign id — flagged with kind:"anomaly" so the
+    // alert→change-set flow skips these instead of scoping donors to unmatched ids.
+    campaignId: `${ANOMALY_CAMPAIGN_ID_PREFIX}${anomalyKey(a)}`,
+    kind: "anomaly",
     name: `${KIND_LABEL[a.kind]} ${METRIC_LABEL[a.metric] ?? a.metric}`,
     reason: describe(a),
   }));

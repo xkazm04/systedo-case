@@ -222,15 +222,25 @@ export function resolveWrites(current: AlertStatus): boolean {
   return current !== "resolved";
 }
 
-/** The distinct campaign ids an alert concerns, derived from its items (already
- *  carried on every alert record). Deduped, order-preserving, and drops empty
- *  ids — so an item-less digest alert yields `[]`. This is exactly the scope a
- *  one-click inbox action pre-loads a change-set with: act on the alerted
- *  campaigns, nothing else. */
-export function alertCampaignIds(a: { items: { campaignId: string }[] }): string[] {
+/** Prefix marking an AlertItem.campaignId as a SYNTHETIC anomaly key rather than a
+ *  real campaign id (anomaly alerts reuse the AlertItem shape). The durable guard
+ *  for records written before AlertItem carried a `kind` discriminant. */
+export const ANOMALY_CAMPAIGN_ID_PREFIX = "anomaly:";
+
+/** The distinct REAL campaign ids an alert concerns, derived from its items (already
+ *  carried on every alert record). Deduped, order-preserving, and drops empty ids —
+ *  so an item-less digest alert yields `[]`. Synthetic anomaly items (`kind:
+ *  "anomaly"`, or a legacy `anomaly:`-prefixed id) are skipped: they name no real
+ *  campaign, so scoping a change-set to them would match nothing and dead-end. This
+ *  is exactly the scope a one-click inbox action pre-loads a change-set with: act on
+ *  the alerted campaigns, nothing else. */
+export function alertCampaignIds(a: {
+  items: { campaignId: string; kind?: string }[];
+}): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const it of a.items) {
+    if (it.kind === "anomaly" || it.campaignId.startsWith(ANOMALY_CAMPAIGN_ID_PREFIX)) continue;
     if (it.campaignId && !seen.has(it.campaignId)) {
       seen.add(it.campaignId);
       out.push(it.campaignId);
