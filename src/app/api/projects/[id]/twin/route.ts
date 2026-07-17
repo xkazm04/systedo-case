@@ -8,6 +8,7 @@ import { mutateTwin, clearTwin } from "@/lib/twin/store";
 import { archiveDrafts, clearArchive, listArchivedRejects } from "@/lib/twin/archive-store";
 import { partitionDrafts } from "@/lib/twin/archive";
 import { channelConfig, decideDraft, mergeTerminalDrafts, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
+import { storableConnectorId } from "@/lib/twin/connectors";
 import { readJson } from "@/lib/api/route-utils";
 
 /** Re-derive the autonomy gate server-side so the `autoApproved` audit bit is owned by
@@ -40,6 +41,21 @@ function enforceAutonomy(state: TwinState): TwinState {
   };
 }
 
+/** Reconcile each channel's connector to one that actually exists AND is configured in
+ *  this environment. sanitizeChannelConfig only shape-checks the free-text connector id
+ *  (client-safe), so a typo or a stale/unconfigured id could persist and then throw when
+ *  a human approves a draft — the worst place to discover a config error. Done here (not
+ *  in the client-imported types.ts) because `configured` is env-dependent. */
+function enforceConnectors(state: TwinState): TwinState {
+  return {
+    ...state,
+    channels: state.channels.map((c) => {
+      const connector = storableConnectorId(c.connector);
+      return connector === c.connector ? c : { ...c, connector };
+    }),
+  };
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
@@ -47,7 +63,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { project } = g;
 
   const body = await readJson(req);
-  const state = enforceAutonomy(sanitizeTwinState(body));
+  const state = enforceConnectors(enforceAutonomy(sanitizeTwinState(body)));
 
   // Split live (pending/approved) from terminal (sent/rejected) drafts. Terminal
   // records beyond the recent window ARCHIVE out of the hot blob instead of being

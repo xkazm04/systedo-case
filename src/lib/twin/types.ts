@@ -429,6 +429,9 @@ export function sanitizeChannelConfig(raw: unknown): TwinChannelConfig | null {
     channel: o.channel,
     enabled: o.enabled === true,
     autonomy,
+    // Shape-only here (client-safe): the connector is free-text-bounded. The twin save
+    // route reconciles it to a known+configured id (storableConnectorId) — "configured"
+    // is env-dependent, so it can't live in this client-imported module.
     connector: str(o.connector, 40) || "manual",
     autoThreshold: clamp(o.autoThreshold, 50, 100, DEFAULT_AUTO_THRESHOLD),
   };

@@ -48,6 +48,7 @@ import {
   voiceTrainedAt,
 } from "@/lib/twin/voice-age";
 import { voiceLines } from "@/lib/ai/tools/voice";
+import { storableConnectorId } from "@/lib/twin/connectors";
 
 const cfg = (over = {}) => ({
   channel: "email",
@@ -84,6 +85,16 @@ test("decideDraft: `review` and `assist` never self-approve, even on a perfect d
     const r = decideDraft(cfg({ autonomy }), perfect);
     assert.equal(r.status, "pending", `${autonomy} must not self-approve`);
     assert.equal(r.autoApproved, false);
+  }
+});
+
+test("storableConnectorId keeps a usable id and degrades typos / unconfigured ids to manual", () => {
+  assert.equal(storableConnectorId("manual"), "manual", "known + configured keeps its id");
+  assert.equal(storableConnectorId("email-smpt"), "manual", "a typo'd unknown id degrades to manual");
+  // email-smtp is a known connector but unconfigured unless TWIN_SMTP_URL is set in the
+  // test env (it is not) — a known-but-unconfigured id must degrade too, not persist.
+  if (!process.env.TWIN_SMTP_URL) {
+    assert.equal(storableConnectorId("email-smtp"), "manual", "known-but-unconfigured degrades to manual");
   }
 });
 

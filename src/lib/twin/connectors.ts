@@ -86,6 +86,18 @@ export function connectorFor(id: string): TwinConnector {
   return CONNECTORS.find((c) => c.id === id) ?? manual;
 }
 
+/** The connector id safe to STORE for a channel config. A known AND configured id keeps
+ *  its id; an unknown id (a typo like "email-smpt") OR a known-but-unconfigured id
+ *  (e.g. "email-smtp" while TWIN_SMTP_URL is unset) degrades to "manual". This makes the
+ *  invariant "a stored channel config always names a usable connector" true at the write
+ *  boundary, collapsing the two prior failure shapes (an unknown id silently degrading to
+ *  manual vs. a known-unconfigured id throwing at send time) into one predictable rule.
+ *  Server-side because `configured` is env-dependent — the twin save route calls this. */
+export function storableConnectorId(id: string): string {
+  const c = connectorFor(id);
+  return c.configured ? c.id : "manual";
+}
+
 /** The client-safe projection — no `send`, no secrets. */
 export interface ConnectorInfo {
   id: string;
