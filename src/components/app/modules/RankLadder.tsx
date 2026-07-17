@@ -20,6 +20,7 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "beze změny",
+    firstImport: "První import — zatím není s čím porovnat",
     declining: "klesá",
     decliningTitle: "Klesá {run} importy v řadě (−{drop} pozic)",
     untracked: "mimo import",
@@ -36,6 +37,7 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "no change",
+    firstImport: "First import — nothing to compare yet",
     declining: "declining",
     decliningTitle: "Declining {run} imports in a row (−{drop} positions)",
     untracked: "off import",
@@ -98,9 +100,10 @@ export default async function RankLadder({ rows }: { rows: KeywordRank[] }) {
           </thead>
           <tbody>
             {sorted.map((r) => {
-              // Change column shows the move since the LAST import (null for a
-              // first/single observation → "beze změny"), not the whole-window climb.
-              const delta = changeSinceLast(r) ?? 0;
+              // Change column shows the move since the LAST import. KEEP it nullable:
+              // null = a first/single observation (nothing to compare yet) → an em dash,
+              // distinct from a true 0 ("beze změny", held position across two imports).
+              const delta = changeSinceLast(r);
               // Sustained multi-import decline (D3) — a small honest badge, distinct
               // from the single-step "since last import" move in the change column.
               const decline = rankDecline(r);
@@ -133,10 +136,12 @@ export default async function RankLadder({ rows }: { rows: KeywordRank[] }) {
                     <Pill tone={rankTone(r.current)}>#{r.current}</Pill>
                   </td>
                   <td className="tnum px-4 py-3 text-right font-semibold">
-                    {delta > 0 ? (
+                    {delta === null ? (
+                      <span className="text-muted" title={t("firstImport")}>—</span>
+                    ) : delta > 0 ? (
                       <span className="text-positive">▲ {t("climbed", { n: delta })}</span>
                     ) : delta < 0 ? (
-                      <span className="text-coral-600">▼ {t("slipped", { n: delta })}</span>
+                      <span className="text-coral-600">▼ {t("slipped", { n: Math.abs(delta) })}</span>
                     ) : (
                       <span className="text-muted">{t("flat")}</span>
                     )}
