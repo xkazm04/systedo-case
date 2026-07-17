@@ -6,6 +6,8 @@ import assert from "node:assert/strict";
 import {
   scoreQueries,
   DEFAULT_SCORE_WEIGHTS,
+  acquisitionFor,
+  SERP_CAPTURE,
 } from "@/lib/seo-compare/compute";
 
 /** A pricing query the defaults rank *below* a higher-volume vs query — until we
@@ -81,4 +83,24 @@ test("a niche low-volume list still tiers relative to its own best query", () =>
 
 test("an empty query list normalizes without throwing", () => {
   assert.deepEqual(scoreQueries([]), []);
+});
+
+// --- estRevenue applies a SERP CTR capture, not 100% click-through (finding #3) ---
+
+test("acquisitionFor multiplies by SERP_CAPTURE (no longer assumes full-volume clicks)", () => {
+  const q = { query: "x", intent: "pricing", volume: 1000, difficulty: 20, rank: null };
+  const seo = { channel: "Organic", cr: 0.02, aov: 500 };
+  const acq = acquisitionFor(q, seo);
+  // volume × SERP_CAPTURE × cr × intentFactor(pricing=1.0)
+  assert.ok(SERP_CAPTURE > 0 && SERP_CAPTURE < 1, "capture is a fraction, not 1");
+  assert.equal(acq.estConversions, 1000 * SERP_CAPTURE * 0.02 * 1.0);
+  assert.equal(acq.estRevenue, acq.estConversions * 500);
+  // strictly below the old full-volume estimate
+  assert.ok(acq.estConversions < 1000 * 0.02 * 1.0);
+});
+
+test("acquisitionFor stays null without a usable channel", () => {
+  const q = { query: "x", intent: "pricing", volume: 1000, difficulty: 20, rank: null };
+  assert.equal(acquisitionFor(q, null), null);
+  assert.equal(acquisitionFor(q, { channel: "c", cr: 0, aov: 100 }), null);
 });

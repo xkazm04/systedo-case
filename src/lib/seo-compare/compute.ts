@@ -110,12 +110,19 @@ export function seoChannelFrom(
   return pick && pick.cr > 0 ? { channel: pick.channel, cr: pick.cr, aov: pick.aov } : null;
 }
 
+/** Share of a query's monthly searches an organic win actually captures as visits.
+ *  Even a #1 organic result earns ~25–35 % of clicks, not 100 % — so multiplying the
+ *  full search volume by CR (as before) overstated conversions/revenue ~3–10×. This
+ *  is a top-3-placement CTR proxy; the UI labels the figure "při umístění v top 3" so
+ *  the assumption is visible rather than implicit. */
+export const SERP_CAPTURE = 0.25;
+
 /** What winning a query is worth, tied to real economics — so ranking reflects
  *  expected RESULTS (conversions/revenue), not just search volume. */
 export interface QueryAcquisition {
   channel: string;
   cr: number;
-  /** estimated monthly conversions: volume × channel CR × buying-stage factor */
+  /** estimated monthly conversions: volume × {@link SERP_CAPTURE} CTR × channel CR × buying-stage factor */
   estConversions: number;
   /** estimated monthly revenue: estConversions × channel AOV (0 when no AOV) */
   estRevenue: number;
@@ -123,7 +130,7 @@ export interface QueryAcquisition {
 
 export function acquisitionFor(q: CompareQuery, seo: SeoChannel | null): QueryAcquisition | null {
   if (!seo || seo.cr <= 0) return null;
-  const estConversions = q.volume * seo.cr * INTENT_CONVERSION_FACTOR[q.intent];
+  const estConversions = q.volume * SERP_CAPTURE * seo.cr * INTENT_CONVERSION_FACTOR[q.intent];
   return { channel: seo.channel, cr: seo.cr, estConversions, estRevenue: estConversions * seo.aov };
 }
 
