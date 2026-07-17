@@ -23,6 +23,13 @@ export function articleOgAlt(meta: Article["meta"]): string {
 export function articleOgImage(meta: Article["meta"]): ImageResponse {
   const title = truncate(meta.title, 96);
   const perex = truncate(meta.perex, 160);
+  // Every single-line slot on the fixed 1200px canvas gets a cap too — satori
+  // clips overflow mid-glyph with no ellipsis and can shove the brand pill
+  // off-card. The char counts approximate each slot's pixel budget at its font
+  // size (article-publishing #5).
+  const category = truncate(meta.category, 40);
+  const author = truncate(meta.author, 40);
+  const role = truncate(meta.role, 48);
   // Long buying-guide titles need a smaller display size to stay on ~3 lines.
   const titleSize = title.length > 64 ? "54px" : "66px";
 
@@ -62,7 +69,7 @@ export function articleOgImage(meta: Article["meta"]): ImageResponse {
               textTransform: "uppercase",
             }}
           >
-            {meta.category} · {meta.readingMinutes} min čtení
+            {category} · {meta.readingMinutes} min čtení
           </div>
         </div>
 
@@ -103,9 +110,9 @@ export function articleOgImage(meta: Article["meta"]): ImageResponse {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column" }}>
-            <div style={{ display: "flex", fontSize: "28px", fontWeight: 600 }}>{meta.author}</div>
+            <div style={{ display: "flex", fontSize: "28px", fontWeight: 600 }}>{author}</div>
             <div style={{ display: "flex", marginTop: "6px", fontSize: "22px", color: "#92a3b3" }}>
-              {meta.role}
+              {role}
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
