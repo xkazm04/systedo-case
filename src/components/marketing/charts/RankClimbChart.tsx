@@ -1,5 +1,6 @@
 /** RankClimbChart — the signature marketing viz: 90 days of map-pack rank, your
- *  pin climbing #5 → #1 while the top rival drifts. Hand-rolled inline SVG on
+ *  pin climbing #4 → #1 while the top rival drifts. Starts at rank #4 to match the
+ *  interactive hero demo + the hero copy (one story, one starting rank). Hand-rolled inline SVG on
  *  design tokens (no charting lib — matches TrendChart's house style), with an
  *  *inverted* rank axis (#1 at the top = best). The line draws in on mount via
  *  the `.chart-draw` keyframe (globals.css); wrap in <ChartReveal> to replay it
@@ -7,7 +8,7 @@
  *
  *  Data is illustrative of the climb the product sells, not a live series. */
 
-const YOU = [5, 5, 4, 3, 2, 1, 1];
+const YOU = [4, 4, 4, 3, 2, 1, 1];
 const RIVAL = [2, 2, 2, 3, 3, 3, 3];
 const LABELS = ["0", "15", "30", "45", "60", "75", "90"];
 
@@ -104,7 +105,7 @@ export function RankClimbChart({ label = "You vs. top rival — map-pack rank" }
         style={{ animationDelay: "220ms", strokeDasharray: "5 4" }}
       />
 
-      {/* you — brand line, draws #5 → #1 */}
+      {/* you — brand line, draws #4 → #1 */}
       <path
         d={youLine}
         pathLength={1}
