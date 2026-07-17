@@ -4,7 +4,12 @@
  *  default Czech (cs-CZ / CZK) instance of the factory below. Centralised so every
  *  page renders numbers identically ("1 234 567 Kč", "16,5 %", "12,4 tis."). */
 
-export type SupportedLocale = "cs" | "en";
+/** The single source of truth for the locale universe. Runtime guards
+ *  (isLocale), dictionary shapes (TDict) and the SupportedLocale type all derive
+ *  from this one list, so adding a market is a single edit here — not a hunt for
+ *  every hand-restated `"cs" | "en"` / `{ cs, en }`. */
+export const SUPPORTED_LOCALES = ["cs", "en"] as const;
+export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 interface LocaleConfig {
   /** BCP-47 tag passed to Intl */

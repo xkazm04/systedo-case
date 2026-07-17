@@ -66,8 +66,9 @@ export function localizedNavItems(locale: SupportedLocale): NavItem[] {
 /** Label of a nav item by its href, so breadcrumbs reuse the same wording as
  *  the header/footer instead of hard-coding strings that can drift. Locale-aware:
  *  pass the active locale so a non-cs breadcrumb gets the translated label rather
- *  than the raw cs source (matching localizedNavItems); defaults to cs. */
-export function navLabel(href: string, fallback = "", locale: SupportedLocale = "cs"): string {
+ *  than the raw cs source (matching localizedNavItems). `locale` is REQUIRED — a
+ *  silent cs default made a forgotten argument render Czech labels with no error. */
+export function navLabel(href: string, fallback: string, locale: SupportedLocale): string {
   const items = locale === "cs" ? NAV_ITEMS : localizedNavItems(locale);
   return items.find((i) => i.href === href)?.label ?? fallback;
 }

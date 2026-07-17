@@ -2,11 +2,11 @@
  *  server components and the client provider read the same source of truth.
  *  Server-only (uses next/headers). */
 import { cookies } from "next/headers";
-import { DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocale } from "@/lib/format";
 import { LOCALE_COOKIE } from "./messages";
 
 function isLocale(v: string | undefined): v is SupportedLocale {
-  return v === "cs" || v === "en";
+  return v !== undefined && (SUPPORTED_LOCALES as readonly string[]).includes(v);
 }
 
 /** The active locale from the cookie, defaulting to cs. */

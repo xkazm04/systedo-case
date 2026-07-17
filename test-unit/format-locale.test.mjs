@@ -4,8 +4,15 @@
  *  resolve hook (node --import ./test-llm/setup.mjs --test). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createFormatters } from "@/lib/format";
+import { createFormatters, SUPPORTED_LOCALES, LOCALES, DEFAULT_LOCALE } from "@/lib/format";
 import { METRICS } from "@/lib/metrics/meta";
+
+test("SUPPORTED_LOCALES is the one source the locale universe derives from", () => {
+  // LOCALES config + the default must cover exactly the declared locale set, so a
+  // new market added to SUPPORTED_LOCALES surfaces as a missing-config type/test error.
+  assert.deepEqual([...SUPPORTED_LOCALES].sort(), Object.keys(LOCALES).sort());
+  assert.ok(SUPPORTED_LOCALES.includes(DEFAULT_LOCALE));
+});
 
 const cs = createFormatters("cs");
 const en = createFormatters("en");
