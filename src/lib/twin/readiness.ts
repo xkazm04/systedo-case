@@ -35,8 +35,11 @@ const WEIGHT: Record<MilestoneLevel, number> = { complete: 1, partial: 0.5, empt
 
 /** Signals the caller resolves outside this module (the catalog lives elsewhere). */
 export interface ReadinessInput {
-  /** how many offerings the project's catalog holds — the brand grounding */
-  offerings: number;
+  /** How many offerings the project's catalog holds — the brand grounding. `null`
+   *  means the catalog read FAILED (unknown), which must not be conflated with an
+   *  empty catalog: an unknown count grounds to `partial`, never the `empty` level
+   *  that reads as "unconfigured — redo setup" and sorts to the top gap. */
+  offerings: number | null;
 }
 
 function level(complete: boolean, partial: boolean): MilestoneLevel {
@@ -54,9 +57,14 @@ export function deriveReadiness(state: TwinState, input: ReadinessInput): Readin
   const enabled = state.channels.filter((c) => c.enabled);
   const decided = state.drafts.filter((d) => d.status === "approved" || d.status === "sent");
 
+  // A failed catalog read (null) is "unknown", not zero — ground it to partial so a
+  // transient store hiccup never tells the user their catalog is unconfigured.
+  const groundingLevel: MilestoneLevel =
+    input.offerings === null ? "partial" : level(input.offerings >= 3, input.offerings >= 1);
+
   const milestones: MilestoneState[] = [
     // Grounded in the real business, not a blank brand field.
-    { milestone: "grounding", level: level(input.offerings >= 3, input.offerings >= 1) },
+    { milestone: "grounding", level: groundingLevel },
     // A per-channel voice beats a single generic register.
     { milestone: "voice", level: level(channelVoices.length >= 1, hasVoice(state, "generic")) },
     // Enough real material to distil a voice from.

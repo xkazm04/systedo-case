@@ -262,6 +262,17 @@ test("deriveReadiness: the seeded sample twin is honestly reported as untrained"
   assert.ok(r.score > 0 && r.score < 100, `score should be partial, got ${r.score}`);
 });
 
+test("deriveReadiness: a failed catalog read (null offerings) grounds to partial, not empty", () => {
+  // null = "couldn't check" — must not collapse to the `empty` level that reads as
+  // "catalog unconfigured, redo setup" (the swallowed-error-as-empty-state bug).
+  const unknown = deriveReadiness(sampleTwin("leadgen"), { offerings: null });
+  const empty = deriveReadiness(sampleTwin("leadgen"), { offerings: 0 });
+  const groundOf = (r) => r.milestones.find((m) => m.milestone === "grounding").level;
+  assert.equal(groundOf(unknown), "partial", "unknown catalog is partial, not empty");
+  assert.equal(groundOf(empty), "empty", "a genuinely empty catalog stays empty");
+  assert.ok(unknown.score > empty.score, "unknown must not score worse than a real empty catalog");
+});
+
 test("deriveReadiness: a fully trained twin scores 100", () => {
   const state = {
     voices: [voice("generic"), { ...voice("email"), constraints: [

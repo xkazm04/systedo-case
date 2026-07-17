@@ -62,8 +62,9 @@ export default function TwinModule({
   state: TwinState;
   source: TwinSource;
   projectType: ProjectType;
-  /** how many catalog offerings ground this brand — the `grounding` readiness gate */
-  offerings: number;
+  /** how many catalog offerings ground this brand — the `grounding` readiness gate.
+   *  `null` means the catalog read failed (unknown), not an empty catalog. */
+  offerings: number | null;
 }) {
   const { locale } = useLocale();
   const t = useT(T);
