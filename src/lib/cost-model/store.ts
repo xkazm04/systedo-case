@@ -20,8 +20,12 @@ export async function getCostModel(projectId: string): Promise<CostModel | null>
   return (await backend()).getCostModel(projectId);
 }
 
-/** Replace the project's cost model. */
-export async function saveCostModel(projectId: string, model: CostModel): Promise<void> {
+/** Replace the project's cost model. The store stamps `updatedAt` itself (single writer),
+ *  so callers pass the model WITHOUT it. */
+export async function saveCostModel(
+  projectId: string,
+  model: Omit<CostModel, "updatedAt">
+): Promise<void> {
   return (await backend()).saveCostModel(projectId, model);
 }
 

@@ -21,8 +21,15 @@ export async function getCostModel(projectId: string): Promise<CostModel | null>
   }
 }
 
-export async function saveCostModel(projectId: string, model: CostModel): Promise<void> {
-  await modelDoc(projectId).set({ data: JSON.stringify(model), updatedAt: new Date().toISOString() });
+export async function saveCostModel(
+  projectId: string,
+  model: Omit<CostModel, "updatedAt">
+): Promise<void> {
+  // Single writer of `updatedAt`: one timestamp into both the blob and the top-level
+  // field, so the doc's field and the blob's value never disagree (see store.local).
+  const now = new Date().toISOString();
+  const full: CostModel = { ...model, updatedAt: now };
+  await modelDoc(projectId).set({ data: JSON.stringify(full), updatedAt: now });
 }
 
 export async function clearCostModel(projectId: string): Promise<void> {

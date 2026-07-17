@@ -97,10 +97,13 @@ test("sanitize: rejects a margin outside (0,1]; rejects negative/non-finite cost
 
 test("store: save → get roundtrips; clear reverts to null", async () => {
   assert.equal(await getCostModel("proj-eshop"), null);
-  await saveCostModel("proj-eshop", { grossMarginPct: 0.42, monthlyOverhead: 80_000, perOrderCost: 45, updatedAt: "2026-07-08T00:00:00.000Z" });
+  // caller passes the model WITHOUT updatedAt — the store is the single writer of it.
+  await saveCostModel("proj-eshop", { grossMarginPct: 0.42, monthlyOverhead: 80_000, perOrderCost: 45 });
   const got = await getCostModel("proj-eshop");
   assert.equal(got.grossMarginPct, 0.42);
   assert.equal(got.monthlyOverhead, 80_000);
+  // the store stamps a fresh ISO timestamp into the blob (matching the row's column)
+  assert.match(got.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
   await clearCostModel("proj-eshop");
   assert.equal(await getCostModel("proj-eshop"), null);
 });

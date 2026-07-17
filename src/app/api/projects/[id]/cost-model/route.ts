@@ -21,7 +21,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     );
   }
 
-  await saveCostModel(project.id, { ...clean, updatedAt: new Date().toISOString() });
+  // The store stamps updatedAt (single writer) — pass the sanitized model as-is.
+  await saveCostModel(project.id, clean);
   return Response.json({ ok: true });
 }
 
