@@ -291,6 +291,12 @@ export interface CohortTrend {
   ltvCacDeltaPct: number | null;
   /** rising LTV:CAC → improving, falling → worsening, unchanged/single → flat */
   direction: TrendDirection;
+  /** the smaller of the two endpoints' `observedMonths` — how many horizon LTV months
+   *  are backed by real data at BOTH ends. When this is well below the horizon the
+   *  direction leans on geometric extrapolation of the shorter-history cohort (it can
+   *  flip sign purely from the tail-ratio clamp), so the UI can caption it as partly
+   *  modeled rather than presenting it as fully observed behavior. */
+  minObservedMonths: number;
 }
 
 /** Compare the newest cohort against the oldest. Returns null when there are
@@ -317,6 +323,7 @@ export function cohortTrend(rows: CohortMetrics[]): CohortTrend | null {
     ltvCacDelta,
     ltvCacDeltaPct: oldest.ltvCac > 0 ? ltvCacDelta / oldest.ltvCac : null,
     direction,
+    minObservedMonths: Math.min(oldest.observedMonths, newest.observedMonths),
   };
 }
 

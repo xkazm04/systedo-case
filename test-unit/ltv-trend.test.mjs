@@ -33,6 +33,14 @@ test("cohortTrend relative deltas are null when the oldest endpoint is zero", ()
   assert.equal(t.cacDeltaPct, null); // oldest CAC is 0 → no meaningful relative change
 });
 
+test("cohortTrend surfaces minObservedMonths (the shorter-history endpoint)", () => {
+  const oldest = withMetrics(base); // 4 observed months
+  const newest = withMetrics({ ...base, month: "Úno", retention: [1, 0.7] }); // 2 observed
+  const t = cohortTrend([oldest, newest]);
+  assert.ok(t);
+  assert.equal(t.minObservedMonths, 2); // min(4, 2) → the direction leans on extrapolation
+});
+
 test("cohortTrend reports worsening when newest LTV:CAC falls", () => {
   const oldest = withMetrics(base);
   const newest = withMetrics({ ...base, month: "Úno", spend: 160_000 }); // pricier → lower ratio

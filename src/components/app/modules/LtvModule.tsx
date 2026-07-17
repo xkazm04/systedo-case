@@ -12,7 +12,7 @@ import { inputDigest } from "@/lib/diagnoses/types";
 import { extractCohortSnapshot } from "@/lib/diagnoses/outcome";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import Sparkline from "@/components/charts/Sparkline";
-import { cohortTrend } from "@/lib/ltv/compute";
+import { cohortTrend, LTV_HORIZON } from "@/lib/ltv/compute";
 import type { CohortMetrics, LtvSummary, TrendDirection } from "@/lib/ltv/compute";
 import type { Cohort } from "@/lib/ltv/sample";
 import { FALLBACK_CHANNEL_COLOR, LTV_CHANNEL_COLORS } from "@/lib/ltv/sample";
@@ -30,6 +30,7 @@ const T = {
     unhealthyInsight: "LTV:CAC je pod cílem 3×. Než přidáte rozpočet, zlepšete {improve} nebo snižte CAC — jinak rychlejší akvizice prohlubuje ztrátu.",
     cohortTableTitle: "Kohorty měsíc po měsíci",
     trendSub: "{from} → {to}: CAC {cacDelta}, LTV {ltvDelta}, LTV:CAC {ltvCacDelta}",
+    trendModeled: "částečně modelováno — jen {obs} z {horizon} měs. pozorováno na obou koncích",
     trendLabel: "Trend:",
     improving: "zlepšuje se",
     worsening: "zhoršuje se",
@@ -81,6 +82,7 @@ const T = {
     unhealthyInsight: "LTV:CAC is below the 3× target. Before adding budget, improve {improve} or lower CAC — otherwise faster acquisition deepens the loss.",
     cohortTableTitle: "Cohorts month by month",
     trendSub: "{from} → {to}: CAC {cacDelta}, LTV {ltvDelta}, LTV:CAC {ltvCacDelta}",
+    trendModeled: "partly modeled — only {obs} of {horizon} mo. observed at both ends",
     trendLabel: "Trend:",
     improving: "improving",
     worsening: "worsening",
@@ -344,6 +346,11 @@ export default async function LtvModule({
                   ltvDelta: trend.ltvDeltaPct != null ? fmt.fmtSignedPct(trend.ltvDeltaPct) : "—",
                   ltvCacDelta: trend.ltvCacDeltaPct != null ? fmt.fmtSignedPct(trend.ltvCacDeltaPct) : "—",
                 })}
+                {trend.minObservedMonths < LTV_HORIZON && (
+                  <span className="ml-1 text-coral-600">
+                    · {t("trendModeled", { obs: trend.minObservedMonths, horizon: LTV_HORIZON })}
+                  </span>
+                )}
               </p>
             )}
           </div>
