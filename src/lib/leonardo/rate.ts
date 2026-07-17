@@ -39,9 +39,13 @@ export async function rateImage(
     `Odpověz POUZE tímto JSON (bez markdown): {"score": <celé číslo 1-10>, "defects": "<jednou větou nebo 'none'>"}`;
 
   try {
-    const res = await fetch(`${BASE}/models/${MODEL}:generateContent?key=${key}`, {
+    // Key travels in the x-goog-api-key header, not the URL query string: a
+    // ?key= param is captured by proxies, gateway access logs and any error/
+    // telemetry line that records the request URL — the most-logged place for a
+    // paid, quota-bearing credential. Header auth is behaviour-identical here.
+    const res = await fetch(`${BASE}/models/${MODEL}:generateContent`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
         contents: [
           { role: "user", parts: [{ inlineData: { mimeType: mime, data: base64 } }, { text: instruction }] },
