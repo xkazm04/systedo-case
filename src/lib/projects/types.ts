@@ -226,7 +226,13 @@ export interface NormalizedProjectPatch {
  *  `null` (clear). A key absent from the input stays absent from the output. */
 export function normalizeProjectPatch(patch: ProjectPatch): NormalizedProjectPatch {
   const out: NormalizedProjectPatch = {};
-  if (patch.name !== undefined) out.name = patch.name;
+  // A project always has a display name — createProject enforces this, so update must
+  // too. Trim, and DROP a blank rename entirely (leave the existing name) rather than
+  // strand a project that renders as nothing in the switcher/sidebar/reports.
+  if (patch.name !== undefined) {
+    const name = patch.name.trim();
+    if (name) out.name = name;
+  }
   if (patch.type !== undefined) out.type = patch.type;
   if (patch.accentColor !== undefined) out.accentColor = patch.accentColor;
   if (patch.logoUrl !== undefined) out.logoUrl = patch.logoUrl.trim() || null;

@@ -22,6 +22,12 @@ test("a value on a nullable field is trimmed and kept", () => {
   assert.equal(normalizeProjectPatch({ logoUrl: " https://x/y.png " }).logoUrl, "https://x/y.png");
 });
 
+test("a blank rename is dropped (leave the existing name), a real one is trimmed", () => {
+  assert.ok(!("name" in normalizeProjectPatch({ name: "" })), "empty name dropped");
+  assert.ok(!("name" in normalizeProjectPatch({ name: "   " })), "whitespace name dropped");
+  assert.equal(normalizeProjectPatch({ name: "  Acme  " }).name, "Acme");
+});
+
 test("a cleared field is PRESENT as null (so backends remove it), not absent", () => {
   const out = normalizeProjectPatch({ domain: "" });
   assert.ok("domain" in out, "cleared field must be present so the backend clears it");
