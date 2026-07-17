@@ -11,6 +11,7 @@
 import "server-only";
 import { firestore } from "@/lib/firebase";
 import { hasTokenCrypto } from "@/lib/inventory/token-crypto";
+import { socialProvider } from "./providers";
 import type { SocialAccount, SocialPlatform } from "./types";
 import {
   buildSocialAccount,
@@ -34,10 +35,20 @@ function ref(userId: string) {
   return firestore.collection(COLLECTION).doc(userId);
 }
 
-/** Whether real publishing is configured (Meta / LinkedIn app credentials). When
- *  false the center runs in demo mode (simulated publishing). */
+/** Whether real publishing is configured for ANY platform (Meta / LinkedIn app
+ *  credentials) — a coarse banner hint for the UI. NOT the per-account real-vs-demo
+ *  decision: that must be per-platform (see {@link providerConfigured}), because an
+ *  OR across all platforms would mark, say, a LinkedIn connection "real" when only
+ *  Meta credentials exist. */
 export function socialConfigured(): boolean {
   return Boolean(process.env.META_APP_ID || process.env.LINKEDIN_CLIENT_ID);
+}
+
+/** Whether the real adapter for THIS platform is configured — mirrors publish.ts's
+ *  `socialProvider(platform)?.configured()`, so connecting a platform is judged real
+ *  only when its OWN credentials are present. */
+export function providerConfigured(platform: SocialPlatform): boolean {
+  return Boolean(socialProvider(platform)?.configured());
 }
 
 // ── store ─────────────────────────────────────────────────────────────────────
@@ -67,11 +78,19 @@ export async function connectAccount(
   platform: SocialPlatform,
   opts: { token?: string } = {}
 ): Promise<void> {
-  const accounts = (await listStored(userId)).filter((a) => a.platform !== platform);
+  const stored = await listStored(userId);
+  const existing = stored.find((a) => a.platform === platform);
+  // A token-less reconnect over an existing REAL connection would silently drop the
+  // stored token and downgrade it to demo. Treat it as a no-op — a real connection is
+  // only removed by an explicit disconnect, never quietly discarded.
+  if (!opts.token?.trim() && existing && !existing.demo) return;
+  const accounts = stored.filter((a) => a.platform !== platform);
   accounts.push(
     buildSocialAccount(platform, {
       token: opts.token,
-      realConfigured: socialConfigured() && hasTokenCrypto(),
+      // Per-platform (not the global socialConfigured()): only THIS platform's
+      // credentials make its connection real.
+      realConfigured: providerConfigured(platform) && hasTokenCrypto(),
     })
   );
   await ref(userId).set({ accounts }, { merge: true });
