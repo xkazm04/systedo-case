@@ -63,9 +63,15 @@ export function scoreQueries(
     const score = (q.volume * weights.intent[q.intent] * rankFactor(q.rank)) / Math.max(20, q.difficulty);
     return { ...q, score, opportunity: "low" as Opportunity };
   });
-  const max = Math.max(...scored.map((s) => s.score), 1);
+  // Normalize against the best query IN THIS SET so tiers always mean "relative to the
+  // top query here". A `Math.max(..., 1)` floor silently became the ceiling for niche
+  // low-volume lists (every raw score < 1 → all normalized values tiny → all "low"),
+  // so tiers stopped reflecting relative rank exactly for the long-tail lists. Guard the
+  // empty/all-zero case explicitly instead.
+  if (scored.length === 0) return [];
+  const max = Math.max(...scored.map((s) => s.score));
   for (const s of scored) {
-    const norm = s.score / max;
+    const norm = max > 0 ? s.score / max : 0;
     s.opportunity = norm >= weights.highCutoff ? "high" : norm >= weights.mediumCutoff ? "medium" : "low";
   }
   return scored.sort((a, b) => b.score - a.score);

@@ -61,3 +61,24 @@ test("the original default-output test still holds (regression guard)", () => {
   assert.equal(ranked[0].query, "a");
   assert.equal(ranked[0].opportunity, "high");
 });
+
+// --- normalization uses the relative max, not a floor of 1 (finding #4) ---
+
+test("a niche low-volume list still tiers relative to its own best query", () => {
+  // All raw scores land < 1 (small volumes) — under the old Math.max(...,1) floor every
+  // query normalized to a tiny value and tiered "low". Now the best query anchors 1.0.
+  const niche = [
+    { query: "best", intent: "pricing", volume: 60, difficulty: 400, rank: null },
+    { query: "mid", intent: "pricing", volume: 30, difficulty: 400, rank: null },
+    { query: "low", intent: "pricing", volume: 20, difficulty: 400, rank: null },
+  ];
+  const ranked = scoreQueries(niche);
+  assert.equal(ranked[0].query, "best");
+  assert.equal(ranked[0].opportunity, "high", "the top niche query is no longer stuck at low");
+  // relative spread is preserved (not all identical)
+  assert.ok(new Set(ranked.map((r) => r.opportunity)).size > 1, "tiers differentiate within the set");
+});
+
+test("an empty query list normalizes without throwing", () => {
+  assert.deepEqual(scoreQueries([]), []);
+});
