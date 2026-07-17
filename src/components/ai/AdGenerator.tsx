@@ -30,6 +30,7 @@ import {
   type AdStrengthRating,
 } from "@/lib/ad-strength";
 import { useAiTool } from "./useAiTool";
+import { readEditedMap, nextEditedMap, editedFor } from "@/lib/ai/ad-edits";
 import { usePersistedForm } from "./usePersistedForm";
 import {
   CharCount,
@@ -501,18 +502,47 @@ export default function AdGenerator({
   // strength meter, the RSA preview, copy-all, the CSV export and the A/B save —
   // reads `r` (edited ?? generated), so an in-place fix recomputes them all.
   const [edited, setEdited] = useState<AdResult | null>(null);
-  // Re-seed the editable copy whenever a generation arrives or a history entry
-  // is restored (same external-sync pattern as the hook's storage restore).
+  // Persist in-place edits keyed by the active generation's savedAt, so a
+  // refresh / history-chip switch / re-generate no longer silently discards the
+  // one hand-polished artifact (the form draft and raw generation already survive).
+  const editedSlot = pid ? `systedo.ai.result.ads.edited.${pid}` : "systedo.ai.result.ads.edited";
+  const activeSavedAt = history[activeIndex]?.savedAt ?? null;
+  // Re-seed the editable copy whenever a generation arrives or a history entry is
+  // restored — but rehydrate a persisted edit for THIS generation first, so the
+  // reseed doesn't throw away the user's polish (same external-sync pattern as
+  // the hook's storage restore). Only fires on generation/entry change, not edits.
   useEffect(() => {
+    let restored: AdResult | null = null;
+    if (generated && activeSavedAt != null) {
+      try {
+        restored = editedFor(readEditedMap(window.localStorage.getItem(editedSlot)), activeSavedAt);
+      } catch {
+        /* unavailable storage — seed fresh */
+      }
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setEdited(generated);
-  }, [generated]);
+    setEdited(restored ?? generated);
+  }, [generated, activeSavedAt, editedSlot]);
   const r = edited ?? generated ?? undefined;
   const dirty = useMemo(
     () =>
       generated !== null && edited !== null && JSON.stringify(edited) !== JSON.stringify(generated),
     [edited, generated]
   );
+  // Write the edited copy through to storage on every change: store it while
+  // dirty, drop the key once reverted, and prune to the generations still in
+  // history so the slot stays bounded.
+  useEffect(() => {
+    if (activeSavedAt == null) return;
+    try {
+      const map = readEditedMap(window.localStorage.getItem(editedSlot));
+      const next = nextEditedMap(map, activeSavedAt, dirty ? edited : null, history.map((h) => h.savedAt));
+      if (Object.keys(next).length > 0) window.localStorage.setItem(editedSlot, JSON.stringify(next));
+      else window.localStorage.removeItem(editedSlot);
+    } catch {
+      /* over quota / unavailable — keep the in-memory edit, just don't persist */
+    }
+  }, [edited, dirty, activeSavedAt, editedSlot, history]);
   const editList = (key: "headlines" | "descriptions" | "callouts", index: number, value: string) =>
     setEdited((e) => (e ? { ...e, [key]: e[key].map((x, i) => (i === index ? value : x)) } : e));
   const editLongHeadline = (value: string) =>
