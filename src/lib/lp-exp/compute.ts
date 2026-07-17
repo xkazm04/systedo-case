@@ -111,6 +111,24 @@ export function correctedAlpha(alpha: number, comparisons: number): number {
 }
 
 export function evaluate(exp: LpExperiment): ExperimentResult {
+  // Defensive: an experiment with no arms has nothing to read. Return a safe,
+  // fully-gated result rather than crashing on variants[0]! / Math.min(...[]).
+  if (exp.variants.length === 0) {
+    return {
+      id: exp.id,
+      cluster: exp.cluster,
+      status: exp.status,
+      variants: [],
+      winner: null,
+      confidence: 0,
+      significant: false,
+      requiredPerArm: Infinity,
+      progress: 0,
+      hasEnoughData: false,
+      effectiveAlpha: DEFAULT_ALPHA,
+      comparisons: 1,
+    };
+  }
   const control = exp.variants[0]!;
   const controlCvr = cvrOf(control);
   const winnerRaw = exp.variants.reduce((best, v) => (cvrOf(v) > cvrOf(best) ? v : best), control);
@@ -135,10 +153,15 @@ export function evaluate(exp: LpExperiment): ExperimentResult {
   // Sample-size trust gate: size for the corrected α against the control CVR.
   const requiredPerArm = requiredSampleSize(controlCvr, DEFAULT_MDE, effectiveAlpha, DEFAULT_POWER);
   const minVisitors = Math.min(...exp.variants.map((v) => v.visitors));
-  const progress = Number.isFinite(requiredPerArm) && requiredPerArm > 0
-    ? Math.max(0, Math.min(1, minVisitors / requiredPerArm))
-    : 1;
-  const hasEnoughData = Number.isFinite(requiredPerArm) ? minVisitors >= requiredPerArm : true;
+  // FAIL CLOSED when the sizing is not a finite, positive number. requiredSampleSize
+  // returns Infinity for a degenerate baseline (control CVR = 0 — a brand-new or broken
+  // control), which is exactly when data is scarcest. Resolving the non-finite branch to
+  // the permissive value (progress=1, hasEnoughData=true) let a near-empty test read as
+  // "significant" once a handful of challenger signups produced a large z. A 0-CVR
+  // control can never be trusted, so the gate stays shut.
+  const sizingKnown = Number.isFinite(requiredPerArm) && requiredPerArm > 0;
+  const progress = sizingKnown ? Math.max(0, Math.min(1, minVisitors / requiredPerArm)) : 0;
+  const hasEnoughData = sizingKnown ? minVisitors >= requiredPerArm : false;
 
   // A `done` experiment is read as before (the test was stopped deliberately).
   // A `running` experiment must clear BOTH the corrected confidence threshold AND

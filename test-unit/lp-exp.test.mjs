@@ -64,6 +64,34 @@ test("a done experiment with enough data still declares its winner", () => {
   assert.ok(r.confidence > 0.9);
 });
 
+test("a 0-CVR control fails the trust gate CLOSED, not open", () => {
+  // Control has 0 signups so far → requiredSampleSize is Infinity (sizing impossible).
+  // A challenger with a handful of signups produces a big z and clears the confidence
+  // bar, so the ONLY thing standing between it and a false "significant" is the gate.
+  const r = evaluate({
+    id: "z",
+    cluster: "c",
+    status: "running",
+    variants: [
+      { label: "Control", visitors: 40, signups: 0 },
+      { label: "B", visitors: 45, signups: 6 },
+    ],
+  });
+  assert.equal(Number.isFinite(r.requiredPerArm), false); // Infinity
+  assert.equal(r.hasEnoughData, false); // gate shut (was true before the fix)
+  assert.equal(r.progress, 0); // empty bar, not a full one
+  assert.equal(r.significant, false); // no false winner on a near-empty test
+});
+
+test("an experiment with no variants returns a safe, fully-gated result", () => {
+  const r = evaluate({ id: "empty", cluster: "c", status: "running", variants: [] });
+  assert.equal(r.winner, null);
+  assert.equal(r.significant, false);
+  assert.equal(r.hasEnoughData, false);
+  assert.equal(r.progress, 0);
+  assert.deepEqual(r.variants, []);
+});
+
 test("a multi-arm test carries the correction into the comparison count", () => {
   const r = evaluate({
     id: "m",
