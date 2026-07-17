@@ -33,11 +33,17 @@ export async function localSignalsPromptText(
   const reviews = resolvedReviews.reviews;
   if (ladder.length === 0 && reviews.length === 0) return null;
 
-  // Map-pack coverage — current position per tracked service×area combo.
-  const tracked = ladder.length;
-  const inPack = ladder.filter((r) => r.current <= 3).length;
-  const top1 = ladder.filter((r) => r.current === 1).length;
-  const avgRank = tracked > 0 ? ladder.reduce((a, r) => a + r.current, 0) / tracked : 0;
+  // Map-pack coverage — current position per CURRENTLY-tracked service×area combo.
+  // A partial re-import (D2) keeps omitted keywords with `untracked: true` and a frozen
+  // months-old `current`; folding those stale positions into "sledováno N, v top 3 M"
+  // would overstate present coverage. Compute the current figures over active keywords
+  // only, and disclose the retained-but-stale count on its own honest line.
+  const active = ladder.filter((r) => !r.untracked);
+  const untrackedCount = ladder.length - active.length;
+  const tracked = active.length;
+  const inPack = active.filter((r) => r.current <= 3).length;
+  const top1 = active.filter((r) => r.current === 1).length;
+  const avgRank = tracked > 0 ? active.reduce((a, r) => a + r.current, 0) / tracked : 0;
   const packRate = tracked > 0 ? inPack / tracked : 0;
 
   // Time-anchored trend: over the observed span, how many combos improved vs slipped
@@ -106,6 +112,11 @@ export async function localSignalsPromptText(
         )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.${ladderTag}`
       );
     }
+    if (untrackedCount > 0) {
+      lines.push(
+        `- Poznámka: ${fmtInt(untrackedCount)} klíčových slov nebylo v posledním importu (historie zachována, nezapočítáno do aktuálních čísel).`
+      );
+    }
     if (hasTrend) {
       lines.push(
         `- Trend pozic za ${fmtInt(spanDays)} dní: od posledního importu ${fmtInt(
@@ -136,6 +147,11 @@ export async function localSignalsPromptText(
           packRate,
           0
         )}), of which #1 for ${fmtInt(top1)}; average position ${avgRank.toFixed(1)}.${ladderTag}`
+      );
+    }
+    if (untrackedCount > 0) {
+      lines.push(
+        `- Note: ${fmtInt(untrackedCount)} keywords were not in the last import (history retained, excluded from the current figures).`
       );
     }
     if (hasTrend) {
