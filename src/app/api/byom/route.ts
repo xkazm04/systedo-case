@@ -37,10 +37,23 @@ export async function PATCH(request: Request) {
       }
       await setActiveByomVendor(u.userId, body.activeVendor as ByomVendor | null);
     }
-    if (body.models && isByomVendor(body.models.vendor)) {
-      await setByomKeyModels(u.userId, body.models.vendor, {
-        model: body.models.model as string | null | undefined,
-        fastModel: body.models.fastModel as string | null | undefined,
+    if (body.models !== undefined) {
+      const m = body.models;
+      // Reject an unknown vendor instead of silently skipping the update (the
+      // activeVendor branch above already 400s — mirror it here so a typo'd vendor
+      // doesn't return 200 with the change quietly dropped).
+      if (!isByomVendor(m.vendor)) {
+        return Response.json({ error: "Neznámý poskytovatel.", code: "invalid" }, { status: 400 });
+      }
+      // Runtime type checks at the JSON boundary — a cast is not a check, and the
+      // store's truthiness test would otherwise persist e.g. a number as a model tag.
+      const okField = (v: unknown) => v === undefined || v === null || typeof v === "string";
+      if (!okField(m.model) || !okField(m.fastModel)) {
+        return Response.json({ error: "Model musí být řetězec nebo null.", code: "invalid" }, { status: 400 });
+      }
+      await setByomKeyModels(u.userId, m.vendor, {
+        model: m.model as string | null | undefined,
+        fastModel: m.fastModel as string | null | undefined,
       });
     }
   } catch (e) {
