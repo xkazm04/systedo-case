@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, Document } from "@/components/icons";
+import CopyToast from "./CopyToast";
 import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useT } from "@/lib/i18n/client";
 
@@ -47,19 +48,8 @@ export default function CopyMarkdownButton({ markdown }: { markdown: string }) {
         <span>{copied ? t("copied") : t("btn")}</span>
       </button>
 
-      {/* Confirmation toast, shared shape with the ShareBar's. role=status announces it. */}
-      {copied && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
-        >
-          <span className="animate-drop inline-flex items-center gap-2 rounded-pill bg-onyx px-4 py-2.5 text-sm font-medium text-white shadow-pop">
-            <Check width={16} height={16} className="text-brand-400" />
-            {t("toast")}
-          </span>
-        </div>
-      )}
+      {/* Confirmation toast — the shared CopyToast, same shape as the ShareBar's. */}
+      {copied && <CopyToast>{t("toast")}</CopyToast>}
     </>
   );
 }

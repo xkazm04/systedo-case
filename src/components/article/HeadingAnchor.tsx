@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Check, Link } from "@/components/icons";
 import CopyToast from "./CopyToast";
 import { buildSectionPermalink } from "./permalink";
-import { copyTextWithFallback } from "@/lib/clipboard";
+import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { announceSection } from "./section-store";
 import { useT } from "@/lib/i18n/client";
 
@@ -50,28 +49,20 @@ export default function HeadingAnchor({
   text: string;
 }) {
   const t = useT(T);
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
+  // Shared copy-feedback state machine (clipboard write + flash + auto-reset),
+  // so this affordance can't drift from the ShareBar/FAQ copies.
+  const { copied, copy } = useCopyFeedback();
   const Tag = level;
-
-  // Clear any pending toast timer on unmount.
-  useEffect(() => () => window.clearTimeout(timer.current), []);
 
   const copyLink = async () => {
     // The UTM-stamped artifact + clipboard fallback are shared with the FAQ
     // permalinks (./permalink) so the copied link format can't drift.
-    await copyTextWithFallback(
-      buildSectionPermalink(window.location.origin, window.location.pathname, id)
-    );
+    await copy(buildSectionPermalink(window.location.origin, window.location.pathname, id));
 
     // Reflect the permalink in the address bar (no scroll jump — the heading is
     // already in view) and slide the TOC highlight to the copied section.
     history.replaceState(null, "", `#${id}`);
     announceSection(id);
-
-    setCopied(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2200);
   };
 
   return (

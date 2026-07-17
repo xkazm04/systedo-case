@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import { Check, Link } from "@/components/icons";
 import CopyToast from "./CopyToast";
 import { buildSectionPermalink } from "./permalink";
-import { copyTextWithFallback } from "@/lib/clipboard";
+import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -27,26 +26,17 @@ const T = {
  *  the question row; always faintly visible on touch, where hover can't reveal it. */
 export default function FaqPermalink({ id, question }: { id: string; question: string }) {
   const t = useT(T);
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<number | undefined>(undefined);
-
-  // Clear any pending toast timer on unmount.
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+  // Shared copy-feedback state machine, identical to the heading permalinks.
+  const { copied, copy } = useCopyFeedback();
 
   const copyLink = async (e: React.MouseEvent<HTMLButtonElement>) => {
     // A click inside <summary> would toggle the <details>; this one only copies.
     e.preventDefault();
     e.stopPropagation();
 
-    await copyTextWithFallback(
-      buildSectionPermalink(window.location.origin, window.location.pathname, id)
-    );
+    await copy(buildSectionPermalink(window.location.origin, window.location.pathname, id));
     // Reflect the anchor in the address bar (the question is already in view).
     history.replaceState(null, "", `#${id}`);
-
-    setCopied(true);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setCopied(false), 2200);
   };
 
   return (
