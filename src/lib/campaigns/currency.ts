@@ -61,3 +61,37 @@ export function resolveMoneyFormatter(opts: {
   });
   return (n: number) => (Number.isFinite(n) ? nf.format(n) : "—");
 }
+
+/**
+ * The SIGNED counterpart of {@link resolveMoneyFormatter}, for money DELTAS ("+38 000 €",
+ * "−1 200 €"). The signed money surfaces (projected gain/saving/profit, the change strip)
+ * used a hard-coded `fmtSignedCZK`, so a foreign account saw its move amount relabelled in
+ * its own currency while the gain on the same row stayed koruny.
+ *
+ * For a base/unknown currency it returns `base` UNCHANGED (the locale's `fmtSignedCZK`),
+ * byte-identical for CZK tenants. For a captured non-base currency it builds an Intl
+ * currency formatter and applies the SAME sign rule as `fmtSignedCZK`: round before
+ * signing (so a sub-unit delta that displays as zero never carries a misleading sign),
+ * a true minus U+2212, an explicit plus for gains, and the em-dash for non-finite. Pure.
+ */
+export function resolveSignedMoneyFormatter(opts: {
+  currency: string | null | undefined;
+  /** BCP-47 tag (e.g. "cs-CZ") — from LOCALES[locale].intlLocale. */
+  intlLocale: string;
+  /** the locale's own `fmtSignedCZK`, returned as-is for base/unknown currencies. */
+  base: (n: number) => string;
+}): (n: number) => string {
+  const code = normalizeCurrency(opts.currency);
+  if (code === null || code === BASE_CURRENCY) return opts.base;
+  const nf = new Intl.NumberFormat(opts.intlLocale, {
+    style: "currency",
+    currency: code,
+    maximumFractionDigits: 0,
+  });
+  return (n: number) => {
+    if (!Number.isFinite(n)) return "—";
+    const r = Math.round(n);
+    const sign = r > 0 ? "+" : r < 0 ? "−" : "";
+    return `${sign}${nf.format(Math.abs(r))}`;
+  };
+}

@@ -39,7 +39,7 @@ import HealthTimeline from "./HealthTimeline";
 import ReportView from "./ReportView";
 import SyncProvenance from "./SyncProvenance";
 import { LOCALES } from "@/lib/format";
-import { resolveMoneyFormatter } from "@/lib/campaigns/currency";
+import { resolveMoneyFormatter, resolveSignedMoneyFormatter } from "@/lib/campaigns/currency";
 
 // Below-fold, heavy panels — code-split so their JS loads after the above-fold
 // triage view (toolbar, account picker, campaign table) rather than in this
@@ -224,6 +224,14 @@ export default function CampaignsClient({
     currency: meta?.currency,
     intlLocale: LOCALES[locale].intlLocale,
     base: fmt.fmtCZK,
+  });
+  // The SIGNED counterpart for money deltas (projected gain/saving/profit, change strip),
+  // so a foreign account no longer sees koruny on the signed figures next to a euro-
+  // labelled amount. Byte-identical to fmt.fmtSignedCZK for CZK/unknown accounts.
+  const fmtMoneySigned = resolveSignedMoneyFormatter({
+    currency: meta?.currency,
+    intlLocale: LOCALES[locale].intlLocale,
+    base: fmt.fmtSignedCZK,
   });
 
   // The table's type filter, lifted here so the TypeBreakdown cards and the
@@ -523,7 +531,7 @@ export default function CampaignsClient({
       </section>
 
       {/* what changed since the previous sync */}
-      {changes && changes.items.length > 0 && <ChangeStrip changes={changes} />}
+      {changes && changes.items.length > 0 && <ChangeStrip changes={changes} fmtMoney={fmtMoney} />}
 
       <TypeBreakdown
         campaigns={campaigns}
@@ -551,9 +559,10 @@ export default function CampaignsClient({
           marginPct={marginPct}
           period={period}
           fmtMoney={fmtMoney}
+          fmtMoneySigned={fmtMoneySigned}
           onProposed={() => setControlPlaneRefresh((n) => n + 1)}
         />
-        <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton fmtMoney={fmtMoney} />
+        <ControlPlane refreshKey={controlPlaneRefresh} hideProposeButton fmtMoney={fmtMoney} fmtMoneySigned={fmtMoneySigned} />
       </section>
 
       {/* portfolio AI evaluation */}

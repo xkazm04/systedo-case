@@ -11,8 +11,9 @@ import {
   isForeignCurrency,
   normalizeCurrency,
   resolveMoneyFormatter,
+  resolveSignedMoneyFormatter,
 } from "@/lib/campaigns/currency";
-import { fmtCZK, LOCALES } from "@/lib/format";
+import { fmtCZK, fmtSignedCZK, LOCALES } from "@/lib/format";
 import { mapRowsToDailySeries } from "@/lib/google/ads";
 import { SklikClient } from "@/lib/sklik/client";
 import { fetchSklikSeries } from "@/lib/sklik/adapter";
@@ -62,6 +63,34 @@ test("resolveMoneyFormatter: a non-CZK account relabels in its own currency, no 
   assert.ok(out.includes("€") || /EUR/i.test(out), `expected a euro label, got "${out}"`);
   assert.ok(!out.includes("Kč"), "must not label euros as koruny");
   // Non-finite → the shared em-dash placeholder.
+  assert.equal(f(NaN), "—");
+});
+
+test("resolveSignedMoneyFormatter: base currency returns fmtSignedCZK UNCHANGED", () => {
+  for (const c of ["CZK", null, undefined, "nonsense"]) {
+    const f = resolveSignedMoneyFormatter({ currency: c, intlLocale: "cs-CZ", base: fmtSignedCZK });
+    assert.equal(f, fmtSignedCZK, `${c} → base fn`);
+    assert.equal(f(38000), fmtSignedCZK(38000));
+    assert.equal(f(-85000), fmtSignedCZK(-85000));
+  }
+});
+
+test("resolveSignedMoneyFormatter: a non-CZK account signs its own currency, no rescale", () => {
+  const f = resolveSignedMoneyFormatter({
+    currency: "EUR",
+    intlLocale: LOCALES.cs.intlLocale,
+    base: fmtSignedCZK,
+  });
+  const gain = f(1234);
+  assert.match(gain, /\+/); // explicit plus for a gain
+  assert.match(gain, /1\s?234/); // amount unchanged (no conversion)
+  assert.ok(gain.includes("€") || /EUR/i.test(gain), `expected euro label, got "${gain}"`);
+  assert.ok(!gain.includes("Kč"), "must not label euros as koruny");
+  // A loss uses the true minus U+2212 and the abs amount.
+  const loss = f(-1234);
+  assert.ok(loss.includes("−"), `expected true minus, got "${loss}"`);
+  // Rounds before signing → a sub-unit delta that displays as zero carries no sign.
+  assert.ok(!/[+−]/.test(f(0.2)), `zero-rounding delta must be unsigned, got "${f(0.2)}"`);
   assert.equal(f(NaN), "—");
 });
 

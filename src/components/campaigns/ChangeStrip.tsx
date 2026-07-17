@@ -31,8 +31,18 @@ const T = {
 
 /** "What changed since the last sync" — diff of the two most recent snapshots.
  *  Gives the portfolio a time dimension the destructive sync used to throw away. */
-export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
+export default function ChangeStrip({
+  changes,
+  fmtMoney,
+}: {
+  changes: ChangesSummary;
+  /** Currency-aware money formatter (Direction 2), threaded from CampaignsClient so a
+   *  foreign account's added/removed campaign cost labels in its own currency instead of
+   *  hard-coded koruny. Omitted / CZK → fmt.fmtCZK, byte-identical. */
+  fmtMoney?: (n: number) => string;
+}) {
   const fmt = useFormatters();
+  const money = fmtMoney ?? fmt.fmtCZK;
   const t = useT(T);
 
   const { since, added, removed, changed, items } = changes;
@@ -84,7 +94,7 @@ export default function ChangeStrip({ changes }: { changes: ChangesSummary }) {
                 {valueUp ? <TrendUp width={13} height={13} /> : <TrendDown width={13} height={13} />}
                 {it.kind === "changed"
                   ? fmt.fmtSignedPct(it.valueDelta)
-                  : fmt.fmtCZK(it.kind === "added" ? it.costAfter : it.costBefore)}
+                  : money(it.kind === "added" ? it.costAfter : it.costBefore)}
               </span>
             </li>
           );

@@ -105,6 +105,7 @@ export default function BudgetMoves({
   marginPct = null,
   period,
   fmtMoney,
+  fmtMoneySigned,
   onProposed,
 }: {
   campaigns: Campaign[];
@@ -119,9 +120,12 @@ export default function BudgetMoves({
   /** Currency-aware money formatter (Direction 2), threaded from CampaignsClient so
    *  the move amounts + impact cells label a foreign account in its own currency —
    *  the SAME formatter the campaign table uses. Omitted / CZK → fmt.fmtCZK,
-   *  byte-identical. (The signed gain/saving cells keep fmt.fmtSignedCZK: there is no
-   *  currency-aware SIGNED formatter yet, so they stay CZK for now.) */
+   *  byte-identical. */
   fmtMoney?: (n: number) => string;
+  /** Currency-aware SIGNED counterpart for the projected gain / saving / profit deltas,
+   *  so a foreign account's signed figures no longer read as koruny next to a euro-
+   *  labelled amount. Omitted / CZK → fmt.fmtSignedCZK, byte-identical. */
+  fmtMoneySigned?: (n: number) => string;
   onProposed?: () => void;
 }) {
   const { status } = useSession();
@@ -151,6 +155,7 @@ export default function BudgetMoves({
   const fmt = useFormatters();
   // Currency-aware for a captured non-CZK account; fmt.fmtCZK (byte-identical) otherwise.
   const money = fmtMoney ?? fmt.fmtCZK;
+  const moneySigned = fmtMoneySigned ?? fmt.fmtSignedCZK;
   const t = useT(T);
 
   const [busy, setBusy] = useState(false);
@@ -231,24 +236,24 @@ export default function BudgetMoves({
                 {m.kind === "pause" ? (
                   <p className="mt-1.5 text-xs text-muted">
                     {t("estSaving")}{" "}
-                    <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.amount)}</span>{" "}
+                    <span className="tnum font-semibold text-positive">{moneySigned(m.amount)}</span>{" "}
                     {t("savedCost")}
                     {m.estProfitGain !== undefined && (
                       <span className="text-muted">
                         {" · "}
-                        {t("profitGain", { profit: fmt.fmtSignedCZK(m.estProfitGain) })}
+                        {t("profitGain", { profit: moneySigned(m.estProfitGain) })}
                       </span>
                     )}
                   </p>
                 ) : (
                   <p className="mt-1.5 text-xs text-muted">
                     {t("estGain")}{" "}
-                    <span className="tnum font-semibold text-positive">{fmt.fmtSignedCZK(m.estValueGain)}</span>{" "}
+                    <span className="tnum font-semibold text-positive">{moneySigned(m.estValueGain)}</span>{" "}
                     {t("convVal")}
                     {m.estProfitGain !== undefined && (
                       <span className="text-muted">
                         {" · "}
-                        {t("profitGain", { profit: fmt.fmtSignedCZK(m.estProfitGain) })}
+                        {t("profitGain", { profit: moneySigned(m.estProfitGain) })}
                       </span>
                     )}
                   </p>
@@ -316,7 +321,7 @@ export default function BudgetMoves({
             <p className="mt-3 text-sm text-navy-700">
               {t("projectedProfit")}:{" "}
               <strong className={profitGain >= 0 ? "text-positive" : "text-negative"}>
-                {fmt.fmtSignedCZK(profitGain)}
+                {moneySigned(profitGain)}
               </strong>{" "}
               <span className="text-muted">{t("marginStated", { m: fmt.fmtPct(margin, 0) })}</span>
             </p>

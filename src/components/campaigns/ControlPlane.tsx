@@ -106,6 +106,7 @@ export default function ControlPlane({
   refreshKey = 0,
   hideProposeButton = false,
   fmtMoney,
+  fmtMoneySigned,
 }: {
   refreshKey?: number;
   /** Suppress the header's bare "Navrhnout změnový balíček" button. Set when the
@@ -117,6 +118,10 @@ export default function ControlPlane({
    *  the simulation cells label a foreign account in its own currency — the SAME
    *  formatter the campaign table uses. Omitted / CZK → fmt.fmtCZK, byte-identical. */
   fmtMoney?: (n: number) => string;
+  /** Currency-aware SIGNED money formatter for the pending-move gain deltas — so a
+   *  foreign account no longer shows a koruna gain next to a euro-labelled amount on
+   *  the same row. Omitted / CZK → fmt.fmtSignedCZK, byte-identical. */
+  fmtMoneySigned?: (n: number) => string;
 }) {
   const { status } = useSession();
   const project = useOptionalProject();
@@ -126,6 +131,7 @@ export default function ControlPlane({
   const fmt = useFormatters();
   // Currency-aware for a captured non-CZK account; fmt.fmtCZK (byte-identical) otherwise.
   const money = fmtMoney ?? fmt.fmtCZK;
+  const moneySigned = fmtMoneySigned ?? fmt.fmtSignedCZK;
   const t = useT(T);
 
   const STATUS_LABEL: Record<ChangeSetStatus, string> = {
@@ -218,7 +224,7 @@ export default function ControlPlane({
                 {/* signed helper: a reversal change-set negates estValueGain, so a
                     hand-written "+" here would render "+−…" */}
                 <span className="tnum text-muted">
-                  {money(m.amount)} · {fmt.fmtSignedCZK(m.estValueGain)}
+                  {money(m.amount)} · {moneySigned(m.estValueGain)}
                 </span>
               </li>
             ))}
