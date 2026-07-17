@@ -13,6 +13,17 @@ import {
   normalizeForSearch,
   slugify,
 } from "@/lib/nav";
+import { MESSAGES } from "@/lib/i18n/messages";
+
+test("cs nav dictionary mirrors NAV_ITEMS exactly (guards the duplicated source of truth)", () => {
+  // nav.ts short-circuits locale==="cs" to NAV_ITEMS, so MESSAGES.cs.nav.items is
+  // never rendered and nothing else catches it drifting from NAV_ITEMS. This pins
+  // the two together: reword a NAV_ITEMS blurb without updating the dictionary → fail.
+  const projection = Object.fromEntries(
+    NAV_ITEMS.map((i) => [i.href, { label: i.label, blurb: i.blurb }])
+  );
+  assert.deepEqual(MESSAGES.cs.nav.items, projection);
+});
 
 test("normalizeForSearch strips diacritics and lowercases", () => {
   assert.equal(normalizeForSearch("Klíčová SLOVA"), "klicova slova");
