@@ -118,5 +118,10 @@ export function toProduct(o: ProductOffering): Product {
     margin: o.margin,
     restockDate: o.restockDate,
     incomingQty: o.incomingQty,
+    // Availability feeds (Heureka / Merchant Center) carry in/out-of-stock but rarely an
+    // exact count, so a brand-new in-stock feed product lands with stock 0. Carry the
+    // feed's own availability so creative reads "in stock", not a false "preorder", from
+    // that sentinel 0. Other sources keep the stock-derived default (available omitted).
+    ...(o.source === "feed" || o.source === "merchant-center" ? { available: o.active } : {}),
   };
 }

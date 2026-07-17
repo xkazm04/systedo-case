@@ -208,6 +208,19 @@ test("buildAssetGroup: supplied claims produce exactly the supplied promises", (
   assert.ok(/vrácení do 30 dnů/.test(descs), "return window reflects the supplied days");
 });
 
+test("buildAssetGroup: feed-declared availability overrides the stock-0 sentinel", () => {
+  // A feed product the feed says is IN STOCK but with an unknown (0) count must read as
+  // in-stock, not preorder.
+  const inStockFeed = buildAssetGroup(product("A", { stock: 0, available: true }), "Brand", "shop.cz");
+  const inTexts = [...inStockFeed.headlines, ...inStockFeed.descriptions].map((a) => a.text).join(" | ");
+  assert.ok(inTexts.includes("Skladem"), "declared-available feed product reads as in stock");
+  assert.ok(!/Předobjednejte|Naskladnění/.test(inTexts), "no preorder copy for an available product");
+
+  const outFeed = buildAssetGroup(product("A", { stock: 0, available: false }), "Brand", "shop.cz");
+  const outTexts = [...outFeed.headlines, ...outFeed.descriptions].map((a) => a.text).join(" | ");
+  assert.ok(/Předobjednejte|Naskladnění/.test(outTexts), "declared-unavailable product reads as preorder");
+});
+
 test("adResultToGroup: folds an AdResult into the AssetGroup shape with char counts", () => {
   const g = adResultToGroup(result("Z"), product("A"), "shop.cz");
   assert.equal(g.sku, "A");

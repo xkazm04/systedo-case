@@ -18,6 +18,11 @@ export interface Product {
   emoji: string;
   /** selling points used to ground generated creative */
   usps: string[];
+  /** feed-declared availability, when the source carries it but no exact stock count
+   *  (Heureka/Merchant feeds are availability feeds). When set it, not `stock > 0`,
+   *  decides in-stock vs preorder copy — so a feed product the feed says is available
+   *  but whose count is unknown (0) isn't advertised as a preorder. */
+  available?: boolean;
   /** illustrative gross-margin fraction (0–1); when omitted, derived by category */
   margin?: number;
   /** scheduled restock date (ISO YYYY-MM-DD) for a paused SKU, if any */

@@ -94,7 +94,9 @@ export interface FloorClaims {
  *  shop hasn't verified. With no claims the copy is grounded in title/category/price/USPs. */
 export function buildAssetGroup(p: Product, brand = "", domain = "", claims: FloorClaims = {}): AssetGroup {
   const price = fmtCZK(p.price);
-  const inStock = p.stock > 0;
+  // Prefer the feed's own availability when present: a feed product declared in-stock
+  // but with an unknown (0) count must not be advertised as a preorder (product #5).
+  const inStock = p.available ?? p.stock > 0;
   const withBrand = (s: string) => (brand ? `${s} ${brand}` : s);
 
   // Verifiable claim lines — each present only when the shop actually supplied the value.
