@@ -8,13 +8,30 @@ test("csvCell neutralizes spreadsheet formula-injection triggers", () => {
   // A live formula and a DDE vector must be quoted + '-guarded so they render as text.
   assert.equal(csvCell("=SUM(A1)"), `"'=SUM(A1)"`);
   assert.equal(csvCell("@cmd"), `"'@cmd"`);
-  assert.equal(csvCell("+420"), `"'+420"`);
+  // A trigger char followed by NON-numeric content is still hostile → guarded.
+  assert.equal(csvCell("+420 volejte"), `"'+420 volejte"`);
   // Czech promo copy that legitimately starts with '-' is guarded too (it evaluates
   // as a negative-number/formula on open otherwise).
   assert.equal(csvCell("-50 % na vše"), `"'-50 % na vše"`);
   // Non-trigger cells are unchanged; delimiter escaping still applies.
   assert.equal(csvCell("Doprava zdarma"), "Doprava zdarma");
   assert.equal(csvCell("a,b"), '"a,b"');
+});
+
+test("csvCell keeps PLAIN numbers numeric — negatives no longer corrupted to text", () => {
+  // The bug: the formula guard apostrophe-prefixed every negative, so "-85000" imported
+  // as text and dropped out of Excel sums. A plain number cannot be a formula payload.
+  assert.equal(csvCell(-5), "-5");
+  assert.equal(csvCell(-85000), "-85000");
+  assert.equal(csvCell("-85000"), "-85000"); // string form (e.g. a pre-formatted delta)
+  assert.equal(csvCell(-1234.5), "-1234.5");
+  assert.equal(csvCell("-1234.5"), "-1234.5");
+  // A leading "+" that is a plain number is likewise safe (Excel reads it as the number).
+  assert.equal(csvCell("+420"), "+420");
+  // cs decimal-comma negative: numeric, but the comma still forces RFC-4180 quoting —
+  // and critically carries NO apostrophe, so it stays a real number.
+  assert.equal(csvCell("-0,85"), `"-0,85"`);
+  assert.equal(csvCell(-0.85), "-0.85");
 });
 
 test("csvNum renders cs decimal commas without grouping", () => {

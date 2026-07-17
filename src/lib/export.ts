@@ -20,10 +20,21 @@ import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
  *  delimiter escaping alone does NOT stop this — the app strips the CSV quotes and
  *  still sees the leading `=`. */
 const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+/** A cell that is a PLAIN number — optional sign, digits, an optional single decimal
+ *  separator (dot OR the cs-CZ comma), nothing else. Such a value trips FORMULA_TRIGGER
+ *  on a leading `+`/`-` yet cannot be a formula payload, so it must stay numeric: the
+ *  old apostrophe guard rewrote every negative ("-85000") to text ("'-85000"), which
+ *  Excel/Sheets then import as a string and silently drop from sums/pivots. Grouping is
+ *  excluded (csvNum disables it), so a thousands space can never smuggle content past
+ *  this check. Non-numeric formula copy ("-50 % na vše", "=SUM(A1)", "@cmd") is NOT a
+ *  plain number and stays guarded. */
+const PLAIN_NUMBER = /^[+-]?\d+(?:[.,]\d+)?$/;
 export function csvCell(value: string | number): string {
   const s = String(value ?? "");
-  const guarded = FORMULA_TRIGGER.test(s) ? `'${s}` : s;
-  return FORMULA_TRIGGER.test(s) || /[",\n\r;]/.test(s)
+  const isNumeric = typeof value === "number" || PLAIN_NUMBER.test(s);
+  const needsGuard = !isNumeric && FORMULA_TRIGGER.test(s);
+  const guarded = needsGuard ? `'${s}` : s;
+  return needsGuard || /[",\n\r;]/.test(s)
     ? `"${guarded.replace(/"/g, '""')}"`
     : guarded;
 }
