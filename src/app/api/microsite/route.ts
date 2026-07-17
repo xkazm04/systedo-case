@@ -10,6 +10,7 @@
  *  another tenant is rejected. Node runtime. */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { slugify } from "@/lib/nav";
 import { getReportConfig } from "@/lib/campaigns/report-config";
@@ -27,6 +28,8 @@ export async function GET(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ microsite: null });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   return Response.json({ microsite: await getMicrositeForTenant(tenant) });
 }
@@ -50,6 +53,8 @@ export async function POST(request: Request) {
   }
 
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
 
   // Resolve the white-label identity ONCE: an explicit body override wins (back-
@@ -117,6 +122,8 @@ export async function DELETE(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   await disableMicrosite(tenant);
   await recordActivity(tenant, {

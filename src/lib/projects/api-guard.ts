@@ -56,6 +56,25 @@ function guardError(
   return Response.json(body, { status });
 }
 
+/** Verify a wire-supplied `projectId` belongs to the caller BEFORE it is turned into a
+ *  tenant key. The tenant-keyed routes (campaigns/share, microsite, social/*) build
+ *  `buildTenantKey(userId, projectId)` from a raw body/query id; an unverified typo'd,
+ *  stale or deleted id silently mints a FRESH EMPTY tenant — share links that list as
+ *  zero reports, scheduled posts that vanish, and orphaned blobs the delete cascade can
+ *  never reach. Returns a 404 Response when a non-empty id is not the user's project,
+ *  else null — including the legitimate keyless paths (anonymous visitor, or a
+ *  signed-in user with no active project), which are left untouched. */
+export async function rejectUnknownProject(
+  userId: string | null,
+  projectId: string | null | undefined,
+  notFound: string = DEFAULT_NOT_FOUND
+): Promise<Response | null> {
+  if (!userId || !projectId) return null;
+  const project = await getProject(userId, projectId);
+  if (project) return null;
+  return Response.json({ error: notFound, code: "not-found" }, { status: 404 });
+}
+
 export async function requireOwnedProject(
   id: string,
   opts: OwnershipGuardOptions = {}

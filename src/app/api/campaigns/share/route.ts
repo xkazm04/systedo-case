@@ -11,6 +11,7 @@ import {
   revokeSharedReport,
 } from "@/lib/campaigns/shared-report";
 import { getProject } from "@/lib/projects/store";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { canonical } from "@/lib/site";
 
 
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
   } catch {
     /* empty body is fine — no active project */
   }
+
+  // A wire projectId must be the caller's before it keys a tenant — else a typo mints a
+  // phantom tenant whose share link lists zero reports and can't be cleaned up.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
 
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const project = projectId ? await getProject(userId, projectId) : null;
@@ -53,6 +59,8 @@ export async function GET(request: Request) {
   if (!userId) return Response.json({ reports: [] });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const reports = (await listSharedReports(tenant)).map((r) => ({
     ...r,
@@ -76,6 +84,8 @@ export async function DELETE(request: Request) {
   }
   if (!token) return Response.json({ error: "Chybí token odkazu." }, { status: 422 });
 
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const ok = await revokeSharedReport(tenant, token);
   return Response.json({ ok }, { status: ok ? 200 : 404 });

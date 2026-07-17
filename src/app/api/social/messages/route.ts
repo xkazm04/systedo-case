@@ -2,6 +2,7 @@
  *  (approved) reply. Per-tenant; replies are simulated in demo mode. */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { listMessages, markReplied } from "@/lib/social/store";
 import { publishReply } from "@/lib/social/publish";
 import { getAccount, getAccountToken } from "@/lib/social/connection";
@@ -19,6 +20,8 @@ async function tenantOf(projectId?: string | null): Promise<string> {
 
 export async function GET(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId");
+  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  if (unknown) return unknown;
   const messages = await listMessages(await tenantOf(projectId));
   // Attach a deterministic suggested reply for each open message.
   const withSuggestions = messages.map((m) => ({
@@ -39,7 +42,10 @@ export async function POST(request: Request) {
   const reply = str(body.reply);
   if (!id || !reply) return Response.json({ error: "Chybí zpráva nebo odpověď." }, { status: 422 });
 
-  const tenant = await tenantOf(str(body.projectId) || null);
+  const projectId = str(body.projectId) || null;
+  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  if (unknown) return unknown;
+  const tenant = await tenantOf(projectId);
   if (isSocialPlatform(body.platform)) {
     // Same seam as post publishing: real when the account is connected with a token,
     // an honest no-op simulation otherwise.

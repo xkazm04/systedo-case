@@ -3,6 +3,7 @@
  *  without sign-in. Publishing is simulated in demo mode (see lib/social/publish). */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost, type PublishContext } from "@/lib/social/publish";
@@ -37,6 +38,8 @@ async function publishContextFor(platform: SocialPlatform): Promise<PublishConte
 
 export async function GET(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId");
+  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  if (unknown) return unknown;
   return Response.json({ posts: await listPosts(await tenantOf(projectId)) });
 }
 
@@ -59,7 +62,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const tenant = await tenantOf(str(body.projectId) || null);
+  const projectId = str(body.projectId) || null;
+  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  if (unknown) return unknown;
+  const tenant = await tenantOf(projectId);
   const rawScheduledAt = str(body.scheduledAt);
   // Parse to an instant and store the CANONICAL UTC ISO, so the cron's UTC "due"
   // comparison is always against a UTC value. Reject a non-empty but unparseable
@@ -116,6 +122,8 @@ export async function DELETE(request: Request) {
     /* fall through */
   }
   if (!id) return Response.json({ error: "Chybí ID." }, { status: 422 });
+  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  if (unknown) return unknown;
   const ok = await deletePost(await tenantOf(projectId), id);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }
