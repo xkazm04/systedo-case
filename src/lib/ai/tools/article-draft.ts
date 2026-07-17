@@ -67,29 +67,31 @@ function buildArticleDraftPrompt(req: ArticleDraftRequest): string {
   const brandLine = req.brand
     ? `Kontext značky (piš v jejím světě, drž se sortimentu a slovníku): ${req.brand}`
     : "";
+  // Skip-lines are `null` (dropped by the filter); "" stays a real blank
+  // separator between sections, so the prompt's visual structure matches its
+  // output — matching every sibling tool's builder.
   return [
     "Rozepiš tento hotový brief do plnohodnotného konceptu článku.",
     "",
     `Titulek (H1): ${req.h1 || req.titleTag}`,
     `Title tag: ${req.titleTag}`,
     `Meta description: ${req.metaDescription}`,
-    req.audience ? `Cílová skupina: ${req.audience}` : "",
-    req.contentType ? `Typ obsahu: ${CONTENT_TYPE_LABELS[req.contentType]}` : "",
-    brandLine,
+    req.audience ? `Cílová skupina: ${req.audience}` : null,
+    req.contentType ? `Typ obsahu: ${CONTENT_TYPE_LABELS[req.contentType]}` : null,
+    brandLine || null,
     "",
     "Osnova, kterou článek dodrží (každý nadpis = jedna sekce H2):",
     ...outlineBlock,
     "",
-    kw.length ? `Klíčová slova k přirozenému zapracování: ${kw.join(", ")}` : "",
-    faqBlock.length ? "" : "",
-    faqBlock.length ? "Časté dotazy, které článek zodpoví (vrať je v poli „faq“):" : "",
+    kw.length ? `Klíčová slova k přirozenému zapracování: ${kw.join(", ")}` : null,
+    faqBlock.length ? "Časté dotazy, které článek zodpoví (vrať je v poli „faq“):" : null,
     ...faqBlock,
     "",
     'Vrať objekt s polem „blocks" (tělo článku jako sekvence bloků) a polem „faq" (otázka + odpověď).',
     "Pořadí bloků: úvodní odstavec, pak pro každou sekci osnovy nadpis h2 + odstavce/seznam, jeden callout a na konci jeden cta.",
     ...refineLines(req.refine),
   ]
-    .filter((line) => line !== "")
+    .filter((line): line is string => line !== null)
     .join("\n");
 }
 
