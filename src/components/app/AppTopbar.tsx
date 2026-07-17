@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { Menu } from "@/components/icons";
 import { useShell } from "@/components/app/shell-context";
 import { useProject } from "@/lib/projects/context";
-import { modulesFor } from "@/lib/projects/modules";
+import { modulesFor, moduleLabel } from "@/lib/projects/modules";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AuthButton from "@/components/auth/AuthButton";
@@ -21,11 +22,14 @@ const T = {
 function useActiveModuleLabel(): string {
   const project = useProject();
   const pathname = usePathname();
+  const { locale } = useLocale();
   const base = `/app/${project.id}`;
   const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, "") : "";
   const key = rest.split("/")[0] ?? "";
   const active = modulesFor(project.type).find((m) => m.key === key);
-  return active?.label ?? project.name;
+  // Localise via moduleLabel() — the same accessor the sidebar uses — so the
+  // heading and the highlighted nav item name the page in the same language.
+  return active ? moduleLabel(active, locale) : project.name;
 }
 
 export default function AppTopbar() {
