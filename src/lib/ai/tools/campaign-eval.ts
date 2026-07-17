@@ -131,11 +131,25 @@ export function validateReport(parsed: unknown): string[] {
   })(parsed);
 }
 
+// Anchor the demo score to the scale EVAL_SYSTEM publishes ("~80+ výborné,
+// ~60–79 solidní, ~40–59 průměrné s rezervami, pod 40 podvýkonné"): a campaign
+// exactly at the target ROAS should read as "solid" (65), not the bottom of
+// "average". The old formula anchored the target at 40 — one point above
+// underperforming — so an on-target campaign rendered a self-contradicting card
+// (40/100 next to "efektivní kampaň nad cílem"). ~2× target now lands in
+// "excellent"; below target eases down toward the underperforming band.
+const DEMO_SCORE_AT_TARGET = 65;
+const DEMO_SCORE_SLOPE = 25; // score points per 1× of target ROAS away from target
+
 /** Map ROAS to a 0–100 health score relative to the target — shared by the demo
- *  fallbacks so a keyless run still produces a believable, data-driven number. */
+ *  fallbacks so a keyless run still produces a believable, data-driven number
+ *  consistent with the published score legend. */
 function healthScore(roas: number): number {
   if (roas <= 0) return 5;
-  return Math.max(5, Math.min(99, Math.round(40 + (roas / TARGET_ROAS - 1) * 40)));
+  return Math.max(
+    5,
+    Math.min(99, Math.round(DEMO_SCORE_AT_TARGET + (roas / TARGET_ROAS - 1) * DEMO_SCORE_SLOPE))
+  );
 }
 
 function demoCampaignReport(target: Campaign, all: Campaign[]): CampaignReportResult {
