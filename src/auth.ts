@@ -13,11 +13,19 @@ export const ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords";
 
 /** Local-dev OAuth bypass. With `DEV_AUTH=true` every `await auth()` resolves to
  *  a hardcoded test user, so developers can use the authed product (/app) without
- *  configuring Google OAuth. HARD-GATED off when NODE_ENV=production, so it can
- *  never become an auth bypass in a real deployment. Data still persists to
- *  Firestore under the dev user id (Firebase creds are still used). */
+ *  configuring Google OAuth. Data still persists to Firestore under the dev user id
+ *  (Firebase creds are still used).
+ *
+ *  GATED off when EITHER NODE_ENV=production OR VERCEL_ENV=production. Note the
+ *  actual invariant: NODE_ENV is a build-mode convention, not a deployment-safety
+ *  boundary — a custom Node server / Dockerfile running `node server.js` may leave
+ *  it "development", so this is defense-in-depth, NOT a proof it "can never" bypass
+ *  auth in a real deployment. Belt-and-braces: keep DEV_AUTH out of any non-dev
+ *  env file, and rely on real OAuth being configured in production. */
 export const DEV_AUTH =
-  process.env.DEV_AUTH === "true" && process.env.NODE_ENV !== "production";
+  process.env.DEV_AUTH === "true" &&
+  process.env.NODE_ENV !== "production" &&
+  process.env.VERCEL_ENV !== "production";
 
 /** The synthetic session returned while DEV_AUTH is active. Identity is
  *  overridable via env so two devs can use distinct test users / data. */
