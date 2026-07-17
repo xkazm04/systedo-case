@@ -53,6 +53,7 @@ const T = {
     dupConfirm: "Duplikovat projekt",
     dupWorking: "Duplikuji…",
     dupError: "Duplikaci se nepodařilo dokončit.",
+    dupSuffix: "(kopie)",
   },
   en: {
     homeLabel: "Adamant — home",
@@ -85,6 +86,7 @@ const T = {
     dupConfirm: "Duplicate project",
     dupWorking: "Duplicating…",
     dupError: "Couldn't complete the duplication.",
+    dupSuffix: "(copy)",
   },
 } as const;
 
@@ -419,7 +421,9 @@ function DuplicateProjectModal({
   const t = useT(T);
   const { locale } = useLocale();
   const router = useRouter();
-  const [name, setName] = useState(`${project.name} (kopie)`);
+  // Locale-correct default suffix (t is already available) — a hardcoded "(kopie)"
+  // baked a Czech word into an en-locale user's project name across the whole app.
+  const [name, setName] = useState(`${project.name} ${t("dupSuffix")}`);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
