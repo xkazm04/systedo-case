@@ -22,20 +22,36 @@ export function normalizeSiteUrl(raw: string): string {
   return /^https?:\/\//i.test(t) ? t : `https://${t}`;
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+};
+
+/** Codepoint → string, tolerant of out-of-range / lone-surrogate values (which
+ *  fromCodePoint would throw on) by dropping them. */
+function fromCodePointSafe(code: number): string {
+  if (!Number.isFinite(code) || code < 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff)) return "";
+  return String.fromCodePoint(code);
+}
+
 /** Decode the handful of HTML entities that survive tag-stripping and matter for
- *  readable prose. Numeric entities are decoded generically. */
-function decodeEntities(s: string): string {
-  return s
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;|&apos;/g, "'")
-    .replace(/&#(\d+);/g, (_, d) => {
-      const code = Number(d);
-      return Number.isFinite(code) ? String.fromCharCode(code) : "";
-    });
+ *  readable prose, in a SINGLE pass so ordering can't double-decode (the old sequential
+ *  replaces turned an escaped literal `&amp;lt;` into `<`). Numeric entities use
+ *  fromCodePoint for both decimal AND hex forms — so astral codepoints (emoji) and the
+ *  `&#x2013;`-style dashes many CMSes emit decode correctly, not to mojibake. Exported
+ *  for unit testing the single-pass edge cases. */
+export function decodeEntities(s: string): string {
+  return s.replace(/&(#x[0-9a-fA-F]+|#\d+|nbsp|amp|lt|gt|quot|apos);/g, (m, body: string) => {
+    if (body[0] === "#") {
+      const code = body[1] === "x" || body[1] === "X" ? parseInt(body.slice(2), 16) : Number(body.slice(1));
+      return fromCodePointSafe(code);
+    }
+    return NAMED_ENTITIES[body] ?? m;
+  });
 }
 
 const firstMatch = (html: string, ...res: RegExp[]): string => {
