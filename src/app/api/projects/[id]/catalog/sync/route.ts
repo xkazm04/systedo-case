@@ -86,6 +86,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         applied: apply,
         format: result.provider,
         diff: result.diff,
+        // Non-fatal truncation note (Baselinker page cap): the sync succeeded but
+        // only refreshed part of the catalog — surfaced so the UI can stop claiming
+        // a full sync instead of silently dropping SKUs past the cap.
+        ...(result.truncated ? { truncated: true, warning: result.warning } : {}),
         ...(apply ? { offerings: result.offerings, count: result.offerings?.length } : {}),
       });
   }

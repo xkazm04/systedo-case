@@ -15,9 +15,21 @@ import {
   syncProvider,
   type ProviderProduct,
 } from "./providers";
-import { BaselinkerError, fetchBaselinkerProducts } from "./baselinker";
+import {
+  BaselinkerError,
+  BASELINKER_MAX_PAGES,
+  BASELINKER_PAGE_SIZE,
+  fetchBaselinkerProducts,
+} from "./baselinker";
 import { ErpError, fetchErpProducts, parseErpConfig, demoErpProducts } from "./erp";
 import { saveConnection, type StoredConnection } from "./connection-store";
+
+/** A provider's resolved products plus whether the pull was truncated (only the
+ *  paged Baselinker walk can truncate; every other provider is always complete). */
+export interface ResolvedProducts {
+  products: ProviderProduct[];
+  truncated: boolean;
+}
 
 /** Fetch a provider's products. Throws (BaselinkerError / ErpError / Error) on a
  *  provider failure. `config` carries the generic ERP adapter's endpoint/mapping. */
@@ -27,11 +39,11 @@ export async function resolveProviderProducts(
   inventoryId: string | undefined,
   now: Date,
   config?: unknown
-): Promise<ProviderProduct[]> {
-  if (providerId === "demo") return demoWarehouseProducts(now);
-  if (providerId === "erp-demo") return demoErpProducts();
+): Promise<ResolvedProducts> {
+  if (providerId === "demo") return { products: demoWarehouseProducts(now), truncated: false };
+  if (providerId === "erp-demo") return { products: demoErpProducts(), truncated: false };
   if (providerId === "baselinker") return fetchBaselinkerProducts(token, inventoryId);
-  if (providerId === "erp") return fetchErpProducts(parseErpConfig(config), token);
+  if (providerId === "erp") return { products: await fetchErpProducts(parseErpConfig(config), token), truncated: false };
   throw new Error(`Provider ${providerId} not implemented.`);
 }
 
@@ -51,6 +63,13 @@ export interface SyncResult {
   diff?: CatalogDiff;
   /** the persisted catalog, on a successful apply */
   offerings?: Offering[];
+  /** the provider returned more items than the page cap allowed — the sync
+   *  succeeded but the catalog is only PARTIALLY refreshed (SKUs past the cap keep
+   *  stale stock/price). Callers must not present this as a full, healthy sync. */
+  truncated?: boolean;
+  /** a non-fatal, user-facing note about a partial/degraded-but-successful sync
+   *  (currently: the Baselinker page-cap truncation). Localized (cs). */
+  warning?: string;
 }
 
 export interface SyncOpts {
@@ -81,8 +100,17 @@ async function computeSync(userId: string, projectId: string, opts: SyncOpts): P
   if (meta.needsConfig && !opts.config) return { code: "no-config", provider: meta.label };
 
   let products: ProviderProduct[];
+  let truncated = false;
   try {
-    products = await resolveProviderProducts(opts.providerId, opts.token, opts.inventoryId, opts.now, opts.config);
+    const resolved = await resolveProviderProducts(
+      opts.providerId,
+      opts.token,
+      opts.inventoryId,
+      opts.now,
+      opts.config
+    );
+    products = resolved.products;
+    truncated = resolved.truncated;
   } catch (e) {
     return {
       code: "provider-error",
@@ -91,6 +119,13 @@ async function computeSync(userId: string, projectId: string, opts: SyncOpts): P
     };
   }
   if (products.length === 0) return { code: "empty", provider: meta.label };
+
+  // A truncated pull still applies (the SKUs we DID fetch are refreshed), but the
+  // catalog is only partial — surface it as a non-fatal warning so nothing claims a
+  // full, healthy sync while SKUs past the cap keep stale stock/price.
+  const warning = truncated
+    ? `Katalog přesáhl ${BASELINKER_MAX_PAGES * BASELINKER_PAGE_SIZE} položek — synchronizována jen část. Ostatní produkty se neaktualizovaly.`
+    : undefined;
 
   const nowIso = opts.now.toISOString();
   const incoming = sanitizeOfferings(
@@ -108,10 +143,10 @@ async function computeSync(userId: string, projectId: string, opts: SyncOpts): P
   const strategy: ImportStrategy = opts.providerId === "baselinker" ? "merge" : opts.strategy;
   const { next, diff } = mergeCatalog(current, incoming, strategy, nowIso);
 
-  if (!opts.apply) return { code: "ok", provider: meta.label, diff };
+  if (!opts.apply) return { code: "ok", provider: meta.label, diff, truncated, warning };
 
   await saveOfferings(userId, projectId, next);
-  return { code: "ok", provider: meta.label, diff, offerings: next };
+  return { code: "ok", provider: meta.label, diff, offerings: next, truncated, warning };
 }
 
 /** Run one project's catalog sync and, on an APPLY with a stored connection, record its
@@ -125,11 +160,14 @@ export async function runCatalogSync(userId: string, projectId: string, opts: Sy
   if (opts.apply && stamp) {
     const nowIso = opts.now.toISOString();
     if (result.code === "ok") {
+      // A truncated-but-successful sync stamps lastSyncAt (the fetched SKUs ARE
+      // fresh) and keeps failCount 0, but records the truncation as a non-fatal
+      // note so the badge stops asserting a fully healthy, complete catalog.
       await saveConnection(stamp.userId, stamp.projectId, {
         ...stamp.connection,
         lastSyncAt: nowIso,
-        lastError: undefined,
-        lastErrorAt: undefined,
+        lastError: result.truncated ? result.warning : undefined,
+        lastErrorAt: result.truncated ? nowIso : undefined,
         failCount: 0,
       });
     } else {

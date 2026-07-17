@@ -11,6 +11,7 @@ import {
   syncProvider,
 } from "@/lib/inventory/providers";
 import {
+  BASELINKER_MAX_PAGES,
   BASELINKER_PAGE_SIZE,
   buildBaselinkerRequest,
   collectBaselinkerPages,
@@ -90,8 +91,9 @@ test("mapBaselinkerProducts normalizes the products map (first price, summed sto
 
 test("collectBaselinkerPages: assembles multiple full pages then a short final page", async () => {
   const { fetchPage, pagesSeen } = fixtureFetcher([2, 2, 1]);
-  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
+  const { products: all, truncated } = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
   assert.equal(all.length, 5); // 2 + 2 + 1
+  assert.equal(truncated, false); // stopped on a short page, not the cap → complete
   assert.deepEqual(pagesSeen, [1, 2, 3]); // stops after the short (< pageSize) page
   assert.equal(all[0].sku, "P1-0");
   assert.equal(all[4].sku, "P3-0");
@@ -99,16 +101,31 @@ test("collectBaselinkerPages: assembles multiple full pages then a short final p
 
 test("collectBaselinkerPages: an empty page terminates the walk", async () => {
   const { fetchPage, pagesSeen } = fixtureFetcher([2, 2, 0, 2]);
-  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
+  const { products: all, truncated } = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 10 });
   assert.equal(all.length, 4); // page 3 is empty → stop (page 4 never fetched)
+  assert.equal(truncated, false);
   assert.deepEqual(pagesSeen, [1, 2, 3]);
 });
 
-test("collectBaselinkerPages: enforces the page cap on a full-every-page catalog", async () => {
+test("collectBaselinkerPages: enforces the page cap AND flags truncation on a full-every-page catalog", async () => {
   const { fetchPage, pagesSeen } = fixtureFetcher(Array(100).fill(2));
-  const all = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 3 });
+  const { products: all, truncated } = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 3 });
   assert.equal(all.length, 6); // 3 pages × 2, capped
+  assert.equal(truncated, true); // hit the cap with a full final page → more remain
   assert.deepEqual(pagesSeen, [1, 2, 3]); // never walks past the cap
+});
+
+test("collectBaselinkerPages: a cap that lands exactly on the last full page is NOT truncated", async () => {
+  // Cap = 3, and the catalog is exactly 3 full pages then ends (page 3 is full but
+  // there is no page 4). We can't know it ended without walking further, so hitting
+  // the cap on a full page conservatively reports truncated — documented behaviour.
+  const { fetchPage } = fixtureFetcher([2, 2, 2]);
+  const { truncated } = await collectBaselinkerPages(fetchPage, { pageSize: 2, maxPages: 3 });
+  assert.equal(truncated, true);
+});
+
+test("collectBaselinkerPages: default cap constants describe a 20k-SKU ceiling", () => {
+  assert.equal(BASELINKER_MAX_PAGES * BASELINKER_PAGE_SIZE, 20000);
 });
 
 test("collectBaselinkerPages: default cap is 20 pages of 1000 (20k SKUs)", () => {

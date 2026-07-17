@@ -86,25 +86,39 @@ export const BASELINKER_PAGE_SIZE = 1000;
  *  hostile catalog; a shop past this needs a scoped/incremental sync, not a full pull. */
 export const BASELINKER_MAX_PAGES = 20;
 
+/** The outcome of walking every Baselinker page: the assembled products plus a
+ *  `truncated` flag — true when the walk stopped at the page cap while the last
+ *  page was still full (so more SKUs exist upstream than we pulled). A truncated
+ *  sync must NOT be reported as a full, healthy catalog refresh. */
+export interface BaselinkerPageWalk {
+  products: ProviderProduct[];
+  truncated: boolean;
+}
+
 /** Walk a Baselinker page-fetcher and assemble every page into one list. Termination:
  *  an EMPTY page (Baselinker's end-of-list signal), a SHORT page (< pageSize ⇒ the last
- *  page), or the page cap — whichever comes first. Pure over its fetcher (the network
- *  lives in `fetchPage`), so multi-page assembly / empty-page stop / cap enforcement are
- *  unit-testable without the live API. `page` is 1-indexed, per Baselinker's docs. */
+ *  page), or the page cap — whichever comes first. When the cap is what stopped the walk
+ *  and the last page was full, `truncated` is true (the catalog exceeds the cap). Pure
+ *  over its fetcher (the network lives in `fetchPage`), so multi-page assembly /
+ *  empty-page stop / cap enforcement / truncation detection are unit-testable without
+ *  the live API. `page` is 1-indexed, per Baselinker's docs. */
 export async function collectBaselinkerPages(
   fetchPage: (page: number) => Promise<ProviderProduct[]>,
   opts: { maxPages?: number; pageSize?: number } = {}
-): Promise<ProviderProduct[]> {
+): Promise<BaselinkerPageWalk> {
   const maxPages = opts.maxPages ?? BASELINKER_MAX_PAGES;
   const pageSize = opts.pageSize ?? BASELINKER_PAGE_SIZE;
   const all: ProviderProduct[] = [];
+  let truncated = false;
   for (let page = 1; page <= maxPages; page++) {
     const batch = await fetchPage(page);
     if (batch.length === 0) break; // empty page → end of list
     all.push(...batch);
     if (batch.length < pageSize) break; // short page → this was the last one
+    // A full page on the final allowed iteration means more SKUs remain unpulled.
+    if (page === maxPages) truncated = true;
   }
-  return all;
+  return { products: all, truncated };
 }
 
 /** A Baselinker error the sync route surfaces to the user. */
@@ -129,7 +143,10 @@ async function callBaselinker(token: string, method: string, parameters: Record<
  *  walking every page (getInventoryProductsList returns ~1000/page). Credential-gated:
  *  requires a valid token. Not exercised without real credentials — the network is
  *  isolated in `callBaselinker`; `collectBaselinkerPages` (pure) owns the paging. */
-export async function fetchBaselinkerProducts(token: string, inventoryId?: string): Promise<ProviderProduct[]> {
+export async function fetchBaselinkerProducts(
+  token: string,
+  inventoryId?: string
+): Promise<BaselinkerPageWalk> {
   if (!token.trim()) throw new BaselinkerError("Zadejte Baselinker API token.");
 
   let inventory = inventoryId?.trim();

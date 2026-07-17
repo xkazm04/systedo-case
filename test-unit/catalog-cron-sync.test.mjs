@@ -12,8 +12,9 @@ import {
 
 test("resolveProviderProducts: demo needs no token; baselinker + unknown reject", async () => {
   const demo = await resolveProviderProducts("demo", "", undefined, new Date("2026-07-05T00:00:00Z"));
-  assert.ok(demo.length >= 6);
-  assert.ok(demo[0].sku && demo[0].price >= 0);
+  assert.ok(demo.products.length >= 6);
+  assert.ok(demo.products[0].sku && demo.products[0].price >= 0);
+  assert.equal(demo.truncated, false); // demo is always a complete pull
   await assert.rejects(() => resolveProviderProducts("baselinker", "", undefined, new Date("2026-07-05T00:00:00Z")));
   await assert.rejects(() => resolveProviderProducts("bogus", "", undefined, new Date("2026-07-05T00:00:00Z")));
 });
