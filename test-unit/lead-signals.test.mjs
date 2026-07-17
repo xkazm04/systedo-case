@@ -33,3 +33,17 @@ test("e-shop has no lead funnel → null (no lead block in the recap)", () => {
 test("output is deterministic for the same project", () => {
   assert.equal(leadSignalsPromptText(leadgen), leadSignalsPromptText(leadgen));
 });
+
+test("scaling to a tiny target lead total preserves the funnel invariant (qualified <= leads)", () => {
+  // A quiet period: a very small targetLeads makes the scale factor tiny, where naive
+  // per-field rounding could round qualified above leads. The clamp must keep the
+  // narrated funnel coherent.
+  const text = leadSignalsPromptText(leadgen, 3);
+  assert.ok(text, "still produces a block");
+  const m = /Leadů:\s*(\d+);\s*kvalifikovaných:\s*(\d+)/.exec(text);
+  assert.ok(m, "the leads/qualified line is present");
+  const leads = Number(m[1]);
+  const qualified = Number(m[2]);
+  assert.equal(leads, 3, "the narrated total matches the target tile exactly");
+  assert.ok(qualified <= leads, `qualified (${qualified}) must not exceed leads (${leads})`);
+});

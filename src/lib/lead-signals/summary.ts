@@ -40,7 +40,33 @@ function scaleSourcesToLeads(sources: LeadSource[], targetLeads: number): LeadSo
     const largest = scaled.reduce((max, s) => (s.leads > max.leads ? s : max), scaled[0]);
     largest.leads += residual;
   }
-  return scaled;
+  // Independent per-field rounding at a small scale factor can break the funnel
+  // invariant (qualified > leads, won > opportunities), producing impossible narratives
+  // like "Leadů: 1, kvalifikovaných: 2" or flipping a source's junk flag vs the on-screen
+  // table. Clamp each stage to its parent AFTER the residual patch. Clamps only ever
+  // lower a count, so the leads sum still matches the tile exactly.
+  return scaled.map((s) => {
+    const leads = Math.max(0, s.leads);
+    const qualified = Math.min(s.qualified, leads);
+    const opportunities = s.opportunities != null ? Math.min(s.opportunities, qualified) : undefined;
+    const won = Math.min(s.won, opportunities ?? qualified);
+    return {
+      ...s,
+      leads,
+      qualified,
+      won,
+      ...(opportunities != null ? { opportunities } : {}),
+      ...(s.prior
+        ? {
+            prior: {
+              ...s.prior,
+              qualified: Math.min(s.prior.qualified, s.prior.leads),
+              won: Math.min(s.prior.won, Math.min(s.prior.qualified, s.prior.leads)),
+            },
+          }
+        : {}),
+    };
+  });
 }
 
 /** Build the lead-quality grounding block from a resolved source set. `live` marks
