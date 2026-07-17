@@ -28,8 +28,6 @@ const T = {
     subtitle: "Zadejte témata (jedno na řádek), AI z nich napíše příspěvky a rozloží je na následující dny.",
     topicsLabel: "Témata (jedno na řádek)",
     topicsPlaceholder: "Nová zimní směs ořechů\nTip: ořechy do ranní kaše\nPříběh značky — odkud vozíme kešu\nRecept: domácí müsli",
-    topicCount: "{n}/7 témat · vznikne {n} naplánovaný příspěvek",
-    topicCountPlural: "{n}/7 témat · vznikne {n} naplánovaných příspěvků",
     topicCountZero: "0/7 témat · vznikne 0 naplánovaných příspěvků",
     batchSummary: "{topics}/7 témat × {plats} sítě = {posts} příspěvků v jednom běhu (na síť jiná verze)",
     platformLabel: "Platforma",
@@ -50,8 +48,6 @@ const T = {
     subtitle: "Enter topics (one per line) and AI will write posts and spread them across the coming days.",
     topicsLabel: "Topics (one per line)",
     topicsPlaceholder: "New winter nut blend\nTip: nuts in morning porridge\nBrand story — where we source cashews\nRecipe: homemade granola",
-    topicCount: "{n}/7 topics · will create {n} scheduled post",
-    topicCountPlural: "{n}/7 topics · will create {n} scheduled posts",
     topicCountZero: "0/7 topics · will create 0 scheduled posts",
     batchSummary: "{topics}/7 topics × {plats} networks = {posts} posts in one run (a distinct version per network)",
     platformLabel: "Platform",
@@ -146,7 +142,10 @@ export default function WeekPlanner() {
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
   const safeHour = parseHour(hour);
-  const [brand] = useState(() => readSocialBrand(pid));
+  // Brand voice — kept fresh (not a one-shot mount snapshot): re-read on the
+  // brand-changed event the Composer emits and on cross-tab storage writes, and read
+  // fresh again at planWeek time so a just-edited voice is the one actually used.
+  const [brand, setBrand] = useState(() => readSocialBrand(pid));
   // C1: the project's auto-derived brand voice (what it sells + how it talks), so the
   // batch is on-brand BY DEFAULT — shown here, not buried in the Composer.
   const [autoBrand, setAutoBrand] = useState("");
@@ -174,6 +173,18 @@ export default function WeekPlanner() {
     window.addEventListener("social:posts-changed", handler);
     return () => window.removeEventListener("social:posts-changed", handler);
   }, [loadPosts, fmt, safeHour]);
+
+  // Keep the brand voice in sync with the Composer (which owns the field) — mirror the
+  // posts-changed pattern so an edit made this session isn't ignored until a reload.
+  useEffect(() => {
+    const refresh = () => setBrand(readSocialBrand(pid));
+    window.addEventListener("social:brand-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("social:brand-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [pid]);
 
   // Fetch the derived brand voice for this project (empty for an empty catalogue).
   useEffect(() => {
@@ -228,6 +239,9 @@ export default function WeekPlanner() {
     // calendar anchors to this SAME date (buildWeek(fmt, firstSlotDate(safeHour))), so a
     // batch can never land on an invisible day 8.
     const first = firstSlotDate(safeHour);
+    // Read the brand fresh at run time (not the mount snapshot) so a voice edited in
+    // the Composer this session is the one the batch actually generates with.
+    const currentBrand = readSocialBrand(pid).trim();
     let failed = false;
     // Retry-safe batching: count topics whose posts ALL persisted, so a mid-batch
     // failure can drop exactly the succeeded lines from the textarea. The old
@@ -251,7 +265,7 @@ export default function WeekPlanner() {
             // On-brand by default (C1): a manual voice wins, else the auto-derived
             // catalogue voice, else the project name — never a placeholder company.
             // projectId grounds "what's working" and the server-side voice fallback.
-            brand: brand.trim() || autoBrand || project?.name || undefined,
+            brand: currentBrand || autoBrand || project?.name || undefined,
             ...(pid ? { projectId: pid } : {}),
           }),
         });

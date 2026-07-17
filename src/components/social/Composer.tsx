@@ -96,6 +96,9 @@ export default function Composer() {
   }, [pid]);
   useEffect(() => {
     writeSocialBrand(pid, brand);
+    // Notify same-tab listeners (WeekPlanner's brand strip) — storage events only fire
+    // cross-tab, so mirror the posts-changed pattern for in-session edits.
+    window.dispatchEvent(new CustomEvent("social:brand-changed"));
   }, [pid, brand]);
   // C1 unify: the project's auto-derived catalogue voice — used by the server when
   // this field is blank, so show it here too (parity with the WeekPlanner strip).
