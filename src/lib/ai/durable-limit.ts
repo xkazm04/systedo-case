@@ -150,7 +150,15 @@ export async function durableGuard(
  *  run (a batch that stopped early, a server-busy rejection), so the shared
  *  `AI_GLOBAL_DAILY_CEILING` reflects calls actually made rather than planned.
  *  Best-effort and never throws (a refund failing must not fail the response);
- *  no-op when the ceiling is disabled or `units <= 0`. */
+ *  no-op when the ceiling is disabled or `units <= 0`.
+ *
+ *  MIDNIGHT STRADDLE (accepted slop): the day key is recomputed from `Date.now()`
+ *  here, so a refund that lands after UTC midnight for a charge made just before
+ *  targets the NEW day's `_global_` doc (already 0 → the refund vanishes) while
+ *  yesterday keeps the phantom charge. Bounded and self-healing (both days reset
+ *  within 24 h, and the credit floors at 0), so the ceiling is only briefly
+ *  stricter/looser than reality around each midnight — not worth threading the
+ *  original day through every caller for a soft daily cap. */
 export async function refundGlobalSpend(units: number): Promise<void> {
   const credit = Math.max(0, Math.floor(units));
   if (credit === 0 || globalDailyCeiling() === 0) return;
@@ -181,7 +189,10 @@ export async function refundGlobalSpend(units: number): Promise<void> {
  *  ceiling check in `durableGuard`, so we do not re-check here (a mid-set refusal
  *  would strand a half-done generation). Best-effort and never throws (an accounting
  *  write must not fail the response); no-op when the ceiling is disabled or
- *  `units <= 0`. Mirrors the `_global_YYYY-MM-DD` doc `durableGuard` writes. */
+ *  `units <= 0`. Mirrors the `_global_YYYY-MM-DD` doc `durableGuard` writes — but
+ *  recomputes `day` from `Date.now()`, so a true-up that crosses UTC midnight
+ *  after the reservation debits the NEW day's doc, not the one the reservation
+ *  charged (see refundGlobalSpend's MIDNIGHT STRADDLE note — same accepted slop). */
 export async function chargeGlobalSpend(units: number): Promise<void> {
   const debit = Math.max(0, Math.floor(units));
   if (debit === 0 || globalDailyCeiling() === 0) return;
