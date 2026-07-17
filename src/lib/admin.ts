@@ -1,7 +1,12 @@
 /** Operator (admin) allowlist. There is no role system — admin status is a
  *  comma-separated ADMIN_EMAILS env allowlist, matched case-insensitively.
  *  Fails CLOSED: with no ADMIN_EMAILS set (or an empty caller email) nobody is
- *  an admin, so any operator-only surface stays locked by default. Server-only. */
+ *  an admin, so any operator-only surface stays locked by default. Server-only:
+ *  the `server-only` import (matching db.ts/firebase.ts/session.ts) turns a
+ *  client-component import into a build error instead of silently returning false
+ *  everywhere (process.env.ADMIN_EMAILS is undefined in the browser bundle). */
+import "server-only";
+
 function adminEmails(): Set<string> {
   return new Set(
     (process.env.ADMIN_EMAILS ?? "")
