@@ -13,9 +13,17 @@ function twinDoc(projectId: string) {
 export async function getTwin(projectId: string): Promise<TwinState | null> {
   const doc = await twinDoc(projectId).get();
   if (!doc.exists) return null;
-  const raw = doc.data()?.data;
+  const data = doc.data();
+  const raw = data?.data;
   if (typeof raw !== "string") return null;
-  return parsePersistedTwin(raw);
+  const state = parsePersistedTwin(raw);
+  if (!state) return null;
+  // The doc's own `updatedAt` field is the honest server "last saved" — surface it
+  // (over any client-supplied blob `updatedAt`) so ResolvedTwin.updatedAt is real
+  // instead of the effectively-always-undefined blob field it used to read.
+  const updatedAt = data?.updatedAt;
+  if (typeof updatedAt === "string") state.updatedAt = updatedAt;
+  return state;
 }
 
 /** Atomic read-modify-write inside a Firestore transaction: the doc is read and

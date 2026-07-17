@@ -8,12 +8,21 @@ import type { TwinState } from "./types";
 
 interface Row {
   data: string;
+  updated_at?: string;
 }
 
 export async function getTwin(projectId: string): Promise<TwinState | null> {
-  const row = getDb().prepare("SELECT data FROM twin WHERE project_id = ?").get(projectId) as Row | undefined;
+  const row = getDb()
+    .prepare("SELECT data, updated_at FROM twin WHERE project_id = ?")
+    .get(projectId) as Row | undefined;
   if (!row) return null;
-  return parsePersistedTwin(row.data);
+  const state = parsePersistedTwin(row.data);
+  if (!state) return null;
+  // The row's own `updated_at` column is the honest server "last saved" — surface it
+  // (over any client-supplied blob `updatedAt`) so ResolvedTwin.updatedAt is real
+  // instead of the effectively-always-undefined blob field it used to read.
+  if (row.updated_at) state.updatedAt = row.updated_at;
+  return state;
 }
 
 /** Atomic read-modify-write under a BEGIN IMMEDIATE write transaction, so the row is
