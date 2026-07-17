@@ -99,29 +99,40 @@ export async function embedTexts(texts: string[]): Promise<number[][] | null> {
   if (missIdx.length > 0) {
     const t0 = Date.now();
     try {
-      const fresh = await Promise.all(missIdx.map((i) => embedOne(texts[i], key)));
-      if (!fresh.every((v) => v.length > 0)) return null;
-      missIdx.forEach((i, j) => {
-        out[i] = fresh[j];
-        vecCache.set(cacheKey(texts[i]), fresh[j]);
+      // allSettled, not all: one timed-out/empty sibling must not discard every
+      // other paid vector. Cache + telemeter each fulfilled non-empty result so
+      // a partial batch leaves its successes cached (retries become incremental)
+      // and its spend visible; the return below still yields null if any input
+      // is still missing a vector, so callers see the same "incomplete → null".
+      const settled = await Promise.allSettled(missIdx.map((i) => embedOne(texts[i], key)));
+      let embeddedChars = 0;
+      settled.forEach((r, j) => {
+        if (r.status === "fulfilled" && r.value.length > 0) {
+          const i = missIdx[j];
+          out[i] = r.value;
+          vecCache.set(cacheKey(texts[i]), r.value);
+          embeddedChars += Math.min(texts[i].length, 2000);
+        }
       });
       // Telemetry so embeddings show up in the same eval dashboard as the text
-      // tools (previously this modality recorded nothing). Best-effort.
-      const chars = missIdx.reduce((s, i) => s + Math.min(texts[i].length, 2000), 0);
-      await recordLlmCall({
-        toolId: "patterns-embed",
-        promptHash: "embed",
-        provider: "gemini",
-        model: MODEL,
-        demo: false,
-        tookMs: Date.now() - t0,
-        attempts: 1,
-        repaired: false,
-        estCostUsd: chars * EMBED_USD_PER_CHAR,
-        inputTokens: Math.round(chars / 4),
-        outputTokens: 0,
-        at: new Date().toISOString(),
-      });
+      // tools (previously this modality recorded nothing). Best-effort; only for
+      // the vectors actually obtained.
+      if (embeddedChars > 0) {
+        await recordLlmCall({
+          toolId: "patterns-embed",
+          promptHash: "embed",
+          provider: "gemini",
+          model: MODEL,
+          demo: false,
+          tookMs: Date.now() - t0,
+          attempts: 1,
+          repaired: false,
+          estCostUsd: embeddedChars * EMBED_USD_PER_CHAR,
+          inputTokens: Math.round(embeddedChars / 4),
+          outputTokens: 0,
+          at: new Date().toISOString(),
+        });
+      }
     } catch (err) {
       console.error("[embed] error:", err);
       return null;
