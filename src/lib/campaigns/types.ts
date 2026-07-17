@@ -33,9 +33,15 @@ export const CAMPAIGN_TYPE_LABELS: Record<CampaignType, string> = {
   other: "Ostatní",
 };
 
-/** One stable colour per type, drawn from the design tokens, so the by-type
- *  breakdown and the table dots always agree. `other` uses a neutral slate so an
- *  unmapped channel type reads as "uncategorised", never as a real Search share. */
+/** One stable colour per type, so the by-type breakdown and the table dots always
+ *  agree. These are SNAPSHOT hex values captured at authoring time — NOT a live
+ *  reference to the design tokens (this module is client-shared, so it cannot import
+ *  the server-only token reader). Most track a brand/navy/coral ramp step
+ *  (search=brand-500, shopping=brand-400, display=coral-500, video=navy-600), but
+ *  `performance_max` and `demand_gen` are bespoke; nothing enforces the equivalence,
+ *  so a palette refresh in globals.css must be mirrored here by hand. `other` uses a
+ *  neutral slate so an unmapped channel type reads as "uncategorised", never a real
+ *  Search share. */
 export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
   search: "#14b8b1",
   performance_max: "#1f8f88",
