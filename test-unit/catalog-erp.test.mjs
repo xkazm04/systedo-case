@@ -69,6 +69,22 @@ test("mapErpRows: maps fields, coerces price/stock/margin, skips row without SKU
   assert.equal(products[1].margin, 0.4); // already a fraction
 });
 
+test("mapErpRows: numeric JSON price cells import at their real value (not 0)", () => {
+  // A REST ERP returns prices as JSON numbers, not strings. Previously str() dropped
+  // these to "" → price 0 while the sync reported success. They must parse correctly.
+  const products = mapErpRows(
+    [
+      { code: "N1", title: "Numeric", cena: 1299, qty: 5 },
+      { code: "N2", title: "Float", cena: 0.5 },
+      { code: "N3", title: "Zero", cena: 0 },
+    ],
+    { sku: "code", name: "title", price: "cena", stock: "qty" }
+  );
+  assert.equal(products[0].price, 1299);
+  assert.equal(products[1].price, 0.5);
+  assert.equal(products[2].price, 0);
+});
+
 test("demo ERP runs the sample through the real parse+map engine", () => {
   const products = demoErpProducts();
   assert.equal(products.length, 6);

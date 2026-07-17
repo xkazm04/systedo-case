@@ -42,6 +42,13 @@ export class ErpError extends Error {}
 
 const str = (v: unknown): string => (typeof v === "string" ? v : "");
 
+/** Price/number cells arrive as JSON numbers just as often as strings (a REST ERP
+ *  returns `priceVat: 349`, not `"349"`). `str()` would drop a numeric cell to ""
+ *  → parseFeedPrice("") → 0, silently importing every price as zero. Coerce a finite
+ *  number to its string form so the shared price parser sees the real value. */
+const numStr = (v: unknown): string =>
+  typeof v === "string" ? v : typeof v === "number" && Number.isFinite(v) ? String(v) : "";
+
 /** Validate + normalize an untrusted config (PUT body or a stored blob). Throws ErpError. */
 export function parseErpConfig(raw: unknown): ErpAdapterConfig {
   if (!raw || typeof raw !== "object") throw new ErpError("Chybí konfigurace ERP.");
@@ -136,7 +143,7 @@ export function mapErpRows(rows: unknown[], mapping: ErpFieldMap): ProviderProdu
       externalId: sku,
       sku,
       name,
-      price: parseFeedPrice(str(cell(mapping.price))),
+      price: parseFeedPrice(numStr(cell(mapping.price))),
       ...(stock != null && Number.isFinite(stock) ? { stock } : {}),
       ...(margin != null ? { margin } : {}),
       ...(mapping.ean && str(cell(mapping.ean)).trim() ? { ean: str(cell(mapping.ean)).trim() } : {}),
