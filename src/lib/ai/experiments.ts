@@ -15,11 +15,19 @@ function expCol(tenant: string) {
   return firestore.collection("tenants").doc(tenant).collection("experiments");
 }
 
+/** Deep-drop `undefined` (which Firestore rejects) so an optional field left unset
+ *  never reaches a write. JSON round-trip is total over the plain-data Experiment
+ *  shape (strings/numbers/null/arrays/objects) and also normalizes any `undefined`
+ *  array holes to `null`. */
+function stripUndefined<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 /** Strip undefined so Firestore (which rejects it) always gets a clean doc. */
 function persist(exp: Experiment): Omit<Experiment, "id"> {
   const { id: _id, ...rest } = exp;
   void _id;
-  return { ...rest, winnerVariantId: pickWinner(exp) };
+  return stripUndefined({ ...rest, winnerVariantId: pickWinner(exp) });
 }
 
 export async function listExperiments(tenant: string): Promise<Experiment[]> {
