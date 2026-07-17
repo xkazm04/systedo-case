@@ -88,6 +88,24 @@ test("Heureka XML: CDATA/entities decoded, availability from DELIVERY_DATE", () 
   assert.equal(items[1].inStock, false); // a future date
 });
 
+test("Heureka DELIVERY_DATE: a small dispatch delay stays in stock (not paused)", () => {
+  // DELIVERY_DATE is a dispatch-delay field: 0 = now, N = days. A product that ships
+  // in 1–3 days is orderable and must NOT be deactivated on import; only a longer
+  // delay (or a concrete future date) pauses it.
+  const xml = `<?xml version="1.0"?><SHOP>
+    <SHOPITEM><ITEM_ID>D0</ITEM_ID><PRODUCTNAME>Now</PRODUCTNAME><PRICE_VAT>10</PRICE_VAT><DELIVERY_DATE>0</DELIVERY_DATE></SHOPITEM>
+    <SHOPITEM><ITEM_ID>D3</ITEM_ID><PRODUCTNAME>ThreeDays</PRODUCTNAME><PRICE_VAT>10</PRICE_VAT><DELIVERY_DATE>3</DELIVERY_DATE></SHOPITEM>
+    <SHOPITEM><ITEM_ID>D7</ITEM_ID><PRODUCTNAME>SevenDays</PRODUCTNAME><PRICE_VAT>10</PRICE_VAT><DELIVERY_DATE>7</DELIVERY_DATE></SHOPITEM>
+    <SHOPITEM><ITEM_ID>DNONE</ITEM_ID><PRODUCTNAME>NoTag</PRODUCTNAME><PRICE_VAT>10</PRICE_VAT></SHOPITEM>
+  </SHOP>`;
+  const { items } = parseFeed(xml);
+  const by = Object.fromEntries(items.map((i) => [i.id, i.inStock]));
+  assert.equal(by.D0, true); // in stock now
+  assert.equal(by.D3, true); // ships in 3 days → orderable (was false before the fix)
+  assert.equal(by.D7, false); // beyond the 3-day cutoff → paused
+  assert.equal(by.DNONE, undefined); // feed said nothing
+});
+
 test("Google XML: g: namespace, price currency stripped, availability", () => {
   const { format, items } = parseFeed(GOOGLE);
   assert.equal(format, "google");

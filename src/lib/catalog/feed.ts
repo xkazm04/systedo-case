@@ -104,6 +104,26 @@ function blocks(text: string, tag: string): string[] {
   return out;
 }
 
+/** Heureka/Zboží DELIVERY_DATE is a dispatch-delay field, NOT an in/out-of-stock
+ *  boolean: "0" = skladem (ships now), a small integer = days to dispatch, a date =
+ *  ships on that day. A product that ships in 1–3 days is fully orderable, so only a
+ *  dispatch delay beyond this cutoff is treated as unavailable. */
+const HEUREKA_MAX_DISPATCH_DAYS = 3;
+
+/** Map a raw DELIVERY_DATE to tri-state stock: undefined (feed said nothing),
+ *  true (dispatchable within the cutoff, incl. 0 = in stock now), false (a dispatch
+ *  delay beyond the cutoff, or a concrete future ship date). Only a small integer
+ *  delay counts as available — a bare "3" no longer pauses a product that ships in
+ *  3 days, which the old `delivery === "0"` test wrongly deactivated. */
+function heurekaInStock(delivery: string | undefined): boolean | undefined {
+  if (delivery == null) return undefined;
+  const d = delivery.trim();
+  if (d === "") return undefined;
+  // Plain integer = days to dispatch (0 = in stock now); anything else (a date) = paused.
+  if (/^\d+$/.test(d)) return Number(d) <= HEUREKA_MAX_DISPATCH_DAYS;
+  return false;
+}
+
 function parseHeureka(text: string): FeedItem[] {
   return blocks(text, "SHOPITEM").map((b) => {
     const delivery = tagText(b, "DELIVERY_DATE");
@@ -114,7 +134,7 @@ function parseHeureka(text: string): FeedItem[] {
       category: tagText(b, "CATEGORYTEXT"),
       ean: tagText(b, "EAN"),
       brand: tagText(b, "MANUFACTURER"),
-      inStock: delivery == null ? undefined : delivery === "0",
+      inStock: heurekaInStock(delivery),
       url: tagText(b, "URL"),
       imageUrl: tagText(b, "IMGURL"),
       description: tagText(b, "DESCRIPTION"),
