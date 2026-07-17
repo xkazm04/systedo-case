@@ -49,12 +49,18 @@ const SEVERITY_FOR_KIND: Record<string, ActivitySeverity> = {
   budget_shift: "info", pause: "warning", sync: "info", alert: "warning", report: "info", update: "info",
 };
 
-/** "Vy"/"You" → you; auto/sync labels → system; any other named actor → a person. */
+/** Map a free-text actor label to the feed's actor kind:
+ *  "Vy"/"You" → you; AI/agent/asistent labels → ai; auto/sync labels or an absent
+ *  actor → system. Any other named actor (a teammate) also resolves to system —
+ *  never "you", so the audit timeline never mislabels someone else's action (or an
+ *  AI-initiated mutation) as the current user's own. */
 export function actorFor(actor: string | undefined): ActivityActor {
   if (!actor) return "system";
-  if (/^(vy|you)$/i.test(actor.trim())) return "you";
-  if (/auto|synchron|sync/i.test(actor)) return "system";
-  return "you";
+  const a = actor.trim();
+  if (/^(vy|you)$/i.test(a)) return "you";
+  if (/\b(ai|asistent|assistant|agent)\b/i.test(a)) return "ai";
+  if (/auto|synchron|sync/i.test(a)) return "system";
+  return "system";
 }
 
 /** Map a live activity record (free-text title, already localized) into the

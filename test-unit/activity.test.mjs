@@ -41,7 +41,13 @@ test("actorFor maps labels to ai/system/you", () => {
   assert.equal(actorFor("Vy"), "you");
   assert.equal(actorFor("You"), "you");
   assert.equal(actorFor("Automatická synchronizace"), "system");
-  assert.equal(actorFor("Jan Novák"), "you");
+  // AI-initiated actions resolve to the AI actor, not "you".
+  assert.equal(actorFor("AI asistent"), "ai");
+  assert.equal(actorFor("Systedo AI"), "ai");
+  assert.equal(actorFor("Autopilot agent"), "ai");
+  // A named teammate is never mislabeled as the current user.
+  assert.equal(actorFor("Jan Novák"), "system");
+  assert.equal(actorFor("Petr Novák"), "system");
 });
 
 test("recordToEvent infers module/severity from kind, or uses the record's own", () => {
