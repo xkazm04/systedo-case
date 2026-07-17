@@ -64,8 +64,11 @@ export async function publishPost(
   return { ok: true, simulated: true, externalUrl: `https://demo.social/${platform}/${id}` };
 }
 
-/** Send a reply to an inbound comment/DM. Routes through the same seam: real when the
- *  account is connected with a token, a no-op simulation otherwise. */
+/** Send a reply to an inbound comment/DM. A reply is a DISTINCT operation from a post:
+ *  it must be delivered to `messageId`. It routes through the provider's `reply`
+ *  capability ONLY — never through `publish`, which would post the reply as a new
+ *  standalone public post (a private DM leaked publicly under the brand's name). No
+ *  adapter implements `reply` yet, so today every path is an honest simulation. */
 export async function publishReply(
   platform: SocialPlatform,
   messageId: string,
@@ -73,10 +76,10 @@ export async function publishReply(
   ctx: PublishContext = {}
 ): Promise<PublishResult> {
   const provider = socialProvider(platform);
-  if (provider && canPublishReal(platform, ctx)) {
+  if (provider?.reply && canPublishReal(platform, ctx)) {
     try {
-      const res = await provider.publish(
-        { token: ctx.token as string, content: reply },
+      const res = await provider.reply(
+        { token: ctx.token as string, messageId, content: reply },
         ctx.transport ?? httpSocialTransport()
       );
       return { ok: true, simulated: false, externalUrl: res.url };
@@ -85,5 +88,7 @@ export async function publishReply(
       return { ok: false, simulated: false, error: "Odpověď se nepodařilo odeslat." };
     }
   }
+  // No reply adapter → simulate. Reusing publish() here would leak the private reply
+  // as a public post, so a real-but-unsupported connection simulates instead.
   return { ok: true, simulated: true };
 }

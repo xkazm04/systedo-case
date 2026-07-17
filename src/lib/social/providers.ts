@@ -15,6 +15,16 @@ export interface SocialPublishInput {
   token: string;
   content: string;
 }
+/** What an adapter needs to REPLY to an inbound comment/DM — the same token/content
+ *  plus the provider-side id of the message being answered. A reply is a distinct
+ *  operation from a post: it must be delivered to `messageId`, never published as a
+ *  standalone post. No adapter implements it yet (see {@link SocialProvider.reply}). */
+export interface SocialReplyInput {
+  token: string;
+  /** the provider-side id of the inbound message being answered */
+  messageId: string;
+  content: string;
+}
 export interface SocialPublishResult {
   /** the platform's id for the created post */
   externalId: string;
@@ -60,6 +70,13 @@ export interface SocialProvider {
   configured(): boolean;
   /** publish `content`, mapping the provider's wire response to {@link SocialPublishResult}. */
   publish(input: SocialPublishInput, transport: SocialTransport): Promise<SocialPublishResult>;
+  /** Reply to an inbound comment/DM, delivered to `input.messageId`. OPTIONAL and
+   *  absent on every adapter this cycle: the exact reply endpoint (a Graph comment
+   *  reply vs a private-message send; a LinkedIn conversation event) is another
+   *  offline-unverifiable seam. Until an adapter owns it, publish.ts simulates the
+   *  reply rather than reusing publish() — which would leak a private reply as a
+   *  public post. */
+  reply?(input: SocialReplyInput, transport: SocialTransport): Promise<SocialPublishResult>;
 }
 
 // ── Meta (Facebook / Instagram) ───────────────────────────────────────────────

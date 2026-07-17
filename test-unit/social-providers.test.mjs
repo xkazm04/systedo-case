@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { metaProvider, linkedinProvider, socialProvider } from "@/lib/social/providers";
-import { publishPost } from "@/lib/social/publish";
+import { publishPost, publishReply } from "@/lib/social/publish";
 import { buildSocialAccount, stripToken, readAccountToken } from "@/lib/social/account";
 
 const SECRET = "unit-test-social-secret-please-ignore";
@@ -118,6 +118,24 @@ test("publishPost: a real adapter throw → failed + not simulated (never fake-p
   } finally {
     console.error = orig;
   }
+  delete process.env.META_APP_ID;
+  delete process.env.META_APP_SECRET;
+});
+
+// ── reply is never routed through publish ───────────────────────────────────────
+
+test("publishReply: real Meta account + token but no reply adapter → simulated, NEVER published", async () => {
+  process.env.META_APP_ID = "app";
+  process.env.META_APP_SECRET = "sec";
+  const account = { platform: "facebook", handle: "Mionelo", connectedAt: "t", demo: false };
+  const transport = fixtureTransport({ id: "should-not-happen" });
+  const r = await publishReply("facebook", "msg-1", "díky za dotaz", { account, token: "real-tok", transport });
+  // No adapter implements reply → honest simulation, and crucially the publish
+  // transport was NOT called (a reply must never become a standalone public post).
+  assert.equal(r.simulated, true);
+  assert.equal(r.ok, true);
+  assert.ok(!r.externalUrl, "a simulated reply carries no real URL");
+  assert.equal(transport.calls.length, 0, "the reply must not route through publish()");
   delete process.env.META_APP_ID;
   delete process.env.META_APP_SECRET;
 });
