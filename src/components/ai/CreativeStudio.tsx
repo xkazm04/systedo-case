@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Image as ImageIcon } from "@/components/icons";
@@ -19,6 +19,13 @@ import {
   type ImageStyle,
 } from "@/lib/images/types";
 import { Field, ToolEmpty, ToolError, inputClass } from "./primitives";
+import { AI_TIMEOUT_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
+
+/** localStorage slot for the latest image generation, so a refresh / tab-switch
+ *  doesn't discard candidates the user already paid image quota for (every text
+ *  tool persists via useAiTool history; images hand-rolled their own lifecycle and
+ *  persisted nothing). Distinct from useAiTool's `systedo.ai.result.<mode>` keys. */
+const STUDIO_RESULT_KEY = "systedo.ai.result.creative-studio";
 
 const T = {
   cs: {
@@ -81,6 +88,7 @@ const T = {
     errorRefUpload: "Nahrání selhalo.",
     errorRefConnect: "Chyba spojení.",
     errorGen: "Generování se nezdařilo.",
+    errorTimeout: "Generování nedoběhlo do {n} s. Zkuste to prosím znovu.",
   },
   en: {
     formHeading: "Visual brief",
@@ -142,6 +150,7 @@ const T = {
     errorRefUpload: "Upload failed.",
     errorRefConnect: "Connection error.",
     errorGen: "Generation failed.",
+    errorTimeout: "Generation didn't finish within {n}s. Please try again.",
   },
 } as const;
 
@@ -213,6 +222,58 @@ export default function CreativeStudio() {
   // Background-removal results, keyed by Leonardo image id.
   const [nobg, setNobg] = useState<Record<string, NobgEntry>>({});
 
+  // Live request guard for image generation: an AbortController + monotonic run id
+  // so a hung /api/images request aborts at AI_TIMEOUT_MS (matching every sibling
+  // tool's ceiling) instead of spinning forever, and a slow first generate can't
+  // resolve after a newer one and clobber it. Refs — mutating them must not re-render.
+  const controllerRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
+
+  /** Begin an image run: abort any in-flight one, arm the hard timeout, and hand
+   *  back the signal + staleness/abort guards. `done()` clears the timer. */
+  const beginRun = () => {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    const runId = ++runIdRef.current;
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    return {
+      signal: controller.signal,
+      isStale: () => runId !== runIdRef.current,
+      aborted: () => controller.signal.aborted,
+      done: () => clearTimeout(timer),
+    };
+  };
+
+  /** Persist the latest generation so a refresh doesn't discard quota-paid
+   *  candidates. Best-effort: over-quota / unavailable storage keeps the in-memory
+   *  result, it just won't survive a reload. */
+  const persistResult = (r: ImageGenResult) => {
+    try {
+      window.localStorage.setItem(STUDIO_RESULT_KEY, JSON.stringify(r));
+    } catch {
+      /* storage unavailable / over quota — non-fatal */
+    }
+  };
+
+  // Restore the last generation on mount (external-store sync in an effect keeps
+  // the server + first client render identical, so the set-state rule is suppressed).
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STUDIO_RESULT_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as ImageGenResult;
+      if (saved && Array.isArray(saved.images) && saved.images.length > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setResult(saved);
+         
+        setStatus("done");
+      }
+    } catch {
+      /* corrupt / unavailable storage — start fresh */
+    }
+  }, []);
+
   const removeBg = async (img: GeneratedImage) => {
     const id = img.leonardoImageId;
     if (!id) return;
@@ -238,16 +299,18 @@ export default function CreativeStudio() {
   // regenerate guided by it (reuses the upload-ref + imagePrompts flow).
   const makeVariations = async (img: GeneratedImage) => {
     if (!result) return;
+    const run = beginRun();
     setStatus("loading");
     setError(null);
     setErrorUpgrade(undefined);
     try {
-      const blob = await (await fetch(img.dataUrl)).blob();
+      const blob = await (await fetch(img.dataUrl, { signal: run.signal })).blob();
       const fd = new FormData();
       fd.append("file", new File([blob], "variant.png", { type: blob.type || "image/png" }));
       if (pid) fd.append("projectId", pid);
-      const up = await fetch("/api/images/upload-ref", { method: "POST", body: fd });
+      const up = await fetch("/api/images/upload-ref", { method: "POST", body: fd, signal: run.signal });
       const upJson = await up.json();
+      if (run.isStale()) return;
       if (!up.ok) {
         setError(upJson?.error ?? t("errorVariantPrep"));
         setStatus("error");
@@ -267,8 +330,10 @@ export default function CreativeStudio() {
           fidelity,
           projectId: pid,
         }),
+        signal: run.signal,
       });
       const json = await res.json();
+      if (run.isStale()) return;
       if (!res.ok) {
         setError(json?.error ?? t("errorVariantGen"));
         setErrorUpgrade(typeof json?.upgradeUrl === "string" ? json.upgradeUrl : undefined);
@@ -276,11 +341,15 @@ export default function CreativeStudio() {
         return;
       }
       setResult(json as ImageGenResult);
+      persistResult(json as ImageGenResult);
       setStatus("done");
       if (authStatus === "authenticated") void loadLibrary();
     } catch {
-      setError(t("errorConnect"));
+      if (run.isStale()) return;
+      setError(run.aborted() ? t("errorTimeout", { n: AI_TIMEOUT_SECONDS }) : t("errorConnect"));
       setStatus("error");
+    } finally {
+      run.done();
     }
   };
 
@@ -359,6 +428,7 @@ export default function CreativeStudio() {
   };
 
   const generate = async (avoid?: string) => {
+    const run = beginRun();
     setStatus("loading");
     setError(null);
     setErrorUpgrade(undefined);
@@ -378,8 +448,10 @@ export default function CreativeStudio() {
           fidelity,
           projectId: pid,
         }),
+        signal: run.signal,
       });
       const json = await res.json();
+      if (run.isStale()) return; // a newer generate/variation superseded this one
       if (!res.ok) {
         setError(json?.error ?? t("errorGen"));
         setErrorUpgrade(typeof json?.upgradeUrl === "string" ? json.upgradeUrl : undefined);
@@ -387,11 +459,15 @@ export default function CreativeStudio() {
         return;
       }
       setResult(json as ImageGenResult);
+      persistResult(json as ImageGenResult);
       setStatus("done");
       if (authStatus === "authenticated") void loadLibrary();
     } catch {
-      setError(t("errorConnect"));
+      if (run.isStale()) return;
+      setError(run.aborted() ? t("errorTimeout", { n: AI_TIMEOUT_SECONDS }) : t("errorConnect"));
       setStatus("error");
+    } finally {
+      run.done();
     }
   };
 
