@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Container, Eyebrow } from "@/components/ui";
+import { Container, Eyebrow, buttonClass } from "@/components/ui";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 /** Route error boundary: catches render/data errors from any page and shows a
@@ -61,17 +61,12 @@ export default function RouteError({
           </p>
         )}
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
-          >
+          {/* Styling via buttonClass (the DS SSOT) so a Button restyle reaches these
+              recovery screens too; keep the <button>/<Link> elements for reset + prefetch. */}
+          <button type="button" onClick={reset} className={buttonClass("primary")}>
             {t.retry}
           </button>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-pill border border-line px-5 py-2.5 text-sm font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-accent"
-          >
+          <Link href="/" className={buttonClass("secondary")}>
             {t.home}
           </Link>
         </div>

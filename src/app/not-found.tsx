@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Container, Eyebrow } from "@/components/ui";
+import { Container, Eyebrow, buttonClass } from "@/components/ui";
 import { ArrowRight } from "@/components/icons";
 import { localizedNavItems } from "@/lib/nav";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -43,10 +43,9 @@ export default async function NotFound() {
           {t("heading")}
         </h1>
         <p className="mt-4 text-sm leading-relaxed text-muted">{t("body")}</p>
-        <Link
-          href="/"
-          className="mt-6 inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
-        >
+        {/* Styling via buttonClass (the DS SSOT) so a Button restyle reaches this
+            recovery screen too; keep <Link> for prefetch and the trailing icon child. */}
+        <Link href="/" className={buttonClass("primary", "md", { className: "mt-6" })}>
           {t("cta")}
           <ArrowRight width={16} height={16} aria-hidden />
         </Link>
