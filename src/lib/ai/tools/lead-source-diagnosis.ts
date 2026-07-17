@@ -143,18 +143,28 @@ const coerceCause = coerceEnum<LeadSourceCause, LeadSourceCause>(LEAD_SOURCE_CAU
 /** Coerce the model's severity to a known level, or undefined when it isn't one. */
 const coerceSeverity = coerceEnum<LeadSourceSeverity, undefined>(["high", "medium", "low"], undefined);
 
+// Deterministic thresholds mirroring the qualitative CAUSE definitions in
+// LEAD_SOURCE_SYSTEM. Named + commented so the TS floor and the prompt wording
+// move in lockstep (edit both together). CZK-denominated — they assume a Czech
+// SMB context; a different currency/business size would want different anchors.
+const MIN_LEADS_FOR_SIGNAL = 30; // fewer leads → too small a sample to blame anything but volume
+const CHEAP_CPL_CZK = 200; // CPL at/under this reads as "cheap" leads (spam vs mis-targeting split)
+const MIN_QUAL_RATE = 0.35; // qualification rate under this = leads don't qualify
+const MIN_WIN_RATE = 0.15; // win rate under this = qualifies but doesn't close
+const HIGH_CPQL_CZK = 3000; // cost per qualified lead at/over this = a pricing problem
+
 /** Deterministic, data-driven cause from the metrics alone — the demo's pick and
  *  the floor when the model leaves likelyCause empty. Mirrors the prompt's rules:
  *  too little data → volume; cheap + barely qualifies → spam; qualifies but
  *  doesn't close → mis-targeting; expensive per qualified → pricing; else ok. */
 export function pickCause(req: LeadSourceDiagnosisRequest): LeadSourceCause {
-  if (req.leads < 30) return "volume";
+  if (req.leads < MIN_LEADS_FOR_SIGNAL) return "volume";
   const paid = (req.spend ?? 0) > 0;
-  const cheap = paid && req.cpl != null && req.cpl <= 200;
-  if (req.qualRate < 0.35) return cheap ? "spam" : "mis-targeting";
+  const cheap = paid && req.cpl != null && req.cpl <= CHEAP_CPL_CZK;
+  if (req.qualRate < MIN_QUAL_RATE) return cheap ? "spam" : "mis-targeting";
   // Qualifies acceptably from here on.
-  if (req.winRate < 0.15) return "mis-targeting";
-  if (paid && req.costPerQualified != null && req.costPerQualified >= 3000) return "pricing";
+  if (req.winRate < MIN_WIN_RATE) return "mis-targeting";
+  if (paid && req.costPerQualified != null && req.costPerQualified >= HIGH_CPQL_CZK) return "pricing";
   return "ok";
 }
 

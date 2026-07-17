@@ -218,6 +218,12 @@ export function demoCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosi
   return { ...base, summary: base.summary + demoTail("diagnostiku od modelu") };
 }
 
+// Lever-selection thresholds for the deterministic floor. Named + commented so
+// they stop being magic numbers and can move in lockstep with the prompt's
+// qualitative rules (see cohortDiagnosisSystem).
+const CAC_HEAVY_RATIO = 0.4; // CAC ≥ 40 % of LTV → attack CAC before anything else
+const WEAK_M3_RETENTION = 0.4; // month-3 retention under 40 % → push retention/ARPU
+
 /** Deterministic, data-driven diagnosis: pick the lowest LTV:CAC cohort and emit
  *  a templated Czech reading — TAIL-FREE, so it is safe both as the floor for empty
  *  model fields and as the base the demo wraps with the disclaimer. */
@@ -239,8 +245,10 @@ export function baseCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosi
 
   // Choose the single most impactful lever from the numbers: if CAC dwarfs LTV,
   // attack CAC; if retention is weak, push retention/ARPU; otherwise reallocate.
-  const cacHeavy = worst.ltv > 0 && worst.cac / worst.ltv >= 0.4;
-  const weakRetention = worst.m3 < 0.4;
+  // Named thresholds so the deterministic floor and the prompt's qualitative
+  // rules stay in lockstep (edit both together).
+  const cacHeavy = worst.ltv > 0 && worst.cac / worst.ltv >= CAC_HEAVY_RATIO;
+  const weakRetention = worst.m3 < WEAK_M3_RETENTION;
   // The paid channel with the weakest LTV:CAC inside the worst cohort — named in
   // the CAC lever so the demo points at the channel, not just the cohort.
   const worstChannel = worstChannelOf(worst.channels);
