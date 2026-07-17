@@ -122,10 +122,23 @@ export default function ClusterBuilder() {
    *  cluster topic becomes the brief topic, the pillar the primary keyword, and
    *  the supporting keywords the grounding set. */
   const briefFromCluster = (cluster: KeywordCluster) => {
+    // Join each supporting keyword back to the SOURCE list `build()` sent, so the
+    // brief carries the real monthly volume + classified intent it was grounded on —
+    // not the zeroes the cluster payload omits. Only model-invented keywords fall to 0.
+    const bySource = new Map(
+      (selected?.keywords ?? []).map((k) => [k.keyword.toLocaleLowerCase("cs"), k])
+    );
     const seed: BriefSeed = {
       topic: cluster.topic || cluster.pillar,
       primaryKeyword: cluster.pillar,
-      keywords: cluster.supporting.map((keyword) => ({ keyword, volume: 0, competition: "" })),
+      keywords: cluster.supporting.map((keyword) => {
+        const match = bySource.get(keyword.toLocaleLowerCase("cs"));
+        return {
+          keyword,
+          volume: match?.avgMonthlySearches ?? 0,
+          competition: match ? KEYWORD_INTENT_LABELS[match.intent] : "",
+        };
+      }),
     };
     try {
       sessionStorage.setItem(briefSeedKey(project.id), JSON.stringify(seed));
