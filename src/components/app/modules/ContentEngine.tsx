@@ -214,7 +214,7 @@ export default function ContentEngine({
         const seed = JSON.parse(raw) as BriefSeed;
         sessionStorage.removeItem(briefSeedKey(project.id));
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setWs({ seed, title: seed.topic || T.cs.wsSeeded, nonce: 1 });
+        setWs({ seed, title: seed.topic || t("wsSeeded"), nonce: 1 });
       }
     } catch {
       /* ignore malformed/absent seed */
