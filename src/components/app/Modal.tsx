@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Close } from "@/components/icons";
+import { useFocusTrap } from "@/components/hooks/useFocusTrap";
 
 /** The dialog's max width. `full` is a near-viewport workspace (brief → draft). */
 export type ModalSize = "md" | "lg" | "full";
@@ -52,13 +53,16 @@ export default function Modal({
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    // Move focus into the dialog so keyboard users land inside it.
-    panelRef.current?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
   }, [open, onClose]);
+
+  // Move focus into the dialog, trap Tab/Shift+Tab inside it (so `aria-modal`'s
+  // inert-background claim holds for keyboard users), and restore focus to the
+  // triggering control on close.
+  useFocusTrap(panelRef, open);
 
   if (!open || typeof document === "undefined") return null;
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search } from "@/components/icons";
 import { matchNavTargets, navSearchTargets } from "@/lib/nav";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { useFocusTrap } from "@/components/hooks/useFocusTrap";
 
 /** Small keyboard-key chip (the palette hint + the Esc affordance). */
 function Kbd({ children }: { children: React.ReactNode }) {
@@ -30,6 +31,7 @@ export default function CommandPalette({ authed }: { authed: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMac, setIsMac] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Platform-correct shortcut glyph after hydration; the server renders the
   // Ctrl variant (platform is client-only knowledge).
@@ -63,16 +65,21 @@ export default function CommandPalette({ authed }: { authed: boolean }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Focus the input and lock body scroll while the dialog is up.
+  // Lock body scroll while the dialog is up.
   useEffect(() => {
     if (!open) return;
-    inputRef.current?.focus();
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // Focus the input on open, trap Tab within the dialog (the option buttons are
+  // tabIndex=-1, so this keeps focus on the input instead of escaping into the
+  // scroll-locked page behind the backdrop), and restore focus to the header
+  // trigger on close.
+  useFocusTrap(dialogRef, open, inputRef);
 
   const targets = navSearchTargets(locale, authed);
   const matches = matchNavTargets(query, targets);
@@ -118,6 +125,7 @@ export default function CommandPalette({ authed }: { authed: boolean }) {
           className="fixed inset-0 z-[70] flex items-start justify-center bg-onyx/40 px-4 pt-[14vh] backdrop-blur-sm"
         >
           <div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
             aria-label={messages.nav.quickNav}
