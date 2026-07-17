@@ -3,9 +3,9 @@
  *  it climbed over the tracked window. Server component; SVG on design tokens,
  *  reduced-motion-safe (static). Real seam: a rank tracker. */
 import { Pill } from "@/components/ui";
-import type { PillTone } from "@/components/ui";
 import { getT } from "@/lib/i18n/server";
 import { changeSinceLast, ladderSpanDays, rankDecline, sortLadder } from "@/lib/mappack/compute";
+import { rankTone } from "@/lib/local/tones";
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
 
 const T = {
@@ -42,12 +42,6 @@ const T = {
     untrackedTitle: "Absent from the last import — history preserved",
   },
 } as const;
-
-function rankTone(rank: number): PillTone {
-  if (rank <= 3) return "positive";
-  if (rank <= 10) return "negative";
-  return "coral";
-}
 
 const W = 150;
 const H = 40;

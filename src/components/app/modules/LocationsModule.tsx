@@ -9,6 +9,7 @@ import type { PillTone } from "@/components/ui";
 import { Layers, Pin } from "@/components/icons";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { fleetSummary, needsAttention, sortByAttention } from "@/lib/locations/compute";
+import { rankTone } from "@/lib/local/tones";
 import type { GbpStatus, LocationRow } from "@/lib/locations/sample";
 
 const T = {
@@ -91,13 +92,6 @@ const GBP_TONE: Record<GbpStatus, PillTone> = {
   attention: "negative",
   disconnected: "coral",
 };
-
-/** Map-pack rank → Pill tone: 1–3 positive, 4–10 warning, 11+ coral. */
-function rankTone(rank: number): PillTone {
-  if (rank <= 3) return "positive";
-  if (rank <= 10) return "negative";
-  return "coral";
-}
 
 export default async function LocationsModule({
   rows,

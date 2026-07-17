@@ -5,6 +5,7 @@ import type { PillTone } from "@/components/ui";
 import { Pin } from "@/components/icons";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { gaps, localSummary, matrix } from "@/lib/local/compute";
+import { rankTone, star } from "@/lib/local/tones";
 import type { LocalTarget, RecentReview, ReviewProfile } from "@/lib/local/sample";
 import type { LocalDiagnosisRequest } from "@/lib/ai-types";
 import { inputDigest, type StoredDiagnosis } from "@/lib/diagnoses/types";
@@ -80,14 +81,9 @@ const T = {
   },
 } as const;
 
-/** Locale-aware "4,6 ★" rating label (comma decimal comes from the formatter,
- *  not a hand-faked replace). Mirrored in LocalReviews. */
-const star = (r: number, fmtDecimal: (n: number, digits?: number) => string) =>
-  `${fmtDecimal(r, 1)} ★`;
-
 /** Map a local SERP rank to a Pill tone + label, matching the module's color language.
- *  1–3 = positive, 4–10 = warning (negative-soft), 11+ = coral, page-but-no-rank =
- *  navy, no page = neutral. */
+ *  The numeric ramp comes from the shared monotone {@link rankTone} (1–3 positive,
+ *  4–10 coral, 11+ negative); page-but-no-rank = navy, no page = neutral. */
 function rankCell(
   t: LocalTarget | undefined,
   missingLabel: string,
@@ -95,9 +91,7 @@ function rankCell(
 ): { tone: PillTone; label: string } {
   if (!t || !t.hasPage) return { tone: "neutral", label: missingLabel };
   if (t.rank === null) return { tone: "navy", label: hasPageNoRankLabel }; // page exists, not ranking yet
-  if (t.rank <= 3) return { tone: "positive", label: `#${t.rank}` };
-  if (t.rank <= 10) return { tone: "negative", label: `#${t.rank}` };
-  return { tone: "coral", label: `#${t.rank}` };
+  return { tone: rankTone(t.rank), label: `#${t.rank}` };
 }
 
 export default async function LocalModule({
@@ -208,8 +202,8 @@ export default async function LocalModule({
           </h3>
           <div className="flex items-center gap-2">
             <Pill tone="positive">{t("legendTop3")}</Pill>
-            <Pill tone="negative">{t("legend4to10")}</Pill>
-            <Pill tone="coral">{t("legend11plus")}</Pill>
+            <Pill tone="coral">{t("legend4to10")}</Pill>
+            <Pill tone="negative">{t("legend11plus")}</Pill>
             <Pill tone="neutral">{t("legendMissing")}</Pill>
           </div>
         </div>

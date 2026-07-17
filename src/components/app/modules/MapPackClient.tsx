@@ -16,6 +16,7 @@ import "leaflet/dist/leaflet.css";
 import { Pill } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { shareOfVoice, sortByRank } from "@/lib/mappack/compute";
+import { rankTone } from "@/lib/local/tones";
 import type { AreaPack, MapListing } from "@/lib/mappack/sample";
 
 const T = {
@@ -48,13 +49,6 @@ const T = {
     mapAria: "Local map pack",
   },
 } as const;
-
-/** rank → Pill tone: 1–3 positive, 4–10 warning, 11+ coral. */
-function rankTone(rank: number) {
-  if (rank <= 3) return "positive" as const;
-  if (rank <= 10) return "negative" as const;
-  return "coral" as const;
-}
 
 function markerHtml(rank: number, you: boolean): string {
   const bg = you ? "var(--color-brand-500)" : "var(--color-surface)";

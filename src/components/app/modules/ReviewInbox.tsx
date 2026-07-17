@@ -28,6 +28,7 @@ import {
   type StatusFilter,
 } from "@/lib/reviews/compute";
 import { responseHealth } from "@/lib/reviews/health";
+import { ratingTone } from "@/lib/local/tones";
 
 const T = {
   cs: {
@@ -88,12 +89,6 @@ const MACROS: Record<"cs" | "en", { id: string; label: string; template: string 
     { id: "resolve", label: "Make it right", template: "We're sorry, {author}. We'd like to make this right — please reach out to us directly so we can resolve it quickly." },
   ],
 };
-
-function ratingTone(rating: number): "positive" | "coral" | "negative" {
-  if (rating >= 4) return "positive";
-  if (rating === 3) return "coral";
-  return "negative";
-}
 
 /** Sentiment-trend colour: rising green, falling red, flat muted. */
 const TREND_TEXT: Record<"up" | "down" | "flat", string> = {

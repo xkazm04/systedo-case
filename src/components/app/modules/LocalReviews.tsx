@@ -8,6 +8,7 @@ import { RefineBar } from "@/components/ai/primitives";
 import type { LocalReviewReplyResult } from "@/lib/ai-types";
 import type { RecentReview } from "@/lib/local/sample";
 import { promptSafeName } from "@/lib/projects/name";
+import { ratingTone, star } from "@/lib/local/tones";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -50,18 +51,6 @@ const T = {
     footerNote: "Reply to reviews publicly — a warm thank-you builds trust, and an empathetic response to criticism reduces its impact. Seam: reviews API (Google Business Profile).",
   },
 } as const;
-
-/** Locale-aware "4,6 ★" rating label (comma decimal comes from the formatter,
- *  not a hand-faked replace). Mirrored in LocalModule. */
-const star = (r: number, fmtDecimal: (n: number, digits?: number) => string) =>
-  `${fmtDecimal(r, 1)} ★`;
-
-/** Rating → Pill tone: 4–5 positive, 3 coral, ≤2 negative. */
-function ratingTone(rating: number): "positive" | "coral" | "negative" {
-  if (rating >= 4) return "positive";
-  if (rating === 3) return "coral";
-  return "negative";
-}
 
 /** Reputation panel: each illustrative review gets an AI-drafted public reply —
  *  warm thanks for 4–5★, empathetic de-escalation + offline offer for ≤3★. The
