@@ -24,6 +24,7 @@ const T = {
     set: "Zadat marži",
     edit: "Upravit",
     remove: "Zrušit model",
+    removeConfirm: "Opravdu zrušit?",
     margin: "Hrubá marže (%)",
     overhead: "Měsíční režie ({unit})",
     perOrder: "Náklad na objednávku ({unit})",
@@ -42,6 +43,7 @@ const T = {
     set: "Set margin",
     edit: "Edit",
     remove: "Remove model",
+    removeConfirm: "Confirm removal?",
     margin: "Gross margin (%)",
     overhead: "Monthly overhead ({unit})",
     perOrder: "Cost per order ({unit})",
@@ -79,6 +81,8 @@ export default function CostModelEditor({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // two-step confirm for the destructive Remove (matches the report's unlink flow)
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [margin, setMargin] = useState(model ? String(Math.round(model.grossMarginPct * 100)) : "45");
   const [overhead, setOverhead] = useState(model ? String(model.monthlyOverhead) : "0");
   const [perOrder, setPerOrder] = useState(model ? String(model.perOrderCost) : "0");
@@ -111,10 +115,23 @@ export default function CostModelEditor({
   }
 
   async function remove() {
+    // First click arms the confirm; the second performs the destructive delete.
+    if (!confirmRemove) {
+      setConfirmRemove(true);
+      return;
+    }
     setBusy(true);
+    setErr(null);
     try {
-      await fetch(`/api/projects/${projectId}/cost-model`, { method: "DELETE" });
-      router.refresh();
+      const res = await fetch(`/api/projects/${projectId}/cost-model`, { method: "DELETE" });
+      if (res.ok) {
+        setConfirmRemove(false);
+        router.refresh();
+      } else {
+        setErr(t("failed"));
+      }
+    } catch {
+      setErr(t("failed"));
     } finally {
       setBusy(false);
     }
@@ -148,14 +165,17 @@ export default function CostModelEditor({
           {breakEvenText && <span className="ml-1.5 font-normal opacity-80">· {breakEvenText}</span>}
         </span>
         <div className="flex items-center gap-2 print:hidden">
+          {err && !open && <span className="font-normal text-negative">{err}</span>}
           {model && (
             <button
               type="button"
               onClick={remove}
               disabled={busy}
-              className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
+              className={`rounded-pill border bg-surface px-3 py-1.5 font-semibold transition-colors disabled:opacity-50 ${
+                confirmRemove ? "border-negative text-negative" : "border-line text-navy-700 hover:border-brand-300"
+              }`}
             >
-              {t("remove")}
+              {confirmRemove ? t("removeConfirm") : t("remove")}
             </button>
           )}
           <button

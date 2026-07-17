@@ -25,6 +25,7 @@ const T = {
     save: "Uložit",
     saving: "Ukládám…",
     clear: "Zrušit",
+    clearConfirm: "Opravdu zrušit?",
     hint: "Jen jména (max {max}). AI je použije pro srovnání, nevymýšlí jejich čísla.",
     failed: "Uložení se nezdařilo.",
   },
@@ -37,6 +38,7 @@ const T = {
     save: "Save",
     saving: "Saving…",
     clear: "Remove",
+    clearConfirm: "Confirm removal?",
     hint: "Names only (max {max}). AI uses them for comparison, never fabricates their numbers.",
     failed: "Save failed.",
   },
@@ -54,6 +56,8 @@ export default function CompetitorEditor({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // two-step confirm for the destructive Remove (matches the report's unlink flow)
+  const [confirmClear, setConfirmClear] = useState(false);
   // one editable line per name, plus a trailing blank to type into
   const [names, setNames] = useState<string[]>(() =>
     initial.length ? [...initial.map((c) => c.name), ""] : [""]
@@ -76,7 +80,7 @@ export default function CompetitorEditor({
 
   async function save() {
     const competitors = names.map((n) => n.trim()).filter(Boolean).slice(0, MAX_COMPETITORS).map((name) => ({ name }));
-    if (!competitors.length) return clear();
+    if (!competitors.length) return doClear();
     setBusy(true);
     setErr(null);
     try {
@@ -99,11 +103,30 @@ export default function CompetitorEditor({
     }
   }
 
-  async function clear() {
+  // First click arms the confirm; the second performs the delete. Save's "cleared to
+  // empty" path calls doClear() directly (an explicit save is its own confirmation).
+  function clear() {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+    void doClear();
+  }
+
+  async function doClear() {
     setBusy(true);
+    setErr(null);
     try {
-      await fetch(`/api/projects/${projectId}/competitors`, { method: "DELETE" });
-      router.refresh();
+      const res = await fetch(`/api/projects/${projectId}/competitors`, { method: "DELETE" });
+      if (res.ok) {
+        setConfirmClear(false);
+        setOpen(false);
+        router.refresh();
+      } else {
+        setErr(t("failed"));
+      }
+    } catch {
+      setErr(t("failed"));
     } finally {
       setBusy(false);
     }
@@ -117,14 +140,17 @@ export default function CompetitorEditor({
           {has ? `${t("active")}: ${initial.map((c) => c.name).join(", ")}` : t("inactive")}
         </span>
         <div className="flex items-center gap-2 print:hidden">
+          {err && !open && <span className="text-negative">{err}</span>}
           {has && (
             <button
               type="button"
               onClick={clear}
               disabled={busy}
-              className="rounded-pill border border-line bg-surface px-3 py-1.5 font-semibold text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
+              className={`rounded-pill border bg-surface px-3 py-1.5 font-semibold transition-colors disabled:opacity-50 ${
+                confirmClear ? "border-negative text-negative" : "border-line text-navy-700 hover:border-brand-300"
+              }`}
             >
-              {t("clear")}
+              {confirmClear ? t("clearConfirm") : t("clear")}
             </button>
           )}
           <button
