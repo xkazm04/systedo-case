@@ -2,11 +2,11 @@
 
 /** Account & Security — profile, an honest security checklist (dev-auth sessions
  *  genuinely lack a provider/session store, so those checks read "unavailable"),
- *  sign-out, and a GDPR account-deletion request. Deletion is irreversible and
- *  handled manually — this surface only *requests* it, never executes it.
- *  Account epic (consolidation phase 6). */
+ *  sign-out, and GDPR account-deletion instructions. Deletion is irreversible and
+ *  handled manually over email — this surface only reveals the contact steps; it
+ *  files nothing on the server, so the copy says so explicitly rather than dressing
+ *  a no-op as a destructive confirm. Account epic (consolidation phase 6). */
 import { useState } from "react";
-import { Check } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
 import { initials } from "@/lib/branding/compute";
 import { maskEmail, securityChecklist, type AccountFacts, type CheckState } from "@/lib/account/compute";
@@ -27,9 +27,8 @@ const T = {
     demoNote: "V ukázce nedostupné — bez přihlášení není žádná relace, kterou by šlo ukončit.",
     danger: "Nebezpečná zóna", deleteTitle: "Smazání účtu",
     deleteBody: "Smazání účtu je nevratné — odstraní všechny projekty a data. Zpracováváme ho ručně.",
-    deleteBtn: "Požádat o smazání účtu", deleteConfirm: "Opravdu chci smazat účet",
-    deleteCancel: "Zrušit",
-    deleteRequested: "Pro dokončení nás kontaktuj — žádost zpracujeme ručně a nevratně:",
+    deleteBtn: "Zobrazit pokyny ke smazání účtu",
+    deleteRequested: "Žádost zatím nebyla nikde podána — účet zůstává aktivní. Pro její podání nám napiš; zpracujeme ji ručně a nevratně:",
     deleteMail: "Napsat na podporu",
   },
   en: {
@@ -45,9 +44,8 @@ const T = {
     demoNote: "Unavailable in the demo — with no sign-in there's no session to end.",
     danger: "Danger zone", deleteTitle: "Delete account",
     deleteBody: "Deleting your account is irreversible — it removes all projects and data. We handle it manually.",
-    deleteBtn: "Request account deletion", deleteConfirm: "Yes, delete my account",
-    deleteCancel: "Cancel",
-    deleteRequested: "To complete this, contact us — we process the request manually and irreversibly:",
+    deleteBtn: "Show account deletion instructions",
+    deleteRequested: "Nothing has been filed yet — your account stays active. To submit the request, email us; we process it manually and irreversibly:",
     deleteMail: "Email support",
   },
 } as const;
@@ -79,7 +77,6 @@ export default function AccountSecurity({
   demo?: boolean;
 }) {
   const t = useT(T);
-  const [confirming, setConfirming] = useState(false);
   const [requested, setRequested] = useState(false);
   const checks = securityChecklist(facts);
 
@@ -175,17 +172,8 @@ export default function AccountSecurity({
               {t("deleteMail")} · {SUPPORT_EMAIL}
             </a>
           </div>
-        ) : confirming ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <button type="button" onClick={() => { setRequested(true); setConfirming(false); }} className="inline-flex items-center gap-1.5 rounded-pill bg-negative px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90">
-              <Check width={15} height={15} />{t("deleteConfirm")}
-            </button>
-            <button type="button" onClick={() => setConfirming(false)} className="rounded-pill border border-line px-4 py-2 text-sm font-semibold text-navy-700 hover:border-navy-300">
-              {t("deleteCancel")}
-            </button>
-          </div>
         ) : (
-          <button type="button" onClick={() => setConfirming(true)} className="rounded-pill border border-negative/40 px-4 py-2 text-sm font-semibold text-negative transition-colors hover:bg-negative/5">
+          <button type="button" onClick={() => setRequested(true)} className="rounded-pill border border-negative/40 px-4 py-2 text-sm font-semibold text-negative transition-colors hover:bg-negative/5">
             {t("deleteBtn")}
           </button>
         )}
