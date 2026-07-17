@@ -126,6 +126,62 @@ test("partially-recorded ledger → only the unrecorded tail runs", () => {
   assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
 });
 
+/** The set of user tables on a handle (excluding SQLite internals + the ledger). */
+const tableSet = (db) =>
+  db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+    .all()
+    .map((r) => r.name)
+    .filter((n) => n !== "schema_version")
+    .sort();
+
+/** A v1-era database, frozen as it looked when the schema_version ledger was
+ *  introduced: every base table that has NO dedicated table-adding migration.
+ *  warehouse_connection / projects deliberately omit the v2..v6 additive columns
+ *  so those column migrations still run. Any table added ONLY to SCHEMA after this
+ *  point (no matching Migration) will appear in a fresh db but NOT here — which is
+ *  the split-brain the diff below guards. Do not add later tables here. */
+const V1_ERA_BASE = `
+  CREATE TABLE rate_limits (bucket TEXT NOT NULL, ip TEXT NOT NULL, window_start INTEGER NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (bucket, ip));
+  CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT, image TEXT, created_at TEXT NOT NULL);
+  CREATE TABLE projects (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, accent_color TEXT NOT NULL, domain TEXT, tenant TEXT, ads_customer_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE project_catalog (user_id TEXT NOT NULL, project_id TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (user_id, project_id));
+  CREATE TABLE project_state (user_id TEXT NOT NULL, project_id TEXT NOT NULL, key TEXT NOT NULL, data TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (user_id, project_id, key));
+  CREATE TABLE report_metrics (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE local_signals (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE cost_model (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE competitors (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE organic_channels (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE diagnoses (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE recaps (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE annotations (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE lp_experiments (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE twin (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE onboarding (project_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE TABLE warehouse_connection (user_id TEXT NOT NULL, project_id TEXT NOT NULL, provider TEXT NOT NULL, inventory_id TEXT, token_enc TEXT, connected_at TEXT NOT NULL, last_sync_at TEXT, PRIMARY KEY (user_id, project_id));
+  CREATE TABLE byom_config (user_id TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT NOT NULL);
+`;
+
+test("no SCHEMA/MIGRATIONS split-brain: a pre-existing (v1-stamped) db reaches the full table set", () => {
+  // A fresh db: v1 runs SCHEMA, so it holds every table the code expects.
+  const fresh = new DatabaseSync(":memory:");
+  runMigrations(fresh);
+
+  // A v1-era db: it never re-runs v1 (rate_limits already present → v1 stamped
+  // without SCHEMA), so it can ONLY gain later tables through their own migration.
+  const legacy = new DatabaseSync(":memory:");
+  legacy.exec(V1_ERA_BASE);
+  runMigrations(legacy);
+
+  // If someone adds a table to SCHEMA without a matching MIGRATIONS entry, `fresh`
+  // gains it while `legacy` (and every real production db) does not — this diff fails.
+  assert.deepEqual(
+    tableSet(legacy),
+    tableSet(fresh),
+    "a table added only to SCHEMA never reaches existing databases — add an append-only Migration too"
+  );
+});
+
 test("rebuildTable: create-new/copy/drop/rename preserves data (the non-additive recipe)", () => {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON;");

@@ -35,6 +35,12 @@ function tableExists(db: DatabaseSync, table: string): boolean {
   );
 }
 
+// ⚠️ INVARIANT — adding a table here is NOT enough. SCHEMA builds FRESH databases
+// (via migration v1); every PRE-EXISTING database is already stamped at v1 and will
+// NEVER re-run it, so a table added only to SCHEMA is invisible to production. Any
+// NEW table must ALSO get an append-only entry in MIGRATIONS below (see v7..v17 for
+// the pattern). test-unit/db-migrations.test.mjs pins this: it diffs a fresh-migrated
+// db against a v1-era db carried forward through the migrations and fails if they differ.
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS rate_limits (
     bucket       TEXT NOT NULL,
