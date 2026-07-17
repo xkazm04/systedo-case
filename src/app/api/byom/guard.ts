@@ -1,13 +1,20 @@
 /** Shared auth + entitlement gate for the BYOM settings routes. Not a route file
  *  (app router only mounts `route.ts`), just a helper the sibling routes import.
- *  Server-only. */
+ *  Server-only.
+ *
+ *  Machine-readable `code` envelope shared by all BYOM routes, so a client can
+ *  switch on it instead of string-matching Czech error copy:
+ *    unauthenticated  401 — sign in again
+ *    forbidden        403 — signed in but not entitled (upgrade)
+ *    invalid          400 — the caller's request is malformed / references bad data
+ *    server_error     500 — our fault (missing crypto config, store failure) */
 import { currentUserId } from "@/lib/session";
 import { byomUnlocked, getUserPlan } from "@/lib/usage";
 
 /** The signed-in user's id, or a 401 Response to return. */
 export async function requireUser(): Promise<{ userId: string } | Response> {
   const userId = await currentUserId();
-  if (!userId) return Response.json({ error: "Nepřihlášeno.", code: "invalid" }, { status: 401 });
+  if (!userId) return Response.json({ error: "Nepřihlášeno.", code: "unauthenticated" }, { status: 401 });
   return { userId };
 }
 

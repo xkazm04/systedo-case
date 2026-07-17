@@ -42,9 +42,14 @@ export async function POST(request: Request) {
   try {
     await setByomOperation(u.userId, toolId, { vendor, model, reasoning });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : "Uložení se nezdařilo.";
+    // "No BYOM key stored" is a caller error (they assigned a vendor with no key) →
+    // 400/invalid. Any other throw is a store/Firestore failure — a 500, not the
+    // caller's fault; the old blanket 400 blamed the client for server-side errors.
+    const isValidation = /No BYOM key stored/.test(msg);
     return Response.json(
-      { error: e instanceof Error ? e.message : "Uložení se nezdařilo.", code: "invalid" },
-      { status: 400 }
+      { error: msg, code: isValidation ? "invalid" : "server_error" },
+      { status: isValidation ? 400 : 500 }
     );
   }
   return Response.json({ config: await getPublicByomConfig(u.userId) });

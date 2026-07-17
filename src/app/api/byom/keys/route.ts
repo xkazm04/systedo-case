@@ -35,7 +35,10 @@ export async function POST(request: Request) {
   }
   if (!hasByomCrypto()) {
     return Response.json(
-      { error: "Šifrování klíčů není na serveru nakonfigurováno (chybí BYOM_KEY_SECRET).", code: "failed" },
+      {
+        error: "Šifrování klíčů není na serveru nakonfigurováno (nastavte BYOM_KEY_SECRET nebo AUTH_SECRET).",
+        code: "server_error",
+      },
       { status: 500 }
     );
   }
