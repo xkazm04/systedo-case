@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { External, Logo } from "@/components/icons";
+import { useFocusTrap } from "@/components/hooks/useFocusTrap";
 import ProjectSwitcher from "@/components/app/ProjectSwitcher";
 import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
 import { useShell } from "@/components/app/shell-context";
@@ -90,20 +91,47 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** One source of truth for the sidebar width, so the desktop rail and the mobile
+ *  drawer can never drift apart (they were 296px vs 300px). */
+const RAIL_WIDTH = "w-[296px]";
+
 export default function AppSidebar() {
   const { mobileOpen, setMobileOpen } = useShell();
   const pathname = usePathname();
   const t = useT(T);
+  const drawerRef = useRef<HTMLElement>(null);
 
   // Close the mobile drawer whenever the route changes.
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname, setMobileOpen]);
 
+  // While the drawer is open: Escape closes it (parity with Modal/CommandPalette)
+  // and body scroll locks so the obscured page can't scroll underneath.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileOpen, setMobileOpen]);
+
+  // Move focus into the drawer, trap Tab inside it, and restore focus to the
+  // hamburger on close.
+  useFocusTrap(drawerRef, mobileOpen);
+
   return (
     <>
       {/* Desktop rail */}
-      <aside className="sticky top-0 hidden h-screen w-[296px] shrink-0 border-r border-line bg-surface md:block">
+      <aside
+        className={`sticky top-0 hidden h-screen ${RAIL_WIDTH} shrink-0 border-r border-line bg-surface md:block`}
+      >
         <SidebarBody />
       </aside>
 
@@ -116,7 +144,14 @@ export default function AppSidebar() {
             onClick={() => setMobileOpen(false)}
             className="fixed inset-0 z-40 bg-onyx/40 backdrop-blur-sm"
           />
-          <aside className="animate-drop fixed inset-y-0 left-0 z-50 w-[300px] border-r border-line bg-surface">
+          <aside
+            ref={drawerRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("closeMenu")}
+            className={`animate-drop fixed inset-y-0 left-0 z-50 ${RAIL_WIDTH} border-r border-line bg-surface outline-none`}
+          >
             <SidebarBody onNavigate={() => setMobileOpen(false)} />
           </aside>
         </div>
