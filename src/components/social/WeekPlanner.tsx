@@ -81,15 +81,34 @@ function localIso(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-/** Build the next 7 days from today (computed in an effect, not render, to avoid an
- *  SSR/client hydration mismatch on the date). Labels come from the shared
+/** Parse the hour field into a valid 0–23 slot, falling back to 10. Shared by the
+ *  calendar and the scheduler so both anchor to the SAME first day. */
+function parseHour(hour: string): number {
+  const h = Number(hour);
+  return Number.isInteger(h) && h >= 0 && h <= 23 ? h : 10;
+}
+
+/** The first scheduling slot: today at the chosen hour, or tomorrow if that's already
+ *  past (so every scheduled post lands in the future). The calendar anchors to this
+ *  same date so a batch never lands outside the visible week. */
+function firstSlotDate(safeHour: number): Date {
+  const first = new Date();
+  first.setHours(safeHour, 0, 0, 0);
+  if (first.getTime() <= Date.now()) first.setDate(first.getDate() + 1);
+  return first;
+}
+
+/** Build the 7 days from `start` (computed in an effect, not render, to avoid an
+ *  SSR/client hydration mismatch on the date). Anchored to the scheduler's first slot
+ *  — NOT always today — so when scheduling rolls to tomorrow the grid rolls with it and
+ *  no post is scheduled onto an invisible day 8. Labels come from the shared
  *  locale-bound formatters instead of re-deriving the BCP-47 tag here. */
-function buildWeek(fmt: Formatters): Day[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+function buildWeek(fmt: Formatters, start: Date): Day[] {
+  const base = new Date(start);
+  base.setHours(0, 0, 0, 0);
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
     const dow = d.getDay();
     const iso = localIso(d);
     return {
@@ -122,6 +141,7 @@ export default function WeekPlanner() {
     });
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
+  const safeHour = parseHour(hour);
   const [brand] = useState(() => readSocialBrand(pid));
   // C1: the project's auto-derived brand voice (what it sells + how it talks), so the
   // batch is on-brand BY DEFAULT — shown here, not buried in the Composer.
@@ -144,12 +164,12 @@ export default function WeekPlanner() {
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setWeek(buildWeek(fmt));
+    setWeek(buildWeek(fmt, firstSlotDate(safeHour)));
     void loadPosts();
     const handler = () => void loadPosts();
     window.addEventListener("social:posts-changed", handler);
     return () => window.removeEventListener("social:posts-changed", handler);
-  }, [loadPosts, fmt]);
+  }, [loadPosts, fmt, safeHour]);
 
   // Fetch the derived brand voice for this project (empty for an empty catalogue).
   useEffect(() => {
@@ -196,15 +216,11 @@ export default function WeekPlanner() {
     setRunning(true);
     setError(null);
     setProgress({ done: 0, total: topicLines.length });
-    // First slot today at the chosen hour; if that's already past, start tomorrow,
-    // so every scheduled post lands in the future (the store keeps future-dated ones).
-    // Parse the hour explicitly — `Number(hour) || 10` rewrote a legitimate midnight
-    // (0, falsy) to 10:00.
-    const h = Number(hour);
-    const safeHour = Number.isInteger(h) && h >= 0 && h <= 23 ? h : 10;
-    const first = new Date();
-    first.setHours(safeHour, 0, 0, 0);
-    if (first.getTime() <= Date.now()) first.setDate(first.getDate() + 1);
+    // First slot today at the chosen hour; if that's already past, start tomorrow, so
+    // every scheduled post lands in the future (the store keeps future-dated ones). The
+    // calendar anchors to this SAME date (buildWeek(fmt, firstSlotDate(safeHour))), so a
+    // batch can never land on an invisible day 8.
+    const first = firstSlotDate(safeHour);
     let failed = false;
     // Retry-safe batching: count topics whose posts ALL persisted, so a mid-batch
     // failure can drop exactly the succeeded lines from the textarea. The old
