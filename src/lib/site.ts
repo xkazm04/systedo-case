@@ -41,10 +41,16 @@ export const SITE_DESCRIPTION_EN =
 /** The description the static, non-locale-aware metadata + manifest use. */
 export const SITE_DESCRIPTION = SITE_DESCRIPTION_CS;
 
-/** Stack facts shown in the footer "O projektu" column — a single source of
- *  truth so the footer can't contradict the rest of the app. The model line is
- *  imported from the LLM wrapper (not hand-typed) so it can never drift from the
- *  models actually in play; the data line names each store's real backing. */
+/** Stack facts for an "O projektu" surface — a single source of truth so it
+ *  can't contradict the rest of the app. The model line is imported from the LLM
+ *  wrapper (not hand-typed) so it can never drift from the models in play; the
+ *  data line names each store's real backing (Firestore for campaigns, matching
+ *  db.ts — NOT SQLite; see the /kampane blurb reconciliation note in WAVE-23).
+ *
+ *  DELIBERATELY Czech-only, and currently UNRENDERED (no consumer in src/). If it
+ *  is ever wired into the bilingual footer, localize the translatable lines
+ *  through Messages (getServerLocale) rather than copying this constant — do NOT
+ *  ship these Czech strings under an `en` heading (the E1 "one company voice"). */
 export const STACK_FACTS: string[] = [
   "Next.js 16 · App Router",
   "Data: JSON (obsah) + Firestore (kampaně) · node:sqlite (rate-limit)",
