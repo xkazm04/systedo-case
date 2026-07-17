@@ -21,6 +21,18 @@ export async function saveTwin(projectId: string, state: TwinState): Promise<voi
   return (await backend()).saveTwin(projectId, state);
 }
 
+/** ATOMIC per-project read-modify-write. The `mutator` receives the current sanitized
+ *  blob (or null) and returns the next; the read and write happen inside ONE backend
+ *  transaction, so a send and a concurrent full-state save can't read the same base and
+ *  clobber each other (the send-race / lost-update the two twin write paths shared).
+ *  Use this instead of getTwin→saveTwin whenever the write depends on the prior state. */
+export async function mutateTwin(
+  projectId: string,
+  mutator: (prev: TwinState | null) => TwinState
+): Promise<TwinState> {
+  return (await backend()).mutateTwin(projectId, mutator);
+}
+
 /** Drop a project's twin (→ reverts to the seeded sample: untrained, no outbox). */
 export async function clearTwin(projectId: string): Promise<void> {
   return (await backend()).clearTwin(projectId);

@@ -18,6 +18,28 @@ export async function getTwin(projectId: string): Promise<TwinState | null> {
   return parsePersistedTwin(raw);
 }
 
+/** Atomic read-modify-write inside a Firestore transaction: the doc is read and
+ *  written in one transaction (the loser retries against the fresh doc), closing the
+ *  check-then-act gap between getTwin and saveTwin. The mutator gets the sanitized
+ *  prev blob (or null when nothing is stored yet). Mirrors mutateLocalSignals. */
+export async function mutateTwin(
+  projectId: string,
+  mutator: (prev: TwinState | null) => TwinState
+): Promise<TwinState> {
+  const ref = twinDoc(projectId);
+  return firestore.runTransaction(async (tx) => {
+    const doc = await tx.get(ref);
+    let prev: TwinState | null = null;
+    if (doc.exists) {
+      const raw = doc.data()?.data;
+      if (typeof raw === "string") prev = parsePersistedTwin(raw);
+    }
+    const next = mutator(prev);
+    tx.set(ref, { data: JSON.stringify(next), updatedAt: new Date().toISOString() });
+    return next;
+  });
+}
+
 export async function saveTwin(projectId: string, state: TwinState): Promise<void> {
   await twinDoc(projectId).set({
     data: JSON.stringify(state),

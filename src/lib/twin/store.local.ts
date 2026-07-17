@@ -16,6 +16,35 @@ export async function getTwin(projectId: string): Promise<TwinState | null> {
   return parsePersistedTwin(row.data);
 }
 
+/** Atomic read-modify-write under a BEGIN IMMEDIATE write transaction, so the row is
+ *  write-locked for the whole mutate — a concurrent send/full-state save serializes
+ *  behind it and sees this write instead of racing on a stale base (the check-then-act
+ *  gap between getTwin and saveTwin). The mutator gets the sanitized prev blob (or null
+ *  when nothing is stored yet). Mirrors mutateLocalSignals. */
+export async function mutateTwin(
+  projectId: string,
+  mutator: (prev: TwinState | null) => TwinState
+): Promise<TwinState> {
+  const db = getDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const row = db.prepare("SELECT data FROM twin WHERE project_id = ?").get(projectId) as Row | undefined;
+    const prev = row ? parsePersistedTwin(row.data) : null;
+    const next = mutator(prev);
+    db.prepare(
+      `INSERT INTO twin (project_id, data, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT (project_id)
+       DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at`
+    ).run(projectId, JSON.stringify(next), new Date().toISOString());
+    db.exec("COMMIT");
+    return next;
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
+}
+
 export async function saveTwin(projectId: string, state: TwinState): Promise<void> {
   const now = new Date().toISOString();
   getDb()

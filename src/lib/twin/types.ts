@@ -209,6 +209,30 @@ export function decideDraft(
   return clears ? { status: "approved", autoApproved: true } : { status: "pending", autoApproved: false };
 }
 
+/** True for a draft in a terminal lifecycle state — past the autonomy gate's reach and
+ *  a completed audit event. A terminal state must never be un-set by a later write. */
+export function isTerminalDraft(d: Pick<TwinDraft, "status">): boolean {
+  return d.status === "sent" || d.status === "rejected";
+}
+
+/** Merge STORED terminal statuses over a POSTed full-state blob: when a stored draft
+ *  for the same id is terminal (`sent`/`rejected`) but the posted one is not, the
+ *  stored record wins. The client POSTs its whole twin state, and a stale client copy
+ *  (a send that landed after the client last read) still marks the draft `approved` —
+ *  a last-writer-wins save would then flip a `sent` draft back to `approved`, erasing
+ *  the send from the audit trail and making it send-eligible again. Pure/total, so it
+ *  can run inside the atomic mutate that closes the check-then-act gap. */
+export function mergeTerminalDrafts(stored: TwinDraft[] | null | undefined, posted: TwinDraft[]): TwinDraft[] {
+  if (!stored || stored.length === 0) return posted;
+  const terminalById = new Map<string, TwinDraft>();
+  for (const d of stored) if (isTerminalDraft(d)) terminalById.set(d.id, d);
+  if (terminalById.size === 0) return posted;
+  return posted.map((d) => {
+    const term = terminalById.get(d.id);
+    return term && !isTerminalDraft(d) ? term : d;
+  });
+}
+
 /** Tally why humans have been rejecting this channel's drafts. Feeds the "avoid"
  *  block of the next draft prompt, so the twin stops repeating the mistake — the
  *  personas RejectionPatternsPanel loop, pointed at replies instead of memories. */

@@ -4,10 +4,10 @@
  *  wire — the client POSTs the whole state). Server-only. Mirrors the
  *  organic-channels route's auth shape. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
-import { saveTwin, clearTwin } from "@/lib/twin/store";
+import { mutateTwin, clearTwin } from "@/lib/twin/store";
 import { archiveDrafts, clearArchive, listArchivedRejects } from "@/lib/twin/archive-store";
 import { partitionDrafts } from "@/lib/twin/archive";
-import { channelConfig, decideDraft, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
+import { channelConfig, decideDraft, mergeTerminalDrafts, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
 import { readJson } from "@/lib/api/route-utils";
 
 /** Re-derive the autonomy gate server-side. `decideDraft` is "the one rule, in one
@@ -67,7 +67,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     keptDrafts = hot;
   }
 
-  await saveTwin(project.id, { ...state, drafts: keptDrafts, updatedAt: new Date().toISOString() });
+  // Write atomically and let STORED terminal statuses win over the posted blob: the
+  // client POSTs its whole state, and a stale client copy (a send that landed after its
+  // last read) still marks the draft `approved` — a plain last-writer-wins save would
+  // flip a `sent` draft back to `approved`, erasing the send from the audit trail and
+  // making it send-eligible again. mergeTerminalDrafts inside the atomic mutate closes
+  // that check-then-act window against a concurrent send/route.ts claim.
+  await mutateTwin(project.id, (prev) => ({
+    ...state,
+    drafts: mergeTerminalDrafts(prev?.drafts, keptDrafts),
+    updatedAt: new Date().toISOString(),
+  }));
   return Response.json({ ok: true });
 }
 
