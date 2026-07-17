@@ -24,8 +24,18 @@ function dayKey(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague" }).format(new Date());
 }
 
+/** A `plan` read back from Firestore is untrusted: an external monetization layer,
+ *  a renamed tier, or a manual console edit could store a value not in PLANS. Fall
+ *  back to "free" for any unknown/absent plan so `PLANS[plan]` can never be undefined
+ *  and throw inside a metering transaction (bricking every paid action for the user). */
+function normalizePlan(plan: string | undefined): Plan {
+  if (plan && plan in PLANS) return plan as Plan;
+  if (plan) console.warn(`[usage] unknown plan ${JSON.stringify(plan)} — treating as free`);
+  return "free";
+}
+
 function statusFrom(data: UsageDoc, day: string): UsageStatus {
-  const plan = data.plan ?? "free";
+  const plan = normalizePlan(data.plan);
   const d = data.days?.[day] ?? {};
   return {
     plan,
@@ -50,7 +60,7 @@ export async function getUsage(userId: string): Promise<UsageStatus> {
 export async function getUserPlan(userId: string): Promise<Plan> {
   if (LOCAL_DB) return "free";
   const snap = await firestore.collection("usage").doc(userId).get();
-  return (snap.data() as UsageDoc)?.plan ?? "free";
+  return normalizePlan((snap.data() as UsageDoc)?.plan);
 }
 
 /** BYOM (and the per-operation matrix) is unlocked for a byom-plan user, OR — in
@@ -90,7 +100,7 @@ export async function consume(
   return firestore.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
     const data = (snap.data() as UsageDoc) ?? {};
-    const plan = data.plan ?? "free";
+    const plan = normalizePlan(data.plan);
     const current = data.days?.[day]?.[kind] ?? 0;
 
     if (current + charge > PLANS[plan][kind]) {
