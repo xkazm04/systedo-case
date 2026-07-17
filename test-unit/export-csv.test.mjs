@@ -2,7 +2,7 @@
  *  Excel CSV exports. Runs the TS source directly via the shared resolve hook. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { csvCell, csvNum, toCsv } from "@/lib/export";
+import { csvCell, csvNum, exportFilename, toCsv } from "@/lib/export";
 
 test("csvCell neutralizes spreadsheet formula-injection triggers", () => {
   // A live formula and a DDE vector must be quoted + '-guarded so they render as text.
@@ -55,4 +55,14 @@ test("toCsv keeps a decimal-comma cell intact behind the semicolon delimiter", (
   // the comma triggers csvField quoting, but never splits the cell
   assert.equal(row.split(";").length, 2);
   assert.ok(row.includes("0,8532"));
+});
+
+test("exportFilename is product-branded and folds in the baseline", () => {
+  // No baked-in per-client label — the prefix is the product brand (Adamant).
+  assert.equal(exportFilename("kanaly", "90d"), "adamant-kanaly-90d.csv");
+  // The comparison baseline is folded in so yoy vs previous exports never collide.
+  assert.equal(exportFilename("vyvoj", "90d", "yoy"), "adamant-vyvoj-90d-yoy.csv");
+  assert.equal(exportFilename("vyvoj", "90d", "previous"), "adamant-vyvoj-90d-previous.csv");
+  // A caller with an active project can override the prefix with its slug.
+  assert.equal(exportFilename("kanaly", "30d", undefined, "kavarna-u-kotvy"), "kavarna-u-kotvy-kanaly-30d.csv");
 });

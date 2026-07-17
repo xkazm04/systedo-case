@@ -2,7 +2,7 @@
 
 import ChannelTable from "@/components/dashboard/ChannelTable";
 import { Download } from "@/components/icons";
-import { csvNum, downloadText, toCsv } from "@/lib/export";
+import { csvNum, downloadText, exportFilename, toCsv } from "@/lib/export";
 import {
   periodLabel,
   type ChannelRow,
@@ -102,7 +102,7 @@ export default function ChannelsSection({
       csvNum(c.roas, 2, locale),
       fmt.fmtSignedPct(revenueDelta),
     ]);
-    downloadText(`adamant-kanaly-${period.key}.csv`, toCsv(headers, rows));
+    downloadText(exportFilename("kanaly", period.key, baseline), toCsv(headers, rows));
   };
 
   return (

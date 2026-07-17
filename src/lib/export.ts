@@ -3,6 +3,25 @@
  *  is browser-only and a no-op on the server. */
 
 import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
+import { SITE_NAME } from "@/lib/site";
+
+/** Build a stable CSV filename for a dashboard export. `kind` is the export slug
+ *  ("kanaly", "vyvoj"), `periodKey` the window ("90d"). `baseline` is folded in when
+ *  the export carries comparison columns, so two exports of the SAME period whose
+ *  comparison differs (yoy vs previous) can't collide under one name. The prefix
+ *  defaults to the product brand (no baked-in per-client label) but a caller with an
+ *  active project can pass its slug. One helper so a rename can never fix one export
+ *  and miss the other. */
+export function exportFilename(
+  kind: string,
+  periodKey: string,
+  baseline?: string,
+  prefix: string = SITE_NAME.toLowerCase()
+): string {
+  const parts = [prefix, kind, periodKey];
+  if (baseline) parts.push(baseline);
+  return `${parts.join("-")}.csv`;
+}
 
 /** A single field escaped for RFC-4180 CSV: wrapped in double quotes with any
  *  embedded quote doubled, whenever it contains a quote, a comma, a newline

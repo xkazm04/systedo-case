@@ -4,7 +4,7 @@ import { forwardRef } from "react";
 import TrendChart from "@/components/dashboard/TrendChart";
 import Segmented from "./Segmented";
 import { Download } from "@/components/icons";
-import { csvNum, downloadText, toCsv } from "@/lib/export";
+import { csvNum, downloadText, exportFilename, toCsv } from "@/lib/export";
 import {
   metricDescription,
   metricShort,
@@ -114,7 +114,9 @@ const TrendCard = forwardRef<
         ...(hasCompare ? TREND_CSV_METRICS.map((m) => (prev ? cell(prev, m) : "")) : []),
       ];
     });
-    downloadText(`adamant-vyvoj-${period.key}.csv`, toCsv(headers, rows));
+    // Fold the baseline into the name only when the export actually carries the
+    // comparison columns, so the filename honestly reflects what's inside.
+    downloadText(exportFilename("vyvoj", period.key, hasCompare ? baseline : undefined), toCsv(headers, rows));
   };
 
   return (
