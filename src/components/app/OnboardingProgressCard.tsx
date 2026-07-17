@@ -36,7 +36,10 @@ export default async function OnboardingProgressCard({
   userId: string | null;
 }) {
   const progress = await resolveOnboardingProgress(project, userId);
-  if (progress.complete || progress.dismissed) return null;
+  // On an onboarding-state read failure, dismissed/progress are unreliable — hide the
+  // card this render rather than resurfacing a card the user already dismissed or
+  // flashing regressed progress. It reappears on the next successful read.
+  if (progress.complete || progress.dismissed || progress.stateUnknown) return null;
 
   const t = await getT(T);
   const locale = await getServerLocale();

@@ -23,6 +23,11 @@ export interface OnboardingProgress {
   total: number;
   scanApplied: boolean;
   dismissed: boolean;
+  /** true when the onboarding-state read itself FAILED (transient store error), as
+   *  opposed to a fresh project with no saved state. `dismissed`/`scanApplied` are then
+   *  unreliable (they read false on failure), so the caller should keep the previous
+   *  render / hide the card rather than resurfacing a dismissed card or regressing steps. */
+  stateUnknown: boolean;
   /** the applied scan profile, when one exists */
   scan?: OnboardingScanProfile;
   /** true when every step is done */
@@ -39,8 +44,15 @@ export async function resolveOnboardingProgress(
   const defs = stepsForType(project.type);
   const need = new Set(defs.map((d) => d.key));
 
-  const [state, offerings, ranks, channels, adsConn, costModel] = await Promise.all([
-    getOnboarding(project.id).catch(() => null),
+  const [stateRes, offerings, ranks, channels, adsConn, costModel] = await Promise.all([
+    // Tagged read: this one carries PERSISTED USER INTENT (dismissed / scanApplied), where
+    // "read failed" and "no state yet" mean very different things — catch-to-null would
+    // conflate them and flap a dismissed card back on. The other five probes are derived
+    // signals where not-done is a safe default, so they keep the catch-to-null policy.
+    getOnboarding(project.id).then(
+      (value) => ({ ok: true as const, value }),
+      () => ({ ok: false as const, value: null })
+    ),
     userId && need.has("catalog")
       ? listOfferings(userId, project.id).catch(() => null)
       : Promise.resolve(null),
@@ -55,6 +67,8 @@ export async function resolveOnboardingProgress(
     need.has("costModel") ? getCostModel(project.id).catch(() => null) : Promise.resolve(null),
   ]);
 
+  const state = stateRes.value;
+  const stateUnknown = !stateRes.ok;
   const scanApplied = !!state?.scanApplied;
   const catalogDone = Array.isArray(offerings) && offerings.length > 0;
   const adsDone = !!project.adsCustomerId || !!adsConn?.customerId;
@@ -94,6 +108,7 @@ export async function resolveOnboardingProgress(
     total: steps.length,
     scanApplied,
     dismissed: !!state?.dismissed,
+    stateUnknown,
     ...(state?.scan ? { scan: state.scan } : {}),
     complete: done === steps.length,
   };

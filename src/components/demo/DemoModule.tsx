@@ -150,7 +150,7 @@ export default async function DemoModule({
           <OnboardingModule
             projectType={project.type}
             defaultUrl={project.domain ?? ""}
-            progress={{ steps, done: 0, total: steps.length, scanApplied: false, dismissed: false, complete: false }}
+            progress={{ steps, done: 0, total: steps.length, scanApplied: false, dismissed: false, stateUnknown: false, complete: false }}
           />
         </ModulePage>
       );
