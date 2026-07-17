@@ -78,8 +78,11 @@ export function csvNum(n: number, digits = 2, locale: SupportedLocale = DEFAULT_
   }).format(n);
 }
 
-/** UTF-8 byte-order mark, so Excel renders Czech diacritics in the export. */
-const BOM = "﻿";
+/** UTF-8 byte-order mark, so Excel renders Czech diacritics in the export.
+ *  Written as the escape `\uFEFF` (not a literal U+FEFF, which renders as an
+ *  invisible empty string) so the byte is diff-visible and can't be silently
+ *  stripped by a formatter or a "this constant is empty, delete it" cleanup. */
+const BOM = "\uFEFF";
 
 /** Trigger a browser download of text content. Prepends a UTF-8 BOM so Excel
  *  renders Czech diacritics correctly. No-op on the server / without DOM. */
