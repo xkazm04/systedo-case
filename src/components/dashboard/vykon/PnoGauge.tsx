@@ -58,6 +58,8 @@ export default function PnoGauge({ pno, goalPno }: { pno: number; goalPno: numbe
         <div
           className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-navy-700"
           style={{ left: `${(goalPno / gaugeMax) * 100}%` }}
+          role="img"
+          aria-label={t("goalMarker", { pct: fmt.fmtPct(goalPno, 0) })}
           title={t("goalMarker", { pct: fmt.fmtPct(goalPno, 0) })}
         />
       </div>

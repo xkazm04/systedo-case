@@ -216,12 +216,16 @@ export default function GoalPacing({
               <div
                 className="absolute top-1/2 h-3.5 w-0.5 -translate-y-1/2 rounded-full bg-navy-300"
                 style={{ left: pct(proratedTarget) }}
+                role="img"
+                aria-label={t("planTitle", { amount: fmt.fmtCZK(proratedTarget) })}
                 title={t("planTitle", { amount: fmt.fmtCZK(proratedTarget) })}
               />
             )}
             <div
               className="absolute top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-navy-700"
               style={{ left: pct(goal) }}
+              role="img"
+              aria-label={t("goalTitle", { amount: fmt.fmtCZK(goal) })}
               title={t("goalTitle", { amount: fmt.fmtCZK(goal) })}
             />
           </div>
@@ -229,6 +233,11 @@ export default function GoalPacing({
           {!complete && projectionHigh > projectionLow && (
             <div
               className="relative mt-2 h-3"
+              role="img"
+              aria-label={t("ciBandTitle", {
+                low: fmt.fmtCZK(projectionLow),
+                high: fmt.fmtCZK(projectionHigh),
+              })}
               title={t("ciBandTitle", {
                 low: fmt.fmtCZK(projectionLow),
                 high: fmt.fmtCZK(projectionHigh),
@@ -347,6 +356,10 @@ function Stat({
       <dt className="text-xs text-muted">{label}</dt>
       <dd className={`tnum mt-1 text-lg font-semibold ${tone}`}>{value}</dd>
       {sub && <dd className="mt-0.5 text-[13px] text-muted">{sub}</dd>}
+      {/* The prescription behind the number (e.g. the extra daily spend implied)
+          lived only in the hover `title`; mirror it to AT so it isn't lost on
+          touch/screen readers. */}
+      {title && <dd className="sr-only">{title}</dd>}
     </div>
   );
 }

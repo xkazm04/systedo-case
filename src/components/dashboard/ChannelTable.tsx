@@ -105,6 +105,7 @@ export default function ChannelTable({
               {timeResolved && (
                 <th className="px-3 py-3 text-right font-semibold" title={t("revenueDeltaHint")}>
                   {t("colRevenueDelta")}
+                  <span className="sr-only"> — {t("revenueDeltaHint")}</span>
                 </th>
               )}
               <th className="px-3 py-3 text-right font-semibold">{t("colPno")}</th>
@@ -185,6 +186,7 @@ export default function ChannelTable({
                         significance={revenueSignificance}
                         baseline={baseline}
                       />
+                      <span className="sr-only">{t("revenueDeltaHint")}</span>
                     </span>
                   )}
                 </div>

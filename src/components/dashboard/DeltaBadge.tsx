@@ -68,9 +68,11 @@ export default function DeltaBadge({
     return (
       <span
         className={`pill bg-navy-50 text-muted ${sizeCls}`}
+        role="img"
+        aria-label={`${fmt.fmtSignedPct(delta)} — ${t("noiseTitle")}`}
         title={t("noiseTitle")}
       >
-        <Icon width={iconSize} height={iconSize} />
+        <Icon width={iconSize} height={iconSize} aria-hidden />
         <span className="tnum">{fmt.fmtSignedPct(delta)}</span>
       </span>
     );
@@ -95,9 +97,11 @@ export default function DeltaBadge({
   return (
     <span
       className={`pill ${tone} ${sizeCls}`}
+      role="img"
+      aria-label={`${fmt.fmtSignedPct(delta)} — ${changeTitle}${sigSuffix}`}
       title={`${changeTitle}${sigSuffix}`}
     >
-      <Icon width={iconSize} height={iconSize} />
+      <Icon width={iconSize} height={iconSize} aria-hidden />
       <span className="tnum">{fmt.fmtSignedPct(delta)}</span>
     </span>
   );

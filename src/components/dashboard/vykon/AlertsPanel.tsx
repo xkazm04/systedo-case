@@ -127,6 +127,7 @@ export default function AlertsPanel({
             title={t("alertsImpactTitle")}
           >
             {fmt.fmtSignedCZKCompact(impact.net)}
+            <span className="sr-only"> — {t("alertsImpactTitle")}</span>
           </span>
           {/* the upside the same anomalies carried (windfalls + savings) —
               computed separately by anomalyImpact precisely so it can inform
@@ -135,6 +136,7 @@ export default function AlertsPanel({
             <span className="text-muted" title={t("alertsGainedTitle")}>
               {" "}
               (<span className="tnum">{fmt.fmtSignedCZKCompact(impact.gained)}</span> {t("alertsGained")})
+              <span className="sr-only"> — {t("alertsGainedTitle")}</span>
             </span>
           )}
         </p>
