@@ -75,11 +75,19 @@ export default async function BrandLanding() {
 
   // The four case-study destinations that used to live in the header nav, now
   // surfaced as the homepage crossroad. Localized labels/blurbs come from the
-  // shared nav model, filtered + ordered to the crossroad set; each card's icon
-  // and illustration join on the client (see crossroad/meta).
-  const crossroad: CrossroadItem[] = localizedNavItems(locale).filter((i) =>
-    (CROSSROAD_HREFS as readonly string[]).includes(i.href)
-  );
+  // shared nav model, but ORDER is single-sourced from CROSSROAD_HREFS (journey
+  // order) — mapping over the hrefs, not filtering the nav list, so a nav reorder
+  // can't silently invert the crossroad. Each card's icon and illustration join
+  // on the client (see crossroad/meta).
+  const navByHref = new Map(localizedNavItems(locale).map((i) => [i.href, i]));
+  const crossroad: CrossroadItem[] = [];
+  for (const href of CROSSROAD_HREFS) {
+    const item = navByHref.get(href);
+    if (item) crossroad.push(item);
+    else if (process.env.NODE_ENV !== "production") {
+      console.warn(`[crossroad] no nav item for ${href} — a homepage destination was silently dropped.`);
+    }
+  }
 
   // Quantified case-study results for the proof band — the exact numbers the
   // dashboard renders (illustrative data), so the homepage shows outcomes, not

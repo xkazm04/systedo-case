@@ -47,9 +47,16 @@ export default function Crossroad({ items }: { items: CrossroadItem[] }) {
       <div className="mt-9 overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
         {items.map((item, i) => {
           // item.href is a general NavItem href; the map only covers the four
-          // crossroad destinations, so look it up as a possibly-absent key.
+          // crossroad destinations. BrandLanding now builds `items` from
+          // CROSSROAD_HREFS (⊆ CROSSROAD_META keys), so a miss here means the two
+          // constants drifted — warn in dev instead of silently dropping a card.
           const meta = CROSSROAD_META[item.href as keyof typeof CROSSROAD_META];
-          if (!meta) return null;
+          if (!meta) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn(`[crossroad] no CROSSROAD_META for ${item.href} — card dropped; add a meta entry.`);
+            }
+            return null;
+          }
           const Icon = meta.icon;
           return (
             <Link
