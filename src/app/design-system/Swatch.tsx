@@ -3,22 +3,25 @@
 import { useState } from "react";
 import { Check, Copy } from "@/components/icons";
 import { readableInkOn } from "@/lib/design-tokens-color";
+import { copyTextWithFallback } from "@/lib/clipboard";
 import type { ColorToken } from "@/lib/design-tokens";
 
 /** Click-to-copy colour swatch: copies the CSS variable name (e.g.
  *  "--color-brand-500") so the living showcase doubles as a working DS reference,
- *  not just a display. A transient check confirms the copy. */
+ *  not just a display. A transient check confirms the copy; a failure is shown
+ *  explicitly (a dead-feeling click on a working DS reference is the worst UX). */
 export default function Swatch({ token, big = false }: { token: ColorToken; big?: boolean }) {
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const copied = status === "copied";
 
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(token.cssVar);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      /* clipboard unavailable — nothing to do */
-    }
+    // Use the shared helper (execCommand fallback + a success boolean) instead of a
+    // bare navigator.clipboard with an empty catch, matching DevInspector; on an
+    // insecure context / denied permission the user now sees "Kopírování selhalo"
+    // rather than a silent no-op.
+    const ok = await copyTextWithFallback(token.cssVar);
+    setStatus(ok ? "copied" : "failed");
+    setTimeout(() => setStatus("idle"), 1200);
   };
 
   return (
@@ -43,7 +46,9 @@ export default function Swatch({ token, big = false }: { token: ColorToken; big?
         </span>
       </div>
       <p className="mt-1.5 truncate text-[13px] font-medium text-navy-700">{token.name}</p>
-      <p className="tnum truncate text-[13px] uppercase text-muted">{copied ? "Zkopírováno" : token.value}</p>
+      <p className={`tnum truncate text-[13px] uppercase ${status === "failed" ? "text-coral-600" : "text-muted"}`}>
+        {status === "copied" ? "Zkopírováno" : status === "failed" ? "Kopírování selhalo" : token.value}
+      </p>
     </button>
   );
 }
