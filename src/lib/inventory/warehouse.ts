@@ -15,6 +15,7 @@
 import type { Product } from "@/lib/catalog/sample";
 import type { StoredConnection } from "./connection-store";
 import { providerDisplay } from "./providers";
+import { isDemoProjectId } from "@/lib/projects/demo";
 
 export type WarehouseKind = "hub" | "3pl" | "erp";
 
@@ -151,7 +152,7 @@ export function warehouseCatalog(now: Date): Product[] {
  *  connection server-side (getConnection → deriveWarehouseBadge), because that needs the
  *  signed-in userId and an async store read this pure helper can't do. */
 export function warehouseConnectionFor(projectId: string, now: Date): WarehouseConnection | null {
-  if (!projectId.startsWith("demo-")) return null;
+  if (!isDemoProjectId(projectId)) return null;
   return demoWarehouseConnection(now);
 }
 

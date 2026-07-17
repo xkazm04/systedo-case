@@ -10,11 +10,12 @@ import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
 import { getAdCopy, recordAdCopy } from "@/lib/catalog/ad-copy-store";
 import { sanitizeAdCopy, type AdCopyState } from "@/lib/catalog/ad-copy";
+import { isDemoProjectId } from "@/lib/projects/demo";
 
 /** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated or
  *  not their project). Demo ids are never owned, so they resolve null → no-op. */
 async function ownerOf(projectId: string): Promise<string | null> {
-  if (!projectId || projectId.startsWith("demo-")) return null;
+  if (!projectId || isDemoProjectId(projectId)) return null;
   const uid = await currentUserId();
   if (!uid) return null;
   const project = await getProject(uid, projectId);

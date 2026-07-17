@@ -11,6 +11,7 @@ import { deriveWarehouseBadge, warehouseConnectionFor } from "@/lib/inventory/wa
 import { getConnection } from "@/lib/inventory/connection-store";
 import { getStoredPlan } from "@/lib/inventory/plan-store";
 import { budgetChangeSet, monthlySeasonality, seasonalBudgetPlan, stockRows } from "@/lib/inventory/compute";
+import { isDemoProject } from "@/lib/projects/demo";
 
 
 /** Notional baseline monthly ad budget (CZK) the seasonal plan scales — the honest
@@ -35,7 +36,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // projects show the illustrative (honestly-labeled) badge; a real project's badge
   // is derived from its persisted StoredConnection so it reflects the truth — provider,
   // last-sync age and sync health — even after a real connect + sync.
-  const connection = project.id.startsWith("demo-")
+  const connection = isDemoProject(project)
     ? warehouseConnectionFor(project.id, now)
     : deriveWarehouseBadge(await resolveStoredConnection(project.id), now);
   const products = await loadProductsFor(project, now);
@@ -68,7 +69,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Direction 1: the saved action plan (per-move accept/dismiss) for real projects.
   // Demo projects aren't owned/persisted, so their accept/dismiss stays local-only —
   // pass no projectId (and no stored plan) to keep the module honest about that.
-  const isDemo = project.id.startsWith("demo-");
+  const isDemo = isDemoProject(project);
   const storedPlan = isDemo ? null : await getStoredPlan(project.id);
 
   return (

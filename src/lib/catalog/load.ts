@@ -11,6 +11,7 @@ import type { Product } from "./sample";
 import { getProjectCatalog } from "./resolve";
 import { listOfferings } from "./store";
 import { currentUserId } from "@/lib/session";
+import { isDemoProject } from "@/lib/projects/demo";
 
 /** The request-deduped store read. React `cache()` memoizes for the lifetime of ONE
  *  server request, so when a page (or the ads grounding) resolves brand context AND
@@ -44,7 +45,7 @@ export async function loadProjectCatalogWithSource(
   project: Project,
   now: Date = new Date()
 ): Promise<{ offerings: Offering[]; source: "catalog" | "sample" }> {
-  if (project.id.startsWith("demo-")) return { offerings: getProjectCatalog(project, now), source: "sample" };
+  if (isDemoProject(project)) return { offerings: getProjectCatalog(project, now), source: "sample" };
   const userId = await currentUserId();
   if (!userId) return { offerings: getProjectCatalog(project, now), source: "sample" };
   const stored = await readStoredOfferings(userId, project.id);
