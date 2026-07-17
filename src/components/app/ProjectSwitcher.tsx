@@ -35,6 +35,7 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
   const projects = useProjects();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const t = useT(T);
   const { locale } = useLocale();
 
@@ -43,8 +44,20 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
     function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
+    // Escape closes the popover and returns focus to the trigger — the disclosure
+    // keyboard contract a mousedown-only listener silently omitted.
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
     document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
   }, [open]);
 
   function go() {
@@ -54,11 +67,15 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
 
   return (
     <div ref={ref} className="relative">
+      {/* A disclosure (aria-expanded), NOT an ARIA menu: it's a plain list of links,
+          so we don't claim role="menu"/menuitem and the arrow-key roving-focus
+          contract that implies. */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-haspopup="true"
         className="flex w-full items-center gap-2.5 rounded-xl border border-line bg-surface px-2.5 py-2 text-left transition-colors hover:border-brand-300"
       >
         <ProjectGlyph project={project} />
@@ -77,7 +94,6 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
 
       {open && (
         <div
-          role="menu"
           className="animate-drop absolute left-0 right-0 top-full z-50 mt-1.5 overflow-hidden rounded-xl border border-line bg-surface shadow-pop"
         >
           <div className="max-h-72 overflow-y-auto p-1.5">
@@ -88,7 +104,6 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
                   key={p.id}
                   href={`/app/${p.id}`}
                   onClick={go}
-                  role="menuitem"
                   className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${
                     active ? "bg-brand-50" : "hover:bg-navy-50"
                   }`}
@@ -108,7 +123,6 @@ export default function ProjectSwitcher({ onNavigate }: { onNavigate?: () => voi
           <Link
             href="/app"
             onClick={go}
-            role="menuitem"
             className="flex items-center gap-2.5 border-t border-line px-3 py-2.5 text-sm font-medium text-brand-accent transition-colors hover:bg-brand-50"
           >
             <Plus width={16} height={16} />
