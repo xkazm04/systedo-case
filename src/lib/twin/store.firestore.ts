@@ -3,6 +3,7 @@
  *  is Node-only); imported lazily by the dispatcher so the LOCAL_DB path never
  *  pulls firebase-admin in. Mirrors the local backend's interface. */
 import { firestore } from "@/lib/firebase";
+import { parsePersistedTwin } from "./persisted";
 import type { TwinState } from "./types";
 
 function twinDoc(projectId: string) {
@@ -14,11 +15,7 @@ export async function getTwin(projectId: string): Promise<TwinState | null> {
   if (!doc.exists) return null;
   const raw = doc.data()?.data;
   if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw) as TwinState;
-  } catch {
-    return null;
-  }
+  return parsePersistedTwin(raw);
 }
 
 export async function saveTwin(projectId: string, state: TwinState): Promise<void> {

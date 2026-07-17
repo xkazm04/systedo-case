@@ -3,6 +3,7 @@
  *  {voices, channels, facts, drafts} blob. Selected when LOCAL_DB is on.
  *  Server-only. Mirrors the Firestore backend's interface. */
 import { getDb } from "@/lib/db";
+import { parsePersistedTwin } from "./persisted";
 import type { TwinState } from "./types";
 
 interface Row {
@@ -12,11 +13,7 @@ interface Row {
 export async function getTwin(projectId: string): Promise<TwinState | null> {
   const row = getDb().prepare("SELECT data FROM twin WHERE project_id = ?").get(projectId) as Row | undefined;
   if (!row) return null;
-  try {
-    return JSON.parse(row.data) as TwinState;
-  } catch {
-    return null;
-  }
+  return parsePersistedTwin(row.data);
 }
 
 export async function saveTwin(projectId: string, state: TwinState): Promise<void> {
