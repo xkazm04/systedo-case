@@ -21,6 +21,12 @@ import { blockToMarkdown, faqToMarkdown, type MarkdownLabels } from "../article-
 /** Server-side cap on the clustering input (validateKeywordClustersRequest). */
 export const PIPELINE_KEYWORDS_MAX = 60;
 
+/** The route the article renderer actually lives at (`src/app/clanek`). The
+ *  repurpose back-link derives from this so every distributed variant points at a
+ *  real page instead of the invented `/blog/` path (which 404s on the very site that
+ *  generated the copy). Single source shared with the /clanek routing. */
+export const ARTICLE_BASE_PATH = "/clanek";
+
 /** Parse the wizard's keyword textarea — one keyword per line, an optional
  *  monthly volume after a semicolon („skladování ořechů; 720"). De-duped
  *  case-insensitively and capped like the server validator, so what the user
@@ -120,9 +126,11 @@ export function draftToMarkdownDoc(
   return parts.join("\n").trimEnd() + "\n";
 }
 
-/** Step 4 mapping: the finished draft becomes the repurpose request. The URL is
- *  derived from the brief's slug under the site origin (the variants link back
- *  to where the article will live), the body is the serialized draft. */
+/** Step 4 mapping: the finished draft becomes the repurpose request. The URL points
+ *  at the real article route (`ARTICLE_BASE_PATH` = /clanek) under the site origin —
+ *  the app has no `/blog` route, so the previous `/blog/${slug}` link 404'd on the
+ *  very site that generated the copy. The renderer is a single article page (no
+ *  per-slug segment), so the link is the base path itself. Body is the serialized draft. */
 export function draftToRepurposeRequest(args: {
   brief: BriefResult;
   draft: ArticleDraftResult;
@@ -132,11 +140,10 @@ export function draftToRepurposeRequest(args: {
   origin: string;
 }): RepurposeRequest {
   const { brief, draft, channels, tone, origin } = args;
-  const slug = brief.slug.trim() || "clanek";
   const base = origin.replace(/\/+$/, "");
   return {
     title: (brief.h1 || brief.titleTag).slice(0, 300),
-    url: `${base}/blog/${slug}`,
+    url: `${base}${ARTICLE_BASE_PATH}`,
     body: draftBodyMarkdown(draft),
     channels,
     tone,

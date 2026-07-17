@@ -4,6 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  ARTICLE_BASE_PATH,
   PIPELINE_KEYWORDS_MAX,
   briefToArticleDraftRequest,
   clusterToBriefRequest,
@@ -88,7 +89,7 @@ test("draftToMarkdownDoc includes h1, perex, body and FAQ", () => {
   assert.ok(md.includes("**Do lednice?**"));
 });
 
-test("draftToRepurposeRequest builds the article URL from origin + slug", () => {
+test("draftToRepurposeRequest links back to the real /clanek route, not /blog", () => {
   const req = draftToRepurposeRequest({
     brief: brief(),
     draft: draft(),
@@ -97,7 +98,10 @@ test("draftToRepurposeRequest builds the article URL from origin + slug", () => 
     origin: "https://www.mionelo.cz/",
   });
   assert.equal(req.title, "Jak skladovat ořechy");
-  assert.equal(req.url, "https://www.mionelo.cz/blog/skladovani-orechu");
+  // The article renderer lives at /clanek; the old /blog/<slug> link 404'd.
+  assert.equal(req.url, "https://www.mionelo.cz/clanek");
+  assert.equal(req.url, `https://www.mionelo.cz${ARTICLE_BASE_PATH}`);
+  assert.ok(!req.url.includes("/blog"));
   assert.deepEqual(req.channels, ["LinkedIn"]);
   assert.equal(req.tone, "pratelsky");
   assert.ok(req.body.includes("## Proč žluknou"));
