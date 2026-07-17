@@ -16,6 +16,10 @@ export const CAMPAIGN_TYPES = [
   "display",
   "demand_gen",
   "video",
+  // Catch-all for advertising-channel types outside the mapped set (HOTEL, LOCAL,
+  // SMART, TRAVEL, legacy MULTI_CHANNEL, …). Kept explicit so unmapped types are
+  // NOT silently filed under "search" — see CHANNEL_TYPE in @/lib/google/ads.
+  "other",
 ] as const;
 export type CampaignType = (typeof CAMPAIGN_TYPES)[number];
 
@@ -26,10 +30,12 @@ export const CAMPAIGN_TYPE_LABELS: Record<CampaignType, string> = {
   display: "Display",
   demand_gen: "Demand Gen",
   video: "Video",
+  other: "Ostatní",
 };
 
 /** One stable colour per type, drawn from the design tokens, so the by-type
- *  breakdown and the table dots always agree. */
+ *  breakdown and the table dots always agree. `other` uses a neutral slate so an
+ *  unmapped channel type reads as "uncategorised", never as a real Search share. */
 export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
   search: "#14b8b1",
   performance_max: "#1f8f88",
@@ -37,6 +43,7 @@ export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
   display: "#fb7141",
   demand_gen: "#f59e0b",
   video: "#15324b",
+  other: "#64748b",
 };
 
 /** Funnel role of each channel type. Performance types answer existing demand
@@ -45,7 +52,7 @@ export const CAMPAIGN_TYPE_COLORS: Record<CampaignType, string> = {
  *  trend "red" against the same target without being broken. Encoded once here
  *  so the prompts, breakdowns and any future per-role tolerance read one map.
  *  Deliberately informational: no triage threshold moves based on the role. */
-export type CampaignTypeRole = "performance" | "prospecting";
+export type CampaignTypeRole = "performance" | "prospecting" | "neutral";
 
 export const CAMPAIGN_TYPE_ROLES: Record<CampaignType, CampaignTypeRole> = {
   search: "performance",
@@ -54,16 +61,21 @@ export const CAMPAIGN_TYPE_ROLES: Record<CampaignType, CampaignTypeRole> = {
   display: "prospecting",
   demand_gen: "prospecting",
   video: "prospecting",
+  // Unmapped channel types carry no funnel framing — judged neither by the strict
+  // performance lens nor the prospecting one, so they never distort either rollup.
+  other: "neutral",
 };
 
 export const CAMPAIGN_TYPE_ROLE_LABELS: Record<CampaignTypeRole, string> = {
   performance: "výkonnostní",
   prospecting: "prospekční",
+  neutral: "nezařazené",
 };
 
 export const CAMPAIGN_TYPE_ROLE_LABELS_EN: Record<CampaignTypeRole, string> = {
   performance: "performance",
   prospecting: "prospecting",
+  neutral: "uncategorised",
 };
 
 export function campaignTypeRoleLabel(role: CampaignTypeRole, locale: SupportedLocale): string {

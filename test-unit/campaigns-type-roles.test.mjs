@@ -30,7 +30,10 @@ const campaign = (id, type, over = {}) => ({
 test("every campaign type has a role and both locales label both roles", () => {
   for (const type of CAMPAIGN_TYPES) {
     const role = CAMPAIGN_TYPE_ROLES[type];
-    assert.ok(role === "performance" || role === "prospecting", `${type} has a role`);
+    assert.ok(
+      role === "performance" || role === "prospecting" || role === "neutral",
+      `${type} has a role`
+    );
     assert.ok(CAMPAIGN_TYPE_ROLE_LABELS[role]);
     assert.ok(CAMPAIGN_TYPE_ROLE_LABELS_EN[role]);
   }

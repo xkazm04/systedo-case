@@ -305,6 +305,7 @@ async function fetchAccountDailyRaw(
       ${columns.join(",\n      ")}
     FROM campaign
     WHERE segments.date BETWEEN '${start}' AND '${end}'
+      AND campaign.status != 'REMOVED'
   `;
   return searchStream(accessToken, customerId, query);
 }
@@ -471,6 +472,26 @@ const CHANNEL_TYPE: Record<string, CampaignType> = {
   VIDEO: "video",
 };
 
+/** Channel types we have already logged as unmapped, so a big account with many
+ *  such campaigns warns once per process rather than per row. */
+const warnedUnmappedChannelTypes = new Set<string>();
+
+/** Map a Google `advertising_channel_type` enum to a CampaignType. Anything outside
+ *  the mapped set (HOTEL, LOCAL, SMART, TRAVEL, legacy MULTI_CHANNEL, or a future
+ *  enum) becomes the explicit `"other"` bucket — NEVER silently coerced to "search",
+ *  which would inflate Search totals and judge them by the strict performance lens.
+ *  The first sighting of each new enum is logged once so it can be mapped deliberately. */
+export function toCampaignType(channelType: string | undefined): CampaignType {
+  const key = channelType ?? "";
+  const mapped = CHANNEL_TYPE[key];
+  if (mapped) return mapped;
+  if (key && !warnedUnmappedChannelTypes.has(key)) {
+    warnedUnmappedChannelTypes.add(key);
+    console.warn(`[google/ads] unmapped advertising_channel_type "${key}" → "other"`);
+  }
+  return "other";
+}
+
 function toStatus(s: string | undefined): CampaignStatus {
   return s === "ENABLED" ? "enabled" : "paused";
 }
@@ -571,6 +592,7 @@ export async function fetchCampaigns(
       metrics.conversions_value
     FROM campaign
     WHERE segments.date BETWEEN '${start}' AND '${end}'
+      AND campaign.status != 'REMOVED'
   `;
   const rows = await searchStream(accessToken, customerId, query);
 
@@ -588,7 +610,7 @@ export async function fetchCampaigns(
       return {
         id: String(c.id),
         name: c.name ?? `Kampaň ${c.id}`,
-        type: CHANNEL_TYPE[c.advertisingChannelType ?? ""] ?? "search",
+        type: toCampaignType(c.advertisingChannelType),
         status: toStatus(c.status),
         impressions: num(m.impressions),
         clicks: num(m.clicks),
