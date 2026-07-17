@@ -16,8 +16,12 @@ interface UsageDoc {
   days?: Record<string, Partial<Record<UsageKind, number>>>;
 }
 
+/** Day key for daily quotas, computed in Europe/Prague — the entire audience is CZ,
+ *  so "today" must match the user's local calendar day, not UTC (which resets quotas
+ *  at 01:00/02:00 local and mis-buckets actions taken around local midnight). en-CA
+ *  formats a date as YYYY-MM-DD. */
 function dayKey(): string {
-  return new Date().toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague" }).format(new Date());
 }
 
 function statusFrom(data: UsageDoc, day: string): UsageStatus {
