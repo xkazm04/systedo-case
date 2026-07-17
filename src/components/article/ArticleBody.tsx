@@ -7,11 +7,17 @@ import type { Block, Inline } from "@/lib/article";
 /** Append content→shop attribution to an external link, so the funnel the article
  *  narrates (dashboard / AI assistant → mionelo.cz) is actually measurable. Internal
  *  and in-page anchor links are returned unchanged; a per-link `campaign` overrides
- *  the default. */
+ *  the default.
+ *
+ *  Author-set attribution wins: if the href already carries ANY `utm_*` param
+ *  (a deliberately tagged cross-channel campaign link), it is left untouched
+ *  rather than silently overwritten. */
 function utmHref(href: string, campaign?: string): string {
   if (!/^https?:\/\//i.test(href)) return href;
   try {
     const url = new URL(href);
+    const authorTagged = [...url.searchParams.keys()].some((k) => k.toLowerCase().startsWith("utm_"));
+    if (authorTagged) return url.toString();
     url.searchParams.set("utm_source", "clanek");
     url.searchParams.set("utm_medium", "content");
     url.searchParams.set("utm_campaign", campaign ?? "obsah");

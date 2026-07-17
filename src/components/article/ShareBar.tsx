@@ -44,6 +44,9 @@ const UTM_CAMPAIGN = "clanek";
 
 function withUtm(url: string, source: string): string {
   const u = new URL(url);
+  // A pre-tagged URL keeps its author-set attribution rather than being
+  // silently overwritten (mirrors ArticleBody's utmHref rule).
+  if ([...u.searchParams.keys()].some((k) => k.toLowerCase().startsWith("utm_"))) return u.toString();
   u.searchParams.set("utm_source", source);
   u.searchParams.set("utm_medium", UTM_MEDIUM);
   u.searchParams.set("utm_campaign", UTM_CAMPAIGN);
