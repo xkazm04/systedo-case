@@ -20,7 +20,8 @@ for (const ext of ["", "-wal", "-shm"]) {
 process.env.SYSTEDO_DB_FILE = dbFile;
 process.env.LOCAL_DB = "true"; // route the dispatcher to the node:sqlite backend
 
-const { getProjectState, saveProjectState } = await import("@/lib/project-state/store");
+const { getProjectState, saveProjectState, PROJECT_STATE_MAX_BYTES, ProjectStateTooLargeError } =
+  await import("@/lib/project-state/store");
 const { getDb } = await import("@/lib/db");
 
 const U = "user-1";
@@ -41,6 +42,23 @@ test("saving again replaces the whole blob", async () => {
   const got = await getProjectState(U, P, "content-schedule");
   assert.equal(got.length, 1);
   assert.equal(got[0].status, "published");
+});
+
+test("an oversized blob is rejected with ProjectStateTooLargeError (backend-agnostic)", async () => {
+  // A single string just past the budget serializes past PROJECT_STATE_MAX_BYTES.
+  const huge = "x".repeat(PROJECT_STATE_MAX_BYTES + 10);
+  await assert.rejects(
+    () => saveProjectState(U, P, "too-big", huge),
+    (err) => err instanceof ProjectStateTooLargeError && err.key === "too-big"
+  );
+  // ...and nothing was written (the guard runs before the backend save).
+  assert.equal(await getProjectState(U, P, "too-big"), null);
+});
+
+test("a blob just under the budget still saves", async () => {
+  const board = [{ id: "post-0", note: "y".repeat(1000) }];
+  await saveProjectState(U, P, "under-budget", board);
+  assert.deepEqual(await getProjectState(U, P, "under-budget"), board);
 });
 
 test("a corrupt blob reads back null (and logs) rather than throwing", async () => {
