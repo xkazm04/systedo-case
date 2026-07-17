@@ -14,7 +14,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Honest "živá data" signal resolved server-side (synced rows, not just linked).
   const live = await hasSyncedMetrics(project.id);
   return (
-    <ModulePage moduleKey="obsahovy-engine">
+    // Page-level honesty signal via the shared ModulePage `sample` slot, matching every
+    // sibling module (distribuce, obsah-plan, experimenty-lp, …). The in-module
+    // Živá/Ukázková pill stays for per-widget granularity; this is the single page marker.
+    <ModulePage moduleKey="obsahovy-engine" sample={!live}>
       <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} live={live} />
     </ModulePage>
   );
