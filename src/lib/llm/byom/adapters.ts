@@ -273,28 +273,52 @@ async function runAnthropic(byom: ResolvedByomKey, call: ByomCall): Promise<Byom
 async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   const model = byomModel("gemini", call.tier, byom.model, byom.fastModel);
   const base = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta";
+  const thinking = geminiThinkingConfig(call.reasoning ?? "default");
+  const temperature = call.temperature ?? 0.7;
   // The key travels in the x-goog-api-key HEADER (equally supported by the REST
   // API), never the `?key=` query param: URLs land in proxy/gateway/APM logs and
   // error messages, so a query-string key would leak the user's plaintext secret
   // to every layer that logs request URLs. Headers don't.
-  const res = await fetch(`${base}/models/${model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": byom.apiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: call.system }] },
-      contents: [{ parts: [{ text: call.prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: call.schema,
-        temperature: call.temperature ?? 0.7,
-        ...(geminiThinkingConfig(call.reasoning ?? "default")
-          ? { thinkingConfig: geminiThinkingConfig(call.reasoning ?? "default") }
-          : {}),
-      },
-    }),
-    signal: call.signal,
-  });
-  if (!res.ok) throw await byomHttpError("gemini", res);
+  const post = (generationConfig: object, userText: string) =>
+    fetch(`${base}/models/${model}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": byom.apiKey },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: call.system }] },
+        contents: [{ parts: [{ text: userText }] }],
+        generationConfig,
+      }),
+      signal: call.signal,
+    });
+
+  // Same native-structured → prompt-embed fallback as the other adapters (the
+  // module contract promises "any model still works"): a model/endpoint that 400s
+  // on `responseSchema` retries once with the schema embedded in the prompt and
+  // only `responseMimeType: application/json`, instead of the old bare-400 path
+  // that byomHttpError rebranded as a retryable "server" error the wrapper wasted
+  // its retries replaying identically.
+  const res = await fetchWithFallback(
+    "gemini",
+    () =>
+      post(
+        {
+          responseMimeType: "application/json",
+          responseSchema: call.schema,
+          temperature,
+          ...(thinking ? { thinkingConfig: thinking } : {}),
+        },
+        call.prompt
+      ),
+    () =>
+      post(
+        {
+          responseMimeType: "application/json",
+          temperature,
+          ...(thinking ? { thinkingConfig: thinking } : {}),
+        },
+        embeddedUserContent(call.prompt, call.schema)
+      )
+  );
 
   const json = (await res.json()) as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
@@ -302,12 +326,8 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   };
   const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new LlmCallError("empty", "Gemini vrátil prázdnou odpověď.", { provider: "gemini" });
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new LlmCallError("malformed_json", "Gemini nevrátil platný JSON.", { provider: "gemini" });
-  }
+  const parsed = extractJson(text);
+  if (!parsed) throw new LlmCallError("malformed_json", "Gemini nevrátil platný JSON.", { provider: "gemini" });
 
   const um = json.usageMetadata;
   const usage: TokenUsage | undefined = um

@@ -216,6 +216,32 @@ test("runByom openrouter: default catalog model + reasoning param + structured r
   }
 });
 
+test("runByom gemini: a recoverable structured 400 falls back to prompt-embed", async () => {
+  const f = stubFetchSeq([
+    { status: 400, body: { error: { message: "responseSchema not supported for this endpoint" } } },
+    {
+      status: 200,
+      body: {
+        candidates: [{ content: { parts: [{ text: '{"n":3}' }] } }],
+        usageMetadata: { totalTokenCount: 3 },
+      },
+    },
+  ]);
+  try {
+    const out = await runByom({ vendor: "gemini", apiKey: "g-key" }, CALL);
+    assert.deepEqual(out.parsed, { n: 3 });
+    assert.equal(f.calls.length, 2); // structured attempt, then the prompt-embed retry
+    const body1 = JSON.parse(f.calls[0].opts.body);
+    assert.ok(body1.generationConfig.responseSchema); // first tried native responseSchema
+    const body2 = JSON.parse(f.calls[1].opts.body);
+    assert.equal("responseSchema" in body2.generationConfig, false); // fallback drops it
+    assert.equal(body2.generationConfig.responseMimeType, "application/json");
+    assert.match(body2.contents[0].parts[0].text, /JSON/); // schema embedded in the prompt
+  } finally {
+    f.restore();
+  }
+});
+
 test("runByom anthropic: native structured request carries output_config, then falls back", async () => {
   const f = stubFetchSeq([
     { status: 400, body: { error: { type: "invalid_request_error", message: "output_config unsupported" } } },
