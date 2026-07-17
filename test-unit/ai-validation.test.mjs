@@ -351,6 +351,20 @@ test("validateLeadSourceDiagnosisRequest recomputes rates from counts, ignoring 
   assert.equal(r.value.winRate, 10 / 50, "winRate recomputed from won/qualified");
 });
 
+test("validateLeadSourceDiagnosisRequest clamps qualified<=leads and won<=qualified", () => {
+  const r = validateLeadSourceDiagnosisRequest({
+    source: "Meta",
+    leads: 10,
+    qualified: 500, // > leads: previously yielded qualRate 50 (5000 %)
+    won: 999, // > qualified
+  });
+  assert.equal(r.valid, true);
+  assert.equal(r.value.qualified, 10, "qualified clamped to leads");
+  assert.equal(r.value.won, 10, "won clamped to qualified");
+  assert.equal(r.value.qualRate, 1, "qualRate never exceeds 1");
+  assert.equal(r.value.winRate, 1, "winRate never exceeds 1");
+});
+
 test("validateLeadSourceDiagnosisRequest derives spend-based costs and clamps peers", () => {
   const r = validateLeadSourceDiagnosisRequest({
     source: "Google Ads",

@@ -668,8 +668,11 @@ export function validateLeadSourceDiagnosisRequest(
   if (leads <= 0) {
     return { valid: false, error: t(locale, "Zdroj nemá žádné leady k diagnostice.", "The source has no leads to diagnose.") };
   }
-  const qualified = Math.max(0, Math.round(fin(o.qualified)));
-  const won = Math.max(0, Math.round(fin(o.won)));
+  // Enforce the funnel invariant qualified <= leads and won <= qualified before
+  // deriving rates, matching the 0–1 clamp already applied to the peers below — else a
+  // body like { leads: 10, qualified: 500 } yields qualRate 50 (5000 %).
+  const qualified = Math.min(leads, Math.max(0, Math.round(fin(o.qualified))));
+  const won = Math.min(qualified, Math.max(0, Math.round(fin(o.won))));
   // Recompute the rates from the supplied counts so the model can't be fed a
   // qualRate / winRate that contradicts the leads / qualified / won it also sees.
   const qualRate = leads > 0 ? qualified / leads : 0;
