@@ -132,13 +132,15 @@ export default function ByomKeys() {
     };
   }, []);
 
-  /** Shared mutation: applies the returned config + optional validation notice. */
+  /** Shared mutation: applies the returned config + optional validation notice.
+   *  Resolves `true` only on an HTTP-ok response, so callers (saveKey) can skip
+   *  their success-only cleanup — e.g. wiping the pasted key — when it failed. */
   async function call(
     url: string,
     opts: RequestInit,
     action: string,
     vendor?: ByomVendor
-  ): Promise<void> {
+  ): Promise<boolean> {
     setBusy(action);
     setError(null);
     setNotice(null);
@@ -151,7 +153,7 @@ export default function ByomKeys() {
       };
       if (!res.ok) {
         setError(json.error ?? t("errGeneric"));
-        return;
+        return false;
       }
       if (json.config) setState((s) => (s ? { ...s, config: json.config! } : s));
       if (json.validation && vendor) {
@@ -161,8 +163,10 @@ export default function ByomKeys() {
           text: json.validation.ok ? t("tested") : json.validation.error ?? t("testFailed"),
         });
       }
+      return true;
     } catch {
       setError(t("errNetwork"));
+      return false;
     } finally {
       setBusy(null);
     }
@@ -177,7 +181,11 @@ export default function ByomKeys() {
   async function saveKey(vendor: ByomVendor) {
     const apiKey = (keyDraft[vendor] ?? "").trim();
     if (!apiKey) return;
-    await call("/api/byom/keys", json({ vendor, apiKey }), `save:${vendor}`, vendor);
+    const ok = await call("/api/byom/keys", json({ vendor, apiKey }), `save:${vendor}`, vendor);
+    // Only clear the pasted secret + collapse the input when the save actually
+    // succeeded — a failed save must keep the draft so the user isn't forced to
+    // re-find and re-paste the key while a top-level error banner explains why.
+    if (!ok) return;
     setKeyDraft((d) => ({ ...d, [vendor]: "" }));
     setShowKeyInput((s) => ({ ...s, [vendor]: false }));
   }
