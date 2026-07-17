@@ -33,8 +33,11 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Direction 2: when the tenant has entered a cost model, derive its margin-based
   // break-even ROAS (period-independent 1/margin) so the triage view can judge
   // campaigns against the margin they actually earn, not the blind portfolio
-  // target. e-shop only (the model is an e-shop concept); null → note hidden.
-  const costModel = project.type === "eshop" ? await getCostModel(project.id) : null;
+  // target. Fetched for EVERY project type — the cost model is project-scoped and
+  // /zisk persists + consumes it for all types (one profit truth), so gating it to
+  // eshop here silently ignored a non-eshop tenant's own margin input. null → note
+  // hidden (model never entered).
+  const costModel = await getCostModel(project.id);
   const breakEven = costModel ? deriveBreakEven(costModel) : null;
   // Direction 1: thread the persisted blended margin to the client so the BudgetMoves
   // preview scores donors by profit destruction (not revenue waste) and shows the
