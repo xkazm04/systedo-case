@@ -11,10 +11,11 @@ import {
   isForeignCurrency,
   normalizeCurrency,
   resolveMoneyFormatter,
+  resolveMoneyCompactFormatter,
   resolveSignedMoneyFormatter,
 } from "@/lib/campaigns/currency";
-import { fmtCZK, fmtSignedCZK, LOCALES } from "@/lib/format";
-import { mapRowsToDailySeries } from "@/lib/google/ads";
+import { fmtCZK, fmtCZKCompact, fmtSignedCZK, LOCALES } from "@/lib/format";
+import { mapRowsToDailySeries, pickCurrency } from "@/lib/google/ads";
 import { SklikClient } from "@/lib/sklik/client";
 import { fetchSklikSeries } from "@/lib/sklik/adapter";
 
@@ -92,6 +93,31 @@ test("resolveSignedMoneyFormatter: a non-CZK account signs its own currency, no 
   // Rounds before signing → a sub-unit delta that displays as zero carries no sign.
   assert.ok(!/[+−]/.test(f(0.2)), `zero-rounding delta must be unsigned, got "${f(0.2)}"`);
   assert.equal(f(NaN), "—");
+});
+
+test("resolveMoneyCompactFormatter: base returns fmtCZKCompact UNCHANGED; foreign relabels compact", () => {
+  for (const c of ["CZK", null, undefined, "junk"]) {
+    const f = resolveMoneyCompactFormatter({ currency: c, intlLocale: "cs-CZ", base: fmtCZKCompact });
+    assert.equal(f, fmtCZKCompact, `${c} → base fn`);
+    assert.equal(f(1_600_000), fmtCZKCompact(1_600_000));
+  }
+  const eur = resolveMoneyCompactFormatter({ currency: "EUR", intlLocale: LOCALES.cs.intlLocale, base: fmtCZKCompact });
+  const out = eur(1_600_000);
+  assert.ok(out.includes("€") || /EUR/i.test(out), `expected euro label, got "${out}"`);
+  assert.ok(!out.includes("Kč"), "must not label euros as koruny");
+  assert.equal(eur(NaN), "—");
+});
+
+test("pickCurrency: first row carrying the account currency wins, else null", () => {
+  assert.equal(pickCurrency([]), null);
+  assert.equal(pickCurrency([{ segments: { date: "2026-07-10" } }]), null);
+  assert.equal(
+    pickCurrency([
+      { segments: { date: "2026-07-10" } },
+      { customer: { currencyCode: "EUR" }, segments: { date: "2026-07-10" } },
+    ]),
+    "EUR"
+  );
 });
 
 test("Google daily aggregation rounds conversionsValue ONCE at the day total", () => {

@@ -10,10 +10,12 @@ import {
   adsConfigured,
   fetchAccountDailyRows,
   fetchAccountDailyShared,
+  pickCurrency,
   pickTimeZone,
   type DailySeriesBundle,
   type SearchRow,
 } from "@/lib/google/ads";
+import { normalizeCurrency } from "@/lib/campaigns/currency";
 import type { CampaignPeriod } from "@/lib/campaigns/types";
 import { getUserAccessToken, hasAdsScope } from "@/lib/google/token";
 import { mapAdsRowsToMetrics, type AdsMetricRow } from "./map";
@@ -59,11 +61,15 @@ async function persistMetrics(
   project: Project,
   customerId: string,
   rows: MetricRow[],
-  timeZone: string | null
+  timeZone: string | null,
+  currencyCode: string | null
 ): Promise<SyncResult> {
   if (rows.length === 0) {
     return { ok: false, error: "Google Ads nevrátil pro účet žádná data za období." };
   }
+  // Additive: only stamp a well-formed ISO-4217 code (junk degrades to base CZK, so the
+  // report is byte-identical to before for CZK / un-captured accounts).
+  const currency = normalizeCurrency(currencyCode);
   await saveReportMetrics(project.id, {
     meta: {
       source: "google-ads",
@@ -73,6 +79,8 @@ async function persistMetrics(
       rowCount: rows.length,
       // Additive: only stamp a real zone (never undefined). Absent keeps the UTC window.
       ...(timeZone ? { timeZone } : {}),
+      // Additive: only stamp a real currency. Absent → the report treats it as base CZK.
+      ...(currency ? { currencyCode: currency } : {}),
     },
     rows,
   });
@@ -109,7 +117,13 @@ export async function syncReportMetricsFromAds(project: Project, userId: string 
     // first-ever one); capture THIS sync's zone off the raw rows to window the next.
     const rawRows = await fetchAccountDailyRows(access.token, access.customerId, SYNC_DAYS, await priorTimeZone(project));
     const rows = mapAdsRowsToMetrics(rawRows as AdsMetricRow[]);
-    return await persistMetrics(project, access.customerId, rows, pickTimeZone(rawRows as SearchRow[]));
+    return await persistMetrics(
+      project,
+      access.customerId,
+      rows,
+      pickTimeZone(rawRows as SearchRow[]),
+      pickCurrency(rawRows as SearchRow[])
+    );
   } catch (err) {
     console.error(`[report-metrics] Ads sync failed for ${project.id}:`, err);
     return { ok: false, error: "Načtení dat z Google Ads selhalo." };
@@ -144,7 +158,8 @@ export async function syncReportMetricsShared(
       project,
       access.customerId,
       mapAdsRowsToMetrics(reportRows as AdsMetricRow[]),
-      pickTimeZone(reportRows as SearchRow[])
+      pickTimeZone(reportRows as SearchRow[]),
+      pickCurrency(reportRows as SearchRow[])
     );
     return { result, bundle };
   } catch (err) {

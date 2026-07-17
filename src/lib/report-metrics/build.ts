@@ -6,6 +6,7 @@
 import type { PerformanceData } from "@/lib/types";
 import type { Project } from "@/lib/projects/types";
 import { getProjectDataset } from "@/lib/project-data/dataset";
+import { normalizeCurrency } from "@/lib/campaigns/currency";
 import type { MetricRow } from "./types";
 
 /** A live PerformanceData for the project from its synced rows. Sorted by date.
@@ -23,13 +24,23 @@ import type { MetricRow } from "./types";
  *    exists to prevent, so overwrite it FROM THE ROWS: asOf = last synced date,
  *    days = row count, disclaimer = "" (the numbers are real; the sample disclaimer
  *    must not travel), seed = 0 (no fabricated determinism).
- *  - `client` is retained (name/domain/segment are the project's real labels); its
- *    `currency` stays the CZK default the whole app assumes today — capturing a live
- *    account's real currency code is a separate, additive ingestion change.
+ *  - `client` is retained (name/domain/segment are the project's real labels). Its
+ *    `currency` now carries the synced account's captured ISO currency code when present
+ *    (`currencyCode`, additive) so the money surfaces can label a non-CZK account in its
+ *    own currency — no conversion, the stored amounts are already the account's native
+ *    values. Absent / CZK → the base default, byte-identical to before.
  *  `goals` is retained: it is a forward-looking target (the pacing/anomaly engine
  *  needs a non-zero PNO threshold), not a fabricated historical result. */
-export function buildLiveDataset(project: Project, rows: MetricRow[]): PerformanceData {
+export function buildLiveDataset(
+  project: Project,
+  rows: MetricRow[],
+  currencyCode?: string | null
+): PerformanceData {
   const base = getProjectDataset(project);
+  // Carry the account's captured currency into the tile model; a junk / absent code
+  // keeps the base client.currency so CZK tenants are byte-identical.
+  const currency = normalizeCurrency(currencyCode);
+  const client = currency ? { ...base.client, currency } : base.client;
   const daily = [...rows]
     .sort((a, b) => a.date.localeCompare(b.date))
     .map((r) => ({
@@ -50,5 +61,5 @@ export function buildLiveDataset(project: Project, rows: MetricRow[]): Performan
     days: daily.length,
     seed: 0,
   };
-  return { ...base, channels: [], events: undefined, daily, meta };
+  return { ...base, client, channels: [], events: undefined, daily, meta };
 }

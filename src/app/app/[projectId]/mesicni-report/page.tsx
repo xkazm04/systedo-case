@@ -146,6 +146,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
         dataStart={dataStart}
         dataEnd={dataEnd}
         beyond={beyond}
+        currencyCode={resolved.currencyCode}
         recaps={recaps}
       />
     </ModulePage>

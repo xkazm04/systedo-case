@@ -11,6 +11,8 @@ import { Bolt, Check, Clock, Close, Document, Download, Gauge, Pin, Plus, Target
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { downloadText } from "@/lib/export";
+import { LOCALES } from "@/lib/format";
+import { resolveMoneyCompactFormatter } from "@/lib/campaigns/currency";
 import { ANALYSIS_PERIODS, analysisPeriodLabel, type AnalysisPeriod, type MonthlyRecapResult } from "@/lib/ai-types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { deltaTone, type ReportMetric, type ReportSnap, type ReportTileSpec } from "@/lib/report/compute";
@@ -129,6 +131,7 @@ export default function MonthlyReport({
   dataStart,
   dataEnd,
   beyond = null,
+  currencyCode,
   recaps,
 }: {
   tiles: ReportTileSpec[];
@@ -178,6 +181,10 @@ export default function MonthlyReport({
   dataEnd?: string;
   /** D1: LTV + stock/seasonality headline numbers composed into the report (e-shop) */
   beyond?: ReportBeyondData | null;
+  /** the synced account's captured ISO currency (non-CZK only) — so the money tiles
+   *  label a EUR/USD account in its own currency instead of hard-coded Kč. Omitted /
+   *  CZK → the base compact-CZK formatting, byte-identical. */
+  currencyCode?: string;
   /** Direction 1: the project's persisted recaps per period (newest-first, capped),
    *  resolved server-side so the narrative renders a stored recap on load — with its
    *  generation date and an honest stale marker — instead of regenerating every visit. */
@@ -255,10 +262,18 @@ export default function MonthlyReport({
   const activeHistoryId = preview?.id ?? (sessionResult ? null : latestStored?.id);
 
   const tileLabel = (spec: ReportTileSpec): string => (en ? spec.labelEn : spec.label);
+  // Currency-aware compact money for the KPI tiles: a captured non-CZK account labels its
+  // synced spend/revenue in its OWN currency (no conversion). CZK / unknown → fmtCZKCompact,
+  // byte-identical. The amounts are already the account's native values.
+  const moneyCompact = resolveMoneyCompactFormatter({
+    currency: currencyCode,
+    intlLocale: LOCALES[locale].intlLocale,
+    base: fmtCZKCompact,
+  });
   const fmtVal = (metric: ReportMetric, v: number): string => {
     const spec = tiles.find((s) => s.metric === metric);
     switch (spec?.format) {
-      case "czk": return fmtCZKCompact(v);
+      case "czk": return moneyCompact(v);
       case "multiple": return fmtMultiple(v);
       case "pct": return fmtPct(v);
       default: return fmtInt(v);

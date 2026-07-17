@@ -63,6 +63,32 @@ export function resolveMoneyFormatter(opts: {
 }
 
 /**
+ * The COMPACT counterpart of {@link resolveMoneyFormatter}, for the report's KPI tiles
+ * ("1,6 mil. Kč" / "€1.6M"). For a base/unknown currency it returns `base` UNCHANGED
+ * (the locale's `fmtCZKCompact`), byte-identical for CZK tenants. For a captured non-base
+ * currency it builds a compact Intl currency formatter (matching `fmtCZKCompact`'s
+ * options — compact notation, ≤1 fraction digit, non-finite → em dash) so only the symbol
+ * differs, and a EUR account's synced spend no longer reads as koruny. Pure.
+ */
+export function resolveMoneyCompactFormatter(opts: {
+  currency: string | null | undefined;
+  /** BCP-47 tag (e.g. "cs-CZ") — from LOCALES[locale].intlLocale. */
+  intlLocale: string;
+  /** the locale's own `fmtCZKCompact`, returned as-is for base/unknown currencies. */
+  base: (n: number) => string;
+}): (n: number) => string {
+  const code = normalizeCurrency(opts.currency);
+  if (code === null || code === BASE_CURRENCY) return opts.base;
+  const nf = new Intl.NumberFormat(opts.intlLocale, {
+    style: "currency",
+    currency: code,
+    notation: "compact",
+    maximumFractionDigits: 1,
+  });
+  return (n: number) => (Number.isFinite(n) ? nf.format(n) : "—");
+}
+
+/**
  * The SIGNED counterpart of {@link resolveMoneyFormatter}, for money DELTAS ("+38 000 €",
  * "−1 200 €"). The signed money surfaces (projected gain/saving/profit, the change strip)
  * used a hard-coded `fmtSignedCZK`, so a foreign account saw its move amount relabelled in

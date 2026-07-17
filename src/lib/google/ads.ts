@@ -296,10 +296,10 @@ async function fetchAccountDailyRaw(
   timeZone?: string | null
 ): Promise<SearchRow[]> {
   const { start, end } = dateRange(days, timeZone);
-  // customer.time_zone rides along (one value per account) so any caller can capture it
-  // via pickTimeZone and persist it for the NEXT sync's window; the mappers ignore it,
-  // so the summed/per-campaign output stays byte-identical.
-  const columns = [...extraSelect, "segments.date", "customer.time_zone", ...ACCOUNT_DAILY_METRICS];
+  // customer.time_zone + customer.currency_code ride along (one value per account) so any
+  // caller can capture them via pickTimeZone / pickCurrency and persist them; the mappers
+  // ignore both, so the summed/per-campaign output stays byte-identical.
+  const columns = [...extraSelect, "segments.date", "customer.time_zone", "customer.currency_code", ...ACCOUNT_DAILY_METRICS];
   const query = `
     SELECT
       ${columns.join(",\n      ")}
@@ -528,6 +528,14 @@ function dateRange(days: number, timeZone?: string | null): { start: string; end
  *  account's own clock. */
 export function pickTimeZone(rows: SearchRow[]): string | null {
   return rows.find((r) => r.customer?.timeZone)?.customer?.timeZone ?? null;
+}
+
+/** The account's ISO-4217 currency code from a searchStream result (one value per
+ *  account, so the first row that carries it wins), or null when the query didn't
+ *  select/return it. Captured at ingestion beside {@link pickTimeZone} so the report's
+ *  money surfaces can label a non-CZK account in its own currency (no conversion). */
+export function pickCurrency(rows: SearchRow[]): string | null {
+  return rows.find((r) => r.customer?.currencyCode)?.customer?.currencyCode ?? null;
 }
 
 /** Campaigns + aggregated metrics for the period, mapped into the app's model, plus

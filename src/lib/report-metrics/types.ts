@@ -44,6 +44,13 @@ export interface MetricsSyncMeta {
    *  account-local, so persisting the zone lets the FOLLOWING sync align its window's
    *  edge days to the account's calendar rather than UTC. */
   timeZone?: string;
+  /** the account's ISO-4217 currency (Google `customer.currency_code`), captured at
+   *  ingestion beside `timeZone`. Additive + optional: blobs synced before it existed
+   *  omit it → the report treats the amounts as the base CZK, byte-identical to before.
+   *  The sync stores NATIVE account amounts (no conversion), so this only decides which
+   *  currency SYMBOL the money surfaces render — a EUR account's real spend no longer
+   *  reads as koruny under the "Živá data" label. */
+  currencyCode?: string;
 }
 
 /** The persisted blob per project: provenance + the daily series. */

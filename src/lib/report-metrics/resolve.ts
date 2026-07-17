@@ -24,6 +24,9 @@ export interface ResolvedDataset {
   syncedAt?: string;
   /** the ad account behind the live data (live only). */
   customerId?: string;
+  /** the synced account's captured ISO-4217 currency (live only, non-CZK only) — drives
+   *  currency-aware money labels on the report. Absent → the base CZK formatting. */
+  currencyCode?: string;
   /** true when a LIVE series is older than the staleness window (>7d) — drives the
    *  report's stale banner + the recap's staleness caveat. Never true on sample. */
   stale?: boolean;
@@ -38,7 +41,7 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
     metrics = null; // store hiccup → degrade to sample, never break the report
   }
   if (isLiveMetrics(metrics)) {
-    const data = buildLiveDataset(project, metrics.rows);
+    const data = buildLiveDataset(project, metrics.rows, metrics.meta.currencyCode);
     // Resolve seam (annotations): a live report has no authored event calendar
     // (build.ts sets events:undefined) — give it memory by mapping the project's
     // client notes into the SAME PerformanceData.events shape a sample dataset
@@ -57,6 +60,9 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
       syncedAt: metrics.meta.syncedAt,
       customerId: metrics.meta.customerId,
       stale: isReportStale(metrics.meta.syncedAt, new Date()),
+      // Surface the captured currency so the report tiles can label a foreign account in
+      // its own currency (build.ts also set data.client.currency to the same code).
+      ...(data.client.currency && data.client.currency !== "CZK" ? { currencyCode: data.client.currency } : {}),
     };
   }
   return { data: getProjectDataset(project), source: "sample", live: false };

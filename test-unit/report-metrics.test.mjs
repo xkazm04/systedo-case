@@ -96,6 +96,38 @@ test("builder: overwrites the sample spine's meta so no sample provenance rides 
   assert.notEqual(data.meta.asOf, sample.meta.asOf, "meta no longer describes the sample series");
 });
 
+test("builder: carries a captured non-CZK currency into the tile model; CZK/absent stay base", () => {
+  const base = getProjectDataset(PROJECT);
+  const rows = [{ date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 }];
+  // Absent → base client.currency, byte-identical to before.
+  assert.equal(buildLiveDataset(PROJECT, rows).client.currency, base.client.currency);
+  assert.equal(buildLiveDataset(PROJECT, rows, undefined).client.currency, base.client.currency);
+  // Junk / base code → base (never a malformed label).
+  assert.equal(buildLiveDataset(PROJECT, rows, "nonsense").client.currency, base.client.currency);
+  assert.equal(buildLiveDataset(PROJECT, rows, "CZK").client.currency, base.client.currency);
+  // A captured foreign code is carried through, normalized.
+  assert.equal(buildLiveDataset(PROJECT, rows, "eur").client.currency, "EUR");
+  assert.equal(buildLiveDataset(PROJECT, rows, "USD").client.currency, "USD");
+});
+
+test("resolver: surfaces a captured non-CZK currency; CZK/absent omit it (byte-identical)", async () => {
+  await saveReportMetrics(PROJECT.id, {
+    meta: { source: "google-ads", customerId: "1234567890", syncedAt: "2026-06-03T10:00:00.000Z", days: 400, rowCount: 1, currencyCode: "EUR" },
+    rows: [{ date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 }],
+  });
+  const eur = await resolveReportDataset(PROJECT);
+  assert.equal(eur.currencyCode, "EUR");
+  assert.equal(eur.data.client.currency, "EUR");
+  // A CZK / un-captured sync exposes NO currencyCode (report stays base-formatted).
+  await saveReportMetrics(PROJECT.id, {
+    meta: { source: "google-ads", customerId: "1234567890", syncedAt: "2026-06-03T10:00:00.000Z", days: 400, rowCount: 1 },
+    rows: [{ date: "2026-06-01", visits: 5, cost: 1, conversions: 1, revenue: 1200 }],
+  });
+  const czk = await resolveReportDataset(PROJECT);
+  assert.equal(czk.currencyCode, undefined);
+  await clearReportMetrics(PROJECT.id);
+});
+
 test("resolver: no synced rows → sample dataset, live=false", async () => {
   const res = await resolveReportDataset(PROJECT);
   assert.equal(res.live, false);
