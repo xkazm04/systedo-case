@@ -81,6 +81,25 @@ function pctChange(first: number, last: number): number {
   return ((last - first) / Math.abs(first)) * 100;
 }
 
+/** A resolution-independent marker dot: a zero-length, round-capped stroke renders
+ *  as a perfect circle of `diameter` SCREEN pixels no matter how the SVG is scaled.
+ *  A real <circle> would smear into an ellipse under `preserveAspectRatio="none"`
+ *  (non-uniform scaling of its viewBox-unit radius); the non-scaling stroke cap
+ *  keeps the signature dot round on any container aspect ratio. */
+function Dot({ x, y, diameter, color }: { x: number; y: number; diameter: number; color: string }) {
+  const p = `M${x.toFixed(2)} ${y.toFixed(2)} L${x.toFixed(2)} ${y.toFixed(2)}`;
+  return (
+    <path
+      d={p}
+      fill="none"
+      stroke={color}
+      strokeWidth={diameter}
+      strokeLinecap="round"
+      vectorEffect="non-scaling-stroke"
+    />
+  );
+}
+
 export default function Sparkline({
   values,
   width = 120,
@@ -230,17 +249,16 @@ export default function Sparkline({
         ...(markPeak && peakIndex >= 0 ? [pts[peakIndex]] : []),
         ...(markTrough && troughIndex >= 0 ? [pts[troughIndex]] : []),
       ].map(([cx, cy], i) => (
-        <circle key={i} cx={cx} cy={cy} r={strokeWidth + 0.75} fill={lineStroke} />
+        // radius strokeWidth + 0.75 → diameter 2*strokeWidth + 1.5
+        <Dot key={i} x={cx} y={cy} diameter={2 * strokeWidth + 1.5} color={lineStroke} />
       ))}
       {dot && (
-        <circle
-          cx={lastX}
-          cy={lastY}
-          r={strokeWidth + 1.5}
-          fill={lineStroke}
-          stroke="var(--color-surface)"
-          strokeWidth={1.5}
-        />
+        // The "you are here" dot: a surface-coloured ring (radius r + 0.75) under a
+        // filled core (radius r = strokeWidth + 1.5), both as non-scaling round dots.
+        <>
+          <Dot x={lastX} y={lastY} diameter={2 * strokeWidth + 4.5} color="var(--color-surface)" />
+          <Dot x={lastX} y={lastY} diameter={2 * strokeWidth + 3} color={lineStroke} />
+        </>
       )}
     </svg>
   );
