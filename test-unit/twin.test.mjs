@@ -87,6 +87,14 @@ test("decideDraft: `review` and `assist` never self-approve, even on a perfect d
   }
 });
 
+test("decideDraft: a disabled channel never self-approves, even when still set to `auto`", () => {
+  // An explicitly-configured-then-disabled channel keeps autonomy:auto in its stored
+  // config; a self-approval there is a message on a channel the operator believes is off.
+  const r = decideDraft(cfg({ enabled: false }), { confidence: 100, risks: [] });
+  assert.equal(r.status, "pending");
+  assert.equal(r.autoApproved, false);
+});
+
 // --- resolveVoice ----------------------------------------------------------
 
 const voice = (scope, directives = "Piš věcně.") => ({

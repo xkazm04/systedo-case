@@ -197,15 +197,19 @@ export function channelConfig(channels: TwinChannelConfig[], channel: TwinChanne
   );
 }
 
-/** The autonomy gate. A freshly generated draft is `approved` only under `auto`,
- *  above the channel's confidence bar, AND with no flagged risks — a risk always
- *  buys a human read, however confident the model claims to be. Everything else
- *  lands in `pending`. Pure: the one rule, in one place. */
+/** The autonomy gate. A freshly generated draft is `approved` only on an ENABLED
+ *  channel, under `auto`, above the channel's confidence bar, AND with no flagged
+ *  risks — a risk always buys a human read, however confident the model claims to be.
+ *  A disabled channel (one the operator switched off, even if its stored config still
+ *  says `auto`) may still receive a pending draft but never a self-approved one — the
+ *  exact trust breach the autonomy tiers exist to prevent. Everything else lands in
+ *  `pending`. Pure: the one rule, in one place, so callers never re-check `enabled`. */
 export function decideDraft(
   cfg: TwinChannelConfig,
   draft: { confidence: number; risks: string[] }
 ): { status: DraftStatus; autoApproved: boolean } {
-  const clears = cfg.autonomy === "auto" && draft.confidence >= cfg.autoThreshold && draft.risks.length === 0;
+  const clears =
+    cfg.enabled && cfg.autonomy === "auto" && draft.confidence >= cfg.autoThreshold && draft.risks.length === 0;
   return clears ? { status: "approved", autoApproved: true } : { status: "pending", autoApproved: false };
 }
 
