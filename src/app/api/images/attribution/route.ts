@@ -15,24 +15,9 @@ import {
 import {
   styleLeaderboard,
   deriveStylePrior,
-  type CreativeMetrics,
+  parseMetrics,
 } from "@/lib/images/attribution-types";
 import { isImageStyle } from "@/lib/images/types";
-
-
-const num = (v: unknown): number => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : 0);
-
-function toMetrics(raw: unknown): CreativeMetrics | null {
-  if (!raw || typeof raw !== "object") return null;
-  const m = raw as Record<string, unknown>;
-  return {
-    impressions: num(m.impressions),
-    clicks: num(m.clicks),
-    conversions: num(m.conversions),
-    cost: num(m.cost),
-    convValue: num(m.convValue),
-  };
-}
 
 export async function GET(request: Request) {
   const userId = await currentUserId();
@@ -56,6 +41,10 @@ export async function POST(request: Request) {
   }
   if (!isImageStyle(body.style)) return Response.json({ error: "Neplatný styl." }, { status: 422 });
 
+  const parsedMetrics = parseMetrics(body.metrics);
+  if (parsedMetrics && "invalidField" in parsedMetrics)
+    return Response.json({ error: "Neplatná hodnota metriky." }, { status: 422 });
+
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const tenant = await resolveTenant(userId, projectId);
   const link = await recordCreativeLink(tenant, {
@@ -65,7 +54,7 @@ export async function POST(request: Request) {
     visionScore: Number.isFinite(Number(body.visionScore)) ? Number(body.visionScore) : null,
     creativeId: typeof body.creativeId === "string" ? body.creativeId : null,
     campaignName: typeof body.campaignName === "string" ? body.campaignName.trim() || null : null,
-    metrics: toMetrics(body.metrics),
+    metrics: parsedMetrics ? parsedMetrics.metrics : null,
   });
   return Response.json({ link });
 }
@@ -81,12 +70,14 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Neplatný JSON." }, { status: 400 });
   }
   const linkId = typeof body.linkId === "string" ? body.linkId : "";
-  const metrics = toMetrics(body.metrics);
-  if (!linkId || !metrics) return Response.json({ error: "Chybí data." }, { status: 422 });
+  const parsed = parseMetrics(body.metrics);
+  if (!linkId || !parsed) return Response.json({ error: "Chybí data." }, { status: 422 });
+  if ("invalidField" in parsed)
+    return Response.json({ error: "Neplatná hodnota metriky." }, { status: 422 });
 
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const tenant = await resolveTenant(userId, projectId);
-  await updateCreativeMetrics(tenant, linkId, metrics);
+  await updateCreativeMetrics(tenant, linkId, parsed.metrics);
   return Response.json({ ok: true });
 }
 

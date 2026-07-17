@@ -19,6 +19,36 @@ export interface CreativeMetrics {
   convValue: number;
 }
 
+const METRIC_FIELDS = ["impressions", "clicks", "conversions", "cost", "convValue"] as const;
+
+/** Locale-tolerant single-field parse. Absent (undefined/null/"") → 0; a value
+ *  that still can't be read as a number → null (invalid, not a silent zero).
+ *  This is a Czech product, so accept "1,5" (decimal comma) and "1 000"
+ *  (thousands space / NBSP) before parsing. */
+export function parseMetricField(v: unknown): number | null {
+  if (v === undefined || v === null || v === "") return 0;
+  const cleaned = typeof v === "string" ? v.replace(/\s/g, "").replace(",", ".") : v;
+  const n = Number(cleaned);
+  return Number.isFinite(n) ? Math.max(0, n) : null;
+}
+
+/** Parse a metrics payload with locale tolerance. Returns the field name of the
+ *  first value that was provided but unparseable (so the route can 422 with it),
+ *  or the coerced metrics. A non-object input is `null` (no metrics at all). */
+export function parseMetrics(
+  raw: unknown
+): { metrics: CreativeMetrics } | { invalidField: string } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const m = raw as Record<string, unknown>;
+  const out = {} as CreativeMetrics;
+  for (const f of METRIC_FIELDS) {
+    const n = parseMetricField(m[f]);
+    if (n === null) return { invalidField: f };
+    out[f] = n;
+  }
+  return { metrics: out };
+}
+
 /** A creative tied to a campaign + its measured performance. */
 export interface CreativeLink {
   id: string;
