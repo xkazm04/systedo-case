@@ -211,13 +211,32 @@ const LOCAL = [
   "kontakt", "adresa", "pobočka", "provozovna",
 ];
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** True when `brand` occurs in `k` as a whole word (word-boundary match), not as a
+ *  substring buried inside another word. Guards against short/generic project names
+ *  ("Bio", "Ora") hijacking every keyword that merely contains those letters — a raw
+ *  `includes` mislabels "srovnání" as brand for a project named "Ora". A brand shorter
+ *  than 3 chars is too ambiguous to match at all. */
+function brandMatches(k: string, brand: string): boolean {
+  const b = brand.trim().toLowerCase();
+  if (b.length < 3) return false;
+  // A brand token that is itself a generic intent marker can't distinguish brand
+  // intent from that marker's intent → don't let it claim the brand bucket.
+  if (TRANSACTIONAL.includes(b) || INFORMATIONAL.includes(b) || LOCAL.includes(b)) return false;
+  return new RegExp(`(^|\\s)${escapeRegex(b)}(\\s|$)`).test(k);
+}
+
 /** Classify a keyword's search intent. Brand match wins, then local (near-me /
  *  booking), then transactional, then informational; defaults to informational.
  *  Local is checked before transactional so "…objednat se poblíž" reads as local,
- *  not a generic buy query. */
+ *  not a generic buy query. Brand is matched on WORD BOUNDARIES (min 3 chars, never a
+ *  generic marker word) so a short/common project name can't hijack every bucket. */
 export function classifyIntent(keyword: string, brand?: string): KeywordIntent {
   const k = keyword.toLowerCase();
-  if (brand && k.includes(brand.toLowerCase())) return "brand";
+  if (brand && brandMatches(k, brand)) return "brand";
   if (LOCAL.some((t) => k.includes(t))) return "local";
   if (TRANSACTIONAL.some((t) => k.includes(t))) return "transactional";
   if (INFORMATIONAL.some((t) => k.includes(t))) return "informational";

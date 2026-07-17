@@ -23,7 +23,10 @@ import {
  *  branch (a keyword containing the brand → "brand"). Same demo-public / user-owned
  *  resolution as resolveBrandContext, but returning the bare project name (the token
  *  the classifier matches) rather than the grounding paragraph. undefined when there
- *  is no project → the brand branch stays dormant and the anonymous path is unchanged. */
+ *  is no project → the brand branch stays dormant and the anonymous path is unchanged.
+ *  Note: this returns the raw project name; classifyIntent applies the safety limits
+ *  (word-boundary match, min 3 chars, never a generic marker word) so a short/common
+ *  name like "Bio" or "CRM" can't hijack the intent buckets by bare substring. */
 async function resolveBrandName(
   userId: string | null,
   projectId?: string
