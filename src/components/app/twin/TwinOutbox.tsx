@@ -84,6 +84,8 @@ const T = {
     manualNote: "Adamant zprávu neodesílá — zkopírujte ji a odešlete svým kanálem.",
     learned: "Twin se poučil z {n} zamítnutí na tomto kanálu.",
     editLearned: "Vaši úpravu jsem uložil jako podklad pro hlas — najdete ji v modulu Twin.",
+    rehydratedNotice:
+      "Tento návrh byl obnoven po znovunačtení — příchozí zpráva se neuchovala, takže ho nelze schválit ani zamítnout bez ztráty kontextu. Přegenerujte ho.",
   },
   en: {
     channel: "Channel",
@@ -124,6 +126,8 @@ const T = {
     manualNote: "Adamant does not send messages — copy the text and send it yourself.",
     learned: "The twin has learned from {n} rejections on this channel.",
     editLearned: "I saved your edit as voice material — find it in the Twin module.",
+    rehydratedNotice:
+      "This draft was restored after a reload — the inbound message wasn't kept, so it can't be approved or rejected without losing context. Regenerate it.",
   },
 } as const;
 
@@ -178,8 +182,15 @@ export default function TwinOutbox({
   /** Set when an Approve banked the human's edit as a style fact, so the notice
    *  shows the learning happened (never a silent bank). */
   const [editBanked, setEditBanked] = useState(false);
-  /** The channel+contact the live draft was generated for — never the live inputs. */
-  const [draftContext, setDraftContext] = useState<{ channel: TwinChannel; contact: string } | null>(null);
+  /** The channel + contact + INBOUND the live draft was generated for — frozen at
+   *  generation time, never the live inputs. Banking reads the inbound from here so a
+   *  later edit of the inbound box (or an empty box after a reload) can't record a
+   *  reply against the wrong — or an empty — question. */
+  const [draftContext, setDraftContext] = useState<{
+    channel: TwinChannel;
+    contact: string;
+    inbound: string;
+  } | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const ai = useAiTool<TwinReplyResult>("twin-reply", channel);
@@ -209,16 +220,16 @@ export default function TwinOutbox({
     setReplyText(result.reply);
   }
   // useAiTool rehydrates a persisted result on mount, so `result` can exist after a
-  // reload/navigation while draftContext (set only in runDraft) is still null — which
-  // made Approve/Reject silently no-op (bankDraft bails on !draftContext). Seed it from
-  // the current channel + contact so a restored draft stays bankable.
-  if (result && !draftContext) {
-    setDraftContext({ channel, contact: contact.trim() });
-  }
+  // reload/navigation while draftContext (set only in runDraft) is still null. The
+  // inbound message that draft answers is NOT persisted with the result, so it's gone
+  // after the reload — banking here would record a reply against an empty question and
+  // feed the rejection-learning pipeline a reasonless pairing. So a rehydrated draft is
+  // explicitly NOT bankable: Approve/Reject are replaced with a "regenerate" notice.
+  const rehydrated = result !== null && draftContext === null;
 
   const runDraft = () => {
     if (!inbound.trim() || ai.status === "loading") return;
-    setDraftContext({ channel, contact: contact.trim() });
+    setDraftContext({ channel, contact: contact.trim(), inbound: inbound.trim() });
     setPendingId(null);
     setEditBanked(false);
     // Counted-reason directives + the recent free-text reject notes, in the project
@@ -246,7 +257,7 @@ export default function TwinOutbox({
       {
         channel: draftContext.channel,
         contact: draftContext.contact,
-        inbound: inbound.trim(),
+        inbound: draftContext.inbound,
         reply: replyText,
         questions: result.questions,
         confidence: result.confidence,
@@ -283,7 +294,7 @@ export default function TwinOutbox({
       {
         channel: draftContext.channel,
         contact: draftContext.contact,
-        inbound: inbound.trim(),
+        inbound: draftContext.inbound,
         reply: result.reply,
         questions: result.questions,
         confidence: result.confidence,
@@ -293,7 +304,7 @@ export default function TwinOutbox({
       new Date().toISOString()
     );
     onCommit({ ...state, drafts: [...state.drafts, draft] });
-  }, [result, verdict, draftContext, cfg, inbound, state, onCommit]);
+  }, [result, verdict, draftContext, cfg, state, onCommit]);
 
   const approve = () => {
     const draft = bankDraft();
@@ -539,7 +550,34 @@ export default function TwinOutbox({
                 </p>
               )}
 
-              {rejecting === "live" ? (
+              {rehydrated ? (
+                // Restored after a reload: the inbound question is gone, so banking
+                // would corrupt the record. Offer regenerate + copy, never approve/reject.
+                <div className="space-y-2">
+                  <p className="rounded-lg border border-line bg-canvas px-3 py-2 text-xs leading-relaxed text-muted">
+                    {t("rehydratedNotice")}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={runDraft}
+                      disabled={!inbound.trim() || ai.status === "loading"}
+                      className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Sparkles width={13} height={13} />
+                      {t("regenerate")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => copy(replyText)}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line px-4 py-2 text-xs font-semibold text-muted transition-colors hover:text-navy-800"
+                    >
+                      <Copy width={13} height={13} />
+                      {copied ? t("copied") : t("copy")}
+                    </button>
+                  </div>
+                </div>
+              ) : rejecting === "live" ? (
                 <div className="space-y-2 rounded-lg border border-line bg-surface p-3">
                   <p className="text-xs font-semibold text-navy-800">{t("rejectWhy")}</p>
                   <div className="flex flex-wrap gap-1.5">
