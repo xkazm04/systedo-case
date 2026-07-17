@@ -16,7 +16,13 @@ import type { TwinState } from "@/lib/twin/types";
 
 export type TwinSource = "sample" | "trained";
 
-export function useTwinState(initialState: TwinState, initialSource: TwinSource) {
+export function useTwinState(
+  initialState: TwinState,
+  initialSource: TwinSource,
+  /** The seeded per-type sample — what "untrain" must reset to. Omitting it (the two
+   *  modules that never untrain) leaves `untrain` falling back to `initialState`. */
+  sampleState?: TwinState
+) {
   const project = useProject();
   const [state, setState] = useState<TwinState>(initialState);
   const [source, setSource] = useState<TwinSource>(initialSource);
@@ -33,10 +39,14 @@ export function useTwinState(initialState: TwinState, initialSource: TwinSource)
     }).catch(() => {});
   };
 
-  /** Untrain: back to the seeded per-type sample, empty outbox. */
+  /** Untrain: back to the seeded per-type sample, empty outbox. Resets to the SAMPLE,
+   *  not `initialState` — for a twin that mounted trained, `initialState` IS the
+   *  trained blob, so resetting to it left the trained voices/facts/drafts fully
+   *  visible under a "Nenatrénovaný" pill AND let the next commit re-POST the
+   *  supposedly-deleted blob back to the server, silently undoing the DELETE. */
   const untrain = () => {
     setResetting(true);
-    setState(initialState);
+    setState(sampleState ?? initialState);
     setSource("sample");
     void fetch(`/api/projects/${project.id}/twin`, { method: "DELETE" })
       .catch(() => {})

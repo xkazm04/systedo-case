@@ -19,6 +19,7 @@ import TwinVoiceStudio from "@/components/app/twin/TwinVoiceStudio";
 import ReadinessRibbon from "@/components/app/twin/ReadinessRibbon";
 import { useTwinState, type TwinSource } from "@/components/app/twin/useTwinState";
 import { deriveReadiness, buildGaps, milestoneHint } from "@/lib/twin/readiness";
+import { sampleTwin } from "@/lib/twin/sample";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import type { TwinState } from "@/lib/twin/types";
 import type { ProjectType } from "@/lib/projects/types";
@@ -68,7 +69,10 @@ export default function TwinModule({
   const t = useT(T);
   const L = locale === "en" ? "en" : "cs";
 
-  const { state, source, commit, untrain, resetting } = useTwinState(initialState, initialSource);
+  // The seeded per-type sample is what "Reset training" must revert to — never the
+  // mount blob, which for a trained twin is the trained state itself.
+  const sampleState = useMemo(() => sampleTwin(projectType), [projectType]);
+  const { state, source, commit, untrain, resetting } = useTwinState(initialState, initialSource, sampleState);
 
   const readiness = useMemo(() => deriveReadiness(state, { offerings }), [state, offerings]);
   const topGap = useMemo(() => buildGaps(readiness)[0] ?? null, [readiness]);
