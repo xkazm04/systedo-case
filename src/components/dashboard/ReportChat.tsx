@@ -79,21 +79,37 @@ function useReportChat(period: AnalysisPeriod, bucket: string, projectId?: strin
   const [error, setError] = useState<string | null>(null);
   // The bucket the transcript was loaded from. Guards the persist effect so a later
   // bucket change (project switch without a remount) can never write the loaded
-  // bucket's transcript under a different bucket's key.
-  const loadedBucket = useRef(bucket);
+  // bucket's transcript under a different bucket's key. State (not a ref) so the
+  // render-time re-sync below is allowed and takes effect before any effect runs.
+  const [loadedBucket, setLoadedBucket] = useState(bucket);
+
+  // A bucket change WITHOUT a remount (a project switcher above us that doesn't `key`
+  // this component) must re-sync the transcript, not just freeze persistence: reload
+  // the new bucket's stored messages and re-point loadedBucket. Done at render time
+  // (guarded, so it runs once per change) — mirroring the seed-once pattern used for
+  // the AI-tool editors — so `messages` is already the NEW bucket's transcript before
+  // the persist effect runs; a deferred effect would let that effect write the OLD
+  // transcript under the NEW key in the same commit. Without this the UI showed
+  // project A's conversation while grounding new turns on project B, and every turn
+  // was silently dropped on reload (persistence stayed frozen forever).
+  if (loadedBucket !== bucket) {
+    setLoadedBucket(bucket);
+    setMessages(loadStoredMessages(bucket));
+    setError(null);
+  }
 
   // Persist on settled turns only. Skipped while a turn is pending or when the
   // transcript ends on a user turn (errored / dangling), so the stored entry always
   // reflects the last complete exchange — never a half-written one.
   useEffect(() => {
-    if (loadedBucket.current !== bucket) return;
+    if (loadedBucket !== bucket) return;
     if (pending || !isSettled(messages)) return;
     try {
       window.localStorage.setItem(reportChatKey(bucket), serializeMessages(messages));
     } catch {
       /* storage unavailable — the in-memory conversation still works */
     }
-  }, [messages, pending, bucket]);
+  }, [messages, pending, bucket, loadedBucket]);
 
   /** POST a transcript (already ending on a user turn) and append the reply. */
   const post = async (msgs: ChatTurn[]) => {
