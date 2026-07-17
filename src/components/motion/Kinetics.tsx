@@ -14,9 +14,18 @@
  *  they inherit the same accessibility contract as the globals.css animations.
  *  Requires a <MotionProvider> ancestor (the `m.*` primitives need LazyMotion). */
 import { animate, m, useInView, useReducedMotion } from "framer-motion";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { easeAdamant } from "@/lib/motion";
+import { Fragment, useEffect, useRef, useState, type ReactNode } from "react";
+import { easeAdamant, tallyText } from "@/lib/motion";
 
+/** Re-plays its child's draw-in each time the child scrolls back into view.
+ *
+ *  The children stay mounted at all times (so they appear in the SSR / no-JS
+ *  HTML and the wrapper never collapses to zero height mid-scroll — no CLS); the
+ *  replay is driven by bumping a `key` on re-entry, which remounts the subtree.
+ *  Because re-entry remounts, children must be cheap to remount and must not
+ *  hold state that has to survive scrolling away (fetched data, hover selection):
+ *  pass those a stable parent instead. Under prefers-reduced-motion the children
+ *  render once, statically, with no keyed remounts. */
 export function ChartReveal({
   children,
   className,
@@ -29,9 +38,22 @@ export function ChartReveal({
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { amount });
   const reduce = useReducedMotion();
+  const [plays, setPlays] = useState(0);
+  const wasInView = useRef(false);
+
+  useEffect(() => {
+    if (reduce) return;
+    if (inView && !wasInView.current) {
+      wasInView.current = true;
+      setPlays((p) => p + 1);
+    } else if (!inView && wasInView.current) {
+      wasInView.current = false;
+    }
+  }, [inView, reduce]);
+
   return (
     <div ref={ref} className={className}>
-      {inView || reduce ? children : null}
+      <Fragment key={reduce ? "static" : plays}>{children}</Fragment>
     </div>
   );
 }
@@ -41,6 +63,7 @@ export function Tally({
   from = 0,
   duration = 1.4,
   decimals = 0,
+  format,
   prefix = "",
   suffix = "",
   className,
@@ -49,6 +72,10 @@ export function Tally({
   from?: number;
   duration?: number;
   decimals?: number;
+  /** Route the animated value through the app's formatting chokepoint (e.g.
+   *  `createFormatters(locale).fmtInt`) so it matches the page's static numbers.
+   *  Takes precedence over `decimals`; omit to keep the legacy bare number. */
+  format?: (n: number) => string;
   prefix?: string;
   suffix?: string;
   className?: string;
@@ -69,7 +96,7 @@ export function Tally({
   }, [inView, from, to, duration, reduce]);
 
   const shown = reduce ? to : val;
-  const text = decimals > 0 ? shown.toFixed(decimals) : Math.round(shown).toString();
+  const text = tallyText(shown, { format, decimals });
   return (
     <span ref={ref} className={className}>
       {prefix}
