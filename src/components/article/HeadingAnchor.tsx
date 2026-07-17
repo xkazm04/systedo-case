@@ -5,6 +5,7 @@ import CopyToast from "./CopyToast";
 import { buildSectionPermalink } from "./permalink";
 import { useCopyFeedback } from "@/lib/useCopyFeedback";
 import { announceSection } from "./section-store";
+import { HEADING_ANCHOR_OFFSET } from "./sticky-nav";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -23,12 +24,13 @@ const T = {
 /** Padding/typography for each heading level, kept identical to the inline
  *  versions ArticleBody used to render so this island is a drop-in swap. The
  *  vertical padding moves to the wrapper (so the reveal button can sit on the
- *  heading's baseline) while `scroll-mt-24` and the id stay on the heading
- *  itself — that's the element anchor links scroll to. */
+ *  heading's baseline) while the scroll-margin (HEADING_ANCHOR_OFFSET, derived
+ *  from the shared sticky-nav height) and the id stay on the heading itself —
+ *  that's the element anchor links scroll to. */
 const WRAP = { h2: "pt-6", h3: "pt-2" } as const;
 const HEADING = {
-  h2: "scroll-mt-24 text-2xl font-semibold tracking-tight text-navy-800",
-  h3: "scroll-mt-24 text-lg font-semibold text-navy-800",
+  h2: "text-2xl font-semibold tracking-tight text-navy-800",
+  h3: "text-lg font-semibold text-navy-800",
 } as const;
 
 /** A heading that reveals a "#" permalink button on hover/focus (the
@@ -67,7 +69,7 @@ export default function HeadingAnchor({
 
   return (
     <div className={`group/anchor relative flex items-center gap-2 ${WRAP[level]}`}>
-      <Tag id={id} className={HEADING[level]}>
+      <Tag id={id} className={HEADING[level]} style={{ scrollMarginTop: HEADING_ANCHOR_OFFSET }}>
         {text}
       </Tag>
 

@@ -12,6 +12,7 @@ import {
   shouldOfferResume,
   type ReadingPosition,
 } from "./reading-resume";
+import { STICKY_NAV_H } from "./sticky-nav";
 
 const T = {
   cs: {
@@ -123,7 +124,12 @@ export default function ReadingProgress({ readingMinutes }: { readingMinutes?: n
 
   return (
     <>
-      <div data-testid="reading-progress" className="fixed inset-x-0 top-16 z-40 h-0.5 print:hidden" aria-hidden>
+      <div
+        data-testid="reading-progress"
+        className="fixed inset-x-0 z-40 h-0.5 print:hidden"
+        style={{ top: STICKY_NAV_H }}
+        aria-hidden
+      >
         <div
           className="h-full origin-left bg-brand-500"
           style={{ transform: `scaleX(${progress})` }}

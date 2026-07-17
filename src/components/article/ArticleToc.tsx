@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { subscribeSection } from "./section-store";
+import { TOC_OBSERVER_TOP_MARGIN } from "./sticky-nav";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -50,7 +51,9 @@ export default function ArticleToc({ items }: { items: TocItem[] }) {
           if (atBottom) setActive(items[items.length - 1].id);
         }
       },
-      { rootMargin: "-88px 0px -55% 0px", threshold: [0, 1] }
+      // top margin clears the sticky nav (single source in ./sticky-nav); the
+      // -55% bottom keeps the active band in the upper reading area.
+      { rootMargin: `-${TOC_OBSERVER_TOP_MARGIN}px 0px -55% 0px`, threshold: [0, 1] }
     );
 
     headings.forEach((h) => observer.observe(h));
