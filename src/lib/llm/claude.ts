@@ -157,8 +157,22 @@ function runCli(input: string, opts: { tier?: ModelTier; signal?: AbortSignal } 
       else reject(new LlmCallError("server", `Claude CLI selhal (kód ${code}): ${stderr.slice(0, 300)}`, { provider: "claude" }));
     });
 
-    child.stdin.write(input);
-    child.stdin.end();
+    // A write to a child that failed to spawn or died instantly (EPIPE,
+    // ERR_STREAM_DESTROYED — e.g. the CLI was uninstalled after the cached
+    // availability probe, or the abort/timeout path killed it before stdin flushed)
+    // surfaces as an 'error' event on the stdin STREAM. That is distinct from
+    // child.on("error") (spawn failure) above, and an 'error' on a stream with NO
+    // listener is thrown as an uncaught exception outside this Promise's reach —
+    // which would take the Node process down instead of degrading to a typed
+    // LlmCallError. The no-op listener (rejection is already owned by the close/error
+    // handlers) plus a guarded write close that seam.
+    child.stdin.on("error", () => {});
+    try {
+      child.stdin.write(input);
+      child.stdin.end();
+    } catch {
+      /* child already gone — the process 'error'/'close' handler settles the Promise */
+    }
   });
 }
 
