@@ -2,6 +2,7 @@
 
 import { ArrowRight, Bolt, Check, Gauge, TrendDown } from "@/components/icons";
 import type { TriageSummary } from "@/lib/campaigns/triage";
+import { czPlural } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -88,8 +89,8 @@ export default function TriageBanner({
   }
 
   const n = summary.attention;
-  const word = n === 1 ? t("campaign1") : n >= 2 && n <= 4 ? t("campaign234") : t("campaignN");
-  const verb = n === 1 ? t("verb1") : n >= 2 && n <= 4 ? t("verb234") : t("verbN");
+  const word = czPlural(n, t("campaign1"), t("campaign234"), t("campaignN"));
+  const verb = czPlural(n, t("verb1"), t("verb234"), t("verbN"));
   const suffix = t("needsAttentionSuffix", { word, verb });
 
   // sub-breakdown ("2 critical · 1 to watch"), hiding empty tiers

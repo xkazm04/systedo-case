@@ -2,6 +2,7 @@
 
 import { Gauge } from "@/components/icons";
 import type { SnapshotSummaryPoint } from "@/lib/campaigns/triage";
+import { czPlural } from "@/lib/format";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -53,8 +54,7 @@ export default function HealthTimeline({ points }: { points: SnapshotSummaryPoin
   const prev = points[points.length - 2]!.summary;
   const maxAttention = Math.max(1, ...points.map((p) => p.summary.attention));
 
-  const criticalKey =
-    latest.critical === 1 ? "critical1" : latest.critical >= 2 && latest.critical <= 4 ? "critical234" : "criticalN";
+  const criticalKey = czPlural(latest.critical, "critical1", "critical234", "criticalN");
   const deltaC = latest.critical - prev.critical;
   const deltaLabel =
     deltaC < 0

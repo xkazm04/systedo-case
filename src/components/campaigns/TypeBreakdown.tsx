@@ -13,6 +13,7 @@ import {
   type CampaignType,
 } from "@/lib/campaigns/types";
 import { summarize, type TriageGoals } from "@/lib/campaigns/triage";
+import { czPlural } from "@/lib/format";
 import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
@@ -100,8 +101,7 @@ export default function TypeBreakdown({
           // Per-type triage rollup — an aggregate ROAS can look fine while the
           // group hides two critical campaigns; the pill stops that masking.
           const attention = attentionByType[g.type] ?? 0;
-          const attentionKey =
-            attention === 1 ? "attention1" : attention >= 2 && attention <= 4 ? "attention234" : "attentionN";
+          const attentionKey = czPlural(attention, "attention1", "attention234", "attentionN");
           const active = activeType === g.type;
           const typeLabel = CAMPAIGN_TYPE_LABELS[g.type];
 

@@ -27,7 +27,7 @@ export const DEFAULT_LOCALE: SupportedLocale = "cs";
  *  right form for `n` — the same rule Intl.PluralRules("cs") encodes, inlined here
  *  so alert titles (the highest-visibility copy: inbox headline + email subject)
  *  read as native Czech instead of always using the genitive-plural form. */
-export function czPlural(n: number, one: string, few: string, many: string): string {
+export function czPlural<T extends string>(n: number, one: T, few: T, many: T): T {
   const abs = Math.abs(Math.trunc(n));
   if (abs === 1) return one;
   if (abs >= 2 && abs <= 4) return few;
