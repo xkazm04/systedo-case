@@ -20,6 +20,7 @@ import {
   AD_COPY_SKU_CAP,
 } from "@/lib/catalog/ad-copy.ts";
 import { catalogAdCopyCsv } from "@/lib/catalog/export.ts";
+import { buildAssetGroup } from "@/lib/catalog/generate.ts";
 
 const result = (tag) => ({
   headlines: [`H1 ${tag}`, `H2 ${tag}`],
@@ -171,12 +172,40 @@ test("catalogAdCopyCsv: one row per product, uniform grid, labeled Source column
   assert.match(lines[0], /^Campaign,Ad group,Headline 1/, "wide header");
   assert.match(lines[0], /Final URL,Source$/, "trailing Source column");
   // The grid is uniform: the header width is the widest row's headline+description
-  // count (the floor's 8 headlines / 2 descriptions here), so a narrow AI row is
-  // padded to match. Header = Campaign+Ad group + 8 H + 2 D + Final URL + Source = 14.
+  // count, so a narrow AI row is padded to match. The claim-free floor (no shop-
+  // supplied shipping/rating) emits 5 unique headlines / 2 descriptions for product B,
+  // wider than the 2-headline AI row A. Header = Campaign+Ad group + 5 H + 2 D + Final
+  // URL + Source = 11.
   const headerCols = lines[0].split(",").length;
-  assert.equal(headerCols, 14, "uniform grid sized to the widest (floor) row");
+  assert.equal(headerCols, 11, "uniform grid sized to the widest (floor) row");
   assert.ok(csv.includes("Feed draft"), "floor row labeled (en)");
   assert.ok(/,AI\r?$/m.test(csv) || csv.includes(",AI\r\n") || csv.endsWith(",AI"), "AI-sourced row labeled in the Source column");
+});
+
+// ── deterministic floor: no fabricated claims ────────────────────────────────
+test("buildAssetGroup: floor without claims asserts no shipping/rating/returns promise", () => {
+  const g = buildAssetGroup(product("A"), "Brand", "shop.cz");
+  const all = [...g.headlines, ...g.longHeadlines, ...g.descriptions].map((a) => a.text).join(" | ");
+  assert.ok(!/Doprava zdarma/.test(all), "no free-shipping promise without a supplied threshold");
+  assert.ok(!/Hodnocení/.test(all), "no rating claim without a supplied rating");
+  assert.ok(!/vrácení do/.test(all), "no return-window claim without a supplied window");
+  assert.ok(!/expedice \d/.test(all), "no dispatch-SLA claim without a supplied SLA");
+  assert.ok(g.headlines.length > 0 && g.descriptions.length > 0, "still produces a full grounded group");
+});
+
+test("buildAssetGroup: supplied claims produce exactly the supplied promises", () => {
+  const g = buildAssetGroup(product("A"), "Brand", "shop.cz", {
+    freeShippingFrom: 1500,
+    rating: 4.8,
+    returnDays: 30,
+    dispatchHours: 24,
+  });
+  const heads = g.headlines.map((a) => a.text);
+  const descs = g.descriptions.map((a) => a.text).join(" | ");
+  assert.ok(heads.some((h) => /Doprava zdarma nad/.test(h)), "free-shipping threshold headline present");
+  assert.ok(heads.some((h) => h.includes("4,8/5")), "rating rendered with cs decimal comma");
+  assert.ok(heads.some((h) => /expedice 24 h/.test(h)), "dispatch SLA reflects the supplied hours");
+  assert.ok(/vrácení do 30 dnů/.test(descs), "return window reflects the supplied days");
 });
 
 test("adResultToGroup: folds an AdResult into the AssetGroup shape with char counts", () => {

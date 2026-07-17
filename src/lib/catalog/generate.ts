@@ -70,48 +70,85 @@ function clampList(texts: string[], max: number, limit: number): Asset[] {
   return out;
 }
 
+/** Verifiable shop promises the deterministic floor may assert. These are the ONLY
+ *  source of shipping / rating / returns / dispatch claims in the fallback copy — when
+ *  a field is absent the corresponding line is omitted entirely, so a shop never bulk-
+ *  imports a promise it didn't supply. Supply them from the project's brand context; a
+ *  keyless demo with no context gets grounded copy (title, category, price, USPs) only. */
+export interface FloorClaims {
+  /** free-shipping threshold in CZK, when the shop offers free shipping */
+  freeShippingFrom?: number;
+  /** average review rating 0–5, when the shop publishes one */
+  rating?: number;
+  /** return window in days, when the shop offers returns */
+  returnDays?: number;
+  /** dispatch SLA in hours, when the shop commits to one */
+  dispatchHours?: number;
+}
+
 /** Deterministic keyless demo / fallback ad copy. `brand` + `domain` come from the
  *  project so the copy + final URL aren't hardcoded to one shop (BM-L1-02); both
- *  default to empty (brand dropped, neutral host) when unknown. */
-export function buildAssetGroup(p: Product, brand = "", domain = ""): AssetGroup {
+ *  default to empty (brand dropped, neutral host) when unknown. `claims` supplies the
+ *  ONLY promotional promises (shipping / rating / returns / dispatch) — a claim line is
+ *  emitted only when its value is present, so the floor never fabricates a promise the
+ *  shop hasn't verified. With no claims the copy is grounded in title/category/price/USPs. */
+export function buildAssetGroup(p: Product, brand = "", domain = "", claims: FloorClaims = {}): AssetGroup {
   const price = fmtCZK(p.price);
   const inStock = p.stock > 0;
   const withBrand = (s: string) => (brand ? `${s} ${brand}` : s);
+
+  // Verifiable claim lines — each present only when the shop actually supplied the value.
+  const stockLine = inStock
+    ? claims.dispatchHours != null
+      ? `Skladem, expedice ${claims.dispatchHours} h`
+      : "Skladem"
+    : "Předobjednejte ihned";
+  const claimHeadlines: string[] = [];
+  if (claims.freeShippingFrom != null) claimHeadlines.push(`Doprava zdarma nad ${fmtCZK(claims.freeShippingFrom)}`);
+  if (claims.rating != null) claimHeadlines.push(`Hodnocení ${String(claims.rating).replace(".", ",")}/5 ★`);
 
   const headlines = clampList(
     [
       p.title,
       `${p.category} ${price}`,
-      inStock ? "Skladem, expedice 24 h" : "Předobjednejte ihned",
-      "Doprava zdarma nad 1 500 Kč",
+      stockLine,
+      ...claimHeadlines,
       p.usps[0] ?? "Ověřená kvalita",
       p.usps[1] ?? "Oblíbená volba zákazníků",
       withBrand(p.category),
-      "Hodnocení 4,8/5 ★",
     ],
     RSA_HEADLINE_MAX,
     8
   );
 
+  const shippingSuffix = claims.freeShippingFrom != null ? " s dopravou zdarma" : "";
   const longHeadlines = clampList(
     [
       `${p.title} — ${p.usps.slice(0, 2).join(", ")}`,
-      `${withBrand(p.category)} za ${price} s dopravou zdarma`,
+      `${withBrand(p.category)} za ${price}${shippingSuffix}`,
     ],
     PMAX_LONG_HEADLINE_MAX,
     2
   );
 
+  // Only assert shipping / returns in the description when the shop supplied them.
+  const promoParts: string[] = [];
+  if (claims.freeShippingFrom != null) promoParts.push("Doprava zdarma");
+  if (claims.returnDays != null) promoParts.push(`vrácení do ${claims.returnDays} dnů`);
+  const promoClause = promoParts.length ? `${promoParts.join(", ")}.` : "";
+  const dispatchClause = inStock
+    ? claims.dispatchHours != null
+      ? `Skladem, odesíláme do ${claims.dispatchHours} hodin.`
+      : "Skladem."
+    : "Naskladnění brzy.";
+
   const descriptions = clampList(
     [
       packClauses(
-        [`${p.title}.`, `${p.usps.slice(0, 2).join(", ")}.`, "Doprava zdarma, vrácení do 30 dnů."],
+        [`${p.title}.`, `${p.usps.slice(0, 2).join(", ")}.`, ...(promoClause ? [promoClause] : [])],
         RSA_DESCRIPTION_MAX
       ),
-      packClauses(
-        [`${p.usps.join(", ")}.`, inStock ? "Skladem, odesíláme do 24 hodin." : "Naskladnění brzy."],
-        RSA_DESCRIPTION_MAX
-      ),
+      packClauses([`${p.usps.join(", ")}.`, dispatchClause], RSA_DESCRIPTION_MAX),
     ],
     RSA_DESCRIPTION_MAX,
     2
