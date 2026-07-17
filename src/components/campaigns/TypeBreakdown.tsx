@@ -74,20 +74,16 @@ export default function TypeBreakdown({
 
   // The per-type attention rollup is the expensive pass here: withMetrics + the
   // full triage rule engine over every campaign in every group, on each render.
-  // Memoise it on [campaigns, goals] so it survives the frequent parent
-  // re-renders (a card click, an alert refresh, a period toggle). `changesById`
-  // is intentionally NOT a dep: it is rebuilt (Object.fromEntries) fresh on every
-  // parent render, yet its CONTENT only changes when a new sync also gives
-  // `campaigns` a new identity — so keying on it would bust the memo every render
-  // for an identical result.
+  // Memoise it so it survives the frequent parent re-renders (a card click, an
+  // alert refresh, a period toggle). `changesById` is now memoised by the parent
+  // (stable identity across unrelated renders), so it can be a normal dep.
   const attentionByType = useMemo(() => {
     const out: Partial<Record<CampaignType, number>> = {};
     for (const g of groups) {
       out[g.type] = summarize(g.campaigns.map(withMetrics), changesById, goals).attention;
     }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- see note above: changesById co-varies with `campaigns` identity
-  }, [groups, goals]);
+  }, [groups, goals, changesById]);
 
   return (
     <section>

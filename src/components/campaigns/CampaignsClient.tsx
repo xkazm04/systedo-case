@@ -334,8 +334,15 @@ export default function CampaignsClient({
   const hasData = Boolean(meta) && campaigns.length > 0;
   // Index the sync-over-sync diff by campaign id so the table's triage can flag
   // ROAS craters / spend spikes vs the prior sync (empty until ≥2 syncs exist).
-  const changesById: Record<string, CampaignChange> = Object.fromEntries(
-    (changes?.items ?? []).filter((i) => i.kind === "changed").map((i) => [i.campaignId, i] as const)
+  // Memoised on `changes` so the object identity is stable across unrelated parent
+  // re-renders — CampaignTable keys its expensive per-campaign triage memo on this
+  // prop, so an inline Object.fromEntries would bust that memo on every render.
+  const changesById = useMemo<Record<string, CampaignChange>>(
+    () =>
+      Object.fromEntries(
+        (changes?.items ?? []).filter((i) => i.kind === "changed").map((i) => [i.campaignId, i] as const)
+      ),
+    [changes]
   );
   const overall = reports["overall"];
   const overallBusy = Boolean(analyzing["overall"]);
