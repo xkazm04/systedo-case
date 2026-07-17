@@ -42,7 +42,20 @@ export async function GET() {
 
   const token = await getUserAccessToken(userId);
   if (!token) {
-    return Response.json({ error: "Chybí Google autorizace (přihlaste se znovu)." }, { status: 403 });
+    // Token expiry is the most common degraded state. PATCH/DELETE need no Google
+    // token, so pass the connected list + active id through (like the other two
+    // degraded branches) — the switcher stays usable with a re-login prompt,
+    // instead of reading as "your accounts are gone".
+    return Response.json(
+      {
+        error: "Chybí Google autorizace (přihlaste se znovu).",
+        configured: true,
+        accounts: [],
+        connected,
+        active: activeCustomerId,
+      },
+      { status: 403 }
+    );
   }
 
   try {
