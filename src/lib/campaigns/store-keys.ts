@@ -91,16 +91,25 @@ export function snapshotDocId(period: CampaignPeriod, syncedAt: string, suffix?:
   return suffix ? `${base}${SNAPSHOT_ID_SEP}${suffix}` : base;
 }
 
+/** Upper sentinel appended to a period prefix to bound its snapshot id-range.
+ *  `\uF8FF` is a Private-Use-Area code point that sorts lexicographically after
+ *  every character a realistic snapshot id can contain (period names, digits, the
+ *  `__` separator and ISO timestamps are all ASCII), so `[prefix, prefix +
+ *  AFTER_ANY_ID)` is exactly this period's id range and never spills into another
+ *  period's ids. Written as an explicit `\uF8FF` escape — NOT a literal invisible
+ *  character — so an editor's "strip non-printable characters", a linter autofix,
+ *  or a copy-paste refactor cannot silently delete the bound and collapse the range
+ *  to empty. The `snapshotIdRange` unit test asserts `lt` sorts strictly above a
+ *  real snapshot id, so a lost sentinel fails loudly. */
+export const AFTER_ANY_ID = "\uF8FF";
+
 /** The half-open document-id range `[gte, lt)` covering exactly one period's
  *  snapshots. Used with `orderBy(documentId, "desc").limit(n)` to read the n
  *  newest snapshots of a period directly — a single-field (`__name__`) query that
  *  needs no composite index. */
 export function snapshotIdRange(period: CampaignPeriod): { gte: string; lt: string } {
   const prefix = `${period}${SNAPSHOT_ID_SEP}`;
-  //  (a Private-Use-Area code point) sorts after any realistic id
-  // character, so [prefix, prefix+) is exactly this period's id range and
-  // never spills into another period's ids.
-  return { gte: prefix, lt: `${prefix}` };
+  return { gte: prefix, lt: prefix + AFTER_ANY_ID };
 }
 /** Is this a legacy, pre-keying snapshot id? Legacy snapshots were keyed by the
  *  bare `syncedAt` ISO string, which never contains the `__` separator a keyed id

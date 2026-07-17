@@ -12,6 +12,7 @@ import {
   snapshotDocId,
   snapshotIdRange,
   isLegacySnapshotId,
+  AFTER_ANY_ID,
 } from "@/lib/campaigns/store-keys";
 
 test("doc ids are period-prefixed and collision-free across periods", () => {
@@ -45,6 +46,21 @@ test("snapshot ids are period-keyed, chronologically sortable, and range-scannab
   // A different period's id falls outside the 7d range.
   const other = snapshotDocId("30d", "2026-07-15T10:00:00.000Z");
   assert.ok(other < gte || other >= lt);
+});
+
+test("the id-range upper bound sorts strictly above every real snapshot id (sentinel not stripped)", () => {
+  // Regression guard: the range `lt` was once a literal, invisible Private-Use-Area
+  // character embedded in source — any editor/linter/refactor that strips
+  // non-printables would silently collapse gte===lt and return NOTHING. AFTER_ANY_ID
+  // is now an explicit  escape; assert it is non-empty and that `lt` sorts
+  // strictly above a maximal-looking id so a lost sentinel fails LOUDLY here.
+  assert.ok(AFTER_ANY_ID.length > 0, "AFTER_ANY_ID sentinel must not be empty");
+  const { gte, lt } = snapshotIdRange("7d");
+  assert.ok(lt > gte, "range must be non-empty: lt must sort above gte");
+  // A far-future, suffixed snapshot id (the largest realistic id) still falls below lt.
+  const maxId = snapshotDocId("7d", "9999-12-31T23:59:59.999Z", "zzzzzzzz");
+  assert.ok(maxId < lt, "every real snapshot id must sort below the range upper bound");
+  assert.ok(maxId >= gte);
 });
 
 test("a per-sync suffix makes snapshot ids collision-proof while keeping chronological order", () => {
