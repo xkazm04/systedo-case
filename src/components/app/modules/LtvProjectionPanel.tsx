@@ -204,7 +204,13 @@ export default function LtvProjectionPanel({
             className="h-1.5 min-w-40 flex-1 cursor-pointer accent-brand-600"
             aria-label={t("churnAriaLabel")}
           />
-          <span className="tnum w-16 shrink-0 text-right text-navy-800">{fmt.fmtPct(churnPct)}</span>
+          {/* At rest (Auto) the churn is each cohort's OWN observed decay, not a single
+              number — the previous readout back-projected the LTV's band position onto
+              the ratio range, a value with no churn semantics. Show "Auto" until the
+              user engages the slider, then the real assumption they set. */}
+          <span className="tnum w-16 shrink-0 text-right text-navy-800">
+            {ratioOverride == null ? t("churnAuto") : fmt.fmtPct(churnPct)}
+          </span>
           {ratioOverride != null && (
             <button
               type="button"
