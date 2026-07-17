@@ -9,7 +9,7 @@
  *  modules keeps this layout mounted, so the resolve runs once per project entry,
  *  not per module — the per-module skeleton is provided by ./loading.tsx. */
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { currentUserId } from "@/lib/session";
 import { getProject, listProjects } from "@/lib/projects/store";
 import { ProjectProvider } from "@/lib/projects/context";
@@ -39,7 +39,9 @@ async function ProjectGate({
 }) {
   const { projectId } = await params;
   const userId = await currentUserId();
-  if (!userId) notFound();
+  // An expired session mid-navigation must land on the sign-in gate (/app owns the
+  // signed-out case), NOT the root 404 — a missing user isn't a missing project.
+  if (!userId) redirect("/app");
 
   const [project, projects] = await Promise.all([
     getProject(userId, projectId),
