@@ -40,6 +40,8 @@ const T = {
     genFailed: "Generování se nezdařilo.",
     serverError: "Nepodařilo se spojit se serverem.",
     partialKept: "Naplánováno {done}/{total} témat — v poli zůstala jen nezpracovaná, spusťte plánování znovu.",
+    partialPosts: "Vytvořeno {saved} z {promised} příspěvků — pro některé sítě se nepodařilo vygenerovat text.",
+    overLimit: "{count} témat — naplánuje se prvních 7, zbytek zůstane v poli.",
     voiceLabel: "Píše na značku",
     voiceHint: "Odvozeno z vašeho katalogu — příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
   },
@@ -60,6 +62,8 @@ const T = {
     genFailed: "Generation failed.",
     serverError: "Could not reach the server.",
     partialKept: "Scheduled {done}/{total} topics — only the unprocessed ones were kept below; run the planner again.",
+    partialPosts: "Created {saved} of {promised} posts — some networks could not be generated.",
+    overLimit: "{count} topics — the first 7 will be scheduled, the rest stay in the field.",
     voiceLabel: "Writing on-brand",
     voiceHint: "Derived from your catalogue — posts stay in your range and vocabulary. Edit in Catalog.",
   },
@@ -227,6 +231,10 @@ export default function WeekPlanner() {
     // "keep everything on failure" retry re-ran topics 1..i-1 from scratch and
     // double-scheduled every post that had already landed.
     let doneCount = 0;
+    // Count posts actually persisted (in POSTS, the unit the summary promises) so a
+    // draft that silently omits a platform surfaces as "X of Y created" instead of a
+    // green run that quietly holds fewer posts than "témat × sítě" advertised.
+    let savedCount = 0;
     for (let i = 0; i < topicLines.length; i++) {
       try {
         const draftRes = await fetch("/api/social/draft", {
@@ -272,6 +280,7 @@ export default function WeekPlanner() {
             saveFailed = true;
             break;
           }
+          savedCount += 1;
         }
         if (saveFailed) {
           failed = true;
@@ -288,6 +297,12 @@ export default function WeekPlanner() {
     setRunning(false);
     if (!failed) {
       setTopics("");
+      // A green run can still yield fewer posts than promised if a draft omitted a
+      // platform — reconcile POSTS created against topics × networks and flag the gap.
+      const promised = topicLines.length * platforms.size;
+      if (savedCount < promised) {
+        setError(t("partialPosts", { saved: savedCount, promised }));
+      }
     } else {
       // Keep ONLY the unprocessed topics so a retry doesn't re-run (and
       // double-schedule) the ones that already persisted. The failed topic
