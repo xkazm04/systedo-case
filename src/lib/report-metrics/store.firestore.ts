@@ -17,7 +17,10 @@ export async function getReportMetrics(projectId: string): Promise<ReportMetrics
   if (typeof raw !== "string") return null;
   try {
     return JSON.parse(raw) as ReportMetrics;
-  } catch {
+  } catch (err) {
+    // A corrupt blob is NOT "never synced": log it so the silent degrade-to-sample
+    // downstream is observable (matches the local backend).
+    console.error("[report-metrics] unparseable blob for %s", projectId, err);
     return null;
   }
 }

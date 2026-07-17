@@ -37,8 +37,11 @@ export async function resolveReportDataset(project: Project): Promise<ResolvedDa
   let metrics: ReportMetrics | null = null;
   try {
     metrics = await getReportMetrics(project.id);
-  } catch {
-    metrics = null; // store hiccup → degrade to sample, never break the report
+  } catch (err) {
+    // Store hiccup → degrade to sample, never break the report. Log it so a genuine
+    // store failure is distinguishable from "never synced" (which returns null cleanly).
+    console.error("[report-metrics] store read failed for %s", project.id, err);
+    metrics = null;
   }
   if (isLiveMetrics(metrics)) {
     const data = buildLiveDataset(project, metrics.rows, metrics.meta.currencyCode);
