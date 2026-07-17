@@ -274,7 +274,11 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
   const model = byomModel("gemini", call.tier, byom.model, byom.fastModel);
   const base = process.env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta";
   const thinking = geminiThinkingConfig(call.reasoning ?? "default");
-  const temperature = call.temperature ?? 0.7;
+  // Match the other adapters: when the caller sets no temperature, omit the param
+  // and let the model default stand — Gemini used to pin an unexplained 0.7, so the
+  // SAME unset tool call sampled differently on Gemini than on OpenAI/Anthropic/
+  // OpenRouter, silently confounding any A/B of providers for output quality.
+  const temp = call.temperature !== undefined ? { temperature: call.temperature } : {};
   // The key travels in the x-goog-api-key HEADER (equally supported by the REST
   // API), never the `?key=` query param: URLs land in proxy/gateway/APM logs and
   // error messages, so a query-string key would leak the user's plaintext secret
@@ -304,7 +308,7 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
         {
           responseMimeType: "application/json",
           responseSchema: call.schema,
-          temperature,
+          ...temp,
           ...(thinking ? { thinkingConfig: thinking } : {}),
         },
         call.prompt
@@ -313,7 +317,7 @@ async function runGemini(byom: ResolvedByomKey, call: ByomCall): Promise<ByomRes
       post(
         {
           responseMimeType: "application/json",
-          temperature,
+          ...temp,
           ...(thinking ? { thinkingConfig: thinking } : {}),
         },
         embeddedUserContent(call.prompt, call.schema)
