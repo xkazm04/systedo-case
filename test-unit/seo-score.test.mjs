@@ -8,6 +8,8 @@ import {
   estimateWidthPx,
   truncateToPixels,
   scoreBrief,
+  charEm,
+  AVG_CHAR_EM,
   SERP_TITLE_PX,
 } from "@/lib/content/seo-score";
 
@@ -44,6 +46,25 @@ test("estimateWidthPx is monotonic in length (appending never shrinks)", () => {
   assert.ok(estimateWidthPx("WWWWW") > estimateWidthPx("iiiii"));
 });
 
+test("charEm maps accented glyphs to their base-letter width, not the average fallback", () => {
+  // uppercase Czech diacritics resolve to their base letter's (wider) advance
+  assert.equal(charEm("Č"), charEm("C"));
+  assert.equal(charEm("Á"), charEm("A"));
+  assert.equal(charEm("Ú"), charEm("U"));
+  // lowercase with a combining ring resolves to the base too
+  assert.equal(charEm("ů"), charEm("u"));
+  // and crucially wider than the naive fallback that silently under-counted them
+  assert.ok(charEm("Č") > AVG_CHAR_EM);
+  assert.ok(charEm("Š") > AVG_CHAR_EM);
+});
+
+test("estimateWidthPx no longer under-measures an uppercase-accented Czech title", () => {
+  const title = "ŠČŘŽ";
+  // every glyph used to fall to AVG_CHAR_EM; now they map to their base uppercase widths
+  const naive = [...title].length * AVG_CHAR_EM * SERP_TITLE_PX;
+  assert.ok(estimateWidthPx(title, SERP_TITLE_PX) > naive);
+});
+
 test("truncateToPixels leaves a fitting string untouched", () => {
   const r = truncateToPixels("Krátký title", 600, SERP_TITLE_PX);
   assert.equal(r.truncated, false);
@@ -78,6 +99,19 @@ test("scoreBrief flags a too-long meta description as bad", () => {
   const meta = score.eeat.find((c) => c.id === "meta-length");
   assert.equal(meta.level, "bad");
   assert.ok(meta.hint.includes("zkrátí"));
+});
+
+test("scoreBrief uses the correct Czech plural form for the long-outline-points hint", () => {
+  const longPoint = Array.from({ length: 41 }, () => "slovo").join(" "); // > 40 words
+  const briefWith = (n) => ({
+    ...baseBrief,
+    outline: [{ heading: "Sekce", points: Array.from({ length: n }, () => longPoint) }],
+  });
+  const hintFor = (n) =>
+    scoreBrief(briefWith(n), "skladování ořechů").readability.find((c) => c.id === "long-paragraphs").hint;
+  assert.ok(hintFor(1).startsWith("1 bod osnovy je delší"), hintFor(1));
+  assert.ok(hintFor(2).startsWith("2 body osnovy jsou delší"), hintFor(2));
+  assert.ok(hintFor(5).startsWith("5 bodů osnovy je delších"), hintFor(5));
 });
 
 test("scoreBrief flags a missing primary keyword across coverage chips", () => {

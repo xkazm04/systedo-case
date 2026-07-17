@@ -55,6 +55,17 @@ const CHAR_EM: Readonly<Record<string, number>> = {
  *  roughly an average lowercase letter. */
 export const AVG_CHAR_EM = 0.55;
 
+/** Advance width (em) for one character. Czech diacritics barely change Arial
+ *  advance widths, so any accented glyph missing from {@link CHAR_EM} is mapped to
+ *  its NFD base letter ("Á"→"A", "ů"→"u", "Č"→"C") before falling back to the average
+ *  — otherwise every uppercase Czech title would be systematically under-measured. */
+export function charEm(ch: string): number {
+  const direct = CHAR_EM[ch];
+  if (direct !== undefined) return direct;
+  const base = ch.normalize("NFD")[0];
+  return CHAR_EM[base] ?? AVG_CHAR_EM;
+}
+
 /** SERP font sizes (px) used by Google for the desktop result. The mobile
  *  layout uses the same title size but a much narrower column, so the width
  *  budget — not the font — is what changes. */
@@ -72,7 +83,7 @@ export const SERP_MAX_PX = {
  *  Monotonic in length: appending any character never shrinks the result. */
 export function estimateWidthPx(text: string, fontSizePx: number = SERP_TITLE_PX): number {
   let em = 0;
-  for (const ch of text) em += CHAR_EM[ch] ?? AVG_CHAR_EM;
+  for (const ch of text) em += charEm(ch);
   return em * fontSizePx;
 }
 
@@ -96,7 +107,7 @@ export function truncateToPixels(
   let acc = "";
   let width = 0;
   for (const ch of text) {
-    const w = (CHAR_EM[ch] ?? AVG_CHAR_EM) * fontSizePx;
+    const w = charEm(ch) * fontSizePx;
     if (width + w > budget) break;
     acc += ch;
     width += w;
@@ -238,7 +249,11 @@ export function scoreBrief(
           : `${longParas} outline point${longParas === 1 ? "" : "s"} longer than 40 words — split them up.`
         : longParas === 0
           ? "Žádné přehnaně dlouhé body osnovy."
-          : `${longParas} bodů osnovy je delších než 40 slov — rozdělte je.`,
+          : longParas === 1
+            ? "1 bod osnovy je delší než 40 slov — rozdělte ho."
+            : longParas <= 4
+              ? `${longParas} body osnovy jsou delší než 40 slov — rozdělte je.`
+              : `${longParas} bodů osnovy je delších než 40 slov — rozdělte je.`,
     },
   ];
 
