@@ -72,18 +72,32 @@ export async function saveCreative(tenant: string, input: SaveCreativeInput): Pr
       metadata: { metadata: { prompt: input.prompt.slice(0, 1000), style: input.style, format: input.format } },
     });
 
-  await creativesCol(tenant).doc(id).set({
-    prompt: input.prompt,
-    style: input.style,
-    format: input.format,
-    score: input.score,
-    defects: input.defects,
-    mime: input.mime,
-    storagePath,
-    // additive field; the reaper reads it (collectionGroup) as its keep-list
-    ...(input.generationId ? { generationId: input.generationId } : {}),
-    createdAt: new Date().toISOString(),
-  });
+  try {
+    await creativesCol(tenant).doc(id).set({
+      prompt: input.prompt,
+      style: input.style,
+      format: input.format,
+      score: input.score,
+      defects: input.defects,
+      mime: input.mime,
+      storagePath,
+      // additive field; the reaper reads it (collectionGroup) as its keep-list
+      ...(input.generationId ? { generationId: input.generationId } : {}),
+      createdAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    // The blob is already in Storage; if the Firestore doc write fails no doc
+    // will ever reference it, so deleteCreative/the reaper can never reap it and
+    // the tenant is billed for an orphan forever. Best-effort delete the just-
+    // uploaded file (mirroring deleteCreative's delete-tolerant pattern) before
+    // rethrowing, so the failed save leaves nothing behind.
+    try {
+      await storageBucket().file(storagePath).delete();
+    } catch {
+      /* file may already be gone / unreachable — the original error is what matters */
+    }
+    throw err;
+  }
   return id;
 }
 
