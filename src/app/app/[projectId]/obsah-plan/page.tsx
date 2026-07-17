@@ -18,7 +18,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Persisted board (per project), else the catalog-grounded seed.
   const uid = await currentUserId();
   const stored = uid ? await getProjectState<ContentPost[]>(uid, projectId, "content-schedule") : null;
-  const isStored = Array.isArray(stored) && stored.length > 0;
+  // Honor an explicitly-emptied board ([]) as saved state; only a never-saved project
+  // (null) falls back to the seed — matching the catalog load contract. Clearing every
+  // post must NOT resurrect the demo seed labeled "sample".
+  const isStored = Array.isArray(stored);
   const posts = isStored ? stored! : initialPosts(project, services, localitiesFor(project));
 
   return (
