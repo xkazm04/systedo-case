@@ -104,7 +104,7 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
   const base = [brandBlock, req.prior, req.prompt].filter(Boolean).join("\n\n");
   const fullPrompt = req.avoid ? `${base}\n\nVyhni se: ${req.avoid}` : base;
   const tGen = Date.now();
-  const { generationId, candidates } = await generateCandidates(fullPrompt, {
+  const { generationId, candidates, droppedCount } = await generateCandidates(fullPrompt, {
     width: preset.width,
     height: preset.height,
     style: req.style,
@@ -113,6 +113,13 @@ export async function generateImageSet(req: StudioRequest): Promise<StudioResult
     initImageId: req.initImageId,
     initStrength: req.fidelity,
   });
+  if (droppedCount > 0) {
+    // Quota was charged for these; make the CDN download loss visible for debugging
+    // recurring provider failures rather than silently returning fewer candidates.
+    console.warn(
+      `[studio] ${droppedCount} Leonardo candidate(s) charged but undownloadable (generation ${generationId})`,
+    );
+  }
   // Telemetry — the most expensive call in the app was previously unrecorded.
   await recordLlmCall({
     toolId: "creative-image-gen",

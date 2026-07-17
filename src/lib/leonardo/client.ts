@@ -52,6 +52,13 @@ async function api(method: string, path: string, body?: unknown): Promise<Record
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Normalise a CDN `content-type` header to a bare image mime, defaulting to PNG
+ *  when the header is missing or non-image (Leonardo occasionally omits it). */
+function mimeFromContentType(header: string | null): string {
+  const type = header?.split(";")[0]?.trim().toLowerCase() ?? "";
+  return type.startsWith("image/") ? type : "image/png";
+}
+
 interface GenImage {
   id?: string;
   url?: string;
@@ -79,6 +86,9 @@ export interface LeonardoCandidate {
 export interface LeonardoGeneration {
   generationId: string;
   candidates: LeonardoCandidate[];
+  /** completed candidates whose CDN download failed (403/expired) and were
+   *  dropped — quota was charged for them, so surface it rather than swallow. */
+  droppedCount: number;
 }
 
 export type InitImageExt = "png" | "jpg" | "webp";
@@ -155,18 +165,27 @@ export async function generateCandidates(
 
   const images = await pollGeneration(generationId);
   const candidates: LeonardoCandidate[] = [];
+  let droppedCount = 0;
   for (const img of images) {
     if (!img.url) continue;
     const res = await fetch(img.url);
-    if (!res.ok) continue;
+    if (!res.ok) {
+      // A completed candidate the CDN wouldn't serve (403/expired). Quota was
+      // already charged, so count the drop instead of silently returning fewer.
+      droppedCount += 1;
+      continue;
+    }
     candidates.push({
       buffer: Buffer.from(await res.arrayBuffer()),
-      mime: "image/png",
+      // Trust the CDN's content-type (Leonardo can serve JPEG, not only PNG) so
+      // the mime that flows into data URLs, Gemini inlineData and the saved
+      // creative's contentType is honest; fall back to PNG when unknown.
+      mime: mimeFromContentType(res.headers.get("content-type")),
       leonardoImageId: img.id ?? "",
     });
   }
   if (candidates.length === 0) throw new Error("Leonardo produced no downloadable images");
-  return { generationId, candidates };
+  return { generationId, candidates, droppedCount };
 }
 
 /** Best-effort cloud cleanup so generations don't pile up on the account. Not
