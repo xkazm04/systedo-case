@@ -3,7 +3,7 @@
  *  listAllConnections (the cron's cross-user work list). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveProviderProducts } from "@/lib/inventory/sync";
+import { resolveProviderProducts, messageForResult } from "@/lib/inventory/sync";
 import {
   deleteConnection,
   listAllConnections,
@@ -17,6 +17,16 @@ test("resolveProviderProducts: demo needs no token; baselinker + unknown reject"
   assert.equal(demo.truncated, false); // demo is always a complete pull
   await assert.rejects(() => resolveProviderProducts("baselinker", "", undefined, new Date("2026-07-05T00:00:00Z")));
   await assert.rejects(() => resolveProviderProducts("bogus", "", undefined, new Date("2026-07-05T00:00:00Z")));
+});
+
+test("messageForResult: prefers an explicit message, else a localized code text (never the raw code)", () => {
+  // A code with no message → a human Czech sentence, not the bare token.
+  assert.equal(messageForResult({ code: "empty" }), "Zdroj nevrátil žádné produkty — katalog nebyl změněn.");
+  assert.equal(messageForResult({ code: "no-token" }), "Chybí API token pro připojení ke skladu.");
+  assert.ok(!/^[a-z-]+$/.test(messageForResult({ code: "unknown-provider" })), "not a raw machine code");
+  // An explicit message wins over the code map.
+  assert.equal(messageForResult({ code: "provider-error", message: "Baselinker: 401" }), "Baselinker: 401");
+  assert.equal(messageForResult({ code: "ok" }), "");
 });
 
 test("listAllConnections returns every stored connection with its owner keys", async () => {

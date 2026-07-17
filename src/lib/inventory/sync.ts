@@ -56,6 +56,26 @@ export type SyncCode =
   | "provider-error"
   | "empty";
 
+/** A human, localized (cs) message for a SyncCode that carries no `message` of its own —
+ *  so the connection badge and the failure inbox/email never show a bare internal token
+ *  like "empty" or "no-token" to a non-technical user. `provider-error` always sets its
+ *  own `message`, so it's mapped generically here as a fallback only. */
+const SYNC_CODE_MESSAGES: Record<Exclude<SyncCode, "ok">, string> = {
+  "unknown-provider": "Neznámý poskytovatel skladu.",
+  "not-implemented": "Napojení na tohoto poskytovatele zatím není k dispozici.",
+  "no-token": "Chybí API token pro připojení ke skladu.",
+  "no-config": "Chybí konfigurace koncového bodu skladu.",
+  "provider-error": "Synchronizace u poskytovatele selhala.",
+  empty: "Zdroj nevrátil žádné produkty — katalog nebyl změněn.",
+};
+
+/** Map a SyncResult to user-facing text, preferring an explicit `message` and falling
+ *  back to a localized message for the code (never the raw machine code). */
+export function messageForResult(result: Pick<SyncResult, "code" | "message">): string {
+  if (result.message) return result.message;
+  return result.code === "ok" ? "" : SYNC_CODE_MESSAGES[result.code];
+}
+
 export interface SyncResult {
   code: SyncCode;
   provider?: string;
@@ -173,7 +193,7 @@ export async function runCatalogSync(userId: string, projectId: string, opts: Sy
     } else {
       await saveConnection(stamp.userId, stamp.projectId, {
         ...stamp.connection,
-        lastError: result.message ?? result.code,
+        lastError: messageForResult(result),
         lastErrorAt: nowIso,
         failCount: (stamp.connection.failCount ?? 0) + 1,
       });

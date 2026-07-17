@@ -8,7 +8,7 @@
 import { cronAuthorized } from "@/lib/cron-auth";
 import { listAllConnections } from "@/lib/inventory/connection-store";
 import { decryptToken } from "@/lib/inventory/token-crypto";
-import { runCatalogSync } from "@/lib/inventory/sync";
+import { runCatalogSync, messageForResult } from "@/lib/inventory/sync";
 import { alertSyncFailed, alertSyncRecovered } from "@/lib/inventory/sync-alerts";
 import { classifySyncResult } from "@/lib/inventory/sync-health";
 import { recordCronRun } from "@/lib/cron/run";
@@ -55,13 +55,13 @@ export async function GET(request: Request) {
       // Alert on the health TRANSITION only (first failure / recovery), not every run —
       // runCatalogSync already persisted the new lastError/failCount on the connection.
       const { newlyFailed, recovered } = classifySyncResult(connection, ok);
-      if (newlyFailed) await alertSyncFailed(userId, projectId, connection.provider, result.message ?? result.code);
+      if (newlyFailed) await alertSyncFailed(userId, projectId, connection.provider, messageForResult(result));
       else if (recovered) await alertSyncRecovered(userId, projectId, connection.provider);
 
       results.push(
         ok
           ? { userId, projectId, provider: connection.provider, ok: true, added: result.diff?.added, updated: result.diff?.updated, recovered }
-          : { userId, projectId, provider: connection.provider, ok: false, reason: result.message ?? result.code, alerted: newlyFailed }
+          : { userId, projectId, provider: connection.provider, ok: false, reason: messageForResult(result), alerted: newlyFailed }
       );
     } catch (err) {
       console.error(`[cron] catalog-sync failed for ${userId}/${projectId}:`, err);
