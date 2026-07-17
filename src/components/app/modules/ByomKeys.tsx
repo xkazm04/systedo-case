@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check } from "@/components/icons";
 import { Pill } from "@/components/ui";
 import { useT } from "@/lib/i18n/client";
+import { useByomConfig } from "@/components/hooks/useByomConfig";
 import {
   BYOM_VENDORS,
   BYOM_VENDOR_LABELS,
@@ -44,6 +45,8 @@ const T = {
     saving: "Ukládám…",
     errGeneric: "Něco se pokazilo.",
     errNetwork: "Nepodařilo se spojit se serverem.",
+    loadError: "Nastavení AI se nepodařilo načíst.",
+    retry: "Zkusit znovu",
   },
   en: {
     title: "AI models — your own keys",
@@ -76,6 +79,8 @@ const T = {
     saving: "Saving…",
     errGeneric: "Something went wrong.",
     errNetwork: "Could not reach the server.",
+    loadError: "Couldn't load AI settings.",
+    retry: "Try again",
   },
 } as const;
 
@@ -94,12 +99,11 @@ const btnPrimary =
 const btnGhost =
   "rounded-pill border border-line px-4 py-2 text-sm font-medium text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50";
 
-type State = { entitled: boolean; config: PublicByomConfig };
 type ModelDraft = { model: string; fastModel: string };
 
 export default function ByomKeys() {
   const t = useT(T);
-  const [state, setState] = useState<State | null>(null);
+  const { status, state, patch, retry } = useByomConfig();
   const [keyDraft, setKeyDraft] = useState<Partial<Record<ByomVendor, string>>>({});
   const [showKeyInput, setShowKeyInput] = useState<Partial<Record<ByomVendor, boolean>>>({});
   const [modelDraft, setModelDraft] = useState<Partial<Record<ByomVendor, ModelDraft>>>({});
@@ -107,30 +111,15 @@ export default function ByomKeys() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ vendor: ByomVendor; ok: boolean; text: string } | null>(null);
 
-  function seedModels(config: PublicByomConfig) {
-    const md: Partial<Record<ByomVendor, ModelDraft>> = {};
-    for (const k of config.keys) md[k.vendor] = { model: k.model ?? "", fastModel: k.fastModel ?? "" };
-    setModelDraft(md);
-  }
-
+  // Seed the per-vendor model drafts once, when the shared config first loads.
+  const seeded = useRef(false);
   useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        const res = await fetch("/api/byom");
-        if (!res.ok || !alive) return;
-        const json = (await res.json()) as { entitled?: boolean; config?: PublicByomConfig };
-        if (!alive || !json.config) return;
-        setState({ entitled: Boolean(json.entitled), config: json.config });
-        seedModels(json.config);
-      } catch {
-        /* settings chrome — stay silent on failure */
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
+    if (!state || seeded.current) return;
+    seeded.current = true;
+    const md: Partial<Record<ByomVendor, ModelDraft>> = {};
+    for (const k of state.config.keys) md[k.vendor] = { model: k.model ?? "", fastModel: k.fastModel ?? "" };
+    setModelDraft(md);
+  }, [state]);
 
   /** Shared mutation: applies the returned config + optional validation notice.
    *  Resolves `true` only on an HTTP-ok response, so callers (saveKey) can skip
@@ -155,7 +144,7 @@ export default function ByomKeys() {
         setError(json.error ?? t("errGeneric"));
         return false;
       }
-      if (json.config) setState((s) => (s ? { ...s, config: json.config! } : s));
+      if (json.config) patch(json.config);
       if (json.validation && vendor) {
         setNotice({
           vendor,
@@ -211,8 +200,6 @@ export default function ByomKeys() {
     );
   }
 
-  if (!state) return null;
-
   return (
     <section className="mt-8 max-w-2xl">
       <div className="mb-4">
@@ -220,7 +207,20 @@ export default function ByomKeys() {
         <p className="mt-0.5 text-sm text-muted">{t("subtitle")}</p>
       </div>
 
-      {!state.entitled ? (
+      {status === "error" ? (
+        <div className="card flex flex-wrap items-center justify-between gap-3 p-6">
+          <p className="text-sm text-negative" role="alert">{t("loadError")}</p>
+          <button type="button" onClick={retry} className={btnGhost}>
+            {t("retry")}
+          </button>
+        </div>
+      ) : !state ? (
+        <div className="card p-6" aria-busy="true">
+          <div className="h-4 w-40 animate-pulse rounded bg-navy-100" />
+          <div className="mt-3 h-3 w-full animate-pulse rounded bg-navy-100" />
+          <div className="mt-2 h-3 w-2/3 animate-pulse rounded bg-navy-100" />
+        </div>
+      ) : !state.entitled ? (
         <div className="card p-6">
           <h4 className="text-sm font-semibold text-navy-800">{t("upsellTitle")}</h4>
           <p className="mt-1.5 text-sm leading-relaxed text-muted">{t("upsellBody")}</p>
