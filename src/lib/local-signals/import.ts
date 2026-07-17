@@ -87,7 +87,10 @@ export function ladderFromRows(rows: ParsedRankRow[], at: string = todayISO()): 
   }));
 }
 
-/** Last N points of per-keyword rank history to retain. */
+/** Last N dated points of per-keyword rank history to retain (a ~1-year sliding
+ *  window at monthly imports). Only the sparkline TREND is windowed to this cap —
+ *  the all-time `best` is carried forward across it in {@link mergeLadder} so a
+ *  keyword's record position can't silently worsen when an old point slides out. */
 const HISTORY_CAP = 12;
 
 function todayISO(): string {
@@ -126,14 +129,26 @@ export function mergeLadder(
       out.push({ ...p, untracked: true }); // omitted from this import → retained, flagged
       continue;
     }
-    const history = [...p.history, ...f.history].slice(-HISTORY_CAP);
+    // Append each fresh point, but REPLACE an existing point stamped the same day (a
+    // same-day re-import to fix a typo'd CSV must correct today's observation, not
+    // stack a second point that fakes a 0-day trend and flushes real history out).
+    const merged = [...p.history];
+    for (const pt of f.history) {
+      const lastDay = merged[merged.length - 1]?.at;
+      if (lastDay === pt.at) merged[merged.length - 1] = pt;
+      else merged.push(pt);
+    }
+    const history = merged.slice(-HISTORY_CAP);
     out.push({
       ...p,
       keyword: f.keyword,
       area: f.area,
       history,
       current: f.current,
-      best: Math.min(...history.map((pt) => pt.rank)),
+      // Carry the all-time best FORWARD across the window cap: min of the prior best
+      // and the fresh points, so a record position isn't erased when an old point
+      // slides past HISTORY_CAP (the field is documented + rendered as "best").
+      best: Math.min(p.best, ...f.history.map((pt) => pt.rank)),
       untracked: false,
     });
   }
@@ -384,17 +399,25 @@ const GBP_COL: Record<string, "name" | "status" | "reviews" | "rating" | "unansw
   unanswered: "unanswered", nezodpovězené: "unanswered", nezodpovezene: "unanswered", pending: "unanswered", "bez odpovědi": "unanswered",
 };
 
-/** Map a free-text status cell to GBP connection health. Tolerant of cs/en wording;
- *  defaults to "connected" when the value is present but unrecognised. */
+/** Map a free-text status cell to GBP connection health. Tolerant of cs/en wording.
+ *  FAIL-ATTENTION, not fail-healthy: a present-but-unrecognised status (e.g.
+ *  "suspended", "pozastaveno", "pending verification") maps to `attention`, never the
+ *  healthiest `connected` — this field feeds `needsAttention`/`attentionScore`, so an
+ *  optimistic default would hide the worst-off profiles (a suspended GBP is the classic
+ *  emergency) from the urgency queue. `connected` is reserved for explicit affirmatives.
+ *  An EMPTY cell (no status column) stays `connected` — absence is not a problem signal. */
 function parseGbpStatus(raw: string): ImportedGbpRow["status"] {
   const s = raw
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .trim();
+  if (!s) return "connected";
   if (/(disconnect|odpoj|off|inactive|neaktiv)/.test(s)) return "disconnected";
   if (/(attention|akce|pozor|warn|issue|vyzaduje|problem|chyb)/.test(s)) return "attention";
-  return "connected";
+  if (/(connect|pripoj|aktiv|verif|overen|live|active|zdrav|healthy|funguj)/.test(s) || s === "ok")
+    return "connected";
+  return "attention"; // present but unrecognised → surface it, don't bury it
 }
 
 function toCount(cell: string | undefined): number {
@@ -470,11 +493,16 @@ export function parseHasPage(raw: string | undefined): boolean {
   return false;
 }
 
-/** The canonical identity of a coverage row — same normalization as {@link ladderKey}
- *  so live coverage overlays the seeded targets by service|locality without diacritic
- *  or whitespace drift. */
+/** The canonical identity of a coverage row. Folds diacritics (NFD + strip combining
+ *  marks, the same fold parseGbpRows/parseGbpStatus use) on TOP of trim+lowercase, so a
+ *  coverage CSV typed without diacritics (`Plzen`, `Usti`) still overlays the catalog-
+ *  seeded target whose locality is `Plzeň`/`Ústí`. Without the fold the import silently
+ *  no-ops on the common Czech path (resolveCoverage keys BOTH sides through here, so the
+ *  fold matches imported rows to seeds symmetrically). */
 export function coverageKey(service: string, locality: string): string {
-  return `${service.trim().toLowerCase()}|${locality.trim().toLowerCase()}`;
+  const fold = (s: string) =>
+    s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+  return `${fold(service)}|${fold(locality)}`;
 }
 
 /** Parse a pasted/CSV coverage export → page-presence rows. Tolerant: a header row maps

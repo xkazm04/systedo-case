@@ -98,6 +98,32 @@ test("mergeLadder: stamps each import, appends dated points, keeps HISTORY_CAP",
   assert.equal(capped[0].history.length, 12);
 });
 
+test("mergeLadder: a same-day re-import REPLACES today's point (no duplicate, no 0-day trend)", () => {
+  let ladder = ladderFromRows([{ keyword: "zubař", area: "Praha", rank: 5 }], "2026-05-01T00:00:00Z");
+  ladder = mergeLadder(ladder, [{ keyword: "zubař", area: "Praha", rank: 4 }], "2026-06-01T00:00:00Z");
+  // Fix a typo'd CSV the SAME day → correct today's point, don't stack a second one.
+  ladder = mergeLadder(ladder, [{ keyword: "zubař", area: "Praha", rank: 2 }], "2026-06-01T12:00:00Z");
+  const [k] = ladder;
+  assert.deepEqual(
+    k.history.map((p) => [p.rank, p.at]),
+    [[5, "2026-05-01"], [2, "2026-06-01"]]
+  );
+  assert.equal(k.current, 2);
+});
+
+test("mergeLadder: all-time best is carried forward past the window cap", () => {
+  let ladder = ladderFromRows([{ keyword: "k", area: "A", rank: 3 }], "2026-01-01T00:00:00Z"); // record #3
+  // 14 later monthly imports at #10 push the #3 point out of the 12-point window.
+  for (let i = 1; i <= 14; i++) {
+    const at = new Date(Date.parse("2026-01-01T00:00:00Z") + i * 30 * 86_400_000).toISOString();
+    ladder = mergeLadder(ladder, [{ keyword: "k", area: "A", rank: 10 }], at);
+  }
+  const [k] = ladder;
+  assert.equal(k.history.length, 12, "window capped");
+  assert.ok(!k.history.some((p) => p.rank === 3), "the record point slid out of the window");
+  assert.equal(k.best, 3, "but all-time best is preserved across the cap");
+});
+
 // ── D2: subset retention, slug collision, atomic mutate, ambiguous dates ─────
 test("mergeLadder: a subset re-import RETAINS omitted keywords, flags them untracked", () => {
   let ladder = mergeLadder(
@@ -328,6 +354,22 @@ test("parseGbpRows: header map, cs/en status, rating clamp, diacritic-insensitiv
   assert.equal(byName["Praha"].status, "connected");
 });
 
+test("parseGbpRows: unrecognised non-empty status FAILS to attention, empty stays connected", () => {
+  const rows = parseGbpRows(
+    [
+      "Praha,suspended,10,4,1", // unknown wording → attention, NOT the healthiest state
+      "Brno,pozastaveno,5,4,0", // cs unknown → attention
+      "Plzeň,,7,4,2", // empty status → connected (absence isn't a problem signal)
+      "Kladno,ok,3,5,0", // explicit affirmative → connected
+    ].join("\n")
+  );
+  const byName = Object.fromEntries(rows.map((r) => [r.name, r.status]));
+  assert.equal(byName["Praha"], "attention");
+  assert.equal(byName["Brno"], "attention");
+  assert.equal(byName["Plzeň"], "connected");
+  assert.equal(byName["Kladno"], "connected");
+});
+
 test("parseGbpRows: no header assumes name,status,reviews,rating,unanswered", () => {
   const rows = parseGbpRows("Ostrava,disconnected,31,4.5,3");
   assert.equal(rows.length, 1);
@@ -431,6 +473,24 @@ test("resolveCoverage: seed byte-identical without import; live overlays page-pr
   assert.equal(praha.rank, null, "no page → rank cleared");
   assert.equal(brno.hasPage, true, "page added");
   await clearLocalSignals("proj-cov");
+});
+
+test("resolveCoverage: a diacritic-stripped import still overlays the diacritic seed (coverageKey fold)", async () => {
+  // A Czech user types the coverage CSV without diacritics ("Plzen", "Montaz…") — it
+  // must still match the catalog-seeded "Plzeň" / "Montáž…" target, not silently no-op.
+  const seed = [TGT({ area: "Plzeň", service: "Montáž klimatizací", hasPage: false })];
+  await saveLocalSignals("proj-cov-fold", {
+    meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 0 },
+    ladder: [],
+    coverage: {
+      meta: { source: "import", syncedAt: "2026-07-01T00:00:00Z", rowCount: 1 },
+      rows: [{ service: "Montaz klimatizaci", locality: "Plzen", hasPage: true }],
+    },
+  });
+  const after = await resolveCoverage("proj-cov-fold", seed);
+  const plzen = after.targets.find((t) => t.area === "Plzeň");
+  assert.equal(plzen.hasPage, true, "diacritic-free import matched the diacritic seed");
+  await clearLocalSignals("proj-cov-fold");
 });
 
 test("resolveCoverage: live coverage nulls the seeded rank even where the page stays present", async () => {
