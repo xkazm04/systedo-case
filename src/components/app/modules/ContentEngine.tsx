@@ -24,6 +24,7 @@ import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/conte
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 import type { KeywordList } from "@/lib/keywords/types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
 /** Heavy, modal-gated workspaces — code-split so their JS loads on first open,
  *  not in this module's initial bundle. Modal renders null while closed, so
@@ -310,8 +311,8 @@ export default function ContentEngine({
               {stats.map((c) => (
                 <tr
                   key={c.topic}
-                  onClick={() => setCluster(c)}
-                  className="group cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40"
+                  {...interactiveRowProps(() => setCluster(c), c.topic)}
+                  className="group cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                 >
                   <td className="px-5 py-3 font-medium text-navy-800">{c.topic}</td>
                   <td className="px-4 py-3">
@@ -370,8 +371,11 @@ export default function ContentEngine({
                 {decaying.map((p) => (
                   <tr
                     key={p.title}
-                    onClick={() => openWorkspace(seedFromDecay(p), t("wsRefresh", { title: p.title }))}
-                    className="group cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40"
+                    {...interactiveRowProps(
+                      () => openWorkspace(seedFromDecay(p), t("wsRefresh", { title: p.title })),
+                      p.title
+                    )}
+                    className="group cursor-pointer border-b border-line/70 transition-colors last:border-0 hover:bg-brand-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
                   >
                     <td className="px-5 py-3 font-medium text-navy-800">{p.title}</td>
                     <td className="tnum px-4 py-3 text-right text-muted">

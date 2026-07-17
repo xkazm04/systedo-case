@@ -20,6 +20,7 @@ import {
   type ChannelStatus,
   type OrganicChannel,
 } from "@/lib/organic-channels/types";
+import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
 /** Grounding the page resolves server-side and threads into the AI "tailor" call. */
 export interface ChannelGrounding {
@@ -350,8 +351,8 @@ export default function OrganicChannels({
             {channels.map((c) => (
               <tr
                 key={c.id}
-                onClick={() => setOpenId(c.id)}
-                className="cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-canvas"
+                {...interactiveRowProps(() => setOpenId(c.id), c.name)}
+                className="cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
