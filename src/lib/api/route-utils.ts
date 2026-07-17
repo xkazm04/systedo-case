@@ -83,6 +83,7 @@ export const API_ERROR_CODES = [
   "provider-unavailable", // provider recognised but not yet implemented (501)
   "provider-unknown", // provider id is not recognised (400)
   "provider-no-token", // provider requires a token that is absent (400)
+  "token-undecryptable", // a token IS stored but can't be decrypted (server secret changed) (422)
   "provider-no-config", // provider requires endpoint/mapping config that is absent (400)
   "provider-empty", // provider answered but returned nothing usable (422)
   "server-misconfigured", // a required server secret/config is missing (501)

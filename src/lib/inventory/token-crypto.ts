@@ -27,7 +27,17 @@ const V1_SALT = "systedo-catalog-token-v1";
 /** Per-token random salt length for v2 (bytes). */
 const V2_SALT_BYTES = 16;
 
-/** Server secret the key is derived from (dedicated, else the app's auth secret). */
+/** Server secret the key is derived from, in precedence order: the dedicated
+ *  CATALOG_TOKEN_SECRET, else the app's AUTH_SECRET / NEXTAUTH_SECRET.
+ *
+ *  ROTATION HAZARD: tokens are encrypted under whichever secret was FIRST in this chain
+ *  when they were written. If a deployment stored tokens under AUTH_SECRET and an
+ *  operator later adds a dedicated CATALOG_TOKEN_SECRET (or rotates AUTH_SECRET), the
+ *  active secret no longer matches — every stored blob then fails its GCM tag and
+ *  decrypts to null, so all warehouse connections silently stop syncing until each user
+ *  re-enters their token. Callers should use `looksEncrypted` to tell "a blob is stored
+ *  but undecryptable" (env changed under it) from "no token at all", and message the two
+ *  differently. Changing the secret set = a mass token re-entry; treat it as such. */
 function secret(): string | null {
   return (
     process.env.CATALOG_TOKEN_SECRET ||
@@ -56,6 +66,16 @@ function v1Key(s: string): Buffer {
 /** Whether token encryption is configured (a secret is available). */
 export function hasTokenCrypto(): boolean {
   return secret() !== null;
+}
+
+/** True when `blob` has the shape of a stored encrypted token (v1/v2 envelope). Lets a
+ *  caller distinguish "a token IS stored but decryptToken returned null" (wrong/rotated
+ *  secret, or a tampered blob) from "no token was ever entered" — the two need different
+ *  user messaging. Pure syntactic check; does not attempt to decrypt. */
+export function looksEncrypted(blob: string | null | undefined): boolean {
+  if (!blob) return false;
+  const parts = blob.split(".");
+  return (parts[0] === "v1" && parts.length === 4) || (parts[0] === "v2" && parts.length === 5);
 }
 
 /** Encrypt a token → `v2.<salt>.<iv>.<tag>.<ciphertext>` (base64 parts), deriving a key

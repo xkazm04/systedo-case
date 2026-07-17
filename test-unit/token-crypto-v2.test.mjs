@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import { decryptToken, encryptToken } from "@/lib/inventory/token-crypto";
+import { decryptToken, encryptToken, looksEncrypted } from "@/lib/inventory/token-crypto";
 
 const SECRET = "unit-test-secret-v2-please-ignore";
 
@@ -63,4 +63,20 @@ test("wrong secret: a v2 blob does not decrypt under a different secret", () => 
   process.env.CATALOG_TOKEN_SECRET = "a-totally-different-secret";
   assert.equal(decryptToken(blob), null);
   process.env.CATALOG_TOKEN_SECRET = SECRET; // restore for other tests
+});
+
+test("looksEncrypted: a stored blob after a secret rotation reads as undecryptable, not missing", () => {
+  process.env.CATALOG_TOKEN_SECRET = SECRET;
+  const blob = encryptToken("rotate-me");
+  assert.equal(looksEncrypted(blob), true, "a v2 blob is recognized as a stored token");
+  assert.equal(looksEncrypted(makeV1Blob(SECRET, "x")), true, "a v1 blob is recognized too");
+  // After a secret change the blob still LOOKS encrypted (so the caller says "re-enter"),
+  // even though it no longer decrypts — the distinction the sync route relies on.
+  process.env.CATALOG_TOKEN_SECRET = "rotated-secret";
+  assert.equal(decryptToken(blob), null, "no longer decrypts under the rotated secret");
+  assert.equal(looksEncrypted(blob), true, "but is clearly a stored token, not 'no token'");
+  process.env.CATALOG_TOKEN_SECRET = SECRET; // restore for other tests
+  assert.equal(looksEncrypted(""), false);
+  assert.equal(looksEncrypted(null), false);
+  assert.equal(looksEncrypted("just-a-plain-token"), false);
 });

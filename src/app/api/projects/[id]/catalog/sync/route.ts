@@ -5,7 +5,7 @@
  *  this route just resolves credentials and maps the result to an HTTP status. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getConnection } from "@/lib/inventory/connection-store";
-import { decryptToken } from "@/lib/inventory/token-crypto";
+import { decryptToken, looksEncrypted } from "@/lib/inventory/token-crypto";
 import { runCatalogSync } from "@/lib/inventory/sync";
 import { CATALOG_RATE, enforceCatalogRate } from "@/lib/catalog/rate-limit";
 import type { ImportStrategy } from "@/lib/catalog/import";
@@ -38,7 +38,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const useStored = stored?.provider === providerId;
 
   let token = typeof body?.token === "string" ? body.token.trim() : "";
-  if (!token && useStored && stored.tokenEnc) token = decryptToken(stored.tokenEnc) ?? "";
+  if (!token && useStored && stored.tokenEnc) {
+    const decrypted = decryptToken(stored.tokenEnc);
+    // A stored blob that fails to decrypt (server secret changed/rotated under it, or a
+    // tampered blob) is NOT "no token" — say so, so the user re-enters it rather than
+    // hunting a phantom missing-token bug. Falls through to the normal no-token/sync
+    // path only when nothing is actually stored.
+    if (decrypted == null && looksEncrypted(stored.tokenEnc)) {
+      return unprocessable(
+        "Uložený token nelze dešifrovat — pravděpodobně se změnilo serverové tajemství. Zadejte token znovu.",
+        "token-undecryptable"
+      );
+    }
+    token = decrypted ?? "";
+  }
   const inventoryId =
     (typeof body?.inventoryId === "string" && body.inventoryId) || (useStored ? stored.inventoryId : undefined);
   const config =
