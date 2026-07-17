@@ -128,7 +128,7 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     key: "aov",
     label: "Prům. hodnota objednávky",
     short: "AOV",
-    description: "Average order value = obrat / konverze.",
+    description: "Průměrná hodnota objednávky = obrat / konverze.",
     labelEn: "Avg. order value",
     shortEn: "AOV",
     descriptionEn: "Average order value = revenue / conversions.",
