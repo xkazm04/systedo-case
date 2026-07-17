@@ -119,7 +119,7 @@ export default function AlertsInbox({
       const res = await fetch("/api/alerts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId: pid }),
+        body: JSON.stringify({ action: "readAll", projectId: pid }),
       });
       // A resolved fetch is not an HTTP success — a 401/403/500 would otherwise clear
       // the unread badge and mark every alert read while the server persisted nothing,

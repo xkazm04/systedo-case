@@ -1,12 +1,15 @@
 /** In-app alert inbox for the signed-in user's tenant:
  *   GET  → newest alerts + unread count
- *   POST → mark one alert (by id) or all as read; or {action:"acknowledge", id}
- *          to advance one alert's workflow status to acknowledged.
+ *   POST → an explicit {action}: "read" (+id) marks one alert read, "readAll"
+ *          marks the whole inbox read, "acknowledge" (+id) advances one alert's
+ *          workflow status. Unknown/absent actions are rejected (400) — they must
+ *          NOT fall through to the destructive bulk mark-all.
  *  Staging a change-set from an alert (and the resolution back-reference) goes
  *  through /api/campaigns/control-plane, which owns change-set creation. */
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listAlerts, markAlertsRead, acknowledgeAlert } from "@/lib/campaigns/alerts";
+import { planAlertAction } from "@/lib/campaigns/alert-actions";
 
 
 export async function GET(request: Request) {
@@ -24,30 +27,36 @@ export async function POST(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
 
-  let id: string | undefined;
+  let id: unknown;
   let projectId: string | undefined;
-  let action: string | undefined;
+  let action: unknown;
   try {
     const body = (await request.json()) as {
       id?: unknown;
       projectId?: unknown;
       action?: unknown;
     };
-    if (typeof body.id === "string") id = body.id;
+    id = body.id;
+    action = body.action;
     if (typeof body.projectId === "string") projectId = body.projectId;
-    if (typeof body.action === "string") action = body.action;
   } catch {
-    /* no body → mark all read */
+    /* unreadable body → planAlertAction rejects it below (no destructive default) */
   }
+
+  const plan = planAlertAction({ action, id });
+  if ("error" in plan) return Response.json({ error: plan.error }, { status: plan.status });
 
   const tenant = await resolveTenant(userId, projectId);
 
-  if (action === "acknowledge") {
-    if (!id) return Response.json({ error: "Chybí ID upozornění." }, { status: 422 });
-    await acknowledgeAlert(tenant, id);
-    return Response.json({ ok: true });
+  switch (plan.kind) {
+    case "acknowledge":
+      await acknowledgeAlert(tenant, plan.id);
+      return Response.json({ ok: true });
+    case "read":
+      await markAlertsRead(tenant, plan.id);
+      return Response.json({ ok: true });
+    case "readAll":
+      await markAlertsRead(tenant);
+      return Response.json({ ok: true });
   }
-
-  await markAlertsRead(tenant, id);
-  return Response.json({ ok: true });
 }
