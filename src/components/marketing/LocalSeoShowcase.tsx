@@ -32,6 +32,7 @@ const CONTENT = {
     rankTitle: "Výstup v mapě za 90 dní",
     rankSub: "Váš pin #5 → #1, zatímco nejsilnější rival ztrácí.",
     visTitle: "Viditelnost v map packu",
+    visSub: "Jak často se pobočka objeví v mapovém balíčku pro sledovaná hledání.",
     visCaption: "viditelnost",
     compTitle: "Podíl na proklicích",
     compSub: "Pozice #1 bere lví podíl kliknutí v balíčku.",
@@ -77,6 +78,7 @@ const CONTENT = {
     rankTitle: "90-day map-pack climb",
     rankSub: "Your pin #5 → #1 while the top rival drifts.",
     visTitle: "Map-pack visibility",
+    visSub: "How often the location surfaces in the map pack for the searches you track.",
     visCaption: "visible",
     compTitle: "Share of clicks",
     compSub: "Rank #1 takes the lion's share of clicks in the pack.",
@@ -201,7 +203,7 @@ export default function LocalSeoShowcase() {
               </ChartCard>
             </Kinetic>
             <Kinetic once delay={0.08}>
-              <ChartCard title={c.visTitle} sub={c.compSub}>
+              <ChartCard title={c.visTitle} sub={c.visSub}>
                 <div className="mx-auto h-full max-w-[220px]">
                   <VisibilityGauge value={67} caption={c.visCaption} label={c.visTitle} />
                 </div>
