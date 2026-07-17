@@ -17,7 +17,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   ]);
 
   return (
-    <ModulePage moduleKey="sprava-kanalu">
+    // Seeded default channel/autonomy settings carry the shared "sample data"
+    // gutter banner — the one provenance system — so they can't be mistaken for
+    // the tenant's own saved configuration (they were previously unlabeled here).
+    <ModulePage moduleKey="sprava-kanalu" sample={resolved.source === "sample"}>
       <TwinChannelsModule
         state={resolved.state}
         source={resolved.source}
