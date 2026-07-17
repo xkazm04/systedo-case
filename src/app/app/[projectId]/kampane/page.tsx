@@ -3,8 +3,9 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import CampaignsClient from "@/components/campaigns/CampaignsClient";
-import { PROJECT_TYPE_META } from "@/lib/projects/types";
+import { projectTypeMeta } from "@/lib/projects/types";
 import { getT } from "@/lib/i18n/server";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { getCostModel } from "@/lib/cost-model/store";
 import { deriveBreakEven } from "@/lib/cost-model/compute";
 import { getClientProfile } from "@/lib/campaigns/report-config";
@@ -25,7 +26,9 @@ const T = {
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "kampane");
-  const focus = PROJECT_TYPE_META[project.type].channelFocus;
+  // Use the locale-aware accessor so an en user reads channelFocusEn, not the raw
+  // Czech channelFocus interpolated into the otherwise-translated description.
+  const focus = projectTypeMeta(project.type, await getServerLocale()).channelFocus;
   const t = await getT(T);
   // Direction 2: when the tenant has entered a cost model, derive its margin-based
   // break-even ROAS (period-independent 1/margin) so the triage view can judge
