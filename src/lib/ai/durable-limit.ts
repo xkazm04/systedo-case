@@ -27,6 +27,17 @@
  *   - AI_GLOBAL_DAILY_CEILING  total paid provider ops/day across ALL callers
  *                              before paid work is refused (default 2000; 0 = off)
  *   - AI_CEILING_FAIL_CLOSED   "1" → refuse paid calls when Firestore is unreachable
+ *
+ *  OPERATIONAL PREREQUISITE (Firestore): the `expireAt` fields written below only
+ *  expire their docs if a per-collection TTL policy naming that field is configured
+ *  OUT OF BAND on the `ratelimits` collection — Firestore TTL is not a document
+ *  property. Provision it once per environment:
+ *    gcloud firestore fields ttls update expireAt \
+ *      --collection-group=ratelimits --enable-ttl
+ *  Absent the policy the design still degrades gracefully (stale windows are
+ *  ignored by `currentCount`), but one doc per `bucket__ip` pair (plus a daily
+ *  `_global_` doc) accumulates forever, growing storage and per-transaction read
+ *  cost — silently billing the very budget this module protects.
  */
 import { firestore } from "@/lib/firebase";
 import {
