@@ -41,10 +41,15 @@ function rec(
   metric?: string,
   impactCzk?: number
 ): Recommendation {
+  // Look the module def up defensively: the non-null assertion here threw inside
+  // moduleLabel BEFORE the `?? module` fallback could apply, so one renamed/removed
+  // module key turned every project Overview into an error page instead of degrading
+  // a single recommendation's label. Fall back to the raw key when the def is missing.
+  const def = MODULES.find((m) => m.key === module);
   return {
     id: `${module}:${title}`,
     module,
-    moduleLabel: moduleLabel(MODULES.find((m) => m.key === module)!, locale) ?? module,
+    moduleLabel: def ? moduleLabel(def, locale) : module,
     severity,
     title,
     detail,
