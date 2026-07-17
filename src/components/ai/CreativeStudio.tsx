@@ -182,12 +182,15 @@ const CHECKER: React.CSSProperties = {
   backgroundPosition: "0 0,0 8px,8px -8px,-8px 0",
 };
 
-export default function CreativeStudio() {
+export default function CreativeStudio({ projectId }: { projectId?: string } = {}) {
   const t = useT(T);
   const fmt = useFormatters();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
-  const pid = project?.id;
+  // Prefer the explicit prop the project route passes (server-resolved), so a
+  // late/missing context provider can't silently drop project scoping on the API
+  // calls. The unscoped fallback stays only for the standalone (non-project) host.
+  const pid = projectId ?? project?.id;
   const fileUrl = (id: string) =>
     pid ? `/api/images/file/${id}?projectId=${encodeURIComponent(pid)}` : `/api/images/file/${id}`;
   const [prompt, setPrompt] = useState("");

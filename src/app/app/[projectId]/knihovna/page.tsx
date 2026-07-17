@@ -9,7 +9,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   await requireProjectModule(projectId, "knihovna");
   return (
     <ModulePage moduleKey="knihovna">
-      <PatternsLibrary />
+      <PatternsLibrary projectId={projectId} />
     </ModulePage>
   );
 }

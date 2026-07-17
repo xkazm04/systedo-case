@@ -9,7 +9,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   await requireProjectModule(projectId, "kreativa");
   return (
     <ModulePage moduleKey="kreativa">
-      <CreativeStudio />
+      <CreativeStudio projectId={projectId} />
     </ModulePage>
   );
 }

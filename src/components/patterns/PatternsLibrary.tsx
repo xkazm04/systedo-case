@@ -90,10 +90,13 @@ const T = {
 
 type CategoryFilter = "all" | PatternCategory;
 
-export default function PatternsLibrary() {
+export default function PatternsLibrary({ projectId }: { projectId?: string } = {}) {
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
-  const pid = project?.id;
+  // Prefer the explicit prop the project route passes, so a late/missing context
+  // provider can't silently drop project scoping. The unscoped fallback stays only
+  // for the standalone (non-project) host.
+  const pid = projectId ?? project?.id;
   const t = useT(T);
   const { locale } = useLocale();
   const L = locale === "en" ? "en" : "cs";
