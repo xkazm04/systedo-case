@@ -7,13 +7,19 @@ import { usePathname } from "next/navigation";
  *  in instead of swapping it instantly. Opacity-only (no transform) keeps the
  *  sticky article TOC and chart tooltips behaving correctly.
  *
- *  The fade is skipped under the authed /app workspace: a 0.4s fade on every click
+ *  The fade is skipped on the data tools — the authed /app workspace and the public
+ *  /dashboard demo, INCLUDING their sub-routes — because a 0.4s fade on every click
  *  inside a data tool reads as lag, whereas it feels premium on the marketing pages.
  *  (Reading the path needs a client component; children stay server-rendered.) */
 export default function Template({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  // Skip the fade on the data tools (authed /app + the public /dashboard demo):
-  // a 0.4s fade on every module click reads as lag, not polish.
-  const fade = !pathname.startsWith("/app") && pathname !== "/dashboard";
+  // Match on whole path segments, not raw prefix/exact: `startsWith("/app")` would
+  // also swallow a future `/approach`, and an exact `=== "/dashboard"` would miss a
+  // future `/dashboard/settings`. `=== base || startsWith(base + "/")` covers each
+  // route and its sub-routes without colliding with sibling names.
+  const isDataTool = ["/app", "/dashboard"].some(
+    (base) => pathname === base || pathname.startsWith(`${base}/`)
+  );
+  const fade = !isDataTool;
   return <div className={fade ? "animate-fade-in" : undefined}>{children}</div>;
 }
