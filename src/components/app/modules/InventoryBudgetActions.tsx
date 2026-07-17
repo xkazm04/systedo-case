@@ -103,7 +103,7 @@ export default function InventoryBudgetActions({
     for (const a of plan.actions) seed[moveKey(a)] = initialStates[moveKey(a)] ?? "proposed";
     return seed;
   });
-  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const summary = useMemo(() => {
@@ -135,13 +135,17 @@ export default function InventoryBudgetActions({
   }
 
   async function setMove(key: string, state: MoveState) {
-    const prev = states;
+    // Serialized: every decision button is disabled while a save is in flight (see
+    // `busy` below), so no concurrent decision can build a POST from a stale snapshot or
+    // roll back a decision another row already persisted. Roll back ONLY this key on
+    // failure (never the whole plan), so an earlier accepted move can't be un-persisted.
+    const prevValue = states[key] ?? "proposed";
     const next = { ...states, [key]: state };
     setStates(next);
     setError(null);
     if (!projectId) return; // demo / local-only — nothing to persist to
 
-    setBusyKey(key);
+    setBusy(true);
     try {
       const moves = plan.actions.map((a) => {
         const k = moveKey(a);
@@ -154,14 +158,14 @@ export default function InventoryBudgetActions({
       });
       const json = (await res.json().catch(() => ({}))) as { ok?: boolean };
       if (!res.ok || !json.ok) {
-        setStates(prev);
+        setStates((s) => ({ ...s, [key]: prevValue }));
         setError(t("saveFailed"));
       }
     } catch {
-      setStates(prev);
+      setStates((s) => ({ ...s, [key]: prevValue }));
       setError(t("saveFailed"));
     } finally {
-      setBusyKey(null);
+      setBusy(false);
     }
   }
 
@@ -237,7 +241,7 @@ export default function InventoryBudgetActions({
                     <>
                       <button
                         type="button"
-                        disabled={busyKey === k}
+                        disabled={busy}
                         onClick={() => setMove(k, "accepted")}
                         className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
                       >
@@ -246,7 +250,7 @@ export default function InventoryBudgetActions({
                       </button>
                       <button
                         type="button"
-                        disabled={busyKey === k}
+                        disabled={busy}
                         onClick={() => setMove(k, "dismissed")}
                         className="rounded-pill border border-line bg-surface px-3 py-1.5 font-medium text-navy-700 transition-colors hover:border-coral-300 disabled:opacity-50"
                       >
@@ -265,7 +269,7 @@ export default function InventoryBudgetActions({
                       </span>
                       <button
                         type="button"
-                        disabled={busyKey === k}
+                        disabled={busy}
                         onClick={() => setMove(k, "proposed")}
                         className="rounded-pill border border-line bg-surface px-2.5 py-1 font-medium text-navy-700 transition-colors hover:border-brand-300 disabled:opacity-50"
                       >
