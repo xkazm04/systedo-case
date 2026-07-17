@@ -13,6 +13,6 @@ export async function GET(request: Request) {
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
-  const activity = await listActivity(tenant);
-  return Response.json({ activity });
+  const { records } = await listActivity(tenant);
+  return Response.json({ activity: records });
 }

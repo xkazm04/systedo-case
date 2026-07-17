@@ -5,6 +5,7 @@
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import SpendModule from "@/components/app/modules/SpendModule";
+import DataUnavailableNote from "@/components/app/DataUnavailableNote";
 import { spendForProject } from "@/lib/spend/sample";
 import { liveSpendForProject } from "@/lib/spend/live";
 
@@ -12,7 +13,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const { projectId } = await params;
   const project = await requireProjectModule(projectId, "spotreba");
 
-  const live = await liveSpendForProject(project.id);
+  const { entries: live, ok } = await liveSpendForProject(project.id);
+  // Read FAILED (outage) — show an honest unavailable state rather than seeded
+  // spend that would masquerade as the tenant's real LLM usage.
+  if (!ok) {
+    return (
+      <ModulePage moduleKey="spotreba">
+        <DataUnavailableNote />
+      </ModulePage>
+    );
+  }
   const isLive = live.length > 0;
   const entries = isLive ? live : spendForProject(project);
 

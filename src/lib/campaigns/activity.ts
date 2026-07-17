@@ -54,13 +54,22 @@ export async function recordActivity(tenant: string, entry: ActivityInput): Prom
   }
 }
 
-/** Newest activity for a tenant, most recent first. */
-export async function listActivity(tenant: string, limit = 50): Promise<ActivityRecord[]> {
+/** Newest activity for a tenant, most recent first. `ok` distinguishes a genuine
+ *  empty feed (`ok: true`, records: []) from a backend read failure (`ok: false`),
+ *  so a caller can show "temporarily unavailable" on an outage instead of falling
+ *  back to fabricated sample events as if the project simply had no history. */
+export async function listActivity(
+  tenant: string,
+  limit = 50
+): Promise<{ records: ActivityRecord[]; ok: boolean }> {
   try {
     const snap = await activityCol(tenant).orderBy("at", "desc").limit(limit).get();
-    return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ActivityRecord, "id">) }));
+    return {
+      records: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ActivityRecord, "id">) })),
+      ok: true,
+    };
   } catch (err) {
     console.error(`[activity] list failed for ${tenant}:`, err);
-    return [];
+    return { records: [], ok: false };
   }
 }
