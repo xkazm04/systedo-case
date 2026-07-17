@@ -11,6 +11,8 @@ import assert from "node:assert/strict";
 import {
   avoidDirectives,
   channelConfig,
+  confidenceTone,
+  CONFIDENCE_WARN_MARGIN,
   decideDraft,
   DEFAULT_AUTO_THRESHOLD,
   recentRejectNotes,
@@ -96,6 +98,19 @@ test("storableConnectorId keeps a usable id and degrades typos / unconfigured id
   if (!process.env.TWIN_SMTP_URL) {
     assert.equal(storableConnectorId("email-smtp"), "manual", "known-but-unconfigured degrades to manual");
   }
+});
+
+test("confidenceTone tracks the channel's own bar, not hardcoded 80/50", () => {
+  // At threshold 90, a confident-looking 82 has NOT cleared the bar → not green.
+  assert.equal(confidenceTone(82, 90, 0), "coral", "82 below a 90 bar is coral, not green");
+  assert.equal(confidenceTone(90, 90, 0), "positive", "at the bar with no risks is green");
+  // A risk keeps it coral even above the bar (a human read is still owed).
+  assert.equal(confidenceTone(95, 90, 1), "coral", "a risk downgrades an above-bar draft");
+  // Well below the bar (beyond the warn margin) is red.
+  assert.equal(confidenceTone(90 - CONFIDENCE_WARN_MARGIN - 1, 90, 0), "negative");
+  assert.equal(confidenceTone(90 - CONFIDENCE_WARN_MARGIN, 90, 0), "coral", "just inside the margin is coral");
+  // At a low threshold a mid draft clears it (the old fixed 80 would have shown coral).
+  assert.equal(confidenceTone(65, 50, 0), "positive", "65 clears a 50 bar → green");
 });
 
 test("decideDraft: a disabled channel never self-approves, even when still set to `auto`", () => {

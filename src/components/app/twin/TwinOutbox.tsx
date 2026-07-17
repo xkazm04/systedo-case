@@ -32,6 +32,7 @@ import type { TwinReplyResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
   channelConfig,
+  confidenceTone,
   decideDraft,
   rejectionPatterns,
   resolveVoice,
@@ -43,6 +44,13 @@ import {
   type TwinDraft,
   type TwinState,
 } from "@/lib/twin/types";
+
+/** Tailwind fill class for each confidence-meter tone (keyed to the channel bar). */
+const CONFIDENCE_BAR_CLASS = {
+  positive: "bg-positive",
+  coral: "bg-coral-500",
+  negative: "bg-negative",
+} as const;
 
 const T = {
   cs: {
@@ -547,7 +555,7 @@ export default function TwinOutbox({
                   <span className="font-semibold uppercase tracking-wide text-muted">{t("confidence")}</span>
                   <span className="h-1.5 w-20 overflow-hidden rounded-full bg-navy-50" aria-hidden>
                     <span
-                      className={`block h-full rounded-full ${result.confidence >= 80 ? "bg-positive" : result.confidence >= 50 ? "bg-coral-500" : "bg-negative"}`}
+                      className={`block h-full rounded-full ${CONFIDENCE_BAR_CLASS[confidenceTone(result.confidence, cfg.autoThreshold, result.risks.length)]}`}
                       style={{ width: `${result.confidence}%` }}
                     />
                   </span>

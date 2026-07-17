@@ -92,6 +92,24 @@ export interface TwinChannelConfig {
 
 export const DEFAULT_AUTO_THRESHOLD = 80;
 
+/** How far below a channel's confidence bar (`autoThreshold`) a draft may still sit and
+ *  read as "close" (coral) rather than "well short" (red) on the outbox confidence meter. */
+export const CONFIDENCE_WARN_MARGIN = 15;
+
+export type ConfidenceTone = "positive" | "coral" | "negative";
+
+/** The outbox confidence-meter colour, keyed to the CHANNEL'S own bar (`autoThreshold`,
+ *  50–100 and user-configurable) plus its risks — not two hardcoded magic numbers that
+ *  disagreed with the autonomy verdict shown next to the meter. Green: at/above the bar
+ *  with no risks (what the gate would clear). Coral: within CONFIDENCE_WARN_MARGIN below
+ *  the bar, or above it but carrying a risk (a human read is still owed). Red: well below.
+ *  Pure so the meter and the gate can never drift. */
+export function confidenceTone(confidence: number, threshold: number, riskCount: number): ConfidenceTone {
+  if (confidence >= threshold) return riskCount > 0 ? "coral" : "positive";
+  if (confidence >= threshold - CONFIDENCE_WARN_MARGIN) return "coral";
+  return "negative";
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Training material                                                          */
 /* -------------------------------------------------------------------------- */
