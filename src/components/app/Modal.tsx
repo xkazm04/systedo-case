@@ -29,6 +29,7 @@ export default function Modal({
   onClose,
   title,
   description,
+  ariaLabel,
   size = "md",
   children,
   footer,
@@ -37,6 +38,9 @@ export default function Modal({
   onClose: () => void;
   title?: ReactNode;
   description?: ReactNode;
+  /** Accessible name when there is no string `title` (a headerless dialog would
+   *  otherwise be an unlabelled role="dialog"). */
+  ariaLabel?: string;
   size?: ModalSize;
   children: ReactNode;
   footer?: ReactNode;
@@ -77,30 +81,43 @@ export default function Modal({
         tabIndex={-1}
         role="dialog"
         aria-modal="true"
-        aria-label={typeof title === "string" ? title : undefined}
+        aria-label={typeof title === "string" ? title : ariaLabel}
         onClick={(e) => e.stopPropagation()}
-        className={`animate-drop flex w-full ${SIZES[size]} max-h-[88vh] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-pop outline-none`}
+        className={`animate-drop relative flex w-full ${SIZES[size]} max-h-[88vh] flex-col overflow-hidden rounded-card border border-line bg-surface shadow-pop outline-none`}
       >
-        {(title || description) && (
+        {title || description ? (
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
             <div className="min-w-0">
               {title && <h2 className="text-base font-semibold text-navy-800">{title}</h2>}
               {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Zavřít"
-              className="-mr-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-navy-800"
-            >
-              <Close width={16} height={16} />
-            </button>
+            <CloseButton onClose={onClose} className="-mr-1" />
           </div>
+        ) : (
+          // Headerless dialog: keep the dismiss control discoverable (touch users
+          // have no Escape key, and size="full" can cover the backdrop) by
+          // floating the X in the panel's top-right corner.
+          <CloseButton onClose={onClose} className="absolute right-3 top-3 z-10" />
         )}
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
         {footer && <div className="border-t border-line px-5 py-3">{footer}</div>}
       </div>
     </div>,
     document.body
+  );
+}
+
+/** The dialog's dismiss control — rendered inside the header row when there is one,
+ *  and floated in the panel corner when the dialog is headerless. */
+function CloseButton({ onClose, className = "" }: { onClose: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="Zavřít"
+      className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-navy-50 hover:text-navy-800 ${className}`}
+    >
+      <Close width={16} height={16} />
+    </button>
   );
 }
