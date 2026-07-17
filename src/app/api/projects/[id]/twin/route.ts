@@ -10,14 +10,17 @@ import { partitionDrafts } from "@/lib/twin/archive";
 import { channelConfig, decideDraft, mergeTerminalDrafts, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
 import { readJson } from "@/lib/api/route-utils";
 
-/** Re-derive the autonomy gate server-side. `decideDraft` is "the one rule, in one
- *  place", but the client is the only caller, so a POSTed blob could otherwise claim
- *  `autoApproved: true` for a draft the gate would never clear (a review channel, a
- *  risky claim, low confidence) and `send/route.ts` would then treat it as vetted.
- *  A machine auto-approval must be independently re-derivable or it is not one — so
- *  any `autoApproved: true` that the gate rejects falls back to the gate's real
- *  verdict. Human approvals (`autoApproved: false`, owner-authenticated above) keep
- *  their lifecycle. Kept here, not in the client-imported `types.ts`. */
+/** Re-derive the autonomy gate server-side so the `autoApproved` audit bit is owned by
+ *  the gate, not by the client blob. `decideDraft` is "the one rule, in one place", but
+ *  the client is the only caller, so a POSTed blob could otherwise (a) claim
+ *  `autoApproved: true` for a draft the gate would never clear (a disabled/review
+ *  channel, a risky claim, low confidence) and have `send/route.ts` treat it as vetted,
+ *  or (b) LAUNDER a machine approval as human by flipping `autoApproved` to false on a
+ *  draft the gate WOULD auto-approve. A machine auto-approval must be independently
+ *  re-derivable or it is not one — so the bit is recomputed for EVERY non-terminal
+ *  draft: it clears the gate → `approved`/`autoApproved:true`; it does not → the flag is
+ *  forced false (a human `approved`/`pending` status stands — that transition is
+ *  genuinely client-asserted). Kept here, not in the client-imported `types.ts`. */
 function enforceAutonomy(state: TwinState): TwinState {
   return {
     ...state,
@@ -26,11 +29,13 @@ function enforceAutonomy(state: TwinState): TwinState {
       // terminal states past its jurisdiction — re-deriving them would stomp a sent
       // draft back to `approved` (it still clears the gate), erasing the send from the
       // audit trail and making an auto-drafted message re-send-eligible on next commit.
-      if (!d.autoApproved || d.status === "sent" || d.status === "rejected") return d;
+      // (mergeTerminalDrafts below independently defends a STORED terminal record.)
+      if (d.status === "sent" || d.status === "rejected") return d;
       const verdict = decideDraft(channelConfig(state.channels, d.channel), d);
-      return verdict.autoApproved
-        ? { ...d, status: "approved" as const, autoApproved: true }
-        : { ...d, status: verdict.status, autoApproved: false };
+      if (verdict.autoApproved) return { ...d, status: "approved" as const, autoApproved: true };
+      // Gate says no: strip any claimed machine approval. Whatever human status the
+      // client asserts (pending/approved) stands, but it can never carry autoApproved.
+      return d.autoApproved ? { ...d, autoApproved: false } : d;
     }),
   };
 }

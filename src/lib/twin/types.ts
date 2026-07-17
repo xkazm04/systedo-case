@@ -449,6 +449,15 @@ function sanitizeFact(raw: unknown, i: number): TwinStyleFact | null {
   };
 }
 
+/** Coerce one wire draft into a bounded record. NOTE ON THE AUDIT TRAIL: the
+ *  lifecycle fields (`status`, `autoApproved`, `decidedAt`, `sentAt`) are only
+ *  SHAPE-checked here, not authenticated — this sanitizer runs on a client POST that
+ *  owns the whole blob. They are made trustworthy downstream, not here: the twin POST
+ *  route re-derives `autoApproved` from the gate (`enforceAutonomy`) so it can't be
+ *  forged or laundered, `send/route.ts` is the sole writer of `sent`/`sentAt`, and
+ *  `mergeTerminalDrafts` keeps a STORED terminal (`sent`/`rejected`) record from being
+ *  rewritten by a stale posted blob. A raw `sanitizeDraft` result on its own is NOT an
+ *  audit trail — always pair it with those route-level guards. */
 function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
   const o = raw as Record<string, unknown> | null;
   if (!o || !isTwinChannel(o.channel)) return null;
