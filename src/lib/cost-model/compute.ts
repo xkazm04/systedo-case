@@ -92,7 +92,14 @@ export function deriveBreakEven(
   return { grossRoas, grossPno, loadedRoas, loadedPno: 1 / loadedRoas };
 }
 
-/** Clamp/validate a raw cost model from the client. Returns null if unusable. */
+/** Validate a raw cost model from the client. Returns null if unusable, so the API
+ *  route can 400 rather than silently persist a wrong number. Accepted ranges:
+ *  grossMarginPct in (0, 1] (0 rejected — a zero-margin model earns nothing; 1 = 100 %
+ *  margin accepted), monthlyOverhead and perOrderCost each a finite value >= 0. Every
+ *  field uses the SAME reject-don't-coerce policy — previously an invalid overhead or
+ *  per-order cost (e.g. a thousands-separated "45 000" → NaN, or a negative) was quietly
+ *  coerced to 0, so the report showed a rosier "true net profit" that omitted the
+ *  overhead the model exists to capture. */
 export function sanitizeCostModel(raw: unknown): Omit<CostModel, "updatedAt"> | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -100,9 +107,7 @@ export function sanitizeCostModel(raw: unknown): Omit<CostModel, "updatedAt"> | 
   const overhead = Number(o.monthlyOverhead);
   const perOrder = Number(o.perOrderCost);
   if (!Number.isFinite(margin) || margin <= 0 || margin > 1) return null;
-  return {
-    grossMarginPct: margin,
-    monthlyOverhead: Number.isFinite(overhead) && overhead >= 0 ? overhead : 0,
-    perOrderCost: Number.isFinite(perOrder) && perOrder >= 0 ? perOrder : 0,
-  };
+  if (!Number.isFinite(overhead) || overhead < 0) return null;
+  if (!Number.isFinite(perOrder) || perOrder < 0) return null;
+  return { grossMarginPct: margin, monthlyOverhead: overhead, perOrderCost: perOrder };
 }

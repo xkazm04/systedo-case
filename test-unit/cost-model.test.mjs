@@ -78,15 +78,21 @@ test("deriveBreakEven: no ad spend → omit loaded variant, never Infinity (JSON
   assert.ok(Number.isFinite(round.grossRoas));
 });
 
-test("sanitize: rejects a margin outside (0,1]; clamps negatives to 0", () => {
+test("sanitize: rejects a margin outside (0,1]; rejects negative/non-finite costs", () => {
   assert.equal(sanitizeCostModel({ grossMarginPct: 0 }), null);
   assert.equal(sanitizeCostModel({ grossMarginPct: 1.5 }), null);
   assert.equal(sanitizeCostModel({ grossMarginPct: "abc" }), null);
-  assert.deepEqual(sanitizeCostModel({ grossMarginPct: 0.45, monthlyOverhead: -5, perOrderCost: 30 }), {
-    grossMarginPct: 0.45,
-    monthlyOverhead: 0,
+  // a valid model round-trips unchanged (100% margin accepted at the boundary)
+  assert.deepEqual(sanitizeCostModel({ grossMarginPct: 1, monthlyOverhead: 45_000, perOrderCost: 30 }), {
+    grossMarginPct: 1,
+    monthlyOverhead: 45_000,
     perOrderCost: 30,
   });
+  // invalid overhead / per-order cost REJECT (not silently coerced to 0) — a rosier
+  // net profit that omits real overhead is exactly the honesty bug the model prevents.
+  assert.equal(sanitizeCostModel({ grossMarginPct: 0.45, monthlyOverhead: -5, perOrderCost: 30 }), null);
+  assert.equal(sanitizeCostModel({ grossMarginPct: 0.45, monthlyOverhead: "45 000", perOrderCost: 30 }), null);
+  assert.equal(sanitizeCostModel({ grossMarginPct: 0.45, monthlyOverhead: 1000, perOrderCost: -1 }), null);
 });
 
 test("store: save → get roundtrips; clear reverts to null", async () => {
