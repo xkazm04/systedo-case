@@ -11,7 +11,7 @@ import {
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
 import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
-import { useAiStatus } from "./useAiStatus";
+import { useAiStatus, invalidateAiStatus } from "./useAiStatus";
 
 const T = {
   cs: {
@@ -212,6 +212,10 @@ export function useAiTool<T>(mode: string, variant?: string) {
       setData(json as AiResponse<T>);
       setStatus("done");
       setActiveIndex(0);
+      // A generation just spent budget — bust the shared status cache so the next
+      // preflight/pacing read reflects the new remaining count instead of the
+      // frozen page-load snapshot.
+      invalidateAiStatus();
       const next = pushHistory(historyRef.current, {
         savedAt: Date.now(),
         payload: json as AiResponse<T>,

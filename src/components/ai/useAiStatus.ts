@@ -16,8 +16,15 @@ function fetchAiStatus(): Promise<AiStatusPayload | null> {
   if (cached) return Promise.resolve(cached);
   if (!inflight) {
     inflight = fetch("/api/ai/status", { cache: "no-store" })
-      .then(async (res) => (res.ok ? ((await res.json()) as AiStatusPayload) : null))
-      .then((status) => {
+      .then(async (res) => {
+        if (!res.ok) {
+          // A transient non-2xx used to leave `inflight` a resolved promise, so
+          // NO later mount ever retried — preflight/budget/pacing were silently
+          // gone for the page's lifetime. Reset it (mirror the network catch).
+          inflight = null;
+          return null;
+        }
+        const status = (await res.json()) as AiStatusPayload;
         cached = status;
         return status;
       })
@@ -27,6 +34,14 @@ function fetchAiStatus(): Promise<AiStatusPayload | null> {
       });
   }
   return inflight;
+}
+
+/** Bust the module cache so the next subscriber refetches — call after a
+ *  generation spends budget, otherwise the "N left today" preflight stays frozen
+ *  at the page-load snapshot and the (N+1)th run 429s with no warning. */
+export function invalidateAiStatus(): void {
+  cached = null;
+  inflight = null;
 }
 
 /** The current AI preflight status, or null while loading / when unavailable. */
