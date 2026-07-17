@@ -219,6 +219,40 @@ test("goalProgress: % to target, remaining gap and a compounding ETA", () => {
   assert.equal(gp.revenue.met, false);
 });
 
+test("goalProgress: revenue ETA uses its OWN growth, not the subscriber rate", () => {
+  const funnel = { visitors: 0, subscribers: 200, activeSubscribers: 100 };
+  const summary = audienceSummary(funnel, [{ source: "x", amount: 1000 }]);
+  const gp = goalProgress(
+    funnel,
+    summary,
+    { subscriberTarget: 400, monthlyRevenueTarget: 2000 },
+    0.1, // subscribers +10 %/mo
+    0.05 // revenue +5 %/mo (diverges — the normal case)
+  );
+  // Each line records the growth its ETA assumed.
+  assert.equal(gp.subscribers.growthRate, 0.1);
+  assert.equal(gp.revenue.growthRate, 0.05);
+  // Revenue doubles from 1000→2000; slower revenue growth → longer ETA than subscribers.
+  // subs: ln2/ln1.1 ≈ 7.27 → 8; revenue: ln2/ln1.05 ≈ 14.2 → 15.
+  assert.equal(gp.subscribers.etaMonths, 8);
+  assert.equal(gp.revenue.etaMonths, 15);
+});
+
+test("goalProgress: a null revenue growth yields no revenue ETA (no borrowing)", () => {
+  const funnel = { visitors: 0, subscribers: 200, activeSubscribers: 100 };
+  const summary = audienceSummary(funnel, [{ source: "x", amount: 1000 }]);
+  const gp = goalProgress(
+    funnel,
+    summary,
+    { subscriberTarget: 400, monthlyRevenueTarget: 2000 },
+    0.1, // subscribers grow
+    null // no revenue growth signal
+  );
+  assert.equal(gp.subscribers.etaMonths, 8); // subscriber ETA still computed
+  assert.equal(gp.revenue.etaMonths, null); // revenue shows no ETA, not a fake one
+  assert.equal(gp.revenue.growthRate, null);
+});
+
 test("goalProgress: a met target reports met, no ETA, capped remaining", () => {
   const funnel = { visitors: 0, subscribers: 500, activeSubscribers: 300 };
   const summary = audienceSummary(funnel, [{ source: "x", amount: 5000 }]);

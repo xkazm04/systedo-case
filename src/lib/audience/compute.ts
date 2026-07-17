@@ -294,6 +294,9 @@ export interface GoalLine {
   /** estimated months to reach target at the current growth, or null when it
    *  can't be reached (no/negative growth) or is already met */
   etaMonths: number | null;
+  /** the MoM growth fraction this line's ETA assumes, so the UI labels each goal
+   *  with ITS OWN growth (null when there's no usable growth signal → no ETA) */
+  growthRate: number | null;
 }
 
 export interface GoalProgress {
@@ -301,22 +304,28 @@ export interface GoalProgress {
   revenue: GoalLine;
 }
 
-/** Progress toward subscriber + monthly-revenue targets, with a simple ETA from
- *  the supplied month-over-month growth fraction (applied compounding). Returns
- *  null ETAs when a target is met or unreachable. Pure. */
+/** Progress toward subscriber + monthly-revenue targets, with a simple ETA from a
+ *  month-over-month growth fraction (applied compounding). Each series takes its OWN
+ *  growth: `subscriberGrowth` drives the subscriber ETA, `revenueGrowth` the revenue
+ *  ETA — passing the subscriber rate for both fabricates a revenue timeline. Pass
+ *  `null` for a series with no usable growth signal so it reports no ETA rather than
+ *  borrowing the other's. `revenueGrowth` defaults to `subscriberGrowth` for callers
+ *  that genuinely track a single rate. Returns null ETAs when met or unreachable. Pure. */
 export function goalProgress(
   funnel: AudienceFunnel,
   summary: AudienceSummary,
   goals: AudienceGoals,
-  growthRate: number
+  subscriberGrowth: number | null,
+  revenueGrowth: number | null = subscriberGrowth
 ): GoalProgress {
-  const line = (current: number, target: number): GoalLine => {
+  const line = (current: number, target: number, growthRate: number | null): GoalLine => {
     const met = current >= target;
     const remaining = Math.max(0, target - current);
     let etaMonths: number | null = null;
+    const usableGrowth = growthRate != null && growthRate > 0 ? growthRate : null;
     // Compounding ETA: current·(1+g)^t ≥ target  ⇒  t = ln(target/current)/ln(1+g).
-    if (!met && current > 0 && growthRate > 0) {
-      const months = Math.log(target / current) / Math.log(1 + growthRate);
+    if (!met && current > 0 && usableGrowth != null) {
+      const months = Math.log(target / current) / Math.log(1 + usableGrowth);
       etaMonths = Number.isFinite(months) ? Math.ceil(months) : null;
     }
     return {
@@ -326,11 +335,12 @@ export function goalProgress(
       remaining,
       met,
       etaMonths,
+      growthRate: etaMonths != null ? usableGrowth : null,
     };
   };
 
   return {
-    subscribers: line(funnel.subscribers, goals.subscriberTarget),
-    revenue: line(summary.monthlyRevenue, goals.monthlyRevenueTarget),
+    subscribers: line(funnel.subscribers, goals.subscriberTarget, subscriberGrowth),
+    revenue: line(summary.monthlyRevenue, goals.monthlyRevenueTarget, revenueGrowth),
   };
 }

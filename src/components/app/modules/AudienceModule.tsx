@@ -239,9 +239,15 @@ export default async function AudienceModule({
   const subTrend = subSeries.length > 0 ? trend(subSeries) : null;
   const rpmTrend = rpmSeries.length > 0 ? trend(rpmSeries) : null;
 
-  // Goal ETA uses the subscriber MoM growth where available; falls back to 0.
-  const subGrowth = subTrend?.momGrowth ?? 0;
-  const goalsProgress = goals ? goalProgress(funnel, s, goals, subGrowth) : null;
+  // Each goal's ETA uses ITS OWN growth: the subscriber goal uses subscriber MoM
+  // growth; the revenue goal uses a revenue growth derived from RPM history (revenue
+  // ≈ subscribers × RPM, so its growth compounds both drivers). Without an RPM signal
+  // the revenue growth is null so its row shows "no ETA" instead of borrowing the
+  // subscriber rate (which produced a fabricated revenue timeline).
+  const subGrowth = subTrend?.momGrowth ?? null;
+  const rpmGrowth = rpmTrend?.momGrowth ?? null;
+  const revenueGrowth = rpmGrowth != null ? (1 + (subGrowth ?? 0)) * (1 + rpmGrowth) - 1 : null;
+  const goalsProgress = goals ? goalProgress(funnel, s, goals, subGrowth, revenueGrowth) : null;
 
   return (
     <div className="stagger space-y-6">
@@ -564,7 +570,7 @@ export default async function AudienceModule({
                   ) : (
                     <>
                       {line.etaMonths != null
-                        ? t("goalEta", { pct: fmt.fmtPct(line.progress, 0), n: fmt.fmtInt(line.etaMonths), growth: fmt.fmtSignedPct(subGrowth) })
+                        ? t("goalEta", { pct: fmt.fmtPct(line.progress, 0), n: fmt.fmtInt(line.etaMonths), growth: fmt.fmtSignedPct(line.growthRate ?? 0) })
                         : t("goalNoEta", { pct: fmt.fmtPct(line.progress, 0) })}
                     </>
                   )}
