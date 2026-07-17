@@ -92,6 +92,7 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
   const [pinging, setPinging] = useState(false);
   const pingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const doneTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const replayRaf = useRef<number | null>(null);
 
   const avgRank = useMotionValue(4);
   const visibility = useMotionValue(12);
@@ -102,6 +103,7 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
     return () => {
       if (pingTimer.current) clearTimeout(pingTimer.current);
       if (doneTimer.current) clearTimeout(doneTimer.current);
+      if (replayRaf.current) cancelAnimationFrame(replayRaf.current);
     };
   }, []);
 
@@ -116,12 +118,8 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
     if (doneTimer.current) clearTimeout(doneTimer.current);
   };
 
-  const run = () => {
-    if (running) return;
-    if (hasRun) {
-      reset();
-      return;
-    }
+  // The actual climb sequence (#4 → #1), factored out so Replay can reset THEN run.
+  const start = () => {
     setRunning(true);
     setHasRun(true);
     setOrder(optimizedOrder(labels.you));
@@ -134,6 +132,22 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
       pingTimer.current = setTimeout(() => setPinging(false), 1600 * 3);
     }, pingDelay);
     doneTimer.current = setTimeout(() => setRunning(false), pingDelay + 1600 * 3);
+  };
+
+  const run = () => {
+    if (running) return;
+    if (hasRun) {
+      // Replay = reset to the initial layout, then run again on the next frame so the
+      // pin migration actually re-plays in ONE click (the old path only reset and
+      // relabelled to "Run", forcing a confusing second click).
+      reset();
+      replayRaf.current = requestAnimationFrame(() => {
+        replayRaf.current = null;
+        start();
+      });
+      return;
+    }
+    start();
   };
 
   return (
