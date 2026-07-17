@@ -1,14 +1,21 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 
-/** Standard page gutter + max width. */
+/** Standard page gutter + max width. `size` picks the max-width token (default 6xl,
+ *  "narrow" 5xl) — chosen here rather than via a className override so it can't lose a
+ *  Tailwind max-w-* specificity tie. */
+const CONTAINER_MAX_W = { default: "max-w-6xl", narrow: "max-w-5xl" } as const;
 export function Container({
   children,
   className = "",
+  size = "default",
 }: {
   children: ReactNode;
   className?: string;
+  size?: keyof typeof CONTAINER_MAX_W;
 }) {
-  return <div className={`mx-auto w-full max-w-6xl px-4 sm:px-6 ${className}`}>{children}</div>;
+  return (
+    <div className={`mx-auto w-full ${CONTAINER_MAX_W[size]} px-4 sm:px-6 ${className}`}>{children}</div>
+  );
 }
 
 /** Small uppercase kicker above a heading. */

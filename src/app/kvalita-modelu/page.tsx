@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Eyebrow } from "@/components/ui";
+import { Container, Eyebrow } from "@/components/ui";
 import ByomQualityOverview from "@/components/app/modules/ByomQualityOverview";
 import ByomQualityMatrix from "@/components/app/modules/ByomQualityMatrix";
 import { hasQualityScores } from "@/lib/llm/quality-scores";
@@ -35,14 +35,15 @@ const T = {
 export default async function ModelQualityPage() {
   const t = await getT(T);
   return (
-    // Whole page held to a constant 80% of the viewport width so every section
-    // (intro, scorecard, matrix) shares one edge instead of the old 3xl/4xl mix.
-    <div className="mx-auto w-4/5 py-12 sm:py-16">
+    // A narrow Container so every section (intro, scorecard, matrix) shares one edge
+    // while inheriting the sitewide gutter floor + a max-width (was a bespoke w-4/5
+    // shell with no padding floor and unbounded line length on large screens).
+    <Container size="narrow" className="py-12 sm:py-16">
       <Eyebrow>{t("eyebrow")}</Eyebrow>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight text-navy-800 sm:text-[2.4rem]">
         {t("heading")}
       </h1>
-      <p className="mt-4 text-lg leading-relaxed text-muted">{t("intro")}</p>
+      <p className="mt-4 max-w-3xl text-lg leading-relaxed text-muted">{t("intro")}</p>
 
       {hasQualityScores() ? (
         <>
@@ -54,6 +55,6 @@ export default async function ModelQualityPage() {
           {t("empty")}
         </p>
       )}
-    </div>
+    </Container>
   );
 }
