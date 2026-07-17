@@ -11,9 +11,9 @@ import {
   aggregate,
   withMetrics,
   campaignPeriodLabel,
-  type CampaignPeriod,
+  isCampaignPeriod,
 } from "@/lib/campaigns/types";
-import { deltaTone, type ReportMetric, type ReportTileSpec } from "@/lib/report/compute";
+import { deltaTone, tileSnapshotValue, type ReportTileSpec } from "@/lib/report/compute";
 import type { Formatters } from "@/lib/format";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -112,9 +112,11 @@ export default async function SharedReportPage({
   const en = locale === "en";
 
   const totals = aggregate(shared.campaigns);
-  const period = shared.period as CampaignPeriod;
-  const periodLabel = (period in { "7d": 1, "30d": 1, "90d": 1 })
-    ? campaignPeriodLabel(period, locale)
+  // Validate the persisted period against the CampaignPeriod source of truth (a shared
+  // link outlives schema changes) instead of an inline magic-membership object + `as`
+  // cast — an unrecognised value falls back to the raw stored string, never mislabels.
+  const periodLabel = isCampaignPeriod(shared.period)
+    ? campaignPeriodLabel(shared.period, locale)
     : shared.period;
   const accent = shared.accentColor || "var(--color-brand-600)";
   // Never fall back to the vendor name on a client-facing report — use the brand
@@ -268,8 +270,12 @@ function MonthlyReportPrimary({
       {/* Type-aware KPI tiles — the exact tiles the in-app report renders. */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {mr.tiles.map((spec) => {
-          const value = snap.current[spec.metric as ReportMetric] ?? 0;
-          const d = spec.hasDelta ? snap.delta[spec.metric as ReportMetric] : undefined;
+          // Skip (don't fabricate 0 for) a tile whose metric drifted out of the persisted
+          // snapshot — an old shared link can carry a tile spec the saved snap has no key
+          // for. A real zero is a number and still renders; only a MISSING key is dropped.
+          const value = tileSnapshotValue(snap, spec.metric);
+          if (value === null) return null;
+          const d = spec.hasDelta ? snap.delta[spec.metric] : undefined;
           return (
             <div key={spec.metric} className="card p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-muted">

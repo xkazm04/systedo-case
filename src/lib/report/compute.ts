@@ -127,6 +127,16 @@ export interface ReportSnap {
   delta: Partial<Record<ReportMetric, number>>;
 }
 
+/** A tile's value from a snapshot, or null when the metric key is ABSENT (a renamed /
+ *  drifted metric, or a tile spec added after an old shared link was persisted) — kept
+ *  distinct from a real 0 so a client-facing report can SKIP the tile instead of
+ *  fabricating a confident "0 Kč" / "0×". `current` is a Partial map, so an absent key
+ *  reads `undefined` while a genuine zero reads `0`. Pure; unit-tested. */
+export function tileSnapshotValue(snap: ReportSnap, metric: ReportMetric): number | null {
+  const v = snap.current[metric];
+  return v === undefined ? null : v;
+}
+
 /** Tone of a period-over-period delta given whether down is the good direction. */
 export function deltaTone(delta: number, goodWhenDown: boolean): DeltaTone {
   if (Math.abs(delta) < 0.0001) return "neutral";

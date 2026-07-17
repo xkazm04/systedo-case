@@ -1,7 +1,18 @@
 /** Monthly report compute (src/lib/report/compute.ts): delta tone + tile specs. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deltaTone, REPORT_TILES, reportTilesForType, livePaidTilesForType } from "@/lib/report/compute";
+import { deltaTone, REPORT_TILES, reportTilesForType, livePaidTilesForType, tileSnapshotValue } from "@/lib/report/compute";
+
+test("tileSnapshotValue: distinguishes a MISSING metric key from a real zero", () => {
+  const snap = { label: "30d", current: { cost: 0, revenue: 12000 }, delta: {} };
+  // A genuine zero is a real datum → the number 0, not skipped.
+  assert.equal(tileSnapshotValue(snap, "cost"), 0);
+  assert.equal(tileSnapshotValue(snap, "revenue"), 12000);
+  // A metric absent from the persisted snapshot (drifted / renamed / newer tile spec)
+  // → null, so the shared report SKIPS the tile instead of fabricating "0 Kč".
+  assert.equal(tileSnapshotValue(snap, "roas"), null);
+  assert.equal(tileSnapshotValue(snap, "profit"), null);
+});
 
 test("deltaTone: up is good for revenue-like metrics", () => {
   assert.equal(deltaTone(0.12, false), "positive");
