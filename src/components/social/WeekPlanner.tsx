@@ -200,11 +200,14 @@ export default function WeekPlanner() {
     else byDay.set(iso, [p]);
   }
 
-  const topicLines = topics
+  const rawLines = topics
     .split("\n")
     .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 7);
+    .filter(Boolean);
+  // A "week" is capped at 7 posts; the tail is NOT dropped — it's surfaced (overLimit)
+  // and kept in the field after a run, never silently discarded.
+  const topicLines = rawLines.slice(0, 7);
+  const overLimit = rawLines.length > 7;
 
   const topicCountLabel =
     topicLines.length === 0
@@ -296,7 +299,9 @@ export default function WeekPlanner() {
     }
     setRunning(false);
     if (!failed) {
-      setTopics("");
+      // Keep any over-the-7-cap tail the run didn't touch instead of wiping the whole
+      // field (topicLines is the first 7; rawLines is everything the user typed).
+      setTopics(rawLines.slice(topicLines.length).join("\n"));
       // A green run can still yield fewer posts than promised if a draft omitted a
       // platform — reconcile POSTS created against topics × networks and flag the gap.
       const promised = topicLines.length * platforms.size;
@@ -362,6 +367,9 @@ export default function WeekPlanner() {
           <p className="mt-1 text-xs text-muted">
             {topicCountLabel}
           </p>
+          {overLimit && (
+            <p className="mt-0.5 text-xs font-medium text-coral-600">{t("overLimit", { count: rawLines.length })}</p>
+          )}
         </div>
 
         <div className="space-y-3">
