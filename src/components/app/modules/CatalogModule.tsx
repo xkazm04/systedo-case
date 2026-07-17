@@ -407,9 +407,17 @@ export default function CatalogModule({
             className="inline-flex items-center gap-1 rounded-pill border border-line bg-surface px-2 py-1 text-[11px] font-medium text-navy-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
           >
             <Download width={12} height={12} />
-            {t("exportAll", { n: aiCount })}
+            {t("exportAll", { n: products.length })}
           </button>
         </div>
+        {/* The export covers EVERY product (AI copy where saved, deterministic floor
+            otherwise), so the button counts products; this line explains the split so
+            the count isn't misread as "only the AI-copy SKUs". */}
+        {products.length > 0 && (
+          <p className="px-1 text-[11px] text-muted">
+            {t("exportAllHint", { ai: aiCount, floor: products.length - aiCount })}
+          </p>
+        )}
         {showSearch && (
           <label className="relative block">
             <Search
