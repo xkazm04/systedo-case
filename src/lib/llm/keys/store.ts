@@ -128,7 +128,7 @@ export async function deleteByomKey(userId: string, vendor: ByomVendor): Promise
 export async function markByomValidation(
   userId: string,
   vendor: ByomVendor,
-  result: { ok: boolean; error?: string }
+  result: { ok: boolean; error?: string; transient?: boolean }
 ): Promise<void> {
   await mutate(userId, (cfg) => {
     const k = cfg.keys[vendor];
@@ -138,6 +138,13 @@ export async function markByomValidation(
       k.lastValidatedAt = now;
       delete k.lastError;
       delete k.lastErrorAt;
+    } else if (result.transient) {
+      // Inconclusive probe (provider outage / throttle / timeout / transport) — it
+      // proves nothing about the key, so do NOT stamp a sticky lastError. Stamping one
+      // here is the bug this guards: `latestValidationFailed` would then bench a
+      // perfectly healthy key on every generation until a manual re-test happened to
+      // land during an uptime window. Leave the prior validation state untouched.
+      return cfg;
     } else {
       k.lastError = result.error ?? "Validace se nezdařila.";
       k.lastErrorAt = now;
