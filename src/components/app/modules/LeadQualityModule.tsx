@@ -277,7 +277,7 @@ export default async function LeadQualityModule({
                   <td className="tnum px-4 py-3 text-right font-medium text-navy-800">{r.spend > 0 ? fmt.fmtCZK(r.cpql) : "—"}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtPct(r.winRate)}</td>
                   <td className="tnum px-4 py-3 text-right text-navy-700">
-                    {Number.isFinite(r.roi) ? fmt.fmtMultiple(r.roi) : "∞"}
+                    {r.roi != null ? fmt.fmtMultiple(r.roi) : "∞"}
                   </td>
                   <td className="px-4 py-3">
                     <Pill tone={scoreTone(r.qualityScore)}>{r.qualityScore}</Pill>

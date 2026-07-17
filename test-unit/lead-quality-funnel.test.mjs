@@ -27,7 +27,8 @@ test("withMetrics / summarize unchanged for the legacy shape (no regression)", (
   const m = withMetrics(minimal);
   assert.ok(Math.abs(m.qualRate - 110 / 140) < EPS);
   assert.ok(Math.abs(m.winRate - 38 / 110) < EPS);
-  assert.equal(m.roi, Infinity); // spend 0 → ROI Infinity preserved
+  assert.equal(m.roi, null); // spend 0 → ROI undefined (null), not the Infinity sentinel
+  assert.equal(JSON.stringify({ roi: m.roi }), '{"roi":null}'); // survives serialization honestly
   const s = summarize([full, minimal]);
   assert.equal(s.leads, 460);
   assert.equal(s.qualified, 308);

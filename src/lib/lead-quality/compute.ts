@@ -18,8 +18,10 @@ export interface SourceMetrics extends LeadSource {
   /** cost per qualified lead */
   cpql: number;
   winRate: number;
-  /** revenue / spend; Infinity for unpaid sources */
-  roi: number;
+  /** revenue / spend; null for unpaid sources (ROI undefined), matching the codebase's
+   *  null-means-no-meaningful-value convention (relDelta / Velocity) — never Infinity,
+   *  which JSON.stringify silently turns to null and formatters render as "∞". */
+  roi: number | null;
   /** composite 0..100 */
   qualityScore: number;
   /** cheap per lead but low qualification → junk */
@@ -36,7 +38,7 @@ export function withMetrics(s: LeadSource): SourceMetrics {
   const qualRate = s.leads > 0 ? s.qualified / s.leads : 0;
   const cpql = s.qualified > 0 ? s.spend / s.qualified : 0;
   const winRate = s.qualified > 0 ? s.won / s.qualified : 0;
-  const roi = s.spend > 0 ? s.revenue / s.spend : Infinity;
+  const roi = s.spend > 0 ? s.revenue / s.spend : null;
   return {
     ...s,
     cpl,
