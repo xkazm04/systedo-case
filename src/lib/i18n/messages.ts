@@ -18,6 +18,8 @@ interface NavCopy {
 export interface Messages {
   nav: {
     caseStudy: string;
+    /** accessible name of the header logo link back to the homepage */
+    home: string;
     /** CTA in the header that opens the authed product workspace */
     openApp: string;
     openMenu: string;
@@ -71,6 +73,7 @@ export interface Messages {
 const cs: Messages = {
   nav: {
     caseStudy: "Case study",
+    home: "Adamant — domů",
     openApp: "Otevřít aplikaci",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
@@ -132,6 +135,7 @@ const cs: Messages = {
 const en: Messages = {
   nav: {
     caseStudy: "Case study",
+    home: "Adamant — home",
     openApp: "Open app",
     openMenu: "Open menu",
     closeMenu: "Close menu",

@@ -50,7 +50,7 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="group flex items-center gap-2.5" aria-label="Adamant — domů">
+        <Link href="/" className="group flex items-center gap-2.5" aria-label={messages.nav.home}>
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-onyx text-brand-400 transition-colors group-hover:bg-onyx-soft">
             <Logo width={20} height={20} />
           </span>
