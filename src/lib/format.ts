@@ -22,6 +22,18 @@ export const LOCALES: Record<SupportedLocale, LocaleConfig> = {
 
 export const DEFAULT_LOCALE: SupportedLocale = "cs";
 
+/** Czech has three plural forms: 1 → singular ("1 nová kampaň"), 2–4 → paucal
+ *  ("2 nové kampaně"), 0 and ≥5 → genitive plural ("5 nových kampaní"). Picks the
+ *  right form for `n` — the same rule Intl.PluralRules("cs") encodes, inlined here
+ *  so alert titles (the highest-visibility copy: inbox headline + email subject)
+ *  read as native Czech instead of always using the genitive-plural form. */
+export function czPlural(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(Math.trunc(n));
+  if (abs === 1) return one;
+  if (abs >= 2 && abs <= 4) return few;
+  return many;
+}
+
 export interface CompactA11y {
   /** Abbreviated text for the visual layout ("1,6 mil. Kč"). */
   text: string;

@@ -9,6 +9,7 @@ import { firestore } from "@/lib/firebase";
 import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
+import { czPlural } from "@/lib/format";
 import { withMetrics, type Campaign, type CampaignChange } from "./types";
 import { triage } from "./triage";
 import { recordActivity } from "./activity";
@@ -196,7 +197,12 @@ export async function evaluateAndAlert(
     name: c.name,
     reason: triage(c, changesById[c.id]).primary?.detail ?? "Vyžaduje pozornost.",
   }));
-  const title = `${fresh.length} nových kritických kampaní`;
+  const title = `${fresh.length} ${czPlural(
+    fresh.length,
+    "nová kritická kampaň",
+    "nové kritické kampaně",
+    "nových kritických kampaní"
+  )}`;
   const body = items.map((i) => `${i.name} — ${i.reason}`).join(" · ");
 
   // In-app inbox first — the durable record that never depends on a 3rd party —

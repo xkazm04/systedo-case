@@ -9,7 +9,7 @@ import { SITE_NAME } from "@/lib/site";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { detectAnomalies, anomalyImpact, type Anomaly } from "@/lib/metrics/anomalies";
-import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact } from "@/lib/format";
+import { fmtCZKCompact, fmtDate, fmtSignedCZKCompact, czPlural } from "@/lib/format";
 import type { DailyPoint as MetricsDailyPoint } from "@/lib/types";
 import type { DailyPoint } from "./types";
 import { recordAlert, getUserEmail, type AlertItem } from "./alerts";
@@ -135,7 +135,12 @@ export async function evaluateAnomalyAlerts(
   // Signed helper: a negative net carries a true minus (Intl would emit an ASCII
   // hyphen), and a positive net is explicitly "+" so it cannot read as damage.
   const moneyTail = impact.count > 0 ? ` · dopad ≈ ${fmtSignedCZKCompact(impact.net)}` : "";
-  const title = `${fresh.length} ${fresh.length === 1 ? "nová anomálie" : "nových anomálií"} ve výkonu`;
+  const title = `${fresh.length} ${czPlural(
+    fresh.length,
+    "nová anomálie",
+    "nové anomálie",
+    "nových anomálií"
+  )} ve výkonu`;
   const extra = fresh.length > shown.length ? ` · +${fresh.length - shown.length} dalších` : "";
   const body = shown.map(describe).join(" · ") + extra + moneyTail;
 
