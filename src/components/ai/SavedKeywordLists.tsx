@@ -6,6 +6,7 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Download } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { toCsv, downloadText } from "@/lib/export";
+import { optimisticDelete } from "@/lib/optimistic-delete";
 import { CopyButton } from "./primitives";
 import {
   KEYWORD_INTENT_LABELS,
@@ -108,17 +109,20 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
   };
 
   const remove = async (listId: string) => {
-    setLists((prev) => prev.filter((l) => l.id !== listId));
-    try {
-      await fetch("/api/keywords/lists", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: listId, projectId: pid }),
-      });
-      await load();
-    } catch {
-      /* ignore */
-    }
+    // Optimistic remove, but snapshot first so a failed/offline DELETE rolls the
+    // list back instead of leaving a ghost deletion the next reload resurrects.
+    const prev = lists;
+    setLists((p) => p.filter((l) => l.id !== listId));
+    await optimisticDelete(
+      () =>
+        fetch("/api/keywords/lists", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: listId, projectId: pid }),
+        }),
+      () => setLists(prev),
+      load
+    );
   };
 
   const exportNegatives = () =>

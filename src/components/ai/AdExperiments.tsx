@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Check, Bolt } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { optimisticDelete } from "@/lib/optimistic-delete";
 import {
   hasPerformanceBasis,
   variantCtr,
@@ -121,17 +122,20 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
   };
 
   const removeExperiment = async (experimentId: string) => {
-    setExperiments((prev) => prev.filter((e) => e.id !== experimentId));
-    try {
-      await fetch("/api/experiments", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ experimentId, projectId: pid }),
-      });
-      await load();
-    } catch {
-      /* ignore */
-    }
+    // Optimistic remove, but snapshot first so a failed/offline DELETE rolls the
+    // row back instead of leaving a ghost deletion the next reload resurrects.
+    const prev = experiments;
+    setExperiments((p) => p.filter((e) => e.id !== experimentId));
+    await optimisticDelete(
+      () =>
+        fetch("/api/experiments", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ experimentId, projectId: pid }),
+        }),
+      () => setExperiments(prev),
+      load
+    );
   };
 
   const setField = (variantId: string, field: keyof AdVariantMetrics, value: string, current: AdVariantMetrics) => {

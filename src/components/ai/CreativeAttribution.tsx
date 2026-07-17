@@ -6,6 +6,7 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Sparkles, Close, Bulb } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { IMAGE_STYLES, IMAGE_STYLE_LABELS, type ImageStyle } from "@/lib/images/types";
+import { optimisticDelete } from "@/lib/optimistic-delete";
 import type { CreativeLink, CreativeMetrics, StyleStat, StylePrior } from "@/lib/images/attribution-types";
 
 const T = {
@@ -133,17 +134,20 @@ export default function CreativeAttribution() {
   };
 
   const remove = async (linkId: string) => {
-    setLinks((prev) => prev.filter((l) => l.id !== linkId));
-    try {
-      await fetch("/api/images/attribution", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linkId, projectId: pid }),
-      });
-      await load();
-    } catch {
-      /* ignore */
-    }
+    // Optimistic remove, but snapshot first so a failed/offline DELETE rolls the
+    // row back instead of leaving a ghost deletion the next reload resurrects.
+    const prev = links;
+    setLinks((p) => p.filter((l) => l.id !== linkId));
+    await optimisticDelete(
+      () =>
+        fetch("/api/images/attribution", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linkId, projectId: pid }),
+        }),
+      () => setLinks(prev),
+      load
+    );
   };
 
   if (status !== "authenticated" || !loaded) return null;
