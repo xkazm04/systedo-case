@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
 import {
   BYOM_MODEL_CATALOG,
@@ -23,6 +22,7 @@ import {
 import { QUALITY_SCORES, hasQualityScores } from "@/lib/llm/quality-scores";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useAsyncAction } from "@/components/hooks/useAsyncAction";
+import { useByomConfig } from "@/components/hooks/useByomConfig";
 
 const T = {
   cs: {
@@ -64,33 +64,16 @@ const T = {
 const selectClass =
   "w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-sm text-navy-800 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50";
 
-type State = { entitled: boolean; config: PublicByomConfig };
-
 export default function ByomMatrix() {
   const t = useT(T);
   const { locale } = useLocale();
-  const [state, setState] = useState<State | null>(null);
+  // Shared config source of truth (single fetch for the whole AI-settings page);
+  // stays in sync when ByomKeys connects/removes a key. ByomKeys owns the section's
+  // loading/error chrome, so the matrix simply stays absent until config is ready.
+  const { state, patch } = useByomConfig();
   // `busy` is a plain boolean here: every select is disabled while any single
   // mutation is in flight (no per-row keying), so the shared hook fits exactly.
   const { busy, error, setError, run } = useAsyncAction();
-
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      try {
-        const res = await fetch("/api/byom");
-        if (!res.ok || !alive) return;
-        const json = (await res.json()) as { entitled?: boolean; config?: PublicByomConfig };
-        if (!alive || !json.config) return;
-        setState({ entitled: Boolean(json.entitled), config: json.config });
-      } catch {
-        /* settings chrome — stay silent on failure */
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   function apply(url: string, opts: RequestInit): Promise<void | undefined> {
     return run(
@@ -101,7 +84,7 @@ export default function ByomMatrix() {
           setError(json.error ?? t("errGeneric"));
           return;
         }
-        if (json.config) setState((s) => (s ? { ...s, config: json.config! } : s));
+        if (json.config) patch(json.config);
       },
       { serverError: t("errNetwork") }
     );
