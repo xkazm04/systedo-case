@@ -65,6 +65,7 @@ const T = {
     okTitle: "Plní cíl",
     preparePackage: "Připravit balíček",
     preparingPackage: "Připravuji…",
+    preparePackageFailed: "Přípravu balíčku se nepodařilo dokončit.",
     preparePackageTitle:
       "Vytvořit změnový balíček pro tuto kampaň v Řízení rozpočtů níže (simulace → schválení → vrácení)",
     analyzePriorityTitle: "Doporučeno vyhodnotit prioritně",
@@ -133,6 +134,7 @@ const T = {
     okTitle: "Meeting goal",
     preparePackage: "Stage change-set",
     preparingPackage: "Staging…",
+    preparePackageFailed: "Couldn't stage the change-set.",
     preparePackageTitle:
       "Create a change package for this campaign in Budget management below (simulate → approve → revert)",
     analyzePriorityTitle: "Recommended to evaluate first",
@@ -264,9 +266,9 @@ export default function CampaignTable({
   onTypeFilterChange: (t: CampaignType | "all") => void;
   /** Stage a governed change-set for one critical row — prefers that campaign's
    *  alert when one exists, else a campaign-scoped create. Absent for anonymous
-   *  visitors (the control-plane route is signed-in only). Resolves false on
-   *  failure so the row can drop its busy state. */
-  onPreparePackage?: (campaignId: string) => Promise<boolean> | void;
+   *  visitors (the control-plane route is signed-in only). Resolves { ok, error }
+   *  so the row can drop its busy state AND surface the server's failure reason. */
+  onPreparePackage?: (campaignId: string) => Promise<{ ok: boolean; error?: string }> | void;
   /** the tenant's triage goal — agreed pnoGoal → target ROAS/PNO, plus the
    *  margin-based break-even when a cost model exists. Threaded through every
    *  triage / tone / banner call so the badges, cell colours and the summary all
@@ -316,13 +318,22 @@ export default function CampaignTable({
     void onAnalyze(id);
   };
 
-  // Which critical row is currently staging a change-set (disables its button).
+  // Which critical row is currently staging a change-set (disables its button),
+  // plus the per-row failure text so a failed stage isn't completely silent.
   const [preparingId, setPreparingId] = useState<string | null>(null);
+  const [prepareError, setPrepareError] = useState<Record<string, string>>({});
   const prepare = async (id: string) => {
     if (!onPreparePackage) return;
     setPreparingId(id);
+    setPrepareError((e) => {
+      const { [id]: _drop, ...rest } = e;
+      return rest;
+    });
     try {
-      await onPreparePackage(id);
+      const res = await onPreparePackage(id);
+      if (res && !res.ok) {
+        setPrepareError((e) => ({ ...e, [id]: res.error ?? t("preparePackageFailed") }));
+      }
     } finally {
       setPreparingId(null);
     }
@@ -628,16 +639,23 @@ export default function CampaignTable({
                               governed change-set (scoped to this campaign's alert
                               when one exists) without hunting through the inbox. */}
                           {triageResult.severity === "critical" && onPreparePackage && (
-                            <button
-                              type="button"
-                              onClick={() => void prepare(c.id)}
-                              disabled={preparingId === c.id}
-                              title={t("preparePackageTitle")}
-                              className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-accent transition-colors hover:underline disabled:opacity-60"
-                            >
-                              <Bolt width={11} height={11} />
-                              {preparingId === c.id ? t("preparingPackage") : t("preparePackage")}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => void prepare(c.id)}
+                                disabled={preparingId === c.id}
+                                title={t("preparePackageTitle")}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-accent transition-colors hover:underline disabled:opacity-60"
+                              >
+                                <Bolt width={11} height={11} />
+                                {preparingId === c.id ? t("preparingPackage") : t("preparePackage")}
+                              </button>
+                              {prepareError[c.id] && (
+                                <span className="text-[11px] text-negative" role="alert">
+                                  {prepareError[c.id]}
+                                </span>
+                              )}
+                            </>
                           )}
                         </div>
                       )}

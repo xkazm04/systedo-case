@@ -271,7 +271,7 @@ export default function CampaignsClient({
   // Stage a change-set for one critical row: prefer the campaign's own alert (the
   // route's fully-scoped path); otherwise fall back to a campaign-scoped create.
   // On success, reload the control plane + alerts and reveal the new proposal.
-  const preparePackage = async (campaignId: string): Promise<boolean> => {
+  const preparePackage = async (campaignId: string): Promise<{ ok: boolean; error?: string }> => {
     const alertId = alertByCampaign.get(campaignId);
     try {
       const res = await fetch("/api/campaigns/control-plane", {
@@ -283,13 +283,19 @@ export default function CampaignsClient({
             : { action: "create", scopeCampaignIds: [campaignId], projectId: pid }
         ),
       });
-      if (!res.ok) return false;
+      // Hand the server's error string back so the row can show WHY staging failed
+      // (a pending set already exists, quota, network) instead of silently flipping
+      // the button label back with no feedback.
+      if (!res.ok) {
+        const json = (await res.json().catch(() => ({}))) as { error?: string };
+        return { ok: false, error: typeof json.error === "string" ? json.error : undefined };
+      }
       setControlPlaneRefresh((n) => n + 1);
       refreshAlerts();
       revealThreadTarget(THREAD_ANCHORS.controlPlane);
-      return true;
+      return { ok: true };
     } catch {
-      return false;
+      return { ok: false };
     }
   };
 
