@@ -62,7 +62,10 @@ export function netProfit(
 /** The ROAS at which revenue × margin exactly covers ad spend — the GROSS
  *  break-even: `1 / margin`. Infinity for a non-positive margin (a channel with
  *  no margin never breaks even). This is the number that says a 42 %-margin
- *  channel breaks even at ~2.4×, not the margin-blind portfolio target. */
+ *  channel breaks even at ~2.4×, not the margin-blind portfolio target.
+ *  NOTE: callers that serialize this across a JSON boundary must map the non-finite
+ *  (Infinity) case to `undefined`/omit it — `JSON.stringify(Infinity)` is `null`,
+ *  which violates a `number`-typed field (see deriveBreakEven). */
 export function breakEvenRoas(marginPct: number): number {
   return marginPct > 0 ? 1 / marginPct : Infinity;
 }

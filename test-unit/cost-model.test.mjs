@@ -65,6 +65,19 @@ test("deriveBreakEven: loaded variant only when a window + overhead/fulfilment e
   assert.equal(be.loadedPno, 1 / 2.8);
 });
 
+test("deriveBreakEven: no ad spend → omit loaded variant, never Infinity (JSON-safe)", () => {
+  const m = { grossMarginPct: 0.5, monthlyOverhead: 10_000, perOrderCost: 0, updatedAt: "x" };
+  // organic-only reference window: overhead exists but adCost is 0, so the loaded ROAS
+  // would be Infinity — the interface must instead omit the loaded fields.
+  const be = deriveBreakEven(m, { adCost: 0, conversions: 0, months: 3 });
+  assert.equal(be.loadedRoas, undefined);
+  assert.equal(be.loadedPno, undefined);
+  // and what survives is JSON-round-trippable with no null leaking into a number field
+  const round = JSON.parse(JSON.stringify(be));
+  assert.equal(round.loadedRoas, undefined);
+  assert.ok(Number.isFinite(round.grossRoas));
+});
+
 test("sanitize: rejects a margin outside (0,1]; clamps negatives to 0", () => {
   assert.equal(sanitizeCostModel({ grossMarginPct: 0 }), null);
   assert.equal(sanitizeCostModel({ grossMarginPct: 1.5 }), null);

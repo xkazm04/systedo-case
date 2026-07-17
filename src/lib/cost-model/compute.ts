@@ -84,8 +84,12 @@ export function deriveBreakEven(
   const fulfil = ProfitMath.fulfilment(m.perOrderCost, ref.conversions);
   if (overhead <= 0 && fulfil <= 0) return { grossRoas, grossPno };
   const loadedRoas = ProfitMath.loadedBreakEvenRoas(m.grossMarginPct, ref.adCost, overhead, fulfil);
-  const loadedPno = loadedRoas > 0 && Number.isFinite(loadedRoas) ? 1 / loadedRoas : Infinity;
-  return { grossRoas, grossPno, loadedRoas, loadedPno };
+  // A non-finite loaded value (no ad spend / no margin) is not a serializable domain
+  // number — JSON.stringify(Infinity) becomes null, breaking the `number` contract
+  // downstream. Treat it as "no loaded variant" and omit both optional fields, exactly
+  // like the no-overhead/fulfilment case above.
+  if (!Number.isFinite(loadedRoas)) return { grossRoas, grossPno };
+  return { grossRoas, grossPno, loadedRoas, loadedPno: 1 / loadedRoas };
 }
 
 /** Clamp/validate a raw cost model from the client. Returns null if unusable. */
