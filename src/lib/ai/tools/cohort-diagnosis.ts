@@ -238,6 +238,15 @@ export function baseCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosi
     };
   }
 
+  // Match the eshop register the rest of the file threads through (cohortLine /
+  // cohortDiagnosisSystem) so the keyless demo doesn't tell an e-shop owner about
+  // SaaS "registrace"/"retence" — the exact vocabulary the prompt teaches the
+  // model to avoid for that business type.
+  const eshop = req.eshop ?? false;
+  const retentionLabel = eshop ? "M3 opakování" : "M3 retence";
+  const perAcqLabel = eshop ? "zákazníka" : "registraci";
+  const retentionLever = eshop ? "Zvyšte opakované nákupy / hodnotu objednávky" : "Zvedněte retenci/ARPU";
+
   const payback =
     worst.paybackMonth != null ? `za ${worst.paybackMonth} měs.` : "se v rámci horizontu nevrací";
   const belowGoal = worst.ltvCac < 3;
@@ -257,9 +266,9 @@ export function baseCohortDiagnosis(req: CohortDiagnosisRequest): CohortDiagnosi
     const channelHint = worstChannel
       ? ` Nejhůř si vede kanál ${worstChannel.channel} (LTV:CAC ${fmtMultiple(worstChannel.ltvCac)}) — začněte u něj.`
       : "";
-    recommendation = `Snižte CAC kohorty ${worst.month} (${fmtCZK(worst.cac)}/registraci) — utlumte nejdražší kanály a přesuňte rozpočet ke kohortám s nejlepší LTV:CAC, než přidáte další objem.${channelHint}`;
+    recommendation = `Snižte CAC kohorty ${worst.month} (${fmtCZK(worst.cac)}/${perAcqLabel}) — utlumte nejdražší kanály a přesuňte rozpočet ke kohortám s nejlepší LTV:CAC, než přidáte další objem.${channelHint}`;
   } else if (weakRetention) {
-    recommendation = `Zvedněte retenci/ARPU kohorty ${worst.month} (M3 retence jen ${fmtPct(worst.m3)}) — onboarding a aktivace v prvních týdnech protáhnou křivku a zvednou LTV ${fmtCZK(worst.ltv)}.`;
+    recommendation = `${retentionLever} kohorty ${worst.month} (${retentionLabel} jen ${fmtPct(worst.m3)}) — onboarding a aktivace v prvních týdnech protáhnou křivku a zvednou LTV ${fmtCZK(worst.ltv)}.`;
   } else {
     recommendation = `Přealokujte rozpočet od kohorty ${worst.month} (LTV:CAC ${fmtMultiple(worst.ltvCac)}) ke kohortám s vyšší návratností — neškálujte akvizici, dokud se LTV:CAC nedostane k cíli ≥ 3×.`;
   }
