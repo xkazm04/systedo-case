@@ -12,6 +12,13 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { PROJECT_TYPE_META, projectTypeMeta } from "@/lib/projects/types";
 import { compareLabels, type CompareRow } from "./compare";
 
+/** Generic "healthy PNO" bar used to tint the column. It is a cross-type placeholder,
+ *  NOT a per-type decision — a healthy PNO is business-type- and margin-dependent, so
+ *  this is surfaced with a tooltip ("cíl ≤ 20 %") and a non-color affix rather than
+ *  presented as a hard verdict. A future pass can source it per project type / cost
+ *  model. TODO(pno-target): read from the project's target PNO once modeled. */
+const PNO_HEALTHY_MAX = 0.2;
+
 export default function PortfolioCompare({
   rows,
   activeProjectId,
@@ -107,8 +114,19 @@ export default function PortfolioCompare({
                     {fmt.fmtMultiple(r.totals.roas)}
                   </td>
                   <td className="tnum px-3 py-3.5 text-right">
-                    <span className={r.totals.pno <= 0.2 ? "text-positive" : "text-coral-600"}>
+                    {/* Judgment is legible without color: a title explains the target
+                        and an affix (▲) marks above-bar rows for colorblind users. */}
+                    <span
+                      className={r.totals.pno <= PNO_HEALTHY_MAX ? "text-positive" : "text-coral-600"}
+                      title={L.pnoTargetHint}
+                    >
                       {fmt.fmtPct(r.totals.pno)}
+                      {r.totals.pno > PNO_HEALTHY_MAX && (
+                        <>
+                          <span aria-hidden> ▲</span>
+                          <span className="sr-only"> — {L.pnoAboveTarget}</span>
+                        </>
+                      )}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">

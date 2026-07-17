@@ -30,6 +30,8 @@ const T = {
     pno: "PNO",
     trend: "Obrat 12 měs.",
     here: "tento projekt",
+    pnoTargetHint: "Obecný práh napříč typy: cíl ≤ 20 %",
+    pnoAboveTarget: "nad cílem",
   },
   en: {
     eyebrow: "Portfolio",
@@ -43,6 +45,8 @@ const T = {
     pno: "PNO",
     trend: "Revenue 12mo",
     here: "current project",
+    pnoTargetHint: "Generic cross-type bar: target ≤ 20%",
+    pnoAboveTarget: "above target",
   },
 } as const;
 
