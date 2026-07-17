@@ -99,14 +99,28 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
   const buckets = new Set(headlines.map((h) => lengthBucket(h.length))).size;
   const spreadFrac = buckets / 3;
 
-  // 4 — keywords actually present in the headlines
+  // 4 — keywords actually present in the headlines.
+  // The ≥4-char token filter drops short heads like "čaj"/"med"/"bio"; if it
+  // strips every keyword we'd wrongly report "no headline contains a keyword"
+  // even when they all do. Fall back to whole-normalized-keyword substring
+  // matching in that case, and if there is genuinely nothing to measure (no
+  // keywords at all) exclude the factor from the score instead of failing it.
   const keywordTokens = Array.from(new Set(result.keywords.flatMap(tokenize)));
+  const shortKeywordNeedles =
+    keywordTokens.length === 0
+      ? Array.from(new Set(result.keywords.map(normalize).filter(Boolean)))
+      : [];
+  const keywordsMeasurable = keywordTokens.length > 0 || shortKeywordNeedles.length > 0;
   const headlinesWithKeyword = headlines.filter((h) => {
-    const ht = new Set(tokenize(h));
-    return keywordTokens.some((k) => ht.has(k));
+    if (keywordTokens.length > 0) {
+      const ht = new Set(tokenize(h));
+      return keywordTokens.some((k) => ht.has(k));
+    }
+    const norm = normalize(h);
+    return shortKeywordNeedles.some((k) => norm.includes(k));
   }).length;
-  const coverage = n ? headlinesWithKeyword / n : 0;
-  const coverageFrac = clamp01(coverage / KEYWORD_COVERAGE_GOAL);
+  const coverage = n && keywordsMeasurable ? headlinesWithKeyword / n : 0;
+  const coverageFrac = keywordsMeasurable ? clamp01(coverage / KEYWORD_COVERAGE_GOAL) : 0;
 
   // 5 — enough descriptions
   const descFrac = clamp01(descriptions.length / DESC_GOAL);
@@ -117,7 +131,7 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
 
   const en = locale === "en";
 
-  const weighted: { weight: number; frac: number; factor: AdStrengthFactor }[] = [
+  const weighted: { weight: number; frac: number; measured?: boolean; factor: AdStrengthFactor }[] = [
     {
       weight: 22,
       frac: countFrac,
@@ -170,20 +184,31 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
     {
       weight: 20,
       frac: coverageFrac,
+      measured: keywordsMeasurable,
       factor: {
         label: en ? "Keywords in headlines" : "Klíčová slova v nadpisech",
-        status: coverage >= KEYWORD_COVERAGE_GOAL ? "pass" : coverage > 0 ? "partial" : "fail",
-        detail: en
-          ? coverage >= KEYWORD_COVERAGE_GOAL
-            ? `Keywords appear in ${headlinesWithKeyword} of ${n} headlines.`
-            : coverage > 0
-              ? `Keywords appear in only ${headlinesWithKeyword} of ${n} headlines — include them in more.`
-              : "No headline contains a keyword. Include keywords in at least half of them."
+        status: !keywordsMeasurable
+          ? "partial"
           : coverage >= KEYWORD_COVERAGE_GOAL
-            ? `Klíčová slova zaznívají v ${headlinesWithKeyword} z ${n} nadpisů.`
+            ? "pass"
             : coverage > 0
-              ? `Klíčová slova jsou jen v ${headlinesWithKeyword} z ${n} nadpisů — zařaďte je do dalších.`
-              : "Žádný nadpis neobsahuje klíčové slovo. Zařaďte je aspoň do poloviny.",
+              ? "partial"
+              : "fail",
+        detail: en
+          ? !keywordsMeasurable
+            ? "No measurable keywords provided — coverage not scored."
+            : coverage >= KEYWORD_COVERAGE_GOAL
+              ? `Keywords appear in ${headlinesWithKeyword} of ${n} headlines.`
+              : coverage > 0
+                ? `Keywords appear in only ${headlinesWithKeyword} of ${n} headlines — include them in more.`
+                : "No headline contains a keyword. Include keywords in at least half of them."
+          : !keywordsMeasurable
+            ? "Žádná měřitelná klíčová slova — pokrytí se nehodnotí."
+            : coverage >= KEYWORD_COVERAGE_GOAL
+              ? `Klíčová slova zaznívají v ${headlinesWithKeyword} z ${n} nadpisů.`
+              : coverage > 0
+                ? `Klíčová slova jsou jen v ${headlinesWithKeyword} z ${n} nadpisů — zařaďte je do dalších.`
+                : "Žádný nadpis neobsahuje klíčové slovo. Zařaďte je aspoň do poloviny.",
       },
     },
     {
@@ -228,7 +253,17 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
     descriptions.filter((d) => d.length > AD_LIMITS.description).length +
     callouts.filter((c) => c.length > AD_LIMITS.callout).length;
 
-  let score = Math.round(weighted.reduce((sum, w) => sum + w.weight * w.frac, 0));
+  // Weights nominally sum to 100; if a factor is unmeasurable (e.g. no keywords)
+  // its weight is redistributed by normalising over the measured factors so an
+  // absent signal neither penalises nor inflates the composite.
+  const measuredWeight = weighted.reduce((s, w) => s + (w.measured === false ? 0 : w.weight), 0);
+  let score = measuredWeight
+    ? Math.round(
+        (weighted.reduce((sum, w) => sum + (w.measured === false ? 0 : w.weight * w.frac), 0) /
+          measuredWeight) *
+          100,
+      )
+    : 0;
   if (overLimit > 0) score = Math.min(score, 64); // keep below the "good" floor (65)
   const rating: AdStrengthRating =
     score >= 85 ? "excellent" : score >= 65 ? "good" : score >= 40 ? "average" : "poor";
