@@ -12,6 +12,11 @@ import { PLATFORM_LIMITS, isSocialPlatform, type SocialPlatform } from "@/lib/so
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
+/** Tolerance for a scheduled time landing in the past (clock skew / submit latency).
+ *  Beyond it, a "scheduled" post is treated as a mistake and rejected rather than
+ *  published immediately. */
+const PAST_SCHEDULE_SKEW_MS = 2 * 60 * 1000;
+
 async function tenantOf(projectId?: string | null): Promise<string> {
   const uid = await currentUserId();
   // Social content is account-agnostic — key it without the Ads customerId so a
@@ -64,6 +69,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Neplatné datum plánování." }, { status: 422 });
   }
   const scheduledAt = Number.isNaN(scheduledMs) ? "" : new Date(scheduledMs).toISOString();
+  // "Schedule for a past time" and "publish now" are different user intents. A supplied
+  // timestamp more than a small skew window in the past (a year typo, a stale form value,
+  // a timezone misread) must NOT silently fall through to the publish-now branch and go
+  // out live on a connected account — the most irreversible action here. Reject it; only
+  // an OMITTED scheduledAt means publish now.
+  if (scheduledAt !== "" && scheduledMs < Date.now() - PAST_SCHEDULE_SKEW_MS) {
+    return Response.json({ error: "Naplánovaný čas je v minulosti." }, { status: 422 });
+  }
   const future = scheduledAt !== "" && scheduledMs > Date.now();
 
   // Schedule for later → the cron publishes it when due.
