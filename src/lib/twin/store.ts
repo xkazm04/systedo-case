@@ -3,6 +3,12 @@
  *  evaluates the Firestore module. Project-scoped (the trained voice, the style
  *  facts and the outbox belong to the project). Server-only. Mirrors
  *  organic-channels/store. */
+/** KEYING INVARIANT: rows here are keyed by projectId ALONE (no uid), unlike the
+ *  catalog/warehouse/project-state stores which key by (uid, projectId). This is safe
+ *  ONLY because project ids are UUID-unique across all users and EVERY route into this
+ *  store first passes requireOwnedProject (or rejectUnknownProject for the tenant-keyed
+ *  callers) — never call it with a wire-supplied id that has not been ownership-checked.
+ *  deleteProjectCascade scrubs by project id for the same reason. */
 import { LOCAL_DB } from "@/lib/local-mode";
 import type { TwinState } from "./types";
 
