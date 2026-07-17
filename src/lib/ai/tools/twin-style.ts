@@ -159,10 +159,22 @@ export function generateTwinStyle(
     ],
   });
 
+  // Already-answered questions, so the canned fallback never re-asks something the
+  // owner just answered (which reads as the product not listening).
+  const answeredQuestions = new Set(
+    (req.answers ?? []).map((a) => txt(a.question).trim().toLowerCase()).filter(Boolean)
+  );
+  // A mature voice (lots of samples, or answers to several earlier rounds) can
+  // legitimately have NO remaining gaps — forcing a question every round means the
+  // training UI can never reach "voice fully trained".
+  const matureVoice = cleanList(req.samples, 10).length >= 5 || answeredQuestions.size >= 3;
+
   const normalize = (parsed: unknown): TwinStyleResult => {
     const o = parsed as Record<string, unknown> | null;
     const demo = fallback();
     const directives = txt(o?.directives);
+    const modelGaps = cleanList(o?.gapQuestions, 4);
+    const freshFallback = demo.gapQuestions.filter((q) => !answeredQuestions.has(q.trim().toLowerCase()));
     return {
       summary: txt(o?.summary) || demo.summary,
       directives: directives || demo.directives,
@@ -170,7 +182,9 @@ export function generateTwinStyle(
       lengthHint: txt(o?.lengthHint) || demo.lengthHint,
       constraints: normalizeConstraints(o?.constraints),
       examples: cleanList(o?.examples, 6),
-      gapQuestions: cleanList(o?.gapQuestions, 4).length > 0 ? cleanList(o?.gapQuestions, 4) : demo.gapQuestions,
+      // A mature voice may end with no open questions; otherwise fall back to the
+      // starters the owner hasn't already answered.
+      gapQuestions: modelGaps.length > 0 ? modelGaps : matureVoice ? [] : freshFallback,
     };
   };
 
@@ -181,7 +195,9 @@ export function generateTwinStyle(
     if (txt(o.directives).length < 40) {
       v.push("Pole „directives“ je prázdné nebo příliš krátké — vrať 3–6 konkrétních vět ve druhé osobě.");
     }
-    if (cleanList(o.gapQuestions, 4).length < 1) {
+    // Require an open question only while the voice is still cold — a mature voice
+    // reaching "no remaining gaps" is a valid end state, not a repair-worthy error.
+    if (!matureVoice && cleanList(o.gapQuestions, 4).length < 1) {
       v.push("Vrať alespoň jednu otázku v poli „gapQuestions“ — co o hlasu ještě nevíš.");
     }
     return v;

@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-07-17T14:39:58.561Z",
+  "provenAt": "2026-07-17T14:42:14.637Z",
   "files": {
     "src/lib/llm/index.ts": "c43402e1ed7bac4526457809ff5e642f0eb89aa973a8ff1bca933c094b1a7448",
     "src/lib/llm/claude.ts": "2db390e12a2e9504329dde5b402017d1e9650e3fddfa2dae5c78fc76aefcffa5",
@@ -21,7 +21,7 @@
     "src/lib/ai/tools/monthly-recap.ts": "2bb10a112a9ffa66b9962bc419d1e451ea47071270e4e368b3421cde21740c1e",
     "src/lib/ai/tools/campaign-eval.ts": "efff3feea84e6b18f1efa47999fe5810ad47f5ddc509a48643cab5abe8020108",
     "src/lib/ai/tools/twin-reply.ts": "d3afb816ec6ac5a9461ea60de0f6929564ac90634edfc0c6a0e7bce627d8a10e",
-    "src/lib/ai/tools/twin-style.ts": "e53033e67ae8f353b947aa7519567b8dbd7d80152b1c23131ab7badd82955d86",
+    "src/lib/ai/tools/twin-style.ts": "d53ab61103e48ee0cb0336b10c8a1b9c04f9a80b7c6c351642a8fda77f2b0011",
     "src/lib/ai/tools/repurpose.ts": "7270af08fc32d5aa2829b21b3762073f605807713d7dbd6b3551b122e16a13be",
     "src/lib/ai/tools/local-review-reply.ts": "dfb5efe40f8429a2023cbc1092f9e6d5f9ee753917fddf4893bd39c01f6145ba",
     "src/lib/ai/tools/article-draft.ts": "eb382c33d1846817ed01f9d5d1a29b12c767ce0a38f518a8e23f720ed70706a6",
@@ -70,7 +70,7 @@
     "campaign-eval": "2026-07-17T14:32:43.984Z",
     "social": "2026-07-16T22:18:05.210Z",
     "twin-reply": "2026-07-16T22:18:05.210Z",
-    "twin-style": "2026-07-16T22:18:05.210Z",
+    "twin-style": "2026-07-17T14:42:14.637Z",
     "repurpose": "2026-07-16T22:18:05.210Z",
     "local-review-reply": "2026-07-16T22:18:05.210Z",
     "article-draft": "2026-07-17T14:37:42.653Z",
