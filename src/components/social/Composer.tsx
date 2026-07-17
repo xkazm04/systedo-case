@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bolt, Check, Sparkles } from "@/components/icons";
 import { RefineBar } from "@/components/ai/primitives";
 import { useOptionalProject } from "@/lib/projects/context";
+import { readSocialBrand, writeSocialBrand } from "@/lib/social/brand-storage";
 import { useT } from "@/lib/i18n/client";
 import {
   PLATFORM_LIMITS,
@@ -89,21 +90,13 @@ export default function Composer() {
   // single brand; persisted locally so it sticks, and fed to the AI draft as `brand`.
   const [brand, setBrand] = useState("");
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem("app:social-brand");
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setBrand(saved);
-    } catch {
-      /* storage unavailable — non-fatal */
-    }
-  }, []);
+    const saved = readSocialBrand(pid);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved) setBrand(saved);
+  }, [pid]);
   useEffect(() => {
-    try {
-      window.localStorage.setItem("app:social-brand", brand);
-    } catch {
-      /* storage unavailable — non-fatal */
-    }
-  }, [brand]);
+    writeSocialBrand(pid, brand);
+  }, [pid, brand]);
   // C1 unify: the project's auto-derived catalogue voice — used by the server when
   // this field is blank, so show it here too (parity with the WeekPlanner strip).
   const [autoBrand, setAutoBrand] = useState("");

@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Check, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
+import { readSocialBrand } from "@/lib/social/brand-storage";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { Formatters } from "@/lib/format";
 import {
@@ -99,16 +100,6 @@ function buildWeek(fmt: Formatters): Day[] {
   });
 }
 
-/** Read the shared social brand voice once (SSR-guarded), so the batch is on-brand. */
-function readSocialBrand(): string {
-  if (typeof window === "undefined") return "";
-  try {
-    return window.localStorage.getItem("app:social-brand") ?? "";
-  } catch {
-    return "";
-  }
-}
-
 export default function WeekPlanner() {
   const project = useOptionalProject();
   const pid = project?.id;
@@ -131,7 +122,7 @@ export default function WeekPlanner() {
     });
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
-  const [brand] = useState(readSocialBrand);
+  const [brand] = useState(() => readSocialBrand(pid));
   // C1: the project's auto-derived brand voice (what it sells + how it talks), so the
   // batch is on-brand BY DEFAULT — shown here, not buried in the Composer.
   const [autoBrand, setAutoBrand] = useState("");
