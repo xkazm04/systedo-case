@@ -82,6 +82,29 @@ test("trendDelta is the relative change between the last two buckets", () => {
   assert.equal(trendDelta([points[0]], "netProfit"), 0);
 });
 
+test("profitTrend flags a partial leading weekly bucket incomplete", () => {
+  // 9 days → a full trailing 7-day window + a 2-day leading stub counted back from the
+  // anchor. The stub must not plot as a full week (an artificial near-zero cliff).
+  const daily = days("2026-05-01", 9, { visits: 100, cost: 100, conversions: 2, revenue: 1000 });
+  const trend = profitTrend(daily, channels, margins, "week");
+  assert.equal(trend.length, 2);
+  assert.equal(trend[0].complete, false, "2-day leading stub flagged incomplete");
+  assert.notEqual(trend[1].complete, false, "full trailing week stays complete");
+  // trendDelta needs ≥2 complete buckets; with only one full week here it returns 0.
+  assert.equal(trendDelta(trend, "netProfit"), 0);
+});
+
+test("profitTrend flags a partial leading calendar month incomplete", () => {
+  const daily = [
+    ...days("2026-04-10", 21, { visits: 10, cost: 100, conversions: 1, revenue: 1000 }), // starts mid-month
+    ...days("2026-05-01", 31, { visits: 10, cost: 100, conversions: 1, revenue: 1000 }), // full month, ends on the anchor
+  ];
+  const trend = profitTrend(daily, channels, margins, "month");
+  assert.equal(trend[0].label, "2026-04");
+  assert.equal(trend[0].complete, false, "April doesn't start on the 1st → partial");
+  assert.equal(trend[1].complete, true, "May is full and ends on the month-end anchor");
+});
+
 test("profitTrend returns empty for an empty series", () => {
   assert.deepEqual(profitTrend([], channels, margins, "week"), []);
 });

@@ -54,9 +54,12 @@ export function profitTrend(
   }
 
   const points: ProfitTrendPoint[] = [];
+  // Days per bucket (keyed by first date) so we can flag a partial leading window.
+  const dayCount = new Map<string, number>();
   for (const pts of groups.values()) {
     const sorted = [...pts].sort((a, b) => (a.date < b.date ? -1 : 1));
     const firstDate = sorted[0]!.date;
+    dayCount.set(firstDate, sorted.length);
     const { summary } = computeProfit(channelRows(channels, totalsOf(sorted)), margins);
     points.push({
       date: firstDate,
@@ -86,6 +89,18 @@ export function profitTrend(
     for (const pt of points) {
       pt.complete = !(pt.date.slice(0, 7) === anchorMonth && !anchorIsMonthEnd);
     }
+  }
+
+  // Flag the LEADING (oldest) bucket incomplete when it holds fewer days than a full
+  // window. Fixed weekly windows counted back from the anchor truncate at the series
+  // START, and the first calendar month is partial when it doesn't begin on the 1st —
+  // neither was flagged, so every chart opened with an artificial near-zero cliff that
+  // misreads as dramatic growth. (The trailing partial month is handled above.)
+  const lead = points[0];
+  if (lead) {
+    const partialLead =
+      granularity === "month" ? lead.date.slice(8, 10) !== "01" : (dayCount.get(lead.date) ?? 0) < 7;
+    if (partialLead) lead.complete = false;
   }
 
   return points;

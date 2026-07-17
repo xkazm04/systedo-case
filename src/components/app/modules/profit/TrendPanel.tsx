@@ -68,6 +68,13 @@ export default function TrendPanel({
   const granularityLabel = period === "365" ? t("byMonths") : t("byWeeks");
   const granularityUnit = period === "365" ? t("month") : t("week");
 
+  // Plot only complete buckets: a partial leading/trailing window carries a fraction of
+  // a full period's revenue and would draw an artificial cliff. Fall back to the full
+  // series if filtering would leave too few points to draw (keeps the sparkline present).
+  const complete = trend.filter((p) => p.complete !== false);
+  const series = complete.length >= 2 ? complete : trend;
+  const last = series[series.length - 1]!;
+
   return (
     <div className="card p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -82,13 +89,13 @@ export default function TrendPanel({
           </div>
           <div className="mt-1.5">
             <TrendSpark
-              values={trend.map((t) => t.netProfit)}
+              values={series.map((t) => t.netProfit)}
               color="var(--color-brand-accent)"
-              ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZK(trend[trend.length - 1]!.netProfit) })}
+              ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZK(last.netProfit) })}
             />
           </div>
           <p className="mt-1 text-xs text-muted">
-            {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZKCompact(trend[trend.length - 1]!.netProfit) })}
+            {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtCZKCompact(last.netProfit) })}
           </p>
         </div>
         <div>
@@ -98,13 +105,13 @@ export default function TrendPanel({
           </div>
           <div className="mt-1.5">
             <TrendSpark
-              values={trend.map((t) => t.poas)}
+              values={series.map((t) => t.poas)}
               color="var(--color-navy-500)"
-              ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
+              ariaLabel={t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(last.poas) })}
             />
           </div>
           <p className="mt-1 text-xs text-muted">
-            {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(trend[trend.length - 1]!.poas) })}
+            {t("lastPeriod", { granularity: granularityUnit, value: fmt.fmtMultiple(last.poas) })}
           </p>
         </div>
       </div>
