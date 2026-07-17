@@ -8,7 +8,7 @@ import { latestDiagnosis, listDiagnoses } from "@/lib/diagnoses/store";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "lokalni");
+  const { project } = await requireProjectModule(projectId, "lokalni");
 
   // The AI "Lokální diagnóza" request (and the resolved targets / reviews the module
   // renders) come from the SAME shared server resolver the /api/ai click path re-runs

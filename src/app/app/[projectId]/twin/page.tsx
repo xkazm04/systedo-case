@@ -10,7 +10,7 @@ import { getProjectDataset } from "@/lib/project-data/dataset";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "twin");
+  const { project } = await requireProjectModule(projectId, "twin");
 
   // Dataset-derived "now" for parity with the other catalog consumers (katalog /
   // mesicni-report), so seed composition isn't on a non-deterministic Date.now().

@@ -8,7 +8,7 @@ import { resolveLeadSources } from "@/lib/lead-quality/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "kvalita-leadu");
+  const { project } = await requireProjectModule(projectId, "kvalita-leadu");
   // Live-over-sample: the funnel runs on imported CRM leads when the project has
   // any, else the seeded sample — and the shell's "sample" note only shows when sample.
   const resolved = await resolveLeadSources(project.id, sourcesForProject(project));

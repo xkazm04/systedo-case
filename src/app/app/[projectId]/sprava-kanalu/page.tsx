@@ -9,7 +9,7 @@ import { connectorInfo } from "@/lib/twin/connectors";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "sprava-kanalu");
+  const { project } = await requireProjectModule(projectId, "sprava-kanalu");
 
   const [resolved, offerings] = await Promise.all([
     resolveTwin(project.id, project.type),

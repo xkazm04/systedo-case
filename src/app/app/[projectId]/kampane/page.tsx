@@ -25,7 +25,7 @@ const T = {
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "kampane");
+  const { project } = await requireProjectModule(projectId, "kampane");
   // Use the locale-aware accessor so an en user reads channelFocusEn, not the raw
   // Czech channelFocus interpolated into the otherwise-translated description.
   const focus = projectTypeMeta(project.type, await getServerLocale()).channelFocus;

@@ -10,7 +10,7 @@ import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "obsahovy-engine");
+  const { project } = await requireProjectModule(projectId, "obsahovy-engine");
   // Honest "živá data" signal resolved server-side (synced rows, not just linked).
   const live = await hasSyncedMetrics(project.id);
   return (

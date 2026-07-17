@@ -11,7 +11,7 @@ import { liveSpendForProject } from "@/lib/spend/live";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "spotreba");
+  const { project } = await requireProjectModule(projectId, "spotreba");
 
   const { entries: live, ok } = await liveSpendForProject(project.id);
   // Read FAILED (outage) — show an honest unavailable state rather than seeded

@@ -6,12 +6,10 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import OnboardingModule from "@/components/app/modules/OnboardingModule";
 import { resolveOnboardingProgress } from "@/lib/onboarding/progress";
-import { currentUserId } from "@/lib/session";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "start");
-  const userId = await currentUserId();
+  const { project, userId } = await requireProjectModule(projectId, "start");
   const progress = await resolveOnboardingProgress(project, userId);
 
   return (

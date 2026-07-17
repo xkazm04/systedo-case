@@ -21,7 +21,7 @@ const BASELINE_MONTHLY_BUDGET = 120_000;
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "sklad-sezonnost");
+  const { project } = await requireProjectModule(projectId, "sklad-sezonnost");
   const data = getProjectDataset(project);
 
   const season = monthlySeasonality(data.daily);

@@ -10,7 +10,7 @@ import { resolveTwin } from "@/lib/twin/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "schranka");
+  const { project } = await requireProjectModule(projectId, "schranka");
 
   // D2: a `local` provider sees booking-style enquiries, not B2B service leads.
   const leads = project.type === "local" ? LOCAL_SAMPLE_LEADS : SAMPLE_LEADS;

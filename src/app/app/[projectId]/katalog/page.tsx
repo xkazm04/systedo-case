@@ -10,7 +10,7 @@ import { warehouseConnectionFor } from "@/lib/inventory/warehouse";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "katalog");
+  const { project } = await requireProjectModule(projectId, "katalog");
   // Reference "now" from the dataset's last day, so product restock ETAs are
   // deterministic (matches the Sklad module).
   const data = getProjectDataset(project);

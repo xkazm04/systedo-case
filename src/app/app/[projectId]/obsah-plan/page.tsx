@@ -12,7 +12,7 @@ import { loadServicesFor } from "@/lib/catalog/load";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "obsah-plan");
+  const { project } = await requireProjectModule(projectId, "obsah-plan");
   const services = await loadServicesFor(project);
 
   // Persisted board (per project), else the catalog-grounded seed.

@@ -7,7 +7,7 @@ import { loadProductsForWithSource } from "@/lib/catalog/load";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "produktova-kreativa");
+  const { project } = await requireProjectModule(projectId, "produktova-kreativa");
   // Ground the demo copy + final URL in THIS project instead of a hardcoded shop
   // (BM-L1-02): clean the "(demo)" marker off the name for on-copy brand use.
   const brand = project.name.replace(/\s*\(demo\)\s*/i, "").trim();

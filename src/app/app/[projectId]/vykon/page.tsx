@@ -7,7 +7,7 @@ import { resolveReportDataset } from "@/lib/report-metrics/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "vykon");
+  const { project } = await requireProjectModule(projectId, "vykon");
   // Direction 2 — one profit truth: Výkon resolves the SAME live-over-sample dataset
   // /zisk and the monthly report use (resolveReportDataset), so a live-synced tenant
   // reads its real KPIs here instead of a hard-pinned sample spine that contradicted

@@ -23,11 +23,14 @@ import type { Project } from "./types";
 export async function requireProjectModule(
   projectId: string,
   moduleKey: string
-): Promise<Project> {
+): Promise<{ project: Project; userId: string }> {
   const userId = await currentUserId();
   if (!userId) redirect("/app");
   const project = await getProject(userId, projectId);
   if (!project) notFound();
   if (!isModuleAvailable(project.type, moduleKey)) notFound();
-  return project;
+  // Return the resolved userId (non-null — the guard asserted it) alongside the
+  // project so callers don't re-fetch currentUserId or defensively re-handle a
+  // nullability the guard already eliminated.
+  return { project, userId };
 }

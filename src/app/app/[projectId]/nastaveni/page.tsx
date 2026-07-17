@@ -16,7 +16,7 @@ import ByomMatrix from "@/components/app/modules/ByomMatrix";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "nastaveni");
+  const { project } = await requireProjectModule(projectId, "nastaveni");
   // Honest "živá data" signal resolved server-side (synced rows, not just linked).
   const live = await hasSyncedMetrics(project.id);
   return (

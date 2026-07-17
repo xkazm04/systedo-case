@@ -7,7 +7,7 @@ import { audienceForProject } from "@/lib/audience/sample";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "publikum");
+  const { project } = await requireProjectModule(projectId, "publikum");
   const audience = audienceForProject(project);
   return (
     <ModulePage moduleKey="publikum" sample>

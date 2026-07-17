@@ -23,7 +23,7 @@ const TREND_GRANULARITY: Record<string, TrendGranularity> = {
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "zisk");
+  const { project } = await requireProjectModule(projectId, "zisk");
   // Direction 2 — one profit truth: /zisk resolves the SAME live-over-sample dataset
   // the monthly report uses (resolveReportDataset), so a live-synced tenant reads its
   // real channel mix here instead of the sample spine while the report shows live

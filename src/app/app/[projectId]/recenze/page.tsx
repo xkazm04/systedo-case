@@ -15,7 +15,7 @@ import { businessTypeFromServices } from "@/lib/local/business-type";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "recenze");
+  const { project } = await requireProjectModule(projectId, "recenze");
   const localities = localitiesFor(project);
   const services = await loadServicesFor(project);
   // Live-over-sample: imported reviews when a live section exists, else the seed.

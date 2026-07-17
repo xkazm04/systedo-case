@@ -14,7 +14,7 @@ import { getCompetitors } from "@/lib/competitors/store";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "kanaly");
+  const { project } = await requireProjectModule(projectId, "kanaly");
 
   // Ground the plan in the project's real business: its offering categories, the
   // localities it serves, and any named competitors — the same catalog/competitor

@@ -15,7 +15,7 @@ import { channelRows, totalsOf } from "@/lib/metrics";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "srovnani-seo");
+  const { project } = await requireProjectModule(projectId, "srovnani-seo");
   // Real per-channel economics over the last 90 days → the organic/SEO channel's
   // conversion rate + AOV, which grounds each query's acquisition estimate.
   const data = getProjectDataset(project);

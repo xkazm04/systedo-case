@@ -24,7 +24,7 @@ import type { ReportBeyondData } from "@/components/app/modules/ReportBeyond";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "mesicni-report");
+  const { project } = await requireProjectModule(projectId, "mesicni-report");
   // A1 seam: live Ads data when the project has synced it, else the scaled sample.
   const resolved = await resolveReportDataset(project);
   const dataset = resolved.data;

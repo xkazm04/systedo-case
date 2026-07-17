@@ -8,7 +8,7 @@ import { ltvSummary, withMetrics } from "@/lib/ltv/compute";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "ltv");
+  const { project } = await requireProjectModule(projectId, "ltv");
   const eshop = project.type === "eshop";
   // Direction 2 — one cohort truth: resolve the SAME project-varied cohorts the
   // report's "Beyond this period" block reads (resolveCohorts), so a project's LTV:CAC

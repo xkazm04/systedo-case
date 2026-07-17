@@ -13,7 +13,7 @@ import { localitiesFor } from "@/lib/catalog/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "aktivita");
+  const { project } = await requireProjectModule(projectId, "aktivita");
 
   const userId = await currentUserId();
   const { events: live, ok } = await liveActivityForProject(userId, project.id);

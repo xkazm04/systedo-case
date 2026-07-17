@@ -10,7 +10,7 @@ import { resolveExperiments } from "@/lib/lp-exp/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "experimenty-lp");
+  const { project } = await requireProjectModule(projectId, "experimenty-lp");
   const { experiments, source } = await resolveExperiments(projectId, experimentsForProject(project));
   return (
     <ModulePage moduleKey="experimenty-lp" sample={source === "sample"}>

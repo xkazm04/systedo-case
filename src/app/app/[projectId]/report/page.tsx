@@ -18,7 +18,7 @@ export default async function Page({
 }) {
   const { projectId } = await params;
   // The report belongs to the performance module — gate on it (returns the project).
-  const project = await requireProjectModule(projectId, "vykon");
+  const { project } = await requireProjectModule(projectId, "vykon");
   const locale = await getServerLocale();
   // The period follows the dashboard link; validated against the known keys (default 90d).
   const period = validateReportPeriod((await searchParams).period);

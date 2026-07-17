@@ -7,7 +7,7 @@ import BrandingModule from "@/components/app/modules/BrandingModule";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "branding");
+  const { project } = await requireProjectModule(projectId, "branding");
   return (
     <ModulePage moduleKey="branding">
       <BrandingModule

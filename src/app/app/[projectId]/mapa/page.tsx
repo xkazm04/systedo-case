@@ -11,7 +11,7 @@ import { resolveLocalLadder } from "@/lib/local-signals/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
-  const project = await requireProjectModule(projectId, "mapa");
+  const { project } = await requireProjectModule(projectId, "mapa");
   const services = await loadServicesFor(project);
   const localities = localitiesFor(project);
   const packs = packsForProject(project, localities, project.name);
