@@ -9,6 +9,7 @@ import {
   type AiHistoryEntry,
 } from "@/lib/ai/history";
 import { CLAUDE_TIMEOUT_MS } from "@/lib/llm/models";
+import { resolveRunCeilingMs } from "@/lib/ai/status-core";
 import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useAiStatus, invalidateAiStatus } from "./useAiStatus";
@@ -99,6 +100,18 @@ export function useAiTool<T>(mode: string, variant?: string) {
   const aiStatus = useAiStatus();
   const expectedMs = aiStatus?.latency?.[mode.split(":")[0]] ?? null;
 
+  // The live abort ceiling: derived from the provider that would actually serve
+  // (surfaced at runtime via /api/ai/status) rather than the NODE_ENV-keyed build
+  // constant, so a Claude-backed production deploy — or a slow heavy mode — no
+  // longer aborts at 60s while the server returns (and bills) a real result. Falls
+  // back to AI_TIMEOUT_MS until the status payload has loaded.
+  const timeoutMs = resolveRunCeilingMs(aiStatus, mode.split(":")[0], {
+    claudeMs: CLAUDE_TIMEOUT_MS + 30_000,
+    geminiMs: 60_000,
+    fallbackMs: AI_TIMEOUT_MS,
+  });
+  const timeoutSeconds = Math.round(timeoutMs / 1000);
+
   // The active project (null on public/marketing surfaces). Threaded into every
   // request body so the chokepoint attributes per-project spend for EVERY
   // operation — not just the ones that already carry a projectId (chat). Added
@@ -175,7 +188,7 @@ export function useAiTool<T>(mode: string, variant?: string) {
     setUpgradeUrl(null);
     setRetryIn(null);
 
-    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const res = await fetch("/api/ai", {
@@ -230,7 +243,7 @@ export function useAiTool<T>(mode: string, variant?: string) {
       if (isStale()) return; // a reset()/newer run aborted this one — not a real failure
       if (controller.signal.aborted) {
         setTimedOut(true);
-        setError(t("errorTimeout", { n: AI_TIMEOUT_SECONDS }));
+        setError(t("errorTimeout", { n: timeoutSeconds }));
       } else {
         setError(t("errorNetwork"));
       }

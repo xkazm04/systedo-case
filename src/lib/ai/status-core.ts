@@ -64,6 +64,32 @@ export function resolveWouldServe(
   return order.find(([, ok]) => ok)?.[0] ?? "demo";
 }
 
+/** Client abort ceiling (ms) for a single tool run. NODE_ENV is a poor proxy for
+ *  "which provider answers" — the provider is chosen by which keys are configured,
+ *  surfaced at runtime as `wouldServe`. So key the floor off the provider that
+ *  would actually serve (Claude is slow, Gemini fast), and prefer 2× the observed
+ *  per-tool latency when we have a real sample, so a slow heavy mode never aborts
+ *  a result the server actually billed. When status is unknown (not yet loaded),
+ *  fall back to the caller's build-time default. Pure. */
+export function resolveRunCeilingMs(
+  status: Pick<AiStatusPayload, "wouldServe" | "latency"> | null,
+  toolId: string,
+  opts: { claudeMs: number; geminiMs: number; fallbackMs: number }
+): number {
+  if (!status) return opts.fallbackMs;
+  const base =
+    status.wouldServe === "claude"
+      ? opts.claudeMs
+      : status.wouldServe === "gemini"
+        ? opts.geminiMs
+        : opts.fallbackMs; // demo / unknown path → keep the build-time default
+  const sample = status.latency?.[toolId];
+  if (typeof sample === "number" && Number.isFinite(sample) && sample > 0) {
+    return Math.max(base, Math.round(sample * 2));
+  }
+  return base;
+}
+
 /** Minimum real calls before an average is trusted to pace a loading timer. */
 export const LATENCY_MIN_CALLS = 2;
 
