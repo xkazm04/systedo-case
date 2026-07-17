@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
+import JsonLd from "@/components/JsonLd";
 import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
 import MobileToc from "@/components/article/MobileToc";
@@ -8,8 +9,7 @@ import ReadingProgress from "@/components/article/ReadingProgress";
 import ShareBar from "@/components/article/ShareBar";
 import AuthorBio from "@/components/article/AuthorBio";
 import CopyMarkdownButton from "@/components/article/CopyMarkdownButton";
-import FaqHashOpen from "@/components/article/FaqHashOpen";
-import FaqPermalink from "@/components/article/FaqPermalink";
+import FaqSection from "@/components/article/FaqSection";
 import PrintExpand from "@/components/article/PrintExpand";
 import TaskPager from "@/components/site/TaskPager";
 import { Clock } from "@/components/icons";
@@ -162,10 +162,7 @@ export default async function ArticlePage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <ReadingProgress readingMinutes={meta.readingMinutes} />
       {/* print/PDF: open every <details> for the duration of printing (closed
           disclosure content doesn't print) and restore the state after */}
@@ -242,50 +239,8 @@ export default async function ArticlePage() {
             ))}
           </div>
 
-          {/* FAQ */}
-          <section className="mt-12" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight text-navy-800">
-              {t("faqHeading")}
-            </h2>
-            {/* Auto-open + scroll to the question a #hash targets — a deep link
-                into a collapsed accordion is useless without it. */}
-            <FaqHashOpen ids={faq.map(faqItemId)} />
-            <div className="mt-5 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {faq.map((f) => {
-                const id = faqItemId(f);
-                return (
-                <details key={id} id={id} className="group scroll-mt-24 px-5 py-4 print:break-inside-avoid [&_summary::-webkit-details-marker]:hidden">
-                  <summary className="flex cursor-pointer items-center gap-2 font-medium text-navy-800">
-                    <span className="flex-1">{f.q}</span>
-                    <FaqPermalink id={id} question={f.q} />
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-50 text-navy-600 transition-transform group-open:rotate-45">
-                      +
-                    </span>
-                  </summary>
-                  <p className="mt-3 text-[0.95rem] leading-relaxed text-navy-700">
-                    {f.a.map((node, j) =>
-                      typeof node === "string" ? (
-                        <span key={j}>{node}</span>
-                      ) : "bold" in node ? (
-                        <strong key={j}>{node.text}</strong>
-                      ) : (
-                        <a
-                          key={j}
-                          href={node.href}
-                          target={node.kind === "external" ? "_blank" : undefined}
-                          rel={node.kind === "external" ? "noopener noreferrer" : undefined}
-                          className="link-inline"
-                        >
-                          {node.text}
-                        </a>
-                      )
-                    )}
-                  </p>
-                </details>
-                );
-              })}
-            </div>
-          </section>
+          {/* FAQ — shared accordion (ids, hash-open, permalinks, print, rich inline) */}
+          <FaqSection faq={faq} heading={t("faqHeading")} />
 
           {/* prev/next pager — walks the reviewer through the case study in
               task order, replacing the bespoke "continue reading" cards */}

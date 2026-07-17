@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container, Eyebrow } from "@/components/ui";
+import JsonLd from "@/components/JsonLd";
 import { ArrowRight } from "@/components/icons";
 import { localizedNavItems } from "@/lib/nav";
 import { canonical } from "@/lib/site";
@@ -91,10 +92,7 @@ export default async function MapaPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <Container className="max-w-3xl py-12 sm:py-16">
         <Eyebrow>{t("eyebrow")}</Eyebrow>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-navy-800 sm:text-[2.4rem]">

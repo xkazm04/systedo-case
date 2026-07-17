@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Container, Eyebrow, Pill } from "@/components/ui";
+import JsonLd from "@/components/JsonLd";
+import FaqSection from "@/components/article/FaqSection";
 import ArticleBody from "@/components/article/ArticleBody";
 import ArticleToc from "@/components/article/ArticleToc";
 import Breadcrumbs from "@/components/article/Breadcrumbs";
@@ -93,10 +95,7 @@ export default async function ReportPage() {
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* report header */}
       <section className="border-b border-line bg-surface">
@@ -153,30 +152,10 @@ export default async function ReportPage() {
             ))}
           </div>
 
-          {/* FAQ */}
-          <section className="mt-12" aria-labelledby="faq-heading">
-            <h2 id="faq-heading" className="text-2xl font-semibold tracking-tight text-navy-800">
-              {t("faqHeading")}
-            </h2>
-            <div className="mt-5 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
-              {faq.map((f, i) => (
-                <details
-                  key={i}
-                  className="group px-5 py-4 [&_summary::-webkit-details-marker]:hidden"
-                >
-                  <summary className="flex cursor-pointer items-center justify-between gap-4 font-medium text-navy-800">
-                    {f.q}
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-navy-50 text-navy-600 transition-transform group-open:rotate-45">
-                      +
-                    </span>
-                  </summary>
-                  <p className="mt-3 text-[0.95rem] leading-relaxed text-navy-700">
-                    {inlineToText(f.a)}
-                  </p>
-                </details>
-              ))}
-            </div>
-          </section>
+          {/* FAQ — shared accordion, so this report page inherits the same ids,
+              hash-open, print and rich-inline behavior as /clanek (was a degraded
+              copy: no ids/permalinks/print, answers flattened via inlineToText). */}
+          <FaqSection faq={faq} heading={t("faqHeading")} />
         </article>
       </Container>
     </>

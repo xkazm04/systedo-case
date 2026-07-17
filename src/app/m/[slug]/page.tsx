@@ -10,6 +10,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/ui";
+import JsonLd from "@/components/JsonLd";
 import ArticleBody from "@/components/article/ArticleBody";
 import { canonical } from "@/lib/site";
 import { getMicrosite, buildMicrositeView } from "@/lib/microsite";
@@ -105,12 +106,7 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        // Escape `<` so tenant-controlled fields (brandName/clientName) can't break
-        // out of the <script> element with `</script>` on this public, indexed page.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
-      />
+      <JsonLd data={jsonLd} />
 
       {/* white-label brand band */}
       <div style={{ backgroundColor: accent }} className="h-1.5 w-full" aria-hidden />
