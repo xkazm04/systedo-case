@@ -39,7 +39,20 @@ export async function GET(request: Request) {
   for (const { userId, projectId, connection } of connections) {
     try {
       // Decrypt the stored token for credentialed providers; demo needs none.
-      const token = connection.tokenEnc ? decryptToken(connection.tokenEnc) ?? "" : "";
+      // A stored ciphertext that WON'T decrypt (null) is a distinct failure from
+      // "no token stored" — almost always TOKEN_CRYPTO_KEY was rotated/mismatched.
+      // Coercing it to "" would call the provider with an empty token and surface a
+      // generic 401 ("invalid token"), sending the operator to debug the wrong thing.
+      // Short-circuit with the real cause instead of hitting the provider.
+      const decrypted = connection.tokenEnc ? decryptToken(connection.tokenEnc) : "";
+      if (connection.tokenEnc && decrypted == null) {
+        const reason = "token-decrypt-failed (check TOKEN_CRYPTO_KEY)";
+        const { newlyFailed } = classifySyncResult(connection, false);
+        if (newlyFailed) await alertSyncFailed(userId, projectId, connection.provider, reason);
+        results.push({ userId, projectId, provider: connection.provider, ok: false, reason, alerted: newlyFailed });
+        continue;
+      }
+      const token = decrypted ?? "";
       const result = await runCatalogSync(userId, projectId, {
         providerId: connection.provider,
         token,
