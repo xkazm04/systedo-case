@@ -169,9 +169,13 @@ export interface ProductSummary {
 }
 
 /** Strategy for the budget-reallocation simulator.
- *  - `max-profit`: greedily push budget to the highest marginal-profit channels.
- *  - `hold-revenue`: protect total revenue — only drain a channel into a more
- *    profitable one when revenue (held via ROAS) does not fall. */
+ *  - `max-profit`: greedily push budget to the highest marginal-profit channels;
+ *    a loss-making channel is drained and its budget moves to the best earner.
+ *  - `hold-revenue`: protect total revenue. After the profit-first fill, any budget
+ *    left over is deployed into the highest-ROAS channels with cap headroom (even
+ *    unprofitable ones) up to the minimum spend needed so projectedRevenue does not
+ *    fall below currentRevenue. When the budget/caps can't hold revenue, the plan's
+ *    `revenueHeld` flag is false so the UI can warn instead of silently draining it. */
 export type ReallocStrategy = "max-profit" | "hold-revenue";
 
 export interface ReallocOptions {
@@ -213,4 +217,8 @@ export interface ReallocPlan {
   projectedNetProfit: number;
   /** projectedNetProfit − currentNetProfit */
   profitDelta: number;
+  /** true when projectedRevenue ≥ currentRevenue (within FP tolerance). For the
+   *  `hold-revenue` strategy this is the promise being kept; false means the budget
+   *  could not hold revenue and the UI must surface the shortfall. */
+  revenueHeld: boolean;
 }

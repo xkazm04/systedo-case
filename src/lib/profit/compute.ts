@@ -111,12 +111,14 @@ export function reallocateBudget(
       : b.marginalProfit - a.marginalProfit || b.row.roas - a.row.roas
   );
 
+  const currentRevenue = rows.reduce((a, r) => a + r.revenue, 0);
+
   const suggested = new Map<string, number>();
   let remaining = totalBudget;
   for (const { row, marginalProfit, cap } of order) {
-    // Never fund a channel that loses money on the margin (it would shrink profit);
-    // for hold-revenue the same guard applies — draining a loss-maker can't lose
-    // revenue we want to keep because that revenue was unprofitable.
+    // Profit-first fill: never fund a channel that loses money on the margin (it would
+    // shrink profit). For hold-revenue this is only the FIRST pass — the recovery pass
+    // below may later fund a loss-maker to keep total revenue from falling.
     if (marginalProfit <= 0 || cap <= 0 || remaining <= 0) {
       suggested.set(row.channel, 0);
       continue;
@@ -124,6 +126,31 @@ export function reallocateBudget(
     const give = Math.min(cap, remaining);
     suggested.set(row.channel, give);
     remaining -= give;
+  }
+
+  // hold-revenue recovery: deploy any leftover budget to actually protect revenue.
+  // `order` is ROAS-descending for this strategy, so funding the highest-ROAS channels
+  // with cap headroom first recovers the most revenue per koruna (the minimum spend to
+  // hold it). We WILL fund a loss-maker here — accepting a little profit for the revenue
+  // the user explicitly asked to keep. Without this, hold-revenue drained loss-makers
+  // identically to max-profit, silently letting revenue fall.
+  if (strategy === "hold-revenue" && remaining > 0) {
+    const projectedRevenueSoFar = () =>
+      order.reduce((a, { row }) => a + (suggested.get(row.channel) ?? 0) * row.roas, 0);
+    for (const { row, cap } of order) {
+      if (remaining <= 0) break;
+      if (row.roas <= 0) continue;
+      const already = suggested.get(row.channel) ?? 0;
+      const headroom = cap - already;
+      if (headroom <= 0) continue;
+      const shortfall = currentRevenue - projectedRevenueSoFar();
+      if (shortfall <= 0) break;
+      const spendForShortfall = shortfall / row.roas;
+      const give = Math.min(headroom, remaining, spendForShortfall);
+      if (give <= 0) continue;
+      suggested.set(row.channel, already + give);
+      remaining -= give;
+    }
   }
 
   const out: ReallocChannel[] = base.map(({ row, marginalProfit }) => {
@@ -147,7 +174,6 @@ export function reallocateBudget(
   });
 
   const allocatedSpend = out.reduce((a, r) => a + r.suggestedSpend, 0);
-  const currentRevenue = rows.reduce((a, r) => a + r.revenue, 0);
   const projectedRevenue = out.reduce((a, r) => a + r.projectedRevenue, 0);
   const currentNetProfit = rows.reduce(
     (a, r) => a + ProfitMath.netProfit(ProfitMath.grossProfit(r.revenue, r.marginPct), r.cost),
@@ -164,5 +190,8 @@ export function reallocateBudget(
     currentNetProfit,
     projectedNetProfit,
     profitDelta: projectedNetProfit - currentNetProfit,
+    // Revenue is "held" when the projection doesn't fall below today (FP tolerance
+    // scaled to the magnitude of revenue). hold-revenue works to keep this true.
+    revenueHeld: projectedRevenue >= currentRevenue - Math.max(1, currentRevenue) * 1e-9,
   };
 }
