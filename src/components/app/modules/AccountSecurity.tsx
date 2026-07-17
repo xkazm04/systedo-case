@@ -23,6 +23,8 @@ const T = {
     sessions: "Relace", signOut: "Odhlásit se", signOutAll: "Odhlásit se všude",
     signOutAllNote: "Odhlásí tebe ze všech zařízení a odvolá všechny aktivní relace.",
     activeSessions: "Aktivních relací: {n}", validUntil: "Aktuální relace platná do {d}",
+    sessionsUnavailable: "Počet aktivních relací se teď nepodařilo načíst.",
+    revokeError: "Odhlášení na všech zařízeních se nezdařilo — ostatní zařízení mohou být stále přihlášená. Zkus to prosím znovu.",
     devNote: "Vývojové přihlášení (DEV_AUTH) — správa relací a odhlášení jsou dostupné jen v produkčním režimu.",
     demoNote: "V ukázce nedostupné — bez přihlášení není žádná relace, kterou by šlo ukončit.",
     danger: "Nebezpečná zóna", deleteTitle: "Smazání účtu",
@@ -40,6 +42,8 @@ const T = {
     sessions: "Sessions", signOut: "Sign out", signOutAll: "Sign out everywhere",
     signOutAllNote: "Signs you out on every device and revokes all active sessions.",
     activeSessions: "Active sessions: {n}", validUntil: "Current session valid until {d}",
+    sessionsUnavailable: "Active session count is temporarily unavailable.",
+    revokeError: "Sign-out everywhere failed — other devices may still be signed in. Please try again.",
     devNote: "Dev sign-in (DEV_AUTH) — session management and sign-out are available only in production mode.",
     demoNote: "Unavailable in the demo — with no sign-in there's no session to end.",
     danger: "Danger zone", deleteTitle: "Delete account",
@@ -61,6 +65,7 @@ export default function AccountSecurity({
   facts,
   expiresDate,
   sessionCount,
+  revokeError = false,
   signOutAction,
   signOutEverywhereAction,
   demo = false,
@@ -68,7 +73,10 @@ export default function AccountSecurity({
   user: { id: string; name: string; email: string; image?: string | null };
   facts: AccountFacts;
   expiresDate: string | null;
-  sessionCount: number;
+  /** active session count, or null when the backend read failed (render "unavailable") */
+  sessionCount: number | null;
+  /** true when a prior "sign out everywhere" failed — show a real error, not silence */
+  revokeError?: boolean;
   signOutAction: () => void;
   signOutEverywhereAction: () => void;
   /** Public /dashboard demo: there is no real session, so the sign-out / revoke
@@ -138,9 +146,16 @@ export default function AccountSecurity({
           <p className="rounded-lg bg-canvas px-4 py-3 text-sm text-muted">{t("devNote")}</p>
         ) : (
           <>
-            {(sessionCount > 0 || expiresDate) && (
+            {revokeError && (
+              <p className="mb-4 rounded-lg bg-coral-soft px-4 py-3 text-sm font-medium text-coral-600">{t("revokeError")}</p>
+            )}
+            {(sessionCount === null || (sessionCount ?? 0) > 0 || expiresDate) && (
               <div className="mb-4 space-y-1 text-sm text-muted">
-                {sessionCount > 0 && <p>{t("activeSessions", { n: sessionCount })}</p>}
+                {sessionCount === null ? (
+                  <p>{t("sessionsUnavailable")}</p>
+                ) : (
+                  sessionCount > 0 && <p>{t("activeSessions", { n: sessionCount })}</p>
+                )}
                 {expiresDate && <p className="tnum">{t("validUntil", { d: expiresDate })}</p>}
               </div>
             )}
