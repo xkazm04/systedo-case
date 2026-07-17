@@ -100,18 +100,22 @@ export async function setActiveByomVendor(userId: string, vendor: ByomVendor | n
   });
 }
 
-/** Remove a vendor's key. If it was the active vendor, active falls back to any
- *  remaining configured vendor (else BYOM is disabled). Also prunes any operation-
- *  matrix entries pointing at the removed vendor, so a stale override can't silently
- *  reroute a tool (or revive when the vendor is re-added). */
+/** Remove a vendor's key. If it was the active vendor, BYOM is turned OFF
+ *  (generation falls back to the app's own providers) — NOT silently re-pointed at
+ *  another stored vendor. Also prunes any operation-matrix entries pointing at the
+ *  removed vendor, so a stale override can't silently reroute a tool (or revive when
+ *  the vendor is re-added). */
 export async function deleteByomKey(userId: string, vendor: ByomVendor): Promise<void> {
   await mutate(userId, (cfg) => {
     if (!cfg.keys[vendor]) return cfg;
     delete cfg.keys[vendor];
     if (cfg.activeVendor === vendor) {
-      const remaining = Object.keys(cfg.keys)[0] as ByomVendor | undefined;
-      if (remaining) cfg.activeVendor = remaining;
-      else delete cfg.activeVendor;
+      // Deleting the active vendor is a spend-reducing action; auto-promoting an
+      // arbitrary remaining vendor (the old `Object.keys(cfg.keys)[0]` insertion-order
+      // pick) would silently reroute all the user's LLM traffic — and billing — onto a
+      // personal payment surface they never chose at that moment. Turn BYOM off instead
+      // and let the UI offer an explicit "switch to <vendor>?".
+      delete cfg.activeVendor;
     }
     if (cfg.operations) {
       const next = Object.fromEntries(
