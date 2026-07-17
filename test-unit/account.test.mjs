@@ -27,6 +27,8 @@ test("real session missing email/oauth → action", () => {
 
 test("maskEmail hides the local part but keeps the domain", () => {
   assert.equal(maskEmail("michal@nuda.dev"), "m•••••@nuda.dev");
-  assert.equal(maskEmail("a@b.com"), "a@b.com");
+  // Single-char local parts still get at least one mask character.
+  assert.equal(maskEmail("a@b.com"), "a•@b.com");
+  assert.equal(maskEmail("j@firma.cz"), "j•@firma.cz");
   assert.equal(maskEmail("noatsign"), "noatsign");
 });

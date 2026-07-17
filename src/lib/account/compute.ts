@@ -28,10 +28,12 @@ export function securityChecklist(f: AccountFacts): SecurityCheck[] {
   ];
 }
 
-/** Obscure the local part of an email for display: "michal@x.com" → "m•••@x.com". */
+/** Obscure the local part of an email for display: "michal@x.com" → "m•••@x.com".
+ *  Always emits at least one mask character, so even a single-char local part
+ *  ("j@x.com" → "j•@x.com") is obscured rather than shown verbatim. */
 export function maskEmail(email: string): string {
   const at = email.indexOf("@");
   if (at <= 0) return email;
   const local = email.slice(0, at);
-  return `${local[0]}${"•".repeat(local.length - 1)}${email.slice(at)}`;
+  return `${local[0]}${"•".repeat(Math.max(1, local.length - 1))}${email.slice(at)}`;
 }
