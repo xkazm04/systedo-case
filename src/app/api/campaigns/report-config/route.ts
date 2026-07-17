@@ -4,7 +4,6 @@
 import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import {
-  DEFAULT_CLIENT_PROFILE,
   REPORT_CADENCES,
   getReportConfig,
   setReportConfig,
@@ -15,17 +14,27 @@ import {
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
 
-/** Sanitize the submitted client profile: cap free-text, clamp the PNO goal to a
- *  sane share (1%–100%), and fall back to the default (Mionelo) for empty fields
- *  so a blank submit restores the seeded demo rather than persisting blanks. */
-function parseClientProfile(raw: unknown): ClientProfile {
+/** Validate + sanitize the submitted client profile for a REAL (signed-in) tenant.
+ *  Every PUT here belongs to a real tenant whose profile drives the client-facing
+ *  branded report and the daily cron, so a blank required field or an out-of-range
+ *  PNO goal is REJECTED (422) — never silently back-filled with the seeded Mionelo
+ *  demo identity, which would ship a real customer's report branded for the wrong
+ *  company and grade it against the demo's PNO target. Returns a discriminated
+ *  result: `{ profile }` on success, `{ error }` (surfaced as 422) otherwise. The
+ *  demo defaults live only in the read path (getReportConfig) for an unset tenant. */
+function parseClientProfile(raw: unknown): { profile: ClientProfile } | { error: string } {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const name = str(o.name).slice(0, 80) || DEFAULT_CLIENT_PROFILE.name;
-  const domain = str(o.domain).slice(0, 120) || DEFAULT_CLIENT_PROFILE.domain;
-  const businessLine = str(o.businessLine).slice(0, 200) || DEFAULT_CLIENT_PROFILE.businessLine;
+  const name = str(o.name).slice(0, 80);
+  const domain = str(o.domain).slice(0, 120);
+  const businessLine = str(o.businessLine).slice(0, 200);
+  if (!name) return { error: "Název klienta je povinný." };
+  if (!domain) return { error: "Doména klienta je povinná." };
+  if (!businessLine) return { error: "Obor podnikání je povinný." };
   const goal = Number(o.pnoGoal);
-  const pnoGoal = Number.isFinite(goal) && goal > 0 && goal <= 1 ? goal : DEFAULT_CLIENT_PROFILE.pnoGoal;
-  return { name, domain, businessLine, pnoGoal };
+  if (!(Number.isFinite(goal) && goal > 0 && goal <= 1)) {
+    return { error: "Cílové PNO musí být podíl mezi 0 a 1 (např. 0.2)." };
+  }
+  return { profile: { name, domain, businessLine, pnoGoal: goal } };
 }
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -60,12 +69,15 @@ export async function PUT(request: Request) {
     : str(body.recipients).split(/[\s,;]+/);
   const recipients = [...new Set(rawRecipients.filter((e) => EMAIL_RE.test(e)))].slice(0, 10);
 
+  const parsed = parseClientProfile(body.clientProfile);
+  if ("error" in parsed) return Response.json({ error: parsed.error }, { status: 422 });
+
   const patch = {
     brandName: str(body.brandName).slice(0, 60),
     accentColor,
     recipients,
     cadence,
-    clientProfile: parseClientProfile(body.clientProfile),
+    clientProfile: parsed.profile,
   };
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const tenant = await resolveTenant(userId, projectId);
