@@ -24,8 +24,10 @@ export const BLOCK_TYPES = new Set<Block["type"]>([
   "h2", "h3", "p", "ul", "ol", "callout", "quote", "cta", "stat", "figure", "table",
 ]);
 
-/** Every `kind:"anchor"` href found in the article's inline content. */
-function anchorHrefs(blocks: Block[]): string[] {
+/** Every `kind:"anchor"` href found in the article's inline content — body
+ *  blocks AND FAQ answers (`faq[n].a` is `Inline[]`, same as paragraph content),
+ *  so a dead anchor inside an answer can't ship silently. */
+function anchorHrefs(blocks: Block[], faq: FaqItem[]): string[] {
   const out: string[] = [];
   const scan = (inlines: Inline[]) => {
     for (const node of inlines) {
@@ -37,6 +39,7 @@ function anchorHrefs(blocks: Block[]): string[] {
     else if (b.type === "ul" || b.type === "ol") b.items.forEach(scan);
     else if (b.type === "table") for (const row of b.rows) row.forEach(scan);
   }
+  for (const f of faq) scan(f.a);
   return out;
 }
 
@@ -88,8 +91,14 @@ export function validateArticle(raw: unknown, source = "article.json"): Article 
     if (idSet.has(id)) fail(`faq id "${id}" collides with a heading id`);
   }
   if (new Set(faqIds).size !== faqIds.length) fail("duplicate faq id");
-  for (const href of anchorHrefs(a.blocks)) {
-    if (!idSet.has(href.replace(/^#/, ""))) fail(`anchor "${href}" has no matching heading id`);
+
+  // Anchor targets resolve against the SAME heading+FAQ id namespace the
+  // uniqueness checks above enforce — a body/FAQ link to a real FAQ item id
+  // (e.g. #kolik-orechu) is valid, and sources are collected from FAQ answers
+  // too (above), so a dead anchor there fails just as loudly.
+  const anchorTargets = new Set([...idSet, ...faqIds]);
+  for (const href of anchorHrefs(a.blocks, a.faq)) {
+    if (!anchorTargets.has(href.replace(/^#/, ""))) fail(`anchor "${href}" has no matching heading or faq id`);
   }
   return a;
 }

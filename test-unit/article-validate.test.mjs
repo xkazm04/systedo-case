@@ -82,7 +82,7 @@ test("a dead anchor inside a table cell is caught", () => {
   const table = validTable();
   table.rows[0][1] = [{ text: "ceník", href: "#cenik-neexistuje", kind: "anchor" }];
   a.blocks.push(table);
-  assert.throws(() => validateArticle(a), /anchor "#cenik-neexistuje" has no matching heading id/);
+  assert.throws(() => validateArticle(a), /anchor "#cenik-neexistuje" has no matching heading or faq id/);
 });
 
 test("a figure without intrinsic dimensions fails", () => {
@@ -102,8 +102,21 @@ test("a dead anchor fails, naming the producer in the message", () => {
   a.blocks[1].content[1] = { text: "pryč", href: "#neexistuje", kind: "anchor" };
   assert.throws(
     () => validateArticle(a, "generated report"),
-    /Invalid generated report: anchor "#neexistuje" has no matching heading id/
+    /Invalid generated report: anchor "#neexistuje" has no matching heading or faq id/
   );
+});
+
+test("a dead anchor inside a FAQ answer is caught (FAQ answers share the id namespace)", () => {
+  const a = validArticle();
+  a.faq[0].a = ["Viz ", { text: "sekce", href: "#neexistuje", kind: "anchor" }, "."];
+  assert.throws(() => validateArticle(a), /anchor "#neexistuje" has no matching heading or faq id/);
+});
+
+test("a body anchor pointing at a real FAQ item id is accepted", () => {
+  const a = validArticle();
+  a.faq = [{ id: "kolik-orechu", q: "Kolik ořechů?", a: ["Hrst."] }];
+  a.blocks[1].content[1] = { text: "kolik", href: "#kolik-orechu", kind: "anchor" };
+  assert.equal(validateArticle(a), a);
 });
 
 test("an empty FAQ fails (FAQPage requires >= 1 question)", () => {
