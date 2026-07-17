@@ -143,6 +143,38 @@ test("productionWarnings: prod + missing CRON_SECRET → one warning; set → no
   assert.deepEqual(productionWarnings({ NODE_ENV: "production", CRON_SECRET: "c" }), []);
 });
 
+test("productionWarnings: prod + RESEND_API_KEY without ALERT_FROM_EMAIL → sandbox-sender warning", () => {
+  const warnings = productionWarnings({
+    NODE_ENV: "production",
+    CRON_SECRET: "c",
+    RESEND_API_KEY: "re_x",
+  });
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /ALERT_FROM_EMAIL/);
+  assert.match(warnings[0], /sandbox|resend\.dev/); // names why it silently fails
+  // Providing ALERT_FROM_EMAIL clears it; a blank string does not.
+  assert.deepEqual(
+    productionWarnings({
+      NODE_ENV: "production",
+      CRON_SECRET: "c",
+      RESEND_API_KEY: "re_x",
+      ALERT_FROM_EMAIL: "alerts@adamant.app",
+    }),
+    []
+  );
+  assert.equal(
+    productionWarnings({
+      NODE_ENV: "production",
+      CRON_SECRET: "c",
+      RESEND_API_KEY: "re_x",
+      ALERT_FROM_EMAIL: "  ",
+    }).length,
+    1
+  );
+  // No RESEND_API_KEY → no warning (email.ts logs-only in that mode).
+  assert.deepEqual(productionWarnings({ NODE_ENV: "production", CRON_SECRET: "c" }), []);
+});
+
 test("productionWarnings: non-prod is never warned (dev/local unaffected)", () => {
   assert.deepEqual(productionWarnings({}), []);
   assert.deepEqual(productionWarnings({ NODE_ENV: "development" }), []);

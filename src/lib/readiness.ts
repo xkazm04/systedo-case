@@ -98,13 +98,19 @@ export function readinessMatrix(env: Env, probes: FirebaseProbes): ReadinessMatr
  * silently degrades a surface at RUNTIME, surfaced loudly at boot (see
  * firebase.ts) instead of failing the deploy.
  *
- * CRON_SECRET is the one such gate today. Unlike the Firebase credential
- * preflight (which THROWS, because with no data backend nothing works), a missing
- * CRON_SECRET is deliberately a WARN, not a throw: the site still serves every
- * page without it — only the scheduled crons and /api/health 401 at runtime.
- * Refusing to boot the whole product over a background-job secret would be a worse
- * failure than the one it guards against, so we log-loud-and-continue and let the
- * operator fix it. Returns the human-readable warning lines (empty outside prod).
+ * Two such gates today. Unlike the Firebase credential preflight (which THROWS,
+ * because with no data backend nothing works), these are deliberately WARN, not
+ * throw: the site still serves every page — only a background surface degrades at
+ * runtime. Refusing to boot the whole product over them would be a worse failure
+ * than the one they guard against, so we log-loud-and-continue and let the operator
+ * fix it. Returns the human-readable warning lines (empty outside prod).
+ *
+ *   - CRON_SECRET unset → the scheduled crons and /api/health 401.
+ *   - RESEND_API_KEY set but ALERT_FROM_EMAIL unset → email.ts falls back to
+ *     `onboarding@resend.dev`, Resend's SANDBOX sender, which can only deliver to
+ *     the account owner's own inbox; every real recipient (client report emails,
+ *     the cron fan-out) gets a 403, so the send fails silently every night. The
+ *     fallback looks like a working default but is test-mode-only.
  */
 export function productionWarnings(env: Env): string[] {
   if (env.NODE_ENV !== "production") return [];
@@ -113,6 +119,13 @@ export function productionWarnings(env: Env): string[] {
     warnings.push(
       "CRON_SECRET is unset in production — the scheduled crons and /api/health will " +
         "401 at runtime. Set CRON_SECRET to enable them."
+    );
+  }
+  if (env.RESEND_API_KEY && !(env.ALERT_FROM_EMAIL ?? "").trim()) {
+    warnings.push(
+      "RESEND_API_KEY is set but ALERT_FROM_EMAIL is not — alert emails fall back to " +
+        "onboarding@resend.dev, Resend's sandbox sender, which only delivers to the " +
+        "account owner. Set ALERT_FROM_EMAIL to a verified sender to reach real recipients."
     );
   }
   return warnings;

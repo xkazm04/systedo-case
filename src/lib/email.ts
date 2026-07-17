@@ -48,6 +48,10 @@ export async function sendWebhook(text: string): Promise<boolean> {
  *  works (visibly) in dev / unconfigured environments. */
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
+  // NOTE: onboarding@resend.dev is Resend's SANDBOX sender — it can ONLY deliver to
+  // the account owner's own inbox; any real recipient gets a 403. In production,
+  // ALERT_FROM_EMAIL is effectively required (readiness.ts warns loudly at boot when
+  // RESEND_API_KEY is set without it). This fallback is a dev/self-test default only.
   const from = process.env.ALERT_FROM_EMAIL ?? `${SITE_NAME} <onboarding@resend.dev>`;
 
   if (!key) {
