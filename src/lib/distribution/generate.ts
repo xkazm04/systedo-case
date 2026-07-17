@@ -28,34 +28,54 @@ export const CHANNEL_LIMITS = {
 export type RepurposeChannel = keyof typeof CHANNEL_LIMITS;
 export const REPURPOSE_CHANNELS = Object.keys(CHANNEL_LIMITS) as RepurposeChannel[];
 
+/** Clip `s` to at most `max` characters on a word boundary, appending an ellipsis
+ *  only when it was actually shortened. */
+function clip(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, Math.max(0, max - 1)).replace(/\s+\S*$/, "").trimEnd() + "…";
+}
+
 export function repurpose(a: SourceArticle): Repurposed[] {
   const campaign = campaignSlug(a);
   const link = (channel: string) => variantLink(a.url, channel, campaign);
 
+  // Repurpose from the article's OWN opening paragraph (the seam provides `body`),
+  // not a fixed generic blurb — and never emit niche-specific hashtags a non-matching
+  // project would post by mistake. Fall back to a generic lead only when no body exists.
+  const paras = (a.body ?? "").split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  const lead = paras[0] ?? "";
+  const lead2 = paras[1] ?? lead;
+  const genericLead =
+    "Sepsali jsme praktického průvodce — to nejdůležitější na jednom místě, přehledně a prakticky.";
+  const leadFor = (reserve: number, fallback = genericLead) =>
+    clip(lead || fallback, Math.max(40, reserve));
+
+  const nlLink = link("Newsletter");
+  const xLink = link("X / Twitter");
   return [
     {
       channel: "Newsletter",
       max: CHANNEL_LIMITS.Newsletter,
-      link: link("Newsletter"),
-      text: `Předmět: ${a.title}\n\nTento týden jsme sepsali kompletního průvodce. Najdete v něm to nejdůležitější na jednom místě — přehledně a prakticky.\n\nČíst celý článek → ${link("Newsletter")}`,
+      link: nlLink,
+      text: `Předmět: ${a.title}\n\n${leadFor(CHANNEL_LIMITS.Newsletter - a.title.length - nlLink.length - 30)}\n\nČíst celý článek → ${nlLink}`,
     },
     {
       channel: "LinkedIn",
       max: CHANNEL_LIMITS.LinkedIn,
       link: link("LinkedIn"),
-      text: `${a.title}\n\nShrnuli jsme praktický průvodce do tří bodů:\n• Co opravdu funguje\n• Časté chyby, kterým se vyhnout\n• Jednoduchý postup na začátek\n\nCelý článek (a checklist) zde: ${link("LinkedIn")}`,
+      text: `${a.title}\n\n${clip(lead2 || genericLead, 800)}\n\nCelý článek (a checklist) zde: ${link("LinkedIn")}`,
     },
     {
       channel: "Instagram",
       max: CHANNEL_LIMITS.Instagram,
       link: link("Instagram"),
-      text: `${a.title} ✨\n\nUložte si na později 📌 Kompletní průvodce máme na blogu — odkaz v biu.\n\n#rodicovstvi #miminko #tipy #blog`,
+      text: `${a.title} ✨\n\n${leadFor(180)}\n\nUložte si na později 📌 Celý článek na blogu — odkaz v biu.`,
     },
     {
       channel: "X / Twitter",
       max: CHANNEL_LIMITS["X / Twitter"],
-      link: link("X / Twitter"),
-      text: `${a.title} 🧵\n\nKompletní průvodce v jednom článku — to nejdůležitější bez vaty:\n${link("X / Twitter")}`,
+      link: xLink,
+      text: `${a.title} 🧵\n\n${leadFor(CHANNEL_LIMITS["X / Twitter"] - a.title.length - xLink.length - 6)}\n${xLink}`,
     },
   ];
 }
