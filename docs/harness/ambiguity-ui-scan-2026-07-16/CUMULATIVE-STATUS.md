@@ -19,7 +19,8 @@ Branch: `vibeman/ambiguity-ui-2026-07-16` (off `master` @ `2e14069`, unmerged)
 - **270 findings, all resolved: 269 fixed + 1 verified false-premise** (local-seo-leads #3 — code already correct, documented won't-fix).
 - Severity: **101/101 High**, **150/150 Medium**, **19/19 Low**.
 - **288 commits** (253 fix + wave/status docs), each atomic with a `Refs:` to its finding.
-- Final verification: **tsc 0 errors**, **test:unit 1791/1791 pass** (baseline 1541 → **+250 new tests**), **LLM contract gate green**, **0 net regressions**.
+- Final verification: **tsc 0 errors**, **test:unit 1791/1791 pass** (baseline 1541 → **+250 new tests**), **LLM contract gate green**, **`next build` ✓ (exit 0, all routes prerendered, 0 prerender/type errors)**, **0 net regressions**.
+- Build note: the 4 Turbopack "dynamic filesystem access" warnings are **pre-existing** (Firebase Admin credential load in `src/lib/firebase.ts` + `src/app/api/health/route.ts`, unchanged on this branch) — benign deploy-size hints, not errors.
 - Known flake `tenant-docs-local-store` (pre-existing cross-test shared state) fails ~1-in-N full runs; passes in isolation and on re-run — not introduced by this work.
 - Untracked `uat/driver/*.mjs` (user WIP) untouched throughout.
 
