@@ -13,7 +13,9 @@ export default async function Footer() {
     <footer className="mt-24 border-t border-line bg-onyx text-onyx-ink">
       <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-5 text-xs text-onyx-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <span>{copyright}</span>
-        <span className="flex items-center gap-3">
+        {/* wraps: seven meta links overflow a 390px viewport on one line, which
+            side-scrolled the whole page. gap-y keeps the wrapped rows legible. */}
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {FOOTER_META_PAGES.map((p, i) => (
             <Fragment key={p.href}>
               {i > 0 && (

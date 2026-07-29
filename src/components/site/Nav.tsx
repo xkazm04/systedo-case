@@ -58,7 +58,10 @@ export default function Nav() {
             <span className="text-[17px] font-semibold tracking-tight text-navy-800">
               Adamant
             </span>
-            <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted">
+            {/* Dropped below 360px, where the wordmark plus the sign-in control
+                no longer fit. The tagline is the expendable half — the hero
+                states it again a viewport later. */}
+            <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted max-[359px]:hidden">
               AI ad intelligence
             </span>
           </span>
@@ -77,8 +80,13 @@ export default function Nav() {
           )}
           <UsageMeter />
           <AuthButton />
-          <LocaleSwitcher />
-          <ThemeToggle />
+          {/* Below md these two move into the drop menu. Kept inline they made the
+              action cluster 259px wide, which overflowed a 390px viewport and
+              squeezed these very controls to a 25px unreachable sliver. */}
+          <span className="flex items-center gap-2 max-md:hidden">
+            <LocaleSwitcher />
+            <ThemeToggle />
+          </span>
           <button
             type="button"
             onClick={toggleMenu}
@@ -149,6 +157,13 @@ export default function Nav() {
                 </Link>
               );
             })}
+
+            {/* Language and theme live here below md, where the header has no
+                room for them. Without this row they would be unreachable. */}
+            <div className="mt-2 flex items-center gap-2 border-t border-line pt-3">
+              <LocaleSwitcher />
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       )}

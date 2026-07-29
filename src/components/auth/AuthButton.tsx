@@ -7,10 +7,12 @@ const T = {
   cs: {
     signOut: "Odhlásit",
     signInGoogle: "Přihlásit přes Google",
+    signInShort: "Přihlásit",
   },
   en: {
     signOut: "Sign out",
     signInGoogle: "Sign in with Google",
+    signInShort: "Sign in",
   },
 } as const;
 
@@ -58,10 +60,15 @@ export default function AuthButton() {
     <button
       type="button"
       onClick={() => signIn("google")}
-      className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
+      className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
     >
       <GoogleGlyph />
-      {t("signInGoogle")}
+      {/* The full label is ~180px and pushed the header's theme and menu buttons
+          off a 390px viewport, clipping them to 25px and side-scrolling the page.
+          The mobile menu carries no sign-in, so the control has to stay visible —
+          the label shortens instead. Both strings are authored, not truncated. */}
+      <span className="sm:hidden">{t("signInShort")}</span>
+      <span className="max-sm:hidden">{t("signInGoogle")}</span>
     </button>
   );
 }
