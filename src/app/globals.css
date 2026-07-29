@@ -95,8 +95,17 @@
 /* ---------------------------------------------------------------------------
    Base
 --------------------------------------------------------------------------- */
-* {
-  border-color: var(--color-line);
+/* MUST stay inside @layer base. Unlayered CSS beats every layered rule
+   regardless of specificity, and Tailwind v4 emits utilities into
+   @layer utilities — so an unlayered version of this rule silently overrode
+   every coloured border utility in the app (the border-brand, border-onyx and
+   border-coral families) and painted all of them --color-line. Inside the base
+   layer the utilities win, which is the intended cascade: this rule is a
+   default, not an override. */
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
 }
 
 html {
