@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-29T00:00:00.000Z",
+  "title": "Design System: Adamant",
+  "extensions": {
+    "colorMeta": {
+      "brand-500": {
+        "role": "primary",
+        "displayName": "Adamant Teal",
+        "canonical": "#14b8b1",
+        "darkValue": "#1ec8c0",
+        "tonalRamp": ["#134f4d", "#136663", "#11807c", "#0e9c97", "#14b8b1", "#2dd4ce", "#6ee3da", "#a6f1ea"]
+      },
+      "brand-accent": {
+        "role": "primary",
+        "displayName": "Accent Teal",
+        "canonical": "#117d79",
+        "darkValue": "#5fe3da",
+        "note": "Dedicated accent-TEXT step, split out of the ramp so dark mode can lift it without disturbing the saturated button hover. Measured at 4.43:1 on the light canvas — just under WCAG AA 4.5:1; a contrast guard test pins the pair.",
+        "tonalRamp": ["#0a3f3d", "#0d5754", "#0f6b68", "#117d79", "#159c96", "#3fc7bf", "#7fdfd8", "#c2f2ee"]
+      },
+      "navy-800": {
+        "role": "secondary",
+        "displayName": "Structural Navy",
+        "canonical": "#0b1b2b",
+        "darkValue": "#e7eef5",
+        "note": "The navy ramp INVERTS in dark mode: high steps become light text, low steps stay dark chips/borders. text-navy-800 is a heading color in both themes; bg-navy-800 is not a dark surface in dark mode.",
+        "tonalRamp": ["#081521", "#0b1b2b", "#0f2438", "#15324b", "#1f3a54", "#3f5a74", "#7693ad", "#eef3f8"]
+      },
+      "onyx": {
+        "role": "secondary",
+        "displayName": "Obsidian Monument",
+        "canonical": "#0d1f31",
+        "note": "STABLE across themes — identical in light and dark. Hero, footer, CTA blocks, code panels, numbered avatars, logo tiles, modal scrim.",
+        "tonalRamp": ["#060e17", "#0a1826", "#0d1f31", "#13293f", "#1b3752", "#28415a", "#4a6480", "#b3c3d3"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Analytic Canvas",
+        "canonical": "#f4f7f9",
+        "darkValue": "#0a0f16",
+        "tonalRamp": ["#0a0f16", "#121a24", "#232f3c", "#56697a", "#adc2d6", "#e4eaef", "#f4f7f9", "#ffffff"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Card Surface",
+        "canonical": "#ffffff",
+        "darkValue": "#121a24"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0d1a24",
+        "darkValue": "#e7eef5"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#56697a",
+        "darkValue": "#92a3b3"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e4eaef",
+        "darkValue": "#232f3c",
+        "note": "Set as the global border-color on `*`, so any bordered element gets the right hairline by default."
+      },
+      "coral-500": {
+        "role": "tertiary",
+        "displayName": "Attention Coral",
+        "canonical": "#fb7141",
+        "note": "Intentionally NOT overridden in dark — reads correctly as-is.",
+        "tonalRamp": ["#7a2a10", "#a13a18", "#c94a20", "#ea5a2a", "#fb7141", "#ff8a5c", "#ffb495", "#ffe1d5"]
+      },
+      "positive": {
+        "role": "tertiary",
+        "displayName": "Trend Positive",
+        "canonical": "#128f6f",
+        "darkValue": "#34d39e"
+      },
+      "negative": {
+        "role": "tertiary",
+        "displayName": "Trend Negative",
+        "canonical": "#d4503e",
+        "darkValue": "#f1745f"
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines and page H1s. One per screen." },
+      "headline": { "displayName": "Headline", "purpose": "Section and module titles." },
+      "title": { "displayName": "Title", "purpose": "Card headings and dialog titles." },
+      "body": { "displayName": "Body", "purpose": "Paragraphs and descriptions, bounded near max-w-2xl." },
+      "label": { "displayName": "Eyebrow / Label", "purpose": "Uppercase kickers above headings; wide tracking, brand-accent color." },
+      "mono": { "displayName": "Mono", "purpose": "Token names, code panels, spec labels. Geist Mono." }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 2px rgba(13, 26, 36, 0.04), 0 8px 24px -12px rgba(13, 26, 36, 0.12)",
+        "darkValue": "0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6)",
+        "purpose": "Resting elevation of every card and panel. Ambient, not directional. Dropped in print."
+      },
+      {
+        "name": "pop",
+        "value": "0 12px 40px -12px rgba(13, 26, 36, 0.25)",
+        "darkValue": "0 12px 40px -12px rgba(0, 0, 0, 0.7)",
+        "purpose": "Overlays only — modal, command palette, popovers."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-adamant",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The house curve — a slow, confident settle. Governs every CSS keyframe and, as easeAdamant in @/lib/motion, every framer-motion transition, so CSS- and JS-driven motion read as one hand."
+      },
+      { "name": "fade-up", "value": "fadeUp 0.5s ease-adamant both", "purpose": "The workhorse entrance: opacity 0 + 10px lift to place." },
+      { "name": "fade-in", "value": "fadeIn 0.4s ease both", "purpose": "Opacity-only entrance for content that must not shift." },
+      { "name": "drop", "value": "drop 0.22s ease-adamant both", "purpose": "Overlay entrance — 8px from above. Used by Modal." },
+      { "name": "stagger-step", "value": "65ms", "purpose": "Delay between direct children of a `.stagger` stack; plateaus at 390ms from the 7th child." },
+      { "name": "chart-draw", "value": "chartDraw 1.4s ease-adamant both", "purpose": "Stroke-dashoffset draw-in for line charts (pathLength=1)." },
+      { "name": "bar-grow", "value": "barGrow 1s ease-adamant both", "purpose": "scaleX bar reveal from the left edge." },
+      { "name": "loading-reveal", "value": "loadingReveal 0.5s ease both", "purpose": "Holds opacity 0 for the first 40% (~200ms) so fast navigations never flash a spinner." },
+      { "name": "reduced-motion", "value": "* { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important }", "purpose": "Global kill switch settling every animation to its END state, never its start, so no content is ever hidden." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "container", "value": "max-w-6xl (72rem), narrow max-w-5xl (64rem)" }
+    ],
+    "patterns": [
+      {
+        "name": "bg-facets",
+        "value": "repeating-linear-gradient(60deg, var(--pattern-line) 0, var(--pattern-line) 1px, transparent 1px, transparent 30px), repeating-linear-gradient(-60deg, …)",
+        "purpose": "The signature crystal lattice, applied site-wide on <main>. Theme-adaptive via --pattern-line: rgba(11,27,43,.03) light / rgba(168,220,255,.045) dark."
+      },
+      {
+        "name": "bg-dotgrid",
+        "value": "radial-gradient(rgba(13,26,36,0.06) 1px, transparent 1px) / 22px 22px",
+        "purpose": "Hero-local backdrop texture. Never layered with bg-facets."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The saturated teal CTA. Hover darkens rather than lightens — the button presses into the monument.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Začít zdarma</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border: none; border-radius: var(--radius-pill, 999px); padding: 0.625rem 1.25rem; font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 1rem; line-height: 1.5rem; cursor: pointer; transition: background-color .15s ease, border-color .15s ease, color .15s ease; } .ds-btn:disabled { opacity: .5; cursor: not-allowed; } .ds-btn:focus-visible { outline: 2px solid var(--color-brand-500, #14b8b1); outline-offset: 2px; border-radius: 999px; } .ds-btn-primary { background: var(--color-brand-600, #0e9c97); color: #fff; font-weight: 600; } .ds-btn-primary:hover { background: var(--color-brand-700, #11807c); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Hairline outline on navy text. The border warms to brand before the fill ever changes.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">Zobrazit detail</button>",
+      "css": ".ds-btn-secondary { background: var(--color-surface, #fff); border: 1px solid var(--color-line, #e4eaef); color: var(--color-navy-700, #0f2438); font-weight: 500; } .ds-btn-secondary:hover { border-color: var(--color-brand-300, #6ee3da); color: var(--color-brand-accent, #117d79); }"
+    },
+    {
+      "name": "Onyx Button",
+      "kind": "button",
+      "refersTo": "button-onyx",
+      "description": "The dark CTA — the monument as an affordance. Used in footers, hero panels and panel headers. Onyx is stable across themes.",
+      "html": "<button class=\"ds-btn ds-btn-onyx\">Stand adamant</button>",
+      "css": ".ds-btn-onyx { background: var(--color-onyx, #0d1f31); color: #fff; font-weight: 600; } .ds-btn-onyx:hover { background: var(--color-onyx-soft, #13293f); }"
+    },
+    {
+      "name": "Pill",
+      "kind": "chip",
+      "refersTo": "pill-brand",
+      "description": "Status and metadata chip. Six tones, each a soft tint background under a saturated same-family text color — never a saturated fill.",
+      "html": "<span class=\"ds-pill ds-pill-brand\">živý sync</span> <span class=\"ds-pill ds-pill-positive\">+12,4 %</span> <span class=\"ds-pill ds-pill-negative\">−8,7 %</span> <span class=\"ds-pill ds-pill-navy\">Sklik</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 0.4rem; border-radius: var(--radius-pill, 999px); font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 0.75rem; font-weight: 600; line-height: 1; padding: 0.35rem 0.7rem; margin-right: .35rem; } .ds-pill-brand { background: var(--color-brand-50, #ecfdfb); color: var(--color-brand-800, #136663); } .ds-pill-navy { background: var(--color-navy-50, #eef3f8); color: var(--color-navy-700, #0f2438); } .ds-pill-positive { background: var(--color-positive-soft, #e7f4ef); color: var(--color-positive, #128f6f); } .ds-pill-negative { background: var(--color-negative-soft, #fbeae7); color: var(--color-negative, #d4503e); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "The universal surface: 1rem slab, hairline border, ambient shadow. Interactive cards signal on the border, never by lifting.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">ROAS portfolia</p><p class=\"ds-card-value\">4,8×</p><p class=\"ds-card-note\">posledních 90 dní · ilustrativní data</p></div>",
+      "css": ".ds-card { background: var(--color-surface, #fff); border: 1px solid var(--color-line, #e4eaef); border-radius: var(--radius-card, 1rem); box-shadow: var(--shadow-card, 0 1px 2px rgba(13,26,36,.04), 0 8px 24px -12px rgba(13,26,36,.12)); padding: 1.25rem; font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); max-width: 20rem; transition: border-color .15s ease; } .ds-card:hover { border-color: var(--color-brand-300, #6ee3da); } .ds-card-label { margin: 0; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.14em; color: var(--color-muted, #56697a); } .ds-card-value { margin: .6rem 0 0; font-variant-numeric: tabular-nums; font-size: 2rem; font-weight: 600; letter-spacing: -0.025em; color: var(--color-brand-accent, #117d79); } .ds-card-note { margin: .35rem 0 0; font-size: 1rem; color: var(--color-muted, #56697a); }"
+    },
+    {
+      "name": "Eyebrow",
+      "kind": "custom",
+      "refersTo": "eyebrow",
+      "description": "The kicker that introduces every section heading, so the heading itself can stay navy. A 24px brand hairline then uppercase accent text.",
+      "html": "<span class=\"ds-eyebrow\"><span class=\"ds-eyebrow-rule\"></span>Vzácný druh v adtech</span>",
+      "css": ".ds-eyebrow { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.16em; color: var(--color-brand-accent, #117d79); } .ds-eyebrow-rule { display: block; height: 1px; width: 1.5rem; background: var(--color-brand-400, #2dd4ce); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Surface fill, hairline border, 0.75rem radius, 16px text so iOS never zooms on focus. Focus uses the global brand ring.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Hledat kampaň…\" />",
+      "css": ".ds-input { width: 100%; max-width: 22rem; background: var(--color-surface, #fff); border: 1px solid var(--color-line, #e4eaef); border-radius: 0.75rem; padding: 0.55rem 0.85rem; font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); font-size: 1rem; line-height: 1.5rem; color: var(--color-ink, #0d1a24); transition: border-color .15s ease; } .ds-input::placeholder { color: var(--color-muted, #56697a); } .ds-input:hover { border-color: var(--color-navy-200, #adc2d6); } .ds-input:focus-visible { outline: 2px solid var(--color-brand-500, #14b8b1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Nav Anchor",
+      "kind": "nav",
+      "refersTo": "nav-anchor",
+      "description": "Pill-shaped section anchor / tab. Hover shifts the border to brand and the label to accent teal; the active state holds the same pair.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Barvy</a><a class=\"ds-nav-link\" href=\"#\">Typografie</a><a class=\"ds-nav-link\" href=\"#\">Tlačítka</a></nav>",
+      "css": ".ds-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); } .ds-nav-link { border-radius: var(--radius-pill, 999px); border: 1px solid var(--color-line, #e4eaef); background: var(--color-surface, #fff); padding: 0.375rem 0.875rem; font-size: 1rem; font-weight: 500; color: var(--color-navy-700, #0f2438); text-decoration: none; transition: border-color .15s ease, color .15s ease; } .ds-nav-link:hover, .ds-nav-link-active { border-color: var(--color-brand-300, #6ee3da); color: var(--color-brand-accent, #117d79); } .ds-nav-link:focus-visible { outline: 2px solid var(--color-brand-500, #14b8b1); outline-offset: 2px; }"
+    },
+    {
+      "name": "Modal Panel",
+      "kind": "custom",
+      "refersTo": "modal-panel",
+      "description": "The single sanctioned overlay. Onyx scrim at 40% with a backdrop blur, a rounded-card panel on shadow-pop, entering with the 0.22s drop.",
+      "html": "<div class=\"ds-modal-scrim\"><div class=\"ds-modal-panel\" role=\"dialog\" aria-modal=\"true\"><div class=\"ds-modal-head\"><div><h2 class=\"ds-modal-title\">Detail kampaně</h2><p class=\"ds-modal-desc\">Ilustrativní case-study data.</p></div><button class=\"ds-modal-close\" aria-label=\"Zavřít\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M18 6 6 18M6 6l12 12\"/></svg></button></div><div class=\"ds-modal-body\">Tělo dialogu se roluje uvnitř panelu, takže vysoký obsah nikdy neposune stránku.</div></div></div>",
+      "css": ".ds-modal-scrim { display: flex; align-items: flex-start; justify-content: center; background: color-mix(in srgb, var(--color-onyx, #0d1f31) 40%, transparent); backdrop-filter: blur(4px); padding: 2rem 1rem; border-radius: 0.5rem; } .ds-modal-panel { width: 100%; max-width: 28rem; display: flex; flex-direction: column; overflow: hidden; background: var(--color-surface, #fff); border: 1px solid var(--color-line, #e4eaef); border-radius: var(--radius-card, 1rem); box-shadow: var(--shadow-pop, 0 12px 40px -12px rgba(13,26,36,.25)); font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); animation: ds-drop .22s cubic-bezier(0.16, 1, 0.3, 1) both; } @keyframes ds-drop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } } .ds-modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--color-line, #e4eaef); padding: 1rem 1.25rem; } .ds-modal-title { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-navy-800, #0b1b2b); } .ds-modal-desc { margin: .125rem 0 0; font-size: 1rem; color: var(--color-muted, #56697a); } .ds-modal-close { display: grid; place-items: center; height: 2rem; width: 2rem; flex-shrink: 0; border: none; background: transparent; border-radius: 9999px; color: var(--color-muted, #56697a); cursor: pointer; transition: background-color .15s ease, color .15s ease; } .ds-modal-close:hover { background: var(--color-navy-50, #eef3f8); color: var(--color-navy-800, #0b1b2b); } .ds-modal-body { padding: 1.25rem; font-size: 1rem; line-height: 1.5rem; color: var(--color-ink, #0d1a24); }"
+    },
+    {
+      "name": "Sparkline",
+      "kind": "custom",
+      "refersTo": "sparkline",
+      "description": "The signature data mark: a server-rendered SVG with a soft area fill, a last-point dot, and trend-aware coloring from the first→last delta. Colors are always var(--color-…), never literals.",
+      "html": "<svg class=\"ds-spark\" viewBox=\"0 0 120 36\" width=\"120\" height=\"36\" aria-hidden=\"true\"><path class=\"ds-spark-area\" d=\"M0 30 L20 26 L40 27 L60 18 L80 20 L100 10 L120 4 L120 36 L0 36 Z\"/><path class=\"ds-spark-line\" d=\"M0 30 L20 26 L40 27 L60 18 L80 20 L100 10 L120 4\"/><circle class=\"ds-spark-dot\" cx=\"118\" cy=\"4\" r=\"2.5\"/></svg>",
+      "css": ".ds-spark { display: block; overflow: visible; } .ds-spark-area { fill: color-mix(in srgb, var(--color-brand-500, #14b8b1) 18%, transparent); stroke: none; } .ds-spark-line { fill: none; stroke: var(--color-brand-500, #14b8b1); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: ds-chart-draw 1.4s cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-spark-dot { fill: var(--color-brand-500, #14b8b1); } @keyframes ds-chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-spark-line { animation: none; stroke-dashoffset: 0; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Obsidian Monument",
+    "overview": "Adamant is an ad-intelligence workspace that reports numbers people act money on, so the interface behaves like a thing carved rather than a thing assembled. The world is Monolith: a dark obsidian mass (the hero key visual at /brand/hero-monolith.png) sitting on a cool, near-white analytic canvas, with a faint crystal lattice — two crossing 60° hairlines — running underneath every product page. Nothing about it is playful. It is quiet, dense, and slightly severe, and it earns attention with one saturated teal rather than with decoration.\n\nThe system runs on two structural materials that never trade places. Onyx is the monument: deep navy-black surfaces used for the hero, the footer, CTA blocks, code panels, logo tiles, and modal scrims. Onyx is stable — its tokens are identical in light and dark, so a dark brand surface stays a dark brand surface instead of inverting into a pale rectangle when the theme flips. Everything else is a flipping token: canvas, surface, ink, muted, line, and both the brand and navy ramps carry a parallel dark set, so a bg-surface card is white on the light canvas and #121a24 on the dark one without a single component knowing which theme it is in.\n\nDensity is analytic, not airy. Cards sit close, tables are wide, numbers are tabular, and content is bounded at max-w-6xl so a dashboard reads as one instrument panel rather than a scroll. Motion is present but subordinate: sections ease up in sequence as a module assembles, charts draw themselves in on arrival, and every one of those animations is neutralized wholesale under prefers-reduced-motion and in print. The confirmed anti-reference is the generic SaaS gradient dashboard — no purple-to-blue washes, no glassmorphism, no illustrated mascots.",
+    "keyCharacteristics": [
+      "Onyx monument surfaces against a cool analytic canvas",
+      "One teal, used sparingly, carrying every accent and action",
+      "A faceted 60° lattice as the site-wide ambient texture",
+      "Fully token-driven light and dark from one component tree",
+      "Flat-by-default cards; hairline borders do the separating",
+      "Tabular figures wherever numbers stack in columns",
+      "Motion that assembles, then gets out of the way"
+    ],
+    "rules": [
+      {
+        "name": "The Token-Only Rule",
+        "body": "Every color in a component comes from a @theme token. Raw hex in markup — bg-[#0b1b2b], inline style={{ color: \"#14b8b1\" }} — is forbidden without exception, and the codebase currently has zero arbitrary hex color utilities. A color that isn't a token cannot flip themes, so it is a light-mode-only bug waiting for a dark-mode user.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stable Onyx Rule",
+        "body": "Onyx tokens are the only colors guaranteed identical in light and dark. If a surface must stay dark in both themes, it is onyx — not navy-800, not bg-black. Conversely, never use onyx for a surface that should follow the theme.",
+        "section": "colors"
+      },
+      {
+        "name": "The Accent-Text Rule",
+        "body": "Accent text uses brand-accent. Buttons and fills use the brand-* ramp. Mixing them is the specific defect the brand-accent split was created to prevent: a ramp step chosen for a saturated fill becomes unreadable when dark mode lightens it, or fails to lighten at all.",
+        "section": "colors"
+      },
+      {
+        "name": "The Half-Ramp Rule",
+        "body": "In the navy ramp, high steps (700–800) are text and low steps (50–200) are chips and borders. Because dark mode inverts the ramp, bg-navy-800 is a near-white block in dark. Use bg-onyx for dark blocks and reserve text-navy-800 for headings.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Any number that stacks in a column — KPI values, table cells, currency, deltas — carries .tnum (font-variant-numeric: tabular-nums). Digits must not dance when a value updates.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Display Rule",
+        "body": "A screen gets exactly one display-scale heading. Everything below it steps down to headline. A second display heading reads as two pages spliced together.",
+        "section": "typography"
+      },
+      {
+        "name": "The Eyebrow-Before-Heading Rule",
+        "body": "Section headings are introduced by an <Eyebrow>, never by a colored heading. The eyebrow carries the accent so the heading can stay navy.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Spine Rule",
+        "body": "Content lives at max-w-6xl with a px-4 sm:px-6 gutter. A surface that wants to be wider must be full-bleed background with the content still on the spine — that is exactly how the hero puts the monolith key visual edge-to-edge while the headline stays in the container.",
+        "section": "layout"
+      },
+      {
+        "name": "The Border-Before-Shadow Rule",
+        "body": "Separation is a hairline first. Reach for shadow-card only when a surface must lift off the canvas, and for shadow-pop only when it genuinely floats above the page. Stacking both is a smudge.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat-In-Print Rule",
+        "body": "Cards drop their shadow in print and gain break-inside: avoid; header, footer, and anything marked .no-print are removed. The client report is a first-class output, not a screenshot of a screen.",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Texture Rule",
+        "body": "A surface carries at most one pattern. .bg-facets is site-wide ambient; .bg-dotgrid is a hero-local backdrop. Never layer them, and never raise the pattern opacity to make it visible — it is meant to be felt, not seen.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Reduced-Motion Kill Switch",
+        "body": "A single global block collapses every animation and transition to 0.01ms and disables smooth scrolling; the infinite loading pulse is stopped outright and pinned at full opacity. Every motion primitive additionally short-circuits to a static render via useReducedMotion(). No content is ever hidden by a motion preference — `both` fill means an un-run animation would otherwise leave a section at opacity 0, which is why the kill switch settles to the end state, never the start.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do take every color from a @theme token so it flips theme for free. The codebase currently has zero arbitrary hex color utilities — keep it there.",
+      "Do use onyx-* for any surface that must stay dark in both themes (hero, footer, CTA blocks, code panels, modal scrim). It is the only stable color family.",
+      "Do use brand-accent for accent text — eyebrows, inline links, glyphs, proof figures — and the brand-* ramp for fills.",
+      "Do reach for <Button>, <Pill>, <Container>, <Eyebrow>, Modal, and Sparkline before writing a new one. Each exists because the pattern was hand-rolled dozens of times first, and the design-system page enumerates their variants straight from the source.",
+      "Do add stagger to a module's top-level section stack so the page assembles top-to-bottom, and put .tnum on every column of numbers.",
+      "Do separate with a hairline (border-line) before reaching for a shadow.",
+      "Do keep content on the max-w-6xl spine with a px-4 sm:px-6 gutter; go full-bleed with background only.",
+      "Do verify a new surface in both themes before calling it done — the dark set is a hand-maintained mirror, not a filter."
+    ],
+    "donts": [
+      "Don't write raw hex, rgb(), or arbitrary color utilities (bg-[#0b1b2b]) in markup. A non-token color is a light-mode-only bug.",
+      "Don't use bg-navy-800 (or any high navy step) as a dark background. Dark mode inverts the navy ramp, so it becomes a near-white block. Use bg-onyx.",
+      "Don't use a brand-* ramp step for accent text, or brand-accent for a button fill. The split exists precisely to keep those two jobs apart.",
+      "Don't borrow serp-link / serp-url for product links — they exist only to imitate Google inside the SERP preview.",
+      "Don't introduce a third radius. Slabs are rounded-card (1rem); interactive and status elements are rounded-pill. Everything else is a well or an icon button.",
+      "Don't replace the global focus ring with a per-component treatment, and don't remove :focus-visible outlines to tidy a design.",
+      "Don't animate a button's position or scale on hover. Buttons change color; cards change border. Nothing lifts on hover.",
+      "Don't layer .bg-facets and .bg-dotgrid, and don't raise the pattern opacity to make the lattice legible. It is ambient by design.",
+      "Don't ship an entrance animation without confirming the global reduced-motion block settles it to its end state — an animation-fill-mode: both entrance that isn't neutralized leaves content invisible.",
+      "Don't add a second typeface. Geist Sans and Geist Mono are the whole set."
+    ]
+  }
+}
