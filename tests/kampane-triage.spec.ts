@@ -26,8 +26,12 @@ test.describe("/kampane — triage", () => {
   test("summarises and flags campaigns that breach a rule", async ({ page }) => {
     await ensureSynced(page);
 
-    // summary banner headline
-    await expect(page.getByText(/vyžad(uje|ují) pozornost/)).toBeVisible();
+    // Summary banner headline. Scoped to the banner's <p>: TypeBreakdown now
+    // renders the same phrase in a per-type pill for every breaching campaign
+    // type, so a bare getByText resolves to 5 elements and trips strict mode.
+    await expect(
+      page.locator("p").filter({ hasText: /vyžad(uje|ují) pozornost/ }).first()
+    ).toBeVisible();
 
     // per-row severity badges render, and the portfolio keeps at least one healthy row
     await expect(page.getByText("Kritické").first()).toBeVisible();

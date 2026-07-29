@@ -191,10 +191,13 @@ test.describe("/ai-asistent", () => {
     await expect(t.getByTestId("ai-loading")).toBeVisible();
     await expect(t.getByText(/Vygenerováno modelem/)).toBeVisible({ timeout: RESULT_TIMEOUT });
 
-    // SERP preview + SEO metadata with limit-aware counters
-    await expect(t.getByText("Náhled ve vyhledávání")).toBeVisible();
-    await expect(t.getByText("Title tag")).toBeVisible();
-    await expect(t.getByText("Meta description")).toBeVisible();
+    // SERP preview + SEO metadata with limit-aware counters. exact:true on the
+    // labels: these are live-model assertions, and the generated brief itself
+    // discusses "title tagu" / "meta description" in prose, so a substring match
+    // resolves to several elements and trips strict mode on a perfectly good run.
+    await expect(t.getByText("Náhled ve vyhledávání", { exact: true })).toBeVisible();
+    await expect(t.getByText("Title tag", { exact: true })).toBeVisible();
+    await expect(t.getByText("Meta description", { exact: true })).toBeVisible();
     await expect(t.getByText(/\/60/).first()).toBeVisible();
     await expect(t.getByRole("heading", { name: "Osnova" })).toBeVisible();
   });

@@ -32,7 +32,14 @@ test.describe("/clanek heading anchors", () => {
 
     // 1) deep link landed on the clipboard
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboard).toMatch(/\/clanek#kvalita$/);
+    // The copied artifact is UTM-stamped on purpose (see permalink.ts) so a
+    // shared link is attributable; only the address bar stays clean (#id only).
+    const copied = new URL(clipboard);
+    expect(copied.pathname).toBe("/clanek");
+    expect(copied.hash).toBe("#kvalita");
+    expect(copied.searchParams.get("utm_source")).toBe("permalink");
+    expect(copied.searchParams.get("utm_medium")).toBe("anchor");
+    expect(copied.searchParams.get("utm_campaign")).toBe("clanek");
 
     // 2) the address bar reflects the section anchor
     await expect(page).toHaveURL(/#kvalita$/);

@@ -39,8 +39,11 @@ test.describe("/design-system", () => {
     // the brand ramp endpoints, read live from globals.css token names
     await expect(colors.getByText("brand-50", { exact: true })).toBeVisible();
     await expect(colors.getByText("brand-900", { exact: true })).toBeVisible();
-    // a single-value base token
-    await expect(colors.getByText("canvas", { exact: true })).toBeVisible();
+    // A single-value base token. .first() because the base-token swatch prints
+    // its name twice — an overlay label inside the chip and a caption beneath —
+    // where the ramp steps above print it once. Both nodes sit inside the same
+    // "Kopírovat název tokenu --color-canvas" button.
+    await expect(colors.getByText("canvas", { exact: true }).first()).toBeVisible();
   });
 
   test("shows all six Pill tones", async ({ page }) => {
