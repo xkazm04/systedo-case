@@ -58,7 +58,7 @@ export default function LocaleShowcase() {
             aria-pressed={locale === loc}
             onClick={() => setLocale(loc)}
             className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              locale === loc ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+              locale === loc ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
             }`}
           >
             {LOCALE_LABELS[loc]}

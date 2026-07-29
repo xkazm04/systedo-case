@@ -154,7 +154,7 @@ export default function PerformanceAnalyst() {
           type="button"
           onClick={() => status !== "loading" && run({ period })}
           disabled={status === "loading"}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {status === "loading" ? (
             <>
@@ -275,7 +275,7 @@ export default function PerformanceAnalyst() {
                 <ol className="space-y-2.5">
                   {r.actions.map((a, i) => (
                     <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-4">
-                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">
+                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-700 text-xs font-semibold text-white">
                         {i + 1}
                       </span>
                       <div>

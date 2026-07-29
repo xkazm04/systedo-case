@@ -324,7 +324,7 @@ export default function TwinVoiceStudio({
             type="button"
             onClick={runDistil}
             disabled={ai.status === "loading"}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles width={16} height={16} className={ai.status === "loading" ? "animate-pulse" : ""} />
             {ai.status === "loading" ? t("distilling") : currentVoice?.directives ? t("redistil") : t("distil")}
@@ -400,7 +400,7 @@ export default function TwinVoiceStudio({
             <button
               type="button"
               onClick={applyVoice}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
             >
               <Check width={13} height={13} />
               {t("apply")}

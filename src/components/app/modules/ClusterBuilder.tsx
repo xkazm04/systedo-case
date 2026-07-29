@@ -191,7 +191,7 @@ export default function ClusterBuilder() {
               type="button"
               onClick={build}
               disabled={!selected || clusters.status === "loading"}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
             >
               <Network width={15} height={15} />
               {clusters.status === "loading" ? t("buildingBtn") : t("buildBtn")}

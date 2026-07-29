@@ -670,7 +670,7 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
           >
             {status === "loading" ? (
               <>
@@ -849,7 +849,7 @@ function Candidate({
           className={`w-full ${cutout ? "object-contain" : "object-cover"} ${aspect}`}
         />
         {img.winner && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-2 py-0.5 text-[13px] font-semibold text-white">
+          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-700 px-2 py-0.5 text-[13px] font-semibold text-white">
             <Check width={11} height={11} />
             {t("candidateBest")}
           </span>

@@ -153,7 +153,7 @@ export default function GoalEditor({
         <button
           type="submit"
           disabled={busy || !(Number(value) > 0)}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
         >
           {ok && !busy ? <Check width={14} height={14} /> : null}
           {busy ? t("saving") : ok ? t("saved") : t("save")}

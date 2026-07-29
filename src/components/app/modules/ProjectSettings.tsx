@@ -230,7 +230,7 @@ export default function ProjectSettings({ live }: { live: boolean }) {
           <button
             type="submit"
             disabled={saving || !dirty}
-            className="rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
           >
             {saving ? t("savingBtn") : t("saveBtn")}
           </button>

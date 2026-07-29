@@ -51,7 +51,7 @@ export default async function OnboardingProgressCard({
     <div className="mx-auto max-w-6xl px-4 pt-8 sm:px-6">
       <div className="flex flex-col gap-4 rounded-card border border-brand-200 bg-brand-50 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-600 text-white">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-700 text-white">
             <Sparkles width={20} height={20} />
           </span>
           <div className="min-w-0">
@@ -70,7 +70,7 @@ export default async function OnboardingProgressCard({
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href={`/app/${project.id}/start`}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
           >
             {t("continue")}
             <ArrowRight width={15} height={15} />

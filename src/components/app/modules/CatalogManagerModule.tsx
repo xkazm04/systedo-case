@@ -580,7 +580,7 @@ export default function CatalogManagerModule({
                 onClick={() => setKindFilter(k)}
                 aria-pressed={kindFilter === k}
                 className={`rounded-pill px-3 py-1 font-medium transition-colors ${
-                  kindFilter === k ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                  kindFilter === k ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
                 }`}
               >
                 {k === "all" ? t("filterAll") : t(KIND_META[k].titleKey)}
@@ -652,7 +652,7 @@ export default function CatalogManagerModule({
           disabled={!persistable || saveState === "saving"}
           onClick={persistable ? save : undefined}
           title={persistable ? undefined : t("sessionNote")}
-          className={`rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 ${
+          className={`rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 ${
             !persistable ? "opacity-50" : saveState === "saving" ? "opacity-70" : ""
           }`}
         >
@@ -688,7 +688,7 @@ export default function CatalogManagerModule({
                     onClick={() => setImportSource(s)}
                     aria-pressed={importSource === s}
                     className={`rounded-pill px-3 py-1 font-medium transition-colors ${
-                      importSource === s ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                      importSource === s ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
                     }`}
                   >
                     {t(s === "feed" ? "tabFeed" : "tabWarehouse")}
@@ -881,7 +881,7 @@ export default function CatalogManagerModule({
                     type="button"
                     onClick={connect}
                     disabled={!hasConnectInput || connBusy}
-                    className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                    className="rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
                   >
                     {connBusy ? t("connecting") : t("connect")}
                   </button>
@@ -899,7 +899,7 @@ export default function CatalogManagerModule({
                       aria-pressed={importStrategy === s}
                       title={t(s === "merge" ? "strategyMergeHint" : "strategyReplaceHint")}
                       className={`rounded-pill px-3 py-1 font-medium transition-colors ${
-                        importStrategy === s ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                        importStrategy === s ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
                       }`}
                     >
                       {t(s === "merge" ? "strategyMerge" : "strategyReplace")}
@@ -918,7 +918,7 @@ export default function CatalogManagerModule({
                   type="button"
                   onClick={() => run("apply")}
                   disabled={!hasImportInput || importState === "importing"}
-                  className="rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                  className="rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
                 >
                   {importState === "importing"
                     ? isWarehouse

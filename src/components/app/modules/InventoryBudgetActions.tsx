@@ -243,7 +243,7 @@ export default function InventoryBudgetActions({
                         type="button"
                         disabled={busy}
                         onClick={() => setMove(k, "accepted")}
-                        className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
                       >
                         <Check width={13} height={13} />
                         {t("accept")}

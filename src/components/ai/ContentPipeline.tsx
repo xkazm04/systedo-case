@@ -224,7 +224,7 @@ function StepStatus({
 }
 
 const RUN_BUTTON =
-  "inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
+  "inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
 
 /** The one-click content pipeline: keywords → clusters → brief → article draft →
  *  channel variants, chained over the EXISTING /api/ai modes with the field

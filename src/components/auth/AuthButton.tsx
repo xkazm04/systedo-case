@@ -58,7 +58,7 @@ export default function AuthButton() {
     <button
       type="button"
       onClick={() => signIn("google")}
-      className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+      className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
     >
       <GoogleGlyph />
       {t("signInGoogle")}

@@ -379,7 +379,7 @@ export default function ReviewInbox({
                       type="button"
                       onClick={() => suggest(r)}
                       disabled={status === "loading"}
-                      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {loadingThis ? (
                         <><Sparkles width={13} height={13} className="animate-pulse" />{t("generating")}</>

@@ -460,7 +460,7 @@ export default function CatalogModule({
             type="button"
             onClick={runBatch}
             disabled={summary.count === 0 || batch.progress.running}
-            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+            className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-pill bg-brand-700 px-3 py-2 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
           >
             <Sparkles width={14} height={14} className={batch.progress.running ? "animate-pulse" : ""} />
             {t("generateSelected", { n: summary.count })}
@@ -595,7 +595,7 @@ export default function CatalogModule({
               type="button"
               onClick={generate}
               disabled={status === "loading"}
-              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+              className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-2 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
             >
               {status === "loading" ? (
                 <>

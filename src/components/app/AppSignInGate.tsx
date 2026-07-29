@@ -81,7 +81,7 @@ export default function AppSignInGate() {
         <button
           type="button"
           onClick={() => signIn("google", { callbackUrl: pathname || "/app" })}
-          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
         >
           <GoogleGlyph />
           {t("signIn")}

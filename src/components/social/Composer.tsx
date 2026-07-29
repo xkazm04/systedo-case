@@ -285,7 +285,7 @@ export default function Composer() {
           type="button"
           onClick={() => suggest(true)}
           disabled={Boolean(drafting) || topic.trim().length < 2 || draftPlatforms.size === 0}
-          className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-2 rounded-pill bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
         >
           <Sparkles width={15} height={15} />
           {drafting === "ai" ? t("aiWriting") : t("aiBtn")}
@@ -372,7 +372,7 @@ export default function Composer() {
           type="button"
           onClick={submit}
           disabled={posting || content.trim().length < 2 || over}
-          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {posting ? t("saving") : scheduledAt ? t("schedule") : t("publishNow")}
         </button>

@@ -185,7 +185,7 @@ export default function LeadQualificationPanel({
               onClick={() => onChange("disposition", o.value)}
               className={`rounded-pill px-2.5 py-1 text-xs font-medium transition-colors ${
                 qual.disposition === o.value
-                  ? "bg-brand-600 text-white"
+                  ? "bg-brand-700 text-white"
                   : "text-navy-700 hover:bg-brand-50"
               }`}
             >

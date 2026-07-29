@@ -390,7 +390,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
           <button
             type="button"
             onClick={status === "done" ? reset : onGenerate}
-            className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-onyx px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-800"
+            className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-onyx px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-onyx-soft"
           >
             {status === "done" ? (
               <>

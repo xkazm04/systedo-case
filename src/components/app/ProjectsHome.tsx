@@ -205,7 +205,7 @@ export default function ProjectsHome({
                 onClick={() => setCreating(true)}
                 className="card group flex min-h-[7rem] flex-col items-center justify-center gap-2 border-dashed p-6 text-muted transition-colors hover:border-brand-300 hover:text-brand-accent"
               >
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-600 group-hover:text-white">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-accent transition-colors group-hover:bg-brand-700 group-hover:text-white">
                   <Plus width={20} height={20} />
                 </span>
                 <span className="text-sm font-semibold">{t("newProject")}</span>
@@ -310,7 +310,7 @@ function UnmappedAccountsCallout({
                 <button
                   type="button"
                   onClick={() => setOpenFor(a.customerId)}
-                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                  className="rounded-lg bg-brand-700 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
                 >
                   {t("connect")}
                 </button>
@@ -472,7 +472,7 @@ function DuplicateProjectModal({
             type="button"
             onClick={submit}
             disabled={busy || !name.trim()}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-800 disabled:opacity-60"
           >
             <Copy width={15} height={15} />
             {busy ? t("dupWorking") : t("dupConfirm")}

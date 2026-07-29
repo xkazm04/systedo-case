@@ -226,7 +226,7 @@ export default function CreateProjectForm({
                               st === "core" ? (
                                 <span
                                   title={t("legendCore")}
-                                  className="mx-auto grid h-5 w-5 place-items-center rounded-md bg-brand-600/75 text-white"
+                                  className="mx-auto grid h-5 w-5 place-items-center rounded-md bg-brand-700/75 text-white"
                                 >
                                   <Check width={13} height={13} />
                                 </span>
@@ -255,7 +255,7 @@ export default function CreateProjectForm({
                                   <span
                                     className={`grid h-5 w-5 place-items-center rounded-md border transition-colors ${
                                       on
-                                        ? "border-brand-600 bg-brand-600 text-white"
+                                        ? "border-brand-600 bg-brand-700 text-white"
                                         : "bg-surface text-transparent border-navy-300"
                                     }`}
                                   >
@@ -290,7 +290,7 @@ export default function CreateProjectForm({
           <span className="text-navy-500">◆</span> {t("legendCore")}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="grid h-4 w-4 place-items-center rounded bg-brand-600 text-white">
+          <span className="grid h-4 w-4 place-items-center rounded bg-brand-700 text-white">
             <Check width={10} height={10} />
           </span>
           {t("legendOn")}
@@ -355,7 +355,7 @@ export default function CreateProjectForm({
           type="button"
           onClick={() => draft.submit(type, accent, nature)}
           disabled={draft.submitting}
-          className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-700 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white shadow-card transition-colors hover:bg-brand-800 disabled:opacity-60"
         >
           {draft.submitting ? t("submitting") : t("create")}
           {!draft.submitting && <ArrowRight width={16} height={16} />}

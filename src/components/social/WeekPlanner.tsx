@@ -439,7 +439,7 @@ export default function WeekPlanner() {
             type="button"
             onClick={planWeek}
             disabled={running || topicLines.length === 0}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles width={15} height={15} className={running ? "animate-pulse" : ""} />
             {running && progress ? t("generating", { done: progress.done, total: progress.total }) : t("planBtn")}

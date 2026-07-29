@@ -528,7 +528,7 @@ export default function MonthlyReport({
             type="button"
             onClick={() => { if (status !== "loading") { setPreviewId(null); run({ period }); } }}
             disabled={status === "loading"}
-            className="inline-flex items-center gap-2 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 print:hidden"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50 print:hidden"
           >
             {status === "loading" ? <Gauge width={16} height={16} className="animate-pulse" /> : <Bolt width={16} height={16} />}
             {status === "loading" ? t("generating") : r ? t("regenerate") : t("generate")}
@@ -599,7 +599,7 @@ export default function MonthlyReport({
                 <ol className="space-y-2.5">
                   {r.priorities.map((a, i) => (
                     <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-4">
-                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">{i + 1}</span>
+                      <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-700 text-xs font-semibold text-white">{i + 1}</span>
                       <div>
                         <p className="text-sm font-semibold text-navy-800">{a.title}</p>
                         <p className="mt-0.5 text-sm leading-relaxed text-navy-600">{a.detail}</p>
@@ -811,7 +811,7 @@ function AnnotationsPanel({
         <button
           type="submit"
           disabled={busy || !date || !text.trim()}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50"
         >
           <Plus width={14} height={14} />
           {busy ? t("annAdding") : t("annAdd")}

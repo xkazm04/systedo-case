@@ -109,7 +109,7 @@ export default function ProfitScenariosPanel({
         <button
           type="button"
           onClick={() => saveScenario(Date.now())}
-          className="rounded-lg bg-brand-600 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-700"
+          className="rounded-lg bg-brand-700 px-3.5 py-1.5 text-sm font-medium text-white transition-colors hover:bg-brand-800"
         >
           {t("saveMargins")}
         </button>

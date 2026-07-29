@@ -305,7 +305,7 @@ function ScaffoldPanel({
         <button
           type="button"
           onClick={onHandoff}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700 active:scale-[0.99]"
+          className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 active:scale-[0.99]"
         >
           {t("handoffBtn")}
           <ArrowRight className="h-4 w-4" />

@@ -116,7 +116,7 @@ export default function AdsAccountPicker({ onConnected }: { onConnected?: () => 
         <button
           type="button"
           onClick={() => signIn("google")}
-          className="shrink-0 rounded-pill bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+          className="shrink-0 rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800"
         >
           {t("signIn")}
         </button>

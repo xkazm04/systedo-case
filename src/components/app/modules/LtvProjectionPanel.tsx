@@ -124,7 +124,7 @@ export default function LtvProjectionPanel({
               type="button"
               onClick={() => setHorizon(h)}
               className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                horizon === h ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                horizon === h ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
               }`}
               aria-pressed={horizon === h}
             >

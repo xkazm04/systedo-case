@@ -69,7 +69,7 @@ function ProviderMark({ mark, active = false }: { mark: string; active?: boolean
   return (
     <span
       className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg text-[13px] font-bold tracking-tight ${
-        active ? "bg-brand-600 text-white" : "bg-navy-50 text-navy-600"
+        active ? "bg-brand-700 text-white" : "bg-navy-50 text-navy-600"
       }`}
       aria-hidden
     >

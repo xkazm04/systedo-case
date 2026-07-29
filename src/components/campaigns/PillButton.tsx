@@ -26,7 +26,7 @@ const SIZES: Record<PillButtonSize, string> = {
 };
 
 const BASE =
-  "inline-flex items-center justify-center rounded-pill bg-brand-600 font-semibold text-white hover:bg-brand-700";
+  "inline-flex items-center justify-center rounded-pill bg-brand-700 font-semibold text-white hover:bg-brand-800";
 
 // press = the tactile CTA (background+transform transition + scale on click);
 // static = the plainer colour-only transition. Each ships its own disabled look.

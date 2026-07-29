@@ -198,7 +198,7 @@ export default function AiAssistant() {
             >
               <span
                 className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors ${
-                  active ? "bg-brand-600 text-white" : "bg-navy-50 text-navy-600 group-hover:bg-navy-100"
+                  active ? "bg-brand-700 text-white" : "bg-navy-50 text-navy-600 group-hover:bg-navy-100"
                 }`}
               >
                 <Icon width={20} height={20} />

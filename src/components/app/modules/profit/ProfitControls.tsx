@@ -42,7 +42,7 @@ export default function ProfitControls({
             type="button"
             onClick={() => setPeriod(p)}
             className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              period === p ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+              period === p ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
             }`}
           >
             {PERIOD_LABELS[p] ?? p}
@@ -62,7 +62,7 @@ export default function ProfitControls({
               type="button"
               onClick={() => setView(value)}
               className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                view === value ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                view === value ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
               }`}
             >
               {label}

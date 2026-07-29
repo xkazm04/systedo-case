@@ -219,7 +219,7 @@ export default function MicrositeCard() {
             type="button"
             onClick={publish}
             disabled={busy}
-            className="rounded-pill bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-pill bg-brand-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? t("publishing") : t("publish")}
           </button>

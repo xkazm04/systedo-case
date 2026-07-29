@@ -289,7 +289,7 @@ export default function ControlPlane({
                 onClick={() => (confirming ? act("approve", pending.id, breached) : setConfirmId(pending.id))}
                 disabled={busy}
                 className={`mt-3 inline-flex items-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-60 ${
-                  confirming || breached ? "bg-negative hover:bg-negative/90" : "bg-brand-600 hover:bg-brand-700"
+                  confirming || breached ? "bg-negative hover:bg-negative/90" : "bg-brand-700 hover:bg-brand-800"
                 }`}
               >
                 <Check width={15} height={15} />

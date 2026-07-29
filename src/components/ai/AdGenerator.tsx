@@ -735,7 +735,7 @@ export default function AdGenerator({
         <button
           type="submit"
           disabled={!canSubmit}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
         >
           {status === "loading" ? (
             <>
@@ -808,7 +808,7 @@ export default function AdGenerator({
                         type="button"
                         onClick={saveVariant}
                         disabled={abState === "saving"}
-                        className="inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                        className="inline-flex items-center gap-1 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-800 disabled:opacity-60"
                       >
                         {abState === "saving" ? t("abSaving") : t("abSaveVariant")}
                       </button>

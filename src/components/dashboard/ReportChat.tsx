@@ -275,7 +275,7 @@ export default function ReportChat({
             <ol className="space-y-2">
               {report.actions.map((a, i) => (
                 <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-3">
-                  <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">
+                  <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-700 text-xs font-semibold text-white">
                     {i + 1}
                   </span>
                   <div>
@@ -388,7 +388,7 @@ function MessageBubble({ msg }: { msg: ChatTurn }) {
   if (msg.role === "user") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-line rounded-card rounded-tr-sm bg-brand-600 px-4 py-2.5 text-sm leading-relaxed text-white">
+        <div className="max-w-[85%] whitespace-pre-line rounded-card rounded-tr-sm bg-brand-700 px-4 py-2.5 text-sm leading-relaxed text-white">
           {msg.content}
         </div>
       </div>
@@ -459,7 +459,7 @@ function Composer({
         type="submit"
         aria-label={sendLabel}
         disabled={disabled || !value.trim()}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-600 text-white transition-colors hover:bg-brand-700 disabled:opacity-40"
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-700 text-white transition-colors hover:bg-brand-800 disabled:opacity-40"
       >
         <ArrowRight width={16} height={16} />
       </button>

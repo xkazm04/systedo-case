@@ -241,7 +241,7 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                       <button
                         type="button"
                         onClick={() => saveMetrics(exp.id, v.id)}
-                        className="mt-2 inline-flex items-center gap-1 rounded-pill bg-brand-600 px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-brand-700"
+                        className="mt-2 inline-flex items-center gap-1 rounded-pill bg-brand-700 px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-brand-800"
                       >
                         {t("savePerf")}
                       </button>

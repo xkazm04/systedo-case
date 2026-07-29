@@ -365,7 +365,7 @@ function MonthlyReportPrimary({
               <ol className="space-y-2.5">
                 {r.priorities.map((a, i) => (
                   <li key={i} className="flex gap-3 rounded-card border border-line bg-surface p-4">
-                    <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-600 text-xs font-semibold text-white">{i + 1}</span>
+                    <span className="tnum grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-700 text-xs font-semibold text-white">{i + 1}</span>
                     <div>
                       <p className="text-sm font-semibold text-navy-800">{a.title}</p>
                       <p className="mt-0.5 text-sm leading-relaxed text-navy-600">{a.detail}</p>

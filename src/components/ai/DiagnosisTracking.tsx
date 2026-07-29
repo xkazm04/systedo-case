@@ -158,7 +158,7 @@ export function DiagnosisSaveError({
       <button
         type="button"
         onClick={onRetry}
-        className="inline-flex items-center gap-1.5 rounded-pill bg-onyx px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-800"
+        className="inline-flex items-center gap-1.5 rounded-pill bg-onyx px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-onyx-soft"
       >
         <Refresh width={13} height={13} />
         {t("retry")}
@@ -251,7 +251,7 @@ export function DiagnosisActions({
         {nextButton}
         <Link
           href={handoff.href}
-          className="inline-flex items-center gap-1.5 rounded-pill bg-onyx px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-navy-800"
+          className="inline-flex items-center gap-1.5 rounded-pill bg-onyx px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-onyx-soft"
         >
           {handoff.label}
           <ArrowRight width={13} height={13} />

@@ -377,7 +377,7 @@ function VariantCard({
         type="button"
         onClick={regenerate}
         disabled={ai.status === "loading"}
-        className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-pill bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+        className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
       >
         {ai.status === "loading" ? (
           <>
@@ -505,7 +505,7 @@ function VariantCard({
             type="button"
             onClick={schedule}
             disabled={sending || over || text.trim().length < 2}
-            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-600 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Calendar width={14} height={14} />
             {sending ? t("schedulingBtn") : t("scheduleBtn", { platform: SOCIAL_PLATFORM_LABELS[platform] })}

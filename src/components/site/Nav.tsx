@@ -98,7 +98,7 @@ export default function Nav() {
               <Link
                 href="/app"
                 onClick={() => setOpen(false)}
-                className="mb-1 flex items-center justify-between rounded-lg bg-brand-600 px-3 py-3 text-[17px] font-semibold text-white"
+                className="mb-1 flex items-center justify-between rounded-lg bg-brand-700 px-3 py-3 text-[17px] font-semibold text-white"
               >
                 {messages.nav.openApp}
                 <ArrowRight width={17} height={17} />

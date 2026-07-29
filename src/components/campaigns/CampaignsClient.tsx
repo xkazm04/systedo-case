@@ -465,7 +465,7 @@ export default function CampaignsClient({
                 disabled={syncing}
                 aria-pressed={period === p}
                 className={`rounded-pill px-3.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-60 ${
-                  period === p ? "bg-brand-600 text-white" : "text-muted hover:text-navy-700"
+                  period === p ? "bg-brand-700 text-white" : "text-muted hover:text-navy-700"
                 }`}
               >
                 {campaignPeriodLabel(p, locale)}
