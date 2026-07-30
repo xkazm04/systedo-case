@@ -2,6 +2,8 @@
 
 import { Bolt, Check, Document, Download, Layers, Search, Share } from "@/components/icons";
 import { downloadText } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
+import { useOptionalProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
 import {
   TONE_LABELS,
@@ -233,6 +235,8 @@ const RUN_BUTTON =
  *  can never show a draft that no longer matches its brief. */
 export default function ContentPipeline() {
   const t = useT(T);
+  // Scopes the publish-audit beacon to the active project; null outside one (/ai-asistent).
+  const project = useOptionalProject();
   const [form, setForm] = usePersistedForm<PipelineForm>("pipeline", EMPTY, {
     validate: isPipelineForm,
   });
@@ -315,6 +319,7 @@ export default function ContentPipeline() {
       draftToMarkdownDoc(briefR, draftR),
       "text/markdown;charset=utf-8"
     );
+    reportAssetPublished("article", "export", project?.id);
   };
 
   const toggleChannel = (ch: string) =>

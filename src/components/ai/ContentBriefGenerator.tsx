@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bolt, Document, Download, Search } from "@/components/icons";
 import { downloadText } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -421,6 +422,7 @@ export default function ContentBriefGenerator({
       ...(r.rationale ? ["", "---", `_${r.rationale}_`] : []),
     ].join("\n");
     downloadText(`adamant-brief-${r.slug || "obsah"}.md`, md, "text/markdown;charset=utf-8");
+    reportAssetPublished("content_brief", "export", project?.id);
   };
 
   return (
@@ -540,6 +542,7 @@ export default function ContentBriefGenerator({
             <ResultMeta
               meta={data.meta}
               copyAllText={copyAllText}
+              publishKind="content_brief"
               history={history}
               activeIndex={activeIndex}
               onRestore={restore}

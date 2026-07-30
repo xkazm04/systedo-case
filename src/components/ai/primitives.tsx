@@ -5,6 +5,9 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
+import type { PublishAssetKind } from "@/lib/activity/publish";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
+import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { Button, buttonClass } from "@/components/ui";
 import { AI_TIMER_TARGET_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
@@ -115,9 +118,24 @@ export function Field({
 export const inputClass =
   "w-full rounded-lg border border-line bg-canvas px-3 py-2.5 text-sm outline-none transition focus:border-brand-400 focus:bg-surface";
 
-/** Copy-to-clipboard button with a transient confirmation. */
-export function CopyButton({ text, label }: { text: string; label?: string }) {
+/** Copy-to-clipboard button with a transient confirmation.
+ *
+ *  `publishKind` opts the button into the asset-publish audit trail: a copy of an
+ *  AI-generated asset is one of the ways output leaves the app, so it feeds the
+ *  publish-rate KPI. Only panels that copy a GENERATED asset pass it — the prompt-
+ *  inspector copy button deliberately does not, because copying the prompt is not
+ *  publishing the output. Recorded only on a copy that actually succeeded. */
+export function CopyButton({
+  text,
+  label,
+  publishKind,
+}: {
+  text: string;
+  label?: string;
+  publishKind?: PublishAssetKind;
+}) {
   const t = useT(T);
+  const project = useOptionalProject();
   const defaultLabel = t("copyDefault");
   const displayLabel = label !== undefined ? label : defaultLabel;
   const [copied, setCopied] = useState(false);
@@ -128,6 +146,7 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
         try {
           await navigator.clipboard.writeText(text);
           setCopied(true);
+          if (publishKind) reportAssetPublished(publishKind, "copy", project?.id);
           setTimeout(() => setCopied(false), 1300);
         } catch {
           /* clipboard unavailable */
@@ -192,6 +211,7 @@ export interface ResultHistoryItem {
 export function ResultMeta({
   meta,
   copyAllText,
+  publishKind,
   createdAt,
   extra,
   history,
@@ -200,6 +220,9 @@ export function ResultMeta({
 }: {
   meta: AiMeta;
   copyAllText?: string;
+  /** the asset kind this panel produces — passing it records a "copy all" as a
+   *  publish event. Omitted by panels whose output isn't a publishable asset. */
+  publishKind?: PublishAssetKind;
   createdAt?: string;
   /** extra pill(s) rendered alongside the model badge (e.g. the analysis period) */
   extra?: ReactNode;
@@ -298,7 +321,7 @@ export function ResultMeta({
           </span>
         )}
       </div>
-      {copyAllText && <CopyButton text={copyAllText} label={t("copyAll")} />}
+      {copyAllText && <CopyButton text={copyAllText} label={t("copyAll")} publishKind={publishKind} />}
     </div>
   );
   if (!strip) return metaRow;

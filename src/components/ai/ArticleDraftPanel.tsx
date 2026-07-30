@@ -5,6 +5,7 @@ import { Bolt, Document, Download, Image as ImageIcon, Close } from "@/component
 import ArticleBody from "@/components/article/ArticleBody";
 import Modal from "@/components/app/Modal";
 import { downloadText } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/article";
@@ -362,6 +363,7 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
       draftToMarkdown(brief, composed, draft.faq, { calloutTitle: t("calloutTip"), faqHeading: t("mdFaqHeading") }),
       "text/markdown;charset=utf-8"
     );
+    reportAssetPublished("article", "export", pid);
   };
 
   const exportJson = () => {

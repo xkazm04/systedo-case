@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Layers, Refresh, Sparkles } from "@/components/icons";
 import { downloadText, toCsv } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { buildAdsEditorAdSheet, buildAdsEditorKeywordSheet } from "@/lib/ads-editor";
 import { buildSklikAdSheet, buildSklikKeywordSheet } from "@/lib/sklik-export";
 import { sampleRsaCombo } from "@/lib/rsa-combos";
@@ -587,6 +588,7 @@ export default function AdGenerator({
       `adamant-inzeraty-${slugify(form.product) || "kampan"}.csv`,
       toCsv([t("csvColType"), t("csvColText"), t("csvColCharCount")], rows)
     );
+    reportAssetPublished("ad_copy", "export", pid);
   };
 
   // Ads-Editor-ready export: the same edited assets transposed into the one-row
@@ -611,6 +613,7 @@ export default function AdGenerator({
     if (kw.rows.length > 0) {
       downloadText(`adamant-ads-editor-${fileSeed}-klicova-slova.csv`, toCsv(kw.headers, kw.rows));
     }
+    reportAssetPublished("ad_copy", "export", pid);
   };
 
   // Sklik-ready export: the same edited assets transposed into Sklik's Czech
@@ -634,6 +637,7 @@ export default function AdGenerator({
     if (kw.rows.length > 0) {
       downloadText(`adamant-sklik-${fileSeed}-klicova-slova.csv`, toCsv(kw.headers, kw.rows));
     }
+    reportAssetPublished("ad_copy", "export", pid);
   };
 
   const copyAllText = r
@@ -773,6 +777,7 @@ export default function AdGenerator({
             <ResultMeta
               meta={data.meta}
               copyAllText={copyAllText}
+              publishKind="ad_copy"
               history={history}
               activeIndex={activeIndex}
               onRestore={restore}

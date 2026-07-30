@@ -6,6 +6,7 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Download } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { toCsv, downloadText } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { optimisticDelete } from "@/lib/optimistic-delete";
 import { CopyButton } from "./primitives";
 import {
@@ -125,8 +126,10 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
     );
   };
 
-  const exportNegatives = () =>
+  const exportNegatives = () => {
     downloadText(t("csvFilename"), toCsv([t("csvHeader")], negatives.map((n) => [n])));
+    reportAssetPublished("keyword_list", "export", pid);
+  };
 
   if (status !== "authenticated" || (!lists.length && loaded)) return null;
   if (!loaded) return null;

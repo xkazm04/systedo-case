@@ -5,6 +5,8 @@ import { Bolt, Check, Download, Gauge, Target, TrendDown } from "@/components/ic
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { downloadText } from "@/lib/export";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
+import { useOptionalProject } from "@/lib/projects/context";
 import {
   analysisPeriodLabel,
   ANALYSIS_PERIODS,
@@ -73,6 +75,8 @@ const isAnalysisPeriod = (v: unknown): v is AnalysisPeriod =>
 
 export default function PerformanceAnalyst() {
   const t = useT(T);
+  // Scopes the publish-audit beacon to the active project; null outside one (/ai-asistent).
+  const project = useOptionalProject();
   const { locale } = useLocale();
   // Persist the selected period like the results are — a refresh reopens the
   // tool on the same horizon (and, via the per-period slot below, the same
@@ -123,6 +127,7 @@ export default function PerformanceAnalyst() {
       ...r.actions.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`),
     ].join("\n");
     downloadText(`adamant-analyza-${period}.md`, md, "text/markdown;charset=utf-8");
+    reportAssetPublished("analysis", "export", project?.id);
   };
 
   return (
@@ -212,6 +217,7 @@ export default function PerformanceAnalyst() {
             <ResultMeta
               meta={data.meta}
               copyAllText={copyAllText}
+              publishKind="analysis"
               // The result is stored per period, so the selected period IS the
               // period this analysis covers — label it to kill the old
               // "picker says 30 dní, text analyses 12 months" mismatch.
