@@ -62,6 +62,11 @@ export async function POST(request: Request) {
     title: publishActivityTitle(kind, via),
     detail: publishActivityDetail(kind, via),
     actor: "Vy",
+    // The structured half of the row: the publish-rate rollup counts on these, not
+    // on the prose title, so rewording/localizing the timeline can never silently
+    // zero the measure.
+    publishKind: kind,
+    publishVia: via,
   });
   return Response.json({ recorded: true });
 }

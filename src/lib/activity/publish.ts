@@ -114,3 +114,19 @@ export function socialPostActivityRow(outcome: SocialPostOutcome): {
       return { title: "Publikování příspěvku selhalo", publish: false };
   }
 }
+
+/** The structured `{publishKind, publishVia}` fields a social-post lifecycle row
+ *  carries — populated ONLY for the outcome that is a real publish, empty for the
+ *  scheduling promise and the failure. Spread into the ActivityInput so the two
+ *  writers (the publish-now route and the cron) cannot disagree about which rows
+ *  the publish-rate rollup is allowed to count:
+ *
+ *      recordActivity(tenant, { …, title: row.title, ...socialPostPublishFields(o) })
+ */
+export function socialPostPublishFields(
+  outcome: SocialPostOutcome
+): { publishKind: PublishAssetKind; publishVia: PublishVia } | Record<string, never> {
+  return socialPostActivityRow(outcome).publish
+    ? { publishKind: "social_post", publishVia: "channel" }
+    : {};
+}

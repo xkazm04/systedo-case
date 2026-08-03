@@ -9,7 +9,7 @@ import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron/run";
 import { recordActivity } from "@/lib/campaigns/activity";
-import { socialPostActivityRow } from "@/lib/activity/publish";
+import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
 
 export const maxDuration = 300;
 
@@ -29,6 +29,10 @@ function recordPublished(tenant: string, platform: string): Promise<void> {
     title: socialPostActivityRow("published").title,
     detail: platform,
     actor: "Automatická synchronizace",
+    // `socialPostActivityRow("published").publish` is true — this row IS the
+    // asset-publish event, so it carries the structured taxonomy the rate counts.
+    // Derived from the same table as the title, never spelled out here.
+    ...socialPostPublishFields("published"),
   });
 }
 

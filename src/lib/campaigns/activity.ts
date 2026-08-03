@@ -33,6 +33,14 @@ export interface ActivityInput {
   /** the control-plane change-set this event belongs to — the other half of the
    *  alert → change-set → apply thread. Absent for non-change-set events. */
   changeSetId?: string;
+  /** Set ONLY on a row that IS an asset-publish event (an AI-generated asset
+   *  actually leaving the app), carrying the shared `{kind, via}` taxonomy from
+   *  lib/activity/publish. Structured rather than parsed back out of `title`,
+   *  because the title is prose that is free to be reworded or localized while the
+   *  publish-rate rollup must keep counting the same rows. Absent on every other
+   *  row — including the "post scheduled" promise, which is not a publish. */
+  publishKind?: string;
+  publishVia?: string;
 }
 
 export interface ActivityRecord extends ActivityInput {
@@ -70,6 +78,38 @@ export async function listActivity(
     };
   } catch (err) {
     console.error(`[activity] list failed for ${tenant}:`, err);
+    return { records: [], ok: false };
+  }
+}
+
+/** Hard backstop on rows read for one windowed rollup. Nothing prunes the activity
+ *  feed, so a bound is needed even with a date filter; a 30-day slice of one
+ *  tenant's feed stays far below it. */
+const ACTIVITY_WINDOW_MAX = 2000;
+
+/** Activity recorded at or after `sinceIso`, newest first — the windowed read
+ *  behind periodic rollups (the publish-rate measure). Single-field range + order,
+ *  so no composite index is needed. Mirrors {@link listActivity}'s `ok` contract: a
+ *  read FAILURE is `ok: false`, an empty window is `ok: true` with no records, so a
+ *  caller can tell an outage from "nothing happened yet" and never present one as
+ *  the other. */
+export async function listActivitySince(
+  tenant: string,
+  sinceIso: string,
+  limit = ACTIVITY_WINDOW_MAX
+): Promise<{ records: ActivityRecord[]; ok: boolean }> {
+  try {
+    const snap = await activityCol(tenant)
+      .where("at", ">=", sinceIso)
+      .orderBy("at", "desc")
+      .limit(limit)
+      .get();
+    return {
+      records: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ActivityRecord, "id">) })),
+      ok: true,
+    };
+  } catch (err) {
+    console.error(`[activity] list-since failed for ${tenant}:`, err);
     return { records: [], ok: false };
   }
 }

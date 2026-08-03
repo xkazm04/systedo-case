@@ -5,7 +5,7 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { recordActivity } from "@/lib/campaigns/activity";
-import { socialPostActivityRow } from "@/lib/activity/publish";
+import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { getAccount, getAccountToken } from "@/lib/social/connection";
@@ -95,6 +95,9 @@ export async function POST(request: Request) {
     await recordActivity(tenant, {
       kind: "update", module: "socialni", severity: "info",
       title: socialPostActivityRow("scheduled").title, detail: platform, actor: "Vy",
+      // No publish taxonomy: socialPostActivityRow("scheduled").publish is false,
+      // so this row stays invisible to the publish-rate rollup.
+      ...socialPostPublishFields("scheduled"),
     });
     return Response.json({ post });
   }
@@ -114,6 +117,9 @@ export async function POST(request: Request) {
     kind: "update", module: "socialni", severity: result.ok ? "success" : "warning",
     title: socialPostActivityRow(result.ok ? "published" : "failed").title,
     detail: platform, actor: "Vy",
+    // Only the successful branch carries the taxonomy — a failed publish left
+    // nothing behind and must not be counted.
+    ...socialPostPublishFields(result.ok ? "published" : "failed"),
   });
   return Response.json({ post: { ...post, ...patch } });
 }
