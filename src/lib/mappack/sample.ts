@@ -36,14 +36,20 @@ export interface MapListing {
   you: boolean;
   rating: number;
   reviews: number;
-  lat: number;
-  lng: number;
+  /** Latitude of the pin. ALWAYS set on the seeded sample (city centre + jitter).
+   *  Optional because an IMPORTED pack may carry no coordinates — we never fabricate
+   *  geo under a live label, so such a listing is ranked but not pinned. */
+  lat?: number;
+  /** Longitude of the pin — see `lat`. */
+  lng?: number;
 }
 
 export interface AreaPack {
   areaId: string;
   city: string;
-  center: { lat: number; lng: number };
+  /** Map centre. Always set on the seeded sample; absent when an imported area has no
+   *  coordinates at all (the map then shows its "no coordinates yet" note). */
+  center?: { lat: number; lng: number };
   listings: MapListing[];
 }
 

@@ -1,7 +1,8 @@
-/** A2/D2/D3 — POST a rank / review / GBP export (pasted CSV or a hosted-CSV URL) to
- *  bring a local project's real signals in as the module's source of truth. One route,
- *  three sections selected by `kind` (default "ranks"): ranks feed the map ladder,
- *  reviews feed the inbox + recap sentiment, gbp feeds the locations roster. Each
+/** A2/D2/D3/E1 — POST a rank / review / GBP / coverage / map-pack export (pasted CSV or
+ *  a hosted-CSV URL) to bring a local project's real signals in as the module's source of
+ *  truth. One route, five sections selected by `kind` (default "ranks"): ranks feed the
+ *  map ladder, reviews feed the inbox + recap sentiment, gbp feeds the locations roster,
+ *  coverage feeds the service×locality matrix, pack feeds the competitor map pins. Each
  *  section carries its own provenance and lives in the same per-project blob, so an
  *  import of one never disturbs the others. Per-user, ownership-checked. Server-only. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
@@ -10,9 +11,11 @@ import {
   parseReviews,
   parseGbpRows,
   parseCoverageRows,
+  parsePackRows,
   mergeLadder,
   mergeCoverage,
 } from "@/lib/local-signals/import";
+import type { PackRowErrorCode } from "@/lib/local-signals/import";
 import {
   getLocalSignals,
   saveLocalSignals,
@@ -33,11 +36,24 @@ import { apiError, asString, enforceUserRate, readJson, trimmedString, WORKSPACE
 const MAX_BYTES = 256_000;
 /** Pre-parse content-length cap — see the leads import route for the rationale. */
 const MAX_BODY_BYTES = envInt("LOCAL_SIGNALS_MAX_BODY_BYTES", 512_000);
-type Kind = "ranks" | "reviews" | "gbp" | "coverage";
+type Kind = "ranks" | "reviews" | "gbp" | "coverage" | "pack";
 
 function isKind(v: unknown): v is Kind {
-  return v === "ranks" || v === "reviews" || v === "gbp" || v === "coverage";
+  return v === "ranks" || v === "reviews" || v === "gbp" || v === "coverage" || v === "pack";
 }
+
+/** Human wording for each machine code the strict pack parser can return, so the
+ *  rejection names the actual defect per line instead of one generic "bad format". */
+const PACK_ERROR_CS: Record<PackRowErrorCode, string> = {
+  "missing-area": "chybí oblast",
+  "missing-name": "chybí název podniku",
+  "bad-rank": "pozice musí být celé číslo 1–20",
+  "bad-rating": "hodnocení musí být číslo 0–5",
+  "bad-reviews": "počet recenzí musí být číslo ≥ 0",
+  "bad-coords": "souřadnice musí být obě a v platném rozsahu",
+  "duplicate-rank": "tato pozice je v oblasti už obsazená",
+  "duplicate-name": "tento podnik je v oblasti uveden dvakrát",
+};
 
 /** The top-level meta represents the LADDER section (kept for backward compat). When a
  *  non-rank import lands with no ladder yet, we still need a meta — a rowCount-0
@@ -109,6 +125,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ladder: prev?.ladder ?? [],
       ...(prev?.gbp ? { gbp: prev.gbp } : {}),
       ...(prev?.coverage ? { coverage: prev.coverage } : {}),
+      ...(prev?.pack ? { pack: prev.pack } : {}),
       reviews: { meta: meta(items.length), items },
     }));
     return Response.json({ ok: true, rowCount: items.length, ...(ambiguous > 0 ? { ambiguous } : {}) });
@@ -124,6 +141,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ladder: prev?.ladder ?? [],
       ...(prev?.reviews ? { reviews: prev.reviews } : {}),
       ...(prev?.coverage ? { coverage: prev.coverage } : {}),
+      ...(prev?.pack ? { pack: prev.pack } : {}),
       gbp: { meta: meta(rows.length), rows },
     }));
     return Response.json({ ok: true, rowCount: rows.length });
@@ -151,9 +169,42 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ladder: prev?.ladder ?? [],
         ...(prev?.reviews ? { reviews: prev.reviews } : {}),
         ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+        ...(prev?.pack ? { pack: prev.pack } : {}),
         coverage: { meta: meta(merged.length), rows: merged },
       };
     });
+    return Response.json({ ok: true, rowCount: rows.length });
+  }
+
+  if (kind === "pack") {
+    // STRICT, unlike every other section: a map pack is a ranking, so one dropped
+    // competitor renames every position below it and rewrites share-of-voice. Any
+    // malformed row fails the WHOLE import with a coded, line-numbered error and
+    // nothing is persisted — never a partial silent set. The section REPLACES the
+    // previous pack (a pack is a snapshot of one observation, not an accumulating
+    // history like the rank ladder).
+    const { rows, errors } = parsePackRows(text);
+    if (errors.length > 0) {
+      const shown = errors.slice(0, 5).map((e) => `${e.line}: ${PACK_ERROR_CS[e.code]}`).join("; ");
+      const more = errors.length > 5 ? ` (+${errors.length - 5} dalších)` : "";
+      return apiError(
+        400,
+        `Import balíčku odmítnut — ${errors.length} vadných řádků, neuložil jsem nic. Řádek ${shown}${more}.`,
+        "unprocessable",
+        { envelope: "ok" }
+      );
+    }
+    if (rows.length === 0) {
+      return apiError(400, "Nenašel jsem žádné konkurenty. Formát: oblast, název, pozice, hodnocení, počet recenzí (volitelně vy, zeměpisná šířka, délka).", "unprocessable", { envelope: "ok" });
+    }
+    await mutateLocalSignals(project.id, (prev) => ({
+      meta: ladderMeta(prev, source, url),
+      ladder: prev?.ladder ?? [],
+      ...(prev?.reviews ? { reviews: prev.reviews } : {}),
+      ...(prev?.gbp ? { gbp: prev.gbp } : {}),
+      ...(prev?.coverage ? { coverage: prev.coverage } : {}),
+      pack: { meta: meta(rows.length), rows },
+    }));
     return Response.json({ ok: true, rowCount: rows.length });
   }
 
@@ -171,13 +222,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ...(prev?.reviews ? { reviews: prev.reviews } : {}),
     ...(prev?.gbp ? { gbp: prev.gbp } : {}),
     ...(prev?.coverage ? { coverage: prev.coverage } : {}),
+    ...(prev?.pack ? { pack: prev.pack } : {}),
   }));
   return Response.json({ ok: true, rowCount: rows.length });
 }
 
-/** Revert to the illustrative sample. `?source=ranks|reviews|gbp` reverts just that
- *  section (dropping the rest of the blob only when nothing live remains); no param
- *  clears everything. Per-source revert keeps the other live imports intact. */
+/** Revert to the illustrative sample. `?source=ranks|reviews|gbp|coverage|pack` reverts
+ *  just that section (dropping the rest of the blob only when nothing live remains); no
+ *  param clears everything. Per-source revert keeps the other live imports intact. */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
@@ -185,7 +237,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { project } = g;
 
   const source = new URL(req.url).searchParams.get("source");
-  if (source === "reviews" || source === "gbp" || source === "ranks" || source === "coverage") {
+  if (source === "reviews" || source === "gbp" || source === "ranks" || source === "coverage" || source === "pack") {
     const prev = await getLocalSignals(project.id);
     if (!prev) return Response.json({ ok: true });
     const next: LocalSignals = {
@@ -194,9 +246,10 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
       ...(source !== "reviews" && prev.reviews ? { reviews: prev.reviews } : {}),
       ...(source !== "gbp" && prev.gbp ? { gbp: prev.gbp } : {}),
       ...(source !== "coverage" && prev.coverage ? { coverage: prev.coverage } : {}),
+      ...(source !== "pack" && prev.pack ? { pack: prev.pack } : {}),
     };
     // Nothing live left → drop the whole blob so the project cleanly reads as sample.
-    if (next.ladder.length === 0 && !next.reviews && !next.gbp && !next.coverage) {
+    if (next.ladder.length === 0 && !next.reviews && !next.gbp && !next.coverage && !next.pack) {
       await clearLocalSignals(project.id);
     } else {
       await saveLocalSignals(project.id, next);

@@ -5,6 +5,7 @@
 import MapPackClient from "@/components/app/modules/MapPackClient";
 import RankLadder from "@/components/app/modules/RankLadder";
 import LocalLadderSource from "@/components/app/modules/LocalLadderSource";
+import LocalSourcePanel from "@/components/app/modules/LocalSourcePanel";
 import type { AreaPack, KeywordRank } from "@/lib/mappack/sample";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
@@ -12,6 +13,10 @@ export default function MapPackModule({
   packs,
   ladder,
   projectId,
+  packLive = false,
+  packSource,
+  packSyncedAt,
+  packSourceUrl,
   ladderLive = false,
   ladderSource,
   ladderSyncedAt,
@@ -19,6 +24,14 @@ export default function MapPackModule({
 }: {
   packs: AreaPack[];
   ladder: KeywordRank[];
+  /** true when the competitor pack is imported, not the seeded sample */
+  packLive?: boolean;
+  /** provenance of a live pack (import | url | gbp) */
+  packSource?: "sample" | LocalSignalsSource;
+  /** ISO timestamp of the last pack import/sync */
+  packSyncedAt?: string;
+  /** for source "url": the hosted CSV to refresh the pack from */
+  packSourceUrl?: string;
   /** the project, so the ladder import control can target its route (omit to hide) */
   projectId?: string;
   /** true when the ladder is imported/synced real ranks, not the sample */
@@ -32,7 +45,17 @@ export default function MapPackModule({
 }) {
   return (
     <div className="stagger space-y-6">
-      <MapPackClient areas={packs} />
+      {projectId && (
+        <LocalSourcePanel
+          projectId={projectId}
+          kind="pack"
+          live={packLive}
+          source={packSource}
+          syncedAt={packSyncedAt}
+          sourceUrl={packSourceUrl}
+        />
+      )}
+      <MapPackClient areas={packs} live={packLive} />
       {projectId && (
         <LocalLadderSource
           projectId={projectId}

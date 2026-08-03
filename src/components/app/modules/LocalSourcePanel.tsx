@@ -11,7 +11,7 @@ import { useT } from "@/lib/i18n/client";
 import { Check } from "@/components/icons";
 import type { LocalSignalsSource } from "@/lib/local-signals/types";
 
-type Kind = "reviews" | "gbp" | "coverage";
+type Kind = "reviews" | "gbp" | "coverage" | "pack";
 
 const T = {
   cs: {
@@ -36,6 +36,13 @@ const T = {
     coverageImportHelp: "Vložte řádky ve formátu: služba, lokalita, má stránku (ano/ne). První řádek může být hlavička.",
     coveragePlaceholder: "služba, lokalita, má stránku\nMontáž klimatizací,Praha,ano",
     coverageUrlPlaceholder: "https://…/pokryti.csv",
+    packLive: "Živá data · balíček konkurentů z importu",
+    packLiveUrl: "Živá data · balíček konkurentů z URL",
+    packSampleNote: "Ukázkový balíček konkurentů (ilustrativní — jména jsou vymyšlená). Naimportujte reálné výsledky z mapy.",
+    packImportCta: "Importovat konkurenty",
+    packImportHelp: "Vložte řádky ve formátu: oblast, název podniku, pozice (1–20), hodnocení (0–5), počet recenzí. Volitelně vy (ano/ne) a zeměpisná šířka + délka — bez souřadnic se konkurent zobrazí v pořadí, ale nedostane špendlík na mapě. Import je přísný: jediný vadný řádek zruší celé nahrání.",
+    packPlaceholder: "oblast, název, pozice, hodnocení, recenze, vy, šířka, délka\nPraha,Dentalis,3,4.7,128,ano,50.0755,14.4378",
+    packUrlPlaceholder: "https://…/konkurenti.csv",
     synced: "synchronizováno {date}",
     refresh: "Aktualizovat z URL",
     revert: "Zpět na ukázková",
@@ -67,6 +74,13 @@ const T = {
     coverageImportHelp: "Paste rows as: service, locality, has page (yes/no). A header row is optional.",
     coveragePlaceholder: "service, locality, has page\nAC installation,Prague,yes",
     coverageUrlPlaceholder: "https://…/coverage.csv",
+    packLive: "Live data · imported competitor pack",
+    packLiveUrl: "Live data · competitor pack from URL",
+    packSampleNote: "Sample competitor pack (illustrative — the rival names are invented). Import your real map results.",
+    packImportCta: "Import competitors",
+    packImportHelp: "Paste rows as: area, business name, position (1–20), rating (0–5), review count. Optionally you (yes/no) and latitude + longitude — without coordinates a competitor is still ranked but gets no map pin. The import is strict: a single bad row rejects the whole upload.",
+    packPlaceholder: "area, name, position, rating, reviews, you, lat, lng\nPrague,Dentalis,3,4.7,128,yes,50.0755,14.4378",
+    packUrlPlaceholder: "https://…/competitors.csv",
     synced: "synced {date}",
     refresh: "Refresh from URL",
     revert: "Back to sample",

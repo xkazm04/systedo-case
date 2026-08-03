@@ -1,11 +1,13 @@
 /** A2 data-source seam for the local ranking ladder. `resolveLocalLadder` returns
  *  the project's imported/synced ladder when it has one, else the sample ladder
  *  (clearly illustrative) — the single place mapa/lokalni flip demo→real for rank.
- *  The competitor map-pack stays sample (no clean API) and is labelled as such.
+ *  `resolvePacks` does the same for the competitor map-pack (E1): still import-only
+ *  (no clean SERP API), but the pins are no longer forced to be synthetic.
  *  Server-only (reads the local-signals store). */
 import "server-only";
 import { cache } from "react";
-import type { KeywordRank } from "@/lib/mappack/sample";
+import type { AreaPack, KeywordRank } from "@/lib/mappack/sample";
+import { packsFromImported } from "@/lib/mappack/compute";
 import type { ReviewItem } from "@/lib/reviews/sample";
 import type { LocationRow } from "@/lib/locations/sample";
 import type { LocalTarget } from "@/lib/local/sample";
@@ -63,6 +65,42 @@ export async function resolveLocalLadder(
     };
   }
   return { ladder: sample, source: "sample", live: false };
+}
+
+export interface ResolvedPacks {
+  packs: AreaPack[];
+  source: "sample" | LocalSignalsSource;
+  live: boolean;
+  syncedAt?: string;
+  sourceUrl?: string;
+}
+
+/** The active competitor map packs for a project (E1): the IMPORTED pack when one
+ *  exists, else the passed seeded sample. Same live-over-sample seam as the ladder —
+ *  and the last synthesized surface on the map to get one.
+ *
+ *  A live pack REPLACES the sample outright rather than merging per area: mixing a real
+ *  Praha pack with a seeded Brno pack would put six hardcoded rival names on real OSM
+ *  tiles under one "live data" label. Areas the import doesn't mention simply have no
+ *  pack until they are imported. With no imported section this returns `sample` BY
+ *  IDENTITY, so the illustrative path is byte-identical to before. */
+export async function resolvePacks(
+  projectId: string,
+  sample: AreaPack[],
+  businessName?: string
+): Promise<ResolvedPacks> {
+  const signals = await signalsForRequest(projectId);
+  const pack = signals?.pack;
+  if (pack && pack.rows.length > 0) {
+    return {
+      packs: packsFromImported(pack.rows, businessName),
+      source: pack.meta.source,
+      live: true,
+      syncedAt: pack.meta.syncedAt,
+      sourceUrl: pack.meta.sourceUrl,
+    };
+  }
+  return { packs: sample, source: "sample", live: false };
 }
 
 export interface ResolvedReviews {

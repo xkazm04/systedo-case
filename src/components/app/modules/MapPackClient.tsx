@@ -11,7 +11,7 @@
  *  Ported from the local-SEO app's LocalityLeafletMap as part of the consolidation
  *  (Phase 4). If a pack ever lacks coordinates, the map degrades to a note and the
  *  ranked listings alongside still carry every competitor. */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "leaflet/dist/leaflet.css";
 import { Pill } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -23,6 +23,9 @@ const T = {
   cs: {
     searchArea: "Vyhledávací oblast",
     liveMap: "Mapa · OpenStreetMap (ukázková pozice)",
+    liveMapReal: "Mapa · OpenStreetMap (naimportovaná data)",
+    liveNoteReal: "Reálné dlaždice OpenStreetMap · jeden marker na konkurenta, podle naimportovaných souřadnic.",
+    noGeoImported: "Import neobsahoval souřadnice — konkurenty jsme nepřipnuli na mapu, ale pořadí vedle je kompletní.",
     tilesUnavailable: "Mapové dlaždice nejsou dostupné — pořadí vedle stále ukazuje každého konkurenta.",
     mapUnavailable: "Mapu se nepodařilo načíst — pořadí vedle stále ukazuje každého konkurenta.",
     noGeo: "Pro tuto oblast zatím nejsou souřadnice.",
@@ -38,6 +41,9 @@ const T = {
   en: {
     searchArea: "Search area",
     liveMap: "Map · OpenStreetMap (sample ranking)",
+    liveMapReal: "Map · OpenStreetMap (imported data)",
+    liveNoteReal: "Real OpenStreetMap tiles · one marker per competitor, keyed on the imported coordinates.",
+    noGeoImported: "The import carried no coordinates — nothing was pinned on the map, but the ranking alongside is complete.",
     tilesUnavailable: "Map tiles unavailable — the ranked listings alongside still show every competitor.",
     mapUnavailable: "The map failed to load — the ranked listings alongside still show every competitor.",
     noGeo: "No coordinates for this area yet.",
@@ -62,7 +68,12 @@ function markerHtml(rank: number, you: boolean): string {
   );
 }
 
-function LeafletMap({ points }: { points: MapListing[] }) {
+/** A listing that actually carries coordinates — the only kind that can be pinned.
+ *  An imported pack may include listings with no geo (we never fabricate it), so the
+ *  map is fed this narrowed shape rather than every listing. */
+type GeoListing = MapListing & { lat: number; lng: number };
+
+function LeafletMap({ points, live }: { points: GeoListing[]; live: boolean }) {
   const t = useT(T);
   const ref = useRef<HTMLDivElement>(null);
   // Two distinct failure modes with honest, DIFFERENT copy: the Leaflet module itself
@@ -140,7 +151,7 @@ function LeafletMap({ points }: { points: MapListing[] }) {
   if (points.length === 0) {
     return (
       <div className="grid h-full w-full place-items-center bg-surface px-6 text-center">
-        <p className="max-w-xs text-xs text-muted">{t("noGeo")}</p>
+        <p className="max-w-xs text-xs text-muted">{live ? t("noGeoImported") : t("noGeo")}</p>
       </div>
     );
   }
@@ -154,11 +165,29 @@ function LeafletMap({ points }: { points: MapListing[] }) {
   return <div ref={ref} className="h-full w-full bg-surface" role="img" aria-label={t("mapAria")} />;
 }
 
-export default function MapPackClient({ areas }: { areas: AreaPack[] }) {
+export default function MapPackClient({
+  areas,
+  live = false,
+}: {
+  areas: AreaPack[];
+  /** true when the pack is imported (E1) — flips the "sample ranking" captions to the
+   *  imported wording, so real tiles never carry an illustrative label and vice versa. */
+  live?: boolean;
+}) {
   const t = useT(T);
   const fmt = useFormatters();
   const [selectedId, setSelectedId] = useState(areas[0]?.areaId ?? "");
   const selected = areas.find((a) => a.areaId === selectedId) ?? areas[0];
+
+  // Only listings with real coordinates get pinned; an imported listing without geo
+  // still ranks and still counts toward share-of-voice. Memoized on the listings
+  // reference — LeafletMap rebuilds the map whenever `points` changes identity, so a
+  // fresh array every render would tear the map down on each parent re-render.
+  const listings = selected?.listings;
+  const points = useMemo(
+    () => (listings ?? []).filter((l): l is GeoListing => l.lat !== undefined && l.lng !== undefined),
+    [listings]
+  );
 
   if (!selected) return null;
 
@@ -196,10 +225,10 @@ export default function MapPackClient({ areas }: { areas: AreaPack[] }) {
         <figure className="card overflow-hidden">
           <figcaption className="flex items-center justify-between border-b border-line px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             <span>{t("searchArea")} · {selected.city}</span>
-            <span className="text-brand-accent">{t("liveMap")}</span>
+            <span className="text-brand-accent">{live ? t("liveMapReal") : t("liveMap")}</span>
           </figcaption>
           <div className="aspect-[16/10] w-full">
-            <LeafletMap key={selected.areaId} points={selected.listings} />
+            <LeafletMap key={selected.areaId} points={points} live={live} />
           </div>
           <div className="flex items-center justify-between border-t border-line px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
             <span className="flex items-center gap-2">
@@ -257,7 +286,7 @@ export default function MapPackClient({ areas }: { areas: AreaPack[] }) {
         </div>
       </div>
 
-      <p className="text-xs leading-relaxed text-muted">{t("liveNote")}</p>
+      <p className="text-xs leading-relaxed text-muted">{live ? t("liveNoteReal") : t("liveNote")}</p>
     </div>
   );
 }

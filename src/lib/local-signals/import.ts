@@ -3,7 +3,13 @@
  *  rank rows (from any tracker) as `keyword, oblast/area, pozice/rank`. Framework-
  *  free + unit-tested; the store/route just persist what this returns. */
 import type { KeywordRank, RankPoint } from "@/lib/mappack/sample";
-import type { ImportedCoverageRow, ImportedGbpRow, ImportedReview, LocalSignals } from "./types";
+import type {
+  ImportedCoverageRow,
+  ImportedGbpRow,
+  ImportedPackRow,
+  ImportedReview,
+  LocalSignals,
+} from "./types";
 
 const DAY_MS = 86_400_000;
 
@@ -550,6 +556,184 @@ export function mergeCoverage(
   const byKey = new Map(prev.map((r) => [coverageKey(r.service, r.locality), r]));
   for (const r of rows) byKey.set(coverageKey(r.service, r.locality), r);
   return [...byKey.values()];
+}
+
+// ── Map-pack import (E1) ─────────────────────────────────────────────────────
+// The competitor pack is the last purely-synthesized surface on the local-SEO map:
+// packForArea seeds five listings per locality with rival names drawn from a six-item
+// hardcoded list, rendered on real OSM tiles. This brings the real pack in.
+//
+// STRICT, unlike every other section here. Ranks/reviews/GBP/coverage are tolerant
+// (skip the bad row, keep the good ones) because a missing row there is a missing row.
+// A map pack is a RANKING: silently dropping one competitor renames every position
+// below it and rewrites share-of-voice, so a partial pack is worse than no pack. Any
+// malformed data row therefore FAILS THE WHOLE IMPORT with a coded, line-numbered
+// error and nothing is persisted.
+
+const PACK_COL: Record<string, "area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng"> = {
+  area: "area", oblast: "area", lokalita: "area", město: "area", mesto: "area", district: "area", čtvrť: "area", ctvrt: "area",
+  name: "name", název: "name", nazev: "name", business: "name", podnik: "name", firma: "name", company: "name", listing: "name",
+  rank: "rank", pozice: "rank", position: "rank", pořadí: "rank", poradi: "rank",
+  rating: "rating", hodnocení: "rating", hodnoceni: "rating", stars: "rating", hvězdy: "rating", hvezdy: "rating",
+  reviews: "reviews", recenze: "reviews", "počet recenzí": "reviews", "pocet recenzi": "reviews",
+  you: "you", vy: "you", vaše: "you", vase: "you", self: "you", mine: "you", "můj podnik": "you", "muj podnik": "you",
+  lat: "lat", latitude: "lat", "šířka": "lat", sirka: "lat",
+  lng: "lng", lon: "lng", long: "lng", longitude: "lng", délka: "lng", delka: "lng",
+};
+
+/** Why one pack row was rejected. Machine-readable so the route can return a coded
+ *  error envelope instead of a prose-only 400. */
+export type PackRowErrorCode =
+  | "missing-area"
+  | "missing-name"
+  | "bad-rank"
+  | "bad-rating"
+  | "bad-reviews"
+  | "bad-coords"
+  | "duplicate-rank"
+  | "duplicate-name";
+
+export interface PackRowError {
+  /** 1-based line number in the pasted text, so the user can find the row */
+  line: number;
+  code: PackRowErrorCode;
+}
+
+export interface ParsedPack {
+  rows: ImportedPackRow[];
+  /** every rejected row — non-empty means the caller must persist NOTHING */
+  errors: PackRowError[];
+}
+
+/** Highest map-pack position we accept. Google's local pack is three deep and the
+ *  "more places" view runs to twenty; beyond that the number is a typo, not a rank. */
+const MAX_PACK_RANK = 20;
+
+function truthyFlag(raw: string | undefined): boolean {
+  const s = (raw ?? "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim();
+  if (!s) return false;
+  return /^(ano|yes|true|1|y|a|vy|me|mine|self|x)$/.test(s);
+}
+
+/** Parse a pasted/CSV map-pack export → the named competitor listings for each area.
+ *  Tolerant about SHAPE (cs/en header aliases in any order, comma/semicolon/tab, quoted
+ *  cells); STRICT about CONTENT (see the section note): every non-empty data row must
+ *  carry an area, a name, a rank in 1..20, a rating in 0..5 and a review count ≥ 0, and
+ *  lat/lng must be supplied together and in range if at all. Positions and names must be
+ *  unique within an area. Anything else is reported in `errors` with its line number and
+ *  a code — the caller rejects the import rather than persisting a partial pack.
+ *
+ *  Without a recognisable header the columns are assumed to be
+ *  `area, name, rank, rating, reviews[, you][, lat, lng]`. */
+export function parsePackRows(text: string): ParsedPack {
+  const raw = text.split(/\r?\n/);
+  const lines: { line: number; text: string }[] = [];
+  raw.forEach((l, i) => {
+    const trimmed = l.trim();
+    if (trimmed) lines.push({ line: i + 1, text: trimmed });
+  });
+  if (lines.length === 0) return { rows: [], errors: [] };
+
+  const delim = detectDelimiter(lines[0]!.text);
+  const firstCells = splitCsvLine(lines[0]!.text, delim).map((c) => c.toLowerCase());
+  const headerCols = firstCells.map((c) => PACK_COL[c]);
+  const hasHeader = headerCols.some(Boolean);
+
+  const idx: Record<"area" | "name" | "rank" | "rating" | "reviews" | "you" | "lat" | "lng", number> = {
+    area: 0, name: 1, rank: 2, rating: 3, reviews: 4, you: 5, lat: 6, lng: 7,
+  };
+  if (hasHeader) {
+    headerCols.forEach((col, i) => {
+      if (col) idx[col] = i;
+    });
+  }
+
+  const num = (cell: string | undefined) => Number((cell ?? "").replace(",", ".").replace(/[^\d.\-]/g, ""));
+  const rows: ImportedPackRow[] = [];
+  const errors: PackRowError[] = [];
+  const seenRank = new Set<string>();
+  const seenName = new Set<string>();
+  const fold = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+
+  for (const { line, text: raw } of lines.slice(hasHeader ? 1 : 0)) {
+    const cells = splitCsvLine(raw, delim);
+    const push = (code: PackRowErrorCode) => errors.push({ line, code });
+
+    const area = cells[idx.area]?.trim() ?? "";
+    if (!area) {
+      push("missing-area");
+      continue;
+    }
+    const name = cells[idx.name]?.trim() ?? "";
+    if (!name) {
+      push("missing-name");
+      continue;
+    }
+    const rank = num(cells[idx.rank]);
+    if (!Number.isFinite(rank) || rank < 1 || rank > MAX_PACK_RANK || !Number.isInteger(rank)) {
+      push("bad-rank");
+      continue;
+    }
+    const rating = num(cells[idx.rating]);
+    if (!Number.isFinite(rating) || rating < 0 || rating > 5 || (cells[idx.rating] ?? "").trim() === "") {
+      push("bad-rating");
+      continue;
+    }
+    const reviews = num(cells[idx.reviews]);
+    if (!Number.isFinite(reviews) || reviews < 0 || (cells[idx.reviews] ?? "").trim() === "") {
+      push("bad-reviews");
+      continue;
+    }
+
+    // Coordinates are optional but all-or-nothing: half a coordinate pair would either
+    // be dropped silently or pinned at the equator, so it is a rejection.
+    const latCell = (cells[idx.lat] ?? "").trim();
+    const lngCell = (cells[idx.lng] ?? "").trim();
+    let lat: number | undefined;
+    let lng: number | undefined;
+    if (latCell || lngCell) {
+      const latN = num(latCell);
+      const lngN = num(lngCell);
+      if (
+        !latCell || !lngCell ||
+        !Number.isFinite(latN) || !Number.isFinite(lngN) ||
+        Math.abs(latN) > 90 || Math.abs(lngN) > 180
+      ) {
+        push("bad-coords");
+        continue;
+      }
+      lat = latN;
+      lng = lngN;
+    }
+
+    const areaKey = fold(area);
+    if (seenRank.has(`${areaKey}|${rank}`)) {
+      push("duplicate-rank");
+      continue;
+    }
+    if (seenName.has(`${areaKey}|${fold(name)}`)) {
+      push("duplicate-name");
+      continue;
+    }
+    seenRank.add(`${areaKey}|${rank}`);
+    seenName.add(`${areaKey}|${fold(name)}`);
+
+    rows.push({
+      area,
+      name,
+      rank,
+      rating: Math.round(rating * 10) / 10,
+      reviews: Math.round(reviews),
+      you: truthyFlag(cells[idx.you]),
+      ...(lat !== undefined && lng !== undefined ? { lat, lng } : {}),
+    });
+  }
+
+  return { rows, errors };
 }
 
 /** Normalize a persisted LocalSignals blob on read: dual-shape ladder history is

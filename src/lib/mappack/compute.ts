@@ -1,6 +1,8 @@
-/** Map-pack rollups: share-of-voice from map-pack CTR + ranking-ladder trends.
- *  Pure (only the row types), so it has a matching test-unit. */
-import type { KeywordRank, MapListing } from "./sample";
+/** Map-pack rollups: share-of-voice from map-pack CTR + ranking-ladder trends, plus
+ *  the imported-pack builder (E1). Pure (only the row types), so it has a matching
+ *  test-unit. */
+import type { AreaPack, KeywordRank, MapListing } from "./sample";
+import type { ImportedPackRow } from "@/lib/local-signals/types";
 import { detectWeeklyRun } from "@/lib/metrics/trends";
 
 /** Illustrative map-pack click weights by position (1-indexed) — the top of the
@@ -105,6 +107,58 @@ export function rankDecline(k: Pick<KeywordRank, "history">): RankDecline | null
   const droppedBy = found.last - found.base;
   if (droppedBy < RANK_DECLINE_MIN_DROP) return null;
   return { run: found.run, droppedBy };
+}
+
+/** Fold an area label to its canonical identity (diacritics, case and whitespace
+ *  insensitive) — the same fold the coverage/GBP imports use, so „Plzen" and „Plzeň"
+ *  group into ONE imported pack. */
+function foldArea(s: string): string {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+}
+
+/** Turn imported pack rows into the AreaPack[] the map renders (E1). Pure — the store
+ *  seam and the live/sample decision live in `local-signals/resolve`.
+ *
+ *  - one pack per distinct (folded) area, in first-seen order; listings sorted by rank
+ *  - `you` is the row's explicit flag, or a name match against `businessName` when the
+ *    export carried no flag (a pack export names the business, it doesn't mark it)
+ *  - `center` is the MEAN of the coordinates the export actually supplied; an area whose
+ *    rows carry no coordinates gets no centre and no pins — the pack is still ranked and
+ *    share-of-voice still computes, but nothing fake is placed on the map. */
+export function packsFromImported(rows: ImportedPackRow[], businessName?: string): AreaPack[] {
+  const wanted = businessName ? foldArea(businessName) : "";
+  const byArea = new Map<string, { city: string; rows: ImportedPackRow[] }>();
+  for (const r of rows) {
+    const key = foldArea(r.area);
+    const bucket = byArea.get(key);
+    if (bucket) bucket.rows.push(r);
+    else byArea.set(key, { city: r.area.trim(), rows: [r] });
+  }
+
+  return [...byArea.entries()].map(([areaId, { city, rows: areaRows }]) => {
+    const sorted = [...areaRows].sort((a, b) => a.rank - b.rank);
+    // An explicit `you` flag anywhere in the area wins; otherwise fall back to the
+    // name match, so a flagged export is never overridden by a coincidental name.
+    const flagged = sorted.some((r) => r.you);
+    const listings: MapListing[] = sorted.map((r) => ({
+      id: `${areaId}-${r.rank}`,
+      rank: r.rank,
+      name: r.name,
+      you: flagged ? r.you : wanted !== "" && foldArea(r.name) === wanted,
+      rating: r.rating,
+      reviews: r.reviews,
+      ...(r.lat !== undefined && r.lng !== undefined ? { lat: r.lat, lng: r.lng } : {}),
+    }));
+    const geo = listings.filter((l) => l.lat !== undefined && l.lng !== undefined);
+    const center =
+      geo.length > 0
+        ? {
+            lat: geo.reduce((a, l) => a + l.lat!, 0) / geo.length,
+            lng: geo.reduce((a, l) => a + l.lng!, 0) / geo.length,
+          }
+        : undefined;
+    return { areaId, city, ...(center ? { center } : {}), listings };
+  });
 }
 
 /** Ladder ordered by the best current position first, then biggest climb. */

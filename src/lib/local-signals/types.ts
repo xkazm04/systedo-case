@@ -73,14 +73,50 @@ export interface ImportedCoverage {
   rows: ImportedCoverageRow[];
 }
 
+/** A single imported map-pack listing (E1): one named business observed in one
+ *  locality's local pack, with the position/rating/review count that make the pin
+ *  meaningful. This is the live counterpart of mappack/sample's `packForArea`, whose
+ *  rival names come from a six-item hardcoded list reused across every Czech city.
+ *
+ *  Coordinates are OPTIONAL and never synthesized: an export that carries lat/lng gets
+ *  a real pin, one that doesn't gets a ranked row with no pin (the map degrades to its
+ *  "no coordinates for this area yet" note rather than jittering a fake position around
+ *  a city centre under a live label). Same honesty rule as resolveCoverage nulling the
+ *  seeded rank once coverage is live. */
+export interface ImportedPackRow {
+  /** the search area / locality the pack was observed in (verbatim from the export) */
+  area: string;
+  /** the business name as it appears in the pack */
+  name: string;
+  /** position in the pack (1 = top) */
+  rank: number;
+  /** average star rating, 0..5 */
+  rating: number;
+  /** public review count */
+  reviews: number;
+  /** true when this listing is the tracked business itself */
+  you: boolean;
+  /** observed latitude — present ONLY when the export carried coordinates */
+  lat?: number;
+  /** observed longitude — present ONLY when the export carried coordinates */
+  lng?: number;
+}
+
+/** The live map-pack section: its own provenance + the imported pack listings. */
+export interface ImportedPack {
+  meta: LocalSignalsMeta;
+  rows: ImportedPackRow[];
+}
+
 /** Persisted per project: the keyword-rank ladder (top-level `meta`+`ladder`, kept
- *  for backward compatibility) plus optional live review, GBP and coverage sections,
- *  each with its own provenance. Old `{meta, ladder}` blobs read cleanly (the optional
- *  sections absent). */
+ *  for backward compatibility) plus optional live review, GBP, coverage and map-pack
+ *  sections, each with its own provenance. Old `{meta, ladder}` blobs read cleanly (the
+ *  optional sections absent). */
 export interface LocalSignals {
   meta: LocalSignalsMeta;
   ladder: KeywordRank[];
   reviews?: ImportedReviews;
   gbp?: ImportedGbp;
   coverage?: ImportedCoverage;
+  pack?: ImportedPack;
 }
