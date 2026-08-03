@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Bolt, Check, Document, Download, Layers, Search, Share } from "@/components/icons";
 import { downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
@@ -16,6 +18,8 @@ import {
 } from "@/lib/ai-types";
 import { CHANNEL_LIMITS, REPURPOSE_CHANNELS } from "@/lib/distribution/generate";
 import { variantPublishKind } from "@/lib/distribution/publish";
+import { articleSourceFromDraft } from "@/lib/distribution/from-draft";
+import { sendArticleToDistributionAction } from "@/components/app/modules/distribution-actions";
 import {
   briefToArticleDraftRequest,
   clusterToBriefRequest,
@@ -70,6 +74,10 @@ const T = {
     draftSummary: "{blocks} bloků obsahu · {faq} otázek FAQ",
     downloadMd: "Stáhnout .md",
     downloadMdTitle: "Stáhnout koncept článku jako Markdown",
+    sendToDistribution: "Otevřít v Distribuci",
+    sendToDistributionTitle: "Poslat tento článek do modulu Distribuce, kde se dá dál upravovat a předávat",
+    sending: "Odesílám…",
+    sendFailed: "Článek se nepodařilo předat do Distribuce.",
     step4Title: "Článek → distribuce do kanálů",
     step4Locked: "Nejdřív rozepište článek v kroku 3.",
     fieldChannels: "Kanály",
@@ -111,6 +119,10 @@ const T = {
     draftSummary: "{blocks} content blocks · {faq} FAQ questions",
     downloadMd: "Download .md",
     downloadMdTitle: "Download the article draft as Markdown",
+    sendToDistribution: "Open in Distribution",
+    sendToDistributionTitle: "Send this article to the Distribution module, where it can be edited and handed off",
+    sending: "Sending…",
+    sendFailed: "Couldn't hand the article over to Distribution.",
     step4Title: "Article → channel distribution",
     step4Locked: "Expand the article in step 3 first.",
     fieldChannels: "Channels",
@@ -236,8 +248,12 @@ const RUN_BUTTON =
  *  can never show a draft that no longer matches its brief. */
 export default function ContentPipeline() {
   const t = useT(T);
+  const router = useRouter();
   // Scopes the publish-audit beacon to the active project; null outside one (/ai-asistent).
   const project = useOptionalProject();
+  /** "open in Distribuce" state — idle / in-flight / refused. */
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [form, setForm] = usePersistedForm<PipelineForm>("pipeline", EMPTY, {
     validate: isPipelineForm,
   });
@@ -311,6 +327,35 @@ export default function ContentPipeline() {
     briefTool.reset();
     draftTool.reset();
     distTool.reset();
+  };
+
+  /** Hand the pipeline's article over to Distribuce and open it there — the same
+   *  project_state seam the module's persisted variants ride, so this adds a door,
+   *  not a second transport. */
+  const sendToDistribution = async () => {
+    const pid = project?.id;
+    if (!briefR || !draftR || !pid || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const res = await sendArticleToDistributionAction(
+        pid,
+        articleSourceFromDraft({
+          title: briefR.h1 || briefR.titleTag,
+          blocks: draftR.blocks,
+          domain: project?.domain,
+        })
+      );
+      if (!res) {
+        setSendError(t("sendFailed"));
+        return;
+      }
+      router.push(`/app/${pid}/distribuce`);
+    } catch {
+      setSendError(t("sendFailed"));
+    } finally {
+      setSending(false);
+    }
   };
 
   const exportDraftMd = () => {
@@ -519,16 +564,34 @@ export default function ContentPipeline() {
                   <p className="text-sm text-navy-700">
                     {t("draftSummary", { blocks: draftR.blocks.length, faq: draftR.faq.length })}
                   </p>
-                  <button
-                    type="button"
-                    onClick={exportDraftMd}
-                    title={t("downloadMdTitle")}
-                    className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
-                  >
-                    <Download width={14} height={14} />
-                    {t("downloadMd")}
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* The pipeline's article was a dead end: it chained internally
+                        and could not be reopened anywhere. This is the door out —
+                        into Distribuce's own store, not a second transport. */}
+                    {project?.id ? (
+                      <button
+                        type="button"
+                        onClick={sendToDistribution}
+                        disabled={sending}
+                        title={t("sendToDistributionTitle")}
+                        className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Share width={14} height={14} />
+                        {sending ? t("sending") : t("sendToDistribution")}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={exportDraftMd}
+                      title={t("downloadMdTitle")}
+                      className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent"
+                    >
+                      <Download width={14} height={14} />
+                      {t("downloadMd")}
+                    </button>
+                  </div>
                 </div>
+                {sendError ? <p className="text-xs text-negative">{sendError}</p> : null}
               </div>
             )}
           </>

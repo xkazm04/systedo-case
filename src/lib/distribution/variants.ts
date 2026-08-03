@@ -47,10 +47,29 @@ export interface ArticleVariants {
   updatedAt: string;
 }
 
+/** A source article the user sent into Distribuce from elsewhere in the app (the
+ *  article draft panel / content engine). Stored alongside the variants in the SAME
+ *  blob deliberately: the handoff and the variants it produces are one record, and
+ *  reusing this seam is what keeps the app from growing a second transport for
+ *  "here is an article, distribute it". */
+export interface StoredArticleSource {
+  /** {@link articleKey} of the article — the join to its ArticleVariants entry */
+  articleKey: string;
+  title: string;
+  url: string;
+  /** the article prose the channel variants are repurposed FROM */
+  body: string;
+  /** ISO timestamp the article was handed over */
+  savedAt: string;
+}
+
 /** The per-project persisted blob (the {items, updatedAt} shape the sibling
  *  single-blob stores use). */
 export interface VariantState {
   articles: ArticleVariants[];
+  /** Articles handed into Distribuce, newest first. Absent on blobs written before
+   *  the handoff existed — read it through {@link storedSources}, never directly. */
+  sources?: StoredArticleSource[];
   updatedAt: string;
 }
 
@@ -64,6 +83,13 @@ export const VARIANT_ARTICLE_CAP = 25;
 export const VARIANT_TEXT_MAX = 8000;
 
 const MAX_LABEL = 200;
+
+/** How many handed-over source articles a project keeps, and how much prose each
+ *  carries. Both bound the shared blob: 10 × 12 000 chars is a small fraction of
+ *  the project_state ceiling even alongside a full set of variants. */
+export const SOURCE_ARTICLE_CAP = 10;
+export const SOURCE_BODY_MAX = 12_000;
+const MAX_URL = 500;
 
 // ---------------------------------------------------------------------------
 // Article identity
@@ -119,7 +145,112 @@ export function sanitizeVariant(raw: unknown, channel: string, now: Date = new D
 // ---------------------------------------------------------------------------
 
 export function emptyVariantState(now: Date = new Date()): VariantState {
-  return { articles: [], updatedAt: now.toISOString() };
+  return { articles: [], sources: [], updatedAt: now.toISOString() };
+}
+
+// ---------------------------------------------------------------------------
+// Handed-over source articles + source selection
+// ---------------------------------------------------------------------------
+
+/** Coerce an untrusted, client-supplied article into a bounded StoredArticleSource.
+ *  Returns null when the payload has no usable title or an unusable URL — the UTM
+ *  stamper builds a `new URL()` from it, so an unparseable value must never be
+ *  stored rather than break every variant link later. Pure. */
+export function sanitizeSource(raw: unknown, now: Date = new Date()): StoredArticleSource | null {
+  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const title = typeof o.title === "string" ? o.title.trim().slice(0, MAX_LABEL) : "";
+  const url = typeof o.url === "string" ? o.url.trim().slice(0, MAX_URL) : "";
+  if (!title || !url) return null;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  } catch {
+    return null;
+  }
+  const savedAt =
+    typeof o.savedAt === "string" && !Number.isNaN(Date.parse(o.savedAt))
+      ? o.savedAt
+      : now.toISOString();
+  return {
+    articleKey: articleKey({ title, url }),
+    title,
+    url,
+    body: typeof o.body === "string" ? o.body.slice(0, SOURCE_BODY_MAX) : "",
+    savedAt,
+  };
+}
+
+/** The stored sources, newest first — [] for a blob written before the handoff
+ *  existed (or a project that never used it). Pure. */
+export function storedSources(state: VariantState | null): StoredArticleSource[] {
+  return state?.sources ?? [];
+}
+
+/** Add (or refresh) one handed-over article at the front of the list, replacing
+ *  the same article in place so re-sending a revised draft updates rather than
+ *  duplicates it. Oldest fall off past `cap`. Never mutates. Pure. */
+export function upsertSource(
+  prev: VariantState | null,
+  source: StoredArticleSource,
+  cap = SOURCE_ARTICLE_CAP,
+  now: Date = new Date()
+): VariantState {
+  const rest = storedSources(prev).filter((s) => s.articleKey !== source.articleKey);
+  return {
+    articles: prev?.articles ?? [],
+    sources: [source, ...rest].slice(0, Math.max(1, cap)),
+    updatedAt: now.toISOString(),
+  };
+}
+
+/** Where the article currently open in Distribuce came from. The distinction is
+ *  load-bearing: the fixture is illustrative content that must never be mistaken
+ *  for the user's own work (and vice versa). */
+export type SourceOrigin = "sample" | "project";
+
+export interface SourceChoice {
+  key: string;
+  title: string;
+  origin: SourceOrigin;
+}
+
+/** The article Distribuce should show, given the fixture, everything stored, and
+ *  the user's explicit pick (null = "no choice made yet").
+ *
+ *  With NOTHING stored this always returns the fixture — which is what keeps a
+ *  brand-new project exactly as it was: the fixture IS the empty state, not a
+ *  fallback that a stored article competes with. Once the user has handed an
+ *  article over, their newest article is the default (they came here to distribute
+ *  it), the fixture stays explicitly selectable, and an unknown/stale key resolves
+ *  to that same default instead of throwing. Pure. */
+export function selectSource<S extends { title: string; url: string; body?: string }>(
+  fixture: S,
+  sources: readonly StoredArticleSource[],
+  selectedKey: string | null
+): { source: S; origin: SourceOrigin; key: string } {
+  const fixtureKey = articleKey(fixture);
+  const asSource = (s: StoredArticleSource): S =>
+    ({ ...fixture, title: s.title, url: s.url, body: s.body }) as S;
+
+  if (sources.length === 0) return { source: fixture, origin: "sample", key: fixtureKey };
+  if (selectedKey === fixtureKey) return { source: fixture, origin: "sample", key: fixtureKey };
+  const hit = selectedKey ? sources.find((s) => s.articleKey === selectedKey) : undefined;
+  const chosen = hit ?? sources[0]!;
+  return { source: asSource(chosen), origin: "project", key: chosen.articleKey };
+}
+
+/** Every article the source picker can offer, in render order: the user's own
+ *  articles newest-first, then the fixture — always last and always labelled, so
+ *  the illustrative content can be reached again without ever being the thing that
+ *  quietly looks like your work. Pure. */
+export function sourceChoices(
+  fixture: { title: string; url: string },
+  sources: readonly StoredArticleSource[]
+): SourceChoice[] {
+  return [
+    ...sources.map((s) => ({ key: s.articleKey, title: s.title, origin: "project" as const })),
+    { key: articleKey(fixture), title: fixture.title, origin: "sample" as const },
+  ];
 }
 
 /** The status a variant should carry after `next` happens to it.
@@ -167,6 +298,10 @@ export function upsertVariant(
   };
   return {
     articles: [article, ...rest].slice(0, Math.max(1, cap)),
+    // Variants and handed-over sources live in one blob; a variant write must
+    // carry the sources through untouched or saving an edit would silently
+    // un-hand-over the article it belongs to.
+    ...(prev?.sources ? { sources: prev.sources } : {}),
     updatedAt: nowIso,
   };
 }

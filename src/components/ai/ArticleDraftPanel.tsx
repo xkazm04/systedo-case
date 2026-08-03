@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Bolt, Document, Download, Image as ImageIcon, Close } from "@/components/icons";
+import { useRouter } from "next/navigation";
+import { Bolt, Document, Download, Image as ImageIcon, Close, Share } from "@/components/icons";
 import ArticleBody from "@/components/article/ArticleBody";
 import Modal from "@/components/app/Modal";
 import { downloadText } from "@/lib/export";
@@ -10,6 +11,8 @@ import { useT } from "@/lib/i18n/client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/article";
 import { blockToMarkdown, inlineToMarkdown, type MarkdownLabels } from "@/lib/article-markdown";
+import { articleSourceFromDraft } from "@/lib/distribution/from-draft";
+import { sendArticleToDistributionAction } from "@/components/app/modules/distribution-actions";
 import type { ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import type { CreativeSummary } from "@/lib/images/types";
 import { useAiTool } from "./useAiTool";
@@ -52,6 +55,10 @@ const T = {
     removeImage: "Odebrat obrázek",
     placeholderAdd: "Přidat obrázek: {alt}",
     placeholderHint: "AI navrhla obrázek — vyberte ho z knihovny vizuálů.",
+    sendToDistribution: "Poslat do Distribuce",
+    sendToDistributionTitle: "Poslat tento článek do Distribuce a udělat z něj varianty pro kanály",
+    sending: "Odesílám…",
+    sendFailed: "Článek se nepodařilo předat do Distribuce.",
   },
   en: {
     panelHeading: "Expand to article",
@@ -79,6 +86,10 @@ const T = {
     removeImage: "Remove image",
     placeholderAdd: "Add image: {alt}",
     placeholderHint: "The AI suggested an image here — pick it from the visual library.",
+    sendToDistribution: "Send to Distribution",
+    sendToDistributionTitle: "Send this article to Distribution and turn it into channel variants",
+    sending: "Sending…",
+    sendFailed: "Couldn't hand the article over to Distribution.",
   },
 } as const;
 
@@ -274,8 +285,12 @@ function DraftPreview({
  *  AI's suggested figure placeholders). */
 export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   const t = useT(T);
+  const router = useRouter();
   const project = useOptionalProject();
   const pid = project?.id;
+  /** "send to Distribuce" state — idle / in-flight / refused. */
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
     useAiTool<ArticleDraftResult>("article-draft");
   const [preview, setPreview] = useState<"preview" | "json">("preview");
@@ -366,6 +381,37 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
     reportAssetPublished("article", "export", pid);
   };
 
+  /** Hand this draft over to Distribuce and open it there.
+   *
+   *  Uses the module's OWN store seam (the project_state blob behind the persisted
+   *  variants) rather than a second transport: the article and the variants it
+   *  produces are one record. The body is real prose extracted from the draft, so
+   *  the AI repurpose path grounds on the article the user actually wrote — and its
+   *  backfill full/partial/none honesty flags stay meaningful instead of reporting
+   *  a full backfill for a headline-only prompt. */
+  const sendToDistribution = async () => {
+    if (!draft || !pid || sending) return;
+    setSending(true);
+    setSendError(null);
+    try {
+      const article = articleSourceFromDraft({
+        title: brief.h1 || brief.titleTag,
+        blocks: composed,
+        domain: project?.domain,
+      });
+      const res = await sendArticleToDistributionAction(pid, article);
+      if (!res) {
+        setSendError(t("sendFailed"));
+        return;
+      }
+      router.push(`/app/${pid}/distribuce`);
+    } catch {
+      setSendError(t("sendFailed"));
+    } finally {
+      setSending(false);
+    }
+  };
+
   const exportJson = () => {
     if (!draft) return;
     downloadText(
@@ -446,6 +492,20 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
                 <ImageIcon width={14} height={14} />
                 {t("addHero")}
               </button>
+              {/* Only offered inside a project — the handoff is per-project state,
+                  and the demo/marketing surface has no project to hand it to. */}
+              {pid ? (
+                <button
+                  type="button"
+                  onClick={sendToDistribution}
+                  disabled={sending}
+                  title={t("sendToDistributionTitle")}
+                  className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Share width={14} height={14} />
+                  {sending ? t("sending") : t("sendToDistribution")}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={exportMarkdown}
@@ -466,6 +526,8 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
               </button>
             </div>
           </div>
+
+          {sendError ? <p className="text-xs text-negative">{sendError}</p> : null}
 
           {preview === "preview" ? (
             <article className="min-w-0 max-w-2xl rounded-card border border-line bg-surface p-6 sm:p-8">

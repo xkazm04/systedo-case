@@ -17,7 +17,13 @@
  *  variants are cleaned up with the project automatically. */
 import "server-only";
 import { getProjectState, saveProjectState } from "@/lib/project-state/store";
-import { upsertVariant, type StoredVariant, type VariantState } from "./variants";
+import {
+  upsertSource,
+  upsertVariant,
+  type StoredArticleSource,
+  type StoredVariant,
+  type VariantState,
+} from "./variants";
 
 /** The project_state key the variants blob lives under. */
 const VARIANTS_KEY = "distributionVariants";
@@ -54,6 +60,26 @@ export async function recordVariant(
     cur = null;
   }
   const next = upsertVariant(cur, articleKey, title, entry);
+  await saveVariants(userId, projectId, next);
+  return next;
+}
+
+/** Read-modify-write: record one article handed into Distribuce from elsewhere in
+ *  the app (re-sending a revised draft updates it in place). Rides the SAME blob as
+ *  the variants — one record per project, one transport for the whole handoff.
+ *  Returns the persisted blob. */
+export async function recordSource(
+  userId: string,
+  projectId: string,
+  source: StoredArticleSource
+): Promise<VariantState> {
+  let cur: VariantState | null = null;
+  try {
+    cur = await getVariants(userId, projectId);
+  } catch {
+    cur = null;
+  }
+  const next = upsertSource(cur, source);
   await saveVariants(userId, projectId, next);
   return next;
 }

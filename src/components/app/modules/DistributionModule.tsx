@@ -30,9 +30,12 @@ import { rollupLearnings, type DimensionLeader } from "@/lib/distribution/learni
 import {
   advanceStatus,
   applyStoredVariants,
-  articleKey as articleKeyFor,
+  selectSource,
+  sourceChoices,
+  storedSources,
   variantsForArticle,
   type StoredVariant,
+  type VariantState,
   type VariantStatus,
 } from "@/lib/distribution/variants";
 import { loadVariantsAction, saveVariantAction } from "./distribution-actions";
@@ -85,6 +88,10 @@ const T = {
     statusGenerated: "Uloženo",
     statusHandedOff: "Předáno",
     savedHint: "Uložené varianty tohoto článku se načetly — pokračujete tam, kde jste skončili.",
+    originSample: "Ukázkový článek",
+    originProject: "Váš článek",
+    sourcePickerLabel: "Článek",
+    sampleSourceHint: "Toto je ukázkový článek. Vlastní článek sem pošlete tlačítkem „Poslat do Distribuce“ u konceptu článku.",
     scheduleBtn: "Naplánovat na {platform}",
     schedulingBtn: "Předávám…",
     scheduleError: "Předání do sociálních sítí se nezdařilo.",
@@ -146,6 +153,10 @@ const T = {
     statusGenerated: "Saved",
     statusHandedOff: "Handed off",
     savedHint: "Loaded this article's saved variants — you're picking up where you left off.",
+    originSample: "Sample article",
+    originProject: "Your article",
+    sourcePickerLabel: "Article",
+    sampleSourceHint: 'This is the sample article. Send one of your own with "Send to Distribution" on an article draft.',
     scheduleBtn: "Schedule on {platform}",
     schedulingBtn: "Sending…",
     scheduleError: "Failed to hand off to social networks.",
@@ -209,29 +220,20 @@ export default function DistributionModule({
   const t = useT(T);
   const fmt = useFormatters();
   const project = useProject();
-  const variants = useMemo(() => repurpose(source), [source]);
 
-  // --- persisted variants -------------------------------------------------
-  // The deterministic repurpose is ALWAYS the first paint (it is pure and needs no
-  // I/O), and the stored blob is layered on top once it arrives. A project with
-  // nothing stored therefore renders exactly what it rendered before this store
-  // existed — same text, same order, no extra badge, no remount.
-  const key = useMemo(() => articleKeyFor(source), [source]);
-  const [stored, setStored] = useState<Record<string, StoredVariant>>({});
-  /** Bumped only when a NON-EMPTY stored set arrives, and used in the card key to
-   *  remount the editors once with their saved text. Staying at 0 for a fresh
-   *  project is what keeps that path byte-identical. */
-  const [hydration, setHydration] = useState(0);
+  // --- the stored record (handed-over articles + their variants) -----------
+  // Loaded ONCE per project, after first paint. The deterministic fixture is
+  // always what renders first (it is pure and needs no I/O); everything stored is
+  // layered on top when it arrives, so a project with nothing stored renders
+  // exactly what it rendered before this store existed.
+  const [state, setState] = useState<VariantState | null>(null);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
     void loadVariantsAction(project.id)
-      .then((state) => {
-        if (!alive) return;
-        const hit = variantsForArticle(state, key);
-        if (Object.keys(hit).length === 0) return;
-        setStored(hit);
-        setHydration((n) => n + 1);
+      .then((loaded) => {
+        if (alive) setState(loaded);
       })
       .catch(() => {
         /* a hydration failure must never break the module — the deterministic
@@ -240,13 +242,28 @@ export default function DistributionModule({
     return () => {
       alive = false;
     };
-  }, [project.id, key]);
+  }, [project.id]);
 
-  /** Fold one just-persisted entry back into the local map so the badge and any
-   *  later remount agree with what the server now holds. */
-  const onPersisted = useCallback((entry: StoredVariant) => {
-    setStored((prev) => ({ ...prev, [entry.channel]: entry }));
-  }, []);
+  // --- which article are we distributing? ----------------------------------
+  // With nothing handed over this ALWAYS resolves to the fixture: the fixture is
+  // the empty state, not a fallback competing with real articles.
+  const sources = useMemo(() => storedSources(state), [state]);
+  const active = useMemo(() => selectSource(source, sources, selectedKey), [source, sources, selectedKey]);
+  const activeSource = active.source;
+  const key = active.key;
+  const choices = useMemo(() => sourceChoices(source, sources), [source, sources]);
+
+  const variants = useMemo(() => repurpose(activeSource), [activeSource]);
+  const stored = useMemo(() => variantsForArticle(state, key), [state, key]);
+  const hasStored = Object.keys(stored).length > 0;
+  /** Remount key for the editors: it changes when the chosen article changes, and
+   *  when saved text first arrives for it. For a fresh project both halves are
+   *  constant, so nothing ever remounts — that path stays byte-identical. */
+  const editorEpoch = `${key}:${hasStored ? (state?.updatedAt ?? "") : ""}`;
+
+  /** The action returns the whole persisted blob — adopt it wholesale so the
+   *  badges and any later remount agree with what the server now holds. */
+  const onPersisted = useCallback((next: VariantState) => setState(next), []);
 
   // Stored text wins per channel; link, budget and order always come from the
   // fresh repurpose, so a saved variant can never resurrect a stale UTM link.
@@ -259,21 +276,48 @@ export default function DistributionModule({
 
   return (
     <div className="stagger space-y-6">
-      {/* source */}
-      <div className="card flex items-center gap-4 p-5">
+      {/* source — the fixture and the user's own article must never look alike, so
+          the origin is stated on the card rather than implied by the title. */}
+      <div className="card flex flex-wrap items-center gap-4 p-5">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-accent">
           <Document width={22} height={22} />
         </span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("sourceArticle")}</p>
-          <p className="truncate text-base font-semibold text-navy-800">{source.title}</p>
-          <a href={source.url} target="_blank" rel="noopener noreferrer" className="link-inline text-sm">
-            {source.url.replace("https://", "")}
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            {t("sourceArticle")}
+            <Pill tone={active.origin === "project" ? "positive" : "coral"}>
+              {t(active.origin === "project" ? "originProject" : "originSample")}
+            </Pill>
+          </p>
+          <p className="truncate text-base font-semibold text-navy-800">{activeSource.title}</p>
+          <a href={activeSource.url} target="_blank" rel="noopener noreferrer" className="link-inline text-sm">
+            {activeSource.url.replace("https://", "")}
           </a>
+          {active.origin === "sample" && sources.length === 0 ? (
+            <p className="mt-1 text-xs text-muted">{t("sampleSourceHint")}</p>
+          ) : null}
         </div>
+        {/* The picker only exists once the user has actually handed an article
+            over — a brand-new project sees the card exactly as before. */}
+        {sources.length > 0 ? (
+          <label className="flex shrink-0 items-center gap-2 text-xs text-muted">
+            <span className="font-medium">{t("sourcePickerLabel")}</span>
+            <select
+              value={key}
+              onChange={(e) => setSelectedKey(e.target.value)}
+              className="max-w-[16rem] truncate rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-navy-700 outline-none transition focus:border-brand-400 focus:bg-surface"
+            >
+              {choices.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.origin === "sample" ? `${t("originSample")} — ${c.title}` : c.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
 
-      {hydration > 0 && (
+      {hasStored && (
         <p className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
           <Check width={14} height={14} className="shrink-0" />
           {t("savedHint")}
@@ -284,14 +328,14 @@ export default function DistributionModule({
       <div className="grid gap-4 sm:grid-cols-2">
         {shown.map((v) => (
           <VariantCard
-            // The hydration counter remounts the editors ONCE with their saved
-            // text; it never changes for a project with nothing stored.
-            key={`${v.channel}:${hydration}`}
+            // Remounts the editor when the chosen article changes or its saved
+            // text first arrives; constant for a project with nothing stored.
+            key={`${v.channel}:${editorEpoch}`}
             channel={v.channel}
             initialText={v.text}
             max={v.max}
             link={v.link}
-            source={source}
+            source={activeSource}
             articleKey={key}
             projectId={project.id}
             storedStatus={stored[v.channel]?.status ?? null}
@@ -387,7 +431,7 @@ function VariantCard({
   projectId: string;
   /** the persisted status for this channel, or null when nothing is stored yet */
   storedStatus: VariantStatus | null;
-  onPersisted: (entry: StoredVariant) => void;
+  onPersisted: (state: VariantState) => void;
   t: TFn;
 }) {
   const project = useProject();
@@ -420,7 +464,7 @@ function VariantCard({
         .then((state) => {
           // Unowned project (the demo surface) → the action stores nothing and
           // returns null; don't pretend it was saved.
-          if (state) onPersisted(entry);
+          if (state) onPersisted(state);
         })
         .catch(() => {
           /* best-effort */

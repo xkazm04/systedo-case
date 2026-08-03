@@ -9,8 +9,8 @@
  *  a fixture. Mirrors catalog/ad-copy-actions.ts. */
 import { currentUserId } from "@/lib/session";
 import { getProject } from "@/lib/projects/store";
-import { getVariants, recordVariant } from "@/lib/distribution/variants-store";
-import { sanitizeVariant, type VariantState } from "@/lib/distribution/variants";
+import { getVariants, recordSource, recordVariant } from "@/lib/distribution/variants-store";
+import { sanitizeSource, sanitizeVariant, type VariantState } from "@/lib/distribution/variants";
 import { isDemoProjectId } from "@/lib/projects/demo";
 
 /** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated,
@@ -44,4 +44,21 @@ export async function saveVariantAction(
   const uid = await ownerOf(projectId);
   if (!uid || !articleKey || !channel) return null;
   return recordVariant(uid, projectId, articleKey, title, sanitizeVariant(entry, channel));
+}
+
+/** Hand one article (an article-draft/content-engine output) into Distribuce. The
+ *  payload is sanitized and bounded before it lands, and an article with no usable
+ *  title/URL is rejected outright rather than stored as something the UTM stamper
+ *  would later choke on. Returns the article's storage key so the caller can deep-link
+ *  straight to it, or null when the handoff was refused. */
+export async function sendArticleToDistributionAction(
+  projectId: string,
+  article: unknown
+): Promise<{ articleKey: string } | null> {
+  const uid = await ownerOf(projectId);
+  if (!uid) return null;
+  const source = sanitizeSource(article);
+  if (!source) return null;
+  await recordSource(uid, projectId, source);
+  return { articleKey: source.articleKey };
 }
