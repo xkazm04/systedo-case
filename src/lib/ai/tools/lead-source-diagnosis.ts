@@ -179,7 +179,9 @@ function normalizeLeadSourceDiagnosis(
   req: LeadSourceDiagnosisRequest
 ): LeadSourceDiagnosisResult {
   const o = parsed as Record<string, unknown> | null;
-  const fallback = demoLeadSourceDiagnosis(req);
+  // Per-field floor is the TAIL-FREE base — backfilling an empty summary must not carry
+  // the keyless "připojte LLM" disclaimer into a real (billed) model diagnosis.
+  const fallback = baseLeadSourceDiagnosis(req);
 
   const rawCause = txt(o?.likelyCause);
   const likelyCause = rawCause ? coerceCause(rawCause) : fallback.likelyCause;
@@ -214,9 +216,21 @@ function validateLeadSourceDiagnosis(parsed: unknown): string[] {
   )(parsed);
 }
 
-/** Deterministic, data-driven diagnosis: pick the cause from the numbers and emit
- *  a templated Czech reading. The keyless demo and the floor for empty fields. */
+/** The keyless demo: the tail-free base plus the honest "ukázkový výstup — připojte
+ *  LLM" disclaimer on the summary. Reached ONLY through the wrapper's demo() return
+ *  path; live per-field backfill uses baseLeadSourceDiagnosis so the disclaimer never
+ *  leaks into a real, metered diagnosis. */
 export function demoLeadSourceDiagnosis(
+  req: LeadSourceDiagnosisRequest
+): LeadSourceDiagnosisResult {
+  const base = baseLeadSourceDiagnosis(req);
+  return { ...base, summary: base.summary + demoTail("diagnostiku od modelu") };
+}
+
+/** Deterministic, data-driven diagnosis: pick the cause from the numbers and emit
+ *  a templated Czech reading — TAIL-FREE, so it is safe both as the floor for empty
+ *  model fields and as the base the demo wraps with the disclaimer. */
+export function baseLeadSourceDiagnosis(
   req: LeadSourceDiagnosisRequest
 ): LeadSourceDiagnosisResult {
   const cause = pickCause(req);
@@ -225,8 +239,6 @@ export function demoLeadSourceDiagnosis(
   const win = fmtPct(req.winRate);
   const cpl = req.cpl != null ? fmtCZK(req.cpl) : "—";
   const cpq = req.costPerQualified != null ? fmtCZK(req.costPerQualified) : "—";
-
-  const DEMO_TAIL = demoTail("diagnostiku od modelu");
 
   // Deterministic drift note from the period-over-period trend, when the source is
   // measurably getting worse — so the demo also reflects the new signal.
@@ -261,7 +273,7 @@ export function demoLeadSourceDiagnosis(
   }
 
   return {
-    summary: summary + driftNote + DEMO_TAIL,
+    summary: summary + driftNote,
     likelyCause: cause,
     recommendation,
     severity: severityFor(cause),

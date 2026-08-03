@@ -158,7 +158,9 @@ export function normalizeLocalDiagnosis(
 ): LocalDiagnosisResult {
   const o = parsed as Record<string, unknown> | null;
   const labels = new Set(req.gaps.map((g) => g.label));
-  const fallback = demoLocalDiagnosis(req);
+  // Per-field floor is the TAIL-FREE base — backfilling an empty summary must not carry
+  // the keyless "připojte LLM" disclaimer into a real (billed) model diagnosis.
+  const fallback = baseLocalDiagnosis(req);
 
   // Keep the model's worstGap only when it names a real gap; otherwise fall back to
   // the deterministically highest-volume pick so the field is always valid.
@@ -195,17 +197,25 @@ export function validateLocalDiagnosis(parsed: unknown, req: LocalDiagnosisReque
   })(parsed);
 }
 
-/** Deterministic, data-driven diagnosis: pick the highest-volume coverage gap and
- *  emit a templated Czech reading. The keyless demo and the floor for empty fields. */
+/** The keyless demo: the tail-free base plus the honest "ukázkový výstup — připojte
+ *  LLM" disclaimer on the summary. Reached ONLY through the wrapper's demo() return
+ *  path; live per-field backfill uses baseLocalDiagnosis so the disclaimer never
+ *  leaks into a real, metered diagnosis. */
 export function demoLocalDiagnosis(req: LocalDiagnosisRequest): LocalDiagnosisResult {
+  const base = baseLocalDiagnosis(req);
+  return { ...base, summary: base.summary + demoTail("diagnostiku od modelu") };
+}
+
+/** Deterministic, data-driven diagnosis: pick the highest-volume coverage gap and
+ *  emit a templated Czech reading — TAIL-FREE, so it is safe both as the floor for
+ *  empty model fields and as the base the demo wraps with the disclaimer. */
+export function baseLocalDiagnosis(req: LocalDiagnosisRequest): LocalDiagnosisResult {
   const worst = worstGapOf(req.gaps);
   if (!worst) {
     return {
-      summary:
-        `Pokrytí je ${fmtPct(req.coveragePct, 0)} (${fmtInt(req.withPage)} z ${fmtInt(
-          req.trackedCombos
-        )} kombinací) a v datech nejsou žádné otevřené mezery k uzavření.` +
-        demoTail("diagnostiku od modelu"),
+      summary: `Pokrytí je ${fmtPct(req.coveragePct, 0)} (${fmtInt(req.withPage)} z ${fmtInt(
+        req.trackedCombos
+      )} kombinací) a v datech nejsou žádné otevřené mezery k uzavření.`,
       worstGap: "—",
       recommendation:
         "Držte pokrytí a soustřeďte se na posun slabých pozic do top 3 a odpovídání na recenze.",
@@ -252,7 +262,7 @@ export function demoLocalDiagnosis(req: LocalDiagnosisRequest): LocalDiagnosisRe
       req.gapVolume
     )} hledání měsíčně. Největší nepokrytá poptávka je „${worst.label}" (${fmtInt(
       worst.monthlyVolume
-    )} hledání/měs.).${packStr}${demoTail("diagnostiku od modelu")}`,
+    )} hledání/měs.).${packStr}`,
     worstGap: worst.label,
     recommendation,
     risks: risks.length > 0 ? risks : undefined,
