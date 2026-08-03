@@ -24,7 +24,12 @@ import { targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { keywordLadder } from "@/lib/mappack/sample";
 import { reviewsForProject } from "@/lib/reviews/sample";
-import { resolveLocalLadder, resolveReviews } from "@/lib/local-signals/resolve";
+import {
+  resolveCoverage,
+  resolveLocalLadder,
+  resolvePacks,
+  resolveReviews,
+} from "@/lib/local-signals/resolve";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { loadServicesFor } from "@/lib/catalog/load";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
@@ -54,6 +59,9 @@ const T = {
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Přehled portfolia",
     portfolioLead: "Souhrn napříč {n} projekty · obrat {revenue} · ROAS {roas}",
+    sampleBadge: "Ukázková data",
+    sampleHint:
+      "Toto doporučení vychází z ilustrativních dat, ne z vašeho importu. Po napojení zdroje v modulu se přepočítá na reálná čísla.",
   },
   en: {
     revenue30: "Revenue — last 30 days",
@@ -65,6 +73,9 @@ const T = {
     portfolioEyebrow: "Portfolio",
     portfolioTitle: "Portfolio overview",
     portfolioLead: "Across {n} projects · revenue {revenue} · ROAS {roas}",
+    sampleBadge: "Sample data",
+    sampleHint:
+      "This recommendation runs on illustrative data, not your import. Connect the source in the module and it recomputes on real numbers.",
   },
 } as const;
 
@@ -170,6 +181,15 @@ function NeedsAttention({
                         {r.projectName}
                       </span>
                     )}
+                    {/* Provenance, not decoration: a rec derived from seeded sample
+                        signals says so, using the SAME "Ukázková data" chip the
+                        module pages carry (SampleDataNote / ModulePage's `sample`
+                        gutter). Tagged rather than suppressed — see the commit note. */}
+                    {r.sample && (
+                      <span className="shrink-0" title={t("sampleHint")}>
+                        <Pill tone="navy">{t("sampleBadge")}</Pill>
+                      </span>
+                    )}
                     <span className="text-sm font-semibold text-navy-800">{r.title}</span>
                   </span>
                   {r.metric && (
@@ -191,22 +211,42 @@ function NeedsAttention({
 }
 
 /** Resolve a `local` project's Overview rec signals the same way lokalni/page.tsx
- *  does — catalog-grounded coverage targets, and the ladder + reviews live-over-
- *  sample — so the aggregator's local recs read the project's real data, not the
- *  HVAC sample. Null for non-local projects. Server-only I/O kept out of the pure
- *  aggregator. */
+ *  does — coverage targets (catalog-seeded, with imported page-presence overlaid),
+ *  and the ladder + reviews live-over-sample — so the aggregator's local recs read
+ *  the project's real data, not the HVAC sample. Null for non-local projects.
+ *  Server-only I/O kept out of the pure aggregator.
+ *
+ *  It ALSO returns each seam's provenance (`live`), which the Overview previously
+ *  threw away: without it the feed rendered `seed01()` fiction ("3 negativní recenze
+ *  čeká na odpověď") as a flat severity-dot fact card, while every module page it
+ *  links to disclosed the same numbers as illustrative. All four seams are read
+ *  through the ONE request-memoized local-signals blob (signalsForRequest), so this
+ *  is still a single store read per project per request. */
 async function resolveLocalRecsInput(project: Project): Promise<LocalRecsInput | null> {
   if (project.type !== "local") return null;
   const localities = localitiesFor(project);
   const services = await loadServicesFor(project);
-  const targets =
+  const seedTargets =
     services.length > 0 ? targetsFromCatalog(services, localities) : targetsForProject(project);
-  const resolvedLadder = await resolveLocalLadder(
-    project.id,
-    keywordLadder(project, localities, services)
-  );
-  const resolvedReviews = await resolveReviews(project.id, reviewsForProject(project, localities));
-  return { targets, ladder: resolvedLadder.ladder, reviews: resolvedReviews.reviews };
+  const [resolvedCoverage, resolvedLadder, resolvedReviews, resolvedPacks] = await Promise.all([
+    resolveCoverage(project.id, seedTargets),
+    resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
+    resolveReviews(project.id, reviewsForProject(project, localities)),
+    // The Overview has no pack-derived recommendation yet, so only the PROVENANCE is
+    // consumed here — an empty sample keeps this a flag read, not a pack computation.
+    resolvePacks(project.id, []),
+  ]);
+  return {
+    targets: resolvedCoverage.targets,
+    ladder: resolvedLadder.ladder,
+    reviews: resolvedReviews.reviews,
+    live: {
+      coverage: resolvedCoverage.live,
+      ladder: resolvedLadder.live,
+      reviews: resolvedReviews.live,
+      pack: resolvedPacks.live,
+    },
+  };
 }
 
 /** Resolve an `app` project's comparison-query slate the same way srovnani-seo/page.tsx

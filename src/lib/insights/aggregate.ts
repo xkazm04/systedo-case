@@ -234,17 +234,48 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   return out;
 }
 
+/** Per-signal liveness for a local project — which of the local-signals seams are on
+ *  genuinely IMPORTED data and which are still the illustrative seed. A project can be
+ *  live on any SUBSET (each seam — ladder, reviews, coverage, locations, pack — imports
+ *  independently), so this is a flag per seam, never one project-wide boolean.
+ *
+ *  Mirrors what `buildLocalDiagnosisRequest` already threads (`ladderLive`/`reviewsLive`):
+ *  the aggregator must not be the one surface that renders seeded numbers with no idea
+ *  they are seeded. `pack` carries no recommendation of its own yet — it is threaded so
+ *  the Overview's provenance picture is complete the moment a pack-derived rec exists. */
+export interface LocalLiveness {
+  /** coverage matrix (resolveCoverage) is on imported page-presence */
+  coverage: boolean;
+  /** ranking ladder (resolveLocalLadder) is imported/synced */
+  ladder: boolean;
+  /** review set (resolveReviews) is imported */
+  reviews: boolean;
+  /** competitor map pack (resolvePacks) is imported */
+  pack: boolean;
+}
+
+/** Nothing imported — the honest default for a project that has connected no source.
+ *  Fail-CLOSED: an unknown seam counts as sample, so the worst case is over-disclosure. */
+export const ALL_SAMPLE: LocalLiveness = {
+  coverage: false,
+  ladder: false,
+  reviews: false,
+  pack: false,
+};
+
 /** The already-resolved local signals a `local` project's Overview recs read —
  *  threaded in by the caller (ProjectOverview) so the aggregator stays pure and
  *  does NO I/O: coverage targets (catalog-grounded when the catalog has services,
  *  else the per-project sample), the ranking ladder (live-over-sample via
- *  resolveLocalLadder) and the review set (live-over-sample via resolveReviews).
+ *  resolveLocalLadder) and the review set (live-over-sample via resolveReviews),
+ *  plus `live` — WHICH of those are real (see {@link LocalLiveness}).
  *  Absent → collectRecommendations falls back to the pure per-project sample so a
  *  local project always gets local recs, never content-marketing advice. */
 export interface LocalRecsInput {
   targets: LocalTarget[];
   ladder: KeywordRank[];
   reviews: ReviewItem[];
+  live: LocalLiveness;
 }
 
 /** Recommendations for a `local` project: the coverage gap with the most search
@@ -255,46 +286,53 @@ export interface LocalRecsInput {
 function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
+  const live = input.live ?? ALL_SAMPLE;
+  /** Tag a rec with the provenance of the SIGNAL it was derived from. Each local rec
+   *  reads exactly one seam, so the flag is per-rec, not per-project — a project live
+   *  on reviews but not on the ladder gets an untagged reviews rec next to a tagged
+   *  rank rec, which is precisely the truth. */
+  const from = (signalLive: boolean, r: Recommendation): Recommendation =>
+    signalLive ? r : { ...r, sample: true };
 
   // Coverage gap → the highest-volume uncovered service×area (from the project's
   // RESOLVED targets, not the hardcoded HVAC sample the leadgen branch used).
   const gap = gaps(input.targets)[0];
   if (gap) {
-    out.push(rec(locale, "lokalni", "opportunity",
+    out.push(from(live.coverage, rec(locale, "lokalni", "opportunity",
       locale === "en"
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
       locale === "en"
         ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
         : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`,
-      `${f.fmtInt(gap.monthlyVolume)}/${locale === "en" ? "mo." : "měs."}`, gap.monthlyVolume));
+      `${f.fmtInt(gap.monthlyVolume)}/${locale === "en" ? "mo." : "měs."}`, gap.monthlyVolume)));
   }
 
   // Weakest position → the tracked keyword furthest from the map pack (worst current
   // rank), so the Overview points at the combo most worth pushing into the top 3.
   const weakest = sortLadder(input.ladder).at(-1);
   if (weakest && weakest.current > 3) {
-    out.push(rec(locale, "lokalni", "warning",
+    out.push(from(live.ladder, rec(locale, "lokalni", "warning",
       locale === "en"
         ? `Weak position: ${weakest.keyword}`
         : `Slabá pozice: ${weakest.keyword}`,
       locale === "en"
         ? `Ranks #${weakest.current} in ${weakest.area} (best #${weakest.best}) — outside the top 3. Strengthen the page + GBP to reach the map pack.`
         : `V lokalitě ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}) — mimo top 3. Posilte stránku a Google profil pro vstup do mapa-packu.`,
-      `#${weakest.current}`));
+      `#${weakest.current}`)));
   }
 
   // Reviews → unanswered negative reviews drag reputation; nudge to reply.
   const negative = input.reviews.filter((r) => bandOf(r.rating) === "negative").length;
   if (negative > 0) {
-    out.push(rec(locale, "lokalni", "warning",
+    out.push(from(live.reviews, rec(locale, "lokalni", "warning",
       locale === "en"
         ? `${negative} negative reviews need a reply`
         : `${negative} negativních recenzí čeká na odpověď`,
       locale === "en"
         ? `Public negative reviews left unanswered erode trust — reply promptly to show you resolve issues.`
         : `Nezodpovězené negativní recenze snižují důvěru — reagujte včas a ukažte, že problémy řešíte.`,
-      `${negative}`));
+      `${negative}`)));
   }
 
   return out;
@@ -359,7 +397,12 @@ export function collectRecommendations(
         : project.type === "leadgen"
           ? leadgenRecs(locale)
           : project.type === "local"
-            ? localRecs(locale, local ?? { targets: targetsForProject(project), ladder: [], reviews: [] })
+            ? localRecs(
+                locale,
+                // No threaded signals → the pure per-project SAMPLE, and it is labelled
+                // as such (ALL_SAMPLE): a fallback rec is illustrative by construction.
+                local ?? { targets: targetsForProject(project), ladder: [], reviews: [], live: ALL_SAMPLE }
+              )
             : contentRecs(locale);
   return [...typeRecs, ...channelRecs(project, locale)].sort(byImpact);
 }

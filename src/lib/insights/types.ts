@@ -22,6 +22,14 @@ export interface Recommendation {
   /** estimated money at stake (CZK), when a producer can quantify it — drives the
    *  impact ranking so a big leak outranks a small one of the same severity. */
   impactCzk?: number;
+  /** PROVENANCE. True when the recommendation was derived from illustrative SAMPLE
+   *  data rather than the project's own imported/synced signals — so the surface that
+   *  renders it can disclose that, exactly as the module pages it links to already do
+   *  (ModulePage's `sample` gutter / LocalSourcePanel's live strip). Absent/false = the
+   *  producing signal is live. Never affects ranking: an honest sample rec is still the
+   *  most useful thing to show a project that has not connected anything yet — it is
+   *  labelled, not demoted. */
+  sample?: boolean;
 }
 
 /** Impact ranking: severity bucket first (a blocker beats an opportunity), then

@@ -20,7 +20,11 @@ const localProject = {
 
 const contentProject = { ...localProject, id: "p-content", type: "content" };
 
+const ALL_SAMPLE = { coverage: false, ladder: false, reviews: false, pack: false };
+const ALL_LIVE = { coverage: true, ladder: true, reviews: true, pack: true };
+
 const input = {
+  live: ALL_SAMPLE,
   targets: [
     { area: "Praha", service: "Bělení zubů", monthlyVolume: 1200, hasPage: false, rank: null },
     { area: "Brno", service: "Dentální hygiena", monthlyVolume: 300, hasPage: false, rank: null },
@@ -96,4 +100,56 @@ test("a local project without threaded input still gets local recs (pure sample 
 test("a content project is unaffected by the local branch (no lokalni recs)", () => {
   const recs = collectRecommendations(contentProject, "cs", input);
   assert.equal(localModules(recs).length, 0);
+});
+
+/* ── provenance: the Overview must not launder sample fiction into flat alerts ──
+   Every urgency card (critical/warning) on a project with NOTHING imported is
+   generated from seeded data, so it must carry `sample: true` for the feed to
+   disclose it — the same honesty the module pages it links to already provide. */
+
+test("a fully-sample local project produces no UNDISCLOSED urgency card", () => {
+  const recs = collectRecommendations(localProject, "cs", { ...input, live: ALL_SAMPLE });
+  const urgent = recs.filter((r) => r.severity === "critical" || r.severity === "warning");
+  assert.ok(urgent.length > 0, "the fixture should produce urgency cards at all");
+  const undisclosed = urgent.filter((r) => r.sample !== true);
+  assert.deepEqual(undisclosed.map((r) => r.title), [], "every sample-derived alert must be tagged");
+});
+
+test("the pure-sample FALLBACK path (no threaded input) is tagged too", () => {
+  const recs = collectRecommendations(localProject, "cs");
+  const urgent = recs.filter((r) => r.severity === "critical" || r.severity === "warning");
+  assert.deepEqual(urgent.filter((r) => r.sample !== true).map((r) => r.title), []);
+});
+
+test("a project whose signals are LIVE is unchanged — no sample tag anywhere", () => {
+  const recs = collectRecommendations(localProject, "cs", { ...input, live: ALL_LIVE });
+  assert.equal(recs.some((r) => r.sample), false);
+  // …and the recs themselves are identical to the untagged pre-change output.
+  const tagged = collectRecommendations(localProject, "cs", { ...input, live: ALL_SAMPLE });
+  assert.deepEqual(
+    recs.map((r) => r.title),
+    tagged.map((r) => r.title),
+    "tagging must not add, drop or reorder recommendations"
+  );
+});
+
+test("liveness is PER SEAM — a project live on reviews only tags the rank rec", () => {
+  const recs = collectRecommendations(localProject, "cs", {
+    ...input,
+    live: { coverage: false, ladder: false, reviews: true, pack: false },
+  });
+  const local = localModules(recs);
+  assert.equal(local.find((r) => r.title.includes("negativních")).sample, undefined);
+  assert.equal(local.find((r) => r.title.includes("Slabá pozice")).sample, true);
+  assert.equal(local.find((r) => r.title.includes("Chybí stránka")).sample, true);
+});
+
+test("live coverage untags the gap rec without touching the review rec", () => {
+  const recs = collectRecommendations(localProject, "cs", {
+    ...input,
+    live: { coverage: true, ladder: false, reviews: false, pack: true },
+  });
+  const local = localModules(recs);
+  assert.equal(local.find((r) => r.title.includes("Chybí stránka")).sample, undefined);
+  assert.equal(local.find((r) => r.title.includes("negativních")).sample, true);
 });
