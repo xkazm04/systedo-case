@@ -80,3 +80,37 @@ const VIA_VERBS: Record<PublishVia, string> = {
 export function publishActivityDetail(kind: PublishAssetKind, via: PublishVia): string {
   return `Vygenerovaný výstup (${KIND_LABELS[kind].toLowerCase()}) byl ${VIA_VERBS[via]}.`;
 }
+
+// --- social post lifecycle ---------------------------------------------------
+
+/** What happened to a social post at the moment its activity row is written.
+ *  `scheduled` is a promise about the future; only `published` means the content
+ *  actually went out to the channel. */
+export type SocialPostOutcome = "scheduled" | "published" | "failed";
+
+/** The activity row one social-post lifecycle transition produces, and whether it
+ *  counts as a publish.
+ *
+ *  This exists because the publish event is easy to record at the wrong moment.
+ *  A post scheduled for next Tuesday has left nothing; if its row carried the
+ *  publish title, the publish rate would count it immediately AND count it again
+ *  — or, worse, keep counting it after the cron's attempt failed. So exactly one
+ *  outcome is a publish event, it is the one the cron writes when the provider
+ *  confirms, and both the manual route and the cron derive their row from here
+ *  rather than each spelling the title out. */
+export function socialPostActivityRow(outcome: SocialPostOutcome): {
+  title: string;
+  /** True only when this row IS an asset-publish event (kind `social_post`,
+   *  via `channel`) and may be counted as one by the publish-rate rollup. */
+  publish: boolean;
+} {
+  switch (outcome) {
+    case "published":
+      return { title: publishActivityTitle("social_post", "channel"), publish: true };
+    case "scheduled":
+      // A scheduling promise, not a publish — the cron records the real event.
+      return { title: "Příspěvek naplánován", publish: false };
+    case "failed":
+      return { title: "Publikování příspěvku selhalo", publish: false };
+  }
+}

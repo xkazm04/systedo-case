@@ -5,7 +5,7 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { recordActivity } from "@/lib/campaigns/activity";
-import { publishActivityTitle } from "@/lib/activity/publish";
+import { socialPostActivityRow } from "@/lib/activity/publish";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { getAccount, getAccountToken } from "@/lib/social/connection";
@@ -89,15 +89,12 @@ export async function POST(request: Request) {
   // Schedule for later → the cron publishes it when due.
   if (future) {
     const post = await createPost(tenant, { platform, content, status: "scheduled", scheduledAt });
-    // A post created here is content leaving the app into a channel — the same
-    // event the export/copy beacon records for the other AI outputs, so it is
-    // titled from the shared publish taxonomy (`social_post`/`channel`) and the
-    // publish rate can finally see the push path. This route is the ONLY writer
-    // of that event for the handoff; the client deliberately sends no beacon.
+    // Scheduling is a promise about the future — nothing has left the app yet, so
+    // this row must NOT read as (or be counted as) a publish. The cron records the
+    // publish event when it actually sends the post.
     await recordActivity(tenant, {
       kind: "update", module: "socialni", severity: "info",
-      title: publishActivityTitle("social_post", "channel"),
-      detail: `${platform} — naplánováno`, actor: "Vy",
+      title: socialPostActivityRow("scheduled").title, detail: platform, actor: "Vy",
     });
     return Response.json({ post });
   }
@@ -110,13 +107,13 @@ export async function POST(request: Request) {
     ? { status: "published" as const, publishedAt: new Date().toISOString(), externalUrl: result.externalUrl, simulated: result.simulated }
     : { status: "failed" as const, error: result.error ?? "Publikování se nezdařilo.", simulated: result.simulated };
   await updatePost(tenant, post.id, patch);
-  // Success = the post left for the channel → the publish-taxonomy row again, with
-  // the lifecycle carried in the detail. A FAILED publish keeps the plain failure
-  // title: nothing left the app, so it must not read as a publish event.
+  // Publish-now: success IS the moment the content left for the channel, so this
+  // row carries the publish taxonomy. A FAILED publish keeps the plain failure
+  // title — nothing left the app, so it must not read as a publish event.
   await recordActivity(tenant, {
     kind: "update", module: "socialni", severity: result.ok ? "success" : "warning",
-    title: result.ok ? publishActivityTitle("social_post", "channel") : "Publikování příspěvku selhalo",
-    detail: result.ok ? `${platform} — publikováno` : platform, actor: "Vy",
+    title: socialPostActivityRow(result.ok ? "published" : "failed").title,
+    detail: platform, actor: "Vy",
   });
   return Response.json({ post: { ...post, ...patch } });
 }

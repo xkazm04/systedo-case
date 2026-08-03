@@ -8,8 +8,29 @@ import { claimScheduledPost, listDueScheduled, reclaimStalePublishing, updatePos
 import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { cronAuthorized } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron/run";
+import { recordActivity } from "@/lib/campaigns/activity";
+import { socialPostActivityRow } from "@/lib/activity/publish";
 
 export const maxDuration = 300;
+
+/** Record the asset-publish event for a post that actually went out to the
+ *  channel. THIS is the honest publish moment for a scheduled post: the manual
+ *  route only promised it, and a post that fails here never went out at all — so
+ *  only the provider-confirmed branch calls this, exactly once per post.
+ *
+ *  Best-effort by contract (recordActivity swallows its own write failures) and
+ *  always called inside the per-post try/catch, so an audit write can never abort
+ *  the remaining due posts. */
+function recordPublished(tenant: string, platform: string): Promise<void> {
+  return recordActivity(tenant, {
+    kind: "update",
+    module: "socialni",
+    severity: "success",
+    title: socialPostActivityRow("published").title,
+    detail: platform,
+    actor: "Automatická synchronizace",
+  });
+}
 
 export async function GET(request: Request) {
   if (!cronAuthorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,8 +82,10 @@ export async function GET(request: Request) {
                 externalUrl: result.externalUrl,
                 simulated: result.simulated,
               });
+              await recordPublished(tenant, post.platform);
               published++;
             } else {
+              // Failed → no publish row: nothing left the app.
               await updatePost(tenant, post.id, { status: "failed", error: result.error, simulated: result.simulated });
               failed++;
             }
@@ -93,6 +116,10 @@ export async function GET(request: Request) {
                       error: postErr instanceof Error ? postErr.message : String(postErr),
                     }
               );
+              // The provider DID send it and only the follow-up status write threw
+              // — so the publish row was never written above. Write it here, and
+              // only here, keeping it at exactly one row per post that went out.
+              if (result?.ok) await recordPublished(tenant, post.platform);
             } catch (settleErr) {
               console.error(`[cron] social claim settle failed for post ${post.id}:`, settleErr);
             }

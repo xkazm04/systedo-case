@@ -17,6 +17,7 @@ import {
   isPublishVia,
   publishActivityDetail,
   publishActivityTitle,
+  socialPostActivityRow,
 } from "@/lib/activity/publish";
 
 test("copy-text handler reports the variant's own kind as a clipboard publish", () => {
@@ -86,4 +87,41 @@ test("the newsletter kind is labelled in the feed (no enum leaking into the time
   const title = publishActivityTitle("newsletter", "export");
   assert.equal(title, "Newsletter — staženo");
   assert.match(publishActivityDetail("newsletter", "export"), /stažen do souboru/);
+});
+
+// --- social post lifecycle: WHEN the publish event fires ----------------------
+
+test("a SCHEDULED post is not a publish event — nothing has left the app yet", () => {
+  const row = socialPostActivityRow("scheduled");
+  assert.equal(row.publish, false);
+  assert.equal(row.title, "Příspěvek naplánován");
+  // The scheduling row must not be mistakable for the publish row the rollup counts.
+  assert.notEqual(row.title, publishActivityTitle("social_post", "channel"));
+});
+
+test("a PUBLISHED post is the publish event, titled from the shared taxonomy", () => {
+  const row = socialPostActivityRow("published");
+  assert.equal(row.publish, true);
+  assert.equal(row.title, publishActivityTitle("social_post", "channel"));
+});
+
+test("a FAILED publish is not a publish event", () => {
+  const row = socialPostActivityRow("failed");
+  assert.equal(row.publish, false);
+  assert.notEqual(row.title, publishActivityTitle("social_post", "channel"));
+});
+
+test("a scheduled post publishes exactly once — the promise never counts, the cron result does", () => {
+  // The life of one post handed off from Distribuce: scheduled by the route, then
+  // sent by the cron. Exactly one publish event, and it is the cron's.
+  const succeeded = ["scheduled", "published"].map(socialPostActivityRow);
+  assert.equal(succeeded.filter((r) => r.publish).length, 1);
+
+  // The same post whose cron attempt fails must leave NO publish event behind.
+  const bounced = ["scheduled", "failed"].map(socialPostActivityRow);
+  assert.equal(bounced.filter((r) => r.publish).length, 0);
+
+  // One cron sweep over a mixed batch counts one event per post that went out.
+  const sweep = ["published", "failed", "published"].map(socialPostActivityRow);
+  assert.equal(sweep.filter((r) => r.publish).length, 2);
 });

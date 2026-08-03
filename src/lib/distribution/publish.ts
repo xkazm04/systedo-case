@@ -10,11 +10,13 @@
  *  {@link import("@/lib/activity/publish").PublishAssetKind} taxonomy, so the
  *  component stays a thin caller and the mapping is unit-testable without a DOM.
  *
- *  Exactly ONE event per user action: the copy/download actions are reported by
+ *  Exactly ONE event per shipped asset: the copy/download actions are reported by
  *  the client beacon (the browser is the only place that knows they happened);
- *  the social handoff is reported by `POST /api/social/posts`, which is where the
- *  post is actually created. The handoff therefore returns `null` here — a beacon
- *  as well would double-count the same publish. */
+ *  the social handoff is reported server-side, at the moment the post actually
+ *  goes out to the channel — the cron for a scheduled post, `POST
+ *  /api/social/posts` for a publish-now. The handoff therefore returns `null`
+ *  here: beaconing at click time would count a publish that has not happened
+ *  yet, and would count it twice once it does. */
 import type { PublishAssetKind, PublishVia } from "@/lib/activity/publish";
 import type { RepurposeChannel } from "./generate";
 
@@ -57,8 +59,9 @@ export function distributionPublishEvent(
       return { kind: "newsletter", via: "copy" };
     case "downloadNewsletter":
       return { kind: "newsletter", via: "export" };
-    // Recorded by POST /api/social/posts as `social_post`/`channel`, at the
-    // moment the post row is created. No client beacon → no double count.
+    // Recorded server-side as `social_post`/`channel` when the post actually goes
+    // out (the cron, or the publish-now route). Scheduling it is only a promise,
+    // so there is nothing to beacon here → no early and no double count.
     case "scheduleToSocial":
       return null;
   }

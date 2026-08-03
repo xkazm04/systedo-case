@@ -364,9 +364,10 @@ function VariantCard({
       // Pre-fill a post for this platform via the social store's createPost
       // (its client surface), scheduled a few minutes out so it lands as a
       // draft-like scheduled post the user can still edit in the social center.
-      // No publish beacon here on purpose: the route records this handoff as
-      // `social_post`/`channel` when it creates the post, which is the moment the
-      // content actually leaves. Beaconing here too would double-count it.
+      // No publish beacon here on purpose: scheduling is a promise, not a
+      // publish. The `social_post`/`channel` event is recorded server-side when
+      // the post actually goes out (the social cron), so beaconing here would
+      // count a publish that has not happened — and count it twice once it does.
       const scheduledAt = new Date(Date.now() + 30 * 60_000).toISOString();
       const res = await fetch("/api/social/posts", {
         method: "POST",
