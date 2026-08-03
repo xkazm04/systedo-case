@@ -12,6 +12,7 @@
  */
 import type { AiMeta, AiResponse } from "../ai-types";
 import { callStatus, looksCorrupt } from "./output-health";
+import { languageViolations } from "./language-check";
 // The char-limit violation vocabulary is owned by the tools' shared string layer
 // (pure, dependency-free, no provider access) — the wrapper only asks it which
 // violations the clamp already handles.
@@ -310,9 +311,20 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // When it DOES fire, the note still carries the FULL violation list, byte-for-
       // byte as before: the call is already paid for, so telling the model about the
       // length limits too is free and keeps the repaired output identical to today's.
-      const violations = args.validate ? args.validate(parsed) : [];
+      //
+      // The LANGUAGE check rides the same seam. The system prompt is hardcoded Czech
+      // and a non-`cs` locale relies on a user-prompt LANGUAGE OVERRIDE that a weak
+      // model (BYOM lets users pick very cheap ones) can partially ignore — and
+      // nothing ever looked. A mismatch is raised as an ordinary violation, so it
+      // routes into this same ONE re-prompt instead of needing a path of its own.
+      // No-op for `cs`; no prompt or schema is touched, so the goldens hold.
+      const toolViolations = args.validate ? args.validate(parsed) : [];
+      const violations = [...toolViolations, ...languageViolations(parsed, args.locale)];
       const { clampable, needsModel } = partitionViolations(violations);
       let repaired = false;
+      // Honest by default: if the repair never runs (nothing else to fix, or it
+      // threw), whatever the first call said about the language still stands.
+      let languageMismatch = violations.length > toolViolations.length;
       if (needsModel.length > 0) {
         try {
           const second = await runWithRetry(
@@ -327,6 +339,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
           usage = addUsage(usage, second.usage);
           totalAttempts += second.attempts;
           repaired = true;
+          // Re-check on the REPAIRED parse. The repair gets exactly one shot: if the
+          // model came back in Czech again, we report that rather than quietly
+          // shipping the wrong language (or burning a third call).
+          languageMismatch = languageViolations(parsed, args.locale).length > 0;
         } catch {
           // keep the first result — normalize() clamps over-limit fields anyway.
         }
@@ -359,6 +375,10 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       if (!repaired && clampable.length > 0) meta.clamped = clampable;
       // Omitted for "success" so a clean response stays byte-identical to before.
       if (status !== "success") meta.status = status;
+      // The answer is (still) not in the project's language, after the one repair it
+      // was allowed. Say so — the alternative is shipping Czech to an English user
+      // and letting them work out why.
+      if (languageMismatch) meta.languageMismatch = true;
       if (usage) {
         meta.usage = usage;
         // Prefer a provider-reported real cost (e.g. OpenRouter's usage.cost) over

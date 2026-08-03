@@ -80,6 +80,13 @@ export interface AiMeta {
    *  `repaired` this makes "what was clamped vs re-prompted" readable from the
    *  response alone, instead of the old silent failed-repair fallback. */
   clamped?: string[];
+  /** The answer is not in the locale the project asked for, and the wrapper's one
+   *  self-repair re-prompt did not fix it. Detected deterministically at validate
+   *  time (see lib/llm/language-check) — the system prompt is hardcoded Czech and a
+   *  non-`cs` locale rides a user-prompt override a weak model can ignore. Set only
+   *  after the repair has had its shot, so it means "we tried and it is still wrong",
+   *  never "we didn't look". Absent (never `false`) for cs and for a clean answer. */
+  languageMismatch?: boolean;
   /** The wrapper's output-health verdict for this generation. OMITTED for a clean
    *  "success" so a healthy response is byte-identical to what it always was; a
    *  "corrupt" verdict — previously visible only in Firestore — now reaches the

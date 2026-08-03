@@ -46,6 +46,10 @@ const HASHED_FILES = [
   // from index.ts so it is testable, but it is still wrapper logic that decides how
   // every generation is classified. Untagged ⇒ a change here forces a full re-run.
   "src/lib/llm/output-health.ts",
+  // The deterministic validate-time language check. It can route a generation into
+  // the self-repair re-prompt, so it changes wrapper behaviour for every non-`cs`
+  // call. Untagged ⇒ a change here forces a full re-run.
+  "src/lib/llm/language-check.ts",
   "src/lib/ai/tools/_shared.ts",
   // Shared anti-fabrication fragment feeds many system prompts (the analyst persona
   // → analysis + chat, monthly-recap, campaign-eval, ads, and the diagnostic tools:

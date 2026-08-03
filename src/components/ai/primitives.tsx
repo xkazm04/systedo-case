@@ -57,6 +57,8 @@ const T = {
     degradedNote: "Model vrátil odpověď, které nejspíš část chybí. Zobrazujeme, co dorazilo — vygenerování znovu obvykle pomůže.",
     degradedRetry: "Vygenerovat znovu",
     autoClampedTitle: "Zkráceno do limitů bez dalšího volání modelu: {violations}",
+    languagePill: "Jiný jazyk",
+    languageNote: "Model odpověděl v jiném jazyce, než má projekt nastavený. Jedno automatické přepsání nepomohlo — zkuste vygenerovat znovu.",
   },
   en: {
     copyDefault: "Copy",
@@ -101,6 +103,8 @@ const T = {
     degradedNote: "The model returned an answer that is probably missing parts. We're showing what arrived — regenerating usually fixes it.",
     degradedRetry: "Generate again",
     autoClampedTitle: "Trimmed to the limits without another model call: {violations}",
+    languagePill: "Wrong language",
+    languageNote: "The model answered in a different language than the project is set to. One automatic rewrite did not fix it — try generating again.",
   },
 } as const;
 
@@ -218,15 +222,23 @@ export interface ResultHistoryItem {
  *  would be worse — but the user is told, instead of a broken answer looking
  *  exactly like a clean one. Deliberately NOT an error card: nothing failed, the
  *  answer is just thin. */
-export function DegradedNote({ onRetry }: { onRetry?: () => void }) {
+export function DegradedNote({
+  onRetry,
+  kind = "incomplete",
+}: {
+  onRetry?: () => void;
+  /** "incomplete" — the parse came back thin; "language" — the answer is not in the
+   *  project's language and the one repair re-prompt didn't fix it. */
+  kind?: "incomplete" | "language";
+}) {
   const t = useT(T);
   return (
     <div
-      data-testid="ai-degraded"
+      data-testid={kind === "language" ? "ai-language-mismatch" : "ai-degraded"}
       className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-muted"
     >
       <Info width={14} height={14} className="shrink-0 text-coral-600" />
-      <span>{t("degradedNote")}</span>
+      <span>{t(kind === "language" ? "languageNote" : "degradedNote")}</span>
       {onRetry && (
         <button
           type="button"
@@ -357,6 +369,13 @@ export function ResultMeta({
             {t("degradedPill")}
           </span>
         )}
+        {/* the answer came back in the wrong language and the one repair didn't fix it */}
+        {meta.languageMismatch && (
+          <span className="pill bg-coral-soft text-coral-600">
+            <Info width={13} height={13} />
+            {t("languagePill")}
+          </span>
+        )}
         {/* The output was auto-corrected to the platform limits — either by a
             re-prompt (`repaired`) or, for a pure length overrun, by the
             deterministic clamp alone (`clamped`, no second model call). Same pill:
@@ -381,13 +400,21 @@ export function ResultMeta({
       {copyAllText && <CopyButton text={copyAllText} label={t("copyAll")} publishKind={publishKind} />}
     </div>
   );
-  const note = degraded ? <DegradedNote onRetry={onRetry} /> : null;
+  // Both notes can be true at once (a thin answer that is also in the wrong
+  // language); each says something the other doesn't, so both render.
+  const notes = (
+    <>
+      {degraded && <DegradedNote onRetry={onRetry} />}
+      {meta.languageMismatch && <DegradedNote onRetry={onRetry} kind="language" />}
+    </>
+  );
+  const hasNote = degraded || Boolean(meta.languageMismatch);
   // A clean answer renders EXACTLY the markup it always did (no wrapper div).
-  if (!strip && !note) return metaRow;
+  if (!strip && !hasNote) return metaRow;
   return (
     <div className="space-y-2.5">
       {metaRow}
-      {note}
+      {hasNote && notes}
       {strip}
     </div>
   );

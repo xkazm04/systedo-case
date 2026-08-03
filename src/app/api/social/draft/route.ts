@@ -109,6 +109,7 @@ export async function POST(request: Request) {
       ...(res.meta.status ? { status: res.meta.status } : {}),
       ...(res.meta.repaired ? { repaired: true } : {}),
       ...(res.meta.violations?.length ? { violations: res.meta.violations } : {}),
+      ...(res.meta.languageMismatch ? { languageMismatch: true } : {}),
     });
   } catch (err) {
     if (err instanceof ByomUserError) {
