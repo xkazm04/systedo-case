@@ -27,7 +27,7 @@ import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { findCallSites, checkChokepoint } from "../test-llm/callsites.mjs";
+import { findCallSites, checkChokepoint, checkByomOperations } from "../test-llm/callsites.mjs";
 import { LLM_TOOLS } from "../test-llm/registry.mjs";
 import { toolEntryFingerprint } from "./lib/fingerprint.mjs";
 import { planGateRun } from "./lib/gate-plan.mjs";
@@ -136,6 +136,13 @@ for (const tool of LLM_TOOLS) {
 const violations = checkChokepoint();
 for (const v of violations) console.error(`  ✗ chokepoint: ${v}`);
 if (violations.length) coverageOk = false;
+
+// Every wrapper call site must also be assignable in the BYOM matrix — an operation
+// with no row can't be pinned by a paying subscriber and silently rides the global
+// active vendor. Documented exclusions live in test-llm/callsites.mjs.
+const byomDrift = checkByomOperations();
+for (const v of byomDrift) console.error(`  ✗ byom matrix: ${v}`);
+if (byomDrift.length) coverageOk = false;
 
 if (!coverageOk) fail("coverage check failed — every wrapper call site needs a tag + registered test.");
 console.log(`✓ coverage: ${callSites.length} call site(s), all tagged & registered; chokepoint clean.\n`);

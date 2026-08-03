@@ -4,6 +4,7 @@ import { useT } from "@/lib/i18n/client";
 import {
   BYOM_MODEL_CATALOG,
   BYOM_OPERATIONS,
+  BYOM_OPERATION_LABELS,
   BYOM_VENDOR_LABELS,
   REASONING_LABELS,
   REASONING_LEVELS,
@@ -66,6 +67,9 @@ const selectClass =
 
 export default function ByomMatrix() {
   const t = useT(T);
+  // Operation names come from the shared {cs, en} table so a new tool ships its
+  // row localized, not hardcoded Czech.
+  const tOp = useT(BYOM_OPERATION_LABELS);
   const { locale } = useLocale();
   // Shared config source of truth (single fetch for the whole AI-settings page);
   // stays in sync when ByomKeys connects/removes a key. ByomKeys owns the section's
@@ -154,7 +158,7 @@ export default function ByomMatrix() {
                 className="grid grid-cols-1 gap-2 border-b border-line px-4 py-3 last:border-0 sm:grid-cols-[1.4fr_1fr_1.2fr_1fr] sm:items-center sm:gap-3"
               >
                 <span className="text-sm font-medium text-navy-800">
-                  {op.label}
+                  {tOp(op.id)}
                   {rec && (
                     <span
                       className="ml-2 whitespace-nowrap text-xs font-normal text-brand-accent"
@@ -170,7 +174,7 @@ export default function ByomMatrix() {
 
                 {/* provider */}
                 <select
-                  aria-label={`${op.label} — ${t("colProvider")}`}
+                  aria-label={`${tOp(op.id)} — ${t("colProvider")}`}
                   className={selectClass}
                   value={vendor ?? ""}
                   disabled={busy}
@@ -196,7 +200,7 @@ export default function ByomMatrix() {
 
                 {/* model */}
                 <select
-                  aria-label={`${op.label} — ${t("colModel")}`}
+                  aria-label={`${tOp(op.id)} — ${t("colModel")}`}
                   className={selectClass}
                   value={ov?.model ?? ""}
                   disabled={!vendor || busy}
@@ -228,7 +232,7 @@ export default function ByomMatrix() {
 
                 {/* reasoning */}
                 <select
-                  aria-label={`${op.label} — ${t("colReasoning")}`}
+                  aria-label={`${tOp(op.id)} — ${t("colReasoning")}`}
                   className={selectClass}
                   value={modelOpt?.noReasoning ? "default" : ov?.reasoning ?? "default"}
                   disabled={reasoningDisabled}

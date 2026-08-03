@@ -6,7 +6,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findCallSites, checkChokepoint } from "./callsites.mjs";
+import { findCallSites, checkChokepoint, checkByomOperations } from "./callsites.mjs";
 import { LLM_TOOLS } from "./registry.mjs";
 
 test("every generateStructured call site carries a // llm-tool tag", () => {
@@ -36,6 +36,15 @@ test("every registered tool maps to a real call site", () => {
   for (const tool of LLM_TOOLS) {
     assert.ok(tagged.has(tool.id), `registry tool "${tool.id}" has no // llm-tool call site in src`);
   }
+});
+
+test("the BYOM matrix offers every operation (modulo documented exclusions)", () => {
+  const violations = checkByomOperations();
+  assert.deepEqual(
+    violations,
+    [],
+    `BYOM_OPERATIONS has drifted from the real llm-tool set:\n  ${violations.join("\n  ")}`
+  );
 });
 
 test("provider SDK / CLI access is confined to the wrapper (single chokepoint)", () => {

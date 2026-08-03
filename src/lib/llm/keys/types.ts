@@ -3,6 +3,7 @@
  *  secret-free at the type level: the `Stored*` shapes hold the encrypted key
  *  blob (server-only), the `Public*` shapes are what ever reaches the client
  *  (a `hasKey` boolean + metadata, never a byte of the key). */
+import type { SupportedLocale } from "@/lib/format";
 
 /** The text-LLM vendors a user can bring a key for. "anthropic" is the Claude
  *  HTTP API (distinct from the local Claude Code CLI provider, which needs no
@@ -93,29 +94,53 @@ export interface ByomOperationOverride {
 }
 
 /** An LLM operation (wrapper call site) the matrix can assign — one per
- *  `// llm-tool:` id. Labels are Czech (the settings UI language). */
+ *  `// llm-tool:` id. `label` is Czech (the source-of-truth language), `labelEn`
+ *  its English counterpart; the matrix UI picks one through the i18n pipeline
+ *  (see BYOM_OPERATION_LABELS). */
 export interface ByomOperation {
   id: string;
   label: string;
+  labelEn: string;
 }
+
+/** Every operation the matrix can assign. This list MUST equal the set of
+ *  `// llm-tool:` ids in src (= the LLM gate registry), modulo the documented
+ *  exclusions in test-llm/callsites.mjs (BYOM_OPERATION_EXCLUSIONS — empty today).
+ *  The LLM gate enforces it, so a new tool cannot ship without a matrix row: an
+ *  operation missing here cannot be pinned at all and silently rides the global
+ *  activeVendor fallback. Keep the `{ id: "…" }` shape on one line — the gate
+ *  reads these ids statically. */
 export const BYOM_OPERATIONS: ByomOperation[] = [
-  { id: "ads", label: "PPC inzeráty" },
-  { id: "brief", label: "SEO brief" },
-  { id: "analysis", label: "Výkonnostní analýza" },
-  { id: "chat", label: "Report chat" },
-  { id: "campaign-eval", label: "Vyhodnocení kampaní" },
-  { id: "social", label: "Sociální příspěvky" },
-  { id: "twin-reply", label: "Odpověď twinu" },
-  { id: "twin-style", label: "Trénink hlasu (twin)" },
-  { id: "repurpose", label: "Distribuce obsahu" },
-  { id: "local-review-reply", label: "Odpověď na recenzi" },
-  { id: "article-draft", label: "Koncept článku" },
-  { id: "cohort-diagnosis", label: "Diagnóza kohort (LTV)" },
-  { id: "keyword-clusters", label: "Klastry klíčových slov" },
-  { id: "comparison-outline", label: "Srovnávací stránka" },
-  { id: "lp-variant-ideas", label: "Nápady na LP varianty" },
-  { id: "lead-source-diagnosis", label: "Diagnóza zdroje leadů" },
+  { id: "ads", label: "PPC inzeráty", labelEn: "Search ads" },
+  { id: "brief", label: "SEO brief", labelEn: "SEO brief" },
+  { id: "analysis", label: "Výkonnostní analýza", labelEn: "Performance analysis" },
+  { id: "chat", label: "Report chat", labelEn: "Report chat" },
+  { id: "campaign-eval", label: "Vyhodnocení kampaní", labelEn: "Campaign evaluation" },
+  { id: "social", label: "Sociální příspěvky", labelEn: "Social posts" },
+  { id: "twin-reply", label: "Odpověď twinu", labelEn: "Twin reply" },
+  { id: "twin-style", label: "Trénink hlasu (twin)", labelEn: "Voice training (twin)" },
+  { id: "repurpose", label: "Distribuce obsahu", labelEn: "Content repurposing" },
+  { id: "local-review-reply", label: "Odpověď na recenzi", labelEn: "Review reply" },
+  { id: "article-draft", label: "Koncept článku", labelEn: "Article draft" },
+  { id: "cohort-diagnosis", label: "Diagnóza kohort (LTV)", labelEn: "Cohort diagnosis (LTV)" },
+  { id: "keyword-clusters", label: "Klastry klíčových slov", labelEn: "Keyword clusters" },
+  { id: "comparison-outline", label: "Srovnávací stránka", labelEn: "Comparison page outline" },
+  { id: "lp-variant-ideas", label: "Nápady na LP varianty", labelEn: "Landing page variant ideas" },
+  { id: "lead-source-diagnosis", label: "Diagnóza zdroje leadů", labelEn: "Lead source diagnosis" },
+  { id: "local-diagnosis", label: "Lokální diagnóza", labelEn: "Local visibility diagnosis" },
+  { id: "monthly-recap", label: "Měsíční rekapitulace", labelEn: "Monthly recap" },
+  { id: "channel-research", label: "Výzkum bezplatných kanálů", labelEn: "Organic channel research" },
+  { id: "onboarding-scan", label: "Sken webu při onboardingu", labelEn: "Onboarding website scan" },
 ];
+
+/** The operation labels as a colocated {cs, en} translation table, so the matrix
+ *  rows go through the same `useT()` pipeline as the rest of the settings UI
+ *  instead of hardcoding the Czech label. Derived from BYOM_OPERATIONS, so adding
+ *  an operation above is the only edit a new tool needs. */
+export const BYOM_OPERATION_LABELS: Record<SupportedLocale, Record<string, string>> = {
+  cs: Object.fromEntries(BYOM_OPERATIONS.map((o) => [o.id, o.label])),
+  en: Object.fromEntries(BYOM_OPERATIONS.map((o) => [o.id, o.labelEn])),
+};
 
 /** One vendor's stored key. `keyEnc` is the AES-GCM blob from ./crypto — never
  *  the plaintext. `model`/`fastModel` are the user's chosen model tags (the

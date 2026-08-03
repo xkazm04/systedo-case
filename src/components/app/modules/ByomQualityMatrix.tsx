@@ -6,7 +6,7 @@
  *  /kvalita-modelu page as well as inside the authed settings. */
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { BYOM_OPERATIONS } from "@/lib/llm/keys/types";
+import { BYOM_OPERATIONS, BYOM_OPERATION_LABELS } from "@/lib/llm/keys/types";
 import {
   bestModelForOp,
   cellComposite,
@@ -51,6 +51,9 @@ const tone = (s: number) =>
 
 export default function ByomQualityMatrix({ className = "max-w-4xl" }: { className?: string }) {
   const t = useT(T);
+  // Operation names come from the shared {cs, en} table so the rows follow the
+  // reader's locale like every other string on the page.
+  const tOp = useT(BYOM_OPERATION_LABELS);
   const { locale } = useLocale();
   if (!hasQualityScores()) return null;
 
@@ -94,7 +97,7 @@ export default function ByomQualityMatrix({ className = "max-w-4xl" }: { classNa
               const best = bestModelForOp(QUALITY_SCORES, op.id)?.model;
               return (
                 <tr key={op.id} className="border-b border-line last:border-0">
-                  <td className={`${opCol} px-3 py-2.5 text-left font-medium text-navy-800`}>{op.label}</td>
+                  <td className={`${opCol} px-3 py-2.5 text-left font-medium text-navy-800`}>{tOp(op.id)}</td>
                   {models.map((m) => {
                     const s = cellComposite(QUALITY_SCORES, op.id, m);
                     const isBest = s !== null && m === best;
