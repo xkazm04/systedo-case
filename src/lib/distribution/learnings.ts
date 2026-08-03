@@ -132,38 +132,7 @@ export function rollupLearnings(attribution: ChannelPerf[], lengthOf: LengthByCh
   };
 }
 
-// --- sparkline geometry ------------------------------------------------------
-
-export interface SparkPoint {
-  x: number;
-  y: number;
-}
-
-/** Map a series of CTR values to evenly-spaced points inside a `w`×`h` box,
- *  scaling y to the series max so the tallest bar/peak touches the top (with a
- *  1px top/bottom inset). A single point centres vertically. Pure geometry for
- *  the hand-rolled <svg> sparkline. */
-export function ctrSparkPoints(values: number[], w: number, h: number): SparkPoint[] {
-  const n = values.length;
-  if (n === 0) return [];
-  const max = Math.max(...values, 0);
-  const inset = 1;
-  const usable = Math.max(0, h - inset * 2);
-  const stepX = n === 1 ? 0 : w / (n - 1);
-  return values.map((v, i) => {
-    const frac = max > 0 ? v / max : 0;
-    const x = n === 1 ? w / 2 : i * stepX;
-    const y = h - inset - frac * usable;
-    return { x, y };
-  });
-}
-
-/** Render an array of points as an SVG `points`/`d`-ready "x,y x,y …" string. */
-export function sparkPointsAttr(points: SparkPoint[]): string {
-  return points.map((p) => `${round(p.x)},${round(p.y)}`).join(" ");
-}
-
-/** Round to 2 decimals, dropping a trailing ".00" so the attribute stays tidy. */
-function round(n: number): number {
-  return Math.round(n * 100) / 100;
-}
+// NOTE: the hand-rolled sparkline geometry (ctrSparkPoints / sparkPointsAttr /
+// SparkPoint) that used to live here was removed — LearningsPanel renders the
+// shared @/components/charts/Sparkline primitive, so nothing in production ever
+// called it; only its tests did, which is false confidence, not coverage.

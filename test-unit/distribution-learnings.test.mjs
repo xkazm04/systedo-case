@@ -1,15 +1,14 @@
 /** Unit tests for the per-variant performance learnings rollup: CTR per variant,
  *  sorted descending; the best channel / format / length picked by reach-weighted
- *  CTR; and the sparkline point geometry. Runs the TS source directly via the
- *  shared resolve hook (node --import ./test-llm/setup.mjs --test). */
+ *  CTR. (The sparkline itself is the shared @/components/charts/Sparkline
+ *  primitive — there is no local geometry left here to test.) Runs the TS source
+ *  directly via the shared resolve hook (node --import ./test-llm/setup.mjs --test). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   rollupLearnings,
   lengthBucket,
   channelFormat,
-  ctrSparkPoints,
-  sparkPointsAttr,
 } from "@/lib/distribution/learnings";
 import { SAMPLE_ATTRIBUTION } from "@/lib/distribution/sample";
 
@@ -103,32 +102,4 @@ test("the bundled sample ranks Newsletter as the best variant + channel", () => 
   const totReach = SAMPLE_ATTRIBUTION.reduce((a, c) => a + c.reach, 0);
   const totClicks = SAMPLE_ATTRIBUTION.reduce((a, c) => a + c.clicks, 0);
   assert.ok(Math.abs(l.overallCtr - totClicks / totReach) < 1e-9);
-});
-
-test("ctrSparkPoints scales the peak to the top inset and spaces points evenly", () => {
-  const pts = ctrSparkPoints([0.05, 0.15, 0.1], 120, 28);
-  assert.equal(pts.length, 3);
-  // evenly spaced across the width
-  assert.equal(pts[0].x, 0);
-  assert.equal(pts[2].x, 120);
-  assert.ok(Math.abs(pts[1].x - 60) < 1e-9);
-  // the max value (0.15, index 1) sits at the top inset (y = 1)
-  assert.ok(Math.abs(pts[1].y - 1) < 1e-9);
-  // every y stays within the box
-  for (const p of pts) assert.ok(p.y >= 1 - 1e-9 && p.y <= 27 + 1e-9);
-});
-
-test("ctrSparkPoints handles a single point (centres it) and empty input", () => {
-  assert.deepEqual(ctrSparkPoints([], 120, 28), []);
-  const one = ctrSparkPoints([0.1], 120, 28);
-  assert.equal(one.length, 1);
-  assert.equal(one[0].x, 60);
-});
-
-test("sparkPointsAttr renders rounded x,y pairs", () => {
-  const attr = sparkPointsAttr([
-    { x: 0, y: 1 },
-    { x: 60.005, y: 13.337 },
-  ]);
-  assert.equal(attr, "0,1 60.01,13.34");
 });

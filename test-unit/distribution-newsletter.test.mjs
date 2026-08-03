@@ -11,6 +11,7 @@ import {
   newsletterPlainText,
   newsletterHtml,
   NEWSLETTER_SUBJECT_MAX,
+  NEWSLETTER_CTA_LABELS,
 } from "@/lib/distribution/newsletter";
 
 test("splitNewsletter peels the Predmet prefix into subject + body", () => {
@@ -65,6 +66,7 @@ test("newsletterPlainText carries the subject, body and UTM'd CTA", () => {
     subject: "Spánek miminka",
     body: "Tělo zprávy.",
     ctaUrl: "https://x.cz/a?utm_source=newsletter",
+    locale: "cs",
   });
   assert.ok(out.startsWith("Předmět: Spánek miminka\n"));
   assert.ok(out.includes("Tělo zprávy."));
@@ -77,6 +79,7 @@ test("newsletterHtml is valid-ish HTML with the subject, CTA href and escaping",
     subject: "Tip & trik <b>",
     body: "První odstavec.\n\nDruhý odstavec.",
     ctaUrl: "https://x.cz/a?utm_source=newsletter&utm_campaign=c",
+    locale: "cs",
   });
   assert.ok(html.startsWith("<!doctype html>"));
   // subject is HTML-escaped (no raw <b> / &)
@@ -95,7 +98,34 @@ test("newsletterHtml round-trips a real split variant", () => {
   const variant =
     "Předmět: Spánek miminka: kompletní průvodce\n\nTento týden jsme sepsali kompletního průvodce.\n\nČíst celý článek → https://blog.example.cz/spanek?utm_source=newsletter";
   const { subject, body } = splitNewsletter(variant);
-  const html = newsletterHtml({ subject, body, ctaUrl: "https://blog.example.cz/spanek?utm_source=newsletter" });
+  const html = newsletterHtml({ subject, body, ctaUrl: "https://blog.example.cz/spanek?utm_source=newsletter", locale: "cs" });
   assert.ok(html.includes("Spánek miminka: kompletní průvodce"));
   assert.ok(html.includes("Tento týden"));
+});
+
+test("the generated email carries the CTA of the ACTIVE locale, not a baked-in Czech one", () => {
+  const parts = { subject: "Sleep guide", body: "First paragraph.", ctaUrl: "https://x.cz/a?utm_source=newsletter" };
+
+  const cs = newsletterHtml({ ...parts, locale: "cs" });
+  assert.ok(cs.includes(NEWSLETTER_CTA_LABELS.cs), "cs email must carry the Czech CTA");
+  assert.ok(!cs.includes(NEWSLETTER_CTA_LABELS.en));
+  assert.ok(cs.includes('<html lang="cs-CZ"'));
+
+  const en = newsletterHtml({ ...parts, locale: "en" });
+  assert.ok(en.includes(NEWSLETTER_CTA_LABELS.en), "en email must carry the English CTA");
+  assert.ok(!en.includes(NEWSLETTER_CTA_LABELS.cs), "en email must NOT ship a Czech call-to-action");
+  assert.ok(en.includes('<html lang="en-US"'));
+});
+
+test("the plain-text handoff localizes both the CTA and the subject label", () => {
+  const parts = { subject: "Sleep guide", body: "First paragraph.", ctaUrl: "https://x.cz/a" };
+
+  const cs = newsletterPlainText({ ...parts, locale: "cs" });
+  assert.ok(cs.startsWith("Předmět: Sleep guide\n"));
+  assert.ok(cs.includes(NEWSLETTER_CTA_LABELS.cs));
+
+  const en = newsletterPlainText({ ...parts, locale: "en" });
+  assert.ok(en.startsWith("Subject: Sleep guide\n"));
+  assert.ok(en.includes(NEWSLETTER_CTA_LABELS.en));
+  assert.ok(!en.includes("Předmět"));
 });

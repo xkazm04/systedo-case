@@ -5,6 +5,7 @@
  *  (subject + body + the UTM'd CTA). Pure — no DOM, no I/O; the Blob download
  *  lives in the component. Seam: a real ESP (Mailchimp / Ecomail) template. */
 import { escapeHtml } from "@/lib/html";
+import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 
 /** The „Předmět:" prefix the deterministic + AI Newsletter variant emits. The
  *  trailing space is optional, so we match it case-insensitively and trim. */
@@ -14,8 +15,24 @@ const SUBJECT_PREFIX = /^\s*Předmět:\s*/i;
  *  past it rather than past the much larger body budget. */
 export const NEWSLETTER_SUBJECT_MAX = 70;
 
-/** Czech call-to-action label for the newsletter CTA button/link. */
-export const NEWSLETTER_CTA_LABEL = "Číst celý článek";
+/** Call-to-action label for the newsletter CTA button/link, per locale. The email
+ *  the user downloads is a real deliverable that leaves the app — baking the Czech
+ *  label in shipped an en-locale project a Czech call-to-action. */
+export const NEWSLETTER_CTA_LABELS: Record<SupportedLocale, string> = {
+  cs: "Číst celý článek",
+  en: "Read the full article",
+};
+
+/** The „Předmět:" / "Subject:" line label of the plain-text handoff — same
+ *  reason: it is pasted straight into an ESP by whoever downloaded it. */
+export const NEWSLETTER_SUBJECT_LABELS: Record<SupportedLocale, string> = {
+  cs: "Předmět",
+  en: "Subject",
+};
+
+function labelFor(labels: Record<SupportedLocale, string>, locale: SupportedLocale): string {
+  return labels[locale] ?? labels[DEFAULT_LOCALE];
+}
 
 export interface NewsletterParts {
   /** The extracted subject line (no „Předmět:" prefix, trimmed). */
@@ -70,8 +87,10 @@ export interface NewsletterHtmlInput {
   body: string;
   /** The UTM-stamped article link from utm.ts — the CTA target. */
   ctaUrl: string;
-  /** CTA link text (defaults to the Czech „Číst celý článek"). */
-  ctaLabel?: string;
+  /** Locale of the generated email. Required, not defaulted: the caller always
+   *  knows the active locale, and a default silently shipped Czech chrome to
+   *  en-locale projects. Picks the CTA/subject labels and the `<html lang>`. */
+  locale: SupportedLocale;
 }
 
 /** Assemble a paste-ready single-file HTML email: the subject as <title> + a
@@ -79,8 +98,8 @@ export interface NewsletterHtmlInput {
  *  trailing link. Self-contained inline styles so it survives a copy-paste into
  *  most ESP "paste HTML" fields. Pure string build — the Blob/download is the
  *  component's job. */
-export function newsletterHtml({ subject, body, ctaUrl, ctaLabel }: NewsletterHtmlInput): string {
-  const label = (ctaLabel ?? NEWSLETTER_CTA_LABEL).trim() || NEWSLETTER_CTA_LABEL;
+export function newsletterHtml({ subject, body, ctaUrl, locale }: NewsletterHtmlInput): string {
+  const label = labelFor(NEWSLETTER_CTA_LABELS, locale);
   const safeSubject = escapeHtml(subject.trim());
   const paragraphs = body
     .trim()
@@ -92,7 +111,7 @@ export function newsletterHtml({ subject, body, ctaUrl, ctaLabel }: NewsletterHt
   const safeUrl = escapeHtml(ctaUrl.trim());
 
   return `<!doctype html>
-<html lang="cs">
+<html lang="${LOCALES[locale]?.intlLocale ?? LOCALES[DEFAULT_LOCALE].intlLocale}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -116,8 +135,9 @@ ${paragraphs}
 /** Plain-text newsletter handoff for the "Kopírovat pro newsletter" action:
  *  „Předmět:" line + a blank line + the body + the CTA with its UTM'd URL, so a
  *  paste into any ESP carries the subject, copy and the attributable link. */
-export function newsletterPlainText({ subject, body, ctaUrl, ctaLabel }: NewsletterHtmlInput): string {
-  const label = (ctaLabel ?? NEWSLETTER_CTA_LABEL).trim() || NEWSLETTER_CTA_LABEL;
-  const lines = [`Předmět: ${subject.trim()}`, "", body.trim(), "", `${label} → ${ctaUrl.trim()}`];
+export function newsletterPlainText({ subject, body, ctaUrl, locale }: NewsletterHtmlInput): string {
+  const label = labelFor(NEWSLETTER_CTA_LABELS, locale);
+  const subjectLabel = labelFor(NEWSLETTER_SUBJECT_LABELS, locale);
+  const lines = [`${subjectLabel}: ${subject.trim()}`, "", body.trim(), "", `${label} → ${ctaUrl.trim()}`];
   return lines.join("\n");
 }

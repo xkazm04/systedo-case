@@ -35,6 +35,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import type { RepurposeResult, Tone } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 /** Tone used for the AI repurposing — friendly/human matches the demo content. */
 const REPURPOSE_TONE: Tone = "pratelsky";
@@ -565,18 +566,21 @@ function NewsletterHandoff({
 }) {
   const { copied, copy } = useCopyFeedback();
   const project = useProject();
+  // The email is a real deliverable that leaves the app, so its chrome (CTA,
+  // subject label, <html lang>) follows the project's locale — not a baked-in cs.
+  const { locale } = useLocale();
 
   const { subject, body } = splitNewsletter(text);
   const subjectCheck = checkSubject(subject);
 
   const copyNewsletter = () => {
-    void copy(newsletterPlainText({ subject, body, ctaUrl })).then(() =>
+    void copy(newsletterPlainText({ subject, body, ctaUrl, locale })).then(() =>
       reportDistributionPublish("copyNewsletter", NEWSLETTER_CHANNEL, project.id)
     );
   };
 
   const downloadHtml = () => {
-    const html = newsletterHtml({ subject, body, ctaUrl });
+    const html = newsletterHtml({ subject, body, ctaUrl, locale });
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const href = URL.createObjectURL(blob);
     const a = document.createElement("a");
