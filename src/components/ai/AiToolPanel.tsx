@@ -151,7 +151,9 @@ export function AiToolPanel<T>({
 
         {status === "done" && data && (
           <div className="animate-fade-up space-y-5">
-            <ResultMeta meta={data.meta} />
+            {/* `reset` returns the panel to its idle controls — the same "try again"
+                semantics ToolError already uses — so a degraded answer offers a way out. */}
+            <ResultMeta meta={data.meta} onRetry={reset} />
             {renderResult(data.result, data.meta)}
             {resultFooter}
             {canRefine && <RefineBar onRefine={refine} />}

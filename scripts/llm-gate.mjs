@@ -42,6 +42,10 @@ const HASHED_FILES = [
   "src/lib/llm/claude.ts",
   "src/lib/llm/gemini.ts",
   "src/lib/llm/models.ts",
+  // The wrapper's output-health verdict (corrupt / repaired / success) — extracted
+  // from index.ts so it is testable, but it is still wrapper logic that decides how
+  // every generation is classified. Untagged ⇒ a change here forces a full re-run.
+  "src/lib/llm/output-health.ts",
   "src/lib/ai/tools/_shared.ts",
   // Shared anti-fabrication fragment feeds many system prompts (the analyst persona
   // → analysis + chat, monthly-recap, campaign-eval, ads, and the diagnostic tools:

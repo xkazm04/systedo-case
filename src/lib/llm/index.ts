@@ -11,6 +11,7 @@
  *  clean checkout. Server-only.
  */
 import type { AiMeta, AiResponse } from "../ai-types";
+import { callStatus, looksCorrupt } from "./output-health";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
@@ -236,26 +237,6 @@ function buildRepairNote(violations: string[]): string {
   ].join("\n");
 }
 
-/** Top-level required field names declared by a Google-`Type` / JSON schema. */
-function requiredFields(schema: object): string[] {
-  const s = schema as { required?: unknown };
-  return Array.isArray(s.required) ? (s.required as string[]) : [];
-}
-
-/** A call that "succeeded" (parsed to an object) can still be corrupt or truncated — a model that
- *  stopped mid-JSON, or a degenerate one-liner that happened to parse. Flag it when it isn't an
- *  object, or is missing more than a third of the schema's required fields. Used so the telemetry
- *  records an ERROR even though the call didn't throw and the app still normalizes it to keep working
- *  — otherwise monitoring would read a truncated/garbage response as a healthy success. */
-function looksCorrupt(parsed: unknown, schema: object): boolean {
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return true;
-  const req = requiredFields(schema);
-  if (!req.length) return false;
-  const obj = parsed as Record<string, unknown>;
-  const missing = req.filter((k) => obj[k] === undefined || obj[k] === null);
-  return missing.length > Math.max(1, Math.floor(req.length / 3));
-}
-
 /**
  * The single chokepoint for every LLM call in the app. Tries providers in
  * environment-preferred order (Claude→Gemini in dev, Gemini→Claude in prod),
@@ -336,6 +317,14 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         }
       }
 
+      // The parse succeeded but may still be corrupt/truncated (stopped mid-JSON, or
+      // a degenerate one-liner that happened to parse). Classify it ONCE, here, so the
+      // DURABLE telemetry entry and the CLIENT-visible meta carry the same honest
+      // verdict — a corrupt output must not read as a healthy success in Firestore
+      // (the admin route + digest read from there) NOR render identically to a clean
+      // answer on screen.
+      const status = callStatus(looksCorrupt(parsed, args.schema), repaired);
+
       const meta: AiMeta = {
         model,
         demo: false,
@@ -347,6 +336,8 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       };
       if (violations.length > 0) meta.violations = violations;
       if (repaired) meta.repaired = true;
+      // Omitted for "success" so a clean response stays byte-identical to before.
+      if (status !== "success") meta.status = status;
       if (usage) {
         meta.usage = usage;
         // Prefer a provider-reported real cost (e.g. OpenRouter's usage.cost) over
@@ -355,13 +346,6 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       } else if (provider === claudeProvider) {
         meta.estCostUsd = 0; // dev subscription — no metered cost
       }
-
-      // The parse succeeded but may still be corrupt/truncated (stopped mid-JSON, or
-      // a degenerate one-liner that happened to parse). Classify it so the DURABLE
-      // entry carries the honest status — a corrupt output must not read as a healthy
-      // success in Firestore (the admin route + digest read from there).
-      const corrupt = looksCorrupt(parsed, args.schema);
-      const status: "success" | "repaired" | "corrupt" = corrupt ? "corrupt" : repaired ? "repaired" : "success";
 
       // Persist eval telemetry (cost/latency/usage) that we'd otherwise discard.
       await recordLlmCall({

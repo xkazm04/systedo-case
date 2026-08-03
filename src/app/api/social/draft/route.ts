@@ -103,6 +103,12 @@ export async function POST(request: Request) {
       source: res.meta.demo ? "demo" : "ai",
       model: res.meta.model,
       tookMs: res.meta.tookMs,
+      // This delegate FLATTENS the AiResponse into its own envelope, so the wrapper's
+      // honesty fields have to be carried explicitly or they die here. Additive +
+      // omitted on a clean answer, so today's payload is byte-identical.
+      ...(res.meta.status ? { status: res.meta.status } : {}),
+      ...(res.meta.repaired ? { repaired: true } : {}),
+      ...(res.meta.violations?.length ? { violations: res.meta.violations } : {}),
     });
   } catch (err) {
     if (err instanceof ByomUserError) {

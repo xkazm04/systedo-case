@@ -5,6 +5,7 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 import Link from "next/link";
 import { Bolt, Check, Clock, Copy, Info } from "@/components/icons";
 import type { AiMeta } from "@/lib/ai-types";
+import { isDegraded } from "@/lib/llm/output-health";
 import type { PublishAssetKind } from "@/lib/activity/publish";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useOptionalProject } from "@/lib/projects/context";
@@ -52,6 +53,9 @@ const T = {
     refineHint: "Model dostane stejné zadání plus vaši poznámku.",
     retryInBtn: "Zkusit znovu ({n} s)",
     upgradeCta: "Přejít na ceník",
+    degradedPill: "Neúplná odpověď",
+    degradedNote: "Model vrátil odpověď, které nejspíš část chybí. Zobrazujeme, co dorazilo — vygenerování znovu obvykle pomůže.",
+    degradedRetry: "Vygenerovat znovu",
   },
   en: {
     copyDefault: "Copy",
@@ -92,6 +96,9 @@ const T = {
     refineHint: "The model gets the same input plus your note.",
     retryInBtn: "Try again ({n} s)",
     upgradeCta: "See pricing",
+    degradedPill: "Incomplete answer",
+    degradedNote: "The model returned an answer that is probably missing parts. We're showing what arrived — regenerating usually fixes it.",
+    degradedRetry: "Generate again",
   },
 } as const;
 
@@ -203,11 +210,41 @@ export interface ResultHistoryItem {
   payload: { meta: AiMeta };
 }
 
+/** Quiet, non-alarming note for an answer the wrapper classified as degraded
+ *  (`meta.status === "corrupt"`: the parse came back truncated / missing most of
+ *  its required fields). The app still renders what arrived — an empty screen
+ *  would be worse — but the user is told, instead of a broken answer looking
+ *  exactly like a clean one. Deliberately NOT an error card: nothing failed, the
+ *  answer is just thin. */
+export function DegradedNote({ onRetry }: { onRetry?: () => void }) {
+  const t = useT(T);
+  return (
+    <div
+      data-testid="ai-degraded"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-muted"
+    >
+      <Info width={14} height={14} className="shrink-0 text-coral-600" />
+      <span>{t("degradedNote")}</span>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="font-medium text-brand-accent underline-offset-2 transition-colors hover:underline"
+        >
+          {t("degradedRetry")}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Result header: model badge, demo / live status, an optional relative
  *  "generated X ago" stamp for stored reports, and an optional "copy all".
  *  When a panel passes its generation history (2+ entries), a compact
  *  "Předchozí generace" strip renders below — timestamped chips that restore a
- *  past result without a new model call. */
+ *  past result without a new model call. When the wrapper flagged the answer as
+ *  degraded (meta.status === "corrupt"), a pill plus a quiet retry note render
+ *  too — one place, so every panel that already uses this header inherits it. */
 export function ResultMeta({
   meta,
   copyAllText,
@@ -217,6 +254,7 @@ export function ResultMeta({
   history,
   activeIndex,
   onRestore,
+  onRetry,
 }: {
   meta: AiMeta;
   copyAllText?: string;
@@ -229,9 +267,13 @@ export function ResultMeta({
   history?: ResultHistoryItem[];
   activeIndex?: number;
   onRestore?: (index: number) => void;
+  /** re-run affordance offered alongside the degraded note; omitted by panels that
+   *  have no handle on their own run (a restored/persisted result) */
+  onRetry?: () => void;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
+  const degraded = isDegraded(meta.status);
   const strip =
     history && onRestore && history.length > 1 ? (
       <div className="flex flex-wrap items-center gap-1.5" data-testid="ai-history">
@@ -306,6 +348,13 @@ export function ResultMeta({
             </span>
           ) : null
         )}
+        {/* the wrapper judged the parse degraded (truncated / mostly-empty) */}
+        {degraded && (
+          <span className="pill bg-coral-soft text-coral-600">
+            <Info width={13} height={13} />
+            {t("degradedPill")}
+          </span>
+        )}
         {/* the output was auto-corrected to the platform limits */}
         {meta.repaired && (
           <span
@@ -324,10 +373,13 @@ export function ResultMeta({
       {copyAllText && <CopyButton text={copyAllText} label={t("copyAll")} publishKind={publishKind} />}
     </div>
   );
-  if (!strip) return metaRow;
+  const note = degraded ? <DegradedNote onRetry={onRetry} /> : null;
+  // A clean answer renders EXACTLY the markup it always did (no wrapper div).
+  if (!strip && !note) return metaRow;
   return (
     <div className="space-y-2.5">
       {metaRow}
+      {note}
       {strip}
     </div>
   );
