@@ -4,7 +4,7 @@
  *  pre-filled for the matching platform — no retyping. */
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { Bulb, Calendar, Check, Copy, Document, Download, Info, Link, Refresh, Sparkles } from "@/components/icons";
@@ -27,6 +27,15 @@ import {
   splitNewsletter,
 } from "@/lib/distribution/newsletter";
 import { rollupLearnings, type DimensionLeader } from "@/lib/distribution/learnings";
+import {
+  advanceStatus,
+  applyStoredVariants,
+  articleKey as articleKeyFor,
+  variantsForArticle,
+  type StoredVariant,
+  type VariantStatus,
+} from "@/lib/distribution/variants";
+import { loadVariantsAction, saveVariantAction } from "./distribution-actions";
 import Sparkline from "@/components/charts/Sparkline";
 import { SOCIAL_PLATFORM_LABELS } from "@/lib/social/types";
 import { useProject } from "@/lib/projects/context";
@@ -72,6 +81,10 @@ const T = {
     linkBtn: "Odkaz",
     copied: "Zkopírováno",
     copyBtn: "Kopírovat",
+    statusEdited: "Upraveno",
+    statusGenerated: "Uloženo",
+    statusHandedOff: "Předáno",
+    savedHint: "Uložené varianty tohoto článku se načetly — pokračujete tam, kde jste skončili.",
     scheduleBtn: "Naplánovat na {platform}",
     schedulingBtn: "Předávám…",
     scheduleError: "Předání do sociálních sítí se nezdařilo.",
@@ -129,6 +142,10 @@ const T = {
     linkBtn: "Link",
     copied: "Copied",
     copyBtn: "Copy",
+    statusEdited: "Edited",
+    statusGenerated: "Saved",
+    statusHandedOff: "Handed off",
+    savedHint: "Loaded this article's saved variants — you're picking up where you left off.",
     scheduleBtn: "Schedule on {platform}",
     schedulingBtn: "Sending…",
     scheduleError: "Failed to hand off to social networks.",
@@ -174,6 +191,14 @@ function reportDistributionPublish(
   if (event) reportAssetPublished(event.kind, event.via, projectId);
 }
 
+/** The status label for a stored variant — only rendered once the variant has a
+ *  persisted record, so a fresh project shows no badge at all. */
+const STATUS_LABEL: Record<VariantStatus, TKey> = {
+  generated: "statusGenerated",
+  edited: "statusEdited",
+  handed_off: "statusHandedOff",
+};
+
 export default function DistributionModule({
   source,
   attribution,
@@ -183,7 +208,49 @@ export default function DistributionModule({
 }) {
   const t = useT(T);
   const fmt = useFormatters();
-  const variants = repurpose(source);
+  const project = useProject();
+  const variants = useMemo(() => repurpose(source), [source]);
+
+  // --- persisted variants -------------------------------------------------
+  // The deterministic repurpose is ALWAYS the first paint (it is pure and needs no
+  // I/O), and the stored blob is layered on top once it arrives. A project with
+  // nothing stored therefore renders exactly what it rendered before this store
+  // existed — same text, same order, no extra badge, no remount.
+  const key = useMemo(() => articleKeyFor(source), [source]);
+  const [stored, setStored] = useState<Record<string, StoredVariant>>({});
+  /** Bumped only when a NON-EMPTY stored set arrives, and used in the card key to
+   *  remount the editors once with their saved text. Staying at 0 for a fresh
+   *  project is what keeps that path byte-identical. */
+  const [hydration, setHydration] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    void loadVariantsAction(project.id)
+      .then((state) => {
+        if (!alive) return;
+        const hit = variantsForArticle(state, key);
+        if (Object.keys(hit).length === 0) return;
+        setStored(hit);
+        setHydration((n) => n + 1);
+      })
+      .catch(() => {
+        /* a hydration failure must never break the module — the deterministic
+           draft is already on screen and stays usable. */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [project.id, key]);
+
+  /** Fold one just-persisted entry back into the local map so the badge and any
+   *  later remount agree with what the server now holds. */
+  const onPersisted = useCallback((entry: StoredVariant) => {
+    setStored((prev) => ({ ...prev, [entry.channel]: entry }));
+  }, []);
+
+  // Stored text wins per channel; link, budget and order always come from the
+  // fresh repurpose, so a saved variant can never resurrect a stale UTM link.
+  const shown = useMemo(() => applyStoredVariants(variants, stored), [variants, stored]);
   const totalClicks = attribution.reduce((a, c) => a + c.clicks, 0);
   // `attribution` may be empty (a project with no channel data yet — the type permits
   // it). Guard the reduce seed + downstream `.channel` access so the module renders a
@@ -206,16 +273,29 @@ export default function DistributionModule({
         </div>
       </div>
 
+      {hydration > 0 && (
+        <p className="flex items-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-xs text-brand-800">
+          <Check width={14} height={14} className="shrink-0" />
+          {t("savedHint")}
+        </p>
+      )}
+
       {/* repurposed variants */}
       <div className="grid gap-4 sm:grid-cols-2">
-        {variants.map((v) => (
+        {shown.map((v) => (
           <VariantCard
-            key={v.channel}
+            // The hydration counter remounts the editors ONCE with their saved
+            // text; it never changes for a project with nothing stored.
+            key={`${v.channel}:${hydration}`}
             channel={v.channel}
             initialText={v.text}
             max={v.max}
             link={v.link}
             source={source}
+            articleKey={key}
+            projectId={project.id}
+            storedStatus={stored[v.channel]?.status ?? null}
+            onPersisted={onPersisted}
             t={t}
           />
         ))}
@@ -274,7 +354,7 @@ export default function DistributionModule({
       </div>
 
       {/* per-variant performance learnings */}
-      <LearningsPanel attribution={attribution} variants={variants} t={t} fmt={fmt} />
+      <LearningsPanel attribution={attribution} variants={shown} t={t} fmt={fmt} />
 
       <NextSteps steps={[{ to: "socialni", label: t("nextStepLabel"), hint: t("nextStepHint") }]} />
     </div>
@@ -291,6 +371,10 @@ function VariantCard({
   max,
   link,
   source,
+  articleKey,
+  projectId,
+  storedStatus,
+  onPersisted,
   t,
 }: {
   channel: string;
@@ -298,6 +382,12 @@ function VariantCard({
   max: number;
   link: string;
   source: SourceArticle;
+  /** stable id of the source article — the persistence key (see lib/distribution/variants) */
+  articleKey: string;
+  projectId: string;
+  /** the persisted status for this channel, or null when nothing is stored yet */
+  storedStatus: VariantStatus | null;
+  onPersisted: (entry: StoredVariant) => void;
   t: TFn;
 }) {
   const project = useProject();
@@ -307,6 +397,41 @@ function VariantCard({
   const { copied: linkCopied, copy: copyLinkText } = useCopyFeedback();
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- persistence --------------------------------------------------------
+  // Every path that changes what this card would ship writes it through here, so
+  // the card survives a tab switch and a refresh. Fire-and-forget by contract: a
+  // failed save must never turn a working copy/handoff into an error — the text
+  // stays on screen either way, exactly as it did before the store existed.
+  const [status, setStatus] = useState<VariantStatus | null>(storedStatus);
+  const statusRef = useRef<VariantStatus | null>(storedStatus);
+  const persist = useCallback(
+    (nextText: string, event: VariantStatus, textChanged: boolean) => {
+      const next = advanceStatus(statusRef.current ?? undefined, event, textChanged);
+      statusRef.current = next;
+      setStatus(next);
+      const entry: StoredVariant = {
+        channel,
+        text: nextText,
+        status: next,
+        updatedAt: new Date().toISOString(),
+      };
+      void saveVariantAction(projectId, articleKey, source.title, channel, entry)
+        .then((state) => {
+          // Unowned project (the demo surface) → the action stores nothing and
+          // returns null; don't pretend it was saved.
+          if (state) onPersisted(entry);
+        })
+        .catch(() => {
+          /* best-effort */
+        });
+    },
+    [articleKey, channel, onPersisted, projectId, source.title]
+  );
+
+  /** The last text handed to the store — the debounce below compares against it so
+   *  simply opening the module never writes anything for a fresh project. */
+  const savedText = useRef(initialText);
 
   // AI repurposing for this single channel (repurpose tool, via /api/ai). The
   // deterministic variant is the initial value + fallback; on success we swap in
@@ -326,16 +451,41 @@ function VariantCard({
   }
   const usingAi = Boolean(aiText) && text === aiText;
 
+  // Hand-edits are saved on a trailing debounce rather than per keystroke: one
+  // write per pause instead of one per character. Text that is verbatim the model's
+  // output is stored as `generated`; anything typed on top of it reads as `edited`,
+  // so the badge distinguishes "the AI wrote this" from "I reworked it".
+  useEffect(() => {
+    if (text === savedText.current) return;
+    const id = setTimeout(() => {
+      savedText.current = text;
+      persist(text, text === appliedAiText ? "generated" : "edited", true);
+    }, 900);
+    return () => clearTimeout(id);
+  }, [text, appliedAiText, persist]);
+
   const platform = channelToPlatform(channel);
   const over = text.length > max;
 
   // Copying the variant / its UTM link IS the asset leaving the app — beacon both
   // after the clipboard write resolves.
+  // A handoff does not change the text — it changes how far along it is. The
+  // publish EVENT (the activity feed) and the variant STATUS answer different
+  // questions: "what left the app and when" vs "which variant is already done the
+  // next time this page opens". Both are recorded, neither duplicates the other.
+  const handedOff = useCallback(() => persist(text, "handed_off", false), [persist, text]);
+
   const copy = () => {
-    void copyText(text).then(() => reportDistributionPublish("copyVariant", channel, project.id));
+    void copyText(text).then(() => {
+      reportDistributionPublish("copyVariant", channel, project.id);
+      handedOff();
+    });
   };
   const copyLink = () => {
-    void copyLinkText(link).then(() => reportDistributionPublish("copyLink", channel, project.id));
+    void copyLinkText(link).then(() => {
+      reportDistributionPublish("copyLink", channel, project.id);
+      handedOff();
+    });
   };
 
   // Trim the text down to the channel's soft budget.
@@ -379,6 +529,9 @@ function VariantCard({
         setError(json?.error ?? t("scheduleError"));
         return;
       }
+      // The post is created — this variant is handed off, even though the publish
+      // event itself is recorded server-side when it actually goes out.
+      handedOff();
       router.push(`/app/${project.id}/socialni`);
     } catch {
       setError(t("connectError"));
@@ -390,13 +543,18 @@ function VariantCard({
   return (
     <div className="card flex flex-col p-5">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2">
+        <span className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-navy-800">{channel}</span>
           {usingAi ? (
             <Pill tone="positive">
               <Sparkles width={12} height={12} />
               {t("aiPill")}
             </Pill>
+          ) : null}
+          {/* Only a variant with a PERSISTED record carries a badge, so a fresh
+              project's card is unchanged. */}
+          {status ? (
+            <Pill tone={status === "handed_off" ? "brand" : "neutral"}>{t(STATUS_LABEL[status])}</Pill>
           ) : null}
         </span>
         <span className={`tnum text-xs ${over ? "text-negative" : "text-muted"}`}>
@@ -512,7 +670,7 @@ function VariantCard({
           split into a real subject + body, validated separately, and exported as
           a paste-ready HTML email or copied with the UTM'd CTA. */}
       {channel === NEWSLETTER_CHANNEL ? (
-        <NewsletterHandoff text={text} ctaUrl={link} source={source} t={t} />
+        <NewsletterHandoff text={text} ctaUrl={link} source={source} onHandoff={handedOff} t={t} />
       ) : null}
 
       {error && <p className="mt-2 text-xs text-negative">{error}</p>}
@@ -558,11 +716,14 @@ function NewsletterHandoff({
   text,
   ctaUrl,
   source,
+  onHandoff,
   t,
 }: {
   text: string;
   ctaUrl: string;
   source: SourceArticle;
+  /** advance the parent variant's persisted status — the email left the app */
+  onHandoff: () => void;
   t: TFn;
 }) {
   const { copied, copy } = useCopyFeedback();
@@ -575,9 +736,10 @@ function NewsletterHandoff({
   const subjectCheck = checkSubject(subject);
 
   const copyNewsletter = () => {
-    void copy(newsletterPlainText({ subject, body, ctaUrl, locale })).then(() =>
-      reportDistributionPublish("copyNewsletter", NEWSLETTER_CHANNEL, project.id)
-    );
+    void copy(newsletterPlainText({ subject, body, ctaUrl, locale })).then(() => {
+      reportDistributionPublish("copyNewsletter", NEWSLETTER_CHANNEL, project.id);
+      onHandoff();
+    });
   };
 
   const downloadHtml = () => {
@@ -592,6 +754,7 @@ function NewsletterHandoff({
     document.body.removeChild(a);
     URL.revokeObjectURL(href);
     reportDistributionPublish("downloadNewsletter", NEWSLETTER_CHANNEL, project.id);
+    onHandoff();
   };
 
   const subjectHint =
