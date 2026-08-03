@@ -100,3 +100,6 @@ next-env.d.ts
 
 # KPI simulation runs (local artifacts, ingested by Personas)
 kpi-sim/
+
+# Personas app local state (outbox + registered-context list)
+.personas/
