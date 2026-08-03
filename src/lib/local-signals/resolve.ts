@@ -4,6 +4,7 @@
  *  The competitor map-pack stays sample (no clean API) and is labelled as such.
  *  Server-only (reads the local-signals store). */
 import "server-only";
+import { cache } from "react";
 import type { KeywordRank } from "@/lib/mappack/sample";
 import type { ReviewItem } from "@/lib/reviews/sample";
 import type { LocationRow } from "@/lib/locations/sample";
@@ -12,7 +13,27 @@ import { fromImported } from "@/lib/reviews/compute";
 import { mergeGbp } from "@/lib/locations/compute";
 import { getLocalSignals } from "./store";
 import { coverageKey } from "./import";
-import type { LocalSignalsSource } from "./types";
+import type { LocalSignals, LocalSignalsSource } from "./types";
+
+/** ONE local-signals read per project per REQUEST. Every resolver below reads the same
+ *  per-project blob, so a single `/lokalni` load used to hit the store four times (ladder
+ *  + reviews + locations + coverage, all inside one `Promise.all`) and the portfolio
+ *  Overview added two more per project row. React's `cache()` memoizes for the lifetime
+ *  of a single server request — the SAME mechanism `@/lib/session` uses to share one auth
+ *  read across the /app gate, layout and page.
+ *
+ *  This is request memoization ONLY — never a TTL or a cross-request cache — so an import
+ *  landing between two requests is picked up immediately and no tenant's blob can leak
+ *  into another's request. The store hiccup → `null` fallback (every resolver falls back
+ *  to its sample rather than breaking the surface) lives here too, so one failed read is
+ *  one failed read per request instead of four independent retries. */
+const signalsForRequest = cache(async (projectId: string): Promise<LocalSignals | null> => {
+  try {
+    return await getLocalSignals(projectId);
+  } catch {
+    return null; // store hiccup → sample, never break the surface
+  }
+});
 
 export interface ResolvedLadder {
   ladder: KeywordRank[];
@@ -31,12 +52,7 @@ export async function resolveLocalLadder(
   projectId: string,
   sample: KeywordRank[]
 ): Promise<ResolvedLadder> {
-  let signals = null;
-  try {
-    signals = await getLocalSignals(projectId);
-  } catch {
-    signals = null; // store hiccup → sample, never break the map
-  }
+  const signals = await signalsForRequest(projectId);
   if (signals && signals.ladder.length > 0) {
     return {
       ladder: signals.ladder,
@@ -65,12 +81,7 @@ export async function resolveReviews(
   sample: ReviewItem[],
   now: number = Date.now()
 ): Promise<ResolvedReviews> {
-  let signals = null;
-  try {
-    signals = await getLocalSignals(projectId);
-  } catch {
-    signals = null; // store hiccup → sample, never break the inbox
-  }
+  const signals = await signalsForRequest(projectId);
   const imported = signals?.reviews;
   if (imported && imported.items.length > 0) {
     return {
@@ -99,12 +110,7 @@ export async function resolveLocations(
   projectId: string,
   sample: LocationRow[]
 ): Promise<ResolvedLocations> {
-  let signals = null;
-  try {
-    signals = await getLocalSignals(projectId);
-  } catch {
-    signals = null; // store hiccup → sample, never break the roster
-  }
+  const signals = await signalsForRequest(projectId);
   const gbp = signals?.gbp;
   if (gbp && gbp.rows.length > 0) {
     return {
@@ -139,12 +145,7 @@ export async function resolveCoverage(
   projectId: string,
   seed: LocalTarget[]
 ): Promise<ResolvedCoverage> {
-  let signals = null;
-  try {
-    signals = await getLocalSignals(projectId);
-  } catch {
-    signals = null; // store hiccup → seed, never break the matrix
-  }
+  const signals = await signalsForRequest(projectId);
   const coverage = signals?.coverage;
   if (coverage && coverage.rows.length > 0) {
     const byKey = new Map(coverage.rows.map((r) => [coverageKey(r.service, r.locality), r]));
