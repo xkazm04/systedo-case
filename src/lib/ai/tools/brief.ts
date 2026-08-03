@@ -12,7 +12,7 @@ import {
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
-import { txt, cleanList, clamp, cap, slugify } from "./_shared";
+import { txt, cleanList, clamp, cap, lenViolation, slugify } from "./_shared";
 import { demoTail } from "./_fragments";
 import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
@@ -146,11 +146,11 @@ export function validateBrief(parsed: unknown): string[] {
     const v: string[] = [];
     const tt = txt(o.titleTag);
     if (tt.length > SEO_LIMITS.titleTag) {
-      v.push(`Title tag má ${tt.length} znaků (limit ${SEO_LIMITS.titleTag}).`);
+      v.push(lenViolation("Title tag", tt.length, SEO_LIMITS.titleTag));
     }
     const md = txt(o.metaDescription);
     if (md.length > SEO_LIMITS.metaDescription) {
-      v.push(`Meta description má ${md.length} znaků (limit ${SEO_LIMITS.metaDescription}).`);
+      v.push(lenViolation("Meta description", md.length, SEO_LIMITS.metaDescription));
     }
     return v;
   })(parsed);

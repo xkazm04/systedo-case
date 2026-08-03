@@ -12,6 +12,10 @@
  */
 import type { AiMeta, AiResponse } from "../ai-types";
 import { callStatus, looksCorrupt } from "./output-health";
+// The char-limit violation vocabulary is owned by the tools' shared string layer
+// (pure, dependency-free, no provider access) — the wrapper only asks it which
+// violations the clamp already handles.
+import { partitionViolations } from "../ai/tools/_shared";
 import type { SupportedLocale } from "../format";
 import { claudeAvailable, runClaude } from "./claude";
 import { geminiAvailable, runGemini } from "./gemini";
@@ -295,10 +299,21 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       let usage = first.usage;
       let totalAttempts = first.attempts;
 
-      // Server-side output validation + one self-repair re-prompt.
+      // Server-side output validation + one self-repair re-prompt — but only when
+      // the model is actually needed. A char-limit overrun is fixed for free, a few
+      // lines below, by normalize()'s clamp()/cleanClampedList(); re-prompting for it
+      // bought a second full model call (double latency, double spend) to produce
+      // something the clamp would have produced anyway — and when that second call
+      // failed, the old code fell back to exactly that clamp, silently. So the
+      // re-prompt now fires only when at least one violation genuinely needs a model.
+      //
+      // When it DOES fire, the note still carries the FULL violation list, byte-for-
+      // byte as before: the call is already paid for, so telling the model about the
+      // length limits too is free and keeps the repaired output identical to today's.
       const violations = args.validate ? args.validate(parsed) : [];
+      const { clampable, needsModel } = partitionViolations(violations);
       let repaired = false;
-      if (violations.length > 0) {
+      if (needsModel.length > 0) {
         try {
           const second = await runWithRetry(
             provider,
@@ -336,6 +351,12 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       };
       if (violations.length > 0) meta.violations = violations;
       if (repaired) meta.repaired = true;
+      // Honest accounting of the saving: these violations were resolved by the
+      // deterministic clamp INSTEAD of a paid re-prompt. Recorded only when no
+      // re-prompt fired — if one did, every violation went to the model, so there is
+      // nothing "clamped instead". Composes with `status` rather than opening a
+      // second honesty channel.
+      if (!repaired && clampable.length > 0) meta.clamped = clampable;
       // Omitted for "success" so a clean response stays byte-identical to before.
       if (status !== "success") meta.status = status;
       if (usage) {

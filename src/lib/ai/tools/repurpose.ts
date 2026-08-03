@@ -11,7 +11,7 @@ import { TONE_LABELS } from "../../ai-types";
 import { CHANNEL_LIMITS, REPURPOSE_CHANNELS, repurpose } from "../../distribution/generate";
 import type { SupportedLocale } from "@/lib/format";
 import { generateStructured } from "../../llm";
-import { clamp, digest, txt } from "./_shared";
+import { clamp, digest, lenViolation, txt } from "./_shared";
 import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
 import { voiceLines } from "./voice";
@@ -97,7 +97,7 @@ export function validateRepurpose(channels: string[], parsed: unknown): string[]
       const text = txt(x.text);
       const limit = channelLimit(channel);
       if (text.length > limit) {
-        v.push(`Varianta pro ${channel} má ${text.length} znaků (limit ${limit}).`);
+        v.push(lenViolation(`Varianta pro ${channel}`, text.length, limit));
       }
       if (text) withText.add(channel);
     }

@@ -56,6 +56,7 @@ const T = {
     degradedPill: "Neúplná odpověď",
     degradedNote: "Model vrátil odpověď, které nejspíš část chybí. Zobrazujeme, co dorazilo — vygenerování znovu obvykle pomůže.",
     degradedRetry: "Vygenerovat znovu",
+    autoClampedTitle: "Zkráceno do limitů bez dalšího volání modelu: {violations}",
   },
   en: {
     copyDefault: "Copy",
@@ -99,6 +100,7 @@ const T = {
     degradedPill: "Incomplete answer",
     degradedNote: "The model returned an answer that is probably missing parts. We're showing what arrived — regenerating usually fixes it.",
     degradedRetry: "Generate again",
+    autoClampedTitle: "Trimmed to the limits without another model call: {violations}",
   },
 } as const;
 
@@ -355,14 +357,20 @@ export function ResultMeta({
             {t("degradedPill")}
           </span>
         )}
-        {/* the output was auto-corrected to the platform limits */}
-        {meta.repaired && (
+        {/* The output was auto-corrected to the platform limits — either by a
+            re-prompt (`repaired`) or, for a pure length overrun, by the
+            deterministic clamp alone (`clamped`, no second model call). Same pill:
+            from the user's side the guarantee is identical, only the tooltip
+            distinguishes how it was fixed. */}
+        {(meta.repaired || meta.clamped?.length) && (
           <span
             className="pill bg-brand-50 text-brand-700"
             title={
-              meta.violations?.length
-                ? t("autoRepairedTitleBase", { violations: meta.violations.join("; ") })
-                : t("autoRepairedTitleDefault")
+              meta.clamped?.length && !meta.repaired
+                ? t("autoClampedTitle", { violations: meta.clamped.join("; ") })
+                : meta.violations?.length
+                  ? t("autoRepairedTitleBase", { violations: meta.violations.join("; ") })
+                  : t("autoRepairedTitleDefault")
             }
           >
             <Bolt width={13} height={13} />

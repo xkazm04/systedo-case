@@ -35,10 +35,49 @@ export const digest = (s: string, max = 6000): string => {
 export const cleanClampedList = (v: unknown, maxCount: number, maxLen: number): string[] =>
   cleanList(v, maxCount).map((s) => clamp(s, maxLen));
 
+// ── the char-limit violation vocabulary ──────────────────────────────────────
+// Every "this field is too long" violation in the app is phrased by `lenViolation`
+// so there is exactly ONE shape to recognise later. That matters because the
+// wrapper partitions violations into "the clamp already fixes this" vs "only the
+// model can fix this": a length overrun is deterministically repaired by
+// clamp()/cleanClampedList() in the very same normalize() that runs afterwards, so
+// paying for a second full model call to fix it is pure waste. A missing required
+// field is not repairable that way and still earns the re-prompt.
+
+/** The canonical char-limit violation sentence. The exact string every tool
+ *  emitted before this helper existed — byte-identical on purpose, so no prompt,
+ *  no UI text and no golden fingerprint moves. */
+export const lenViolation = (label: string, len: number, max: number): string =>
+  `${label} má ${len} znaků (limit ${max}).`;
+
+/** Matches EXACTLY what `lenViolation` produces, and nothing else. Anchored at
+ *  both ends so a free-text violation that merely mentions a limit ("Chybí
+ *  varianta pro kanál …") can never be mistaken for a clampable overrun — the
+ *  failure mode here is expensive (skipping a repair the model genuinely needed),
+ *  so the matcher is deliberately narrow rather than clever. */
+const LEN_VIOLATION_RE = /^.+ má \d+ znaků \(limit \d+\)\.$/;
+
+/** Is this violation one the deterministic clamp in normalize() already fixes? */
+export const isClampableViolation = (violation: string): boolean =>
+  LEN_VIOLATION_RE.test(violation);
+
+/** Split a validator's violations into the ones normalize()'s clamp resolves for
+ *  free and the ones that genuinely need another model pass. The wrapper re-prompts
+ *  only when `needsModel` is non-empty. */
+export function partitionViolations(violations: string[]): {
+  clampable: string[];
+  needsModel: string[];
+} {
+  const clampable: string[] = [];
+  const needsModel: string[] = [];
+  for (const v of violations) (isClampableViolation(v) ? clampable : needsModel).push(v);
+  return { clampable, needsModel };
+}
+
 /** Collect char-limit violations for a list of strings (used for self-repair). */
 export const lenViolations = (label: string, items: string[], max: number): string[] =>
   items
-    .map((s, i) => (s.length > max ? `${label} #${i + 1} má ${s.length} znaků (limit ${max}).` : null))
+    .map((s, i) => (s.length > max ? lenViolation(`${label} #${i + 1}`, s.length, max) : null))
     .filter((v): v is string => v !== null);
 
 export const cap = (s: string): string => (s ? s[0].toUpperCase() + s.slice(1) : s);

@@ -73,6 +73,13 @@ export interface AiMeta {
   repaired?: boolean;
   /** limit violations detected in the first model output (before repair/clamp) */
   violations?: string[];
+  /** Violations the deterministic clamp in normalize() resolved INSTEAD of a paid
+   *  self-repair re-prompt (a char-limit overrun is fixed by clamp()/cleanClampedList()
+   *  anyway, so a second full model call bought nothing). Present only when NO
+   *  re-prompt fired — when one did, every violation went to the model. Together with
+   *  `repaired` this makes "what was clamped vs re-prompted" readable from the
+   *  response alone, instead of the old silent failed-repair fallback. */
+  clamped?: string[];
   /** The wrapper's output-health verdict for this generation. OMITTED for a clean
    *  "success" so a healthy response is byte-identical to what it always was; a
    *  "corrupt" verdict — previously visible only in Firestore — now reaches the

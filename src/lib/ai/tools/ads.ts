@@ -13,7 +13,7 @@ import {
 import { generateStructured } from "../../llm";
 import type { SupportedLocale } from "@/lib/format";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
-import { txt, cleanList, clamp, cleanClampedList, lenViolations } from "./_shared";
+import { txt, cleanList, clamp, cleanClampedList, lenViolation, lenViolations } from "./_shared";
 import { antiFabrication, demoTail } from "./_fragments";
 import { withObjectGuard } from "./_validate";
 import { refineLines } from "./refine";
@@ -120,7 +120,7 @@ export function validateAds(parsed: unknown): string[] {
     v.push(...lenViolations("Odznak", cleanList(o.callouts, 6), AD_LIMITS.callout));
     const long = txt(o.longHeadline);
     if (long.length > AD_LIMITS.longHeadline) {
-      v.push(`Dlouhý nadpis má ${long.length} znaků (limit ${AD_LIMITS.longHeadline}).`);
+      v.push(lenViolation("Dlouhý nadpis", long.length, AD_LIMITS.longHeadline));
     }
     return v;
   })(parsed);

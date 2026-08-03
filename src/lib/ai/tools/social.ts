@@ -18,7 +18,7 @@ import {
 import { draftPosts } from "../../social/draft";
 import { generateStructured } from "../../llm";
 import { skillToGenerateArgs, type Skill } from "@/lib/skills/types";
-import { clamp, txt } from "./_shared";
+import { clamp, lenViolation, txt } from "./_shared";
 import { asRecord, NOT_OBJECT_VIOLATION } from "./_validate";
 import { refineLines } from "./refine";
 
@@ -116,7 +116,7 @@ export function validateSocial(parsed: unknown, requested?: readonly SocialPlatf
     const limit = PLATFORM_LIMITS[platform];
     const content = txt(x.content);
     if (limit && content.length > limit) {
-      v.push(`Příspěvek pro ${platform} má ${content.length} znaků (limit ${limit}).`);
+      v.push(lenViolation(`Příspěvek pro ${platform}`, content.length, limit));
     }
     if (content) withContent.add(platform);
   }
