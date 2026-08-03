@@ -23,6 +23,7 @@ export const PUBLISH_ASSET_KINDS = [
   "keyword_list",
   "analysis",
   "social_post",
+  "newsletter",
 ] as const;
 
 export type PublishAssetKind = (typeof PUBLISH_ASSET_KINDS)[number];
@@ -31,9 +32,15 @@ export function isPublishAssetKind(v: unknown): v is PublishAssetKind {
   return typeof v === "string" && (PUBLISH_ASSET_KINDS as readonly string[]).includes(v);
 }
 
-/** How the asset left — an export (file download) or a clipboard copy. Kept separate
- *  from the kind so the publish rate can be read overall or per route out of the app. */
-export const PUBLISH_VIAS = ["export", "copy"] as const;
+/** How the asset left — an export (file download), a clipboard copy, or a push
+ *  straight into a connected channel (the social center's scheduled/published
+ *  post). Kept separate from the kind so the publish rate can be read overall or
+ *  per route out of the app.
+ *
+ *  `channel` is the only via NOT reported by the client beacon: it is written
+ *  server-side by the route that creates the post, because that is the moment the
+ *  content actually leaves — and one writer means one row per user action. */
+export const PUBLISH_VIAS = ["export", "copy", "channel"] as const;
 
 export type PublishVia = (typeof PUBLISH_VIAS)[number];
 
@@ -50,11 +57,13 @@ const KIND_LABELS: Record<PublishAssetKind, string> = {
   keyword_list: "Seznam klíčových slov",
   analysis: "Analýza výkonu",
   social_post: "Příspěvek na sociální sítě",
+  newsletter: "Newsletter",
 };
 
 const VIA_LABELS: Record<PublishVia, string> = {
   export: "staženo",
   copy: "zkopírováno",
+  channel: "odesláno do kanálu",
 };
 
 /** The timeline row for one publish event: "Článek — zkopírováno z aplikace". */
@@ -62,7 +71,12 @@ export function publishActivityTitle(kind: PublishAssetKind, via: PublishVia): s
   return `${KIND_LABELS[kind]} — ${VIA_LABELS[via]}`;
 }
 
+const VIA_VERBS: Record<PublishVia, string> = {
+  export: "stažen do souboru",
+  copy: "zkopírován do schránky",
+  channel: "odeslán do napojeného kanálu",
+};
+
 export function publishActivityDetail(kind: PublishAssetKind, via: PublishVia): string {
-  const verb = via === "export" ? "stažen do souboru" : "zkopírován do schránky";
-  return `Vygenerovaný výstup (${KIND_LABELS[kind].toLowerCase()}) byl ${verb}.`;
+  return `Vygenerovaný výstup (${KIND_LABELS[kind].toLowerCase()}) byl ${VIA_VERBS[via]}.`;
 }

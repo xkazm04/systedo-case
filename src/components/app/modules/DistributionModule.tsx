@@ -12,6 +12,12 @@ import NextSteps from "@/components/app/NextSteps";
 import { repurpose } from "@/lib/distribution/generate";
 import type { ChannelPerf, SourceArticle } from "@/lib/distribution/sample";
 import { channelToPlatform } from "@/lib/distribution/handoff";
+import {
+  distributionPublishEvent,
+  NEWSLETTER_CHANNEL,
+  type DistributionAction,
+} from "@/lib/distribution/publish";
+import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { campaignSlug, channelUtmSource } from "@/lib/distribution/utm";
 import {
   checkSubject,
@@ -152,6 +158,20 @@ const T = {
 
 type TKey = keyof typeof T.en;
 type TFn = (key: TKey, vars?: Record<string, string | number>) => string;
+
+/** Record one Distribuce action in the shared asset-publish audit trail — the
+ *  same taxonomy the AI panels use, so the publish rate counts this context too.
+ *  Actions the server already records (the social handoff) map to no event and
+ *  are silently skipped here; see lib/distribution/publish.ts. Fire-and-forget by
+ *  contract: the copy/download must never fail because the audit write did. */
+function reportDistributionPublish(
+  action: DistributionAction,
+  channel: string,
+  projectId?: string | null
+): void {
+  const event = distributionPublishEvent(action, channel);
+  if (event) reportAssetPublished(event.kind, event.via, projectId);
+}
 
 export default function DistributionModule({
   source,
@@ -308,8 +328,14 @@ function VariantCard({
   const platform = channelToPlatform(channel);
   const over = text.length > max;
 
-  const copy = () => copyText(text);
-  const copyLink = () => copyLinkText(link);
+  // Copying the variant / its UTM link IS the asset leaving the app — beacon both
+  // after the clipboard write resolves.
+  const copy = () => {
+    void copyText(text).then(() => reportDistributionPublish("copyVariant", channel, project.id));
+  };
+  const copyLink = () => {
+    void copyLinkText(link).then(() => reportDistributionPublish("copyLink", channel, project.id));
+  };
 
   // Trim the text down to the channel's soft budget.
   const trim = () => setText((t) => t.slice(0, max));
@@ -337,6 +363,9 @@ function VariantCard({
       // Pre-fill a post for this platform via the social store's createPost
       // (its client surface), scheduled a few minutes out so it lands as a
       // draft-like scheduled post the user can still edit in the social center.
+      // No publish beacon here on purpose: the route records this handoff as
+      // `social_post`/`channel` when it creates the post, which is the moment the
+      // content actually leaves. Beaconing here too would double-count it.
       const scheduledAt = new Date(Date.now() + 30 * 60_000).toISOString();
       const res = await fetch("/api/social/posts", {
         method: "POST",
@@ -480,7 +509,7 @@ function VariantCard({
       {/* Newsletter gets a dedicated handoff: the generated "Subject:" line is
           split into a real subject + body, validated separately, and exported as
           a paste-ready HTML email or copied with the UTM'd CTA. */}
-      {channel === "Newsletter" ? (
+      {channel === NEWSLETTER_CHANNEL ? (
         <NewsletterHandoff text={text} ctaUrl={link} source={source} t={t} />
       ) : null}
 
@@ -535,11 +564,16 @@ function NewsletterHandoff({
   t: TFn;
 }) {
   const { copied, copy } = useCopyFeedback();
+  const project = useProject();
 
   const { subject, body } = splitNewsletter(text);
   const subjectCheck = checkSubject(subject);
 
-  const copyNewsletter = () => copy(newsletterPlainText({ subject, body, ctaUrl }));
+  const copyNewsletter = () => {
+    void copy(newsletterPlainText({ subject, body, ctaUrl })).then(() =>
+      reportDistributionPublish("copyNewsletter", NEWSLETTER_CHANNEL, project.id)
+    );
+  };
 
   const downloadHtml = () => {
     const html = newsletterHtml({ subject, body, ctaUrl });
@@ -552,6 +586,7 @@ function NewsletterHandoff({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(href);
+    reportDistributionPublish("downloadNewsletter", NEWSLETTER_CHANNEL, project.id);
   };
 
   const subjectHint =

@@ -15,6 +15,7 @@ import {
   type Tone,
 } from "@/lib/ai-types";
 import { CHANNEL_LIMITS, REPURPOSE_CHANNELS } from "@/lib/distribution/generate";
+import { variantPublishKind } from "@/lib/distribution/publish";
 import {
   briefToArticleDraftRequest,
   clusterToBriefRequest,
@@ -610,7 +611,9 @@ export default function ContentPipeline() {
                             {typeof limit === "number" && (
                               <CharCount value={v.text.length} limit={limit} />
                             )}
-                            <CopyButton text={v.text} label="" />
+                            {/* Copying a repurposed variant ships it — same audit
+                                trail as every sibling panel's copy button. */}
+                            <CopyButton text={v.text} label="" publishKind={variantPublishKind(v.channel)} />
                           </div>
                         </div>
                         <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-navy-700">
