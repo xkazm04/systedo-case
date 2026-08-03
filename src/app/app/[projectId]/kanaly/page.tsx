@@ -11,6 +11,7 @@ import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
+import { curatedCompetitors } from "@/lib/competitors/types";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -26,12 +27,13 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
   const localities = localitiesFor(project).map((l) => l.name);
   const offering = categories.slice(0, 4).join(", ");
+  // CURATED only: this grounding is handed to the channel-research model as fact, so an
+  // unconfirmed website-scan guess must not be asserted as one of the tenant's rivals.
+  const competitors = curatedCompetitors(competitorSet?.competitors).map((c) => c.name);
   const grounding: ChannelGrounding = {
     ...(offering ? { offering } : {}),
     ...(localities.length ? { localities } : {}),
-    ...(competitorSet?.competitors.length
-      ? { competitors: competitorSet.competitors.map((c) => c.name) }
-      : {}),
+    ...(competitors.length ? { competitors } : {}),
     // Seed keywords for the SEO/content channels: the offerings the business sells.
     ...(catalog.length
       ? { keywords: [...new Set(catalog.map((o) => o.name).filter(Boolean))].slice(0, 8) }

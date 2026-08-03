@@ -5,6 +5,7 @@
  *  rank-tracker / keyword-planner seam supplies the real figures). */
 import type { PlanOffering } from "@/lib/catalog/offering";
 import { seed01 } from "@/lib/project-data/seed";
+import { foldCompetitorName } from "@/lib/competitors/types";
 import type { CompareIntent, CompareQuery } from "./sample";
 
 const INTENT_VOLUME: Record<CompareIntent, [number, number]> = {
@@ -24,11 +25,10 @@ function synth(query: string, intent: CompareIntent): CompareQuery {
   return { query, intent, volume, difficulty, rank };
 }
 
-/** Case/diacritic-insensitive fold, so "Alza"/"alza" and accented duplicates
- *  collapse to one competitor. */
-function foldKey(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
-}
+/** Case/diacritic-insensitive fold — the ONE competitor-identity key, shared with the
+ *  competitor set's sanitiser and scan merge so a name can never be a duplicate in one
+ *  place and distinct in another. */
+const foldKey = foldCompetitorName;
 
 /** The one competitor slate: the union of the project's STORED competitor set
  *  (onboarding-seeded, user-editable in the report page) and the competitors named

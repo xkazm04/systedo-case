@@ -20,6 +20,7 @@ import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
 import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
 import { loadPlansFor } from "@/lib/catalog/load";
 import { getCompetitors } from "@/lib/competitors/store";
+import { curatedCompetitors } from "@/lib/competitors/types";
 import { targetsForProject } from "@/lib/local/sample";
 import { targetsFromCatalog } from "@/lib/local/catalog";
 import { keywordLadder } from "@/lib/mappack/sample";
@@ -260,7 +261,9 @@ async function resolveSeoQueries(project: Project): Promise<CompareQuery[] | nul
     loadPlansFor(project),
     getCompetitors(project.id),
   ]);
-  const storedCompetitors = competitorSet?.competitors.map((c) => c.name) ?? [];
+  // CURATED only — mirrors srovnani-seo/page.tsx: an unconfirmed scan suggestion must
+  // not shape the slate the Overview's SEO rec scores.
+  const storedCompetitors = curatedCompetitors(competitorSet?.competitors).map((c) => c.name);
   const generated = comparisonQueriesFromCatalog(project.name, plans, storedCompetitors);
   return generated.length > 0 ? generated : SAMPLE_QUERIES;
 }

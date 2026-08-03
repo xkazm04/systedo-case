@@ -7,8 +7,8 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getOnboarding, saveOnboarding, clearOnboarding } from "@/lib/onboarding/store";
 import { sanitizeScanProfile } from "@/lib/onboarding/types";
 import type { OnboardingState } from "@/lib/onboarding/types";
-import { saveCompetitors } from "@/lib/competitors/store";
-import { sanitizeCompetitors } from "@/lib/competitors/types";
+import { getCompetitors, saveCompetitors } from "@/lib/competitors/store";
+import { mergeScanSuggestions } from "@/lib/competitors/merge";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listKeywordLists, saveKeywordList } from "@/lib/keywords/store";
 import {
@@ -35,6 +35,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const now = new Date().toISOString();
   const next: OnboardingState = { ...(existing ?? {}), updatedAt: now };
 
+  /** Non-fatal outcome of the competitor merge, echoed on the `{ok:true}` envelope so a
+   *  failed/partial re-seed is visible instead of swallowed by a bare `.catch(() => {})`.
+   *  Coded (kebab-case, per route-utils' catalog) — the client maps the code to its own
+   *  localized copy, mirroring how the catalog sync surfaces its truncation. */
+  let competitorsResult:
+    | {
+        suggested?: number;
+        skipped?: number;
+        warning?: { code: "competitors-truncated"; dropped: number } | { code: "competitors-merge-failed" };
+      }
+    | undefined;
+
   if (body?.scan !== undefined) {
     const profile = sanitizeScanProfile(body.scan);
     if (!profile) {
@@ -42,12 +54,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
     next.scan = { ...profile, appliedAt: now };
     next.scanApplied = true;
-    // Seed the competitor set (the highest-leverage grounding) from the confirmed
-    // suggestions — best-effort, so a competitors-store hiccup never fails the apply.
+    // MERGE the scan's competitor suggestions into the stored set — never replace it.
+    // This used to be an unconditional saveCompetitors(), so re-applying a scan wiped
+    // whatever the user had curated and fed the unreviewed guesses straight into the
+    // recap/social LLM grounding. Now: existing entries are untouchable, new names land
+    // as UNCONFIRMED `scan` entries (excluded from grounding until the user keeps them
+    // in the competitor editor), and the cap can only ever cost a suggestion.
+    // Best-effort still — a competitors-store hiccup must not fail the onboarding apply —
+    // but no longer INVISIBLE: the outcome is reported back in the response.
     if (profile.competitors.length > 0) {
-      const set = sanitizeCompetitors({ competitors: profile.competitors.map((name) => ({ name })) });
-      if (set) {
-        await saveCompetitors(project.id, { ...set, updatedAt: now }).catch(() => {});
+      try {
+        const stored = await getCompetitors(project.id);
+        const merged = mergeScanSuggestions(stored?.competitors ?? [], profile.competitors);
+        if (!merged.unchanged) {
+          await saveCompetitors(project.id, { competitors: merged.competitors, updatedAt: now });
+        }
+        competitorsResult = {
+          suggested: merged.added,
+          skipped: merged.skipped,
+          ...(merged.dropped > 0
+            ? { warning: { code: "competitors-truncated" as const, dropped: merged.dropped } }
+            : {}),
+        };
+      } catch {
+        competitorsResult = { warning: { code: "competitors-merge-failed" as const } };
       }
     }
 
@@ -80,7 +110,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (typeof body?.dismissed === "boolean") next.dismissed = body.dismissed;
 
   await saveOnboarding(project.id, next);
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, ...(competitorsResult ? { competitors: competitorsResult } : {}) });
 }
 
 /** Reset onboarding (drops the applied scan + flags). */
