@@ -1,26 +1,40 @@
+"use client";
+
 /** CompetitorBars — share of map-pack clicks across the five businesses in one
  *  pack, your bar lit in brand, the rivals muted. Hand-rolled horizontal SVG
  *  bars (no charting lib) that grow from the axis on entry via the `.bar-grow`
  *  keyframe (scaleX from the left edge, staggered), reduced-motion-safe.
  *  Numbers illustrate the "#1 takes the lion's share of the clicks" dynamic. */
+import { useT } from "@/lib/i18n/client";
+
+const T = {
+  cs: {
+    you: "Vaše pobočka",
+    defaultLabel: "Podíl na proklicích v map packu",
+  },
+  en: {
+    you: "Your branch",
+    defaultLabel: "Share of map-pack clicks",
+  },
+} as const;
 
 type Row = { name: string; value: number; you?: boolean };
 
-const DATA: Row[] = [
-  { name: "Vaše pobočka", value: 34, you: true },
-  { name: "Rival A", value: 22 },
-  { name: "Rival B", value: 18 },
-  { name: "Rival C", value: 15 },
-  { name: "Rival D", value: 11 },
+const RIVALS: Omit<Row, "name">[] = [
+  { value: 22 },
+  { value: 18 },
+  { value: 15 },
+  { value: 11 },
 ];
+const RIVAL_NAMES = ["Rival A", "Rival B", "Rival C", "Rival D"];
 
 const W = 520;
 const ROW_H = 40;
 const PAD = { t: 8, r: 44, b: 8, l: 132 };
 
 export function CompetitorBars({
-  data = DATA,
-  label = "Share of map-pack clicks",
+  data,
+  label,
   max,
 }: {
   data?: Row[];
@@ -31,14 +45,22 @@ export function CompetitorBars({
    *  are thus scaled to the local max, not to 100%. */
   max?: number;
 }) {
-  const H = PAD.t + PAD.b + data.length * ROW_H;
+  const t = useT(T);
+  const rows =
+    data ??
+    [
+      { name: t("you"), value: 34, you: true },
+      ...RIVALS.map((r, i) => ({ ...r, name: RIVAL_NAMES[i] })),
+    ];
+  const chartLabel = label ?? t("defaultLabel");
+  const H = PAD.t + PAD.b + rows.length * ROW_H;
   const plotW = W - PAD.l - PAD.r;
   const barH = 18;
-  const scaleMax = max ?? Math.max(1, ...data.map((d) => d.value)) * 1.15;
+  const scaleMax = max ?? Math.max(1, ...rows.map((d) => d.value)) * 1.15;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" role="img" aria-label={label}>
-      {data.map((d, i) => {
+    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" role="img" aria-label={chartLabel}>
+      {rows.map((d, i) => {
         const cy = PAD.t + i * ROW_H + ROW_H / 2;
         const w = (d.value / scaleMax) * plotW;
         return (

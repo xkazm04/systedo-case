@@ -28,6 +28,7 @@ const T = {
     urlPlaceholder: "https://…/pozice.csv",
     urlBtn: "Načíst z URL",
     or: "nebo",
+    textareaPlaceholder: "klíčové slovo, oblast, pozice\nzubař, Žižkov, 3",
   },
   en: {
     live: "Live data · imported rankings",
@@ -46,6 +47,7 @@ const T = {
     urlPlaceholder: "https://…/rankings.csv",
     urlBtn: "Fetch from URL",
     or: "or",
+    textareaPlaceholder: "keyword, area, position\ndentist, Žižkov, 3",
   },
 } as const;
 
@@ -187,7 +189,7 @@ export default function LocalLadderSource({
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={5}
-            placeholder={"klíčové slovo, oblast, pozice\nzubař, Žižkov, 3"}
+            placeholder={t("textareaPlaceholder")}
             className="w-full rounded-card border border-line bg-surface px-3 py-2 font-mono text-xs text-navy-800 focus:border-brand-300 focus:outline-none"
           />
           <button

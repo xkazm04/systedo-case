@@ -119,7 +119,7 @@ const T = {
     kpiCost: "Cost",
     kpiConvValue: "Conversion value",
     kpiPnoHint: "target {target} · paid portfolio",
-    breakEvenNote: "Your margin-based break-even ROAS is {roas} (COS {pno}) — below it a campaign loses money once cost of goods is subtracted.",
+    breakEvenNote: "Your margin-based break-even ROAS is {roas} (PNO {pno}) — below it a campaign loses money once cost of goods is subtracted.",
     breakEvenLoaded: "with overhead {roas}",
     shareButton: "Share report",
     sharing: "Creating…",

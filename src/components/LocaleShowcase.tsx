@@ -2,10 +2,54 @@
 
 import { useState } from "react";
 import { LOCALES, createFormatters, type SupportedLocale } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
+import type { TDict } from "@/lib/i18n/interpolate";
 
 /** Live proof that the formatting layer is locale-parameterised: the same values
  *  rendered through createFormatters(locale), switchable cs ⇄ en. Deterministic
  *  (fixed sample + fixed `now`) so the page stays a stable visual baseline. */
+
+type Key =
+  | "ariaLabel"
+  | "rowCurrency"
+  | "rowCurrencyCompact"
+  | "rowCount"
+  | "rowPercent"
+  | "rowChange"
+  | "rowMultiple"
+  | "rowDate"
+  | "rowRelative"
+  | "footnoteLead"
+  | "footnoteTail";
+
+const T: TDict<Key> = {
+  cs: {
+    ariaLabel: "Výběr jazyka a měny",
+    rowCurrency: "Měna",
+    rowCurrencyCompact: "Měna kompaktně",
+    rowCount: "Počet",
+    rowPercent: "Procento",
+    rowChange: "Změna (±)",
+    rowMultiple: "Násobek",
+    rowDate: "Datum",
+    rowRelative: "Relativní čas",
+    footnoteLead: "Stejná čísla přes jeden chokepoint",
+    footnoteTail: "— přidání trhu je jediná položka v",
+  },
+  en: {
+    ariaLabel: "Language and currency selector",
+    rowCurrency: "Currency",
+    rowCurrencyCompact: "Currency (compact)",
+    rowCount: "Count",
+    rowPercent: "Percent",
+    rowChange: "Change (±)",
+    rowMultiple: "Multiple",
+    rowDate: "Date",
+    rowRelative: "Relative time",
+    footnoteLead: "Same numbers through one chokepoint",
+    footnoteTail: "— adding a market is a single entry in",
+  },
+};
 
 const SAMPLE = {
   big: 1248590,
@@ -26,18 +70,19 @@ const LOCALE_LABELS: Record<SupportedLocale, string> = {
 
 export default function LocaleShowcase() {
   const [locale, setLocale] = useState<SupportedLocale>("cs");
+  const t = useT(T);
   const f = createFormatters(locale);
   const now = new Date(`${SAMPLE.now}T00:00:00`);
 
   const rows: { label: string; code: string; value: string }[] = [
-    { label: "Měna", code: "fmtCZK", value: f.fmtCZK(SAMPLE.big) },
-    { label: "Měna kompaktně", code: "fmtCZKCompact", value: f.fmtCZKCompact(SAMPLE.compact) },
-    { label: "Počet", code: "fmtInt", value: f.fmtInt(SAMPLE.count) },
-    { label: "Procento", code: "fmtPct", value: f.fmtPct(SAMPLE.pct) },
-    { label: "Změna (±)", code: "fmtSignedPct", value: f.fmtSignedPct(SAMPLE.delta) },
-    { label: "Násobek", code: "fmtMultiple", value: f.fmtMultiple(SAMPLE.roas) },
-    { label: "Datum", code: "fmtDate", value: f.fmtDate(SAMPLE.dateIso) },
-    { label: "Relativní čas", code: "fmtRelative", value: f.fmtRelative(SAMPLE.relIso, now) },
+    { label: t("rowCurrency"), code: "fmtCZK", value: f.fmtCZK(SAMPLE.big) },
+    { label: t("rowCurrencyCompact"), code: "fmtCZKCompact", value: f.fmtCZKCompact(SAMPLE.compact) },
+    { label: t("rowCount"), code: "fmtInt", value: f.fmtInt(SAMPLE.count) },
+    { label: t("rowPercent"), code: "fmtPct", value: f.fmtPct(SAMPLE.pct) },
+    { label: t("rowChange"), code: "fmtSignedPct", value: f.fmtSignedPct(SAMPLE.delta) },
+    { label: t("rowMultiple"), code: "fmtMultiple", value: f.fmtMultiple(SAMPLE.roas) },
+    { label: t("rowDate"), code: "fmtDate", value: f.fmtDate(SAMPLE.dateIso) },
+    { label: t("rowRelative"), code: "fmtRelative", value: f.fmtRelative(SAMPLE.relIso, now) },
   ];
 
   return (
@@ -48,7 +93,7 @@ export default function LocaleShowcase() {
           this control doesn't implement. */}
       <div
         role="group"
-        aria-label="Výběr jazyka a měny"
+        aria-label={t("ariaLabel")}
         className="inline-flex rounded-pill border border-line bg-surface p-1"
       >
         {(Object.keys(LOCALES) as SupportedLocale[]).map((loc) => (
@@ -85,9 +130,9 @@ export default function LocaleShowcase() {
       </div>
 
       <p className="text-[13px] leading-relaxed text-muted">
-        Stejná čísla přes jeden chokepoint{" "}
+        {t("footnoteLead")}{" "}
         <code className="rounded bg-navy-50 px-1 py-0.5 text-navy-700">createFormatters(locale)</code>{" "}
-        — přidání trhu je jediná položka v <code className="rounded bg-navy-50 px-1 py-0.5 text-navy-700">LOCALES</code>.
+        {t("footnoteTail")} <code className="rounded bg-navy-50 px-1 py-0.5 text-navy-700">LOCALES</code>.
       </p>
     </div>
   );

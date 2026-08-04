@@ -13,7 +13,7 @@ const T = {
     goalMarkerNote: "Svislá značka = cílová hodnota PNO.",
   },
   en: {
-    pnoVsGoal: "Cost ratio vs. goal",
+    pnoVsGoal: "PNO vs. target",
     goalLabel: "Target {pct} (entire site)",
     overGoal: "{delta} above target",
     onGoal: "on target",

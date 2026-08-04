@@ -5,20 +5,38 @@ import { Check, Copy } from "@/components/icons";
 import { readableInkOn } from "@/lib/design-tokens-color";
 import { copyTextWithFallback } from "@/lib/clipboard";
 import type { ColorToken } from "@/lib/design-tokens";
+import { useT } from "@/lib/i18n/client";
+import type { TDict } from "@/lib/i18n/interpolate";
+
+const T = {
+  cs: {
+    copyTitle: "Kopírovat {cssVar}",
+    copyAriaLabel: "Kopírovat název tokenu {cssVar}",
+    copied: "Zkopírováno",
+    failed: "Kopírování selhalo",
+  },
+  en: {
+    copyTitle: "Copy {cssVar}",
+    copyAriaLabel: "Copy the token name {cssVar}",
+    copied: "Copied",
+    failed: "Copy failed",
+  },
+} satisfies TDict<"copyTitle" | "copyAriaLabel" | "copied" | "failed">;
 
 /** Click-to-copy colour swatch: copies the CSS variable name (e.g.
  *  "--color-brand-500") so the living showcase doubles as a working DS reference,
  *  not just a display. A transient check confirms the copy; a failure is shown
  *  explicitly (a dead-feeling click on a working DS reference is the worst UX). */
 export default function Swatch({ token, big = false }: { token: ColorToken; big?: boolean }) {
+  const t = useT(T);
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
   const copied = status === "copied";
 
   const copy = async () => {
     // Use the shared helper (execCommand fallback + a success boolean) instead of a
     // bare navigator.clipboard with an empty catch, matching DevInspector; on an
-    // insecure context / denied permission the user now sees "Kopírování selhalo"
-    // rather than a silent no-op.
+    // insecure context / denied permission the user now sees a translated failure
+    // message rather than a silent no-op.
     const ok = await copyTextWithFallback(token.cssVar);
     setStatus(ok ? "copied" : "failed");
     setTimeout(() => setStatus("idle"), 1200);
@@ -28,8 +46,8 @@ export default function Swatch({ token, big = false }: { token: ColorToken; big?
     <button
       type="button"
       onClick={copy}
-      title={`Kopírovat ${token.cssVar}`}
-      aria-label={`Kopírovat název tokenu ${token.cssVar}`}
+      title={t("copyTitle", { cssVar: token.cssVar })}
+      aria-label={t("copyAriaLabel", { cssVar: token.cssVar })}
       className="group min-w-0 text-left"
     >
       <div
@@ -47,7 +65,7 @@ export default function Swatch({ token, big = false }: { token: ColorToken; big?
       </div>
       <p className="mt-1.5 truncate text-[13px] font-medium text-navy-700">{token.name}</p>
       <p className={`tnum truncate text-[13px] uppercase ${status === "failed" ? "text-coral-600" : "text-muted"}`}>
-        {status === "copied" ? "Zkopírováno" : status === "failed" ? "Kopírování selhalo" : token.value}
+        {status === "copied" ? t("copied") : status === "failed" ? t("failed") : token.value}
       </p>
     </button>
   );

@@ -117,6 +117,10 @@ const REPORTY_T = {
     desc: "Shared reports for clients — create them in the Campaigns module using the “Share report” button. Manage them here: view count and link invalidation.",
   },
 } as const;
+const ACCOUNT_T = {
+  cs: { demoUser: "Ukázkový uživatel" },
+  en: { demoUser: "Sample user" },
+} as const;
 
 /** Placeholder action for the public demo's Account surface — there's no real
  *  session to end, so the sign-out / revoke controls are rendered disabled (see
@@ -524,11 +528,12 @@ export default async function DemoModule({
           />
         </ModulePage>
       );
-    case "ucet":
+    case "ucet": {
+      const tAccount = await getT(ACCOUNT_T);
       return (
         <ModulePage moduleKey="ucet" sample>
           <AccountSecurity
-            user={{ id: "demo-user", name: "Ukázkový uživatel", email: "demo@adamant.app", image: null }}
+            user={{ id: "demo-user", name: tAccount("demoUser"), email: "demo@adamant.app", image: null }}
             facts={{ hasEmail: true, oauth: true, devMode: false }}
             expiresDate={null}
             sessionCount={2}
@@ -538,6 +543,7 @@ export default async function DemoModule({
           />
         </ModulePage>
       );
+    }
 
     case "branding":
       // Live brand-accent + logo preview. Persistence targets an authed route, so

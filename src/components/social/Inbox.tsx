@@ -13,16 +13,16 @@ import {
 
 const T = {
   cs: {
-    inboxTitle: "Inbox — comments & messages",
-    pending: "{n} pending",
-    loadingInbox: "Loading inbox…",
-    comment: "comment",
-    replied: "Replied",
-    replyHint: "Suggested reply — edit and approve",
+    inboxTitle: "Inbox — komentáře a zprávy",
+    pending: "{n} nevyřízených",
+    loadingInbox: "Načítám inbox…",
+    comment: "komentář",
+    replied: "Odpovězeno",
+    replyHint: "Navržená odpověď — upravte a schvalte",
     replyInTwin: "Odpovědět v twinu",
     handoffHint: "Odpověď připraví twin ve Schránce zpráv",
-    sending: "Sending…",
-    approveAndSend: "Approve & send",
+    sending: "Odesílám…",
+    approveAndSend: "Schválit a odeslat",
   },
   en: {
     inboxTitle: "Inbox — comments & messages",

@@ -155,7 +155,7 @@ const T = {
     noteMeta: "Scheduling and publishing posts. No performance measurement.",
     noteTiktok: "Scheduling and publishing posts. No performance measurement.",
     chClaim:
-      "Sklik sits beside Google Ads as a first-class channel here, which western adtech generally does not do.",
+      "Sklik sits beside Google Ads as a first-class channel here, which Western adtech generally does not do.",
 
     proofHeading: "The numbers the dashboard actually renders",
     proofNote:

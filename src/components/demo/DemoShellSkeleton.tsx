@@ -1,3 +1,10 @@
+import { getT } from "@/lib/i18n/server";
+
+const T = {
+  cs: { loading: "Načítání" },
+  en: { loading: "Loading" },
+} as const;
+
 /** Instant static shell for the /dashboard demo — the Suspense fallback shown
  *  while the dynamic (searchParams-driven) module content streams in on first
  *  load. Mirrors DemoShell's frame so the paint is stable: the rail is 296px
@@ -5,7 +12,8 @@
  *  `w-[74px]`) + item panel, and the topbar reserves the same justify-between
  *  actions row. Keep the width literals in sync with DemoShell/SectionRailNav so
  *  the skeleton→shell handoff doesn't jump. */
-export default function DemoShellSkeleton() {
+export default async function DemoShellSkeleton() {
+  const t = await getT(T);
   return (
     <div className="flex min-h-screen bg-canvas">
       <aside
@@ -44,7 +52,7 @@ export default function DemoShellSkeleton() {
           <div
             className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-brand-500"
             role="status"
-            aria-label="Loading"
+            aria-label={t("loading")}
           />
         </div>
       </div>

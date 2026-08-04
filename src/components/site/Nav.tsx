@@ -13,6 +13,16 @@ import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import AuthButton from "@/components/auth/AuthButton";
 import UsageMeter from "@/components/usage/UsageMeter";
+import { useT } from "@/lib/i18n/client";
+
+// Not part of the central nav dictionary (messages.ts, out of this file's scope) —
+// a small colocated table for the one string the header owns outright. Matches the
+// established "AI inteligence pro reklamu" / "AI ad intelligence" tagline pairing
+// used on the landing variants (BrandLanding.tsx, LandingNewWorld.tsx).
+const T = {
+  cs: { tagline: "AI inteligence pro reklamu" },
+  en: { tagline: "AI ad intelligence" },
+} as const;
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -21,6 +31,7 @@ function isActive(pathname: string, href: string): boolean {
 export default function Nav() {
   const pathname = usePathname();
   const { locale, messages } = useLocale();
+  const t = useT(T);
   const { status } = useSession();
   const navItems = localizedNavItems(locale);
   const [open, setOpen] = useState(false);
@@ -62,7 +73,7 @@ export default function Nav() {
                 no longer fit. The tagline is the expendable half — the hero
                 states it again a viewport later. */}
             <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-muted max-[359px]:hidden">
-              AI ad intelligence
+              {t("tagline")}
             </span>
           </span>
         </Link>

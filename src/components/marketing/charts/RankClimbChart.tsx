@@ -6,7 +6,12 @@
  *  the `.chart-draw` keyframe (globals.css); wrap in <ChartReveal> to replay it
  *  on scroll-in. Reduced-motion neutralises the draw (settles to final state).
  *
- *  Data is illustrative of the climb the product sells, not a live series. */
+ *  Data is illustrative of the climb the product sells, not a live series.
+ *
+ *  No hook access (a pure SVG component, sometimes rendered from a server
+ *  parent) — `locale` is an explicit prop, same pattern as Sparkline's
+ *  `trendAriaLabel`, not `useT`/`useLocale`. */
+import { DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
 
 const YOU = [4, 4, 4, 3, 2, 1, 1];
 const RIVAL = [2, 2, 2, 3, 3, 3, 3];
@@ -29,7 +34,21 @@ function linePath(series: number[]): string {
   return series.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
 }
 
-export function RankClimbChart({ label = "You vs. top rival — map-pack rank" }: { label?: string }) {
+const DEFAULT_LABEL: Record<SupportedLocale, string> = {
+  cs: "Vy vs. hlavní rival — pozice v mapovém balíčku",
+  en: "You vs. top rival — map-pack rank",
+};
+
+export function RankClimbChart({
+  label,
+  locale = DEFAULT_LOCALE,
+}: {
+  label?: string;
+  /** locale for the default aria-label and the "Day 0" axis tick — an explicit
+   *  prop, not a hook (see file header). */
+  locale?: SupportedLocale;
+}) {
+  const resolvedLabel = label ?? DEFAULT_LABEL[locale];
   const youLine = linePath(YOU);
   const areaPath = `${youLine} L${x(YOU.length - 1).toFixed(1)} ${(H - PAD.b).toFixed(1)} L${x(0).toFixed(1)} ${(H - PAD.b).toFixed(1)} Z`;
   const rivalLine = linePath(RIVAL);
@@ -40,7 +59,7 @@ export function RankClimbChart({ label = "You vs. top rival — map-pack rank" }
       width="100%"
       height="100%"
       role="img"
-      aria-label={label}
+      aria-label={resolvedLabel}
       className="overflow-visible"
     >
       <defs>
@@ -84,7 +103,7 @@ export function RankClimbChart({ label = "You vs. top rival — map-pack rank" }
           className="fill-muted"
           style={{ fontSize: 10 }}
         >
-          {i === 0 ? "Den 0" : `+${d}`}
+          {i === 0 ? (locale === "cs" ? "Den 0" : "Day 0") : `+${d}`}
         </text>
       ))}
 

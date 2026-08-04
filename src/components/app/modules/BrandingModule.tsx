@@ -20,6 +20,7 @@ const T = {
     preview: "Náhled hlavičky reportu", reportTitle: "Měsíční report",
     save: "Uložit branding", saving: "Ukládám…", saved: "Uloženo", error: "Uložení se nezdařilo.",
     nameNote: "Název projektu se upravuje v Nastavení.", invalidHex: "Zadej platnou hex barvu (#rrggbb).",
+    uploadedFilePlaceholder: "— nahraný soubor —",
   },
   en: {
     accent: "Brand accent", accentHint: "Used in the sidebar rail, reports and the client microsite.",
@@ -30,6 +31,7 @@ const T = {
     preview: "Report header preview", reportTitle: "Monthly report",
     save: "Save branding", saving: "Saving…", saved: "Saved", error: "Could not save.",
     nameNote: "The project name is edited in Settings.", invalidHex: "Enter a valid hex color (#rrggbb).",
+    uploadedFilePlaceholder: "— uploaded file —",
   },
 } as const;
 
@@ -182,7 +184,7 @@ export default function BrandingModule({
             type="text"
             value={logo.startsWith("data:") ? "" : logo}
             onChange={(e) => { setLogo(e.target.value); setStatus("idle"); setUploadError(false); }}
-            placeholder={logo.startsWith("data:") ? "— nahraný soubor —" : t("logoPlaceholder")}
+            placeholder={logo.startsWith("data:") ? t("uploadedFilePlaceholder") : t("logoPlaceholder")}
             disabled={logo.startsWith("data:")}
             className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 focus:border-brand-400 focus:outline-none disabled:opacity-60"
           />

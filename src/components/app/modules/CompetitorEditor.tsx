@@ -43,7 +43,7 @@ const T = {
   },
   en: {
     active: "Narrative compares vs. the market",
-    inactive: "The AI narrative only knows your numbers. Add competitors and it reads \"vs. the market\", not just period-over-period.",
+    inactive: "The AI narrative only knows your numbers. Add competitors and it reads “vs. the market”, not just period-over-period.",
     add: "Add competitors",
     edit: "Edit",
     placeholder: "Competitor name",
