@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bolt, Document, Download, Search } from "@/components/icons";
 import { downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
@@ -11,6 +11,9 @@ import {
   CONTENT_TYPES,
   SEO_LIMITS,
   type AdRequest,
+  type AiMeta,
+  type AiResponse,
+  type ArticleDraftResult,
   type BriefKeyword,
   type BriefRequest,
   type BriefResult,
@@ -31,6 +34,8 @@ import {
 } from "@/lib/content/seo-score";
 import { useAiTool } from "./useAiTool";
 import { usePersistedForm } from "./usePersistedForm";
+import SaveToLibrary from "./SaveToLibrary";
+import type { SavedContentEntry, SavedGenerationMeta } from "@/lib/content-library/entries";
 import {
   CharCount,
   CopyButton,
@@ -163,6 +168,15 @@ const EXAMPLE: BriefRequest = {
 };
 
 const EMPTY: BriefRequest = { topic: "", primaryKeyword: "", audience: "", contentType: "blog" };
+
+/** Rebuild an AiMeta for a generation restored from the saved library. The library
+ *  stores model/demo/duration but NOT the prompt (the single largest field on a
+ *  response, and not what makes the work worth keeping) — so the prompt comes back
+ *  empty and the panels hide the transparency disclosure rather than showing an
+ *  empty one pretending to be the real prompt. */
+function restoredMeta(meta: SavedGenerationMeta | undefined): AiMeta {
+  return { model: meta?.model ?? "", demo: meta?.demo ?? false, prompt: "", tookMs: meta?.tookMs ?? 0 };
+}
 
 /** Structural guard for a restored draft — a stale/foreign shape is dropped
  *  rather than hydrated into the form (the content type must stay valid). */
@@ -339,12 +353,19 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
 export default function ContentBriefGenerator({
   seed,
   onCreateAds,
+  restored,
 }: {
   seed?: BriefSeed | null;
   /** brief → ads handoff: called with a prefilled ad request mapped from the
    *  finished brief; the parent switches to the ads tab and re-mounts the
    *  generator with the seed (mirrors the keywords → brief bridge). */
   onCreateAds?: (seed: Partial<AdRequest>) => void;
+  /** An entry restored from the project's saved content library: its form, brief
+   *  and (when it has one) article draft are adopted as this workspace's current
+   *  state — no request, no quota. A restored workspace uses SEPARATE localStorage
+   *  slots for both the form draft and the result history, so browsing the library
+   *  never overwrites the piece the user has in progress. */
+  restored?: SavedContentEntry | null;
 } = {}) {
   const t = useT(T);
   const { locale } = useLocale();
@@ -359,13 +380,40 @@ export default function ContentBriefGenerator({
   // but a live seed WINS over a stored draft (skipRestore), and the seeded
   // form immediately writes through as the new draft.
   const [form, setForm] = usePersistedForm<BriefRequest>(
-    "brief",
-    seed ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword } : EMPTY,
-    { skipRestore: Boolean(seed), validate: isBriefForm }
+    restored ? "brief.restored" : "brief",
+    restored
+      ? restored.form
+      : seed
+        ? { ...EMPTY, topic: seed.topic, primaryKeyword: seed.primaryKeyword }
+        : EMPTY,
+    { skipRestore: Boolean(seed) || Boolean(restored), validate: isBriefForm }
   );
   const [grounding, setGrounding] = useState<BriefKeyword[]>(() => seed?.keywords ?? []);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
-    useAiTool<BriefResult>("brief");
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, adopt, history, activeIndex, restore, refine, canRefine, expectedMs } =
+    useAiTool<BriefResult>("brief", restored ? "restored" : undefined);
+
+  // The article draft currently on screen, reported up by ArticleDraftPanel, so the
+  // single save action below persists brief + draft as one record.
+  const [draft, setDraft] = useState<AiResponse<ArticleDraftResult> | null>(null);
+  const onDraftChange = useCallback((d: AiResponse<ArticleDraftResult> | null) => setDraft(d), []);
+
+  // Adopt a restored library entry once — after useAiTool's own storage restore
+  // (registered first) so this wins. The modal remounts per entry, so it fires once.
+  useEffect(() => {
+    if (restored) adopt({ result: restored.brief, meta: restoredMeta(restored.briefMeta) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored]);
+
+  const restoredDraft = useMemo(
+    () =>
+      restored?.draft
+        ? {
+            result: { blocks: restored.draft.blocks, faq: restored.draft.faq },
+            meta: restoredMeta(restored.draftMeta),
+          }
+        : null,
+    [restored]
+  );
 
   const set = <K extends keyof BriefRequest>(key: K, value: BriefRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -549,6 +597,19 @@ export default function ContentBriefGenerator({
             />
 
             <div className="flex flex-wrap items-center justify-end gap-2">
+              {/* Durable save: the brief (and the draft, if one is on screen) lands
+                  in the project's own library, so closing the laptop or clearing
+                  site data no longer destroys the work. Renders only inside a real
+                  project — see SaveToLibrary. */}
+              <SaveToLibrary
+                projectId={project?.id}
+                payload={() => ({
+                  form,
+                  brief: r,
+                  briefMeta: data.meta,
+                  ...(draft ? { draft: draft.result, draftMeta: draft.meta } : {}),
+                })}
+              />
               {/* brief → ads: complete the research → content → performance loop —
                   one input yields brief + article + ad set without retyping */}
               {onCreateAds && (
@@ -665,13 +726,14 @@ export default function ContentBriefGenerator({
             {/* Brief → article draft: turn the finished skeleton into a near-
                 publishable draft as the app's typed Block[] + FAQ, rendered with
                 the same ArticleBody as /clanek and exportable as .md / JSON. */}
-            <ArticleDraftPanel brief={r} />
+            <ArticleDraftPanel brief={r} restored={restoredDraft} onDraftChange={onDraftChange} />
 
             {/* Iterate on the last generation with a steering note (server-side
                 refine) instead of mangling the form to bust the response cache. */}
             {canRefine && <RefineBar onRefine={refine} />}
 
-            <PromptDisclosure prompt={data.meta.prompt} />
+            {/* A restored brief carries no prompt — see restoredMeta. */}
+            {data.meta.prompt ? <PromptDisclosure prompt={data.meta.prompt} /> : null}
           </div>
         )}
       </div>

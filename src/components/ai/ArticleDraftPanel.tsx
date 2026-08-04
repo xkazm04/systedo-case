@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bolt, Document, Download, Image as ImageIcon, Close, Share } from "@/components/icons";
 import ArticleBody from "@/components/article/ArticleBody";
@@ -13,7 +13,7 @@ import { inlineToText, type Article, type Block, type FaqItem } from "@/lib/arti
 import { blockToMarkdown, inlineToMarkdown, type MarkdownLabels } from "@/lib/article-markdown";
 import { articleSourceFromDraft } from "@/lib/distribution/from-draft";
 import { sendArticleToDistributionAction } from "@/components/app/modules/distribution-actions";
-import type { ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
+import type { AiResponse, ArticleDraftRequest, ArticleDraftResult, BriefResult } from "@/lib/ai-types";
 import type { CreativeSummary } from "@/lib/images/types";
 import { useAiTool } from "./useAiTool";
 import {
@@ -283,7 +283,21 @@ function DraftPreview({
  *  exportable as Markdown or article JSON. Generated visuals from the Creative
  *  library can be inserted as figures (a manual hero image and/or by filling the
  *  AI's suggested figure placeholders). */
-export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
+export default function ArticleDraftPanel({
+  brief,
+  restored,
+  onDraftChange,
+}: {
+  brief: BriefResult;
+  /** A draft restored from the project's saved content library — adopted as this
+   *  panel's result on mount, without a request or quota. Its own storage slot
+   *  (`variant`) keeps it from touching the live workspace's local history. */
+  restored?: AiResponse<ArticleDraftResult> | null;
+  /** Reports the draft currently on screen (or null) to the owner, so a single
+   *  "save to library" action up in the brief panel can persist brief + draft as
+   *  ONE record instead of the user hunting for two separate save buttons. */
+  onDraftChange?: (draft: AiResponse<ArticleDraftResult> | null) => void;
+}) {
   const t = useT(T);
   const router = useRouter();
   const project = useOptionalProject();
@@ -291,9 +305,24 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
   /** "send to Distribuce" state — idle / in-flight / refused. */
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, history, activeIndex, restore, refine, canRefine, expectedMs } =
-    useAiTool<ArticleDraftResult>("article-draft");
+  const { status, data, error, retryIn, upgradeUrl, timedOut, run, reset, adopt, history, activeIndex, restore, refine, canRefine, expectedMs } =
+    useAiTool<ArticleDraftResult>("article-draft", restored ? "restored" : undefined);
   const [preview, setPreview] = useState<"preview" | "json">("preview");
+
+  // Adopt a restored draft once, after the hook's own storage restore has run (it
+  // is registered first, so this wins). Keyed by identity: the library modal
+  // remounts the whole workspace per entry, so this fires exactly once per entry.
+  useEffect(() => {
+    if (restored) adopt(restored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored]);
+
+  // Keep the owner's picture of "what is on screen" current, so its save action
+  // persists the draft the user is actually looking at.
+  useEffect(() => {
+    onDraftChange?.(status === "done" && data ? data : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, data]);
 
   // Inserted imagery: one optional hero figure + AI figure placeholders filled by
   // block index. Both are dropped whenever a new draft is generated.
@@ -565,7 +594,9 @@ export default function ArticleDraftPanel({ brief }: { brief: BriefResult }) {
 
           {canRefine && <RefineBar onRefine={refine} />}
 
-          <PromptDisclosure prompt={data.meta.prompt} />
+          {/* A restored draft carries no prompt (the library stores the result, not
+              the prompt text) — show the disclosure only when there is one. */}
+          {data.meta.prompt ? <PromptDisclosure prompt={data.meta.prompt} /> : null}
         </div>
       )}
 

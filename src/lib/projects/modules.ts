@@ -469,6 +469,23 @@ export const MODULES: ModuleDef[] = [
     blurb: "Název, branding, napojení Google Ads a typ projektu.",
     blurbEn: "Name, branding, Google Ads connection and project type.",
   },
+  {
+    // The home for what the Obsahový engine actually produced. Appended (rather than
+    // slotted next to the engine) so every existing `order` value — and the pinned
+    // sidebar sequence per project type — stays exactly as it was; it renders last
+    // within Tvorba/Studio. Distinct from "knihovna" (Knihovna vzorů), which keeps
+    // its own home, label and behaviour: that one holds winning ad patterns, this
+    // one holds your saved briefs and article drafts.
+    key: "ulozeny-obsah",
+    order: 35,
+    label: "Uložený obsah",
+    labelEn: "Saved content",
+    icon: "library",
+    section: "studio",
+    availableFor: ALL,
+    blurb: "Uložené briefy a koncepty článků z Obsahového enginu — u projektu, ne jen v prohlížeči.",
+    blurbEn: "Saved briefs and article drafts from the Content engine — kept with the project, not just in your browser.",
+  },
 ];
 
 /** Modules available for a project type, grouped by section then by explicit

@@ -13,6 +13,7 @@ export type IconKey =
   | "social"
   | "creative"
   | "patterns"
+  | "library"
   | "reports"
   | "settings"
   | "store"

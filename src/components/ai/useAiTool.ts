@@ -281,6 +281,25 @@ export function useAiTool<T>(mode: string, variant?: string) {
     setTimedOut(false);
   }
 
+  /** Adopt a result that came from OUTSIDE this hook — a generation restored from
+   *  the project's saved content library — as the panel's current result. No
+   *  request, no quota, and deliberately NO history write: the entry belongs to the
+   *  server-side library, and injecting it into this browser's history slot would
+   *  rewrite a list the user never generated here. `activeIndex` goes to -1 so the
+   *  history strip highlights nothing rather than mislabelling the restored result
+   *  as the newest local generation. */
+  function adopt(payload: AiResponse<T>) {
+    controllerRef.current?.abort();
+    runIdRef.current += 1;
+    setData(payload);
+    setStatus("done");
+    setActiveIndex(-1);
+    setError(null);
+    setTimedOut(false);
+    setErrorCode(null);
+    setRetryIn(null);
+  }
+
   function reset() {
     // Abort an in-flight request and bump the run id so its late resolution is
     // ignored (and doesn't surface as a spurious timeout). The persisted history
@@ -309,6 +328,7 @@ export function useAiTool<T>(mode: string, variant?: string) {
     timedOut,
     run,
     reset,
+    adopt,
     history,
     activeIndex,
     restore,
