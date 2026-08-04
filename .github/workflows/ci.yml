@@ -19,6 +19,13 @@ jobs:
   check:
     name: Typecheck, lint & build
     runs-on: ubuntu-latest
+    env:
+      # The format-golden fixtures (test-unit/fixtures/format-golden.json) pin
+      # byte-identical output of the Intl formatters, minted in the product's
+      # home timezone. CI must render in the same zone or the date goldens
+      # drift. Node is pinned to the exact minting version below for the same
+      # reason (ICU changes across Node minors).
+      TZ: Europe/Prague
     steps:
       - name: Checkout
         uses: actions/checkout@v7
