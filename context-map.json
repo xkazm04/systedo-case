@@ -181,7 +181,7 @@
       "business_feature": "Ad Creative & Spend Tools",
       "category": "lib",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "campaigns-budget-alerts",
         "ai-tools-ads-campaigns-research"
       ],
@@ -419,7 +419,7 @@
       "category": "lib",
       "cross_refs": [
         "ai-tools-shared",
-        "campaigns-core",
+        "campaigns-core-lib",
         "organic-channels-keywords"
       ],
       "db_tables": [],
@@ -516,7 +516,7 @@
       "cross_refs": [
         "ai-tools-shared",
         "diagnoses-engine",
-        "local-seo-core"
+        "local-seo-core-lib"
       ],
       "db_tables": [],
       "description": "AI tool implementations for diagnostic analysis: cohort conversion diagnosis (why did a conversion rate drop?), lead-source diagnosis (which traffic sources send quality leads?), local-SEO diagnosis, and local review reply drafting. These tools interpret metric anomalies and surface actionable recommendations grounded in the diagnoses engine output.",
@@ -1059,7 +1059,8 @@
       "business_feature": "Campaign Alerts & Control",
       "category": "ui",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-ui",
+        "campaigns-core-lib",
         "campaign-table",
         "performance-analyst-ai"
       ],
@@ -1109,7 +1110,8 @@
       "business_feature": "Campaign Reporting",
       "category": "ui",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-ui",
+        "campaigns-core-lib",
         "dashboard-kpi"
       ],
       "db_tables": [],
@@ -1150,7 +1152,8 @@
       "business_feature": "Campaign Table",
       "category": "ui",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-ui",
+        "campaigns-core-lib",
         "campaign-alerts-control"
       ],
       "db_tables": [],
@@ -1249,7 +1252,7 @@
       "business_feature": "Campaign Alerts & Budget Management",
       "category": "lib",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "metrics-analysis",
         "campaigns-reporting"
       ],
@@ -1327,7 +1330,7 @@
         "auth"
       ],
       "last_written_at": "2026-07-30T08:53:35.677769500+00:00",
-      "name": "campaigns-core",
+      "name": "campaigns-core-ui",
       "pinned": false,
       "tech_stack": [
         "Next.js 16.3.0-preview.5",
@@ -1378,7 +1381,7 @@
         "CPA"
       ],
       "last_written_at": "2026-07-30T09:27:50.899738700+00:00",
-      "name": "campaigns-core",
+      "name": "campaigns-core-lib",
       "pinned": false,
       "tech_stack": [
         "TypeScript",
@@ -1434,7 +1437,7 @@
       "business_feature": "Campaign Reporting Config",
       "category": "lib",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "report-engine",
         "metrics-core"
       ],
@@ -1475,7 +1478,7 @@
       "business_feature": "Campaign Sync & Connection",
       "category": "lib",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "sklik-platform-integration",
         "ad-platform-integrations"
       ],
@@ -1522,7 +1525,7 @@
       "business_feature": "Campaign Data Persistence",
       "category": "data",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "campaigns-sklik-sync"
       ],
       "db_tables": [
@@ -1633,7 +1636,7 @@
       "category": "lib",
       "cross_refs": [
         "catalog-core",
-        "local-seo-core",
+        "local-seo-core-lib",
         "inventory-sync-ops"
       ],
       "db_tables": [],
@@ -2738,7 +2741,7 @@
       "cross_refs": [
         "inventory-connection",
         "catalog-core",
-        "campaigns-core"
+        "campaigns-core-lib"
       ],
       "db_tables": [
         "inventory_plans",
@@ -2788,7 +2791,7 @@
       "category": "ui",
       "cross_refs": [
         "ai-assistant-core",
-        "local-seo-core",
+        "local-seo-core-ui",
         "campaign-table"
       ],
       "db_tables": [],
@@ -2828,9 +2831,9 @@
       "business_feature": "Lead Management",
       "category": "ui",
       "cross_refs": [
-        "speed-lead",
+        "speed-lead-ui",
         "audience-goals-ltv",
-        "local-seo-core"
+        "local-seo-core-lib"
       ],
       "db_tables": [],
       "description": "Handles lead quality scoring, import, source diagnosis, and review triage in the authed product. LeadQualityModule surfaces a scored lead list with quality indicators; LeadImportPanel supports CSV/API lead ingestion; LeadSourceDiagnosisPanel runs AI diagnosis on underperforming lead sources; ReviewInbox consolidates incoming customer reviews for CRM follow-up.",
@@ -2872,7 +2875,7 @@
       "cross_refs": [
         "ai-tools-diagnostics",
         "metrics-analysis",
-        "speed-lead"
+        "speed-lead-lib"
       ],
       "db_tables": [
         "lead_quality_records"
@@ -3063,7 +3066,7 @@
         "diagnosis"
       ],
       "last_written_at": "2026-07-30T08:53:35.679457700+00:00",
-      "name": "local-seo-core",
+      "name": "local-seo-core-ui",
       "pinned": false,
       "tech_stack": [
         "Next.js 16.3.0-preview.5",
@@ -3114,7 +3117,7 @@
         "local dominance"
       ],
       "last_written_at": "2026-07-30T09:27:50.904747800+00:00",
-      "name": "local-seo-core",
+      "name": "local-seo-core-lib",
       "pinned": false,
       "tech_stack": [
         "TypeScript"
@@ -3126,7 +3129,7 @@
       "category": "ui",
       "cross_refs": [
         "brand-landing",
-        "local-seo-core"
+        "local-seo-core-ui"
       ],
       "db_tables": [],
       "description": "Public-facing marketing showcase components demonstrating local SEO product capabilities to prospective customers. LocalSeoShowcase is the full feature-tour section; RankClimbDemo is an animated interactive demo; the charts/ subdirectory provides CompetitorBars, RankClimbChart, and VisibilityGauge — all purely presentational, seeded with static demo data.",
@@ -3212,7 +3215,7 @@
       "business_feature": "Local Ranking Signals",
       "category": "lib",
       "cross_refs": [
-        "local-seo-core",
+        "local-seo-core-lib",
         "ai-tools-diagnostics",
         "diagnoses-engine"
       ],
@@ -3305,7 +3308,7 @@
       "business_feature": "LP Experiments",
       "category": "ui",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-ui",
         "keyword-research-ai",
         "ai-assistant-core"
       ],
@@ -3388,7 +3391,8 @@
       "business_feature": "Map Pack & SEO Comparison",
       "category": "ui",
       "cross_refs": [
-        "local-seo-core",
+        "local-seo-core-ui",
+        "local-seo-core-lib",
         "dashboard-kpi"
       ],
       "db_tables": [],
@@ -3434,7 +3438,7 @@
       "business_feature": "Map Pack, Reviews & Competitors",
       "category": "lib",
       "cross_refs": [
-        "local-seo-core",
+        "local-seo-core-lib",
         "local-signals",
         "ai-tools-diagnostics"
       ],
@@ -3581,7 +3585,7 @@
       "business_feature": "Core Metrics Engine",
       "category": "lib",
       "cross_refs": [
-        "campaigns-core",
+        "campaigns-core-lib",
         "report-engine",
         "profit-finance"
       ],
@@ -4417,7 +4421,7 @@
       "category": "lib",
       "cross_refs": [
         "projects-core",
-        "campaigns-core",
+        "campaigns-core-lib",
         "catalog-core"
       ],
       "db_tables": [
@@ -5132,7 +5136,7 @@
         "triage"
       ],
       "last_written_at": "2026-07-30T08:54:43.875345400+00:00",
-      "name": "speed-lead",
+      "name": "speed-lead-ui",
       "pinned": false,
       "tech_stack": [
         "Next.js 16.3.0-preview.5",
@@ -5175,7 +5179,7 @@
         "Rychlá reakce"
       ],
       "last_written_at": "2026-07-30T09:27:50.904327200+00:00",
-      "name": "speed-lead",
+      "name": "speed-lead-lib",
       "pinned": false,
       "tech_stack": [
         "TypeScript"
@@ -5188,7 +5192,7 @@
       "cross_refs": [
         "dashboard-kpi",
         "profit-analytics",
-        "campaigns-core"
+        "campaigns-core-lib"
       ],
       "db_tables": [],
       "description": "Aggregates ad spend reporting at monthly and historical levels and surfaces data-provenance metadata. SpendModule is the core spend breakdown view; MonthlyReport generates the monthly summary; ReportBeyond provides historical trend projections; ProvenanceChip and WarehouseSourceBar display data-source attribution for any metric row.",
@@ -5230,7 +5234,7 @@
       "cross_refs": [
         "projects-core",
         "session-firebase-core",
-        "campaigns-core"
+        "campaigns-core-lib"
       ],
       "db_tables": [
         "tenant_docs",
@@ -5280,7 +5284,7 @@
       "cross_refs": [
         "twin-store-voice",
         "ai-tools-content",
-        "speed-lead"
+        "speed-lead-lib"
       ],
       "db_tables": [
         "twin_archive",
