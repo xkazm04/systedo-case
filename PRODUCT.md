@@ -48,6 +48,24 @@ that spine.
 Supporting (not the claim itself): Sklik is treated as a real channel next to Google
 Ads, which western adtech generally does not do.
 
+Full competitive value case — the killer triad (Sklik unification / grounded
+diagnostics / price) versus named incumbents (Optmyzr, Opteo, Adalysis; Dotidot,
+Mergado in the Czech lane), with per-claim "why it's hard to copy" and the honest
+pre-launch caveat on Sklik RPC verification — lives in
+[`docs/value-case.md`](./docs/value-case.md).
+
+## Monetization
+
+**Decision (2026-08-04): Adamant is free during validation.** Paid CTAs are
+dropped from public surfaces; `/cena` keeps the three-tier table as documented
+intent, with paid tiers marked "coming after validation" and the free CTA leading
+into `/app`. The metering machinery (`src/lib/plans.ts`, daily limits) stays live
+so free never means unbounded model spend.
+
+**Revisit trigger:** roughly **10 organically activated projects** (real users who
+connected an account and returned) — at that point pricing gets re-evaluated
+against observed usage instead of assumptions.
+
 ## Operating Context
 
 - Weekly or ad-hoc review sessions, desktop-first, often with the advertiser's own
