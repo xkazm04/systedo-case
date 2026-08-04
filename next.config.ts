@@ -19,10 +19,48 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
 
-  // Belt-and-suspenders: forbid any browser/CDN from caching the authed app's
-  // HTML/RSC, so a deploy never serves a previous app version behind /app.
   async headers() {
+    // Content-Security-Policy in REPORT-ONLY mode — derived from what the app
+    // actually loads, so the report stream is signal, not noise:
+    //  - script/style 'unsafe-inline': Next injects inline scripts (hydration/RSC
+    //    payload) and the root layout ships the theme/lang pre-paint snippets;
+    //    styles are Tailwind chunks + inline style attributes (global-error,
+    //    framer-motion, leaflet).
+    //  - img https: + data: + blob:: leaflet basemap tiles (*.basemaps.cartocdn.com),
+    //    Google OAuth avatars (lh3.googleusercontent.com), user-configured report
+    //    logo URLs (arbitrary https), and Creative Studio data/blob previews.
+    //  - font-src 'self': next/font self-hosts Geist at build time.
+    //  - connect-src: own API routes plus the Sentry browser ingest endpoints
+    //    (active only when NEXT_PUBLIC_SENTRY_DSN is set; Firestore/LLM calls are
+    //    server-side only and never hit the browser).
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https:",
+      "font-src 'self'",
+      "connect-src 'self' https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join("; ");
+
     return [
+      // Baseline security headers for every route (marketing site + /app + API).
+      {
+        source: "/:path*",
+        headers: [
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Content-Security-Policy-Report-Only", value: csp },
+        ],
+      },
+      // Belt-and-suspenders: forbid any browser/CDN from caching the authed app's
+      // HTML/RSC, so a deploy never serves a previous app version behind /app.
       {
         source: "/app/:path*",
         headers: [
