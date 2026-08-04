@@ -7,6 +7,7 @@ import NextAuth, { type Session } from "next-auth";
 import Google from "next-auth/providers/google";
 import { FirestoreAdapter } from "@auth/firebase-adapter";
 import { firestore } from "@/lib/firebase";
+import { recordSignup } from "@/lib/analytics/track";
 
 /** Read/manage the signed-in user's Google Ads accounts. */
 export const ADWORDS_SCOPE = "https://www.googleapis.com/auth/adwords";
@@ -58,6 +59,18 @@ const nextAuth = NextAuth({
       },
     }),
   ],
+  events: {
+    // signup_completed: the adapter's createUser hook fires exactly ONCE per
+    // account — when the Firestore adapter first writes the user row. Under the
+    // database session strategy this is the hook that distinguishes a brand-new
+    // user (events.signIn fires on EVERY sign-in and its isNewUser flag is a
+    // JWT-strategy affordance), so the first-party signup counter is bumped here
+    // and never on a returning sign-in. Best-effort inside recordSignup — an
+    // analytics hiccup must never fail the OAuth flow.
+    createUser: async () => {
+      await recordSignup();
+    },
+  },
 });
 
 export const handlers = nextAuth.handlers;

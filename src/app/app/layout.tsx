@@ -10,6 +10,8 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { currentSession } from "@/lib/session";
+import { recordPageView } from "@/lib/analytics/track";
+import { GATE_ROUTE } from "@/lib/analytics/funnel";
 import AppSignInGate from "@/components/app/AppSignInGate";
 
 export const metadata: Metadata = {
@@ -41,6 +43,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
 async function AuthGate({ children }: { children: React.ReactNode }) {
   const session = await currentSession();
-  if (!session?.user) return <AppSignInGate />;
+  if (!session?.user) {
+    // First-party funnel: one anonymous "sign-in wall rendered" counter (route +
+    // UTC day only — no IP/UA/session). This render is request-time by nature
+    // (it just read the session), so the count is per visitor hit, not per build.
+    // Best-effort inside; a store hiccup never breaks the gate.
+    await recordPageView(GATE_ROUTE);
+    return <AppSignInGate />;
+  }
   return <>{children}</>;
 }

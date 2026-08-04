@@ -9,6 +9,7 @@ import DemoShell from "@/components/demo/DemoShell";
 import DemoShellSkeleton from "@/components/demo/DemoShellSkeleton";
 import DemoModule from "@/components/demo/DemoModule";
 import { DEMO_PROJECTS, demoModuleFor, demoProjectForModule } from "@/lib/demo/projects";
+import { recordPageView } from "@/lib/analytics/track";
 
 export const metadata: Metadata = {
   title: "Živá ukázka aplikace",
@@ -34,6 +35,10 @@ async function DemoWorkspace({
   searchParams: Promise<{ m?: string | string[]; wh?: string | string[] }>;
 }) {
   const { m, wh } = await searchParams;
+  // First-party page-view counter (route + UTC day only, no IP/UA/session). This
+  // component is request-time (it awaits searchParams), so the count is per
+  // visitor render. Best-effort inside; a store hiccup never breaks the demo.
+  await recordPageView("/dashboard");
   const mod = demoModuleFor(m);
   const project = demoProjectForModule(mod);
   // `?wh=off` previews the Direction 2 not-connected connector picker.

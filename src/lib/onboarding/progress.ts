@@ -5,8 +5,9 @@
 import "server-only";
 import type { Project } from "@/lib/projects/types";
 import { stepsForType, type OnboardingStepDef, type OnboardingStepKey } from "./steps";
-import { getOnboarding } from "./store";
-import type { OnboardingScanProfile } from "./types";
+import { getOnboarding, saveOnboarding } from "./store";
+import type { OnboardingScanProfile, OnboardingState } from "./types";
+import { recordOnboardingActivation } from "@/lib/analytics/track";
 import { listOfferings } from "@/lib/catalog/store";
 import { getLocalSignals } from "@/lib/local-signals/store";
 import { getOrganicChannels } from "@/lib/organic-channels/store";
@@ -102,6 +103,27 @@ export async function resolveOnboardingProgress(
 
   const steps: ResolvedStep[] = defs.map((d) => ({ ...d, done: doneOf(d.key) }));
   const done = steps.filter((s) => s.done).length;
+  const complete = done === steps.length;
+
+  // The `onboarding_activated` transition: this computation is the ONLY place
+  // "all steps done" exists (each step's done is derived live, never stored), so
+  // the first time it observes complete it stamps the durable `activatedAt`
+  // marker and bumps the first-party activation counter — once per project, ever.
+  // Guarded by the marker (not memory) so re-renders/deploys don't double-count,
+  // and by stateRes.ok so a failed state read can't mis-stamp. Best-effort: a
+  // hiccup here must never break the progress read; an un-stamped complete just
+  // retries on the next computation.
+  if (complete && stateRes.ok && !state?.activatedAt) {
+    const now = new Date().toISOString();
+    const next: OnboardingState = { ...(state ?? {}), activatedAt: now, updatedAt: now };
+    try {
+      await saveOnboarding(project.id, next);
+      await recordOnboardingActivation();
+    } catch (err) {
+      console.error("[onboarding] activation stamp failed (non-fatal):", err);
+    }
+  }
+
   return {
     steps,
     done,
@@ -110,6 +132,6 @@ export async function resolveOnboardingProgress(
     dismissed: !!state?.dismissed,
     stateUnknown,
     ...(state?.scan ? { scan: state.scan } : {}),
-    complete: done === steps.length,
+    complete,
   };
 }
