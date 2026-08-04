@@ -159,6 +159,82 @@ export const BYOM_OPERATION_LABELS: Record<SupportedLocale, Record<string, strin
   en: Object.fromEntries(BYOM_OPERATIONS.map((o) => [o.id, o.labelEn])),
 };
 
+// ── Key health observed during REAL generations ──────────────────────────────
+
+/** One failure of a user's key observed during a real generation (not a manual
+ *  probe). Recorded from the signals the BYOM dispatch already produces — no extra
+ *  provider call is ever made to learn this.
+ *
+ *  `definitive` is the load-bearing bit and mirrors `classifyProbeError`'s split:
+ *  true only for a `ByomUserError` (bad/expired key, no permission, exhausted
+ *  account, a model the vendor won't serve) — the user's to fix, and the only kind
+ *  that may stick to the key. Everything else (provider 5xx, throttle, timeout,
+ *  transport, unusable output) is INCONCLUSIVE: it is logged so the user can see
+ *  which operations fell back to the app's provider and why, but it must never
+ *  render as "your key is broken". */
+export interface ByomKeyIncident {
+  /** ISO timestamp of the failed generation */
+  at: string;
+  /** the `// llm-tool:` operation id (a BYOM_OPERATIONS entry) */
+  toolId: string;
+  /** ByomUserErrorCode when `definitive`, else the LlmCallError code ("unknown"
+   *  for an unclassified throw). The UI localizes from this, not from `message`. */
+  code: string;
+  /** the provider/adapter's own (Czech, display) copy — a fallback for a code the
+   *  UI has no string for, and the detail an operator needs in a support thread */
+  message: string;
+  /** true ⇒ a user fault that also stamps `lastError`; false ⇒ transient/inconclusive */
+  definitive: boolean;
+}
+
+/** How many incidents we keep per vendor key. A short ring: enough to show a
+ *  pattern ("three operations failed with `auth` in the last hour") without
+ *  turning the config doc into an unbounded log. */
+export const BYOM_INCIDENT_LIMIT = 5;
+
+/** Localized copy for an incident `code`, as a colocated {cs, en} table so the
+ *  settings UI renders it through the same `useT()` pipeline as everything else
+ *  (the stored `message` is the provider's own Czech display copy — a fallback for
+ *  a code with no entry here, never the primary text). Covers both halves of the
+ *  split: the ByomUserErrorCode values (definitive) and the LlmErrorCode values
+ *  plus "unknown" (transient). */
+export const BYOM_INCIDENT_REASONS: Record<SupportedLocale, Record<string, string>> = {
+  cs: {
+    // definitive — ByomUserErrorCode
+    auth: "Klíč je neplatný nebo byl odvolán.",
+    permission: "Klíč nemá oprávnění k tomuto modelu.",
+    quota: "Účet u poskytovatele nemá kredit nebo vyčerpal limit.",
+    model: "Zvolený model není u poskytovatele dostupný.",
+    invalid: "Poskytovatel požadavek odmítl.",
+    // transient — LlmErrorCode
+    timeout: "Poskytovatel neodpověděl včas.",
+    empty: "Poskytovatel vrátil prázdnou odpověď.",
+    malformed_json: "Odpověď poskytovatele nešla zpracovat.",
+    rate_limited: "Poskytovatel dočasně omezil počet požadavků.",
+    server: "Dočasná chyba na straně poskytovatele.",
+    network: "Spojení s poskytovatelem selhalo.",
+    safety_blocked: "Poskytovatel odpověď zablokoval z bezpečnostních důvodů.",
+    aborted: "Požadavek byl přerušen.",
+    unknown: "Volání poskytovatele selhalo.",
+  },
+  en: {
+    auth: "The key is invalid or has been revoked.",
+    permission: "The key has no permission for this model.",
+    quota: "The provider account is out of credit or over its limit.",
+    model: "The selected model isn't available at the provider.",
+    invalid: "The provider rejected the request.",
+    timeout: "The provider did not answer in time.",
+    empty: "The provider returned an empty response.",
+    malformed_json: "The provider's response could not be parsed.",
+    rate_limited: "The provider throttled the request.",
+    server: "A temporary provider-side error.",
+    network: "The connection to the provider failed.",
+    safety_blocked: "The provider blocked the response on safety grounds.",
+    aborted: "The request was aborted.",
+    unknown: "The provider call failed.",
+  },
+};
+
 /** One vendor's stored key. `keyEnc` is the AES-GCM blob from ./crypto — never
  *  the plaintext. `model`/`fastModel` are the user's chosen model tags (the
  *  vendor default is used when absent). Validation health mirrors the warehouse
@@ -180,6 +256,9 @@ export interface StoredByomKey {
   /** last validation failure message; cleared on the next success */
   lastError?: string;
   lastErrorAt?: string;
+  /** newest-first ring of failures seen during REAL generations, capped at
+   *  BYOM_INCIDENT_LIMIT. Absent until the key first misbehaves. */
+  incidents?: ByomKeyIncident[];
 }
 
 /** A user's full BYOM configuration (server-only — holds the encrypted keys).
@@ -205,6 +284,10 @@ export interface PublicByomKey {
   addedAt: string;
   lastValidatedAt?: string;
   lastError?: string;
+  /** failures seen during real generations (newest first) — pure metadata, no key
+   *  material, so it crosses the wire and the settings UI can explain WHICH
+   *  operations failed and why without the user pressing "test". */
+  incidents?: ByomKeyIncident[];
 }
 
 export interface PublicByomConfig {
@@ -234,6 +317,9 @@ export function publicByomConfig(c: StoredByomConfig): PublicByomConfig {
       addedAt: k.addedAt,
       ...(k.lastValidatedAt ? { lastValidatedAt: k.lastValidatedAt } : {}),
       ...(k.lastError ? { lastError: k.lastError } : {}),
+      // Incidents are already secret-free by construction (a tool id, a code, the
+      // provider's display copy) — passed through verbatim, capped by the writer.
+      ...(k.incidents?.length ? { incidents: k.incidents } : {}),
     });
   }
   const activeVendor = c.activeVendor && c.keys[c.activeVendor] ? c.activeVendor : undefined;
@@ -268,4 +354,10 @@ export interface ResolvedByomKey {
   model?: string;
   fastModel?: string;
   reasoning?: ReasoningLevel;
+  /** Who this key was resolved FOR, when it was resolved for a real generation
+   *  (`enterByomForOperation`). Present only on that path — the "test connection"
+   *  probe resolves a bare key with no owner, so the health write-back below stays
+   *  off the probe path (which already records its own verdict via
+   *  `markByomValidation`). Server-only, like `apiKey`: never serialized. */
+  owner?: { userId: string; toolId: string };
 }

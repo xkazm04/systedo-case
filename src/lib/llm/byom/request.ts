@@ -21,6 +21,12 @@ export async function enterByomForOperation(
     return null;
   }
   const key = await resolveByomForOperation(userId, toolId);
-  enterByomContext(key ?? undefined);
-  return key;
+  // Stamp WHO this key was resolved for. It is the only place that knows both the
+  // user and the operation, and it makes the key self-describing enough for the
+  // dispatch path to attribute a failure back to the right key + operation without
+  // threading a second context through the wrapper (see keys/health.ts). Server-only
+  // — `ResolvedByomKey` already carries the plaintext apiKey and is never serialized.
+  const owned = key ? { ...key, owner: { userId, toolId } } : null;
+  enterByomContext(owned ?? undefined);
+  return owned;
 }

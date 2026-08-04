@@ -17,6 +17,7 @@
 import { extractJson } from "../claude";
 import { classifyByomHttp, LlmCallError, parseRetryAfterMs } from "../errors";
 import { byomModel } from "../models";
+import { reportByomCallFailure } from "../keys/health";
 import { toJsonSchema } from "./schema";
 import { anthropicReasoning, geminiThinkingConfig, openaiReasoning, openrouterReasoning } from "./reasoning";
 import type { TokenUsage } from "../cost";
@@ -419,10 +420,7 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
   return { parsed, usage };
 }
 
-/** Dispatch one structured generation to the user's active BYOM vendor. Throws a
- *  ByomUserError on a user fault (surfaced, no fallback) or a recoverable Error
- *  (the wrapper falls through to the app's own provider). */
-export function runByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
+function dispatchByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   switch (byom.vendor) {
     case "openai":
       return runOpenAi(byom, call);
@@ -432,5 +430,26 @@ export function runByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResu
       return runGemini(byom, call);
     case "openrouter":
       return runOpenRouter(byom, call);
+  }
+}
+
+/** Dispatch one structured generation to the user's active BYOM vendor. Throws a
+ *  ByomUserError on a user fault (surfaced, no fallback) or a recoverable Error
+ *  (the wrapper falls through to the app's own provider).
+ *
+ *  Every failure is ALSO reported to the key-health write-back before it is
+ *  re-thrown, so a key the provider has revoked is marked from real use instead of
+ *  waiting for the user to press "test" (keys/health.ts). This is the single funnel
+ *  for every BYOM provider call, which is why the observer sits here rather than in
+ *  the wrapper: no extra provider call, no change to what is thrown, and — because
+ *  `reportByomCallFailure` is synchronous, fire-and-forget and swallows its own
+ *  errors — no added latency or new failure mode on an already-failing call. It
+ *  no-ops for the "test connection" probe, whose key carries no `owner`. */
+export async function runByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
+  try {
+    return await dispatchByom(byom, call);
+  } catch (err) {
+    reportByomCallFailure(byom, err);
+    throw err;
   }
 }

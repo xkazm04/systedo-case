@@ -7,11 +7,14 @@ import { Pill, TONE_TEXT } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useByomConfig } from "@/components/hooks/useByomConfig";
 import {
+  BYOM_INCIDENT_REASONS,
   BYOM_MODEL_CATALOG,
+  BYOM_OPERATION_LABELS,
   BYOM_VENDORS,
   BYOM_VENDOR_LABELS,
   isByomCatalogModel,
   isByomValidationStale,
+  type ByomKeyIncident,
   type ByomVendor,
   type PublicByomConfig,
 } from "@/lib/llm/keys/types";
@@ -52,6 +55,11 @@ const T = {
     modelNote: "Modely vybíráte z nabídky poskytovatele. Změna modelu ruší předchozí ověření — otestujte klíč znovu.",
     saveModels: "Uložit modely",
     errUnknownModel: "Tento model není v nabídce pro daného poskytovatele. Vyberte model ze seznamu.",
+    incidentsTitle: "Zjištěno při generování",
+    incidentDefinitive: "klíč vyřazen — opravte jej a otestujte",
+    incidentTransient: "jednorázový výpadek — použili jsme providera aplikace",
+    incidentsNote:
+      "Zaznamenáno automaticky z běžných generování — poskytovatele se kvůli tomu neptáme navíc.",
     test: "Otestovat",
     testing: "Testuji…",
     remove: "Odebrat",
@@ -99,6 +107,11 @@ const T = {
     modelNote: "Models are picked from the provider's catalog. Changing a model clears the previous verification — test the key again.",
     saveModels: "Save models",
     errUnknownModel: "That model isn't offered for this provider. Pick one from the list.",
+    incidentsTitle: "Seen during generation",
+    incidentDefinitive: "key benched — fix it and test again",
+    incidentTransient: "one-off blip — we used the app's provider",
+    incidentsNote:
+      "Recorded automatically from ordinary generations — we never call your provider just to check.",
     test: "Test",
     testing: "Testing…",
     remove: "Remove",
@@ -135,6 +148,10 @@ type ModelDraft = { model: string; fastModel: string };
 
 export default function ByomKeys() {
   const t = useT(T);
+  // Operation names and incident reasons live beside their definitions (same
+  // pipeline the matrix uses), so a new tool or error code localizes in one place.
+  const tOp = useT(BYOM_OPERATION_LABELS);
+  const tReason = useT(BYOM_INCIDENT_REASONS);
   const fmt = useFormatters();
   const { status, state, patch, retry } = useByomConfig();
   const [keyDraft, setKeyDraft] = useState<Partial<Record<ByomVendor, string>>>({});
@@ -203,6 +220,11 @@ export default function ByomKeys() {
       setBusy(null);
     }
   }
+
+  /** Localized reason for an incident code; falls back to the provider's own stored
+   *  copy for a code the table doesn't cover (cs is the source-of-truth column). */
+  const reasonFor = (inc: ByomKeyIncident) =>
+    BYOM_INCIDENT_REASONS.cs[inc.code] ? tReason(inc.code) : inc.message;
 
   const json = (body: unknown): RequestInit => ({
     method: "POST",
@@ -441,6 +463,36 @@ export default function ByomKeys() {
                     {!vNotice && key.lastError && (
                       <p className="text-sm text-negative">{key.lastError}</p>
                     )}
+
+                    {/* What real generations learned about this key, with no extra
+                        provider call: a definitive fault benched it, a transient one
+                        only cost a fallback to the app's provider. */}
+                    {key.incidents?.length ? (
+                      <div className="rounded-lg border border-line bg-surface px-3 py-2.5">
+                        <p className="text-xs font-semibold text-navy-700">{t("incidentsTitle")}</p>
+                        <ul className="mt-1.5 space-y-1">
+                          {key.incidents.map((inc, i) => (
+                            <li key={`${inc.at}-${inc.toolId}-${i}`} className="text-xs text-muted">
+                              <span
+                                className={
+                                  inc.definitive ? "font-medium text-negative" : "font-medium text-navy-700"
+                                }
+                              >
+                                {tOp(inc.toolId)}
+                              </span>
+                              <span aria-hidden="true"> · </span>
+                              <span>{fmt.fmtRelative(inc.at)}</span>
+                              <span aria-hidden="true"> — </span>
+                              <span>{reasonFor(inc)}</span>{" "}
+                              <span className="italic">
+                                ({inc.definitive ? t("incidentDefinitive") : t("incidentTransient")})
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-xs text-muted">{t("incidentsNote")}</p>
+                      </div>
+                    ) : null}
 
                     <div className="flex flex-wrap items-center gap-2">
                       <button
