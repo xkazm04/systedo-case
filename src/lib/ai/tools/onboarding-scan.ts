@@ -8,9 +8,10 @@
  *  Grounded strictly in the supplied page text: the model must not invent facts the
  *  page doesn't support; competitors are explicitly SUGGESTIONS the user confirms.
  *  normalize() coerces fields, caps the arrays and constrains suggestedType to the
- *  known set; a deterministic demo() builds a generic profile from the brand/type so
- *  the keyless path still returns something usable. Runs through the provider-
- *  switching LLM wrapper (../../llm). Server-only. */
+ *  known set; a deterministic demo() derives a starter profile from the entered
+ *  domain + site metadata (title / meta description) and marks it
+ *  `source: "fallback"` so the keyless path completes with something honest the UI
+ *  can label. Runs through the provider-switching LLM wrapper (../../llm). Server-only. */
 import { Type } from "@google/genai";
 import type {
   AiResponse,
@@ -118,15 +119,55 @@ function hostOf(url: string): string {
   }
 }
 
-/** A generic, deterministic profile from the brand/type — TAIL-FREE, so it is safe as
- *  the per-field floor for a live scan (backfilling only the summary must not carry the
- *  keyless "připojte LLM" disclaimer into a real result). Deliberately modest (invents
- *  no specifics). The demo entry point appends the tail. */
+/** Split a page <title> on the separators CMSes put between the brand and the
+ *  tagline ("Dentalis — zubní ordinace Brno" → ["Dentalis", "zubní ordinace Brno"]).
+ *  Pure string work — deterministic, no model. */
+function titleSegments(title: string): string[] {
+  return title
+    .split(/\s*(?:[|•·—–]|::|-{2,})\s*|\s+-\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** Deterministic seed keywords from the site metadata: the brand name plus the
+ *  meaningful words of the title's tagline segments — words that literally appear
+ *  on the user's own homepage title, never invented. Lowercased, deduped, bounded. */
+function metadataKeywords(name: string, segments: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string) => {
+    const k = raw.trim().toLowerCase();
+    if (k.length < 3 || seen.has(k)) return;
+    seen.add(k);
+    out.push(k);
+  };
+  push(name);
+  // Tagline segments (everything after the brand segment) as whole phrases — a
+  // segment like "zubní ordinace Brno" is closer to a real query than its words.
+  for (const seg of segments.slice(1)) {
+    if (seg.toLowerCase() === name.toLowerCase()) continue;
+    push(seg);
+    if (out.length >= 6) break;
+  }
+  return out.slice(0, 6);
+}
+
+/** A deterministic profile derived from the entered domain + the fetched site
+ *  metadata (title / meta description) — TAIL-FREE, so it is safe as the per-field
+ *  floor for a live scan (backfilling only the summary must not carry the keyless
+ *  "připojte LLM" disclaimer into a real result). Everything here is honestly
+ *  traceable to the request: the brand, the URL host, the page <title> and the
+ *  meta description. It invents no facts. The demo entry point appends the tail
+ *  and the machine-readable `source: "fallback"` marker. */
 export function baseOnboardingScan(req: OnboardingScanRequest): OnboardingScanResult {
-  const name = txt(req.brand) || hostOf(req.url);
+  const segments = titleSegments(txt(req.siteTitle));
+  const name = txt(req.brand) || segments[0] || hostOf(req.url);
   const type = req.projectType && KNOWN_TYPES.has(req.projectType) ? req.projectType : undefined;
+  // The title's tagline (what the site says about itself) beats the per-type generic.
+  const tagline = segments.slice(1).join(", ");
   const offering =
-    type === "eshop"
+    tagline ||
+    (type === "eshop"
       ? "prodej zboží online"
       : type === "local"
         ? "služby s provozovnou"
@@ -134,25 +175,32 @@ export function baseOnboardingScan(req: OnboardingScanRequest): OnboardingScanRe
           ? "služby na poptávku"
           : type === "content"
             ? "obsah a publikace"
-            : "produkt nebo služba";
+            : "produkt nebo služba");
+  const description = txt(req.siteDescription).slice(0, 400);
   const result: OnboardingScanResult = {
     businessName: name,
-    summary: `Profil firmy „${name}".`,
+    summary: description || `Profil firmy „${name}".`,
     offering,
     audience: "zákazníci hledající tuto nabídku",
     toneOfVoice: "přátelský a věcný",
-    keywords: [name.toLowerCase()].filter(Boolean),
+    keywords: metadataKeywords(name, segments),
     competitors: [],
   };
   if (type) result.suggestedType = type;
   return result;
 }
 
-/** The keyless demo: the tail-free base plus the honest "ukázkový výstup — připojte
- *  LLM" disclaimer on the summary. */
+/** The keyless fallback: the tail-free base plus the honest "ukázkový výstup —
+ *  připojte LLM" disclaimer on the summary AND the machine-readable
+ *  `source: "fallback"` marker, so the UI can label the degraded (but still
+ *  domain-derived) starter profile instead of presenting it as a full AI scan. */
 export function demoOnboardingScan(req: OnboardingScanRequest): OnboardingScanResult {
   const base = baseOnboardingScan(req);
-  return { ...base, summary: base.summary + demoTail("sken na míru z vašeho webu") };
+  return {
+    ...base,
+    summary: base.summary + demoTail("sken na míru z vašeho webu"),
+    source: "fallback",
+  };
 }
 
 function normalizeOnboardingScan(

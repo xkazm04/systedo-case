@@ -17,6 +17,10 @@ export interface OnboardingStepDef {
   labelEn: string;
   hintCs: string;
   hintEn: string;
+  /** true for the external-connection steps (Ads, imports, channels, cost model):
+   *  the app works end-to-end on sample data without them, so the checklist labels
+   *  them as explicitly optional rather than implying a hard requirement. */
+  optional?: boolean;
 }
 
 const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
@@ -37,6 +41,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Import your catalog",
     hintCs: "Produkty nebo služby, o které se opřou všechny moduly.",
     hintEn: "The products or services every module grounds on.",
+    optional: true,
   },
   ads: {
     key: "ads",
@@ -46,6 +51,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Connect Google Ads",
     hintCs: "Živá data kampaní místo ukázkových.",
     hintEn: "Live campaign data instead of the sample.",
+    optional: true,
   },
   ranks: {
     key: "ranks",
@@ -58,6 +64,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Import local data",
     hintCs: "Reálné pozice, recenze nebo Google profil do mapy a lokálního přehledu.",
     hintEn: "Real ranks, reviews or your Google profile for the map and local overview.",
+    optional: true,
   },
   costModel: {
     key: "costModel",
@@ -69,6 +76,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Enter margin & costs",
     hintCs: "Hrubá marže a náklady, aby report ukázal skutečný čistý zisk.",
     hintEn: "Gross margin and costs so the report shows true net profit.",
+    optional: true,
   },
   channels: {
     key: "channels",
@@ -78,6 +86,7 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     labelEn: "Pick free channels",
     hintCs: "Kde se zviditelnit bez rozpočtu na reklamu.",
     hintEn: "Where to get seen without an ad budget.",
+    optional: true,
   },
 };
 

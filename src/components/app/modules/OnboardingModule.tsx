@@ -48,6 +48,9 @@ const T = {
     scanNote: "Načteme jen veřejný text vaší úvodní stránky. Nic nepublikujeme.",
     reviewTitle: "Zkontrolujte profil a upravte, co nesedí",
     reviewBody: "Až budete spokojení, klikněte na Použít — tím naplníme aplikaci.",
+    fallbackBadge: "Základní profil",
+    fallbackNote:
+      "Sestaveno bez AI jen z adresy a popisu vašeho webu. Krok můžete dokončit hned — po připojení AI získáte plný sken na míru.",
     fName: "Název firmy",
     fSummary: "Čím se firma zabývá",
     fOffering: "Co prodáváte / nabízíte",
@@ -75,6 +78,7 @@ const T = {
     checklistTitle: "Připojení dat",
     checklistBody: "Čím víc připojíte, tím přesnější budou čísla i doporučení. Kroky se odškrtnou samy.",
     done: "Hotovo",
+    optionalStep: "Volitelné — funguje s ukázkovými daty",
     connect: "Připojit",
     open: "Otevřít",
     toOverview: "Přejít na přehled projektu",
@@ -98,6 +102,9 @@ const T = {
     scanNote: "We only read your homepage's public text. Nothing is published.",
     reviewTitle: "Review the profile and fix anything that's off",
     reviewBody: "When it looks right, click Apply — we'll seed the app from it.",
+    fallbackBadge: "Basic profile",
+    fallbackNote:
+      "Built without AI, only from your site's address and description. You can finish this step now — connect AI for a full tailored scan.",
     fName: "Business name",
     fSummary: "What the business does",
     fOffering: "What you sell / offer",
@@ -125,6 +132,7 @@ const T = {
     checklistTitle: "Connect your data",
     checklistBody: "The more you connect, the sharper the numbers and advice. Steps tick off on their own.",
     done: "Done",
+    optionalStep: "Optional — works with sample data",
     connect: "Connect",
     open: "Open",
     toOverview: "Go to the project overview",
@@ -292,6 +300,10 @@ export default function OnboardingModule({
             <p className="mt-1 text-sm text-muted">{t("reviewBody")}</p>
           </div>
 
+          {profile.source === "fallback" && (
+            <FallbackNote badge={t("fallbackBadge")} note={t("fallbackNote")} />
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("fName")}>
               <input value={profile.businessName} onChange={(e) => set("businessName", e.target.value)} className={inputClass} />
@@ -376,6 +388,9 @@ export default function OnboardingModule({
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{t("appliedBody")}</p>
             </div>
           </div>
+          {profile.source === "fallback" && (
+            <FallbackNote badge={t("fallbackBadge")} note={t("fallbackNote")} />
+          )}
           {(profile.summary || profile.offering) && (
             <div className="rounded-card border border-line bg-canvas px-4 py-3 text-sm text-navy-700">
               {profile.summary && <p className="leading-relaxed">{profile.summary}</p>}
@@ -430,8 +445,15 @@ export default function OnboardingModule({
                   {done ? <Check width={16} height={16} /> : <ModuleIcon icon={s.icon} width={16} height={16} />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold text-navy-800">
-                    {L === "en" ? s.labelEn : s.labelCs}
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-navy-800">
+                      {L === "en" ? s.labelEn : s.labelCs}
+                    </span>
+                    {s.optional && !done && (
+                      <span className="rounded-pill bg-navy-50 px-2 py-0.5 text-[11px] font-medium text-muted">
+                        {t("optionalStep")}
+                      </span>
+                    )}
                   </span>
                   <span className="block text-xs text-muted">{L === "en" ? s.hintEn : s.hintCs}</span>
                 </span>
@@ -555,6 +577,20 @@ function SuggestedType({
         </p>
         {error && <p className="mt-3 text-sm text-negative">{error}</p>}
       </Modal>
+    </div>
+  );
+}
+
+/** The honest "basic profile, no AI" label shown over a keyless-fallback scan
+ *  result (source: "fallback") — the profile is domain-derived and usable, but it
+ *  is not the full model scan and must not read as one. */
+function FallbackNote({ badge, note }: { badge: string; note: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-card border border-line bg-canvas px-4 py-2.5 text-xs text-muted">
+      <span className="rounded-pill bg-navy-50 px-2.5 py-0.5 text-[11px] font-semibold text-navy-700">
+        {badge}
+      </span>
+      <span>{note}</span>
     </div>
   );
 }

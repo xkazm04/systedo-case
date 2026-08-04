@@ -1290,5 +1290,11 @@ export interface OnboardingScanResult {
   competitors: string[];
   /** best-fit project type, when the page makes it clear (eshop|app|leadgen|content|local) */
   suggestedType?: string;
+  /** "fallback" when NO LLM provider was configured and the profile was derived
+   *  deterministically from the entered domain + site metadata (title, meta
+   *  description) — never by a model. The UI labels such a profile as a basic
+   *  starter ("connect AI for a full scan"). Absent on every model-generated
+   *  result, including one whose missing fields were backfilled by the floor. */
+  source?: "fallback";
 }
 

@@ -23,6 +23,10 @@ export interface OnboardingState {
   scanApplied?: boolean;
   /** the user dismissed the onboarding progress card on the overview */
   dismissed?: boolean;
+  /** ISO timestamp the checklist FIRST reached all-steps-done — the durable
+   *  one-shot marker that dedupes the `onboarding_activated` analytics event
+   *  (set by progress.ts the first time the live computation observes complete). */
+  activatedAt?: string;
   /** ISO timestamp of the last save */
   updatedAt: string;
 }
@@ -72,6 +76,9 @@ export function sanitizeScanProfile(raw: unknown): OnboardingScanProfile | null 
   };
   const type = str(o.suggestedType, 20).toLowerCase();
   if (KNOWN_TYPES.has(type)) profile.suggestedType = type;
+  // Keep the keyless-fallback provenance marker (and ONLY that literal), so the
+  // applied view can still label a domain-derived starter profile after a refresh.
+  if (o.source === "fallback") profile.source = "fallback";
   const url = str(o.scannedUrl, 2048);
   if (url) profile.scannedUrl = url;
   return profile;
