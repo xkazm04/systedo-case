@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 
 /**
@@ -61,7 +62,23 @@ test.describe("/design-system", () => {
     }
   });
 
-  test("full-page visual baseline", async ({ page }) => {
+  test("full-page visual baseline", async ({ page }, testInfo) => {
+    // Baselines are platform-suffixed (…-chromium-<platform>.png) and only the
+    // win32 one is committed, so on any other platform (e.g. a Linux CI runner)
+    // this assertion can only fail on a missing snapshot — it would be comparing
+    // against nothing. Least-magic guard: run the visual check only where a
+    // matching baseline actually exists. A new platform opts in explicitly by
+    // generating + committing its own baseline:
+    //   npx playwright test design-system --update-snapshots
+    // (the skip is bypassed while snapshots are being updated, which is exactly
+    // how that first baseline gets minted).
+    const baseline = testInfo.snapshotPath("design-system.png");
+    const mode = testInfo.config.updateSnapshots; // "all" | "changed" | "missing" | "none"
+    const updating = mode === "all" || mode === "changed";
+    test.skip(
+      !existsSync(baseline) && !updating,
+      `no committed visual baseline for ${process.platform} — generate one with: npx playwright test design-system --update-snapshots`
+    );
     // disable animations so the snapshot is stable frame-to-frame
     await page.emulateMedia({ reducedMotion: "reduce" });
     await expect(page).toHaveScreenshot("design-system.png", {
