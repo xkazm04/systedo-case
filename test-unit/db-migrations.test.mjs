@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import { runMigrations, rebuildTable, MIGRATION_VERSIONS } from "@/lib/db";
 
-const LATEST = 17;
+const LATEST = 19;
 
 test("MIGRATIONS versions are unique + contiguous from 1 (the header's contract)", () => {
   const v = [...MIGRATION_VERSIONS];
@@ -54,7 +54,7 @@ test("fresh db → all migrations applied, ledger stamped to latest, full shape"
   const version = runMigrations(db);
 
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   // v1 base tables present… (incl. v7's lead_imports + v8's cron_sent_guard, also
   // created via v1's CREATE)
   for (const t of ["rate_limits", "users", "projects", "warehouse_connection", "byom_config", "lead_imports", "cron_sent_guard", "cron_runs", "inventory_plan", "finance_inputs", "twin_archive", "project_goal", "sklik_connection", "ai_response_cache", "campaign_docs", "tenant_docs"]) {
@@ -74,7 +74,7 @@ test("fresh db → running twice is a no-op (idempotent, no duplicate ledger row
   runMigrations(db);
   const version = runMigrations(db);
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 });
 
 test("legacy no-version db (already fully migrated) → detected + stamped, no re-ALTER", () => {
@@ -93,7 +93,7 @@ test("legacy no-version db (already fully migrated) → detected + stamped, no r
   // Every version is detected as already-applied and stamped WITHOUT throwing a
   // duplicate-column error.
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 });
 
 test("mid-version legacy db → missing additive columns are added, stamped to latest", () => {
@@ -106,7 +106,7 @@ test("mid-version legacy db → missing additive columns are added, stamped to l
   const version = runMigrations(db);
 
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
   assert.ok(cols(db, "warehouse_connection").includes("config_json"));
   assert.ok(cols(db, "warehouse_connection").includes("last_error"));
   assert.ok(cols(db, "warehouse_connection").includes("last_error_at"));
@@ -123,7 +123,7 @@ test("partially-recorded ledger → only the unrecorded tail runs", () => {
 
   const version = runMigrations(db);
   assert.equal(version, LATEST);
-  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
+  assert.deepEqual(ledger(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
 });
 
 /** The set of user tables on a handle (excluding SQLite internals + the ledger). */

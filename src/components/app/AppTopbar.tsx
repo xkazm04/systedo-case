@@ -10,6 +10,7 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import AuthButton from "@/components/auth/AuthButton";
 import UsageMeter from "@/components/usage/UsageMeter";
+import FeedbackButton from "@/components/app/FeedbackButton";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
@@ -52,6 +53,7 @@ export default function AppTopbar() {
       </div>
 
       <div className="flex items-center gap-2">
+        <FeedbackButton source="app" />
         <UsageMeter />
         <AuthButton />
         <LocaleSwitcher />

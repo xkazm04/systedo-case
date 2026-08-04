@@ -12,6 +12,7 @@ import { External, Logo, Menu } from "@/components/icons";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import LocaleSwitcher from "@/components/site/LocaleSwitcher";
 import JourneyBeacon from "@/components/site/JourneyBeacon";
+import FeedbackButton from "@/components/app/FeedbackButton";
 import SectionRailNav, { type NavGroup } from "@/components/app/nav/SectionRailNav";
 import { ProjectProvider } from "@/lib/projects/context";
 import { MODULES, moduleLabel, sectionLabel, SECTION_ORDER } from "@/lib/projects/modules";
@@ -192,6 +193,7 @@ export default function DemoShell({
             </div>
 
             <div className="flex items-center gap-2">
+              <FeedbackButton source="demo" />
               <Link
                 href="/app"
                 className="hidden rounded-pill bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-navy-900 transition-colors hover:bg-brand-400 sm:inline-block"

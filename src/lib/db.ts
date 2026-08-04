@@ -419,6 +419,28 @@ const SCHEMA = `
     updated_at TEXT NOT NULL,
     PRIMARY KEY (tenant, collection, doc_id)
   );
+
+  -- LOCAL_DB mode only: user feedback submitted through the in-app / demo
+  -- feedback dialog. One row per submission; the full record (message, optional
+  -- reply email, source surface, path) is the JSON data blob. Mirrors the
+  -- Firestore feedback collection. See src/lib/feedback/store.*.
+  CREATE TABLE IF NOT EXISTS feedback (
+    id         TEXT PRIMARY KEY,
+    data       TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  -- LOCAL_DB mode only: first-party, privacy-preserving analytics — aggregated
+  -- DAILY counters only (metric key + UTC day + count), e.g. "view:/dashboard",
+  -- "signup", "activation". Deliberately no IP, no user agent, no session, no
+  -- per-user rows. Mirrors the Firestore analyticsDaily collection. See
+  -- src/lib/analytics/store.*.
+  CREATE TABLE IF NOT EXISTS analytics_daily (
+    metric TEXT NOT NULL,
+    day    TEXT NOT NULL,
+    count  INTEGER NOT NULL,
+    PRIMARY KEY (metric, day)
+  );
 `;
 
 /** One ordered, versioned schema change. `up` performs it; `applied` reports
@@ -659,6 +681,33 @@ const MIGRATIONS: Migration[] = [
         )`
       ),
     applied: (db) => tableExists(db, "tenant_docs"),
+  },
+  {
+    version: 18,
+    name: "feedback (in-app + demo feedback intake)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS feedback (
+          id         TEXT PRIMARY KEY,
+          data       TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`
+      ),
+    applied: (db) => tableExists(db, "feedback"),
+  },
+  {
+    version: 19,
+    name: "analytics_daily (first-party aggregated daily counters — no IP/UA/session)",
+    up: (db) =>
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS analytics_daily (
+          metric TEXT NOT NULL,
+          day    TEXT NOT NULL,
+          count  INTEGER NOT NULL,
+          PRIMARY KEY (metric, day)
+        )`
+      ),
+    applied: (db) => tableExists(db, "analytics_daily"),
   },
 ];
 
