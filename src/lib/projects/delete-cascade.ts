@@ -1,6 +1,6 @@
 /** Project-deletion cascade — the single fan-out that scrubs EVERY per-project
  *  store when a workspace is deleted. `deleteProject` (store.ts) removes only the
- *  `projects` doc; a project also owns ~15 satellite stores (metrics, catalog,
+ *  `projects` doc; a project also owns ~19 satellite stores (metrics, catalog,
  *  twin, onboarding, …) plus, in the cloud, its tenant-keyed Firestore data
  *  (campaigns / reports / series / snapshots / activity under `tenants/{key}`).
  *  Left behind, that data is orphaned — invisible, un-billable to delete later,
@@ -13,10 +13,10 @@
  *  cleaned vs. what failed. Server-only.
  *
  *  Backends: the store deleters dispatch to sqlite (LOCAL_DB) or Firestore exactly
- *  like every other call site, so the sqlite tenant rows live in the per-domain
- *  tables these deleters already hit. The `tenants/{key}` Firestore scrub is a
- *  cloud-only extra step, lazily importing firebase so the LOCAL_DB path never
- *  pulls firebase-admin in. */
+ *  like every other call site. The `tenants/{key}` scrub on top of them runs on BOTH
+ *  backends — `recursiveDelete` in the cloud, a bulk prefix delete over the
+ *  `campaign_docs` / `tenant_docs` twins under LOCAL_DB — with firebase lazily
+ *  imported so the LOCAL_DB path never pulls firebase-admin in. */
 import "server-only";
 import { LOCAL_DB } from "@/lib/local-mode";
 import { clearReportMetrics } from "@/lib/report-metrics/store";
@@ -34,6 +34,10 @@ import { clearOnboarding } from "@/lib/onboarding/store";
 import { deleteCatalog } from "@/lib/catalog/store";
 import { deleteProjectState } from "@/lib/project-state/store";
 import { deleteConnection } from "@/lib/inventory/connection-store";
+import { clearProjectGoal } from "@/lib/goals/store";
+import { clearInventoryPlanState } from "@/lib/inventory/plan-store";
+import { clearFinanceInputs } from "@/lib/profit/finance-inputs/store";
+import { clearArchive } from "@/lib/twin/archive-store";
 import { buildTenantKey } from "@/lib/campaigns/store-keys";
 
 /** One registered per-project store. `delete` takes both keys; project-scoped
@@ -58,6 +62,10 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   { name: "annotations", delete: (p) => clearAnnotations(p) },
   { name: "lp-experiments", delete: (p) => clearExperiments(p) },
   { name: "twin", delete: (p) => clearTwin(p) },
+  { name: "twin-archive", delete: (p) => clearArchive(p) },
+  { name: "project-goal", delete: (p) => clearProjectGoal(p) },
+  { name: "inventory-plan", delete: (p) => clearInventoryPlanState(p) },
+  { name: "finance-inputs", delete: (p) => clearFinanceInputs(p) },
   { name: "lead-imports", delete: (p) => clearLeadImports(p) },
   { name: "onboarding", delete: (p) => clearOnboarding(p) },
   { name: "catalog", delete: (p, u) => deleteCatalog(u, p) },
@@ -86,16 +94,41 @@ function errText(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-/** Scrub the project's tenant-keyed Firestore data: the account-agnostic base
- *  tenant plus one account-scoped tenant per connected Ads account (the two suffix
- *  shapes `buildTenantKey` produces for a project — with and without a customerId).
- *  Cloud-only: under LOCAL_DB the campaign/activity data lives in the per-domain
- *  sqlite tables the store deleters already cleared, so there is nothing extra to
- *  do and firebase-admin is never imported. Best-effort — a Firestore hiccup is
- *  reported, never thrown. */
+/** Scrub the project's tenant-keyed data: the account-agnostic base tenant plus
+ *  every account-scoped tenant (the two suffix shapes `buildTenantKey` produces for
+ *  a project — with and without a customerId). BOTH backends do real work here.
+ *
+ *  This step used to early-return under LOCAL_DB on the rationale that the
+ *  per-domain sqlite tables the store deleters hit already covered it. That was
+ *  FALSE for the two generic tenant-keyed document twins — `campaign_docs` (synced
+ *  campaigns / series / reports / snapshots) and `tenant_docs` (saved keyword lists,
+ *  the winning-pattern library, social posts + inbox). No store deleter owns those
+ *  tables and their backends expose only per-doc deletes, so a deleted project's
+ *  data survived locally while Firestore's `recursiveDelete` cleared it. Each local
+ *  twin now exports a bulk `deleteAllForTenant`, so the two backends genuinely match.
+ *
+ *  Backend asymmetry that remains, deliberately: the cloud path must ENUMERATE the
+ *  account-scoped tenant keys (Firestore has no prefix delete) and can only see
+ *  currently-connected accounts; the sqlite path sweeps the whole `{base}_…` key
+ *  prefix in one statement, so it also reaches tenants left by a since-disconnected
+ *  account. Best-effort either way — a store hiccup is reported, never thrown, and
+ *  firebase-admin is still never imported on the LOCAL_DB path. */
 async function deleteTenantData(userId: string, projectId: string): Promise<StoreOutcome> {
-  const name = "tenant-firestore";
-  if (LOCAL_DB) return { name, ok: true };
+  const name = "tenant-data";
+  if (LOCAL_DB) {
+    try {
+      const base = buildTenantKey(userId, projectId);
+      const [campaignDocs, tenantDocsLocal] = await Promise.all([
+        import("@/lib/campaigns/store/local-docs"),
+        import("@/lib/tenant-docs/local"),
+      ]);
+      campaignDocs.deleteAllForTenant(base);
+      tenantDocsLocal.deleteAllForTenant(base);
+      return { name, ok: true };
+    } catch (err) {
+      return { name, ok: false, error: errText(err) };
+    }
+  }
   try {
     const [{ firestore }, { listConnectedAccounts }] = await Promise.all([
       import("@/lib/firebase"),

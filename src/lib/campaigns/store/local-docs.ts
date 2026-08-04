@@ -75,6 +75,41 @@ function rawDelete(tenant: string, collection: string, docId: string): void {
     .run(tenant, collection, docId);
 }
 
+/** Bulk-delete EVERY row of one project's tenant TREE — the sqlite counterpart of
+ *  the Firestore `recursiveDelete(tenants/{key})` the project-deletion cascade runs.
+ *  The interface above only exposes per-doc deletes, so without this a deleted
+ *  project's synced campaigns / series / reports / snapshots survived forever
+ *  locally.
+ *
+ *  `base` is the account-AGNOSTIC tenant key (`buildTenantKey(userId, projectId)`).
+ *  A project also writes under account-scoped keys `{base}_{customerId}` (and the
+ *  Sklik `{base}_sklik`), so the sweep takes the base row set PLUS every
+ *  `{base}_…` descendant. That is strictly MORE complete than the cloud path's
+ *  enumeration of currently-connected accounts (it also reaches data left behind by
+ *  an account the user has since disconnected) and needs no Firestore-only
+ *  connection read, which the LOCAL_DB path must not make.
+ *
+ *  Prefix matching is done with `substr`, not `LIKE` — a tenant key is full of `_`,
+ *  which `LIKE` treats as a single-character wildcard. The `_proj_` guard keeps the
+ *  sweep inside ONE project: a userId that itself contained `…_proj_…` could
+ *  otherwise make one project's base key a prefix of another project's key.
+ *  Returns the number of rows removed. Not part of {@link TenantDocStore} — the
+ *  Firestore side needs no counterpart (recursiveDelete already covers it), so this
+ *  stays a LOCAL_DB-only export the cascade imports directly. */
+export function deleteAllForTenant(base: string): number {
+  const n = base.length;
+  const r = getDb()
+    .prepare(
+      `DELETE FROM campaign_docs
+        WHERE tenant = ?
+           OR (substr(tenant, 1, ?) = ?
+               AND substr(tenant, ?, 1) = '_'
+               AND instr(substr(tenant, ?), '_proj_') = 0)`
+    )
+    .run(base, n, base, n + 1, n + 1);
+  return Number(r.changes ?? 0);
+}
+
 export const localTenantStore: TenantDocStore = {
   async getRoot(tenant) {
     return rawGet(tenant, ROOT, ROOT);

@@ -62,6 +62,32 @@ function rawSetMerge(tenant: string, collection: string, id: string, data: DocDa
   rawSet(tenant, collection, id, deepMerge(rawGet(tenant, collection, id) ?? {}, data));
 }
 
+/** Bulk-delete EVERY row of one project's tenant TREE — the sqlite counterpart of
+ *  the Firestore `recursiveDelete(tenants/{key})` the project-deletion cascade runs.
+ *  {@link TenantDocs} only exposes a per-doc delete, so without this a deleted
+ *  project's saved keyword lists, winning-pattern library and social posts + inbox
+ *  survived forever locally.
+ *
+ *  `base` is the account-agnostic tenant key; the sweep also takes every
+ *  `{base}_{customerId}` descendant. Same `substr`-not-`LIKE` prefix match and same
+ *  `_proj_` one-project guard as the campaign_docs twin
+ *  (src/lib/campaigns/store/local-docs.ts) — see there for the full rationale.
+ *  Returns the number of rows removed. LOCAL_DB-only (the Firestore side needs no
+ *  counterpart), so it is deliberately not part of the shared interface. */
+export function deleteAllForTenant(base: string): number {
+  const n = base.length;
+  const r = getDb()
+    .prepare(
+      `DELETE FROM tenant_docs
+        WHERE tenant = ?
+           OR (substr(tenant, 1, ?) = ?
+               AND substr(tenant, ?, 1) = '_'
+               AND instr(substr(tenant, ?), '_proj_') = 0)`
+    )
+    .run(base, n, base, n + 1, n + 1);
+  return Number(r.changes ?? 0);
+}
+
 export const localTenantDocs: TenantDocs = {
   async getDoc(tenant, collection, id) {
     return rawGet(tenant, collection, id);
