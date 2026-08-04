@@ -3,6 +3,7 @@
  *  `{ accounts: ConnectedAccount[], activeCustomerId }`. An agency connects many
  *  accounts (MCC) and switches between them. Server-only. */
 import { firestore } from "@/lib/firebase";
+import { LOCAL_DB } from "@/lib/local-mode";
 
 export interface ConnectedAccount {
   customerId: string;
@@ -29,6 +30,11 @@ function docRef(userId: string) {
 }
 
 async function read(userId: string): Promise<ConnectionsDoc> {
+  // Local mode has no Google Ads OAuth, so there is never a connection to read —
+  // and reaching Firestore here would throw on a credential-less machine (the
+  // sibling sklik-connection.ts dispatches to a local twin for the same reason;
+  // this store's only local truth is "empty").
+  if (LOCAL_DB) return {};
   const doc = await docRef(userId).get();
   return (doc.data() as ConnectionsDoc) ?? {};
 }
@@ -36,6 +42,7 @@ async function read(userId: string): Promise<ConnectionsDoc> {
 /** User ids with at least one connected Ads account — the set the scheduled
  *  sync iterates. */
 export async function listConnectedUserIds(): Promise<string[]> {
+  if (LOCAL_DB) return [];
   const snap = await firestore.collection(COLLECTION).get();
   return snap.docs
     .filter((d) => ((d.data() as ConnectionsDoc).accounts?.length ?? 0) > 0)
