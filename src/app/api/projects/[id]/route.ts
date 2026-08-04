@@ -1,6 +1,8 @@
 /** Single-project update + delete for the signed-in user. Server-only. */
 import { deleteProject, updateProject } from "@/lib/projects/store";
 import { requireOwnedProject } from "@/lib/projects/api-guard";
+import { requireLinkableAdsAccount } from "@/lib/projects/ads-link-guard";
+import { type AdsLinkAction } from "@/lib/projects/ads-link";
 import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
 import { type ProjectPatch } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
@@ -44,7 +46,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     patch.logoUrl = logoUrl;
   }
   if (typeof body.domain === "string") patch.domain = body.domain.trim();
-  if (typeof body.adsCustomerId === "string") patch.adsCustomerId = body.adsCustomerId;
+
+  // The Ads link is the one field with consequences OUTSIDE this project: the sync
+  // fan-out follows it, so an unverified or double-claimed id lands real spend in the
+  // wrong client's report. Gate it (409 collision / 422 unknown account) before it is
+  // stored, and remember what the write actually DID so the activity record is honest.
+  // `""` clears the field (unlink) — normalizeProjectPatch maps it to null.
+  let adsAction: AdsLinkAction | null = null;
+  if (typeof body.adsCustomerId === "string") {
+    const requested = body.adsCustomerId.trim();
+    const gate = await requireLinkableAdsAccount(uid, g.project, requested);
+    if ("error" in gate) return gate.error;
+    patch.adsCustomerId = requested;
+    adsAction = gate.verdict.ok ? gate.verdict.action : null;
+  }
 
   const project = await updateProject(uid, id, patch);
   if (!project) return notFound("Projekt nenalezen.", "not-found");
@@ -52,13 +67,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   // Surface the change on the project-wide activity feed (best-effort, never throws).
   const changed = Object.keys(patch);
   if (changed.length > 0) {
-    const adsLinked = "adsCustomerId" in patch && Boolean(patch.adsCustomerId);
     const brandingOnly = changed.every((k) => k === "accentColor" || k === "logoUrl");
+    // Report what actually happened to the link, not just "napojen": an unlink and a
+    // relink are the changes an agency most needs to find later when a client's
+    // numbers move, and announcing "napojen" on an unlink was simply wrong.
+    const adsRecord =
+      adsAction === "link" || adsAction === "relink"
+        ? { title: adsAction === "relink" ? "Google Ads přepojen" : "Google Ads napojen", detail: `Účet ${patch.adsCustomerId}`, severity: "success" as const }
+        : adsAction === "unlink"
+          ? { title: "Google Ads odpojen", detail: "Projekt už nemá napojený účet", severity: "warning" as const }
+          : null;
     await emitProjectActivity(
       uid,
       id,
-      adsLinked
-        ? { kind: "update", module: "integrace", severity: "success", title: "Google Ads napojen", detail: `Účet ${patch.adsCustomerId}`, actor: "Vy" }
+      adsRecord
+        ? { kind: "update", module: "integrace", severity: adsRecord.severity, title: adsRecord.title, detail: adsRecord.detail, actor: "Vy" }
         : {
             kind: "update",
             module: brandingOnly ? "branding" : "nastaveni",

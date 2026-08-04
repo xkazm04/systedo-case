@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Pill } from "@/components/ui";
-import { ArrowRight, Copy, Logo, Plus } from "@/components/icons";
+import { ArrowRight, Close, Copy, Logo, Plus } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import CreateProjectForm from "@/components/app/CreateProjectForm";
 import Modal from "@/components/app/Modal";
@@ -14,11 +14,13 @@ import AuthButton from "@/components/auth/AuthButton";
 import { modulesFor } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, projectTypeMeta, type Project } from "@/lib/projects/types";
 import {
+  decideAdsLink,
   projectAdsLink,
   unmappedAccounts,
   type LinkableAccount,
 } from "@/lib/projects/ads-link";
 import { useT } from "@/lib/i18n/client";
+import type { TFn } from "@/lib/i18n/interpolate";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
@@ -43,6 +45,18 @@ const T = {
     cancel: "Zrušit",
     linking: "Přiřazuji…",
     linkFailed: "Přiřazení účtu se nezdařilo. Zkuste to prosím znovu.",
+    linkClaimed: "Tento účet už je propojený s jiným projektem. Nejdřív ho tam odpojte.",
+    linkUnknown: "Tento účet není mezi vašimi připojenými účty Google Ads.",
+    optionReplaces: "nahradí {id}",
+    relinkTitle: "Nahradit stávající propojení?",
+    relinkLead: "Projekt {project} je teď propojený s účtem {current}. Přiřazením účtu {next} se stávající propojení zruší — data z účtu {current} se do tohoto projektu přestanou synchronizovat.",
+    relinkConfirm: "Nahradit propojení",
+    unlink: "Odpojit účet",
+    unlinkTitle: "Odpojit účet Google Ads?",
+    unlinkLead: "Projekt {project} se přestane synchronizovat s účtem {account}. Dosud nasbíraná data zůstanou, nová nepřibudou. Účet můžete kdykoli přiřadit znovu — i jinému projektu.",
+    unlinkConfirm: "Odpojit",
+    unlinking: "Odpojuji…",
+    unlinkFailed: "Odpojení účtu se nezdařilo. Zkuste to prosím znovu.",
     duplicate: "Duplikovat jako šablonu",
     dupTitle: "Duplikovat jako šablonu",
     dupLead: "Vytvoří nový samostatný projekt a zkopíruje do něj nastavení tohoto projektu. Nový klient začíná s prázdnými daty — zkopíruje se jen scaffold, ne provozní data ani přístupy.",
@@ -76,6 +90,18 @@ const T = {
     cancel: "Cancel",
     linking: "Linking…",
     linkFailed: "Couldn't map the account. Please try again.",
+    linkClaimed: "This account is already linked to another project. Unlink it there first.",
+    linkUnknown: "This account isn't among your connected Google Ads accounts.",
+    optionReplaces: "replaces {id}",
+    relinkTitle: "Replace the existing link?",
+    relinkLead: "Project {project} is currently linked to account {current}. Mapping account {next} drops that link — data from account {current} stops syncing into this project.",
+    relinkConfirm: "Replace link",
+    unlink: "Unlink account",
+    unlinkTitle: "Unlink the Google Ads account?",
+    unlinkLead: "Project {project} will stop syncing with account {account}. Data collected so far stays; no new data arrives. You can map the account again any time — including to a different project.",
+    unlinkConfirm: "Unlink",
+    unlinking: "Unlinking…",
+    unlinkFailed: "Couldn't unlink the account. Please try again.",
     duplicate: "Duplicate as template",
     dupTitle: "Duplicate as template",
     dupLead: "Creates a new, independent project and copies this project's setup into it. A new client starts with empty data — only the scaffold is copied, never operating data or credentials.",
@@ -194,7 +220,11 @@ export default function ProjectsHome({
           ) : (
             <>
             {unmapped.length > 0 && (
-              <UnmappedAccountsCallout accounts={unmapped} projects={projects} />
+              <UnmappedAccountsCallout
+                accounts={unmapped}
+                allAccounts={accounts}
+                projects={projects}
+              />
             )}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {projects.map((p) => (
@@ -219,14 +249,49 @@ export default function ProjectsHome({
   );
 }
 
+/** PATCH a project's `adsCustomerId` (`""` unlinks). A resolved fetch is NOT a
+ *  success — the route refuses a collision (409) and an unverifiable account (422),
+ *  and those refusals must reach the user, not be swallowed into a silent refresh.
+ *  Returns null on success, else the localized message to show. */
+async function patchAdsLink(
+  projectId: string,
+  customerId: string,
+  t: TFn<keyof (typeof T)["cs"]>,
+  fallbackKey: "linkFailed" | "unlinkFailed"
+): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ adsCustomerId: customerId }),
+    });
+    if (res.ok) return null;
+    if (res.status === 409) return t("linkClaimed");
+    if (res.status === 422) return t("linkUnknown");
+    return t(fallbackKey);
+  } catch {
+    return t(fallbackKey);
+  }
+}
+
 /** The unmapped-accounts callout: connected Ads accounts not linked to any project,
  *  each with a one-click picker that PATCHes `adsCustomerId` onto the chosen project
- *  via the existing route, then refreshes so the badge + callout re-derive. */
+ *  via the existing route, then refreshes so the badge + callout re-derive.
+ *
+ *  The picker lists every project, including ones that ALREADY carry a different
+ *  link — picking one used to overwrite that link silently, with no hint in the
+ *  option and no confirmation. Each such option now says what it would replace, and
+ *  choosing it opens a confirm first. The common case — a loose account onto an
+ *  unlinked project — is unchanged: pick, done, no dialog. */
 function UnmappedAccountsCallout({
   accounts,
+  allAccounts,
   projects,
 }: {
   accounts: LinkableAccount[];
+  /** ALL connected accounts (not just the unmapped ones) — the pre-flight rule
+   *  resolves the requested id against them, exactly as the server does. */
+  allAccounts: LinkableAccount[];
   projects: Project[];
 }) {
   const t = useT(T);
@@ -234,27 +299,42 @@ function UnmappedAccountsCallout({
   const [openFor, setOpenFor] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<
+    { customerId: string; project: Project; previous: string } | null
+  >(null);
+
+  /** Evaluate the SAME rule the API enforces before spending a round-trip, so the
+   *  user is warned (relink) or told why (collision) up front. The server stays the
+   *  authority — a stale page still gets its 409/422 and shows it. */
+  function request(customerId: string, projectId: string) {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+    setLinkError(null);
+    const verdict = decideAdsLink({ project, customerId, accounts: allAccounts, projects });
+    if (!verdict.ok) {
+      setLinkError(verdict.reason === "already-claimed" ? t("linkClaimed") : t("linkUnknown"));
+      return;
+    }
+    if (verdict.action === "relink") {
+      setConfirming({ customerId, project, previous: verdict.previousCustomerId ?? "" });
+      return;
+    }
+    void link(customerId, projectId);
+  }
 
   async function link(customerId: string, projectId: string) {
     setBusyId(customerId);
     setLinkError(null);
-    try {
-      // A resolved fetch is not a success: a failed PATCH must not silently close
-      // the picker and refresh (the account would just reappear unmapped with no
-      // explanation) — surface the failure and keep the picker open to retry.
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ adsCustomerId: customerId }),
-      });
-      if (!res.ok) throw new Error();
-      setOpenFor(null);
-      router.refresh();
-    } catch {
-      setLinkError(t("linkFailed"));
-    } finally {
-      setBusyId(null);
+    const message = await patchAdsLink(projectId, customerId, t, "linkFailed");
+    setBusyId(null);
+    if (message) {
+      // Keep the picker open so the user can retry or choose another project.
+      setLinkError(message);
+      return;
     }
+    setConfirming(null);
+    setOpenFor(null);
+    router.refresh();
   }
 
   return (
@@ -286,7 +366,7 @@ function UnmappedAccountsCallout({
                     id={`map-${a.customerId}`}
                     defaultValue=""
                     disabled={busyId === a.customerId}
-                    onChange={(e) => e.target.value && link(a.customerId, e.target.value)}
+                    onChange={(e) => e.target.value && request(a.customerId, e.target.value)}
                     className="rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-sm text-navy-800"
                   >
                     <option value="" disabled>
@@ -294,7 +374,9 @@ function UnmappedAccountsCallout({
                     </option>
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name}
+                        {p.adsCustomerId
+                          ? `${p.name} — ${t("optionReplaces", { id: p.adsCustomerId })}`
+                          : p.name}
                       </option>
                     ))}
                   </select>
@@ -324,7 +406,86 @@ function UnmappedAccountsCallout({
           {linkError}
         </p>
       )}
+
+      {/* Relink confirm — the destructive branch of the picker. */}
+      <ConfirmLinkChange
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title={t("relinkTitle")}
+        body={
+          confirming
+            ? t("relinkLead", {
+                project: confirming.project.name,
+                current: confirming.previous,
+                next: confirming.customerId,
+              })
+            : ""
+        }
+        confirmLabel={busyId ? t("linking") : t("relinkConfirm")}
+        cancelLabel={t("cancel")}
+        busy={busyId !== null}
+        onConfirm={() => confirming && link(confirming.customerId, confirming.project.id)}
+      />
     </div>
+  );
+}
+
+/** A confirm dialog for the two destructive Ads-link changes (relink + unlink), over
+ *  the shared Modal shell — same footer grammar as DuplicateProjectModal below, so
+ *  the three project-level confirmations read as one system. */
+function ConfirmLinkChange({
+  open,
+  onClose,
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  busy,
+  onConfirm,
+  error,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  busy: boolean;
+  onConfirm: () => void;
+  error?: string | null;
+}) {
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-pill px-4 py-2 text-sm font-medium text-muted transition-colors hover:text-navy-700"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            className="rounded-pill bg-coral-600 px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-coral-500 disabled:opacity-60"
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      }
+    >
+      <p className="text-sm leading-relaxed text-navy-700">{body}</p>
+      {error && (
+        <p role="alert" className="mt-3 rounded-lg bg-negative-soft px-3.5 py-2.5 text-sm text-negative">
+          {error}
+        </p>
+      )}
+    </Modal>
   );
 }
 
@@ -336,6 +497,27 @@ function ProjectCard({ project, accounts }: { project: Project; accounts: Linkab
   const t = useT(T);
   const link = projectAdsLink(project, accounts);
   const [duplicating, setDuplicating] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [unlinkError, setUnlinkError] = useState<string | null>(null);
+  const router = useRouter();
+
+  /** Unlink = PATCH an empty `adsCustomerId`, which the route/normalizer clear to
+   *  null. Confirm-gated: it drops the project's sync target, so the numbers stop
+   *  moving — exactly the kind of silent change an agency discovers weeks later. */
+  async function unlink() {
+    setUnlinkBusy(true);
+    const message = await patchAdsLink(project.id, "", t, "unlinkFailed");
+    setUnlinkBusy(false);
+    if (message) {
+      setUnlinkError(message);
+      return;
+    }
+    setUnlinking(false);
+    setUnlinkError(null);
+    router.refresh();
+  }
+
   // Stretched-link pattern: the whole card navigates via an absolute overlay link,
   // so the duplicate control can live ABOVE it (its own stacking context) and stay
   // clickable without nesting an interactive element inside an anchor.
@@ -382,12 +564,29 @@ function ProjectCard({ project, accounts }: { project: Project; accounts: Linkab
           <p className="text-xs font-medium text-muted">{moduleCount} {t("modules")}</p>
           {/* Honest Ads-link badge straight off project.adsCustomerId — no extra read. */}
           {link.linked ? (
-            <span
-              className="inline-flex max-w-[60%] items-center gap-1.5 rounded-pill bg-positive-soft px-2 py-0.5 text-[11px] font-semibold text-positive"
-              title={link.customerName ? `${link.customerName} · ${link.customerId}` : link.customerId}
-            >
-              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" aria-hidden />
-              <span className="truncate">{link.customerName ?? link.customerId}</span>
+            // The badge is passive; the unlink control sits beside it, above the
+            // stretched card link (own stacking context) so it stays clickable
+            // without nesting a button inside the anchor.
+            <span className="flex min-w-0 items-center gap-1">
+              <span
+                className="inline-flex min-w-0 items-center gap-1.5 rounded-pill bg-positive-soft px-2 py-0.5 text-[11px] font-semibold text-positive"
+                title={link.customerName ? `${link.customerName} · ${link.customerId}` : link.customerId}
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-positive" aria-hidden />
+                <span className="truncate">{link.customerName ?? link.customerId}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setUnlinkError(null);
+                  setUnlinking(true);
+                }}
+                aria-label={t("unlink")}
+                title={t("unlink")}
+                className="relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-negative-soft hover:text-negative"
+              >
+                <Close width={12} height={12} />
+              </button>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 rounded-pill bg-canvas px-2 py-0.5 text-[11px] font-medium text-muted">
@@ -401,6 +600,20 @@ function ProjectCard({ project, accounts }: { project: Project; accounts: Linkab
         project={project}
         open={duplicating}
         onClose={() => setDuplicating(false)}
+      />
+      <ConfirmLinkChange
+        open={unlinking}
+        onClose={() => setUnlinking(false)}
+        title={t("unlinkTitle")}
+        body={t("unlinkLead", {
+          project: project.name,
+          account: link.customerName ?? link.customerId ?? "",
+        })}
+        confirmLabel={unlinkBusy ? t("unlinking") : t("unlinkConfirm")}
+        cancelLabel={t("cancel")}
+        busy={unlinkBusy}
+        onConfirm={unlink}
+        error={unlinkError}
       />
     </>
   );
