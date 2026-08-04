@@ -62,6 +62,8 @@ export interface Messages {
       localSeo: string;
       map: string;
       design: string;
+      privacy: string;
+      terms: string;
       crafted: string;
     };
   };
@@ -115,7 +117,7 @@ const cs: Messages = {
     grow: "„Pojďme růst společně.“",
     pages: "Stránky",
     about: "O projektu",
-    copyright: "© {year} — případová studie, nikoli oficiální web Adamant.",
+    copyright: "© {year} Adamant. Ukázková data jsou ilustrativní.",
     links: {
       pricing: "Ceník",
       social: "Sociální sítě",
@@ -124,6 +126,8 @@ const cs: Messages = {
       localSeo: "Lokální SEO",
       map: "Mapa",
       design: "Design system",
+      privacy: "Ochrana osobních údajů",
+      terms: "Podmínky",
       crafted: "Vytvořeno s důrazem na UX, datovou konzistenci a čistý kód.",
     },
   },
@@ -177,7 +181,7 @@ const en: Messages = {
     grow: "“Let’s grow together.”",
     pages: "Pages",
     about: "About",
-    copyright: "© {year} — a case study, not the official Adamant site.",
+    copyright: "© {year} Adamant. Demo data is illustrative.",
     links: {
       pricing: "Pricing",
       social: "Social",
@@ -186,6 +190,8 @@ const en: Messages = {
       localSeo: "Local SEO",
       map: "Sitemap",
       design: "Design system",
+      privacy: "Privacy",
+      terms: "Terms",
       crafted: "Built with care for UX, data consistency and clean code.",
     },
   },

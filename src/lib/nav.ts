@@ -84,6 +84,8 @@ export const FOOTER_META_PAGES = [
   { href: "/lokalni-seo", key: "localSeo" },
   { href: "/mapa", key: "map" },
   { href: "/design-system", key: "design" },
+  { href: "/ochrana-osobnich-udaju", key: "privacy" },
+  { href: "/podminky", key: "terms" },
 ] as const;
 
 /** All routes for the sitemap, derived from the one nav model plus the shared meta
