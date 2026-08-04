@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
+import { buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Check } from "@/components/icons";
 import { PLAN_INFO, type Plan } from "@/lib/plans";
-import { SALES_EMAIL } from "@/lib/site";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -23,42 +22,34 @@ const T = {
   cs: {
     metaTitle: "Ceník — Adamant",
     metaDescription:
-      "Plány Adamant: zdarma na vyzkoušení, Pro pro každodenní práci s více účty Google Ads, automatická synchronizace a týdenní reporty.",
-    mailtoPro: "Zájem o Adamant Pro",
-    mailtoByom: "Zájem o Adamant Vlastní klíč",
+      "Adamant je během validace zdarma v plném rozsahu. Placené plány Pro a Vlastní klíč spustíme po ověření produktu — tabulka ukazuje zamýšlené rozdělení.",
     eyebrow: "Ceník",
-    heading: "Začněte zdarma, rozšiřte podle potřeby",
+    heading: "Během validace zdarma",
     subheading:
-      "Limity chrání placená volání modelu a synchronizace. Free stačí na vyzkoušení celého toku; Pro je pro agentury, které řeší více účtů denně.",
+      "Adamant je ve validační fázi zdarma v plném rozsahu — denní limity chrání placená volání modelu a synchronizace. Placené plány níže ukazují, kam ceník míří; spustíme je až po validaci.",
     recommended: "Doporučeno",
     free: "Zdarma",
     perMonth: "/ měsíc",
-    ctaFree: "Vyzkoušet přehled kampaní",
-    ctaPro: "Mám zájem o Pro",
-    ctaByom: "Mám zájem o vlastní klíč",
+    ctaFree: "Začít zdarma",
+    comingSoon: "Připravujeme po validaci",
     disclaimer:
-      "Případová studie: platební brána (Stripe) není napojená — upgrade je tenká vrstva nad polem",
-    disclaimerSuffix: "v uživatelově dokumentu. Limity jsou denní a počítají se v UTC.",
+      "Placené plány zatím nejsou spuštěné a platební brána není napojená — během validace nic neúčtujeme. Limity jsou denní a počítají se v UTC.",
   },
   en: {
     metaTitle: "Pricing — Adamant",
     metaDescription:
-      "Adamant plans: free to try, Pro for daily work across multiple Google Ads accounts, automatic sync and weekly reports.",
-    mailtoPro: "Interested in Adamant Pro",
-    mailtoByom: "Interested in Adamant — own key",
+      "Adamant is free in full during validation. The paid Pro and Own-key plans launch after the product is validated — the table shows the intended split.",
     eyebrow: "Pricing",
-    heading: "Start free, scale when you need to",
+    heading: "Free during validation",
     subheading:
-      "Limits protect paid model calls and syncs. Free is enough to try the full flow; Pro is for agencies managing multiple accounts daily.",
+      "During the validation phase Adamant is free in full — the daily limits protect paid model calls and syncs. The paid plans below show where pricing is headed; they launch only after validation.",
     recommended: "Recommended",
     free: "Free",
     perMonth: "/ month",
-    ctaFree: "Try the campaign overview",
-    ctaPro: "I’m interested in Pro",
-    ctaByom: "I want my own key",
+    ctaFree: "Start free",
+    comingSoon: "Coming after validation",
     disclaimer:
-      "Case study: the payment gateway (Stripe) is not wired up — upgrading is a thin layer over the",
-    disclaimerSuffix: "field in the user document. Limits are daily and counted in UTC.",
+      "Paid plans are not live yet and no payment gateway is wired up — nothing is charged during validation. Limits are daily and counted in UTC.",
   },
 } as const;
 
@@ -155,6 +146,10 @@ export default async function PricingPage() {
         </p>
       </div>
 
+      {/* The three-tier table documents pricing INTENT (limits, plan split) while
+          the product is free during validation — the paid tiers are shown but not
+          purchasable, and the only actionable CTA leads into the app. */}
+
       <div className="mt-12 grid gap-5 md:grid-cols-3 md:gap-6">
         {PLAN_INFO.map((plan) => {
           const copy = planCopy[plan.id];
@@ -191,26 +186,19 @@ export default async function PricingPage() {
 
               {plan.id === "free" ? (
                 // Next <Link> wearing the shared Button style — the buttonClass
-                // escape hatch the primitive exports for exactly this case.
-                <Link href="/kampane" className={buttonClass("secondary", "lg", { className: "mt-7" })}>
+                // escape hatch the primitive exports for exactly this case. The
+                // free tier is the only actionable plan during validation, so it
+                // carries the primary button and leads straight into the app.
+                <Link href="/app" className={buttonClass("primary", "lg", { className: "mt-7" })}>
                   {t("ctaFree")}
                   <ArrowRight width={16} height={16} />
                 </Link>
               ) : (
-                // Payment is not wired (see disclaimer) — both paid tiers route to a
-                // mailto seam. Only the featured plan gets the primary button so Pro
-                // stays the visual hero next to the cheaper BYOM card.
-                <Button
-                  href={`mailto:${SALES_EMAIL}?subject=${encodeURIComponent(
-                    t(plan.id === "byom" ? "mailtoByom" : "mailtoPro")
-                  )}`}
-                  variant={plan.featured ? "primary" : "secondary"}
-                  size="lg"
-                  className="mt-7 active:scale-[0.99]"
-                >
-                  {plan.id === "byom" ? t("ctaByom") : t("ctaPro")}
-                  <ArrowRight width={16} height={16} />
-                </Button>
+                // Free-during-validation: paid tiers are documented intent, not
+                // purchasable — no mailto, no payment seam, just an honest state.
+                <div className="mt-7 rounded-pill border border-dashed border-line px-5 py-3 text-center text-sm font-semibold text-muted">
+                  {t("comingSoon")}
+                </div>
               )}
             </div>
           );
@@ -219,8 +207,6 @@ export default async function PricingPage() {
 
       <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-muted">
         {t("disclaimer")}
-        <code className="mx-1 rounded bg-navy-50 px-1.5 py-0.5 text-navy-700">plan</code>
-        {t("disclaimerSuffix")}
       </p>
     </Container>
   );

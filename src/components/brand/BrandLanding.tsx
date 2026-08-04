@@ -40,12 +40,14 @@ const T = {
     heroTitle2: "Reklamy, které nepovolí.",
     heroSubhead:
       "AI inteligence pro reklamu pro e-shopy a agentury — měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
-    heroSeeItWork: "Podívejte se, jak to funguje",
+    heroSeeDemo: "Podívejte se na živou ukázku",
     heroStartFree: "Začít zdarma",
     heroWorksAcross: "Funguje napříč",
     proofLabel: "Důkaz",
-    proofHeadline: "Na case-study účtu, posledních 90 dní",
-    proofNote: "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}) — výsledky, ne sliby. Ilustrativní case-study data.",
+    proofHeadline: "Na ukázkovém účtu, posledních 90 dní",
+    proofDemoBadge: "Ukázková data — fiktivní klient",
+    proofNote:
+      "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}) — fiktivního ukázkového klienta. Nejde o výsledky reálného zákazníka.",
     closingTitle: "Buďte ve své reklamě neoblomní.",
   },
   en: {
@@ -59,12 +61,14 @@ const T = {
     heroTitle2: "Ads that never crack.",
     heroSubhead:
       "AI ad intelligence for e-shops and agencies — measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
-    heroSeeItWork: "See it work",
+    heroSeeDemo: "See a live example",
     heroStartFree: "Start free",
     heroWorksAcross: "Works across",
     proofLabel: "Proof",
-    proofHeadline: "On the case-study account, last 90 days",
-    proofNote: "The same numbers the dashboard renders for {client} ({domain}) — outcomes, not claims. Illustrative case-study data.",
+    proofHeadline: "On the demo account, last 90 days",
+    proofDemoBadge: "Demo data — fictional client",
+    proofNote:
+      "The same numbers the dashboard renders for {client} ({domain}) — a fictional demo client. Not real customer results.",
     closingTitle: "Be adamant about your ads.",
   },
 } as const;
@@ -89,10 +93,10 @@ export default async function BrandLanding() {
     }
   }
 
-  // Quantified case-study results for the proof band — the exact numbers the
-  // dashboard renders (illustrative data), so the homepage shows outcomes, not
-  // just claims. Honest framing: it's the case-study account, not a customer
-  // testimonial (there are no real customers to quote).
+  // Quantified demo-account results for the proof band — the exact numbers the
+  // dashboard renders (illustrative data, fictional client), so the homepage
+  // shows outcomes, not just claims. Honest framing: labeled demo data, not a
+  // customer testimonial (there are no real customers to quote).
   const snap = buildSnapshot("90d");
   const proof = [
     { value: fmtMultiple(snap.current.roas), label: t("proofRoas") },
@@ -156,21 +160,21 @@ export default async function BrandLanding() {
               {t("heroSubhead")}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              {/* Primary = the frictionless, no-login look (a prospect wants to see it
-                  before signing in); "Start free" → the app is the secondary action. */}
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+              {/* Free-during-validation launch: "Start free" → /app is the single
+                  primary CTA; the no-login demo stays reachable as a text link. */}
               <Link
-                href="/dashboard"
+                href="/app"
                 className="inline-flex items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 shadow-card transition-[background-color,transform] hover:bg-brand-400 active:scale-[0.99]"
               >
-                {t("heroSeeItWork")}
+                {t("heroStartFree")}
                 <ArrowRight width={17} height={17} />
               </Link>
               <Link
-                href="/app"
-                className="inline-flex items-center gap-2 rounded-pill border border-onyx-line bg-onyx-soft/40 px-5 py-3 text-sm font-semibold text-onyx-ink transition-colors hover:border-brand-400 hover:text-brand-200"
+                href="/dashboard"
+                className="text-sm font-medium text-onyx-muted underline decoration-onyx-line underline-offset-4 transition-colors hover:text-brand-200"
               >
-                {t("heroStartFree")}
+                {t("heroSeeDemo")}
               </Link>
             </div>
 
@@ -190,17 +194,21 @@ export default async function BrandLanding() {
         </Container>
       </section>
 
-      {/* -------------------------------------- Crossroad (nav destinations) */}
-      <Crossroad items={crossroad} />
-
       {/* ----------------------------------------------------------- Proof */}
       <section className="border-y border-line bg-brand-50/40">
         <Container className="py-12">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-accent">
-                {t("proofLabel")}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.18em] text-brand-accent">
+                  {t("proofLabel")}
+                </p>
+                {/* Unmissable demo-data label: the numbers below belong to a
+                    fictional client, and that must never read as fine print. */}
+                <span className="inline-flex items-center rounded-pill border border-navy-300 bg-surface px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-navy-700">
+                  {t("proofDemoBadge")}
+                </span>
+              </div>
               <h2 className="mt-3 text-2xl font-semibold tracking-tight text-navy-800 sm:text-3xl">
                 {t("proofHeadline")}
               </h2>
@@ -222,6 +230,9 @@ export default async function BrandLanding() {
         </Container>
       </section>
 
+      {/* -------------------------------------- Crossroad (nav destinations) */}
+      <Crossroad items={crossroad} />
+
       {/* ------------------------------------------------------- Closing CTA */}
       <section className="border-t border-onyx-line bg-onyx">
         <Container className="py-14">
@@ -229,13 +240,21 @@ export default async function BrandLanding() {
             <h2 className="max-w-xl text-2xl font-semibold leading-snug tracking-tight text-white">
               {t("closingTitle")}
             </h2>
-            <Link
-              href="/dashboard"
-              className="inline-flex shrink-0 items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
-            >
-              {t("heroSeeItWork")}
-              <ArrowRight width={17} height={17} />
-            </Link>
+            <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-3">
+              <Link
+                href="/app"
+                className="inline-flex items-center gap-2 rounded-pill bg-brand-500 px-5 py-3 text-sm font-semibold text-navy-900 transition-colors hover:bg-brand-400"
+              >
+                {t("heroStartFree")}
+                <ArrowRight width={17} height={17} />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="text-sm font-medium text-onyx-muted underline decoration-onyx-line underline-offset-4 transition-colors hover:text-brand-200"
+              >
+                {t("heroSeeDemo")}
+              </Link>
+            </div>
           </div>
         </Container>
       </section>
