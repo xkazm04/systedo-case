@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import Link from "next/link";
 import { Container, Eyebrow, buttonClass } from "@/components/ui";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -45,6 +46,8 @@ export default function RouteError({
     // Surface the client-side error for observability; the server log carries
     // the digest twin, so the visible code below is enough to correlate them.
     console.error("[root error boundary]", error);
+    // No-op when NEXT_PUBLIC_SENTRY_DSN is unset (SDK never initialized).
+    Sentry.captureException(error);
   }, [error]);
 
   return (

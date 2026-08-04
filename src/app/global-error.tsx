@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 
 /** Last-resort error boundary: replaces the ROOT LAYOUT when it crashes, so
  *  nothing from the app shell — globals.css, fonts, LocaleProvider — can be
@@ -17,6 +18,8 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[global error boundary]", error);
+    // No-op when NEXT_PUBLIC_SENTRY_DSN is unset (SDK never initialized).
+    Sentry.captureException(error);
   }, [error]);
 
   return (
