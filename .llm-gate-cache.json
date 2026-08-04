@@ -1,7 +1,7 @@
 {
   "version": 2,
   "passed": true,
-  "provenAt": "2026-08-03T20:09:11.144Z",
+  "provenAt": "2026-08-04T19:17:46.688Z",
   "files": {
     "src/lib/llm/index.ts": "db2dca031dbcb05f27836b274e9a874b1a01def361a35439d59dde1a4f35dc82",
     "src/lib/llm/claude.ts": "15a465541fdfddf8ab65ddb94aa39f4ed131d53392259fa1fe30e3366d16fcc1",
@@ -34,7 +34,7 @@
     "src/lib/ai/tools/lead-source-diagnosis.ts": "eaab6f9d2e94248b76a41ba639690553360bfc40331aa340f51e0bc3111f09c1",
     "src/lib/ai/tools/local-diagnosis.ts": "bacf4ab55426d0458b524360e73b8a154d0683ce94377397c76b84ad84126516",
     "src/lib/ai/tools/channel-research.ts": "385fe13c58135ae2d73c8c693bb8297acb6461a920fa48d26bfacdcd7ad04b2d",
-    "src/lib/ai/tools/onboarding-scan.ts": "3b4bf7c7fe1fb7310716eff1eefd3a00468af3e8ebfb6ec4802e00470e7973f5",
+    "src/lib/ai/tools/onboarding-scan.ts": "3ba7e21fd7f7d514818b426b5320ca3c9fd97037e90dcbda71bcc222a568d373",
     "src/lib/ai/tools/chat.ts": "da9dca80c58a216b83f01e0a667224a3ae531c67120ebf6dc6ccbd204d6d8996",
     "src/app/api/ai/route.ts": "22f435be37e477d21d4d18c0d00375026b0c058ff73be16683182507f3382e58",
     "src/app/api/campaigns/analyze/route.ts": "ae22088e643037fb00aeec08066b9503c8a0ce6e0dfaf434755fef013d285f16",
@@ -85,6 +85,6 @@
     "chat": "2026-08-03T20:09:11.144Z",
     "monthly-recap": "2026-08-03T20:09:11.144Z",
     "channel-research": "2026-08-03T20:09:11.144Z",
-    "onboarding-scan": "2026-08-03T20:09:11.144Z"
+    "onboarding-scan": "2026-08-04T19:17:46.688Z"
   }
 }
