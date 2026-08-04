@@ -59,6 +59,7 @@ const T = {
     testFailed: "Test se nezdařil.",
     saving: "Ukládám…",
     errGeneric: "Něco se pokazilo.",
+    errRateLimited: "Příliš mnoho testů klíče — každý test volá vašeho poskytovatele. Zkuste to prosím znovu za {seconds} s.",
     errNetwork: "Nepodařilo se spojit se serverem.",
     loadError: "Nastavení AI se nepodařilo načíst.",
     retry: "Zkusit znovu",
@@ -105,6 +106,7 @@ const T = {
     testFailed: "Test failed.",
     saving: "Saving…",
     errGeneric: "Something went wrong.",
+    errRateLimited: "Too many key tests — each one calls your provider. Please try again in {seconds} s.",
     errNetwork: "Could not reach the server.",
     loadError: "Couldn't load AI settings.",
     retry: "Try again",
@@ -169,6 +171,7 @@ export default function ByomKeys() {
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
         code?: string;
+        retryAfter?: number;
         config?: PublicByomConfig;
         validation?: { ok: boolean; error?: string };
       };
@@ -176,7 +179,11 @@ export default function ByomKeys() {
         // Coded errors get localized copy here (the repo's code → t() convention);
         // anything uncoded falls back to the server message, then to the generic.
         setError(
-          json.code === "unknown_model" ? t("errUnknownModel") : json.error ?? t("errGeneric")
+          json.code === "unknown_model"
+            ? t("errUnknownModel")
+            : json.code === "rate_limited"
+              ? t("errRateLimited", { seconds: json.retryAfter ?? 60 })
+              : json.error ?? t("errGeneric")
         );
         return false;
       }

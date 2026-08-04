@@ -12,6 +12,7 @@ import {
 import { isByomVendor } from "@/lib/llm/keys/types";
 import { validateVendorKey } from "@/lib/llm/keys/validate";
 import { requireByomUser, requireUser } from "../guard";
+import { guardByomProbe } from "../probe-guard";
 
 /** Store (encrypted) a vendor's API key, then immediately test it so the UI can
  *  show a validated check or an actionable error. Body: `{ vendor, apiKey }`.
@@ -22,10 +23,18 @@ import { requireByomUser, requireUser } from "../guard";
  *  the first key, so a failed test on a freshly-activated vendor turns BYOM back off
  *  (restoring the prior active vendor) rather than silently routing every generation
  *  through a known-bad key. The response stays 200 with `validation.ok: false` so the
- *  settings UI renders the actionable per-vendor error. */
+ *  settings UI renders the actionable per-vendor error.
+ *
+ *  Because it ends in a provider call, this route SHARES the per-user probe floor
+ *  with /api/byom/validate (../probe-guard): a separate budget here would be a
+ *  trivial bypass — re-POSTing the same key drives the identical provider probe.
+ *  The check runs BEFORE the key is stored, so a throttled request is a clean no-op
+ *  rather than a stored-but-never-tested key. */
 export async function POST(request: Request) {
   const u = await requireByomUser();
   if (u instanceof Response) return u;
+  const throttled = await guardByomProbe(u.userId);
+  if (throttled) return throttled;
 
   const body = (await request.json().catch(() => null)) as { vendor?: unknown; apiKey?: unknown } | null;
   const vendor = body?.vendor;
