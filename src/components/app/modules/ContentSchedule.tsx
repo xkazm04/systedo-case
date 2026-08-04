@@ -20,14 +20,23 @@
  *  Google Business Profile posting is NOT built here and is no longer implied. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Calendar, Check, Info, Plus, Send, Sparkles } from "@/components/icons";
+import { useRouter } from "next/navigation";
+import { Calendar, Check, Document, Info, Plus, Send, Sparkles } from "@/components/icons";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useProject } from "@/lib/projects/context";
 import { isModuleAvailable } from "@/lib/projects/modules";
+import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social/types";
 import { channelSendAt, type ContentPost, type PostStatus } from "@/lib/content-schedule/sample";
-import { calendarGrid, nextFreeDay, statusCounts, workingList } from "@/lib/content-schedule/compute";
+import {
+  calendarGrid,
+  nextFreeDay,
+  planSlotSeed,
+  slotProgress,
+  statusCounts,
+  workingList,
+} from "@/lib/content-schedule/compute";
 
 const T = {
   cs: {
@@ -58,6 +67,11 @@ const T = {
     noChannelTitle: "Není napojený žádný kanál.",
     noChannelBody: "Plán je zatím jen plán — aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
     noChannelLink: "Napojit sociální sítě",
+    createContent: "Vytvořit obsah",
+    createContentTitle: "Otevře obsahový engine s předvyplněným zadáním z tohoto slotu — téma i klíčové slovo už znáte z plánu.",
+    progressDrafting: "Rozpracováno",
+    progressDrafted: "Koncept hotový",
+    savedDraft: "Uložený koncept",
     footer: "Napište text, naplánujte na den a — pokud máte napojený kanál — předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
   },
   en: {
@@ -88,6 +102,11 @@ const T = {
     noChannelTitle: "No channel is connected.",
     noChannelBody: "The plan is only a plan — nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
     noChannelLink: "Connect social accounts",
+    createContent: "Create content",
+    createContentTitle: "Opens the content engine pre-filled from this slot — the topic and keyword are already decided in the plan.",
+    progressDrafting: "In progress",
+    progressDrafted: "Draft ready",
+    savedDraft: "Saved draft",
     footer: "Draft copy, schedule it onto a day and — if you have a channel connected — hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
   },
 } as const;
@@ -128,6 +147,7 @@ export default function ContentSchedule({
   const t = useT(T);
   const fmt = useFormatters();
   const project = useProject();
+  const router = useRouter();
   const { locale } = useLocale();
   const weekdays = WEEKDAYS[locale === "en" ? "en" : "cs"];
   const [posts, setPosts] = useState<ContentPost[]>(initial);
@@ -151,6 +171,7 @@ export default function ContentSchedule({
   // Every day already at capacity → scheduling would strand a post; disable it.
   const boardFull = useMemo(() => nextFreeDay(posts) === null, [posts]);
   const socialLinked = isModuleAvailable(project.type, "socialni");
+  const engineLinked = isModuleAvailable(project.type, "obsahovy-engine");
 
   // Persist the whole board to the project (per-user, server-side). Best-effort:
   // the local state is already updated, so a save failure never blocks the UI.
@@ -188,6 +209,24 @@ export default function ContentSchedule({
     // nothing left the app.
     patch(id, { status: "done" });
   }
+  /** Start generation FROM the plan: the slot already knows the service, the
+   *  locality and the date, so the content engine opens pre-seeded from it through
+   *  the EXISTING sessionStorage brief-seed bridge (the same one keywords,
+   *  compare-seo and lp-experiments use) rather than from a blank workspace.
+   *
+   *  The slot is stamped `briefStartedAt` first — which also guarantees the board
+   *  is PERSISTED before we leave, so the engine's link-back (saved entry → this
+   *  slot) has a stored board to patch. */
+  function createContent(post: ContentPost) {
+    try {
+      sessionStorage.setItem(briefSeedKey(projectId), JSON.stringify(planSlotSeed(post)));
+    } catch {
+      /* private mode / storage full: the engine still opens, just unseeded */
+    }
+    patch(post.id, { briefStartedAt: new Date().toISOString() });
+    router.push(`/app/${projectId}/obsahovy-engine`);
+  }
+
   function setBody(id: string, body: string, persistIt = false) {
     const next = postsRef.current.map((p) => (p.id === id ? { ...p, body } : p));
     setPosts(next);
@@ -321,6 +360,7 @@ export default function ContentSchedule({
             <ul className="divide-y divide-line">
               {queue.map((p) => {
                 const hasBody = (p.body ?? "").trim().length >= 2;
+                const progress = slotProgress(p);
                 return (
                   <li key={p.id} className="px-5 py-3">
                     <div className="flex items-start justify-between gap-3">
@@ -332,6 +372,18 @@ export default function ContentSchedule({
                             <> · {t("dayBadge", { n: p.day + 1 })}</>
                           )}
                         </div>
+                        {progress !== "planned" && (
+                          <span
+                            className={
+                              "mt-1 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-medium " +
+                              (progress === "drafted"
+                                ? "bg-positive-soft text-positive"
+                                : "bg-navy-50 text-navy-700")
+                            }
+                          >
+                            {progress === "drafted" ? t("progressDrafted") : t("progressDrafting")}
+                          </span>
+                        )}
                       </div>
                       {p.status === "idea" && (
                         <button
@@ -379,6 +431,30 @@ export default function ContentSchedule({
                       </button>
                     )}
                     {errorId === p.id && <p className="mt-1.5 text-xs text-negative">{t("draftError")}</p>}
+
+                    {/* The calendar as a starting point: the slot already knows the
+                        topic, so the long-form workspace opens seeded from it. */}
+                    {engineLinked && (
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => createContent(p)}
+                          title={t("createContentTitle")}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent transition-opacity hover:opacity-80"
+                        >
+                          <Document width={13} height={13} />
+                          {t("createContent")}
+                        </button>
+                        {p.libraryEntryId && (
+                          <Link
+                            href={`/app/${projectId}/ulozeny-obsah`}
+                            className="text-xs font-medium text-muted underline-offset-2 transition-colors hover:text-navy-800 hover:underline"
+                          >
+                            {t("savedDraft")}
+                          </Link>
+                        )}
+                      </div>
+                    )}
 
                     {p.status === "scheduled" && (
                       <div className="mt-2.5 flex flex-wrap items-center gap-2">

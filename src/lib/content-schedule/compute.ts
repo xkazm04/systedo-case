@@ -22,6 +22,50 @@ export function workingList(posts: ContentPost[]): ContentPost[] {
   return posts.filter((p) => p.status === "idea" || p.status === "scheduled");
 }
 
+/** The brief seed a plan slot hands to the content engine — structurally a
+ *  `BriefSeed` (components/ai/KeywordResearch) plus the slot it came from, kept
+ *  here so the seeding contract is pure and testable and so the calendar does not
+ *  import a client component to build it.
+ *
+ *  It carries what the slot ALREADY decided, which is the whole point of the
+ *  direction: the topic is the planned title, the primary keyword is the
+ *  service × locality the idea was generated from. No keyword grounding — a plan
+ *  slot has none, and inventing some would be worse than an honest empty. */
+export interface PlanBriefSeed {
+  topic: string;
+  primaryKeyword: string;
+  keywords: never[];
+  planSlotId: string;
+}
+
+export function planSlotSeed(post: ContentPost): PlanBriefSeed {
+  return {
+    topic: post.title,
+    primaryKeyword: [post.service, post.area].map((s) => s.trim()).filter(Boolean).join(" "),
+    keywords: [],
+    planSlotId: post.id,
+  };
+}
+
+/** How far the work on a slot has actually got, as opposed to where the slot sits
+ *  on the calendar. This is a REFINEMENT of the status union, not a second
+ *  vocabulary: `out` is exactly the statuses the channel (or the maker) has already
+ *  taken off the working board, and the other three all live inside idea/scheduled.
+ *
+ *    planned  — a title on a date, nothing written
+ *    drafting — a generation was launched from this slot, nothing saved yet
+ *    drafted  — there is copy on the slot, or a saved library entry from it
+ *    out      — handed over, published, or marked done: off the working board
+ *  Pure. */
+export type SlotProgress = "planned" | "drafting" | "drafted" | "out";
+
+export function slotProgress(post: ContentPost): SlotProgress {
+  if (post.status === "queued" || post.status === "published" || post.status === "done") return "out";
+  if (post.libraryEntryId || (post.body ?? "").trim().length >= 2) return "drafted";
+  if (post.briefStartedAt) return "drafting";
+  return "planned";
+}
+
 /** The channel's own view of a handed-over post — the subset of SocialPost the
  *  board needs. Kept structural so this module stays free of the social store. */
 export interface ChannelPostState {

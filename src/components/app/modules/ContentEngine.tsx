@@ -25,6 +25,7 @@ import type { ContentDerivation } from "@/lib/content-engine/resolve";
 import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/content-engine/compute";
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 import type { KeywordList } from "@/lib/keywords/types";
+import type { ContentPost } from "@/lib/content-schedule/sample";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
@@ -231,6 +232,33 @@ export default function ContentEngine({
 
   const openWorkspace = (seed: BriefSeed | null, title: string) =>
     setWs((prev) => ({ seed, title, nonce: (prev?.nonce ?? 0) + 1 }));
+
+  /** Link a saved asset BACK to the content-schedule slot the work started from,
+   *  so the calendar stops being a dead end: the slot records which library entry
+   *  came out of it and reads as drafted instead of untouched.
+   *
+   *  The asset itself is NOT copied here — it lives in the project's content
+   *  library, which is exactly what that store is for; the slot keeps a pointer.
+   *  Read-modify-write over the board's own state endpoint, with no `event`: this
+   *  is bookkeeping, not a timeline-worthy transition. Best-effort — failing to
+   *  link must never cost the maker the save that already succeeded. */
+  const linkPlanSlot = async (slotId: string, entryId: string) => {
+    const url = `/api/projects/${project.id}/state/content-schedule`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const { data } = (await res.json()) as { data?: ContentPost[] | null };
+      if (!Array.isArray(data) || !data.some((p) => p?.id === slotId)) return;
+      const next = data.map((p) => (p?.id === slotId ? { ...p, libraryEntryId: entryId } : p));
+      await fetch(url, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ data: next }),
+      });
+    } catch {
+      /* the save itself already succeeded; the back-link is a nicety */
+    }
+  };
 
   // Backward-compatible hand-off: other modules (keyword research, compare-seo,
   // lp-experiments, decay refresh elsewhere) route here after writing a BriefSeed
@@ -474,7 +502,18 @@ export default function ContentEngine({
 
       {/* ---- Content workspace: brief → article draft (layer 2 / "Add") ---- */}
       <Modal open={ws !== null} onClose={() => setWs(null)} size="full" title={ws?.title}>
-        {ws && <ContentBriefGenerator key={ws.nonce} seed={ws.seed} onCreateAds={ads.onCreateAds} />}
+        {ws && (
+          <ContentBriefGenerator
+            key={ws.nonce}
+            seed={ws.seed}
+            onCreateAds={ads.onCreateAds}
+            onSavedToLibrary={
+              ws.seed?.planSlotId
+                ? (entryId) => void linkPlanSlot(ws.seed!.planSlotId!, entryId)
+                : undefined
+            }
+          />
+        )}
       </Modal>
 
       {/* ---- Brief → ads (layer 2): the handoff's landing surface ---- */}

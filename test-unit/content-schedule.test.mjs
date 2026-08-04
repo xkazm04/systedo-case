@@ -7,7 +7,9 @@ import {
   calendarGrid,
   ideas,
   nextFreeDay,
+  planSlotSeed,
   reconcileWithChannel,
+  slotProgress,
   statusCounts,
   workingList,
 } from "@/lib/content-schedule/compute";
@@ -240,4 +242,59 @@ test("the schedule surface emits no publish event of its own", () => {
   assert.deepEqual([...new Set(events)], ["scheduled"]);
   // and the way out of the app is the EXISTING social pipeline, not a second one
   assert.ok(src.includes('"/api/social/posts"'), "reuses the social posts pipeline");
+});
+
+// ── the calendar as the place work starts ────────────────────────────────────
+
+test("planSlotSeed carries what the slot already decided", () => {
+  const seed = planSlotSeed(post({ id: "post-3", title: "Nabídka: Rozvody v Brně", service: "Rozvody", area: "Brno" }));
+  assert.deepEqual(seed, {
+    topic: "Nabídka: Rozvody v Brně",
+    primaryKeyword: "Rozvody Brno",
+    keywords: [],
+    planSlotId: "post-3",
+  });
+  // Structurally a BriefSeed (topic/primaryKeyword/keywords), so it rides the
+  // EXISTING sessionStorage brief-seed bridge unchanged.
+  for (const key of ["topic", "primaryKeyword", "keywords"]) assert.ok(key in seed);
+  assert.ok(JSON.parse(JSON.stringify(seed)).planSlotId, "survives the sessionStorage round-trip");
+});
+
+test("planSlotSeed degrades gracefully when the slot has no locality", () => {
+  assert.equal(planSlotSeed(post({ service: "Rozvody", area: "" })).primaryKeyword, "Rozvody");
+  assert.equal(planSlotSeed(post({ service: "", area: "" })).primaryKeyword, "");
+});
+
+test("slotProgress refines the status union rather than replacing it", () => {
+  assert.equal(slotProgress(post({ status: "idea", day: null })), "planned");
+  assert.equal(slotProgress(post({ status: "scheduled" })), "planned");
+  assert.equal(slotProgress(post({ status: "scheduled", briefStartedAt: "2026-08-04T09:00:00.000Z" })), "drafting");
+  assert.equal(slotProgress(post({ status: "scheduled", briefStartedAt: "x", libraryEntryId: "e-1" })), "drafted");
+  assert.equal(slotProgress(post({ status: "idea", day: null, body: "Text příspěvku" })), "drafted");
+  // whitespace is not a draft
+  assert.equal(slotProgress(post({ status: "scheduled", body: "  " })), "planned");
+  // anything the board has handed over or ticked off is out of the working list
+  for (const status of ["queued", "published", "done"]) {
+    assert.equal(slotProgress(post({ status })), "out");
+  }
+});
+
+test("the seeding + link-back contract is wired at both ends", () => {
+  const board = readFileSync(
+    new URL("../src/components/app/modules/ContentSchedule.tsx", import.meta.url),
+    "utf8"
+  );
+  const engine = readFileSync(
+    new URL("../src/components/app/modules/ContentEngine.tsx", import.meta.url),
+    "utf8"
+  );
+  // the calendar seeds through the EXISTING bridge, not a new one
+  assert.ok(board.includes("briefSeedKey(projectId)"), "reuses the brief-seed sessionStorage key");
+  assert.ok(board.includes("planSlotSeed(post)"), "seeds from the slot's own content");
+  assert.ok(/router\.push\(`\/app\/\$\{projectId\}\/obsahovy-engine`\)/.test(board));
+  // …and the engine links what it produced back to that slot, recording the asset
+  // itself in the content library rather than copying it onto the board
+  assert.ok(engine.includes("onSavedToLibrary"), "the link-back rides the library save");
+  assert.ok(engine.includes("libraryEntryId"), "the slot stores a pointer to the entry");
+  assert.ok(!/status:\s*"drafted"/.test(engine), "no second status vocabulary");
 });

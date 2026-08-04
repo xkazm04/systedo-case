@@ -353,6 +353,7 @@ function SeoLine({ label, value, limit }: { label: string; value: string; limit:
 export default function ContentBriefGenerator({
   seed,
   onCreateAds,
+  onSavedToLibrary,
   restored,
 }: {
   seed?: BriefSeed | null;
@@ -360,6 +361,10 @@ export default function ContentBriefGenerator({
    *  finished brief; the parent switches to the ads tab and re-mounts the
    *  generator with the seed (mirrors the keywords → brief bridge). */
   onCreateAds?: (seed: Partial<AdRequest>) => void;
+  /** Fired with the library entry's id after a successful "save to library", so a
+   *  surface that OPENED this workspace from somewhere (e.g. a content-schedule
+   *  plan slot) can record which saved asset came out of it. */
+  onSavedToLibrary?: (entryId: string) => void;
   /** An entry restored from the project's saved content library: its form, brief
    *  and (when it has one) article draft are adopted as this workspace's current
    *  state — no request, no quota. A restored workspace uses SEPARATE localStorage
@@ -603,6 +608,7 @@ export default function ContentBriefGenerator({
                   project — see SaveToLibrary. */}
               <SaveToLibrary
                 projectId={project?.id}
+                onSaved={onSavedToLibrary}
                 payload={() => ({
                   form,
                   brief: r,

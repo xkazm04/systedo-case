@@ -59,6 +59,14 @@ export interface ContentPost {
   /** the channel reported the send failed; the slot falls back to `scheduled` so
    *  the board never shows a failure as a publish */
   channelFailed?: boolean;
+  /** ISO instant a generation was launched FROM this slot (the calendar seeded the
+   *  content engine). Marks the slot as work-in-progress rather than untouched. */
+  briefStartedAt?: string;
+  /** id of the saved-library entry produced from this slot — the link back from the
+   *  asset to the plan slot it came from. The asset itself lives in the project's
+   *  content library (lib/content-library), which is where generated briefs and
+   *  drafts already belong; the slot stores only the pointer. */
+  libraryEntryId?: string;
 }
 
 /** GBP-post idea templates ({service}/{area} are filled from the catalog). */

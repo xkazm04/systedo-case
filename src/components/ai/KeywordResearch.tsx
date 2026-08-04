@@ -133,6 +133,11 @@ export interface BriefSeed {
   topic: string;
   primaryKeyword: string;
   keywords: BriefKeyword[];
+  /** the content-schedule slot this seed came from, when the handoff started on
+   *  the plan (see lib/content-schedule/compute planSlotSeed). Carried through the
+   *  sessionStorage bridge so what the workspace produces can be linked BACK to the
+   *  slot the maker planned it in. */
+  planSlotId?: string;
 }
 
 const COMP_COLOR: Record<string, string> = {
