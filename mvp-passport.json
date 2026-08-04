@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04",
+  "generatedBy": "personas mvp",
+  "verdict": "no-go",
+  "noGoBlockers": [
+    "Production serves a ~47-day-old case-study build and /app returns 404; the Vercel Git integration has deployed nothing since mid-June. Operator: reconnect the integration (or vercel login + deploy), set prod env (AUTH_SECRET, FIREBASE_SERVICE_ACCOUNT, NEXT_PUBLIC_SITE_URL, SENTRY_DSN, GEMINI_API_KEY, RESEND_API_KEY names per docs/deploy.md), then re-run the smoke against prod."
+  ],
+  "phases": {
+    "P0": "green",
+    "P1": "green",
+    "P2": "partial",
+    "P3": "green",
+    "P4": "green",
+    "P5": "partial",
+    "P6": "partial"
+  },
+  "items": {
+    "value-case": { "level": "met", "tool": null, "skippedByChoice": false, "note": "docs/value-case.md: Sklik unification / grounded diagnostics / price vs named incumbents; Sklik live-account verification flagged as pre-launch must" },
+    "monetization": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Free during validation, recorded with revisit trigger (~10 organic activated projects); /cena reframed, plans machinery kept" },
+    "artifacts": { "level": "partial", "tool": "personas", "skippedByChoice": false, "note": "Map 857/857 verified, 117 unique contexts after dedupe, ids agree; use_cases lane + app-DB rename need the Personas bridge (down)" },
+    "milestone": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Ship bar set: SELLABLE (2026-08-04, resolving the 8-checkpoint deferral); journal Launch section live" },
+    "notes": { "level": "met", "tool": null, "skippedByChoice": false, "note": "ship-loop journal + 328-node outbox; no CHANGELOG by choice (journal is the record)" },
+    "fleet": { "level": "met", "tool": "personas", "skippedByChoice": false, "note": "Stale vibeman scaffold purged; AGENTS.md now a real conventions doc" },
+    "cicd": { "level": "met", "tool": "github-actions", "skippedByChoice": false, "ci": { "checks": true, "gating": true, "preview": false, "testDeploy": false, "prodPromotion": "blocked-on-vercel-reconnect", "mergeQueue": false }, "note": "First fully-green run 2026-08-04 after 5 weeks red (5 stacked causes fixed); branch protection requires both jobs" },
+    "deploy": { "level": "partial", "tool": "vercel", "skippedByChoice": false, "note": "Prod live but stale (mid-June build, /app 404) - Git integration disconnected; runbook at docs/deploy.md; migrate-N/A (Firestore schemaless + imperative sqlite)" },
+    "observability": { "level": "partial", "tool": "sentry", "skippedByChoice": false, "note": "Sentry wired errors-only, no-op safe; DSN value pending in Vercel. LLM telemetry already production-grade (cost, promptHash, LightTrack)" },
+    "code-quality": { "level": "met", "tool": null, "skippedByChoice": false, "note": "tsc 0, lint 0 errors in src, 2110 tests green; 99-component >200 LOC debt filed in docs/roadmap/component-debt.md" },
+    "auth": { "level": "met", "tool": "next-auth", "skippedByChoice": false, "note": "Google OAuth only (deliberate); both Auth.js criticals cleared; DEV_AUTH prod-gated + deploy-checklist line" },
+    "security": { "level": "met", "tool": null, "skippedByChoice": false, "note": "npm audit 0 (was 2 critical/5 high/1 moderate); headers + report-only CSP live; anonymous demo endpoints deliberate with metered spend ceiling" },
+    "design-system": { "level": "met", "tool": "tailwind", "skippedByChoice": false, "note": "Load-bearing DESIGN.md, token @theme, dark/light, visual-regression spec" },
+    "i18n": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Bilingual cs/en via colocated typed dicts; last hole (RankClimbDemo) closed; Czech slugs permanent by design" },
+    "onboarding": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Key-free labeled fallback for the scan step; external steps marked optional; first-run e2e covers land->signin->create->checklist" },
+    "feedback": { "level": "met", "tool": "resend", "skippedByChoice": false, "note": "Intake in both shells -> rate-limited /api/feedback -> dual store + email; works persisted-only if email env absent" },
+    "landing": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Signup-primary CTA, demo demoted to text link, Mionelo proof band explicitly labeled fictional" },
+    "seo": { "level": "met", "tool": null, "skippedByChoice": false, "note": "Metadata/OG/sitemap/robots from nav SSOT + tested; OG card de-case-studied; verify robots says production after redeploy" },
+    "legal": { "level": "met", "tool": null, "skippedByChoice": false, "note": "/ochrana-osobnich-udaju + /podminky document shipped behavior; no trackers so no consent banner; needed for Google OAuth verification" },
+    "analytics": { "level": "partial", "tool": null, "skippedByChoice": false, "note": "First-party counters (gate views, signup_completed, onboarding_activated) + honest readers; 2 of 3 funnel KPIs automated; operator surface still minimal" },
+    "launch-gate": { "level": "partial", "tool": "playwright", "skippedByChoice": false, "note": "CI full-green incl. first-run critical path; BASE_URL deploy-targetable; prod smoke blocked until the redeploy lands" }
+  }
+}
