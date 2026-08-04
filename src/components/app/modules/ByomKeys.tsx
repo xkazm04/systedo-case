@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check } from "@/components/icons";
-import { Pill } from "@/components/ui";
-import { useT } from "@/lib/i18n/client";
+import { Pill, TONE_TEXT } from "@/components/ui";
+import { useFormatters, useT } from "@/lib/i18n/client";
 import { useByomConfig } from "@/components/hooks/useByomConfig";
 import {
   BYOM_VENDORS,
   BYOM_VENDOR_LABELS,
+  isByomValidationStale,
   type ByomVendor,
   type PublicByomConfig,
 } from "@/lib/llm/keys/types";
@@ -28,6 +29,14 @@ const T = {
     connected: "Připojeno",
     notConnected: "Nepřipojeno",
     validated: "Ověřeno",
+    validatedStale: "Ověřeno dávno",
+    fingerprint: "Klíč …{last4}",
+    fingerprintTitle: "Poslední 4 znaky uloženého klíče — porovnejte je se seznamem klíčů u poskytovatele.",
+    fingerprintUnknown: "Klíč neidentifikovaný",
+    fingerprintUnknownTitle:
+      "Tento klíč byl uložen dřív, než jsme začali ukládat poslední 4 znaky. Klíč nikdy nedešifrujeme jen kvůli zobrazení — identifikaci uvidíte po nahrazení klíče.",
+    validatedAgo: "ověřeno {ago}",
+    validatedNever: "zatím neověřeno",
     keyLabel: "API klíč",
     keyPlaceholder: "vložte API klíč",
     connect: "Připojit",
@@ -62,6 +71,14 @@ const T = {
     connected: "Connected",
     notConnected: "Not connected",
     validated: "Verified",
+    validatedStale: "Verified long ago",
+    fingerprint: "Key …{last4}",
+    fingerprintTitle: "The last 4 characters of the stored key — match them against your provider's key list.",
+    fingerprintUnknown: "Key unidentified",
+    fingerprintUnknownTitle:
+      "This key was stored before we began keeping its last 4 characters. We never decrypt a key just to display it — replace the key to make it identifiable.",
+    validatedAgo: "verified {ago}",
+    validatedNever: "not verified yet",
     keyLabel: "API key",
     keyPlaceholder: "paste API key",
     connect: "Connect",
@@ -103,6 +120,7 @@ type ModelDraft = { model: string; fastModel: string };
 
 export default function ByomKeys() {
   const t = useT(T);
+  const fmt = useFormatters();
   const { status, state, patch, retry } = useByomConfig();
   const [keyDraft, setKeyDraft] = useState<Partial<Record<ByomVendor, string>>>({});
   const [showKeyInput, setShowKeyInput] = useState<Partial<Record<ByomVendor, boolean>>>({});
@@ -253,6 +271,10 @@ export default function ByomKeys() {
             const isActive = state.config.activeVendor === vendor;
             const md = modelDraft[vendor] ?? { model: "", fastModel: "" };
             const vNotice = notice?.vendor === vendor ? notice : null;
+            // A validation stamp older than the staleness window is no longer a live
+            // verdict — say so instead of showing the same green "Verified" a probe
+            // two minutes ago would earn.
+            const stale = isByomValidationStale(key?.lastValidatedAt);
 
             return (
               <div key={vendor} className={`card p-5 ${isActive ? "ring-2 ring-brand-300" : ""}`}>
@@ -263,7 +285,9 @@ export default function ByomKeys() {
                       isActive ? (
                         <Pill tone="brand">{t("active")}</Pill>
                       ) : key.lastValidatedAt ? (
-                        <Pill tone="positive">{t("validated")}</Pill>
+                        <Pill tone={stale ? "coral" : "positive"}>
+                          {stale ? t("validatedStale") : t("validated")}
+                        </Pill>
                       ) : (
                         <Pill tone="neutral">{t("connected")}</Pill>
                       )
@@ -283,6 +307,31 @@ export default function ByomKeys() {
                   )}
                   {isActive && <Check width={18} height={18} className="text-brand-accent" />}
                 </div>
+
+                {/* Which key is this, and how old is the verdict on it? Both are
+                    metadata the server already holds — the fingerprint is stored at
+                    encrypt time, never derived by decrypting on read. */}
+                {key && (
+                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                    {key.keyLast4 ? (
+                      <span title={t("fingerprintTitle")} className="font-mono tracking-tight">
+                        {t("fingerprint", { last4: key.keyLast4 })}
+                      </span>
+                    ) : (
+                      <span title={t("fingerprintUnknownTitle")} className="italic">
+                        {t("fingerprintUnknown")}
+                      </span>
+                    )}
+                    <span aria-hidden="true">·</span>
+                    {key.lastValidatedAt ? (
+                      <span className={stale ? TONE_TEXT.coral : undefined}>
+                        {t("validatedAgo", { ago: fmt.fmtRelative(key.lastValidatedAt) })}
+                      </span>
+                    ) : (
+                      <span>{t("validatedNever")}</span>
+                    )}
+                  </p>
+                )}
 
                 {/* No key yet, or replacing one → the key input. */}
                 {(!key || showKeyInput[vendor]) && (

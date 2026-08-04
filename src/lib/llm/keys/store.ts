@@ -5,7 +5,7 @@
  *  decrypted key never leaves the server except through `resolveByomForOperation`
  *  (the call-time seam). Server-only. */
 import { LOCAL_DB } from "@/lib/local-mode";
-import { decryptByomKey, encryptByomKey, hasByomCrypto } from "./crypto";
+import { byomKeyFingerprint, decryptByomKey, encryptByomKey, hasByomCrypto } from "./crypto";
 import {
   publicByomConfig,
   type ByomOperationOverride,
@@ -52,10 +52,16 @@ export async function putByomKey(userId: string, vendor: ByomVendor, plaintextKe
   // Encrypt OUTSIDE the transaction: the mutator may run more than once on write
   // contention, and encryption uses a random IV (a fresh blob each call).
   const keyEnc = encryptByomKey(plaintextKey);
+  // Fingerprint the plaintext HERE, the one moment we legitimately hold it, and store
+  // it beside the blob. The read paths must never decrypt just to label a key.
+  const keyLast4 = byomKeyFingerprint(plaintextKey);
   await mutate(userId, (cfg) => {
     const existing = cfg.keys[vendor];
     cfg.keys[vendor] = {
       keyEnc,
+      // A re-key REPLACES the fingerprint (and drops a previous one when the new key
+      // is too short to fingerprint) — it must never describe the old key.
+      ...(keyLast4 ? { keyLast4 } : {}),
       ...(existing?.model ? { model: existing.model } : {}),
       ...(existing?.fastModel ? { fastModel: existing.fastModel } : {}),
       addedAt: existing?.addedAt ?? new Date().toISOString(),

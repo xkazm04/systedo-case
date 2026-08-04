@@ -148,6 +148,11 @@ export const BYOM_OPERATION_LABELS: Record<SupportedLocale, Record<string, strin
  *  connection store so the UI can show "last checked OK" / "last error". */
 export interface StoredByomKey {
   keyEnc: string;
+  /** Display fingerprint (last 4 characters), computed at ENCRYPT time by
+   *  `byomKeyFingerprint` and stored next to the blob. Absent on keys stored before
+   *  fingerprinting shipped — such a key stays unidentified until it is replaced;
+   *  it is NEVER backfilled by decrypting on read. */
+  keyLast4?: string;
   /** chosen model for the quality tier (vendor default when absent) */
   model?: string;
   /** optional fast-tier model override */
@@ -174,6 +179,10 @@ export interface StoredByomConfig {
 export interface PublicByomKey {
   vendor: ByomVendor;
   hasKey: true;
+  /** The last 4 characters of the stored key, so the user can tell WHICH key is
+   *  connected without re-pasting it. The ONLY key-derived value that ever crosses
+   *  the wire; absent for keys stored before fingerprinting (the UI says so). */
+  keyLast4?: string;
   model?: string;
   fastModel?: string;
   addedAt: string;
@@ -200,6 +209,9 @@ export function publicByomConfig(c: StoredByomConfig): PublicByomConfig {
     keys.push({
       vendor,
       hasKey: true,
+      // The stored fingerprint is passed through verbatim; it is never derived here
+      // (deriving it would mean decrypting the key on every settings read).
+      ...(k.keyLast4 ? { keyLast4: k.keyLast4 } : {}),
       ...(k.model ? { model: k.model } : {}),
       ...(k.fastModel ? { fastModel: k.fastModel } : {}),
       addedAt: k.addedAt,
@@ -213,6 +225,21 @@ export function publicByomConfig(c: StoredByomConfig): PublicByomConfig {
     keys,
     ...(c.operations && Object.keys(c.operations).length ? { operations: c.operations } : {}),
   };
+}
+
+/** How old a successful validation may be before the UI stops presenting it as a
+ *  live "Verified" claim. A BYOM key is revocable at the provider at any time and
+ *  `markByomValidation`'s transient guard deliberately preserves an old verdict
+ *  through provider blips, so a stamp of unbounded age is evidence of nothing. */
+export const BYOM_VALIDATION_STALE_DAYS = 30;
+
+/** Whether a validation stamp is too old to still be shown as a live verdict.
+ *  Pure (injectable `now`) so it is testable and identical on both sides. */
+export function isByomValidationStale(lastValidatedAt: string | undefined, now: Date = new Date()): boolean {
+  if (!lastValidatedAt) return false; // "never validated" is a different state, not stale
+  const at = Date.parse(lastValidatedAt);
+  if (!Number.isFinite(at)) return true; // unparseable stamp proves nothing
+  return now.getTime() - at > BYOM_VALIDATION_STALE_DAYS * 86_400_000;
 }
 
 /** A decrypted, ready-to-use key — server-only, never serialized to a client.

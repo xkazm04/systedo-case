@@ -48,6 +48,27 @@ export function encryptByomKey(plain: string): string {
   return `v1.${iv.toString("base64")}.${tag.toString("base64")}.${ct.toString("base64")}`;
 }
 
+/** The number of trailing characters kept as a stored key's fingerprint. */
+export const BYOM_FINGERPRINT_CHARS = 4;
+
+/** Shortest plaintext we will fingerprint at all. Every real provider key is far
+ *  longer (sk-…, AIza…, sk-ant-…); refusing to fingerprint a short string keeps the
+ *  hint from ever being a meaningful FRACTION of the secret. */
+const MIN_FINGERPRINTABLE = 12;
+
+/** A non-reversible display fingerprint for a key, computed ONCE at encrypt time and
+ *  stored next to the ciphertext — so the settings UI can say WHICH key is connected
+ *  without the server ever decrypting on read. Deliberately only the last four
+ *  characters: enough to match against the provider's own dashboard listing, useless
+ *  to an attacker who has the fingerprint (it is the same suffix every provider
+ *  already prints in the clear). Returns undefined for anything too short to hint at
+ *  safely — the caller then stores no fingerprint at all rather than a weak one. */
+export function byomKeyFingerprint(plain: string): string | undefined {
+  const s = plain.trim();
+  if (s.length < MIN_FINGERPRINTABLE) return undefined;
+  return s.slice(-BYOM_FINGERPRINT_CHARS);
+}
+
 /** Decrypt a blob produced by encryptByomKey. Returns null on a missing key, bad
  *  format, or a failed auth tag (tamper) — never throws. */
 export function decryptByomKey(blob: string): string | null {
