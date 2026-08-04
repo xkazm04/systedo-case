@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ComponentType, SVGProps } from "react";
 import { Bolt, Document, Gauge, Image as ImageIcon, Layers, Search } from "@/components/icons";
-import type { AdRequest, AiMode } from "@/lib/ai-types";
+import type { AiMode } from "@/lib/ai-types";
 import { useT } from "@/lib/i18n/client";
 import AdGenerator from "./AdGenerator";
 import AdExperiments from "./AdExperiments";
@@ -11,6 +11,7 @@ import AiPreflight from "./AiPreflight";
 import KeywordResearch, { type BriefSeed } from "./KeywordResearch";
 import SavedKeywordLists from "./SavedKeywordLists";
 import ContentBriefGenerator from "./ContentBriefGenerator";
+import { useBriefToAdsHandoff } from "./useBriefToAds";
 import ContentPipeline from "./ContentPipeline";
 import PerformanceAnalyst from "./PerformanceAnalyst";
 import CreativeStudio from "./CreativeStudio";
@@ -89,11 +90,6 @@ export default function AiAssistant() {
   // brief tool re-apply the seed even if the same selection is sent twice.
   const [briefSeed, setBriefSeed] = useState<BriefSeed | null>(null);
   const [briefNonce, setBriefNonce] = useState(0);
-  // Brief → ads handoff: the finished brief seeds the PPC ad generator (same
-  // seed + nonce + tab-switch pattern), completing the research → content →
-  // performance loop without retyping the topic/audience/benefits.
-  const [adSeed, setAdSeed] = useState<Partial<AdRequest> | null>(null);
-  const [adNonce, setAdNonce] = useState(0);
   // Bumped when a keyword list is saved, so the saved-lists panel reloads.
   const [savedNonce, setSavedNonce] = useState(0);
   // Bumped when an A/B variant is saved, so the experiments panel reloads.
@@ -132,11 +128,12 @@ export default function AiAssistant() {
     selectTab("brief");
   };
 
-  const handleCreateAds = (seed: Partial<AdRequest>) => {
-    setAdSeed(seed);
-    setAdNonce((n) => n + 1);
-    selectTab("ads");
-  };
+  // Brief → ads handoff: the finished brief seeds the PPC ad generator, completing
+  // the research → content → performance loop without retyping the topic/audience/
+  // benefits. The seed + nonce + callback live in the SHARED hook, so this surface
+  // and the project's Tvorba (ContentEngine) cannot drift apart; all this surface
+  // adds is its own reveal — switching to the ads tab.
+  const ads = useBriefToAdsHandoff(() => selectTab("ads"));
 
   // WAI-ARIA tabs pattern: the roles below promise arrow-key navigation, so
   // deliver it — roving tabIndex (one tab stop for the whole strip) plus
@@ -230,8 +227,8 @@ export default function AiAssistant() {
         <div {...panelProps("ads", tab)}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}
           <AdGenerator
-            key={`ads-${adNonce}`}
-            seed={adSeed}
+            key={`ads-${ads.nonce}`}
+            seed={ads.seed}
             onVariantSaved={() => setExperimentNonce((n) => n + 1)}
           />
           <AdExperiments refreshKey={experimentNonce} />
@@ -245,7 +242,7 @@ export default function AiAssistant() {
         </div>
         <div {...panelProps("brief", tab)}>
           {/* re-mount on each handoff so a new seed prefills via lazy init */}
-          <ContentBriefGenerator key={`brief-${briefNonce}`} seed={briefSeed} onCreateAds={handleCreateAds} />
+          <ContentBriefGenerator key={`brief-${briefNonce}`} seed={briefSeed} onCreateAds={ads.onCreateAds} />
         </div>
         <div {...panelProps("analysis", tab)}>
           <PerformanceAnalyst />

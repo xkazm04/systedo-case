@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowRight,
@@ -17,6 +17,7 @@ import Modal from "@/components/app/Modal";
 import NextSteps from "@/components/app/NextSteps";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
+import { useBriefToAdsHandoff } from "@/components/ai/useBriefToAds";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { isModuleAvailable } from "@/lib/projects/modules";
@@ -34,6 +35,9 @@ const ClusterBuilder = dynamic(() => import("@/components/app/modules/ClusterBui
   loading: () => <SectionSkeleton height="h-72" />,
 });
 const ContentBriefGenerator = dynamic(() => import("@/components/ai/ContentBriefGenerator"), {
+  loading: () => <SectionSkeleton height="h-96" />,
+});
+const AdGenerator = dynamic(() => import("@/components/ai/AdGenerator"), {
   loading: () => <SectionSkeleton height="h-96" />,
 });
 
@@ -86,6 +90,7 @@ const T = {
     wsFromCluster: "Obsah pro klastr „{topic}“",
     wsRefresh: "Obnova článku „{title}“",
     wsSeeded: "Obsahový brief",
+    wsAds: "PPC inzeráty z briefu",
     // next steps
     stepDistribute: "Distribuovat",
     stepDistributeHint: "Rozšířit hotový článek na sítě a newsletter",
@@ -140,6 +145,7 @@ const T = {
     wsFromCluster: "Content for the “{topic}” cluster",
     wsRefresh: "Refresh of “{title}”",
     wsSeeded: "Content brief",
+    wsAds: "PPC ads from the brief",
     stepDistribute: "Distribute",
     stepDistributeHint: "Push the finished article to social and newsletter",
     stepSocial: "Social media",
@@ -201,6 +207,20 @@ export default function ContentEngine({
   const decaying = useMemo(() => decayingPosts(decay), [decay]);
 
   const [ws, setWs] = useState<Workspace | null>(null);
+  // Brief → ads, on the SAME shared wiring the standalone assistant uses: the
+  // finished brief hands `briefToAdSeed`'s output over and the ad generator opens
+  // seeded, so a maker never has to leave their project to turn a brief into ads.
+  const [adsOpen, setAdsOpen] = useState(false);
+  // The assistant reveals the ad tool by switching tab; here the reveal is the
+  // modal. The brief workspace closes as it hands over — one layer-2 surface at a
+  // time — and its brief/draft is restored from the workspace's own persistence
+  // when it is reopened, so nothing is lost by the swap.
+  const ads = useBriefToAdsHandoff(
+    useCallback(() => {
+      setWs(null);
+      setAdsOpen(true);
+    }, [])
+  );
   const [cluster, setCluster] = useState<ClusterStat | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
 
@@ -454,7 +474,12 @@ export default function ContentEngine({
 
       {/* ---- Content workspace: brief → article draft (layer 2 / "Add") ---- */}
       <Modal open={ws !== null} onClose={() => setWs(null)} size="full" title={ws?.title}>
-        {ws && <ContentBriefGenerator key={ws.nonce} seed={ws.seed} />}
+        {ws && <ContentBriefGenerator key={ws.nonce} seed={ws.seed} onCreateAds={ads.onCreateAds} />}
+      </Modal>
+
+      {/* ---- Brief → ads (layer 2): the handoff's landing surface ---- */}
+      <Modal open={adsOpen} onClose={() => setAdsOpen(false)} size="full" title={t("wsAds")}>
+        {adsOpen && <AdGenerator key={ads.nonce} seed={ads.seed} />}
       </Modal>
     </div>
   );

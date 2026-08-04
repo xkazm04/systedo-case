@@ -2,6 +2,7 @@
  *  brief → PPC-ads seed mapping and the no-mid-item length-capped join. */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { AD_SEED_LIMITS, briefToAdSeed, joinWithinLimit } from "@/lib/ai/handoff";
 import { AD_FIELD_LIMITS } from "@/lib/ai/field-limits";
 import { validateAdRequest } from "@/lib/ai/validation";
@@ -81,4 +82,48 @@ test("briefToAdSeed respects the server-side field caps", () => {
   assert.equal(seed.product.length, AD_SEED_LIMITS.product);
   assert.equal(seed.audience.length, AD_SEED_LIMITS.audience);
   assert.equal(seed.benefits.length, AD_SEED_LIMITS.benefits);
+});
+
+// ── the handoff is wired at BOTH mount points, through one shared wiring ──────
+
+/** `onCreateAds` was real, tested and offered by ContentBriefGenerator — but only
+ *  the standalone /ai-asistent surface ever passed it, so the project's own Tvorba
+ *  could not take a maker from brief to ad without leaving the project. Both mounts
+ *  now consume the SAME hook (components/ai/useBriefToAds), which is what stops
+ *  them drifting into two different handoffs again. Source-level, because "the prop
+ *  is passed at this mount point" is a property of the source. */
+const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
+
+test("both brief mount points wire onCreateAds from the shared hook", () => {
+  const mounts = {
+    "standalone assistant": read("../src/components/ai/AiAssistant.tsx"),
+    "project content engine": read("../src/components/app/modules/ContentEngine.tsx"),
+  };
+  for (const [name, src] of Object.entries(mounts)) {
+    assert.ok(/useBriefToAdsHandoff/.test(src), `${name} uses the shared hook`);
+    assert.ok(
+      /<ContentBriefGenerator[^>]*onCreateAds=\{ads\.onCreateAds\}/s.test(src),
+      `${name} passes the shared callback to ContentBriefGenerator`
+    );
+    assert.ok(
+      /<AdGenerator[\s\S]{0,200}seed=\{ads\.seed\}/.test(src),
+      `${name} lands the handoff on AdGenerator with the shared seed`
+    );
+    assert.ok(/key=\{[^}]*ads\.nonce[^}]*\}/.test(src), `${name} re-keys on the shared nonce`);
+  }
+});
+
+test("there is exactly one brief → ads bridge", () => {
+  // briefToAdSeed is called at ContentBriefGenerator's single call site; no mount
+  // point may map a brief onto an AdRequest itself.
+  for (const rel of [
+    "../src/components/ai/AiAssistant.tsx",
+    "../src/components/app/modules/ContentEngine.tsx",
+    "../src/components/ai/useBriefToAds.ts",
+  ]) {
+    assert.ok(!/briefToAdSeed\(/.test(read(rel)), `${rel} must not re-map the brief`);
+  }
+  const generator = read("../src/components/ai/ContentBriefGenerator.tsx");
+  assert.equal((generator.match(/briefToAdSeed\(/g) ?? []).length, 1);
+  assert.ok(generator.includes('from "@/lib/ai/handoff"'), "the bridge stays in lib/ai/handoff");
 });
