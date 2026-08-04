@@ -137,10 +137,12 @@ export const localTenantStore: TenantDocStore = {
     const dir = orderBy.dir === "desc" ? "DESC" : "ASC";
     // json_extract gives numeric affinity for a number field (position) and text
     // for an ISO string (created_at) → same ordering a Firestore orderBy yields.
+    // rowid tie-breaks equal keys (two saves in the same millisecond share an ISO
+    // createdAt) so "newest first" stays deterministic: later insert wins.
     const rows = getDb()
       .prepare(
         `SELECT data FROM campaign_docs WHERE tenant = ? AND collection = ?
-         ORDER BY json_extract(data, ?) ${dir}`
+         ORDER BY json_extract(data, ?) ${dir}, rowid ${dir}`
       )
       .all(tenant, collection, `$.${orderBy.field}`) as { data: string }[];
     return rows.map((r) => JSON.parse(r.data) as DocData);
