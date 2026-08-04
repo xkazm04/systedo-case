@@ -98,8 +98,11 @@ next-env.d.ts
 .impeccable/live/*.png
 # impeccable-ignore-end
 
-# KPI simulation runs (local artifacts, ingested by Personas)
-kpi-sim/
+# KPI simulation runs (local artifacts, ingested by Personas). The KPI
+# DEFINITIONS snapshot is tracked — it is the product's KPI contract — while the
+# per-run artifacts stay local.
+kpi-sim/*
+!kpi-sim/snapshot.json
 
 # Personas app local state (outbox + registered-context list)
 .personas/
