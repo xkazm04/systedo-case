@@ -12,14 +12,27 @@ import { test, expect, type Page } from "@playwright/test";
  * Run:  npm run test:e2e -- kampane-triage
  */
 
-/** Land on the table, syncing the sample data first if this is a fresh DB. */
+/** Land on the table, syncing the sample data first if this is a fresh DB.
+ *
+ *  Cold-start ordering matters here: the page first renders a loading skeleton
+ *  while the initial GET /api/campaigns resolves — seconds on a cold server
+ *  that is compiling the route (a fresh CI runner, a first local run). The old
+ *  instant `sync.isVisible()` check raced that skeleton: it returned false
+ *  before the empty state had ever rendered, the click never happened, and the
+ *  spec then timed out waiting for a table nobody asked to sync (verified cold:
+ *  button count is 0 at that instant and no POST ever fires). So wait for the
+ *  page to reach one of its two terminal states — empty state (fresh DB) or
+ *  table (already synced) — before deciding whether to click. */
 async function ensureSynced(page: Page) {
   await page.goto("/kampane");
   const sync = page.getByRole("button", { name: "Synchronizovat z Google Ads" });
-  if (await sync.isVisible().catch(() => false)) {
+  const header = page.getByRole("columnheader", { name: "Priorita" });
+  await expect(sync.or(header).first()).toBeVisible({ timeout: 30_000 });
+  if (await sync.isVisible()) {
     await sync.click();
   }
-  await expect(page.getByRole("columnheader", { name: "Priorita" })).toBeVisible();
+  // 30s: the sync POST also cold-compiles its route handler on a fresh server.
+  await expect(header).toBeVisible({ timeout: 30_000 });
 }
 
 test.describe("/kampane — triage", () => {

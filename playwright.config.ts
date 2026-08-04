@@ -70,6 +70,12 @@ export default defineConfig({
             // run (DEV_AUTH=false) still works — first-run's authed tests then
             // self-skip on the sign-in gate.
             DEV_AUTH: process.env.DEV_AUTH ?? "true",
+            // Auth.js refuses to run without a secret (MissingSecret +
+            // ClientFetchError noise on every useSession poll) on a machine with
+            // no .env.local — e.g. a CI runner. Any non-empty value quiets it;
+            // nothing here signs real sessions (DEV_AUTH bypasses them and
+            // production deployments bring their own secret).
+            AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-only-secret",
           },
         },
       }),
