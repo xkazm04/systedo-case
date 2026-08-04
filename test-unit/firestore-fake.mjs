@@ -14,9 +14,24 @@ const docs = new Map();
 /** Serializes runTransaction callbacks (see `firestore.runTransaction`). */
 let txChain = Promise.resolve();
 
-/** Wipe every stored document — call between tests. */
+/** When false, `runTransaction` rejects — the fake's stand-in for "Firestore is
+ *  unavailable". Callers that document a degraded branch for that case (e.g.
+ *  `durableGuard`, which falls back to the per-process sqlite limiter) can then
+ *  exercise it EXPLICITLY, instead of relying on the fake happening to lack the
+ *  method. Default true: a transaction-using store gets real serialized semantics. */
+let txAvailable = true;
+
+/** Model Firestore being reachable (`true`) or not (`false`) for transactions.
+ *  Set it before the code under test runs; `resetFirestore()` restores the default. */
+export function setFirestoreTransactionsAvailable(available) {
+  txAvailable = available;
+}
+
+/** Wipe every stored document — call between tests. Also restores transaction
+ *  availability, so one test's simulated outage can't leak into the next. */
 export function resetFirestore() {
   docs.clear();
+  txAvailable = true;
 }
 
 /** The raw store, for assertions about HOW a backend laid data out. */
@@ -74,6 +89,9 @@ export const firestore = {
    *  swap here mean something — a writer that started from stale bytes finds them
    *  changed and loses, instead of silently overwriting the winner. */
   runTransaction(fn) {
+    // Simulated outage: reject the way an unreachable Firestore would, so a caller
+    // with a documented degraded path takes it (see setFirestoreTransactionsAvailable).
+    if (!txAvailable) return Promise.reject(new Error("fake firestore: transactions unavailable"));
     const run = txChain.then(() =>
       fn({
         async get(ref) {

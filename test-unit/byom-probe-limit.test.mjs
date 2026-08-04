@@ -3,11 +3,15 @@
  *  Both are REAL provider-call surfaces that were protected by the entitlement
  *  alone, i.e. unbounded: usable as a free provider probe.
  *
- *  `@/lib/firebase` is swapped for the in-memory fake, which deliberately has no
- *  `runTransaction` — so `durableGuard` takes its documented "Firestore
- *  unavailable" branch and falls back to the local sqlite limiter. That is exactly
- *  the path a dev/self-hosted deployment runs, and it makes the decision
- *  deterministic here without a network round-trip.
+ *  `@/lib/firebase` is swapped for the in-memory fake, and transactions are switched
+ *  OFF on it — so `durableGuard` takes its documented "Firestore unavailable" branch
+ *  and falls back to the local sqlite limiter. That is exactly the path a
+ *  dev/self-hosted deployment runs, and it makes the decision deterministic here
+ *  without a network round-trip.
+ *
+ *  (This used to rely on the fake simply not HAVING `runTransaction`. It since grew
+ *  one — real serialized semantics, for the project-state compare-and-swap — so the
+ *  degraded branch is now selected explicitly rather than by absence.)
  *
  *  Pins: the floor engages after the configured cap, answers with the shared
  *  `rate_limited` 429 envelope the settings UI localizes, is per-USER (not per-IP),
@@ -17,6 +21,9 @@ import assert from "node:assert/strict";
 import { register } from "node:module";
 
 register("./firestore-fake-hook.mjs", import.meta.url);
+
+const { setFirestoreTransactionsAvailable } = await import("./firestore-fake.mjs");
+setFirestoreTransactionsAvailable(false);
 
 const { guardByomProbe, BYOM_PROBE_RATE } = await import("@/app/api/byom/probe-guard");
 const { getDb } = await import("@/lib/db");
