@@ -180,17 +180,40 @@ export interface ByomKeyIncident {
   /** ByomUserErrorCode when `definitive`, else the LlmCallError code ("unknown"
    *  for an unclassified throw). The UI localizes from this, not from `message`. */
   code: string;
-  /** the provider/adapter's own (Czech, display) copy — a fallback for a code the
-   *  UI has no string for, and the detail an operator needs in a support thread */
+  /** APP-AUTHORED copy only — never a provider's raw error text. See
+   *  `byomIncidentFor` (keys/health.ts) for how this is chosen: a definitive
+   *  incident carries the `ByomUserError` message (built by `classifyByomHttp` from
+   *  app constants), a transient one carries this module's own
+   *  BYOM_INCIDENT_REASONS copy for the code. It is the fallback the UI renders for
+   *  a code with no localized string; `code` is the primary. */
   message: string;
   /** true ⇒ a user fault that also stamps `lastError`; false ⇒ transient/inconclusive */
   definitive: boolean;
+  /** OPERATOR-ONLY crumb from the underlying error: the ONE field that can derive
+   *  from provider-controlled text, so it is sanitized on the way in (key-shaped
+   *  runs redacted, hard-capped at BYOM_INCIDENT_DETAIL_CHARS) and STRIPPED by
+   *  `publicByomConfig` — it never crosses the wire and nothing user-visible
+   *  depends on it. Absent when the error carried nothing beyond its code. */
+  detail?: string;
 }
+
+/** The client-safe view of an incident: everything except the operator-only
+ *  `detail`. Splitting the shape (rather than trusting a sanitizer) is what makes
+ *  "no provider-controlled text reaches the client" a type-level guarantee. */
+export type PublicByomIncident = Omit<ByomKeyIncident, "detail">;
 
 /** How many incidents we keep per vendor key. A short ring: enough to show a
  *  pattern ("three operations failed with `auth` in the last hour") without
  *  turning the config doc into an unbounded log. */
 export const BYOM_INCIDENT_LIMIT = 5;
+
+/** Hard cap on an incident's operator-only `detail`. Deliberately tiny: the
+ *  adapters build their transient messages as
+ *  `Poskytovatel X selhal (HTTP 500). ${body.slice(0, 200)}` — 200 characters of
+ *  RAW, provider-controlled response body. That must not be persisted verbatim, so
+ *  the crumb we do keep is capped to roughly "enough to recognise the failure in a
+ *  support thread" and nothing more. */
+export const BYOM_INCIDENT_DETAIL_CHARS = 60;
 
 /** Localized copy for an incident `code`, as a colocated {cs, en} table so the
  *  settings UI renders it through the same `useT()` pipeline as everything else
@@ -284,10 +307,10 @@ export interface PublicByomKey {
   addedAt: string;
   lastValidatedAt?: string;
   lastError?: string;
-  /** failures seen during real generations (newest first) — pure metadata, no key
-   *  material, so it crosses the wire and the settings UI can explain WHICH
-   *  operations failed and why without the user pressing "test". */
-  incidents?: ByomKeyIncident[];
+  /** failures seen during real generations (newest first), minus the operator-only
+   *  `detail` — a tool id, a code and app-authored copy, so the settings UI can
+   *  explain WHICH operations failed and why without the user pressing "test". */
+  incidents?: PublicByomIncident[];
 }
 
 export interface PublicByomConfig {
@@ -297,6 +320,13 @@ export interface PublicByomConfig {
   keys: PublicByomKey[];
   /** the per-operation matrix (toolId → assignment) — no secrets, safe to expose */
   operations?: Record<string, ByomOperationOverride>;
+}
+
+/** Drop an incident's operator-only `detail` — the only field that can derive from
+ *  provider-controlled text. Explicit field-by-field construction (not a spread +
+ *  delete) so a field added to the stored shape has to be opted IN to the wire. */
+function publicByomIncident(i: ByomKeyIncident): PublicByomIncident {
+  return { at: i.at, toolId: i.toolId, code: i.code, message: i.message, definitive: i.definitive };
 }
 
 /** Strip every secret from a stored config for the client. `activeVendor` is only
@@ -317,9 +347,12 @@ export function publicByomConfig(c: StoredByomConfig): PublicByomConfig {
       addedAt: k.addedAt,
       ...(k.lastValidatedAt ? { lastValidatedAt: k.lastValidatedAt } : {}),
       ...(k.lastError ? { lastError: k.lastError } : {}),
-      // Incidents are already secret-free by construction (a tool id, a code, the
-      // provider's display copy) — passed through verbatim, capped by the writer.
-      ...(k.incidents?.length ? { incidents: k.incidents } : {}),
+      // Incidents are NOT passed through verbatim. `at`/`toolId`/`code`/`message`
+      // are app-authored by construction (see ByomKeyIncident), but `detail` is the
+      // one field derived from provider-controlled response text — so it is dropped
+      // here, exactly like keyEnc. This is the wire boundary: what the client sees
+      // is app copy plus a code, never a third party's bytes.
+      ...(k.incidents?.length ? { incidents: k.incidents.map(publicByomIncident) } : {}),
     });
   }
   const activeVendor = c.activeVendor && c.keys[c.activeVendor] ? c.activeVendor : undefined;

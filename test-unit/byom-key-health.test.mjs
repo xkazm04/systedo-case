@@ -33,10 +33,11 @@ process.env.BYOM_KEY_SECRET = "unit-test-byom-secret-please-ignore";
 register("./json-loader.mjs", import.meta.url);
 
 const { ByomUserError, LlmCallError } = await import("@/lib/llm/errors");
-const { byomIncidentFor, reportByomCallFailure } = await import("@/lib/llm/keys/health");
-const { BYOM_INCIDENT_LIMIT, BYOM_INCIDENT_REASONS, publicByomConfig } = await import(
-  "@/lib/llm/keys/types"
+const { byomIncidentDetail, byomIncidentFor, redactKeyShaped, reportByomCallFailure } = await import(
+  "@/lib/llm/keys/health"
 );
+const { BYOM_INCIDENT_DETAIL_CHARS, BYOM_INCIDENT_LIMIT, BYOM_INCIDENT_REASONS, publicByomConfig } =
+  await import("@/lib/llm/keys/types");
 const { getPublicByomConfig, putByomKey, recordByomKeyFailure, resolveByomForOperation } =
   await import("@/lib/llm/keys/store");
 const { getByomConfig } = await import("@/lib/llm/keys/store.local.ts");
@@ -72,10 +73,109 @@ test("byomIncidentFor: an unclassified throw is conservatively transient", () =>
   const inc = byomIncidentFor("brief", new Error("boom"));
   assert.equal(inc.definitive, false);
   assert.equal(inc.code, "unknown");
-  assert.equal(inc.message, "boom");
+  // The MESSAGE is app copy, not the raw throw — the raw text only survives as the
+  // operator-only detail.
+  assert.equal(inc.message, BYOM_INCIDENT_REASONS.cs.unknown);
+  assert.equal(inc.detail, "boom");
   const inc2 = byomIncidentFor("brief", "weird");
   assert.equal(inc2.definitive, false);
   assert.equal(inc2.code, "unknown");
+  assert.equal(inc2.detail, undefined);
+});
+
+// ── provider-controlled text must never be persisted or shipped ──────────────
+//
+// The adapters build transient messages as `Poskytovatel X selhal (HTTP 500).
+// ${body.slice(0, 200)}` — 200 characters of RAW provider response body. An
+// incident is scoped to the key's own owner, so this was never a cross-user leak,
+// but unbounded third-party text has no business in a config document or in the
+// settings panel, and a key echoed back in an error body must not be stored.
+
+test("redactKeyShaped: key-shaped runs are removed, ordinary copy is untouched", () => {
+  assert.equal(redactKeyShaped("sk-live-abcdefghijkl").includes("abcdefghijkl"), false);
+  assert.equal(redactKeyShaped("AIzaSyD-9kLmNoPqRsTuVwXyZ0123").includes("AIzaSy"), false);
+  assert.equal(redactKeyShaped("ghp_0123456789abcdef").includes("0123456789"), false);
+  // A long opaque run of unknown shape (what an echoed credential looks like).
+  const opaque = "Zm9vYmFyYmF6cXV4MTIzNDU2Nzg5MA";
+  assert.equal(redactKeyShaped(`token=${opaque}`).includes(opaque), false);
+
+  // ...and it is a no-op on our own copy + on catalog model ids.
+  for (const safe of [
+    "Neplatný nebo chybějící API klíč (openai).",
+    "The provider account is out of credit or over its limit.",
+    "gemini-3.1-flash-lite",
+    "deepseek/deepseek-v4-flash",
+    "claude-haiku-4-5",
+  ]) {
+    assert.equal(redactKeyShaped(safe), safe, safe);
+  }
+});
+
+test("byomIncidentDetail: collapsed, redacted and hard-capped", () => {
+  assert.equal(byomIncidentDetail(undefined), undefined);
+  assert.equal(byomIncidentDetail("   "), undefined);
+  assert.equal(byomIncidentDetail("a\n  b\tc"), "a b c");
+  const long = byomIncidentDetail("x".repeat(500));
+  assert.ok(long.length <= BYOM_INCIDENT_DETAIL_CHARS, `detail was ${long.length} chars`);
+  assert.ok(BYOM_INCIDENT_DETAIL_CHARS < 200, "must be far below the adapters' 200-char body slice");
+});
+
+test("a provider body that echoes a key never reaches the store or the wire", async () => {
+  const uid = "byom-health-leak";
+  await putByomKey(uid, "openrouter", KEY);
+
+  // Exactly the shape adapters.ts builds: app prefix + raw provider body, here with
+  // a credential echoed back in it (the realistic worst case).
+  const leaked = "sk-live-openai-SECRET-tail-9Q7z";
+  const err = new LlmCallError(
+    "server",
+    `Poskytovatel openrouter selhal (HTTP 401). {"error":{"message":"Incorrect API key provided: ${leaked}. Visit https://openrouter.ai/keys to check.","type":"invalid_request_error","param":null,"code":"invalid_api_key"}}`
+  );
+
+  const inc = byomIncidentFor("social", err);
+  assert.equal(inc.message, BYOM_INCIDENT_REASONS.cs.server, "message must be app copy, not the body");
+  assert.equal(JSON.stringify(inc).includes(leaked), false, "the incident must not carry the key");
+  assert.equal(JSON.stringify(inc).includes("9Q7z"), false);
+
+  await recordByomKeyFailure(uid, "openrouter", inc);
+  const stored = JSON.stringify(await getByomConfig(uid));
+  // The stored blob obviously contains the ENCRYPTED key; what must not appear is
+  // the plaintext, via the incident.
+  assert.equal(stored.includes(leaked), false, "plaintext key reached the config document");
+
+  // And the wire view drops the operator-only detail wholesale.
+  const pub = await getPublicByomConfig(uid);
+  const shipped = pub.keys.find((k) => k.vendor === "openrouter").incidents[0];
+  assert.equal("detail" in shipped, false, "detail must never cross the wire");
+  assert.equal(JSON.stringify(pub).includes(leaked), false);
+  // The user still gets a usable explanation — from the code, not the body.
+  assert.equal(shipped.code, "server");
+  assert.equal(shipped.definitive, false);
+});
+
+test("publicByomConfig strips `detail` from every incident, definitive or not", () => {
+  const cfg = {
+    keys: {
+      openai: {
+        keyEnc: "v1.aaa.bbb.ccc",
+        addedAt: "2026-08-01T00:00:00.000Z",
+        incidents: [
+          { at: "2026-08-02T00:00:00.000Z", toolId: "ads", code: "auth", message: "x", definitive: true, detail: "leak-me" },
+          { at: "2026-08-02T00:00:00.000Z", toolId: "social", code: "server", message: "y", definitive: false, detail: "leak-me-too" },
+        ],
+      },
+    },
+  };
+  const pub = publicByomConfig(cfg);
+  assert.equal(JSON.stringify(pub).includes("leak-me"), false);
+  assert.equal(pub.keys[0].incidents.length, 2);
+  assert.deepEqual(Object.keys(pub.keys[0].incidents[0]).sort(), [
+    "at",
+    "code",
+    "definitive",
+    "message",
+    "toolId",
+  ]);
 });
 
 test("every incident code the classifier can emit has cs + en copy", () => {

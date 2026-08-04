@@ -14,7 +14,7 @@ import {
   BYOM_VENDOR_LABELS,
   isByomCatalogModel,
   isByomValidationStale,
-  type ByomKeyIncident,
+  type PublicByomIncident,
   type ByomVendor,
   type PublicByomConfig,
 } from "@/lib/llm/keys/types";
@@ -223,7 +223,7 @@ export default function ByomKeys() {
 
   /** Localized reason for an incident code; falls back to the provider's own stored
    *  copy for a code the table doesn't cover (cs is the source-of-truth column). */
-  const reasonFor = (inc: ByomKeyIncident) =>
+  const reasonFor = (inc: PublicByomIncident) =>
     BYOM_INCIDENT_REASONS.cs[inc.code] ? tReason(inc.code) : inc.message;
 
   const json = (body: unknown): RequestInit => ({
