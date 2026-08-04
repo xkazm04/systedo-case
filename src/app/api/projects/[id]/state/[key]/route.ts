@@ -12,7 +12,11 @@ import { apiError, badRequest, readJson } from "@/lib/api/route-utils";
 
 /** Titles for the meaningful, non-noisy transitions a client may report. */
 const EVENT_TITLES: Record<string, Record<string, string>> = {
-  "content-schedule": { published: "Příspěvek publikován (GBP)", scheduled: "Příspěvek naplánován" },
+  // No `published` entry on purpose: this surface cannot confirm a publish. The plan
+  // hands a slot to /api/social/posts, which writes the scheduling row, and the cron
+  // writes the real publish row when the post actually goes out. A title here would
+  // be a client-assertable publish claim with nothing behind it.
+  "content-schedule": { scheduled: "Příspěvek naplánován" },
   reviews: { "reply-published": "Odpověď na recenzi publikována", flagged: "Recenze označena majiteli" },
 };
 
