@@ -6,6 +6,7 @@ import {
   ArrowRight,
   Bulb,
   Document,
+  Info,
   Layers,
   Network,
   Plus,
@@ -19,7 +20,7 @@ import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { isModuleAvailable } from "@/lib/projects/modules";
-import { projectDataSource } from "@/lib/project-data/source";
+import type { ContentDerivation } from "@/lib/content-engine/resolve";
 import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/content-engine/compute";
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
 import type { KeywordList } from "@/lib/keywords/types";
@@ -38,8 +39,9 @@ const ContentBriefGenerator = dynamic(() => import("@/components/ai/ContentBrief
 
 const T = {
   cs: {
-    sourceLive: "Živá data · Google Ads",
+    sourceLive: "Živá data · Search Console",
     sourceSample: "Ukázková data",
+    adsNotDerived: "Připojený Google Ads sem zatím nevstupuje",
     keywordsChip: "{n} klíčových slov",
     patternsChip: "Podloženo {n} vzory",
     newContent: "Nový obsah",
@@ -93,8 +95,9 @@ const T = {
     stepCreativeHint: "Vygenerovat vizuály k článku",
   },
   en: {
-    sourceLive: "Live data · Google Ads",
+    sourceLive: "Live data · Search Console",
     sourceSample: "Sample data",
+    adsNotDerived: "Your Google Ads sync doesn’t feed this screen yet",
     keywordsChip: "{n} keywords",
     patternsChip: "Grounded by {n} patterns",
     newContent: "New content",
@@ -176,18 +179,23 @@ function seedFromDecay(post: DecayingPost): BriefSeed {
 export default function ContentEngine({
   clusters,
   decay,
-  live,
+  derivedFrom,
+  adsSynced = false,
 }: {
   clusters: TopicCluster[];
   decay: DecayingPost[];
-  /** Honest "živá data" signal — synced rows, resolved server-side and passed down
-   *  (not derived from a linked Ads account). */
-  live: boolean;
+  /** What the rendered clusters/decay were actually computed from — resolved
+   *  server-side by lib/content-engine/resolve. The source pill follows THIS, not
+   *  whether the project has some other live connection. */
+  derivedFrom: ContentDerivation;
+  /** The project has synced Ads rows (which ground the report, not this screen) —
+   *  surfaces an honest caveat so "Ukázková data" doesn't read as a failed sync. */
+  adsSynced?: boolean;
 }) {
   const project = useProject();
   const t = useT(T);
   const fmt = useFormatters();
-  const ds = projectDataSource(live);
+  const live = derivedFrom !== "sample";
 
   const stats = useMemo(() => rankedClusterStats(clusters), [clusters]);
   const decaying = useMemo(() => decayingPosts(decay), [decay]);
@@ -254,7 +262,13 @@ export default function ContentEngine({
       {/* header: honest data-source labeling + interconnect chips + primary actions */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone={ds.live ? "positive" : "neutral"}>{ds.live ? t("sourceLive") : t("sourceSample")}</Pill>
+          <Pill tone={live ? "positive" : "neutral"}>{live ? t("sourceLive") : t("sourceSample")}</Pill>
+          {!live && adsSynced && (
+            <span className="inline-flex items-center gap-1.5 rounded-pill bg-navy-50 px-3 py-1 text-xs font-medium text-navy-700">
+              <Info width={13} height={13} />
+              {t("adsNotDerived")}
+            </span>
+          )}
           {totalKeywords > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-xs font-medium text-brand-800">
               <Layers width={13} height={13} />

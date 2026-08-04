@@ -284,7 +284,7 @@ export default async function DemoModule({
     case "obsahovy-engine":
       return (
         <ModulePage moduleKey="obsahovy-engine">
-          <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} live={false} />
+          <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} derivedFrom="sample" />
         </ModulePage>
       );
     case "socialni":
