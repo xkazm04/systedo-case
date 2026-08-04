@@ -3,7 +3,7 @@
  *  Adding/removing keys lives in ./keys; testing a key lives in ./validate. */
 import { byomUnlocked, getUserPlan } from "@/lib/usage";
 import { getPublicByomConfig, setActiveByomVendor, setByomKeyModels } from "@/lib/llm/keys/store";
-import { isByomVendor, type ByomVendor } from "@/lib/llm/keys/types";
+import { isByomCatalogModel, isByomVendor, type ByomVendor } from "@/lib/llm/keys/types";
 import { requireByomUser, requireUser } from "./guard";
 
 /** Read: the caller's public config (no key bytes) + whether they're entitled.
@@ -51,6 +51,29 @@ export async function PATCH(request: Request) {
       if (!okField(m.model) || !okField(m.fastModel)) {
         return Response.json({ error: "Model musí být řetězec nebo null.", code: "invalid" }, { status: 400 });
       }
+
+      // The vendor-wide model fields are validated against the SAME catalog the
+      // matrix uses. Until now this accepted any string, so a typo'd or retired id
+      // saved cleanly, kept its "Verified" pill, and only broke at the next real
+      // generation. Clearing a field (null / "") is always allowed — that is the
+      // documented "back to the vendor default" path, and the fallback that means no
+      // one can be locked out by a catalog that lags a vendor release.
+      //
+      // Grandfathering: a value ALREADY stored (from before this validation) is
+      // accepted unchanged, so a user whose legacy `model` is off-catalog can still
+      // edit their `fastModel` without a 400 on a field they did not touch. Keep what
+      // you have; you may not introduce a new unknown.
+      const vendor: ByomVendor = m.vendor;
+      const current = (await getPublicByomConfig(u.userId)).keys.find((k) => k.vendor === vendor);
+      const okModel = (v: unknown, stored: string | undefined) =>
+        v === undefined || v === null || v === "" || isByomCatalogModel(vendor, v) || v === stored;
+      if (!okModel(m.model, current?.model) || !okModel(m.fastModel, current?.fastModel)) {
+        return Response.json(
+          { error: "Tento model není v nabídce pro daného poskytovatele.", code: "unknown_model" },
+          { status: 400 }
+        );
+      }
+
       await setByomKeyModels(u.userId, m.vendor, {
         model: m.model as string | null | undefined,
         fastModel: m.fastModel as string | null | undefined,

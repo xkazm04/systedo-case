@@ -7,8 +7,10 @@ import { Pill, TONE_TEXT } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useByomConfig } from "@/components/hooks/useByomConfig";
 import {
+  BYOM_MODEL_CATALOG,
   BYOM_VENDORS,
   BYOM_VENDOR_LABELS,
+  isByomCatalogModel,
   isByomValidationStale,
   type ByomVendor,
   type PublicByomConfig,
@@ -45,7 +47,11 @@ const T = {
     cancel: "Zrušit",
     modelQuality: "Model (kvalita)",
     modelFast: "Model (rychlý)",
+    modelDefault: "Výchozí ({model})",
+    modelOffCatalog: "{model} — mimo nabídku",
+    modelNote: "Modely vybíráte z nabídky poskytovatele. Změna modelu ruší předchozí ověření — otestujte klíč znovu.",
     saveModels: "Uložit modely",
+    errUnknownModel: "Tento model není v nabídce pro daného poskytovatele. Vyberte model ze seznamu.",
     test: "Otestovat",
     testing: "Testuji…",
     remove: "Odebrat",
@@ -87,7 +93,11 @@ const T = {
     cancel: "Cancel",
     modelQuality: "Model (quality)",
     modelFast: "Model (fast)",
+    modelDefault: "Default ({model})",
+    modelOffCatalog: "{model} — not offered",
+    modelNote: "Models are picked from the provider's catalog. Changing a model clears the previous verification — test the key again.",
     saveModels: "Save models",
+    errUnknownModel: "That model isn't offered for this provider. Pick one from the list.",
     test: "Test",
     testing: "Testing…",
     remove: "Remove",
@@ -111,6 +121,9 @@ const MODEL_HINTS: Record<ByomVendor, { quality: string; fast: string }> = {
 
 const inputClass =
   "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 placeholder:text-muted/70 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
+// Same chrome as the input above, in the <select> idiom the matrix already uses.
+const selectClass =
+  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-navy-800 transition-colors focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-200";
 const btnPrimary =
   "rounded-pill bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:opacity-50";
 const btnGhost =
@@ -155,11 +168,16 @@ export default function ByomKeys() {
       const res = await fetch(url, opts);
       const json = (await res.json().catch(() => ({}))) as {
         error?: string;
+        code?: string;
         config?: PublicByomConfig;
         validation?: { ok: boolean; error?: string };
       };
       if (!res.ok) {
-        setError(json.error ?? t("errGeneric"));
+        // Coded errors get localized copy here (the repo's code → t() convention);
+        // anything uncoded falls back to the server message, then to the generic.
+        setError(
+          json.code === "unknown_model" ? t("errUnknownModel") : json.error ?? t("errGeneric")
+        );
         return false;
       }
       if (json.config) patch(json.config);
@@ -368,30 +386,42 @@ export default function ByomKeys() {
                 {/* Existing key → model choice + actions. */}
                 {key && (
                   <div className="mt-4 space-y-3">
+                    {/* The catalog, not free text: a typo'd or retired model id used to
+                        save cleanly and only break at the next real generation. */}
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted">{t("modelQuality")}</span>
-                        <input
-                          value={md.model}
-                          onChange={(e) =>
-                            setModelDraft((d) => ({ ...d, [vendor]: { ...md, model: e.target.value } }))
-                          }
-                          placeholder={MODEL_HINTS[vendor].quality}
-                          className={`mt-1 ${inputClass}`}
-                        />
-                      </label>
-                      <label className="block">
-                        <span className="text-xs font-medium text-muted">{t("modelFast")}</span>
-                        <input
-                          value={md.fastModel}
-                          onChange={(e) =>
-                            setModelDraft((d) => ({ ...d, [vendor]: { ...md, fastModel: e.target.value } }))
-                          }
-                          placeholder={MODEL_HINTS[vendor].fast}
-                          className={`mt-1 ${inputClass}`}
-                        />
-                      </label>
+                      {(
+                        [
+                          ["model", t("modelQuality"), MODEL_HINTS[vendor].quality],
+                          ["fastModel", t("modelFast"), MODEL_HINTS[vendor].fast],
+                        ] as const
+                      ).map(([tier, label, hint]) => (
+                        <label key={tier} className="block">
+                          <span className="text-xs font-medium text-muted">{label}</span>
+                          <select
+                            value={md[tier]}
+                            onChange={(e) =>
+                              setModelDraft((d) => ({ ...d, [vendor]: { ...md, [tier]: e.target.value } }))
+                            }
+                            className={`mt-1 ${selectClass}`}
+                          >
+                            <option value="">{t("modelDefault", { model: hint })}</option>
+                            {BYOM_MODEL_CATALOG[vendor].models.map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.id}
+                              </option>
+                            ))}
+                            {/* A value saved before the catalog was enforced stays visible
+                                and selected instead of silently reading as the default. */}
+                            {md[tier] && !isByomCatalogModel(vendor, md[tier]) && (
+                              <option value={md[tier]}>
+                                {t("modelOffCatalog", { model: md[tier] })}
+                              </option>
+                            )}
+                          </select>
+                        </label>
+                      ))}
                     </div>
+                    <p className="text-xs text-muted">{t("modelNote")}</p>
 
                     {vNotice && (
                       <p

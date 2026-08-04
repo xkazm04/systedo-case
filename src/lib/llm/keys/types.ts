@@ -86,6 +86,23 @@ export const BYOM_MODEL_CATALOG: Record<ByomVendor, { default: string; models: B
   },
 };
 
+/** THE model validator — the single source of truth for "is this a model this
+ *  vendor actually offers?". Both the per-operation matrix (POST /api/byom/matrix)
+ *  and the vendor-wide model fields (PATCH /api/byom) call this one function, so a
+ *  model id can never be accepted by one surface and rejected by the other.
+ *
+ *  There is deliberately NO free-text escape hatch: an unverifiable model id is
+ *  exactly the failure this guards (a typo'd or retired id saves cleanly, the key
+ *  keeps its "Verified" pill, and the break only surfaces at the next real
+ *  generation). Clearing the field always works and falls back to the vendor
+ *  default, so no user is ever blocked from generating; shipping a newly released
+ *  model is a one-line addition to BYOM_MODEL_CATALOG above. A value already
+ *  persisted before this validation existed is grandfathered by the route (you may
+ *  keep what you have, you may not introduce a new unknown). */
+export function isByomCatalogModel(vendor: ByomVendor, model: unknown): model is string {
+  return typeof model === "string" && BYOM_MODEL_CATALOG[vendor].models.some((m) => m.id === model);
+}
+
 /** One per-operation assignment in the matrix. */
 export interface ByomOperationOverride {
   vendor: ByomVendor;
