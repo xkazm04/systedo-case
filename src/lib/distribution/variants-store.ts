@@ -16,7 +16,12 @@
  *  project_state size ceiling. Project deletion already cascades project_state, so
  *  variants are cleaned up with the project automatically. */
 import "server-only";
-import { getProjectState, saveProjectState } from "@/lib/project-state/store";
+import {
+  getProjectState,
+  mutateProjectState,
+  saveProjectState,
+} from "@/lib/project-state/store";
+import { PROJECT_STATE_KEYS } from "@/lib/project-state/keys";
 import {
   upsertSource,
   upsertVariant,
@@ -25,8 +30,9 @@ import {
   type VariantState,
 } from "./variants";
 
-/** The project_state key the variants blob lives under. */
-const VARIANTS_KEY = "distributionVariants";
+/** The project_state key the variants blob lives under — declared in the central
+ *  registry, so a second feature cannot claim the same key without a compile error. */
+const VARIANTS_KEY = "distributionVariants" satisfies keyof typeof PROJECT_STATE_KEYS;
 
 /** The project's saved variants, or null when nothing has been stored yet. */
 export async function getVariants(userId: string, projectId: string): Promise<VariantState | null> {
@@ -42,10 +48,14 @@ export async function saveVariants(
   return saveProjectState(userId, projectId, VARIANTS_KEY, state);
 }
 
-/** Read-modify-write: upsert one channel's variant for one article and persist. A
- *  store hiccup on the READ degrades to a fresh blob so a first save never fails on
- *  a missing doc — a write failure still propagates, because silently losing the
- *  edit is exactly the bug this store exists to fix. Returns the persisted blob. */
+/** Read-modify-write: upsert one channel's variant for one article and persist.
+ *  Runs through the store's compare-and-swap helper, so two channels generated at
+ *  the same moment BOTH land — the previous read-then-save let whichever finished
+ *  last silently drop the other's variant, which is the very loss this store exists
+ *  to prevent. `upsertVariant` is pure, so re-applying it on a lost race is safe. A
+ *  store hiccup on the READ still degrades to a fresh blob so a first save never
+ *  fails on a missing doc; a write failure still propagates. Returns the persisted
+ *  blob. */
 export async function recordVariant(
   userId: string,
   projectId: string,
@@ -53,33 +63,22 @@ export async function recordVariant(
   title: string,
   entry: StoredVariant
 ): Promise<VariantState> {
-  let cur: VariantState | null = null;
-  try {
-    cur = await getVariants(userId, projectId);
-  } catch {
-    cur = null;
-  }
-  const next = upsertVariant(cur, articleKey, title, entry);
-  await saveVariants(userId, projectId, next);
-  return next;
+  return mutateProjectState<VariantState>(userId, projectId, VARIANTS_KEY, (cur) =>
+    upsertVariant(cur, articleKey, title, entry)
+  );
 }
 
 /** Read-modify-write: record one article handed into Distribuce from elsewhere in
  *  the app (re-sending a revised draft updates it in place). Rides the SAME blob as
- *  the variants — one record per project, one transport for the whole handoff.
+ *  the variants — one record per project, one transport for the whole handoff — and
+ *  therefore races the variant writes above; the same compare-and-swap keeps both.
  *  Returns the persisted blob. */
 export async function recordSource(
   userId: string,
   projectId: string,
   source: StoredArticleSource
 ): Promise<VariantState> {
-  let cur: VariantState | null = null;
-  try {
-    cur = await getVariants(userId, projectId);
-  } catch {
-    cur = null;
-  }
-  const next = upsertSource(cur, source);
-  await saveVariants(userId, projectId, next);
-  return next;
+  return mutateProjectState<VariantState>(userId, projectId, VARIANTS_KEY, (cur) =>
+    upsertSource(cur, source)
+  );
 }

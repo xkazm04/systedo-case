@@ -1,7 +1,15 @@
 /** Per-(user, project, key) JSON-blob state store — FIRESTORE backend. One doc at
  *  `users/{userId}/projectState/{projectId}__{key}`. Server-only (firebase-admin is
  *  Node-only); imported lazily by the dispatcher so the LOCAL_DB path never pulls
- *  firebase-admin in. Mirrors the local backend's interface. */
+ *  firebase-admin in. Mirrors the local backend's interface.
+ *
+ *  This backend deals in RAW BYTES only: the envelope/version decoding and the whole
+ *  typed API live in the dispatcher (./store), so the two backends cannot drift on
+ *  blob semantics. Its one real job beyond storage is the compare-and-swap the
+ *  dispatcher's optimistic-concurrency layer needs — expressed as a Firestore
+ *  TRANSACTION (the cloud equivalent of the local backend's conditional UPDATE), so
+ *  the compare and the swap commit together and a racing writer loses the race
+ *  instead of silently overwriting. */
 import { firestore } from "@/lib/firebase";
 
 function stateCol(userId: string) {
@@ -12,30 +20,44 @@ function stateDoc(userId: string, projectId: string, key: string) {
   return stateCol(userId).doc(`${projectId}__${key}`);
 }
 
-export async function getProjectState<T>(userId: string, projectId: string, key: string): Promise<T | null> {
+/** The stored bytes for (user, project, key), or null when nothing is stored (or the
+ *  field is not a string, which is the same thing from a reader's point of view). */
+export async function readRawProjectState(
+  userId: string,
+  projectId: string,
+  key: string
+): Promise<string | null> {
   const doc = await stateDoc(userId, projectId, key).get();
   if (!doc.exists) return null;
   const raw = doc.data()?.data;
-  if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch (err) {
-    // A corrupt blob and a never-saved key both collapse to null here, so the
-    // caller reseeds and the next save overwrites the still-recoverable original.
-    // At minimum leave a diagnosable trail (never silently swallow) so a prod
-    // corruption is discoverable rather than an invisible data loss.
-    console.error(
-      `[project-state] corrupt blob for (${userId}, ${projectId}, ${key}) — reseeding will clobber it`,
-      err
-    );
-    return null;
-  }
+  return typeof raw === "string" ? raw : null;
 }
 
-export async function saveProjectState<T>(userId: string, projectId: string, key: string, data: T): Promise<void> {
-  await stateDoc(userId, projectId, key).set({
-    data: JSON.stringify(data),
-    updatedAt: new Date().toISOString(),
+/** Store `raw`.
+ *   • `expected === undefined` → unconditional set (last write wins).
+ *   • `expected === null`      → succeed only if NOTHING is stored yet.
+ *   • `expected === string`    → succeed only if the stored bytes are exactly that.
+ *  Returns false when the compare-and-swap lost the race (the dispatcher turns that
+ *  into a retryable ProjectStateConflictError). */
+export async function writeRawProjectState(
+  userId: string,
+  projectId: string,
+  key: string,
+  raw: string,
+  expected: string | null | undefined
+): Promise<boolean> {
+  const ref = stateDoc(userId, projectId, key);
+  if (expected === undefined) {
+    await ref.set({ data: raw, updatedAt: new Date().toISOString() });
+    return true;
+  }
+  return firestore.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const stored = snap.exists ? snap.data()?.data : undefined;
+    const current = typeof stored === "string" ? stored : null;
+    if (current !== expected) return false;
+    tx.set(ref, { data: raw, updatedAt: new Date().toISOString() });
+    return true;
   });
 }
 

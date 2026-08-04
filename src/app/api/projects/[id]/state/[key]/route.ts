@@ -6,14 +6,9 @@
  *  to keep the feed signal, not noise. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { getProjectState, saveProjectState } from "@/lib/project-state/store";
+import { isHttpProjectStateKey, projectStateSpec } from "@/lib/project-state/keys";
 import { emitProjectActivity } from "@/lib/activity/emit";
 import { apiError, badRequest, readJson } from "@/lib/api/route-utils";
-
-/** Whitelisted keys → the module the activity feed attributes their events to. */
-const ALLOWED: Record<string, string> = {
-  "content-schedule": "obsah-plan",
-  reviews: "recenze",
-};
 
 /** Titles for the meaningful, non-noisy transitions a client may report. */
 const EVENT_TITLES: Record<string, Record<string, string>> = {
@@ -25,7 +20,9 @@ const MAX_BYTES = 256_000;
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string; key: string }> }) {
   const { id, key } = await params;
-  if (!ALLOWED[key]) return badRequest("Neznámý klíč stavu.", "invalid-type");
+  // The whitelist is DERIVED from the central key registry (`http: true`), so a new
+  // key is client-drivable only when it says so — never by forgetting a list here.
+  if (!isHttpProjectStateKey(key)) return badRequest("Neznámý klíč stavu.", "invalid-type");
   const auth = await requireOwnedProject(id);
   if ("error" in auth) return auth.error;
   return Response.json({ data: await getProjectState(auth.uid, id, key) });
@@ -33,8 +30,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string; key: string }> }) {
   const { id, key } = await params;
-  const moduleKey = ALLOWED[key];
-  if (!moduleKey) return badRequest("Neznámý klíč stavu.", "invalid-type");
+  if (!isHttpProjectStateKey(key)) return badRequest("Neznámý klíč stavu.", "invalid-type");
+  const moduleKey = projectStateSpec(key).owner;
   const auth = await requireOwnedProject(id);
   if ("error" in auth) return auth.error;
 

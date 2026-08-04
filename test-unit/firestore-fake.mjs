@@ -11,6 +11,9 @@
 /** path (`users/u1/projectState/p1__key`) → stored document data */
 const docs = new Map();
 
+/** Serializes runTransaction callbacks (see `firestore.runTransaction`). */
+let txChain = Promise.resolve();
+
 /** Wipe every stored document — call between tests. */
 export function resetFirestore() {
   docs.clear();
@@ -63,6 +66,32 @@ function collectionRef(path) {
 
 export const firestore = {
   collection: (name) => collectionRef(name),
+  /** Stand-in for firebase-admin's transaction. Real Firestore gives a transaction
+   *  SERIALIZABLE semantics (it aborts and retries a callback whose reads were
+   *  invalidated), so the fake models the observable guarantee the cheapest honest
+   *  way: transactions run one at a time, chained on a mutex, and `tx.get` therefore
+   *  always sees everything previously committed. That is what makes a compare-and-
+   *  swap here mean something — a writer that started from stale bytes finds them
+   *  changed and loses, instead of silently overwriting the winner. */
+  runTransaction(fn) {
+    const run = txChain.then(() =>
+      fn({
+        async get(ref) {
+          return ref.get();
+        },
+        set(ref, data) {
+          docs.set(ref.path, { ...data });
+        },
+      })
+    );
+    // Keep the chain alive even if a callback rejects — one failed transaction must
+    // not wedge every later one.
+    txChain = run.then(
+      () => undefined,
+      () => undefined
+    );
+    return run;
+  },
   batch() {
     const ops = [];
     return {

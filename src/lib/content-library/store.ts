@@ -27,7 +27,12 @@
  *  Every function here is tenant-scoped by (userId, projectId); the ownership check
  *  itself belongs to the calling Server Action. */
 import "server-only";
-import { getProjectState, saveProjectState } from "@/lib/project-state/store";
+import {
+  getProjectState,
+  mutateProjectState,
+  saveProjectState,
+} from "@/lib/project-state/store";
+import { PROJECT_STATE_KEYS } from "@/lib/project-state/keys";
 import {
   removeEntry,
   upsertEntry,
@@ -35,8 +40,9 @@ import {
   type SavedContentEntry,
 } from "./entries";
 
-/** The project_state key the library blob lives under. */
-const LIBRARY_KEY = "contentLibrary";
+/** The project_state key the library blob lives under — declared in the central
+ *  registry, so a second feature cannot claim the same key without a compile error. */
+const LIBRARY_KEY = "contentLibrary" satisfies keyof typeof PROJECT_STATE_KEYS;
 
 /** The project's saved library, or null when nothing has ever been saved. */
 export async function getContentLibrary(
@@ -56,38 +62,31 @@ export async function saveContentLibrary(
 }
 
 /** Read-modify-write: save one (already sanitized) entry, replacing the same id in
- *  place. A store hiccup on the READ degrades to a fresh blob so a first save never
- *  fails on a missing doc; a WRITE failure propagates, because silently losing the
- *  save is the exact bug this store exists to fix. Returns the persisted blob. */
+ *  place. Runs through the store's compare-and-swap helper, so saving two generated
+ *  pieces in quick succession keeps BOTH — a plain read-then-save let whichever write
+ *  landed last drop the other, which is the exact loss this store exists to prevent.
+ *  `upsertEntry` is pure, so re-applying it on a lost race is safe. A store hiccup on
+ *  the READ still degrades to a fresh blob so a first save never fails on a missing
+ *  doc; a WRITE failure propagates. Returns the persisted blob. */
 export async function recordContentEntry(
   userId: string,
   projectId: string,
   entry: SavedContentEntry
 ): Promise<ContentLibraryState> {
-  let cur: ContentLibraryState | null = null;
-  try {
-    cur = await getContentLibrary(userId, projectId);
-  } catch {
-    cur = null;
-  }
-  const next = upsertEntry(cur, entry);
-  await saveContentLibrary(userId, projectId, next);
-  return next;
+  return mutateProjectState<ContentLibraryState>(userId, projectId, LIBRARY_KEY, (cur) =>
+    upsertEntry(cur, entry)
+  );
 }
 
-/** Read-modify-write: drop one entry by id. Returns the persisted blob. */
+/** Read-modify-write: drop one entry by id. Compare-and-swapped like the save above,
+ *  so a delete cannot resurrect an entry a concurrent save just added. Returns the
+ *  persisted blob. */
 export async function deleteContentEntry(
   userId: string,
   projectId: string,
   id: string
 ): Promise<ContentLibraryState> {
-  let cur: ContentLibraryState | null = null;
-  try {
-    cur = await getContentLibrary(userId, projectId);
-  } catch {
-    cur = null;
-  }
-  const next = removeEntry(cur, id);
-  await saveContentLibrary(userId, projectId, next);
-  return next;
+  return mutateProjectState<ContentLibraryState>(userId, projectId, LIBRARY_KEY, (cur) =>
+    removeEntry(cur, id)
+  );
 }

@@ -68,6 +68,42 @@ test("[firestore] projects and users are isolated", async () => {
   assert.equal(await getVariants("u-fs-2", P), null);
 });
 
+test("[firestore] two interleaved writers BOTH land — no last-write-wins loss", async () => {
+  resetFirestore();
+  // The same regression the sqlite suite pins (project-state-concurrency.test.mjs),
+  // proven on the OTHER backend: here the compare-and-swap is a Firestore
+  // transaction, not a conditional UPDATE, so it needs its own coverage.
+  await Promise.all([
+    recordVariant(U, P, KEY, A.title, variant("LinkedIn", "li")),
+    recordVariant(U, P, KEY, A.title, variant("Instagram", "ig")),
+  ]);
+  const stored = variantsForArticle(await getVariants(U, P), KEY);
+  assert.deepEqual(Object.keys(stored).sort(), ["Instagram", "LinkedIn"]);
+  assert.equal(stored.LinkedIn.text, "li");
+  assert.equal(stored.Instagram.text, "ig");
+  assert.equal(firestoreDump().size, 1, "still one doc per (project, key)");
+});
+
+test("[firestore] a stale compare-and-swap loses instead of overwriting", async () => {
+  resetFirestore();
+  const { readProjectState, saveProjectStateIfUnchanged, getProjectState, ProjectStateConflictError } =
+    await import("@/lib/project-state/store");
+  await saveVariants(U, P, { articles: [], updatedAt: NOW });
+  const stale = (await readProjectState(U, P, "distributionVariants")).revision;
+  await saveVariants(U, P, { articles: [], updatedAt: "2026-08-03T11:00:00.000Z" });
+
+  await assert.rejects(
+    () =>
+      saveProjectStateIfUnchanged(U, P, "distributionVariants", { articles: [], updatedAt: "stale" }, stale),
+    (err) => err instanceof ProjectStateConflictError && err.retryable === true
+  );
+  assert.equal(
+    (await getProjectState(U, P, "distributionVariants")).updatedAt,
+    "2026-08-03T11:00:00.000Z",
+    "the winner's blob is intact"
+  );
+});
+
 test("[firestore] a corrupt stored blob reads back null instead of throwing", async () => {
   resetFirestore();
   await saveVariants(U, P, { articles: [], updatedAt: NOW });
