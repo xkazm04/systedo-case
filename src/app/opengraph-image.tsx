@@ -1,14 +1,16 @@
-/** Data-driven Open Graph share card for the case study. Next.js auto-wires this
- *  as og:image (and twitter:image) for the home route, so sharing the portfolio
- *  URL on LinkedIn/Slack renders a branded card with a real headline stat instead
- *  of a blank text-only link. Rendered at request/build time via next/og. */
+/** Data-driven Open Graph share card for the product. Next.js auto-wires this
+ *  as og:image (and twitter:image) for the home route, so sharing the URL on
+ *  LinkedIn/Slack renders a branded card with a real headline stat instead of a
+ *  blank text-only link. Product framing (matches the root metadata + hero); the
+ *  numbers come from the illustrative demo dataset and the card says so.
+ *  Rendered at request/build time via next/og. */
 import { ImageResponse } from "next/og";
 import { performance } from "@/lib/data";
 import { totalsOf } from "@/lib/metrics";
 import { fmtCZKCompact, fmtMultiple, fmtPct } from "@/lib/format";
 
 export const alt =
-  "Adamant — marketingová case study: výkonnostní dashboard, AI asistent a správa kampaní";
+  "Adamant — AI inteligence pro reklamu: výkonnostní dashboardy, kampaňová inteligence a generování reklam";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -47,20 +49,20 @@ export default function OpengraphImage() {
               color: "#6ee3da",
             }}
           >
-            CASE STUDY · POZICE AI VIBECODER
+            ADAMANT · AI INTELIGENCE PRO REKLAMU
           </div>
         </div>
 
-        {/* middle: title + client */}
+        {/* middle: title + demo-data disclosure */}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", fontSize: "76px", fontWeight: 700, lineHeight: 1.05, letterSpacing: "-2px" }}>
-            Tři úkoly, jeden klient,
+            Stůjte pevně.
           </div>
           <div style={{ display: "flex", fontSize: "76px", fontWeight: 700, lineHeight: 1.1, letterSpacing: "-2px", color: "#6ee3da" }}>
-            produkční řemeslo.
+            Reklamy, které nepovolí.
           </div>
           <div style={{ display: "flex", marginTop: "26px", fontSize: "30px", color: "#92a3b3" }}>
-            Dashboard · AI marketingový asistent · správa Google Ads kampaní — {performance.client.name} ({performance.client.domain})
+            Dashboardy · kampaňová inteligence · AI generování reklam — ukázková data: {performance.client.name} ({performance.client.domain}), fiktivní klient
           </div>
         </div>
 

@@ -18,6 +18,8 @@ import {
 } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { easeAdamant, pingPulse } from "@/lib/motion";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import type { SupportedLocale } from "@/lib/format";
 
 export interface RankClimbLabels {
   run: string;
@@ -37,22 +39,45 @@ export interface RankClimbLabels {
   you: string;
 }
 
-const DEFAULT_LABELS: RankClimbLabels = {
-  run: "Spustit optimalizaci",
-  running: "Běží…",
-  replay: "Přehrát znovu",
-  reset: "Reset",
-  avgRank: "Průměrná pozice v mapě",
-  visibility: "Viditelnost v map packu",
-  target: "cíl",
-  readouts: "Živé hodnoty",
-  beforeAfter: "Před a po.",
-  beforeAfterSub: "Stejných pět konkurentů, stejné hledání. Změnila se jen práce.",
-  rank1Firing: "Pozice #1 · signál běží",
-  idleAwaiting: "Nečinné · čeká na signál",
-  signalStrong: "Signál · SILNÝ",
-  signalIdle: "Signál · KLID",
-  you: "Vaše pobočka",
+/** Default labels per locale (colocated cs/en dictionary — repo i18n convention).
+ *  A caller can still override any subset via the `labels` prop (LocalSeoShowcase
+ *  passes its own full set); these defaults keep a bare <RankClimbDemo /> fully
+ *  localized instead of falling back to Czech-only literals. */
+const T: Record<SupportedLocale, RankClimbLabels> = {
+  cs: {
+    run: "Spustit optimalizaci",
+    running: "Běží…",
+    replay: "Přehrát znovu",
+    reset: "Reset",
+    avgRank: "Průměrná pozice v mapě",
+    visibility: "Viditelnost v map packu",
+    target: "cíl",
+    readouts: "Živé hodnoty",
+    beforeAfter: "Před a po.",
+    beforeAfterSub: "Stejných pět konkurentů, stejné hledání. Změnila se jen práce.",
+    rank1Firing: "Pozice #1 · signál běží",
+    idleAwaiting: "Nečinné · čeká na signál",
+    signalStrong: "Signál · SILNÝ",
+    signalIdle: "Signál · KLID",
+    you: "Vaše pobočka",
+  },
+  en: {
+    run: "Run optimization",
+    running: "Running…",
+    replay: "Replay",
+    reset: "Reset",
+    avgRank: "Average map-pack rank",
+    visibility: "Map-pack visibility",
+    target: "target",
+    readouts: "Live readouts",
+    beforeAfter: "Before & after.",
+    beforeAfterSub: "The same five competitors, the same search. Only the work changed.",
+    rank1Firing: "Ranked #1 · ping firing",
+    idleAwaiting: "Idle · awaiting signal",
+    signalStrong: "Signal · STRONG",
+    signalIdle: "Signal · IDLE",
+    you: "Your location",
+  },
 };
 
 type Pin = { id: string; name: string; reviews: string; you?: boolean };
@@ -84,7 +109,8 @@ const SLOT_COORDS = [
 ];
 
 export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbLabels> }) {
-  const labels = { ...DEFAULT_LABELS, ...partial };
+  const { locale } = useLocale();
+  const labels = { ...(T[locale] ?? T.cs), ...partial };
   const reduce = useReducedMotion();
   const [order, setOrder] = useState<Pin[]>(() => initialOrder(labels.you));
   const [running, setRunning] = useState(false);
@@ -193,7 +219,10 @@ export function RankClimbDemo({ labels: partial }: { labels?: Partial<RankClimbL
                       className="pointer-events-none absolute inset-[-10px] rounded-[10px] border-2 border-brand-500"
                     />
                   ) : null}
-                  <PinMarker rank={idx + 1} label={p.name} reviews={p.reviews} you={p.you} />
+                  {/* the "you" pin's name renders from the live labels so a locale
+                      switch localizes it even though the order state was seeded
+                      with the mount-time name */}
+                  <PinMarker rank={idx + 1} label={p.you ? labels.you : p.name} reviews={p.reviews} you={p.you} />
                 </div>
               </motion.div>
             );
