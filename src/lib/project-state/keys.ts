@@ -50,6 +50,7 @@ export const PROJECT_STATE_KEYS = {
   adCopy: { owner: "produkty", version: 1, http: false },
   distributionVariants: { owner: "distribuce", version: 1, http: false },
   contentLibrary: { owner: "ulozeny-obsah", version: 1, http: false },
+  orphanLedger: { owner: "nastaveni", version: 1, http: false },
 } as const satisfies Record<string, ProjectStateKeySpec>;
 
 /** Every registered key, as a union — the type every store/route API takes. */

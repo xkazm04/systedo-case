@@ -155,18 +155,43 @@ async function deleteTenantData(userId: string, projectId: string): Promise<Stor
   }
 }
 
-/** Fan out best-effort deletes across every registered per-project store and the
- *  project's tenant-keyed Firestore data. One failure never aborts the rest; the
- *  per-store outcomes are collected and returned so the caller can report + log
- *  them. Does NOT remove the `projects` doc itself — the route does that as the
- *  primary operation after this scrub (so a satellite hiccup can't strand the
- *  workspace entry, and the workspace is only gone once its data is). */
-export async function deleteProjectCascade(
+/** The name the tenant-keyed scrub reports under. Not a store deleter (it has no
+ *  registry entry — it is the cross-cutting `tenants/{key}` sweep), but it is one of
+ *  the units a caller can re-run, so it needs a stable id like the rest. */
+export const TENANT_DATA_UNIT = "tenant-data";
+
+/** EVERY cleanup unit a project has, derived from the registry — the registered store
+ *  deleters plus the tenant scrub. The integrity sweep (./orphan-sweep) builds its
+ *  work list from THIS, never from a second hand-maintained list, so a store added to
+ *  `PROJECT_STORE_DELETERS` is swept as automatically as it is cascaded. */
+export function projectCleanupUnits(): string[] {
+  return [...PROJECT_STORE_DELETERS.map((d) => d.name), TENANT_DATA_UNIT];
+}
+
+/** Fan out best-effort deletes across the requested cleanup units. One failure never
+ *  aborts the rest; the per-unit outcomes are collected and returned so the caller can
+ *  report + log them. Does NOT remove the `projects` doc itself — the route does that
+ *  as the primary operation after this scrub (so a satellite hiccup can't strand the
+ *  workspace entry, and the workspace is only gone once its data is).
+ *
+ *  `only` narrows the run to the named units — how a RESUMED cleanup re-runs exactly
+ *  the stores that failed the first time, without a second list and without touching
+ *  the ones that already succeeded (every deleter is idempotent, but re-running 19 of
+ *  them to fix 1 is noise). Omitted → every unit, which is the full cascade. Unknown
+ *  names in `only` are ignored: the registry is the authority, so a stale ledger entry
+ *  naming a retired store cannot resurrect it. */
+export async function runProjectCleanup(
   userId: string,
-  projectId: string
+  projectId: string,
+  only?: readonly string[]
 ): Promise<CascadeResult> {
+  const wanted = only ? new Set(only) : null;
+  const deleters = wanted
+    ? PROJECT_STORE_DELETERS.filter((d) => wanted.has(d.name))
+    : PROJECT_STORE_DELETERS;
+
   const storeOutcomes = await Promise.all(
-    PROJECT_STORE_DELETERS.map(async ({ name, delete: del }): Promise<StoreOutcome> => {
+    deleters.map(async ({ name, delete: del }): Promise<StoreOutcome> => {
       try {
         await del(projectId, userId);
         return { name, ok: true };
@@ -176,8 +201,10 @@ export async function deleteProjectCascade(
     })
   );
 
-  const tenantOutcome = await deleteTenantData(userId, projectId);
-  const outcomes = [...storeOutcomes, tenantOutcome];
+  const outcomes = [...storeOutcomes];
+  if (!wanted || wanted.has(TENANT_DATA_UNIT)) {
+    outcomes.push(await deleteTenantData(userId, projectId));
+  }
 
   const cleaned = outcomes.filter((o) => o.ok).map((o) => o.name);
   const failed = outcomes.filter((o) => !o.ok);
@@ -190,4 +217,12 @@ export async function deleteProjectCascade(
   }
 
   return { cleaned, failed, outcomes };
+}
+
+/** The full cascade: every registered store plus the tenant scrub. */
+export async function deleteProjectCascade(
+  userId: string,
+  projectId: string
+): Promise<CascadeResult> {
+  return runProjectCleanup(userId, projectId);
 }

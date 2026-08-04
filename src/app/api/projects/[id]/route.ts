@@ -4,6 +4,8 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { requireLinkableAdsAccount } from "@/lib/projects/ads-link-guard";
 import { type AdsLinkAction } from "@/lib/projects/ads-link";
 import { deleteProjectCascade } from "@/lib/projects/delete-cascade";
+import { recordOrphan } from "@/lib/projects/orphan-ledger";
+import { sweepProjectOrphans } from "@/lib/projects/orphan-sweep";
 import { type ProjectPatch } from "@/lib/projects/types";
 import { emitProjectActivity } from "@/lib/activity/emit";
 import {
@@ -107,11 +109,39 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if ("error" in g) return g.error;
   const { uid, project } = g;
 
+  // Finish any cleanup a PREVIOUS delete of this user's left behind, before adding to
+  // it. This is the sweep's primary invocation (see below): it costs one ledger read
+  // when there is nothing pending — the overwhelmingly common case — and it means a
+  // transient store outage heals itself on the next delete instead of waiting for
+  // someone to notice. Best-effort: a sweep hiccup must never block this delete.
+  try {
+    await sweepProjectOrphans(uid, { apply: true });
+  } catch (err) {
+    console.error("[projects] resume sweep failed (continuing with the delete)", err);
+  }
+
   // Scrub every satellite store + tenant-keyed Firestore data first (best-effort,
   // never throws), THEN remove the workspace doc itself so a satellite hiccup can't
   // strand the project's data behind a deleted entry.
   const cascade = await deleteProjectCascade(uid, id);
   await deleteProject(uid, id);
+
+  // A store that failed leaves data behind that NOTHING can reach once the project
+  // doc is gone — the id used to survive only inside an audit-log detail string.
+  // Record it durably instead, so cleanup is resumable (by the sweep above, or on
+  // demand via /api/projects/orphans). Best-effort: the delete itself still succeeded.
+  if (cascade.failed.length > 0) {
+    try {
+      await recordOrphan(uid, {
+        projectId: id,
+        projectName: project.name,
+        pending: cascade.failed.map((f) => f.name),
+        lastError: cascade.failed[0]?.error,
+      });
+    } catch (err) {
+      console.error("[projects] could not record the orphaned stores", err);
+    }
+  }
 
   // Audit the deletion on the USER-level feed (projectId omitted) — the project's
   // own tenant was just scrubbed, so a project-scoped record would be orphaned.
