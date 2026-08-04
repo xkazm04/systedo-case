@@ -6,6 +6,7 @@
 import type { Locality, Offering, PlanOffering, ProductOffering, ServiceOffering } from "./offering";
 import { SAMPLE_PRODUCTS, type Product } from "./sample";
 import { warehouseCatalog } from "@/lib/inventory/warehouse";
+import { demoProjectId } from "@/lib/projects/demo";
 
 /** Deterministic seed timestamp (no Date.now at module load). */
 const SEED_TS = "2026-06-01T00:00:00.000Z";
@@ -49,7 +50,7 @@ function productFrom(p: Product, projectId: string, source: ProductOffering["sou
  *  the warehouse-grade 9-SKU nuts/seeds catalog; any other e-shop gets the frozen
  *  6-SKU storefront sample marked as a manual catalog. */
 export function eshopCatalog(projectId: string, now: Date): ProductOffering[] {
-  const demo = projectId === "demo-eshop";
+  const demo = projectId === demoProjectId("eshop");
   const base = demo ? warehouseCatalog(now) : SAMPLE_PRODUCTS;
   return base.map((p) => productFrom(p, projectId, demo ? "baselinker" : "manual"));
 }

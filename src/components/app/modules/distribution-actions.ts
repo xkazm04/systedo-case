@@ -7,20 +7,15 @@
  *  projectId can't reach another tenant's blob. Demo project ids are never owned,
  *  so the marketing surface resolves to null and stores nothing: the fixture stays
  *  a fixture. Mirrors catalog/ad-copy-actions.ts. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedTenantProject } from "@/lib/projects/persist-guard";
 import { getVariants, recordSource, recordVariant } from "@/lib/distribution/variants-store";
 import { sanitizeSource, sanitizeVariant, type VariantState } from "@/lib/distribution/variants";
-import { isDemoProjectId } from "@/lib/projects/demo";
 
 /** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated,
- *  a demo id, or not their project). */
+ *  a demo/marketing id, or not their project). The handshake itself lives in the
+ *  shared write-path guard — this file no longer re-derives demo-ness. */
 async function ownerOf(projectId: string): Promise<string | null> {
-  if (!projectId || isDemoProjectId(projectId)) return null;
-  const uid = await currentUserId();
-  if (!uid) return null;
-  const project = await getProject(uid, projectId);
-  return project ? uid : null;
+  return (await requireOwnedTenantProject(projectId))?.uid ?? null;
 }
 
 /** Load a project's persisted variants (null when unowned / none saved → the

@@ -9,24 +9,19 @@
  *  the marketing surface stores NOTHING and lists nothing: the demo stays a demo.
  *  Mirrors components/app/modules/distribution-actions.ts, deliberately including
  *  its ownerOf() shape so the two guards can be compared line by line. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedTenantProject } from "@/lib/projects/persist-guard";
 import {
   deleteContentEntry,
   getContentLibrary,
   recordContentEntry,
 } from "@/lib/content-library/store";
 import { libraryEntries, sanitizeEntry, type SavedContentEntry } from "@/lib/content-library/entries";
-import { isDemoProjectId } from "@/lib/projects/demo";
 
 /** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated,
- *  a demo id, or not their project). */
+ *  a demo/marketing id, or not their project). The handshake itself lives in the
+ *  shared write-path guard — this file no longer re-derives demo-ness. */
 async function ownerOf(projectId: string): Promise<string | null> {
-  if (!projectId || isDemoProjectId(projectId)) return null;
-  const uid = await currentUserId();
-  if (!uid) return null;
-  const project = await getProject(uid, projectId);
-  return project ? uid : null;
+  return (await requireOwnedTenantProject(projectId))?.uid ?? null;
 }
 
 /** Persist what the workspace currently holds. The payload is untrusted: it is

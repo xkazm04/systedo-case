@@ -6,20 +6,15 @@
  *  reach another tenant's blob. The client echoes back the AiResult it just generated
  *  through /api/ai; `sanitizeAdCopy` bounds it (the trust boundary) before it persists.
  *  The demo surface has no project context → these are never called there. */
-import { currentUserId } from "@/lib/session";
-import { getProject } from "@/lib/projects/store";
+import { requireOwnedTenantProject } from "@/lib/projects/persist-guard";
 import { getAdCopy, recordAdCopy } from "@/lib/catalog/ad-copy-store";
 import { sanitizeAdCopy, type AdCopyState } from "@/lib/catalog/ad-copy";
-import { isDemoProjectId } from "@/lib/projects/demo";
 
-/** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated or
- *  not their project). Demo ids are never owned, so they resolve null → no-op. */
+/** The signed-in caller's id IFF they own `projectId`, else null (unauthenticated,
+ *  a demo/marketing id, or not their project). The handshake itself lives in the
+ *  shared write-path guard — this file no longer re-derives demo-ness. */
 async function ownerOf(projectId: string): Promise<string | null> {
-  if (!projectId || isDemoProjectId(projectId)) return null;
-  const uid = await currentUserId();
-  if (!uid) return null;
-  const project = await getProject(uid, projectId);
-  return project ? uid : null;
+  return (await requireOwnedTenantProject(projectId))?.uid ?? null;
 }
 
 /** Load a project's persisted ad copy (null when unowned / none saved). */

@@ -9,6 +9,7 @@
  *  the case-study client (Mionelo) so the demo agrees with the homepage proof
  *  band and the authed dashboard. Framework-free (no React) — importable from both
  *  the server dispatcher and the client shell. */
+import { demoProjectId } from "@/lib/projects/demo";
 import { MODULES, type ModuleDef } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, PROJECT_TYPES, type Project, type ProjectType } from "@/lib/projects/types";
 
@@ -27,7 +28,7 @@ const DEMO_SEEDS: Record<ProjectType, { name: string; domain: string }> = {
 function toProject(type: ProjectType): Project {
   const seed = DEMO_SEEDS[type];
   return {
-    id: `demo-${type}`,
+    id: demoProjectId(type),
     name: seed.name,
     type,
     accentColor: PROJECT_TYPE_META[type].defaultAccent,
