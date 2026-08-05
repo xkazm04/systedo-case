@@ -5,22 +5,13 @@
  *  without it the engine stays on sample data and this is never called. */
 import "server-only";
 import type { Competition, RawKeywordIdea } from "@/lib/keywords/types";
+// Same API, same credentials as the campaigns client — share its header builder
+// rather than keeping a second copy that can drift out of lockstep with it.
+import { ADS_API_BASE, adsApiHeaders } from "./ads";
 
-const API_VERSION = "v18";
-const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
+const BASE = ADS_API_BASE;
 // Czech Republic geo target constant — keeps volumes locally relevant.
 const GEO_CZECHIA = "geoTargetConstants/2203";
-
-function headers(accessToken: string): Record<string, string> {
-  const h: Record<string, string> = {
-    Authorization: `Bearer ${accessToken}`,
-    "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? "",
-    "Content-Type": "application/json",
-  };
-  const login = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/\D/g, "");
-  if (login) h["login-customer-id"] = login;
-  return h;
-}
 
 function num(v: string | number | undefined): number {
   const n = typeof v === "string" ? Number(v) : (v ?? 0);
@@ -65,7 +56,7 @@ export async function generateKeywordIdeas(
 
   const res = await fetch(`${BASE}/customers/${customerId.replace(/\D/g, "")}:generateKeywordIdeas`, {
     method: "POST",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
     body: JSON.stringify(body),
   });
   if (!res.ok) {

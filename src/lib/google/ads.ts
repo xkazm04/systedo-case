@@ -16,7 +16,11 @@ import {
 } from "@/lib/campaigns/types";
 
 const API_VERSION = "v18";
-const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
+/** Base URL for the Google Ads REST API. Exported alongside {@link adsApiHeaders}
+ *  so keyword-planner.ts targets the SAME version — a bump that moved only one of
+ *  the two clients would leave the other calling a retired API. */
+export const ADS_API_BASE = `https://googleads.googleapis.com/${API_VERSION}`;
+const BASE = ADS_API_BASE;
 
 /** A Google Ads REST failure carrying the HTTP status, so the connector's live-retry
  *  can classify it (401 → refresh token & retry once; 429/5xx → back off & retry once;
@@ -71,7 +75,13 @@ export function adsConfigured(): boolean {
   return Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN);
 }
 
-function headers(accessToken: string): Record<string, string> {
+/** The auth headers EVERY Google Ads REST call needs: the user's bearer token, the
+ *  app's developer token, and the MCC `login-customer-id` when one is configured.
+ *  Exported because keyword-planner.ts hits the same API with the same credentials
+ *  and had a byte-identical private copy — two copies of an auth-header builder
+ *  drift silently, and the one that drifts fails with an opaque 401 rather than a
+ *  compile error. */
+export function adsApiHeaders(accessToken: string): Record<string, string> {
   const h: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     "developer-token": process.env.GOOGLE_ADS_DEVELOPER_TOKEN ?? "",
@@ -92,7 +102,7 @@ export function formatCustomerId(id: string): string {
 export async function listAccessibleCustomers(accessToken: string): Promise<string[]> {
   const res = await fetch(`${BASE}/customers:listAccessibleCustomers`, {
     method: "GET",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
   });
   if (!res.ok) {
     throw new AdsApiError(
@@ -131,7 +141,7 @@ export interface SearchRow {
 async function searchStream(accessToken: string, customerId: string, query: string): Promise<SearchRow[]> {
   const res = await fetch(`${BASE}/customers/${customerId}/googleAds:searchStream`, {
     method: "POST",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
     body: JSON.stringify({ query }),
   });
   if (!res.ok) {
@@ -167,7 +177,7 @@ export async function pauseCampaign(
 ): Promise<void> {
   const res = await fetch(`${BASE}/customers/${customerId}/campaigns:mutate`, {
     method: "POST",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
     body: JSON.stringify({
       operations: [
         {
@@ -194,7 +204,7 @@ export async function resumeCampaign(
 ): Promise<void> {
   const res = await fetch(`${BASE}/customers/${customerId}/campaigns:mutate`, {
     method: "POST",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
     body: JSON.stringify({
       operations: [
         {
@@ -259,7 +269,7 @@ export async function setCampaignBudgetMicros(
 ): Promise<void> {
   const res = await fetch(`${BASE}/customers/${customerId}/campaignBudgets:mutate`, {
     method: "POST",
-    headers: headers(accessToken),
+    headers: adsApiHeaders(accessToken),
     body: JSON.stringify({
       operations: [
         {
