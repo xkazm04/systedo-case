@@ -75,3 +75,30 @@ test("score stays within 0..100", () => {
   );
   assert.ok(s.score >= 0 && s.score <= 100);
 });
+
+test("count agreement holds at every Czech/English boundary", () => {
+  // Czech agrees the noun AND the verb with the count (1 / 2-4 / 5+), so an
+  // interpolated number cannot use one phrasing. These are the boundaries where
+  // the copy used to read "Všech 1 nadpisů" and "5 popisky pokrývají".
+  const ad = (headlines, descriptions = [], callouts = []) => ({
+    headlines,
+    descriptions,
+    callouts,
+    longHeadline: "X",
+    keywords: ["kesu"],
+    rationale: "",
+  });
+  const detail = (result, label) => result.factors.find((f) => f.label === label).detail;
+  const n = (count) => Array.from({ length: count }, (_, i) => `A${i}`);
+
+  assert.match(detail(computeAdStrength(ad(n(1)), "cs"), "Unikátní nadpisy"), /^Jediný nadpis/);
+  assert.match(detail(computeAdStrength(ad(n(3)), "cs"), "Unikátní nadpisy"), /^Všechny 3 nadpisy jsou/);
+  assert.match(detail(computeAdStrength(ad(n(6)), "cs"), "Unikátní nadpisy"), /^Všech 6 nadpisů je/);
+  assert.match(detail(computeAdStrength(ad(n(1)), "en"), "Unique headlines"), /^The single headline/);
+
+  assert.match(detail(computeAdStrength(ad(n(1), n(4)), "cs"), "Počet popisků"), /^4 popisky pokrývají/);
+  assert.match(detail(computeAdStrength(ad(n(1), n(5)), "cs"), "Počet popisků"), /^5 popisků pokrývá/);
+
+  assert.match(detail(computeAdStrength(ad(n(1), [], n(4)), "cs"), "Rozmanité odznaky"), /^4 odlišné odznaky rozšiřují/);
+  assert.match(detail(computeAdStrength(ad(n(1), [], n(5)), "cs"), "Rozmanité odznaky"), /^5 odlišných odznaků rozšiřuje/);
+});

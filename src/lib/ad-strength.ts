@@ -56,9 +56,15 @@ const KEYWORD_COVERAGE_GOAL = 0.5;
 
 const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
 
-/** Czech count agreement: 1 → one, 2–4 → few, else → many. */
+/** Czech count agreement: 1 → one, 2–4 → few, else → many. Czech cannot express a
+ *  count-invariant phrase here (the noun AND the verb both agree), so every
+ *  interpolated count in this file routes through it — see docs/i18n/contract.md,
+ *  which flags exactly this as the case needing per-form strings. */
 const czPlural = (n: number, one: string, few: string, many: string): string =>
   n === 1 ? one : n >= 2 && n <= 4 ? few : many;
+
+/** English count agreement: 1 → one, else → many. */
+const enPlural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
 
 /** Lowercase + strip Czech diacritics & punctuation so "ořechy" matches "orechy". */
 const normalize = (s: string): string =>
@@ -159,10 +165,19 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
         status: statusFromFraction(distinctFrac),
         detail: en
           ? uniqueHeadlines === n
-            ? `All ${n} headlines are distinct from each other.`
+            ? enPlural(
+                n,
+                "The single headline is distinct.",
+                `All ${n} headlines are distinct from each other.`
+              )
             : `Only ${uniqueHeadlines} of ${n} headlines are unique — rewrite the duplicates.`
           : uniqueHeadlines === n
-            ? `Všech ${n} nadpisů je navzájem odlišných.`
+            ? czPlural(
+                n,
+                "Jediný nadpis je unikátní.",
+                `Všechny ${n} nadpisy jsou navzájem odlišné.`,
+                `Všech ${n} nadpisů je navzájem odlišných.`
+              )
             : `Jen ${uniqueHeadlines} z ${n} nadpisů je unikátních — přeformulujte duplicity.`,
       },
     },
@@ -223,7 +238,12 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
             ? `${descriptions.length} descriptions cover different arguments.`
             : `${descriptions.length} description${descriptions.length === 1 ? "" : "s"}. Add more to reach ${DESC_GOAL} for full coverage.`
           : descriptions.length >= DESC_GOAL
-            ? `${descriptions.length} popisky pokrývají různé argumenty.`
+            ? czPlural(
+                descriptions.length,
+                `${descriptions.length} popisek pokrývá různé argumenty.`,
+                `${descriptions.length} popisky pokrývají různé argumenty.`,
+                `${descriptions.length} popisků pokrývá různé argumenty.`
+              )
             : `${descriptions.length} ${czPlural(descriptions.length, "popisek", "popisky", "popisků")}. Doplňte na ${DESC_GOAL} pro plné pokrytí.`,
       },
     },
@@ -238,7 +258,12 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
             ? `${uniqueCallouts} distinct callouts extend the ad.`
             : `${uniqueCallouts} callout${uniqueCallouts === 1 ? "" : "s"}. Add more for a longer ad.`
           : uniqueCallouts >= CALLOUT_GOAL
-            ? `${uniqueCallouts} odlišných odznaků rozšiřuje inzerát.`
+            ? czPlural(
+                uniqueCallouts,
+                `${uniqueCallouts} odlišný odznak rozšiřuje inzerát.`,
+                `${uniqueCallouts} odlišné odznaky rozšiřují inzerát.`,
+                `${uniqueCallouts} odlišných odznaků rozšiřuje inzerát.`
+              )
             : `${uniqueCallouts} ${czPlural(uniqueCallouts, "odznak", "odznaky", "odznaků")}. Přidejte další pro delší inzerát.`,
       },
     },
