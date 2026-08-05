@@ -21,11 +21,21 @@ import {
 import { Field, ToolEmpty, ToolError, inputClass } from "./primitives";
 import { AI_TIMEOUT_MS, AI_TIMEOUT_SECONDS } from "./useAiTool";
 
-/** localStorage slot for the latest image generation, so a refresh / tab-switch
- *  doesn't discard candidates the user already paid image quota for (every text
- *  tool persists via useAiTool history; images hand-rolled their own lifecycle and
- *  persisted nothing). Distinct from useAiTool's `systedo.ai.result.<mode>` keys. */
-const STUDIO_RESULT_KEY = "systedo.ai.result.creative-studio";
+/** localStorage slots for the latest image generation and the brand kit, so a
+ *  refresh / tab-switch doesn't discard candidates the user already paid image
+ *  quota for (every text tool persists via useAiTool history; images hand-rolled
+ *  their own lifecycle and persisted nothing). Distinct from useAiTool's
+ *  `systedo.ai.result.<mode>` keys.
+ *
+ *  Both are keyed PER PROJECT, matching AdGenerator's `ads.${pid}` drafts. They
+ *  used to be global, which made the brand kit — palette, tonality, the text fed
+ *  into both generation and the vision scoring — follow the user from one
+ *  workspace into the next, quietly spending image quota rendering project A's
+ *  brand for project B. The unsuffixed slot stays for the standalone
+ *  (non-project) host. */
+const STUDIO_RESULT_PREFIX = "systedo.ai.result.creative-studio";
+const BRAND_PREFIX = "app:creative-brand";
+const slotFor = (prefix: string, pid: string | undefined) => (pid ? `${prefix}.${pid}` : prefix);
 
 const T = {
   cs: {
@@ -191,6 +201,8 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
   // late/missing context provider can't silently drop project scoping on the API
   // calls. The unscoped fallback stays only for the standalone (non-project) host.
   const pid = projectId ?? project?.id;
+  const resultSlot = slotFor(STUDIO_RESULT_PREFIX, pid);
+  const brandSlot = slotFor(BRAND_PREFIX, pid);
   const fileUrl = (id: string) =>
     pid ? `/api/images/file/${id}?projectId=${encodeURIComponent(pid)}` : `/api/images/file/${id}`;
   const [prompt, setPrompt] = useState("");
@@ -253,29 +265,29 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
    *  result, it just won't survive a reload. */
   const persistResult = (r: ImageGenResult) => {
     try {
-      window.localStorage.setItem(STUDIO_RESULT_KEY, JSON.stringify(r));
+      window.localStorage.setItem(resultSlot, JSON.stringify(r));
     } catch {
       /* storage unavailable / over quota — non-fatal */
     }
   };
 
-  // Restore the last generation on mount (external-store sync in an effect keeps
+  // Restore this project's last generation (external-store sync in an effect keeps
   // the server + first client render identical, so the set-state rule is suppressed).
+  // Re-runs when the slot changes, i.e. when the project changes — and then clears,
+  // so project A's candidates never linger on project B's screen.
   useEffect(() => {
+    let saved: ImageGenResult | null = null;
     try {
-      const raw = window.localStorage.getItem(STUDIO_RESULT_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as ImageGenResult;
-      if (saved && Array.isArray(saved.images) && saved.images.length > 0) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setResult(saved);
-         
-        setStatus("done");
-      }
+      const raw = window.localStorage.getItem(resultSlot);
+      const parsed = raw ? (JSON.parse(raw) as ImageGenResult) : null;
+      if (parsed && Array.isArray(parsed.images) && parsed.images.length > 0) saved = parsed;
     } catch {
       /* corrupt / unavailable storage — start fresh */
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setResult(saved);
+    setStatus(saved ? "done" : "idle");
+  }, [resultSlot]);
 
   const removeBg = async (img: GeneratedImage) => {
     const id = img.leonardoImageId;
@@ -372,25 +384,32 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
     if (authStatus === "authenticated") void loadLibrary();
   }, [authStatus, loadLibrary]);
 
-  // Load + persist the brand kit (effect, not lazy init, to avoid SSR hydration mismatch).
+  // Load this project's brand kit (effect, not lazy init, to avoid SSR hydration
+  // mismatch). Re-runs on a project switch and resets to that project's own value.
   useEffect(() => {
+    let saved = "";
     try {
-      const saved = window.localStorage.getItem("app:creative-brand");
-      // localStorage restore is a valid external-store sync; doing it in an effect
-      // keeps the server + first client render identical.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (saved) setBrand(saved);
+      saved = window.localStorage.getItem(brandSlot) ?? "";
     } catch {
       /* storage unavailable — non-fatal */
     }
-  }, []);
-  useEffect(() => {
+    // localStorage restore is a valid external-store sync; doing it in an effect
+    // keeps the server + first client render identical.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBrand(saved);
+  }, [brandSlot]);
+
+  /** Write-through on edit rather than in an effect keyed on `brand`: an effect
+   *  would also fire on a project switch, and in that same commit it still closes
+   *  over the OUTGOING project's text — copying A's brand kit into B's slot. */
+  const onBrandChange = (value: string) => {
+    setBrand(value);
     try {
-      window.localStorage.setItem("app:creative-brand", brand);
+      window.localStorage.setItem(brandSlot, value);
     } catch {
       /* storage unavailable — non-fatal */
     }
-  }, [brand]);
+  };
 
   const canSubmit = prompt.trim().length >= 2 && status !== "loading" && refStatus !== "uploading";
 
@@ -579,7 +598,7 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
             <textarea
               id="cs-brand"
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
+              onChange={(e) => onBrandChange(e.target.value)}
               rows={2}
               placeholder={t("brandKitPlaceholder")}
               className={`${inputClass} resize-y`}
