@@ -32,6 +32,7 @@ const T = {
     enterPerf: "Zadat výkon",
     editPerf: "Upravit výkon",
     savePerf: "Uložit výkon",
+    saveFailed: "Uložení výkonu se nezdařilo — čísla zůstala nezměněná. Zkuste to prosím znovu.",
     impressions: "{n} imprese",
   },
   en: {
@@ -49,6 +50,7 @@ const T = {
     enterPerf: "Enter performance",
     editPerf: "Edit performance",
     savePerf: "Save performance",
+    saveFailed: "Saving performance failed — the numbers are unchanged. Please try again.",
     impressions: "{n} impressions",
   },
 } as const;
@@ -70,6 +72,10 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [draft, setDraft] = useState<MetricsDraft>({});
   const [loaded, setLoaded] = useState(false);
+  // Per-variant save failure. Without it a rejected PATCH still ran load(), so the
+  // user watched their typed numbers revert with no explanation and no way to tell
+  // "saved" from "silently lost".
+  const [saveErrors, setSaveErrors] = useState<Record<string, string>>({});
 
   const metricFields: { key: keyof AdVariantMetrics; label: string }[] = [
     { key: "impressions", label: t("metricImpressions") },
@@ -109,15 +115,24 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
       .find((e) => e.id === experimentId)
       ?.variants.find((v) => v.id === variantId)?.metrics;
     const metrics = draft[variantId] ?? existing ?? EMPTY_METRICS;
+    const fail = () => setSaveErrors((e) => ({ ...e, [variantId]: t("saveFailed") }));
     try {
-      await fetch("/api/experiments", {
+      const res = await fetch("/api/experiments", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ experimentId, variantId, metrics, projectId: pid }),
       });
+      // A resolved fetch is not a success: reloading after a 4xx/5xx would replace
+      // the draft with the server's unchanged row, reading as a silent revert.
+      if (!res.ok) return fail();
+      setSaveErrors((e) => {
+        const next = { ...e };
+        delete next[variantId];
+        return next;
+      });
       await load();
     } catch {
-      /* keep draft */
+      fail(); /* keep draft */
     }
   };
 
@@ -245,6 +260,11 @@ export default function AdExperiments({ refreshKey }: { refreshKey: number }) {
                       >
                         {t("savePerf")}
                       </button>
+                      {saveErrors[v.id] && (
+                        <p role="alert" className="mt-1.5 text-[13px] text-negative">
+                          {saveErrors[v.id]}
+                        </p>
+                      )}
                     </details>
 
                     <p className="mt-2 text-[13px] tabular-nums text-muted">

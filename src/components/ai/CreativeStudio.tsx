@@ -79,6 +79,7 @@ const T = {
       "Knihovna vizuálů běží na cloudovém úložišti, které v offline režimu není dostupné. Vygenerované vizuály se zde teď neukládají.",
     downloadAriaLabel: "Stáhnout",
     deleteAriaLabel: "Smazat",
+    deleteFailed: "Smazání se nezdařilo.",
     candidateAlt: "Kandidát {n}",
     candidateBest: "Nejlepší",
     candidateNoBg: "Bez pozadí",
@@ -141,6 +142,7 @@ const T = {
       "The visual library runs on cloud storage, which isn't reachable in offline mode. Generated visuals aren't saved here right now.",
     downloadAriaLabel: "Download",
     deleteAriaLabel: "Delete",
+    deleteFailed: "Delete failed.",
     candidateAlt: "Candidate {n}",
     candidateBest: "Best",
     candidateNoBg: "No background",
@@ -234,6 +236,9 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
   // labeled notice instead of silently rendering an empty library.
   const [libraryOffline, setLibraryOffline] = useState(false);
   const [delBusy, setDelBusy] = useState<string | null>(null);
+  // A rejected DELETE left the tile in place with nothing said, which reads as a
+  // dead button rather than a failure the user could retry.
+  const [delError, setDelError] = useState<string | null>(null);
   // Background-removal results, keyed by Leonardo image id.
   const [nobg, setNobg] = useState<Record<string, NobgEntry>>({});
 
@@ -503,6 +508,7 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
 
   const remove = async (id: string) => {
     setDelBusy(id);
+    setDelError(null);
     try {
       const res = await fetch("/api/images", {
         method: "DELETE",
@@ -510,6 +516,9 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
         body: JSON.stringify({ id, projectId: pid }),
       });
       if (res.ok) setLibrary((l) => l.filter((c) => c.id !== id));
+      else setDelError(t("deleteFailed"));
+    } catch {
+      setDelError(t("deleteFailed"));
     } finally {
       setDelBusy(null);
     }
@@ -787,6 +796,11 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
             <h2 className="text-sm font-semibold text-navy-800">{t("libraryHeading")}</h2>
             <span className="text-xs text-muted">{t("librarySaved", { n: library.length })}</span>
           </div>
+          {delError && (
+            <p role="alert" className="mb-2 text-xs text-negative">
+              {delError}
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {library.map((c) => (
               <div key={c.id} className="card overflow-hidden">

@@ -31,6 +31,7 @@ const T = {
     metricConvValue: "Hodnota (Kč)",
     savePerf: "Uložit výkon",
     saving: "Ukládám…",
+    recordFailed: "Zaznamenání výkonu se nezdařilo — zadané hodnoty zůstaly ve formuláři. Zkuste to prosím znovu.",
     deleteRecordAriaLabel: "Smazat záznam",
     impressionsSuffix: " imprese",
     roasLabel: "ROAS",
@@ -57,6 +58,7 @@ const T = {
     metricConvValue: "Value (CZK)",
     savePerf: "Save performance",
     saving: "Saving…",
+    recordFailed: "Recording performance failed — your values are still in the form. Please try again.",
     deleteRecordAriaLabel: "Delete record",
     impressionsSuffix: " impressions",
     roasLabel: "ROAS",
@@ -85,6 +87,9 @@ export default function CreativeAttribution() {
   const [campaignName, setCampaignName] = useState("");
   const [metrics, setMetrics] = useState<CreativeMetrics>(EMPTY_METRICS);
   const [busy, setBusy] = useState(false);
+  // A failed POST used to clear the form and reload regardless, so the metrics the
+  // user had just typed in vanished with no message and no way to recover them.
+  const [recordError, setRecordError] = useState<string | null>(null);
 
   const metricFields: { key: keyof CreativeMetrics; label: string }[] = [
     { key: "impressions", label: t("metricImpressions") },
@@ -124,17 +129,24 @@ export default function CreativeAttribution() {
 
   const record = async () => {
     setBusy(true);
+    setRecordError(null);
     try {
-      await fetch("/api/images/attribution", {
+      const res = await fetch("/api/images/attribution", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ style, campaignName, metrics, prompt: "", projectId: pid }),
       });
+      // Only clear the form once the server actually took the record — otherwise
+      // the user loses hand-entered spend/revenue figures to a 4xx they never saw.
+      if (!res.ok) {
+        setRecordError(t("recordFailed"));
+        return;
+      }
       setMetrics(EMPTY_METRICS);
       setCampaignName("");
       await load();
     } catch {
-      /* ignore */
+      setRecordError(t("recordFailed"));
     } finally {
       setBusy(false);
     }
@@ -270,6 +282,11 @@ export default function CreativeAttribution() {
         >
           {busy ? t("saving") : t("savePerf")}
         </button>
+        {recordError && (
+          <p role="alert" className="mt-2 text-sm text-negative">
+            {recordError}
+          </p>
+        )}
       </details>
 
       {links.length > 0 && (

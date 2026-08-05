@@ -81,6 +81,7 @@ const T = {
     abSaveVariant: "Uložit variantu",
     abSaveTitleHover: "Uložit jako variantu A/B testu pro porovnání",
     abAdded: "Přidáno do A/B testu",
+    abSaveFailed: "Uložení varianty se nezdařilo.",
     abAdd: "Přidat do A/B testu",
     downloadCsvTitle: "Stáhnout všechny texty jako CSV",
     downloadCsv: "Stáhnout CSV",
@@ -150,6 +151,7 @@ const T = {
     abSaveVariant: "Save variant",
     abSaveTitleHover: "Save as an A/B test variant for comparison",
     abAdded: "Added to A/B test",
+    abSaveFailed: "Saving the variant failed.",
     abAdd: "Add to A/B test",
     downloadCsvTitle: "Download all texts as CSV",
     downloadCsv: "Download CSV",
@@ -515,6 +517,9 @@ export default function AdGenerator({
   const [abName, setAbName] = useState("");
   const [abState, setAbState] = useState<"idle" | "saving" | "saved">("idle");
   const [abOpen, setAbOpen] = useState(false);
+  // A rejected save used to drop straight back to "idle", which is exactly what a
+  // successful-then-reset button looks like — the click read as a no-op.
+  const [abError, setAbError] = useState<string | null>(null);
 
   const set = <K extends keyof AdRequest>(key: K, value: AdRequest[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -588,6 +593,7 @@ export default function AdGenerator({
     if (!r || !strength || abState === "saving") return;
     const name = abName.trim() || form.product.trim() || "A/B test";
     setAbState("saving");
+    setAbError(null);
     try {
       const res = await fetch("/api/experiments", {
         method: "POST",
@@ -596,6 +602,7 @@ export default function AdGenerator({
       });
       if (!res.ok) {
         setAbState("idle");
+        setAbError(t("abSaveFailed"));
         return;
       }
       setAbState("saved");
@@ -603,6 +610,7 @@ export default function AdGenerator({
       onVariantSaved?.();
     } catch {
       setAbState("idle");
+      setAbError(t("abSaveFailed"));
     }
   };
 
@@ -849,6 +857,11 @@ export default function AdGenerator({
                       >
                         {abState === "saving" ? t("abSaving") : t("abSaveVariant")}
                       </button>
+                      {abError && (
+                        <span role="alert" className="text-xs text-negative">
+                          {abError}
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <button
