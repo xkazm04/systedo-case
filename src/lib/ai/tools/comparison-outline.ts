@@ -40,7 +40,7 @@ Pravidla:
 - Vrať „comparisonCriteria" — 4–8 kritérií, podle kterých se řešení porovnávají (např. cena, funkce, podpora, integrace, náročnost nasazení). Krátká, konkrétní.
 - Vrať „verdict" — 1–2 věty se shrnujícím doporučením / závěrem stránky.
 - Vrať „faq" — 3–5 častých dotazů (q) a stručných odpovědí (a) navázaných na téma a záměr.
-- Jsou-li uvedeny KONKURENT a/nebo VAŠE POZICE, ber je jako reálná data: jmenuj konkurenta a opři srovnání, kritéria i verdikt o uvedené odlišnosti. Nejsou-li uvedeny, nevymýšlej si konkrétní fakta, ceny ani názvy produktů — mluv obecně („daný nástroj", „alternativní řešení") a obsah ať je kostra k doplnění redaktorem.
+- Jsou-li uvedeny KONKURENT a/nebo VAŠE POZICE, ber je jako reálná data: jmenuj konkurenta a opři srovnání, kritéria i verdikt o uvedené odlišnosti. Nejsou-li uvedeny, nevymýšlej si konkrétní fakta, ceny ani názvy produktů — mluv obecně („daný nástroj", „alternativní řešení") a obsah ať je kostra k doplnění redaktorem. Zástupné formulace typu „redaktor doplní" ale nikdy nepiš do samotného obsahu — každá odrážka je konkrétní pokyn, CO sekce pokryje, i bez dodaných dat.
 - Vrať POUZE jeden validní JSON objekt dle schématu — žádný text okolo, žádné markdown bloky, žádné komentáře.`;
 
 function buildComparisonOutlinePrompt(req: ComparisonOutlineRequest): string {
@@ -247,6 +247,15 @@ function validateComparisonOutline(parsed: unknown): string[] {
     const faq = normalizeFaq(o.faq);
     if (faq.length === 0) {
       v.push("Chybí časté dotazy — vrať pole „faq“ s alespoň jedním dotazem a odpovědí.");
+    }
+    // The system prompt bans placeholder phrasing inside the content ("redaktor
+    // doplní…"); a slip still happens — flag it so the ONE repair re-prompt
+    // rewrites the offending copy instead of shipping a to-do into a published
+    // skeleton. Checked on the raw JSON string so nested points/answers count.
+    if (/redaktor\s+dopln|doplnit\s+při\s+redakci|doplní\s+redakce/i.test(JSON.stringify(parsed))) {
+      v.push(
+        "Obsah obsahuje zástupnou formulaci typu „redaktor doplní“ — přepiš ji na konkrétní text (co sekce/odpověď pokryje), žádné odkazy na budoucí redakci."
+      );
     }
     return v;
   })(parsed);

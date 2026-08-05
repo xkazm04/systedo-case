@@ -276,6 +276,15 @@ export function validateArticleDraft(parsed: unknown, expectFaq = false): string
     if (valid.length === 0) {
       v.push("Návrh neobsahuje žádný platný blok textu — vrať tělo článku jako pole „blocks“.");
     }
+    // An alt-less figure is silently DROPPED by the normalizer (a placeholder
+    // with no description is unusable) — flag it so the repair re-prompt asks
+    // for the description instead of the suggestion vanishing without a trace.
+    const altless = raw.some(
+      (b) => b && typeof b === "object" && (b as { type?: unknown }).type === "figure" && !txt((b as { alt?: unknown }).alt) && !txt((b as { text?: unknown }).text)
+    );
+    if (altless) {
+      v.push("Blok „figure“ nemá vyplněné pole „alt“ — doplň stručný popis navrhovaného obrázku, nebo blok vynech.");
+    }
     if (expectFaq && normalizeFaq(o.faq).length === 0) {
       v.push("Chybí sekce častých dotazů — vrať odpovědi na otázky z briefu v poli „faq“.");
     }

@@ -23,6 +23,7 @@ const CHAT_SYSTEM = `${ANALYST_PERSONA}
 Teď vedeš navazující konverzaci nad tímto reportem. Navíc platí:
 - Odpovídej konverzačně a stručně (2–5 vět), jako v chatu — žádné markdown nadpisy ani odrážkové seznamy, pokud o ně klient výslovně nepožádá.
 - Vycházej VÝHRADNĚ z předaných čísel. Pokud odpověď z dat nevyplývá, řekni to na rovinu a navrhni, co by bylo potřeba změřit.
+- Nikdy nekonči pouhým konstatováním. Poslední věta je vždy jeden konkrétní další krok: buď akce vyvoditelná z předaných čísel, nebo přesně co doměřit/doplnit, aby šla otázka zodpovědět.
 - Drž se poslední otázky klienta; neopakuj celý report.`;
 
 const CHAT_SCHEMA = {

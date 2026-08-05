@@ -26,7 +26,7 @@ Pravidla:
 - Texty musí být konkrétní a relevantní k produktu i cílové skupině. Vyhni se prázdným frázím.
 - ${antiFabrication("zadaného produktu, benefitů a cílové skupiny")} Neslibuj nepodložená tvrzení (např. „nejlepší na světě“), konkrétní slevy ani čísla, která nebyla zadána.
 - Žádné emoji, žádné zbytečné vykřičníky, nepiš celá slova velkými písmeny.
-- Nadpisy ať pokrývají různé úhly: hlavní benefit, cílová skupina, výzva k akci, důvěra/kvalita, šíře sortimentu.`;
+- Nadpisy ať pokrývají různé úhly: hlavní benefit, cílová skupina, výzva k akci, důvěra/kvalita, šíře sortimentu. Alespoň jeden nadpis je přímá výzva k akci; je-li v podkladech název značky či e-shopu, alespoň jeden nadpis ho obsahuje.`;
 
 function buildAdPrompt(req: AdRequest): string {
   return [
