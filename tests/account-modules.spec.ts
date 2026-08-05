@@ -138,10 +138,27 @@ test.describe.serial("/app/[projectId] — account-level modules", () => {
     // The summary row is always present (statusSummary over a fixed row set).
     await expect(page.getByText(/^(Připojeno|Connected)$/).first()).toBeVisible();
 
-    // computeIntegrationRows always emits ads + ai + infra rows, and the module
-    // only renders a category card when that category has rows.
-    for (const cat of [/^(Reklama|Advertising)$/, /^AI$/, /^(Infrastruktura|Infrastructure)$/]) {
+    // Project-scoped categories are visible to every signed-in user, and the
+    // module only renders a category card when that category has rows.
+    for (const cat of [/^(Reklama|Advertising)$/, /^AI$/]) {
       await expect(page.getByRole("heading", { name: cat }).first()).toBeVisible();
+    }
+
+    // Platform provisioning (auth / cron / persistence) is ADMIN_EMAILS-gated —
+    // "auth: needs action" would otherwise tell any tenant this deployment runs
+    // the DEV_AUTH bypass, and "cron: not configured" that /api/cron/* is open.
+    // The allowlist fails closed, so derive the expectation from the same env the
+    // server reads rather than assuming one configuration.
+    const devEmail = (process.env.DEV_AUTH_USER_EMAIL ?? "dev@local.test").toLowerCase();
+    const allowlist = (process.env.ADMIN_EMAILS ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    const cron = page.getByText(/^(Automatizace \(cron\)|Automation \(cron\))$/).first();
+    if (allowlist.includes(devEmail)) {
+      await expect(cron).toBeVisible();
+    } else {
+      await expect(cron).toBeHidden();
     }
   });
 
