@@ -79,11 +79,24 @@ export function scaledDataset(
 // Direction 1 — per-type + per-project runtime SHAPE variation.
 // ---------------------------------------------------------------------------
 
+/** Memo for {@link utcDay}. Keyed by the ISO date string, so the keyspace is the
+ *  dataset's own date column (750 sample days, or a live series' rolling window)
+ *  — it grows with calendar days, never with traffic. */
+const DOW_CACHE = new Map<string, number>();
+
 /** UTC weekday index (0=Sun … 6=Sat), the same indexing the metrics engine's
  *  `dayOfWeek` uses, so a type's weekday signature and the anomaly de-seasonaliser
- *  agree on which day is which. */
+ *  agree on which day is which.
+ *
+ *  Memoized because `projectShapeFactors` walks the whole series on every
+ *  `getProjectDataset`, and the portfolio overview calls that once per project:
+ *  parsing 750 date strings was 0.22 ms of the function's 0.28 ms. */
 function utcDay(date: string): number {
-  return new Date(`${date}T00:00:00Z`).getUTCDay();
+  const hit = DOW_CACHE.get(date);
+  if (hit !== undefined) return hit;
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+  DOW_CACHE.set(date, day);
+  return day;
 }
 
 /** Per-type weekday SIGNATURE (index 0=Sun … 6=Sat) — the relative weight of each
