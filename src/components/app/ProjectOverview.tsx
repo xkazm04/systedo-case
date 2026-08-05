@@ -307,7 +307,7 @@ export default async function ProjectOverview({
     const typeIcon = PROJECT_TYPE_META[project.type].icon;
     // Honest label: "živá data" only once the project has SYNCED rows (not merely
     // linked an Ads account) — the same signal the Monthly Report/AI recap use.
-    const ds = projectDataSource(await hasSyncedMetrics(project.id));
+    const ds = projectDataSource(await hasSyncedMetrics(project.id), locale);
     const last30 = totalsOf(data.daily.slice(-30));
     const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
     const lastDate = data.daily.at(-1)?.date;

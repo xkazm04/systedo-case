@@ -13,6 +13,7 @@ import {
   type ProjectType,
 } from "@/lib/projects/types";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -72,6 +73,7 @@ const inputClass =
 
 export default function ProjectSettings({ live }: { live: boolean }) {
   const t = useT(T);
+  const { locale } = useLocale();
   const project = useProject();
   const router = useRouter();
   const [name, setName] = useState(project.name);
@@ -139,7 +141,7 @@ export default function ProjectSettings({ live }: { live: boolean }) {
     }
   }
 
-  const ds = projectDataSource(live);
+  const ds = projectDataSource(live, locale);
 
   return (
     <div className="stagger max-w-2xl space-y-8">
