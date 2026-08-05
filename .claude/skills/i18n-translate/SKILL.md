@@ -113,7 +113,56 @@ repo under `docs/i18n/` — they are project truth, not skill-internal state:
    a style guide *describes* the voice, exemplars *demonstrate* it. Keep the
    file at ~8; replace a pair only when a better one ships.
 
-Before translating anything, **read all four**. Bootstrap any that are missing
+5. **`constructions-<locale>.md`** — the **anchor set for translationese**.
+   *How to build the sentence.* This is the artifact the other four cannot
+   replace, and skipping it is why a fully reviewed catalog still reads
+   translated. A glossary settles words; a style guide settles voice; both can
+   be completely satisfied by a string that is grammatical, correctly formal
+   and still shaped like the source language. Because Pass B **requires an
+   anchor for every finding**, a repo with no constructions file reports those
+   strings CLEAN — the audit is structurally blind to the dominant failure
+   class, and re-running `review` changes nothing.
+
+   Each rule carries an **ID** (`XX-NOM`, `XX-PASS`, `XX-CALQUE`...), a *trigger*
+   (what source-language shape sets it off), the rule, a source citation, and a
+   ✗/✓ pair **from this repo's own catalog**. The negative half does the work:
+   the failure is "plausible but source-shaped", and only a contrast makes it
+   visible.
+
+   **Where the rules come from — do not invent them.** Microsoft publishes a
+   free localization style guide per language whose section structure maps
+   almost 1:1 onto these rule classes (word-for-word translation, nouns and
+   genitive chains, participles, pronouns, progressive action, anthropomorphism,
+   non-breaking spaces): <https://learn.microsoft.com/globalization/reference/microsoft-style-guides>.
+   For an English *target*, the counterpart is the Microsoft Writing Style
+   Guide. Mozilla's per-locale l10n guides are the open-source alternative.
+   Both are copyrighted — use the **rules**, never their example sentences.
+
+   **Name ONE house authority per locale and say so in the file.** Microsoft and
+   Mozilla directly contradict each other on Czech register (Mozilla reaches for
+   `jenž`/`avšak`; Microsoft rules them out as too formal). Both are native and
+   both are right for their own product. Mixing them row by row yields an
+   incoherent voice.
+
+   **Rules do NOT transfer between locales — verify before reusing one.** The
+   Czech rule "unstack source noun piles into finite verbs" is *inverted* in
+   French: Microsoft's French guide states that French prefers noun forms more
+   often than English does ("How to use X" -> "Utilisation de X"). A
+   nominalisation that is an error in one locale is the correct form in another.
+   Copying a constructions file across locales actively damages the
+   translation. What generalises is the **method** and the ID discipline.
+
+   **The house may overrule the authority — record it here when it does.** A
+   guide's suggested token can be wrong for your catalog: one rule adopted
+   Microsoft's `nezdařilo se -> nepovedlo se`, and the replacement occurred
+   **0** times in the product against 165 for the word already in use. Always
+   check the catalog before adopting a token.
+
+   **A native rejection that no ID explains is a new row here**, not a one-off
+   fix — that is what makes a review session compound. So is an exception found
+   by over-applying a rule and having to revert.
+
+Before translating anything, **read all five**. Bootstrap any that are missing
 (for exemplars on a brand-new locale: translate the 8 class-examples first,
 polish them hard, seed the file from those).
 
@@ -204,6 +253,8 @@ Categories (MQM-derived):
   register break (informal where the tool needs formal; stiff where an
   end-user page should be warm).
 - **style** — reads translated rather than written; misses the exemplars' voice.
+- **construction** — grammatical but source-shaped: a rule in
+  `constructions-<locale>.md` applies and was not followed. **Cite the rule ID.**
 - **locale-convention** — Title Case aped from the source, wrong quote glyphs,
   straight `...` for `…`, missing NBSP, wrong/missing plural handling per the
   contract.
@@ -216,7 +267,7 @@ Categories (MQM-derived):
 Severity: **critical** (wrong meaning, format break, legal/consent distortion) ·
 **major** (a native speaker would stumble or be confused) · **minor** (polish).
 
-**Every finding must cite an anchor** — a glossary row, a style-guide rule, an
+**Every finding must cite an anchor** — a **constructions rule ID**, a glossary row, a style-guide rule, an
 exemplar, the contract's placeholder rules, a call-site length budget. A
 finding with no anchor is taste, not an error; drop it or queue it for a
 native. For high-visibility surfaces (nav, landing, empty states), ask one
@@ -257,6 +308,65 @@ wording on this control?* — a style finding if the answer is no.
 - Never machine-blast a whole file in one edit; that's how silent format breaks
   and terminology drift ship.
 
+### Typography leaks hardest and is cheapest to fix — script it first
+
+Punctuation gets copied, not localized, and nothing in a glossary or a voice
+guide can see it. The em dash is the tell: one landing page used 39 in English
+and its three target locales carried 42 / 41 / 38 — the *count travelled with
+the copy* into three languages that do not use the character (Czech: not a
+Czech character at all; German: the Gedankenstrich is the en dash; French:
+replace with a period, comma or parentheses). French additionally had **zero**
+curly apostrophes across 1 834 sites, against an explicit rule.
+
+One scripted pass corrected 4 741 strings. None of it needs context, so run
+these rules over the WHOLE catalog **before** dispatching any agent —
+otherwise every agent burns tokens rediscovering the same finding.
+
+### Fanning out across the whole catalog
+
+Only after a locale's `constructions-<locale>.md` exists **and has been
+validated on one visible surface**. An unvalidated rule applied by twenty
+agents is the same mistake made thousands of times.
+
+1. **Script the mechanical rules first** (see above).
+2. **Batch by namespace/module, one agent per (locale x batch).** Pre-cut each
+   agent's slice to its own file — do not make twenty agents each parse a
+   400 KB catalog. Give them the five artifacts and the call sites.
+3. **Agents return a JSON patch + an error log keyed by rule ID** — never a
+   rewritten catalog, and never a direct write. Concurrent writers to one file
+   per locale will clobber each other.
+4. **Merge centrally through a mechanical gate**, then run the repo's parity
+   and type checks once. The gate must reject: placeholder or rich-tag drift vs
+   source, unbalanced ICU braces, dropped plural categories, changed array
+   length, empty values, length blow-ups, typography regressions, and any
+   change with **no rule ID cited**.
+   *Get the gate's own parser right.* A naive `{(\w+)` pattern also matches ICU
+   plural **branch bodies** (`one {Vybrat #}`), which makes every correct
+   `one/few/many/other` expansion look like placeholder drift — so the gate
+   silently rejects the most valuable class of fix. An ICU argument is an
+   identifier followed by `,` or `}`; compare unique **sets**, not counts.
+   Watch for the reverse too: a sweep that renames a placeholder because the
+   term inside it matches a glossary row (`{role}` -> `{pozice}`, 56 sites).
+5. **Add an adversarial review phase — one agent per locale.** Not a re-audit.
+   It hunts the one failure invisible in any single string: **a rule applied
+   systematically wrongly**. All three reviewers on the reference run returned
+   "partial" and between them held back 178 changes. The dominant defect was
+   identical in every locale: **half-sweeps** — some batches deferring a term
+   as "one house decision, one sweep" while sibling batches applied it anyway.
+   They also caught an *ungrammatical* gender-neutral form (a nominative-only
+   slash form dropped into genitive slots) and a rule whose replacement token
+   did not exist in the catalog.
+6. **Harvest.** Every new rule or exception an agent proposes goes into the
+   constructions file before the next batch. The reference run produced 13 new
+   Czech rules and exposed a **contradiction between the constructions file and
+   the style guide** that had made two rules mutually uncitable.
+7. **Surface the review list** — the strings agents refused to guess at. That
+   list is the honest boundary of what this process can do without a native.
+
+**Half-sweeps are the enemy.** If a term needs a house decision, park it,
+record it, and sweep it in one pass later. Leaving a minority of sites stranded
+is worse than not starting.
+
 ---
 
 ## Guardrails (learned the hard way)
@@ -292,6 +402,9 @@ wording on this control?* — a style finding if the answer is no.
 - [ ] Touched locale files valid, same key order as source, proper diacritics.
 - [ ] `docs/i18n/glossary.md` + `style-<locale>.md` updated with any new
       term/voice decisions; `exemplars-<locale>.md` exists and still holds the
+- [ ] `constructions-<locale>.md` exists, and every construction rule you
+      had to invent — or exception you hit by over-applying one — is
+      written back into it.
       locale's best ~8; `contract.md` corrected if a run proved it stale.
 - [ ] `docs/i18n/review-<locale>.md` updated: the strings worth a native second
       look, each with its typed error record and severity; anything

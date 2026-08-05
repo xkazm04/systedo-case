@@ -1,0 +1,125 @@
+# English constructions — the rules a glossary can't hold
+
+**How to build the sentence.** `en` is this repo's **derived** locale — see
+[`contract.md`](./contract.md): Czech is the source of truth here, so this file
+governs writing *English out of Czech*, which is the opposite direction from
+most localization advice you will read.
+
+The [glossary](./glossary.md) settles *what to call things* and
+[`style-en.md`](./style-en.md) sets the voice. Neither catches the failure that
+actually makes derived English read translated: strings that are grammatical,
+glossary-compliant, correctly toned — and still shaped like Czech.
+
+Because `/i18n-translate` Pass B **requires every finding to cite an anchor**,
+a repo with no constructions file reports those strings **clean**. That is why
+re-running `review en` on an already-reviewed catalog changes nothing. Every
+rule below has an **ID** for Pass B to cite.
+
+---
+
+## ⚠ STATUS: BOOTSTRAP — none of this is validated against this catalog yet
+
+These rules are seeded from the **direction** (cs → en) and from the
+Czech-interference patterns that a Czech-first product reliably produces. They
+have **not** been proven against `src/**` strings, and none of the ✗/✓ pairs
+below is a real string from this repo yet.
+
+**The first `review en` run's job is to replace every invented example with a
+real one, delete any rule this catalog does not actually violate, and add the
+ones it does.** A rule with no evidence behind it is a liability: it invites
+churn on strings that were already fine. Treat the list as hypotheses.
+
+That discipline is the whole point of the artifact — see the reference run's
+outcome in [`lessons-i18n.md`](./lessons-i18n.md), where a rule adopted from an
+authoritative style guide without checking the catalog would have introduced a
+word the product had never used, sixteen times.
+
+## Provenance
+
+The house authority for English is the **[Microsoft Writing Style
+Guide](https://learn.microsoft.com/style-guide/welcome/)** — the en-source
+counterpart to the per-language localization guides. Name one authority and
+stay with it; do not mix guides row by row.
+
+---
+
+## EN-ARTICLE · Czech has no articles; English needs them
+
+> **Trigger** — a Czech noun phrase with no determiner.
+> **Rule** — the single most reliable tell of Czech-authored English. Every
+> countable singular noun needs `a`/`an`/`the` or a possessive. Decide which:
+> `the` for a specific, previously-established referent; `a` on first mention;
+> bare plural for a generic class.
+
+```
+✗ Open detail of campaign          ✓ Open the campaign detail
+✗ Upload file to start analysis    ✓ Upload a file to start the analysis
+```
+
+## EN-VERBAL · Czech verbs, English nouns — this direction *adds* nominal style
+
+> **Trigger** — a Czech finite verb or reflexive construction.
+> **Rule** — the inverse of the Czech rule. Czech prefers conjugating; English
+> UI prefers a compact noun phrase for labels and headings, and the plain
+> active voice in prose. Do not carry Czech's verb-heavy rhythm into English
+> chrome.
+
+```
+✗ Here you can edit your campaign        ✓ Edit campaign
+✗ Analysis is being performed…           ✓ Analyzing…
+```
+
+Note this rule is **directional**: it is correct here and would be wrong in a
+constructions file for a Czech *target*.
+
+## EN-REFLEXIVE · `se` is not "itself"
+
+> **Trigger** — a Czech reflexive verb (`ukládá se`, `zobrazí se`, `načítá se`).
+> **Rule** — Czech reflexives carry passive or middle meaning. English wants
+> either a plain progressive (*Saving…*), a passive (*is displayed*), or an
+> actor (*we save*) — never a literal reflexive pronoun.
+
+## EN-ASPECT · Czech aspect is not English tense
+
+> **Trigger** — a perfective/imperfective Czech pair.
+> **Rule** — perfective maps to a completed/simple form, imperfective to a
+> progressive or habitual one. A literal tense swap produces the classic
+> *"I am knowing"* / *"it will be saved successfully"* register.
+
+## EN-ORDER · Czech word order is pragmatic, English is fixed
+
+> **Trigger** — a Czech clause whose subject or object has moved for emphasis.
+> **Rule** — Czech marks focus by position because cases carry the roles;
+> English cannot. Restore subject-verb-object and mark emphasis lexically or
+> with punctuation instead.
+
+## EN-FALSE-FRIEND · The obvious cognate is often wrong
+
+> **Trigger** — a Czech word with an English lookalike.
+> **Rule** — `eventuálně` is *possibly*, not *eventually*; `aktuálně` is
+> *currently*, not *actually*; `evidence` is *records*, not *proof*; `kontrola`
+> is a *check*, not *control*; `realizovat` is usually *carry out*, not
+> *realize*. Build this table from real hits in the first review run.
+
+## EN-SENTENCE-CASE · Headings and buttons are sentence case
+
+> **Rule** — Microsoft Writing Style Guide: sentence case everywhere except
+> proper nouns. Title Case On Every Word is a common artifact of translating
+> label-by-label.
+
+## EN-DASH · The em dash IS English punctuation
+
+> **Rule** — the direction matters. Czech uses the en dash `–`; English uses
+> the em dash `—` (or a comma/parenthesis). Carrying Czech's en dash into
+> English is the same defect in reverse, and it is mechanically checkable.
+> Likewise: English does **not** put a space before `; : ! ?`.
+
+**Script this class before dispatching any agent** — see the fan-out protocol
+in the skill. Typography needs no context and it is where the source language
+leaks hardest.
+
+## EN-ONE-WORD · One concept, one word
+
+> **Rule** — check the [glossary](./glossary.md) before inventing a rendering;
+> add the row when you decide one. Two renderings of one concept is a
+> `terminology` error even when both are good English.

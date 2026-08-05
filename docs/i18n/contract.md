@@ -15,6 +15,22 @@ easier; a `review en` wave audits the *translations*, and "leftover-source"
 means leftover Czech in the en column. Conversely, a surface hardcoded in
 English is a **cs coverage gap** (it renders English to Czech users).
 
+## Artifacts in this repo
+
+| File | Holds |
+| --- | --- |
+| `glossary.md` | termbase — what to call things |
+| `style-cs.md` · `style-en.md` | voice per locale |
+| `exemplars-en.md` | gold cs→en pairs |
+| `constructions-en.md` | **the anchor set for translationese** — how to build the sentence. BOOTSTRAP, unvalidated against this catalog; the first `review en` run must replace every invented example with a real one and delete any rule this catalog does not violate. |
+| `lessons-i18n.md` | field notes from a full-catalog sweep on a sibling product — read before a large run |
+
+Because `en` is the derived locale here, the constructions file is
+`constructions-en.md` and its authority is the **Microsoft Writing Style
+Guide**, not a per-language localization guide. Note that most published
+localization advice assumes an English *source*; half of it is backwards for
+this repo.
+
 ## Catalog layout — colocated, not central
 
 - **Central dictionary** (`src/lib/i18n/messages.ts`): only `nav` / `footer` /
