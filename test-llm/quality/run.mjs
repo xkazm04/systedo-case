@@ -104,12 +104,40 @@ const REASONING = process.env.LLM_QUALITY_REASONING || "default";
 // off-model (Gemini) score.
 const JUDGE_COUNT = Math.max(1, Number(process.env.LLM_QUALITY_JUDGES) || 3);
 
-const API_KEY = process.env.OPENROUTER_API_KEY;
-if (!API_KEY) {
-  console.error("✗ Missing OPENROUTER_API_KEY — set it in .env.local.");
+/** Parse one target spec. Three forms:
+ *    - "vendor:model"  → that BYOM vendor (openrouter | qwen | ollama), e.g.
+ *      "qwen:qwen3.8-max", "ollama:lfm2.5:8b" (the tag may itself contain ":").
+ *    - "claude-cli:alias" → the app's native Claude CLI path pinned to `alias`
+ *      (sonnet | opus | haiku) via CLAUDE_CLI_PIN — no BYOM context.
+ *    - bare "org/slug" → OpenRouter (the original roster form, unchanged). */
+function parseTarget(spec) {
+  const m = spec.match(/^(claude-cli|openrouter|qwen|ollama):(.+)$/);
+  if (!m) return { kind: "byom", vendor: "openrouter", model: spec, spec };
+  if (m[1] === "claude-cli") return { kind: "claude", alias: m[2], model: `claude-${m[2]}`, spec };
+  return { kind: "byom", vendor: m[1], model: m[2], spec };
+}
+const PARSED = TARGETS.map(parseTarget);
+
+const claudeTargets = PARSED.filter((t) => t.kind === "claude");
+if (claudeTargets.length > 1) {
+  console.error("✗ At most one claude-cli:<alias> target per run (the CLI pin is process-wide). Run them separately.");
   process.exit(1);
 }
-const short = (slug) => slug.split("/").pop();
+
+/** Per-vendor API keys — each required only when the roster actually uses the
+ *  vendor. Ollama is keyless (placeholder satisfies the adapter's Bearer header). */
+const VENDOR_KEYS = {
+  openrouter: process.env.OPENROUTER_API_KEY,
+  qwen: process.env.QWEN_API_KEY ?? process.env.DASHSCOPE_API_KEY,
+  ollama: "local",
+};
+for (const t of PARSED) {
+  if (t.kind === "byom" && !VENDOR_KEYS[t.vendor]) {
+    console.error(`✗ Missing ${t.vendor === "qwen" ? "QWEN_API_KEY" : "OPENROUTER_API_KEY"} — set it in .env.local (target ${t.spec}).`);
+    process.exit(1);
+  }
+}
+const short = (slug) => (slug.includes("/") ? slug.split("/").pop() : slug);
 const numOr = (v, d = 0) => (Number.isFinite(Number(v)) ? Number(v) : d);
 
 // Self-judging conflict: the judge is Claude (Sonnet), so any Anthropic-family
@@ -213,13 +241,9 @@ async function judge(tool, output) {
 }
 
 // ── one (operation × target) cell ─────────────────────────────────────────────
-async function runCell(tool, target) {
-  // fastModel = target too: fast-tier tools (lead-reply, repurpose, …) otherwise
-  // resolve to the vendor's fast DEFAULT (deepseek) instead of the model under test,
-  // which would leave those operations uncovered for every non-deepseek target.
-  const key = { vendor: "openrouter", apiKey: API_KEY, model: target, fastModel: target, reasoning: REASONING };
+async function runCell(tool, t) {
   try {
-    const res = await runWithByomContext(key, () =>
+    const generate = () =>
       generateStructured({
         id: tool.id,
         system: tool.system,
@@ -228,16 +252,27 @@ async function runCell(tool, target) {
         tier: tool.tier,
         normalize: (x) => x,
         demo: () => ({ __demo: true }),
-      })
-    );
+      });
+    // A claude-cli target runs the app's native CLI path (no BYOM context); the
+    // model comes from CLAUDE_CLI_PIN, set for the generation phase below. BYOM
+    // targets inject the vendor key. fastModel = target too: fast-tier tools
+    // (repurpose, keyword-clusters, …) otherwise resolve to the vendor's fast
+    // DEFAULT instead of the model under test, leaving those ops uncovered.
+    const res =
+      t.kind === "claude"
+        ? await generate()
+        : await runWithByomContext(
+            { vendor: t.vendor, apiKey: VENDOR_KEYS[t.vendor], model: t.model, fastModel: t.model, reasoning: REASONING },
+            generate
+          );
     // Did the TARGET serve, or did the wrapper fall back / degrade to demo?
-    const served = res.meta.demo === false && res.meta.model === target;
+    const served = res.meta.demo === false && res.meta.model === t.model;
     if (!served) {
-      return { tool: tool.id, target, served: false, error: `served by ${res.meta.model} (fell back)` };
+      return { tool: tool.id, target: t.spec, served: false, error: `served by ${res.meta.model} (fell back)` };
     }
     return {
       tool: tool.id,
-      target,
+      target: t.spec,
       served: true,
       valid: Boolean(tool.validate(res.result)),
       output: res.result,
@@ -246,7 +281,7 @@ async function runCell(tool, target) {
     };
   } catch (e) {
     const msg = e?.name === "ByomUserError" ? `${e.code}: ${e.message}` : String(e?.message ?? e);
-    return { tool: tool.id, target, served: false, error: msg };
+    return { tool: tool.id, target: t.spec, served: false, error: msg };
   }
 }
 
@@ -267,7 +302,7 @@ async function mapLimit(items, limit, fn) {
 
 // ── run ───────────────────────────────────────────────────────────────────────
 const lighttrack = process.env.LIGHTTRACK_PROJECT || process.env.LIGHTTRACK_KEY;
-console.log(`\nLLM quality matrix — ${TOOLS.length} operations × ${TARGETS.length} targets (via OpenRouter)`);
+console.log(`\nLLM quality matrix — ${TOOLS.length} operations × ${TARGETS.length} targets`);
 console.log(`Targets: ${TARGETS.map(short).join(", ")}`);
 console.log(`LightTrack: ${lighttrack ? "ON (mirroring)" : "off (set LIGHTTRACK_* to mirror)"}`);
 console.log(`Judge: Claude Code CLI (Sonnet) · ${JUDGE_COUNT} judge(s)/cell (median) · reasoning: ${REASONING}`);
@@ -275,14 +310,18 @@ if (selfJudged.length) console.log(`Self-judged (home-team bias): ${selfJudged.m
 console.log("");
 
 const cells = [];
-for (const tool of TOOLS) for (const target of TARGETS) cells.push({ tool, target });
+for (const tool of TOOLS) for (const t of PARSED) cells.push({ tool, t });
 
 console.log(`1/2 · running ${cells.length} generations (concurrency ${CONCURRENCY})…`);
-const gen = await mapLimit(cells, CONCURRENCY, async ({ tool, target }) => {
-  const r = await runCell(tool, target);
+// The CLI pin applies to the GENERATION phase only — cleared before judging so
+// the judge always runs the normal Sonnet (claudeModelTag reads it per call).
+if (claudeTargets.length === 1) process.env.CLAUDE_CLI_PIN = claudeTargets[0].alias;
+const gen = await mapLimit(cells, CONCURRENCY, async ({ tool, t }) => {
+  const r = await runCell(tool, t);
   process.stdout.write(r.served ? "." : "x");
   return r;
 });
+delete process.env.CLAUDE_CLI_PIN;
 process.stdout.write("\n");
 
 const servedCells = gen.filter((r) => r.served);
@@ -343,7 +382,7 @@ const details = TOOLS.map((t) => {
 const md = [
   `# LLM quality matrix — ${at}`,
   "",
-  `${TOOLS.length} operací × ${TARGETS.length} modelů (přes OpenRouter). Rozhodčí: Claude Code CLI. LightTrack: ${lighttrack ? "zapnut" : "vypnut"}.`,
+  `${TOOLS.length} operací × ${TARGETS.length} modelů. Rozhodčí: Claude Code CLI. LightTrack: ${lighttrack ? "zapnut" : "vypnut"}.`,
   "",
   "## Skóre (celkové hodnocení rozhodčího, 1–10)",
   "",

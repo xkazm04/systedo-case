@@ -9,8 +9,14 @@ tasks".*
 It is a **benchmark, not a test** — it never blocks a commit and has no
 assertions. You run it on demand, read the scorecard, and decide.
 
-> Status: framework built + smoke-tested; **no full run has been done yet.** This
-> doc is the guide for when we pick it up.
+> Status: in active use. Full runs exist since 2026-07-06 (~33 reports under
+> `test-llm/quality/reports/`, gitignored) and a baked scorecard shipped in
+> `src/lib/llm/quality-scores.ts` (2026-07-07, single-judge). Since 2026-08-05 the
+> runner also takes **vendor-prefixed targets** — `claude-cli:sonnet|opus`
+> (native CLI path via `CLAUDE_CLI_PIN`, generation phase only), `qwen:<slug>`
+> (Qwen Cloud, `QWEN_API_KEY`), `ollama:<tag>` (local, keyless) — alongside the
+> original bare OpenRouter slugs; see the README's benchmark section for the
+> latest measured table.
 
 ---
 
@@ -20,7 +26,7 @@ assertions. You run it on demand, read the scorecard, and decide.
 |---|---|---|---|
 | Coverage + chokepoint | part of the gate | is every wrapper call site tagged + registered, providers confined to the wrapper? | ✅ pre-commit |
 | Contract goldens | `npm run llm:eval` | did a tool's (system + schema) fingerprint drift? | ✅ pre-commit |
-| Real-model gate | `npm run llm:gate` | does each tool produce schema-valid output on real Claude? | ✅ pre-commit (hash-cached) |
+| Real-model suite | `npm run test:llm` | does each tool produce schema-valid output on real Claude? | ❌ on-demand (the pre-commit re-prove was retired 2026-08-05) |
 | Offline sample validators | `npm run test:unit` | do committed sample outputs still pass each tool's validator? | ✅ CI |
 | **Quality matrix** | **`npm run llm:quality`** | **which model writes the best output per operation?** | ❌ on-demand |
 
