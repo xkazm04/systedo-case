@@ -21,7 +21,13 @@ const BASE = `https://googleads.googleapis.com/${API_VERSION}`;
 /** A Google Ads REST failure carrying the HTTP status, so the connector's live-retry
  *  can classify it (401 → refresh token & retry once; 429/5xx → back off & retry once;
  *  400/403 → permanent, degrade immediately). Plain `Error`s (e.g. a network failure
- *  thrown by fetch) carry no status and are treated as transient by the classifier. */
+ *  thrown by fetch) carry no status and are treated as transient by the classifier.
+ *
+ *  INVARIANT: every non-OK HTTP response in this module throws THIS, never a plain
+ *  Error. classifyLiveError reads `.status` off the thrown value, so a plain Error
+ *  with the status only interpolated into its message classifies as "permanent" —
+ *  which is how the mutation endpoints (pause / resume / budget) used to lose the
+ *  401-refresh-and-retry that the read path has always had. */
 export class AdsApiError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -89,7 +95,10 @@ export async function listAccessibleCustomers(accessToken: string): Promise<stri
     headers: headers(accessToken),
   });
   if (!res.ok) {
-    throw new Error(`Google Ads listAccessibleCustomers ${res.status}: ${await res.text().catch(() => "")}`);
+    throw new AdsApiError(
+      res.status,
+      `Google Ads listAccessibleCustomers ${res.status}: ${await res.text().catch(() => "")}`
+    );
   }
   const json = (await res.json()) as { resourceNames?: string[] };
   // "customers/1234567890" → "1234567890"
@@ -172,7 +181,7 @@ export async function pauseCampaign(
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google Ads pauseCampaign ${res.status}: ${await res.text().catch(() => "")}`);
+    throw new AdsApiError(res.status, `Google Ads pauseCampaign ${res.status}: ${await res.text().catch(() => "")}`);
   }
 }
 
@@ -199,7 +208,7 @@ export async function resumeCampaign(
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google Ads resumeCampaign ${res.status}: ${await res.text().catch(() => "")}`);
+    throw new AdsApiError(res.status, `Google Ads resumeCampaign ${res.status}: ${await res.text().catch(() => "")}`);
   }
 }
 
@@ -261,7 +270,7 @@ export async function setCampaignBudgetMicros(
     }),
   });
   if (!res.ok) {
-    throw new Error(`Google Ads setCampaignBudget ${res.status}: ${await res.text().catch(() => "")}`);
+    throw new AdsApiError(res.status, `Google Ads setCampaignBudget ${res.status}: ${await res.text().catch(() => "")}`);
   }
 }
 
