@@ -57,7 +57,7 @@ const T = {
     rsaPreviewBadge: "Ukázková kombinace",
     sklikPreviewBadge: "Stylizovaná ukázka (Seznam)",
     sklikAdTag: "Reklama",
-    rsaSponsoredLine: "Sponzorováno · Mionelo",
+    rsaSponsoredLine: "Sponzorováno · {advertiser}",
     rsaTitleFallback: "Nadpis inzerátu",
     rsaDescFallback: "Popisek inzerátu se zobrazí tady.",
     rsaNextCombo: "Další kombinace",
@@ -126,7 +126,7 @@ const T = {
     rsaPreviewBadge: "Sample combination",
     sklikPreviewBadge: "Stylized sample (Seznam)",
     sklikAdTag: "Ad",
-    rsaSponsoredLine: "Sponsored · Mionelo",
+    rsaSponsoredLine: "Sponsored · {advertiser}",
     rsaTitleFallback: "Ad headline",
     rsaDescFallback: "Ad description will appear here.",
     rsaNextCombo: "Next combination",
@@ -261,6 +261,23 @@ function AdStrengthMeter({
   );
 }
 
+/** The case-study host, used only when no project domain is available (the
+ *  standalone /ai-asistent tool, or a project that never filled one in). */
+const DEMO_HOST = "mionelo.cz";
+
+/** Bare display host from a stored domain: strip scheme, `www.`, path and trailing
+ *  slash. Mirrors ContentBriefGenerator's SERP-preview helper — see the finding
+ *  noting both should move to a shared lib rather than stay duplicated. */
+function normalizeHost(domain: string | undefined | null): string {
+  if (!domain) return "";
+  return domain
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/.*$/, "")
+    .trim();
+}
+
 /** URL-path seed for the preview: lowercase, de-accented, dash-joined. */
 const slugify = (s: string): string =>
   s
@@ -285,12 +302,18 @@ function RsaPreview({
   descriptions,
   pathSeed,
   platform,
+  host,
+  advertiser,
   t,
 }: {
   headlines: string[];
   descriptions: string[];
   pathSeed: string;
   platform: Platform;
+  /** bare display host — the project's own domain, or the case-study host */
+  host: string;
+  /** advertiser name shown on the sponsored line */
+  advertiser: string;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
 }) {
   // Raw click count; the sampler wraps it modulo the combination count, so a
@@ -325,9 +348,9 @@ function RsaPreview({
               M
             </span>
             <div className="min-w-0 leading-tight">
-              <p className="text-xs font-semibold text-navy-800">{t("rsaSponsoredLine")}</p>
+              <p className="text-xs font-semibold text-navy-800">{t("rsaSponsoredLine", { advertiser })}</p>
               <p className="truncate text-xs text-serp-url">
-                www.mionelo.cz{path ? ` › ${path}` : ""}
+                www.{host}{path ? ` › ${path}` : ""}
               </p>
             </div>
           </div>
@@ -346,7 +369,7 @@ function RsaPreview({
               {t("sklikAdTag")}
             </span>
             <p className="min-w-0 truncate text-xs text-serp-url">
-              www.mionelo.cz{path ? ` › ${path}` : ""}
+              www.{host}{path ? ` › ${path}` : ""}
             </p>
           </div>
           <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-navy-600">
@@ -468,6 +491,15 @@ export default function AdGenerator({
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
+  // The advertiser's OWN domain drives both the preview URL and — the part that
+  // actually matters — the finalUrl/displayUrl written into the Ads Editor and
+  // Sklik CSVs. Those files get imported straight into a live ad account, so
+  // hardcoding the case-study host meant every export shipped a destination URL
+  // pointing at someone else's website. Falls back to the case study only where
+  // there is genuinely no project domain to use (standalone /ai-asistent, or a
+  // project that never filled one in).
+  const host = normalizeHost(project?.domain) || DEMO_HOST;
+  const advertiser = project?.name?.trim() || "Mionelo";
   // The campaign brief is the panel's most expensive input (5 fields) — persist
   // it like the result already is, so a stray reload doesn't cost the typing.
   // Keyed per project so drafts don't leak between workspaces. A live seed WINS
@@ -604,7 +636,7 @@ export default function AdGenerator({
       campaign: name,
       adGroup: name,
       path1,
-      finalUrl: `https://www.mionelo.cz/${path1}`,
+      finalUrl: `https://www.${host}/${path1}`,
     };
     const fileSeed = slugify(form.product) || "kampan";
     const ad = buildAdsEditorAdSheet(r, seed);
@@ -627,8 +659,8 @@ export default function AdGenerator({
     const seed = {
       campaign: name,
       adGroup: name,
-      displayUrl: `www.mionelo.cz/${path1}`,
-      finalUrl: `https://www.mionelo.cz/${path1}`,
+      displayUrl: `www.${host}/${path1}`,
+      finalUrl: `https://www.${host}/${path1}`,
     };
     const fileSeed = slugify(form.product) || "kampan";
     const ad = buildSklikAdSheet(r, seed);
@@ -874,6 +906,8 @@ export default function AdGenerator({
                 descriptions={r.descriptions}
                 pathSeed={r.keywords[0] ?? form.product}
                 platform={form.platform}
+                host={host}
+                advertiser={advertiser}
                 t={t}
               />
               {strength && <AdStrengthMeter strength={strength} locale={locale} t={t} />}
