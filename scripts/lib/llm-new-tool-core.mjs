@@ -61,27 +61,6 @@ export function insertRegistryEntry(source, { id, label }) {
   return `${source.slice(0, anchor)}\n${entry}${source.slice(anchor)}`;
 }
 
-/** Insert the tool's source file into HASHED_FILES in scripts/llm-gate.mjs,
- *  right after the last `src/lib/ai/tools/*.ts` line — the omission that once
- *  silently weakened the gate (social.ts). Throws when already listed or when
- *  the anchor block can't be found. */
-export function insertHashedFile(source, file) {
-  if (source.includes(`"${file}"`)) {
-    throw new Error(`${file} is already listed in HASHED_FILES`);
-  }
-  const lines = source.split("\n");
-  let last = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^\s*"src\/lib\/ai\/tools\/.+\.ts",\s*$/.test(lines[i])) last = i;
-  }
-  if (last === -1) {
-    throw new Error("could not find the src/lib/ai/tools/ block inside HASHED_FILES");
-  }
-  const indent = lines[last].match(/^\s*/)[0];
-  lines.splice(last + 1, 0, `${indent}"${file}",`);
-  return lines.join("\n");
-}
-
 /** The exact call-site snippet to paste into the tool module: the `// llm-tool:`
  *  tag INSIDE the wrapper args (within the ±2-line window the gate pairs tags
  *  by) plus the `id:` telemetry attribution arg. */

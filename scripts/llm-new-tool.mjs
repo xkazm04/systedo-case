@@ -1,36 +1,26 @@
 #!/usr/bin/env node
 /** llm:new — scaffold a new LLM tool in one shot.
  *
- *  Adding a tool used to be a five-part manual ritual (call-site tag, registry
- *  fixture, golden, HASHED_FILES line, gate cost), fumbled at least once
- *  (social.ts missing from the hash list). This generator makes the safe path
+ *  Adding a tool used to be a multi-part manual ritual (call-site tag, registry
+ *  fixture, golden), fumbled at least once. This generator makes the safe path
  *  the lazy path:
  *
  *    npm run llm:new -- --id my-tool --label "Můj nástroj" [--file src/lib/ai/tools/my-tool.ts] [--dry-run]
  *
- *  It appends a registry entry skeleton, inserts the tool file into
- *  HASHED_FILES, writes the contract golden (llm-eval --update), prints the
- *  call-site snippet to paste, and finishes with `llm-gate --list` so you see
- *  the new site reported UNTAGGED until the snippet lands.
- *
- *  NOTE: the resulting COMMIT is gate-triggering by design — the registry is a
- *  hashed file, so pre-commit will run one real-model probe (~25 s) for the new
- *  tool. Budget for it; that probe is the point.
+ *  It appends a registry entry skeleton, writes the contract golden
+ *  (llm-eval --update), prints the call-site snippet to paste, and finishes
+ *  with `llm-gate --list` so you see the new site reported UNTAGGED until the
+ *  snippet lands. (The gate is static-only since 2026-08-05 — prove the new
+ *  tool on demand with `npm run test:llm` once it exists.)
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  callSiteSnippet,
-  insertHashedFile,
-  insertRegistryEntry,
-  validToolId,
-} from "./lib/llm-new-tool-core.mjs";
+import { callSiteSnippet, insertRegistryEntry, validToolId } from "./lib/llm-new-tool-core.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const REGISTRY = join(ROOT, "test-llm", "registry.mjs");
-const GATE = join(ROOT, "scripts", "llm-gate.mjs");
 
 function arg(name) {
   const argv = process.argv.slice(2);
@@ -59,10 +49,8 @@ if (!/^src\/lib\/ai\/tools\/[\w-]+\.ts$/.test(file)) {
 }
 
 let registry;
-let gate;
 try {
   registry = insertRegistryEntry(readFileSync(REGISTRY, "utf8"), { id, label });
-  gate = insertHashedFile(readFileSync(GATE, "utf8"), file);
 } catch (e) {
   fail(e.message);
 }
@@ -70,16 +58,13 @@ try {
 if (dryRun) {
   console.log(`— dry run: would register "${id}" (${label}) —\n`);
   console.log(`test-llm/registry.mjs   → new entry skeleton appended (edit the TODOs)`);
-  console.log(`scripts/llm-gate.mjs    → HASHED_FILES gains "${file}"`);
   console.log(`test-llm/golden/${id}.json → written by llm-eval --update`);
   console.log(`\nCall-site snippet for ${file}:\n\n${callSiteSnippet(id)}\n`);
   process.exit(0);
 }
 
 writeFileSync(REGISTRY, registry);
-writeFileSync(GATE, gate);
 console.log(`✓ registry entry skeleton appended to test-llm/registry.mjs (edit the TODOs)`);
-console.log(`✓ "${file}" added to HASHED_FILES in scripts/llm-gate.mjs`);
 
 // Contract golden for the new entry — deterministic, no model call.
 const evalRes = spawnSync(process.execPath, ["scripts/llm-eval.mjs", "--update"], {
@@ -95,7 +80,7 @@ console.log(
     `  1. create ${file} with the snippet above (prompt builder, schema, demo fallback)\n` +
     "  2. edit the registry TODOs so the fixture mirrors the tool's real contract\n" +
     "  3. re-run `npm run llm:eval:update` if you touched system/schema after step 2\n" +
-    "  4. commit — pre-commit runs ONE real-model probe (~25 s) for this tool, by design\n"
+    "  4. prove it on demand: `npm run test:llm` (the pre-commit gate is static-only)\n"
 );
 
 // Show the coverage report: the new call site reads UNTAGGED until the snippet

@@ -1,8 +1,9 @@
 /** Unit tests for the `llm:new` scaffold's pure core
  *  (scripts/lib/llm-new-tool-core.mjs). The transforms are proven on fixture
- *  strings — the REAL registry.mjs / llm-gate.mjs are read here only to assert
- *  the anchors the CLI depends on still exist (both are gate-hashed; nothing in
- *  this suite writes to them). */
+ *  strings — the REAL registry.mjs is read here only to assert the anchors the
+ *  CLI depends on still exist (nothing in this suite writes to it). The
+ *  HASHED_FILES insertion died with the gate's real-model re-prove
+ *  (2026-08-05; the gate is static-only now). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,7 +11,6 @@ import {
   WRAPPER_NAME,
   buildRegistryEntry,
   callSiteSnippet,
-  insertHashedFile,
   insertRegistryEntry,
   validToolId,
 } from "../scripts/lib/llm-new-tool-core.mjs";
@@ -31,16 +31,6 @@ const REGISTRY_FIXTURE = [
   "  },",
   "];",
   "",
-].join("\n");
-
-const GATE_FIXTURE = [
-  "const HASHED_FILES = [",
-  '  "src/lib/llm/index.ts",',
-  '  "src/lib/ai/tools/_shared.ts",',
-  '  "src/lib/ai/tools/ads.ts",',
-  '  "src/app/api/ai/route.ts",',
-  '  "test-llm/registry.mjs",',
-  "];",
 ].join("\n");
 
 test("validToolId accepts tag-grammar ids and rejects everything else", () => {
@@ -65,18 +55,6 @@ test("insertRegistryEntry appends a skeleton before the closing bracket", () => 
   assert.throws(() => insertRegistryEntry(next, { id: "my-tool", label: "X" }), /already registered/);
 });
 
-test("insertHashedFile lands after the last tools file, preserving indentation", () => {
-  const next = insertHashedFile(GATE_FIXTURE, "src/lib/ai/tools/my-tool.ts");
-  const lines = next.split("\n");
-  const idx = lines.findIndex((l) => l.includes("my-tool.ts"));
-  assert.ok(idx > 0, "inserted");
-  assert.equal(lines[idx], '  "src/lib/ai/tools/my-tool.ts",', "exact line shape");
-  assert.ok(lines[idx - 1].includes("tools/ads.ts"), "after the last tools entry");
-  assert.ok(lines[idx + 1].includes("api/ai/route.ts"), "before the route entries");
-  assert.throws(() => insertHashedFile(next, "src/lib/ai/tools/my-tool.ts"), /already listed/);
-  assert.throws(() => insertHashedFile("const X = [];", "src/lib/ai/tools/x.ts"), /could not find/);
-});
-
 test("the call-site snippet carries the tag next to the wrapper call + id arg", () => {
   const snippet = callSiteSnippet("my-tool");
   const lines = snippet.split("\n");
@@ -88,16 +66,11 @@ test("the call-site snippet carries the tag next to the wrapper call + id arg", 
   assert.ok(snippet.includes('id: "my-tool"'), "telemetry attribution arg");
 });
 
-test("the real registry and gate still carry the anchors the CLI relies on", () => {
+test("the real registry still carries the anchors the CLI relies on", () => {
   const registry = readFileSync(new URL("../test-llm/registry.mjs", import.meta.url), "utf8");
   assert.ok(registry.includes("export const LLM_TOOLS = ["), "LLM_TOOLS array");
   assert.ok(registry.lastIndexOf("\n];") > 0, "closing bracket anchor");
 
-  const gate = readFileSync(new URL("../scripts/llm-gate.mjs", import.meta.url), "utf8");
-  assert.ok(gate.includes("const HASHED_FILES = ["), "HASHED_FILES array");
-  assert.ok(/^\s*"src\/lib\/ai\/tools\/.+\.ts",\s*$/m.test(gate), "tools block anchor");
-
-  // both transforms must apply cleanly to the real files (result discarded)
+  // the transform must apply cleanly to the real file (result discarded)
   assert.doesNotThrow(() => insertRegistryEntry(registry, { id: "zz-probe", label: "Probe" }));
-  assert.doesNotThrow(() => insertHashedFile(gate, "src/lib/ai/tools/zz-probe.ts"));
 });
