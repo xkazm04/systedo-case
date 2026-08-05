@@ -655,11 +655,15 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
                 )}
               </div>
             ) : (
-              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted transition-colors hover:border-brand-300 hover:text-brand-accent">
+              <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line px-3 py-3 text-xs text-muted transition-colors hover:border-brand-300 hover:text-brand-accent focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-200">
+                {/* `sr-only`, never `hidden`: a display:none input is removed from
+                    the tab order and a <label> is not focusable, so the whole
+                    upload control was unreachable without a mouse. Visually hidden
+                    keeps it focusable; focus-within paints the ring on the box. */}
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
+                  className="sr-only"
                   onChange={(e) => onRefSelect(e.target.files?.[0] ?? null)}
                 />
                 {t("refUploadLabel")}
