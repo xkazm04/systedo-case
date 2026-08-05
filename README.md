@@ -36,6 +36,47 @@ konektor, **Sklik** má kontroly limitů inzerátů a návrhy klíčových slov,
   Firestore, projekty s vlastními daty, cron synchronizace s e-mail alerty
   (Resend), BYOM (vlastní API klíč, šifrovaný AES-256-GCM).
 
+### Benchmark modelů — BYOM kandidáti (měřeno 5. 8. 2026)
+
+Skóre LLM rozhodčího (1–10, Claude CLI Sonnet, 1 rozhodčí/buňku) přes všech
+20 produkčních AI operací, spuštěno skutečným wrapperem (`npm run llm:quality`
+s vendor-prefixovanými cíli). `claude-cli` = nativní CLI cesta (subscription);
+`qwen:*` = Qwen Cloud API; `ollama` = lokální LFM2.5-8B-A1B. `✗` = model
+operaci neobsloužil.
+
+| operace | sonnet | opus | qwen3.8-max | glm-5.2 | deepseek-v4 | lfm2.5:8b |
+|---|--:|--:|--:|--:|--:|--:|
+| ads | 7.0 | 7.0 | 6.0 | 7.0 | 6.5 | 1.0 |
+| brief | 8.5 | 9.0 | 8.0 | 7.5 | 7.0 | 1.0 |
+| analysis | 7.5 | 6.0 | 7.0 | 6.5 | 6.0 | 3.0 |
+| campaign-eval | 8.0 | 8.5 | 7.0 | 7.0 | 7.0 | 3.5 |
+| social | 8.0 | 8.0 | 6.5 | 5.5 | 6.0 | 1.5 |
+| twin-reply | 6.0 | 7.0 | 6.0 | 5.0 | 7.0 | 1.0 |
+| twin-style | 8.0 | 8.0 | 7.5 | 5.0 | 6.0 | 2.0 |
+| repurpose | 7.5 | 7.0 | 7.0 | 7.0 | 7.0 | 1.0 |
+| local-review-reply | 8.5 | 8.7 | 6.5 | 6.0 | 6.0 | 1.0 |
+| article-draft | 7.3 | 7.5 | 8.0 | 6.5 | 8.0 | 1.0 |
+| cohort-diagnosis | 8.0 | 8.0 | 6.0 | 6.5 | 7.0 | 1.0 |
+| keyword-clusters | 10.0 | 7.0 | 8.0 | 8.0 | 8.0 | 1.0 |
+| comparison-outline | 7.8 | 7.0 | 6.5 | 7.0 | 6.0 | 1.0 |
+| lp-variant-ideas | 8.0 | 9.0 | 8.5 | 5.0 | 7.0 | 1.0 |
+| lead-source-diagnosis | 8.0 | 8.0 | 8.0 | 7.5 | 8.0 | 2.0 |
+| local-diagnosis | 8.0 | 7.5 | 8.5 | 4.0 | 5.0 | 2.0 |
+| chat | 7.5 | 7.0 | 7.0 | 5.0 | 5.0 | 1.0 |
+| monthly-recap | 7.0 | 6.5 | 6.0 | 6.0 | 6.0 | 1.5 |
+| channel-research | 8.0 | 7.0 | ✗ | ✗ | 7.0 | 2.0 |
+| onboarding-scan | 9.0 | 8.0 | 9.0 | 8.0 | 8.0 | 3.0 |
+| **průměr** | **7.88** | **7.58** | **7.21** | **6.32** | **6.67** | **1.57** |
+
+Čtení: Sonnet zůstává stropem kvality; Opus ho neporáží (a rozhodčí je jeho
+sourozenec — home-team bias u obou CLI sloupců). **qwen3.8-max je nejsilnější
+BYOM kandidát** (7.21, ~$0.21 za celý průchod), deepseek-v4-flash je cenový
+outlier (6.67 při ~$0.012). Lokální 8B model je pro česky-first produkt
+**nepoužitelný** — rozhodčí dokládá pseudočeštinu, únik CJK znaků a anglické
+fallbacky; tentýž model přitom na anglických úlohách sesterského projektu
+dosahoval ~4.9/10. Kompletní reporty: `test-llm/quality/reports/`, metodika:
+[`docs/testing/llm-quality-matrix.md`](docs/testing/llm-quality-matrix.md).
+
 ## Rychlý start
 
 ```bash
