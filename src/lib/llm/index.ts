@@ -31,6 +31,7 @@ import {
   type ModelTier,
 } from "./models";
 import { promptFingerprint, recordLlmCall, recordLlmError, recordLlmErrorEntry } from "./telemetry";
+import { pruneToSchema } from "./schema-prune";
 import { runByom } from "./byom/adapters";
 import { providerOrder, type ProviderName } from "./provider-order";
 import { getByomContext } from "./byom-context";
@@ -296,7 +297,11 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // and two attempts made a 14-tool proving run a coin flip. Non-retryable
       // failures still throw on the first attempt.
       const first = await runWithRetry(provider, baseCall, 3);
-      let parsed = first.parsed;
+      // Contract discipline for prompt-embedded providers: drop extra fields the
+      // schema never declared (Gemini's native responseSchema already does this
+      // server-side; the CLI + BYOM prompt-embed paths previously leaked them
+      // into validate()/normalize() and the persisted output).
+      let parsed = pruneToSchema(first.parsed, args.schema);
       let usage = first.usage;
       let totalAttempts = first.attempts;
 
@@ -332,7 +337,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
             { ...baseCall, prompt: effectivePrompt + buildRepairNote(violations) },
             1
           );
-          parsed = second.parsed;
+          parsed = pruneToSchema(second.parsed, args.schema);
           // A repaired call made TWO real metered calls — report their COMBINED usage
           // (tokens + cost), not just the second's. "Latest wins" here undercounted
           // telemetry + on-screen cost by a whole paid call on every repair.
