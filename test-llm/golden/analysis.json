@@ -1,13 +1,15 @@
 {
   "id": "analysis",
   "label": "Analýza výkonu",
-  "promptHash": "dc528ca92e7cb9d0",
+  "promptHash": "4252a456bb56d723",
   "schemaKeys": [
     "actions",
     "headline",
-    "summary"
+    "risks",
+    "summary",
+    "wins"
   ],
-  "system": "Jsi český specialista na výkonnostní marketing. Vycházej jen z předaných čísel a vracej pouze validní JSON dle schématu.",
+  "system": "Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.\n\nPravidla:\n- Vycházej VÝHRADNĚ z předaných čísel — nevymýšlej si žádné údaje, které v podkladech nejsou.\n- Odkazuj se na konkrétní kanály a čísla z dat (např. PNO daného kanálu, ROAS, podíl na obratu).\n- Nezaměňuj efektivitu reklamy se ziskovostí: PNO a ROAS měří efektivitu výdajů vůči obratu, ne zisk. Bez dat o marži nehodnoť „ziskovost\" — piš o efektivitě.\n- Nezaváděj externí benchmarky, „běžné standardy\" ani prahové hodnoty, které v předaných datech nejsou. Každý práh v doporučení odvoď z předaných čísel (a řekni jak), jinak ho vynech.\n- Buď konkrétní a akční: doporučení musí být něco, co PPC specialista reálně udělá (úprava rozpočtů a nabídek, řízení PNO, škálování nejlepších kanálů, oprava nejslabších).\n- Piš česky, věcně, bez vaty a marketingových frází.\n- Drž se zadaného JSON schématu.",
   "schema": {
     "properties": {
       "actions": {
@@ -31,13 +33,27 @@
       "headline": {
         "type": "STRING"
       },
+      "risks": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
+      },
       "summary": {
         "type": "STRING"
+      },
+      "wins": {
+        "items": {
+          "type": "STRING"
+        },
+        "type": "ARRAY"
       }
     },
     "required": [
       "headline",
       "summary",
+      "wins",
+      "risks",
       "actions"
     ],
     "type": "OBJECT"

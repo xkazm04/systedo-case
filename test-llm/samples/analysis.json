@@ -1,14 +1,33 @@
 {
-  "headline": "Kampaně vykazují silnou ziskovost při PNO 18,3 % a ROAS 5,4×.",
-  "summary": "Při obratu 1 200 000 Kč a nákladech 220 000 Kč dosahují kampaně PNO 18,3 % a ROAS 5,4×, což signalizuje zdravou a efektivní výkonnost s prostorem pro škálování.",
+  "headline": "Účet roste efektivně – obrat +8,2 % předbíhá růst nákladů +6,1 % – ale táhne ho hlavně Google Ads, zatímco Sklik Obsahová síť s PNO 29,8 % efektivitu brzdí.",
+  "summary": "Za posledních 30 dní dosáhl účet obratu 1 200 000 Kč (+8,2 %) při nákladech 222 000 Kč (+6,1 %) – obrat rostl rychleji než náklady. Celkové PNO je 18,5 % (cíl 18 %), meziobdobně kleslo o 1,8 % (orientační, poměrová metrika), takže se blíží cíli. Konverze vzrostly o 12,0 % na 2 130 kusů, rychleji než návštěvy (+9,4 %), konverzní poměr je 2,53 % a průměrná hodnota objednávky 563 Kč. Výkon kanálů je nerovnoměrný: Google Ads/Vyhledávání dodává 43 % obratu s PNO 14,2 % a ROAS 7,0×, zatímco Sklik/Obsahová síť má PNO 29,8 %, ROAS jen 3,4× a jako jediný kanál obrat meziobdobně klesl o 3,8 %.",
+  "wins": [
+    "Google Ads/Vyhledávání dodává 43 % obratu (520 000 Kč) s nejnižším PNO ze všech kanálů (14,2 %) a ROAS 7,0×, navíc s nejrychlejším růstem obratu (+11,3 %).",
+    "Obrat rostl rychleji (+8,2 %) než náklady (+6,1 %) a celkové PNO 18,5 % se meziobdobně snížilo o 1,8 %, čímž se přiblížilo cíli 18 %.",
+    "Konverze rostly rychleji (+12,0 %) než návštěvy (+9,4 %), konverzní poměr je 2,53 %.",
+    "Sklik/Vyhledávání drží PNO 16,8 % pod cílem 18 % při ROAS 6,0× a s obratem 260 000 Kč (22 % podíl)."
+  ],
+  "risks": [
+    "Sklik/Obsahová síť má PNO 29,8 % – nejvyšší ze všech kanálů a výrazně nad cílem 18 % – ROAS jen 3,4× a jako jediný kanál obrat meziobdobně klesl o 3,8 %.",
+    "Meta Ads má PNO 21,5 %, nad cílem 18 % i nad celkovým průměrem 18,5 %, a ROAS 4,7× – druhý nejslabší po obsahové síti, přestože nese 21 % obratu a roste o 6,2 %.",
+    "Celkové PNO 18,5 % je stále nad cílem 18 %, přestože meziobdobní pokles (-1,8 %) je jen orientační (poměrová metrika)."
+  ],
   "actions": [
     {
-      "title": "Navýšit rozpočet u nejvýkonnějších kampaní",
-      "detail": "Postupně navyšujte denní rozpočet o 10–20 % u kampaní s nejnižším PNO a sledujte, zda si ROAS udrží úroveň nad 5×."
+      "title": "Navýšit rozpočet a nabídky u Google Ads/Vyhledávání",
+      "detail": "Kanál má nejnižší PNO ze všech (14,2 %, hluboko pod cílem 18 %) a nejvyšší ROAS (7,0×), dodává 43 % obratu a roste nejrychleji (+11,3 %) – prostor navýšit rozpočet/nabídky bez ztráty efektivity."
     },
     {
-      "title": "Otestovat rozšíření na nové segmenty či kanály",
-      "detail": "Vzhledem k rezervě mezi aktuálním PNO a maximální udržitelnou hranicí otestujte expanzi do nových publik nebo dalších reklamních kanálů."
+      "title": "Omezit nebo přestavět Sklik Obsahovou síť",
+      "detail": "PNO 29,8 % je téměř dvojnásobek cíle 18 % a nejvyšší ze všech kanálů, ROAS nejnižší (3,4×) a obrat jako jediný meziobdobně klesá (-3,8 %) – snížit rozpočet, revidovat umístění a kreativy, případně přesunout část rozpočtu do Google Ads/Vyhledávání."
+    },
+    {
+      "title": "Prověřit a optimalizovat cílení Meta Ads",
+      "detail": "PNO 21,5 % je nad cílem 18 % i nad celkovým průměrem 18,5 %, ROAS 4,7× – i přes růst obratu (+6,2 %) upravit cílení a kreativy tak, aby se PNO přiblížilo cíli."
+    },
+    {
+      "title": "Udržet nebo mírně navýšit rozpočet Sklik/Vyhledávání",
+      "detail": "PNO 16,8 % je pod cílem 18 % a ROAS 6,0× je solidní, ale růst obratu (+4,9 %) je nejpomalejší mezi efektivními kanály – zvážit mírné navýšení rozpočtu, protože efektivita je v pořádku."
     }
   ]
 }

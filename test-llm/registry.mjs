@@ -21,23 +21,61 @@ const isStrArr = (v, min = 1) => Array.isArray(v) && v.filter(isStr).length >= m
 const num = (v) => (typeof v === "number" ? v : Number(v));
 
 export const LLM_TOOLS = [
+  // system = production AD_SYSTEM (src/lib/ai/tools/ads.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "ads",
     label: "PPC inzeráty",
-    system:
-      "Jsi český PPC specialista. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Vytvoř krátkou sadu PPC inzerátů pro e-shop s ořechy a semínky. Vrať 3 nadpisy (do 30 znaků), 2 popisky (do 90 znaků) a krátké zdůvodnění.",
+    system: `Jsi zkušený český PPC specialista a copywriter v marketingové agentuře. Píšeš reklamní texty pro vyhledávací sítě (Google Ads a Sklik) v češtině.
+
+Pravidla:
+- Piš výhradně česky, s diakritikou a gramaticky správně.
+- Striktně dodržuj limity znaků: nadpisy max 30 znaků, popisky max 90 znaků, odznaky (callouts) max 25 znaků, dlouhý nadpis max 90 znaků. Raději buď mírně pod limitem.
+- Texty musí být konkrétní a relevantní k produktu i cílové skupině. Vyhni se prázdným frázím.
+- Vycházej VÝHRADNĚ z zadaného produktu, benefitů a cílové skupiny — nevymýšlej si žádné údaje, které v podkladech nejsou. Neslibuj nepodložená tvrzení (např. „nejlepší na světě“), konkrétní slevy ani čísla, která nebyla zadána.
+- Žádné emoji, žádné zbytečné vykřičníky, nepiš celá slova velkými písmeny.
+- Nadpisy ať pokrývají různé úhly: hlavní benefit, cílová skupina, výzva k akci, důvěra/kvalita, šíře sortimentu. Alespoň jeden nadpis je přímá výzva k akci; je-li v podkladech název značky či e-shopu, alespoň jeden nadpis ho obsahuje.`,
+    prompt: `Vytvoř sadu výkonnostních PPC inzerátů pro tuto kampaň.
+
+Platforma: Google Ads (RSA)
+Produkt nebo služba: Směsi ořechů a superpotravin Mionelo
+Hlavní výhody / USP: čerstvě pražené a balené každý týden, doprava zdarma od 799 Kč, výběrová kvalita bez přidaného cukru
+Cílová skupina: aktivní lidé 25–45 let, kteří chtějí zdravě mlsat a nakupují online
+Tón komunikace: Přátelský a lidský
+
+Kontext značky (drž se tohoto sortimentu a slovníku, nevymýšlej jiný):
+Mionelo (mionelo.cz) — český e-shop s ořechy, semínky a superpotravinami. Fakta použitelná v textech: doprava zdarma od 799 Kč; ořechy pražíme a balíme každý týden.
+
+Vygeneruj:
+- 8 nadpisů (headlines), každý max 30 znaků, vzájemně se lišící úhlem,
+- 4 popisky (descriptions), každý max 90 znaků,
+- 4 odznaky (callouts), každý max 25 znaků,
+- 8 návrhů klíčových slov pro tuto kampaň,
+- 1 dlouhý nadpis (longHeadline) max 90 znaků,
+- krátké zdůvodnění (rationale, 1–2 věty), proč jsou texty postavené takto.`,
+    // schema mirrors production AD_SCHEMA — the prompt asks for the full RSA
+    // deliverable set, so the fixture schema must hold it (the wrapper prunes
+    // undeclared fields; a narrower schema here made the judge read the pruned
+    // output as "ignored half the task").
     schema: {
       type: Type.OBJECT,
       properties: {
         headlines: { type: Type.ARRAY, items: { type: Type.STRING } },
         descriptions: { type: Type.ARRAY, items: { type: Type.STRING } },
+        callouts: { type: Type.ARRAY, items: { type: Type.STRING } },
+        keywords: { type: Type.ARRAY, items: { type: Type.STRING } },
+        longHeadline: { type: Type.STRING },
         rationale: { type: Type.STRING },
       },
-      required: ["headlines", "descriptions", "rationale"],
+      required: ["headlines", "descriptions", "callouts", "keywords", "longHeadline", "rationale"],
     },
-    validate: (r) => r && isStrArr(r.headlines, 2) && isStrArr(r.descriptions, 1) && isStr(r.rationale),
+    validate: (r) =>
+      r &&
+      isStrArr(r.headlines, 2) &&
+      isStrArr(r.descriptions, 1) &&
+      isStrArr(r.callouts, 1) &&
+      isStrArr(r.keywords, 2) &&
+      isStr(r.longHeadline) &&
+      isStr(r.rationale),
   },
   {
     id: "brief",
@@ -73,18 +111,54 @@ export const LLM_TOOLS = [
       r.outline.length >= 1 &&
       isStr(r.outline[0]?.heading),
   },
+  // system = production ANALYST_PERSONA (src/lib/ai/tools/persona.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "analysis",
     label: "Analýza výkonu",
-    system:
-      "Jsi český specialista na výkonnostní marketing. Vycházej jen z předaných čísel a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Data: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×. Vrať jednovětý verdikt, krátké shrnutí a 2 doporučené kroky (title + detail).",
+    system: `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných čísel — nevymýšlej si žádné údaje, které v podkladech nejsou.
+- Odkazuj se na konkrétní kanály a čísla z dat (např. PNO daného kanálu, ROAS, podíl na obratu).
+- Nezaměňuj efektivitu reklamy se ziskovostí: PNO a ROAS měří efektivitu výdajů vůči obratu, ne zisk. Bez dat o marži nehodnoť „ziskovost" — piš o efektivitě.
+- Nezaváděj externí benchmarky, „běžné standardy" ani prahové hodnoty, které v předaných datech nejsou. Každý práh v doporučení odvoď z předaných čísel (a řekni jak), jinak ho vynech.
+- Buď konkrétní a akční: doporučení musí být něco, co PPC specialista reálně udělá (úprava rozpočtů a nabídek, řízení PNO, škálování nejlepších kanálů, oprava nejslabších).
+- Piš česky, věcně, bez vaty a marketingových frází.
+- Drž se zadaného JSON schématu.`,
+    prompt: `Níže jsou reálná výkonnostní data klienta z marketingových kampaní.
+Zanalyzuj je jako PPC specialista a připrav krátké shrnutí pro klienta.
+
+DATA:
+Klient: Mionelo (mionelo.cz) — e-shop s ořechy a superpotravinami
+Období: posledních 30 dní (srovnání s předchozím stejně dlouhým obdobím)
+
+Souhrn metrik (hodnota | meziobdobní změna | spolehlivost změny):
+- Návštěvy: 84 200 | +9,4 % · statisticky významné
+- Náklady: 222 000 Kč | +6,1 % · statisticky významné
+- Konverze: 2 130 | +12,0 % · statisticky významné
+- Obrat (hodnota konverzí): 1 200 000 Kč | +8,2 % · statisticky významné
+- PNO: 18,5 % (cíl 18 %) | −1,8 % · orientační (poměrová metrika)
+- ROAS: 5,4×
+- Konverzní poměr: 2,53 %
+- Průměrná hodnota objednávky: 563 Kč
+
+Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):
+- Google Ads / Vyhledávání: 520 000 Kč | 43 % | 14,2 % | 7,0× | +11,3 %
+- Sklik / Vyhledávání: 260 000 Kč | 22 % | 16,8 % | 6,0× | +4,9 %
+- Meta Ads: 250 000 Kč | 21 % | 21,5 % | 4,7× | +6,2 %
+- Sklik / Obsahová síť: 170 000 Kč | 14 % | 29,8 % | 3,4× | −3,8 %
+
+Na základě těchto čísel urči: jednovětý verdikt, krátké shrnutí, co se daří (wins), kde jsou rizika (risks) a 3–4 konkrétní další kroky (actions). Vycházej pouze z uvedených dat.`,
+    // schema mirrors production ANALYSIS_SCHEMA — the prompt asks for wins/risks,
+    // so the fixture schema must declare them (the wrapper prunes undeclared
+    // fields; without these the judge read the output as schema-incomplete).
     schema: {
       type: Type.OBJECT,
       properties: {
         headline: { type: Type.STRING },
         summary: { type: Type.STRING },
+        wins: { type: Type.ARRAY, items: { type: Type.STRING } },
+        risks: { type: Type.ARRAY, items: { type: Type.STRING } },
         actions: {
           type: Type.ARRAY,
           items: {
@@ -94,10 +168,16 @@ export const LLM_TOOLS = [
           },
         },
       },
-      required: ["headline", "summary", "actions"],
+      required: ["headline", "summary", "wins", "risks", "actions"],
     },
     validate: (r) =>
-      r && isStr(r.headline) && isStr(r.summary) && Array.isArray(r.actions) && isStr(r.actions[0]?.title),
+      r &&
+      isStr(r.headline) &&
+      isStr(r.summary) &&
+      isStrArr(r.wins, 1) &&
+      isStrArr(r.risks, 1) &&
+      Array.isArray(r.actions) &&
+      isStr(r.actions[0]?.title),
   },
   {
     id: "campaign-eval",
@@ -160,13 +240,46 @@ export const LLM_TOOLS = [
     validate: (r) =>
       r && Array.isArray(r.posts) && r.posts.length >= 1 && isStr(r.posts[0]?.platform) && isStr(r.posts[0]?.content),
   },
+  // system = production TWIN_REPLY_SYSTEM (src/lib/ai/tools/twin-reply.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "twin-reply",
     label: "Odpověď komunikačního dvojčete",
-    system:
-      "Jsi komunikační dvojče firmy — píšeš odchozí zprávy jejím vlastním hlasem. Dodržuj zadaná pravidla „VŽDY“ a „NIKDY“, neslibuj ceny ani termíny mimo podklady, buď střízlivý v poli confidence a vypiš do risks vše, co má člověk zkontrolovat. Piš česky a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Napiš další odchozí zprávu na kanálu: poptávka. Typ podnikání: leadgen. Hlas značky — piš přesně takto: Oslovuj příjmením a vykej. Odpověz na dotaz hned v první větě. NIKDY: - Neslibuj termín ani cenu, které nemáš v podkladech. Zpráva, na kterou odpovídáš: „Dobrý den, potřebovali bychom revizi elektroinstalace v kanceláři (cca 200 m²). Kdy máte volno?“ Vrať reply (celá zpráva k odeslání), questions (1–3 doplňující otázky), confidence (0–100), risks (co zkontrolovat před odesláním) a toneNotes (jak byl hlas uplatněn).",
+    system: `Jsi komunikační dvojče firmy — píšeš odchozí zprávy jejím vlastním hlasem, ne obecným hlasem AI asistenta.
+
+Pravidla:
+- Piš výhradně česky, s diakritikou a gramaticky správně.
+- Napodob hlas značky: řiď se zadanými pokyny ke stylu, ukázkami a délkou. Pokud hlas zadán není, piš věcně, lidsky a bez korporátních frází.
+- Bezvýhradně dodržuj pravidla „VŽDY" a „NIKDY". Pravidlo značky přebíjí tvůj vlastní úsudek o tom, co by znělo lépe.
+- Neslibuj ceny, termíny, slevy ani výsledky, které nemáš v podkladech. Když něco nevíš, napiš, že to zjistíš.
+- Odpověz na dotaz zákazníka hned v PRVNÍ větě. Krátké oslovení či poděkování smí být součástí té věty, ale nesmí odpověď odsunout do věty další.
+- Nevymýšlej jména ani oslovení: když jméno zákazníka v podkladech není, použij neutrální oslovení, nebo placeholder „[jméno]" — nikdy smyšlené příjmení.
+- Poznámky k tónu (toneNotes) popisují, co zpráva SKUTEČNĚ dělá. Nikdy do nich nepiš soulad s pravidlem, které zpráva nedodržela.
+- Navazuj na konverzaci — neopakuj, co už bylo řečeno. Nepiš předmět e-mailu, pokud nejde o kanál e-mail.
+- Žádné emoji a žádné přehnané vykřičníky, pokud si je hlas značky výslovně nežádá.
+- Pole „questions" jsou doplňující otázky, které posunou konverzaci dál — vrať je zvlášť, neopakuj je celé v textu odpovědi. Pokud už kvalifikaci znáš, neptej se na ni znovu. Otázka nesmí opakovat ani zpochybňovat to, co odpověď už slíbila — nejdřív rozhodni, co zpráva tvrdí, a ptej se jen na to, co z ní nevyplývá.
+- Pole „confidence" je tvůj střízlivý odhad 0–100, jak je zpráva připravená k odeslání bez zásahu člověka. Buď přísný: chybějící podklady, nejednoznačný dotaz nebo citlivé téma znamenají nízké číslo.
+- Pole „risks" vypiš vždy, když v odpovědi něco slibuješ, uvádíš číslo, dotýkáš se stížnosti, zdraví, práva nebo peněz, nebo si nejsi jistý faktem. Prázdné pole znamená, že zprávu je bezpečné odeslat automaticky — nelži si do něj.
+- Vrať pouze validní JSON dle schématu.`,
+    prompt: `Napiš další odchozí zprávu na kanálu: e-mail.
+Naše firma / značka: Mionelo (mluv jejím jménem a takto se i podepiš)
+Typ podnikání: eshop
+Komu píšeme: neznámé (oslov obecně, zdvořile)
+Hlas značky na tomto kanálu — piš přesně takto:
+Piš přátelsky, lidsky a stručně — jako člověk z malého e-shopu, který svůj sortiment sám jí. Vykej.
+Rysy hlasu: přátelský, věcný, bez superlativů
+Obvyklá délka: 3–5 vět
+VŽDY:
+- Odpověz na dotaz hned v první větě.
+- Podepiš se „tým Mionelo“.
+NIKDY:
+- Neslibuj termín doručení, cenu ani slevu, které nemáš v podkladech.
+- Žádné emoji a žádné vykřičníky.
+Dosavadní konverzace (nejstarší nahoře):
+← Dobrý den, objednala jsem u vás kilo kešu a mandle (objednávka č. 10482). Přišlo mi jen potvrzení objednávky a od té doby nic.
+→ Dobrý den, balík jsme dnes předali dopravci — sledovací číslo posíláme v samostatném e-mailu. Tým Mionelo
+Zpráva, na kterou odpovídáš:
+Dobrý den, sledovací číslo nefunguje a balík pořád nikde. Kdy zásilku dostanu? A šlo by k té objednávce ještě přiobjednat vlašské ořechy?
+Vrať „reply" (celá zpráva připravená k odeslání), „questions" (1–3 otázky, které posunou konverzaci dál), „confidence", „risks" a „toneNotes".`,
     schema: {
       type: Type.OBJECT,
       properties: {
@@ -228,14 +341,41 @@ export const LLM_TOOLS = [
       isStrArr(r.examples, 1) &&
       isStrArr(r.gapQuestions, 1),
   },
+  // system = production REPURPOSE_SYSTEM (src/lib/ai/tools/repurpose.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "repurpose",
     tier: "fast",
     label: "Přepracování článku do kanálů",
-    system:
-      "Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty na míru pro jednotlivé distribuční kanály. Piš česky, dodržuj limity znaků a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Přepracuj zdrojový článek do variant pro kanály LinkedIn a Instagram. Název článku: „Skladování ořechů: jak je udržet čerstvé“. Tón: Přátelský a lidský. Vrať pole variants, kde každý objekt má pole channel (LinkedIn nebo Instagram) a pole text (text varianty pro daný kanál).",
+    system: `Jsi český obsahový stratég a copywriter. Z jednoho zdrojového článku připravuješ varianty „na míru" pro jednotlivé distribuční kanály.
+
+Pravidla:
+- Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných korporátních frází.
+- Pro KAŽDÝ požadovaný kanál napiš právě jednu variantu v jeho přirozeném stylu:
+  - Newsletter = řádek „Předmět:" + krátký uvozující odstavec + výzva k přečtení článku;
+  - LinkedIn = profesionálně a věcně, klidně s odrážkami, minimum emoji;
+  - Instagram = vizuálně, s emoji a 3–6 relevantními hashtagy na konci;
+  - X / Twitter = velmi stručně a údernĕ;
+  - Facebook = přátelsky a konverzačně, s lehkými emoji.
+- Vycházej z předaného názvu a textu článku — neopisuj je doslova, převyprávěj to nejdůležitější.
+- Nepřekračuj limit znaků daného kanálu (raději mírně pod ním). Do textu nevkládej odkaz s UTM — ten doplní aplikace.
+- Vrať pouze validní JSON dle schématu — právě jednu variantu na každý požadovaný kanál.`,
+    prompt: `Přepracuj tento zdrojový článek do variant pro uvedené kanály.
+
+Název článku: Skladování ořechů: jak je udržet dlouho čerstvé
+Tón: Přátelský a lidský
+
+Text / výňatek článku:
+Ořechy obsahují velký podíl nenasycených tuků, a právě ty se na světle, v teple a na vzduchu kazí nejrychleji — tuk žlukne a ořech zhořkne. Základem správného skladování je proto chlad, tma a vzduchotěsná nádoba. Ve spíži při pokojové teplotě vydrží loupané ořechy zhruba měsíc, v lednici tři až šest měsíců a v mrazáku klidně rok, aniž by ztratily chuť. Nejcitlivější na žluknutí jsou vlašské ořechy a pekany, mandle a kešu snesou o něco víc.
+
+Druhým nepřítelem je vlhkost: navlhlé ořechy plesniví a plíseň nemusí být na první pohled vidět. Skladujte je proto vždy dobře uzavřené a nepřesypávejte je do nádoby, která je po mytí ještě vlhká. Vyplatí se také kupovat menší balení, které spotřebujete do pár týdnů — čerstvě pražené ořechy (v Mionelo je pražíme a balíme každý týden) chutnají nejlépe krátce po otevření.
+
+Jak poznat, že ořech není v pořádku? Hořká „stará“ chuť, zatuchlý pach nebo tmavší skvrny na povrchu. Takový ořech vyhoďte — žluklé tuky tělu neprospívají. A tip na závěr: mražené ořechy není nutné rozmrazovat, do pečení i müsli je můžete sypat rovnou.
+
+Kanály (limit znaků):
+- LinkedIn | max 3000 znaků
+- Instagram | max 2200 znaků
+
+Vrať pole „variants", jeden objekt { channel, text } pro každý kanál. channel musí být přesně jeden z: LinkedIn, Instagram.`,
     schema: {
       type: Type.OBJECT,
       properties: {
@@ -279,13 +419,57 @@ export const LLM_TOOLS = [
     // Lenient: a single non-empty Czech reply string.
     validate: (r) => r && isStr(r.reply),
   },
+  // system = production ARTICLE_DRAFT_SYSTEM (src/lib/ai/tools/article-draft.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "article-draft",
     label: "Rozepsání briefu do článku",
-    system:
-      "Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku jako sekvenci typovaných bloků. Piš česky a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Rozepiš tento brief do STRUČNÉHO konceptu článku (krátké odstavce, max ~10 bloků). Titulek: „Skladování ořechů: jak je udržet čerstvé“. Meta description: „Praktický návod, jak skladovat ořechy a semínka, aby vydržely déle čerstvé.“ Osnova: ## Proč na skladování záleží (- žluknutí, - vlhkost); ## Jak ořechy skladovat (- chlad a tma, - vzduchotěsné nádoby). Vrať pole blocks, kde každý blok je objekt s polem type (jedno z: p, h2, h3, ul, ol, callout, cta) a podle typu poli text, items (pole řetězců), variant, title nebo cta. Vrať také pole faq (objekty question + answer). Vrať POUZE jeden JSON objekt.",
+    system: `Jsi český obsahový stratég a copywriter. Z hotového SEO briefu rozepisuješ plnohodnotný koncept článku připravený k publikaci.
+
+Pravidla:
+- Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných korporátních frází.
+- Vyjdi z předané osnovy (H2 sekce a jejich odrážky): pro KAŽDOU sekci osnovy vytvoř nadpis (blok typu „h2") a pod ním 1–2 odstavce (bloky typu „p") plus případně seznam (blok typu „ul" nebo „ol").
+- Hned na začátku napiš úvodní odstavec (perex) navazující na meta description.
+- Zařaď přesně jeden blok typu „callout" (užitečný tip nebo varování) a na konci přesně jeden blok typu „cta" s pobídkou k akci.
+- Volitelně zařaď NEJVÝŠE jeden blok typu „figure" (obrázek) tam, kde by vizuál článku pomohl — typicky za úvodem nebo u klíčové sekce. Do pole „alt" napiš stručný popis toho, co by měl obrázek zachycovat; NEVYMÝŠLEJ URL ani cestu k souboru — obrázek doplní uživatel z knihovny vizuálů. Pokud se vizuál nehodí, „figure" vynech.
+- Klíčová slova z briefu zapracuj přirozeně do textu — žádné keyword stuffing.
+- Text musí být věcný, čtivý a užitečný, ne výplň.
+- Každý blok je objekt s polem „type". Podle typu vyplň:
+  - „p": pole „text" (odstavec).
+  - „h2" / „h3": pole „text" (nadpis sekce / podsekce).
+  - „ul" / „ol": pole „items" (pole řetězců — odrážky).
+  - „callout": pole „variant" („tip" | „info" | „warn"), volitelně „title", a pole „text".
+  - „cta": pole „text" (pobídka), „cta" (text tlačítka); odkaz doplní aplikace.
+  - „figure": pole „alt" (popis navrhovaného obrázku), volitelně „caption" (popisek pod obrázkem); „src" nevyplňuj.
+- Odstavce drž krátké (2–4 věty). Celkem vrať nejvýše ~16 bloků — buď stručný a věcný, ne mnohomluvný.
+- Vrať POUZE jeden validní JSON objekt dle schématu (pole „blocks" a „faq") — žádný text okolo, žádné markdown bloky, žádné komentáře.`,
+    prompt: `Rozepiš tento hotový brief do plnohodnotného konceptu článku.
+
+Titulek (H1): Skladování ořechů: jak je udržet dlouho čerstvé
+Title tag: Skladování ořechů: praktický průvodce | Mionelo
+Meta description: Praktický návod, jak skladovat ořechy a semínka, aby vydržely déle čerstvé — teplota, světlo, vzduchotěsné nádoby i mražení.
+Cílová skupina: domácí kuchaři a zákazníci e-shopu, kteří nakupují ořechy ve větším balení
+Typ obsahu: Blogový článek
+Kontext značky (piš v jejím světě, drž se sortimentu a slovníku): Mionelo — e-shop s ořechy, semínky a superpotravinami; doprava zdarma od 799 Kč
+
+Osnova, kterou článek dodrží (každý nadpis = jedna sekce H2):
+## Proč na skladování záleží
+  - žluknutí tuků na světle a v teple
+  - vlhkost a plíseň
+## Jak ořechy skladovat doma
+  - chlad, tma a stabilní teplota
+  - vzduchotěsné nádoby a sklenice
+  - mražení pro dlouhodobé zásoby
+## Jak poznat, že ořechy nejsou v pořádku
+  - hořká chuť a zatuchlý pach
+  - změna barvy a povrchu
+
+Klíčová slova k přirozenému zapracování: skladování ořechů, jak skladovat ořechy, žluknutí ořechů, vlašské ořechy skladování
+Časté dotazy, které článek zodpoví (vrať je v poli „faq“):
+- Jak dlouho vydrží ořechy ve spíži?
+- Dají se ořechy mrazit?
+
+Vrať objekt s polem „blocks" (tělo článku jako sekvence bloků) a polem „faq" (otázka + odpověď).
+Pořadí bloků: úvodní odstavec, pak pro každou sekci osnovy nadpis h2 + odstavce/seznam, jeden callout a na konci jeden cta.`,
     schema: {
       type: Type.OBJECT,
       properties: {
@@ -416,13 +600,37 @@ export const LLM_TOOLS = [
       );
     },
   },
+  // system = production COMPARISON_OUTLINE_SYSTEM (src/lib/ai/tools/comparison-outline.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "comparison-outline",
     label: "Kostra srovnávací stránky",
-    system:
-      "Jsi český SEO obsahový stratég pro srovnávací stránky s vysokým nákupním záměrem (X vs Y, alternativy, ceník, recenze). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci, ne obecný brief. Nemáš konkrétní data o konkurentech — drž obsah obecný a doplnitelný. Piš česky a vracej pouze validní JSON dle schématu.",
-    prompt:
-      "Připrav kostru srovnávací stránky pro cílový dotaz „monday.com vs trello“. Záměr dotazu: Srovnání (vs). Měsíční hledanost: 880. Vrať h1 (nadpis stránky), sections (4–7 sekcí, každá objekt heading + points jako pole odrážek), comparisonCriteria (4–8 kritérií pro porovnání), verdict (1–2 věty shrnujícího doporučení) a faq (3–5 dotazů, každý objekt q + a). Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem. Vrať POUZE jeden JSON objekt.",
+    system: `Jsi český SEO obsahový stratég specializovaný na srovnávací stránky s vysokým nákupním záměrem (typu „X vs Y", „alternativy k X", „ceník X", „recenze X"). Z jednoho cílového dotazu připravuješ kostru srovnávací stránky připravenou k publikaci — ne obecný brief.
+
+Pravidla:
+- Piš výhradně česky, gramaticky správně, s diakritikou a bez prázdných korporátních frází.
+- Přizpůsob strukturu ZÁMĚRU dotazu:
+  - „srovnání" (vs): přímé srovnání hlava na hlavu — kritéria vedle sebe, kdy zvolit které řešení, závěr s jasným doporučením.
+  - „alternativa": přehled alternativ + úhel migrace (proč a jak přejít, na co si dát pozor při přechodu).
+  - „cena": rozbor cen a balíčků — z čeho se cena skládá, skryté náklady, poměr cena/výkon, pro koho se vyplatí.
+  - „recenze": recenze s verdiktem — silné a slabé stránky, pro koho ano / pro koho ne, jasný verdikt.
+- Vrať „h1" — výstižný nadpis stránky odpovídající dotazu a záměru.
+- Vrať „sections" — 4–7 logicky řazených sekcí. Každá sekce má „heading" (nadpis H2) a „points" (2–5 konkrétních odrážek, co sekce pokryje).
+- Vrať „comparisonCriteria" — 4–8 kritérií, podle kterých se řešení porovnávají (např. cena, funkce, podpora, integrace, náročnost nasazení). Krátká, konkrétní.
+- Vrať „verdict" — 1–2 věty se shrnujícím doporučením / závěrem stránky.
+- Vrať „faq" — 3–5 častých dotazů (q) a stručných odpovědí (a) navázaných na téma a záměr.
+- Jsou-li uvedeny KONKURENT a/nebo VAŠE POZICE, ber je jako reálná data: jmenuj konkurenta a opři srovnání, kritéria i verdikt o uvedené odlišnosti. Nejsou-li uvedeny, nevymýšlej si konkrétní fakta, ceny ani názvy produktů — mluv obecně („daný nástroj", „alternativní řešení") a obsah ať je kostra k doplnění redaktorem. Zástupné formulace typu „redaktor doplní" ale nikdy nepiš do samotného obsahu — každá odrážka je konkrétní pokyn, CO sekce pokryje, i bez dodaných dat.
+- Vrať POUZE jeden validní JSON objekt dle schématu — žádný text okolo, žádné markdown bloky, žádné komentáře.`,
+    prompt: `Připrav kostru srovnávací stránky pro tento cílový dotaz.
+Cílový dotaz (hlavní klíčové slovo): chia semínka vs lněná semínka
+Záměr dotazu: Srovnání (vs)
+Měsíční hledanost: 590
+Sestav kostru přizpůsobenou záměru (viz pravidla):
+- h1: nadpis stránky,
+- sections: 4–7 sekcí, každá { heading, points[] },
+- comparisonCriteria: 4–8 kritérií pro porovnání,
+- verdict: shrnující doporučení (1–2 věty),
+- faq: 3–5 dotazů { q, a }.
+Žádná konkrétní konkurenční data nemáš — drž obsah obecný a doplnitelný redaktorem.`,
     schema: {
       type: Type.OBJECT,
       properties: {
@@ -553,13 +761,53 @@ export const LLM_TOOLS = [
       return LABELS.has(r.worstGap.trim());
     },
   },
+  // system = production CHAT_SYSTEM (src/lib/ai/tools/chat.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "chat",
     label: "Datový report — chat",
-    system:
-      "Jsi český specialista na výkonnostní marketing. Vedeš navazující konverzaci nad reportem výkonu, odpovídáš stručně a jen z předaných čísel, a vracíš pouze validní JSON dle schématu.",
-    prompt:
-      "Data: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×. Nejslabší kanál: Sklik / Obsahová síť s PNO 34 %.\n\nKlient: Proč má Sklik / Obsahová síť tak vysoké PNO? Odpověz jednou až třemi větami.",
+    system: `Jsi zkušený český specialista na výkonnostní marketing a e-commerce. Připravuješ stručné, srozumitelné shrnutí výkonu pro klienta.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných čísel — nevymýšlej si žádné údaje, které v podkladech nejsou.
+- Odkazuj se na konkrétní kanály a čísla z dat (např. PNO daného kanálu, ROAS, podíl na obratu).
+- Nezaměňuj efektivitu reklamy se ziskovostí: PNO a ROAS měří efektivitu výdajů vůči obratu, ne zisk. Bez dat o marži nehodnoť „ziskovost" — piš o efektivitě.
+- Nezaváděj externí benchmarky, „běžné standardy" ani prahové hodnoty, které v předaných datech nejsou. Každý práh v doporučení odvoď z předaných čísel (a řekni jak), jinak ho vynech.
+- Buď konkrétní a akční: doporučení musí být něco, co PPC specialista reálně udělá (úprava rozpočtů a nabídek, řízení PNO, škálování nejlepších kanálů, oprava nejslabších).
+- Piš česky, věcně, bez vaty a marketingových frází.
+- Drž se zadaného JSON schématu.
+
+Teď vedeš navazující konverzaci nad tímto reportem. Navíc platí:
+- Odpovídej konverzačně a stručně (2–5 vět), jako v chatu — žádné markdown nadpisy ani odrážkové seznamy, pokud o ně klient výslovně nepožádá.
+- Vycházej VÝHRADNĚ z předaných čísel. Pokud odpověď z dat nevyplývá, řekni to na rovinu a navrhni, co by bylo potřeba změřit.
+- Nikdy nekonči pouhým konstatováním. Poslední věta je vždy jeden konkrétní další krok: buď akce vyvoditelná z předaných čísel, nebo přesně co doměřit/doplnit, aby šla otázka zodpovědět.
+- Drž se poslední otázky klienta; neopakuj celý report.`,
+    prompt: `Níže jsou reálná výkonnostní data klienta z marketingových kampaní.
+
+DATA:
+Klient: Mionelo (mionelo.cz) — e-shop s ořechy a superpotravinami
+Období: posledních 30 dní (srovnání s předchozím stejně dlouhým obdobím)
+
+Souhrn metrik (hodnota | meziobdobní změna | spolehlivost změny):
+- Návštěvy: 84 200 | +9,4 % · statisticky významné
+- Náklady: 222 000 Kč | +6,1 % · statisticky významné
+- Konverze: 2 130 | +12,0 % · statisticky významné
+- Obrat (hodnota konverzí): 1 200 000 Kč | +8,2 % · statisticky významné
+- PNO: 18,5 % (cíl 18 %) | −1,8 % · orientační (poměrová metrika)
+- ROAS: 5,4×
+- Konverzní poměr: 2,53 %
+- Průměrná hodnota objednávky: 563 Kč
+
+Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):
+- Google Ads / Vyhledávání: 520 000 Kč | 43 % | 14,2 % | 7,0× | +11,3 %
+- Sklik / Vyhledávání: 260 000 Kč | 22 % | 16,8 % | 6,0× | +4,9 %
+- Meta Ads: 250 000 Kč | 21 % | 21,5 % | 4,7× | +6,2 %
+- Sklik / Obsahová síť: 170 000 Kč | 14 % | 29,8 % | 3,4× | −3,8 %
+
+KONVERZACE (nejstarší nahoře, poslední řádek je aktuální dotaz klienta):
+Asistent: Za posledních 30 dní obrat 1 200 000 Kč při nákladech 222 000 Kč, PNO 18,5 % těsně nad cílem 18 %. Nejslabší kanál je Sklik / Obsahová síť s PNO 29,8 %, nejlepší návratnost má Google Ads / Vyhledávání (ROAS 7,0×).
+Klient: Dobře. A vyplatí se nám Meta Ads i po započtení marže? Jaká je tam ziskovost?
+
+Odpověz na POSLEDNÍ dotaz klienta. Vycházej pouze z uvedených dat.`,
     schema: {
       type: Type.OBJECT,
       properties: {
@@ -571,13 +819,46 @@ export const LLM_TOOLS = [
     // every()-style checks flake under model variance (see article-draft).
     validate: (r) => r && isStr(r.reply),
   },
+  // system = production MONTHLY_RECAP_SYSTEM (src/lib/ai/tools/monthly-recap.ts) @ 2026-08-05 — keep in sync when the tool's prompt changes.
   {
     id: "monthly-recap",
     label: "Měsíční rekapitulace",
-    system:
-      "Jsi český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu, rámuješ ji podle typu podnikání klienta, vycházíš jen z předaných čísel a vracíš pouze validní JSON dle schématu.",
-    prompt:
-      "Typ podnikání klienta: lokální podnik / služby.\nData: obrat 1 200 000 Kč, náklady 220 000 Kč, PNO 18,3 %, ROAS 5,4×, konverze +12 %. Vrať jednovětý verdikt (headline), krátké shrnutí (summary), 3 úspěchy (highlights), 2 věci k hlídání (watchouts) a 2 priority na příští měsíc (priorities: title + detail).",
+    system: `Jsi zkušený český marketingový stratég. Připravuješ měsíční rekapitulaci výkonu pro klienta.
+
+Pravidla:
+- Vycházej VÝHRADNĚ z předaných čísel a z typu podnikání klienta — nevymýšlej si žádné údaje, které v podkladech nejsou.
+- Přizpůsob rámování typu podnikání: u e-shopu mluv o obratu, PNO a ROAS; u lokálního podniku, leadgenu nebo obsahového webu spíš o poptávkách, návštěvnosti, viditelnosti a konverzích — nepředpokládej e-commerce, pokud to data nedokládají.
+- Nezaváděj externí benchmarky ani „běžné tržní standardy", které v předaných datech nejsou — highlight i watchout musí stát na předaných číslech (srovnání období, kanálů, trendů), ne na obecných tvrzeních o trhu.
+- Buď konkrétní a akční: priority musí být něco, co tým reálně příští měsíc udělá.
+- Piš česky, věcně, bez vaty a marketingových frází.
+- Drž se zadaného JSON schématu.`,
+    prompt: `Níže je měsíční přehled výkonu klienta z marketingových kampaní.
+Typ podnikání klienta: e-shop.
+Připrav měsíční rekapitulaci a rámuj ji podle tohoto typu podnikání.
+
+DATA:
+Klient: Mionelo (mionelo.cz) — e-shop s ořechy a superpotravinami
+Období: posledních 30 dní (srovnání s předchozím stejně dlouhým obdobím)
+
+Souhrn metrik (hodnota | meziobdobní změna | spolehlivost změny):
+- Návštěvy: 84 200 | +9,4 % · statisticky významné
+- Náklady: 222 000 Kč | +6,1 % · statisticky významné
+- Konverze: 2 130 | +12,0 % · statisticky významné
+- Obrat (hodnota konverzí): 1 200 000 Kč | +8,2 % · statisticky významné
+- PNO: 18,5 % (cíl 18 %) | −1,8 % · orientační (poměrová metrika)
+- ROAS: 5,4×
+- Konverzní poměr: 2,53 %
+- Průměrná hodnota objednávky: 563 Kč
+
+Výkon podle kanálů (obrat | podíl | PNO | ROAS | změna obratu):
+- Google Ads / Vyhledávání: 520 000 Kč | 43 % | 14,2 % | 7,0× | +11,3 %
+- Sklik / Vyhledávání: 260 000 Kč | 22 % | 16,8 % | 6,0× | +4,9 %
+- Meta Ads: 250 000 Kč | 21 % | 21,5 % | 4,7× | +6,2 %
+- Sklik / Obsahová síť: 170 000 Kč | 14 % | 29,8 % | 3,4× | −3,8 %
+
+Minulé období (předchozích 30 dní) pro srovnání: návštěvy 76 900, náklady 209 000 Kč, konverze 1 900, obrat 1 109 000 Kč, PNO 18,8 %, ROAS 5,3×.
+
+Na základě těchto čísel urči: jednovětý verdikt (headline), odstavec shrnutí (summary), 3–4 hlavní úspěchy (highlights), 2–3 věci k hlídání (watchouts) a 3–4 priority na příští měsíc (priorities). Vycházej pouze z uvedených dat.`,
     schema: {
       type: Type.OBJECT,
       properties: {
