@@ -23,6 +23,28 @@ export interface SklikTransport {
 /** Sklik's public JSON endpoint. */
 export const SKLIK_API_BASE = "https://api.sklik.cz/drak/json";
 
+/** A Sklik failure carrying a numeric status, so the connector's live-retry can
+ *  classify it. `classifyLiveError` (google/ads.ts) is deliberately
+ *  provider-neutral — it reads `.status` off ANY thrown value — but the Sklik
+ *  transport used to throw plain Errors with the status only interpolated into the
+ *  message, so every Sklik failure fell through to "permanent". A Sklik 503 or a
+ *  rate-limit therefore degraded the sync to sample data immediately, while the
+ *  identical Google failure backed off and retried once.
+ *
+ *  Carries Sklik's own envelope status when the transport-level HTTP call
+ *  succeeded (Sklik answers 200 with a `status` field), and the HTTP status
+ *  otherwise; both use the same HTTP-shaped codes, which is what the classifier
+ *  expects. A Sklik 401 classifies as "token" and the connector degrades at once —
+ *  correct, since there is no Sklik token refresher to retry with. */
+export class SklikApiError extends Error {
+  readonly status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "SklikApiError";
+    this.status = status;
+  }
+}
+
 /** The real network transport: POST the positional args as a JSON array and
  *  surface Sklik's own status envelope as errors (status ≥ 300 → throw), so the
  *  connector's degrade-to-sample wrapper treats an API-level failure exactly like
@@ -36,14 +58,17 @@ export function httpSklikTransport(baseUrl: string = SKLIK_API_BASE): SklikTrans
         body: JSON.stringify(params),
       });
       if (!res.ok) {
-        throw new Error(`Sklik ${method} HTTP ${res.status}: ${await res.text().catch(() => "")}`);
+        throw new SklikApiError(
+          res.status,
+          `Sklik ${method} HTTP ${res.status}: ${await res.text().catch(() => "")}`
+        );
       }
       const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
       const status = typeof json.status === "number" ? json.status : 200;
       // Sklik uses HTTP 200 with a status field; 200/201 are OK, ≥300 is an error.
       if (status >= 300) {
         const msg = typeof json.statusMessage === "string" ? json.statusMessage : "";
-        throw new Error(`Sklik ${method} status ${status}: ${msg}`);
+        throw new SklikApiError(status, `Sklik ${method} status ${status}: ${msg}`);
       }
       return json;
     },
