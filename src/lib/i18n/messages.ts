@@ -1,7 +1,8 @@
 /** Typed UI message dictionary (cs / en). The formatting layer (src/lib/format.ts)
  *  was already locale-aware; this finishes the string layer so the product can
- *  ship in English. `cs` is the source of truth — its shape defines `Messages`,
- *  so `en` must stay structurally identical (a missing key is a type error).
+ *  ship in English. `en` is the authoring source of truth (docs/i18n/contract.md)
+ *  and `cs` is transcreated from it; `Messages` types both columns, so either one
+ *  missing a key is a type error — that symmetry IS the parity gate.
  *  Framework-free (no React, no I/O) — safe to import from client or server. */
 import type { SupportedLocale } from "@/lib/format";
 
@@ -202,7 +203,7 @@ const en: Messages = {
 
 export const MESSAGES: Record<SupportedLocale, Messages> = { cs, en };
 
-/** Resolve the dictionary for a locale (falls back to cs). */
+/** Resolve the dictionary for a locale (falls back to the `en` source of truth). */
 export function getMessages(locale: SupportedLocale): Messages {
-  return MESSAGES[locale] ?? MESSAGES.cs;
+  return MESSAGES[locale] ?? MESSAGES.en;
 }

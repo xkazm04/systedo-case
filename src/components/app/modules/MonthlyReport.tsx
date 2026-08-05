@@ -41,7 +41,7 @@ const T = {
     unlinkDesc: "Report i AI souhrn se vrátí k ukázkovým datům. Napojený účet Google Ads zůstane zachovaný — data můžete kdykoli znovu synchronizovat.",
     unlinkConfirm: "Odpojit", cancel: "Zrušit",
     narrativeHeading: "Souhrn od AI", generate: "Vygenerovat souhrn", regenerate: "Vygenerovat znovu", generating: "Generuji…",
-    idle: "Nech AI sestavit shrnutí výkonu za období na základě čísel výše.",
+    idle: "Nechte AI sestavit shrnutí výkonu za období na základě čísel výše.",
     storedOn: "Uložený souhrn z {date}", recapStale: "Neaktuální — data se od vygenerování změnila",
     recapFresh: "Odpovídá aktuálním datům", previewing: "náhled z historie",
     historyHeading: "Historie souhrnů ({n})", historyEmpty: "Zatím žádné uložené souhrny.",

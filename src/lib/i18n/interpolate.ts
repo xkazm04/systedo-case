@@ -14,7 +14,8 @@ export function interpolate(
 
 /** A colocated translation table: the same keys in every supported locale,
  *  defined next to the component that uses them (so localization parallelizes
- *  per-file without one giant central dictionary). `cs` is the source of truth.
+ *  per-file without one giant central dictionary). `en` is the authoring source
+ *  of truth (docs/i18n/contract.md); `cs` is transcreated from it.
  *  Keyed by SupportedLocale (derived from SUPPORTED_LOCALES) so adding a market
  *  makes every TDict a loud type error until its column is filled in, rather than
  *  silently shipping a missing locale. */

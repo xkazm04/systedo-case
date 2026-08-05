@@ -9,7 +9,7 @@ function isLocale(v: string | undefined): v is SupportedLocale {
   return v !== undefined && (SUPPORTED_LOCALES as readonly string[]).includes(v);
 }
 
-/** The active locale from the cookie, defaulting to cs. */
+/** The active locale from the cookie, defaulting to DEFAULT_LOCALE (`en`). */
 export async function getServerLocale(): Promise<SupportedLocale> {
   const value = (await cookies()).get(LOCALE_COOKIE)?.value;
   return isLocale(value) ? value : DEFAULT_LOCALE;

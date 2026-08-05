@@ -37,7 +37,7 @@ const T = {
     undo: "Vrátit",
     savedNote: "Doporučení uloženo — nedotýká se reklamních účtů.",
     explain:
-      "„Přijmout“ uloží doporučení pro tvůj tým. Adamant neprovádí žádné změny v reklamních účtech.",
+      "„Přijmout“ uloží doporučení pro váš tým. Adamant neprovádí žádné změny v reklamních účtech.",
     saveFailed: "Uložení se nezdařilo.",
     acceptedCount: "{n} přijato",
     dismissedCount: "{n} zamítnuto",

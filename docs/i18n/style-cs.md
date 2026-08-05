@@ -1,9 +1,19 @@
 # Czech voice guide — systedo-case
 
-Calibrated from the existing `cs` values across the sampled catalog (they are
-the source of truth for voice, not this document). Use when a worker converts
-a hardcoded-English surface into a colocated `T` table's `cs` column, or when
-auditing an existing `cs` string.
+`cs` is the **target** locale (see `contract.md` — reversed 2026-08-05):
+transcreated from the finished `en` value, through the glossary, this guide,
+[`constructions-cs.md`](./constructions-cs.md) and
+[`exemplars-cs.md`](./exemplars-cs.md).
+
+Calibrated from the existing `cs` values across the sampled catalog. Those
+values are strong evidence of *voice* — they were authored by a Czech speaker —
+but they are no longer the source of truth for *content*: where a cs string and
+its en counterpart disagree about what the control says, `en` decides.
+
+This document settles register, casing, typography and aspect. It does **not**
+settle sentence shape — that is `constructions-cs.md`, and it is the artifact
+that catches the strings which satisfy every rule here and still read
+translated.
 
 ## Register
 

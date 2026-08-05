@@ -41,9 +41,9 @@ const T = {
     saving: "Ukládám…",
     schedule: "Naplánovat",
     publishNow: "Zveřejnit teď",
-    draftFailed: "Draft failed.",
-    serverError: "Could not reach the server.",
-    saveFailed: "Save failed.",
+    draftFailed: "Návrh se nezdařil.",
+    serverError: "Server je nedostupný.",
+    saveFailed: "Uložení se nezdařilo.",
   },
   en: {
     newPost: "New post",

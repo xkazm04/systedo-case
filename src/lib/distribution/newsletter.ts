@@ -5,7 +5,7 @@
  *  (subject + body + the UTM'd CTA). Pure — no DOM, no I/O; the Blob download
  *  lives in the component. Seam: a real ESP (Mailchimp / Ecomail) template. */
 import { escapeHtml } from "@/lib/html";
-import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
+import { HOME_MARKET_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 
 /** The „Předmět:" prefix the deterministic + AI Newsletter variant emits. The
  *  trailing space is optional, so we match it case-insensitively and trim. */
@@ -31,7 +31,7 @@ export const NEWSLETTER_SUBJECT_LABELS: Record<SupportedLocale, string> = {
 };
 
 function labelFor(labels: Record<SupportedLocale, string>, locale: SupportedLocale): string {
-  return labels[locale] ?? labels[DEFAULT_LOCALE];
+  return labels[locale] ?? labels[HOME_MARKET_LOCALE];
 }
 
 export interface NewsletterParts {
@@ -111,7 +111,7 @@ export function newsletterHtml({ subject, body, ctaUrl, locale }: NewsletterHtml
   const safeUrl = escapeHtml(ctaUrl.trim());
 
   return `<!doctype html>
-<html lang="${LOCALES[locale]?.intlLocale ?? LOCALES[DEFAULT_LOCALE].intlLocale}">
+<html lang="${LOCALES[locale]?.intlLocale ?? LOCALES[HOME_MARKET_LOCALE].intlLocale}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

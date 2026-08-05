@@ -18,9 +18,11 @@ export function useFormatters(): Formatters {
   return useMemo(() => createFormatters(locale), [locale]);
 }
 
-/** A translator over a colocated {cs, en} table, picking the active locale. */
+/** A translator over a colocated {cs, en} table, picking the active locale.
+ *  Falls back to `en` — the authoring source of truth (docs/i18n/contract.md), so
+ *  a hole in a translated column renders source English rather than a raw key. */
 export function useT<K extends string>(dict: TDict<K>): TFn<K> {
   const { locale } = useLocale();
-  const table = dict[locale] ?? dict.cs;
-  return (key, vars) => interpolate(table[key] ?? dict.cs[key] ?? key, vars);
+  const table = dict[locale] ?? dict.en;
+  return (key, vars) => interpolate(table[key] ?? dict.en[key] ?? key, vars);
 }

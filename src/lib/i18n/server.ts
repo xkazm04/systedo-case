@@ -18,9 +18,11 @@ export const getServerFormatters = cache(async (): Promise<Formatters> => {
   return createFormatters(await getServerLocale());
 });
 
-/** A translator over a colocated {cs, en} table for a Server Component. */
+/** A translator over a colocated {cs, en} table for a Server Component.
+ *  Mirrors useT's fallback: `en` is the authoring source of truth, so a hole in a
+ *  translated column renders source English rather than a raw key. */
 export async function getT<K extends string>(dict: TDict<K>): Promise<TFn<K>> {
   const locale = await getServerLocale();
-  const table = dict[locale] ?? dict.cs;
-  return (key, vars) => interpolate(table[key] ?? dict.cs[key] ?? key, vars);
+  const table = dict[locale] ?? dict.en;
+  return (key, vars) => interpolate(table[key] ?? dict.en[key] ?? key, vars);
 }

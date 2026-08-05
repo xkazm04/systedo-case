@@ -1,9 +1,15 @@
 # i18n glossary — systedo-case
 
-The termbase for `/i18n-translate`. **cs is the source locale** (see
-`contract.md`); every row is anchored in an *existing* colocated `T` table —
-in-catalog precedent wins over translator preference. Add a row the moment you
-make a new term decision so it sticks for the next run.
+The termbase for `/i18n-translate`. **`en` is the source locale and `cs` is
+transcreated from it** (see `contract.md` — this reversed on 2026-08-05); every
+row is anchored in an *existing* colocated `T` table — in-catalog precedent
+wins over translator preference. Add a row the moment you make a new term
+decision so it sticks for the next run.
+
+Note the rows below were harvested while Czech was the source, so their
+evidence reads cs→en. The *decisions* still hold — precedent is precedent — but
+when a row's note cites a cs value as the authority, that authority is now the
+`en` value written from the call site.
 
 ## Domain terms (en ↔ cs)
 

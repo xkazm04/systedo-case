@@ -85,7 +85,7 @@ const T = {
     colPno: "PNO",
     reportShow: "report",
     reportHide: "skrýt",
-    exportCsv: "Export CSV",
+    exportCsv: "Exportovat CSV",
     exportCsvTitle: "Stáhnout zobrazené kampaně jako CSV",
     csvType: "Typ",
     csvStatus: "Stav",

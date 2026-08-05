@@ -11,7 +11,7 @@
  *  No hook access (a pure SVG component, sometimes rendered from a server
  *  parent) — `locale` is an explicit prop, same pattern as Sparkline's
  *  `trendAriaLabel`, not `useT`/`useLocale`. */
-import { DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
+import { HOME_MARKET_LOCALE, type SupportedLocale } from "@/lib/format";
 
 const YOU = [4, 4, 4, 3, 2, 1, 1];
 const RIVAL = [2, 2, 2, 3, 3, 3, 3];
@@ -41,7 +41,7 @@ const DEFAULT_LABEL: Record<SupportedLocale, string> = {
 
 export function RankClimbChart({
   label,
-  locale = DEFAULT_LOCALE,
+  locale = HOME_MARKET_LOCALE,
 }: {
   label?: string;
   /** locale for the default aria-label and the "Day 0" axis tick — an explicit

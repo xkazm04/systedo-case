@@ -16,7 +16,7 @@ const T = {
     ariaLabel: "Historie aktivity",
     historyLabel: "Historie",
     heading: "Historie aktivity",
-    exportCsv: "Export CSV",
+    exportCsv: "Exportovat CSV",
     empty: "Zatím žádná aktivita. Přesuny rozpočtu, synchronizace a upozornění se zde objeví.",
     csvFilename: "adamant-aktivita.csv",
     csvTime: "Čas",

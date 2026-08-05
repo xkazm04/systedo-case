@@ -4,39 +4,84 @@ The repo-specific half of the `/i18n-translate` skill (Phase 0 artifact),
 verified against code. If a run proves a line stale, fix it here in the same
 change.
 
-## THE INVERSION — read this first
+## THE DIRECTION — read this first
 
-**`cs` is the source of truth, `en` is the derived locale.** This is a
-Czech-first case-study app (`DEFAULT_LOCALE: "cs"` in `src/lib/format.ts`);
-the `Messages` type is derived from the cs shape and every colocated table
-falls back to cs. Everything the skill says about "the source locale" applies
-to **Czech** here: don't rewrite existing cs copy to make an en translation
-easier; a `review en` wave audits the *translations*, and "leftover-source"
-means leftover Czech in the en column. Conversely, a surface hardcoded in
-English is a **cs coverage gap** (it renders English to Czech users).
+**`en` is the authoring source of truth. `cs` is transcreated from it.**
+
+This reversed on **2026-08-05**. The app was built Czech-first and the catalog
+was authored in Czech, with English derived from it; that produced Czech that
+was native by construction but English that had to be back-filled, and — the
+reason for the flip — a Czech column written without any of the skill's
+supporting artifacts, whose quality the owner judged weak.
+
+The direction now is:
+
+1. **`en` is written from the functionality**, not from another string. To
+   author or re-author an `en` value you read the call site — what the control
+   does, who is looking at it, how much room it has — and write the English a
+   product copywriter on this team would ship. `en` is the column that answers
+   "what does this actually say".
+2. **`cs` is transcreated from the finished `en`**, through
+   [`glossary.md`](./glossary.md) → [`style-cs.md`](./style-cs.md) →
+   [`constructions-cs.md`](./constructions-cs.md) →
+   [`exemplars-cs.md`](./exemplars-cs.md).
+
+Consequences that bite:
+
+- **The old guardrail is inverted.** "Don't rewrite the source to make the
+  translation easier" now protects `en`, not `cs`. Existing `cs` copy is
+  *in scope* for rewriting — that is the point of the flip.
+- **`leftover-source` now means leftover English in the `cs` column**, not the
+  reverse.
+- **A surface hardcoded in Czech is still a coverage gap**, and now needs `en`
+  authored from the call site rather than translated from the Czech that
+  happens to be sitting there. Read the component, not just the string.
+- Most published localization advice assumes an English source. For this repo
+  that is now finally true — but note `constructions-en.md` was written for the
+  *old* direction and is being re-scoped (below).
+
+## Runtime: two different "defaults" — do not conflate them
+
+`src/lib/format.ts` deliberately exports two constants:
+
+| Constant | Value | Governs |
+|---|---|---|
+| `DEFAULT_LOCALE` | `"en"` | The UI language an **unidentified visitor** gets (no locale cookie). Used by `getServerLocale`, the `TDict` fallback, `getMessages`, `<html lang>`. |
+| `HOME_MARKET_LOCALE` | `"cs"` | The market this deployment **counts money in** and writes background output for. Binds the module-level `fmt*` exports (~199 call sites), `csvNum`, chart axis defaults, cron-sent stock alerts, newsletter labels. |
+
+Flipping the UI default to `en` while leaving `HOME_MARKET_LOCALE` at `cs`
+moved **zero numbers**. Collapsing them back into one constant would silently
+reprice a Czech client's dashboard in USD — `LOCALES.en.currency` is `"USD"`.
+Pass an explicit locale wherever the reader's own locale is known.
+
+**Known, deliberate mismatch:** `metadata` in `src/app/layout.tsx` (title,
+description, opengraph-image) is still Czech while `<html lang>` defaults to
+`en`. Metadata is prerendered under Cache Components and cannot read the locale
+cookie without making every route dynamic, so the static share surface is a
+Czech-market SEO decision (see the DECISION note on `SITE_DESCRIPTION` in
+`src/lib/site.ts`), not a translation gap. Don't "fix" it as part of a
+translation wave.
 
 ## Artifacts in this repo
 
 | File | Holds |
 | --- | --- |
 | `glossary.md` | termbase — what to call things |
-| `style-cs.md` · `style-en.md` | voice per locale |
-| `exemplars-en.md` | gold cs→en pairs |
-| `constructions-en.md` | **the anchor set for translationese** — how to build the sentence. BOOTSTRAP, unvalidated against this catalog; the first `review en` run must replace every invented example with a real one and delete any rule this catalog does not violate. |
+| `style-en.md` | voice for the **source** column: how English UI copy in this product sounds |
+| `style-cs.md` | voice for the **target** column |
+| `constructions-cs.md` | **the anchor set for translationese** — how to build the Czech sentence out of English. The load-bearing artifact for the current direction. |
+| `exemplars-cs.md` | gold en→cs pairs |
+| `constructions-en.md` | **legacy direction (cs→en).** Written when English was derived. Still useful for *cleanup*: the existing `en` column was translated out of Czech, so its rules describe real defects still sitting in the catalog. It is not a guide for authoring new English — `style-en.md` is. Retire it once the `en` re-authoring pass is complete. |
+| `exemplars-en.md` | gold pairs from the old direction; same caveat |
 | `lessons-i18n.md` | field notes from a full-catalog sweep on a sibling product — read before a large run |
-
-Because `en` is the derived locale here, the constructions file is
-`constructions-en.md` and its authority is the **Microsoft Writing Style
-Guide**, not a per-language localization guide. Note that most published
-localization advice assumes an English *source*; half of it is backwards for
-this repo.
+| `progress.md` | the resumable ledger for the multi-session re-authoring pass |
 
 ## Catalog layout — colocated, not central
 
 - **Central dictionary** (`src/lib/i18n/messages.ts`): only `nav` / `footer` /
-  `switcher` — chrome shared across pages. `const cs: Messages` defines the
-  shape; `en` must match structurally (a missing key is a **type error** — the
-  TS compiler is the parity gate; there is no parity script).
+  `switcher` — chrome shared across pages. `Messages` is an explicit interface
+  typing **both** columns, so either one missing a key is a **type error** —
+  the TS compiler is the parity gate; there is no parity script.
 - **Everything else is colocated**: each component owns a
   `const T = { cs: {...}, en: {...} }` table typed `TDict<K>`
   (`src/lib/i18n/interpolate.ts`), consumed via `useT(T)` in client components
@@ -47,6 +92,18 @@ this repo.
 - Locales: `SUPPORTED_LOCALES = ["cs", "en"]` (`src/lib/format.ts`). Locale is
   a cookie (`LOCALE_COOKIE = "locale"`), read by `src/lib/i18n/locale.ts`
   (server) and `LocaleProvider` (client).
+- **The table is not always called `T`.** Live names include `T`,
+  `LEGAL_CONTENT` (`site/LegalSections.tsx`), `CONTENT`
+  (`marketing/LocalSeoShowcase.tsx`) and `PLAN_COPY` (`app/cena/page.tsx`).
+  Identify a locale table by **content** — a block containing both `cs: {` and
+  `en: {` — never by identifier. Anchoring on `const T` reports the four largest
+  already-localized surfaces as 100 % untranslated; anchoring on "any identifier
+  containing a capital T" swallows `const LEGAL_TEXT = {` and hides them
+  completely. Both mistakes were made and corrected while writing
+  `scripts/i18n-audit.mjs`; the fix is in that file's `tableRanges()`.
+- Many tables close with `} as const;`, not `};` — any script that parses them
+  must brace-match, not look for a literal `\n};`. A naive parser silently
+  reports every string in those tables as "hardcoded".
 
 ## Format system — bare regex interpolation, NOT ICU
 
@@ -63,6 +120,8 @@ template.replace(/\{(\w+)\}/g, (m, key) => key in vars ? String(vars[key]) : m)
   one key. Where a count is interpolated, prefer count-invariant phrasing
   (verbal noun / the number after an invariant noun); if a surface genuinely
   needs 1/2–4/5+ forms, use separate keys the call site picks — and flag it.
+  `czPlural(n, one, few, many)` exists in `src/lib/format.ts` for the call
+  sites that already do this (alert titles); it is not wired into `interpolate`.
 
 ## Numbers / dates / currency
 
@@ -77,11 +136,11 @@ A surface is covered when every user-facing string it renders flows through
 `useT`/`getT`/`getMessages`. Coverage work = externalizing hardcoded JSX
 strings into a colocated `T` table:
 
-- Hardcoded **Czech** string → becomes the `cs` value **verbatim** (source
-  copy; mechanical typography fixes only — `…` for `...`, correct quotes
-  `„…"`), plus a **written** `en` value.
-- Hardcoded **English** UI string → becomes the `en` value; **write** the `cs`
-  per the skill's Pass A (this is the actual cs-coverage debt).
+- Hardcoded **English** string → becomes the `en` value; check it against
+  `style-en.md` (it was written inline, not reviewed), then transcreate `cs`.
+- Hardcoded **Czech** string → **write `en` from the call site's functionality**
+  (not from the Czech), then treat the existing Czech as a draft `cs` value to
+  be checked against the artifacts — mechanical typography fixes at minimum.
 - Not user-facing (never externalize): `src/data/**` fixtures, API-route
   internals, console/log/error plumbing, LLM prompts (`src/lib/llm`,
   `src/lib/ai-types.ts`), SEO slugs/route names (`/clanek`, `/kampane` are
@@ -97,10 +156,22 @@ strings into a colocated `T` table:
 | `npm run typecheck` | cs/en structural parity (TDict), unknown keys — the parity gate |
 | `npm run lint` | unused imports left by externalization |
 | `npm run build` | server/client boundary mistakes (`useT` in a server component, `getT` in a client one) |
+| `npm run test:unit` | 2 123 node:test assertions; several pin locale-dependent formatting |
 
-There is no untranslated-values scan; fallback is `dict[locale] ?? dict.cs`,
-so an en gap silently renders Czech. After a coverage wave, grep new `T`
-tables for en values that equal their cs value (minus true cognates).
+Typecheck cannot see a key whose translated value was never written: the
+fallback is `dict[locale] ?? dict.en`, so a **cs** gap now silently renders
+English to Czech users (before the flip it was the reverse). That missing check
+is **`node scripts/i18n-audit.mjs`**, which reports three things typecheck can't:
+
+| Signal | Meaning |
+|---|---|
+| coverage | user-facing Czech rendered outside any locale table |
+| leftover | `cs` value byte-identical to `en`, minus the Do-Not-Translate list |
+| register | *tykání* in the `cs` column (`constructions-cs.md` § CS-REGISTER) |
+
+`--json` for machine output, `--check` to exit non-zero on leftover/register
+findings (suitable for CI once the catalog is clean). It is **not** in
+`check:ci` yet — the coverage gap would fail the build today.
 
 ## Do-not-translate seeds
 
@@ -116,10 +187,16 @@ grep `useT(` / `getT(` / `getMessages` to find adopters.
 
 ## Operational notes
 
-- 297 tsx files under `src/app` + `src/components`; ~165 adopters at the time
-  of writing. Batch coverage work **by file** (the tables are per-file — this
-  parallelizes cleanly with zero merge conflicts if agents own disjoint files).
+- 915 tracked `.ts`/`.tsx` files under `src`; **195 adopters** and **3 286
+  cs/en pairs** as of 2026-08-05 (`node scripts/i18n-audit.mjs`). Batch coverage
+  work **by file** (the tables are
+  per-file — this parallelizes cleanly with zero merge conflicts if agents own
+  disjoint files).
 - Client vs server: `"use client"` at the top → `useT`; otherwise async server
   component → `await getT(T)`. Mixed files: hooks only in the client parts.
-- Keep `T` tables `as const`-free and typed by inference against `TDict<K>` —
-  copy the shape of an existing adopter (e.g. `LtvModule.tsx`).
+- Keep `T` tables typed by inference against `TDict<K>` — copy the shape of an
+  existing adopter (e.g. `LtvModule.tsx`).
+- Shared checkout with a concurrent agent: **pathspec commits only**
+  (`git add <paths>` then `git commit <same paths>`), never `-A`.
+</content>
+</invoke>

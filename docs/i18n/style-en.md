@@ -1,9 +1,11 @@
 # English voice guide — systedo-case
 
-`en` is the **derived** locale here (cs is source — see `contract.md`), but it
-still needs to read like it was written by an English-speaking product
-copywriter, not translated. Calibrated from the existing `en` columns, which
-are consistently strong.
+`en` is the **source** locale (see `contract.md` — reversed 2026-08-05): it is
+written from the functionality, not from another string. This guide is the
+voice it is written in. Calibrated from the existing `en` columns, which are
+consistently strong — but note they were *derived from Czech*, so where this
+guide and a shipped string disagree, the guide wins and the string is a
+re-authoring candidate.
 
 ## Register
 

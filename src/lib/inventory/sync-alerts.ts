@@ -13,7 +13,7 @@ import { getProject } from "@/lib/projects/store";
 import { sendEmail, sendWebhook } from "@/lib/email";
 import { SITE_NAME } from "@/lib/site";
 import { escapeHtml } from "@/lib/html";
-import { DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
+import { HOME_MARKET_LOCALE, type SupportedLocale } from "@/lib/format";
 import { isProduct, toProduct, type Offering } from "@/lib/catalog/offering";
 import { syncProvider } from "./providers";
 import { stockRows } from "./compute";
@@ -78,7 +78,7 @@ export async function alertStockTransitions(
   projectId: string,
   offerings: Offering[],
   now: Date,
-  locale: SupportedLocale = DEFAULT_LOCALE
+  locale: SupportedLocale = HOME_MARKET_LOCALE
 ): Promise<{ alerted: string[] } | null> {
   try {
     const project = await getProject(userId, projectId);

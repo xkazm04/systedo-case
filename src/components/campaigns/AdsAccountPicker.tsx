@@ -17,7 +17,7 @@ const T = {
     connectAccount: "Připojit účet",
     loading: "Načítám dostupné účty…",
     allConnected: "Všechny dostupné účty jsou připojené.",
-    noAccess: "Tvůj Google účet nemá přístup k žádnému Google Ads účtu.",
+    noAccess: "Váš Google účet nemá přístup k žádnému Google Ads účtu.",
     active: "Aktivní",
     activate: "Aktivovat",
     disconnectLabel: "Odpojit účet",

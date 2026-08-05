@@ -25,7 +25,19 @@ export const LOCALES: Record<SupportedLocale, LocaleConfig> = {
   en: { intlLocale: "en-US", currency: "USD" },
 };
 
-export const DEFAULT_LOCALE: SupportedLocale = "cs";
+/** The UI language an *unidentified* visitor gets — no locale cookie, no stored
+ *  preference. English, because English is the authoring source of truth for the
+ *  catalog (see docs/i18n/contract.md); a `cs` visitor is served from the cookie. */
+export const DEFAULT_LOCALE: SupportedLocale = "en";
+
+/** The market this deployment counts money in and writes background output for.
+ *  Deliberately NOT `DEFAULT_LOCALE`: the UI language and the home market are
+ *  different axes, and conflating them is how a locale flip silently reprices a
+ *  Czech client's dashboard in dollars. Every locale-less path — the module-level
+ *  `fmt*` exports below, CSV cells, chart axes, cron-sent alerts — stays bound
+ *  here, so flipping the UI default moved zero numbers. Pass an explicit locale
+ *  whenever the reader's own locale is known. */
+export const HOME_MARKET_LOCALE: SupportedLocale = "cs";
 
 /** Czech has three plural forms: 1 → singular ("1 nová kampaň"), 2–4 → paucal
  *  ("2 nové kampaně"), 0 and ≥5 → genitive plural ("5 nových kampaní"). Picks the
@@ -122,7 +134,7 @@ function relativeFormat(locale: string, kind: string, options: Intl.RelativeTime
 /** Build a full set of formatters bound to one locale + currency. The Intl
  *  instances behind them are shared module-scope singletons (see the memo above),
  *  so calling this repeatedly — or per request — allocates no formatters. */
-export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Formatters {
+export function createFormatters(locale: SupportedLocale = HOME_MARKET_LOCALE): Formatters {
   const { intlLocale, currency } = LOCALES[locale];
 
   // Em-dash placeholder for non-finite numbers / unparseable dates, so one
@@ -402,8 +414,10 @@ export function createFormatters(locale: SupportedLocale = DEFAULT_LOCALE): Form
 }
 
 // Default Czech (cs-CZ / CZK) instance — preserves every existing named export so
-// all ~199 call sites and the AI prompt builders keep working unchanged.
-const cs = createFormatters(DEFAULT_LOCALE);
+// all ~199 call sites and the AI prompt builders keep working unchanged. Bound to
+// HOME_MARKET_LOCALE, not DEFAULT_LOCALE: the UI default is `en`, but these
+// exports are the home market's money and must not follow the language flip.
+const cs = createFormatters(HOME_MARKET_LOCALE);
 
 export const {
   fmtInt,

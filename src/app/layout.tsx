@@ -19,8 +19,12 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  // Static share surface speaks Czech — see the DECISION note on SITE_DESCRIPTION
-  // in lib/site.ts (matches the Czech opengraph-image + the lang="cs" default).
+  // Static share surface still speaks Czech — see the DECISION note on
+  // SITE_DESCRIPTION in lib/site.ts (matches the Czech opengraph-image). It no
+  // longer matches the `en` lang default: metadata is prerendered and cannot read
+  // the locale cookie without making every route dynamic, so the share card is a
+  // deliberate Czech-market SEO choice, not a translation gap. Flagged in
+  // docs/i18n/contract.md.
   title: {
     default: "Adamant — AI reklamní inteligence",
     template: `%s · ${SITE_NAME}`,
@@ -57,9 +61,10 @@ export const viewport: Viewport = {
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
 
 /** Runs before paint: upgrades <html lang> from the locale cookie. The <html>
- *  shell is prerendered static (Cache Components) with a `cs` default, so this
- *  corrects the lang attribute for `en` visitors without a server cookie read at
- *  the document root — which would make every route's shell dynamic. */
+ *  shell is prerendered static (Cache Components) with an `en` default (the
+ *  DEFAULT_LOCALE an unidentified visitor gets), so this corrects the lang
+ *  attribute for `cs` visitors without a server cookie read at the document root
+ *  — which would make every route's shell dynamic. */
 const langScript = `(function(){try{var m=document.cookie.match(/(?:^|; )locale=(cs|en)/);if(m){document.documentElement.lang=m[1];}}catch(e){}})();`;
 
 const SKIP_T = {
@@ -70,7 +75,7 @@ const SKIP_T = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="cs"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
       suppressHydrationWarning
     >

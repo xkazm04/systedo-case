@@ -2,7 +2,7 @@
  *  channel table, AI tool outputs). `toCsv`/`csvNum` are pure; `downloadText`
  *  is browser-only and a no-op on the server. */
 
-import { DEFAULT_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
+import { HOME_MARKET_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 import { SITE_NAME } from "@/lib/site";
 
 /** Build a stable CSV filename for a dashboard export. `kind` is the export slug
@@ -70,7 +70,7 @@ export function toCsv(headers: string[], rows: (string | number)[][]): string {
  *  to the empty cell the exports already use for missing ratios. Pair with
  *  `toCsv` (semicolon delimiter → a decimal comma needs no quoting) or quote via
  *  the consumer's own field escaper for comma-delimited documents. */
-export function csvNum(n: number, digits = 2, locale: SupportedLocale = DEFAULT_LOCALE): string {
+export function csvNum(n: number, digits = 2, locale: SupportedLocale = HOME_MARKET_LOCALE): string {
   if (!Number.isFinite(n)) return "";
   return new Intl.NumberFormat(LOCALES[locale].intlLocale, {
     maximumFractionDigits: digits,

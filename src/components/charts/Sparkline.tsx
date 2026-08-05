@@ -7,7 +7,7 @@
  *  and a fixed `domain` for cross-chart comparability. Used in the hero, every
  *  KPI card, the campaign table and the app modules. */
 
-import { createFormatters, DEFAULT_LOCALE, type SupportedLocale } from "@/lib/format";
+import { createFormatters, HOME_MARKET_LOCALE, type SupportedLocale } from "@/lib/format";
 import { trendAriaLabel } from "./trendLabel";
 
 type Direction = "up" | "down";
@@ -121,7 +121,7 @@ export default function Sparkline({
   describe = false,
   formatValue,
   label,
-  locale = DEFAULT_LOCALE,
+  locale = HOME_MARKET_LOCALE,
   describeLabel,
   className,
 }: SparklineProps) {
