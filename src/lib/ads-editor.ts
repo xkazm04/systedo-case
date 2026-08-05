@@ -10,7 +10,7 @@
  *  Column headers stay in English regardless of UI locale — they are the
  *  identifiers Ads Editor's import mapping recognizes, not display copy.
  *  Framework-free; pair with toCsv/downloadText from ./export. */
-import type { AdResult } from "@/lib/ai-types";
+import { AD_LIMITS, type AdResult } from "@/lib/ai-types";
 
 /** RSA slot counts per Google's spec. */
 export const ADS_EDITOR_MAX_HEADLINES = 15;
@@ -29,11 +29,19 @@ export interface AdsEditorSheet {
   rows: (string | number)[][];
 }
 
-/** Non-empty, trimmed assets in original order, capped to the slot count. */
-const takeSlots = (values: readonly string[], max: number): string[] =>
+/** Non-empty, trimmed assets in original order, capped to the slot count, with any
+ *  asset OVER Google's hard character limit OMITTED rather than exported.
+ *
+ *  The generator's result rows are editable in place, so an over-limit headline is
+ *  reachable by hand — the UI already flags it red, but this sheet is imported
+ *  straight into Ads Editor, where an over-limit asset is rejected or silently
+ *  mangled. Dropping it keeps the import from shipping copy the user never
+ *  approved. Same rule, same rationale as the Sklik exporter's takeSklikSlots;
+ *  they were inconsistent, and the Google path is the more used one. */
+const takeSlots = (values: readonly string[], max: number, charLimit: number): string[] =>
   values
     .map((v) => v.trim())
-    .filter(Boolean)
+    .filter((v) => v.length > 0 && v.length <= charLimit)
     .slice(0, max);
 
 /** One wide "Responsive search ad" row: headlines spread into Headline 1..15,
@@ -43,8 +51,8 @@ export function buildAdsEditorAdSheet(
   ad: Pick<AdResult, "headlines" | "descriptions">,
   seed: AdsEditorSeed
 ): AdsEditorSheet {
-  const headlines = takeSlots(ad.headlines, ADS_EDITOR_MAX_HEADLINES);
-  const descriptions = takeSlots(ad.descriptions, ADS_EDITOR_MAX_DESCRIPTIONS);
+  const headlines = takeSlots(ad.headlines, ADS_EDITOR_MAX_HEADLINES, AD_LIMITS.headline);
+  const descriptions = takeSlots(ad.descriptions, ADS_EDITOR_MAX_DESCRIPTIONS, AD_LIMITS.description);
   const headers = [
     "Campaign",
     "Ad group",

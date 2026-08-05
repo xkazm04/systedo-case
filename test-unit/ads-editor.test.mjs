@@ -8,6 +8,7 @@ import {
   buildAdsEditorAdSheet,
   buildAdsEditorKeywordSheet,
 } from "@/lib/ads-editor";
+import { AD_LIMITS } from "@/lib/ai-types";
 
 const SEED = {
   campaign: "Kešu ořechy natural, 500 g",
@@ -76,4 +77,34 @@ test("keyword sheet: one broad-match row per non-blank keyword", () => {
 test("keyword sheet: empty input yields headers with no rows", () => {
   const { rows } = buildAdsEditorKeywordSheet([], SEED);
   assert.deepEqual(rows, []);
+});
+
+test("ad sheet: an over-limit asset is omitted, not exported for Ads Editor to reject", () => {
+  // The generator's rows are editable in place, so an over-limit headline is
+  // reachable by hand; the sheet is imported straight into a live ad account, and
+  // the Sklik exporter already refuses to carry one. Both paths now agree.
+  const tooLong = "N".repeat(AD_LIMITS.headline + 1);
+  const longDesc = "P".repeat(AD_LIMITS.description + 1);
+  const { rows } = buildAdsEditorAdSheet(
+    {
+      headlines: ["Kešu natural", tooLong, "Bez soli"],
+      descriptions: [longDesc, "Doprava zdarma."],
+    },
+    SEED
+  );
+  const row = rows[0];
+  // The over-limit headline is gone and the next valid one takes its slot.
+  assert.equal(row[3], "Kešu natural");
+  assert.equal(row[4], "Bez soli");
+  assert.equal(row[5], "");
+  assert.ok(!row.includes(tooLong), "over-limit headline must not reach the sheet");
+  // Same for descriptions.
+  assert.equal(row[3 + ADS_EDITOR_MAX_HEADLINES], "Doprava zdarma.");
+  assert.ok(!row.includes(longDesc), "over-limit description must not reach the sheet");
+});
+
+test("ad sheet: an asset exactly at the limit still ships", () => {
+  const exact = "N".repeat(AD_LIMITS.headline);
+  const { rows } = buildAdsEditorAdSheet({ headlines: [exact], descriptions: [] }, SEED);
+  assert.equal(rows[0][3], exact);
 });
