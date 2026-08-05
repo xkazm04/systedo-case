@@ -7,8 +7,11 @@ import type { SupportedLocale } from "@/lib/format";
 
 /** The text-LLM vendors a user can bring a key for. "anthropic" is the Claude
  *  HTTP API (distinct from the local Claude Code CLI provider, which needs no
- *  key). More may be resolved later. */
-export const BYOM_VENDORS = ["openai", "anthropic", "gemini", "openrouter"] as const;
+ *  key). "qwen" is Qwen Cloud (DashScope-intl compatible mode — Qwen family +
+ *  hosted third-party models by slug). "ollama" is a local/on-box Ollama server;
+ *  a stock install authenticates nothing, so its "key" is a placeholder (any
+ *  non-empty value) and the endpoint comes from OLLAMA_BASE_URL. */
+export const BYOM_VENDORS = ["openai", "anthropic", "gemini", "openrouter", "qwen", "ollama"] as const;
 export type ByomVendor = (typeof BYOM_VENDORS)[number];
 
 export function isByomVendor(v: unknown): v is ByomVendor {
@@ -22,6 +25,8 @@ export const BYOM_VENDOR_LABELS: Record<ByomVendor, string> = {
   anthropic: "Claude (Anthropic)",
   gemini: "Google Gemini",
   openrouter: "OpenRouter",
+  qwen: "Qwen Cloud",
+  ollama: "Ollama (lokální)",
 };
 
 // ── Reasoning + model catalog (the BYOM matrix) ──────────────────────────────
@@ -82,6 +87,26 @@ export const BYOM_MODEL_CATALOG: Record<ByomVendor, { default: string; models: B
       { id: "z-ai/glm-5.2", reasoning: "default" },
       { id: "deepseek/deepseek-v4-flash" },
       { id: "xiaomi/mimo-v2.5-pro" },
+    ],
+  },
+  // Qwen Cloud (DashScope-intl compatible mode): the Qwen family plus hosted
+  // third-party models under one key. The adapter sends no reasoning params
+  // (compatible mode rejects OpenAI's reasoning_effort), so the knob is off.
+  qwen: {
+    default: "qwen3.8-max",
+    models: [
+      { id: "qwen3.8-max", noReasoning: true },
+      { id: "glm-5.2", noReasoning: true },
+      { id: "deepseek-v4-flash-0731", noReasoning: true },
+    ],
+  },
+  // Local Ollama tags. Endpoint via OLLAMA_BASE_URL (default localhost:11434);
+  // extendable one line per pulled model.
+  ollama: {
+    default: "lfm2.5:8b",
+    models: [
+      { id: "lfm2.5:8b", noReasoning: true },
+      { id: "qwen2.5:14b-instruct", noReasoning: true },
     ],
   },
 };

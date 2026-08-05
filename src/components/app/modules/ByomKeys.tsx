@@ -132,6 +132,8 @@ const MODEL_HINTS: Record<ByomVendor, { quality: string; fast: string }> = {
   anthropic: { quality: "claude-sonnet-5", fast: "claude-haiku-4-5" },
   gemini: { quality: "gemini-3.5-flash", fast: "gemini-3.1-flash-lite" },
   openrouter: { quality: "z-ai/glm-5.2", fast: "deepseek/deepseek-v4-flash" },
+  qwen: { quality: "qwen3.8-max", fast: "deepseek-v4-flash-0731" },
+  ollama: { quality: "lfm2.5:8b", fast: "lfm2.5:8b" },
 };
 
 const inputClass =

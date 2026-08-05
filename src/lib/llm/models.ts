@@ -41,14 +41,24 @@ export const CLAUDE_CLI_MODEL = "sonnet";
 /** CLI alias for the fast tier (latest Haiku). */
 export const CLAUDE_CLI_MODEL_FAST = "haiku";
 
+/** Bench-only override: pin the Claude CLI to ONE alias for BOTH tiers (e.g.
+ *  CLAUDE_CLI_PIN=opus while the quality matrix benchmarks an alternative CLI
+ *  model). Read per call — the benchmark sets it for its generation phase only,
+ *  so the judge phase still runs the normal Sonnet. Never set in production. */
+function claudeCliPin(): string | undefined {
+  return process.env.CLAUDE_CLI_PIN || undefined;
+}
+
 /** Tier → user-facing Claude model tag (what `meta.model` reports). */
 export function claudeModelTag(tier: ModelTier = "quality"): string {
+  const pin = claudeCliPin();
+  if (pin) return `claude-${pin}`;
   return tier === "fast" ? CLAUDE_MODEL_FAST : CLAUDE_MODEL;
 }
 
 /** Tier → `claude --model` alias for the CLI spawn. */
 export function claudeCliAlias(tier: ModelTier = "quality"): string {
-  return tier === "fast" ? CLAUDE_CLI_MODEL_FAST : CLAUDE_CLI_MODEL;
+  return claudeCliPin() ?? (tier === "fast" ? CLAUDE_CLI_MODEL_FAST : CLAUDE_CLI_MODEL);
 }
 
 /** Tier → Gemini model tag (also the RATES key for cost estimates). */
@@ -111,6 +121,8 @@ export const BYOM_DEFAULT_MODELS: Record<ByomVendor, { quality: string; fast: st
   anthropic: { quality: CLAUDE_API_MODEL, fast: CLAUDE_API_MODEL_FAST },
   gemini: { quality: "gemini-3.5-flash", fast: "gemini-3.1-flash-lite" },
   openrouter: { quality: "z-ai/glm-5.2", fast: "deepseek/deepseek-v4-flash" },
+  qwen: { quality: "qwen3.8-max", fast: "deepseek-v4-flash-0731" },
+  ollama: { quality: "lfm2.5:8b", fast: "lfm2.5:8b" },
 };
 
 /** Resolve the model tag for a BYOM call: the user's per-tier override when set,

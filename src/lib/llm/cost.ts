@@ -43,6 +43,14 @@ const RATES: Record<string, Rate> = {
   [CLAUDE_API_MODEL_FAST]: { inPerMTok: 1, outPerMTok: 5 }, // claude-haiku-4-5
   "gpt-4o": { inPerMTok: 2.5, outPerMTok: 10 },
   "gpt-4o-mini": { inPerMTok: 0.15, outPerMTok: 0.6 },
+  // Qwen Cloud (qwencloud.com model pages, 2026-08-05 list prices).
+  "qwen3.8-max": { inPerMTok: 2, outPerMTok: 6 },
+  "glm-5.2": { inPerMTok: 1.4, outPerMTok: 4.4 },
+  "deepseek-v4-flash-0731": { inPerMTok: 0.2, outPerMTok: 0.4 },
+  // Local Ollama: genuinely $0 — an explicit zero rate so the call doesn't trip
+  // the "no rate for model" warning on every generation.
+  "lfm2.5:8b": { inPerMTok: 0, outPerMTok: 0 },
+  "qwen2.5:14b-instruct": { inPerMTok: 0, outPerMTok: 0 },
 };
 
 /** Sum two usages into one — used when a call is repaired (a second metered

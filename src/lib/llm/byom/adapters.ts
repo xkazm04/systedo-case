@@ -420,6 +420,134 @@ async function runOpenRouter(byom: ResolvedByomKey, call: ByomCall): Promise<Byo
   return { parsed, usage };
 }
 
+// ── Qwen Cloud (DashScope-intl compatible mode — OpenAI chat-completions shape) ─
+async function runQwen(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
+  const model = byomModel("qwen", call.tier, byom.model, byom.fastModel);
+  const base = process.env.QWEN_BASE_URL ?? "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+  const headers = { Authorization: `Bearer ${byom.apiKey}`, "Content-Type": "application/json" };
+  // No reasoning params: compatible mode rejects OpenAI's reasoning_effort, and the
+  // catalog marks every qwen model noReasoning so the matrix can't ask for one.
+  const common = {
+    model,
+    // Same generous output budget as the OpenRouter adapter, for the same reason:
+    // gateway-side per-model default caps truncate structured JSON mid-object.
+    max_tokens: 16000,
+    ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
+  };
+  const post = (payload: object) =>
+    fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: call.signal,
+    });
+
+  const res = await fetchWithFallback(
+    "qwen",
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: call.prompt },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "structured_output", strict: true, schema: toJsonSchema(call.schema) },
+        },
+      }),
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: embeddedUserContent(call.prompt, call.schema) },
+        ],
+      })
+  );
+
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
+  const text = json.choices?.[0]?.message?.content;
+  const parsed = text ? extractJson(text) : null;
+  if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "Qwen Cloud nevrátil platný JSON.", { provider: "qwen" });
+
+  const u = json.usage;
+  const usage: TokenUsage | undefined = u
+    ? {
+        inputTokens: u.prompt_tokens ?? 0,
+        outputTokens: u.completion_tokens ?? 0,
+        totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+      }
+    : undefined;
+  return { parsed, usage };
+}
+
+// ── Ollama (local OpenAI-compatible /v1 — keyless by default) ──────────────────
+async function runOllama(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
+  const model = byomModel("ollama", call.tier, byom.model, byom.fastModel);
+  const base = process.env.OLLAMA_BASE_URL ?? "http://localhost:11434/v1";
+  // A stock Ollama server authenticates nothing — the stored "key" is a
+  // placeholder. Send Authorization anyway (harmless locally, and it makes an
+  // authenticating proxy in front of Ollama just work).
+  const headers = { Authorization: `Bearer ${byom.apiKey}`, "Content-Type": "application/json" };
+  const common = {
+    model,
+    ...(call.temperature !== undefined ? { temperature: call.temperature } : {}),
+  };
+  const post = (payload: object) =>
+    fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+      signal: call.signal,
+    });
+
+  const res = await fetchWithFallback(
+    "ollama",
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: call.prompt },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "structured_output", strict: true, schema: toJsonSchema(call.schema) },
+        },
+      }),
+    () =>
+      post({
+        ...common,
+        messages: [
+          { role: "system", content: call.system },
+          { role: "user", content: embeddedUserContent(call.prompt, call.schema) },
+        ],
+      })
+  );
+
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
+  const text = json.choices?.[0]?.message?.content;
+  const parsed = text ? extractJson(text) : null;
+  if (!parsed) throw new LlmCallError(text ? "malformed_json" : "empty", "Ollama nevrátil platný JSON.", { provider: "ollama" });
+
+  const u = json.usage;
+  const usage: TokenUsage | undefined = u
+    ? {
+        inputTokens: u.prompt_tokens ?? 0,
+        outputTokens: u.completion_tokens ?? 0,
+        totalTokens: u.total_tokens ?? (u.prompt_tokens ?? 0) + (u.completion_tokens ?? 0),
+      }
+    : undefined;
+  return { parsed, usage };
+}
+
 function dispatchByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult> {
   switch (byom.vendor) {
     case "openai":
@@ -430,6 +558,10 @@ function dispatchByom(byom: ResolvedByomKey, call: ByomCall): Promise<ByomResult
       return runGemini(byom, call);
     case "openrouter":
       return runOpenRouter(byom, call);
+    case "qwen":
+      return runQwen(byom, call);
+    case "ollama":
+      return runOllama(byom, call);
   }
 }
 
