@@ -26,15 +26,18 @@
 import { performance } from "@/lib/data";
 import type { DailyPoint, PerformanceData } from "@/lib/types";
 import type { Project, ProjectType } from "@/lib/projects/types";
-import { projectEfficiency, projectScale, seed01, seedScale, TYPE_BASE_FOR } from "./seed";
+import { projectEfficiency, projectScale, seed01, seedScale } from "./seed";
 // Shared demo core — the same seeded PRNG (mulberry32) + FNV-1a hash the other
 // demo generators use (one implementation instead of copies).
 import { mulberry32, hashStr } from "@/lib/demo/prng.mjs";
 
-// The pure seeding primitives moved to ./seed (no data imports) so modules that
-// only need a per-project factor don't transitively load this base dataset.
-// Re-exported here for the existing call sites that import them from dataset.
-export { seed01, seedScale, projectScale, projectEfficiency, TYPE_BASE_FOR };
+// The pure seeding primitives live in ./seed (no data imports) so a module that
+// only needs a per-project factor doesn't transitively pull in the 900 KB base
+// dataset — and every such module now imports them straight from there. The one
+// remaining re-export is `seedScale`, for microsite.ts, which loads this module
+// for `scaledDataset` anyway; re-exporting the rest would only advertise a path
+// back to the transitive load the split exists to prevent.
+export { seedScale };
 
 /** Scale the base case-study dataset by a magnitude and relabel the client — the
  *  per-client spine for surfaces keyed by something other than a Project (e.g. a
