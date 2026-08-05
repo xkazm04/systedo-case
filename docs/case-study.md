@@ -194,20 +194,18 @@ jednou projde, už se znovu nespouští (každé volání modelu trvá), dokud s
 npm run llm:list           # vypíše všechna místa volající wrapper (call sites)
 npm run test:llm:coverage  # statická brána (rychlá): každý call site je otagovaný + má test
 npm run test:llm           # spustí nástroje proti reálnému Claude (pomalé)
-npm run llm:gate           # brána: coverage + (jen při změně LLM kódu) reálný běh
+npm run llm:gate           # brána: coverage + chokepoint + contract goldens (statická)
 ```
 
 - **Kontrakt pokrytí.** Každý `generateStructured(` call site nese tag `// llm-tool: <id>`
   a každý `id` má záznam v `test-llm/registry.mjs` (= test). Nový LLM nástroj bez testu
   bránu shodí. (`test-llm/callsites.mjs` to staticky ověří.)
-- **Prove-once, inkrementálně.** `scripts/llm-gate.mjs` drží v `.llm-gate-cache.json`
-  (verzovaný) hash **každého** LLM-relevantního souboru + důkaz **per nástroj**. Beze změn
-  se reálné testy **přeskočí**; změna, kterou lze přiřadit konkrétním nástrojům (soubor
-  jednoho nástroje, jeden záznam v registry), přehraje **jen ty** (~25 s/nástroj přes
-  `--test-name-pattern`); změna sdíleného kódu (wrapper, provideři, `_shared`, API routy,
-  test harness) konzervativně spustí celou sadu.
+- **Reálné prove-once bylo vyřazeno (2026-08-05).** Hash-gated reálný běh na commit
+  (~25 s/nástroj, u sdílených souborů celá sada) byl dlouhodobě příliš drahý; brána je
+  dnes čistě statická a reálný důkaz se spouští na vyžádání: `npm run test:llm`
+  (jeden reálný Claude běh na nástroj) a `npm run llm:quality` (posuzovaný benchmark).
 - **Pre-commit.** `.husky/pre-commit` spouští `node scripts/llm-gate.mjs` (po
-  `lint-staged`). Coverage běží vždy; reálný běh jen když je potřeba.
+  `lint-staged`) — rychlá statická kontrola při každém commitu.
 
 > Reálné testy potřebují přihlášené Claude Code (`claude`). Bez něj spadnou —
 > přesně to brána hlídá.

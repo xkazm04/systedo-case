@@ -3,14 +3,11 @@ name: CI
 # Continuous integration. The main job runs `npm run check:ci` — the single
 # command that reproduces this gate locally (check = typecheck && lint && build,
 # then seed drift guard, unit suite, and the key-free LLM gate check: chokepoint
-# coverage + contract goldens + cache freshness, i.e. the committed
-# .llm-gate-cache.json must actually prove the committed LLM code, so a
-# --no-verify commit, GitHub-web edit or merge can't land LLM changes under a
-# stale "proven" badge). Keep ci.yml and the `check:ci` script pointing at each
-# other so the two can never drift. Still NOT a full mirror of pre-commit: the
-# real-model Claude run stays local-only (Husky, gated by a logged-in Claude
-# CLI), while `next build` runs only here — so a green local commit can still
-# fail CI on build unless you ran `npm run check:ci` yourself.
+# coverage + contract goldens). The hash-cached real-model re-prove was retired
+# 2026-08-05 (static gate only; prove on demand via `npm run test:llm`). Keep
+# ci.yml and the `check:ci` script pointing at each other so the two can never
+# drift. `next build` runs only here — so a green local commit can still fail
+# CI on build unless you ran `npm run check:ci` yourself.
 on:
   push:
   pull_request:

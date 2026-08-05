@@ -44,10 +44,10 @@ npm run llm:gate      # LLM proof gate (llm:list shows call sites)
 
 - **llm-tool tag contract**: every `generateStructured` call site must carry a
   `// llm-tool: <id>` comment with a registered test in the gate registry.
-  `scripts/llm-gate.mjs` (pre-commit + CI) fails on an untagged call site and,
-  when a hashed LLM file changed, re-proves the affected tools against the real
-  model — a ~9 min warm. Touching a HASHED_FILES route? Plan the warm before
-  committing.
+  `scripts/llm-gate.mjs` (pre-commit + CI) fails on an untagged call site,
+  a chokepoint violation, or drifted contract goldens. Static-only since
+  2026-08-05 — the hash-cached real-model re-prove was retired (too expensive
+  long-term); prove on demand with `npm run test:llm` / `npm run llm:quality`.
 - **Pathspec commits only** (shared checkout, concurrent agents):
   `git add <paths>` then `git commit <same paths>`. Never `-A`, never a bare
   `git commit`, never stash or reset work that is not yours.
