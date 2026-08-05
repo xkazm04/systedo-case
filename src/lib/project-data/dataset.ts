@@ -20,9 +20,12 @@
  *      conversions are floored at 1 on any day whose scaled value is positive but
  *      rounds to 0, so low-volume days stay ratio-safe — see roundCount.)
  *
- *  Live seam (Phase D): for a project with a connected Ads/analytics source,
- *  replace the scaled base with the project's synced data — the rest of the app
- *  consumes this shape unchanged. */
+ *  This module is the SAMPLE side only. The live seam already exists and lives
+ *  one layer up in `report-metrics/resolve.ts`: `resolveReportDataset` returns a
+ *  project's synced Ads series when it has one and falls back to this function
+ *  when it doesn't, emitting the same PerformanceData shape either way. Do not
+ *  add a second live branch in here — a caller that must honour real data should
+ *  go through the resolver, not through `getProjectDataset` directly. */
 import { performance } from "@/lib/data";
 import type { DailyPoint, PerformanceData } from "@/lib/types";
 import type { Project, ProjectType } from "@/lib/projects/types";
