@@ -214,6 +214,41 @@ Unblocking fix shipped with it: db.ts migration v20 backfills seven tables
 `twin`, `onboarding`) that were added to the v1 SCHEMA without ledger entries —
 the UAT 2026-07-16 "migration ledger drops new tables" finding.
 
+## Content gate — reader-panel critique (v1.2, 2026-08-06)
+
+First execution showed drafting is the blind spot: one master draft written for
+no one in particular (the parked benchmark write-up) fits no channel well.
+Content now goes through a gate that reuses the proven `/uat` + `/tiger`
+machinery, scoped to writing:
+
+- **Reader Characters** (`$VAULT/projects/<id>/readers/<channel-cluster>.md`) —
+  the channel's real reader/gatekeeper as a durable Character: who they are,
+  what they reward and punish, a **senior bar** ("would a top author in this
+  venue publish this?"), and **scored acceptance criteria applied identically to
+  every draft** — always including the channel's self-promo rules verbatim and a
+  promotional-smell threshold. One Character per channel *cluster* (HN/IH/dev,
+  intl HR trade editors, CZ HR practitioners, CZ tech media…), `maps_to` the
+  concrete targets.
+- **Channel calibration research** (before first draft, refreshed by outcomes):
+  WebSearch/WebFetch exemplars of similar topics that demonstrably worked in the
+  venue (and flamed ones where visible) → distilled into the reader note as
+  format/length/tone/evidence norms + references. Characters without research
+  are fiction — same rule as UAT init.
+- **Per-track topic selection**: topics are chosen by reader fit, never by what
+  we happen to have. A theme may yield per-channel variants, but each variant
+  passes its own panel; no master draft is ever multi-posted.
+- **L1 — panel critique** (mass-parallel, cheap): drafter and judges are
+  different subagents; each reader Character scores the draft against its
+  criteria; plus one **adversarial promotional-smell refuter** ("would this get
+  flagged as vendor content in this venue?") that defaults to fail. Refine loop
+  (max 2 rounds) until pass.
+- **Operator gate** (always): nothing publishes without operator review, under
+  the operator's identity.
+- **L2 — reception** (empirical): after publication, record the real outcome
+  (comments, votes, editor acceptance/rejection, replies) back into the reader
+  note — the calibration loop that makes round N+1 sharper, mirroring the twin's
+  rejection-lessons pattern.
+
 ## Phasing
 
 1. **P1 — research + triage, vault-backed** (SHIPPED 2026-08-06): `/outreach`

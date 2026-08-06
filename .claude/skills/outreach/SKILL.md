@@ -131,6 +131,27 @@ run the gap-question interview in-session and save via the app). Track the
 `account` field — account creation/OAuth is **always the operator's own hands**;
 the skill only records state and lists what's needed.
 
+### `/outreach content <projectId> [topic] [channel-cluster]`
+
+Content drafting goes through the **content gate** (design doc §Content gate —
+/uat+/tiger technique transplanted to writing). Never write one master draft:
+
+1. **Calibrate** (once per channel cluster, refresh on outcomes): research
+   exemplars of similar topics that worked in the venue; write/update the
+   **Reader Character** note (`readers/<cluster>.md`): who reads, what they
+   reward/punish, senior bar, scored criteria incl. the venue's self-promo
+   rules verbatim, references. No research → no drafting for that channel.
+2. **Select topic by reader fit** (not by what assets exist). Record the
+   track→topic mapping in the reader note.
+3. **Draft per channel** (one variant per venue norms), then **L1 panel**: judge
+   subagents ≠ drafter; each reader Character scores against its criteria; one
+   adversarial promotional-smell refuter defaults to FAIL. Max 2 refine rounds.
+4. **Operator gate**: passing drafts land in `content/` marked
+   `status: panel-passed — operator review required`. Operator publishes under
+   their own identity.
+5. **L2 reception**: log real outcomes (votes/comments/editor verdicts) into
+   the reader note + `learnings.md`.
+
 ### `/outreach dispatch <projectId>` — P2, gate until design doc marks P2 open
 
 Scout the current opportunity per `active` target (within `maxPerWeek`), draft in
