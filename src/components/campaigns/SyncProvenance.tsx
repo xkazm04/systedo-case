@@ -31,7 +31,7 @@ const T = {
       "Účet je veden v měně {currency}. Částky zobrazujeme v této měně bez přepočtu na Kč.",
     halereTitle: "Podezření na haléře",
     halereBody:
-      "Náklady Sklik účtu jsou vůči dennímu rozpočtu ~100× vyšší, než je pravděpodobné. Data mohou být v haléřích. Nic zatím nepřepočítáváme. Potvrzením se všechny další synchronizace budou dělit 100 (haléře → Kč).",
+      "Náklady účtu Sklik jsou vůči dennímu rozpočtu ~100× vyšší, než je pravděpodobné. Data mohou být v haléřích. Nic zatím nepřepočítáváme. Potvrzením se všechny další synchronizace budou dělit 100 (haléře → Kč).",
     halereConfirm: "Potvrdit haléře (dělit 100)",
     halereConfirming: "Potvrzuji…",
     halereConfirmed: "Potvrzeno. Přepočet se použije od příští synchronizace.",

@@ -5,13 +5,14 @@ import Link from "next/link";
 import { Check } from "@/components/icons";
 import { Pill, TONE_TEXT } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useByomConfig } from "@/components/hooks/useByomConfig";
 import {
   BYOM_INCIDENT_REASONS,
   BYOM_MODEL_CATALOG,
   BYOM_OPERATION_LABELS,
   BYOM_VENDORS,
-  BYOM_VENDOR_LABELS,
+  byomVendorLabel,
   isByomCatalogModel,
   isByomValidationStale,
   type PublicByomIncident,
@@ -25,11 +26,10 @@ const T = {
     subtitle: "Platí pro celý účet, napříč všemi projekty.",
     upsellTitle: "Připojte vlastní API klíče",
     upsellBody:
-      "Plán Vlastní klíč odemkne neomezené AI generování přes váš vlastní klíč (OpenAI, Gemini nebo Claude) a přepínání modelů. Platíte tokeny přímo poskytovateli.",
+      "Plán Vlastní klíč odemkne neomezené AI generování přes váš vlastní klíč (OpenAI, Gemini nebo Claude) a přepínání modelů. Platíte za tokeny přímo poskytovateli.",
     upsellCta: "Zobrazit ceník",
     active: "Aktivní",
     setActive: "Použít",
-    disabled: "Vypnuto (aplikace)",
     useApp: "Používat poskytovatele aplikace",
     connected: "Připojeno",
     notConnected: "Nepřipojeno",
@@ -77,11 +77,10 @@ const T = {
     subtitle: "Applies to your whole account, across every project.",
     upsellTitle: "Connect your own API keys",
     upsellBody:
-      "The Your-key plan unlocks unlimited AI generation with your own key (OpenAI, Gemini or Claude) and model switching. You pay tokens directly to the provider.",
+      "The Your-key plan unlocks unlimited AI generation with your own key (OpenAI, Gemini or Claude) and model switching. You pay for tokens directly to the provider.",
     upsellCta: "See pricing",
     active: "Active",
     setActive: "Use",
-    disabled: "Off (app provider)",
     useApp: "Use the app's provider",
     connected: "Connected",
     notConnected: "Not connected",
@@ -155,6 +154,7 @@ export default function ByomKeys() {
   const tOp = useT(BYOM_OPERATION_LABELS);
   const tReason = useT(BYOM_INCIDENT_REASONS);
   const fmt = useFormatters();
+  const { locale } = useLocale();
   const { status, state, patch, retry } = useByomConfig();
   const [keyDraft, setKeyDraft] = useState<Partial<Record<ByomVendor, string>>>({});
   const [showKeyInput, setShowKeyInput] = useState<Partial<Record<ByomVendor, boolean>>>({});
@@ -329,7 +329,7 @@ export default function ByomKeys() {
               <div key={vendor} className={`card p-5 ${isActive ? "ring-2 ring-brand-300" : ""}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-sm font-semibold text-navy-800">{BYOM_VENDOR_LABELS[vendor]}</span>
+                    <span className="text-sm font-semibold text-navy-800">{byomVendorLabel(vendor, locale)}</span>
                     {key ? (
                       isActive ? (
                         <Pill tone="brand">{t("active")}</Pill>
@@ -391,7 +391,7 @@ export default function ByomKeys() {
                       value={keyDraft[vendor] ?? ""}
                       onChange={(e) => setKeyDraft((d) => ({ ...d, [vendor]: e.target.value }))}
                       placeholder={t("keyPlaceholder")}
-                      aria-label={`${BYOM_VENDOR_LABELS[vendor]} ${t("keyLabel")}`}
+                      aria-label={`${byomVendorLabel(vendor, locale)} ${t("keyLabel")}`}
                       className={inputClass}
                     />
                     <button

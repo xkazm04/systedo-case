@@ -45,14 +45,14 @@ const T = {
     csvAction: "Action",
     csvDetail: "Detail",
     csvWho: "Who",
-    kindBudgetShift: "Budget shift",
+    kindBudgetShift: "Budget move",
     kindPause: "Pause",
     kindSync: "Sync",
     kindAlert: "Alert",
     kindReport: "Report",
     kindUpdate: "Change",
     viewAlert: "Alert",
-    viewChangeSet: "Change-set",
+    viewChangeSet: "Change set",
   },
 } as const;
 

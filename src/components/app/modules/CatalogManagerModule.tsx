@@ -55,7 +55,7 @@ const T = {
     fixed: "fixně",
     quote: "na míru",
     rivals: "Konkurenti",
-    areas: "Lokality",
+    areas: "Oblasti",
     capacity: "kapacita",
     week: "týd.",
     empty: "Zatím žádné položky. Přidejte první, nebo připojte zdroj.",

@@ -8,13 +8,32 @@
  *  default ranking — and the unit test pinned to it — stays unchanged. */
 import type { CompareIntent, CompareQuery } from "./sample";
 import type { SavedKeyword } from "../keywords/types";
+import type { SupportedLocale } from "../format";
 
+/** The intent names in Czech. These are ALSO the values written into a
+ *  `BriefSeed.competition` handoff, which `lib/ai/tools/brief.ts` interpolates into
+ *  a Czech prompt line ("konkurence {competition}") — so the seed path keeps
+ *  reading this map verbatim. Everything user-facing goes through
+ *  {@link intentLabel}. */
 export const INTENT_LABELS: Record<CompareIntent, string> = {
   alternative: "Alternativa",
   vs: "Srovnání",
   pricing: "Cena",
   review: "Recenze",
 };
+
+export const INTENT_LABELS_EN: Record<CompareIntent, string> = {
+  alternative: "Alternative",
+  vs: "Comparison",
+  pricing: "Pricing",
+  review: "Review",
+};
+
+/** The comparison-intent label for the reader's locale — the intent pill, the
+ *  score-tuning sliders and their aria labels. */
+export function intentLabel(i: CompareIntent, locale: SupportedLocale): string {
+  return (locale === "en" ? INTENT_LABELS_EN : INTENT_LABELS)[i];
+}
 
 export type Opportunity = "high" | "medium" | "low";
 

@@ -12,8 +12,8 @@ import type { PillTone } from "@/components/ui";
 import { useT } from "@/lib/i18n/client";
 
 const T = {
-  cs: { toggleHint: "Klikněte pro přepnutí pokrytí (stránka ano/ne)", saving: "…" },
-  en: { toggleHint: "Click to toggle coverage (page yes/no)", saving: "…" },
+  cs: { toggleHint: "Vyberte pro přepnutí pokrytí (stránka ano/ne)", saving: "…" },
+  en: { toggleHint: "Select to toggle coverage (page yes/no)", saving: "…" },
 } as const;
 
 export default function CoverageCell({

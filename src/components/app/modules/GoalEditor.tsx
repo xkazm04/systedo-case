@@ -30,7 +30,7 @@ const T = {
   },
   en: {
     heading: "Monthly revenue goal",
-    sub: "The real target pacing + attainment are judged against. Without it the report uses a sample goal.",
+    sub: "The real goal pacing + attainment are judged against. Without it the report uses a sample goal.",
     sampleBadge: "sample goal",
     realBadge: "real goal",
     current: "Current goal",

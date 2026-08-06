@@ -1,8 +1,9 @@
 /** Social command-center domain model — framework-free (no I/O, no firebase),
  *  shared by the connector, store, API routes and UI. */
-import { TONES, TONE_LABELS, type Tone } from "@/lib/ai-types";
+import { TONES, TONE_LABELS, toneLabel, type Tone } from "@/lib/ai-types";
+import type { SupportedLocale } from "@/lib/format";
 
-export { TONES, TONE_LABELS };
+export { TONES, TONE_LABELS, toneLabel };
 export type { Tone };
 
 export const SOCIAL_PLATFORMS = ["facebook", "instagram", "linkedin", "tiktok"] as const;
@@ -59,10 +60,28 @@ export function isStalePublishClaim(
 export const POST_STATUS_LABELS: Record<PostStatus, string> = {
   draft: "Koncept",
   scheduled: "Naplánováno",
-  publishing: "Zveřejňuje se…",
-  published: "Zveřejněno",
+  // `Publikuje se…`, not `Zveřejňuje se…`: A16 put the *state* axis on
+  // `publikovat` while the user-facing *verb* stays `zveřejnit`
+  // (`Composer.publishNow`). A status enum is the state axis, so mixing roots
+  // inside one lifecycle (`Zveřejňuje se… → Publikováno`) was drift.
+  publishing: "Publikuje se…",
+  published: "Publikováno",
   failed: "Chyba",
 };
+
+export const POST_STATUS_LABELS_EN: Record<PostStatus, string> = {
+  draft: "Draft",
+  scheduled: "Scheduled",
+  publishing: "Publishing…",
+  published: "Published",
+  failed: "Failed",
+};
+
+/** The status-pill label for the reader's locale (PostsList). The KEY is the
+ *  persisted `PostStatus`; only the label is copy. */
+export function postStatusLabel(s: PostStatus, locale: SupportedLocale): string {
+  return (locale === "en" ? POST_STATUS_LABELS_EN : POST_STATUS_LABELS)[s];
+}
 
 export interface SocialAccount {
   platform: SocialPlatform;

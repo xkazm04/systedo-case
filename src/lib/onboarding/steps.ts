@@ -62,8 +62,8 @@ const DEF: Record<OnboardingStepKey, OnboardingStepDef> = {
     icon: "map",
     labelCs: "Naimportovat lokální data",
     labelEn: "Import local data",
-    hintCs: "Reálné pozice, recenze nebo Google profil do mapy a lokálního přehledu.",
-    hintEn: "Real ranks, reviews or your Google profile for the map and local overview.",
+    hintCs: "Reálné pozice, recenze nebo Google Business Profile do mapy a lokálního přehledu.",
+    hintEn: "Real ranks, reviews or your Google Business Profile for the map and local overview.",
     optional: true,
   },
   costModel: {

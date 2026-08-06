@@ -94,7 +94,7 @@ export function deriveBrandContext(
     parts.push(`Sold ${NATURE_EN[nature] ?? "online"}.`);
     if (points.length) parts.push(`Differentiators: ${points.join(", ")}.`);
     if (channels.length) parts.push(`Channels: ${channels.join(", ")}.`);
-    parts.push("Stay within this catalogue and the brand's vocabulary — don't invent other products.");
+    parts.push("Stay within this catalog and the brand's vocabulary — don't invent other products.");
   }
   return parts.join(" ");
 }

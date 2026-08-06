@@ -65,7 +65,7 @@ export const INSIGHT_T = {
     insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
     insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
     insightBestRoas: "The most efficient channel is {channel} with ROAS {roas}.",
-    insightWorstPno: "{channel} has the highest PNO {pno}: room to optimise bids.",
+    insightWorstPno: "{channel} has the highest PNO {pno}: room to optimize bids.",
     insightTrendDown: "{metric}: declining {weeks} in a row ({pct} cumulative).",
     insightTrendUp: "{metric}: rising {weeks} in a row ({pct} cumulative).",
     insightWeekday:

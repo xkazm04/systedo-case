@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Sparkles, Close, Bulb } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
-import { IMAGE_STYLES, IMAGE_STYLE_LABELS, type ImageStyle } from "@/lib/images/types";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import { IMAGE_STYLES, imageStyleLabel, type ImageStyle } from "@/lib/images/types";
 import { optimisticDelete } from "@/lib/optimistic-delete";
 import type { CreativeLink, CreativeMetrics, StyleStat, StylePrior } from "@/lib/images/attribution-types";
 
@@ -73,6 +74,7 @@ const EMPTY_METRICS: CreativeMetrics = { impressions: 0, clicks: 0, conversions:
 export default function CreativeAttribution() {
   const t = useT(T);
   const fmt = useFormatters();
+  const { locale } = useLocale();
   const { status } = useSession();
   const project = useOptionalProject();
   const pid = project?.id;
@@ -209,7 +211,9 @@ export default function CreativeAttribution() {
               {leaderboard.map((s, i) => (
                 <tr key={s.style} className={`border-b border-line/60 ${i === 0 ? "bg-positive-soft/30" : ""}`}>
                   <td className="px-4 py-2.5 font-medium text-navy-800">
-                    {s.label}
+                    {/* `s.label` is the cs name the style-prior PROMPT is built
+                        from; the table renders the reader's locale instead. */}
+                    {imageStyleLabel(s.style, locale)}
                     {i === 0 && s.totalCost > 0 && (
                       <span className="ml-2 pill bg-positive-soft text-positive">{t("bestBadge")}</span>
                     )}
@@ -244,7 +248,7 @@ export default function CreativeAttribution() {
             >
               {IMAGE_STYLES.map((s) => (
                 <option key={s} value={s}>
-                  {IMAGE_STYLE_LABELS[s]}
+                  {imageStyleLabel(s, locale)}
                 </option>
               ))}
             </select>
@@ -297,7 +301,7 @@ export default function CreativeAttribution() {
               className="flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm"
             >
               <span className="min-w-0">
-                <span className="font-medium text-navy-800">{IMAGE_STYLE_LABELS[l.style]}</span>
+                <span className="font-medium text-navy-800">{imageStyleLabel(l.style, locale)}</span>
                 {l.campaignName && <span className="ml-2 text-xs text-muted">{l.campaignName}</span>}
                 {l.metrics && (
                   <span className="ml-2 text-xs text-muted">

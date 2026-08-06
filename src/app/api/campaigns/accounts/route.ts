@@ -48,7 +48,7 @@ export async function GET() {
     // instead of reading as "your accounts are gone".
     return Response.json(
       {
-        error: "Chybí Google autorizace (přihlaste se znovu).",
+        error: "Chybí autorizace Google (přihlaste se znovu).",
         configured: true,
         accounts: [],
         connected,
@@ -67,7 +67,7 @@ export async function GET() {
   } catch (err) {
     console.error("[campaigns] listAccessibleCustomers failed:", err);
     return Response.json(
-      { error: "Nepodařilo se načíst Google Ads účty.", connected, active: activeCustomerId },
+      { error: "Nepodařilo se načíst účty Google Ads.", connected, active: activeCustomerId },
       { status: 502 }
     );
   }
@@ -93,18 +93,18 @@ export async function POST(request: Request) {
   if (adsConfigured()) {
     const token = await getUserAccessToken(userId);
     if (!token) {
-      return Response.json({ error: "Chybí Google autorizace (přihlaste se znovu)." }, { status: 403 });
+      return Response.json({ error: "Chybí autorizace Google (přihlaste se znovu)." }, { status: 403 });
     }
     let ids: string[];
     try {
       ids = await listAccessibleCustomers(token);
     } catch (err) {
       console.error("[campaigns] connect: listAccessibleCustomers failed:", err);
-      return Response.json({ error: "Nepodařilo se ověřit Google Ads účet." }, { status: 502 });
+      return Response.json({ error: "Nepodařilo se ověřit účet Google Ads." }, { status: 502 });
     }
     if (!ids.includes(customerId)) {
       return Response.json(
-        { error: "Tento Google Ads účet není dostupný pro vaše přihlášení." },
+        { error: "Tento účet Google Ads není dostupný pro vaše přihlášení." },
         { status: 422 }
       );
     }

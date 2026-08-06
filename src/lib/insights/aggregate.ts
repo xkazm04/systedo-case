@@ -206,7 +206,7 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         ? `${s.source}: cheap but low-quality leads`
         : `${s.source}: levné, ale nekvalitní leady`,
       locale === "en"
-        ? `Qualification rate ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimise bidding toward qualified leads.`
+        ? `Qualification rate ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimize bidding toward qualified leads.`
         : `Míra kvalifikace ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
       f.fmtCZK(s.spend), s.spend));
   }
@@ -318,7 +318,7 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
         : `Slabá pozice: ${weakest.keyword}`,
       locale === "en"
         ? `Ranks #${weakest.current} in ${weakest.area} (best #${weakest.best}), outside the top 3. Strengthen the page + GBP to reach the map pack.`
-        : `V lokalitě ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}), mimo top 3. Posilte stránku a Google profil pro vstup do mapa-packu.`,
+        : `V oblasti ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}), mimo top 3. Posilte stránku a Google Business Profile pro vstup do map.`,
       `#${weakest.current}`)));
   }
 

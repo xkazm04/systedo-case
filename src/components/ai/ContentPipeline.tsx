@@ -7,8 +7,9 @@ import { downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
-  TONE_LABELS,
+  toneLabel,
   TONES,
   type ArticleDraftResult,
   type BriefResult,
@@ -248,6 +249,7 @@ const RUN_BUTTON =
  *  can never show a draft that no longer matches its brief. */
 export default function ContentPipeline() {
   const t = useT(T);
+  const { locale } = useLocale();
   const router = useRouter();
   // Scopes the publish-audit beacon to the active project; null outside one (/ai-asistent).
   const project = useOptionalProject();
@@ -636,7 +638,7 @@ export default function ContentPipeline() {
                 >
                   {TONES.map((tone) => (
                     <option key={tone} value={tone}>
-                      {TONE_LABELS[tone]}
+                      {toneLabel(tone, locale)}
                     </option>
                   ))}
                 </select>

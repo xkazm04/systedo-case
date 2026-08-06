@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { ArrowRight, Bolt, Check, Gauge, Network, Search } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type {
   BriefKeyword,
   KeywordCluster,
@@ -12,7 +13,7 @@ import type {
 } from "@/lib/ai-types";
 import {
   COMPETITION_LABELS,
-  KEYWORD_INTENT_LABELS,
+  keywordIntentLabel,
   spendEfficiency,
   type KeywordIdea,
   type KeywordIntent,
@@ -41,7 +42,7 @@ const T = {
     footerNote: "Reálná hledanost a konkurence z Google Ads Keyword Planneru u připojeného účtu; jinak realistická ukázková data. „Příležitost“ kombinuje vysokou hledanost s nízkou konkurencí.",
     emptyTitle: "Výzkum klíčových slov se zobrazí tady",
     emptyBody: "Zadejte téma. Nástroj najde související dotazy s hledaností, konkurencí a CPC, seřadí je podle příležitosti a předá výběr do obsahového briefu.",
-    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Najít klíčová slova.",
+    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a vyberte Najít klíčová slova.",
     loadingLabel: "Sestavuji návrhy klíčových slov…",
     errorDefault: "Něco se pokazilo.",
     errorConnect: "Nepodařilo se spojit se serverem.",
@@ -87,7 +88,7 @@ const T = {
     footerNote: "Real search volume and competition from Google Ads Keyword Planner when connected; otherwise realistic sample data. “Opportunity” combines high volume with low competition.",
     emptyTitle: "Keyword research will appear here",
     emptyBody: "Enter a topic. The tool finds related queries with search volume, competition and CPC, ranks them by opportunity and passes your selection to the content brief.",
-    emptyHint: "Tip: try “Fill example” and click Find keywords.",
+    emptyHint: "Tip: try “Fill example” and select Find keywords.",
     loadingLabel: "Building keyword suggestions…",
     errorDefault: "Something went wrong.",
     errorConnect: "Could not connect to the server.",
@@ -103,7 +104,7 @@ const T = {
     saving: "Saving…",
     saved: "Saved",
     clustersHeading: "Topic clusters ({n})",
-    clustersIntro: "Each cluster is a ready-made content structure: one pillar page with supporting sub-pages. Click “Create brief” to pass the pillar and supporting keywords straight to the content brief.",
+    clustersIntro: "Each cluster is a ready-made content structure: one pillar page with supporting sub-pages. Select “Create brief” to pass the pillar and supporting keywords straight to the content brief.",
     filterAll: "All",
     briefFromSelection: "Create brief from selection ({n})",
     briefFromTop: "Create brief from TOP keywords",
@@ -162,6 +163,7 @@ export default function KeywordResearch({
   initialSeed?: string;
 }) {
   const t = useT(T);
+  const { locale } = useLocale();
   const fmt = useFormatters();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
@@ -526,7 +528,7 @@ export default function KeywordResearch({
                         : "border-line text-muted hover:border-navy-200"
                     }`}
                   >
-                    {f === "all" ? t("filterAll") : KEYWORD_INTENT_LABELS[f]}
+                    {f === "all" ? t("filterAll") : keywordIntentLabel(f, locale)}
                   </button>
                 ))}
               </div>
@@ -603,6 +605,7 @@ function IdeaRow({
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
   fmt: ReturnType<typeof useFormatters>;
 }) {
+  const { locale } = useLocale();
   const sourceKey =
     idea.source === "google" ? "srcGoogle" : idea.source === "sklik" ? "srcSklik" : "srcSample";
   return (
@@ -621,7 +624,7 @@ function IdeaRow({
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="truncate text-sm font-medium text-navy-800">{idea.keyword}</span>
-            <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[idea.intent]}</span>
+            <span className="pill bg-navy-50 text-muted">{keywordIntentLabel(idea.intent, locale)}</span>
             {showSource && idea.source && (
               <span
                 className={`pill ${
@@ -671,13 +674,14 @@ function ClusterCard({
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
   fmt: ReturnType<typeof useFormatters>;
 }) {
+  const { locale } = useLocale();
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-semibold text-navy-800">{cluster.topic}</span>
           {cluster.intent && (
-            <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[cluster.intent]}</span>
+            <span className="pill bg-navy-50 text-muted">{keywordIntentLabel(cluster.intent, locale)}</span>
           )}
           {typeof cluster.totalVolume === "number" && cluster.totalVolume > 0 && (
             <span className="pill bg-brand-50 text-brand-700 tnum">

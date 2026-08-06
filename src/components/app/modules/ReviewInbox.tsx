@@ -34,7 +34,7 @@ const T = {
   cs: {
     searchPlaceholder: "Hledat v recenzích…",
     bandAll: "Vše", bandPositive: "Kladné", bandNeutral: "Neutrální", bandNegative: "Kritické",
-    areaAll: "Všechny lokality",
+    areaAll: "Všechny oblasti",
     statusAll: "Vše", statusUnanswered: "Bez odpovědi", statusAnswered: "Zodpovězené", statusFlagged: "Označené",
     sortNewest: "Nejnovější", sortOldest: "Nejstarší", sortRatingDesc: "Nejvyšší hodnocení", sortRatingAsc: "Nejnižší hodnocení",
     unanswered: "Bez odpovědi", avg: "Průměr", total: "Recenzí",
@@ -56,7 +56,7 @@ const T = {
   en: {
     searchPlaceholder: "Search reviews…",
     bandAll: "All", bandPositive: "Positive", bandNeutral: "Neutral", bandNegative: "Critical",
-    areaAll: "All locations",
+    areaAll: "All areas",
     statusAll: "All", statusUnanswered: "Unanswered", statusAnswered: "Answered", statusFlagged: "Flagged",
     sortNewest: "Newest", sortOldest: "Oldest", sortRatingDesc: "Highest rating", sortRatingAsc: "Lowest rating",
     unanswered: "Unanswered", avg: "Average", total: "Reviews",

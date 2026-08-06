@@ -69,7 +69,11 @@ export default function OverheadPanel({
                 />
                 <span className="text-sm text-muted">{t("currencyUnit")}</span>
               </div>
-              <p className="mt-1 text-xs text-muted">{t("overheadMonthsMult", { months: fmt.fmtMultiple(months) })}</p>
+              {/* fmtDecimal, NOT fmtMultiple: overheadMonthsMult already carries the
+                  leading "×", so fmtMultiple appended a second one and the line
+                  shipped as "× 3,0× měsíce období". The multiplier sign belongs to
+                  the copy, the number to the formatter. */}
+              <p className="mt-1 text-xs text-muted">{t("overheadMonthsMult", { months: fmt.fmtDecimal(months) })}</p>
             </div>
             <div>
               <label htmlFor="ovh-order" className="block text-xs font-medium uppercase tracking-wide text-muted">

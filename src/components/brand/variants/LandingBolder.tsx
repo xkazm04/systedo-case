@@ -59,7 +59,7 @@ const T = {
     heroTitle1: "Stůjte pevně.",
     heroTitle2: "Reklamy, které nepovolí.",
     heroSubhead:
-      "AI inteligence pro reklamu pro e-shopy a agentury: měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
+      "AI pro digitální reklamu e-shopů a agentur: měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
     heroSeeItWork: "Podívejte se, jak to funguje",
     heroStartFree: "Začít zdarma",
     channelsLabel: "Kanály a úroveň podpory",
@@ -91,7 +91,7 @@ const T = {
     heroTitle1: "Stand adamant.",
     heroTitle2: "Ads that never crack.",
     heroSubhead:
-      "AI ad intelligence for e-shops and agencies: measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
+      "Digital advertising AI for e-shops and agencies: measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
     heroSeeItWork: "See it work",
     heroStartFree: "Start free",
     channelsLabel: "Channels and support level",

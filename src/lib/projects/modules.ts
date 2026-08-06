@@ -111,8 +111,8 @@ export const MODULES: ModuleDef[] = [
     icon: "campaigns",
     section: "growth",
     availableFor: ["eshop", "app", "leadgen", "local"],
-    blurb: "Google Ads kampaně, triáž, AI vyhodnocení a přesuny rozpočtu.",
-    blurbEn: "Google Ads campaigns, triage, AI evaluation and budget shifts.",
+    blurb: "Kampaně Google Ads, triáž, AI vyhodnocení a přesuny rozpočtu.",
+    blurbEn: "Google Ads campaigns, triage, AI evaluation and budget moves.",
   },
   {
     key: "klicova-slova",
@@ -222,7 +222,7 @@ export const MODULES: ModuleDef[] = [
     section: "insights",
     availableFor: ["eshop"],
     blurb: "Marže a POAS: optimalizace na zisk z reklamy, ne jen na ROAS.",
-    blurbEn: "Margins and POAS: optimise for ad profit, not just ROAS.",
+    blurbEn: "Margins and POAS: optimize for ad profit, not just ROAS.",
   },
   {
     key: "produktova-kreativa",
@@ -345,8 +345,8 @@ export const MODULES: ModuleDef[] = [
     icon: "local",
     section: "growth",
     availableFor: ["leadgen", "local"],
-    blurb: "Pokrytí služba×lokalita, mezery ve stránkách a reputace z recenzí.",
-    blurbEn: "Service × location coverage, page gaps and reputation from reviews.",
+    blurb: "Pokrytí služba×oblast, mezery ve stránkách a reputace z recenzí.",
+    blurbEn: "Service × area coverage, page gaps and reputation from reviews.",
   },
   {
     key: "mapa",
@@ -356,7 +356,7 @@ export const MODULES: ModuleDef[] = [
     icon: "map",
     section: "growth",
     availableFor: ["local"],
-    blurb: "Mapový balíček (vy vs. konkurence) na reálné mapě, podíl na proklicích a žebříček pozic klíčových slov.",
+    blurb: "Pozice v mapách (vy vs. konkurence) na reálné mapě, podíl na proklicích a žebříček pozic klíčových slov.",
     blurbEn: "Map pack (you vs. competitors) on a real map, share of clicks and a keyword ranking ladder.",
   },
   {

@@ -160,7 +160,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           .filter((r) => r.service && r.locality)
       : parseCoverageRows(text);
     if (rows.length === 0) {
-      return apiError(400, "Nenašel jsem žádné pokrytí. Formát: služba, lokalita, má stránku (ano/ne).", "unprocessable", { envelope: "ok" });
+      return apiError(400, "Nenašel jsem žádné pokrytí. Formát: služba, oblast, má stránku (ano/ne).", "unprocessable", { envelope: "ok" });
     }
     await mutateLocalSignals(project.id, (prev) => {
       const merged = mergeCoverage(prev?.coverage?.rows ?? [], rows);

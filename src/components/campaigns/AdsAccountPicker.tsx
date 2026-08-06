@@ -8,16 +8,16 @@ import { useT } from "@/lib/i18n/client";
 const T = {
   cs: {
     anonPrompt:
-      "Přihlaste se Google účtem a připojte svůj Google Ads. Jinak běží přehled na ukázkových datech.",
+      "Přihlaste se účtem Google a připojte svůj Google Ads. Jinak běží přehled na ukázkových datech.",
     signIn: "Přihlásit přes Google",
-    heading: "Google Ads účty",
+    heading: "Účty Google Ads",
     refresh: "Načíst",
-    noTokenNote: "Připojení živých Google Ads účtů vyžaduje developer token (viz SETUP.md). Zatím se používají ukázková data.",
+    noTokenNote: "Připojení živých účtů Google Ads vyžaduje developer token (viz SETUP.md). Zatím se používají ukázková data.",
     addAccount: "Přidat další účet",
     connectAccount: "Připojit účet",
     loading: "Načítám dostupné účty…",
     allConnected: "Všechny dostupné účty jsou připojené.",
-    noAccess: "Váš Google účet nemá přístup k žádnému Google Ads účtu.",
+    noAccess: "Váš účet Google nemá přístup k žádnému účtu Google Ads.",
     active: "Aktivní",
     activate: "Aktivovat",
     disconnectLabel: "Odpojit účet",

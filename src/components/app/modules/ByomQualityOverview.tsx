@@ -26,7 +26,7 @@ const T = {
       "Změřeno {date} ({age}) · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
     stale: "⚠ Naposledy měřeno {age}. Skóre může být zastaralé. Zvažte přeměření (npm run llm:quality).",
     selfJudge:
-      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model. Jejich skóre berte jako ovlivněné „domácím prostředím“, ne neutrálně.",
+      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) jsou hodnoceny sourozeneckým modelem. Jejich skóre berte jako ovlivněné „domácím prostředím“, ne neutrálně.",
     na: "—",
   },
   en: {
@@ -40,7 +40,7 @@ const T = {
     colCost: "Cost / op",
     ops: "ops",
     method:
-      "Measured {date} ({age}) · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised. Cost is the mean actual per-operation price reported by OpenRouter.",
+      "Measured {date} ({age}) · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalized. Cost is the mean actual per-operation price reported by OpenRouter.",
     stale: "⚠ Last measured {age}. Scores may be stale. Consider re-running (npm run llm:quality).",
     selfJudge:
       "Note: the judge is claude-sonnet, so Anthropic-family models (claude-*) are graded by a sibling model. Read their scores as home-team-biased, not neutral.",

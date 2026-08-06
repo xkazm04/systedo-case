@@ -114,7 +114,7 @@ html[data-theme="dark"] .nw {
 
 const T = {
   cs: {
-    tagline: "AI reklamní inteligence",
+    tagline: "AI pro prodej produktu",
     h1a: "Nejdřív změřit.",
     h1b: "Pak vytyčit.",
     lede:
@@ -222,7 +222,7 @@ const T = {
       "Všechna čísla na této stránce pocházejí z ilustrativního case-study datasetu klienta {client}. Nejde o výsledky zákazníka.",
   },
   en: {
-    tagline: "AI ad intelligence",
+    tagline: "AI for product sales",
     h1a: "Measure first.",
     h1b: "Then set out.",
     lede:

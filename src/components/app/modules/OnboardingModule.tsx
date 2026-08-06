@@ -47,7 +47,7 @@ const T = {
     scanning: "Skenuji web…",
     scanNote: "Načteme jen veřejný text vaší úvodní stránky. Nic nepublikujeme.",
     reviewTitle: "Zkontrolujte profil a upravte, co nesedí",
-    reviewBody: "Až budete spokojení, klikněte na Použít. Tím naplníme aplikaci.",
+    reviewBody: "Až budete spokojení, vyberte Použít. Tím naplníme aplikaci.",
     fallbackBadge: "Základní profil",
     fallbackNote:
       "Sestaveno bez AI jen z adresy a popisu vašeho webu. Krok můžete dokončit hned. Po připojení AI získáte plný sken na míru.",
@@ -80,7 +80,6 @@ const T = {
     done: "Hotovo",
     optionalStep: "Volitelné: funguje s ukázkovými daty",
     connect: "Připojit",
-    open: "Otevřít",
     toOverview: "Přejít na přehled projektu",
     saveError: "Uložení se nepodařilo. Zkuste to prosím znovu.",
     stepsDone: "{done} / {total} hotovo",
@@ -101,7 +100,7 @@ const T = {
     scanning: "Scanning the site…",
     scanNote: "We only read your homepage's public text. Nothing is published.",
     reviewTitle: "Review the profile and fix anything that's off",
-    reviewBody: "When it looks right, click Apply. We'll seed the app from it.",
+    reviewBody: "When it looks right, select Apply. We'll seed the app from it.",
     fallbackBadge: "Basic profile",
     fallbackNote:
       "Built without AI, only from your site's address and description. You can finish this step now. Connect AI for a full tailored scan.",
@@ -134,7 +133,6 @@ const T = {
     done: "Done",
     optionalStep: "Optional: works with sample data",
     connect: "Connect",
-    open: "Open",
     toOverview: "Go to the project overview",
     saveError: "Saving failed. Please try again.",
     stepsDone: "{done} / {total} done",

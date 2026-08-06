@@ -81,7 +81,7 @@ export const CAMPAIGN_TYPE_ROLE_LABELS: Record<CampaignTypeRole, string> = {
 export const CAMPAIGN_TYPE_ROLE_LABELS_EN: Record<CampaignTypeRole, string> = {
   performance: "performance",
   prospecting: "prospecting",
-  neutral: "uncategorised",
+  neutral: "uncategorized",
 };
 
 export function campaignTypeRoleLabel(role: CampaignTypeRole, locale: SupportedLocale): string {

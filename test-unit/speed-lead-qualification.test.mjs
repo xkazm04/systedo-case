@@ -24,7 +24,8 @@ test("empty qualification scores 0, is cold, and counts no answered fields", () 
   assert.equal(qualificationScore(EMPTY_QUALIFICATION), 0);
   assert.equal(answeredCount(EMPTY_QUALIFICATION), 0);
   assert.equal(scoreTone(0), "negative");
-  assert.equal(scoreLabel(0), "Studený lead");
+  assert.equal(scoreLabel(0, "cs"), "Studený lead");
+  assert.equal(scoreLabel(0, "en"), "Cold lead");
 });
 
 test("qualificationScore sums field weights + disposition and clamps to 0–100", () => {
@@ -54,9 +55,14 @@ test("scoreTone / scoreLabel band on 40 and 60 thresholds", () => {
   assert.equal(scoreTone(59), "coral");
   assert.equal(scoreTone(40), "coral");
   assert.equal(scoreTone(39), "negative");
-  assert.equal(scoreLabel(60), "Horký lead");
-  assert.equal(scoreLabel(40), "Vlažný lead");
-  assert.equal(scoreLabel(39), "Studený lead");
+  assert.equal(scoreLabel(60, "cs"), "Horký lead");
+  assert.equal(scoreLabel(40, "cs"), "Vlažný lead");
+  assert.equal(scoreLabel(39, "cs"), "Studený lead");
+  // The band is locale-resolved (mirrors severityLabel), so the same thresholds
+  // must produce the English labels too.
+  assert.equal(scoreLabel(60, "en"), "Hot lead");
+  assert.equal(scoreLabel(40, "en"), "Warm lead");
+  assert.equal(scoreLabel(39, "en"), "Cold lead");
 });
 
 test("snippetVarsFor pulls first name + channel label from a lead", () => {

@@ -55,7 +55,7 @@ const T = {
   },
   en: {
     heading: "Budget management (control plane)",
-    propose: "Propose change package",
+    propose: "Propose change set",
     subtitle:
       "A batch of recommended budget moves: impact simulation first, then human approval, always" +
       " with a rollback option. The safe way to let software touch real spend.",
@@ -79,7 +79,7 @@ const T = {
     confirmApply: "Confirm and apply to account",
     approveOverride: "Approve despite guardrails",
     approve: "Approve and apply",
-    ledgerHeading: "Package history",
+    ledgerHeading: "Change set history",
     fromAlert: "From alert",
     fromAlertTitle: "Show the related alert in the inbox",
     moves: "{n} moves",
@@ -238,7 +238,10 @@ export default function ControlPlane({
             <>
               <div className="mt-3 grid grid-cols-3 gap-3 text-center">
                 <SimCell label="ROAS" before={fmt.fmtMultiple(pending.simulation.before.roas)} after={fmt.fmtMultiple(pending.simulation.after.roas)} />
-                <SimCell label="COS" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
+                {/* PNO, not COS: the metric is `simulation.*.pno` and every other
+                    surface in the app names it PNO (a do-not-translate metric
+                    abbreviation, so it is identical in both locales). */}
+                <SimCell label="PNO" before={fmt.fmtPct(pending.simulation.before.pno)} after={fmt.fmtPct(pending.simulation.after.pno)} />
                 <SimCell label={t("convValue")} before={money(pending.simulation.before.conversionValue)} after={money(pending.simulation.after.conversionValue)} />
               </div>
               <p className="mt-2 text-xs text-muted">

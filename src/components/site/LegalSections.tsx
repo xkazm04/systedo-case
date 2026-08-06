@@ -305,7 +305,7 @@ export const LEGAL_CONTENT: Record<
       {
         title: "Pricing: free during validation",
         paras: [
-          "Adamant is currently free in full during the validation phase, with fair daily limits listed on the /cena page. Paid plans will launch only after the product is validated; you will never be charged without prior explicit consent.",
+          "Adamant is currently entirely free during the validation phase, with fair daily limits listed on the /cena page. Paid plans will launch only after the product is validated; you will never be charged without prior explicit consent.",
         ],
       },
       {

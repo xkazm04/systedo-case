@@ -9,7 +9,7 @@ import { formatPatternAge } from "@/lib/patterns/age";
 import { Bulb, Check, Close, Search, Sparkles } from "@/components/icons";
 import {
   PATTERN_CATEGORIES,
-  PATTERN_CATEGORY_LABELS,
+  patternCategoryLabel,
   type Pattern,
   type PatternCategory,
   type RankedPattern,
@@ -69,7 +69,7 @@ const T = {
     emptyLibrary: "Nothing saved yet. Pin detected patterns below or add your own.",
     noFilterMatch: "No saved pattern matches the filter.",
     autoDetected: "Auto-detected from data ({n})",
-    noData: "No data to analyse yet. Sync campaigns on the Campaigns page.",
+    noData: "No data to analyze yet. Sync campaigns on the Campaigns page.",
     noAutoFilterMatch: "No detected pattern matches the filter.",
     relevanceTitle: "Relevance to query",
     relevanceLabel: "relevance",
@@ -261,7 +261,7 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
                 filter === c ? "border-brand-400 bg-brand-50 text-brand-800" : "border-line text-muted hover:border-navy-200"
               }`}
             >
-              {c === "all" ? t("filterAll") : PATTERN_CATEGORY_LABELS[c]}
+              {c === "all" ? t("filterAll") : patternCategoryLabel(c, locale)}
             </button>
           ))}
         </div>
@@ -364,7 +364,7 @@ export default function PatternsLibrary({ projectId }: { projectId?: string } = 
             )}
           </section>
 
-          {authed && <ManualAdd pid={pid} onAdded={(p) => setSaved((s) => [p, ...s])} t={t} />}
+          {authed && <ManualAdd pid={pid} onAdded={(p) => setSaved((s) => [p, ...s])} t={t} locale={locale} />}
         </>
       )}
     </div>
@@ -417,7 +417,7 @@ function PatternCard({
         </span>
       )}
       <div className="flex items-start justify-between gap-2">
-        <span className="pill bg-navy-50 text-muted">{PATTERN_CATEGORY_LABELS[p.category]}</span>
+        <span className="pill bg-navy-50 text-muted">{patternCategoryLabel(p.category, locale)}</span>
         {action && (
           <button
             type="button"
@@ -451,7 +451,7 @@ function PatternCard({
   );
 }
 
-function ManualAdd({ pid, onAdded, t }: { pid?: string; onAdded: (p: Pattern) => void; t: (key: keyof typeof T.cs, vars?: Record<string, string | number>) => string }) {
+function ManualAdd({ pid, onAdded, t, locale }: { pid?: string; onAdded: (p: Pattern) => void; t: (key: keyof typeof T.cs, vars?: Record<string, string | number>) => string; locale: "cs" | "en" }) {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<PatternCategory>("structure");
   const [insight, setInsight] = useState("");
@@ -495,7 +495,7 @@ function ManualAdd({ pid, onAdded, t }: { pid?: string; onAdded: (p: Pattern) =>
         <select value={category} onChange={(e) => setCategory(e.target.value as PatternCategory)} className={inputCls}>
           {PATTERN_CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {PATTERN_CATEGORY_LABELS[c]}
+              {patternCategoryLabel(c, locale)}
             </option>
           ))}
         </select>

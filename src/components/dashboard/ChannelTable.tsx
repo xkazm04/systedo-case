@@ -16,6 +16,7 @@ const T = {
     colRevenueDelta: "Změna obratu",
     rowTotal: "Celkem",
     revenueDeltaHint: "Δ obratu vs. předchozí období",
+    revenueDeltaHintYoy: "Δ obratu vs. stejné období před rokem",
   },
   en: {
     colChannel: "Channel",
@@ -27,6 +28,7 @@ const T = {
     colRevenueDelta: "Revenue change",
     rowTotal: "Total",
     revenueDeltaHint: "Δ revenue vs. previous period",
+    revenueDeltaHintYoy: "Δ revenue vs. the same period a year ago",
   },
 } as const;
 
@@ -78,6 +80,10 @@ export default function ChannelTable({
 }) {
   const fmt = useFormatters();
   const t = useT(T);
+  // The hint names the comparison window, so it has to follow the SAME baseline the
+  // DeltaBadge inside the very same cell already switches on (`improvingTitleYoy`);
+  // an unconditional „vs. předchozí období" contradicted its own badge.
+  const revenueDeltaHint = t(baseline === "yoy" ? "revenueDeltaHintYoy" : "revenueDeltaHint");
 
   // Briefly flash the row the mix-shift insight points at, then fade it out. Seeding
   // the flash from the focus request mirrors TrendChart's alert-focus effect.
@@ -103,9 +109,9 @@ export default function ChannelTable({
               <th className="px-3 py-3 text-right font-semibold">{t("colConversions")}</th>
               <th className="px-5 py-3 text-right font-semibold">{t("colRevenue")}</th>
               {timeResolved && (
-                <th className="px-3 py-3 text-right font-semibold" title={t("revenueDeltaHint")}>
+                <th className="px-3 py-3 text-right font-semibold" title={revenueDeltaHint}>
                   {t("colRevenueDelta")}
-                  <span className="sr-only"> — {t("revenueDeltaHint")}</span>
+                  <span className="sr-only"> — {revenueDeltaHint}</span>
                 </th>
               )}
               <th className="px-3 py-3 text-right font-semibold">{t("colPno")}</th>
@@ -178,7 +184,7 @@ export default function ChannelTable({
                       column to live in, so it stacks under the revenue total (as before).
                       Time-resolved, it moves into the „Změna obratu" column footer. */}
                   {!timeResolved && revenueDelta !== undefined && (
-                    <span className="inline-flex items-center justify-end gap-1.5" title={t("revenueDeltaHint")}>
+                    <span className="inline-flex items-center justify-end gap-1.5" title={revenueDeltaHint}>
                       <DeltaBadge
                         delta={revenueDelta}
                         goodDirection="up"
@@ -186,7 +192,7 @@ export default function ChannelTable({
                         significance={revenueSignificance}
                         baseline={baseline}
                       />
-                      <span className="sr-only">{t("revenueDeltaHint")}</span>
+                      <span className="sr-only">{revenueDeltaHint}</span>
                     </span>
                   )}
                 </div>
@@ -194,7 +200,7 @@ export default function ChannelTable({
               {timeResolved && (
                 <td className="px-3 py-3 text-right">
                   {revenueDelta !== undefined && (
-                    <span className="inline-flex justify-end" title={t("revenueDeltaHint")}>
+                    <span className="inline-flex justify-end" title={revenueDeltaHint}>
                       <DeltaBadge
                         delta={revenueDelta}
                         goodDirection="up"

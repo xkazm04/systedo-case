@@ -73,7 +73,7 @@ const T = {
     keywordsTitle: "Klíčová slova ({n})",
     rationaleTitle: "Proč právě takhle",
     footerAi: "On-brand texty vygenerované AI (mode „ads“ přes /api/ai), s kontrolou limitů Google Ads (headline {hl}, popisek {desc}, dlouhý headline {lhl} znaků).",
-    footerDet: "Sestaveno z feedu podle limitů Google Ads (headline {hl}, popisek {desc} znaků). Klikněte na „Generovat AI texty“ pro on-brand verzi přes /api/ai.",
+    footerDet: "Sestaveno z feedu podle limitů Google Ads (headline {hl}, popisek {desc} znaků). Vyberte „Generovat AI texty“ pro on-brand verzi přes /api/ai.",
     // Direction 1 — ad copy at catalog scale
     selectForBatch: "Vybrat {title} pro hromadné generování",
     selectAll: "Vybrat zobrazené",
@@ -123,7 +123,7 @@ const T = {
     keywordsTitle: "Keywords ({n})",
     rationaleTitle: "Why this approach",
     footerAi: "AI-generated on-brand copy (“ads” mode via /api/ai), validated against Google Ads limits (headline {hl}, description {desc}, long headline {lhl} chars).",
-    footerDet: "Assembled from the feed per Google Ads limits (headline {hl}, description {desc} chars). Click “Generate AI copy” for an on-brand version via /api/ai.",
+    footerDet: "Assembled from the feed per Google Ads limits (headline {hl}, description {desc} chars). Select “Generate AI copy” for an on-brand version via /api/ai.",
     // Direction 1 — ad copy at catalog scale
     selectForBatch: "Select {title} for batch generation",
     selectAll: "Select shown",

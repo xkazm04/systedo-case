@@ -147,7 +147,7 @@ const selfJudged = TARGETS.filter(isSelfJudged);
 const selfJudgeNote = selfJudged.length
   ? `⚠ Konflikt hodnocení: rozhodčí je claude-sonnet, takže buňky rodiny Anthropic (${selfJudged
       .map(short)
-      .join(", ")}) hodnotí sourozenecký model — čtěte je jako ovlivněné „domácím prostředím" (home-team bias), ne neutrálně.`
+      .join(", ")}) jsou hodnoceny sourozeneckým modelem — čtěte je jako ovlivněné „domácím prostředím" (home-team bias), ne neutrálně.`
   : null;
 
 // ── judge (Claude Code CLI, via the wrapper with no BYOM context) ─────────────

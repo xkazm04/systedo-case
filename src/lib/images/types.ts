@@ -1,6 +1,8 @@
 /** Creative Studio domain model — framework-free (no React, no I/O, no firebase),
  *  shared by the studio orchestrator, the API route and the UI. */
 
+import type { SupportedLocale } from "@/lib/format";
+
 export const IMAGE_STYLES = [
   "dynamic",
   "vibrant",
@@ -11,6 +13,10 @@ export const IMAGE_STYLES = [
 ] as const;
 export type ImageStyle = (typeof IMAGE_STYLES)[number];
 
+/** Czech style names. Also the value `styleLeaderboard` stamps onto
+ *  `StyleStat.label`, which `deriveStylePrior` folds into the Czech style-prior
+ *  hint prepended to the next generation PROMPT — so that path keeps reading this
+ *  map. Anything user-facing goes through {@link imageStyleLabel}. */
 export const IMAGE_STYLE_LABELS: Record<ImageStyle, string> = {
   dynamic: "Dynamický",
   vibrant: "Živý",
@@ -20,11 +26,29 @@ export const IMAGE_STYLE_LABELS: Record<ImageStyle, string> = {
   fashion: "Fashion",
 };
 
+export const IMAGE_STYLE_LABELS_EN: Record<ImageStyle, string> = {
+  dynamic: "Dynamic",
+  vibrant: "Vibrant",
+  cinematic: "Cinematic",
+  bokeh: "Bokeh",
+  portrait: "Portrait",
+  fashion: "Fashion",
+};
+
+/** The visual-style label for the reader's locale — the studio's style picker and
+ *  the attribution leaderboard. */
+export function imageStyleLabel(s: ImageStyle, locale: SupportedLocale): string {
+  return (locale === "en" ? IMAGE_STYLE_LABELS_EN : IMAGE_STYLE_LABELS)[s];
+}
+
 export const IMAGE_FORMATS = ["square", "portrait45", "landscape169", "story916"] as const;
 export type ImageFormat = (typeof IMAGE_FORMATS)[number];
 
 export interface FormatPreset {
+  /** picker label (cs) */
   label: string;
+  /** picker label (en) */
+  labelEn: string;
   width: number;
   height: number;
   /** tailwind aspect ratio for the preview tiles */
@@ -33,11 +57,17 @@ export interface FormatPreset {
 
 /** Format → Leonardo dimensions (multiples of 8) + a preview aspect class. */
 export const IMAGE_FORMAT_PRESETS: Record<ImageFormat, FormatPreset> = {
-  square: { label: "Čtverec 1:1", width: 1024, height: 1024, aspect: "aspect-square" },
-  portrait45: { label: "Portrét 4:5", width: 1024, height: 1280, aspect: "aspect-[4/5]" },
-  landscape169: { label: "Na šířku 16:9", width: 1536, height: 864, aspect: "aspect-video" },
-  story916: { label: "Story 9:16", width: 864, height: 1536, aspect: "aspect-[9/16]" },
+  square: { label: "Čtverec 1:1", labelEn: "Square 1:1", width: 1024, height: 1024, aspect: "aspect-square" },
+  portrait45: { label: "Portrét 4:5", labelEn: "Portrait 4:5", width: 1024, height: 1280, aspect: "aspect-[4/5]" },
+  landscape169: { label: "Na šířku 16:9", labelEn: "Landscape 16:9", width: 1536, height: 864, aspect: "aspect-video" },
+  story916: { label: "Story 9:16", labelEn: "Story 9:16", width: 864, height: 1536, aspect: "aspect-[9/16]" },
 };
+
+/** The format label for the reader's locale — the studio's format picker. */
+export function imageFormatLabel(f: ImageFormat, locale: SupportedLocale): string {
+  const p = IMAGE_FORMAT_PRESETS[f];
+  return locale === "en" ? p.labelEn : p.label;
+}
 
 export const MAX_IMAGE_CANDIDATES = 4;
 

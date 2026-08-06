@@ -10,6 +10,35 @@ would be wrong to decide unilaterally.
 
 ---
 
+## ✅ ALL OF § A AND § B RULED, 2026-08-06
+
+**The queue is closed.** Every ruling is recorded in
+[`glossary.md`](./glossary.md) § "Owner rulings, 2026-08-06", which is now the
+citable source — the tables below are kept as the *evidence* behind each call,
+not as open questions.
+
+| Outcome | Decisions |
+|---|---|
+| **Rebranded** | A5 tagline → `AI pro prodej produktu` / `AI for product sales`; A7 subhead → `AI pro digitální reklamu` with a genitive audience |
+| **Swept** | A3 `vyberte`, A4 `účet Google Ads`, A6 US `-ize`, A8 explicit passive, A9 `change set`, A10 `map pack`/`mapy`, A12 `snímek`, A16 `Publikováno`, A18 `budget moves`, A19 `area`/`oblast`, A20 "entirely free", A21 `pay for tokens`, A22 `goal`/`target` |
+| **Glossary rows, no sweep** | A11 `útrata`/`výdaje na reklamu`, A13 loanword genders, A14 `home-team bias`, A15 `koncept`/`návrh`, plus the `case study` split |
+| **Closed as correct** | A2 `prosím`, A17 `Fill example`, A23 legal Title Case |
+| **§ B** | all five clusters kept as loanwords / DNT; the audit's DNT list was extended, dropping leftover findings 54 → 34 |
+
+**A5 was not a choice between the two shipped forms.** The owner rebranded the
+claim itself — from "advertising intelligence" to product sales — so the sweep
+replaced both variants rather than picking one. A7 then dissolved on its own,
+which is why it had been marked "decide A5 first".
+
+> **Process note.** When this queue was presented for ruling, **A3 was
+> accidentally omitted** from the summary — 22 decisions existed and 21 were
+> shown. It was caught while recording the outcome and ruled with the rest
+> (sweep `klikněte na` → `vyberte`: device-neutral, correct on touch and for
+> keyboard/AT users, and Microsoft cs prefers it). *A summary of a queue is not
+> the queue; diff them before calling it complete.*
+
+---
+
 ## A · House decisions — parked, evidence gathered, awaiting one ruling
 
 Each is recorded as a rule in [`constructions-cs.md`](./constructions-cs.md)

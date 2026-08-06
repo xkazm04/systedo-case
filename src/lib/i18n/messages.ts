@@ -144,7 +144,7 @@ const en: Messages = {
     openApp: "Open app",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    themeToggle: "Switch colour theme (light · dark · system)",
+    themeToggle: "Switch color theme (light · dark · system)",
     themeToLight: "Switch to light mode",
     themeToDark: "Switch to dark mode",
     themeToSystem: "Follow the system setting",

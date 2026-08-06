@@ -10,6 +10,7 @@ import { cronAuthorized } from "@/lib/cron-auth";
 import { recordCronRun } from "@/lib/cron/run";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
+import { HOME_MARKET_LOCALE } from "@/lib/format";
 
 export const maxDuration = 300;
 
@@ -26,7 +27,10 @@ function recordPublished(tenant: string, platform: string): Promise<void> {
     kind: "update",
     module: "socialni",
     severity: "success",
-    title: socialPostActivityRow("published").title,
+    // No reader and no cookie on a cron run, so the row is written in the home
+    // market's locale — the same rule the cron-sent alerts follow (see
+    // HOME_MARKET_LOCALE in lib/format). Byte-identical to what it wrote before.
+    title: socialPostActivityRow("published", HOME_MARKET_LOCALE).title,
     detail: platform,
     actor: "Automatická synchronizace",
     // `socialPostActivityRow("published").publish` is true — this row IS the

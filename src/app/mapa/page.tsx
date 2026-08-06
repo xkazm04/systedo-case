@@ -22,6 +22,7 @@ const T = {
   cs: {
     eyebrow: "Informační architektura",
     heading: "Mapa případové studie",
+    jsonLdName: "Mapa případové studie Adamant",
     subheadingBefore: "Celá studie je řízená jedním typovaným navigačním modelem (",
     subheadingAfter:
       "). Hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže se odkazy nikdy nerozejdou.",
@@ -30,6 +31,7 @@ const T = {
   en: {
     eyebrow: "Information architecture",
     heading: "Case-study sitemap",
+    jsonLdName: "Adamant case-study sitemap",
     subheadingBefore: "The entire study is driven by a single typed navigation model (",
     subheadingAfter:
       "). The header, footer, home hub, breadcrumbs, sitemap and this page all read the same source, so links never drift.",
@@ -65,7 +67,7 @@ const META_PAGES: Record<"cs" | "en", MetaPage[]> = {
     {
       href: "/design-system",
       label: "Design system",
-      blurb: "Live overview of shared UI primitives, colour tokens, icons and localisation (cs/en).",
+      blurb: "Live overview of shared UI primitives, color tokens, icons and localization (cs/en).",
     },
   ],
 };
@@ -77,10 +79,12 @@ export default async function MapaPage() {
   const metaPages = META_PAGES[locale] ?? META_PAGES.cs;
 
   // SiteNavigation structured data — field values must stay canonical (schema.org).
+  // The list NAME is prose, though, and the page already reads the server locale,
+  // so it follows the reader instead of emitting Czech to every crawler.
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Mapa případové studie Adamant",
+    name: t("jsonLdName"),
     itemListElement: journey.map((item, i) => ({
       "@type": "SiteNavigationElement",
       position: i + 1,

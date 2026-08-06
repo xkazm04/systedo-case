@@ -10,7 +10,7 @@ import { totalsOf } from "@/lib/metrics";
 import { fmtCZKCompact, fmtMultiple, fmtPct } from "@/lib/format";
 
 export const alt =
-  "Adamant — AI inteligence pro reklamu: výkonnostní dashboardy, kampaňová inteligence a generování reklam";
+  "Adamant · AI pro prodej produktu: výkonnostní dashboardy, kampaňová inteligence a generování reklam";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

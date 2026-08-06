@@ -6,12 +6,13 @@ import { RefineBar } from "@/components/ai/primitives";
 import { useOptionalProject } from "@/lib/projects/context";
 import { readSocialBrand, writeSocialBrand } from "@/lib/social/brand-storage";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   PLATFORM_LIMITS,
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
   TONES,
-  TONE_LABELS,
+  toneLabel,
   type SocialPlatform,
   type Tone,
 } from "@/lib/social/types";
@@ -79,6 +80,7 @@ export default function Composer() {
   const project = useOptionalProject();
   const pid = project?.id;
   const t = useT(T);
+  const { locale } = useLocale();
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [draftPlatforms, setDraftPlatforms] = useState<Set<SocialPlatform>>(new Set(["instagram", "facebook"]));
@@ -226,7 +228,7 @@ export default function Composer() {
           >
             {TONES.map((tn) => (
               <option key={tn} value={tn}>
-                {TONE_LABELS[tn]}
+                {toneLabel(tn, locale)}
               </option>
             ))}
           </select>

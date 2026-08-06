@@ -39,6 +39,7 @@ const T = {
     clusterPlaceholder: "např. nástroj na řízení projektů",
     variantsLabel: "Varianty (první je kontrola)",
     variantLabelPh: "Popis varianty (např. B · Důraz na šablony)",
+    variantControlLabel: "A · Kontrola",
     visitors: "Návštěvníci",
     signups: "Konverze",
     addVariant: "Přidat variantu",
@@ -69,6 +70,7 @@ const T = {
     clusterPlaceholder: "e.g. project management tool",
     variantsLabel: "Variants (the first is the control)",
     variantLabelPh: "Variant label (e.g. B · Emphasis on templates)",
+    variantControlLabel: "A · Control",
     visitors: "Visitors",
     signups: "Conversions",
     addVariant: "Add variant",
@@ -90,8 +92,11 @@ interface VariantDraft {
   signups: string;
 }
 
-function blankVariant(i: number): VariantDraft {
-  return { label: i === 0 ? "A · Kontrola" : "", visitors: "", signups: "" };
+/** A fresh variant row. The first row is pre-labelled as the control, so that
+ *  label is user-facing form copy and has to come from the caller's translator
+ *  rather than a Czech literal an English user then has to delete. */
+function blankVariant(i: number, controlLabel: string): VariantDraft {
+  return { label: i === 0 ? controlLabel : "", visitors: "", signups: "" };
 }
 
 function draftFrom(exp: LpExperiment): { cluster: string; status: LpExperiment["status"]; variants: VariantDraft[] } {
@@ -124,13 +129,17 @@ export default function LpExperimentsManager({
 
   const [cluster, setCluster] = useState("");
   const [status, setStatus] = useState<LpExperiment["status"]>("running");
-  const [variants, setVariants] = useState<VariantDraft[]>([blankVariant(0), blankVariant(1)]);
+  const controlLabel = t("variantControlLabel");
+  const [variants, setVariants] = useState<VariantDraft[]>(() => [
+    blankVariant(0, controlLabel),
+    blankVariant(1, controlLabel),
+  ]);
 
   function openNew() {
     setEditingId(null);
     setCluster("");
     setStatus("running");
-    setVariants([blankVariant(0), blankVariant(1)]);
+    setVariants([blankVariant(0, controlLabel), blankVariant(1, controlLabel)]);
     setErr(null);
     setOpen(true);
   }
@@ -150,7 +159,9 @@ export default function LpExperimentsManager({
   }
 
   function addVariantRow() {
-    setVariants((prev) => (prev.length >= VARIANT_MAX ? prev : [...prev, blankVariant(prev.length)]));
+    setVariants((prev) =>
+      prev.length >= VARIANT_MAX ? prev : [...prev, blankVariant(prev.length, controlLabel)]
+    );
   }
 
   function removeVariantRow(i: number) {

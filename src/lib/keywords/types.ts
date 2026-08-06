@@ -1,6 +1,7 @@
 /** Keyword research domain model — framework-free (no React, no I/O), shared by
  *  the Google Ads Keyword Planner client, the sample fallback, the API route and
  *  the UI. A "content gap" = high search volume meeting low competition. */
+import type { SupportedLocale } from "@/lib/format";
 
 export type Competition = "low" | "medium" | "high";
 
@@ -18,6 +19,26 @@ export const KEYWORD_INTENT_LABELS: Record<KeywordIntent, string> = {
   brand: "Značkové",
   local: "Lokální",
 };
+
+export const KEYWORD_INTENT_LABELS_EN: Record<KeywordIntent, string> = {
+  informational: "Informational",
+  transactional: "Transactional",
+  brand: "Brand",
+  local: "Local",
+};
+
+/** The reader's label for a keyword intent. Twelfth member of the C17 family —
+ *  a `Record<K, string>` holding Czech only, rendered unconditionally, so an
+ *  English user read a Czech taxonomy. Same resolver shape as
+ *  `projectTypeMeta` / `intentLabel`.
+ *
+ *  NOTE the prompt carve-out: `ClusterBuilder` writes an intent into
+ *  `BriefSeed.competition`, which `lib/ai/tools/brief.ts` interpolates into a
+ *  Czech prompt line. That path keeps reading `KEYWORD_INTENT_LABELS` directly —
+ *  the UI localizes, the prompt stays cs-stable (docs/i18n/contract.md). */
+export function keywordIntentLabel(intent: KeywordIntent, locale: SupportedLocale): string {
+  return (locale === "en" ? KEYWORD_INTENT_LABELS_EN : KEYWORD_INTENT_LABELS)[intent];
+}
 
 /** Which provider a single idea came from. Distinct from the result-level `source`
  *  ("google-ads" | "sample") because a MERGED result carries ideas from more than one

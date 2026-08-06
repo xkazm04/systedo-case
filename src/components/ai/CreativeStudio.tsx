@@ -6,11 +6,13 @@ import { useOptionalProject } from "@/lib/projects/context";
 import { Bolt, Check, Close, Download, Gauge, Image as ImageIcon } from "@/components/icons";
 import { downloadDataUrl } from "@/lib/export";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
   IMAGE_FORMATS,
   IMAGE_FORMAT_PRESETS,
+  imageFormatLabel,
   IMAGE_STYLES,
-  IMAGE_STYLE_LABELS,
+  imageStyleLabel,
   MAX_IMAGE_CANDIDATES,
   type CreativeSummary,
   type GeneratedImage,
@@ -68,7 +70,7 @@ const T = {
     footerCountPlural: "návrhy",
     emptyTitle: "Vizuály se zobrazí tady",
     emptyBody: "Popište, co potřebujete. Studio vygeneruje několik variant, ohodnotí je AI viděním a nejlepší označí. Pak ji můžete stáhnout nebo vylepšit.",
-    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Vygenerovat vizuál.",
+    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a vyberte Vygenerovat vizuál.",
     loadingLabel: "Generuji a hodnotím kandidáty… (může trvat i půl minuty)",
     sourceLeonardo: "Leonardo · Gemini hodnocení",
     sourceDemo: "Ukázkový režim (bez LEONARDO_API_KEY)",
@@ -131,7 +133,7 @@ const T = {
     footerCountPlural: "drafts",
     emptyTitle: "Visuals will appear here",
     emptyBody: "Describe what you need. The studio will generate several variants, score them with AI vision and mark the best. Then you can download or refine it.",
-    emptyHint: "Tip: try “Fill example” and click Generate visual.",
+    emptyHint: "Tip: try “Fill example” and select Generate visual.",
     loadingLabel: "Generating and scoring candidates… (may take up to half a minute)",
     sourceLeonardo: "Leonardo · Gemini scoring",
     sourceDemo: "Demo mode (no LEONARDO_API_KEY)",
@@ -197,6 +199,7 @@ const CHECKER: React.CSSProperties = {
 export default function CreativeStudio({ projectId }: { projectId?: string } = {}) {
   const t = useT(T);
   const fmt = useFormatters();
+  const { locale } = useLocale();
   const { status: authStatus } = useSession();
   const project = useOptionalProject();
   // Prefer the explicit prop the project route passes (server-resolved), so a
@@ -563,7 +566,7 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
                     style === s ? "border-brand-400 bg-brand-50 text-brand-800" : "border-line text-muted hover:border-navy-200"
                   }`}
                 >
-                  {IMAGE_STYLE_LABELS[s]}
+                  {imageStyleLabel(s, locale)}
                 </button>
               ))}
             </div>
@@ -580,7 +583,7 @@ export default function CreativeStudio({ projectId }: { projectId?: string } = {
                     format === f ? "border-brand-400 bg-brand-50 text-brand-800" : "border-line text-muted hover:border-navy-200"
                   }`}
                 >
-                  {IMAGE_FORMAT_PRESETS[f].label}
+                  {imageFormatLabel(f, locale)}
                 </button>
               ))}
             </div>

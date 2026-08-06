@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Clock, Close, Refresh } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
-  POST_STATUS_LABELS,
+  postStatusLabel,
   SOCIAL_PLATFORM_LABELS,
   type PostStatus,
   type SocialPost,
@@ -19,7 +20,7 @@ const T = {
     noPosts: "Zatím žádné příspěvky. Vytvořte první vlevo.",
     deleteAriaLabel: "Smazat",
     scheduledAt: "naplánováno na {dt}",
-    publishedAt: "zveřejněno {rel}",
+    publishedAt: "publikováno {rel}",
     createdAt: "vytvořeno {rel}",
     link: "odkaz",
     demoLink: "Simulované publikování",
@@ -51,6 +52,7 @@ export default function PostsList() {
   const pid = project?.id;
   const t = useT(T);
   const fmt = useFormatters();
+  const { locale } = useLocale();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -111,7 +113,7 @@ export default function PostsList() {
               <div className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 text-sm font-semibold text-navy-800">
                   {SOCIAL_PLATFORM_LABELS[post.platform]}
-                  <span className={`pill ${STATUS_TONE[post.status]}`}>{POST_STATUS_LABELS[post.status]}</span>
+                  <span className={`pill ${STATUS_TONE[post.status]}`}>{postStatusLabel(post.status, locale)}</span>
                 </span>
                 <button
                   type="button"

@@ -26,6 +26,7 @@ type Locale = Parameters<typeof campaignStatusLabel>[1];
  *  the component's translator (which covers the full union) is assignable here. */
 type CsvKey =
   | "colCampaign"
+  | "csvFilename"
   | "csvType"
   | "csvStatus"
   | "csvImpressions"
@@ -79,5 +80,7 @@ export function exportCampaignsCsv({
     tr.primary ? triageReasonLabel(tr.primary, locale) : "",
     reports[c.id]?.result.score ?? "",
   ]);
-  downloadText("adamant-kampane.csv", toCsv(headers, rows));
+  // Filename through the catalog, like ActivityFeed / SavedKeywordLists: an English
+  // user downloading a Czech-named file is the same defect as a Czech header row.
+  downloadText(t("csvFilename"), toCsv(headers, rows));
 }

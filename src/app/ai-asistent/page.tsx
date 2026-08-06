@@ -66,7 +66,7 @@ const T = {
       "Calls run in a Route Handler on the Node runtime. GEMINI_API_KEY never reaches the browser. The client only sees the finished result.",
     approach4Title: "Works without a key",
     approach4Body:
-      "Without an API key it returns a deterministic sample within the limits, clearly labelled. The page is fully usable straight out of the repository.",
+      "Without an API key it returns a deterministic sample within the limits, clearly labeled. The page is fully usable straight out of the repository.",
     keySetup: "Key setup:",
     keySetupBody1: "copy",
     keySetupBody2: "to",

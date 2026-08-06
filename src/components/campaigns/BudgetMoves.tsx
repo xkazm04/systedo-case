@@ -33,7 +33,7 @@ const T = {
     lowConfidenceTitle:
       "Některý přesun přemísťuje více než polovinu rozpočtu dárce. Lineární odhad je za hranicí" +
       " „malé realokace“ a dopad může být nadhodnocený.",
-    signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci přesunů.",
+    signIn: "Přihlaste se a připojte účet Google Ads pro aplikaci přesunů.",
     propose: "Navrhnout do control plane",
     proposing: "Vytvářím návrh…",
     proposed: "Návrh vytvořen. Schvalte jej v control plane níže.",
@@ -79,14 +79,14 @@ const T = {
     proposing: "Creating proposal…",
     proposed: "Proposal created. Approve it in the control plane below.",
     proposeTitle:
-      "Create a change package (simulate → approve → revert) in Budget management below",
+      "Create a change set (simulate → approve → revert) in Budget management below",
     roasPortfolio: "Portfolio ROAS",
     pnoPortfolio: "Portfolio PNO",
     convValue: "Conversion value",
     valueChange: "Value change",
     footnote:
       "Estimate linearly extrapolates current campaign efficiency; the next sync will verify actual impact." +
-      " Nothing is applied directly. The button creates a <strong>change package</strong> (shifts and" +
+      " Nothing is applied directly. The button creates a <strong>change set</strong> (shifts and" +
       " pauses) in <strong>Budget management (control plane)</strong> below, where you first see the" +
       " proposal with its simulation and guardrails, approve it, and can revert it at any time.",
     errorFailed: "Action failed.",

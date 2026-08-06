@@ -76,7 +76,7 @@ export const PLAN_INFO: PlanInfo[] = [
       `${PLANS.free.aiEval} AI vyhodnocení denně`,
       `${PLANS.free.sync} synchronizací Google Ads denně`,
       `${PLANS.free.image} generování vizuálů denně`,
-      "Připojení vlastního Google Ads účtu",
+      "Připojení vlastního účtu Google Ads",
       "Doporučené přesuny rozpočtu (bez AI)",
       "Sdílené reporty pro klienty",
     ],
@@ -90,7 +90,7 @@ export const PLAN_INFO: PlanInfo[] = [
     features: [
       "Neomezená AI generování přes vlastní klíč",
       "OpenAI, Gemini nebo Claude — přepínání modelů",
-      "Platíte tokeny přímo poskytovateli",
+      "Platíte za tokeny přímo poskytovateli",
       "Bez denního limitu na AI nástroje (přes vlastní klíč)",
       // Honest disclosure: when the user's own key is missing/failing, generation
       // falls back to our app-funded provider, capped like Free (PLANS.byom).

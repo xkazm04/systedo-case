@@ -3,6 +3,7 @@
  *  hot/warm/cold disposition; this rolls those into a 0–100 score and a tone.
  *  No React, no clock reads, no storage — testable in isolation. */
 import type { PillTone } from "@/components/ui";
+import type { SupportedLocale } from "@/lib/format";
 
 /** How soon the lead wants to realize — the "Timeline" of BANT. */
 export type Timeline = "asap" | "weeks" | "exploring" | "unknown";
@@ -63,9 +64,26 @@ export function scoreTone(score: number): PillTone {
   return "negative";
 }
 
-/** Short Czech label for a score band, shown beside the Pill. */
-export function scoreLabel(score: number): string {
-  if (score >= 60) return "Horký lead";
-  if (score >= 40) return "Vlažný lead";
-  return "Studený lead";
+/** Short label per score band, shown beside the Pill. The band is decided here
+ *  (same thresholds as scoreTone), so its NAME lives here too, in both locales.
+ *  Locale-resolved through the repo's existing resolver pattern (`severityLabel`
+ *  in lib/campaigns/triage.ts) rather than returned as a Czech literal into a
+ *  localized panel. */
+export const SCORE_LABELS: Record<Disposition, string> = {
+  hot: "Horký lead",
+  warm: "Vlažný lead",
+  cold: "Studený lead",
+};
+
+export const SCORE_LABELS_EN: Record<Disposition, string> = {
+  hot: "Hot lead",
+  warm: "Warm lead",
+  cold: "Cold lead",
+};
+
+export function scoreLabel(score: number, locale: SupportedLocale): string {
+  const labels = locale === "en" ? SCORE_LABELS_EN : SCORE_LABELS;
+  if (score >= 60) return labels.hot;
+  if (score >= 40) return labels.warm;
+  return labels.cold;
 }

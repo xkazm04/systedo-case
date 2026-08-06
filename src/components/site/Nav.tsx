@@ -17,11 +17,11 @@ import { useT } from "@/lib/i18n/client";
 
 // Not part of the central nav dictionary (messages.ts, out of this file's scope) —
 // a small colocated table for the one string the header owns outright. Matches the
-// established "AI inteligence pro reklamu" / "AI ad intelligence" tagline pairing
+// established "AI pro prodej produktu" / "AI for product sales" tagline pairing
 // used on the landing variants (BrandLanding.tsx, LandingNewWorld.tsx).
 const T = {
-  cs: { tagline: "AI inteligence pro reklamu" },
-  en: { tagline: "AI ad intelligence" },
+  cs: { tagline: "AI pro prodej produktu" },
+  en: { tagline: "AI for product sales" },
 } as const;
 
 function isActive(pathname: string, href: string): boolean {

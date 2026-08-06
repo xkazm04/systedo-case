@@ -7,7 +7,7 @@ import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
-  CONTENT_TYPE_LABELS,
+  contentTypeLabel,
   CONTENT_TYPES,
   SEO_LIMITS,
   type AdRequest,
@@ -64,7 +64,7 @@ const T = {
     submitCreate: "Vytvořit brief",
     emptyTitle: "Obsahový brief se zobrazí tady",
     emptyBody: "Zadejte téma a klíčové slovo. Gemini připraví title a meta v SEO limitech, osnovu H2, FAQ i návrhy interních odkazů (kostru, kterou autor jen rozepíše).",
-    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Vytvořit brief.",
+    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a vyberte Vytvořit brief.",
     downloadBriefTitle: "Stáhnout brief jako Markdown",
     downloadBrief: "Stáhnout .md",
     createAdsTitle: "Předat téma, publikum a benefity z briefu do generátoru PPC inzerátů",
@@ -117,7 +117,7 @@ const T = {
     submitCreate: "Create brief",
     emptyTitle: "The content brief will appear here",
     emptyBody: "Enter a topic and keyword. Gemini will prepare a title and meta within SEO limits, an H2 outline, FAQ and internal link suggestions (a skeleton the writer just fills in).",
-    emptyHint: "Tip: try “Fill example” and click Create brief.",
+    emptyHint: "Tip: try “Fill example” and select Create brief.",
     downloadBriefTitle: "Download the brief as Markdown",
     downloadBrief: "Download .md",
     createAdsTitle: "Hand the brief's topic, audience and benefits to the PPC ad generator",
@@ -548,7 +548,7 @@ export default function ContentBriefGenerator({
                     : "border-line text-muted hover:border-navy-200"
                 }`}
               >
-                {CONTENT_TYPE_LABELS[ct]}
+                {contentTypeLabel(ct, locale)}
               </button>
             ))}
           </div>

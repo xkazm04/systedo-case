@@ -52,7 +52,7 @@ const T = {
     repeat: "×{n}",
     open: "Open",
     empty: "No alerts. We'll notify you when newly critical campaigns are found during a sync.",
-    stage: "Stage change-set",
+    stage: "Stage change set",
     staging: "Staging…",
     acknowledge: "Acknowledge",
     statusAck: "Acknowledged",

@@ -13,6 +13,7 @@ const T = {
     periodLabel: "Období:",
     periodLast: "posledních {n}",
     periodCompare: "· srovnání s předchozím stejně dlouhým obdobím",
+    periodCompareYoy: "· srovnání se stejným obdobím před rokem",
     periodTruncated: "zkráceno na {days}",
     truncatedTitle:
       "Datová řada je kratší než zvolené období. Okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
@@ -28,6 +29,7 @@ const T = {
     periodLabel: "Period:",
     periodLast: "last {n}",
     periodCompare: "· compared with the previous period of equal length",
+    periodCompareYoy: "· compared with the same period a year ago",
     periodTruncated: "shortened to {days}",
     truncatedTitle:
       "The data series is shorter than the selected period. The window and its comparison were capped to the equal-length span available.",
@@ -78,7 +80,13 @@ export default function PeriodHeader({
         <p className="text-sm text-muted">
           {t("periodLabel")}{" "}
           <span className="font-medium text-navy-700">{t("periodLast", { n: periodLabel(period, locale) })}</span>
-          <span className="text-muted"> {t("periodCompare")}</span>
+          {/* Read the live baseline: the selector beside this line can be set to
+              „Rok zpět", and the DeltaBadges below already switch to their yoy
+              wording, so a fixed „vs. předchozí období" contradicted its own badges. */}
+          <span className="text-muted">
+            {" "}
+            {t(baseline === "yoy" ? "periodCompareYoy" : "periodCompare")}
+          </span>
           {/* the series was too short for the requested window — say so instead
               of letting „12 měsíců" silently mean a shorter span */}
           {truncated && (

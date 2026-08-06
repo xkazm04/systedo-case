@@ -234,8 +234,8 @@ en  Health timeline across {n} syncs
 ✓   Časová osa zdraví portfolia z {n} synchronizací        (HealthTimeline.chartAria)
 
 en  Sign in and connect a Google Ads account to apply moves.
-✗   …připojte Google Ads účet pro aplikaci.                ("for the app")
-✓   …připojte Google Ads účet pro aplikaci přesunů.        (BudgetMoves.signIn)
+✗   …připojte účet Google Ads pro aplikaci.                ("for the app")
+✓   …připojte účet Google Ads pro aplikaci přesunů.        (BudgetMoves.signIn)
 
 en  Grounds the AI report (who the client is)…
 ✗   Grunduje AI report…            (dialectal Germanism for "founds"; 1 occurrence in all of src)
@@ -290,11 +290,28 @@ en  ~{n} visitors/variant before…
 
 ---
 
-# Part 2 — parked house decisions (do NOT half-sweep)
+# Part 2 — ✅ ALL RULED 2026-08-06 — kept as evidence, not as questions
 
-Each has real evidence and a real authority behind it, and each would touch
-enough sites that a partial application is worse than none —
-[`lessons-i18n.md`](./lessons-i18n.md) § 6. **Decide once, sweep once.**
+Every decision below was parked for an owner ruling and every one has now been
+answered. The rulings live in [`glossary.md`](./glossary.md) § "Owner rulings";
+the sections here are retained because they carry the *measurements* that made
+each call decidable, and a future run will want the counts.
+
+| Rule | Ruling | Sites |
+|---|---|---|
+| **CS-DASH** | Promoted to Part 1. No dash punctuation; en dash only as a last resort. | ~715 |
+| **CS-PROSIM** | **Keep `prosím`.** Natural, consistent Czech; Microsoft's sparser preference is not a defect here. | 20 (unchanged) |
+| **CS-CLICK** | **Sweep to `vyberte`.** Device-neutral: `klikněte` is wrong on touch and for keyboard/AT users. | 19 |
+| **CS-NOUNMOD** | **Sweep to `účet Google Ads`.** Czech postposes a brand attribute. `AI vyhodnocení` etc. stay — `AI` is an indeclinable adjective, not a brand modifier. | **21**, not the 11 filed |
+| **CS-PREP-REPEAT** | **Dissolved by the A5 rebrand.** The head term changed, so the stacked `pro … pro` never arises; the audience clause is now a genitive. | 2 |
+| **CS-SVO-AMBIG** | **Sweep to an explicit passive** (`jsou hodnoceny sourozeneckým modelem`). The OVS rendering default-read backwards. | 2 |
+
+**What the ruling round taught, beyond the answers:** two of these were framed
+wrongly while parked. **CS-DASH** was filed as "em dash → en dash, one scripted
+pass" and came back as an editorial rule that made the glyph swap irrelevant.
+**CS-PREP-REPEAT** was filed as needing its own fix and was dissolved by a
+decision on a different entry. *Re-read a parked question when the answer
+arrives — the plan filed alongside it may no longer be the plan.*
 
 ## ~~CS-DASH~~ · DECIDED 2026-08-06 — promoted to Part 1, see below
 

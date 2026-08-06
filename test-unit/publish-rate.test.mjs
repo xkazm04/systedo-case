@@ -197,7 +197,7 @@ test("an unmapped tool never enters the denominator", () => {
 test("only the rows socialPostActivityRow marks as a publish carry the taxonomy", () => {
   for (const outcome of ["scheduled", "published", "failed"]) {
     const fields = socialPostPublishFields(outcome);
-    const isPublish = socialPostActivityRow(outcome).publish;
+    const isPublish = socialPostActivityRow(outcome, "cs").publish;
     assert.equal("publishKind" in fields, isPublish, `${outcome} taxonomy mismatch`);
   }
   assert.deepEqual(socialPostPublishFields("published"), {

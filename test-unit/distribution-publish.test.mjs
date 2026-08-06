@@ -73,55 +73,65 @@ test("every repurpose channel maps to a valid, route-accepted publish event", ()
 
 test("the channel via — used by POST /api/social/posts — is a real, labelled event", () => {
   assert.ok(isPublishVia("channel"));
-  const title = publishActivityTitle("social_post", "channel");
-  const detail = publishActivityDetail("social_post", "channel");
+  const title = publishActivityTitle("social_post", "channel", "cs");
+  const detail = publishActivityDetail("social_post", "channel", "cs");
   // The feed row has to read as a sentence, not as an enum pair, and must not
   // claim the post was downloaded or copied.
   assert.match(title, /Příspěvek na sociální sítě/);
   assert.doesNotMatch(title, /staženo|zkopírováno/);
   assert.match(detail, /odeslán do napojeného kanálu/);
+
+  // Same row for an English writer: the taxonomy is identical, the prose is not.
+  assert.match(publishActivityTitle("social_post", "channel", "en"), /Social post/);
+  assert.match(publishActivityDetail("social_post", "channel", "en"), /sent to a connected channel/);
 });
 
 test("the newsletter kind is labelled in the feed (no enum leaking into the timeline)", () => {
   assert.ok(isPublishAssetKind("newsletter"));
-  const title = publishActivityTitle("newsletter", "export");
+  const title = publishActivityTitle("newsletter", "export", "cs");
   assert.equal(title, "Newsletter — staženo");
-  assert.match(publishActivityDetail("newsletter", "export"), /stažen do souboru/);
+  assert.match(publishActivityDetail("newsletter", "export", "cs"), /stažen do souboru/);
+  assert.equal(publishActivityTitle("newsletter", "export", "en"), "Newsletter — downloaded");
+  assert.match(publishActivityDetail("newsletter", "export", "en"), /downloaded to a file/);
 });
 
 // --- social post lifecycle: WHEN the publish event fires ----------------------
 
 test("a SCHEDULED post is not a publish event — nothing has left the app yet", () => {
-  const row = socialPostActivityRow("scheduled");
+  const row = socialPostActivityRow("scheduled", "cs");
   assert.equal(row.publish, false);
   assert.equal(row.title, "Příspěvek naplánován");
+  assert.equal(socialPostActivityRow("scheduled", "en").title, "Post scheduled");
   // The scheduling row must not be mistakable for the publish row the rollup counts.
-  assert.notEqual(row.title, publishActivityTitle("social_post", "channel"));
+  assert.notEqual(row.title, publishActivityTitle("social_post", "channel", "cs"));
 });
 
 test("a PUBLISHED post is the publish event, titled from the shared taxonomy", () => {
-  const row = socialPostActivityRow("published");
+  const row = socialPostActivityRow("published", "cs");
   assert.equal(row.publish, true);
-  assert.equal(row.title, publishActivityTitle("social_post", "channel"));
+  assert.equal(row.title, publishActivityTitle("social_post", "channel", "cs"));
+  // The `publish` verdict is locale-independent — only the title is copy.
+  assert.equal(socialPostActivityRow("published", "en").publish, true);
 });
 
 test("a FAILED publish is not a publish event", () => {
-  const row = socialPostActivityRow("failed");
+  const row = socialPostActivityRow("failed", "cs");
   assert.equal(row.publish, false);
-  assert.notEqual(row.title, publishActivityTitle("social_post", "channel"));
+  assert.notEqual(row.title, publishActivityTitle("social_post", "channel", "cs"));
 });
 
 test("a scheduled post publishes exactly once — the promise never counts, the cron result does", () => {
   // The life of one post handed off from Distribuce: scheduled by the route, then
   // sent by the cron. Exactly one publish event, and it is the cron's.
-  const succeeded = ["scheduled", "published"].map(socialPostActivityRow);
+  const rows = (outcomes) => outcomes.map((o) => socialPostActivityRow(o, "cs"));
+  const succeeded = rows(["scheduled", "published"]);
   assert.equal(succeeded.filter((r) => r.publish).length, 1);
 
   // The same post whose cron attempt fails must leave NO publish event behind.
-  const bounced = ["scheduled", "failed"].map(socialPostActivityRow);
+  const bounced = rows(["scheduled", "failed"]);
   assert.equal(bounced.filter((r) => r.publish).length, 0);
 
   // One cron sweep over a mixed batch counts one event per post that went out.
-  const sweep = ["published", "failed", "published"].map(socialPostActivityRow);
+  const sweep = rows(["published", "failed", "published"]);
   assert.equal(sweep.filter((r) => r.publish).length, 2);
 });

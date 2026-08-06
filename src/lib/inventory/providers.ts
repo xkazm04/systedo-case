@@ -68,7 +68,7 @@ export const SYNC_PROVIDERS: SyncProviderMeta[] = [
   { id: "skladon", label: "Skladon", needsToken: true, implemented: false,
     kind: "3pl", mark: "SK",
     blurb: "České fulfillment centrum, oboustranná synchronizace",
-    blurbEn: "Czech fulfillment centre, two-way sync" },
+    blurbEn: "Czech fulfillment center, two-way sync" },
   { id: "pohoda", label: "POHODA", needsToken: true, implemented: false,
     kind: "erp", mark: "PO",
     blurb: "Nejrozšířenější český ERP (Stormware)",

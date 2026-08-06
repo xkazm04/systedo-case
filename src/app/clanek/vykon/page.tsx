@@ -8,10 +8,9 @@ import Breadcrumbs from "@/components/article/Breadcrumbs";
 import { Gauge } from "@/components/icons";
 import { inlineToText, tableOfContents } from "@/lib/article";
 import { reportArticle } from "./report-article";
-import { fmtDate } from "@/lib/format";
 import { canonical } from "@/lib/site";
 import { navLabel, type Crumb } from "@/lib/nav";
-import { getT } from "@/lib/i18n/server";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
@@ -52,6 +51,9 @@ export const metadata: Metadata = {
 
 export default async function ReportPage() {
   const t = await getT(T);
+  // The reader's own formatter, not the module-level `fmtDate` (bound to
+  // HOME_MARKET_LOCALE), which rendered a cs-CZ date on an otherwise-localized page.
+  const fmt = await getServerFormatters();
   const toc = tableOfContents(article);
 
   const breadcrumbs: Crumb[] = [
@@ -107,7 +109,7 @@ export default async function ReportPage() {
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Pill tone="brand">{meta.category}</Pill>
             <span>·</span>
-            <span>{fmtDate(meta.dateISO)}</span>
+            <span>{fmt.fmtDate(meta.dateISO)}</span>
             <span>·</span>
             <span>{t("readingTime", { n: meta.readingMinutes })}</span>
           </div>

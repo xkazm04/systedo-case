@@ -11,10 +11,10 @@ import { useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
-    tooltip: "AI vyhodnocení dnes: {used}/{limit} · plán {plan} · zbývá {remaining}. Klikněte pro navýšení limitu.",
+    tooltip: "AI vyhodnocení dnes: {used}/{limit} · plán {plan} · zbývá {remaining}. Vyberte pro navýšení limitu.",
   },
   en: {
-    tooltip: "AI evaluations today: {used}/{limit} · plan {plan} · {remaining} left. Click to raise the limit.",
+    tooltip: "AI evaluations today: {used}/{limit} · plan {plan} · {remaining} left. Select to raise the limit.",
   },
 } as const;
 

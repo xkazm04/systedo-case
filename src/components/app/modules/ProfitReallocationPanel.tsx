@@ -36,7 +36,7 @@ const T = {
   en: {
     whatIfTitle: "What if: budget reallocation",
     whatIfDesc: "Holds each channel's ROAS and shifts budget to the most profitable channels.",
-    maxProfit: "Maximise profit",
+    maxProfit: "Maximize profit",
     holdRevenue: "Hold revenue",
     totalBudget: "Total budget",
     currentBudgetBtn: "Current",

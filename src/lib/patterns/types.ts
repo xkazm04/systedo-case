@@ -2,6 +2,8 @@
  *  by the extractor, the API route and the UI. A "pattern" is a reusable lesson
  *  mined from the tenant's own results (or saved by hand). */
 
+import type { SupportedLocale } from "@/lib/format";
+
 export type PatternCategory = "structure" | "budget" | "creative" | "targeting" | "trend";
 
 export const PATTERN_CATEGORIES: PatternCategory[] = [
@@ -19,6 +21,21 @@ export const PATTERN_CATEGORY_LABELS: Record<PatternCategory, string> = {
   targeting: "Cílení",
   trend: "Trend & optimalizace",
 };
+
+export const PATTERN_CATEGORY_LABELS_EN: Record<PatternCategory, string> = {
+  structure: "Account structure",
+  budget: "Budget & bidding",
+  creative: "Creative & ads",
+  targeting: "Targeting",
+  trend: "Trend & optimization",
+};
+
+/** The category label for the reader's locale — the library's filter chips, the
+ *  pill on each pattern card and the manual-add picker. The KEY is the persisted
+ *  `PatternCategory`; only the label is copy. */
+export function patternCategoryLabel(c: PatternCategory, locale: SupportedLocale): string {
+  return (locale === "en" ? PATTERN_CATEGORY_LABELS_EN : PATTERN_CATEGORY_LABELS)[c];
+}
 
 export interface Pattern {
   id: string;

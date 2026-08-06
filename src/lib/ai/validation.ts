@@ -485,7 +485,7 @@ export function validateLocalReviewReplyRequest(input: unknown, locale: Supporte
     return { valid: false, error: t(locale, "Hodnocení musí být v rozsahu 1–5 hvězd.", "Rating must be between 1 and 5 stars.") };
   }
   if (area.length < 1 || area.length > 120) {
-    return { valid: false, error: t(locale, "Vyplňte lokalitu (1–120 znaků).", "Please fill in the location (1–120 characters).") };
+    return { valid: false, error: t(locale, "Vyplňte oblast (1–120 znaků).", "Please fill in the area (1–120 characters).") };
   }
   const value: LocalReviewReplyRequest = { reviewText: reviewText.slice(0, 1500), rating, area: area.slice(0, 120) };
   if (businessType) value.businessType = businessType.slice(0, 120);

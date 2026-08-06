@@ -30,16 +30,25 @@ const JSON_OUT = argv.includes("--json");
 /** Parked decisions from docs/i18n/review-cs.md § A. A wave must not apply these
  *  at all — a partial application is the "half-sweep" failure. We compare total
  *  occurrence counts in the cs column; any movement is a violation. */
+/** Decisions ruled **"keep the current form"** — a DROP means someone started
+ *  sweeping something the owner declined to change. A guard here is only valid
+ *  while the decision is genuinely parked or ruled "no change"; once a decision
+ *  is ruled *sweep*, it must move to RATCHETS below or the gate fires on the
+ *  very work the ruling asked for. (A1, A3 and A4 each sat here until they were
+ *  ruled, and each one failed the gate on its own sweep before being moved.) */
 const PARKED = [
-  // A1 (em dash) was REMOVED on 2026-08-06 — the owner decided it, so reducing
-  // the count is now the goal rather than a half-sweep violation. The em dash is
-  // guarded in the opposite direction by EM_DASH_CEILING below.
   { id: "A2", name: "prosím", re: /prosím/gi },
+];
+
+/** Decisions ruled **"sweep it out"** — the count may only go DOWN. A rise means
+ *  the removed form is creeping back, usually via a recast that reintroduced it. */
+const RATCHETS = [
+  { id: "CS-DASH", name: "em dash in cs", re: /—/g },
   { id: "A3", name: "klikněte na", re: /[Kk]likn[ěe]te\s+na/g },
   {
     id: "A4",
     name: "brand-first noun order",
-    re: /(Google Ads|Google|Sklik)\s+(účet|účtu|účtů|účty)/g,
+    re: /(Google Ads|Google|Sklik)\s+(účet|účtu|účtů|účty|účtem|účtech|účtům|kampaně|přehled|autorizace|profil)/g,
   },
 ];
 
@@ -208,19 +217,17 @@ for (const p of PARKED) {
     });
 }
 
-// CS-DASH ratchet. The em dash is being removed from the catalog (decided
-// 2026-08-06), so its count must only ever go DOWN. A rise means someone
-// re-introduced the character the sweep exists to remove — including via a
-// well-meaning "recast" that swapped one dash for another.
-{
-  const emBase = (baseCs.match(/—/g) ?? []).length;
-  const emNow = (nowCs.match(/—/g) ?? []).length;
-  if (emNow > emBase)
+// Ratchets: a ruled-and-swept form may only go DOWN. A rise means it is creeping
+// back — usually through a recast that reintroduced the very thing being removed.
+for (const r of RATCHETS) {
+  const base = (baseCs.match(r.re) ?? []).length;
+  const now = (nowCs.match(r.re) ?? []).length;
+  if (now > base)
     fails.push({
-      check: "em dash re-introduced",
+      check: "swept form re-introduced",
       rel: "(whole wave)",
-      key: "CS-DASH",
-      detail: `em dash in cs: ${emBase} -> ${emNow}. The house rule is no dash at all; a surviving beat of contrast takes a spaced en dash (U+2013). See style-cs.md § Typography.`,
+      key: r.id,
+      detail: `${r.name}: ${base} -> ${now} occurrences. This was ruled and swept out (glossary.md § "Owner rulings"); it must not come back.`,
     });
 }
 

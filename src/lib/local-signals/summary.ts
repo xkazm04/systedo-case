@@ -106,7 +106,7 @@ export async function localSignalsPromptText(
     lines.push("Lokální viditelnost (spočítaná data — report na ně nesmí mlčet; zdroj u každého signálu):");
     if (tracked > 0) {
       lines.push(
-        `- Mapa-pack: sledováno ${fmtInt(tracked)} kombinací služba×lokalita; v top 3 ${fmtInt(inPack)} (${fmtPct(
+        `- Mapy: sledováno ${fmtInt(tracked)} kombinací služba×oblast; v top 3 ${fmtInt(inPack)} (${fmtPct(
           packRate,
           0
         )}), z toho na 1. místě ${fmtInt(top1)}; průměrná pozice ${avgRank.toFixed(1)}.${ladderTag}`

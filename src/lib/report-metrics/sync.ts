@@ -60,9 +60,9 @@ async function resolveAdsAccess(project: Project, userId: string | null): Promis
   const customerId = resolveCustomerId(project);
   if (!customerId) return { ok: false, error: "K projektu není napojený účet Google Ads." };
   const token = await getUserAccessToken(userId);
-  if (!token) return { ok: false, error: "Chybí přístup ke Google účtu — přihlaste se přes Google." };
+  if (!token) return { ok: false, error: "Chybí přístup k účtu Google — přihlaste se přes Google." };
   if (!(await hasAdsScope(userId))) {
-    return { ok: false, error: "Google účet nemá oprávnění pro Google Ads (adwords scope)." };
+    return { ok: false, error: "Účet Google nemá oprávnění pro Google Ads (adwords scope)." };
   }
   return { ok: true, token, customerId };
 }

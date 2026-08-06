@@ -46,14 +46,14 @@ const GBP: Seed = {
   effort: "low",
   rationale:
     "Bezplatný firemní profil {brand} se zobrazuje v Mapách i ve vyhledávání, když lidé hledají službu v okolí: nejrychlejší organická viditelnost bez rozpočtu.",
-  payoff: "Zobrazení v mapovém balíčku a hovory/trasy přímo z vyhledávání",
+  payoff: "Zobrazení v mapách a hovory/trasy přímo z vyhledávání",
   firstActions: [
     "Ověřte a doplňte profil {brand} (kategorie, otevírací doba, fotky, služby)",
     "Přidejte 5–10 kvalitních fotek a popis s klíčovými slovy",
     "Nastavte pravidelné příspěvky a začněte sbírat recenze",
   ],
   url: "https://business.google.com",
-  contentAngle: "Příspěvek na Google profil {brand}: novinka nebo tip pro zákazníky",
+  contentAngle: "Příspěvek na Google Business Profile {brand}: novinka nebo tip pro zákazníky",
 };
 
 const FIRMY_CZ: Seed = {

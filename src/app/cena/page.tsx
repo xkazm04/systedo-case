@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClass, Container, Eyebrow, Pill } from "@/components/ui";
 import { ArrowRight, Check } from "@/components/icons";
-import { PLAN_INFO, type Plan } from "@/lib/plans";
+import { PLAN_INFO, PLANS, type Plan } from "@/lib/plans";
+import { interpolate } from "@/lib/i18n/interpolate";
 import { getT, getServerFormatters } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
@@ -38,11 +39,11 @@ const T = {
   en: {
     metaTitle: "Pricing – Adamant",
     metaDescription:
-      "Adamant is free in full during validation. The paid Pro and Own-key plans launch after the product is validated. The table shows the intended split.",
+      "Adamant is entirely free during validation. The paid Pro and Own-key plans launch after the product is validated. The table shows the intended split.",
     eyebrow: "Pricing",
     heading: "Free during validation",
     subheading:
-      "During the validation phase Adamant is free in full. The daily limits protect paid model calls and syncs. The paid plans below show where pricing is headed; they launch only after validation.",
+      "During the validation phase Adamant is entirely free. The daily limits protect paid model calls and syncs. The paid plans below show where pricing is headed; they launch only after validation.",
     recommended: "Recommended",
     free: "Free",
     perMonth: "/ month",
@@ -53,7 +54,12 @@ const T = {
   },
 } as const;
 
-/** Per-plan marketing copy, keyed by plan id and locale. */
+/** Per-plan marketing copy, keyed by plan id and locale.
+ *
+ *  The daily limits are NOT typed out here: `{aiEval}` / `{sync}` / `{image}` are
+ *  filled from that plan's own `PLANS[id]` entry (formatted per locale), so
+ *  raising a limit in `lib/plans.ts` can never leave this page quoting the old
+ *  number in two languages. */
 const PLAN_COPY: Record<
   "cs" | "en",
   Record<Plan, { tagline: string; features: readonly string[] }>
@@ -62,10 +68,10 @@ const PLAN_COPY: Record<
     free: {
       tagline: "Pro vyzkoušení celého toku na ukázkových i živých datech.",
       features: [
-        "25 AI vyhodnocení denně",
-        "50 synchronizací Google Ads denně",
-        "5 generování vizuálů denně",
-        "Připojení vlastního Google Ads účtu",
+        "{aiEval} AI vyhodnocení denně",
+        "{sync} synchronizací Google Ads denně",
+        "{image} generování vizuálů denně",
+        "Připojení vlastního účtu Google Ads",
         "Doporučené přesuny rozpočtu (bez AI)",
         "Sdílené reporty pro klienty",
       ],
@@ -73,9 +79,9 @@ const PLAN_COPY: Record<
     pro: {
       tagline: "Pro agentury a denní práci s více účty.",
       features: [
-        "1 000 AI vyhodnocení denně",
-        "1 000 synchronizací denně",
-        "100 generování vizuálů denně",
+        "{aiEval} AI vyhodnocení denně",
+        "{sync} synchronizací denně",
+        "{image} generování vizuálů denně",
         "Automatická hodinová synchronizace + e-mail alerty",
         "Týdenní souhrnný report",
         "Prioritní zpracování",
@@ -86,7 +92,7 @@ const PLAN_COPY: Record<
       features: [
         "Neomezená AI generování přes vlastní klíč",
         "OpenAI, Gemini nebo Claude (přepínání modelů)",
-        "Platíte tokeny přímo poskytovateli",
+        "Platíte za tokeny přímo poskytovateli",
         "Bez denního limitu na AI nástroje",
         "Přístup ke všem AI nástrojům v aplikaci",
       ],
@@ -96,9 +102,9 @@ const PLAN_COPY: Record<
     free: {
       tagline: "Try the full flow on demo or live data.",
       features: [
-        "25 AI evaluations per day",
-        "50 Google Ads syncs per day",
-        "5 visual generations per day",
+        "{aiEval} AI evaluations per day",
+        "{sync} Google Ads syncs per day",
+        "{image} visual generations per day",
         "Connect your own Google Ads account",
         "Recommended budget moves (no AI)",
         "Shared client reports",
@@ -107,9 +113,9 @@ const PLAN_COPY: Record<
     pro: {
       tagline: "For agencies and daily work across multiple accounts.",
       features: [
-        "1,000 AI evaluations per day",
-        "1,000 syncs per day",
-        "100 visual generations per day",
+        "{aiEval} AI evaluations per day",
+        "{sync} syncs per day",
+        "{image} visual generations per day",
         "Automatic hourly sync + e-mail alerts",
         "Weekly summary report",
         "Priority processing",
@@ -120,7 +126,7 @@ const PLAN_COPY: Record<
       features: [
         "Unlimited AI generation with your own key",
         "OpenAI, Gemini or Claude (switch models)",
-        "You pay tokens directly to the provider",
+        "You pay for tokens directly to the provider",
         "No daily cap on AI tools",
         "Access to every AI tool in the app",
       ],
@@ -153,6 +159,14 @@ export default async function PricingPage() {
       <div className="mt-12 grid gap-5 md:grid-cols-3 md:gap-6">
         {PLAN_INFO.map((plan) => {
           const copy = planCopy[plan.id];
+          // The plan's OWN limits, formatted for the reader's locale — never
+          // hand-typed into the copy (see PLAN_COPY above).
+          const limits = PLANS[plan.id];
+          const limitVars = {
+            aiEval: fmt.fmtInt(limits.aiEval),
+            sync: fmt.fmtInt(limits.sync),
+            image: fmt.fmtInt(limits.image),
+          };
           return (
             <div
               key={plan.id}
@@ -179,7 +193,7 @@ export default async function PricingPage() {
                 {copy.features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-navy-700">
                     <Check width={17} height={17} className="mt-0.5 shrink-0 text-brand-600" />
-                    {f}
+                    {interpolate(f, limitVars)}
                   </li>
                 ))}
               </ul>

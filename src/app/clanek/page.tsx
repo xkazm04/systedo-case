@@ -16,10 +16,9 @@ import { Clock } from "@/components/icons";
 import { article, figureBlocks, inlineToText, tableOfContents } from "@/lib/article";
 import { faqItemId } from "@/lib/article-validate";
 import { articleToMarkdown } from "@/lib/article-markdown";
-import { fmtDate } from "@/lib/format";
 import { categoryHubPath, navLabel, type Crumb } from "@/lib/nav";
 import { canonical, SITE_NAME } from "@/lib/site";
-import { getT } from "@/lib/i18n/server";
+import { getServerFormatters, getT } from "@/lib/i18n/server";
 import { getServerLocale } from "@/lib/i18n/locale";
 
 const T = {
@@ -83,6 +82,10 @@ if (meta.authorUrl) author.url = meta.authorUrl;
 
 export default async function ArticlePage() {
   const t = await getT(T);
+  // The reader's own formatter, not the module-level `fmtDate` (which is bound to
+  // HOME_MARKET_LOCALE and rendered cs-CZ dates to an English reader on an
+  // otherwise-localized page).
+  const fmt = await getServerFormatters();
   const toc = tableOfContents(article);
 
   // Breadcrumb trail (Home › Article › category › title), reused for both the
@@ -178,17 +181,17 @@ export default async function ArticlePage() {
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted">
             <Pill tone="brand">{meta.category}</Pill>
             <span>·</span>
-            <time dateTime={meta.dateISO}>{fmtDate(meta.dateISO)}</time>
+            <time dateTime={meta.dateISO}>{fmt.fmtDate(meta.dateISO)}</time>
             {meta.dateModifiedISO && meta.dateModifiedISO !== meta.dateISO && (
               <>
                 <span>·</span>
                 <time
                   dateTime={meta.dateModifiedISO}
                   className="inline-flex items-center gap-1 text-brand-700"
-                  title={`${t("updated")} ${fmtDate(meta.dateModifiedISO)}`}
+                  title={`${t("updated")} ${fmt.fmtDate(meta.dateModifiedISO)}`}
                 >
                   <Clock width={13} height={13} aria-hidden />
-                  {t("updated")} {fmtDate(meta.dateModifiedISO)}
+                  {t("updated")} {fmt.fmtDate(meta.dateModifiedISO)}
                 </time>
               </>
             )}

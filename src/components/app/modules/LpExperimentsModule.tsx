@@ -16,6 +16,7 @@ const T = {
     adjustedFor: "upraveno pro {n} varianty",
     statusDone: "Ukončeno",
     statusRunning: "Běží",
+    controlFallback: "Kontrola",
     collecting: "Sbírá data: {pct} %",
     winner: "Vítěz (jistota {conf})",
     leading: "Vede, zatím neprůkazné",
@@ -38,6 +39,7 @@ const T = {
     adjustedFor: "adjusted for {n} variants",
     statusDone: "Completed",
     statusRunning: "Running",
+    controlFallback: "Control",
     collecting: "Collecting data: {pct}%",
     winner: "Winner ({conf} confidence)",
     leading: "Leading, not yet conclusive",
@@ -83,7 +85,9 @@ export default async function LpExperimentsModule({
       id: r.id,
       cluster: r.cluster,
       status: r.status,
-      controlLabel: control?.label ?? "Kontrola",
+      // Grounds the AI variant panel (and is shown there), so the fallback for an
+      // unlabelled control follows the reader's locale like every other string here.
+      controlLabel: control?.label ?? t("controlFallback"),
       controlCvr: control?.cvr,
       losers: losers.length > 0 ? losers : undefined,
     };

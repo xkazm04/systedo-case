@@ -9,7 +9,7 @@ import LocalSeoShowcase from "@/components/marketing/LocalSeoShowcase";
 export const metadata: Metadata = {
   title: "Lokální SEO",
   description:
-    "Pozice v mapovém balíčku, recenze a Google Business Profile napříč pobočkami — v jednom pracovním prostoru. Animovaná ukázka výstupu v mapě z #4 na #1.",
+    "Pozice v mapách, recenze a Google Business Profile napříč pobočkami — v jednom pracovním prostoru. Animovaná ukázka výstupu v mapě z #4 na #1.",
   alternates: { canonical: "/lokalni-seo" },
 };
 

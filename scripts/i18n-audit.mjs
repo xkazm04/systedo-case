@@ -30,9 +30,37 @@ const JSON_OUT = process.argv.includes("--json");
 /** Czech-specific letters — the cheapest reliable "this is Czech" signal. */
 const CZ = /[ěščřžýáíéúůňťďóĚŠČŘŽÝÁÍÉÚŮŇŤĎÓ]/;
 
-/** Values that are legitimately identical in both columns (contract.md). */
-const DNT =
-  /^(PNO|CAC|LTV|PPC|SEO|CTR|ROAS|RSA|CPC|UX|CPL|CPQL|SKU|ARPU|RPM|POAS|AOV|CSV|JSON|API|URL|GA4|PMax|A\/B|LTV\s*[:/]\s*CAC|Google(\s+Ads)?|Google Business Profile|Sklik|Gemini|Firestore|SQLite|Adamant|Systedo|OpenAI|Claude|OpenRouter|Meta|LinkedIn|Facebook|Instagram|TikTok|YouTube|Reddit|Discord|Slack|X|Trend|Detail|Reset|Online|Model|Markdown|Brief|Lead|Dashboard|Portfolio|Challenger|Autopilot|Index|Desktop|Mobile|Pill|Sparkline|DeltaBadge|Eyebrow|Chokepoint|demo|disabled|interval|link|relevance)$/i;
+/** Values that are legitimately identical in both columns (contract.md), plus the
+ *  loanwords the owner ruled kept on 2026-08-06 (review-cs.md § B — Czech PPC
+ *  speech uses them verbatim) and the format-string shapes that were never
+ *  translation candidates. Built by escaping each literal rather than hand-writing
+ *  one regex: `Fulfillment (3PL)` and `AOV {val}` contain metacharacters, and
+ *  inlining them raw silently turns the whole alternation into a syntax error. */
+const DNT_LITERALS = [
+  // metric abbreviations kept as-is in Czech marketing speech
+  "PNO", "CAC", "LTV", "PPC", "SEO", "CTR", "ROAS", "RSA", "CPC", "UX", "CPL",
+  "CPQL", "SKU", "ARPU", "RPM", "POAS", "AOV", "CSV", "JSON", "API", "URL", "GA4",
+  "PMax", "A/B", "PMax / RSA",
+  // brands and product names
+  "Google", "Google Ads", "Google Business Profile", "Sklik", "Gemini", "Firestore",
+  "SQLite", "Adamant", "Systedo", "OpenAI", "Claude", "OpenRouter", "Meta",
+  "LinkedIn", "Facebook", "Instagram", "TikTok", "YouTube", "Reddit", "Discord",
+  "Slack", "X", "Twin",
+  // words identical in both languages, or single-word UI labels
+  "Trend", "Detail", "Reset", "Online", "Model", "Markdown", "Brief", "Lead",
+  "Dashboard", "Portfolio", "Challenger", "Autopilot", "Index", "Desktop",
+  "Mobile", "Pill", "Sparkline", "DeltaBadge", "Eyebrow", "Chokepoint", "demo",
+  "disabled", "interval", "link", "relevance", "Feed",
+  // § B, ruled 2026-08-06: kept loanwords
+  "Open rate", "Win rate", "Blended CAC", "API token", "Fulfillment (3PL)",
+  "Article JSON", "LLM wrapper", "drift",
+  // format strings — never translation candidates
+  "AOV {val}", "ROAS {val}", "Δ CPQL", "Δ win rate", "Brand · Search",
+];
+const DNT = new RegExp(
+  `^(${DNT_LITERALS.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}|LTV\\s*[:/]\\s*CAC|https?://\\S*)$`,
+  "i"
+);
 
 /** Files whose two columns are identical by design. */
 const AUDIT_EXEMPT = [/design-system\/page\.tsx$/];

@@ -34,7 +34,7 @@ import { ProjectDetailsFields, useProjectDraft } from "./create-project-shared";
 const T = {
   cs: {
     heading: "Vyberte typ a poskládejte moduly",
-    hint: "Klikněte na typ v hlavičce sloupce, pak přímo v mřížce zapínejte a vypínejte moduly. Kdykoli obnovíte výchozí sadu.",
+    hint: "Vyberte typ v hlavičce sloupce, pak přímo v mřížce zapínejte a vypínejte moduly. Kdykoli obnovíte výchozí sadu.",
     colModule: "Modul",
     modulesShort: "modulů",
     modulesOn: "zapnuto",
@@ -60,7 +60,7 @@ const T = {
   },
   en: {
     heading: "Choose a type and assemble modules",
-    hint: "Click a type in the column header, then toggle modules on and off right in the grid. Reset to the default set anytime.",
+    hint: "Select a type in the column header, then toggle modules on and off right in the grid. Reset to the default set anytime.",
     colModule: "Module",
     modulesShort: "modules",
     modulesOn: "on",

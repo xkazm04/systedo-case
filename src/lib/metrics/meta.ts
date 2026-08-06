@@ -183,7 +183,7 @@ export const METRICS: Record<MetricKey, MetricMeta> = {
     description: "Průměrná cena za proklik = náklady / prokliky.",
     labelEn: "Cost per click",
     shortEn: "CPC",
-    descriptionEn: "Average cost per click = cost / clicks.",
+    descriptionEn: "Average cost per select = cost / clicks.",
     goodDirection: "down",
     format: (v, f = csF) => f.fmtCZK(v),
     formatCompact: (v, f = csF) => f.fmtCZK(v),

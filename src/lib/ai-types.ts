@@ -178,12 +178,29 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
   sklik: "Sklik (Seznam)",
 };
 
+/** The tone names as they appear in the PROMPT (`lib/ai/tools/{ads,social,
+ *  repurpose}.ts` interpolate these into the Czech system/user prompt, which is not
+ *  externalized — see docs/i18n/contract.md). The UI must not read this map
+ *  directly; it goes through {@link toneLabel}. */
 export const TONE_LABELS: Record<Tone, string> = {
   vecny: "Věcný a důvěryhodný",
   pratelsky: "Přátelský a lidský",
   premiovy: "Prémiový a kultivovaný",
   akcni: "Akční a motivující",
 };
+
+export const TONE_LABELS_EN: Record<Tone, string> = {
+  vecny: "Factual and trustworthy",
+  pratelsky: "Friendly and human",
+  premiovy: "Premium and refined",
+  akcni: "Urgent and motivating",
+};
+
+/** The tone label for the reader's locale — the tone picker in the composer, the
+ *  week planner, the ad generator and the content pipeline. */
+export function toneLabel(t: Tone, locale: SupportedLocale): string {
+  return (locale === "en" ? TONE_LABELS_EN : TONE_LABELS)[t];
+}
 
 /** Google Ads character limits — enforced in the prompt and re-checked in the UI. */
 export const AD_LIMITS = {
@@ -235,11 +252,25 @@ export type AdResponse = AiResponse<AdResult>;
 export const CONTENT_TYPES = ["blog", "kategorie", "produkt"] as const;
 export type ContentType = (typeof CONTENT_TYPES)[number];
 
+/** Content-type names as they appear in the PROMPT (`lib/ai/tools/brief.ts`,
+ *  `article-draft.ts`) — not externalized. The UI reads {@link contentTypeLabel}. */
 export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
   blog: "Blogový článek",
   kategorie: "Kategorie e-shopu",
   produkt: "Produktová stránka",
 };
+
+export const CONTENT_TYPE_LABELS_EN: Record<ContentType, string> = {
+  blog: "Blog article",
+  kategorie: "E-shop category",
+  produkt: "Product page",
+};
+
+/** The content-type label for the reader's locale — the brief generator's type
+ *  picker. */
+export function contentTypeLabel(c: ContentType, locale: SupportedLocale): string {
+  return (locale === "en" ? CONTENT_TYPE_LABELS_EN : CONTENT_TYPE_LABELS)[c];
+}
 
 /** SEO best-practice limits — checked in the UI like the ad limits. */
 export const SEO_LIMITS = {

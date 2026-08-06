@@ -6,6 +6,7 @@ import { resolveTenant } from "@/lib/campaigns/connector";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
+import { getServerLocale } from "@/lib/i18n/locale";
 import { createPost, deletePost, listPosts, updatePost } from "@/lib/social/store";
 import { publishPost, type PublishContext } from "@/lib/social/publish";
 import { getAccount, getAccountToken } from "@/lib/social/connection";
@@ -67,6 +68,9 @@ export async function POST(request: Request) {
   const unknown = await rejectUnknownProject(await currentUserId(), projectId);
   if (unknown) return unknown;
   const tenant = await tenantOf(projectId);
+  // The activity row's prose is persisted, so it is written in the language of the
+  // person who triggered it. The structured publish taxonomy below is unaffected.
+  const locale = await getServerLocale();
   const rawScheduledAt = str(body.scheduledAt);
   // Parse to an instant and store the CANONICAL UTC ISO, so the cron's UTC "due"
   // comparison is always against a UTC value. Reject a non-empty but unparseable
@@ -94,7 +98,7 @@ export async function POST(request: Request) {
     // publish event when it actually sends the post.
     await recordActivity(tenant, {
       kind: "update", module: "socialni", severity: "info",
-      title: socialPostActivityRow("scheduled").title, detail: platform, actor: "Vy",
+      title: socialPostActivityRow("scheduled", locale).title, detail: platform, actor: "Vy",
       // No publish taxonomy: socialPostActivityRow("scheduled").publish is false,
       // so this row stays invisible to the publish-rate rollup.
       ...socialPostPublishFields("scheduled"),
@@ -115,7 +119,7 @@ export async function POST(request: Request) {
   // title — nothing left the app, so it must not read as a publish event.
   await recordActivity(tenant, {
     kind: "update", module: "socialni", severity: result.ok ? "success" : "warning",
-    title: socialPostActivityRow(result.ok ? "published" : "failed").title,
+    title: socialPostActivityRow(result.ok ? "published" : "failed", locale).title,
     detail: platform, actor: "Vy",
     // Only the successful branch carries the taxonomy — a failed publish left
     // nothing behind and must not be counted.

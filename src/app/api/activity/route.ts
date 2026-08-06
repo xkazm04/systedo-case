@@ -17,6 +17,7 @@ import {
   publishActivityDetail,
   publishActivityTitle,
 } from "@/lib/activity/publish";
+import { getServerLocale } from "@/lib/i18n/locale";
 
 
 export async function GET(request: Request) {
@@ -53,14 +54,18 @@ export async function POST(request: Request) {
   const projectId = typeof body.projectId === "string" && body.projectId ? body.projectId : undefined;
 
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
+  // The row's prose is composed here and PERSISTED, so it is written in the
+  // language of the person whose action produced it. The structured taxonomy below
+  // is locale-free, so the publish-rate rollup is untouched by this.
+  const locale = await getServerLocale();
   // recordActivity is best-effort by contract — it swallows its own write failures,
   // so a reported success here means "accepted", not "durably stored".
   await recordActivity(tenant, {
     kind: "update",
     module: "ai",
     severity: "success",
-    title: publishActivityTitle(kind, via),
-    detail: publishActivityDetail(kind, via),
+    title: publishActivityTitle(kind, via, locale),
+    detail: publishActivityDetail(kind, via, locale),
     actor: "Vy",
     // The structured half of the row: the publish-rate rollup counts on these, not
     // on the prose title, so rewording/localizing the timeline can never silently

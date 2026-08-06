@@ -35,8 +35,8 @@ function linePath(series: number[]): string {
 }
 
 const DEFAULT_LABEL: Record<SupportedLocale, string> = {
-  cs: "Vy vs. hlavní rival — pozice v mapovém balíčku",
-  en: "You vs. top rival — map-pack rank",
+  cs: "Vy vs. hlavní rival: pozice v mapách",
+  en: "You vs. top rival: map pack rank",
 };
 
 export function RankClimbChart({

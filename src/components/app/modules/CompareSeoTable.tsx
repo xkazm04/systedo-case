@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ArrowRight, ChevronDown, Sparkles } from "@/components/icons";
 import { Pill, type PillTone } from "@/components/ui";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
+import type { SupportedLocale } from "@/lib/format";
 import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
@@ -17,6 +19,7 @@ import {
   DEFAULT_SCORE_WEIGHTS,
   deriveCompareQueries,
   INTENT_LABELS,
+  intentLabel,
   scoreQueries,
   type Opportunity,
   type ScoredQuery,
@@ -156,7 +159,7 @@ const T = {
     scaffoldFaq: "Frequently asked questions",
     handoffBtn: "Send to brief",
     handoffHint: "The scaffold becomes a brief in Content (topic, primary keyword, and criteria as keywords).",
-    tableFooter: "Score = volume × intent weight × SERP gap ÷ difficulty. Gaps (where you don't rank yet) are prioritised. Adjust weights and thresholds in the “Score tuning” panel. Column",
+    tableFooter: "Score = volume × intent weight × SERP gap ÷ difficulty. Gaps (where you don't rank yet) are prioritized. Adjust weights and thresholds in the “Score tuning” panel. Column",
     tableFooterAcq: "= estimated conversions/mo from the organic channel's real conversion rate (CR × volume × intent), so rankings reflect expected outcomes, not just search volume.",
     topicVs: "{query}: comparison",
     topicAlternative: "Alternatives: {query}",
@@ -330,6 +333,7 @@ function QueryRow({
   onCreateFromOutline,
   t,
   fmt,
+  locale,
 }: {
   r: ScoredQuery;
   competitor: string;
@@ -339,6 +343,7 @@ function QueryRow({
   onCreateFromOutline: (r: ScoredQuery, result: ComparisonOutlineResult) => void;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
   fmt: ReturnType<typeof useFormatters>;
+  locale: SupportedLocale;
 }) {
   const meta = OPP_META[r.opportunity];
   const acq = acquisitionFor(r, seoChannel);
@@ -363,7 +368,7 @@ function QueryRow({
       <tr className="border-b border-line/70">
         <td className="px-5 py-3 font-medium text-navy-800">{r.query}</td>
         <td className="px-4 py-3">
-          <Pill tone="brand">{INTENT_LABELS[r.intent]}</Pill>
+          <Pill tone="brand">{intentLabel(r.intent, locale)}</Pill>
         </td>
         <td className="tnum px-4 py-3 text-right text-navy-700">{fmt.fmtInt(r.volume)}</td>
         <td className="tnum px-4 py-3 text-right text-navy-700">{r.difficulty}</td>
@@ -508,12 +513,14 @@ function TuningPanel({
   onReset,
   t,
   fmt,
+  locale,
 }: {
   weights: ScoreWeights;
   setWeights: (w: ScoreWeights) => void;
   onReset: () => void;
   t: ReturnType<typeof useT<keyof typeof T.cs>>;
   fmt: ReturnType<typeof useFormatters>;
+  locale: SupportedLocale;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -552,7 +559,7 @@ function TuningPanel({
             <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("intentWeights")}</p>
             {INTENT_ORDER.map((k) => (
               <label key={k} className="flex items-center gap-3 text-sm">
-                <span className="w-28 shrink-0 text-navy-700">{INTENT_LABELS[k]}</span>
+                <span className="w-28 shrink-0 text-navy-700">{intentLabel(k, locale)}</span>
                 <input
                   type="range"
                   min={0.5}
@@ -561,7 +568,7 @@ function TuningPanel({
                   value={weights.intent[k]}
                   onChange={(e) => setIntent(k, Number(e.target.value))}
                   className="h-1.5 flex-1 cursor-pointer accent-brand-600"
-                  aria-label={t("intentWeightAria", { label: INTENT_LABELS[k] })}
+                  aria-label={t("intentWeightAria", { label: intentLabel(k, locale) })}
                 />
                 <span className="tnum w-12 shrink-0 text-right text-navy-800">
                   {fmt.fmtMultiple(weights.intent[k], 2)}
@@ -643,6 +650,7 @@ export default function CompareSeoTable({
   const router = useRouter();
   const fmt = useFormatters();
   const t = useT(T);
+  const { locale } = useLocale();
 
   // Per-project persisted weights. The hook restores the saved value in a
   // post-mount effect (never during the initial render), so the SSR output and
@@ -700,6 +708,10 @@ export default function CompareSeoTable({
     router.push(`/app/${project.id}/obsahovy-engine`);
   }
 
+  // `competition` is NOT a UI string: the brief tool interpolates it into its Czech
+  // prompt ("konkurence {competition}", lib/ai/tools/brief.ts), and prompts are not
+  // externalized (docs/i18n/contract.md). So the seed keeps the cs label while the
+  // table above renders `intentLabel(…, locale)`.
   function onCreate(r: ScoredQuery) {
     seedAndRoute({
       topic: briefTopic(r, t),
@@ -710,7 +722,8 @@ export default function CompareSeoTable({
 
   /** Fold a generated comparison scaffold into the existing brief-seed handoff:
    *  topic = the generated H1, primaryKeyword = the query, keywords = the
-   *  comparison criteria (plus the query itself, grounded with its volume). */
+   *  comparison criteria (plus the query itself, grounded with its volume).
+   *  `competition` stays cs for the same prompt reason as `onCreate` above. */
   function onCreateFromOutline(r: ScoredQuery, result: ComparisonOutlineResult) {
     seedAndRoute({
       topic: result.h1 || briefTopic(r, t),
@@ -785,6 +798,7 @@ export default function CompareSeoTable({
         onReset={() => setWeights(defaultWeights)}
         t={t}
         fmt={fmt}
+        locale={locale}
       />
 
       <div className="card overflow-hidden">
@@ -819,6 +833,7 @@ export default function CompareSeoTable({
                   onCreateFromOutline={onCreateFromOutline}
                   t={t}
                   fmt={fmt}
+                  locale={locale}
                 />
               ))}
             </tbody>

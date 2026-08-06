@@ -16,10 +16,10 @@ import { currentUserId } from "@/lib/session";
 
 const T = {
   cs: {
-    desc: "Google Ads kampaně, triáž, AI vyhodnocení a přesuny rozpočtu. Zaměření pro tento typ projektu: {focus}.",
+    desc: "Kampaně Google Ads, triáž, AI vyhodnocení a přesuny rozpočtu. Zaměření pro tento typ projektu: {focus}.",
   },
   en: {
-    desc: "Google Ads campaigns, triage, AI evaluation and budget shifts. Focus for this project type: {focus}.",
+    desc: "Google Ads campaigns, triage, AI evaluation and budget moves. Focus for this project type: {focus}.",
   },
 } as const;
 

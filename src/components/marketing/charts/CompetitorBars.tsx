@@ -10,11 +10,11 @@ import { useT } from "@/lib/i18n/client";
 const T = {
   cs: {
     you: "Vaše pobočka",
-    defaultLabel: "Podíl na proklicích v map packu",
+    defaultLabel: "Podíl na proklicích v mapách",
   },
   en: {
     you: "Your location",
-    defaultLabel: "Share of map-pack clicks",
+    defaultLabel: "Share of map pack clicks",
   },
 } as const;
 

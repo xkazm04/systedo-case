@@ -137,7 +137,7 @@ const T = {
   en: {
     livingStyleGuide: "Living style guide",
     heroTitle: "The design system on one screen",
-    heroBodyIntro: "The whole shared primitive set every page draws on — colour ramps, typography, the",
+    heroBodyIntro: "The whole shared primitive set every page draws on — color ramps, typography, the",
     heroBodyMid: "component, the complete icon set and the",
     heroBodyEnd: "chart. Swatches are generated straight from the token names in",
     heroBodyTail: ", so this overview can never drift from the source — and it doubles as a visual-regression baseline.",

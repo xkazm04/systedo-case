@@ -68,6 +68,10 @@ export interface CreativeLink {
 /** Aggregated performance for one visual style. */
 export interface StyleStat {
   style: ImageStyle;
+  /** The CZECH style name, kept for the prompt side only: `deriveStylePrior` quotes
+   *  it inside the Czech style-prior hint that is prepended to the next generation
+   *  prompt. The UI must NOT render this — it resolves `style` through
+   *  `imageStyleLabel(style, locale)` instead. */
   label: string;
   count: number;
   /** mean Gemini-vision score across creatives that had one */

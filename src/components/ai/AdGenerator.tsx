@@ -11,11 +11,12 @@ import { buildSklikAdSheet, buildSklikKeywordSheet } from "@/lib/sklik-export";
 import { sampleRsaCombo } from "@/lib/rsa-combos";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import type { SupportedLocale } from "@/lib/format";
 import {
   AD_LIMITS,
   PLATFORM_LABELS,
   PLATFORMS,
-  TONE_LABELS,
+  toneLabel,
   TONES,
   type AdRequest,
   type AdResult,
@@ -75,7 +76,7 @@ const T = {
     submitGenerate: "Vygenerovat inzeráty",
     emptyTitle: "Návrh inzerátů se zobrazí tady",
     emptyBody: "Vyplňte zadání kampaně vlevo a nechte Gemini vygenerovat nadpisy, popisky a klíčová slova, rovnou s kontrolou limitů znaků pro Google Ads i Sklik.",
-    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Vygenerovat.",
+    emptyHint: "Tip: zkuste „Vyplnit ukázku“ a vyberte Vygenerovat.",
     abNamePlaceholder: "Název A/B testu",
     abSaving: "Ukládám…",
     abSaveVariant: "Uložit variantu",
@@ -145,7 +146,7 @@ const T = {
     submitGenerate: "Generate ads",
     emptyTitle: "Ad drafts will appear here",
     emptyBody: "Fill in the campaign brief on the left and let Gemini generate headlines, descriptions and keywords, with character-limit validation for Google Ads and Sklik.",
-    emptyHint: "Tip: try “Fill example” and click Generate.",
+    emptyHint: "Tip: try “Fill example” and select Generate.",
     abNamePlaceholder: "A/B test name",
     abSaving: "Saving…",
     abSaveVariant: "Save variant",
@@ -452,14 +453,34 @@ function EditableTextRow({
   );
 }
 
-const EXAMPLE: AdRequest = {
-  product: "Kešu ořechy natural, 500 g",
-  benefits:
-    "100% natural bez soli a oleje, čerstvé z pravidelného obratu zásob, výhodné rodinné balení, BIO varianta skladem",
-  audience: "Lidé se zájmem o zdravý životní styl a kvalitní svačiny, domácí pekaři",
-  platform: "google",
-  tone: "pratelsky",
+/** The enum half of "Fill example": ids, not prose, so they are shared by both
+ *  locales and cannot drift out of the PLATFORMS / TONES unions. */
+const EXAMPLE_SETTINGS = { platform: "google", tone: "pratelsky" } as const;
+
+/** The prose half. "Fill example" writes this straight into the form, where the
+ *  user reads and edits it before it reaches the model, so it is user-facing copy
+ *  and follows the reader's locale instead of filling an English user's form with
+ *  Czech. Both entries are a plausible brief for the same demo brand (nuts and
+ *  superfoods), authored per locale rather than translated. */
+const EXAMPLE_BRIEF: Record<SupportedLocale, Pick<AdRequest, "product" | "benefits" | "audience">> = {
+  cs: {
+    product: "Kešu ořechy natural, 500 g",
+    benefits:
+      "100% natural bez soli a oleje, čerstvé z pravidelného obratu zásob, výhodné rodinné balení, BIO varianta skladem",
+    audience: "Lidé se zájmem o zdravý životní styl a kvalitní svačiny, domácí pekaři",
+  },
+  en: {
+    product: "Raw almonds, 1 kg resealable pouch",
+    benefits:
+      "Single-origin harvest, nothing added, resealable pouch keeps them fresh for weeks, better price per kilo in bulk, organic option in stock",
+    audience: "Health-conscious snackers who buy in bulk, home bakers, meal preppers",
+  },
 };
+
+const exampleFor = (locale: SupportedLocale): AdRequest => ({
+  ...EXAMPLE_BRIEF[locale],
+  ...EXAMPLE_SETTINGS,
+});
 
 const EMPTY: AdRequest = { product: "", benefits: "", audience: "", platform: "google", tone: "vecny" };
 
@@ -700,7 +721,7 @@ export default function AdGenerator({
           <h2 className="text-base font-semibold text-navy-800">{t("formHeading")}</h2>
           <button
             type="button"
-            onClick={() => setForm(EXAMPLE)}
+            onClick={() => setForm(exampleFor(locale))}
             className="text-xs font-semibold text-brand-accent hover:text-brand-800"
           >
             {t("fillExample")}
@@ -770,7 +791,7 @@ export default function AdGenerator({
                     : "border-line text-muted hover:border-navy-200"
                 }`}
               >
-                {TONE_LABELS[tone]}
+                {toneLabel(tone, locale)}
               </button>
             ))}
           </div>

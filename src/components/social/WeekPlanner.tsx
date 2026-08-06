@@ -11,12 +11,13 @@ import { Calendar, Check, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import { readSocialBrand } from "@/lib/social/brand-storage";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { Formatters } from "@/lib/format";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
   TONES,
-  TONE_LABELS,
+  toneLabel,
   type SocialPlatform,
   type SocialPost,
   type Tone,
@@ -124,6 +125,7 @@ export default function WeekPlanner() {
   const pid = project?.id;
   const t = useT(T);
   const fmt = useFormatters();
+  const { locale } = useLocale();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [week, setWeek] = useState<Day[]>([]);
 
@@ -418,7 +420,7 @@ export default function WeekPlanner() {
               >
                 {TONES.map((tn) => (
                   <option key={tn} value={tn}>
-                    {TONE_LABELS[tn]}
+                    {toneLabel(tn, locale)}
                   </option>
                 ))}
               </select>

@@ -18,16 +18,34 @@ export function isByomVendor(v: unknown): v is ByomVendor {
   return typeof v === "string" && (BYOM_VENDORS as readonly string[]).includes(v);
 }
 
-/** Czech vendor labels for the settings UI (kept here so the client and server
- *  agree on the display name without importing each other's runtime). */
-export const BYOM_VENDOR_LABELS: Record<ByomVendor, string> = {
-  openai: "OpenAI",
-  anthropic: "Claude (Anthropic)",
-  gemini: "Google Gemini",
-  openrouter: "OpenRouter",
-  qwen: "Qwen Cloud",
-  ollama: "Ollama (lokální)",
+/** Vendor labels for the settings UI (kept here so the client and server agree on
+ *  the display name without importing each other's runtime). The vendor NAMES are
+ *  do-not-translate product names — only the parenthetical qualifier on `ollama`
+ *  (a local/on-box server, not a hosted API) is copy, so the two columns are
+ *  identical apart from that one word. */
+export const BYOM_VENDOR_LABELS: Record<SupportedLocale, Record<ByomVendor, string>> = {
+  cs: {
+    openai: "OpenAI",
+    anthropic: "Claude (Anthropic)",
+    gemini: "Google Gemini",
+    openrouter: "OpenRouter",
+    qwen: "Qwen Cloud",
+    ollama: "Ollama (lokální)",
+  },
+  en: {
+    openai: "OpenAI",
+    anthropic: "Claude (Anthropic)",
+    gemini: "Google Gemini",
+    openrouter: "OpenRouter",
+    qwen: "Qwen Cloud",
+    ollama: "Ollama (local)",
+  },
 };
+
+/** The vendor display name for the reader's locale. */
+export function byomVendorLabel(v: ByomVendor, locale: SupportedLocale): string {
+  return (BYOM_VENDOR_LABELS[locale] ?? BYOM_VENDOR_LABELS.en)[v];
+}
 
 // ── Reasoning + model catalog (the BYOM matrix) ──────────────────────────────
 
@@ -41,13 +59,28 @@ export function isReasoningLevel(v: unknown): v is ReasoningLevel {
   return typeof v === "string" && (REASONING_LEVELS as readonly string[]).includes(v);
 }
 
-export const REASONING_LABELS: Record<ReasoningLevel, string> = {
-  default: "Výchozí",
-  off: "Vypnuto",
-  low: "Nízké",
-  medium: "Střední",
-  high: "Vysoké",
+export const REASONING_LABELS: Record<SupportedLocale, Record<ReasoningLevel, string>> = {
+  cs: {
+    default: "Výchozí",
+    off: "Vypnuto",
+    low: "Nízké",
+    medium: "Střední",
+    high: "Vysoké",
+  },
+  en: {
+    default: "Default",
+    off: "Off",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+  },
 };
+
+/** The reasoning-depth label for the reader's locale — the matrix's reasoning
+ *  column. The KEY is the persisted `ReasoningLevel`; only the label is copy. */
+export function reasoningLabel(r: ReasoningLevel, locale: SupportedLocale): string {
+  return (REASONING_LABELS[locale] ?? REASONING_LABELS.en)[r];
+}
 
 /** One selectable model in the matrix. `reasoning` is pre-selected when the model
  *  is picked; `noReasoning` marks a model with no reasoning knob (the reasoning

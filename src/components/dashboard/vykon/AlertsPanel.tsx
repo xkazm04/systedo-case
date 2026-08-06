@@ -42,7 +42,7 @@ const T = {
       "Sum of revenue and cost deviations from expected on flagged days in the selected period",
     alertsGained: "positive deviations",
     alertsGainedTitle:
-      "Sum of favourable deviations on flagged days: unexpected extra revenue and cost savings. Reported separately so it does not dilute the damage figure.",
+      "Sum of favorable deviations on flagged days: unexpected extra revenue and cost savings. Reported separately so it does not dilute the damage figure.",
     anomalySpike: "{metric}: spike {pct} above expected",
     anomalyDrop: "{metric}: drop {pct} below expected",
     anomalyOutage: "{metric}: outage (value near zero)",

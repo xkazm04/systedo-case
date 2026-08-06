@@ -76,7 +76,7 @@ const T = {
     samplePlaceholder: "Paste a message you actually sent…",
     remove: "Remove",
     distil: "Extract the voice (AI)",
-    distilling: "Analysing style…",
+    distilling: "Analyzing style…",
     redistil: "Regenerate",
     materials: "{n} materials",
     resultTitle: "Voice extracted",

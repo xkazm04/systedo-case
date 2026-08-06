@@ -9,7 +9,7 @@ import { useProject } from "@/lib/projects/context";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import type { BriefSeed } from "@/components/ai/KeywordResearch";
 import type { KeywordCluster, KeywordClustersResult } from "@/lib/ai-types";
-import { KEYWORD_INTENT_LABELS, type KeywordList } from "@/lib/keywords/types";
+import { KEYWORD_INTENT_LABELS, keywordIntentLabel, type KeywordList } from "@/lib/keywords/types";
 import { useAiTool } from "@/components/ai/useAiTool";
 import {
   LoadingTimer,
@@ -19,6 +19,7 @@ import {
   ToolError,
 } from "@/components/ai/primitives";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -72,6 +73,7 @@ export default function ClusterBuilder() {
   const pid = project.id;
   const router = useRouter();
   const t = useT(T);
+  const { locale } = useLocale();
   const fmt = useFormatters();
   const clusters = useAiTool<KeywordClustersResult>("keyword-clusters");
 
@@ -246,13 +248,14 @@ function GeneratedClusterCard({
   t: (key: keyof typeof T.en, vars?: Record<string, string | number>) => string;
   fmtInt: (n: number) => string;
 }) {
+  const { locale } = useLocale();
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span className="truncate text-sm font-semibold text-navy-800">{cluster.topic}</span>
           {cluster.intent && (
-            <span className="pill bg-navy-50 text-muted">{KEYWORD_INTENT_LABELS[cluster.intent]}</span>
+            <span className="pill bg-navy-50 text-muted">{keywordIntentLabel(cluster.intent, locale)}</span>
           )}
           {typeof cluster.totalVolume === "number" && cluster.totalVolume > 0 && (
             <span className="pill bg-brand-50 text-brand-700 tnum">

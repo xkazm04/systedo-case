@@ -78,7 +78,7 @@ const T = {
     ltvCac: "LTV : CAC",
     ltvCacTarget: "target ≥ 3.0×",
     payback: "Payback",
-    healthyInsight: "Unit economics are healthy (LTV:CAC ≥ 3). Acquisition can scale. Optimise for payback period, not {scaleOn}.",
+    healthyInsight: "Unit economics are healthy (LTV:CAC ≥ 3). Acquisition can scale. Optimize for payback period, not {scaleOn}.",
     unhealthyInsight: "LTV:CAC is below the 3× target. Before adding budget, improve {improve} or lower CAC. Otherwise faster acquisition deepens the loss.",
     cohortTableTitle: "Cohorts month by month",
     trendSub: "{from} → {to}: CAC {cacDelta}, LTV {ltvDelta}, LTV:CAC {ltvCacDelta}",

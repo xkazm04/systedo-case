@@ -11,7 +11,7 @@ const T = {
     heading: "Přehled kampaní",
     bodyBefore: "Přehled kampaní napojený na",
     googleAds: "Google Ads",
-    bodyAfter: "– přihlaste se Google účtem a vyberte svůj Ads účet, jinak běží přehled na ukázkových datech. Srovnání podle kampaní i typů a AI vyhodnocení s doporučenými kroky. Data se ukládají per uživatele do Firestore.",
+    bodyAfter: "– přihlaste se účtem Google a vyberte svůj účet Ads, jinak běží přehled na ukázkových datech. Srovnání podle kampaní i typů a AI vyhodnocení s doporučenými kroky. Data se ukládají per uživatele do Firestore.",
     pillLabel: "Cloud · přihlášení Google",
     footer: "Firestore · AI: Gemini",
   },
@@ -29,9 +29,9 @@ const T = {
 // generateMetadata not yet localized — this page has no server locale read
 // elsewhere; flagged for a future pass rather than improvised here.
 export const metadata: Metadata = {
-  title: "Kampaně — Google Ads přehled",
+  title: "Kampaně: přehled Google Ads",
   description:
-    "Přehled marketingových kampaní napojený na Google Ads: přihlášení Google účtem, výběr Ads účtu, srovnání podle kampaní i typů a AI vyhodnocení — data per uživatele ve Firestore.",
+    "Přehled marketingových kampaní napojený na Google Ads: přihlášení účtem Google, výběr účtu Ads, srovnání podle kampaní i typů a AI vyhodnocení — data per uživatele ve Firestore.",
 };
 
 export default async function CampaignsPage() {

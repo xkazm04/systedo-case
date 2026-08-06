@@ -21,7 +21,8 @@ const T = {
     back: "Zpět na dashboard",
     eyebrow: "Datový report",
     assistant: "Datový report: asistent",
-    assistantSub: "Ptejte se na detaily reportu. Model odpovídá z reálných dat.",
+    assistantSubLive: "Ptejte se na detaily reportu. Model odpovídá z vašich reálných dat.",
+    assistantSubSample: "Ptejte se na detaily reportu. Model odpovídá z ilustrativních ukázkových dat.",
     empty: "Vyberte otázku níže, nebo napište vlastní.",
     placeholder: "Zeptejte se na cokoli z reportu…",
     thinking: "Přemýšlím…",
@@ -40,7 +41,8 @@ const T = {
     back: "Back to dashboard",
     eyebrow: "Data report",
     assistant: "Data report: assistant",
-    assistantSub: "Ask about the report. The model answers from real data.",
+    assistantSubLive: "Ask about the report. The model answers from your real data.",
+    assistantSubSample: "Ask about the report. The model answers from the illustrative sample data.",
     empty: "Pick a question below, or type your own.",
     placeholder: "Ask anything about the report…",
     thinking: "Thinking…",
@@ -204,7 +206,11 @@ export default function ReportChat({
     projectId
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Both strings are driven by the SAME `live` flag: the card used to promise
+  // "real data" while the source note directly beneath it said "Illustrative data"
+  // on every demo mount.
   const sourceNote = live ? t("liveData") : t("illustrativeData");
+  const assistantSub = live ? t("assistantSubLive") : t("assistantSubSample");
 
   const onSend = (text: string) => {
     void send(text);
@@ -296,7 +302,7 @@ export default function ReportChat({
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-navy-800">{t("assistant")}</p>
-              <p className="text-xs text-muted">{t("assistantSub")}</p>
+              <p className="text-xs text-muted">{assistantSub}</p>
             </div>
             {messages.length > 0 && (
               <button

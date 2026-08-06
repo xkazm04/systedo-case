@@ -129,7 +129,7 @@ const T = {
     shareCopy: "Copy",
     evalHeading: "Full portfolio evaluation",
     evalBody:
-      "AI reviews all campaigns and types, then suggests where to move budget and what to optimise.",
+      "AI reviews all campaigns and types, then suggests where to move budget and what to optimize.",
     evaluating: "Evaluating…",
     evaluate: "Evaluate portfolio",
     reevaluate: "Re-evaluate portfolio",

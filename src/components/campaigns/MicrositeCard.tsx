@@ -15,7 +15,7 @@ const T = {
     heading: "Klientský microsite",
     subtitle:
       "Veřejná, vyhledávači indexovatelná stránka s výkonem klienta na stálé adrese, vždy aktuální" +
-      " z posledního snapshotu, ve vašich barvách.",
+      " z posledního snímku, ve vašich barvách.",
     brandLabel: "Značka klienta",
     brandSourceHint:
       "Název i akcent se přebírají z Automatického reportu pro klienta výše (Profil klienta). Spravujete je na jednom místě.",
@@ -33,7 +33,7 @@ const T = {
     heading: "Client microsite",
     subtitle:
       "A public, search-indexable page showing client performance at a permanent URL, always" +
-      " up to date from the latest snapshot, in your brand colours.",
+      " up to date from the latest snapshot, in your brand colors.",
     brandLabel: "Client brand",
     brandSourceHint:
       "Name and accent are taken from the Automated client report above (Client profile), managed in one place.",

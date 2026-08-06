@@ -5,12 +5,13 @@ import { useSession } from "next-auth/react";
 import { useOptionalProject } from "@/lib/projects/context";
 import { Layers, Close, Download } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { toCsv, downloadText } from "@/lib/export";
 import { reportAssetPublished } from "@/lib/activity/publish-client";
 import { optimisticDelete } from "@/lib/optimistic-delete";
 import { CopyButton } from "./primitives";
 import {
-  KEYWORD_INTENT_LABELS,
+  keywordIntentLabel,
   KEYWORD_TAG_LABELS,
   type KeywordList,
   type KeywordTag,
@@ -61,6 +62,7 @@ const TAG_STYLE: Record<KeywordTag, string> = {
  *  requires an account). Reloads when `refreshKey` changes. */
 export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }) {
   const t = useT(T);
+  const { locale } = useLocale();
   const fmt = useFormatters();
   const { status } = useSession();
   const project = useOptionalProject();
@@ -204,7 +206,7 @@ export default function SavedKeywordLists({ refreshKey }: { refreshKey: number }
                     <span className="truncate text-sm font-medium text-navy-800">{k.keyword}</span>
                     <span className="ml-2 text-xs text-muted">
                       <span className="tnum">{fmt.fmtInt(k.avgMonthlySearches)}</span>{t("perMonth")} ·{" "}
-                      {KEYWORD_INTENT_LABELS[k.intent]}
+                      {keywordIntentLabel(k.intent, locale)}
                     </span>
                   </span>
                   <span className="flex shrink-0 gap-1">

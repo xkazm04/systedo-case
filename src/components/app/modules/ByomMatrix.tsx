@@ -5,8 +5,8 @@ import {
   BYOM_MODEL_CATALOG,
   BYOM_OPERATIONS,
   BYOM_OPERATION_LABELS,
-  BYOM_VENDOR_LABELS,
-  REASONING_LABELS,
+  byomVendorLabel,
+  reasoningLabel,
   REASONING_LEVELS,
   type ByomVendor,
   type PublicByomConfig,
@@ -193,7 +193,7 @@ export default function ByomMatrix() {
                   <option value="">({t("inherit")})</option>
                   {configured.map((v) => (
                     <option key={v} value={v}>
-                      {BYOM_VENDOR_LABELS[v]}
+                      {byomVendorLabel(v, locale)}
                     </option>
                   ))}
                 </select>
@@ -243,7 +243,7 @@ export default function ByomMatrix() {
                 >
                   {REASONING_LEVELS.map((r) => (
                     <option key={r} value={r}>
-                      {REASONING_LABELS[r]}
+                      {reasoningLabel(r, locale)}
                     </option>
                   ))}
                 </select>

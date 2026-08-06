@@ -28,7 +28,7 @@ const T = {
     measured: "Změřeno {date} ({age}) · rozhodčí {judge}.",
     stale: "⚠ Skóre může být zastaralé (naposledy měřeno {age}).",
     selfJudge:
-      "° Rozhodčí je claude-sonnet. Sloupce rodiny Anthropic (claude-*) hodnotí sourozenecký model (home-team bias).",
+      "° Rozhodčí je claude-sonnet. Sloupce rodiny Anthropic (claude-*) jsou hodnoceny sourozeneckým modelem (home-team bias).",
     na: "—",
   },
   en: {

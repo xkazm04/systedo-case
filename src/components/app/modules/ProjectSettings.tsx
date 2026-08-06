@@ -19,7 +19,7 @@ const T = {
   cs: {
     dataSourceTitle: "Zdroj dat",
     dataSourceLive: "Projekt používá živá data z Google Ads.",
-    dataSourceDemo: "Připojte Google Ads účet v modulu Kampaně pro živá data.",
+    dataSourceDemo: "Připojte účet Google Ads v modulu Kampaně pro živá data.",
     projectName: "Název projektu",
     website: "Web",
     websiteOptional: "(nepovinné)",

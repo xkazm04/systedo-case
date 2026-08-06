@@ -74,11 +74,11 @@ async function resolveActor(
   }
   const connection = await getAdsConnection(userId);
   if (!connection) {
-    return { error: { ok: false, error: "Nejdřív připojte živý Google Ads účet." } };
+    return { error: { ok: false, error: "Nejdřív připojte živý účet Google Ads." } };
   }
   const token = await getUserAccessToken(userId);
   if (!token) {
-    return { error: { ok: false, error: "Chybí Google autorizace (přihlaste se znovu)." } };
+    return { error: { ok: false, error: "Chybí autorizace Google (přihlaste se znovu)." } };
   }
   return { actor: { connection: { customerId: connection.customerId }, token } };
 }

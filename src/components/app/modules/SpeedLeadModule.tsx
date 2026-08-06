@@ -26,6 +26,7 @@ import { REASON_LABELS } from "@/components/app/twin/labels";
 import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
+import type { SupportedLocale } from "@/lib/format";
 import { mmss, useLeadSla, type SlaPhase } from "./speed-lead/useLeadSla";
 import { useSnippetLibrary } from "./speed-lead/useSnippetLibrary";
 import { describeQualification } from "./speed-lead/qualification";
@@ -80,7 +81,6 @@ const T = {
     confirmReject: "Zamítnout a poučit twin",
     cancel: "Zrušit",
     autoApproved: "Schváleno automaticky",
-    learned: "Twin se poučil z {n} zamítnutí na poptávkách.",
     editLearned: "Vaši úpravu jsem uložil jako podklad pro hlas. Najdete ji v modulu Twin.",
     nextStepLeadQuality: "Posoudit kvalitu leadů podle zdroje",
     nextStepLeadQualityHint: "Které zdroje plní pipeline a které jen formuláře",
@@ -137,11 +137,10 @@ const T = {
     confirmReject: "Reject and teach the twin",
     cancel: "Cancel",
     autoApproved: "Auto-approved",
-    learned: "The twin has learned from {n} rejections on enquiries.",
     editLearned: "I saved your edit as voice material. Find it in the Twin module.",
     nextStepLeadQuality: "Assess lead quality by source",
     nextStepLeadQualityHint: "Which sources fill the pipeline vs. just fill forms",
-    nextStepOptimize: "Optimise slow-response sources",
+    nextStepOptimize: "Optimize slow-response sources",
     nextStepOptimizeHint: "Shift budget to channels where you respond within SLA",
     agoMin: "{n} min ago",
     agoH: "{n} h ago",
@@ -150,14 +149,24 @@ const T = {
 
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+/** Neutral fallback used only when the catalog offers no service name at all.
+ *  It SEEDS the twin-reply prompt, so it has to follow the reader's locale: a
+ *  Czech noun phrase grounded an English user's generated reply in Czech. Not UI
+ *  copy (it is never rendered), so it stays out of the T table, but the
+ *  Record<SupportedLocale, …> shape keeps the two columns type-enforced. */
+const PROJECT_TYPE_FALLBACK: Record<SupportedLocale, string> = {
+  cs: "poptávaná služba",
+  en: "the service being enquired about",
+};
+
 /** A short project-type hint for the AI reply, grounded in the business's REAL
  *  catalog: prefer a service the lead names in their message, else the primary
  *  service, else a neutral label. No hardcoded industry — the old klimatizace /
  *  elektroinstalace guesses mislabelled every non-HVAC maker (BM-L1 cross-niche). */
-function projectTypeFor(lead: InboundLead, hints: string[]): string {
+function projectTypeFor(lead: InboundLead, hints: string[], locale: SupportedLocale): string {
   const m = lead.message.toLowerCase();
   const named = hints.find((h) => h && m.includes(h.toLowerCase()));
-  return named || hints[0] || "poptávaná služba";
+  return named || hints[0] || PROJECT_TYPE_FALLBACK[locale];
 }
 
 /** Formats "X min ago" / "X h ago" — caller must pass the `t` translator. */
@@ -259,7 +268,7 @@ export default function SpeedLeadModule({
       // channel: it steers phrasing, the channel steers the voice.
       channel: "leads",
       arrival: selected.channel,
-      projectType: projectTypeFor(selected, serviceHints),
+      projectType: projectTypeFor(selected, serviceHints, locale),
       contact: selected.name,
       brand: promptSafeName(project.name),
       ...(qualification ? { qualification } : {}),

@@ -14,6 +14,7 @@ import {
   type Timeline,
 } from "@/lib/speed-lead/qualification";
 import { useT } from "@/lib/i18n/client";
+import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
@@ -80,6 +81,7 @@ export default function LeadQualificationPanel({
   questions: string[];
 }) {
   const t = useT(T);
+  const { locale } = useLocale();
 
   /** Locale-aware option lists for the inline qualification selects. */
   const TIMELINE_OPTIONS: { value: Timeline; label: string }[] = [
@@ -115,7 +117,7 @@ export default function LeadQualificationPanel({
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("leadQualification")}</p>
         <div className="flex items-center gap-2">
           <Pill tone={scoreTone(qualScore)}>
-            {t("score", { n: qualScore })} — {scoreLabel(qualScore)}
+            {t("score", { n: qualScore })} · {scoreLabel(qualScore, locale)}
           </Pill>
           <span className="text-[11px] text-muted">{t("fieldsAnswered", { n: qualAnswered })}</span>
         </div>
