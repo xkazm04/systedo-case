@@ -194,6 +194,26 @@ tool-use, which `generateStructured` deliberately doesn't do.
 - All sends logged with `postedUrl` — an auditable ledger, which is also the
   retraction map if something lands wrong.
 
+## Dev-project intake — `/onboard` (added 2026-08-06)
+
+The headless sibling of the in-app `onboarding-scan`, for products that exist as
+a local repo (possibly pre-launch, no scannable homepage). `/onboard <repoPath>`
+scans the repository (README, docs, landing/i18n copy, pricing config, deployed
+site when found) → synthesizes a marketing profile → operator triages → applies
+via `scripts/outreach/apply-onboarding.mjs`, which mirrors the in-app apply
+route seam-for-seam: `sanitizeScanProfile` → onboarding state (`scanApplied`),
+`mergeScanSuggestions` → unconfirmed competitor suggestions, idempotent
+`SCAN_LIST_SEED` keyword list, optional `sanitizeOfferings` catalog write, and
+`createProject` when no project exists yet. Profile `extras` (value props,
+differentiators, pricing, community hints) exceed Adamant's schema and live in
+the outreach vault as researcher grounding. Output is immediately
+`/outreach research`-ready and visible in the app under `dev:local`.
+
+Unblocking fix shipped with it: db.ts migration v20 backfills seven tables
+(`organic_channels`, `diagnoses`, `recaps`, `annotations`, `lp_experiments`,
+`twin`, `onboarding`) that were added to the v1 SCHEMA without ledger entries —
+the UAT 2026-07-16 "migration ledger drops new tables" finding.
+
 ## Phasing
 
 1. **P1 — research + triage, vault-backed** (SHIPPED 2026-08-06): `/outreach`
