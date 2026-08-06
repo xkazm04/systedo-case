@@ -74,8 +74,10 @@ function Linkified({ text }: { text: string }) {
 }
 
 /** The legal copy itself — documents SHIPPED behavior only. Structured per
- *  locale so the pages stay bilingual without a translation framework; `cs` is
- *  the source of truth (repo i18n convention). */
+ *  locale so the pages stay bilingual without a translation framework. `en` is
+ *  the authoring source and `cs` is transcreated from it (docs/i18n/contract.md,
+ *  reversed 2026-08-05). Note this table is `LEGAL_CONTENT`, not `T` — the i18n
+ *  tooling identifies a locale table by its `cs:`/`en:` columns, not its name. */
 export const LEGAL_CONTENT: Record<
   SupportedLocale,
   { privacy: readonly LegalSection[]; terms: readonly LegalSection[] }

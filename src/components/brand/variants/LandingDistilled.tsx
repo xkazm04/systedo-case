@@ -49,7 +49,7 @@ const T = {
     heroTitle1: "Stůjte pevně.",
     heroTitle2: "Reklamy, které nepovolí.",
     heroSubhead:
-      "Adamant čte vaše živá data z Google Ads, řekne vám, co znamenají, a ze stejných čísel rovnou napíše inzeráty, články a posty. Jeden pracovní prostor místo dashboardu, tabulky a chatovacího okna.",
+      "Adamant čte vaše živá data z Google Ads, řekne vám, co znamenají, a ze stejných čísel rovnou napíše inzeráty, články a příspěvky. Jeden pracovní prostor místo dashboardu, tabulky a chatovacího okna.",
     heroPrimary: "Podívejte se, jak to funguje",
     heroSecondary: "Začít zdarma",
     heroHint: "Bez registrace — otevře se dashboard s ukázkovým účtem.",
@@ -66,7 +66,7 @@ const T = {
       "Kampaně se seřadí podle toho, kde utíká rozpočet. Anomálie i setrvalé týdenní propady dostanete pojmenované větou, ne jako graf k luštění.",
     step3: "Tvorba",
     step3Body:
-      "Inzeráty, články, sociální posty i vizuály vznikají nad stejnými čísly. Odejdete s něčím publikovatelným, ne s dalším grafem.",
+      "Inzeráty, články, příspěvky na sociální sítě i vizuály vznikají nad stejnými čísly. Odejdete s něčím publikovatelným, ne s dalším grafem.",
     loopClaim:
       "Rozdíl je v tom pořadí. Generátor, který vaše data nevidí, je jiný a slabší produkt.",
 
@@ -74,11 +74,11 @@ const T = {
     chHeading: "O každém kanálu říkáme, kam až sahá",
     chIntro:
       "Podpora kanálů je stupňovaná. Píšeme to sem, protože jinak se to pozná až po připojení účtu, a to je pozdě.",
-    lvlLive: "živý sync",
+    lvlLive: "živá synchronizace",
     lvlCopy: "kontrola inzerátů",
     lvlPublish: "publikování",
     noteGoogle: "Připojený účet, hodinová synchronizace, všechna čísla v dashboardu i v generování.",
-    noteSklik: "Kontrola limitů a délek textů u inzerátů. Živý sync dat zatím ne.",
+    noteSklik: "Kontrola limitů a délek textů u inzerátů. Živá synchronizace dat zatím ne.",
     noteMeta: "Plánování a publikování příspěvků. Měření výkonu ne.",
     noteTiktok: "Plánování a publikování příspěvků. Měření výkonu ne.",
     chClaim:

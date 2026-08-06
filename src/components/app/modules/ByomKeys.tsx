@@ -30,7 +30,7 @@ const T = {
     active: "Aktivní",
     setActive: "Použít",
     disabled: "Vypnuto (aplikace)",
-    useApp: "Používat providera aplikace",
+    useApp: "Používat poskytovatele aplikace",
     connected: "Připojeno",
     notConnected: "Nepřipojeno",
     validated: "Ověřeno",
@@ -57,7 +57,7 @@ const T = {
     errUnknownModel: "Tento model není v nabídce pro daného poskytovatele. Vyberte model ze seznamu.",
     incidentsTitle: "Zjištěno při generování",
     incidentDefinitive: "klíč vyřazen — opravte jej a otestujte",
-    incidentTransient: "jednorázový výpadek — použili jsme providera aplikace",
+    incidentTransient: "jednorázový výpadek — použili jsme poskytovatele aplikace",
     incidentsNote:
       "Zaznamenáno automaticky z běžných generování — poskytovatele se kvůli tomu neptáme navíc.",
     test: "Otestovat",

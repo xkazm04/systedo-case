@@ -53,7 +53,7 @@ const T = {
     brandVoice: "Brand voice (optional)",
     brandPlaceholder: "What you sell + how you talk — e.g. Mionelo: nuts & superfoods, friendly and authentic",
     brandHint: "AI writes in your brand voice, not generically.",
-    brandAuto: "Writing on-brand from your catalogue:",
+    brandAuto: "Writing on-brand from your catalog:",
     draftPlatforms: "Platforms to draft for",
     templateBtn: "Template",
     drafting: "Drafting…",

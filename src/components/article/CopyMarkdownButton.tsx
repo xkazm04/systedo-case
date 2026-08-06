@@ -7,7 +7,7 @@ import { useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
-    label: "Zkopírovat celý článek jako Markdown — pro AI asistenty a další zpracování",
+    label: "Kopírovat celý článek jako Markdown — pro AI asistenty a další zpracování",
     btn: "Markdown",
     copied: "Zkopírováno",
     toast: "Článek zkopírován jako Markdown",

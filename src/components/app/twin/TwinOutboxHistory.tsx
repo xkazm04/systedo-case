@@ -14,7 +14,7 @@ import { REASON_LABELS } from "./labels";
 const T = {
   cs: {
     history: "Historie",
-    noHistory: "Zatím žádné koncepty na tomto kanálu.",
+    noHistory: "Zatím žádné návrhy na tomto kanálu.",
     send: "Odeslat",
     sending: "Odesílám…",
     autoApproved: "Schváleno automaticky",

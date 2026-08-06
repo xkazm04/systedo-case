@@ -59,7 +59,7 @@ const T = {
     fKeywords: "Klíčová slova",
     fCompetitors: "Konkurenti (návrhy — potvrďte nebo upravte)",
     addPlaceholder: "Přidat a Enter",
-    suggestedType: "Doporučený typ",
+    suggestedType: "Navrhovaný typ",
     typeAlready: "už používáte",
     applyType: "Použít navrhovaný typ",
     typeConfirmTitle: "Změnit typ projektu?",

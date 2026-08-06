@@ -17,7 +17,7 @@ const T = {
     deltaSame: "beze změny proti minulé synchronizaci",
     allClear: "Bez kritických nálezů",
     pointTitle: "{date}: {critical} krit. · {warning} sledovat · {ok} v pořádku",
-    chartAria: "Časová osa zdraví portfolia přes {n} synchronizací",
+    chartAria: "Časová osa zdraví portfolia z {n} synchronizací",
   },
   en: {
     heading: "Portfolio health over time",

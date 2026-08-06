@@ -13,7 +13,7 @@ const T = {
     defaultLabel: "Podíl na proklicích v map packu",
   },
   en: {
-    you: "Your branch",
+    you: "Your location",
     defaultLabel: "Share of map-pack clicks",
   },
 } as const;

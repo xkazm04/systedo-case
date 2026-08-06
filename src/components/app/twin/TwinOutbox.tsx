@@ -85,7 +85,7 @@ const T = {
     sent: "Odesláno",
     rejected: "Zamítnuto",
     history: "Historie",
-    noHistory: "Zatím žádné koncepty na tomto kanálu.",
+    noHistory: "Zatím žádné návrhy na tomto kanálu.",
     disabledChannel: "Tento kanál je vypnutý — twin na něm nepíše. Zapněte ho v modulu Správa kanálů.",
     autonomyReview: "Režim: jen člověk",
     autonomyAssist: "Režim: twin píše, člověk schvaluje",

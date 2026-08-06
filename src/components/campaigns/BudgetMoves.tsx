@@ -33,7 +33,7 @@ const T = {
     lowConfidenceTitle:
       "Některý přesun přemísťuje více než polovinu rozpočtu dárce — lineární odhad je za hranicí" +
       " „malé realokace“ a dopad může být nadhodnocený.",
-    signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci.",
+    signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci přesunů.",
     propose: "Navrhnout do control plane",
     proposing: "Vytvářím návrh…",
     proposed: "Návrh vytvořen — schvalte jej v control plane níže.",
@@ -73,7 +73,7 @@ const T = {
     lowConfidence: "Lower-confidence estimate",
     lowConfidenceTitle:
       "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
-      " \"small reallocation\" it is honest for, so the projected impact may be overstated.",
+      " “small reallocation” it is honest for, so the projected impact may be overstated.",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
     propose: "Propose to control plane",
     proposing: "Creating proposal…",
@@ -81,7 +81,7 @@ const T = {
     proposeTitle:
       "Create a change package (simulate → approve → revert) in Budget management below",
     roasPortfolio: "Portfolio ROAS",
-    pnoPortfolio: "Portfolio COS",
+    pnoPortfolio: "Portfolio PNO",
     convValue: "Conversion value",
     valueChange: "Value change",
     footnote:

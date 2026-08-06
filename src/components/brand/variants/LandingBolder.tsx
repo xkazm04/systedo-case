@@ -48,7 +48,7 @@ import { CROSSROAD_HREFS, CROSSROAD_META } from "@/components/brand/crossroad/me
  *  the one tier that gets the brand color, so the strip states the hierarchy
  *  visually as well as in words instead of implying parity. */
 const CHANNELS: { name: string; live?: boolean; level: { cs: string; en: string } }[] = [
-  { name: "Google Ads", live: true, level: { cs: "živý sync", en: "live sync" } },
+  { name: "Google Ads", live: true, level: { cs: "živá synchronizace", en: "live sync" } },
   { name: "Sklik", level: { cs: "kontrola inzerátů", en: "ad-copy checks" } },
   { name: "Meta", level: { cs: "publikování", en: "publishing" } },
   { name: "TikTok", level: { cs: "publikování", en: "publishing" } },
@@ -63,7 +63,7 @@ const T = {
     heroSeeItWork: "Podívejte se, jak to funguje",
     heroStartFree: "Začít zdarma",
     channelsLabel: "Kanály a úroveň podpory",
-    channelsNote: "Úroveň uvádíme u každého kanálu zvlášť — živý sync má zatím jen Google Ads.",
+    channelsNote: "Úroveň uvádíme u každého kanálu zvlášť — živou synchronizaci má zatím jen Google Ads.",
 
     proofHeadline: "Důkaz: case-study účet, posledních 90 dní",
     proofNote:
@@ -85,7 +85,7 @@ const T = {
 
     closingTitle: "Buďte ve své reklamě neoblomní.",
     closingNote:
-      "Živý sync běží zatím jen nad Google Ads. Čísla výše jsou ilustrativní data case-study klienta.",
+      "Živá synchronizace běží zatím jen nad Google Ads. Čísla výše jsou ilustrativní data case-study klienta.",
   },
   en: {
     heroTitle1: "Stand adamant.",

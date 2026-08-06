@@ -20,7 +20,7 @@ const T = {
   cs: {
     title: "Akční plán rozpočtu",
     subtitle:
-      "Napojeno na sklad: doporučené přesměrování výdajů z docházejících SKU napříč všemi kanály. Přijmi, co dává smysl — provedení je na tobě.",
+      "Napojeno na sklad: doporučené přesměrování výdajů z docházejících SKU napříč všemi kanály. Přijměte, co dává smysl — provedení je na vás.",
     recommendation: "doporučení · neprovádí změny",
     noActions: "Žádný přesun není potřeba — všechny SKU mají zásobu i rozpočet v pořádku.",
     from: "Utlumit",

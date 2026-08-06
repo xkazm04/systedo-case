@@ -64,7 +64,7 @@ const T = {
   },
   en: {
     heading: "Monthly report", periodLabel: "Period", print: "Print / PDF", downloadMd: "Download .md",
-    note: "Illustrative client data (the same you see in the dashboard). The AI only receives real numbers and must not invent any.",
+    note: "Illustrative client data (the same data you see in the dashboard). The AI only receives real numbers and must not invent any.",
     liveData: "Live data · Google Ads", syncedAt: "synced {date}",
     stale: "Data is out of date — last synced more than 7 days ago. Re-sync for current figures.",
     syncCta: "Sync from Google Ads", resync: "Re-sync", syncing: "Syncing…",

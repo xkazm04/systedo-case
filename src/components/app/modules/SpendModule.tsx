@@ -20,7 +20,7 @@ const T = {
     window7: "7 dní", window30: "30 dní", windowAll: "Vše",
     byOperation: "Podle operace", byModel: "Podle modelu",
     colModel: "Model", colCalls: "Volání", colTokens: "Tokeny", colCost: "Náklady", colShare: "Podíl",
-    export: "Export CSV", empty: "V tomto období není žádná spotřeba.",
+    export: "Exportovat CSV", empty: "V tomto období není žádná spotřeba.",
     note: "Ilustrativní spotřeba LLM. Živá verze agreguje kolekci llmTelemetry (zaznamenáno v recordLlmCall) za období.",
     noteLive: "Živá data z llmTelemetry pro tento projekt za posledních 60 dní.",
   },

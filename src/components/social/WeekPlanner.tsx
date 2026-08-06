@@ -57,11 +57,11 @@ const T = {
     generating: "Generating… {done}/{total}",
     genFailed: "Generation failed.",
     serverError: "Could not reach the server.",
-    partialKept: "Scheduled {done}/{total} topics — only the unprocessed ones were kept below; run the planner again.",
+    partialKept: "Scheduled {done}/{total} topics — only the unprocessed ones were kept in the field; run the planner again.",
     partialPosts: "Created {saved} of {promised} posts — some networks could not be generated.",
     overLimit: "{count} topics — the first 7 will be scheduled, the rest stay in the field.",
     voiceLabel: "Writing on-brand",
-    voiceHint: "Derived from your catalogue — posts stay in your range and vocabulary. Edit in Catalog.",
+    voiceHint: "Derived from your catalog — posts stay in your range and vocabulary. Edit in Catalog.",
   },
 } as const;
 

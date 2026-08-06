@@ -155,7 +155,7 @@ const T = {
     reportShow: "report",
     reportHide: "hide",
     exportCsv: "Export CSV",
-    exportCsvTitle: "Download the shown campaigns as CSV",
+    exportCsvTitle: "Download the campaigns shown as CSV",
     csvType: "Type",
     csvStatus: "Status",
     csvReason: "Top finding",

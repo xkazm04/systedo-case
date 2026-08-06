@@ -17,7 +17,39 @@ rule below has an **ID** for Pass B to cite.
 
 ---
 
-## ⚠ STATUS: BOOTSTRAP — none of this is validated against this catalog yet
+## ⚠ STATUS: PARTIALLY VALIDATED (2026-08-06)
+
+**EN-ARTICLE is validated** — see its section, now carrying six real pairs from
+the first fan-out wave, where it was the dominant source-side defect. Everything
+below it is still bootstrap and still unproven.
+
+### EN-SPELLING · the catalog has no spelling standard — do not assume one
+
+Two agents independently queued "US-normalizing" fixes, reverted them after
+grepping, and both reported the `en` column as "consistently British". **A
+measurement over the 3 286 `en` values says otherwise** — it is genuinely
+mixed, and each agent had generalised from whichever cluster it happened to hit:
+
+| | British | American |
+|---|---|---|
+| `optimis*` / `optimiz*` | 4 | 3 |
+| `analys*` / `analyz*` | **19** | 4 |
+| `-ised` / `-isation` vs `-ized` / `-ization` | 3 | **5** |
+| `centre` / `center` | 0 | **2** |
+| `catalogue` / `catalog` | 0 | **13** |
+
+Only `analyse` is a real house cluster; `catalog` is US at every site because it
+is the product's own module name. Everything else is a coin flip.
+
+**This is a parked decision, not a style rule** — see `review-cs.md` § A6. Pick
+one variety, sweep once. Until then: match the immediate neighbours of the
+string you are editing, and do not "fix" a spelling in isolation. The lesson
+generalises past spelling — *an agent that greps a handful of files and reports
+a house convention has usually found its own sample, not the catalog.*
+
+---
+
+## ⚠ The rest below: BOOTSTRAP — not validated against this catalog
 
 These rules are seeded from the **direction** (cs → en) and from the
 Czech-interference patterns that a Czech-first product reliably produces. They
@@ -51,10 +83,29 @@ stay with it; do not mix guides row by row.
 > `the` for a specific, previously-established referent; `a` on first mention;
 > bare plural for a generic class.
 
-```
-✗ Open detail of campaign          ✓ Open the campaign detail
-✗ Upload file to start analysis    ✓ Upload a file to start the analysis
-```
+> ### ✅ VALIDATED 2026-08-06 — the one rule in this file with real evidence
+>
+> The first fan-out wave changed 24 `en` values across 65 files. **A quarter of
+> them were this rule** (6 of the platform slice's 16), making it the dominant
+> source-side defect in the catalog. Real pairs, replacing the invented ones:
+>
+> ```
+> ✗ Illustrative client data (the same you see in the dashboard)
+> ✓ Illustrative client data (the same data you see in the dashboard)
+>                                        MonthlyReport.note
+>
+> ✗ Profit per ad currency                    ✗ Margin {channel}
+> ✓ Profit per unit of ad spend               ✓ Margin for {channel}
+>       profit.poasSub                              profit.marginAriaLabel
+>
+> ✗ Model timed out                  ✗ Generating on-brand reply with model…
+> ✓ The model timed out              ✓ Generating an on-brand reply with the model…
+>       SpeedLead.timedOut                  SpeedLead.generatingStatus
+> ```
+>
+> `profit.poasSub` is the sharpest instance: "profit per ad currency" is a
+> literal de-korunization of cs `zisk na korunu reklamy`. It is not English at
+> all, and no glossary or style guide would flag it.
 
 ## EN-VERBAL · Czech verbs, English nouns — this direction *adds* nominal style
 

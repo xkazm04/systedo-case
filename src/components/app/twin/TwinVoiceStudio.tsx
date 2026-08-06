@@ -79,7 +79,7 @@ const T = {
     distilling: "Analysing style…",
     redistil: "Regenerate",
     materials: "{n} materials",
-    resultTitle: "The voice is extracted",
+    resultTitle: "Voice extracted",
     apply: "Save this voice",
     dismiss: "Dismiss",
     directives: "Style directives",

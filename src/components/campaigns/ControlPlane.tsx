@@ -74,7 +74,7 @@ const T = {
     lowConfidence: "Lower-confidence estimate",
     lowConfidenceTitle:
       "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
-      " \"small reallocation\" it is honest for, so the projected impact may be overstated.",
+      " “small reallocation” it is honest for, so the projected impact may be overstated.",
     confirmOverride: "Confirm despite guardrails",
     confirmApply: "Confirm and apply to account",
     approveOverride: "Approve despite guardrails",

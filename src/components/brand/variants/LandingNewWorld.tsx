@@ -341,7 +341,7 @@ const CONNECTIONS = [
     name: "Google Ads",
     reads: 26,
     flow: "in" as const,
-    level: { cs: "živý sync dat", en: "live data sync" },
+    level: { cs: "živá synchronizace dat", en: "live data sync" },
     note: {
       cs: "Jediný kanál se živým datovým konektorem. Výkon se odečítá naplánovaným synchronizačním během.",
       en: "The only channel with a live data connector. Performance is read on a scheduled sync.",

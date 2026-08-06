@@ -17,7 +17,7 @@ import { toCsv, downloadText } from "@/lib/export";
 const T = {
   cs: {
     info: "Info", success: "Úspěch", warning: "Varování", critical: "Kritické",
-    all: "Vše", export: "Export CSV", empty: "Žádná aktivita neodpovídá filtru.",
+    all: "Vše", export: "Exportovat CSV", empty: "Žádná aktivita neodpovídá filtru.",
     window7: "7 dní", window30: "30 dní", windowAll: "Vše",
     today: "dnes", daysAgo: "před {n} dny",
     actorAi: "AI", actorSystem: "Systém", actorYou: "Vy",

@@ -30,7 +30,7 @@ import {
 const T = {
   cs: {
     intro:
-      'Kde twin mluví a jak moc mu věříte. „Samostatně" znamená: twin odpověď schválí sám, ale jen když si je jistý nad zvolenou hranicí a nenajde žádné riziko. Cokoli jiného počká na vás.',
+      'Kde twin mluví a jak moc mu věříte. „Samostatně“ znamená: twin odpověď schválí sám, ale jen když si je jistý nad zvolenou hranicí a nenajde žádné riziko. Cokoli jiného počká na vás.',
     enabled: "Zapnuto",
     autonomy: "Samostatnost",
     connector: "Doručení",

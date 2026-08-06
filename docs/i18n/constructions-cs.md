@@ -171,6 +171,33 @@ and friends are the **field labels of an exported clipboard/Markdown document**.
 Whether an export written by a Czech user should carry Czech or English headings
 is a product decision, and it is the reason this rule cannot simply be swept.
 
+## CS-FALSEMAP · the literal equivalent is a real Czech word that says something else
+
+> **Trigger** — an English word with an obvious Czech counterpart, in a
+> collocation where that counterpart shifts the meaning.
+> **Rule** — distinct from CS-LEFTOVER (untranslated English) and from
+> CS-NOMINAL (structure, not lexis). The output is fluent, correctly declined
+> Czech that states a *different fact*. Nothing in a glossary or a style guide
+> catches it, because each word in isolation is right.
+> **Harvested 2026-08-06** from the campaigns wave; all four verified in-catalog.
+
+```
+en  Health timeline across {n} syncs
+✗   Časová osa zdraví portfolia přes {n} synchronizací     ("more than {n} syncs")
+✓   Časová osa zdraví portfolia z {n} synchronizací        (HealthTimeline.chartAria)
+
+en  Sign in and connect a Google Ads account to apply moves.
+✗   …připojte Google Ads účet pro aplikaci.                ("for the app")
+✓   …připojte Google Ads účet pro aplikaci přesunů.        (BudgetMoves.signIn)
+
+en  Grounds the AI report (who the client is)…
+✗   Grunduje AI report…            (dialectal Germanism for "founds"; 1 occurrence in all of src)
+✓   Ukotvuje AI report…            (ReportSettings.profileHint — matches CompareSeoTable.anchorTitle)
+```
+
+`přes` + a numeral is the highest-yield instance: it silently converts an exact
+count into "more than", and it survives every other check in this file.
+
 ## CS-TERM-DRIFT · one concept, one Czech word
 
 > **Trigger** — a term already decided in [`glossary.md`](./glossary.md).
@@ -253,6 +280,47 @@ that were already fine.
 | Straight quotes in cs | 2 of 51 | Effectively compliant; the 2 are a typography-script fix, not a rule. |
 | Three-dot `...` instead of `…` | **0** of 140 | Fully compliant. |
 | Passive `je/jsou` + participle | 7 | Below the noise floor; not systematic. |
+| **CS-QUOTE** — straight `"` closing a `„…"` pair | **0** of 51 | **Rejected 2026-08-06.** Proposed as a new rule with "~10 UI sites" of evidence. Re-measured against catalog *values*: zero. Every cited site was a **code comment** (`primitives.tsx:423`, `ChannelTable.tsx:68`, `PeriodHeader.tsx:44`, `ChannelsSection.tsx:64`), where the glyph is irrelevant. The one real instance (`TwinChannels.intro`) was fixed and the class is now empty. **Grep source files and you will re-derive this false rule; grep catalog values and it disappears.** Use `scripts/i18n-audit.mjs`. |
+
+## CS-PREP-REPEAT · the Czech modifier collides with the sentence's next preposition — 2 sites
+
+> English stacks bare nouns (`AI ad intelligence`) then attaches a
+> prepositional phrase (`for e-shops and agencies`). Czech must render the
+> modifier prepositionally too (`pro reklamu`), which runs straight into the
+> second `pro`. Stacked identical prepositions (*hromadění předložek*) is a
+> recognised Czech stylistic fault, and this is exactly the interference route
+> Part 4's CS-NOMINAL predicts — the first real evidence for it.
+>
+> ```
+> en  AI ad intelligence for e-shops and agencies — measure performance, …
+> ✗   AI inteligence pro reklamu pro e-shopy a agentury — měřte výkon, …
+> ```
+> `BrandLanding.heroSubhead` · `LandingBolder.heroSubhead`
+>
+> **Parked because every fix trades one defect for another.** The genitive
+> (`pro reklamu e-shopů a agentur`) shifts ownership of the ads — wrong for an
+> agency, which runs its *clients'* ads. `AI reklamní inteligence pro e-shopy a
+> agentury` reads cleanly but changes the head term — and the head term is
+> itself split and frozen (review-cs.md § A5). Owner picks the phrasing, then a
+> 2-site sweep.
+
+## CS-SVO-AMBIG · Czech case syncretism makes an English passive parse backwards — 2 sites
+
+> **Trigger** — an English passive with a by-agent (`X is graded by Y`).
+> **Rule** — Czech nominative and accusative are identical for many noun
+> classes, so an object-first rendering default-parses as subject-first: the
+> sentence states the *opposite* of the source.
+>
+> ```
+> en  Anthropic-family models (claude-*) are graded by a sibling model
+> ✗   modely rodiny Anthropic (claude-*) hodnotí sourozenecký model
+>     (default reading: "…models grade a sibling model" — backwards)
+> ```
+> `ByomQualityOverview.selfJudge` · `ByomQualityMatrix.selfJudge`
+>
+> Parked, not fixed: whether surrounding context disambiguates enough is a
+> native's call. If it does not, the fix is an explicit passive
+> (`jsou hodnoceny sourozeneckým modelem`).
 
 ---
 

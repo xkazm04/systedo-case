@@ -19,11 +19,24 @@ en  Generate AI copy
 cs  Generovat AI texty
 ```
 
-**Why** — imperfective **infinitive** for an action not yet started
-(CS-ASPECT). Not `Vygenerovat` (perfective, reads as "generate it once and be
-done"), not `Generování` (a verbal noun, which is a heading, not a button).
-The same component's progress string is `Generuji…` and its result is
-`Uloženo` — the three forms of one verb, kept distinct.
+**Why** — a button takes the **infinitive**, not a verbal noun: `Generování`
+is a heading, not a control. The same component's progress string is
+`Generuji…` and its result is `Uloženo` — the three forms of one verb, kept
+distinct (CS-ASPECT).
+
+> **CORRECTED 2026-08-06.** This pair originally added "not `Vygenerovat`
+> (perfective)". That was wrong, and two agents independently caught it by
+> counting before applying: the catalog runs **13 `Vygenerovat*` against 4
+> `Generovat*`**, and all four of the minority are in `CatalogModule` — the very
+> file this exemplar was harvested from. The exemplar was generalising one
+> component into a house rule.
+>
+> **The real rule is contextual, and both forms are correct Czech:**
+> imperfective `Generovat` for an ongoing or repeatable activity (`Generovat AI
+> texty` — a batch you re-run over a feed), perfective `Vygenerovat` for
+> producing **one** artifact on demand (`Vygenerovat souhrn`, `Vygenerovat AI
+> odpověď`, `Vygenerovat vizuál`). Pick by what the button does, not by this
+> pair. Do not sweep either form toward the other.
 
 ## 2 · Heading — `RankLadder.title`
 

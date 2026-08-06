@@ -23,7 +23,7 @@ const T = {
     campaignCount: "{n} kamp.",
     convValueLabel: "Hodnota konverzí",
     costLabel: "Náklady {cost}",
-    spendShare: "{pct} výdajů",
+    spendShare: "{pct} útraty",
     attention1: "{n} vyžaduje pozornost",
     attention234: "{n} vyžadují pozornost",
     attentionN: "{n} vyžaduje pozornost",

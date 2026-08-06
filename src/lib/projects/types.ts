@@ -132,7 +132,7 @@ export const PROJECT_TYPE_META: Record<ProjectType, ProjectTypeMeta> = {
     primaryGoal: "Pozice v mapě & recenze",
     primaryGoalEn: "Map rank & reviews",
     overviewLead:
-      "Cíl: dominovat v místním vyhledávání. Zlepšujte pozice v mapovém balíčku, pečujte o recenze a Google Business Profil napříč pobočkami.",
+      "Cíl: dominovat v místním vyhledávání. Zlepšujte pozice v mapovém balíčku, pečujte o recenze a Google Business Profile napříč pobočkami.",
     overviewLeadEn:
       "Goal: dominate local search. Improve map-pack rankings, nurture reviews and your Google Business Profile across locations.",
     channelFocus: "Google Business Profile a lokální Search",

@@ -24,9 +24,9 @@ const T = {
     ops: "operací",
     method:
       "Změřeno {date} ({age}) · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
-    stale: "⚠ Naposledy měřeno {age} — skóre může být zastaralé. Zvaž přeměření (npm run llm:quality).",
+    stale: "⚠ Naposledy měřeno {age} — skóre může být zastaralé. Zvažte přeměření (npm run llm:quality).",
     selfJudge:
-      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model — jejich skóre ber jako ovlivněné „domácím prostředím“, ne neutrálně.",
+      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model — jejich skóre berte jako ovlivněné „domácím prostředím“, ne neutrálně.",
     na: "—",
   },
   en: {

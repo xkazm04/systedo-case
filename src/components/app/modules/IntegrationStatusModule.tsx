@@ -20,7 +20,7 @@ const COPY = {
     // status hint can't give. Keyed by item id + status.
     itemHint: {
       "sklik:manual": "Bez API tokenu, ale funkční: export do CSV, návrhy klíčových slov i adaptér pro import dat. Token zapne živé napojení účtu.",
-      "gbp:action": "Naimportujte Google Business Profil v modulu Mapa — pak se recenze a pobočky propíší živě.",
+      "gbp:action": "Naimportujte Google Business Profile v modulu Mapa — pak se recenze a pobočky propíší živě.",
     } as Record<string, string>,
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / BYOM)",

@@ -38,10 +38,27 @@ const DNT =
 const AUDIT_EXEMPT = [/design-system\/page\.tsx$/];
 
 /** 2nd-person-singular forms — `\w` is ASCII-only in JS, so `ž`/`ř` create false
- *  word boundaries; use explicit Unicode-aware guards instead of `\b`. */
+ *  word boundaries; use explicit Unicode-aware guards instead of `\b`.
+ *
+ *  The imperative list is open-ended and an under-specified pattern reports a
+ *  clean catalog: the first version of this regex covered only imperatives that
+ *  happened to appear in the 7 sites it found, and missed `Odhlásí tebe`,
+ *  `Zvaž přeměření` and `skóre ber jako…` — all real CS-REGISTER breaks a
+ *  reviewer caught by reading. Personal pronouns (`tebe`, `tobě`, `tvůj`…) are
+ *  the higher-recall half; keep adding verbs as they surface.
+ *  Deliberately NOT included: `ti` and `ty`, which are also the demonstratives
+ *  "those"/"that" and produce constant false positives. */
 const W = "A-Za-zÀ-ž0-9_";
 const TYKANI = new RegExp(
-  `(?<![${W}])(vyber|klikni|zadej|napiš|zkus|otevři|přidej|nastav|zvol|pošli|smaž|uprav|začni|nech|tvůj|tvoje|tvoji|tvých|tvá|tvému|tvém)(?![${W}])`,
+  `(?<![${W}])(` +
+    // imperatives
+    "vyber|klikni|zadej|napiš|zkus|otevři|přidej|nastav|zvol|pošli|smaž|uprav|" +
+    "začni|nech|zvaž|ber|dej|ukaž|podívej|sleduj|počkej|vyzkoušej|projdi|" +
+    // 2sg present
+    "máš|chceš|můžeš|víš|budeš|uvidíš|potřebuješ|" +
+    // 2sg pronouns / possessives
+    "tebe|tobě|tebou|tvůj|tvoje|tvoji|tvého|tvému|tvém|tvým|tvá|tvé|tvou|tvých|tvými" +
+    `)(?![${W}])`,
   "i"
 );
 

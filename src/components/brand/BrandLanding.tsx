@@ -22,7 +22,7 @@ import { CROSSROAD_HREFS, type CrossroadItem } from "@/components/brand/crossroa
 // ad-copy limit checks; Meta/TikTok are social publishing surfaces. The landing
 // states each level rather than implying live ingestion from all four.
 const CHANNELS: { name: string; level: { cs: string; en: string } }[] = [
-  { name: "Google Ads", level: { cs: "živý sync", en: "live sync" } },
+  { name: "Google Ads", level: { cs: "živá synchronizace", en: "live sync" } },
   { name: "Sklik", level: { cs: "kontrola inzerátů", en: "ad-copy checks" } },
   { name: "Meta", level: { cs: "publikování", en: "publishing" } },
   { name: "TikTok", level: { cs: "publikování", en: "publishing" } },
