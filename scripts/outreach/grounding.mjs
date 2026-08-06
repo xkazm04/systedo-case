@@ -93,7 +93,20 @@ const competitors = curatedCompetitors(competitorSet?.competitors).map((c) => ({
   name: c.name,
   ...(c.url ? { url: c.url } : {}),
 }));
-const keywords = [...new Set(catalog.map((o) => o.name).filter(Boolean))].slice(0, 8);
+// Unconfirmed scan suggestions are excluded from LLM-as-fact grounding by design,
+// but outreach researchers VERIFY on the live web — hand them over labeled as leads.
+const curatedNames = new Set(competitors.map((c) => c.name));
+const competitorSuggestions = (competitorSet?.competitors ?? [])
+  .filter((c) => !curatedNames.has(c.name))
+  .map((c) => c.name);
+// Scan keywords first (what the audience searches), catalog names as filler — a
+// plan-catalog's names (Free/Starter/…) are worthless as research keywords.
+const keywords = [
+  ...new Set([
+    ...(onboarding?.scan?.keywords ?? []),
+    ...catalog.map((o) => o.name).filter(Boolean),
+  ]),
+].slice(0, 12);
 
 const sample = channelPlanForProject(project, {
   category: categories[0],
@@ -107,9 +120,10 @@ console.log(
   JSON.stringify(
     {
       project: { id: project.id, name: project.name, type: project.type },
-      offering: categories.slice(0, 4).join(", "),
+      offering: categories.slice(0, 4).join(", ") || onboarding?.scan?.offering || "",
       localities,
       competitors,
+      competitorSuggestions,
       keywords,
       profile: scan
         ? {
