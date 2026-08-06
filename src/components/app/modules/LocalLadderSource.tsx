@@ -16,7 +16,7 @@ const T = {
     liveUrl: "Živá data · pozice z URL",
     synced: "synchronizováno {date}",
     refresh: "Aktualizovat z URL",
-    revert: "Zpět na ukázková",
+    revert: "Zpět na ukázková data",
     revertConfirm: "Přepnout zpět na ukázková data? Naimportované pozice (včetně historie) se odstraní a nahradí ukázkovými.",
     sampleNote: "Ukázkové pozice (ilustrativní). Naimportujte reálné pozice z libovolného rank trackeru.",
     importCta: "Importovat pozice",

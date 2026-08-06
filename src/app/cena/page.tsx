@@ -31,7 +31,7 @@ const T = {
     free: "Zdarma",
     perMonth: "/ měsíc",
     ctaFree: "Začít zdarma",
-    comingSoon: "Připravujeme po validaci",
+    comingSoon: "Spustíme po validaci",
     disclaimer:
       "Placené plány zatím nejsou spuštěné a platební brána není napojená — během validace nic neúčtujeme. Limity jsou denní a počítají se v UTC.",
   },
@@ -107,8 +107,8 @@ const PLAN_COPY: Record<
     pro: {
       tagline: "For agencies and daily work across multiple accounts.",
       features: [
-        "1 000 AI evaluations per day",
-        "1 000 syncs per day",
+        "1,000 AI evaluations per day",
+        "1,000 syncs per day",
         "100 visual generations per day",
         "Automatic hourly sync + e-mail alerts",
         "Weekly summary report",

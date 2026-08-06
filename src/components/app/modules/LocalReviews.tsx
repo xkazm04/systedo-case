@@ -38,7 +38,7 @@ const T = {
     suggestAgain: "Suggest again",
     suggest: "Suggest reply",
     generatingStatus: "Preparing a public reply with the model…",
-    timedOut: "Model timed out — please try again.",
+    timedOut: "The model timed out — please try again.",
     generationFailed: "Generation failed",
     retryBtn: "Retry",
     draftLabel: "Reply draft",

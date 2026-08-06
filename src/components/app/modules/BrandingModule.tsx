@@ -13,13 +13,13 @@ import { ACCENT_PALETTE, initials, isHexColor, readableOn } from "@/lib/branding
 const T = {
   cs: {
     accent: "Brand accent", accentHint: "Použije se v postranním panelu, reportech a klientském webu.",
-    logo: "Logo", logoHint: "Vlož odkaz na hostované logo, nebo nahraj soubor. Zobrazí se v hlavičce klientských reportů.",
+    logo: "Logo", logoHint: "Vložte odkaz na hostované logo, nebo nahrajte soubor. Zobrazí se v hlavičce klientských reportů.",
     logoPlaceholder: "https://…/logo.png",
     uploadBtn: "Nahrát soubor", uploadHint: "PNG/JPG/SVG — rastr se zmenší na 256 px.",
     uploadError: "Soubor se nepodařilo načíst (obrázek do 5 MB).", removeLogo: "Odebrat",
     preview: "Náhled hlavičky reportu", reportTitle: "Měsíční report",
     save: "Uložit branding", saving: "Ukládám…", saved: "Uloženo", error: "Uložení se nezdařilo.",
-    nameNote: "Název projektu se upravuje v Nastavení.", invalidHex: "Zadej platnou hex barvu (#rrggbb).",
+    nameNote: "Název projektu se upravuje v Nastavení.", invalidHex: "Zadejte platnou hex barvu (#rrggbb).",
     uploadedFilePlaceholder: "— nahraný soubor —",
   },
   en: {

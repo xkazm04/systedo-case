@@ -53,7 +53,9 @@ const T = {
     colProjProfit: "Proj. profit",
     reallocationFooter: "Allocated {allocated} of {total} · capped at 3× today's channel spend.",
     liveHint: "Margin or budget changes apply live.",
-    currencyUnit: "USD",
+    // "Kč", not "USD" — see profit/strings.ts; the budget input is koruny in
+    // both locales and these two panels render on the same screen.
+    currencyUnit: "Kč",
   },
 } as const;
 

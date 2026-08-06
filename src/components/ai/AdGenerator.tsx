@@ -116,7 +116,7 @@ const T = {
     placeholderBenefits: "100% natural, bez soli a oleje, skladem, doprava zdarma…",
     placeholderAudience: "Lidé se zájmem o zdravý životní styl",
     editableHint: "Texty lze upravovat přímo v řádcích — síla inzerátu, náhled i exporty se přepočítají živě.",
-    undoEdits: "Vrátit vygenerované",
+    undoEdits: "Vrátit vygenerované texty",
     undoEditsTitle: "Zahodit ruční úpravy a vrátit původní vygenerované texty",
   },
   en: {
@@ -129,7 +129,7 @@ const T = {
     sklikAdTag: "Ad",
     rsaSponsoredLine: "Sponsored · {advertiser}",
     rsaTitleFallback: "Ad headline",
-    rsaDescFallback: "Ad description will appear here.",
+    rsaDescFallback: "The ad description will appear here.",
     rsaNextCombo: "Next combination",
     rsaNextComboTitle: "Show another headline/description combination, the way Google rotates them",
     rsaComboOf: "Combination {i}/{n}",
@@ -153,7 +153,7 @@ const T = {
     abAdded: "Added to A/B test",
     abSaveFailed: "Saving the variant failed.",
     abAdd: "Add to A/B test",
-    downloadCsvTitle: "Download all texts as CSV",
+    downloadCsvTitle: "Download all copy as CSV",
     downloadCsv: "Download CSV",
     downloadEditorCsvTitle:
       "Download a CSV ready for Google Ads Editor import — one ad row (Headline 1–15, Description 1–4) + a second file with keywords",
@@ -182,12 +182,12 @@ const T = {
     copyAllLongHeadline: "LONG HEADLINE:",
     copyAllKeywords: "KEYWORDS:",
     maxCharsHint: "max {n} chars",
-    placeholderProduct: "Cashew nuts natural, 500 g",
+    placeholderProduct: "Natural cashew nuts, 500 g",
     placeholderBenefits: "100% natural, no salt or oil, in stock, free shipping…",
     placeholderAudience: "People interested in a healthy lifestyle",
-    editableHint: "Texts are editable right in the rows — ad strength, the preview and exports recompute live.",
-    undoEdits: "Restore generated",
-    undoEditsTitle: "Discard manual edits and restore the original generated texts",
+    editableHint: "The copy is editable right in the rows — ad strength, the preview and exports recompute live.",
+    undoEdits: "Restore generated copy",
+    undoEditsTitle: "Discard manual edits and restore the original generated copy",
   },
 } as const;
 

@@ -94,7 +94,7 @@ const T = {
   },
   en: {
     productFeedLabel: "Product feed · {n}",
-    searchProducts: "Search a product…",
+    searchProducts: "Search products…",
     loadMore: "Show more",
     showing: "Showing {shown} of {total}",
     noMatches: "No products match your search.",
@@ -110,8 +110,8 @@ const T = {
     exportCsv: "Export CSV",
     exportCsvAriaLabel: "Export CSV",
     copied: "Copied",
-    generatingStatus: "Generating on-brand copy with model… showing the feed-assembled draft in the meantime.",
-    timedOut: "Model timed out — showing the feed-assembled draft.",
+    generatingStatus: "Generating on-brand copy with the model… showing the feed-assembled draft in the meantime.",
+    timedOut: "The model timed out — showing the feed-assembled draft.",
     generationFailed: "Generation failed",
     generationFailedSuffix: "Showing the feed draft.",
     retryBtn: "Retry",
@@ -123,7 +123,7 @@ const T = {
     keywordsTitle: "Keywords ({n})",
     rationaleTitle: "Why this approach",
     footerAi: "AI-generated on-brand copy (“ads” mode via /api/ai), validated against Google Ads limits (headline {hl}, description {desc}, long headline {lhl} chars).",
-    footerDet: "Assembled from feed per Google Ads limits (headline {hl}, description {desc} chars). Click “Generate AI copy” for an on-brand version via /api/ai.",
+    footerDet: "Assembled from the feed per Google Ads limits (headline {hl}, description {desc} chars). Click “Generate AI copy” for an on-brand version via /api/ai.",
     // Direction 1 — ad copy at catalog scale
     selectForBatch: "Select {title} for batch generation",
     selectAll: "Select shown",
@@ -139,7 +139,7 @@ const T = {
     savedBadge: "Saved",
     exportAll: "Export all ({n})",
     exportAllAria: "Export every asset group to CSV",
-    exportAllHint: "{ai} with AI copy, {floor} from feed",
+    exportAllHint: "{ai} with AI copy, {floor} from the feed",
     rowRetry: "Retry",
   },
 } as const;

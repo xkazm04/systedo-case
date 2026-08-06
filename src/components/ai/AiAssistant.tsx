@@ -34,7 +34,7 @@ const T = {
     tablistAriaLabel: "Nástroje AI asistenta",
   },
   en: {
-    tabAdsLabel: "PPC Ads",
+    tabAdsLabel: "PPC ads",
     tabAdsService: "Performance advertising",
     tabKeywordsLabel: "Keywords",
     tabKeywordsService: "SEO & research",

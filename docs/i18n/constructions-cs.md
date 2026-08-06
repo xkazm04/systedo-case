@@ -153,7 +153,7 @@ en  The case study in four stops — each a real product surface, grounded in
 |---|---|---|
 | `Composer.draftFailed` | "Draft failed." | "Návrh se nezdařil." |
 | `Composer.saveFailed` | "Save failed." | "Uložení se nezdařilo." (matches 7 siblings) |
-| `Composer.serverError` | "Could not reach the server." | "Server je nedostupný." |
+| `Composer.serverError` | "Could not reach the server." | "Nepodařilo se spojit se serverem." ⚠ |
 | `PostsList.deleteAriaLabel` | "Delete" | "Smazat" |
 | `PostsList.scheduledAt` | "scheduled for {dt}" | "naplánováno na {dt}" |
 | `PostsList.publishedAt` | "published {rel}" | "zveřejněno {rel}" |
@@ -163,6 +163,17 @@ en  The case study in four stops — each a real product surface, grounded in
 | `CampaignTable.exportCsv` | "Export CSV" | "Exportovat CSV" |
 
 The last two were also CS-ASPECT violations: a button takes the infinitive.
+
+> ⚠ **`Composer.serverError` is the cautionary one.** The 2026-08-05 fill wrote
+> "Server je nedostupný." — good Czech, and **1 of 17** against 16 sites already
+> reading "Nepodařilo se spojit se serverem." for the byte-identical English. A
+> wave-2 reviewer caught it; corrected 2026-08-06.
+>
+> **Filling a leftover is a terminology decision, not a translation.** Before
+> writing a value into an empty column, grep the catalog for the *English* string
+> and adopt whatever the siblings already say. Inventing a fresh rendering
+> creates the drift this file exists to catch — and it is harder to spot than the
+> gap it replaced, because the audit only sees `cs === en`.
 
 **45 findings remain**, in 22 files. They are *term decisions*, not gaps — see
 [`review-cs.md`](./review-cs.md). The largest cluster (12, in
@@ -197,6 +208,42 @@ en  Grounds the AI report (who the client is)…
 
 `přes` + a numeral is the highest-yield instance: it silently converts an exact
 count into "more than", and it survives every other check in this file.
+
+## CS-NOMINAL · unstack English noun piles — usually with a case, not a verb
+
+> **Trigger** — an English compound noun phrase used as a label, heading or
+> placeholder.
+> **Rule** — English stacks bare nouns; Czech must mark the relationship, almost
+> always with a **genitive or a preposition**. The stacked form is grammatical
+> Czech and says nothing — it is the purest instance of "passes every check and
+> still reads translated".
+> **VALIDATED 2026-08-06** by the content-modules wave; three real pairs:
+
+```
+en  project management tool                    (placeholder)
+✗   např. projektové řízení nástroj            ✓ např. nástroj na řízení projektů
+                                                  LpExperimentsManager.clusterPlaceholder
+
+en  Winner ({conf} confidence)
+✗   Vítěz ({conf} jistota)      → shipped as "Vítěz (95,0 % jistota)"
+✓   Vítěz (jistota {conf})                        LpExperimentsModule.winner
+
+en  ~{n} visitors/variant before…
+✗   ~{n} návštěvníků/varianta než…             ✓ ~{n} návštěvníků na variantu, než…
+                                                  LpExperimentsModule.needVisitors
+```
+
+> **CORRECTED — the original rule text said "into finite verbs".** That came
+> from the reference run in [`lessons-i18n.md`](./lessons-i18n.md) § 1 and is
+> wrong for this catalog: **none** of the three real instances wanted a verb;
+> all three wanted a case or a preposition. Gold exemplar #2
+> (`Keyword ranking ladder` → `Žebříček pozic klíčových slov`) was already
+> showing the genitive form. Reach for a finite verb only when the English is
+> itself a nominalised action.
+>
+> Still **inverted in French** (Microsoft's French guide prefers noun forms over
+> English's verbs), and `constructions-en.md` § EN-VERBAL is this same
+> observation pointed the other way. Rules do not transfer between locales.
 
 ## CS-TERM-DRIFT · one concept, one Czech word
 
@@ -332,14 +379,7 @@ first transcreation wave. **The wave's job is to replace each invented example
 with a real one — or delete the rule.** Do not cite one in Pass B until it has
 a real ✗/✓ pair from this catalog.
 
-## CS-NOMINAL · unstack English noun piles into finite verbs ⚠
-
-> **Trigger** — an English compound noun phrase used as a label or heading.
-> **Rule** — the headline Czech rule in the reference run
-> ([`lessons-i18n.md`](./lessons-i18n.md) § 1): Czech prefers a conjugated verb
-> where English stacks nouns. Note this is **inverted in French** — the rule does
-> not transfer, and neither does its opposite in `constructions-en.md`
-> (EN-VERBAL), which is the same observation pointed the other way.
+## ~~CS-NOMINAL~~ · promoted to Part 1 on 2026-08-06 — see below
 
 ## CS-ARTICLE-GHOST · `the`/`a` translate to nothing ⚠
 

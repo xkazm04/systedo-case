@@ -115,7 +115,7 @@ const T = {
     briefOutline: "Outline ({n} sections):",
     step3Title: "Brief → article draft",
     step3Locked: "Create the brief in step 2 first.",
-    runDraft: "Expand to article",
+    runDraft: "Expand into an article",
     draftSummary: "{blocks} content blocks · {faq} FAQ questions",
     downloadMd: "Download .md",
     downloadMdTitle: "Download the article draft as Markdown",

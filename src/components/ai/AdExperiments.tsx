@@ -33,7 +33,7 @@ const T = {
     editPerf: "Upravit výkon",
     savePerf: "Uložit výkon",
     saveFailed: "Uložení výkonu se nezdařilo — čísla zůstala nezměněná. Zkuste to prosím znovu.",
-    impressions: "{n} imprese",
+    impressions: "{n} impresí",
   },
   en: {
     sectionHeading: "Ad A/B tests",

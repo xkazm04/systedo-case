@@ -24,7 +24,7 @@ const T = {
     breadcrumbArticle: "Článek",
   },
   en: {
-    eyebrow: "Data report · generated from dashboard",
+    eyebrow: "Data report · generated from the dashboard",
     readingTime: "{n} min read",
     tocSidebar: "Report contents",
     faqHeading: "Frequently asked questions",

@@ -31,12 +31,12 @@ const T = {
     emptyDesc:
       "Nejdřív si v modulu „Klíčová slova“ vyhledejte a uložte seznam klíčových slov — z něj pak tady sestavíte klastry.",
     listLabel: "Uložený seznam",
-    keywordsCount: "{n} slov",
+    keywordsCount: "{n} klíčových slov",
     buildingBtn: "Sestavuji…",
     buildBtn: "Sestavit",
     noCluster: "Z tohoto seznamu se nepodařilo sestavit žádný klastr.",
     pillar: "Pilíř",
-    supporting: "Podpůrná slova ({n})",
+    supporting: "Podpůrná klíčová slova ({n})",
     createBrief: "Vytvořit brief",
     perMonth: "{n}/měs",
   },
@@ -44,11 +44,11 @@ const T = {
     cardTitle: "Build cluster from keywords",
     clustersCount: "{n} clusters",
     description:
-      'Select a saved keyword list and the tool will build topic clusters from it — a pillar page plus supporting sub-pages. Use "Create brief" to send the pillar and supporting keywords straight to the content brief.',
+      "Select a saved keyword list and the tool will build topic clusters from it — a pillar page plus supporting sub-pages. Use “Create brief” to send the pillar and supporting keywords straight to the content brief.",
     loading: "Loading saved lists…",
     emptyTitle: "No saved lists",
     emptyDesc:
-      'First search and save a keyword list in the "Keywords" module — then use it here to build clusters.',
+      "First search and save a keyword list in the “Keywords” module — then use it here to build clusters.",
     listLabel: "Saved list",
     keywordsCount: "{n} keywords",
     buildingBtn: "Building…",

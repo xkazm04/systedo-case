@@ -42,7 +42,7 @@ const T = {
     schedule: "Naplánovat",
     publishNow: "Zveřejnit teď",
     draftFailed: "Návrh se nezdařil.",
-    serverError: "Server je nedostupný.",
+    serverError: "Nepodařilo se spojit se serverem.",
     saveFailed: "Uložení se nezdařilo.",
   },
   en: {

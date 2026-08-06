@@ -33,7 +33,7 @@ const T = {
     saving: "Ukládám…",
     recordFailed: "Zaznamenání výkonu se nezdařilo — zadané hodnoty zůstaly ve formuláři. Zkuste to prosím znovu.",
     deleteRecordAriaLabel: "Smazat záznam",
-    impressionsSuffix: " imprese",
+    impressionsSuffix: " impresí",
     roasLabel: "ROAS",
     sessionExpired: "Vaše přihlášení vypršelo. Přihlaste se znovu pro zobrazení atribuce kreativ.",
   },

@@ -20,7 +20,7 @@ const T = {
   cs: {
     sectionHeading: "Uložené seznamy",
     negativesHeading: "Vylučovací klíčová slova ({n})",
-    negativesBody: "Sjednocený seznam napříč seznamy — připravený k vložení do Google Ads jako vylučovací klíčová slova, aby se snížil zbytečný útrata.",
+    negativesBody: "Sjednocený seznam napříč seznamy — připravený k vložení do Google Ads jako vylučovací klíčová slova, aby se snížila zbytečná útrata.",
     copyNegatives: "Kopírovat",
     csvNegatives: "CSV",
     csvFilename: "adamant-vylucovaci-slova.csv",

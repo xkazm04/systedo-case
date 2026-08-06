@@ -23,7 +23,7 @@ const T = {
     urlPlaceholder: "https://…/leady.csv",
     synced: "synchronizováno {date}",
     refresh: "Aktualizovat z URL",
-    revert: "Zpět na ukázková",
+    revert: "Zpět na ukázková data",
     importBtn: "Nahrát",
     importing: "Nahrávám…",
     failed: "Import se nezdařil.",

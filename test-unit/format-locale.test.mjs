@@ -17,10 +17,13 @@ test("SUPPORTED_LOCALES is the one source the locale universe derives from", () 
 const cs = createFormatters("cs");
 const en = createFormatters("en");
 
-test("en formatters speak en-US/USD: dollar currency, period decimals", () => {
+test("en formatters use en-US number shapes but keep CZK: the data is koruna", () => {
+  // The `en` locale changes the LANGUAGE, not the money. Every stored amount is
+  // CZK (lib/campaigns/currency.ts: BASE_CURRENCY, "we relabel, never rescale"),
+  // so labelling it "$" told an English reader a figure ~22× its real value.
   const money = en.fmtCZK(1_234_567);
-  assert.ok(money.includes("$"), `expected a $ amount, got "${money}"`);
-  assert.ok(!money.includes("Kč"), `en money must not carry Kč: "${money}"`);
+  assert.ok(!money.includes("$"), `en money must not claim dollars: "${money}"`);
+  assert.ok(/CZK|Kč/.test(money), `en money must name the real currency: "${money}"`);
   assert.ok(en.fmtPct(0.165).includes("16.5"), `en percent uses a period decimal`);
   assert.ok(en.fmtMultiple(5.6).includes("5.6"), `en multiple uses a period decimal`);
 });
@@ -70,7 +73,8 @@ test("date/time surface: fmtDuration, fmtTime, fmtWeekdayShort follow the locale
 
 test("metric registry: format(v, enFormatters) renders the en locale", () => {
   assert.equal(METRICS.revenue.format(1500, en), en.fmtCZK(1500));
-  assert.ok(METRICS.revenue.format(1500, en).includes("$"));
+  // en switches the language, not the currency — the stored amount is koruna.
+  assert.ok(/CZK|Kč/.test(METRICS.revenue.format(1500, en)));
   assert.equal(METRICS.pno.format(0.85, en), en.fmtPct(0.85));
   assert.equal(METRICS.cost.formatCompact(1_600_000, en), en.fmtCZKCompact(1_600_000));
 });

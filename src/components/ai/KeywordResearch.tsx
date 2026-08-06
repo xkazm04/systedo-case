@@ -114,7 +114,7 @@ const T = {
     sortLabel: "Sort",
     sortByOpportunity: "Opportunity",
     sortByEfficiency: "Spend efficiency",
-    sortEfficiencyTitle: "Sort by opportunity per CZK of estimated cost-per-click (opportunity ÷ mid CPC) — higher means a better organic bet than paying for the click.",
+    sortEfficiencyTitle: "Sort by opportunity per unit of estimated cost-per-click (opportunity ÷ mid CPC) — higher means a better organic bet than paying for the click.",
     clusterPillarLabel: "Pillar",
     clusterSupportingLabel: "Supporting keywords ({n})",
     clusterCreateBrief: "Create brief",

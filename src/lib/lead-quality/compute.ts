@@ -265,12 +265,12 @@ const ALERT_MSG: Record<
   { rise: (source: string, pct: string) => string; target: (source: string, now: string, target: string) => string }
 > = {
   cs: {
-    rise: (source, pct) => `CPQL zdroje „${source}” vzrostlo o ${pct} oproti minulému období.`,
-    target: (source, now, target) => `CPQL zdroje „${source}” (${now}) překračuje cíl ${target}.`,
+    rise: (source, pct) => `CPQL zdroje „${source}“ vzrostlo o ${pct} oproti minulému období.`,
+    target: (source, now, target) => `CPQL zdroje „${source}“ (${now}) překračuje cíl ${target}.`,
   },
   en: {
     rise: (source, pct) => `The CPQL of source “${source}” rose by ${pct} vs. the previous period.`,
-    target: (source, now, target) => `The CPQL of source “${source}” (${now}) exceeds the target ${target}.`,
+    target: (source, now, target) => `The CPQL of source “${source}” (${now}) exceeds the target of ${target}.`,
   },
 };
 

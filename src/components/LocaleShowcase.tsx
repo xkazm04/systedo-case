@@ -33,7 +33,7 @@ const T: TDict<Key> = {
     rowMultiple: "Násobek",
     rowDate: "Datum",
     rowRelative: "Relativní čas",
-    footnoteLead: "Stejná čísla přes jeden chokepoint",
+    footnoteLead: "Stejná čísla jedním chokepointem",
     footnoteTail: "— přidání trhu je jediná položka v",
   },
   en: {

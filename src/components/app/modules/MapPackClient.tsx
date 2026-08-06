@@ -22,7 +22,7 @@ import type { AreaPack, MapListing } from "@/lib/mappack/sample";
 const T = {
   cs: {
     searchArea: "Vyhledávací oblast",
-    liveMap: "Mapa · OpenStreetMap (ukázková pozice)",
+    liveMap: "Mapa · OpenStreetMap (ukázkové pořadí)",
     liveMapReal: "Mapa · OpenStreetMap (naimportovaná data)",
     liveNoteReal: "Reálné dlaždice OpenStreetMap · jeden marker na konkurenta, podle naimportovaných souřadnic.",
     noGeoImported: "Import neobsahoval souřadnice — konkurenty jsme nepřipnuli na mapu, ale pořadí vedle je kompletní.",

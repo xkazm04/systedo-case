@@ -24,7 +24,7 @@ const T = {
     heading: "Mapa případové studie",
     subheadingBefore: "Celá studie je řízená jedním typovaným navigačním modelem (",
     subheadingAfter:
-      ") — hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže odkazy nikdy nerozjedou.",
+      ") — hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže se odkazy nikdy nerozejdou.",
     supplementary: "Doplňkové stránky",
   },
   en: {

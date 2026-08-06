@@ -22,7 +22,7 @@ const T = {
     baselinePrevious: "Předchozí",
     baselineYoy: "Rok zpět",
     yoyDisabledTitle:
-      "Pro toto období není dost historie na srovnání rok zpět (chybí data spřed roku).",
+      "Pro toto období není dost historie na srovnání rok zpět (chybí data zpřed roku).",
   },
   en: {
     periodLabel: "Period:",

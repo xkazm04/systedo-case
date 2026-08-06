@@ -157,6 +157,10 @@ export const T = {
     byMonths: "by month",
     week: "week",
     month: "month",
-    currencyUnit: "USD",
+    // "Kč", not "USD" — the overhead / per-order fields are koruny in BOTH
+    // locales (there is no stored currency dimension) and render through fmtCZK.
+    // Matches CostModelEditor and ProfitReallocationPanel; swept together on
+    // 2026-08-06 because these two render into one screen.
+    currencyUnit: "Kč",
   },
 } as const;

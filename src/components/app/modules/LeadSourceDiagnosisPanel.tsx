@@ -33,11 +33,11 @@ export type { LeadSourceSeed };
 const T = {
   cs: {
     panelTitle: "AI diagnóza zdroje",
-    panelDesc: "Model dostane jen spočítaná čísla zdroje a pojmenuje příčinu, proč podvýkonný (spam, špatné cílení, nebo cena), i konkrétní akci. Nevymýšlí žádné hodnoty.",
+    panelDesc: "Model dostane jen spočítaná čísla zdroje a pojmenuje příčinu, proč je podvýkonný (spam, špatné cílení, nebo cena), i konkrétní akci. Nevymýšlí žádné hodnoty.",
     selectAriaLabel: "Vyberte zdroj k diagnostice",
     diagBtn: "AI diagnóza",
     runningBtn: "Analyzuji…",
-    idleHint: "Vyberte podvýkonný zdroj a klikněte na „AI diagnóza“ — model přečte jeho čísla a určí, proč nevýkonný a kde začít. Funguje i bez API klíče v ukázkovém režimu.",
+    idleHint: "Vyberte podvýkonný zdroj a klikněte na „AI diagnóza“ — model přečte jeho čísla a určí, proč je podvýkonný a kde začít. Funguje i bez API klíče v ukázkovém režimu.",
     diagMeta: "Diagnóza zdroje „{source}“ · míra kvalifikace {qualRate} · win rate {winRate}{cpql} · {leads} leadů.",
     cpqlPart: " · CPQL {value}",
     likelyCauseLabel: "Pravděpodobná příčina:",

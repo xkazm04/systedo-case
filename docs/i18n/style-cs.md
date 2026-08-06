@@ -34,7 +34,16 @@ heading the way English UI chrome sometimes does.
 
 ## Typography
 
-- **Quotes**: `„…"` (low-9 opening, high-9 closing), never straight `"..."`.
+- **Quotes**: `„…“` — **U+201E** opening, **U+201C** closing (ČSN 01 6910).
+  Never straight `"…"`, and never the English closer U+201D `”`. Codepoints,
+  not shapes: this line previously *showed* a straight ASCII quote while its
+  prose said "high-9 closing", so the artifact contradicted itself and a
+  reviewer citing it could not tell which glyph was meant. Measured over
+  catalog values the repo is **51 : 0** on U+201C — fully consistent; the only
+  two offenders were runtime-built template literals in
+  `lib/lead-quality/compute.ts`, which a static scan of locale tables cannot
+  see. Note English is the mirror image (`“…”`, U+201C then U+201D) — a blind
+  find-and-replace across both columns breaks the English.
   Precedent: `footerDet`: `Klikněte na „Generovat AI texty" pro on-brand
   verzi…`. Also used for a change confirmation: `Změníme typ projektu na
   „{type}"`.

@@ -37,7 +37,7 @@ const T = {
     brandColor: "Brand color",
     colorLabel: "Color",
     errorEmpty: "Enter a project name.",
-    errorCreate: "Failed to create project.",
+    errorCreate: "Couldn't create the project.",
     errorGeneric: "Something went wrong.",
   },
 } as const;

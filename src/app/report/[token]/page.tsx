@@ -58,7 +58,7 @@ const T = {
     kpiRoas: "ROAS",
     kpiRoasHint: "return on ad spend",
     kpiPno: "PNO",
-    kpiPnoHint: "share of cost in revenue",
+    kpiPnoHint: "cost share of revenue",
     aiSection: "AI portfolio evaluation",
     budgetSection: "Recommended budget moves",
     movePreamble: "Move {amount}",

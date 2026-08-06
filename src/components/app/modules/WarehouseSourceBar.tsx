@@ -19,7 +19,7 @@ const T = {
     connected: "Napojeno",
     failingBadge: "Chyba synchronizace",
     pendingBadge: "Čeká na první synchronizaci",
-    unlocks: "Obrátka, marže (COGS) i naskladnění z POs tečou přímo ze skladu — ne z ručně udržovaných konstant.",
+    unlocks: "Obrátka, marže (COGS) i termíny naskladnění tečou přímo ze skladu — ne z ručně udržovaných konstant.",
     demoNote: "Ukázkové napojení — v prototypu jsou čísla ilustrativní; ostrá synchronizace se připojí přes API konektor.",
     otherSources: "Další zdroje",
     change: "Změnit zdroj",

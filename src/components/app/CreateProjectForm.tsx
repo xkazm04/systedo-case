@@ -72,7 +72,7 @@ const T = {
     proposedUnavailable: "Proposed module — not available yet.",
     prototypeNote:
       "Custom module selection isn't saved yet — the project is created with the default set for the chosen type. You can adjust modules anytime later.",
-    natureHeading: "Business nature",
+    natureHeading: "Nature of the business",
     natureHint: "Sets the new project's starter catalog (online sales vs. a local presence). Edit anytime in Catalog.",
     onlineLabel: "Online",
     onlineDesc: "Sold or served online, shipped nationwide.",

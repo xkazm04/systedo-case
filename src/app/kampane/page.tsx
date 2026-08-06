@@ -20,7 +20,7 @@ const T = {
     heading: "Campaign overview",
     bodyBefore: "A campaign overview connected to",
     googleAds: "Google Ads",
-    bodyAfter: "— sign in with your Google account and pick your Ads account, or the overview runs on sample data. Compares by campaign and by type, plus an AI evaluation with recommended next steps. Data is saved per user in Firestore.",
+    bodyAfter: "— sign in with your Google account and pick your Ads account, or the overview runs on sample data. Comparison by campaign and by type, plus an AI evaluation with recommended next steps. Data is saved per user in Firestore.",
     pillLabel: "Cloud · Google sign-in",
     footer: "Firestore · AI: Gemini",
   },

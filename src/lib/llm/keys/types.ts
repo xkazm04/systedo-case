@@ -172,7 +172,7 @@ export const BYOM_OPERATIONS: ByomOperation[] = [
   { id: "local-diagnosis", label: "Lokální diagnóza", labelEn: "Local visibility diagnosis" },
   { id: "monthly-recap", label: "Měsíční rekapitulace", labelEn: "Monthly recap" },
   { id: "channel-research", label: "Výzkum bezplatných kanálů", labelEn: "Organic channel research" },
-  { id: "onboarding-scan", label: "Sken webu při onboardingu", labelEn: "Onboarding website scan" },
+  { id: "onboarding-scan", label: "Úvodní sken webu", labelEn: "Onboarding website scan" },
 ];
 
 /** The operation labels as a colocated {cs, en} translation table, so the matrix
@@ -257,7 +257,7 @@ export const BYOM_INCIDENT_REASONS: Record<SupportedLocale, Record<string, strin
     // transient — LlmErrorCode
     timeout: "Poskytovatel neodpověděl včas.",
     empty: "Poskytovatel vrátil prázdnou odpověď.",
-    malformed_json: "Odpověď poskytovatele nešla zpracovat.",
+    malformed_json: "Odpověď poskytovatele se nepodařilo zpracovat.",
     rate_limited: "Poskytovatel dočasně omezil počet požadavků.",
     server: "Dočasná chyba na straně poskytovatele.",
     network: "Spojení s poskytovatelem selhalo.",
@@ -267,9 +267,9 @@ export const BYOM_INCIDENT_REASONS: Record<SupportedLocale, Record<string, strin
   },
   en: {
     auth: "The key is invalid or has been revoked.",
-    permission: "The key has no permission for this model.",
+    permission: "The key doesn't have permission for this model.",
     quota: "The provider account is out of credit or over its limit.",
-    model: "The selected model isn't available at the provider.",
+    model: "The selected model isn't available from this provider.",
     invalid: "The provider rejected the request.",
     timeout: "The provider did not answer in time.",
     empty: "The provider returned an empty response.",

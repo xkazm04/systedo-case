@@ -17,7 +17,7 @@ const T = {
     forecast: "Výhled na konec měsíce",
     goalSuffix: "· cíl {amount}",
     overGoal: "o {pct} nad cílem",
-    belowGoal: "{pct} pod cílem",
+    belowGoal: "o {pct} pod cílem",
     gaugeNote: "Plná barva = obrat zatím{forecastPart}; svislá značka = cíl{planPart}{ciPart}.",
     gaugeForecastPart: ", světlá = výhled",
     gaugePlanPart: ", tenká = dnešní plán",
@@ -77,7 +77,7 @@ const T = {
     statRequiredTitle:
       "Average daily revenue the remaining days must deliver to still hit the monthly target. At the current ROAS that is ≈ +{spend}/day of extra spend.",
     statRequiredTitleOnPace:
-      "Average daily revenue the remaining days must deliver to still hit the monthly target — the current pace suffices.",
+      "Average daily revenue the remaining days must deliver to still hit the monthly target — the current pace is enough.",
     historyLabel: "Goal attainment in closed months",
     historyHit: "target met",
     historyMiss: "target missed",

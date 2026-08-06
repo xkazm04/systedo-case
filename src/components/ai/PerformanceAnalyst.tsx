@@ -32,7 +32,7 @@ const T = {
     periodLabel: "Období",
     submitAnalyzing: "Analyzuji…",
     submitAnalyze: "Analyzovat data",
-    dataNote: "Nástroj interpretuje stejná (ilustrativní) data klienta Mionelo, jaká vidíš v",
+    dataNote: "Nástroj interpretuje stejná (ilustrativní) data klienta Mionelo, jaká vidíte v",
     dataNoteLink: "dashboardu",
     dataNoteSuffix: ". Model dostává jen reálná čísla a nesmí si žádná vymýšlet.",
     emptyTitle: "Analýza výkonu se zobrazí tady",
@@ -65,7 +65,7 @@ const T = {
     copyRisks: "\nWATCH OUT FOR:",
     copyActions: "\nRECOMMENDED ACTIONS:",
     downloadAnalysis: "Download .md",
-    downloadAnalysisTitle: "Download analysis as Markdown",
+    downloadAnalysisTitle: "Download the analysis as Markdown",
   },
 } as const;
 

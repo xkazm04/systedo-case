@@ -19,7 +19,7 @@ const T = {
     statusAcknowledged: "Vzato na vědomí",
     statusResolved: "Vyřešeno",
     acknowledge: "Vzít na vědomí",
-    resolve: "Označit vyřešené",
+    resolve: "Označit jako vyřešené",
     reopen: "Znovu otevřít",
     savedAt: "Uloženo {when}",
     historyTitle: "Historie diagnóz",

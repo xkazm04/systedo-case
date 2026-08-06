@@ -96,7 +96,7 @@ const T = {
     reverting: "Reverting…",
     stepContent: "Content engine",
     stepContentHint: "Write content for the chosen channel",
-    stepSocial: "Social",
+    stepSocial: "Social media",
     stepSocialHint: "Plan and publish posts",
     why: "Why this channel",
     payoff: "What it delivers",

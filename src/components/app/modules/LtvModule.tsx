@@ -95,7 +95,7 @@ const T = {
     legendModelled: "modelled",
     ltvNote: "LTV calculated over {months} months with {curve} extrapolation. {seam}",
     channelTableTitle: "CAC and payback by acquisition channel",
-    channelTableDesc: "Paid and organic channels from cohorts with breakdown. LTV:CAC shares the cohort's customer value.",
+    channelTableDesc: "Paid and organic channels from cohorts with a breakdown. LTV:CAC shares the cohort's customer value.",
     freeTag: "free",
     channelFooter: "CAC is the channel's own spend per {unitSingular}; organic / direct channels have zero acquisition cost and are excluded from paid CAC.",
     nextStepLabel: "Shift budget to channels with fast payback",

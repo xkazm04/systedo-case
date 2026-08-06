@@ -39,7 +39,7 @@ const T = {
     sortNewest: "Nejnovější", sortOldest: "Nejstarší", sortRatingDesc: "Nejvyšší hodnocení", sortRatingAsc: "Nejnižší hodnocení",
     unanswered: "Bez odpovědi", avg: "Průměr", total: "Recenzí",
     healthTitle: "Kondice odpovídání",
-    replyRate: "Míra odpovědí", medianAge: "Medián stáří (odpovězené)", trend: "Trend sentimentu",
+    replyRate: "Míra odpovědí", medianAge: "Medián stáří (zodpovězené)", trend: "Trend sentimentu",
     days: "{n} dní", noAnswered: "—",
     trendUp: "roste", trendDown: "klesá", trendFlat: "stabilní",
     healthNote: "Míra odpovědí = zodpovězené / celkem. „Medián stáří“ bere stáří zodpovězených recenzí (čas odpovědi se neukládá, jde o poctivý odhad). Trend porovnává podíl kladných ve starší a novější polovině okna.",
@@ -72,8 +72,8 @@ const T = {
     flag: "Flag for owner", flagged: "Flagged", markAnswered: "Mark answered", answered: "Answered",
     draftLabel: "Reply draft", aiReply: "AI reply", demoMode: "Demo mode",
     macros: "Templates", copy: "Copy", copied: "Copied",
-    generationFailed: "Generation failed", timedOut: "Model timed out — please try again.", retry: "Retry",
-    footer: "Reply publicly — a warm thank-you builds trust, an empathetic response to criticism reduces its impact. State is saved to the project; seam: reviews API (Google Business Profile).",
+    generationFailed: "Generation failed", timedOut: "The model timed out — please try again.", retry: "Retry",
+    footer: "Reply publicly — a warm thank-you builds trust, and an empathetic response to criticism reduces its impact. State is saved to the project; seam: reviews API (Google Business Profile).",
   },
 } as const;
 

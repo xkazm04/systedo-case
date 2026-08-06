@@ -36,7 +36,7 @@ const T = {
     newTitle: "Nový experiment",
     editTitle: "Upravit experiment",
     clusterLabel: "Klastr klíčových slov",
-    clusterPlaceholder: "např. projektové řízení nástroj",
+    clusterPlaceholder: "např. nástroj na řízení projektů",
     variantsLabel: "Varianty (první je kontrola)",
     variantLabelPh: "Popis varianty (např. B · Důraz na šablony)",
     visitors: "Návštěvníci",

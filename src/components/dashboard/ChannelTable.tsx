@@ -15,7 +15,7 @@ const T = {
     colRoas: "ROAS",
     colRevenueDelta: "Změna obratu",
     rowTotal: "Celkem",
-    revenueDeltaHint: "Δ obratu vs. minulé období",
+    revenueDeltaHint: "Δ obratu vs. předchozí období",
   },
   en: {
     colChannel: "Channel",

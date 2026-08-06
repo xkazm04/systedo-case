@@ -13,12 +13,30 @@ Run `node scripts/i18n-audit.mjs` for live numbers. Baseline at the flip:
 
 | Metric | 2026-08-05 (flip) | Now |
 |---|---|---|
-| cs/en pairs | 3 286 | 3 286 |
+| cs/en pairs | 3 286 *(undercounted)* | **3 586** |
 | adopters | 195 | 195 |
-| coverage gap (cs outside a locale table) | 90 strings / 34 files | 90 / 34 |
-| leftover source (cs = en, post-DNT) | 55 | **46** |
+| coverage gap (cs outside a locale table) | 90 / 34 files *(inflated)* | **50 / 26** |
+| leftover source (cs = en, post-DNT) | 55 | **51** |
 | register breaks (tykání) | 7 | **0** |
-| pairs reviewed en-first | 0 | **1 232 of 3 286 (37 %)** |
+| pairs reviewed en-first | 0 | **3 216 of 3 586 (90 %)** |
+
+**The first two rows moved because the audit was wrong, not the catalog.**
+Three agents independently found parser gaps in `scripts/i18n-audit.mjs`; all
+three are fixed and documented in the script:
+- **Line-anchored key regex.** `^\s*key: "value"$` only saw keys alone on a
+  line, so tables packing several per line were mostly invisible — `ReviewInbox`
+  holds 48 pairs and the audit reported 7. **+300 pairs** once fixed, and it
+  surfaced two real CS-REGISTER breaks in a file the audit had called clean.
+- **Object-only columns.** `cs: {` was required, so array-shaped tables
+  (`cs: [`, e.g. `ReviewInbox.MACROS`) reported every string as hardcoded.
+- **No inline-pair shape.** Per-string `{ cs: "…", en: "…" }` objects
+  (`lp/page.tsx`, `mapa/page.tsx`, `OrganicChannels`' label maps) were reported
+  as coverage gaps despite being fully localized. **−40 false findings.**
+
+The register count tells the same story twice over: the detector reported 0
+after wave 1, and reviewers then found `tebe`, `Zvaž`, `ber`, `vidíš` and
+`provedeš` by reading. **A clean report from this scan is weak evidence** — its
+recall is bounded by a word list.
 
 The register count is not a straight improvement story: the 2026-08-05 detector
 found 7 and reported clean. Wave 1's reviewers found **3 more by reading**, and
@@ -52,10 +70,13 @@ recall is bounded by its word list, so a clean report is weak evidence.*
             `site & marketing`, `modules-platform`, `campaigns`, `social-twin`.
             **60 values changed (24 en, 36 cs) — 95 % left untouched**, which is
             the intended ratio. Gate + typecheck + lint + build + 2 123 tests green.
-      - [ ] Wave 2 — `ai` (477), `modules-commerce` (470), `modules-content`
-            (250), `modules-local` (246), `pages` (143 — excluding
-            `design-system/page.tsx`, an internal gallery), `dashboard` (172),
-            `app-shell` (151), `lib-other` (75).
+      - [x] **Wave 2 (2026-08-06)** — 7 agents, 103 files, ~1 984 pairs: `ai`,
+            `modules-commerce`, `modules-content`, `modules-local`, `dashboard`,
+            `pages`, `app-shell + lib-other`. **131 values changed (83 en, 48 cs)**;
+            ~92 % left untouched. Gates green.
+      - [ ] **Remaining: `design-system/page.tsx`** (92 pairs) — an internal
+            component gallery whose columns are identical by design and which the
+            audit exempts. Deliberately never dispatched.
 - [ ] **P5 · Retire `constructions-en.md`** once P4 completes — it describes
       defects of the old cs→en direction that P4 removes.
 
@@ -88,6 +109,39 @@ found ([`lessons-i18n.md`](./lessons-i18n.md) § 6).
 |---|---|---|---|---|
 | 2026-08-05 | P0/P1 foundation | 17 | CS-REGISTER ×7, CS-LEFTOVER ×10 | Direction flip + artifacts. `AdsAccountPicker.noAccess` word-order half of the edit reverted → parked as CS-NOUNMOD (A4). |
 | 2026-08-06 | P4 wave 1 (4 agents) | 60 (24 en, 36 cs) | CS-TERM-DRIFT, CS-REGISTER, CS-ASPECT, CS-COUNT, CS-LEFTOVER, CS-FALSEMAP (new), EN-ARTICLE | See harvest below. Two complete term sweeps (`sync`→`synchronizace` 7 sites, `post`→`příspěvek` 2). Three real shipped bugs fixed. |
+| 2026-08-06 | P4 wave 2 (7 agents) | 131 (83 en, 48 cs) | + CS-NOMINAL (promoted), CS-COPULA, EN-ARTICLE ×22 | 9 new parked decisions (A15–A23), 9 new source defects (C17–C25). Currency bug fixed on the owner's ruling. Three audit-parser bugs fixed. |
+
+## Harvest from wave 2
+
+**Rules changed by evidence**
+- **CS-NOMINAL promoted from Part 4 to Part 1** with three real pairs — *and its
+  rule text corrected*. It said "unstack noun piles **into finite verbs**",
+  inherited from the reference run. None of the three real instances wanted a
+  verb; all three wanted a **case or a preposition** (`nástroj na řízení
+  projektů`, `Vítěz (jistota {conf})`, `návštěvníků na variantu`). Gold exemplar
+  #2 had been showing the genitive form all along.
+- **`Composer.serverError` — my own 2026-08-05 leftover-fill was the defect.**
+  It wrote good Czech that was 1-of-17 against 16 existing siblings.
+  *Filling a leftover is a terminology decision, not a translation:* grep the
+  **English** string first and adopt what the siblings say.
+- **`style-cs.md`'s quote rule showed a straight ASCII quote** while its prose
+  said "high-9 closing" — the artifact contradicted itself, so a reviewer citing
+  it could not tell which glyph was meant. Now specified by codepoint
+  (U+201E … U+201C), with the warning that English is the mirror image and a
+  blind find-and-replace across both columns breaks it. *(It did: I made exactly
+  that mistake mid-fix and had to restore the en column.)*
+- Rules proposed and **rejected for insufficient evidence**: CS-BRANCH-PARITY
+  (2 sites), CS-ELLIPSIS (1), CS-REFLEXIVE-DROP (1), CS-PREP-SHARED (1),
+  CS-AGREE (1), EN-SUBJECTLESS (~15 of 20 candidates were legitimate UI
+  ellipsis). The 2-example bar held under pressure from six agents.
+
+**What the agents refused to do, correctly**
+Two independently declined to sweep `koncept`→`návrh` despite the brief nudging
+that way, on the grounds that it is a *correct contextual split* (article
+manuscript vs reply proposal), not drift — and Gmail-cs backs them. That became
+A15. Others reverted after counting: `kontrola` for the A/B control (5 sites, 0
+competing), `rozpad` for "breakdown" (6 sites), NBSP before `%` (0 vs 94),
+`Nejprve` over `Nejdřív` (1 vs 13).
 
 ## Harvest from wave 1 — what the artifacts learned
 

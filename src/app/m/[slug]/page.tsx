@@ -31,11 +31,11 @@ const T = {
   en: {
     notFound: "Microsite not found",
     datasetName: "{client} — performance KPIs ({period})",
-    datasetDesc: "Revenue, cost, conversions and cost ratio for {period}.",
+    datasetDesc: "Revenue, cost, conversions and PNO for {period}.",
     propRevenue: "Revenue",
     propCost: "Cost",
     propConversions: "Conversions",
-    propPno: "Cost ratio",
+    propPno: "PNO",
     updatedAt: "updated {date}",
     illustrative: "Illustrative sample data (case study) — not a client's real results.",
   },

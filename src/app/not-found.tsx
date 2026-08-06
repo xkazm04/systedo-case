@@ -18,7 +18,7 @@ const T = {
   cs: {
     eyebrow: "Chyba 404",
     heading: "Stránka nenalezena",
-    body: "Odkaz může být překlepnutý, přesunutý — nebo už vypršela jeho platnost, sdílené reporty se otevírají jen po omezenou dobu. Vraťte se na rozcestník, nebo pokračujte rovnou na některou z částí případové studie.",
+    body: "Odkaz může být překlepnutý, přesunutý — nebo už vypršela jeho platnost, sdílené reporty se otevírají jen po omezenou dobu. Vraťte se na přehled, nebo pokračujte rovnou na některou z částí případové studie.",
     cta: "Zpět na přehled",
     destinations: "Kam dál",
   },

@@ -25,7 +25,7 @@ import { CATALOG_PAGE_SIZE, INPUT_BASE, offeringMatchesQuery } from "./catalog/o
 
 const T = {
   cs: {
-    sessionNote: "Úpravy jsou zatím jen v této relaci — perzistence a živé napojení WMS přijdou v další fázi.",
+    sessionNote: "Úpravy jsou zatím jen v této relaci — perzistence a živá synchronizace WMS přijdou v další fázi.",
     manualCatalog: "Manuální katalog",
     liveFrom: "Živě z",
     offerings: "položek",

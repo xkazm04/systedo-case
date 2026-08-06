@@ -37,7 +37,7 @@ export const INSIGHT_T = {
     insightTrendDown: "{metric} — pokles {weeks} v řadě ({pct} kumulativně).",
     insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
     insightWeekday:
-      "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod).",
+      "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod průměrem).",
     insightFunnel: "Změnu obratu táhne hlavně {driver} ({share} vlivu).",
     insightMixUp: "Podíl kanálu {channel} vzrostl o {pp} p.b. za období.",
     insightMixDown: "Podíl kanálu {channel} klesl o {pp} p.b. za období.",
@@ -52,7 +52,7 @@ export const INSIGHT_T = {
     navMixAria: "Přejít na kanál v tabulce: {label}",
     navMixHint: "Přejít na tento kanál v tabulce kanálů",
     coverageDegraded:
-      "Kratší historie dat — anomálie a trendy jsou méně citlivé, slabší signály nemusí být zachyceny.",
+      "Kratší historie dat — detekce anomálií a trendů je méně citlivá, slabší signály nemusí být zachyceny.",
     coverageInsufficient:
       "Zatím příliš málo dat pro spolehlivou detekci anomálií a trendů.",
   },
@@ -64,7 +64,7 @@ export const INSIGHT_T = {
     insightRevenueDownYoy: "Revenue fell by {delta} vs the same period last year.",
     insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
     insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
-    insightBestRoas: "Most efficient channel is {channel} with ROAS {roas}.",
+    insightBestRoas: "The most efficient channel is {channel} with ROAS {roas}.",
     insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
     insightTrendDown: "{metric} — declining {weeks} in a row ({pct} cumulative).",
     insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
@@ -78,7 +78,7 @@ export const INSIGHT_T = {
     funnelAov: "average order value",
     funnelChangeCol: "change",
     funnelShareCol: "share",
-    funnelSharesTotal: "Shares total",
+    funnelSharesTotal: "Sum of shares",
     navFocusAria: "Show on the chart: {label}",
     navFocusHint: "Show this metric on the chart",
     navMixAria: "Go to the channel in the table: {label}",

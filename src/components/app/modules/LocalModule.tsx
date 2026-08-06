@@ -44,7 +44,7 @@ const T = {
     missingPage: "Chybí stránka",
     gapActionCol: "Akce",
     exploreGap: "Prozkoumat klíčová slova",
-    gapsNote: "Pro každou mezeru nasaďte lokální microsite (/m/…) + Google Business profil. Seam: rank tracker + reviews API + call tracking.",
+    gapsNote: "Pro každou mezeru nasaďte lokální microsite (/m/…) + Google Business Profile. Seam: rank tracker + reviews API + call tracking.",
     reputationTitle: "Reputace podle lokality",
     reviewCount: "{n} recenzí",
   },

@@ -70,7 +70,7 @@ const T = {
     goalMet: "Cíl splněn",
     goalEta: "{pct} k cíli · odhad {n} měs. při růstu {growth}",
     goalNoEta: "{pct} k cíli · bez růstu nelze odhadnout ETA",
-    forecastLine: "Prognóza příští měsíc: {val} · 3měsíční průměr {avg}",
+    forecastLine: "Prognóza na příští měsíc: {val} · 3měsíční průměr {avg}",
     sparkLabel: "{title}: posledních {n} měsíců",
     nextStepBoost: "Posílit nejsilnější kanál",
     nextStepBoostHint: "Atribuce podle kanálu a varianty obsahu v Distribuci",

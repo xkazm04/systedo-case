@@ -47,7 +47,7 @@ const T = {
     funnelVelocity: "ø {days} dní do uzavření",
     funnelOverallConversion: "celkem {pct} lead → uzavřeno",
     funnelEntry: "vstup",
-    funnelFooter: "Konverze = podíl předané dál z předchozí fáze; drop-off = počet ztracený mezi fázemi. Fáze „Příležitost“ se zobrazí jen tam, kde data existují.",
+    funnelFooter: "Konverze = podíl předaný dál z předchozí fáze; drop-off = počet ztracený mezi fázemi. Fáze „Příležitost“ se zobrazí jen tam, kde data existují.",
     trendTitle: "Trend a upozornění",
     trendVsPrev: "vs. minulé období",
     alertSeverityCritical: "cíl",

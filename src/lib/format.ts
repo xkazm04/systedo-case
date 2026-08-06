@@ -22,7 +22,17 @@ interface LocaleConfig {
  *  `fmt*` produced by `createFormatters` then speaks that locale + currency. */
 export const LOCALES: Record<SupportedLocale, LocaleConfig> = {
   cs: { intlLocale: "cs-CZ", currency: "CZK" },
-  en: { intlLocale: "en-US", currency: "USD" },
+  // CZK, not USD — deliberately. `currency` here is the LANGUAGE's number
+  // formatting, not a market: every stored amount is CZK (see
+  // lib/campaigns/currency.ts — `BASE_CURRENCY = "CZK"`, "we relabel, never
+  // rescale", and the field names are literally `amountCzk`). Mapping `en` to USD
+  // relabelled Czech koruna as dollars with no conversion, so an English reader
+  // saw a figure ~22× overstated against its own symbol. `CostModelEditor` hit
+  // this and worked around it locally; this fixes it at the source.
+  // A genuinely foreign ad account is still labelled in its own currency by
+  // `resolveMoneyFormatter`, and LLM spend (really billed in USD) keeps its
+  // explicit override in `SpendModule`.
+  en: { intlLocale: "en-US", currency: "CZK" },
 };
 
 /** The UI language an *unidentified* visitor gets — no locale cookie, no stored

@@ -42,6 +42,20 @@ purely mechanical once decided.
 | **A13** | Czech gender/declension of loanwords — `microsite` (masc. vs fem.), `twin` (animate vs inanimate) | ~5 | minor | `Klientský microsite` and `poučit twin` are each internally consistent but a native may prefer the other. One ruling + glossary rows. |
 | **A14** | `home-team bias` left English in the cs column | 3 | minor | Term decision: keep, or render it. |
 
+### Added by the 2026-08-06 fan-out (wave 2)
+
+| # | Decision | Sites | Severity | The tension |
+|---|---|---|---|---|
+| **A15** | **`koncept` vs `návrh` for "draft"** | 15 | major | Two agents independently refused to sweep this and both were right: it is a *correct contextual split*, not drift. `koncept` = the article manuscript (`ArticleDraftPanel` titles itself `Koncept článku`, and Gmail-cs uses `Koncepty` for Drafts); `návrh` = a reply/ad proposal, which is what wave 1 fixed in the twin modules. Needs a **glossary carve-out row**, same shape as the `obrat`/`výnos` split — not a sweep. |
+| **A16** | **`Publikováno` vs `Zveřejněno`** | 26 (20:6) | minor | The glossary covers three `publish` senses; the **past participle "published (state)" is a fourth it doesn't cover**. Both clusters are internally consistent with their own siblings. Add the row before anyone touches it. |
+| **A17** | **`Fill example`** | 9 | minor | Genuine object-role calque of `Vyplnit ukázku` — the *form* gets filled, not the example. But every alternative changes the verb, and it is consistent house voice across 9 sites. **The 4 `emptyHint` strings that quote the label must move with it, in both columns.** |
+| **A18** | **`budget shifts` vs `budget moves`** (en only) | 10 (4:6) | minor | One Czech concept (`přesuny rozpočtu`, uniform); English split. Includes a verbatim triplet across `app/[projectId]/kampane`, `DemoModule` and `projects/modules.ts`. Same shape as A9. |
+| **A19** | **The geographic axis has three English names** | 14 | major | `area` (9), `locality` (2), `location` (3) — and `location` **also** means a business branch (`LocationsModule.colLocation` = "Pobočka"), so `ReviewInbox.areaAll: "All locations"` collides with the branch sense one screen away. cs splits it too (`lokalita` vs `oblast`). Tie-breakers sit in the `LocalTarget.area` data model. |
+| **A20** | **"free in full"** | 3 | minor | Not idiomatic ("in full" collocates with *pay/refund*). Spans `cena` ×2 and `LegalSections` — fixing two of three makes the pricing and legal pages phrase one commitment differently. |
+| **A21** | **"You pay tokens directly to the provider"** | 2 | minor | You pay *for* tokens. The cs twin `Platíte tokeny…` is genuinely ambiguous — `tokeny` is both accusative and instrumental, so it also reads "you pay *with* tokens". Sweep `cena` + `ByomKeys` together. |
+| **A22** | **`goal` vs `target`** for the monthly revenue goal | ~26 | minor | The catalog uses "goal" for the revenue goal and "target" for the PNO target — but `GoalPacing` uses "target" throughout for the *revenue* goal, and `GoalEditor.sub` uses both words in one sentence. cs is uniformly `cíl`, so there is no cs drift. |
+| **A23** | **Title Case on legal page headings** | 2 | minor | "Privacy Policy" / "Terms of Service" against `style-en.md`'s sentence-case rule. Legal-document names are a recognised carve-out; the footer nav uses bare "Privacy". |
+
 **Also documented, not a decision:** `case study` has a *systematic and correct*
 split in cs — standalone → `případová studie` (13 sites), attributive → English
 pre-posed (`case-study účtu`, `case-study datasetu`). An agent nearly "fixed"
@@ -85,7 +99,38 @@ Do-Not-Translate list. Each needs a ruling, then a glossary row.
 | **C13** | **Concatenated sentences** — `overheadFooter` finished by a JSX count; `breakEven` + `breakEvenLoaded` joined into one sentence whose second half starts with ", "; `responseGoal` + `slaGoal` sharing one key across two grammatical contexts. | `profit/OverheadPanel.tsx:150`, `CostModelEditor.tsx:149`, `SpeedLeadModule.tsx:483` | Caps translation quality permanently — the translator cannot see or reorder the whole sentence. The classic i18n source defect. |
 | **C14** | **`ControlPlane.tsx:241` hardcodes `label="COS"`** outside the locale table. | `campaigns/ControlPlane.tsx:241` | Now the last "COS" in the codebase after this wave renamed three catalog values to PNO — it renders "COS" to Czech users for a number the rest of the app calls PNO. One-word fix. |
 | **C15** | **Four dead keys** carried in both columns, never rendered: `ByomKeys.disabled`, `AccountSecurity.deleteTitle`, `SpeedLeadModule.learned`, `OnboardingModule.open`. Plus `TwinOutbox` duplicates five keys only its child renders. | various | Wasted translation effort and a drift vector — two hand-synced copies of one string is how the `koncepty` term drift spread. |
-| **C16** | **`LegalSections.tsx` header comment still claims `cs` is the source of truth.** | `site/LegalSections.tsx` | Stale since the 2026-08-05 flip; will mis-direct the next agent to read it. |
+| **C16** | **`LegalSections.tsx` header comment still claims `cs` is the source of truth.** | `site/LegalSections.tsx` | Stale since the 2026-08-05 flip; will mis-direct the next agent to read it. **FIXED 2026-08-06.** |
+
+### Found by the 2026-08-06 fan-out (wave 2)
+
+**C17 · The Czech-only-constant problem is systemic, not two files.** C5 named
+`POST_STATUS_LABELS` and `TONE_LABELS`. Wave 2 found **nine more**, each a
+`Record<K, string>` (not `Record<locale, …>`) rendered unconditionally in the
+English UI. Together this is **the largest remaining localization hole in the
+product**, and no locale-table wave can touch any of it — every one needs the
+constant restructured.
+
+| Constant | File | Renders in |
+|---|---|---|
+| `INTENT_LABELS` | `lib/seo-compare/compute.ts:12` | `CompareSeoTable` — intent pill, 4 slider labels, an aria-label, **and written into `BriefSeed.competition`** |
+| `PATTERN_CATEGORY_LABELS` | `lib/patterns/types.ts:15` | `PatternsLibrary` — filter chips, card pill, ManualAdd `<select>`: an English user's whole patterns taxonomy is Czech |
+| `IMAGE_STYLE_LABELS`, `IMAGE_FORMAT_PRESETS[].label` | `lib/images/types.ts:14,35` | `CreativeStudio`, `CreativeAttribution` |
+| `CONTENT_TYPE_LABELS` | `lib/ai-types.ts:238` | `ContentBriefGenerator` |
+| `REASONING_LABELS`, `BYOM_VENDOR_LABELS` | `lib/llm/keys/types.ts:44,23` | the BYOM matrix (`ollama: "Ollama (lokální)"`) |
+| `KIND_LABELS`, `VIA_LABELS` | `lib/activity/publish.ts:53,63` | the activity feed |
+| `StockRow.action` | `lib/inventory/compute.ts:121` | `InventorySeasonModule` — **also interpolates a raw ISO date** |
+| `scoreLabel()` | `lib/speed-lead/qualification.ts:67` | `LeadQualificationPanel` (already C8) |
+
+| # | Defect | Where | Why it matters |
+|---|---|---|---|
+| **C18** | **"Fill example" fills an English user's form with Czech.** `AdGenerator.EXAMPLE` is a Czech literal outside the locale table. | `ai/AdGenerator.tsx:455` | Same class as C17, but user-triggered and highly visible. |
+| **C19** | **The pricing page overstates the BYOM tier.** `PLAN_INFO.tagline`/`.features` (13 Czech-only strings) are dead, and `cena`'s live `PLAN_COPY` has drifted from them — dropping the author's explicit *"Honest disclosure"* line and the qualifier "(via your own key)". The shipped page says an unqualified "No daily cap on AI tools". | `lib/plans.ts:74-113` vs `app/cena/page.tsx` | A commercial claim that no longer matches what `PLANS.byom` delivers. **Worth checking before the next release.** |
+| **C20** | **`/cena` hand-types the plan limits** (25, 50, 5, 1 000, 100) that `plans.ts` exports as constants. | `app/cena/page.tsx` | Raising a limit leaves the pricing page lying, in two locales. This is also what produced the U+202F Czech separator found in the en column. |
+| **C21** | **`/clanek` and `/clanek/vykon` format dates with the home-market formatter** — module-level `fmtDate`, not `getServerFormatters()`. | `app/clanek/page.tsx:19`, `clanek/vykon/page.tsx:11` | 3 call sites render `cs-CZ` dates to an English reader on otherwise-localized pages. |
+| **C22** | **Hardcoded Czech in structured data** — `jsonLd.name = "Mapa případové studie Adamant"` emitted to search engines regardless of locale. | `app/mapa/page.tsx:83` | Also: `mapa` has static **English** `metadata` on a page that renders Czech UI — a Czech visitor gets an English SERP snippet. |
+| **C23** | **`blankVariant()` hardcodes `"A · Kontrola"`.** | `app/modules/LpExperimentsManager.tsx:94` | Czech rendered into the variant form for English users. |
+| **C24** | **`ReportChat.assistantSub` contradicts its own card.** It always claims the model answers from "real data" while `sourceNote` beneath it renders "Illustrative data" whenever `live === false` — i.e. the entire public demo. | `dashboard/ReportChat.tsx` | Needs a `live`-conditional key pair. |
+| **C25** | **Two dashboard strings assert a baseline the user may have switched away from.** `PeriodHeader.periodCompare` and `ChannelTable.revenueDeltaHint` say "vs. the previous period" unconditionally while the *Comparison baseline* selector can be set to *Year ago* — and the `DeltaBadge` inside that same cell **does** switch correctly, so a header and its own badge contradict each other. | `dashboard/vykon/PeriodHeader.tsx`, `dashboard/ChannelTable.tsx` | Deliberately not papered over: genericizing loses real information in the common case. Needs a second key. |
 
 ## D · Strings a native should read
 

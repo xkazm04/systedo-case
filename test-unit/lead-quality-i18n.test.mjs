@@ -63,16 +63,16 @@ test("alert copy: cs default is byte-identical to the former literals", () => {
   const alerts = sourceAlerts(tr); // default cs
   const rise = alerts.find((a) => a.kind === "cpql-rise");
   const target = alerts.find((a) => a.kind === "cpql-target");
-  assert.equal(rise.message, "CPQL zdroje „Meta” vzrostlo o 100 % oproti minulému období.");
+  assert.equal(rise.message, "CPQL zdroje „Meta“ vzrostlo o 100 % oproti minulému období.");
   assert.equal(
     target.message,
-    `CPQL zdroje „Meta” (${fmtCZK(1000)}) překračuje cíl ${fmtCZK(900)}.`,
+    `CPQL zdroje „Meta“ (${fmtCZK(1000)}) překračuje cíl ${fmtCZK(900)}.`,
   );
   // Explicit cs matches the default.
   assert.deepEqual(sourceAlerts(tr, {}, "cs").map((a) => a.message), alerts.map((a) => a.message));
 });
 
-test("alert copy: en yields English with USD currency", () => {
+test("alert copy: en yields English, still denominated in the real CZK", () => {
   const tr = sourceTrend(drifting);
   const alerts = sourceAlerts(tr, {}, "en");
   const rise = alerts.find((a) => a.kind === "cpql-rise");
@@ -80,7 +80,9 @@ test("alert copy: en yields English with USD currency", () => {
   assert.match(rise.message, /rose by 100 % vs\. the previous period/);
   assert.match(rise.message, /Meta/);
   assert.match(target.message, /exceeds the target/);
-  assert.match(target.message, /\$/); // USD formatting for en
+  // en switches the language, not the money — the amount is koruna either way.
+  assert.doesNotMatch(target.message, /\$/);
+  assert.match(target.message, /CZK|Kč/);
 });
 
 test("periodAlerts threads the locale across sources", () => {

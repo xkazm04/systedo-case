@@ -9,7 +9,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
-    ariaWithCompare: "Vývoj metriky {label} v čase se srovnáním s předchozím obdobím",
+    ariaWithCompare: "Vývoj metriky {label} v čase s překryvem srovnávacího období",
     ariaNoCompare: "Vývoj metriky {label} v čase",
     anomalySpike: "Prudký nárůst {pct} nad očekávání",
     anomalyDrop: "Propad {pct} pod očekávání",
@@ -28,8 +28,8 @@ const T = {
       "Vývoj metriky {label} — šipkami procházíte body, Home/End skočí na okraje, Enter připne popisek, Esc jej zavře.",
   },
   en: {
-    ariaWithCompare: "Trend of metric {label} over time compared with the previous period",
-    ariaNoCompare: "Trend of metric {label} over time",
+    ariaWithCompare: "Trend of {label} over time, with the comparison period overlaid",
+    ariaNoCompare: "Trend of {label} over time",
     anomalySpike: "Sharp spike {pct} above expected",
     anomalyDrop: "Drop {pct} below expected",
     anomalyOutage: "Outage — value near zero vs expected",

@@ -39,7 +39,7 @@ const T = {
     close: "Close",
     errGeneric: "Sending failed. Please try again.",
     errRate: "Too many messages in a row. Please try again later.",
-    errInvalid: "Please write a short message (and a valid email, if any).",
+    errInvalid: "Please write a short message (and a valid email, if you enter one).",
   },
 } as const;
 

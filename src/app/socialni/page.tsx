@@ -23,7 +23,7 @@ const T = {
     eyebrow: "Social media",
     heading: "Social media center",
     intro:
-      "Draft posts, schedule publishing, and handle comments and messages from one place. Without connected real accounts everything runs in demo mode (publishing is simulated), so you can walk through the whole flow.",
+      "Draft posts, schedule publishing, and handle comments and messages from one place. With no real accounts connected, everything runs in demo mode (publishing is simulated), so you can walk through the whole flow.",
   },
 } as const;
 

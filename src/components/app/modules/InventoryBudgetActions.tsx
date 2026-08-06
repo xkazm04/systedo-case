@@ -29,7 +29,7 @@ const T = {
     outSoon: "vyprodáno {date}",
     marginTilt: "marže {from} → {to}",
     guardOk: "V mezích pojistek",
-    guardBreach: "Mimo pojistky — vyžádá schválení",
+    guardBreach: "Mimo pojistky — vyžaduje schválení",
     accept: "Přijmout",
     dismiss: "Zamítnout",
     accepted: "Uloženo",
@@ -42,7 +42,7 @@ const T = {
     acceptedCount: "{n} přijato",
     dismissedCount: "{n} zamítnuto",
     footnote:
-      "Doporučení zasahují i Sklik, Zboží.cz a Heureku, které nativní řešení Googlu neřeší. Samotnou úpravu rozpočtů provedeš ve svých účtech — Adamant je nemění.",
+      "Doporučení zasahují i Sklik, Zboží.cz a Heureku, které nativní řešení Googlu neřeší. Samotnou úpravu rozpočtů provedete ve svých účtech — Adamant je nemění.",
   },
   en: {
     title: "Budget action plan",
