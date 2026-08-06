@@ -35,6 +35,10 @@ $VAULT/
   config.md                    # cadence defaults, guardrail overlay, operator taste notes
   projects/<projectId>/
     profile.md                 # grounding snapshot + operator corrections (regenerate, don't hand-sync)
+                               #   MUST carry a "Posture" section: pre-launch build-up | launched.
+                               #   Pre-launch = engage-only presence, waitlist-friendly channels,
+                               #   content/data plays, directory groundwork — no signup-driving
+                               #   targets. Ask the operator once at first research, persist it.
     targets/<slug>.md          # ONE file per target — the atom of the loop (format below)
     triage-log.md              # append-only: every accept/reject + the operator's reason
     dispatch-log.md            # append-only: every action → draft → approved? → postedUrl → outcome
@@ -84,8 +88,13 @@ project stands and the single next action. Always safe.
 
 1. **Ground.** Run the dump and paste key facts into `profile.md`:
    `node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --conditions react-server scripts/outreach/grounding.mjs <projectId>`
-   (no arg = list projects). Read `learnings.md` and `triage-log.md` — prior
-   rejections with reasons are CONSTRAINTS on this round, not suggestions.
+   (no arg = list projects). The dump carries scan keywords and
+   `competitorSuggestions` (unverified leads — researchers verify them; the
+   curated-only rule applies to LLM-as-fact prompts, not to verification).
+   Read `learnings.md` and `triage-log.md` — prior rejections with reasons are
+   CONSTRAINTS on this round, not suggestions. Read the posture from
+   `profile.md` (ask the operator once if unset) and put it in every
+   researcher prompt.
 2. **Fan out researchers** (Agent tool, run concurrently, one per lens):
    directories/listings · communities (FB groups, Reddit, Discord — Czech-first)
    · Q&A + forums (live threads the project could genuinely answer) ·
