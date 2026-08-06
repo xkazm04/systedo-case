@@ -106,3 +106,6 @@ kpi-sim/*
 
 # Personas app local state (outbox + registered-context list)
 .personas/
+
+# outreach loop vault (local state, never committed - see .claude/skills/outreach)
+.outreach/

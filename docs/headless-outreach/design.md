@@ -1,7 +1,26 @@
 # Headless Outreach — free-channel research → triage → twin dispatch
 
-Status: design v1 (2026-08-05). Battle-test target: owner's own projects, local,
-before any SaaS wiring.
+Status: design v1.1 (2026-08-06) — operator decisions folded in; P1 shipped as
+`/outreach` skill + `scripts/outreach/grounding.mjs` + git-ignored `.outreach/`
+vault. Battle-test target: owner's own projects, local, before any SaaS wiring.
+
+## Operator decisions (2026-08-06)
+
+1. **P1 is interactive** (skill in a live session), research is **open-ended** —
+   the pinned channel plan is hypotheses, never a boundary.
+2. **Memory is mandatory**: every triage decision (with the operator's reason)
+   and every dispatch outcome (success/failure per target) is persisted and fed
+   into subsequent research/dispatch rounds.
+3. **Obsidian vault is the temporary knowledge base** while the design settles —
+   the `src/lib/outreach/` store trio moves from P1 to the SaaS-wiring phase
+   (P4); target frontmatter keeps the `OutreachTarget` field names so the
+   migration is mechanical.
+4. **v2 keeps community/forum posts in scope.** The twin's principle: replace
+   the operator without the community noticing — i.e., voice-indistinguishable
+   posts under the operator's OWN authenticated accounts (operator handles
+   account creation and OAuth personally; auth is never automated). No invented
+   personas. First posts per target are operator-approved and banked as voice
+   training examples, so approval doubles as twin training.
 
 ## Why headless, and why this is differentiated
 
@@ -169,16 +188,20 @@ tool-use, which `generateStructured` deliberately doesn't do.
   never promo. Conditional → the condition is in the draft prompt.
 - Human gate on every outgoing post in v1; autonomy is per-target, earned, and
   reuses the twin's threshold + zero-risks gate.
-- Cadence caps enforced in code. Disclosure by default (the twin speaks *as* the
-  brand, not as a fake community member).
+- Cadence caps enforced in code. Identity is real: the twin writes in the
+  operator's voice under the operator's own authenticated accounts — no invented
+  personas, no fake grassroots, auth never automated.
 - All sends logged with `postedUrl` — an auditable ledger, which is also the
   retraction map if something lands wrong.
 
 ## Phasing
 
-1. **P1 — store + research + triage** (`src/lib/outreach/` local store, skill
-   with research fan-out and triage; targets visible via a minimal read-only
-   section or just the skill's report). Battle-test on 1 project.
+1. **P1 — research + triage, vault-backed** (SHIPPED 2026-08-06): `/outreach`
+   skill with research fan-out and interactive triage; state in the `.outreach/`
+   Obsidian vault (target files mirror `OutreachTarget` frontmatter); grounding
+   via `scripts/outreach/grounding.mjs` (LOCAL_DB stores, no next-auth in the
+   graph). Battle-test on 1 project. The `src/lib/outreach/` store trio is
+   deferred to P4.
 2. **P2 — dispatch loop** (`outreach-post` op, scout subagents, schranka-backed
    review, manual send, cadence rails). Battle-test across multiple projects;
    measure accept-rate of drafts and traction per target kind.
@@ -190,12 +213,10 @@ tool-use, which `generateStructured` deliberately doesn't do.
    Managed Agents or a worker — the economics question (subscription vs API
    tokens) gets answered by P2/P3 usage data.
 
-## Open decisions for the operator
+## Resolved decisions
 
-1. Research runtime for P1: interactive skill (recommended) vs detached from day
-   one.
-2. Whether the pinned `OrganicChannel` plan is the *source* of targets (research
-   deepens each pinned channel) or research runs open-ended and channels are just
-   hypotheses. Recommended: open-ended with channel linkage when it exists.
-3. v2 assisted posting via browser automation: which platforms are acceptable to
-   semi-automate (listings/forms: probably yes; community posts: keep manual).
+All three P1 open questions were resolved 2026-08-06 — see "Operator decisions"
+at the top. Remaining open for P2: which platforms get browser-automation-
+assisted posting (candidate order: listing forms first, community posts only
+after the twin's approval rate on a target is high and the operator opts in
+per target).
