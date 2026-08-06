@@ -25,7 +25,7 @@ import { CATALOG_PAGE_SIZE, INPUT_BASE, offeringMatchesQuery } from "./catalog/o
 
 const T = {
   cs: {
-    sessionNote: "Úpravy jsou zatím jen v této relaci — perzistence a živá synchronizace WMS přijdou v další fázi.",
+    sessionNote: "Úpravy jsou zatím jen v této relaci. Perzistence a živá synchronizace WMS přijdou v další fázi.",
     manualCatalog: "Manuální katalog",
     liveFrom: "Živě z",
     offerings: "položek",
@@ -63,7 +63,7 @@ const T = {
     importHeading: "Import feedu",
     importHint:
       "Zadejte URL feedu, nebo vložte XML/CSV (Heureka, Zboží.cz, Google Nákupy).",
-    feedPlaceholder: "Sem vložte obsah feedu — XML nebo CSV…",
+    feedPlaceholder: "Sem vložte obsah feedu: XML nebo CSV…",
     strategyMerge: "Sloučit",
     strategyReplace: "Nahradit",
     strategyMergeHint: "Aktualizovat podle SKU, ruční položky ponechat",
@@ -89,7 +89,7 @@ const T = {
     token: "API token",
     tokenPlaceholder: "Vložte API token…",
     comingSoon: "připravujeme",
-    demoNote: "Ukázková data skladu — bez přihlašovacích údajů.",
+    demoNote: "Ukázková data skladu, bez přihlašovacích údajů.",
     sync: "Synchronizovat",
     syncing: "Synchronizuji…",
     connect: "Připojit",
@@ -115,7 +115,7 @@ const T = {
     showing: "Zobrazeno {shown} z {total}",
   },
   en: {
-    sessionNote: "Edits are session-only for now — persistence and live WMS sync land in the next phase.",
+    sessionNote: "Edits are session-only for now. Persistence and live WMS sync land in the next phase.",
     manualCatalog: "Manual catalog",
     liveFrom: "Live from",
     offerings: "items",
@@ -153,7 +153,7 @@ const T = {
     importHeading: "Import feed",
     importHint:
       "Enter a feed URL, or paste XML/CSV (Heureka, Zboží.cz, Google Shopping).",
-    feedPlaceholder: "Paste the feed content here — XML or CSV…",
+    feedPlaceholder: "Paste the feed content here: XML or CSV…",
     strategyMerge: "Merge",
     strategyReplace: "Replace",
     strategyMergeHint: "Update by SKU, keep manual items",
@@ -179,7 +179,7 @@ const T = {
     token: "API token",
     tokenPlaceholder: "Paste the API token…",
     comingSoon: "coming soon",
-    demoNote: "Sample warehouse data — no credentials.",
+    demoNote: "Sample warehouse data, no credentials.",
     sync: "Sync",
     syncing: "Syncing…",
     connect: "Connect",
@@ -766,7 +766,7 @@ export default function CatalogManagerModule({
                       {SYNC_PROVIDERS.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.label}
-                          {p.implemented ? "" : ` — ${t("comingSoon")}`}
+                          {p.implemented ? "" : ` · ${t("comingSoon")}`}
                         </option>
                       ))}
                     </select>

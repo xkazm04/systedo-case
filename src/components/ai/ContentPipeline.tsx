@@ -84,7 +84,7 @@ const T = {
     fieldTone: "Tón komunikace",
     needChannel: "Vyberte alespoň jeden kanál.",
     runDistribution: "Vytvořit varianty",
-    variantsDone: "Hotovo — {n} variant připravených k publikaci.",
+    variantsDone: "Hotovo. {n} variant připravených k publikaci.",
   },
   en: {
     heading: "Content pipeline",
@@ -129,7 +129,7 @@ const T = {
     fieldTone: "Communication tone",
     needChannel: "Pick at least one channel.",
     runDistribution: "Create variants",
-    variantsDone: "Done — {n} variants ready to publish.",
+    variantsDone: "Done. {n} variants ready to publish.",
   },
 } as const;
 

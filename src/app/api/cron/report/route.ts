@@ -95,7 +95,7 @@ export async function GET(request: Request) {
 
       const url = canonical(`/report/${token}`);
       const brand = config.brandName || project?.name || accountName;
-      const title = `Pravidelný report výkonu — ${accountName}`;
+      const title = `Pravidelný report výkonu (${accountName})`;
 
       const recipients = config.recipients.length
         ? config.recipients
@@ -139,7 +139,7 @@ export async function GET(request: Request) {
       // A total failure with recipients present records a retry notice instead (the day
       // claim is released below); no recipients → nothing was attempted, so no alert.
       if (delivered > 0) {
-        await sendWebhook(`${brand} — ${title}: ${url}`);
+        await sendWebhook(`${brand} – ${title}: ${url}`);
         await recordAlert(tenant, {
           type: "digest",
           title: "Klientský report odeslán",
@@ -149,7 +149,7 @@ export async function GET(request: Request) {
       } else if (recipients.length > 0) {
         await recordAlert(tenant, {
           type: "digest",
-          title: "Odeslání reportu selhalo — zkusíme znovu",
+          title: "Odeslání reportu selhalo, zkusíme znovu",
           body: `${title} · 0/${recipients.length} příjemců`,
           items: [],
         });

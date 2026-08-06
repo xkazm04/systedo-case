@@ -68,7 +68,7 @@ export function minePatterns(
       mk(
         `${CAMPAIGN_TYPE_LABELS[bestType.type]} je nejefektivnější typ`,
         "structure",
-        `${CAMPAIGN_TYPE_LABELS[bestType.type]} drží nejlepší návratnost — upřednostňujte ho při alokaci rozpočtu.`,
+        `${CAMPAIGN_TYPE_LABELS[bestType.type]} drží nejlepší návratnost. Upřednostňujte ho při alokaci rozpočtu.`,
         `ROAS ${fmtMultiple(bestType.total.roas)} při nákladech ${fmtCZK(bestType.total.cost)} (${bestType.total.count} kampaní).`
       )
     );
@@ -99,7 +99,7 @@ export function minePatterns(
       mk(
         `Past na rozpočet: profil „${l.name}"`,
         "budget",
-        `Kampaně s tímto profilem pálí rozpočet pod cílem — hlídejte je a včas utlumte nebo přestavte.`,
+        `Kampaně s tímto profilem pálí rozpočet pod cílem. Hlídejte je a včas utlumte nebo přestavte.`,
         `ROAS ${fmtMultiple(l.roas)} pod cílem ${fmtMultiple(targetRoas)}; promrhaný odhad ${fmtCZK(Math.round(losers[0].waste))}.`
       )
     );
@@ -114,7 +114,7 @@ export function minePatterns(
       mk(
         "Brandové vyhledávání jako efektivní základ",
         "structure",
-        "Samostatná brandová Search kampaň zachytává nejlevnější poptávku — držte ji oddělenou od generického Search.",
+        "Samostatná brandová Search kampaň zachytává nejlevnější poptávku. Držte ji oddělenou od generického Search.",
         `„${brandish.name}" má ROAS ${fmtMultiple(brandish.roas)} při PNO ${fmtPct(brandish.pno)}.`
       )
     );
@@ -131,7 +131,7 @@ export function minePatterns(
         mk(
           `Optimalizace ${label} zabrala`,
           "trend",
-          "Opakované AI vyhodnocení + zásahy zvedly skóre zdraví — pravidelná kontrola se vyplácí.",
+          "Opakované AI vyhodnocení + zásahy zvedly skóre zdraví. Pravidelná kontrola se vyplácí.",
           `Skóre ${first} → ${last} napříč ${points.length} vyhodnoceními.`
         )
       );
@@ -145,7 +145,7 @@ export function minePatterns(
       mk(
         "Portfolio plní cílové PNO",
         "trend",
-        "Mix kampaní drží dohodnutou efektivitu — hlavní páka je teď objem, ne škrty.",
+        "Mix kampaní drží dohodnutou efektivitu. Hlavní páka je teď objem, ne škrty.",
         `Celkové PNO ${fmtPct(portfolio.pno)} ≤ cíl ${fmtPct(targetPno, 0)}, ROAS ${fmtMultiple(portfolio.roas)}.`
       )
     );
@@ -181,7 +181,7 @@ export function mineCreativePatterns(experiments: LpExperiment[]): Pattern[] {
       mk(
         `Vítězný úhel: „${angle}" (${r.cluster})`,
         "creative",
-        `Hypotéza „${angle}" zvedla konverzi z ${fmtPct(control.cvr)} na ${fmtPct(r.winner.cvr)} — použijte tento úhel i v dalších kreativách a inzerátech.`,
+        `Hypotéza „${angle}" zvedla konverzi z ${fmtPct(control.cvr)} na ${fmtPct(r.winner.cvr)}. Použijte tento úhel i v dalších kreativách a inzerátech.`,
         `Klastr „${r.cluster}": ${fmtSignedPct(r.winner.uplift)} vs. kontrola, ${fmtPct(r.confidence)} jistota (${fmtInt(r.winner.visitors)} návštěvníků).`
       )
     );
@@ -219,7 +219,7 @@ export function mineTargetingPatterns(channels: ChannelPerf[]): Pattern[] {
       mk(
         `Nadvýkonný kanál: ${over.channel}`,
         "targeting",
-        `${over.channel} má výrazně vyšší CTR než ostatní kanály — přesuňte sem víc rozpočtu i cílení a stavte na něm jako na primárním kanálu.`,
+        `${over.channel} má výrazně vyšší CTR než ostatní kanály. Přesuňte sem víc rozpočtu i cílení a stavte na něm jako na primárním kanálu.`,
         `CTR ${fmtPct(over.ctr)} vs. ${fmtPct(over.peer)} průměr ostatních kanálů (${fmtMultiple(over.ctr / over.peer)}).`
       )
     );
@@ -232,7 +232,7 @@ export function mineTargetingPatterns(channels: ChannelPerf[]): Pattern[] {
       mk(
         `Podvýkonný kanál: ${under.channel}`,
         "targeting",
-        `${under.channel} zaostává za ostatními kanály v CTR — přehodnoťte cílení a kreativu, nebo rozpočet přesuňte na silnější kanály.`,
+        `${under.channel} zaostává za ostatními kanály v CTR. Přehodnoťte cílení a kreativu, nebo rozpočet přesuňte na silnější kanály.`,
         `CTR ${fmtPct(under.ctr)} vs. ${fmtPct(under.peer)} průměr ostatních kanálů.`
       )
     );

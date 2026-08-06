@@ -107,7 +107,7 @@ test("headings, lists and callouts serialize with their Markdown shapes", () => 
 });
 
 test("quote keeps its citation, figure its caption", () => {
-  assert.equal(blockToMarkdown(SAMPLE_BLOCKS.quote), "> citovaná věta\n> — Autorka");
+  assert.equal(blockToMarkdown(SAMPLE_BLOCKS.quote), "> citovaná věta\n> – Autorka");
   assert.equal(
     blockToMarkdown(SAMPLE_BLOCKS.figure),
     "![přehled druhů](/clanek/prehled.svg)\n*Popisek obrázku*"
@@ -176,7 +176,7 @@ test("articleToMarkdown assembles front matter, H1, perex, blocks and FAQ into o
     doc.indexOf("_Krátký perex._"),
     doc.indexOf("## Sekce"),
     doc.indexOf("[odkazem](https://example.com)"),
-    doc.indexOf("- **42 %** — podíl"),
+    doc.indexOf("- **42 %** – podíl"),
     doc.indexOf("## Časté dotazy (FAQ)"),
     doc.indexOf("**Otázka?**"),
   ];

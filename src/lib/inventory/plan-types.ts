@@ -150,12 +150,12 @@ const ALERT_T = {
   cs: {
     title: (n: number) => `${n} SKU s docházející zásobou`,
     pause: (n: number | null) => (n !== null ? `vyprodáno za ${n} dní` : "vyprodáno velmi brzy"),
-    risk: (n: number | null) => (n !== null ? `zásoba na ${n} dní — brzy dojde` : "zásoba dochází"),
+    risk: (n: number | null) => (n !== null ? `zásoba na ${n} dní, brzy dojde` : "zásoba dochází"),
   },
   en: {
     title: (n: number) => `${n} SKU${n === 1 ? "" : "s"} running low on stock`,
     pause: (n: number | null) => (n !== null ? `out of stock in ${n}d` : "out of stock very soon"),
-    risk: (n: number | null) => (n !== null ? `${n} days of cover — running low` : "cover running out"),
+    risk: (n: number | null) => (n !== null ? `${n} days of cover, running low` : "cover running out"),
   },
 } as const;
 
@@ -189,7 +189,7 @@ export function stockAlertPayload(
   return {
     type: anyHard ? "critical" : "digest",
     title: t.title(rows.length),
-    body: items.map((i) => `${i.name} — ${i.reason}`).join(" · "),
+    body: items.map((i) => `${i.name}: ${i.reason}`).join(" · "),
     items,
     href: `/app/${projectId}/sklad-sezonnost`,
   };

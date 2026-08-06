@@ -64,7 +64,7 @@ test("provenance label is honest and localized", () => {
 test("alert body carries the provenance header + the lines", () => {
   const lines = linesFor("cs").slice(0, 3);
   const body = insightBriefAlertBody(lines, true, "cs");
-  assert.match(body, /Přehled týdne — Živá data:/);
+  assert.match(body, /Přehled týdne \(Živá data\):/);
   assert.ok(body.includes(lines[0].line));
 });
 
@@ -78,7 +78,7 @@ test("email html labels a sample dataset as sample and escapes line text", () =>
     { id: "x", line: "A & B <c>", tone: "info", significance: "strong", magnitude: 1 },
   ];
   const html = insightBriefHtml(crafted, false, "cs");
-  assert.match(html, /Přehled týdne — Ukázková data/);
+  assert.match(html, /Přehled týdne \(Ukázková data\)/);
   assert.ok(html.includes("A &amp; B &lt;c&gt;"), "escapes HTML-special characters");
   assert.ok(!html.includes("<c>"), "raw markup never leaks into the email");
 });

@@ -23,7 +23,7 @@ A competitor is outranking Alena on the map, she has unanswered reviews, and her
 - Real-time rank tracking accuracy vs live Google (the app's data is the fixture).
 
 ## Discovery hints
-Entry point(s): **/app/demo-local**, then **Mapa & pozice**, **Recenze**, **Obsah — plán**, **Lokální dominance**. Do NOT script — Alena picks her highest-impact 20 minutes. A generic review reply, a vague score with no map, or a GBP post not grounded in her services is a finding.
+Entry point(s): **/app/demo-local**, then **Mapa & pozice**, **Recenze**, **Plán obsahu**, **Lokální dominance**. Do NOT script — Alena picks her highest-impact 20 minutes. A generic review reply, a vague score with no map, or a GBP post not grounded in her services is a finding.
 
 ## Grounding to check (L1)
 Review-reply prompt: does it receive the *actual review text* + business/brand context, or generate generically? GBP-post prompt: does it read the service catalog? Map view: real competitor names + positions or placeholder? Score grounding N/M per surface.

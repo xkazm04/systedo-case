@@ -39,7 +39,7 @@ export const maxDuration = 300;
  *  cohort diagnosis is skipped honestly, and the lead one runs only on live data). */
 function renderDiagnosis(d: DigestDiagnosisResult): { alertBody: string; html: string } {
   if (!d.leadSource) return { alertBody: "", html: "" };
-  const alertBody = `Zdroj ${d.leadSource.subject} — ${d.leadSource.recommendation}`;
+  const alertBody = `Zdroj ${d.leadSource.subject}: ${d.leadSource.recommendation}`;
   const html =
     `<p style="margin-top:16px"><strong>Diagnóza týdne</strong></p><ul>` +
     `<li style="margin:6px 0"><strong>Zdroj ${escapeHtml(d.leadSource.subject)}:</strong> ${escapeHtml(
@@ -140,7 +140,7 @@ export async function GET(request: Request) {
       // Name the client account so an agency's per-account digests are distinguishable
       // (subject/text only — never interpolated into the HTML body).
       const title = account
-        ? `Týdenní souhrn výkonu — ${account.customerName || account.customerId}`
+        ? `Týdenní souhrn výkonu (${account.customerName || account.customerId})`
         : "Týdenní souhrn výkonu";
       // Tenant-facing body: campaign KPIs only — the app-wide AI ops rollup
       // (including its demo-rate warning) is operator-only, see above.
@@ -150,7 +150,7 @@ export async function GET(request: Request) {
 
       await recordAlert(tenant, { type: "digest", title, body, items });
       deliveredAnything = true;
-      await sendWebhook(`Adamant — ${title}: ${body}`);
+      await sendWebhook(`Adamant – ${title}: ${body}`);
 
       // "Diagnóza týdne" + "Přehled týdne": once per project per digest (the weekly
       // claim above already bounds the whole email/alert to one ISO week). This
@@ -221,7 +221,7 @@ export async function GET(request: Request) {
           .join("");
         const movesHtml = items.length
           ? `<p style="margin-top:16px">Doporučené přesuny rozpočtu:</p><ul>${items
-              .map((i) => `<li style="margin:6px 0">${escapeHtml(i.name)} — ${escapeHtml(i.reason)}</li>`)
+              .map((i) => `<li style="margin:6px 0">${escapeHtml(i.name)}: ${escapeHtml(i.reason)}</li>`)
               .join("")}</ul>`
           : "";
         const html =
@@ -274,7 +274,7 @@ export async function GET(request: Request) {
   // One operator-facing webhook per run (not per tenant) when the AI layer
   // needs attention: demo-rate over threshold or a drifted tool contract.
   if (aiOps.warn || aiOps.driftedTools.length > 0) {
-    await sendWebhook(`Adamant — AI provoz (7 dní): ${aiLines.join(" · ")}`);
+    await sendWebhook(`Adamant – AI provoz (7 dní): ${aiLines.join(" · ")}`);
   }
 
   const failed = results.filter((r) => !r.ok);

@@ -91,8 +91,8 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `${s.product.title} runs out soon`
         : `${s.product.title} brzy dojde`,
       locale === "en"
-        ? `Stock for ${Math.round(s.daysOfCover)} days — consider pausing ads for this product.`
-        : `Zásoba na ${Math.round(s.daysOfCover)} dní — zvažte pozastavení reklamy na tento produkt.`,
+        ? `Stock for ${Math.round(s.daysOfCover)} days. Consider pausing ads for this product.`
+        : `Zásoba na ${Math.round(s.daysOfCover)} dní. Zvažte pozastavení reklamy na tento produkt.`,
       `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue));
   }
 
@@ -103,8 +103,8 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `${s.product.title} approaching stockout`
         : `${s.product.title} se blíží vyprodání`,
       locale === "en"
-        ? `Stock dropping below ${AT_RISK_DAYS} days (${Math.round(s.daysOfCover)} days left) — restock before you need to pause ads.`
-        : `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní) — doplňte sklad včas, než bude nutné pozastavit reklamu.`,
+        ? `Stock dropping below ${AT_RISK_DAYS} days (${Math.round(s.daysOfCover)} days left). Restock before you need to pause ads.`
+        : `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní). Doplňte sklad včas, než bude nutné pozastavit reklamu.`,
       `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue));
   }
 
@@ -115,8 +115,8 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `Refresh: ${s.product.title}`
         : `${s.product.title} se brzy obnoví`,
       locale === "en"
-        ? `Out of stock, but restock is scheduled${s.resumeAt ? ` for ${s.resumeAt}` : ""} — pause ads now, resume after delivery.`
-        : `Sklad dojde, ale doskladnění je naplánováno${s.resumeAt ? ` na ${s.resumeAt}` : ""} — reklamu zatím pozastavte a po doplnění obnovte.`,
+        ? `Out of stock, but restock is scheduled${s.resumeAt ? ` for ${s.resumeAt}` : ""}. Pause ads now, resume after delivery.`
+        : `Sklad dojde, ale doskladnění je naplánováno${s.resumeAt ? ` na ${s.resumeAt}` : ""}. Reklamu zatím pozastavte a po doplnění obnovte.`,
       s.resumeAt ?? undefined));
   }
 
@@ -129,8 +129,8 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `Shift budget: ${topMove.fromTitle} → ${topMove.toTitle}`
         : `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
       locale === "en"
-        ? `${topMove.fromTitle} is stock-constrained — move part of its budget to fast-moving SKUs in the same category (${topMove.category}).`
-        : `${topMove.fromTitle} je omezené zásobou — přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
+        ? `${topMove.fromTitle} is stock-constrained. Move part of its budget to fast-moving SKUs in the same category (${topMove.category}).`
+        : `${topMove.fromTitle} je omezené zásobou. Přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
       f.fmtCZK(topMove.amountCzk), topMove.amountCzk));
   }
 
@@ -144,8 +144,8 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
         ? `${next.label} is a seasonal peak`
         : `${next.label} bývá sezónní špička`,
       locale === "en"
-        ? `Index ${f.fmtMultiple(next.index)} — prepare a higher budget and stock in advance.`
-        : `Index ${f.fmtMultiple(next.index)} — připravte vyšší rozpočet a zásoby s předstihem.`,
+        ? `Index ${f.fmtMultiple(next.index)}. Prepare a higher budget and stock in advance.`
+        : `Index ${f.fmtMultiple(next.index)}. Připravte vyšší rozpočet a zásoby s předstihem.`,
       f.fmtMultiple(next.index)));
   }
   return out;
@@ -217,8 +217,8 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
       locale === "en"
-        ? `Respond within ${SLA_TARGET_MIN} minutes — response speed determines lead conversion.`
-        : `Reagujte do ${SLA_TARGET_MIN} minut — rychlost reakce rozhoduje o konverzi leadu.`,
+        ? `Respond within ${SLA_TARGET_MIN} minutes. Response speed determines lead conversion.`
+        : `Reagujte do ${SLA_TARGET_MIN} minut. Rychlost reakce rozhoduje o konverzi leadu.`,
       `${overdue}`));
   }
   const gap = gaps(SAMPLE_TARGETS)[0];
@@ -228,8 +228,8 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
       locale === "en"
-        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
-        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`));
+        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage. Deploy a local microsite.`
+        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí. Nasaďte lokální microsite.`));
   }
   return out;
 }
@@ -303,8 +303,8 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
       locale === "en"
-        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage — deploy a local microsite.`
-        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí — nasaďte lokální microsite.`,
+        ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage. Deploy a local microsite.`
+        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí. Nasaďte lokální microsite.`,
       `${f.fmtInt(gap.monthlyVolume)}/${locale === "en" ? "mo." : "měs."}`, gap.monthlyVolume)));
   }
 
@@ -317,8 +317,8 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
         ? `Weak position: ${weakest.keyword}`
         : `Slabá pozice: ${weakest.keyword}`,
       locale === "en"
-        ? `Ranks #${weakest.current} in ${weakest.area} (best #${weakest.best}) — outside the top 3. Strengthen the page + GBP to reach the map pack.`
-        : `V lokalitě ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}) — mimo top 3. Posilte stránku a Google profil pro vstup do mapa-packu.`,
+        ? `Ranks #${weakest.current} in ${weakest.area} (best #${weakest.best}), outside the top 3. Strengthen the page + GBP to reach the map pack.`
+        : `V lokalitě ${weakest.area} je na pozici #${weakest.current} (nejlépe #${weakest.best}), mimo top 3. Posilte stránku a Google profil pro vstup do mapa-packu.`,
       `#${weakest.current}`)));
   }
 
@@ -330,8 +330,8 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
         ? `${negative} negative reviews need a reply`
         : `${negative} negativních recenzí čeká na odpověď`,
       locale === "en"
-        ? `Public negative reviews left unanswered erode trust — reply promptly to show you resolve issues.`
-        : `Nezodpovězené negativní recenze snižují důvěru — reagujte včas a ukažte, že problémy řešíte.`,
+        ? `Public negative reviews left unanswered erode trust. Reply promptly to show you resolve issues.`
+        : `Nezodpovězené negativní recenze snižují důvěru. Reagujte včas a ukažte, že problémy řešíte.`,
       `${negative}`)));
   }
 
@@ -368,8 +368,8 @@ function channelRecs(project: Project, locale: SupportedLocale): Recommendation[
       "opportunity",
       locale === "en" ? `Free channel: ${quickWin.name}` : `Kanál zdarma: ${quickWin.name}`,
       locale === "en"
-        ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}) — get visible without an ad budget. Open the plan for the first steps.`
-        : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}) — viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
+        ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}). Get visible without an ad budget. Open the plan for the first steps.`
+        : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}). Získejte viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
       `fit ${quickWin.fit}`
     ),
   ];

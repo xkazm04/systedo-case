@@ -146,12 +146,12 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
         status: n >= HEADLINE_GOAL ? "pass" : n >= HEADLINE_MIN ? "partial" : "fail",
         detail: en
           ? n >= HEADLINE_GOAL
-            ? `${n} headlines — enough material to rotate combinations.`
+            ? `${n} headlines, enough material to rotate combinations.`
             : n >= HEADLINE_MIN
               ? `${n} headlines. Add more (ideally ${HEADLINE_GOAL}+) for more combinations.`
               : `Only ${n} headline${n === 1 ? "" : "s"}. Google recommends at least ${HEADLINE_MIN}.`
           : n >= HEADLINE_GOAL
-            ? `${n} nadpisů — dost materiálu pro rotaci kombinací.`
+            ? `${n} nadpisů, dost materiálu pro rotaci kombinací.`
             : n >= HEADLINE_MIN
               ? `${n} nadpisů. Přidejte další (ideálně ${HEADLINE_GOAL}+) pro víc kombinací.`
               : `Jen ${n} ${czPlural(n, "nadpis", "nadpisy", "nadpisů")}. Google doporučuje aspoň ${HEADLINE_MIN}.`,
@@ -170,7 +170,7 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
                 "The single headline is distinct.",
                 `All ${n} headlines are distinct from each other.`
               )
-            : `Only ${uniqueHeadlines} of ${n} headlines are unique — rewrite the duplicates.`
+            : `Only ${uniqueHeadlines} of ${n} headlines are unique. Rewrite the duplicates.`
           : uniqueHeadlines === n
             ? czPlural(
                 n,
@@ -178,7 +178,7 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
                 `Všechny ${n} nadpisy jsou navzájem odlišné.`,
                 `Všech ${n} nadpisů je navzájem odlišných.`
               )
-            : `Jen ${uniqueHeadlines} z ${n} nadpisů je unikátních — přeformulujte duplicity.`,
+            : `Jen ${uniqueHeadlines} z ${n} nadpisů je unikátních. Přeformulujte duplicity.`,
       },
     },
     {
@@ -189,10 +189,10 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
         status: buckets >= 3 ? "pass" : buckets === 2 ? "partial" : "fail",
         detail: en
           ? buckets >= 3
-            ? "Short and longer headlines — they compose well on mobile and desktop."
+            ? "Short and longer headlines: they compose well on mobile and desktop."
             : "Headlines are similar in length. Add noticeably shorter and longer variants."
           : buckets >= 3
-            ? "Krátké i delší nadpisy — dobře se skládají na mobilu i desktopu."
+            ? "Krátké i delší nadpisy: dobře se skládají na mobilu i desktopu."
             : "Nadpisy mají podobnou délku. Přidejte výrazně kratší i delší varianty.",
       },
     },
@@ -211,18 +211,18 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
               : "fail",
         detail: en
           ? !keywordsMeasurable
-            ? "No measurable keywords provided — coverage not scored."
+            ? "No measurable keywords provided: coverage not scored."
             : coverage >= KEYWORD_COVERAGE_GOAL
               ? `Keywords appear in ${headlinesWithKeyword} of ${n} headlines.`
               : coverage > 0
-                ? `Keywords appear in only ${headlinesWithKeyword} of ${n} headlines — include them in more.`
+                ? `Keywords appear in only ${headlinesWithKeyword} of ${n} headlines. Include them in more.`
                 : "No headline contains a keyword. Include keywords in at least half of them."
           : !keywordsMeasurable
-            ? "Žádná měřitelná klíčová slova — pokrytí se nehodnotí."
+            ? "Žádná měřitelná klíčová slova: pokrytí se nehodnotí."
             : coverage >= KEYWORD_COVERAGE_GOAL
               ? `Klíčová slova zaznívají v ${headlinesWithKeyword} z ${n} nadpisů.`
               : coverage > 0
-                ? `Klíčová slova jsou jen v ${headlinesWithKeyword} z ${n} nadpisů — zařaďte je do dalších.`
+                ? `Klíčová slova jsou jen v ${headlinesWithKeyword} z ${n} nadpisů. Zařaďte je do dalších.`
                 : "Žádný nadpis neobsahuje klíčové slovo. Zařaďte je aspoň do poloviny.",
       },
     },
@@ -300,10 +300,10 @@ export function computeAdStrength(result: AdResult, locale: SupportedLocale = "c
     detail: en
       ? overLimit === 0
         ? "All assets are within Google Ads / Sklik character limits."
-        : `${overLimit} asset${overLimit === 1 ? "" : "s"} exceed the character limit — fix before launch.`
+        : `${overLimit} asset${overLimit === 1 ? "" : "s"} exceed the character limit. Fix before launch.`
       : overLimit === 0
         ? "Všechny prvky jsou v limitech znaků Google Ads / Sklik."
-        : `${overLimit} ${czPlural(overLimit, "prvek překračuje", "prvky překračují", "prvků překračuje")} limit znaků — opravte před spuštěním.`,
+        : `${overLimit} ${czPlural(overLimit, "prvek překračuje", "prvky překračují", "prvků překračuje")} limit znaků. Opravte před spuštěním.`,
   });
 
   return { score, rating, factors };

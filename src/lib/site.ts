@@ -35,9 +35,9 @@ export const SALES_EMAIL = "obchod@adamant.app";
  *  image under a `lang: "cs"` manifest — three languages for one brand surface.
  *  The `_EN` variant is kept for any future locale-aware (generateMetadata) use. */
 export const SITE_DESCRIPTION_CS =
-  "Adamant je AI pracovní prostor pro reklamu — vzácný druh v adtech. Výkonnostní dashboardy, kampaňová inteligence a generování reklam napříč Google Ads, Sklik a dalšími.";
+  "Adamant je AI pracovní prostor pro reklamu, vzácný druh v adtech. Výkonnostní dashboardy, kampaňová inteligence a generování reklam napříč Google Ads, Sklik a dalšími.";
 export const SITE_DESCRIPTION_EN =
-  "Adamant is the AI workspace for advertising — a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.";
+  "Adamant is the AI workspace for advertising, a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.";
 /** The description the static, non-locale-aware metadata + manifest use. */
 export const SITE_DESCRIPTION = SITE_DESCRIPTION_CS;
 

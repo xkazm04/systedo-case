@@ -231,13 +231,13 @@ export function scoreBrief(
       label: en ? "Sentence length" : "Délka vět",
       hint: en
         ? avg === 0
-          ? "Nothing to measure — no text to evaluate."
+          ? "Nothing to measure: no text to evaluate."
           : `Average ${f.fmtDecimal(avg, 1)} words per sentence` +
-            (avg <= SENTENCE_OK ? " — easy to read." : avg <= SENTENCE_WARN ? " — consider shorter sentences." : " — sentences are too long.")
+            (avg <= SENTENCE_OK ? ": easy to read." : avg <= SENTENCE_WARN ? ". Consider shorter sentences." : ". Sentences are too long.")
         : avg === 0
-          ? "Není co měřit — chybí text k vyhodnocení."
+          ? "Není co měřit: chybí text k vyhodnocení."
           : `Průměr ${f.fmtDecimal(avg, 1)} slov na větu` +
-            (avg <= SENTENCE_OK ? " — dobře čitelné." : avg <= SENTENCE_WARN ? " — zvažte kratší věty." : " — věty jsou příliš dlouhé."),
+            (avg <= SENTENCE_OK ? ": dobře čitelné." : avg <= SENTENCE_WARN ? ". Zvažte kratší věty." : ". Věty jsou příliš dlouhé."),
     },
     {
       id: "long-paragraphs",
@@ -246,14 +246,14 @@ export function scoreBrief(
       hint: en
         ? longParas === 0
           ? "No excessively long outline points."
-          : `${longParas} outline point${longParas === 1 ? "" : "s"} longer than 40 words — split them up.`
+          : `${longParas} outline point${longParas === 1 ? "" : "s"} longer than 40 words. Split them up.`
         : longParas === 0
           ? "Žádné přehnaně dlouhé body osnovy."
           : longParas === 1
-            ? "1 bod osnovy je delší než 40 slov — rozdělte ho."
+            ? "1 bod osnovy je delší než 40 slov. Rozdělte ho."
             : longParas <= 4
-              ? `${longParas} body osnovy jsou delší než 40 slov — rozdělte je.`
-              : `${longParas} bodů osnovy je delších než 40 slov — rozdělte je.`,
+              ? `${longParas} body osnovy jsou delší než 40 slov. Rozdělte je.`
+              : `${longParas} bodů osnovy je delších než 40 slov. Rozdělte je.`,
     },
   ];
 
@@ -306,15 +306,15 @@ export function scoreBrief(
       label: en ? "Meta description length" : "Délka meta popisku",
       hint: en
         ? metaInRange
-          ? `${metaLen} characters — within the ideal range of ${META_MIN}–${META_MAX}.`
+          ? `${metaLen} characters, within the ideal range of ${META_MIN}–${META_MAX}.`
           : metaLen > META_MAX
-            ? `${metaLen} characters — over ${META_MAX}, Google will clip it.`
-            : `${metaLen} characters — too short, aim for ${META_MIN}–${META_MAX}.`
+            ? `${metaLen} characters, over ${META_MAX}. Google will clip it.`
+            : `${metaLen} characters, too short. Aim for ${META_MIN}–${META_MAX}.`
         : metaInRange
-          ? `${metaLen} znaků — v ideálním rozsahu ${META_MIN}–${META_MAX}.`
+          ? `${metaLen} znaků, v ideálním rozsahu ${META_MIN}–${META_MAX}.`
           : metaLen > META_MAX
-            ? `${metaLen} znaků — přes ${META_MAX}, Google jej zkrátí.`
-            : `${metaLen} znaků — krátké, doplňte do ${META_MIN}–${META_MAX}.`,
+            ? `${metaLen} znaků, přes ${META_MAX}. Google jej zkrátí.`
+            : `${metaLen} znaků, krátké. Doplňte do ${META_MIN}–${META_MAX}.`,
     },
     {
       id: "faq-depth",
@@ -322,15 +322,15 @@ export function scoreBrief(
       label: en ? "FAQ section" : "FAQ sekce",
       hint: en
         ? faqCount >= 2
-          ? `${faqCount} questions — supports structured data and E-E-A-T.`
+          ? `${faqCount} questions. Supports structured data and E-E-A-T.`
           : faqCount === 1
-            ? "Only one question — add more for FAQ schema."
-            : "No FAQ — add at least 2 questions."
+            ? "Only one question. Add more for FAQ schema."
+            : "No FAQ. Add at least 2 questions."
         : faqCount >= 2
-          ? `${faqCount} dotazů — podporuje strukturovaná data a E-E-A-T.`
+          ? `${faqCount} dotazů. Podporuje strukturovaná data a E-E-A-T.`
           : faqCount === 1
-            ? "Jen jeden dotaz — přidejte další pro FAQ schema."
-            : "Chybí FAQ — přidejte alespoň 2 dotazy.",
+            ? "Jen jeden dotaz. Přidejte další pro FAQ schema."
+            : "Chybí FAQ. Přidejte alespoň 2 dotazy.",
     },
     {
       id: "keyword-set",
@@ -340,12 +340,12 @@ export function scoreBrief(
         ? kwCount >= 5
           ? `${kwCount} keywords cover the topic.`
           : kwCount >= 1
-            ? `Only ${kwCount} keyword${kwCount === 1 ? "" : "s"} — expand semantic coverage.`
+            ? `Only ${kwCount} keyword${kwCount === 1 ? "" : "s"}. Expand semantic coverage.`
             : "No keywords to cover the topic."
         : kwCount >= 5
           ? `${kwCount} klíčových slov pokrývá téma.`
           : kwCount >= 1
-            ? `Jen ${kwCount} klíčových slov — rozšiřte sémantické pokrytí.`
+            ? `Jen ${kwCount} klíčových slov. Rozšiřte sémantické pokrytí.`
             : "Chybí klíčová slova k pokrytí tématu.",
     },
   ];

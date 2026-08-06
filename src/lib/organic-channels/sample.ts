@@ -45,7 +45,7 @@ const GBP: Seed = {
   fit: 94,
   effort: "low",
   rationale:
-    "Bezplatný firemní profil {brand} se zobrazuje v Mapách i ve vyhledávání, když lidé hledají službu v okolí — nejrychlejší organická viditelnost bez rozpočtu.",
+    "Bezplatný firemní profil {brand} se zobrazuje v Mapách i ve vyhledávání, když lidé hledají službu v okolí: nejrychlejší organická viditelnost bez rozpočtu.",
   payoff: "Zobrazení v mapovém balíčku a hovory/trasy přímo z vyhledávání",
   firstActions: [
     "Ověřte a doplňte profil {brand} (kategorie, otevírací doba, fotky, služby)",
@@ -63,7 +63,7 @@ const FIRMY_CZ: Seed = {
   fit: 82,
   effort: "low",
   rationale:
-    "Katalog Firmy.cz živí výsledky Seznam.cz a Mapy.cz — pořád velký zdroj poptávek v ČR, základní zápis je zdarma.",
+    "Katalog Firmy.cz živí výsledky Seznam.cz a Mapy.cz: pořád velký zdroj poptávek v ČR, základní zápis je zdarma.",
   payoff: "Viditelnost u zákazníků, kteří hledají přes Seznam a Mapy.cz",
   firstActions: [
     "Založte/ověřte zápis {brand} a vyplňte kategorie a kontakty",
@@ -80,7 +80,7 @@ const BLOG_SEO: Seed = {
   fit: 80,
   effort: "high",
   rationale:
-    "Vlastní obsah na téma {category} vám dlouhodobě přivádí návštěvnost z vyhledávání, kterou nemusíte platit za proklik — jediný kanál, který skutečně vlastníte.",
+    "Vlastní obsah na téma {category} vám dlouhodobě přivádí návštěvnost z vyhledávání, kterou nemusíte platit za proklik: jediný kanál, který skutečně vlastníte.",
   payoff: "Trvalá organická návštěvnost a důvěra bez platby za klik",
   firstActions: [
     "Vyberte 3 témata z reálné poptávky (viz Klíčová slova)",
@@ -97,7 +97,7 @@ const NEWSLETTER: Seed = {
   fit: 74,
   effort: "medium",
   rationale:
-    "E-mail je publikum, které vlastníte — bez závislosti na algoritmu a bez ceny za oslovení. Skvělý na opakovaný prodej a udržení pozornosti.",
+    "E-mail je publikum, které vlastníte (bez závislosti na algoritmu a bez ceny za oslovení). Skvělý na opakovaný prodej a udržení pozornosti.",
   payoff: "Opakovaný kontakt s publikem zdarma, nezávislý na platformách",
   firstActions: [
     "Přidejte na web přihlášení k odběru s jasnou hodnotou",
@@ -114,7 +114,7 @@ const FB_GROUPS: Seed = {
   fit: 70,
   effort: "medium",
   rationale:
-    "V tematických a lokálních skupinách se vaši zákazníci ptají a doporučují si — užitečná (neprodejní) přítomnost buduje jméno {brand} zdarma.",
+    "V tematických a lokálních skupinách se vaši zákazníci ptají a doporučují si. Užitečná (neprodejní) přítomnost buduje jméno {brand} zdarma.",
   payoff: "Doporučení a poptávky z komunit, kde už zákazníci jsou",
   firstActions: [
     "Najděte 3–5 relevantních skupin a přečtěte pravidla",
@@ -130,14 +130,14 @@ const INSTAGRAM: Seed = {
   fit: 68,
   effort: "medium",
   rationale:
-    "Vizuální nabídku {category} lze ukázat organicky přes Reels a příspěvky — dosah zdarma, pokud je obsah pravidelný a autentický.",
+    "Vizuální nabídku {category} lze ukázat organicky přes Reels a příspěvky: dosah zdarma, pokud je obsah pravidelný a autentický.",
   payoff: "Budování značky a organický dosah u vizuálního publika",
   firstActions: [
     "Nastavte firemní profil a jednotný vizuál",
     "Publikujte Reels z reálného provozu/produktu 2–3×/týden",
     "Zapojte relevantní hashtagy a lokaci",
   ],
-  contentAngle: "Krátké Reels z provozu {brand} — ukázka produktu nebo služby v akci",
+  contentAngle: "Krátké Reels z provozu {brand}: ukázka produktu nebo služby v akci",
 };
 
 const INFLUENCER: Seed = {
@@ -147,7 +147,7 @@ const INFLUENCER: Seed = {
   fit: 62,
   effort: "medium",
   rationale:
-    "Mikro-tvůrci ve vašem oboru mají důvěryhodné publikum — barterová nebo výkonová spolupráce přinese dosah bez fixního mediálního rozpočtu.",
+    "Mikro-tvůrci ve vašem oboru mají důvěryhodné publikum. Barterová nebo výkonová spolupráce přinese dosah bez fixního mediálního rozpočtu.",
   payoff: "Dosah na cizí důvěryhodné publikum bez ceny za zobrazení",
   firstActions: [
     "Sestavte seznam 10 mikro-tvůrců relevantních pro {category}",
@@ -164,7 +164,7 @@ const ZBOZI_CZ: Seed = {
   fit: 88,
   effort: "medium",
   rationale:
-    "Nákupní vyhledávač Seznamu s bezplatným organickým výpisem — produkty {brand} se ukážou lidem s nákupním záměrem bez platby za proklik.",
+    "Nákupní vyhledávač Seznamu s bezplatným organickým výpisem: produkty {brand} se ukážou lidem s nákupním záměrem bez platby za proklik.",
   payoff: "Nákupně motivovaní návštěvníci z porovnávače zdarma",
   firstActions: [
     "Vytvořte a odešlete produktový feed (XML)",
@@ -181,7 +181,7 @@ const HEUREKA: Seed = {
   fit: 84,
   effort: "medium",
   rationale:
-    "Největší český srovnávač — i bez placeného prokliku vám recenze a „Ověřeno zákazníky“ budují důvěru a organickou viditelnost.",
+    "Největší český srovnávač: i bez placeného prokliku vám recenze a „Ověřeno zákazníky“ budují důvěru a organickou viditelnost.",
   payoff: "Důvěra z recenzí a organická viditelnost u porovnávajících zákazníků",
   firstActions: [
     "Nahrajte feed a spárujte kategorie",
@@ -198,7 +198,7 @@ const PINTEREST: Seed = {
   fit: 58,
   effort: "medium",
   rationale:
-    "Pinterest funguje jako vizuální vyhledávač s dlouhou životností pinů — u produktů {category} přivádí organickou návštěvnost měsíce po publikaci.",
+    "Pinterest funguje jako vizuální vyhledávač s dlouhou životností pinů. U produktů {category} přivádí organickou návštěvnost měsíce po publikaci.",
   payoff: "Dlouhodobá organická návštěvnost z vizuálního vyhledávání",
   firstActions: [
     "Založte firemní účet a tematické nástěnky",
@@ -215,7 +215,7 @@ const PRODUCT_HUNT: Seed = {
   fit: 86,
   effort: "medium",
   rationale:
-    "Launch na Product Huntu dostane {brand} před early-adoptery a novináře v jeden den — bez rozpočtu, jen za dobře připravené uvedení.",
+    "Launch na Product Huntu dostane {brand} před early-adoptery a novináře v jeden den: bez rozpočtu, jen za dobře připravené uvedení.",
   payoff: "Nárazová vlna early-adopterů, zpětných odkazů a zpětné vazby",
   firstActions: [
     "Připravte hunter, vizuály, GIF a první komentář",
@@ -232,7 +232,7 @@ const REVIEW_PORTALS: Seed = {
   fit: 80,
   effort: "medium",
   rationale:
-    "B2B kupující srovnávají software na G2 a Capterře — profil se sbíranými recenzemi přivádí kvalifikované leady s nákupním záměrem zdarma.",
+    "B2B kupující srovnávají software na G2 a Capterře. Profil se sbíranými recenzemi přivádí kvalifikované leady s nákupním záměrem zdarma.",
   payoff: "Kvalifikovaní B2B kupující ve fázi srovnávání",
   firstActions: [
     "Založte a vyplňte profily na G2 a Capterře",
@@ -248,7 +248,7 @@ const REDDIT: Seed = {
   fit: 72,
   effort: "high",
   rationale:
-    "V relevantních subredditech a komunitách řeší vaše cílovka reálné problémy — dlouhodobá užitečná přítomnost buduje autoritu {brand} bez placení.",
+    "V relevantních subredditech a komunitách řeší vaše cílovka reálné problémy. Dlouhodobá užitečná přítomnost buduje autoritu {brand} bez placení.",
   payoff: "Autorita a poptávky z komunit s vysokým záměrem",
   firstActions: [
     "Vyberte 3–4 komunity a nastudujte pravidla",
@@ -264,7 +264,7 @@ const LINKEDIN: Seed = {
   fit: 76,
   effort: "medium",
   rationale:
-    "Pro B2B je organický LinkedIn nejlevnější kanál důvěry — příspěvky zakladatele a firmy oslovují rozhodovatele bez ceny za zobrazení.",
+    "Pro B2B je organický LinkedIn nejlevnější kanál důvěry. Příspěvky zakladatele a firmy oslovují rozhodovatele bez ceny za zobrazení.",
   payoff: "Dosah na B2B rozhodovatele a budování odbornosti",
   firstActions: [
     "Optimalizujte firemní i osobní profil zakladatele",
@@ -281,7 +281,7 @@ const YOUTUBE: Seed = {
   fit: 66,
   effort: "high",
   rationale:
-    "Návody a ukázky na YouTube se dohledávají roky a řadí se i v Google — trvalá organická viditelnost {category} bez opakované platby.",
+    "Návody a ukázky na YouTube se dohledávají roky a řadí se i v Google: trvalá organická viditelnost {category} bez opakované platby.",
   payoff: "Trvale dohledatelný obsah, který řadí i ve vyhledávání",
   firstActions: [
     "Natočte 3 návodová videa řešící reálné dotazy",
@@ -298,7 +298,7 @@ const INDUSTRY_PORTALS: Seed = {
   fit: 78,
   effort: "low",
   rationale:
-    "Poptávkové a oborové portály sdružují zákazníky s konkrétní poptávkou po {category} — zápis je většinou zdarma a přivádí připravené leady.",
+    "Poptávkové a oborové portály sdružují zákazníky s konkrétní poptávkou po {category}. Zápis je většinou zdarma a přivádí připravené leady.",
   payoff: "Připravené poptávky ze specializovaných portálů",
   firstActions: [
     "Najděte 3–5 oborových katalogů a portálů pro {category}",
@@ -314,7 +314,7 @@ const REFERENCES: Seed = {
   fit: 74,
   effort: "low",
   rationale:
-    "V lokálním a službovém byznysu rozhodují doporučení — soustavné sbírání recenzí u {brand} je nejlevnější a nejúčinnější akvizice.",
+    "V lokálním a službovém byznysu rozhodují doporučení. Soustavné sbírání recenzí u {brand} je nejlevnější a nejúčinnější akvizice.",
   payoff: "Důvěra a konverze z doporučení stávajících zákazníků",
   firstActions: [
     "Po každé zakázce požádejte o Google recenzi",
@@ -331,7 +331,7 @@ const SEARCH_ORGANIC: Seed = {
   fit: 90,
   effort: "high",
   rationale:
-    "Pro obsahový web je organické hledání hlavní bezplatný zdroj čtenářů — systematické pokrytí témat {category} skládá návštěvnost, kterou nemusíte kupovat.",
+    "Pro obsahový web je organické hledání hlavní bezplatný zdroj čtenářů. Systematické pokrytí témat {category} skládá návštěvnost, kterou nemusíte kupovat.",
   payoff: "Hlavní bezplatný zdroj čtenářů, který se dlouhodobě sčítá",
   firstActions: [
     "Zmapujte tematické klastry a mezery v pokrytí",
@@ -348,7 +348,7 @@ const AGGREGATORS: Seed = {
   fit: 64,
   effort: "medium",
   rationale:
-    "Zpravodajské agregátory a syndikace roznesou váš obsah k novému publiku bez mediálního rozpočtu — dosah zdarma výměnou za kvalitní zdroj.",
+    "Zpravodajské agregátory a syndikace roznesou váš obsah k novému publiku bez mediálního rozpočtu: dosah zdarma výměnou za kvalitní zdroj.",
   payoff: "Nové publikum a zpětné odkazy z roznesení obsahu",
   firstActions: [
     "Přihlaste web do relevantních agregátorů a čteček",
@@ -364,7 +364,7 @@ const CREATOR_COLLAB: Seed = {
   fit: 66,
   effort: "medium",
   rationale:
-    "Vzájemné zmínky, hostování a společný obsah s tvůrci v příbuzném tématu sdílí publikum na obě strany — růst bez placeného dosahu.",
+    "Vzájemné zmínky, hostování a společný obsah s tvůrci v příbuzném tématu sdílí publikum na obě strany: růst bez placeného dosahu.",
   payoff: "Sdílené publikum a růst přes vzájemná doporučení",
   firstActions: [
     "Najděte tvůrce s podobným, ne konkurenčním publikem",
@@ -381,7 +381,7 @@ const MAPY_CZ: Seed = {
   fit: 86,
   effort: "low",
   rationale:
-    "Zákazníci v okolí {locality} hledají službu přes Mapy.cz a lokální katalogy — kompletní zápis {brand} je zdarma a přivádí lidi s okamžitým záměrem.",
+    "Zákazníci v okolí {locality} hledají službu přes Mapy.cz a lokální katalogy. Kompletní zápis {brand} je zdarma a přivádí lidi s okamžitým záměrem.",
   payoff: "Zákazníci hledající službu ve vašem okolí ({locality})",
   firstActions: [
     "Ověřte zápis {brand} na Mapy.cz a doplňte fotky",
@@ -398,7 +398,7 @@ const LOCAL_FB_GROUPS: Seed = {
   fit: 76,
   effort: "medium",
   rationale:
-    "V sousedských a městských skupinách kolem {locality} se lidé ptají na tipy a doporučení — užitečná přítomnost {brand} přinese poptávky zdarma.",
+    "V sousedských a městských skupinách kolem {locality} se lidé ptají na tipy a doporučení. Užitečná přítomnost {brand} přinese poptávky zdarma.",
   payoff: "Doporučení a poptávky ze sousedských komunit ({locality})",
   firstActions: [
     "Přidejte se do místních skupin kolem {locality}",
@@ -414,7 +414,7 @@ const LOCAL_PARTNERS: Seed = {
   fit: 68,
   effort: "medium",
   rationale:
-    "Nekonkurenční podniky v okolí {locality} sdílejí stejné zákazníky — vzájemná doporučení a společné akce přinášejí návštěvnost bez rozpočtu.",
+    "Nekonkurenční podniky v okolí {locality} sdílejí stejné zákazníky. Vzájemná doporučení a společné akce přinášejí návštěvnost bez rozpočtu.",
   payoff: "Sdílení zákazníků s nekonkurenčními podniky v okolí",
   firstActions: [
     "Oslovte 3–5 nekonkurenčních podniků v okolí {locality}",

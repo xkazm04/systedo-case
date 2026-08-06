@@ -17,12 +17,12 @@ translated.
 
 ## Register
 
-**Professional B2B marketing tool. Formal address — vykání throughout.**
+**Professional B2B marketing tool. Formal address, vykání throughout.**
 Every imperative/instruction in the sampled catalog uses the 2nd-person-plural
 formal form: "Zkuste to prosím znovu.", "Přihlaste se prosím znovu.",
 "Zkontrolujte pole a zkuste to znovu.", "Vítejte! Pojďme naplnit aplikaci
 vaší firmou". Never switch to *tykání* (ty-form), even on candidate-adjacent
-or celebratory copy ("Hotovo — aplikace mluví vaší firmou" stays formal, not
+or celebratory copy ("Hotovo. Aplikace mluví vaší firmou." stays formal, not
 "Hotovo, tvoje aplikace mluví za tebe").
 
 ## Casing

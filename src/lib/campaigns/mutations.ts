@@ -65,7 +65,7 @@ async function resolveActor(
     return {
       error: {
         ok: false,
-        error: "Úpravy kampaní pro Sklik zatím nejsou podporované — dostupné jen pro Google Ads.",
+        error: "Úpravy kampaní pro Sklik zatím nejsou podporované. Dostupné jsou jen pro Google Ads.",
       },
     };
   }
@@ -186,7 +186,7 @@ export async function applyBudgetShift(
       return { ok: false, error: "Nepodařilo se načíst rozpočty kampaní." };
     }
     if (from.budgetResourceName === to.budgetResourceName) {
-      return { ok: false, error: "Kampaně sdílejí jeden rozpočet — přesun nelze provést." };
+      return { ok: false, error: "Kampaně sdílejí jeden rozpočet. Přesun nelze provést." };
     }
 
     // Keep the donor serving with a small floor; move only what we actually took.
@@ -237,7 +237,7 @@ export async function applyBudgetShift(
       }
       const detail = rolledBack
         ? "přesun se nezdařil, zdrojový rozpočet byl vrácen na původní hodnotu"
-        : "přesun se nezdařil a vrácení zdrojového rozpočtu selhalo — zkontrolujte rozpočet ručně";
+        : "přesun se nezdařil a vrácení zdrojového rozpočtu selhalo, zkontrolujte rozpočet ručně";
       return {
         ok: false,
         error: `${recipErr instanceof Error ? recipErr.message : "Úprava se nezdařila"} (${detail}).`,

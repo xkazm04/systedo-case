@@ -34,7 +34,7 @@
 - **Impact**: Any change to the note's spacing (or a decision to make it a `<section>` for a11y reasons) requires touching 15+ call sites in lockstep; today's consistency is coincidental, not enforced.
 - **Fix sketch**: Move `className="mb-5"` onto `SampleDataNote`'s own root `<div>` in `src/components/app/SampleDataNote.tsx`, then delete the wrapping `<div className="mb-5">…</div>` at every call site (the four in this context plus the ~11 elsewhere), rendering `<SampleDataNote />` directly. Purely visual, zero prop/behavior change since the wrapper adds no other styling.
 
-## 4. "Persisted board, else seeded sample" resolution duplicated between Obsah — plán and Recenze
+## 4. "Persisted board, else seeded sample" resolution duplicated between Plán obsahu and Recenze
 
 - **Severity**: Medium
 - **Category**: duplication

@@ -22,7 +22,7 @@ The Character knows consistent posting drives cheap organic visibility but never
 - Deep performance analytics of past posts.
 
 ## Discovery hints
-Entry point(s): **Sociální sítě**, **Kreativa** / **Produktová kreativa** (eshop), **Obsah — plán** (local GBP posts), **Distribuce** (content). Do NOT script — the Character finds the fastest path from "I need a week of content" to a scheduled batch. Friction, jargon, or robotic output that would make them not repeat it is a finding.
+Entry point(s): **Sociální sítě**, **Kreativa** / **Produktová kreativa** (eshop), **Plán obsahu** (local GBP posts), **Distribuce** (content). Do NOT script — the Character finds the fastest path from "I need a week of content" to a scheduled batch. Friction, jargon, or robotic output that would make them not repeat it is a finding.
 
 ## Grounding to check (L1)
 Do the caption/creative/post prompts receive the real product/service (name, benefit, brand voice/accent), or generic placeholders? Score grounding N/M per AI surface. A "sounds like nobody" risk is a senior-quality finding.

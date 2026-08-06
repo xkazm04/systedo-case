@@ -77,12 +77,12 @@ export function blockToMarkdown(
       return [`> **${escapeMd(block.title ?? labels.calloutTitle)}**`, `> ${inlineToMarkdown(block.content, baseUrl)}`].join("\n");
     case "quote": {
       const quote = `> ${inlineToMarkdown(block.content, baseUrl)}`;
-      return block.cite ? `${quote}\n> — ${escapeMd(block.cite)}` : quote;
+      return block.cite ? `${quote}\n> – ${escapeMd(block.cite)}` : quote;
     }
     case "cta":
-      return `> **${escapeMd(block.text)}** — [${escapeMd(block.cta)}](${mdHref(block.href, baseUrl)})`;
+      return `> **${escapeMd(block.text)}** – [${escapeMd(block.cta)}](${mdHref(block.href, baseUrl)})`;
     case "stat":
-      return block.items.map((s) => `- **${escapeMd(s.value)}** — ${escapeMd(s.label)}`).join("\n");
+      return block.items.map((s) => `- **${escapeMd(s.value)}** – ${escapeMd(s.label)}`).join("\n");
     case "figure": {
       const img = `![${escapeMd(block.alt)}](${mdHref(block.src, baseUrl)})`;
       return block.caption ? `${img}\n*${escapeMd(block.caption)}*` : img;

@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   // deliberate Czech-market SEO choice, not a translation gap. Flagged in
   // docs/i18n/contract.md.
   title: {
-    default: "Adamant — AI reklamní inteligence",
+    default: "Adamant · AI reklamní inteligence",
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_NAME }],
   keywords: ["Adamant", "reklama", "advertising", "PPC", "marketing", "dashboard", "AI", "adtech"],
   openGraph: {
-    title: "Adamant — AI reklamní inteligence",
+    title: "Adamant · AI reklamní inteligence",
     description: SITE_DESCRIPTION,
     type: "website",
   },

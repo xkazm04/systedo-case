@@ -33,7 +33,7 @@ function anomalySentence(a: Anomaly): string {
     case "drop":
       return `${ddmm(a.date)}: ${what} ${fmtSignedPct(devPct)} pod očekáváním`;
     case "outage":
-      return `${ddmm(a.date)}: výpadek — ${what} u nuly`;
+      return `${ddmm(a.date)}: výpadek, ${what} u nuly`;
     case "goal-breach":
       return `${ddmm(a.date)}: PNO ${fmtPct(a.observed)} překročilo cíl ${fmtPct(a.expected, 0)}`;
   }
@@ -103,12 +103,12 @@ export function snapshotToArticle(
   if (worst) {
     risks.push([
       { text: worst.channel, bold: true },
-      ` má nejvyšší PNO ${fmtPct(worst.pno)} — táhne efektivitu dolů.`,
+      ` má nejvyšší PNO ${fmtPct(worst.pno)}. Táhne efektivitu dolů.`,
     ]);
   }
   risks.push(
     pnoUnderGoal
-      ? [`Náklady `, { text: fmtSignedPct(snapshot.delta.cost), bold: true }, ` meziobdobně — hlídat tempo růstu.`]
+      ? [`Náklady `, { text: fmtSignedPct(snapshot.delta.cost), bold: true }, ` meziobdobně: hlídat tempo růstu.`]
       : [`Celkové PNO `, { text: fmtPct(c.pno), bold: true }, ` je nad cílem ${fmtPct(goalPno, 0)}.`]
   );
 
@@ -117,19 +117,19 @@ export function snapshotToArticle(
   if (best) {
     actions.push([
       { text: `Posílit ${best.channel}`, bold: true },
-      ` — kanál s nejlepším ROAS (${fmtMultiple(best.roas)}) má prostor pro navýšení rozpočtu.`,
+      `: kanál s nejlepším ROAS (${fmtMultiple(best.roas)}) má prostor pro navýšení rozpočtu.`,
     ]);
   }
   if (worst) {
     actions.push([
       { text: `Optimalizovat ${worst.channel}`, bold: true },
-      ` — při PNO ${fmtPct(worst.pno)} zkontrolovat nabídky, vyloučení a kvalitu cílení.`,
+      `: při PNO ${fmtPct(worst.pno)} zkontrolovat nabídky, vyloučení a kvalitu cílení.`,
     ]);
   }
   actions.push(
     pnoUnderGoal
-      ? [{ text: "Škálovat při zachování PNO", bold: true }, ` — prostor zvýšit objem, dokud PNO zůstane pod cílem.`]
-      : [{ text: "Srovnat PNO k cíli", bold: true }, ` — přealokovat rozpočet od nákladných kanálů k těm s nejlepší návratností.`]
+      ? [{ text: "Škálovat při zachování PNO", bold: true }, `: prostor zvýšit objem, dokud PNO zůstane pod cílem.`]
+      : [{ text: "Srovnat PNO k cíli", bold: true }, `: přealokovat rozpočet od nákladných kanálů k těm s nejlepší návratností.`]
   );
 
   // --- blocks ---------------------------------------------------------------
@@ -171,7 +171,7 @@ export function snapshotToArticle(
       { type: "h2", id: "kanaly", text: "Rozpad podle kanálů" },
       {
         type: "table",
-        caption: `Placené kanály za ${snapshot.period.label} — objem a efektivita.`,
+        caption: `Placené kanály za ${snapshot.period.label}: objem a efektivita.`,
         header: ["Kanál", "Náklady", "Obrat", "Konverze", "ROAS", "PNO"],
         rows: [...paid]
           .sort((a, b) => b.revenue - a.revenue)
@@ -211,7 +211,7 @@ export function snapshotToArticle(
     { type: "ol", items: actions },
     {
       type: "cta",
-      text: "Prozkoumejte čísla interaktivně — s přepínáním období, trendem a rozpadem podle kanálů.",
+      text: "Prozkoumejte čísla interaktivně: přepínání období, trend a rozpad podle kanálů.",
       href: "/dashboard",
       kind: "internal",
       cta: "Otevřít dashboard",
@@ -224,16 +224,16 @@ export function snapshotToArticle(
       q: "Z jakých dat report vychází?",
       a: [
         synced
-          ? `Z reálné časové řady výkonu ${client.name} za ${snapshot.period.label}, ze stejného zdroje jako interaktivní dashboard — čísla se proto vždy shodují.`
-          : `Z ilustrativní datové řady odvozené z případové studie ${client.name} za ${snapshot.period.label} — stejná čísla jako v interaktivním dashboardu. Nejde o reálná data klienta.`,
+          ? `Z reálné časové řady výkonu ${client.name} za ${snapshot.period.label}, ze stejného zdroje jako interaktivní dashboard. Čísla se proto vždy shodují.`
+          : `Z ilustrativní datové řady odvozené z případové studie ${client.name} za ${snapshot.period.label}, stejná čísla jako v interaktivním dashboardu. Nejde o reálná data klienta.`,
       ] as Inline[],
     },
     {
       q: "Plní portfolio cílové PNO?",
       a: [
         pnoUnderGoal
-          ? `Ano — PNO ${fmtPct(c.pno)} je pod dohodnutým cílem ${fmtPct(goalPno, 0)}.`
-          : `Ne — PNO ${fmtPct(c.pno)} je nad cílem ${fmtPct(goalPno, 0)}; report navrhuje kroky k jeho srovnání.`,
+          ? `Ano. PNO ${fmtPct(c.pno)} je pod dohodnutým cílem ${fmtPct(goalPno, 0)}.`
+          : `Ne. PNO ${fmtPct(c.pno)} je nad cílem ${fmtPct(goalPno, 0)}; report navrhuje kroky k jeho srovnání.`,
       ] as Inline[],
     },
     {

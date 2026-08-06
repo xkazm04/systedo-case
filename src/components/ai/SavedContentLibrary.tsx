@@ -23,7 +23,7 @@ const T = {
     loading: "Načítám uložený obsah…",
     emptyTitle: "Zatím tu nic není",
     emptyBody:
-      "Co vygenerujete v Obsahovém enginu — brief i koncept článku — sem uložíte tlačítkem „Uložit do knihovny“. Uložený obsah zůstává u projektu, takže ho najdete i na jiném počítači.",
+      "Co vygenerujete v Obsahovém enginu (brief i koncept článku) sem uložíte tlačítkem „Uložit do knihovny“. Uložený obsah zůstává u projektu, takže ho najdete i na jiném počítači.",
     countPill: "{n} uloženo",
     colTitle: "Název",
     colKind: "Obsah",
@@ -35,13 +35,13 @@ const T = {
     deleteConfirm: "Smazat?",
     deleteYes: "Smazat",
     deleteNo: "Zpět",
-    modalDesc: "Uložený brief se načetl do pracovní plochy — můžete ho upravit a vygenerovat znovu.",
+    modalDesc: "Uložený brief se načetl do pracovní plochy. Můžete ho upravit a vygenerovat znovu.",
   },
   en: {
     loading: "Loading saved content…",
     emptyTitle: "Nothing saved yet",
     emptyBody:
-      "Whatever you generate in the Content engine — the brief and the article draft — lands here via “Save to library”. Saved content belongs to the project, so it's there on another machine too.",
+      "Whatever you generate in the Content engine (the brief and the article draft) lands here via “Save to library”. Saved content belongs to the project, so it's there on another machine too.",
     countPill: "{n} saved",
     colTitle: "Title",
     colKind: "Content",
@@ -53,7 +53,7 @@ const T = {
     deleteConfirm: "Delete?",
     deleteYes: "Delete",
     deleteNo: "Cancel",
-    modalDesc: "The saved brief is loaded into the workspace — edit it and regenerate if you want.",
+    modalDesc: "The saved brief is loaded into the workspace. Edit it and regenerate if you want.",
   },
 } as const;
 

@@ -83,7 +83,7 @@ export function insightBriefAlertBody(
   locale: SupportedLocale
 ): string {
   if (lines.length === 0) return "";
-  const header = `${HEADER[locale] ?? HEADER.cs} — ${provenanceLabel(live, locale)}`;
+  const header = `${HEADER[locale] ?? HEADER.cs} (${provenanceLabel(live, locale)})`;
   return `${header}: ${lines.map((l) => l.line).join(" · ")}`;
 }
 
@@ -95,7 +95,7 @@ export function insightBriefHtml(
   locale: SupportedLocale
 ): string {
   if (lines.length === 0) return "";
-  const header = `${HEADER[locale] ?? HEADER.cs} — ${provenanceLabel(live, locale)}`;
+  const header = `${HEADER[locale] ?? HEADER.cs} (${provenanceLabel(live, locale)})`;
   const items = lines
     .map((l) => `<li style="margin:6px 0">${escapeHtml(l.line)}</li>`)
     .join("");

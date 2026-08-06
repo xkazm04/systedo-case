@@ -98,7 +98,7 @@ export const LEGAL_CONTENT: Record<
           "OAuth tokeny Google: pro synchronizaci reklamních dat ukládáme přístupový a obnovovací token (včetně rozsahu Google Ads, pokud jej udělíte) ve Firestore. Používají se výhradně k načítání vašich dat a lze je kdykoli odvolat v účtu Google.",
           "Vlastní API klíče (BYOM): klíč k OpenAI, Gemini nebo Claude ukládáme šifrovaný algoritmem AES-256-GCM; do prohlížeče se nikdy nevrací v čitelné podobě a můžete jej v aplikaci kdykoli smazat.",
           "Data reklamních platforem: kampaně a metriky z Google Ads, které si připojíte, a texty inzerátů pro kontroly limitů Sklik.",
-          "Obsah, který vytvoříte: projekty, briefy, články, návrhy inzerátů a další výstupy — uložené ve Firestore v rámci vašeho projektu.",
+          "Obsah, který vytvoříte: projekty, briefy, články, návrhy inzerátů a další výstupy, uložené ve Firestore v rámci vašeho projektu.",
           "E-mail: transakční upozornění a reporty odesíláme přes službu Resend na e-mail vašeho účtu. Žádné marketingové newslettery.",
         ],
       },
@@ -115,7 +115,7 @@ export const LEGAL_CONTENT: Record<
           "Google (Firestore, přihlášení přes OAuth, Google Ads API; vestavěné AI generování běží přes Google Gemini)",
           "Vercel (hosting aplikace)",
           "Resend (odesílání transakčních e-mailů)",
-          "Váš zvolený poskytovatel AI (OpenAI, Google, Anthropic) — pouze pokud si připojíte vlastní API klíč",
+          "Váš zvolený poskytovatel AI (OpenAI, Google, Anthropic), pouze pokud si připojíte vlastní API klíč",
         ],
       },
       {
@@ -133,7 +133,7 @@ export const LEGAL_CONTENT: Record<
       {
         title: "Uchování a smazání",
         paras: [
-          "Údaje uchováváme po dobu existence účtu. Smazání účtu je nevratné a zpracováváme ho ručně — žádost pošlete z e-mailu svého účtu na {support} (pokyny najdete i v aplikaci v sekci Účet a zabezpečení). Smazáním se odstraní projekty, data i uložené tokeny a klíče.",
+          "Údaje uchováváme po dobu existence účtu. Smazání účtu je nevratné a zpracováváme ho ručně. Žádost pošlete z e-mailu svého účtu na {support} (pokyny najdete i v aplikaci v sekci Účet a zabezpečení). Smazáním se odstraní projekty, data i uložené tokeny a klíče.",
         ],
       },
       {
@@ -163,7 +163,7 @@ export const LEGAL_CONTENT: Record<
         ],
       },
       {
-        title: "Cena — zdarma během validace",
+        title: "Cena: zdarma během validace",
         paras: [
           "Adamant je v současné validační fázi zdarma v plném rozsahu, s férovými denními limity uvedenými na stránce /cena. Placené plány spustíme až po ověření produktu; nic vám nenaúčtujeme bez předchozího výslovného souhlasu.",
         ],
@@ -189,7 +189,7 @@ export const LEGAL_CONTENT: Record<
       {
         title: "Výstupy AI",
         paras: [
-          "Generovaný obsah může být nepřesný. Před publikováním ho zkontrolujte — odpovědnost za to, co zveřejníte, nesete vy. Ke svým vstupům i výstupům máte práva v rozsahu, v jakém je můžeme poskytnout.",
+          "Generovaný obsah může být nepřesný. Před publikováním ho zkontrolujte. Odpovědnost za to, co zveřejníte, nesete vy. Ke svým vstupům i výstupům máte práva v rozsahu, v jakém je můžeme poskytnout.",
         ],
       },
       {
@@ -240,7 +240,7 @@ export const LEGAL_CONTENT: Record<
           "Google OAuth tokens: to sync ad data we store your access and refresh token (including the Google Ads scope, if you grant it) in Firestore. They are used solely to fetch your data and can be revoked in your Google account at any time.",
           "Your own API keys (BYOM): an OpenAI, Gemini or Claude key is stored encrypted with AES-256-GCM; the plaintext is never returned to the browser, and you can delete the key in the app at any time.",
           "Ad platform data: the Google Ads campaigns and metrics you connect, and ad copy submitted to Sklik limit checks.",
-          "Content you create: projects, briefs, articles, ad drafts and other outputs — stored in Firestore inside your project.",
+          "Content you create: projects, briefs, articles, ad drafts and other outputs, stored in Firestore inside your project.",
           "E-mail: transactional alerts and reports are sent via Resend to your account e-mail. No marketing newsletters.",
         ],
       },
@@ -257,7 +257,7 @@ export const LEGAL_CONTENT: Record<
           "Google (Firestore, OAuth sign-in, Google Ads API; built-in AI generation runs on Google Gemini)",
           "Vercel (application hosting)",
           "Resend (transactional e-mail delivery)",
-          "Your chosen AI provider (OpenAI, Google, Anthropic) — only if you connect your own API key",
+          "Your chosen AI provider (OpenAI, Google, Anthropic), only if you connect your own API key",
         ],
       },
       {
@@ -275,7 +275,7 @@ export const LEGAL_CONTENT: Record<
       {
         title: "Retention and deletion",
         paras: [
-          "We keep data for as long as your account exists. Account deletion is irreversible and handled manually — send the request from your account e-mail to {support} (instructions are also in the app under Account & security). Deletion removes projects, data, stored tokens and keys.",
+          "We keep data for as long as your account exists. Account deletion is irreversible and handled manually. Send the request from your account e-mail to {support} (instructions are also in the app under Account & security). Deletion removes projects, data, stored tokens and keys.",
         ],
       },
       {
@@ -303,7 +303,7 @@ export const LEGAL_CONTENT: Record<
         ],
       },
       {
-        title: "Pricing — free during validation",
+        title: "Pricing: free during validation",
         paras: [
           "Adamant is currently free in full during the validation phase, with fair daily limits listed on the /cena page. Paid plans will launch only after the product is validated; you will never be charged without prior explicit consent.",
         ],
@@ -329,7 +329,7 @@ export const LEGAL_CONTENT: Record<
       {
         title: "AI output",
         paras: [
-          "Generated content can be inaccurate. Review it before publishing — you are responsible for what you publish. You retain rights to your inputs and outputs to the extent we can grant them.",
+          "Generated content can be inaccurate. Review it before publishing. You are responsible for what you publish. You retain rights to your inputs and outputs to the extent we can grant them.",
         ],
       },
       {

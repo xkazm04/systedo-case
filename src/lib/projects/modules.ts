@@ -133,8 +133,8 @@ export const MODULES: ModuleDef[] = [
     icon: "channels",
     section: "comms",
     availableFor: ALL,
-    blurb: "Kde se zviditelnit bez rozpočtu na reklamu — katalogy, komunity, obsah a partnerství s plánem prvních kroků.",
-    blurbEn: "Where to get seen without an ad budget — directories, communities, content and partnerships with a first-steps playbook.",
+    blurb: "Kde se zviditelnit bez rozpočtu na reklamu: katalogy, komunity, obsah a partnerství s plánem prvních kroků.",
+    blurbEn: "Where to get seen without an ad budget: directories, communities, content and partnerships with a first-steps playbook.",
   },
   {
     key: "obsahovy-engine",
@@ -155,19 +155,19 @@ export const MODULES: ModuleDef[] = [
     icon: "reviews",
     section: "studio",
     availableFor: ["local"],
-    blurb: "Schránka recenzí — filtrování, sentiment, AI návrh odpovědi, označení majiteli a šablony.",
-    blurbEn: "Review inbox — filtering, sentiment, AI reply drafts, flag-for-owner and saved-reply macros.",
+    blurb: "Schránka recenzí: filtrování, sentiment, AI návrh odpovědi, označení majiteli a šablony.",
+    blurbEn: "Review inbox: filtering, sentiment, AI reply drafts, flag-for-owner and saved-reply macros.",
   },
   {
     key: "obsah-plan",
     order: 8,
-    label: "Obsah — plán",
+    label: "Plán obsahu",
     labelEn: "Content schedule",
     icon: "schedule",
     section: "studio",
     availableFor: ["local"],
-    blurb: "Plánovač příspěvků na Google Business Profile — náměty z katalogu a kalendář na 4 týdny.",
-    blurbEn: "Google Business Profile post planner — catalog-grounded ideas and a 4-week calendar.",
+    blurb: "Plánovač příspěvků na Google Business Profile: náměty z katalogu a kalendář na 4 týdny.",
+    blurbEn: "Google Business Profile post planner: catalog-grounded ideas and a 4-week calendar.",
   },
   {
     key: "socialni",
@@ -221,8 +221,8 @@ export const MODULES: ModuleDef[] = [
     icon: "profit",
     section: "insights",
     availableFor: ["eshop"],
-    blurb: "Marže a POAS — optimalizace na zisk z reklamy, ne jen na ROAS.",
-    blurbEn: "Margins and POAS — optimise for ad profit, not just ROAS.",
+    blurb: "Marže a POAS: optimalizace na zisk z reklamy, ne jen na ROAS.",
+    blurbEn: "Margins and POAS: optimise for ad profit, not just ROAS.",
   },
   {
     key: "produktova-kreativa",
@@ -317,9 +317,9 @@ export const MODULES: ModuleDef[] = [
     section: "comms",
     availableFor: ALL,
     blurb:
-      "Kde smí twin mluvit, jak samostatně a čím se zpráva doručí — včetně hranice jistoty, nad kterou schvaluje sám.",
+      "Kde smí twin mluvit, jak samostatně a čím se zpráva doručí (včetně hranice jistoty, nad kterou schvaluje sám).",
     blurbEn:
-      "Where the twin may speak, how autonomously, and what delivers the message — including the confidence bar above which it self-approves.",
+      "Where the twin may speak, how autonomously, and what delivers the message (including the confidence bar above which it self-approves).",
   },
   {
     key: "schranka",
@@ -333,9 +333,9 @@ export const MODULES: ModuleDef[] = [
     // its replies in too — one review surface for everything the twin writes.
     availableFor: ALL,
     blurb:
-      "Jedno místo, kde schvalujete vše, co twin napsal — poptávky se SLA, e-maily, chaty i odpovědi ze sítí.",
+      "Jedno místo, kde schvalujete vše, co twin napsal: poptávky se SLA, e-maily, chaty i odpovědi ze sítí.",
     blurbEn:
-      "One place to approve everything the twin wrote — enquiries with an SLA clock, emails, chats and social replies.",
+      "One place to approve everything the twin wrote: enquiries with an SLA clock, emails, chats and social replies.",
   },
   {
     key: "lokalni",
@@ -389,8 +389,8 @@ export const MODULES: ModuleDef[] = [
     icon: "store",
     section: "system",
     availableFor: ALL,
-    blurb: "Produkty, plány nebo služby — ceny, marže, dostupnost a povaha (online/lokální). Zdroj, ze kterého čerpají ostatní moduly.",
-    blurbEn: "Products, plans or services — prices, margins, availability and nature (online/local). The source the other modules read from.",
+    blurb: "Produkty, plány nebo služby: ceny, marže, dostupnost a povaha (online/lokální). Zdroj, ze kterého čerpají ostatní moduly.",
+    blurbEn: "Products, plans or services: prices, margins, availability and nature (online/local). The source the other modules read from.",
   },
   {
     key: "ucet",
@@ -411,8 +411,8 @@ export const MODULES: ModuleDef[] = [
     icon: "creative",
     section: "system",
     availableFor: ALL,
-    blurb: "Brand accent a logo pro klientské reporty a web — s živým náhledem hlavičky.",
-    blurbEn: "Brand accent and logo for client reports and the microsite — with a live header preview.",
+    blurb: "Brand accent a logo pro klientské reporty a web (s živým náhledem hlavičky).",
+    blurbEn: "Brand accent and logo for client reports and the microsite (with a live header preview).",
   },
   {
     key: "spotreba",
@@ -422,8 +422,8 @@ export const MODULES: ModuleDef[] = [
     icon: "usage",
     section: "system",
     availableFor: ALL,
-    blurb: "Spotřeba AI podle operace a modelu za období — náklady, tokeny, podíl a export CSV.",
-    blurbEn: "AI usage by operation and model over a period — cost, tokens, share and CSV export.",
+    blurb: "Spotřeba AI podle operace a modelu za období: náklady, tokeny, podíl a export CSV.",
+    blurbEn: "AI usage by operation and model over a period: cost, tokens, share and CSV export.",
   },
   {
     key: "mesicni-report",
@@ -433,8 +433,8 @@ export const MODULES: ModuleDef[] = [
     icon: "reports",
     section: "system",
     availableFor: ALL,
-    blurb: "Klientský souhrn výkonu za období — KPI dlaždice, AI narativ, tisk a export.",
-    blurbEn: "A client-ready performance recap — KPI tiles, an AI narrative, print and export.",
+    blurb: "Klientský souhrn výkonu za období: KPI dlaždice, AI narativ, tisk a export.",
+    blurbEn: "A client-ready performance recap: KPI tiles, an AI narrative, print and export.",
   },
   {
     key: "aktivita",
@@ -444,8 +444,8 @@ export const MODULES: ModuleDef[] = [
     icon: "activity",
     section: "system",
     availableFor: ALL,
-    blurb: "Sjednocená časová osa akcí napříč moduly a AI — filtr podle modulu, závažnosti a období, export CSV.",
-    blurbEn: "A unified timeline of module + AI actions — filter by module, severity and window, export CSV.",
+    blurb: "Sjednocená časová osa akcí napříč moduly a AI: filtr podle modulu, závažnosti a období, export CSV.",
+    blurbEn: "A unified timeline of module + AI actions: filter by module, severity and window, export CSV.",
   },
   {
     key: "integrace",
@@ -455,8 +455,8 @@ export const MODULES: ModuleDef[] = [
     icon: "integrations",
     section: "system",
     availableFor: ALL,
-    blurb: "Stav napojení — připravenost konektorů (reklama, AI, recenze, reporty, infrastruktura) pro nasazení.",
-    blurbEn: "Integration status — connector readiness (advertising, AI, reviews, reports, infrastructure) for deployment.",
+    blurb: "Stav napojení: připravenost konektorů (reklama, AI, recenze, reporty, infrastruktura) pro nasazení.",
+    blurbEn: "Integration status: connector readiness (advertising, AI, reviews, reports, infrastructure) for deployment.",
   },
   {
     key: "nastaveni",
@@ -483,8 +483,8 @@ export const MODULES: ModuleDef[] = [
     icon: "library",
     section: "studio",
     availableFor: ALL,
-    blurb: "Uložené briefy a koncepty článků z Obsahového enginu — u projektu, ne jen v prohlížeči.",
-    blurbEn: "Saved briefs and article drafts from the Content engine — kept with the project, not just in your browser.",
+    blurb: "Uložené briefy a koncepty článků z Obsahového enginu: u projektu, ne jen v prohlížeči.",
+    blurbEn: "Saved briefs and article drafts from the Content engine: kept with the project, not just in your browser.",
   },
 ];
 
@@ -603,8 +603,8 @@ const KPI_HINTS: Partial<Record<KpiMetric, { cs: string; en: string }>> = {
     en: "Cost-to-revenue ratio: what share of revenue goes to ads (lower is better).",
   },
   cpa: {
-    cs: "Kolik v průměru zaplatíte za jednu konverzi — získání zákazníka nebo leadu.",
-    en: "The average cost to win one conversion — a customer or a lead.",
+    cs: "Kolik v průměru zaplatíte za jednu konverzi: získání zákazníka nebo leadu.",
+    en: "The average cost to win one conversion: a customer or a lead.",
   },
   convRate: {
     cs: "Konverzní poměr = kolik procent návštěv skončí konverzí.",
