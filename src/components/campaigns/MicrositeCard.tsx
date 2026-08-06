@@ -14,11 +14,11 @@ const T = {
   cs: {
     heading: "Klientský microsite",
     subtitle:
-      "Veřejná, vyhledávači indexovatelná stránka s výkonem klienta na stálé adrese — vždy aktuální" +
+      "Veřejná, vyhledávači indexovatelná stránka s výkonem klienta na stálé adrese, vždy aktuální" +
       " z posledního snapshotu, ve vašich barvách.",
     brandLabel: "Značka klienta",
     brandSourceHint:
-      "Název i akcent se přebírají z Automatického reportu pro klienta výše (Profil klienta) — spravujete je na jednom místě.",
+      "Název i akcent se přebírají z Automatického reportu pro klienta výše (Profil klienta). Spravujete je na jednom místě.",
     periodLabel: "Období",
     publishing: "Publikuji…",
     publish: "Publikovat microsite",
@@ -32,11 +32,11 @@ const T = {
   en: {
     heading: "Client microsite",
     subtitle:
-      "A public, search-indexable page showing client performance at a permanent URL — always" +
+      "A public, search-indexable page showing client performance at a permanent URL, always" +
       " up to date from the latest snapshot, in your brand colours.",
     brandLabel: "Client brand",
     brandSourceHint:
-      "Name and accent are taken from the Automated client report above (Client profile) — managed in one place.",
+      "Name and accent are taken from the Automated client report above (Client profile), managed in one place.",
     periodLabel: "Period",
     publishing: "Publishing…",
     publish: "Publish microsite",

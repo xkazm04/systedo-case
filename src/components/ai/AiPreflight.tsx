@@ -15,10 +15,10 @@ const T = {
   cs: {
     demoTitle: "Poběží ukázkový režim",
     demoBody:
-      "Není nakonfigurován žádný AI poskytovatel — výstupy budou předpřipravené ukázky, ne skutečné generování.",
+      "Není nakonfigurován žádný AI poskytovatel. Výstupy budou předpřipravené ukázky, ne skutečné generování.",
     degradedTitle: "AI poskytovatel může mít výpadek",
     degradedBody:
-      "Většina nedávných generování skončila v ukázkovém režimu — výstup nemusí být skutečné generování.",
+      "Většina nedávných generování skončila v ukázkovém režimu. Výstup nemusí být skutečné generování.",
     exhaustedTitle: "Dnešní limit AI generování je vyčerpán",
     exhaustedBodyIp: "Zkuste to prosím znovu zítra.",
     exhaustedBodyPlan: "Zkuste to zítra, nebo přejděte na vyšší plán.",
@@ -33,10 +33,10 @@ const T = {
   en: {
     demoTitle: "Demo mode ahead",
     demoBody:
-      "No AI provider is configured — outputs will be canned demo samples, not a real generation.",
+      "No AI provider is configured. Outputs will be canned demo samples, not a real generation.",
     degradedTitle: "The AI provider may be down",
     degradedBody:
-      "Most recent generations ended up in demo mode — the output may not be a real generation.",
+      "Most recent generations ended up in demo mode. The output may not be a real generation.",
     exhaustedTitle: "Today's AI generation limit is spent",
     exhaustedBodyIp: "Please try again tomorrow.",
     exhaustedBodyPlan: "Try again tomorrow, or upgrade your plan.",
@@ -118,7 +118,7 @@ export default function AiPreflight() {
             {status.providers
               .map(
                 (p) =>
-                  `${p.model} — ${p.available ? t("providerAvailable") : t("providerUnavailable")}`
+                  `${p.model} · ${p.available ? t("providerAvailable") : t("providerUnavailable")}`
               )
               .join(" · ")}
           </p>

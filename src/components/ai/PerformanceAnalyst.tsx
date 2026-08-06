@@ -36,7 +36,7 @@ const T = {
     dataNoteLink: "dashboardu",
     dataNoteSuffix: ". Model dostává jen reálná čísla a nesmí si žádná vymýšlet.",
     emptyTitle: "Analýza výkonu se zobrazí tady",
-    emptyBody: "Vyberte období a nechte Gemini sestavit shrnutí výkonu, co se daří, kde jsou rizika a jaké další kroky dávají smysl — to vše na základě reálných čísel z dashboardu.",
+    emptyBody: "Vyberte období a nechte Gemini sestavit shrnutí výkonu, co se daří, kde jsou rizika a jaké další kroky dávají smysl, to vše na základě reálných čísel z dashboardu.",
     emptyHint: "Tip: vyberte období a klikněte na Analyzovat data.",
     groupWins: "Co se daří",
     groupRisks: "Na co si dát pozor",
@@ -56,7 +56,7 @@ const T = {
     dataNoteLink: "dashboard",
     dataNoteSuffix: ". The model only receives real numbers and must not invent any.",
     emptyTitle: "Performance analysis will appear here",
-    emptyBody: "Select a period and let Gemini compile a performance summary, what is working, where the risks are, and what next steps make sense — all based on real numbers from the dashboard.",
+    emptyBody: "Select a period and let Gemini compile a performance summary, what is working, where the risks are, and what next steps make sense, all based on real numbers from the dashboard.",
     emptyHint: "Tip: select a period and click Analyze data.",
     groupWins: "What’s working",
     groupRisks: "Watch out for",
@@ -124,7 +124,7 @@ export default function PerformanceAnalyst() {
       ...r.risks.map((w) => `- ${w}`),
       "",
       `## ${t("groupActions")}`,
-      ...r.actions.map((a, i) => `${i + 1}. **${a.title}** — ${a.detail}`),
+      ...r.actions.map((a, i) => `${i + 1}. **${a.title}**: ${a.detail}`),
     ].join("\n");
     downloadText(`adamant-analyza-${period}.md`, md, "text/markdown;charset=utf-8");
     reportAssetPublished("analysis", "export", project?.id);

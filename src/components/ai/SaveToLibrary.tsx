@@ -12,14 +12,14 @@ const T = {
     saving: "Ukládám…",
     saved: "Uloženo",
     failed: "Uložení se nezdařilo.",
-    title: "Uložit brief (a koncept článku, pokud je hotový) k projektu — najdete ho v modulu Uložený obsah. Vložené obrázky se neukládají.",
+    title: "Uložit brief (a koncept článku, pokud je hotový) k projektu. Najdete ho v modulu Uložený obsah. Vložené obrázky se neukládají.",
   },
   en: {
     save: "Save to library",
     saving: "Saving…",
     saved: "Saved",
     failed: "Saving failed.",
-    title: "Save the brief (and the article draft, if you generated one) to this project — find it in Saved content. Inserted images are not stored.",
+    title: "Save the brief (and the article draft, if you generated one) to this project. Find it in Saved content. Inserted images are not stored.",
   },
 } as const;
 

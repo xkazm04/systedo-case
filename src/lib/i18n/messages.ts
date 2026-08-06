@@ -76,7 +76,7 @@ export interface Messages {
 const cs: Messages = {
   nav: {
     caseStudy: "Case study",
-    home: "Adamant — domů",
+    home: "Adamant: domů",
     openApp: "Otevřít aplikaci",
     openMenu: "Otevřít menu",
     closeMenu: "Zavřít menu",
@@ -94,7 +94,7 @@ const cs: Messages = {
       "/": { label: "Přehled", blurb: "Rozcestník případové studie a zdůvodnění zvoleného stacku." },
       "/dashboard": {
         label: "Dashboard",
-        blurb: "Výkonnostní přehled klienta — návštěvy, náklady, konverze, obrat a PNO.",
+        blurb: "Výkonnostní přehled klienta: návštěvy, náklady, konverze, obrat a PNO.",
       },
       "/clanek": {
         label: "Článek",
@@ -102,7 +102,7 @@ const cs: Messages = {
       },
       "/ai-asistent": {
         label: "AI asistent",
-        blurb: "Tři marketingové nástroje na Gemini — PPC inzeráty, SEO obsahový brief a analýza výkonu.",
+        blurb: "Tři marketingové nástroje na Gemini: PPC inzeráty, SEO obsahový brief a analýza výkonu.",
       },
       "/kampane": {
         label: "Kampaně",
@@ -140,7 +140,7 @@ const cs: Messages = {
 const en: Messages = {
   nav: {
     caseStudy: "Case study",
-    home: "Adamant — home",
+    home: "Adamant: home",
     openApp: "Open app",
     openMenu: "Open menu",
     closeMenu: "Close menu",
@@ -158,7 +158,7 @@ const en: Messages = {
       "/": { label: "Overview", blurb: "Case-study hub and the rationale for the chosen stack." },
       "/dashboard": {
         label: "Dashboard",
-        blurb: "Client performance overview — visits, cost, conversions, revenue and PNO.",
+        blurb: "Client performance overview: visits, cost, conversions, revenue and PNO.",
       },
       "/clanek": {
         label: "Article",
@@ -166,7 +166,7 @@ const en: Messages = {
       },
       "/ai-asistent": {
         label: "AI assistant",
-        blurb: "Three Gemini-powered marketing tools — PPC ads, an SEO content brief and performance analysis.",
+        blurb: "Three Gemini-powered marketing tools: PPC ads, an SEO content brief and performance analysis.",
       },
       "/kampane": {
         label: "Campaigns",

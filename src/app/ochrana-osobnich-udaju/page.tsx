@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const T = {
   cs: {
-    metaTitle: "Ochrana osobních údajů — Adamant",
+    metaTitle: "Ochrana osobních údajů – Adamant",
     metaDescription:
       "Jaká data aplikace Adamant zpracovává, kde jsou uložená a jak požádat o jejich smazání.",
     eyebrow: "Právní informace",
@@ -30,7 +30,7 @@ const T = {
     updated: "Účinné od 4. srpna 2026",
   },
   en: {
-    metaTitle: "Privacy Policy — Adamant",
+    metaTitle: "Privacy Policy – Adamant",
     metaDescription:
       "What data the Adamant app processes, where it is stored, and how to request deletion.",
     eyebrow: "Legal",

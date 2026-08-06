@@ -23,15 +23,15 @@ const T = {
     reopen: "Znovu otevřít",
     savedAt: "Uloženo {when}",
     historyTitle: "Historie diagnóz",
-    historyDesc: "Posledních {n} — přetrvává mezi návštěvami.",
+    historyDesc: "Posledních {n}. Přetrvává mezi návštěvami.",
     empty: "Zatím žádné uložené diagnózy.",
     fromDigest: "z týdenního souhrnu",
-    stale: "Neaktuální — data se od uložení změnila",
+    stale: "Neaktuální: data se od uložení změnila",
     staleNudge: "Spusťte rozbor znovu pro aktuální čísla.",
     outcomeImproved: "Zlepšeno {delta}",
     outcomeUnchanged: "Beze změny",
     outcomeWorse: "Zhoršeno {delta}",
-    alreadyResolved: "Již řešeno, beze změny — tato diagnóza už byla vyřešena a sledovaná metrika se od té doby nezměnila.",
+    alreadyResolved: "Již řešeno, beze změny: tato diagnóza už byla vyřešena a sledovaná metrika se od té doby nezměnila.",
   },
   en: {
     statusNew: "New",
@@ -42,15 +42,15 @@ const T = {
     reopen: "Reopen",
     savedAt: "Saved {when}",
     historyTitle: "Diagnosis history",
-    historyDesc: "Last {n} — persists across visits.",
+    historyDesc: "Last {n}. Persists across visits.",
     empty: "No saved diagnoses yet.",
     fromDigest: "from the weekly digest",
-    stale: "Out of date — the data changed since this was saved",
+    stale: "Out of date: the data changed since this was saved",
     staleNudge: "Re-run the analysis for current figures.",
     outcomeImproved: "Improved {delta}",
     outcomeUnchanged: "Unchanged",
     outcomeWorse: "Worse {delta}",
-    alreadyResolved: "Already resolved, unchanged — this was resolved earlier and the tracked metric hasn't moved since.",
+    alreadyResolved: "Already resolved, unchanged: this was resolved earlier and the tracked metric hasn't moved since.",
   },
 } as const;
 
@@ -117,8 +117,8 @@ function StaleBadge({ t }: { t: (k: keyof (typeof T)["cs"]) => string }) {
  *  numbers are the client's own. This is the click-path parity with the digest cron's
  *  honesty gate: the cron refuses to run over sample, the click path labels it. */
 const SAMPLE_T = {
-  cs: { note: "Ukázková data — diagnóza běží nad ilustrativním vzorkem, ne nad živým importem." },
-  en: { note: "Sample data — the diagnosis ran on the illustrative sample, not a live import." },
+  cs: { note: "Ukázková data: diagnóza běží nad ilustrativním vzorkem, ne nad živým importem." },
+  en: { note: "Sample data: the diagnosis ran on the illustrative sample, not a live import." },
 } as const;
 
 /** Direction 3 — a save / status write failed. The operator paid quota for this
@@ -126,13 +126,13 @@ const SAMPLE_T = {
  *  one-tap retry + dismiss. Coral, mirroring the app's other inline failure notes. */
 const SAVE_ERROR_T = {
   cs: {
-    save: "Uložení diagnózy se nezdařilo — výsledek je zobrazen, ale nemusí přetrvat.",
+    save: "Uložení diagnózy se nezdařilo. Výsledek je zobrazen, ale nemusí přetrvat.",
     status: "Změnu stavu se nepodařilo uložit.",
     retry: "Zkusit znovu",
     dismiss: "Skrýt",
   },
   en: {
-    save: "Saving the diagnosis failed — the result is shown but may not persist.",
+    save: "Saving the diagnosis failed. The result is shown but may not persist.",
     status: "Could not save the status change.",
     retry: "Try again",
     dismiss: "Dismiss",

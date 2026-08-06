@@ -19,16 +19,16 @@ const T = {
     badgeNotEnough: "Zatím málo dat",
     ofGenerated: "{published} z {generated} vygenerovaných výstupů",
     noGenerations:
-      "V tomto období nemáme žádnou vygenerovanou položku, ze které by se dala míra spočítat. Až necháte AI něco vytvořit, doplní se sama — nic tu nedopočítáváme.",
+      "V tomto období nemáme žádnou vygenerovanou položku, ze které by se dala míra spočítat. Až necháte AI něco vytvořit, doplní se sama. Nic tu nedopočítáváme.",
     insufficient:
       "Zaznamenáno {generated} z {min} generování potřebných pro smysluplné procento. Do té doby ukazujeme jen počty, ne podíl.",
     notMeasurable:
-      "Ukázkový projekt — míra publikace se tu neměří. Čísla by nevycházela z vaší reálné práce, a to by bylo zavádějící.",
+      "Ukázkový projekt: míra publikace se tu neměří. Čísla by nevycházela z vaší reálné práce, a to by bylo zavádějící.",
     colBucket: "Typ výstupu",
     colGenerated: "Vygenerováno",
     colPublished: "Publikováno",
     colRate: "Podíl",
-    unmatched: "Navíc {n} publikací bez zaznamenaného generování — obsah, který odešel bez AI (deterministické varianty, ruční texty) nebo opakované kopie. Do podílu se nepočítá.",
+    unmatched: "Navíc {n} publikací bez zaznamenaného generování: obsah, který odešel bez AI (deterministické varianty, ruční texty) nebo opakované kopie. Do podílu se nepočítá.",
     bucket_channel_variant: "Varianty pro kanály",
     bucket_ad_copy: "Inzerátní texty",
     bucket_article: "Články",
@@ -43,16 +43,16 @@ const T = {
     badgeNotEnough: "Not enough data yet",
     ofGenerated: "{published} of {generated} generated assets",
     noGenerations:
-      "Nothing was generated in this period, so there is nothing to divide by. The rate fills in once you generate something — we don't estimate it.",
+      "Nothing was generated in this period, so there is nothing to divide by. The rate fills in once you generate something. We don't estimate it.",
     insufficient:
       "{generated} of the {min} generations needed for a meaningful percentage. Until then we show counts only, not a share.",
     notMeasurable:
-      "Sample project — the publish rate isn't measured here. It wouldn't come from your real work, which would be misleading.",
+      "Sample project: the publish rate isn't measured here. It wouldn't come from your real work, which would be misleading.",
     colBucket: "Asset type",
     colGenerated: "Generated",
     colPublished: "Published",
     colRate: "Share",
-    unmatched: "Plus {n} publish events with no recorded generation — content that left without AI behind it (deterministic variants, hand-written text) or repeat copies. Not counted in the share.",
+    unmatched: "Plus {n} publish events with no recorded generation: content that left without AI behind it (deterministic variants, hand-written text) or repeat copies. Not counted in the share.",
     bucket_channel_variant: "Channel variants",
     bucket_ad_copy: "Ad copy",
     bucket_article: "Articles",

@@ -16,7 +16,7 @@ const T = {
     sortTitle: "Seřadit kampaně od nejnaléhavějších",
     evaluateFlagged: "Vyhodnotit označené ({n})",
     evaluateFlaggedTitle:
-      "Spustit AI vyhodnocení všech označených kampaní bez reportu — postupně, v pořadí podle priority",
+      "Spustit AI vyhodnocení všech označených kampaní bez reportu, postupně, v pořadí podle priority",
     batchProgress: "Vyhodnocuji {done}/{total}…",
     batchCancel: "Zastavit",
     batchCancelTitle: "Dokončit rozpracovanou kampaň a zastavit frontu",
@@ -37,7 +37,7 @@ const T = {
     sortTitle: "Sort campaigns from most urgent",
     evaluateFlagged: "Evaluate flagged ({n})",
     evaluateFlaggedTitle:
-      "Run the AI evaluation for every flagged campaign without a report — sequentially, in priority order",
+      "Run the AI evaluation for every flagged campaign without a report, sequentially, in priority order",
     batchProgress: "Evaluating {done}/{total}…",
     batchCancel: "Stop",
     batchCancelTitle: "Finish the campaign in progress and stop the queue",

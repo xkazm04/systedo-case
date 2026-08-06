@@ -28,7 +28,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/dashboard",
     label: "Dashboard",
-    blurb: "Výkonnostní přehled klienta — návštěvy, náklady, konverze, obrat a PNO.",
+    blurb: "Výkonnostní přehled klienta: návštěvy, náklady, konverze, obrat a PNO.",
     task: 1,
   },
   {
@@ -40,7 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   {
     href: "/ai-asistent",
     label: "AI asistent",
-    blurb: "Tři marketingové nástroje na Gemini — PPC inzeráty, SEO obsahový brief a analýza výkonu.",
+    blurb: "Tři marketingové nástroje na Gemini: PPC inzeráty, SEO obsahový brief a analýza výkonu.",
     task: 3,
   },
   {

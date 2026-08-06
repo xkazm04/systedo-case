@@ -13,7 +13,7 @@ const T = {
     ariaNoCompare: "Vývoj metriky {label} v čase",
     anomalySpike: "Prudký nárůst {pct} nad očekávání",
     anomalyDrop: "Propad {pct} pod očekávání",
-    anomalyOutage: "Výpadek — hodnota u nuly oproti očekávání",
+    anomalyOutage: "Výpadek: hodnota u nuly oproti očekávání",
     anomalyGoalBreach: "Překročení cílového PNO ({pno})",
     legendCurrent: "Aktuální období",
     legendPrevious: "Předchozí období",
@@ -25,14 +25,14 @@ const T = {
     partialBucket: "neúplný měsíc",
     goalLine: "Cíl {value}",
     kbdHelp:
-      "Vývoj metriky {label} — šipkami procházíte body, Home/End skočí na okraje, Enter připne popisek, Esc jej zavře.",
+      "Vývoj metriky {label}. Šipkami procházíte body, Home/End skočí na okraje, Enter připne popisek, Esc jej zavře.",
   },
   en: {
     ariaWithCompare: "Trend of {label} over time, with the comparison period overlaid",
     ariaNoCompare: "Trend of {label} over time",
     anomalySpike: "Sharp spike {pct} above expected",
     anomalyDrop: "Drop {pct} below expected",
-    anomalyOutage: "Outage — value near zero vs expected",
+    anomalyOutage: "Outage: value near zero vs expected",
     anomalyGoalBreach: "PNO target breached ({pno})",
     legendCurrent: "Current period",
     legendPrevious: "Previous period",
@@ -44,7 +44,7 @@ const T = {
     partialBucket: "partial month",
     goalLine: "Target {value}",
     kbdHelp:
-      "Trend of {label} — arrow keys step through the points, Home/End jump to the edges, Enter pins the tooltip, Esc closes it.",
+      "Trend of {label}. Arrow keys step through the points, Home/End jump to the edges, Enter pins the tooltip, Esc closes it.",
   },
 } as const;
 

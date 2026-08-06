@@ -19,14 +19,14 @@ const T = {
     connected: "Napojeno",
     failingBadge: "Chyba synchronizace",
     pendingBadge: "Čeká na první synchronizaci",
-    unlocks: "Obrátka, marže (COGS) i termíny naskladnění tečou přímo ze skladu — ne z ručně udržovaných konstant.",
-    demoNote: "Ukázkové napojení — v prototypu jsou čísla ilustrativní; ostrá synchronizace se připojí přes API konektor.",
+    unlocks: "Obrátka, marže (COGS) i termíny naskladnění tečou přímo ze skladu, ne z ručně udržovaných konstant.",
+    demoNote: "Ukázkové napojení: v prototypu jsou čísla ilustrativní; ostrá synchronizace se připojí přes API konektor.",
     otherSources: "Další zdroje",
     change: "Změnit zdroj",
     // picker
     pickerTitle: "Napojte svůj sklad",
     pickerLead:
-      "Skutečná dostupnost, marže a termíny naskladnění žijí ve vašem skladu — ne ve storefrontu. Napojte jeden konektor a modul přestane běžet na zamrzlých ukázkových datech.",
+      "Skutečná dostupnost, marže a termíny naskladnění žijí ve vašem skladu, ne ve storefrontu. Napojte jeden konektor a modul přestane běžet na zamrzlých ukázkových datech.",
     connect: "Připojit",
     kindHub: "Multikanálový hub",
     kindHubNote: "Jedno API pokryje sklad i prodejní kanály",
@@ -34,7 +34,7 @@ const T = {
     kind3plNote: "Zásoby a příjem v reálném čase přes REST",
     kindErp: "ERP / účetnictví",
     kindErpNote: "Autoritativní sklad středních a velkých e-shopů",
-    pickerFoot: "Prototyp — tlačítka zatím nevytvoří skutečné spojení.",
+    pickerFoot: "Prototyp: tlačítka zatím nevytvoří skutečné spojení.",
   },
   en: {
     liveFrom: "Live from {provider}",
@@ -46,13 +46,13 @@ const T = {
     connected: "Connected",
     failingBadge: "Sync error",
     pendingBadge: "Awaiting first sync",
-    unlocks: "Velocity, margin (COGS) and restock ETAs come straight from the warehouse — not hand-maintained constants.",
-    demoNote: "Demo connection — numbers are illustrative in this prototype; a live sync connects via an API connector.",
+    unlocks: "Velocity, margin (COGS) and restock ETAs come straight from the warehouse, not hand-maintained constants.",
+    demoNote: "Demo connection: numbers are illustrative in this prototype; a live sync connects via an API connector.",
     otherSources: "Other sources",
     change: "Change source",
     pickerTitle: "Connect your warehouse",
     pickerLead:
-      "Real availability, margins and restock dates live in your warehouse — not the storefront. Link one connector and the module stops running on frozen sample data.",
+      "Real availability, margins and restock dates live in your warehouse, not the storefront. Link one connector and the module stops running on frozen sample data.",
     connect: "Connect",
     kindHub: "Multichannel hub",
     kindHubNote: "One API covers stock and sales channels",
@@ -60,7 +60,7 @@ const T = {
     kind3plNote: "Real-time stock and receiving over REST",
     kindErp: "ERP / accounting",
     kindErpNote: "Authoritative stock for mid & large e-shops",
-    pickerFoot: "Prototype — the buttons don't create a real connection yet.",
+    pickerFoot: "Prototype: the buttons don't create a real connection yet.",
   },
 } as const;
 

@@ -10,7 +10,7 @@ import { useAuthedResource } from "./useAuthedResource";
 const T = {
   cs: {
     heading: "Sklik (Seznam)",
-    lead: "Připojte svůj Sklik API token a přehled kampaní poběží na živých datech účtu — stejně jako Google Ads. Token se ukládá šifrovaně a nikdy se nevrací do prohlížeče.",
+    lead: "Připojte svůj Sklik API token a přehled kampaní poběží na živých datech účtu, stejně jako Google Ads. Token se ukládá šifrovaně a nikdy se nevrací do prohlížeče.",
     anonPrompt: "Přihlaste se a připojte svůj Sklik účet.",
     connected: "Připojeno",
     connectedNote: "Živá data Sklik účtu. Denní automatická synchronizace je aktivní.",
@@ -28,7 +28,7 @@ const T = {
   },
   en: {
     heading: "Sklik (Seznam)",
-    lead: "Connect your Sklik API token and the campaigns dashboard runs on live account data — just like Google Ads. The token is stored encrypted and never returned to the browser.",
+    lead: "Connect your Sklik API token and the campaigns dashboard runs on live account data, just like Google Ads. The token is stored encrypted and never returned to the browser.",
     anonPrompt: "Sign in to connect your Sklik account.",
     connected: "Connected",
     connectedNote: "Live Sklik account data. Daily automatic sync is on.",

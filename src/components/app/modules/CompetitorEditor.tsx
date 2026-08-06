@@ -38,7 +38,7 @@ const T = {
     hint: "Jen jména (max {max}). AI je použije pro srovnání, nevymýšlí jejich čísla.",
     failed: "Uložení se nezdařilo.",
     scanBadge: "ze skenu",
-    pending: "{n} návrhů ze skenu čeká na potvrzení — do AI srovnání se dostanou až po uložení.",
+    pending: "{n} návrhů ze skenu čeká na potvrzení. Do AI srovnání se dostanou až po uložení.",
     truncated: "Uloženo prvních {kept} konkurentů, {dropped} se nevešlo (limit {max}).",
   },
   en: {
@@ -54,7 +54,7 @@ const T = {
     hint: "Names only (max {max}). AI uses them for comparison, never fabricates their numbers.",
     failed: "Save failed.",
     scanBadge: "from scan",
-    pending: "{n} scan suggestions await confirmation — they reach the AI comparison only once you save.",
+    pending: "{n} scan suggestions await confirmation. They reach the AI comparison only once you save.",
     truncated: "Saved the first {kept} competitors, {dropped} did not fit (limit {max}).",
   },
 } as const;

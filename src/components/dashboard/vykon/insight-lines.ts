@@ -33,9 +33,9 @@ export const INSIGHT_T = {
     insightPnoBelow: "Celkové PNO {pno} je pod cílem {goal}.",
     insightPnoAbove: "Celkové PNO {pno} je nad cílem {goal}.",
     insightBestRoas: "Nejefektivnější kanál je {channel} s ROAS {roas}.",
-    insightWorstPno: "{channel} má nejvyšší PNO {pno} — prostor pro optimalizaci nabídek.",
-    insightTrendDown: "{metric} — pokles {weeks} v řadě ({pct} kumulativně).",
-    insightTrendUp: "{metric} — růst {weeks} v řadě ({pct} kumulativně).",
+    insightWorstPno: "{channel} má nejvyšší PNO {pno}: prostor pro optimalizaci nabídek.",
+    insightTrendDown: "{metric}: pokles {weeks} v řadě ({pct} kumulativně).",
+    insightTrendUp: "{metric}: růst {weeks} v řadě ({pct} kumulativně).",
     insightWeekday:
       "Nejsilnější den je {best} ({bestPct} nad průměrem), nejslabší {worst} ({worstPct} pod průměrem).",
     insightFunnel: "Změnu obratu táhne hlavně {driver} ({share} vlivu).",
@@ -52,7 +52,7 @@ export const INSIGHT_T = {
     navMixAria: "Přejít na kanál v tabulce: {label}",
     navMixHint: "Přejít na tento kanál v tabulce kanálů",
     coverageDegraded:
-      "Kratší historie dat — detekce anomálií a trendů je méně citlivá, slabší signály nemusí být zachyceny.",
+      "Kratší historie dat: detekce anomálií a trendů je méně citlivá, slabší signály nemusí být zachyceny.",
     coverageInsufficient:
       "Zatím příliš málo dat pro spolehlivou detekci anomálií a trendů.",
   },
@@ -65,9 +65,9 @@ export const INSIGHT_T = {
     insightPnoBelow: "Overall PNO {pno} is below target {goal}.",
     insightPnoAbove: "Overall PNO {pno} is above target {goal}.",
     insightBestRoas: "The most efficient channel is {channel} with ROAS {roas}.",
-    insightWorstPno: "{channel} has the highest PNO {pno} — room to optimise bids.",
-    insightTrendDown: "{metric} — declining {weeks} in a row ({pct} cumulative).",
-    insightTrendUp: "{metric} — rising {weeks} in a row ({pct} cumulative).",
+    insightWorstPno: "{channel} has the highest PNO {pno}: room to optimise bids.",
+    insightTrendDown: "{metric}: declining {weeks} in a row ({pct} cumulative).",
+    insightTrendUp: "{metric}: rising {weeks} in a row ({pct} cumulative).",
     insightWeekday:
       "{best} is the strongest day ({bestPct} above average), {worst} the weakest ({worstPct} below).",
     insightFunnel: "The revenue move is driven mainly by {driver} ({share} of the effect).",
@@ -84,7 +84,7 @@ export const INSIGHT_T = {
     navMixAria: "Go to the channel in the table: {label}",
     navMixHint: "Go to this channel in the channel table",
     coverageDegraded:
-      "Short data history — anomaly and trend detection is less sensitive; weaker signals may be missed.",
+      "Short data history: anomaly and trend detection is less sensitive; weaker signals may be missed.",
     coverageInsufficient:
       "Too little data yet for reliable anomaly and trend detection.",
   },

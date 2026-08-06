@@ -88,18 +88,23 @@ to do, two short sentences.
 
 ```
 en  Enter a topic and keyword. Gemini will prepare a title and meta within SEO
-    limits, an H2 outline, FAQ and internal link suggestions — a skeleton the
-    writer just fills in.
+    limits, an H2 outline, FAQ and internal link suggestions (a skeleton the
+    writer just fills in).
 cs  Zadejte téma a klíčové slovo. Gemini připraví title a meta v SEO limitech,
-    osnovu H2, FAQ i návrhy interních odkazů — kostru, kterou autor jen rozepíše.
+    osnovu H2, FAQ i návrhy interních odkazů (kostru, kterou autor jen rozepíše).
 ```
 
 **Why — this is the money example.** `fills in` → **`rozepíše`**, not `vyplní`.
-A writer doesn't *fill in* an outline in Czech, they *write it out* — the verb
+A writer doesn't *fill in* an outline in Czech, they *write it out*; the verb
 carries the actual act. And the English appositive `a skeleton the writer fills
 in` becomes a relative clause `kostru, kterou autor jen rozepíše`, because Czech
 will not leave that fragment hanging (CS-COPULA). Carry the rhythm, not the
 words.
+
+> *Quote refreshed 2026-08-06.* The apposition was set off by an em dash in both
+> columns; the CS-DASH sweep moved it into parentheses (a comma would have been
+> swallowed by the comma-separated list already in the sentence). **The lesson
+> the pair teaches is untouched** — `rozepíše` is still the choice that matters.
 
 ## 6 · Count / plural — `ContentPipeline.keywordsParsed`
 

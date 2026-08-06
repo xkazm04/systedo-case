@@ -18,14 +18,49 @@ than not starting ([`lessons-i18n.md`](./lessons-i18n.md) § 6).
 
 | # | Decision | Sites | Severity | The tension |
 |---|---|---|---|---|
-| A1 | **CS-DASH** — em dash `—` → en dash `–` in cs | **258** | major | Czech norm (ČSN 01 6910) sets the *pomlčka* as a spaced en dash. The catalog uses the em dash 258× in cs and 273× in en — the counts travel together, the classic leak tell. **But [`style-cs.md`](./style-cs.md) currently endorses `—` for Czech**, so two artifacts contradict and neither is citable until this is settled. Fixing it is one scripted pass plus one style-guide edit. |
+| ~~A1~~ | ✅ **RESOLVED 2026-08-06 — see below** | 254 | — | Owner ruled: avoid dashes entirely; where one is genuinely needed, use the en dash. |
 | A2 | **CS-PROSIM** — thin out `prosím` | 20 | minor | 20 cs `prosím` against 21 en `please`: 1:1 tracking. Microsoft cs uses it far more sparingly than English does. `style-cs.md` cites "Zkuste to prosím znovu." approvingly. House vs authority. |
 | A3 | **CS-CLICK** — `klikněte na` → `vyberte` | 19 | minor | Device-neutrality: `klikněte` is wrong on touch and for keyboard/AT users, and Microsoft cs prefers `vyberte`. Real accessibility argument, but it is a uniform voice change. |
 | A4 | **CS-NOUNMOD** — `Google Ads účet` → `účet Google Ads` | 11 (vs 5 already correct) | minor | English noun-modifier order. The calque is the *majority* here, so a sweep changes 11 to match 5. Both forms occur in real Czech PPC writing. **Excludes `AI vyhodnocení`/`AI texty` (20 sites)** — `AI` is an indeclinable adjective in Czech, not a brand modifier, and is correct as-is. |
 
-**A1 is the one worth deciding first.** It is the largest, the most visible, the
-only one with an artifact contradiction behind it, and the only one that is
-purely mechanical once decided.
+## ✅ A1 — RESOLVED 2026-08-06
+
+**Owner's ruling:** *"Ideally we should not use both dashes, as they are not
+being used normally in native text communication, and the presentation layer.
+If there is a good reason to use, prefer en dash."*
+
+So the house rule is **not** a glyph swap. It is: **default to no dash**, recast
+with a full stop → colon → comma → parentheses; and only a genuine beat of
+contrast keeps a dash, as a **spaced en dash ` – ` (U+2013)**. It applies to
+**both columns**, so cs and en punctuate alike.
+
+Recorded in [`style-cs.md`](./style-cs.md) § Typography,
+[`style-en.md`](./style-en.md) § Punctuation, and
+[`constructions-cs.md`](./constructions-cs.md) § CS-DASH (promoted from parked
+to Part 1). `constructions-en.md` § EN-DASH previously read *"The em dash IS
+English punctuation"* and has been reversed.
+
+**Note what the ruling was not.** The parked entry framed this as "em dash →
+en dash, one scripted pass". That was wrong: swapping the glyph would have left
+254 dash-punctuated strings reading exactly as machine-written as before. The
+owner's answer changed the *shape* of the fix from mechanical to editorial, and
+the sweep needs per-string judgment about what punctuation the sentence actually
+wants. **A parked decision can be mis-framed while it sits parked** — re-read the
+question when the answer arrives, don't just execute the plan you filed with it.
+
+**Out of scope and deliberately untouched:** the standalone `"—"` **no-data
+placeholder** (92 sites, produced by `createFormatters`, pinned by
+`format-golden.test.mjs`) is a design-system glyph meaning "no value", not
+punctuation. Ranges, `·` middots and in-word hyphens likewise.
+
+The gate now **ratchets**: `scripts/i18n-gate.mjs` fails if the em-dash count
+rises, so the character cannot creep back in.
+
+---
+
+**Of what remains, A5 is the one worth deciding next** — the product tagline
+renders two different ways across the marketing site and the metadata, and it
+blocks A7.
 
 ### Added by the 2026-08-06 fan-out (wave 1)
 

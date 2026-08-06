@@ -17,7 +17,7 @@ const T = {
   cs: {
     eyebrow: "Neočekávaná chyba",
     heading: "Něco se pokazilo",
-    body: "Omlouváme se — při vykreslování stránky nastala neočekávaná chyba. Většinou jde o přechodný výpadek; zkuste to prosím znovu.",
+    body: "Omlouváme se. Při vykreslování stránky nastala neočekávaná chyba. Většinou jde o přechodný výpadek; zkuste to prosím znovu.",
     digest: "Kód chyby",
     retry: "Zkusit znovu",
     home: "Zpět na přehled",
@@ -25,7 +25,7 @@ const T = {
   en: {
     eyebrow: "Unexpected error",
     heading: "Something went wrong",
-    body: "Sorry — an unexpected error occurred while rendering this page. It is usually a transient hiccup; please try again.",
+    body: "Sorry. An unexpected error occurred while rendering this page. It is usually a transient hiccup; please try again.",
     digest: "Error code",
     retry: "Try again",
     home: "Back to overview",

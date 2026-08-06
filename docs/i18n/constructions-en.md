@@ -158,12 +158,23 @@ constructions file for a Czech *target*.
 > proper nouns. Title Case On Every Word is a common artifact of translating
 > label-by-label.
 
-## EN-DASH · The em dash IS English punctuation
+## EN-DASH · ⚠ REVERSED 2026-08-06 — don't punctuate with a dash
 
-> **Rule** — the direction matters. Czech uses the en dash `–`; English uses
-> the em dash `—` (or a comma/parenthesis). Carrying Czech's en dash into
-> English is the same defect in reverse, and it is mechanically checkable.
-> Likewise: English does **not** put a space before `; : ! ?`.
+> This rule previously read *"The em dash IS English punctuation"* and told
+> writers to prefer it. **The owner decided against it on 2026-08-06.** The em
+> dash is grammatical English, but a product that reaches for it constantly
+> reads as machine-written — and this catalog reached for it **254 times** in
+> the `en` column, against 13 en dashes.
+>
+> **Rule** — default to **no dash**. Recast: full stop → colon → comma →
+> parentheses. Only a genuine single beat of contrast keeps a dash, and then it
+> is a **spaced en dash ` – ` (U+2013)**, never `—`. Deliberately identical to
+> the cs rule so both columns punctuate alike; see `style-en.md` § Punctuation.
+>
+> Out of scope: the standalone `"—"` no-data placeholder glyph (92 sites),
+> numeric/date ranges, `·` middots.
+>
+> Still true, and unchanged: English does **not** put a space before `; : ! ?`.
 
 **Script this class before dispatching any agent** — see the fan-out protocol
 in the skill. Typography needs no context and it is where the source language

@@ -74,7 +74,7 @@ const T = {
     submitGenerating: "Generuji…",
     submitGenerate: "Vygenerovat inzeráty",
     emptyTitle: "Návrh inzerátů se zobrazí tady",
-    emptyBody: "Vyplňte zadání kampaně vlevo a nechte Gemini vygenerovat nadpisy, popisky a klíčová slova — rovnou s kontrolou limitů znaků pro Google Ads i Sklik.",
+    emptyBody: "Vyplňte zadání kampaně vlevo a nechte Gemini vygenerovat nadpisy, popisky a klíčová slova, rovnou s kontrolou limitů znaků pro Google Ads i Sklik.",
     emptyHint: "Tip: zkuste „Vyplnit ukázku“ a klikněte na Vygenerovat.",
     abNamePlaceholder: "Název A/B testu",
     abSaving: "Ukládám…",
@@ -86,10 +86,10 @@ const T = {
     downloadCsvTitle: "Stáhnout všechny texty jako CSV",
     downloadCsv: "Stáhnout CSV",
     downloadEditorCsvTitle:
-      "Stáhnout CSV připravené pro import do Google Ads Editoru — jeden řádek inzerátu (Headline 1–15, Description 1–4) + druhý soubor s klíčovými slovy",
+      "Stáhnout CSV připravené pro import do Google Ads Editoru: jeden řádek inzerátu (Headline 1–15, Description 1–4) + druhý soubor s klíčovými slovy",
     downloadEditorCsv: "CSV pro Google Ads",
     downloadSklikCsvTitle:
-      "Stáhnout CSV pro import do Skliku (Seznam) — jeden řádek kombinované reklamy (Titulek 1–15, Popisek 1–4) + druhý soubor s klíčovými slovy",
+      "Stáhnout CSV pro import do Skliku (Seznam): jeden řádek kombinované reklamy (Titulek 1–15, Popisek 1–4) + druhý soubor s klíčovými slovy",
     downloadSklikCsv: "CSV pro Sklik",
     groupHeadlines: "Nadpisy",
     groupDescriptions: "Popisky",
@@ -115,7 +115,7 @@ const T = {
     placeholderProduct: "Kešu ořechy natural, 500 g",
     placeholderBenefits: "100% natural, bez soli a oleje, skladem, doprava zdarma…",
     placeholderAudience: "Lidé se zájmem o zdravý životní styl",
-    editableHint: "Texty lze upravovat přímo v řádcích — síla inzerátu, náhled i exporty se přepočítají živě.",
+    editableHint: "Texty lze upravovat přímo v řádcích. Síla inzerátu, náhled i exporty se přepočítají živě.",
     undoEdits: "Vrátit vygenerované texty",
     undoEditsTitle: "Zahodit ruční úpravy a vrátit původní vygenerované texty",
   },
@@ -144,7 +144,7 @@ const T = {
     submitGenerating: "Generating…",
     submitGenerate: "Generate ads",
     emptyTitle: "Ad drafts will appear here",
-    emptyBody: "Fill in the campaign brief on the left and let Gemini generate headlines, descriptions and keywords — with character-limit validation for Google Ads and Sklik.",
+    emptyBody: "Fill in the campaign brief on the left and let Gemini generate headlines, descriptions and keywords, with character-limit validation for Google Ads and Sklik.",
     emptyHint: "Tip: try “Fill example” and click Generate.",
     abNamePlaceholder: "A/B test name",
     abSaving: "Saving…",
@@ -156,10 +156,10 @@ const T = {
     downloadCsvTitle: "Download all copy as CSV",
     downloadCsv: "Download CSV",
     downloadEditorCsvTitle:
-      "Download a CSV ready for Google Ads Editor import — one ad row (Headline 1–15, Description 1–4) + a second file with keywords",
+      "Download a CSV ready for Google Ads Editor import: one ad row (Headline 1–15, Description 1–4) + a second file with keywords",
     downloadEditorCsv: "Google Ads CSV",
     downloadSklikCsvTitle:
-      "Download a CSV for Sklik (Seznam) import — one combined-ad row (Titulek 1–15, Popisek 1–4) + a second file with keywords",
+      "Download a CSV for Sklik (Seznam) import: one combined-ad row (Titulek 1–15, Popisek 1–4) + a second file with keywords",
     downloadSklikCsv: "Sklik CSV",
     groupHeadlines: "Headlines",
     groupDescriptions: "Descriptions",
@@ -185,7 +185,7 @@ const T = {
     placeholderProduct: "Natural cashew nuts, 500 g",
     placeholderBenefits: "100% natural, no salt or oil, in stock, free shipping…",
     placeholderAudience: "People interested in a healthy lifestyle",
-    editableHint: "The copy is editable right in the rows — ad strength, the preview and exports recompute live.",
+    editableHint: "The copy is editable right in the rows. Ad strength, the preview and exports recompute live.",
     undoEdits: "Restore generated copy",
     undoEditsTitle: "Discard manual edits and restore the original generated copy",
   },
@@ -254,7 +254,7 @@ function AdStrengthMeter({
             </span>
             <span className="min-w-0 text-sm leading-snug">
               <span className="font-medium text-navy-800">{f.label}</span>
-              <span className="text-muted"> — {f.detail}</span>
+              <span className="text-muted"> · {f.detail}</span>
             </span>
           </li>
         ))}

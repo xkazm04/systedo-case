@@ -19,25 +19,25 @@ import { getServerFormatters, getT } from "@/lib/i18n/server";
 const T = {
   cs: {
     notFound: "Microsite nenalezena",
-    datasetName: "{client} — výkonnostní KPI ({period})",
+    datasetName: "{client}: výkonnostní KPI ({period})",
     datasetDesc: "Obrat, náklady, konverze a PNO za {period}.",
     propRevenue: "Obrat",
     propCost: "Náklady",
     propConversions: "Konverze",
     propPno: "PNO",
     updatedAt: "aktualizováno {date}",
-    illustrative: "Ilustrativní ukázková data (case study) — nejde o reálné výsledky klienta.",
+    illustrative: "Ilustrativní ukázková data (case study). Nejde o reálné výsledky klienta.",
   },
   en: {
     notFound: "Microsite not found",
-    datasetName: "{client} — performance KPIs ({period})",
+    datasetName: "{client}: performance KPIs ({period})",
     datasetDesc: "Revenue, cost, conversions and PNO for {period}.",
     propRevenue: "Revenue",
     propCost: "Cost",
     propConversions: "Conversions",
     propPno: "PNO",
     updatedAt: "updated {date}",
-    illustrative: "Illustrative sample data (case study) — not a client's real results.",
+    illustrative: "Illustrative sample data (case study), not a client's real results.",
   },
 } as const;
 

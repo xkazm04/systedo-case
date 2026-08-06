@@ -92,15 +92,28 @@ translation wave.
 - Locales: `SUPPORTED_LOCALES = ["cs", "en"]` (`src/lib/format.ts`). Locale is
   a cookie (`LOCALE_COOKIE = "locale"`), read by `src/lib/i18n/locale.ts`
   (server) and `LocaleProvider` (client).
-- **The table is not always called `T`.** Live names include `T`,
-  `LEGAL_CONTENT` (`site/LegalSections.tsx`), `CONTENT`
-  (`marketing/LocalSeoShowcase.tsx`) and `PLAN_COPY` (`app/cena/page.tsx`).
-  Identify a locale table by **content** — a block containing both `cs: {` and
-  `en: {` — never by identifier. Anchoring on `const T` reports the four largest
-  already-localized surfaces as 100 % untranslated; anchoring on "any identifier
-  containing a capital T" swallows `const LEGAL_TEXT = {` and hides them
-  completely. Both mistakes were made and corrected while writing
-  `scripts/i18n-audit.mjs`; the fix is in that file's `tableRanges()`.
+- **There are FOUR locale-table shapes, and any tool must handle all of them.**
+  Every one of these was discovered the hard way, by an agent noticing the audit
+  had reported a file clean that plainly wasn't:
+
+  | Shape | Example | What a naive parser does |
+  |---|---|---|
+  | 1. One block, two object columns | `const T = { cs: {…}, en: {…} }` | the only shape most parsers expect |
+  | 2. Same, but **array** columns | `MACROS = { cs: [...], en: [...] }` (`ReviewInbox`) | requiring `cs: {` reports every string as hardcoded |
+  | 3. **Per-string inline pairs** | `{ cs: "…", en: "…" }` (`lp/page.tsx`, `mapa`, `OrganicChannels` label maps) | reports fully-localized strings as coverage gaps |
+  | 4. **Two separate top-level consts** | `const cs: Messages = {…}` … `const en: Messages = {…}` (`lib/i18n/messages.ts`) | the file is invisible — **the central nav/footer dictionary went unaudited entirely** |
+
+  Identify a locale table by **content, never by identifier**. The names in the
+  wild include `T`, `LEGAL_CONTENT`, `CONTENT`, `PLAN_COPY`, `MACROS`,
+  `SAMPLE_T`, `SAVE_ERROR_T`, `PERKS`, `INSIGHT_T`. Anchoring on `const T`
+  reports the four largest localized surfaces as 100 % untranslated; anchoring
+  on "any identifier containing a capital T" swallows `const LEGAL_TEXT = {`
+  and hides them completely. Both mistakes were made and corrected in
+  `scripts/i18n-audit.mjs` — see `tableRanges()`, `inlinePairs()` and
+  `splitConstColumns()`.
+- **Keys are not one-per-line.** `localeColumn()` must not anchor on `^…$`:
+  `ReviewInbox` packs several pairs per line and a line-anchored regex saw 7 of
+  its 48.
 - Many tables close with `} as const;`, not `};` — any script that parses them
   must brace-match, not look for a literal `\n};`. A naive parser silently
   reports every string in those tables as "hardcoded".

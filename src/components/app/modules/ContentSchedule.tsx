@@ -43,7 +43,7 @@ const T = {
     ideasTitle: "Náměty a plán",
     ideasEmpty: "Nezbývá nic k rozpracování.",
     schedule: "Naplánovat",
-    calendarFull: "Kalendář je plný — uvolněte den, než naplánujete další příspěvek.",
+    calendarFull: "Kalendář je plný. Uvolněte den, než naplánujete další příspěvek.",
     calendarTitle: "Kalendář (4 týdny)",
     ideaCount: "Náměty", scheduledCount: "V plánu", queuedCount: "V kanálu",
     publishedCount: "Zveřejněno", doneCount: "Hotovo",
@@ -58,27 +58,27 @@ const T = {
     send: "Odeslat do kanálu", sending: "Odesílám…",
     sendNeedsBody: "Nejdřív napište text příspěvku.",
     sendError: "Odeslání do kanálu se nezdařilo. Zkuste to znovu.",
-    sendTitle: "Vytvoří skutečný naplánovaný příspěvek v napojeném kanálu. Zveřejní ho kanál — aplikace stav jen přebírá.",
+    sendTitle: "Vytvoří skutečný naplánovaný příspěvek v napojeném kanálu. Zveřejní ho kanál. Aplikace stav jen přebírá.",
     markDone: "Označit jako hotové",
     markDoneTitle: "Jen si odškrtnete, že máte hotovo. Nikam se nic neodesílá.",
     channelLabel: "Kanál",
     goesOut: "Vyjde {when}",
-    channelFailed: "Kanál příspěvek neodeslal — je zpátky v plánu.",
+    channelFailed: "Kanál příspěvek neodeslal. Je zpátky v plánu.",
     noChannelTitle: "Není napojený žádný kanál.",
-    noChannelBody: "Plán je zatím jen plán — aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
+    noChannelBody: "Plán je zatím jen plán. Aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
     noChannelLink: "Napojit sociální sítě",
     createContent: "Vytvořit obsah",
-    createContentTitle: "Otevře obsahový engine s předvyplněným zadáním z tohoto slotu — téma i klíčové slovo už znáte z plánu.",
+    createContentTitle: "Otevře obsahový engine s předvyplněným zadáním z tohoto slotu. Téma i klíčové slovo už znáte z plánu.",
     progressDrafting: "Rozpracováno",
     progressDrafted: "Koncept hotový",
     savedDraft: "Uložený koncept",
-    footer: "Napište text, naplánujte na den a — pokud máte napojený kanál — předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
+    footer: "Napište text, naplánujte na den a, pokud máte napojený kanál, předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
   },
   en: {
     ideasTitle: "Ideas & plan",
     ideasEmpty: "Nothing left to work on.",
     schedule: "Schedule",
-    calendarFull: "The calendar is full — free up a day before scheduling another post.",
+    calendarFull: "The calendar is full. Free up a day before scheduling another post.",
     calendarTitle: "Calendar (4 weeks)",
     ideaCount: "Ideas", scheduledCount: "Planned", queuedCount: "In channel",
     publishedCount: "Published", doneCount: "Done",
@@ -93,21 +93,21 @@ const T = {
     send: "Send to channel", sending: "Sending…",
     sendNeedsBody: "Write the post copy first.",
     sendError: "Handing the post to the channel failed. Try again.",
-    sendTitle: "Creates a real scheduled post in your connected channel. The channel publishes it — this app only reads the status back.",
+    sendTitle: "Creates a real scheduled post in your connected channel. The channel publishes it. This app only reads the status back.",
     markDone: "Mark as done",
     markDoneTitle: "Just ticks the slot off for you. Nothing is sent anywhere.",
     channelLabel: "Channel",
     goesOut: "Goes out {when}",
-    channelFailed: "The channel didn't send it — it's back in the plan.",
+    channelFailed: "The channel didn't send it. It's back in the plan.",
     noChannelTitle: "No channel is connected.",
-    noChannelBody: "The plan is only a plan — nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
+    noChannelBody: "The plan is only a plan. Nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
     noChannelLink: "Connect social accounts",
     createContent: "Create content",
-    createContentTitle: "Opens the content engine pre-filled from this slot — the topic and keyword are already decided in the plan.",
+    createContentTitle: "Opens the content engine pre-filled from this slot. The topic and keyword are already decided in the plan.",
     progressDrafting: "In progress",
     progressDrafted: "Draft ready",
     savedDraft: "Saved draft",
-    footer: "Draft copy, schedule it onto a day and — if you have a channel connected — hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
+    footer: "Draft copy, schedule it onto a day and, if you have a channel connected, hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
   },
 } as const;
 
@@ -521,7 +521,7 @@ export default function ContentSchedule({
                         title={
                           t(STATUS_LABEL_KEY[p.status]) +
                           (p.status === "queued" && p.channelSendAt
-                            ? ` — ${t("goesOut", { when: fmt.fmtDateTime(p.channelSendAt) })}`
+                            ? ` · ${t("goesOut", { when: fmt.fmtDateTime(p.channelSendAt) })}`
                             : "")
                         }
                         className={"block w-full truncate rounded border px-1.5 py-0.5 text-left text-[10.5px] font-medium " + STATUS_CHIP[p.status]}

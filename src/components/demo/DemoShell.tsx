@@ -26,7 +26,7 @@ import type { SupportedLocale } from "@/lib/format";
 const T = {
   cs: {
     demo: "Živá ukázka",
-    demoNote: "Ukázkový režim bez přihlášení — každý modul ukazujeme na projektu, pro který se hodí.",
+    demoNote: "Ukázkový režim bez přihlášení. Každý modul ukazujeme na projektu, pro který se hodí.",
     backToWeb: "Zpět na web",
     startFree: "Vyzkoušet zdarma",
     openMenu: "Otevřít menu",
@@ -35,7 +35,7 @@ const T = {
   },
   en: {
     demo: "Live demo",
-    demoNote: "Demo mode, no sign-in — each module is shown on a project type that fits it.",
+    demoNote: "Demo mode, no sign-in. Each module is shown on a project type that fits it.",
     backToWeb: "Back to website",
     startFree: "Start free",
     openMenu: "Open menu",

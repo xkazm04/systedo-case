@@ -20,11 +20,11 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "beze změny",
-    firstImport: "První import — zatím není s čím porovnat",
+    firstImport: "První import: zatím není s čím porovnat",
     declining: "klesá",
     decliningTitle: "Klesá v {run} importech za sebou (−{drop} pozic)",
     untracked: "mimo import",
-    untrackedTitle: "V posledním importu chybí — historie zachována",
+    untrackedTitle: "V posledním importu chybí. Historie zachována",
   },
   en: {
     title: "Keyword ranking ladder",
@@ -37,11 +37,11 @@ const T = {
     climbed: "+{n}",
     slipped: "{n}",
     flat: "no change",
-    firstImport: "First import — nothing to compare yet",
+    firstImport: "First import: nothing to compare yet",
     declining: "declining",
     decliningTitle: "Declining for {run} imports in a row (−{drop} positions)",
     untracked: "absent",
-    untrackedTitle: "Absent from the last import — history preserved",
+    untrackedTitle: "Absent from the last import. History preserved",
   },
 } as const;
 

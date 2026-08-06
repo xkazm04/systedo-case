@@ -12,7 +12,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
-    categoryWorstAlert: "Kategorie {category} má nejnižší POAS {poas} — při marži {margin} a podílu {share} obratu prodělává. Zvažte vyšší prodejní cenu nebo přesun reklamního rozpočtu jinam.",
+    categoryWorstAlert: "Kategorie {category} má nejnižší POAS {poas}. Při marži {margin} a podílu {share} obratu prodělává. Zvažte vyšší prodejní cenu nebo přesun reklamního rozpočtu jinam.",
     netProfitProducts: "Čistý zisk (produkty)",
     marginVsCogs: "marže z prodejní ceny vs cena zboží",
     poasProducts: "POAS (produkty)",
@@ -29,7 +29,7 @@ const T = {
     productTableFooter: "Marže = 1 − cena zboží (COGS). Reklamní náklady rozpočítány podle podílu na obratu.",
   },
   en: {
-    categoryWorstAlert: "Category {category} has the lowest POAS {poas} — at margin {margin} and revenue share {share} it is losing money. Consider a higher selling price or shifting ad budget elsewhere.",
+    categoryWorstAlert: "Category {category} has the lowest POAS {poas}. At margin {margin} and revenue share {share} it is losing money. Consider a higher selling price or shifting ad budget elsewhere.",
     netProfitProducts: "Net profit (products)",
     marginVsCogs: "margin from selling price vs cost of goods",
     poasProducts: "POAS (products)",

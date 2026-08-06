@@ -102,6 +102,44 @@ function tableRanges(src) {
   return out;
 }
 
+/** A FOURTH shape: the central dictionary declares its columns as two SEPARATE
+ *  top-level consts (`const cs: Messages = {…}` … `const en: Messages = {…}`,
+ *  joined later into `MESSAGES`). `tableRanges` requires one block holding both
+ *  columns, so `src/lib/i18n/messages.ts` — the nav/footer/switcher chrome that
+ *  renders on every page — was never audited at all. Returns the two blocks
+ *  paired, or null when the file isn't shaped this way. */
+/** `key: "value"` pairs anywhere in a block. Shared by the column parsers.
+ *  Nested objects flatten by key name, which is what the checks below want. */
+function parseKeys(body) {
+  const out = {};
+  for (const m of body.matchAll(/[{,\n]\s*([A-Za-z0-9_]+):\s*(["'`])((?:\\.|(?!\2)[\s\S])*?)\2/g))
+    out[m[1]] = m[3];
+  return out;
+}
+
+function splitConstColumns(src) {
+  const grab = (locale) => {
+    const m = new RegExp(`(?:const|export const)\\s+${locale}\\s*(?::[^=]+)?=\\s*\\{`).exec(src);
+    if (!m) return null;
+    let i = m.index + m[0].length - 1;
+    let d = 0;
+    for (; i < src.length; i++) {
+      if (src[i] === "{") d++;
+      else if (src[i] === "}") {
+        d--;
+        if (d === 0) {
+          i++;
+          break;
+        }
+      }
+    }
+    return [m.index, i];
+  };
+  const cs = grab("cs");
+  const en = grab("en");
+  return cs && en ? { cs, en } : null;
+}
+
 /** Per-string inline `{ cs: "…", en: "…" }` pairs — a THIRD shape, used by
  *  `lp/page.tsx` (Variant.name/.note), `mapa/page.tsx` (META_PAGES) and
  *  `LandingNewWorld` (CONNECTIONS[].level). These are fully localized; without
@@ -192,6 +230,21 @@ for (const rel of files) {
         !DNT.test(csv.trim()) &&
         csv.replace(/[^A-Za-zÀ-ž]/g, "").length > 3
       )
+        leftover.push({ rel, key: k, value: csv });
+    }
+  }
+
+  // Split-const columns (the central dictionary). Only consulted when the file
+  // has no combined table, so a normal adopter is never double-counted.
+  const split = ranges.length === 0 ? splitConstColumns(src) : null;
+  if (split) {
+    const cs = parseKeys(src.slice(split.cs[0], split.cs[1]));
+    const en = parseKeys(src.slice(split.en[0], split.en[1]));
+    for (const [k, csv] of Object.entries(cs)) {
+      if (en[k] === undefined) continue;
+      pairs++;
+      if (TYKANI.test(csv) && !/[„"“]/.test(csv)) register.push({ rel, key: k, cs: csv });
+      if (!exempt && csv === en[k] && !DNT.test(csv.trim()) && csv.replace(/[^A-Za-zÀ-ž]/g, "").length > 3)
         leftover.push({ rel, key: k, value: csv });
     }
   }

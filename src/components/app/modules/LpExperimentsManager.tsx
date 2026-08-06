@@ -25,7 +25,7 @@ const T = {
   cs: {
     manageTitle: "Vaše experimenty",
     manageIntroLive: "Ruční zadávání návštěvnosti a konverzí. Průkazný vítěz se propíše do AI jako ověřená kreativa účtu.",
-    manageIntroSample: "Níže vidíte ukázkové experimenty. Přidejte vlastní — jakmile máte reálná data, vyhodnocení i AI grounding poběží na nich, ne na ukázce.",
+    manageIntroSample: "Níže vidíte ukázkové experimenty. Přidejte vlastní. Jakmile máte reálná data, vyhodnocení i AI grounding poběží na nich, ne na ukázce.",
     add: "Přidat experiment",
     edit: "Upravit",
     close: "Uzavřít",
@@ -55,7 +55,7 @@ const T = {
   en: {
     manageTitle: "Your experiments",
     manageIntroLive: "Enter visitors and conversions manually. A significant winner is carried into the AI as an account-proven creative.",
-    manageIntroSample: "Below are sample experiments. Add your own — once you have real data, both the verdict and the AI grounding run on it, not on the sample.",
+    manageIntroSample: "Below are sample experiments. Add your own. Once you have real data, both the verdict and the AI grounding run on it, not on the sample.",
     add: "Add experiment",
     edit: "Edit",
     close: "Close",

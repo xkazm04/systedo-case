@@ -11,12 +11,12 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
  *  translator interpolates strings, not arrays. */
 const PERKS: Record<string, string[]> = {
   cs: [
-    "Reálné moduly s ukázkovými daty — prozkoumáte je hned, bez čekání",
+    "Reálné moduly s ukázkovými daty: prozkoumáte je hned, bez čekání",
     "Svoje čísla připojíte, až budete chtít (Google Ads, marže, pozice)",
     "Vaše data zůstávají soukromá jen ve vašem prostoru",
   ],
   en: [
-    "Real modules with sample data — explore immediately, no waiting",
+    "Real modules with sample data: explore immediately, no waiting",
     "Connect your own numbers when you're ready (Google Ads, margins, ranks)",
     "Your data stays private to your workspace only",
   ],
@@ -26,7 +26,7 @@ const T = {
   cs: {
     kicker: "Zkušební prostor zdarma",
     heading: "Spusťte si vlastní Adamant",
-    body: "Přihlášením přes Google si založíte skutečný pracovní prostor — ne ukázku. Vytvořte projekt (e-shop, aplikace, leady nebo obsah) a hned si projdete celý živý produkt.",
+    body: "Přihlášením přes Google si založíte skutečný pracovní prostor, ne ukázku. Vytvořte projekt (e-shop, aplikace, leady nebo obsah) a hned si projdete celý živý produkt.",
     signIn: "Přihlásit přes Google",
     trust: "Bez platební karty · založení trvá minutu · kdykoli smažete",
     footer: "Jen se rozhlížíte?",
@@ -35,7 +35,7 @@ const T = {
   en: {
     kicker: "Free trial workspace",
     heading: "Start your own Adamant",
-    body: "Sign in with Google to open a real workspace — not a demo. Create a project (e-shop, app, leads, or content) and explore the whole live product right away.",
+    body: "Sign in with Google to open a real workspace, not a demo. Create a project (e-shop, app, leads, or content) and explore the whole live product right away.",
     signIn: "Sign in with Google",
     trust: "No payment card · takes a minute to set up · delete anytime",
     footer: "Just looking around?",

@@ -25,7 +25,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const T = {
   cs: {
-    homeLabel: "Adamant — domů",
+    homeLabel: "Adamant: domů",
     workspace: "Pracovní prostor",
     headingFirst: "Založte první projekt",
     headingNew: "Nový projekt",
@@ -33,7 +33,7 @@ const T = {
     bodyForm: "Projekt je pracovní prostor pro jednoho klienta nebo značku. Jeho typ určí, které moduly a metriky uvidíte.",
     bodyList: "Vyberte projekt, nebo založte nový. Každý má vlastní sadu modulů podle svého typu.",
     trialKicker: "Zkušební prostor je připravený",
-    trialWelcome: "Založte první projekt — načte se s ukázkovými daty, takže hned uvidíte celý živý produkt v akci. Svoje reálná data (Google Ads, marže, pozice) připojíte, až budete chtít. Bez karty, kdykoli smažete.",
+    trialWelcome: "Založte první projekt. Načte se s ukázkovými daty, takže hned uvidíte celý živý produkt v akci. Svoje reálná data (Google Ads, marže, pozice) připojíte, až budete chtít. Bez karty, kdykoli smažete.",
     newProject: "Nový projekt",
     modules: "modulů",
     linked: "Propojeno",
@@ -49,17 +49,17 @@ const T = {
     linkUnknown: "Tento účet není mezi vašimi připojenými účty Google Ads.",
     optionReplaces: "nahradí {id}",
     relinkTitle: "Nahradit stávající propojení?",
-    relinkLead: "Projekt {project} je teď propojený s účtem {current}. Přiřazením účtu {next} se stávající propojení zruší — data z účtu {current} se do tohoto projektu přestanou synchronizovat.",
+    relinkLead: "Projekt {project} je teď propojený s účtem {current}. Přiřazením účtu {next} se stávající propojení zruší. Data z účtu {current} se do tohoto projektu přestanou synchronizovat.",
     relinkConfirm: "Nahradit propojení",
     unlink: "Odpojit účet",
     unlinkTitle: "Odpojit účet Google Ads?",
-    unlinkLead: "Projekt {project} se přestane synchronizovat s účtem {account}. Dosud nasbíraná data zůstanou, nová nepřibudou. Účet můžete kdykoli přiřadit znovu — i jinému projektu.",
+    unlinkLead: "Projekt {project} se přestane synchronizovat s účtem {account}. Dosud nasbíraná data zůstanou, nová nepřibudou. Účet můžete kdykoli přiřadit znovu, i jinému projektu.",
     unlinkConfirm: "Odpojit",
     unlinking: "Odpojuji…",
     unlinkFailed: "Odpojení účtu se nezdařilo. Zkuste to prosím znovu.",
     duplicate: "Duplikovat jako šablonu",
     dupTitle: "Duplikovat jako šablonu",
-    dupLead: "Vytvoří nový samostatný projekt a zkopíruje do něj nastavení tohoto projektu. Nový klient začíná s prázdnými daty — zkopíruje se jen scaffold, ne provozní data ani přístupy.",
+    dupLead: "Vytvoří nový samostatný projekt a zkopíruje do něj nastavení tohoto projektu. Nový klient začíná s prázdnými daty. Zkopíruje se jen scaffold, ne provozní data ani přístupy.",
     dupCopiesTitle: "Zkopíruje se",
     dupExcludesTitle: "Nezkopíruje se",
     dupNameLabel: "Název nového projektu",
@@ -70,7 +70,7 @@ const T = {
     dupSuffix: "(kopie)",
   },
   en: {
-    homeLabel: "Adamant — home",
+    homeLabel: "Adamant: home",
     workspace: "Workspace",
     headingFirst: "Create your first project",
     headingNew: "New project",
@@ -78,7 +78,7 @@ const T = {
     bodyForm: "A project is a workspace for a single client or brand. Its type determines which modules and metrics you see.",
     bodyList: "Select a project, or create a new one. Each has its own set of modules, based on its type.",
     trialKicker: "Your trial workspace is ready",
-    trialWelcome: "Create your first project — it loads with sample data so you see the whole live product in action right away. Connect your real data (Google Ads, margins, ranks) whenever you're ready. No card, delete anytime.",
+    trialWelcome: "Create your first project. It loads with sample data so you see the whole live product in action right away. Connect your real data (Google Ads, margins, ranks) whenever you're ready. No card, delete anytime.",
     newProject: "New project",
     modules: "modules",
     linked: "Linked",
@@ -94,17 +94,17 @@ const T = {
     linkUnknown: "This account isn't among your connected Google Ads accounts.",
     optionReplaces: "replaces {id}",
     relinkTitle: "Replace the existing link?",
-    relinkLead: "Project {project} is currently linked to account {current}. Mapping account {next} drops that link — data from account {current} stops syncing into this project.",
+    relinkLead: "Project {project} is currently linked to account {current}. Mapping account {next} drops that link. Data from account {current} stops syncing into this project.",
     relinkConfirm: "Replace link",
     unlink: "Unlink account",
     unlinkTitle: "Unlink the Google Ads account?",
-    unlinkLead: "Project {project} will stop syncing with account {account}. Data collected so far stays; no new data arrives. You can map the account again any time — including to a different project.",
+    unlinkLead: "Project {project} will stop syncing with account {account}. Data collected so far stays; no new data arrives. You can map the account again any time, including to a different project.",
     unlinkConfirm: "Unlink",
     unlinking: "Unlinking…",
     unlinkFailed: "Couldn't unlink the account. Please try again.",
     duplicate: "Duplicate as template",
     dupTitle: "Duplicate as template",
-    dupLead: "Creates a new, independent project and copies this project's setup into it. A new client starts with empty data — only the scaffold is copied, never operating data or credentials.",
+    dupLead: "Creates a new, independent project and copies this project's setup into it. A new client starts with empty data. Only the scaffold is copied, never operating data or credentials.",
     dupCopiesTitle: "What's copied",
     dupExcludesTitle: "What's not copied",
     dupNameLabel: "New project name",
@@ -375,7 +375,7 @@ function UnmappedAccountsCallout({
                     {projects.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.adsCustomerId
-                          ? `${p.name} — ${t("optionReplaces", { id: p.adsCustomerId })}`
+                          ? `${p.name} · ${t("optionReplaces", { id: p.adsCustomerId })}`
                           : p.name}
                       </option>
                     ))}

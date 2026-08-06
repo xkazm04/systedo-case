@@ -50,13 +50,25 @@ heading the way English UI chrome sometimes does.
 - **Ellipsis**: the real `…` character, never three periods. Precedent
   throughout progress/status copy: "Generuji…", "Ukládám…", "Skenuji web…",
   "Připravuji…".
-- **Em dash** `—` for an aside or a contrastive clause (not a hyphen or
-  double-hyphen): "Hotovo — aplikace mluví vaší firmou", "Vzácný druh v
-  adtech" pairs with "Stůjte pevně." as its own sentence rather than a dash,
-  but elsewhere dashes carry the parenthetical: "Nic nepublikujeme." sits
-  alone, while `errUnauthorized`-style sentences chain with a full stop, not
-  a dash — prefer the dash for a single beat of contrast, a full stop for two
-  independent instructions.
+- **Dashes: avoid them.** ⚠ **HOUSE RULE, decided 2026-08-06 — this reverses
+  what this guide previously said.** A dash is not how ordinary written Czech
+  is punctuated; it reads as machine-written copy. The em dash `—` is not a
+  Czech character at all (ČSN 01 6910 sets the *pomlčka* as the en dash).
+  **Default to no dash.** Recast, in this order:
+  1. **Full stop** when the halves are independent statements.
+     `Hotovo — aplikace mluví vaší firmou` → `Hotovo. Aplikace mluví vaší firmou.`
+  2. **Colon** when the second half explains or introduces the first.
+  3. **Comma** for a simple appositive or subordinate clause.
+  4. **Parentheses** for a true aside.
+
+  **Only when none of those works** — a genuine single beat of contrast that
+  parentheses would over-weight — use a **spaced en dash ` – ` (U+2013)**.
+  **Never the em dash `—` (U+2014).**
+
+  **Out of scope, do not touch:** the standalone `"—"` **no-data placeholder**
+  (92 sites, produced by `createFormatters`) is a design-system glyph meaning
+  "no value", not punctuation; numeric and date ranges keep their own
+  separator; and `·` middots stay as they are.
 - **Decimal comma, space-separated thousands**: "≥ 3,0×", "1 000 otevření",
   "90 dní". Never a decimal point or comma-thousands in cs copy — but this is
   almost always produced by `createFormatters("cs")` (`src/lib/format.ts`),

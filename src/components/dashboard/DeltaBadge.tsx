@@ -7,7 +7,7 @@ import type { PeriodBaseline, Significance } from "@/lib/metrics";
 const T = {
   cs: {
     noChange: "beze změny",
-    noiseTitle: "Změna v rámci běžného kolísání — statisticky nevýznamná",
+    noiseTitle: "Změna v rámci běžného kolísání, statisticky nevýznamná",
     improvingTitle: "Zlepšení oproti předchozímu období",
     worseningTitle: "Zhoršení oproti předchozímu období",
     improvingTitleYoy: "Zlepšení oproti stejnému období loni",
@@ -18,7 +18,7 @@ const T = {
   },
   en: {
     noChange: "no change",
-    noiseTitle: "Change within normal variance — not statistically significant",
+    noiseTitle: "Change within normal variance, not statistically significant",
     improvingTitle: "Improvement vs previous period",
     worseningTitle: "Deterioration vs previous period",
     improvingTitleYoy: "Improvement vs the same period last year",
@@ -69,7 +69,7 @@ export default function DeltaBadge({
       <span
         className={`pill bg-navy-50 text-muted ${sizeCls}`}
         role="img"
-        aria-label={`${fmt.fmtSignedPct(delta)} — ${t("noiseTitle")}`}
+        aria-label={`${fmt.fmtSignedPct(delta)}: ${t("noiseTitle")}`}
         title={t("noiseTitle")}
       >
         <Icon width={iconSize} height={iconSize} aria-hidden />
@@ -98,7 +98,7 @@ export default function DeltaBadge({
     <span
       className={`pill ${tone} ${sizeCls}`}
       role="img"
-      aria-label={`${fmt.fmtSignedPct(delta)} — ${changeTitle}${sigSuffix}`}
+      aria-label={`${fmt.fmtSignedPct(delta)}: ${changeTitle}${sigSuffix}`}
       title={`${changeTitle}${sigSuffix}`}
     >
       <Icon width={iconSize} height={iconSize} aria-hidden />

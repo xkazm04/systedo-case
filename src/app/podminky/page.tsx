@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const T = {
   cs: {
-    metaTitle: "Podmínky služby — Adamant",
+    metaTitle: "Podmínky služby – Adamant",
     metaDescription:
       "Podmínky používání aplikace Adamant: co služba je, cena zdarma během validace, účty, připojená data a odpovědnost.",
     eyebrow: "Právní informace",
@@ -27,7 +27,7 @@ const T = {
     updated: "Účinné od 4. srpna 2026",
   },
   en: {
-    metaTitle: "Terms of Service — Adamant",
+    metaTitle: "Terms of Service – Adamant",
     metaDescription:
       "Terms for using the Adamant app: what the service is, free-during-validation pricing, accounts, connected data and liability.",
     eyebrow: "Legal",

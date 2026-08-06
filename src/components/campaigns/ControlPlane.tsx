@@ -22,7 +22,7 @@ const T = {
     heading: "Řízení rozpočtů (control plane)",
     propose: "Navrhnout změnový balíček",
     subtitle:
-      "Dávka doporučených přesunů rozpočtu — nejdřív simulace dopadu, pak lidské schválení, vždy" +
+      "Dávka doporučených přesunů rozpočtu: nejdřív simulace dopadu, pak lidské schválení, vždy" +
       " s možností vrácení. Bezpečný způsob, jak nechat software sahat na reálnou útratu.",
     pendingHeading: "Návrh ke schválení",
     statusPending: "Čeká na schválení",
@@ -38,7 +38,7 @@ const T = {
     linEst: "hodnoty konverzí (lineární odhad).",
     lowConfidence: "Nižší jistota odhadu",
     lowConfidenceTitle:
-      "Některý přesun přemísťuje více než polovinu rozpočtu dárce — lineární odhad je za hranicí" +
+      "Některý přesun přemísťuje více než polovinu rozpočtu dárce. Lineární odhad je za hranicí" +
       " „malé realokace“ a dopad může být nadhodnocený.",
     confirmOverride: "Potvrdit i přes pojistky",
     confirmApply: "Potvrdit a aplikovat na účet",
@@ -57,7 +57,7 @@ const T = {
     heading: "Budget management (control plane)",
     propose: "Propose change package",
     subtitle:
-      "A batch of recommended budget moves — impact simulation first, then human approval, always" +
+      "A batch of recommended budget moves: impact simulation first, then human approval, always" +
       " with a rollback option. The safe way to let software touch real spend.",
     pendingHeading: "Proposal awaiting approval",
     statusPending: "Pending approval",
@@ -73,7 +73,7 @@ const T = {
     linEst: "conversion value (linear estimate).",
     lowConfidence: "Lower-confidence estimate",
     lowConfidenceTitle:
-      "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
+      "A move re-points more than half of its donor's budget. The linear estimate is beyond the" +
       " “small reallocation” it is honest for, so the projected impact may be overstated.",
     confirmOverride: "Confirm despite guardrails",
     confirmApply: "Confirm and apply to account",

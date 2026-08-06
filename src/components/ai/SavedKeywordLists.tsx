@@ -20,7 +20,7 @@ const T = {
   cs: {
     sectionHeading: "Uložené seznamy",
     negativesHeading: "Vylučovací klíčová slova ({n})",
-    negativesBody: "Sjednocený seznam napříč seznamy — připravený k vložení do Google Ads jako vylučovací klíčová slova, aby se snížila zbytečná útrata.",
+    negativesBody: "Sjednocený seznam napříč seznamy, připravený k vložení do Google Ads jako vylučovací klíčová slova, aby se snížila zbytečná útrata.",
     copyNegatives: "Kopírovat",
     csvNegatives: "CSV",
     csvFilename: "adamant-vylucovaci-slova.csv",
@@ -34,7 +34,7 @@ const T = {
   en: {
     sectionHeading: "Saved lists",
     negativesHeading: "Negative keywords ({n})",
-    negativesBody: "Unified list across all lists — ready to paste into Google Ads as negative keywords to cut wasted spend.",
+    negativesBody: "Unified list across all lists, ready to paste into Google Ads as negative keywords to cut wasted spend.",
     copyNegatives: "Copy",
     csvNegatives: "CSV",
     csvFilename: "adamant-negative-keywords.csv",

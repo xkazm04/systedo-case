@@ -24,7 +24,7 @@ const T = {
     heading: "Mapa případové studie",
     subheadingBefore: "Celá studie je řízená jedním typovaným navigačním modelem (",
     subheadingAfter:
-      ") — hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže se odkazy nikdy nerozejdou.",
+      "). Hlavička, patička, domovský rozcestník, drobečky, sitemap i tato mapa čtou stejný zdroj, takže se odkazy nikdy nerozejdou.",
     supplementary: "Doplňkové stránky",
   },
   en: {
@@ -32,7 +32,7 @@ const T = {
     heading: "Case-study sitemap",
     subheadingBefore: "The entire study is driven by a single typed navigation model (",
     subheadingAfter:
-      ") — the header, footer, home hub, breadcrumbs, sitemap and this page all read the same source, so links never drift.",
+      "). The header, footer, home hub, breadcrumbs, sitemap and this page all read the same source, so links never drift.",
     supplementary: "Supplementary pages",
   },
 } as const;
@@ -48,7 +48,7 @@ const META_PAGES: Record<"cs" | "en", MetaPage[]> = {
     {
       href: "/clanek/vykon",
       label: "Datový report",
-      blurb: "Automaticky generovaný výkonnostní report — data z dashboardu publikovaná jako strukturovaný článek.",
+      blurb: "Automaticky generovaný výkonnostní report: data z dashboardu publikovaná jako strukturovaný článek.",
     },
     {
       href: "/design-system",
@@ -60,7 +60,7 @@ const META_PAGES: Record<"cs" | "en", MetaPage[]> = {
     {
       href: "/clanek/vykon",
       label: "Data report",
-      blurb: "Auto-generated performance report — dashboard data published as a structured article.",
+      blurb: "Auto-generated performance report: dashboard data published as a structured article.",
     },
     {
       href: "/design-system",

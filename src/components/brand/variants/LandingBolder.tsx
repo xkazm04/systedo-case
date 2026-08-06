@@ -59,15 +59,15 @@ const T = {
     heroTitle1: "Stůjte pevně.",
     heroTitle2: "Reklamy, které nepovolí.",
     heroSubhead:
-      "AI inteligence pro reklamu pro e-shopy a agentury — měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
+      "AI inteligence pro reklamu pro e-shopy a agentury: měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
     heroSeeItWork: "Podívejte se, jak to funguje",
     heroStartFree: "Začít zdarma",
     channelsLabel: "Kanály a úroveň podpory",
-    channelsNote: "Úroveň uvádíme u každého kanálu zvlášť — živou synchronizaci má zatím jen Google Ads.",
+    channelsNote: "Úroveň uvádíme u každého kanálu zvlášť. Živou synchronizaci má zatím jen Google Ads.",
 
     proofHeadline: "Důkaz: case-study účet, posledních 90 dní",
     proofNote:
-      "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}) — výsledky, ne sliby. Ilustrativní case-study data.",
+      "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}). Výsledky, ne sliby. Ilustrativní case-study data.",
     kindMultiple: "násobek",
     kindRatio: "poměr",
     kindVolume: "objem",
@@ -81,7 +81,7 @@ const T = {
 
     crossroadHeading: "Vyberte si cíl v pracovním prostoru",
     crossroadNote:
-      "Případová studie ve čtyřech zastávkách — každá je reálná část produktu, opřená o stejná klientská data.",
+      "Případová studie ve čtyřech zastávkách. Každá je reálná část produktu, opřená o stejná klientská data.",
 
     closingTitle: "Buďte ve své reklamě neoblomní.",
     closingNote:
@@ -91,15 +91,15 @@ const T = {
     heroTitle1: "Stand adamant.",
     heroTitle2: "Ads that never crack.",
     heroSubhead:
-      "AI ad intelligence for e-shops and agencies — measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
+      "AI ad intelligence for e-shops and agencies: measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
     heroSeeItWork: "See it work",
     heroStartFree: "Start free",
     channelsLabel: "Channels and support level",
-    channelsNote: "We state the level per channel — live sync is Google Ads only, for now.",
+    channelsNote: "We state the level per channel. Live sync is Google Ads only, for now.",
 
     proofHeadline: "Proof: the case-study account, last 90 days",
     proofNote:
-      "The same numbers the dashboard renders for {client} ({domain}) — outcomes, not claims. Illustrative case-study data.",
+      "The same numbers the dashboard renders for {client} ({domain}). Outcomes, not claims. Illustrative case-study data.",
     kindMultiple: "multiple",
     kindRatio: "ratio",
     kindVolume: "volume",
@@ -113,7 +113,7 @@ const T = {
 
     crossroadHeading: "Pick a destination in the workspace",
     crossroadNote:
-      "The case study in four stops — each a real product surface, grounded in the same client data.",
+      "The case study in four stops. Each is a real product surface, grounded in the same client data.",
 
     closingTitle: "Be adamant about your ads.",
     closingNote:

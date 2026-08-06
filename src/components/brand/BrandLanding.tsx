@@ -39,15 +39,15 @@ const T = {
     heroTitle1: "Stůjte pevně.",
     heroTitle2: "Reklamy, které nepovolí.",
     heroSubhead:
-      "AI inteligence pro reklamu pro e-shopy a agentury — měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
+      "AI inteligence pro reklamu pro e-shopy a agentury: měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
     heroSeeDemo: "Podívejte se na živou ukázku",
     heroStartFree: "Začít zdarma",
     heroWorksAcross: "Funguje napříč",
     proofLabel: "Důkaz",
     proofHeadline: "Na ukázkovém účtu, posledních 90 dní",
-    proofDemoBadge: "Ukázková data — fiktivní klient",
+    proofDemoBadge: "Ukázková data: fiktivní klient",
     proofNote:
-      "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}) — fiktivního ukázkového klienta. Nejde o výsledky reálného zákazníka.",
+      "Stejná čísla, jaká dashboard vykresluje pro {client} ({domain}), fiktivního ukázkového klienta. Nejde o výsledky reálného zákazníka.",
     closingTitle: "Buďte ve své reklamě neoblomní.",
   },
   en: {
@@ -60,15 +60,15 @@ const T = {
     heroTitle1: "Stand adamant.",
     heroTitle2: "Ads that never crack.",
     heroSubhead:
-      "AI ad intelligence for e-shops and agencies — measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
+      "AI ad intelligence for e-shops and agencies: measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
     heroSeeDemo: "See a live example",
     heroStartFree: "Start free",
     heroWorksAcross: "Works across",
     proofLabel: "Proof",
     proofHeadline: "On the demo account, last 90 days",
-    proofDemoBadge: "Demo data — fictional client",
+    proofDemoBadge: "Demo data: fictional client",
     proofNote:
-      "The same numbers the dashboard renders for {client} ({domain}) — a fictional demo client. Not real customer results.",
+      "The same numbers the dashboard renders for {client} ({domain}), a fictional demo client. Not real customer results.",
     closingTitle: "Be adamant about your ads.",
   },
 } as const;

@@ -21,7 +21,7 @@ import {
 
 const T = {
   cs: {
-    title: "AI modely — vlastní klíče",
+    title: "AI modely: vlastní klíče",
     subtitle: "Platí pro celý účet, napříč všemi projekty.",
     upsellTitle: "Připojte vlastní API klíče",
     upsellBody:
@@ -36,10 +36,10 @@ const T = {
     validated: "Ověřeno",
     validatedStale: "Ověřeno dávno",
     fingerprint: "Klíč …{last4}",
-    fingerprintTitle: "Poslední 4 znaky uloženého klíče — porovnejte je se seznamem klíčů u poskytovatele.",
+    fingerprintTitle: "Poslední 4 znaky uloženého klíče. Porovnejte je se seznamem klíčů u poskytovatele.",
     fingerprintUnknown: "Klíč neidentifikovaný",
     fingerprintUnknownTitle:
-      "Tento klíč byl uložen dřív, než jsme začali ukládat poslední 4 znaky. Klíč nikdy nedešifrujeme jen kvůli zobrazení — identifikaci uvidíte po nahrazení klíče.",
+      "Tento klíč byl uložen dřív, než jsme začali ukládat poslední 4 znaky. Klíč nikdy nedešifrujeme jen kvůli zobrazení. Identifikaci uvidíte po nahrazení klíče.",
     validatedAgo: "ověřeno {ago}",
     validatedNever: "zatím neověřeno",
     keyLabel: "API klíč",
@@ -51,15 +51,15 @@ const T = {
     modelQuality: "Model (kvalita)",
     modelFast: "Model (rychlý)",
     modelDefault: "Výchozí ({model})",
-    modelOffCatalog: "{model} — mimo nabídku",
-    modelNote: "Modely vybíráte z nabídky poskytovatele. Změna modelu ruší předchozí ověření — otestujte klíč znovu.",
+    modelOffCatalog: "{model} (mimo nabídku)",
+    modelNote: "Modely vybíráte z nabídky poskytovatele. Změna modelu ruší předchozí ověření. Otestujte klíč znovu.",
     saveModels: "Uložit modely",
     errUnknownModel: "Tento model není v nabídce pro daného poskytovatele. Vyberte model ze seznamu.",
     incidentsTitle: "Zjištěno při generování",
-    incidentDefinitive: "klíč vyřazen — opravte jej a otestujte",
-    incidentTransient: "jednorázový výpadek — použili jsme poskytovatele aplikace",
+    incidentDefinitive: "klíč vyřazen: opravte jej a otestujte",
+    incidentTransient: "jednorázový výpadek: použili jsme poskytovatele aplikace",
     incidentsNote:
-      "Zaznamenáno automaticky z běžných generování — poskytovatele se kvůli tomu neptáme navíc.",
+      "Zaznamenáno automaticky z běžných generování. Poskytovatele se kvůli tomu neptáme navíc.",
     test: "Otestovat",
     testing: "Testuji…",
     remove: "Odebrat",
@@ -67,13 +67,13 @@ const T = {
     testFailed: "Test se nezdařil.",
     saving: "Ukládám…",
     errGeneric: "Něco se pokazilo.",
-    errRateLimited: "Příliš mnoho testů klíče — každý test volá vašeho poskytovatele. Zkuste to prosím znovu za {seconds} s.",
+    errRateLimited: "Příliš mnoho testů klíče. Každý test volá vašeho poskytovatele. Zkuste to prosím znovu za {seconds} s.",
     errNetwork: "Nepodařilo se spojit se serverem.",
     loadError: "Nastavení AI se nepodařilo načíst.",
     retry: "Zkusit znovu",
   },
   en: {
-    title: "AI models — your own keys",
+    title: "AI models: your own keys",
     subtitle: "Applies to your whole account, across every project.",
     upsellTitle: "Connect your own API keys",
     upsellBody:
@@ -88,10 +88,10 @@ const T = {
     validated: "Verified",
     validatedStale: "Verified long ago",
     fingerprint: "Key …{last4}",
-    fingerprintTitle: "The last 4 characters of the stored key — match them against your provider's key list.",
+    fingerprintTitle: "The last 4 characters of the stored key. Match them against your provider's key list.",
     fingerprintUnknown: "Key unidentified",
     fingerprintUnknownTitle:
-      "This key was stored before we began keeping its last 4 characters. We never decrypt a key just to display it — replace the key to make it identifiable.",
+      "This key was stored before we began keeping its last 4 characters. We never decrypt a key just to display it. Replace the key to make it identifiable.",
     validatedAgo: "verified {ago}",
     validatedNever: "not verified yet",
     keyLabel: "API key",
@@ -103,15 +103,15 @@ const T = {
     modelQuality: "Model (quality)",
     modelFast: "Model (fast)",
     modelDefault: "Default ({model})",
-    modelOffCatalog: "{model} — not offered",
-    modelNote: "Models are picked from the provider's catalog. Changing a model clears the previous verification — test the key again.",
+    modelOffCatalog: "{model} (not offered)",
+    modelNote: "Models are picked from the provider's catalog. Changing a model clears the previous verification. Test the key again.",
     saveModels: "Save models",
     errUnknownModel: "That model isn't offered for this provider. Pick one from the list.",
     incidentsTitle: "Seen during generation",
-    incidentDefinitive: "key benched — fix it and test again",
-    incidentTransient: "one-off blip — we used the app's provider",
+    incidentDefinitive: "key benched: fix it and test again",
+    incidentTransient: "one-off blip: we used the app's provider",
     incidentsNote:
-      "Recorded automatically from ordinary generations — we never call your provider just to check.",
+      "Recorded automatically from ordinary generations. We never call your provider just to check.",
     test: "Test",
     testing: "Testing…",
     remove: "Remove",
@@ -119,7 +119,7 @@ const T = {
     testFailed: "Test failed.",
     saving: "Saving…",
     errGeneric: "Something went wrong.",
-    errRateLimited: "Too many key tests — each one calls your provider. Please try again in {seconds} s.",
+    errRateLimited: "Too many key tests. Each one calls your provider. Please try again in {seconds} s.",
     errNetwork: "Could not reach the server.",
     loadError: "Couldn't load AI settings.",
     retry: "Try again",
@@ -484,7 +484,7 @@ export default function ByomKeys() {
                               </span>
                               <span aria-hidden="true"> · </span>
                               <span>{fmt.fmtRelative(inc.at)}</span>
-                              <span aria-hidden="true"> — </span>
+                              <span aria-hidden="true"> · </span>
                               <span>{reasonFor(inc)}</span>{" "}
                               <span className="italic">
                                 ({inc.definitive ? t("incidentDefinitive") : t("incidentTransient")})

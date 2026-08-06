@@ -32,7 +32,7 @@ const T = {
     enterPerf: "Zadat výkon",
     editPerf: "Upravit výkon",
     savePerf: "Uložit výkon",
-    saveFailed: "Uložení výkonu se nezdařilo — čísla zůstala nezměněná. Zkuste to prosím znovu.",
+    saveFailed: "Uložení výkonu se nezdařilo. Čísla zůstala nezměněná. Zkuste to prosím znovu.",
     impressions: "{n} impresí",
   },
   en: {
@@ -50,7 +50,7 @@ const T = {
     enterPerf: "Enter performance",
     editPerf: "Edit performance",
     savePerf: "Save performance",
-    saveFailed: "Saving performance failed — the numbers are unchanged. Please try again.",
+    saveFailed: "Saving performance failed. The numbers are unchanged. Please try again.",
     impressions: "{n} impressions",
   },
 } as const;

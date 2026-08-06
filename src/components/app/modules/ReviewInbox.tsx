@@ -50,8 +50,8 @@ const T = {
     flag: "Označit majiteli", flagged: "Označeno", markAnswered: "Označit jako zodpovězené", answered: "Zodpovězeno",
     draftLabel: "Návrh odpovědi", aiReply: "AI odpověď", demoMode: "Ukázkový režim",
     macros: "Šablony", copy: "Kopírovat", copied: "Zkopírováno",
-    generationFailed: "Generování selhalo", timedOut: "Model neodpověděl včas — zkuste to znovu.", retry: "Zkusit znovu",
-    footer: "Odpovídejte veřejně — vřelé poděkování buduje důvěru, vstřícná reakce na kritiku snižuje její dopad. Stav se ukládá k projektu; seam: reviews API (Google Business Profile).",
+    generationFailed: "Generování selhalo", timedOut: "Model neodpověděl včas. Zkuste to znovu.", retry: "Zkusit znovu",
+    footer: "Odpovídejte veřejně. Vřelé poděkování buduje důvěru, vstřícná reakce na kritiku snižuje její dopad. Stav se ukládá k projektu; seam: reviews API (Google Business Profile).",
   },
   en: {
     searchPlaceholder: "Search reviews…",
@@ -64,7 +64,7 @@ const T = {
     replyRate: "Reply rate", medianAge: "Median age (answered)", trend: "Sentiment trend",
     days: "{n} days", noAnswered: "—",
     trendUp: "rising", trendDown: "falling", trendFlat: "flat",
-    healthNote: "Reply rate = answered / total. “Median age” uses the age of answered reviews (reply times aren't stored — an honest proxy). Trend compares the positive share of the older vs newer half of the window.",
+    healthNote: "Reply rate = answered / total. “Median age” uses the age of answered reviews (reply times aren't stored, so this is an honest proxy). Trend compares the positive share of the older vs newer half of the window.",
     sampleTag: "Sample data",
     empty: "No reviews match the filter.",
     daysAgo: "{n} days ago", today: "today",
@@ -72,8 +72,8 @@ const T = {
     flag: "Flag for owner", flagged: "Flagged", markAnswered: "Mark answered", answered: "Answered",
     draftLabel: "Reply draft", aiReply: "AI reply", demoMode: "Demo mode",
     macros: "Templates", copy: "Copy", copied: "Copied",
-    generationFailed: "Generation failed", timedOut: "The model timed out — please try again.", retry: "Retry",
-    footer: "Reply publicly — a warm thank-you builds trust, and an empathetic response to criticism reduces its impact. State is saved to the project; seam: reviews API (Google Business Profile).",
+    generationFailed: "Generation failed", timedOut: "The model timed out. Please try again.", retry: "Retry",
+    footer: "Reply publicly. A warm thank-you builds trust, and an empathetic response to criticism reduces its impact. State is saved to the project; seam: reviews API (Google Business Profile).",
   },
 } as const;
 
@@ -81,12 +81,12 @@ const MACROS: Record<"cs" | "en", { id: string; label: string; template: string 
   cs: [
     { id: "thanks", label: "Poděkování", template: "Děkujeme, {author}! Vašich slov si moc vážíme a budeme se těšit na příště." },
     { id: "feedback", label: "Zpětná vazba", template: "Děkujeme za zpětnou vazbu, {author}. Vážíme si jí a rádi se dále zlepšíme." },
-    { id: "resolve", label: "Náprava", template: "Mrzí nás to, {author}. Rádi bychom to napravili — ozvěte se nám prosím přímo, ať situaci co nejdříve vyřešíme." },
+    { id: "resolve", label: "Náprava", template: "Mrzí nás to, {author}. Rádi bychom to napravili. Ozvěte se nám prosím přímo, ať situaci co nejdříve vyřešíme." },
   ],
   en: [
     { id: "thanks", label: "Thanks", template: "Thank you, {author}! We truly appreciate your words and look forward to seeing you again." },
     { id: "feedback", label: "Feedback", template: "Thanks for the feedback, {author}. We value it and will keep improving." },
-    { id: "resolve", label: "Make it right", template: "We're sorry, {author}. We'd like to make this right — please reach out to us directly so we can resolve it quickly." },
+    { id: "resolve", label: "Make it right", template: "We're sorry, {author}. We'd like to make this right. Please reach out to us directly so we can resolve it quickly." },
   ],
 };
 

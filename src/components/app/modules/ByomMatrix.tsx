@@ -37,7 +37,7 @@ const T = {
     colReasoning: "Uvažování",
     inherit: "Výchozí",
     recTitle: "Nejlepší naměřený model: {model}",
-    recSelfJudge: " (pozor: model rodiny rozhodčího claude-sonnet — home-team bias)",
+    recSelfJudge: " (pozor: model rodiny rozhodčího claude-sonnet, home-team bias)",
     measured: "★ = nejlepší naměřený model · změřeno {date} ({age}).",
     stale: " ⚠ skóre může být zastaralé.",
     errGeneric: "Něco se pokazilo.",
@@ -54,7 +54,7 @@ const T = {
     colReasoning: "Reasoning",
     inherit: "Default",
     recTitle: "Best measured model: {model}",
-    recSelfJudge: " (note: same family as the judge claude-sonnet — home-team bias)",
+    recSelfJudge: " (note: same family as the judge claude-sonnet, home-team bias)",
     measured: "★ = best measured model · measured {date} ({age}).",
     stale: " ⚠ scores may be stale.",
     errGeneric: "Something went wrong.",
@@ -174,7 +174,7 @@ export default function ByomMatrix() {
 
                 {/* provider */}
                 <select
-                  aria-label={`${tOp(op.id)} — ${t("colProvider")}`}
+                  aria-label={`${tOp(op.id)}: ${t("colProvider")}`}
                   className={selectClass}
                   value={vendor ?? ""}
                   disabled={busy}
@@ -190,7 +190,7 @@ export default function ByomMatrix() {
                     void setOp(op.id, vend, cat.default, reasoning);
                   }}
                 >
-                  <option value="">— {t("inherit")} —</option>
+                  <option value="">({t("inherit")})</option>
                   {configured.map((v) => (
                     <option key={v} value={v}>
                       {BYOM_VENDOR_LABELS[v]}
@@ -200,7 +200,7 @@ export default function ByomMatrix() {
 
                 {/* model */}
                 <select
-                  aria-label={`${tOp(op.id)} — ${t("colModel")}`}
+                  aria-label={`${tOp(op.id)}: ${t("colModel")}`}
                   className={selectClass}
                   value={ov?.model ?? ""}
                   disabled={!vendor || busy}
@@ -232,7 +232,7 @@ export default function ByomMatrix() {
 
                 {/* reasoning */}
                 <select
-                  aria-label={`${tOp(op.id)} — ${t("colReasoning")}`}
+                  aria-label={`${tOp(op.id)}: ${t("colReasoning")}`}
                   className={selectClass}
                   value={modelOpt?.noReasoning ? "default" : ov?.reasoning ?? "default"}
                   disabled={reasoningDisabled}

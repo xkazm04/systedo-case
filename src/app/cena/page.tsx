@@ -20,36 +20,36 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const T = {
   cs: {
-    metaTitle: "Ceník — Adamant",
+    metaTitle: "Ceník – Adamant",
     metaDescription:
-      "Adamant je během validace zdarma v plném rozsahu. Placené plány Pro a Vlastní klíč spustíme po ověření produktu — tabulka ukazuje zamýšlené rozdělení.",
+      "Adamant je během validace zdarma v plném rozsahu. Placené plány Pro a Vlastní klíč spustíme po ověření produktu. Tabulka ukazuje zamýšlené rozdělení.",
     eyebrow: "Ceník",
     heading: "Během validace zdarma",
     subheading:
-      "Adamant je ve validační fázi zdarma v plném rozsahu — denní limity chrání placená volání modelu a synchronizace. Placené plány níže ukazují, kam ceník míří; spustíme je až po validaci.",
+      "Adamant je ve validační fázi zdarma v plném rozsahu. Denní limity chrání placená volání modelu a synchronizace. Placené plány níže ukazují, kam ceník míří; spustíme je až po validaci.",
     recommended: "Doporučeno",
     free: "Zdarma",
     perMonth: "/ měsíc",
     ctaFree: "Začít zdarma",
     comingSoon: "Spustíme po validaci",
     disclaimer:
-      "Placené plány zatím nejsou spuštěné a platební brána není napojená — během validace nic neúčtujeme. Limity jsou denní a počítají se v UTC.",
+      "Placené plány zatím nejsou spuštěné a platební brána není napojená. Během validace nic neúčtujeme. Limity jsou denní a počítají se v UTC.",
   },
   en: {
-    metaTitle: "Pricing — Adamant",
+    metaTitle: "Pricing – Adamant",
     metaDescription:
-      "Adamant is free in full during validation. The paid Pro and Own-key plans launch after the product is validated — the table shows the intended split.",
+      "Adamant is free in full during validation. The paid Pro and Own-key plans launch after the product is validated. The table shows the intended split.",
     eyebrow: "Pricing",
     heading: "Free during validation",
     subheading:
-      "During the validation phase Adamant is free in full — the daily limits protect paid model calls and syncs. The paid plans below show where pricing is headed; they launch only after validation.",
+      "During the validation phase Adamant is free in full. The daily limits protect paid model calls and syncs. The paid plans below show where pricing is headed; they launch only after validation.",
     recommended: "Recommended",
     free: "Free",
     perMonth: "/ month",
     ctaFree: "Start free",
     comingSoon: "Coming after validation",
     disclaimer:
-      "Paid plans are not live yet and no payment gateway is wired up — nothing is charged during validation. Limits are daily and counted in UTC.",
+      "Paid plans are not live yet and no payment gateway is wired up. Nothing is charged during validation. Limits are daily and counted in UTC.",
   },
 } as const;
 
@@ -85,7 +85,7 @@ const PLAN_COPY: Record<
       tagline: "Vlastní API klíč, neomezené AI generování a volba modelu.",
       features: [
         "Neomezená AI generování přes vlastní klíč",
-        "OpenAI, Gemini nebo Claude — přepínání modelů",
+        "OpenAI, Gemini nebo Claude (přepínání modelů)",
         "Platíte tokeny přímo poskytovateli",
         "Bez denního limitu na AI nástroje",
         "Přístup ke všem AI nástrojům v aplikaci",
@@ -119,7 +119,7 @@ const PLAN_COPY: Record<
       tagline: "Your own API key, unlimited AI generation and model choice.",
       features: [
         "Unlimited AI generation with your own key",
-        "OpenAI, Gemini or Claude — switch models",
+        "OpenAI, Gemini or Claude (switch models)",
         "You pay tokens directly to the provider",
         "No daily cap on AI tools",
         "Access to every AI tool in the app",

@@ -29,7 +29,7 @@ const T = {
     sourceSample: "Nenatrénovaný twin",
     sourceTrained: "Natrénovaný twin",
     intro:
-      "Twin je komunikační dvojče vaší firmy. Naučte ho, jak píšete — vložte reálné zprávy a odpovězte na to, co si z nich nedokáže odvodit. V tomto hlase pak píše všude: ve schránce, v sociálních sítích i v distribuci.",
+      "Twin je komunikační dvojče vaší firmy. Naučte ho, jak píšete. Vložte reálné zprávy a odpovězte na to, co si z nich nedokáže odvodit. V tomto hlase pak píše všude: ve schránce, v sociálních sítích i v distribuci.",
     nextUp: "Další krok",
     untrain: "Vymazat trénink",
     untraining: "Mažu…",
@@ -42,7 +42,7 @@ const T = {
     sourceSample: "Untrained twin",
     sourceTrained: "Trained twin",
     intro:
-      "The twin is your business's communication double. Teach it how you write — paste real messages and answer what it can't infer from them. It then writes in that voice everywhere: the outbox, social and distribution.",
+      "The twin is your business's communication double. Teach it how you write. Paste real messages and answer what it can't infer from them. It then writes in that voice everywhere: the outbox, social and distribution.",
     nextUp: "Next step",
     untrain: "Reset training",
     untraining: "Resetting…",

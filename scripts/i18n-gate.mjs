@@ -31,7 +31,9 @@ const JSON_OUT = argv.includes("--json");
  *  at all — a partial application is the "half-sweep" failure. We compare total
  *  occurrence counts in the cs column; any movement is a violation. */
 const PARKED = [
-  { id: "A1", name: "em dash in cs", re: /—/g },
+  // A1 (em dash) was REMOVED on 2026-08-06 — the owner decided it, so reducing
+  // the count is now the goal rather than a half-sweep violation. The em dash is
+  // guarded in the opposite direction by EM_DASH_CEILING below.
   { id: "A2", name: "prosím", re: /prosím/gi },
   { id: "A3", name: "klikněte na", re: /[Kk]likn[ěe]te\s+na/g },
   {
@@ -203,6 +205,22 @@ for (const p of PARKED) {
       rel: "(whole wave)",
       key: p.id,
       detail: `${p.name}: ${b} -> ${n}. Not a half-sweep (usually a register fix), but the pending ${p.id} sweep now has more sites to cover.`,
+    });
+}
+
+// CS-DASH ratchet. The em dash is being removed from the catalog (decided
+// 2026-08-06), so its count must only ever go DOWN. A rise means someone
+// re-introduced the character the sweep exists to remove — including via a
+// well-meaning "recast" that swapped one dash for another.
+{
+  const emBase = (baseCs.match(/—/g) ?? []).length;
+  const emNow = (nowCs.match(/—/g) ?? []).length;
+  if (emNow > emBase)
+    fails.push({
+      check: "em dash re-introduced",
+      rel: "(whole wave)",
+      key: "CS-DASH",
+      detail: `em dash in cs: ${emBase} -> ${emNow}. The house rule is no dash at all; a surviving beat of contrast takes a spaced en dash (U+2013). See style-cs.md § Typography.`,
     });
 }
 

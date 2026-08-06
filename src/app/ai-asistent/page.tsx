@@ -19,7 +19,7 @@ const T = {
     eyebrowTask: "Úkol 3 · AI-asistovaný vývoj",
     heading: "AI marketingový asistent",
     intro1:
-      "Nástroje z každodenní práce agentury v jednom rozhraní — PPC inzeráty, výzkum klíčových slov, SEO brief, analýza výkonu a generování vizuálů (Leonardo + hodnocení Geminim). Výzkum předává klíčová slova rovnou do briefu a textové nástroje pohání",
+      "Nástroje z každodenní práce agentury v jednom rozhraní: PPC inzeráty, výzkum klíčových slov, SEO brief, analýza výkonu a generování vizuálů (Leonardo + hodnocení Geminim). Výzkum předává klíčová slova rovnou do briefu a textové nástroje pohání",
     introStrong: "LLM wrapper",
     introEnd: "(Claude Sonnet v devu, Gemini v produkci).",
     approachEyebrow: "Můj přístup k AI ve vývoji",
@@ -28,13 +28,13 @@ const T = {
       "LLM tu není kouzlo „napiš mi něco“, ale spolehlivý stavební prvek. Čtyři principy, které dělají rozdíl mezi demem a produkčním nasazením:",
     approach1Title: "Strukturovaný výstup",
     approach1Body:
-      "Model nevrací volný text, ale JSON podle schématu (responseSchema). Výsledek je rovnou typovaný a validovaný — žádné křehké parsování.",
+      "Model nevrací volný text, ale JSON podle schématu (responseSchema). Výsledek je rovnou typovaný a validovaný, žádné křehké parsování.",
     approach2Title: "Doménová pravidla v promptu",
     approach2Body:
       "Do instrukcí jsou zapečené limity Google Ads i SEO (nadpisy 30/90 znaků, title 60, meta 155) a oborové zásady. UI je navíc kontroluje a barevně označí přetečení.",
     approach3Title: "Klíč zůstává na serveru",
     approach3Body:
-      "Volání běží v Route Handleru na Node runtime. GEMINI_API_KEY se nikdy nedostane do prohlížeče — klient vidí jen hotový výsledek.",
+      "Volání běží v Route Handleru na Node runtime. GEMINI_API_KEY se nikdy nedostane do prohlížeče. Klient vidí jen hotový výsledek.",
     approach4Title: "Funguje i bez klíče",
     approach4Body:
       "Bez API klíče se vrátí deterministická ukázka v limitech, jasně označená. Stránka je tak plně použitelná rovnou z repozitáře.",
@@ -48,7 +48,7 @@ const T = {
     eyebrowTask: "Task 3 · AI-assisted development",
     heading: "AI marketing assistant",
     intro1:
-      "Tools from an agency's everyday work in one interface — PPC ads, keyword research, SEO briefs, performance analysis and visual generation (Leonardo + Gemini grading). Research hands its keywords straight into the brief, and the text tools run on an",
+      "Tools from an agency's everyday work in one interface: PPC ads, keyword research, SEO briefs, performance analysis and visual generation (Leonardo + Gemini grading). Research hands its keywords straight into the brief, and the text tools run on an",
     introStrong: "LLM wrapper",
     introEnd: "(Claude Sonnet in dev, Gemini in production).",
     approachEyebrow: "My approach to AI in development",
@@ -57,13 +57,13 @@ const T = {
       "The LLM here isn't a magic write-me-something trick, but a reliable building block. Four principles that make the difference between a demo and a production deployment:",
     approach1Title: "Structured output",
     approach1Body:
-      "The model doesn't return free text — it returns JSON against a schema (responseSchema). The result is typed and validated on arrival, no brittle parsing.",
+      "The model doesn't return free text. It returns JSON against a schema (responseSchema). The result is typed and validated on arrival, no brittle parsing.",
     approach2Title: "Domain rules baked into the prompt",
     approach2Body:
       "Google Ads and SEO limits (30/90-character headlines, 60-character title, 155-character meta) and industry conventions are baked into the instructions. The UI additionally checks and color-flags any overflow.",
     approach3Title: "The key stays on the server",
     approach3Body:
-      "Calls run in a Route Handler on the Node runtime. GEMINI_API_KEY never reaches the browser — the client only sees the finished result.",
+      "Calls run in a Route Handler on the Node runtime. GEMINI_API_KEY never reaches the browser. The client only sees the finished result.",
     approach4Title: "Works without a key",
     approach4Body:
       "Without an API key it returns a deterministic sample within the limits, clearly labelled. The page is fully usable straight out of the repository.",

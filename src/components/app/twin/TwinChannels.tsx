@@ -37,7 +37,7 @@ const T = {
     threshold: "Hranice jistoty",
     notConfigured: "nenastaveno",
     manualWarning:
-      "Zatím není připojený žádný odesílací konektor. Schválené zprávy si zkopírujete a odešlete sami — Adamant nic neodesílá.",
+      "Zatím není připojený žádný odesílací konektor. Schválené zprávy si zkopírujete a odešlete sami. Adamant nic neodesílá.",
     autonomyReview: "Jen člověk",
     autonomyAssist: "Twin píše, člověk schvaluje",
     autonomyAuto: "Samostatně",
@@ -46,7 +46,7 @@ const T = {
     autonomyAutoHint: "Twin schválí sám, pokud je jistota nad hranicí a nenajde riziko.",
     trainedAge: "hlas trénován {age}",
     retrainNudge: "K přetrénování",
-    retrainNudgeTitle: "Od tréninku hlasu přibyly nové podklady — zvažte přetrénování.",
+    retrainNudgeTitle: "Od tréninku hlasu přibyly nové podklady. Zvažte přetrénování.",
   },
   en: {
     intro:
@@ -57,7 +57,7 @@ const T = {
     threshold: "Confidence bar",
     notConfigured: "not configured",
     manualWarning:
-      "No send connector is wired up yet. You copy approved messages and send them yourself — Adamant transmits nothing.",
+      "No send connector is wired up yet. You copy approved messages and send them yourself. Adamant transmits nothing.",
     autonomyReview: "Human only",
     autonomyAssist: "Twin drafts, human approves",
     autonomyAuto: "Autonomous",
@@ -66,7 +66,7 @@ const T = {
     autonomyAutoHint: "The twin self-approves when confidence clears the bar and no risk is found.",
     trainedAge: "voice trained {age}",
     retrainNudge: "Re-train",
-    retrainNudgeTitle: "New materials banked since the voice was trained — consider re-training.",
+    retrainNudgeTitle: "New materials banked since the voice was trained. Consider re-training.",
   },
 } as const;
 

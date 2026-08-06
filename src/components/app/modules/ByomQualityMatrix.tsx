@@ -28,7 +28,7 @@ const T = {
     measured: "Změřeno {date} ({age}) · rozhodčí {judge}.",
     stale: "⚠ Skóre může být zastaralé (naposledy měřeno {age}).",
     selfJudge:
-      "° Rozhodčí je claude-sonnet — sloupce rodiny Anthropic (claude-*) hodnotí sourozenecký model (home-team bias).",
+      "° Rozhodčí je claude-sonnet. Sloupce rodiny Anthropic (claude-*) hodnotí sourozenecký model (home-team bias).",
     na: "—",
   },
   en: {
@@ -40,7 +40,7 @@ const T = {
     measured: "Measured {date} ({age}) · judge {judge}.",
     stale: "⚠ Scores may be stale (last measured {age}).",
     selfJudge:
-      "° The judge is claude-sonnet — Anthropic-family columns (claude-*) are graded by a sibling model (home-team bias).",
+      "° The judge is claude-sonnet. Anthropic-family columns (claude-*) are graded by a sibling model (home-team bias).",
     na: "—",
   },
 } as const;
@@ -84,7 +84,7 @@ export default function ByomQualityMatrix({ className = "max-w-4xl" }: { classNa
               {models.map((m) => {
                 const self = isSelfJudged(judge, m);
                 return (
-                  <th key={m} className={thBase} title={self ? `${m} — ${t("selfJudge")}` : m}>
+                  <th key={m} className={thBase} title={self ? `${m}: ${t("selfJudge")}` : m}>
                     {short(m)}
                     {self && <span aria-hidden> °</span>}
                   </th>

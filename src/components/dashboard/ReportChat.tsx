@@ -20,8 +20,8 @@ const T = {
   cs: {
     back: "Zpět na dashboard",
     eyebrow: "Datový report",
-    assistant: "Datový report — asistent",
-    assistantSub: "Ptejte se na detaily reportu — model odpovídá z reálných dat.",
+    assistant: "Datový report: asistent",
+    assistantSub: "Ptejte se na detaily reportu. Model odpovídá z reálných dat.",
     empty: "Vyberte otázku níže, nebo napište vlastní.",
     placeholder: "Zeptejte se na cokoli z reportu…",
     thinking: "Přemýšlím…",
@@ -39,8 +39,8 @@ const T = {
   en: {
     back: "Back to dashboard",
     eyebrow: "Data report",
-    assistant: "Data report — assistant",
-    assistantSub: "Ask about the report — the model answers from real data.",
+    assistant: "Data report: assistant",
+    assistantSub: "Ask about the report. The model answers from real data.",
     empty: "Pick a question below, or type your own.",
     placeholder: "Ask anything about the report…",
     thinking: "Thinking…",

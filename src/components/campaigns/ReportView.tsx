@@ -18,10 +18,10 @@ const T = {
     scoreReserves: "S rezervami",
     scoreUnder: "Podvýkonné",
     scoreTitle: "Skóre zdraví 0–100",
-    cachedNote: "Z mezipaměti — beze změny vstupů, bez nového volání modelu.",
+    cachedNote: "Z mezipaměti: beze změny vstupů, bez nového volání modelu.",
     cachedTitle:
       "Vstupy (kampaně i období) se nezměnily, proto se zobrazil uložený výsledek bez nového placeného volání modelu.",
-    staleNote: "Data se od tohoto vyhodnocení změnila — doporučujeme přehodnotit.",
+    staleNote: "Data se od tohoto vyhodnocení změnila. Doporučujeme přehodnotit.",
     staleTitle:
       "Od uložení tohoto vyhodnocení proběhla synchronizace, která změnila podkladové metriky. Skóre a doporučení nemusí odpovídat aktuálním číslům.",
     strengths: "Silné stránky",
@@ -37,10 +37,10 @@ const T = {
     scoreReserves: "Room to improve",
     scoreUnder: "Underperforming",
     scoreTitle: "Health score 0–100",
-    cachedNote: "From cache — inputs unchanged, no new model call.",
+    cachedNote: "From cache: inputs unchanged, no new model call.",
     cachedTitle:
       "Inputs (campaigns and period) have not changed, so the saved result is shown without a new paid model call.",
-    staleNote: "Data has changed since this evaluation — consider re-evaluating.",
+    staleNote: "Data has changed since this evaluation. Consider re-evaluating.",
     staleTitle:
       "A sync after this evaluation changed the underlying metrics. Its score and recommendations may no longer match the numbers on screen.",
     strengths: "Strengths",

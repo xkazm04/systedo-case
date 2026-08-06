@@ -52,7 +52,7 @@ const T = {
       "Adamant čte vaše živá data z Google Ads, řekne vám, co znamenají, a ze stejných čísel rovnou napíše inzeráty, články a příspěvky. Jeden pracovní prostor místo dashboardu, tabulky a chatovacího okna.",
     heroPrimary: "Podívejte se, jak to funguje",
     heroSecondary: "Začít zdarma",
-    heroHint: "Bez registrace — otevře se dashboard s ukázkovým účtem.",
+    heroHint: "Bez registrace. Otevře se dashboard s ukázkovým účtem.",
 
     // loop
     loopHeading: "Měřit, třídit, tvořit. V jednom okruhu.",
@@ -87,7 +87,7 @@ const T = {
     // proof
     proofHeading: "Čísla, která dashboard skutečně vykresluje",
     proofNote:
-      "Posledních 90 dní na case-study účtu — e-shop {client} ({domain}). Ilustrativní data případové studie, ne výsledky zákazníka.",
+      "Posledních 90 dní na case-study účtu: e-shop {client} ({domain}). Ilustrativní data případové studie, ne výsledky zákazníka.",
     groupPerf: "Výkon portfolia",
     groupImpact: "Dopad na obrat",
     proofRoas: "ROAS portfolia",
@@ -109,7 +109,7 @@ const T = {
     // destinations
     destHeading: "Nebo se rovnou podívejte dovnitř",
     destDashboard: "Výkon klienta po metrikách a kanálech, s anomáliemi a projekcí do konce měsíce.",
-    destClanek: "Publikovaný článek pro mionelo.cz — struktura, prolinkování, připravený k nasazení.",
+    destClanek: "Publikovaný článek pro mionelo.cz: struktura, prolinkování, připravený k nasazení.",
     destAsistent: "Tři nástroje nad živými daty: PPC inzeráty, obsahový brief a analýza výkonu.",
     destKampane: "Přehled kampaní z Google Ads, srovnání podle typů a AI vyhodnocení každé z nich.",
 
@@ -127,7 +127,7 @@ const T = {
       "Adamant reads your live Google Ads data, tells you what it means, and writes the ads, articles and posts straight off those same numbers. One workspace instead of a dashboard, a spreadsheet and a chat window.",
     heroPrimary: "See it work",
     heroSecondary: "Start free",
-    heroHint: "No sign-up — it opens the dashboard on a sample account.",
+    heroHint: "No sign-up. It opens the dashboard on a sample account.",
 
     loopHeading: "Measure, triage, generate. One loop.",
     loopIntro:
@@ -159,7 +159,7 @@ const T = {
 
     proofHeading: "The numbers the dashboard actually renders",
     proofNote:
-      "Last 90 days on the case-study account — the e-shop {client} ({domain}). Illustrative case-study data, not customer results.",
+      "Last 90 days on the case-study account: the e-shop {client} ({domain}). Illustrative case-study data, not customer results.",
     groupPerf: "Portfolio performance",
     groupImpact: "Revenue impact",
     proofRoas: "portfolio ROAS",
@@ -175,11 +175,11 @@ const T = {
     pricePerMonth: "/ month",
     priceAll: "Full pricing",
     priceNote:
-      "Case study: no payment gateway is wired up — upgrading is a thin layer over the plan field.",
+      "Case study: no payment gateway is wired up. Upgrading is a thin layer over the plan field.",
 
     destHeading: "Or look inside right away",
     destDashboard: "Client performance by metric and channel, with anomalies and an end-of-month projection.",
-    destClanek: "A published article for mionelo.cz — structure, internal links, ready to ship.",
+    destClanek: "A published article for mionelo.cz: structure, internal links, ready to ship.",
     destAsistent: "Three tools over live data: PPC ad copy, a content brief and a performance read.",
     destKampane: "Google Ads campaigns, compared by type, each with an AI verdict.",
 

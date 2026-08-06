@@ -131,13 +131,19 @@ than fake it.
 > agreeing with nothing.
 
 ```
-en  The case study in four stops — each a real product surface, grounded in
+en  The case study in four stops. Each is a real product surface, grounded in
     the same client data.
-✗   Případová studie ve čtyřech zastávkách — každá reálná část produktu,
+✗   Případová studie ve čtyřech zastávkách. Každá reálná část produktu,
     opřená o stejná klientská data.
-✓   Případová studie ve čtyřech zastávkách — každá je reálná část produktu,
+✓   Případová studie ve čtyřech zastávkách. Každá je reálná část produktu,
     opřená o stejná klientská data.       (Crossroad.note, verbatim)
 ```
+
+> *Quote refreshed 2026-08-06.* This pair originally used an em dash where the
+> full stop now sits; the CS-DASH sweep recast it, and the en column gained the
+> copula `is` for the same reason the cs one always had `je`. **The rule is
+> unaffected** — that is the point: CS-COPULA is about the missing verb, not the
+> punctuation around it, and the defect survives every choice of separator.
 
 ## CS-LEFTOVER · English sitting in the cs column
 
@@ -181,6 +187,36 @@ The last two were also CS-ASPECT violations: a button takes the infinitive.
 and friends are the **field labels of an exported clipboard/Markdown document**.
 Whether an export written by a Czech user should carry Czech or English headings
 is a product decision, and it is the reason this rule cannot simply be swept.
+
+## CS-DASH · don't punctuate with a dash at all; if you must, use the en dash
+
+> **Trigger** — any `—` or `–` used as punctuation inside a sentence.
+> **Rule** — **decided by the owner, 2026-08-06.** A dash is not how ordinary
+> written Czech is punctuated, and the em dash `—` is not a Czech character
+> (ČSN 01 6910 sets the *pomlčka* as the en dash). Constant dashes read as
+> machine-written copy. **Default to no dash**: recast with a full stop, colon,
+> comma or parentheses, in that order of preference. Only a genuine single beat
+> of contrast that parentheses would over-weight keeps a dash, and then it is a
+> **spaced en dash ` – ` (U+2013)** — never `—`.
+> **Applies to both columns**, so cs and en punctuate alike.
+> Full decision procedure and examples: [`style-cs.md`](./style-cs.md) §
+> Typography and [`style-en.md`](./style-en.md) § Punctuation.
+
+```
+en  Done — the app speaks your business        ✓ Done. The app now speaks your business.
+cs  Hotovo — aplikace mluví vaší firmou        ✓ Hotovo. Aplikace mluví vaší firmou.
+```
+
+> **OUT OF SCOPE — do not touch.** The standalone `"—"` **no-data placeholder**
+> is a design-system glyph meaning "no value", produced by `createFormatters`
+> at 92 sites and pinned by `test-unit/format-golden.test.mjs`. It is not
+> punctuation. Numeric/date ranges and `·` middots are likewise untouched.
+>
+> **This rule replaced its own opposite.** Both style guides previously
+> *endorsed* the em dash, which is why the finding sat parked as A1 for two
+> waves: two artifacts said contradictory things and neither was citable. The
+> lesson is in the shape of the fix — a contradiction between artifacts does not
+> resolve itself by picking the one you happen to open first.
 
 ## CS-FALSEMAP · the literal equivalent is a real Czech word that says something else
 
@@ -260,18 +296,7 @@ Each has real evidence and a real authority behind it, and each would touch
 enough sites that a partial application is worse than none —
 [`lessons-i18n.md`](./lessons-i18n.md) § 6. **Decide once, sweep once.**
 
-## CS-DASH · the em dash is not Czech punctuation — 258 sites
-
-> Czech typographic norm (ČSN 01 6910) sets the *pomlčka* as the **en dash `–`
-> with spaces**. This catalog uses the **em dash `—`, spaced, 258 times** in the
-> `cs` column (against 3 en dashes), and the `en` column uses it 273 times —
-> the counts travel together, which `lessons-i18n.md` § 3 names as the tell.
->
-> **This contradicts [`style-cs.md`](./style-cs.md) § Typography, which
-> currently endorses `—` for Czech.** Two artifacts cannot both be citable.
-> Resolving it is one scripted pass (`—` → `–` in cs values only) plus one edit
-> to the style guide. **Blocked on the owner's call**, because it is 258 visible
-> strings and the existing usage is deliberate and consistent.
+## ~~CS-DASH~~ · DECIDED 2026-08-06 — promoted to Part 1, see below
 
 ## CS-PROSIM · "prosím" tracks English "please" 1:1 — 20 sites
 

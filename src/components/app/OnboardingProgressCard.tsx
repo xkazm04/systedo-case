@@ -14,14 +14,14 @@ import DismissOnboarding from "./DismissOnboarding";
 const T = {
   cs: {
     title: "Dokončete nastavení projektu",
-    body: "Naplňte aplikaci vaší firmou a připojte data — {done} z {total} kroků hotovo.",
+    body: "Naplňte aplikaci vaší firmou a připojte data. {done} z {total} kroků hotovo.",
     next: "Další krok: {label}",
     continue: "Pokračovat",
     dismiss: "Skrýt",
   },
   en: {
     title: "Finish setting up your project",
-    body: "Seed the app with your business and connect your data — {done} of {total} steps done.",
+    body: "Seed the app with your business and connect your data. {done} of {total} steps done.",
     next: "Next: {label}",
     continue: "Continue",
     dismiss: "Hide",

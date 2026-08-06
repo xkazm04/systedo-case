@@ -53,8 +53,8 @@ const VARIANTS: Variant[] = [
     lane: "bolder + typeset",
     name: { cs: "Zesílená", en: "Amplified" },
     note: {
-      cs: "Zachovává Monolith a dotahuje ho pod fold. Geist Mono konečně nese čísla — 72 % sans / 28 % mono.",
-      en: "Keeps Monolith and carries it past the fold. Geist Mono finally carries the figures — 72% sans / 28% mono.",
+      cs: "Zachovává Monolith a dotahuje ho pod fold. Geist Mono konečně nese čísla: 72 % sans / 28 % mono.",
+      en: "Keeps Monolith and carries it past the fold. Geist Mono finally carries the figures: 72% sans / 28% mono.",
     },
     total: 32,
     actionable: 0,
@@ -89,7 +89,7 @@ const VARIANTS: Variant[] = [
 const T = {
   cs: {
     title: "Varianty landing page",
-    lead: "Tři alternativy postavené přes Impeccable, každá jinou cestou, plus současná stránka. Otevřete je ve stejné šířce okna — jinak srovnáváte viewporty, ne návrhy.",
+    lead: "Tři alternativy postavené přes Impeccable, každá jinou cestou, plus současná stránka. Otevřete je ve stejné šířce okna. Jinak srovnáváte viewporty, ne návrhy.",
     lane: "Postup",
     findings: "Nálezy detektoru",
     actionable: "z toho k řešení",
@@ -99,7 +99,7 @@ const T = {
   },
   en: {
     title: "Landing page variants",
-    lead: "Three alternatives built through Impeccable, each down a different lane, plus the incumbent. Open them at the same window width — otherwise you are comparing viewports, not designs.",
+    lead: "Three alternatives built through Impeccable, each down a different lane, plus the incumbent. Open them at the same window width. Otherwise you are comparing viewports, not designs.",
     lane: "Lane",
     findings: "Detector findings",
     actionable: "actionable",

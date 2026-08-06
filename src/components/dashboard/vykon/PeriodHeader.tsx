@@ -15,7 +15,7 @@ const T = {
     periodCompare: "· srovnání s předchozím stejně dlouhým obdobím",
     periodTruncated: "zkráceno na {days}",
     truncatedTitle:
-      "Datová řada je kratší než zvolené období — okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
+      "Datová řada je kratší než zvolené období. Okno i srovnávací období se zkrátily na stejně dlouhý dostupný úsek.",
     dataReport: "Datový report",
     periodSelector: "Výběr období",
     baselineSelector: "Srovnávací základna",
@@ -30,7 +30,7 @@ const T = {
     periodCompare: "· compared with the previous period of equal length",
     periodTruncated: "shortened to {days}",
     truncatedTitle:
-      "The data series is shorter than the selected period — the window and its comparison were capped to the equal-length span available.",
+      "The data series is shorter than the selected period. The window and its comparison were capped to the equal-length span available.",
     dataReport: "Data report",
     periodSelector: "Period selector",
     baselineSelector: "Comparison baseline",

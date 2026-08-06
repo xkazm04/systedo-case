@@ -20,14 +20,14 @@ const T = {
     eyebrow: "Měřená kvalita",
     heading: "Kvalita modelů",
     intro:
-      "Každou AI operaci v aplikaci proháníme přes několik jazykových modelů a necháme jejich výstupy nezávisle ohodnotit (LLM jako rozhodčí). Výsledné složené skóre ukazuje, který poskytovatel a model si vede nejlépe — a pomáhá vybrat v matici modelů ve vlastním nastavení.",
+      "Každou AI operaci v aplikaci proháníme přes několik jazykových modelů a necháme jejich výstupy nezávisle ohodnotit (LLM jako rozhodčí). Výsledné složené skóre ukazuje, který poskytovatel a model si vede nejlépe, a pomáhá vybrat v matici modelů ve vlastním nastavení.",
     empty: "Zatím nejsou naměřená žádná data.",
   },
   en: {
     eyebrow: "Measured quality",
     heading: "Model quality",
     intro:
-      "We run every AI operation in the app through several language models and have their outputs graded independently (LLM as judge). The resulting composite score shows which provider and model performs best — and helps you choose in the model matrix in your own settings.",
+      "We run every AI operation in the app through several language models and have their outputs graded independently (LLM as judge). The resulting composite score shows which provider and model performs best, and helps you choose in the model matrix in your own settings.",
     empty: "No measurements have been taken yet.",
   },
 } as const;

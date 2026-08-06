@@ -8,7 +8,7 @@ import { useT } from "@/lib/i18n/client";
 const T = {
   cs: {
     anonPrompt:
-      "Přihlaste se Google účtem a připojte svůj Google Ads — jinak běží přehled na ukázkových datech.",
+      "Přihlaste se Google účtem a připojte svůj Google Ads. Jinak běží přehled na ukázkových datech.",
     signIn: "Přihlásit přes Google",
     heading: "Google Ads účty",
     refresh: "Načíst",
@@ -27,7 +27,7 @@ const T = {
   },
   en: {
     anonPrompt:
-      "Sign in with your Google account and connect your Google Ads — otherwise the dashboard runs on sample data.",
+      "Sign in with your Google account and connect your Google Ads. Otherwise the dashboard runs on sample data.",
     signIn: "Sign in with Google",
     heading: "Google Ads accounts",
     refresh: "Refresh",

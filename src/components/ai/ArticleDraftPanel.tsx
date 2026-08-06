@@ -31,7 +31,7 @@ type Figure = Extract<Block, { type: "figure" }>;
 const T = {
   cs: {
     panelHeading: "Rozepsat článek",
-    panelBody: "Z hotového briefu připravíme koncept článku — odstavce, nadpisy, seznamy, tip i závěrečnou výzvu — ve stejné struktuře jako publikovaný článek.",
+    panelBody: "Z hotového briefu připravíme koncept článku (odstavce, nadpisy, seznamy, tip i závěrečnou výzvu) ve stejné struktuře jako publikovaný článek.",
     regenerate: "Vygenerovat znovu",
     generate: "Rozepsat článek",
     previewTab: "Náhled",
@@ -54,7 +54,7 @@ const T = {
     inserting: "Vkládám…",
     removeImage: "Odebrat obrázek",
     placeholderAdd: "Přidat obrázek: {alt}",
-    placeholderHint: "AI navrhla obrázek — vyberte ho z knihovny vizuálů.",
+    placeholderHint: "AI navrhla obrázek. Vyberte ho z knihovny vizuálů.",
     sendToDistribution: "Poslat do Distribuce",
     sendToDistributionTitle: "Poslat tento článek do Distribuce a udělat z něj varianty pro kanály",
     sending: "Odesílám…",
@@ -62,7 +62,7 @@ const T = {
   },
   en: {
     panelHeading: "Expand into an article",
-    panelBody: "From the finished brief we will prepare an article draft — paragraphs, headings, lists, a tip and a closing CTA — in the same structure as a published article.",
+    panelBody: "From the finished brief we will prepare an article draft (paragraphs, headings, lists, a tip and a closing CTA) in the same structure as a published article.",
     regenerate: "Regenerate",
     generate: "Expand into an article",
     previewTab: "Preview",
@@ -85,7 +85,7 @@ const T = {
     inserting: "Inserting…",
     removeImage: "Remove image",
     placeholderAdd: "Add image: {alt}",
-    placeholderHint: "The AI suggested an image here — pick it from the visual library.",
+    placeholderHint: "The AI suggested an image here. Pick it from the visual library.",
     sendToDistribution: "Send to Distribution",
     sendToDistributionTitle: "Send this article to Distribution and turn it into channel variants",
     sending: "Sending…",

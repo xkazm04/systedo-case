@@ -7,10 +7,10 @@ import { getT } from "@/lib/i18n/server";
 
 const T = {
   cs: {
-    desc: "Sdílené reporty pro klienty — vytvoříte je v modulu Kampaně tlačítkem „Sdílet report“. Zde je spravujete: počet zobrazení a zneplatnění odkazu.",
+    desc: "Sdílené reporty pro klienty. Vytvoříte je v modulu Kampaně tlačítkem „Sdílet report“. Zde je spravujete: počet zobrazení a zneplatnění odkazu.",
   },
   en: {
-    desc: "Shared reports for clients — create them in the Campaigns module using the “Share report” button. Manage them here: view count and link invalidation.",
+    desc: "Shared reports for clients. Create them in the Campaigns module using the “Share report” button. Manage them here: view count and link invalidation.",
   },
 } as const;
 

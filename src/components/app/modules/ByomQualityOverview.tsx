@@ -15,7 +15,7 @@ const T = {
   cs: {
     title: "Naměřená kvalita modelů",
     intro:
-      "Naše měření kvality výstupů napříč všemi AI operacemi — pomůže vybrat poskytovatele a model do matice níže.",
+      "Naše měření kvality výstupů napříč všemi AI operacemi. Pomůže vybrat poskytovatele a model do matice níže.",
     colModel: "Model",
     colScore: "Skóre",
     colWins: "Nejlepší v",
@@ -24,15 +24,15 @@ const T = {
     ops: "operací",
     method:
       "Změřeno {date} ({age}) · rozhodčí {judge} · {n} operací. Složené skóre 0–10: správnost a splnění úkolu váženo výše, tón níže; nevalidní výstup penalizován. Cena je průměrná skutečná cena za operaci hlášená OpenRouterem.",
-    stale: "⚠ Naposledy měřeno {age} — skóre může být zastaralé. Zvažte přeměření (npm run llm:quality).",
+    stale: "⚠ Naposledy měřeno {age}. Skóre může být zastaralé. Zvažte přeměření (npm run llm:quality).",
     selfJudge:
-      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model — jejich skóre berte jako ovlivněné „domácím prostředím“, ne neutrálně.",
+      "Pozn.: rozhodčí je claude-sonnet, takže modely rodiny Anthropic (claude-*) hodnotí sourozenecký model. Jejich skóre berte jako ovlivněné „domácím prostředím“, ne neutrálně.",
     na: "—",
   },
   en: {
     title: "Measured model quality",
     intro:
-      "Our measured output quality across every AI operation — use it to pick a provider and model in the matrix below.",
+      "Our measured output quality across every AI operation. Use it to pick a provider and model in the matrix below.",
     colModel: "Model",
     colScore: "Score",
     colWins: "Best in",
@@ -41,9 +41,9 @@ const T = {
     ops: "ops",
     method:
       "Measured {date} ({age}) · judge {judge} · {n} operations. Composite 0–10: correctness + task-adherence weighted higher, tone lower; invalid output penalised. Cost is the mean actual per-operation price reported by OpenRouter.",
-    stale: "⚠ Last measured {age} — scores may be stale. Consider re-running (npm run llm:quality).",
+    stale: "⚠ Last measured {age}. Scores may be stale. Consider re-running (npm run llm:quality).",
     selfJudge:
-      "Note: the judge is claude-sonnet, so Anthropic-family models (claude-*) are graded by a sibling model — read their scores as home-team-biased, not neutral.",
+      "Note: the judge is claude-sonnet, so Anthropic-family models (claude-*) are graded by a sibling model. Read their scores as home-team-biased, not neutral.",
     na: "—",
   },
 } as const;

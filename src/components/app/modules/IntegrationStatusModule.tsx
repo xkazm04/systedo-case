@@ -10,17 +10,17 @@ import SklikConnectCard from "@/components/campaigns/SklikConnectCard";
 
 const COPY = {
   cs: {
-    lead: "Připravenost napojení pro tento projekt — co je aktivní, co čeká na dokončení a co je zatím manuální. Odvozeno z reálné konfigurace prostředí a projektu.",
+    lead: "Připravenost napojení pro tento projekt: co je aktivní, co čeká na dokončení a co je zatím manuální. Odvozeno z reálné konfigurace prostředí a projektu.",
     sumConnected: "Připojeno", sumAction: "Vyžaduje akci", sumMissing: "Nenastaveno",
     sumManual: "Manuálně", sumPlanned: "Plánováno", sumOptional: "Volitelné",
     categories: { ads: "Reklama", ai: "AI", content: "Obsah", reviews: "Recenze", reports: "Reporty", infra: "Infrastruktura" },
     status: { connected: "Připojeno", action: "Vyžaduje akci", missing: "Nenastaveno", manual: "Manuálně", planned: "Plánováno", optional: "Volitelné" },
-    hint: { connected: "Aktivní.", action: "Dokončete připojení účtu nebo klíče.", missing: "Nastavte přihlašovací údaje v prostředí.", manual: "Bez živého napojení — dnes manuální proces.", planned: "Na roadmapě, zatím nepropojeno.", optional: "Volitelné / vypnuto." },
+    hint: { connected: "Aktivní.", action: "Dokončete připojení účtu nebo klíče.", missing: "Nastavte přihlašovací údaje v prostředí.", manual: "Bez živého napojení, dnes manuální proces.", planned: "Na roadmapě, zatím nepropojeno.", optional: "Volitelné / vypnuto." },
     // Per-item overrides — honest, connector-specific guidance that the generic
     // status hint can't give. Keyed by item id + status.
     itemHint: {
       "sklik:manual": "Bez API tokenu, ale funkční: export do CSV, návrhy klíčových slov i adaptér pro import dat. Token zapne živé napojení účtu.",
-      "gbp:action": "Naimportujte Google Business Profile v modulu Mapa — pak se recenze a pobočky propíší živě.",
+      "gbp:action": "Naimportujte Google Business Profile v modulu Mapa. Pak se recenze a pobočky propíší živě.",
     } as Record<string, string>,
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / BYOM)",
@@ -31,15 +31,15 @@ const COPY = {
     probeNote: "Zahrnuje živé ověření: platný BYOM klíč, napojený datový sklad a připojený účet Google Ads.",
   },
   en: {
-    lead: "Connector readiness for this project — what's active, what's awaiting a step, and what's still manual. Derived from the real environment + project config.",
+    lead: "Connector readiness for this project: what's active, what's awaiting a step, and what's still manual. Derived from the real environment + project config.",
     sumConnected: "Connected", sumAction: "Needs action", sumMissing: "Not configured",
     sumManual: "Manual", sumPlanned: "Planned", sumOptional: "Optional",
     categories: { ads: "Advertising", ai: "AI", content: "Content", reviews: "Reviews", reports: "Reports", infra: "Infrastructure" },
     status: { connected: "Connected", action: "Needs action", missing: "Not configured", manual: "Manual", planned: "Planned", optional: "Optional" },
-    hint: { connected: "Active.", action: "Finish linking the account or key.", missing: "Set the credentials in the environment.", manual: "No live integration — a manual process today.", planned: "On the roadmap, not wired yet.", optional: "Optional / turned off." },
+    hint: { connected: "Active.", action: "Finish linking the account or key.", missing: "Set the credentials in the environment.", manual: "No live integration, a manual process today.", planned: "On the roadmap, not wired yet.", optional: "Optional / turned off." },
     itemHint: {
       "sklik:manual": "No API token, yet functional: CSV export, keyword suggestions and a data-in adapter all ship. A token turns on live account sync.",
-      "gbp:action": "Import your Google Business Profile in the Map module — reviews and locations then flow in live.",
+      "gbp:action": "Import your Google Business Profile in the Map module. Reviews and locations then flow in live.",
     } as Record<string, string>,
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generation (Gemini / BYOM)",

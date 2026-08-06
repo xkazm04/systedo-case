@@ -56,14 +56,14 @@ const T = {
   cs: {
     sourceArticle: "Zdrojový článek",
     attributionTitle: "Atribuce podle kanálu",
-    attributionDescPre: "Ukázková data — řádky odpovídají hodnotám ",
+    attributionDescPre: "Ukázková data. Řádky odpovídají hodnotám ",
     attributionDescPost: " z odkazů výše.",
     bestClicks: "Nejvíc prokliků: {n}",
     colChannel: "Kanál",
     colReach: "Dosah",
     colClicks: "Prokliky",
     colShare: "Podíl",
-    attributionEmpty: "Zatím žádná data atribuce — připojte analytiku a řádky se doplní.",
+    attributionEmpty: "Zatím žádná data atribuce. Připojte analytiku a řádky se doplní.",
     nextStepLabel: "Naplánovat publikaci",
     nextStepHint: "Vydat varianty v centru sociálních sítí",
     // VariantCard
@@ -74,10 +74,10 @@ const T = {
     variantAriaLabel: "Text varianty pro {channel}",
     trimBtn: "Zkrátit na {max} znaků",
     generatingMsg: "Generuji variantu na míru kanálu… mezitím vidíte deterministický návrh.",
-    timedOut: "Model neodpověděl včas — ponecháváme deterministický návrh.",
+    timedOut: "Model neodpověděl včas. Ponecháváme deterministický návrh.",
     errorMsg: "Generování selhalo{detail}. Ponecháváme deterministický návrh.",
     retryBtn: "Zkusit znovu",
-    demoMode: "Ukázkový režim (bez API klíče) — připojte LLM pro generování modelem.",
+    demoMode: "Ukázkový režim (bez API klíče). Připojte LLM pro generování modelem.",
     utmLabel: "Odkaz s UTM",
     copyLinkAriaLabel: "Kopírovat odkaz s UTM pro {channel}",
     linkCopied: "Zkopírováno",
@@ -87,7 +87,7 @@ const T = {
     statusEdited: "Upraveno",
     statusGenerated: "Uloženo",
     statusHandedOff: "Předáno",
-    savedHint: "Uložené varianty tohoto článku se načetly — pokračujete tam, kde jste skončili.",
+    savedHint: "Uložené varianty tohoto článku se načetly. Pokračujete tam, kde jste skončili.",
     originSample: "Ukázkový článek",
     originProject: "Váš článek",
     sourcePickerLabel: "Článek",
@@ -100,8 +100,8 @@ const T = {
     newsletterHandoff: "Předání do newsletteru",
     subjectLabel: "Předmět {n}/{max}",
     noSubject: "Bez předmětu",
-    subjectEmpty: "Doplňte předmět – první řádek by měl začínat „Předmět:“.",
-    subjectTooLong: "Předmět je delší než {max} znaků – v doručené poště se může oříznout.",
+    subjectEmpty: "Doplňte předmět. První řádek by měl začínat „Předmět:“.",
+    subjectTooLong: "Předmět je delší než {max} znaků. V doručené poště se může oříznout.",
     copyNewsletter: "Kopírovat pro newsletter",
     downloadHtml: "Stáhnout HTML",
     // LearningsPanel
@@ -121,14 +121,14 @@ const T = {
   en: {
     sourceArticle: "Source article",
     attributionTitle: "Attribution by channel",
-    attributionDescPre: "Sample data — rows correspond to the ",
+    attributionDescPre: "Sample data. Rows correspond to the ",
     attributionDescPost: " values from the links above.",
     bestClicks: "Most clicks: {n}",
     colChannel: "Channel",
     colReach: "Reach",
     colClicks: "Clicks",
     colShare: "Share",
-    attributionEmpty: "No attribution data yet — connect analytics and rows will fill in.",
+    attributionEmpty: "No attribution data yet. Connect analytics and rows will fill in.",
     nextStepLabel: "Schedule publication",
     nextStepHint: "Publish the variants in the social center",
     // VariantCard
@@ -139,10 +139,10 @@ const T = {
     variantAriaLabel: "Variant text for {channel}",
     trimBtn: "Trim to {max} characters",
     generatingMsg: "Generating a channel-native variant… the deterministic draft stays on screen in the meantime.",
-    timedOut: "The model did not respond in time — keeping the deterministic draft.",
+    timedOut: "The model did not respond in time. Keeping the deterministic draft.",
     errorMsg: "Generation failed{detail}. Keeping the deterministic draft.",
     retryBtn: "Retry",
-    demoMode: "Demo mode (no API key) — connect an LLM for model-generated variants.",
+    demoMode: "Demo mode (no API key). Connect an LLM for model-generated variants.",
     utmLabel: "UTM link",
     copyLinkAriaLabel: "Copy UTM link for {channel}",
     linkCopied: "Copied",
@@ -152,7 +152,7 @@ const T = {
     statusEdited: "Edited",
     statusGenerated: "Saved",
     statusHandedOff: "Handed off",
-    savedHint: "Loaded this article's saved variants — you're picking up where you left off.",
+    savedHint: "Loaded this article's saved variants. You're picking up where you left off.",
     originSample: "Sample article",
     originProject: "Your article",
     sourcePickerLabel: "Article",
@@ -165,8 +165,8 @@ const T = {
     newsletterHandoff: "Newsletter handoff",
     subjectLabel: "Subject {n}/{max}",
     noSubject: "No subject",
-    subjectEmpty: "Add a subject — the first line should start with “Subject:”.",
-    subjectTooLong: "Subject is longer than {max} characters — it may be clipped in the inbox.",
+    subjectEmpty: "Add a subject. The first line should start with “Subject:”.",
+    subjectTooLong: "Subject is longer than {max} characters. It may be clipped in the inbox.",
     copyNewsletter: "Copy for newsletter",
     downloadHtml: "Download HTML",
     // LearningsPanel
@@ -309,7 +309,7 @@ export default function DistributionModule({
             >
               {choices.map((c) => (
                 <option key={c.key} value={c.key}>
-                  {c.origin === "sample" ? `${t("originSample")} — ${c.title}` : c.title}
+                  {c.origin === "sample" ? `${t("originSample")}: ${c.title}` : c.title}
                 </option>
               ))}
             </select>

@@ -34,7 +34,7 @@ const T: TDict<Key> = {
     rowDate: "Datum",
     rowRelative: "Relativní čas",
     footnoteLead: "Stejná čísla jedním chokepointem",
-    footnoteTail: "— přidání trhu je jediná položka v",
+    footnoteTail: "– přidání trhu je jediná položka v",
   },
   en: {
     ariaLabel: "Language and currency selector",
@@ -47,7 +47,7 @@ const T: TDict<Key> = {
     rowDate: "Date",
     rowRelative: "Relative time",
     footnoteLead: "Same numbers through one chokepoint",
-    footnoteTail: "— adding a market is a single entry in",
+    footnoteTail: "– adding a market is a single entry in",
   },
 };
 

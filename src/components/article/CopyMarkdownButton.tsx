@@ -7,13 +7,13 @@ import { useT } from "@/lib/i18n/client";
 
 const T = {
   cs: {
-    label: "Kopírovat celý článek jako Markdown — pro AI asistenty a další zpracování",
+    label: "Kopírovat celý článek jako Markdown (pro AI asistenty a další zpracování)",
     btn: "Markdown",
     copied: "Zkopírováno",
     toast: "Článek zkopírován jako Markdown",
   },
   en: {
-    label: "Copy the whole article as Markdown — for AI assistants and reuse",
+    label: "Copy the whole article as Markdown (for AI assistants and reuse)",
     btn: "Markdown",
     copied: "Copied",
     toast: "Article copied as Markdown",

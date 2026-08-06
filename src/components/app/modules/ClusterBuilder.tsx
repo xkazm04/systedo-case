@@ -25,11 +25,11 @@ const T = {
     cardTitle: "Sestavit klastr z klíčových slov",
     clustersCount: "{n} klastrů",
     description:
-      "Vyberte uložený seznam klíčových slov a nástroj z něj sestaví tematické klastry — pilířovou stránku a k ní podpůrné podstránky. Tlačítkem „Vytvořit brief“ pošlete pilíř i podpůrná slova rovnou do obsahového briefu.",
+      "Vyberte uložený seznam klíčových slov a nástroj z něj sestaví tematické klastry: pilířovou stránku a k ní podpůrné podstránky. Tlačítkem „Vytvořit brief“ pošlete pilíř i podpůrná slova rovnou do obsahového briefu.",
     loading: "Načítám uložené seznamy…",
     emptyTitle: "Žádné uložené seznamy",
     emptyDesc:
-      "Nejdřív si v modulu „Klíčová slova“ vyhledejte a uložte seznam klíčových slov — z něj pak tady sestavíte klastry.",
+      "Nejdřív si v modulu „Klíčová slova“ vyhledejte a uložte seznam klíčových slov. Z něj pak tady sestavíte klastry.",
     listLabel: "Uložený seznam",
     keywordsCount: "{n} klíčových slov",
     buildingBtn: "Sestavuji…",
@@ -44,11 +44,11 @@ const T = {
     cardTitle: "Build cluster from keywords",
     clustersCount: "{n} clusters",
     description:
-      "Select a saved keyword list and the tool will build topic clusters from it — a pillar page plus supporting sub-pages. Use “Create brief” to send the pillar and supporting keywords straight to the content brief.",
+      "Select a saved keyword list and the tool will build topic clusters from it: a pillar page plus supporting sub-pages. Use “Create brief” to send the pillar and supporting keywords straight to the content brief.",
     loading: "Loading saved lists…",
     emptyTitle: "No saved lists",
     emptyDesc:
-      "First search and save a keyword list in the “Keywords” module — then use it here to build clusters.",
+      "First search and save a keyword list in the “Keywords” module. Then use it here to build clusters.",
     listLabel: "Saved list",
     keywordsCount: "{n} keywords",
     buildingBtn: "Building…",

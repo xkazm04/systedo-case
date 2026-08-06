@@ -15,12 +15,12 @@ const T = {
   cs: {
     eyebrow: "Knihovna vzorů",
     title: "Co u vás funguje",
-    desc: "Osvědčené vzory automaticky odvozené z vašich kampaní a historie vyhodnocení — vítězné struktury, pasti na rozpočet i optimalizace, které zabraly. Připněte si je do knihovny; uložené vzory pak ladí AI vyhodnocení portfolia.",
+    desc: "Osvědčené vzory automaticky odvozené z vašich kampaní a historie vyhodnocení: vítězné struktury, pasti na rozpočet i optimalizace, které zabraly. Připněte si je do knihovny; uložené vzory pak ladí AI vyhodnocení portfolia.",
   },
   en: {
     eyebrow: "Pattern library",
     title: "What works for you",
-    desc: "Proven patterns automatically derived from your campaigns and evaluation history — winning structures, budget traps, and optimizations that paid off. Pin them to your library; saved patterns then tune the AI's portfolio evaluations.",
+    desc: "Proven patterns automatically derived from your campaigns and evaluation history: winning structures, budget traps, and optimizations that paid off. Pin them to your library; saved patterns then tune the AI's portfolio evaluations.",
   },
 };
 

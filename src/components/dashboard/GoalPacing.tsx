@@ -37,7 +37,7 @@ const T = {
     statRequiredTitle:
       "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Při současném ROAS to znamená ≈ +{spend}/den výdajů navíc.",
     statRequiredTitleOnPace:
-      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel — současné tempo stačí.",
+      "Průměrný denní obrat, který zbývající dny musí přinést, aby měsíční cíl vyšel. Současné tempo stačí.",
     historyLabel: "Plnění cíle v uzavřených měsících",
     historyHit: "cíl splněn",
     historyMiss: "cíl nesplněn",
@@ -77,7 +77,7 @@ const T = {
     statRequiredTitle:
       "Average daily revenue the remaining days must deliver to still hit the monthly target. At the current ROAS that is ≈ +{spend}/day of extra spend.",
     statRequiredTitleOnPace:
-      "Average daily revenue the remaining days must deliver to still hit the monthly target — the current pace is enough.",
+      "Average daily revenue the remaining days must deliver to still hit the monthly target. The current pace is enough.",
     historyLabel: "Goal attainment in closed months",
     historyHit: "target met",
     historyMiss: "target missed",

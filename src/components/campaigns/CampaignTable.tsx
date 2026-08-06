@@ -74,7 +74,7 @@ const T = {
     analyze: "Analyzovat",
     evaluatingCampaign: "Vyhodnocuji kampaň „{name}“…",
     retryButton: "Zkusit znovu",
-    evalHeading: "AI vyhodnocení — {name}",
+    evalHeading: "AI vyhodnocení: {name}",
     reanalyze: "Přeanalyzovat",
     colPriority: "Priorita",
     colCampaign: "Kampaň",
@@ -93,7 +93,7 @@ const T = {
     csvScore: "AI skóre",
     budgetCapped: "Omezeno rozpočtem",
     budgetCappedTitle:
-      "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den) — vítěz, kterého brzdí rozpočet",
+      "ROAS {roas} nad cílem, vyčerpáno {pacing} rozpočtu ({budget}/den): vítěz, kterého brzdí rozpočet",
     colTrend: "Trend",
     trendCost: "Náklady",
     trendCtr: "CTR",
@@ -103,7 +103,7 @@ const T = {
     sparkAriaMetric: "Denní {metric} kampaně „{name}“",
     footerLabel: "Součet filtru ({n})",
     footerTitle:
-      "Souhrn právě vyfiltrovaných kampaní — ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
+      "Souhrn právě vyfiltrovaných kampaní: ROAS a PNO jsou přepočítané ze součtů, ne průměrované",
     severityPillTitle: "Zobrazit nálezy triáže v detailu řádku",
     triageHeading: "Proč vyžaduje pozornost",
     funnelHeading: "Trychtýř za období",
@@ -143,7 +143,7 @@ const T = {
     analyze: "Analyse",
     evaluatingCampaign: "Evaluating campaign “{name}”…",
     retryButton: "Retry",
-    evalHeading: "AI evaluation — {name}",
+    evalHeading: "AI evaluation: {name}",
     reanalyze: "Re-analyse",
     colPriority: "Priority",
     colCampaign: "Campaign",
@@ -162,7 +162,7 @@ const T = {
     csvScore: "AI score",
     budgetCapped: "Budget-capped",
     budgetCappedTitle:
-      "ROAS {roas} above target with {pacing} of budget spent ({budget}/day) — a winner held back by its budget",
+      "ROAS {roas} above target with {pacing} of budget spent ({budget}/day): a winner held back by its budget",
     colTrend: "Trend",
     trendCost: "Cost",
     trendCtr: "CTR",
@@ -172,7 +172,7 @@ const T = {
     sparkAriaMetric: "Daily {metric} of campaign “{name}”",
     footerLabel: "Filter total ({n})",
     footerTitle:
-      "Aggregate of the currently filtered campaigns — ROAS and PNO are re-derived from sums, not averaged",
+      "Aggregate of the currently filtered campaigns: ROAS and PNO are re-derived from sums, not averaged",
     severityPillTitle: "Show the triage findings in the row detail",
     triageHeading: "Why it needs attention",
     funnelHeading: "Funnel over the period",
@@ -804,8 +804,9 @@ export default function CampaignTable({
                                   <span className="text-navy-700">
                                     <span className="font-semibold text-navy-800">
                                       {triageReasonLabel(r, locale)}
-                                    </span>{" "}
-                                    — {r.detail}
+                                    </span>
+                                    {": "}
+                                    {r.detail}
                                   </span>
                                 </li>
                               ))}

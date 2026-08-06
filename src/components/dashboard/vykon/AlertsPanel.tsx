@@ -25,14 +25,14 @@ const T = {
       "Součet odchylek od očekávání u obratu a nákladů ve dnech s upozorněním ve zvoleném období",
     alertsGained: "pozitivní odchylky",
     alertsGainedTitle:
-      "Součet příznivých odchylek ve dnech s upozorněním — neočekávaný obrat navíc a ušetřené náklady. Vykazuje se zvlášť, aby nesnižoval hlavní číslo škody.",
-    anomalySpike: "{metric} — nárůst {pct} nad očekávání",
-    anomalyDrop: "{metric} — propad {pct} pod očekávání",
-    anomalyOutage: "{metric} — výpadek (hodnota u nuly)",
+      "Součet příznivých odchylek ve dnech s upozorněním: neočekávaný obrat navíc a ušetřené náklady. Vykazuje se zvlášť, aby nesnižoval hlavní číslo škody.",
+    anomalySpike: "{metric}: nárůst {pct} nad očekávání",
+    anomalyDrop: "{metric}: propad {pct} pod očekávání",
+    anomalyOutage: "{metric}: výpadek (hodnota u nuly)",
     anomalyGoalBreach: "Překročení cílového PNO ({pno})",
-    coverageDegraded: "Kratší historie dat — méně citlivá detekce, slabší události nemusí být zachyceny.",
+    coverageDegraded: "Kratší historie dat: méně citlivá detekce, slabší události nemusí být zachyceny.",
     explainedBy: "odpovídá události: {title}",
-    explainedTitle: "Tento den spadá do známé události — odchylka je nejspíš očekávaná (dopad se stále počítá).",
+    explainedTitle: "Tento den spadá do známé události. Odchylka je nejspíš očekávaná (dopad se stále počítá).",
   },
   en: {
     alerts: "Alerts",
@@ -42,14 +42,14 @@ const T = {
       "Sum of revenue and cost deviations from expected on flagged days in the selected period",
     alertsGained: "positive deviations",
     alertsGainedTitle:
-      "Sum of favourable deviations on flagged days — unexpected extra revenue and cost savings. Reported separately so it does not dilute the damage figure.",
-    anomalySpike: "{metric} — spike {pct} above expected",
-    anomalyDrop: "{metric} — drop {pct} below expected",
-    anomalyOutage: "{metric} — outage (value near zero)",
+      "Sum of favourable deviations on flagged days: unexpected extra revenue and cost savings. Reported separately so it does not dilute the damage figure.",
+    anomalySpike: "{metric}: spike {pct} above expected",
+    anomalyDrop: "{metric}: drop {pct} below expected",
+    anomalyOutage: "{metric}: outage (value near zero)",
     anomalyGoalBreach: "PNO target breached ({pno})",
-    coverageDegraded: "Short data history — less sensitive detection; weaker events may be missed.",
+    coverageDegraded: "Short data history: less sensitive detection; weaker events may be missed.",
     explainedBy: "matches event: {title}",
-    explainedTitle: "This day falls within a known event — the deviation is likely expected (impact is still counted).",
+    explainedTitle: "This day falls within a known event. The deviation is likely expected (impact is still counted).",
   },
 } as const;
 
@@ -127,7 +127,7 @@ export default function AlertsPanel({
             title={t("alertsImpactTitle")}
           >
             {fmt.fmtSignedCZKCompact(impact.net)}
-            <span className="sr-only"> — {t("alertsImpactTitle")}</span>
+            <span className="sr-only">: {t("alertsImpactTitle")}</span>
           </span>
           {/* the upside the same anomalies carried (windfalls + savings) —
               computed separately by anomalyImpact precisely so it can inform
@@ -136,7 +136,7 @@ export default function AlertsPanel({
             <span className="text-muted" title={t("alertsGainedTitle")}>
               {" "}
               (<span className="tnum">{fmt.fmtSignedCZKCompact(impact.gained)}</span> {t("alertsGained")})
-              <span className="sr-only"> — {t("alertsGainedTitle")}</span>
+              <span className="sr-only">: {t("alertsGainedTitle")}</span>
             </span>
           )}
         </p>
@@ -171,7 +171,7 @@ export default function AlertsPanel({
                   {ins.tone === "good" ? <TrendUp width={12} height={12} /> : <TrendDown width={12} height={12} />}
                 </span>
                 <span className="leading-snug text-navy-700 group-hover:text-navy-800">
-                  <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span> — {ins.text}
+                  <span className="tnum font-medium text-navy-800">{fmt.fmtDateShort(a.date)}</span>{": "}{ins.text}
                   {a.explanation && (
                     <span className="mt-0.5 block text-xs text-muted" title={t("explainedTitle")}>
                       {t("explainedBy", { title: a.explanation })}

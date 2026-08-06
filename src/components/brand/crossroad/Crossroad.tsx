@@ -19,12 +19,12 @@ const T = {
   cs: {
     eyebrow: "Pracovní prostor",
     heading: "Vyberte si cíl",
-    note: "Případová studie ve čtyřech zastávkách — každá je reálná část produktu, opřená o stejná klientská data.",
+    note: "Případová studie ve čtyřech zastávkách. Každá je reálná část produktu, opřená o stejná klientská data.",
   },
   en: {
     eyebrow: "The workspace",
     heading: "Pick a destination",
-    note: "The case study in four stops — each a real product surface, grounded in the same client data.",
+    note: "The case study in four stops. Each is a real product surface, grounded in the same client data.",
   },
 } as const;
 

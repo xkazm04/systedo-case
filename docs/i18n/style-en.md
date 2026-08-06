@@ -25,9 +25,13 @@ and proper nouns (Google Ads, PMax, PNO).
 
 Don't mirror Czech sentence structure. Czech happily fronts the object or
 drops the subject; English wants SVO and an explicit subject. E.g. cs
-`Odvozeno z vašeho katalogu — příspěvky drží váš sortiment a slovník.` becomes
-`Derived from your catalogue — posts stay in your range and vocabulary.`, not
+`Odvozeno z vašeho katalogu: příspěvky drží váš sortiment a slovník.` becomes
+`Derived from your catalog: posts stay in your range and vocabulary.`, not
 a passive-preserving `"Derived from your catalog is that posts hold your…"`.
+*(Quote refreshed 2026-08-06: this example carried an em dash and the British
+`catalogue`, both of which the live string has since lost — to the CS-DASH sweep
+and to a US-spelling fix. **A guide that quotes the catalog verbatim goes stale
+when the catalog moves**; re-check quoted examples after any sweep.)*
 When cs uses a compact noun-phrase heading, prefer the equivalent English
 noun phrase over a translated verb clause: `Žebříček pozic klíčových slov` →
 `Keyword ranking ladder`, not `Ladder of keyword positions`.
@@ -39,8 +43,21 @@ noun phrase over a translated verb clause: `Žebříček pozic klíčových slov
 - Curly quotes `“…”` (not straight), paired with cs's `„…"`:
   `“Let's grow together.”`, `Click "Generate AI copy"` in `footerDet` — keep
   this pairing whenever the cs source uses `„…"`.
-- Em dash `—` for the same contrastive/parenthetical beats as cs: "Done —
-  the app speaks your business", "No alerts. We'll notify you when…".
+- **Dashes: avoid them.** ⚠ **HOUSE RULE, decided 2026-08-06 — this reverses
+  what this guide previously said.** The em dash is grammatical English, but a
+  product that reaches for it constantly reads as machine-written, and this
+  catalog reached for it 254 times. **Default to no dash.** Recast, in this
+  order: **full stop** (independent halves) → **colon** (the second half
+  explains the first) → **comma** (appositive) → **parentheses** (true aside).
+
+  `Done — the app speaks your business` → `Done. The app now speaks your business.`
+
+  **Only when none of those works** — a genuine single beat of contrast — use a
+  **spaced en dash ` – ` (U+2013)**. **Never the em dash `—` (U+2014).**
+  This is deliberately the same rule as cs, so the two columns punctuate alike.
+
+  **Out of scope:** the standalone `"—"` no-data placeholder (a design-system
+  glyph, 92 sites), numeric/date ranges, and `·` middots.
 
 ## Numbers, dates, currency
 

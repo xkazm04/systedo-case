@@ -20,7 +20,7 @@ const T = {
       "Poslední živá synchronizace selhala, proto přehled dočasně ukazuje ukázková data. Zkuste synchronizovat znovu, případně obnovte připojení účtu.",
     degradedReasonLabel: "Důvod (diagnostika)",
     coverageHeading: "Pokrytí období",
-    coverageNote: "Každé období se ukládá zvlášť — přepnutí zobrazí uloženou verzi bez nové synchronizace.",
+    coverageNote: "Každé období se ukládá zvlášť. Přepnutí zobrazí uloženou verzi bez nové synchronizace.",
     shown: "zobrazeno",
     stale: "zastaralé",
     neverSynced: "nesynchronizováno",
@@ -31,10 +31,10 @@ const T = {
       "Účet je veden v měně {currency}. Částky zobrazujeme v této měně bez přepočtu na Kč.",
     halereTitle: "Podezření na haléře",
     halereBody:
-      "Náklady Sklik účtu jsou vůči dennímu rozpočtu ~100× vyšší, než je pravděpodobné — data mohou být v haléřích. Nic zatím nepřepočítáváme. Potvrzením se všechny další synchronizace budou dělit 100 (haléře → Kč).",
+      "Náklady Sklik účtu jsou vůči dennímu rozpočtu ~100× vyšší, než je pravděpodobné. Data mohou být v haléřích. Nic zatím nepřepočítáváme. Potvrzením se všechny další synchronizace budou dělit 100 (haléře → Kč).",
     halereConfirm: "Potvrdit haléře (dělit 100)",
     halereConfirming: "Potvrzuji…",
-    halereConfirmed: "Potvrzeno — přepočet se použije od příští synchronizace.",
+    halereConfirmed: "Potvrzeno. Přepočet se použije od příští synchronizace.",
     halereError: "Potvrzení se nezdařilo.",
   },
   en: {
@@ -47,7 +47,7 @@ const T = {
       "The last live sync failed, so the dashboard is temporarily showing sample data. Try syncing again, or reconnect the account.",
     degradedReasonLabel: "Reason (diagnostics)",
     coverageHeading: "Period coverage",
-    coverageNote: "Each period is stored separately — switching serves the stored version with no fresh sync.",
+    coverageNote: "Each period is stored separately. Switching serves the stored version with no fresh sync.",
     shown: "shown",
     stale: "stale",
     neverSynced: "not synced",
@@ -58,10 +58,10 @@ const T = {
       "This account is billed in {currency}. Amounts are shown in that currency, not converted to CZK.",
     halereTitle: "Haléře suspected",
     halereBody:
-      "This Sklik account's costs run ~100× higher than its daily budget makes plausible — the data may be in haléře. Nothing is converted yet. Confirming divides every future sync by 100 (haléře → CZK).",
+      "This Sklik account's costs run ~100× higher than its daily budget makes plausible. The data may be in haléře. Nothing is converted yet. Confirming divides every future sync by 100 (haléře → CZK).",
     halereConfirm: "Confirm haléře (divide by 100)",
     halereConfirming: "Confirming…",
-    halereConfirmed: "Confirmed — the conversion applies from the next sync.",
+    halereConfirmed: "Confirmed. The conversion applies from the next sync.",
     halereError: "Confirmation failed.",
   },
 } as const;

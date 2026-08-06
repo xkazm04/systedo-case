@@ -15,7 +15,7 @@ const T = {
     heading: "Doporučené přesuny rozpočtu",
     subtitle: "Deterministický návrh: přesun rozpočtu od podvýkonných kampaní k těm nad cílem.",
     pill: "bez AI · okamžité",
-    balanced: "Rozpočet je vůči cíli vyvážený — žádné zjevné přesuny se nenabízejí.",
+    balanced: "Rozpočet je vůči cíli vyvážený. Žádné zjevné přesuny se nenabízejí.",
     move: "Přesunout {amount}",
     fromLabel: "z",
     toLabel: "na",
@@ -31,12 +31,12 @@ const T = {
     marginStated: "při marži {m}",
     lowConfidence: "Nižší jistota odhadu",
     lowConfidenceTitle:
-      "Některý přesun přemísťuje více než polovinu rozpočtu dárce — lineární odhad je za hranicí" +
+      "Některý přesun přemísťuje více než polovinu rozpočtu dárce. Lineární odhad je za hranicí" +
       " „malé realokace“ a dopad může být nadhodnocený.",
     signIn: "Přihlaste se a připojte Google Ads účet pro aplikaci přesunů.",
     propose: "Navrhnout do control plane",
     proposing: "Vytvářím návrh…",
-    proposed: "Návrh vytvořen — schvalte jej v control plane níže.",
+    proposed: "Návrh vytvořen. Schvalte jej v control plane níže.",
     proposeTitle:
       "Vytvořit změnový balíček (simulace → schválení → vrácení) v Řízení rozpočtů níže",
     roasPortfolio: "ROAS portfolia",
@@ -45,7 +45,7 @@ const T = {
     valueChange: "Změna hodnoty",
     footnote:
       "Odhad lineárně extrapoluje současnou efektivitu kampaní; skutečný dopad ověří" +
-      " další synchronizace. Akce se <strong>nespouští přímo</strong> — tlačítko vytvoří" +
+      " další synchronizace. Akce se <strong>nespouští přímo</strong>. Tlačítko vytvoří" +
       " <strong>změnový balíček</strong> (přesuny i pozastavení) v sekci" +
       " <strong>Řízení rozpočtů (control plane)</strong> níže, kde návrh nejdřív uvidíte" +
       " se simulací a pojistkami, schválíte jej a kdykoli vrátíte zpět.",
@@ -56,7 +56,7 @@ const T = {
     heading: "Recommended budget moves",
     subtitle: "Deterministic proposal: shift budget from underperforming campaigns to those above target.",
     pill: "no AI · instant",
-    balanced: "Budget is balanced against target — no obvious moves to suggest.",
+    balanced: "Budget is balanced against target. No obvious moves to suggest.",
     move: "Move {amount}",
     fromLabel: "from",
     toLabel: "to",
@@ -72,12 +72,12 @@ const T = {
     marginStated: "at a {m} margin",
     lowConfidence: "Lower-confidence estimate",
     lowConfidenceTitle:
-      "A move re-points more than half of its donor's budget — the linear estimate is beyond the" +
+      "A move re-points more than half of its donor's budget. The linear estimate is beyond the" +
       " “small reallocation” it is honest for, so the projected impact may be overstated.",
     signIn: "Sign in and connect a Google Ads account to apply moves.",
     propose: "Propose to control plane",
     proposing: "Creating proposal…",
-    proposed: "Proposal created — approve it in the control plane below.",
+    proposed: "Proposal created. Approve it in the control plane below.",
     proposeTitle:
       "Create a change package (simulate → approve → revert) in Budget management below",
     roasPortfolio: "Portfolio ROAS",
@@ -86,7 +86,7 @@ const T = {
     valueChange: "Value change",
     footnote:
       "Estimate linearly extrapolates current campaign efficiency; the next sync will verify actual impact." +
-      " Nothing is applied directly — the button creates a <strong>change package</strong> (shifts and" +
+      " Nothing is applied directly. The button creates a <strong>change package</strong> (shifts and" +
       " pauses) in <strong>Budget management (control plane)</strong> below, where you first see the" +
       " proposal with its simulation and guardrails, approve it, and can revert it at any time.",
     errorFailed: "Action failed.",

@@ -18,14 +18,14 @@ const T = {
   cs: {
     eyebrow: "Chyba 404",
     heading: "Stránka nenalezena",
-    body: "Odkaz může být překlepnutý, přesunutý — nebo už vypršela jeho platnost, sdílené reporty se otevírají jen po omezenou dobu. Vraťte se na přehled, nebo pokračujte rovnou na některou z částí případové studie.",
+    body: "Odkaz může být překlepnutý, přesunutý, nebo už vypršela jeho platnost. Sdílené reporty se otevírají jen po omezenou dobu. Vraťte se na přehled, nebo pokračujte rovnou na některou z částí případové studie.",
     cta: "Zpět na přehled",
     destinations: "Kam dál",
   },
   en: {
     eyebrow: "Error 404",
     heading: "Page not found",
-    body: "The link may be mistyped, moved — or expired, since shared reports open only for a limited time. Head back to the overview, or jump straight to any part of the case study.",
+    body: "The link may be mistyped, moved or expired, since shared reports open only for a limited time. Head back to the overview, or jump straight to any part of the case study.",
     cta: "Back to overview",
     destinations: "Where to next",
   },

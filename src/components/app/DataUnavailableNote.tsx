@@ -5,12 +5,12 @@ const T = {
   cs: {
     badge: "Data nedostupná",
     defaultNote:
-      "Data se teď nepodařilo načíst (dočasný výpadek backendu). Zkuste to prosím za chvíli — nezobrazujeme zde ukázková data, aby se nepletla s vaší reálnou historií.",
+      "Data se teď nepodařilo načíst (dočasný výpadek backendu). Zkuste to prosím za chvíli. Nezobrazujeme zde ukázková data, aby se nepletla s vaší reálnou historií.",
   },
   en: {
     badge: "Data unavailable",
     defaultNote:
-      "We couldn't load this data right now (a temporary backend outage). Please try again shortly — we intentionally don't fall back to sample data here so it can't be mistaken for your real history.",
+      "We couldn't load this data right now (a temporary backend outage). Please try again shortly. We intentionally don't fall back to sample data here so it can't be mistaken for your real history.",
   },
 } as const;
 

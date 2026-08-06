@@ -71,14 +71,14 @@ const T = {
     loading: "Načítám kampaně…",
     emptyHeading: "Zatím žádná data z Google Ads",
     emptyBody:
-      "Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická ukázková data, abyste si prošli celý tok — porovnání podle typu i AI vyhodnocení, uložené per uživatele do Firestore.",
+      "Připojte se ke Google Ads a načtěte kampaně. Bez přihlášení se použijí realistická ukázková data, abyste si prošli celý tok: porovnání podle typu i AI vyhodnocení, uložené per uživatele do Firestore.",
     syncButton: "Synchronizovat z Google Ads",
     syncing: "Synchronizuji…",
     syncShort: "Synchronizovat",
     kpiCost: "Náklady",
     kpiConvValue: "Hodnota konverzí",
     kpiPnoHint: "cíl {target} · placené portfolio",
-    breakEvenNote: "Váš break-even ROAS podle marže je {roas} (PNO {pno}) — pod ním kampaň po odečtení nákladů zboží prodělává.",
+    breakEvenNote: "Váš break-even ROAS podle marže je {roas} (PNO {pno}). Pod ním kampaň po odečtení nákladů zboží prodělává.",
     breakEvenLoaded: "s režií {roas}",
     shareButton: "Sdílet report",
     sharing: "Vytvářím…",
@@ -97,13 +97,13 @@ const T = {
     evalAllTitle:
       "Projde portfolio i všechny kampaně najednou; platí se jen za reporty, u kterých se data od posledního vyhodnocení změnila",
     evalAllSummary: "Hromadné vyhodnocení: {fresh} nových reportů, {cached} beze změny (z cache).",
-    evalAllQuota: "Denní limit AI vyhodnocení vyčerpán — na {n} nezbylo.",
+    evalAllQuota: "Denní limit AI vyhodnocení vyčerpán: na {n} nezbylo.",
     buildingReport: "Sestavuji hodnoticí report…",
     campaignsHeading: "Kampaně",
     campaignCount: "{n} kampaní · analýza po řádcích",
     govHeading: "Řízení rozpočtů",
     degradedBanner:
-      "Živá data z Google Ads jsou dočasně nedostupná — poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
+      "Živá data z Google Ads jsou dočasně nedostupná. Poslední synchronizace zobrazuje ukázková data. Zkuste synchronizovat znovu, případně obnovit připojení účtu.",
   },
   en: {
     sourceSample: "Google Ads · sample data",
@@ -112,14 +112,14 @@ const T = {
     loading: "Loading campaigns…",
     emptyHeading: "No Google Ads data yet",
     emptyBody:
-      "Connect to Google Ads to load campaigns. Without login, realistic sample data is used so you can walk through the full flow — type comparison and AI evaluation, stored per user in Firestore.",
+      "Connect to Google Ads to load campaigns. Without login, realistic sample data is used so you can walk through the full flow: type comparison and AI evaluation, stored per user in Firestore.",
     syncButton: "Sync from Google Ads",
     syncing: "Syncing…",
     syncShort: "Sync",
     kpiCost: "Cost",
     kpiConvValue: "Conversion value",
     kpiPnoHint: "target {target} · paid portfolio",
-    breakEvenNote: "Your margin-based break-even ROAS is {roas} (PNO {pno}) — below it a campaign loses money once cost of goods is subtracted.",
+    breakEvenNote: "Your margin-based break-even ROAS is {roas} (PNO {pno}). Below it a campaign loses money once cost of goods is subtracted.",
     breakEvenLoaded: "with overhead {roas}",
     shareButton: "Share report",
     sharing: "Creating…",
@@ -138,13 +138,13 @@ const T = {
     evalAllTitle:
       "Walks the portfolio and every campaign in one go; only reports whose data changed since the last evaluation are paid for",
     evalAllSummary: "Batch evaluation: {fresh} new reports, {cached} unchanged (from cache).",
-    evalAllQuota: "Daily AI evaluation quota exhausted — {n} left unevaluated.",
+    evalAllQuota: "Daily AI evaluation quota exhausted: {n} left unevaluated.",
     buildingReport: "Building evaluation report…",
     campaignsHeading: "Campaigns",
     campaignCount: "{n} campaigns · row-by-row analysis",
     govHeading: "Budget management",
     degradedBanner:
-      "Live Google Ads data is temporarily unavailable — the last sync is showing sample data. Try syncing again, or reconnect the account.",
+      "Live Google Ads data is temporarily unavailable. The last sync is showing sample data. Try syncing again, or reconnect the account.",
   },
 } as const;
 

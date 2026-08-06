@@ -24,7 +24,7 @@ const T = {
     closingTag: "Konec · děkuji za pozornost",
     closingHeading: "Zpět na přehled",
     closingBody:
-      "Prošli jste celou případovou studii — od výkonnostního dashboardu přes obsah a AI nástroje až po správu kampaní.",
+      "Prošli jste celou případovou studii, od výkonnostního dashboardu přes obsah a AI nástroje až po správu kampaní.",
     next: "Další",
     prev: "Předchozí",
   },
@@ -36,7 +36,7 @@ const T = {
     closingTag: "Done · thank you for your time",
     closingHeading: "Back to overview",
     closingBody:
-      "You've walked the full case study — from the performance dashboard through content and AI tools to campaign management.",
+      "You've walked the full case study, from the performance dashboard through content and AI tools to campaign management.",
     next: "Next",
     prev: "Previous",
   },
