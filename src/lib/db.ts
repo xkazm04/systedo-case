@@ -709,6 +709,36 @@ const MIGRATIONS: Migration[] = [
       ),
     applied: (db) => tableExists(db, "analytics_daily"),
   },
+  {
+    version: 20,
+    name: "backfill v1-only tables (organic_channels/diagnoses/recaps/annotations/lp_experiments/twin/onboarding) that pre-ledger dbs never received",
+    // These seven were added to SCHEMA without a migration entry, so any db whose
+    // ledger was already past v1 never created them (the UAT 2026-07-16 finding).
+    // All share the per-project blob shape; DDL matches SCHEMA verbatim.
+    up: (db) => {
+      for (const t of [
+        "organic_channels",
+        "diagnoses",
+        "recaps",
+        "annotations",
+        "lp_experiments",
+        "twin",
+        "onboarding",
+      ]) {
+        db.exec(
+          `CREATE TABLE IF NOT EXISTS ${t} (
+            project_id TEXT PRIMARY KEY,
+            data       TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+          )`
+        );
+      }
+    },
+    applied: (db) =>
+      ["organic_channels", "diagnoses", "recaps", "annotations", "lp_experiments", "twin", "onboarding"].every(
+        (t) => tableExists(db, t)
+      ),
+  },
 ];
 
 const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
