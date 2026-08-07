@@ -10,30 +10,17 @@ import { Pill } from "@/components/ui";
 import { ArrowRight, Bulb } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import PortfolioCompare from "@/components/app/overview/PortfolioCompare";
-import type { CompareRow } from "@/components/app/overview/compare";
 import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
 import { projectDataSource } from "@/lib/project-data/source";
 import { hasSyncedMetrics } from "@/lib/report-metrics/store";
-import { isDemoProjectId } from "@/lib/projects/demo";
 import { getProjectDataset } from "@/lib/project-data/dataset";
-import { collectRecommendations, type LocalRecsInput } from "@/lib/insights/aggregate";
-import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
-import { comparisonQueriesFromCatalog } from "@/lib/seo-compare/catalog";
-import { loadPlansFor } from "@/lib/catalog/load";
-import { getCompetitors } from "@/lib/competitors/store";
-import { curatedCompetitors } from "@/lib/competitors/types";
-import { targetsForProject } from "@/lib/local/sample";
-import { targetsFromCatalog } from "@/lib/local/catalog";
-import { keywordLadder } from "@/lib/mappack/sample";
-import { reviewsForProject } from "@/lib/reviews/sample";
+import { collectRecommendations } from "@/lib/insights/aggregate";
 import {
-  resolveCoverage,
-  resolveLocalLadder,
-  resolvePacks,
-  resolveReviews,
-} from "@/lib/local-signals/resolve";
-import { localitiesFor } from "@/lib/catalog/resolve";
-import { loadServicesFor } from "@/lib/catalog/load";
+  getPortfolioModel,
+  resolveLocalRecsInput,
+  resolveSeoQueries,
+  type PortfolioRec,
+} from "@/components/app/overview/portfolio-model";
 import { bucketize, totalsOf, type Totals } from "@/lib/metrics";
 import type { Formatters } from "@/lib/format";
 import {
@@ -44,8 +31,7 @@ import {
   type KpiMetric,
 } from "@/lib/projects/modules";
 import { projectTypeMeta, PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
-import type { Recommendation, Severity } from "@/lib/insights/types";
-import { byImpact } from "@/lib/insights/types";
+import type { Severity } from "@/lib/insights/types";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 import type { TFn } from "@/lib/i18n/interpolate";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -123,7 +109,7 @@ function fmtKpi(v: number, format: KpiFormat, fmt: Formatters): string {
 }
 
 /** A recommendation tagged with the project it belongs to (for the combined feed). */
-type ProjRec = Recommendation & { projectId: string; projectName: string; projectAccent: string };
+type ProjRec = PortfolioRec;
 
 /** Shared "Needs attention" feed — a single project's recommendations, or the
  *  combined cross-project feed (when `showProject`, each row names its project). */
@@ -212,62 +198,9 @@ function NeedsAttention({
   );
 }
 
-/** Resolve a `local` project's Overview rec signals the same way lokalni/page.tsx
- *  does — coverage targets (catalog-seeded, with imported page-presence overlaid),
- *  and the ladder + reviews live-over-sample — so the aggregator's local recs read
- *  the project's real data, not the HVAC sample. Null for non-local projects.
- *  Server-only I/O kept out of the pure aggregator.
- *
- *  It ALSO returns each seam's provenance (`live`), which the Overview previously
- *  threw away: without it the feed rendered `seed01()` fiction ("3 negativní recenze
- *  čeká na odpověď") as a flat severity-dot fact card, while every module page it
- *  links to disclosed the same numbers as illustrative. All four seams are read
- *  through the ONE request-memoized local-signals blob (signalsForRequest), so this
- *  is still a single store read per project per request. */
-async function resolveLocalRecsInput(project: Project): Promise<LocalRecsInput | null> {
-  if (project.type !== "local") return null;
-  const localities = localitiesFor(project);
-  const services = await loadServicesFor(project);
-  const seedTargets =
-    services.length > 0 ? targetsFromCatalog(services, localities) : targetsForProject(project);
-  const [resolvedCoverage, resolvedLadder, resolvedReviews, resolvedPacks] = await Promise.all([
-    resolveCoverage(project.id, seedTargets),
-    resolveLocalLadder(project.id, keywordLadder(project, localities, services)),
-    resolveReviews(project.id, reviewsForProject(project, localities)),
-    // The Overview has no pack-derived recommendation yet, so only the PROVENANCE is
-    // consumed here — an empty sample keeps this a flag read, not a pack computation.
-    resolvePacks(project.id, []),
-  ]);
-  return {
-    targets: resolvedCoverage.targets,
-    ladder: resolvedLadder.ladder,
-    reviews: resolvedReviews.reviews,
-    live: {
-      coverage: resolvedCoverage.live,
-      ladder: resolvedLadder.live,
-      reviews: resolvedReviews.live,
-      pack: resolvedPacks.live,
-    },
-  };
-}
-
-/** Resolve an `app` project's comparison-query slate the same way srovnani-seo/page.tsx
- *  does — catalog-generated from the brand + plan competitors when the catalog has
- *  plans, else the sample set — so the Overview SEO rec scores the project's real
- *  queries, not the hardcoded sample. Null for non-app projects (the aggregator then
- *  keeps its SAMPLE_QUERIES default). Server-only I/O kept out of the pure aggregator. */
-async function resolveSeoQueries(project: Project): Promise<CompareQuery[] | null> {
-  if (project.type !== "app") return null;
-  const [plans, competitorSet] = await Promise.all([
-    loadPlansFor(project),
-    getCompetitors(project.id),
-  ]);
-  // CURATED only — mirrors srovnani-seo/page.tsx: an unconfirmed scan suggestion must
-  // not shape the slate the Overview's SEO rec scores.
-  const storedCompetitors = curatedCompetitors(competitorSet?.competitors).map((c) => c.name);
-  const generated = comparisonQueriesFromCatalog(project.name, plans, storedCompetitors);
-  return generated.length > 0 ? generated : SAMPLE_QUERIES;
-}
+/* The local-signals / SEO-slate resolvers and the portfolio view-model live in
+ * ./overview/portfolio-model — one owner for the computation, plus the demo
+ * fast path (pure sample inputs + module-level memo) the public /dashboard uses. */
 
 export default async function ProjectOverview({
   projects,
@@ -412,66 +345,16 @@ export default async function ProjectOverview({
   }
 
   /* --------------------------------------------------------- portfolio (2+) */
-  // Honest source per row: the same synced-rows signal the single-project pill uses.
-  // Demo fixture ids short-circuit — they are never persisted (persist-guard), so the
-  // store read would always come back empty; skipping it keeps the public /dashboard
-  // portfolio free of per-request store round-trips for fixtures.
-  const syncedById = new Map<string, boolean>(
-    await Promise.all(
-      projects.map(
-        async (p) => [p.id, isDemoProjectId(p.id) ? false : await hasSyncedMetrics(p.id)] as const
-      )
-    )
-  );
-  const rows: CompareRow[] = projects.map((p) => {
-    const data = getProjectDataset(p);
-    return {
-      id: p.id,
-      name: p.name,
-      type: p.type,
-      accentColor: p.accentColor,
-      domain: p.domain,
-      live: syncedById.get(p.id) ?? false,
-      totals: totalsOf(data.daily.slice(-30)),
-      revenueSpark: bucketize(data.daily.slice(-365), "month").map((b) => b.revenue),
-    };
-  });
+  // One owner for the whole cross-project computation: rows (with the honest per-row
+  // source signal), plus the combined impact-ranked rec feed. A workspace of demo
+  // fixtures (the public /dashboard) is served from the module-level memo — the
+  // deterministic model is computed once, with zero store round-trips; any real
+  // tenant id in the list bypasses the memo and resolves its stores per request.
+  const { rows, combined } = await getPortfolioModel(projects, locale);
 
   const totalRevenue = rows.reduce((s, r) => s + r.totals.revenue, 0);
   const totalCost = rows.reduce((s, r) => s + r.totals.cost, 0);
   const blendedRoas = totalCost > 0 ? totalRevenue / totalCost : 0;
-
-  // Combined, cross-project recommendations — each tagged with its project and
-  // re-keyed (rec ids aren't project-scoped), then ranked by impact across all.
-  // Local signals are resolved per project up front (async) so the pure aggregator
-  // reads each local project's real coverage / ladder / reviews, not the sample.
-  const localInputs = new Map<string, LocalRecsInput | null>(
-    await Promise.all(
-      projects.map(async (p) => [p.id, await resolveLocalRecsInput(p)] as const)
-    )
-  );
-  const seoQueriesByProject = new Map<string, CompareQuery[] | null>(
-    await Promise.all(
-      projects.map(async (p) => [p.id, await resolveSeoQueries(p)] as const)
-    )
-  );
-  const combined: ProjRec[] = projects
-    .flatMap((p) =>
-      collectRecommendations(
-        p,
-        locale,
-        localInputs.get(p.id),
-        seoQueriesByProject.get(p.id),
-        syncedById.get(p.id) ?? false
-      ).map((r) => ({
-        ...r,
-        id: `${p.id}:${r.id}`,
-        projectId: p.id,
-        projectName: p.name,
-        projectAccent: p.accentColor,
-      }))
-    )
-    .sort(byImpact);
   const topCombined = combined.slice(0, 8);
 
   return (
