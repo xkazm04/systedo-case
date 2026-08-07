@@ -51,9 +51,17 @@ export function demoProjectById(id: string): Project | undefined {
   return isDemoProjectId(id) ? DEMO_PROJECTS.find((p) => p.id === id) : undefined;
 }
 
+/** Type-keyed index over the same PROJECT_TYPES pass as DEMO_PROJECTS, so every
+ *  member of the ProjectType union is present BY CONSTRUCTION — the lookup below
+ *  is total without an unreachable `?? DEMO_PROJECTS[0]!` fallback that would
+ *  silently misroute a future type to the e-shop fixture if the invariant broke. */
+const DEMO_PROJECT_BY_TYPE = Object.fromEntries(
+  DEMO_PROJECTS.map((p) => [p.type, p])
+) as Record<ProjectType, Project>;
+
 /** The demo project for a business type. */
 export function demoProjectFor(type: ProjectType): Project {
-  return DEMO_PROJECTS.find((p) => p.type === type) ?? DEMO_PROJECTS[0]!;
+  return DEMO_PROJECT_BY_TYPE[type];
 }
 
 /** Pick the fitting demo project for a module: e-shop when the module supports it

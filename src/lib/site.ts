@@ -1,14 +1,15 @@
-import { CLAUDE_MODEL, GEMINI_MODEL } from "@/lib/llm/models";
-
 /** Canonical site origin, resolved from the deploy environment so OG tags,
  *  canonical links and share URLs are correct regardless of the Vercel project
  *  or custom domain. Shared by the root metadata and any component that needs
- *  an absolute URL (e.g. the article ShareBar). */
+ *  an absolute URL (e.g. the article ShareBar). The literal is the LAST-RESORT
+ *  fallback (a non-Vercel build with no NEXT_PUBLIC_SITE_URL): the canonical
+ *  adamant host per docs/deploy.md ("Host rename", decision 2026-08-04) — never
+ *  the retired systedo-case name. */
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "https://systedo-case.vercel.app");
+    : "https://adamant.vercel.app");
 
 /** Absolute canonical URL for a path (leading slash optional). */
 export function canonical(path = "/"): string {
@@ -40,20 +41,3 @@ export const SITE_DESCRIPTION_EN =
   "Adamant is the AI workspace for advertising, a rare breed in adtech. Performance dashboards, campaign intelligence and AI ad generation across Google Ads, Sklik and more.";
 /** The description the static, non-locale-aware metadata + manifest use. */
 export const SITE_DESCRIPTION = SITE_DESCRIPTION_CS;
-
-/** Stack facts for an "O projektu" surface — a single source of truth so it
- *  can't contradict the rest of the app. The model line is imported from the LLM
- *  wrapper (not hand-typed) so it can never drift from the models in play; the
- *  data line names each store's real backing (Firestore for campaigns, matching
- *  db.ts — NOT SQLite; see the /kampane blurb reconciliation note in WAVE-23).
- *
- *  DELIBERATELY Czech-only, and currently UNRENDERED (no consumer in src/). If it
- *  is ever wired into the bilingual footer, localize the translatable lines
- *  through Messages (getServerLocale) rather than copying this constant — do NOT
- *  ship these Czech strings under an `en` heading (the E1 "one company voice"). */
-export const STACK_FACTS: string[] = [
-  "Next.js 16 · App Router",
-  "Data: JSON (obsah) + Firestore (kampaně) · node:sqlite (rate-limit)",
-  `LLM · ${CLAUDE_MODEL} (dev) · ${GEMINI_MODEL} (prod)`,
-  "Nasaditelné na Vercel",
-];
