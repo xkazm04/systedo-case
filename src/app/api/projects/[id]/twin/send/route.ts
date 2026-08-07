@@ -13,6 +13,7 @@
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { mutateTwin } from "@/lib/twin/store";
 import { connectorFor } from "@/lib/twin/connectors";
+import { retryRevert } from "@/lib/twin/send-claim";
 import { channelConfig, type TwinState } from "@/lib/twin/types";
 import { apiError, asString, conflict, enforceUserRate, providerError, readJson, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
@@ -96,20 +97,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     result = await connector.send({ channel: draft.channel, contact: draft.contact, body: draft.reply });
   } catch (err) {
     // Delivery failed after we optimistically claimed the draft `sent` — revert it to
-    // `approved` (only if still our claim) so the human can retry, then report the error.
+    // `approved` (only if still OUR claim, matched by the sentAt stamp) so the human can
+    // retry. The revert is RETRIED, never fire-and-forget: a swallowed revert failure
+    // used to strand a permanently-"sent" draft that never left the building. If every
+    // attempt fails, the strand is logged loudly — a later save can't fix it silently
+    // (mergeTerminalDrafts freezes stored terminal records), so the operator must know.
     // Was a RAW connector error string handed to the client; now a coded category with a
     // generic Czech message and the raw text server-logged only.
-    await mutateTwin(project.id, (prev) => {
-      if (!prev) throw new SendSignal("not-found");
-      return {
-        ...prev,
-        drafts: prev.drafts.map((d) =>
-          d.id === draftId && d.status === "sent" && d.sentAt === sentAt
-            ? { ...d, status: "approved" as const, sentAt: undefined }
-            : d
-        ),
-      };
-    }).catch(() => {});
+    const reverted = await retryRevert(
+      async () => {
+        try {
+          await mutateTwin(project.id, (prev) => {
+            // Twin blob gone mid-send (untrained/deleted): nothing to revert — treat as
+            // done rather than writing a resurrected empty state.
+            if (!prev) throw new SendSignal("not-found");
+            return {
+              ...prev,
+              drafts: prev.drafts.map((d) =>
+                d.id === draftId && d.status === "sent" && d.sentAt === sentAt
+                  ? { ...d, status: "approved" as const, sentAt: undefined }
+                  : d
+              ),
+            };
+          });
+        } catch (e) {
+          if (!(e instanceof SendSignal)) throw e;
+        }
+      },
+      undefined,
+      (e, attempt) => console.warn(`[twin] send revert attempt ${attempt} failed for ${project.id}/${draftId}:`, e)
+    );
+    if (!reverted) {
+      console.error(
+        `[twin] send revert FAILED for ${project.id}/${draftId} — draft may be stranded as 'sent' although delivery failed`
+      );
+    }
     return providerError({
       category: "provider-error",
       message: "Odeslání přes konektor selhalo.",

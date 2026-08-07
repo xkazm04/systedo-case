@@ -10,7 +10,7 @@
  *  Other modules hand conversations in here rather than drafting their own replies —
  *  the Socials inbox writes a `replySeedKey` payload and routes here, which is why
  *  the seed is read on mount rather than passed as a prop from the server. */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import SpeedLeadModule from "@/components/app/modules/SpeedLeadModule";
@@ -110,14 +110,26 @@ export default function TwinInboxModule({
   /** The `leads` channel's autonomy config + a banking sink, so the SpeedLead inbox
    *  writes its generated replies into the shared outbox through the same gate. An
    *  optional style fact (a banked pre-send edit) rides the SAME commit as the draft,
-   *  so the two writes can't race and clobber each other's slice of the blob. */
+   *  so the two writes can't race and clobber each other's slice of the blob.
+   *  Returns commit's persisted-flag promise: the inbox's send flow must know the
+   *  approved record LANDED before asking the server's claim path to mark it sent. */
   const leadsCfg = channelConfig(state.channels, "leads");
-  const bankLead = (draft: TwinDraft, fact?: TwinStyleFact) =>
-    commit({
-      ...state,
-      drafts: upsertDraft(state.drafts, draft),
-      ...(fact ? { facts: [...state.facts, fact] } : {}),
+  /** Latest committed state, for the async banking path: the send flow banks an
+   *  approved draft, AWAITS the save, then banks the server-claimed `sent` flip —
+   *  by then the render-time `state` closure is stale and would clobber the first
+   *  commit's slice (the approved record, the edit fact). Synced in an effect. */
+  const stateRef = useRef(state);
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+  const bankLead = (draft: TwinDraft, fact?: TwinStyleFact) => {
+    const s = stateRef.current;
+    return commit({
+      ...s,
+      drafts: upsertDraft(s.drafts, draft),
+      ...(fact ? { facts: [...s.facts, fact] } : {}),
     });
+  };
 
   return (
     <div className="stagger space-y-6">

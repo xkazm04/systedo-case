@@ -19,7 +19,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { RefineBar } from "@/components/ai/primitives";
 import { useProject } from "@/lib/projects/context";
 import { promptSafeName } from "@/lib/projects/name";
-import { asRejected, asSent, buildDraft, type DraftSeed } from "@/lib/twin/banking";
+import { asApproved, asRejected, asSent, buildDraft, type DraftSeed } from "@/lib/twin/banking";
 import { buildEditFact, isMeaningfulEdit } from "@/lib/twin/edit-facts";
 import { decideDraft, REJECT_REASONS, type RejectReason, type TwinChannelConfig, type TwinDraft, type TwinStyleFact } from "@/lib/twin/types";
 import { REASON_LABELS } from "@/components/app/twin/labels";
@@ -198,8 +198,10 @@ export default function SpeedLeadModule({
    *  generated reply flows through the same lifecycle as every other channel. */
   leadsCfg?: TwinChannelConfig;
   /** upsert a lead draft into the twin's outbox (append, or flip a record by id).
-   *  An optional style fact (a banked pre-send edit) rides the same commit. */
-  onBankLead?: (draft: TwinDraft, fact?: TwinStyleFact) => void;
+   *  An optional style fact (a banked pre-send edit) rides the same commit.
+   *  Resolves with whether the save LANDED (false = demo/offline), so the send
+   *  flow can wait for persistence before invoking the server's send claim. */
+  onBankLead?: (draft: TwinDraft, fact?: TwinStyleFact) => Promise<boolean>;
 }) {
   const project = useProject();
   const fmt = useFormatters();
@@ -355,7 +357,7 @@ export default function SpeedLeadModule({
     bankKeyRef.current = key;
     const draft = buildDraft(leadsCfg, seedFor(aiReply.reply)!, uid(), new Date().toISOString());
     bankedRef.current = draft;
-    onBankLead(draft);
+    void onBankLead(draft);
     // seedFor is a pure render-time closure; the ref guard makes this fire once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bankingOn, leadsCfg, onBankLead, aiReply, selected]);
@@ -366,23 +368,51 @@ export default function SpeedLeadModule({
   const [rejectReason, setRejectReason] = useState<RejectReason>("off_brand");
   const [rejectNote, setRejectNote] = useState("");
 
-  /** Record the human's send as a `sent` lead draft — flipping the auto-approved
-   *  record if the gate already banked one, else banking a fresh one. This is what
-   *  makes the activity readiness milestone tickable from the leads inbox. */
-  const bankSend = () => {
+  /** Record the human's send through the SERVER claim path ("sent means sent").
+   *  WHEN each event fires: `approved` (+decidedAt) at the click — a client-asserted
+   *  human decision, the strongest status a client may post (the route demotes any
+   *  freshly client-claimed `sent`); `sent` (+sentAt) only once /twin/send's atomic
+   *  claim lands. The manual connector's semantics are unchanged — `delivered:false`,
+   *  the human sends the text themselves — the record is just minted by the server
+   *  instead of asserted by this client. On a demo/offline project the save never
+   *  lands, so the record stays a local `approved` and nothing pretends to be sent. */
+  const bankSend = async () => {
     if (!bankingOn || !onBankLead || !leadsCfg || !selected || !aiReply) return;
     const now = new Date().toISOString();
     const base = bankedRef.current ?? buildDraft(leadsCfg, seedFor(replyText)!, uid(), now);
-    // The human endorsed the edited text by sending it — if the edit rewrote the
-    // generated reply enough to teach from, bank the before/after as a style fact.
+    // The human endorsed the edited text by sending it — the record carries the
+    // edited reply, and if the edit rewrote the generated reply enough to teach
+    // from, the before/after banks as a style fact on the same commit.
+    const approved =
+      base.status === "approved" ? { ...base, reply: replyText } : asApproved({ ...base, reply: replyText }, now);
     const L = locale === "en" ? "en" : "cs";
     const editFact = isMeaningfulEdit(aiReply.reply, replyText)
       ? buildEditFact(aiReply.reply, replyText, "leads", L, uid(), now)
       : undefined;
-    onBankLead(asSent(base, now), editFact);
     setEditBanked(editFact !== undefined);
     bankedRef.current = null;
     bankKeyRef.current = `${selected.id}:${aiReply.reply}`; // don't re-auto-bank
+    // Persist FIRST — the send claim re-reads the SAVED state, so the approved
+    // record must be on the server before the claim can find it.
+    const persisted = await onBankLead(approved, editFact);
+    if (!persisted) return;
+    try {
+      const res = await fetch(`/api/projects/${project.id}/twin/send`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: approved.id }),
+      });
+      const json: { sentAt?: unknown } | null = await res.json().catch(() => null);
+      if (res.ok) {
+        // Mirror the server's claim locally. The follow-up save is a no-op for this
+        // record server-side: the stored terminal `sent` wins over any posted copy.
+        void onBankLead(asSent(approved, typeof json?.sentAt === "string" ? json.sentAt : now));
+      }
+      // A refused claim (rate-limited, connector unconfigured…) leaves the record
+      // approved — the human copies the text and sends it manually, honestly.
+    } catch {
+      /* claim unreachable — the record stays approved; nothing pretends to be sent */
+    }
   };
 
   /** Reject with a counted reason — feeds `rejectionPatterns(drafts,"leads")`, the
@@ -391,7 +421,7 @@ export default function SpeedLeadModule({
     if (!bankingOn || !onBankLead || !leadsCfg || !selected || !aiReply) return;
     const now = new Date().toISOString();
     const base = bankedRef.current ?? buildDraft(leadsCfg, seedFor(replyText)!, uid(), now);
-    onBankLead(asRejected(base, now, rejectReason, rejectNote));
+    void onBankLead(asRejected(base, now, rejectReason, rejectNote));
     bankedRef.current = null;
     bankKeyRef.current = `${selected.id}:${aiReply.reply}`;
     setRejecting(false);
@@ -778,7 +808,7 @@ export default function SpeedLeadModule({
             <button
               type="button"
               onClick={() => {
-                bankSend();
+                void bankSend();
                 markResponded(selected.id);
               }}
               disabled={respondedAt.has(selected.id)}

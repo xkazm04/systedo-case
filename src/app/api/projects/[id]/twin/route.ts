@@ -7,7 +7,14 @@ import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { mutateTwin, clearTwin } from "@/lib/twin/store";
 import { archiveDrafts, clearArchive, listArchivedRejects } from "@/lib/twin/archive-store";
 import { partitionDrafts } from "@/lib/twin/archive";
-import { channelConfig, decideDraft, mergeTerminalDrafts, sanitizeTwinState, type TwinState } from "@/lib/twin/types";
+import {
+  channelConfig,
+  decideDraft,
+  enforceServerSent,
+  mergeTerminalDrafts,
+  sanitizeTwinState,
+  type TwinState,
+} from "@/lib/twin/types";
 import { storableConnectorId } from "@/lib/twin/connectors";
 import { readJson } from "@/lib/api/route-utils";
 
@@ -88,15 +95,23 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     keptDrafts = hot;
   }
 
-  // Write atomically and let STORED terminal statuses win over the posted blob: the
-  // client POSTs its whole state, and a stale client copy (a send that landed after its
-  // last read) still marks the draft `approved` — a plain last-writer-wins save would
-  // flip a `sent` draft back to `approved`, erasing the send from the audit trail and
-  // making it send-eligible again. mergeTerminalDrafts inside the atomic mutate closes
-  // that check-then-act window against a concurrent send/route.ts claim.
+  // Write atomically, with the two draft-lifecycle guards run against the STORED
+  // state inside the same transaction (closing the check-then-act window against a
+  // concurrent send/route.ts claim):
+  //
+  //  WHEN each lifecycle event fires — the contract this route enforces:
+  //   • `pending`/`approved`  — client-asserted here (the human loop), with the
+  //     machine `autoApproved` bit re-derived by enforceAutonomy above.
+  //   • `rejected` (+decidedAt) — client-asserted here; a human "no" is a genuine
+  //     client-side decision and feeds the rejection-learning tally.
+  //   • `sent` (+sentAt)      — NEVER minted here. enforceServerSent demotes any
+  //     freshly client-claimed `sent` to `approved`; the only writer of the
+  //     approved→sent transition is send/route.ts's atomic claim.
+  //   • a STORED terminal record (`sent`/`rejected`) is frozen: mergeTerminalDrafts
+  //     makes it win over whatever the posted blob says for that id.
   await mutateTwin(project.id, (prev) => ({
     ...state,
-    drafts: mergeTerminalDrafts(prev?.drafts, keptDrafts),
+    drafts: mergeTerminalDrafts(prev?.drafts, enforceServerSent(prev?.drafts, keptDrafts)),
     updatedAt: new Date().toISOString(),
   }));
   return Response.json({ ok: true });

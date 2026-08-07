@@ -28,15 +28,22 @@ export function useTwinState(
   const [source, setSource] = useState<TwinSource>(initialSource);
   const [resetting, setResetting] = useState(false);
 
-  /** Replace the twin and persist it. The server re-sanitizes the whole blob. */
-  const commit = (next: TwinState) => {
+  /** Replace the twin and persist it. The server re-sanitizes the whole blob.
+   *  Returns whether the save LANDED (false for a demo project / offline), so a
+   *  caller whose next step depends on the persisted state — the leads inbox must
+   *  save an approved draft before the send route's claim can find it — can await
+   *  the write. Fire-and-forget callers simply ignore the promise (the documented
+   *  graceful-degradation contract is unchanged). */
+  const commit = (next: TwinState): Promise<boolean> => {
     setState(next);
     setSource("trained");
-    void fetch(`/api/projects/${project.id}/twin`, {
+    return fetch(`/api/projects/${project.id}/twin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    }).catch(() => {});
+    })
+      .then((res) => res.ok)
+      .catch(() => false);
   };
 
   /** Untrain: back to the seeded per-type sample, empty outbox. Resets to the SAMPLE,

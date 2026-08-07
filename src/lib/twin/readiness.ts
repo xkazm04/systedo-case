@@ -55,6 +55,13 @@ export function deriveReadiness(state: TwinState, input: ReadinessInput): Readin
   const channelVoices = state.voices.filter((v) => v.scope !== "generic" && v.directives.trim().length > 0);
   const constraints = state.voices.reduce((n, v) => n + v.constraints.length, 0);
   const enabled = state.channels.filter((c) => c.enabled);
+  // `activity` counts APPROVED alongside SENT deliberately: an approval is a real
+  // decision event (human-asserted, with the machine bit re-derived server-side on
+  // every save), while `sent` is now minted ONLY by the send route's atomic claim —
+  // the twin POST route demotes any freshly client-claimed `sent` to `approved`
+  // (enforceServerSent). So a purely client-asserted "send" can no longer tick this
+  // milestone as a phantom send: the event that persists — and counts — is the
+  // approval that genuinely happened.
   const decided = state.drafts.filter((d) => d.status === "approved" || d.status === "sent");
 
   // A failed catalog read (null) is "unknown", not zero — ground it to partial so a

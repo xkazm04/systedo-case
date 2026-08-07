@@ -237,21 +237,42 @@ export function isTerminalDraft(d: Pick<TwinDraft, "status">): boolean {
   return d.status === "sent" || d.status === "rejected";
 }
 
-/** Merge STORED terminal statuses over a POSTed full-state blob: when a stored draft
- *  for the same id is terminal (`sent`/`rejected`) but the posted one is not, the
- *  stored record wins. The client POSTs its whole twin state, and a stale client copy
- *  (a send that landed after the client last read) still marks the draft `approved` —
- *  a last-writer-wins save would then flip a `sent` draft back to `approved`, erasing
- *  the send from the audit trail and making it send-eligible again. Pure/total, so it
- *  can run inside the atomic mutate that closes the check-then-act gap. */
+/** Merge STORED terminal statuses over a POSTed blob: when a stored draft for the
+ *  same id is terminal (`sent`/`rejected`), the STORED record wins outright —
+ *  whatever the posted copy claims. A terminal record is a frozen audit event: a
+ *  stale client copy (a send that landed after the client last read) must not flip
+ *  a `sent` draft back to `approved` (erasing the send from the audit trail and
+ *  making it send-eligible again), and a posted copy that is still terminal must
+ *  not rewrite the frozen record's reply or stamps either. Pure/total, so it can
+ *  run inside the atomic mutate that closes the check-then-act gap. */
 export function mergeTerminalDrafts(stored: TwinDraft[] | null | undefined, posted: TwinDraft[]): TwinDraft[] {
   if (!stored || stored.length === 0) return posted;
   const terminalById = new Map<string, TwinDraft>();
   for (const d of stored) if (isTerminalDraft(d)) terminalById.set(d.id, d);
   if (terminalById.size === 0) return posted;
+  return posted.map((d) => terminalById.get(d.id) ?? d);
+}
+
+/** SERVER-MINTED SENDS ("sent means sent"). The `approved → sent` transition is
+ *  owned by `send/route.ts`'s atomic claim — a `sent` record asserts that the claim
+ *  path ran (delivering through a real connector, or recording the human's own
+ *  manual send). A client may therefore never POST a NEW `sent` record into
+ *  existence: a posted draft claiming `sent` that the STORE does not already know
+ *  as sent is demoted to `approved` — the strongest status a client may assert —
+ *  with its `sentAt` stripped and any machine-approval claim cleared (the autonomy
+ *  gate never judged it: `enforceAutonomy` skips terminal drafts, and the next save
+ *  re-derives the bit anyway). A store-corroborated `sent` passes through for
+ *  `mergeTerminalDrafts` to resolve (the stored record then wins wholesale).
+ *  Client-asserted `rejected` stays legal — a human rejection is a genuinely
+ *  client-side decision, like approval. Pure/total — runs inside the atomic mutate,
+ *  BEFORE the terminal merge. */
+export function enforceServerSent(stored: TwinDraft[] | null | undefined, posted: TwinDraft[]): TwinDraft[] {
+  const sentIds = new Set((stored ?? []).filter((d) => d.status === "sent").map((d) => d.id));
   return posted.map((d) => {
-    const term = terminalById.get(d.id);
-    return term && !isTerminalDraft(d) ? term : d;
+    if (d.status !== "sent" || sentIds.has(d.id)) return d;
+    const demoted: TwinDraft = { ...d, status: "approved", autoApproved: false };
+    delete demoted.sentAt;
+    return demoted;
   });
 }
 
@@ -475,10 +496,12 @@ function sanitizeFact(raw: unknown, i: number): TwinStyleFact | null {
  *  SHAPE-checked here, not authenticated — this sanitizer runs on a client POST that
  *  owns the whole blob. They are made trustworthy downstream, not here: the twin POST
  *  route re-derives `autoApproved` from the gate (`enforceAutonomy`) so it can't be
- *  forged or laundered, `send/route.ts` is the sole writer of `sent`/`sentAt`, and
- *  `mergeTerminalDrafts` keeps a STORED terminal (`sent`/`rejected`) record from being
- *  rewritten by a stale posted blob. A raw `sanitizeDraft` result on its own is NOT an
- *  audit trail — always pair it with those route-level guards. */
+ *  forged or laundered, `send/route.ts` is the sole writer of `sent`/`sentAt`
+ *  (ENFORCED: the twin POST route runs `enforceServerSent`, demoting any freshly
+ *  client-claimed `sent` to `approved`), and `mergeTerminalDrafts` keeps a STORED
+ *  terminal (`sent`/`rejected`) record from being rewritten by a posted blob. A raw
+ *  `sanitizeDraft` result on its own is NOT an audit trail — always pair it with
+ *  those route-level guards. */
 function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
   const o = raw as Record<string, unknown> | null;
   if (!o || !isTwinChannel(o.channel)) return null;
