@@ -99,6 +99,10 @@ export async function POST(request: Request) {
       brandName: identity.brandName,
       accentColor: identity.accentColor,
       periodDays: Number.isFinite(periodDays) ? periodDays : ownSite?.periodDays,
+      // The owning project (already ownership-checked above) keys the synced-metrics
+      // substitution on the public page; a re-publish keeps the previous binding when
+      // the request carries no project.
+      projectId: projectId ?? ownSite?.projectId,
     });
   } catch (err) {
     // The store now enforces slug shape + ownership itself (the getMicrosite

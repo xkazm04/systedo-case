@@ -13,7 +13,7 @@ import { Container } from "@/components/ui";
 import JsonLd from "@/components/JsonLd";
 import ArticleBody from "@/components/article/ArticleBody";
 import { canonical } from "@/lib/site";
-import { getMicrosite, buildMicrositeView } from "@/lib/microsite";
+import { getMicrosite, resolveMicrositeView } from "@/lib/microsite";
 import { getServerFormatters, getT } from "@/lib/i18n/server";
 
 const T = {
@@ -50,7 +50,8 @@ export async function generateMetadata({
   const config = await getMicrosite(slug);
   const t = await getT(T);
   if (!config) return { title: t("notFound"), robots: { index: false, follow: false } };
-  const { article } = buildMicrositeView(config);
+  const view = await resolveMicrositeView(config);
+  const { article } = view;
   const path = `/m/${slug}`;
   return {
     title: article.meta.title,
@@ -58,8 +59,9 @@ export async function generateMetadata({
     alternates: { canonical: path },
     // Real tenants' pages are meant to be found (override the site-wide noindex);
     // an illustrative (case-study) microsite is NEVER indexed — demo numbers must
-    // not be published as search-findable "proof".
-    robots: config.illustrative ? { index: false, follow: true } : { index: true, follow: true },
+    // not be published as search-findable "proof". `view.live` is decided per
+    // request from actually-synced rows, so a cleared sync reverts to noindex.
+    robots: view.live || !config.illustrative ? { index: true, follow: true } : { index: false, follow: true },
     openGraph: { title: article.meta.title, description: article.meta.perex, type: "article", url: canonical(path) },
   };
 }
@@ -72,7 +74,7 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
   const t = await getT(T);
   const fmt = await getServerFormatters();
 
-  const { article, snapshot, asOf } = buildMicrositeView(config);
+  const { article, snapshot, asOf, live } = await resolveMicrositeView(config);
   const accent = config.accentColor || "var(--color-brand-600)";
 
   const jsonLd = {
@@ -127,7 +129,9 @@ export default async function MicrositePage({ params }: { params: Promise<{ slug
           <p className="mt-4 text-xs text-muted">
             {config.clientName} · {config.segment} · {t("updatedAt", { date: fmt.fmtDate(asOf) })}
           </p>
-          {config.illustrative && (
+          {/* Disclosure only on the sample branch — a live view IS the client's real
+              synced series, so the banner would be the opposite lie. */}
+          {!live && config.illustrative && (
             <p className="mt-4 rounded-lg bg-canvas px-3 py-2 text-xs text-muted">{t("illustrative")}</p>
           )}
         </header>

@@ -7,21 +7,32 @@
  *
  *  Data is the case-study series SCALED PER CLIENT (by slug), so each client's
  *  microsite reads as its own reality instead of identical demo numbers for every
- *  tenant. A tenant with a connected Ads source can replace the scaled base with
- *  its synced series — the snapshot shape is unchanged. Server-only (Firestore
- *  registry). */
+ *  tenant — always disclosed as illustrative and never search-indexed. A microsite
+ *  whose owning PROJECT has actually synced Ads metrics substitutes the REAL series
+ *  (resolveMicrositeView): same snapshot shape, honest "synced" provenance, and the
+ *  page may then index. A view is either fully synced-real or fully disclosed-sample
+ *  — the two series are never blended. Server-only (Firestore registry). */
 import { firestore } from "@/lib/firebase";
 import { isValidMicrositeSlug } from "@/lib/microsite-identity";
 import { scaledDataset, seedScale } from "@/lib/project-data/dataset";
 import { buildMetricsSnapshot, type MetricsSnapshot } from "@/lib/metrics";
 import { snapshotToArticle } from "@/lib/snapshot-to-article";
+import { getReportMetrics } from "@/lib/report-metrics/store";
+import { isLiveMetrics, type ReportMetrics } from "@/lib/report-metrics/types";
+import { isBaseCurrency } from "@/lib/campaigns/currency";
+import type { PerformanceData } from "@/lib/types";
 import type { Article } from "@/lib/article";
 
 export interface MicrositeConfig {
   /** stable public slug (the /m/{slug} URL) */
   slug: string;
-  /** owning tenant — reserved for live-data wiring */
+  /** owning tenant (the account-agnostic tenant key) — pins slug ownership */
   tenant: string;
+  /** the owning PROJECT id — the key into the per-project synced-metrics store
+   *  (report-metrics), captured at enable time so resolveMicrositeView can substitute
+   *  the project's REAL series. Optional: microsites published before this field
+   *  existed (and the built-in demo) lack it and stay on the disclosed sample. */
+  projectId?: string;
   clientName: string;
   segment: string;
   brandName: string;
@@ -95,25 +106,15 @@ export async function getMicrositeForTenant(tenant: string): Promise<MicrositeCo
   return null;
 }
 
-/** Slugs of all enabled microsites — used by the daily revalidation cron. */
-export async function listEnabledSlugs(): Promise<string[]> {
-  try {
-    const snap = await registry().where("enabled", "==", true).get();
-    return snap.docs.map((d) => d.id);
-  } catch (err) {
-    console.error("[microsite] list failed:", err);
-    return [];
-  }
-}
-
 /** Thrown by enableMicrosite when the requested slug is malformed or already owned
  *  by another tenant — the route maps `code` to a 422 / 409. */
 export class MicrositeSlugError extends Error {
-  constructor(
-    public readonly code: "invalid-slug" | "slug-taken",
-    message: string
-  ) {
+  /** No TS parameter property here on purpose: node:test loads this module via
+   *  strip-only type erasure, which cannot compile `constructor(public code…)`. */
+  readonly code: "invalid-slug" | "slug-taken";
+  constructor(code: "invalid-slug" | "slug-taken", message: string) {
     super(message);
+    this.code = code;
     this.name = "MicrositeSlugError";
   }
 }
@@ -126,7 +127,7 @@ export class MicrositeSlugError extends Error {
  *  all), hijacking its stable URL. */
 export async function enableMicrosite(
   tenant: string,
-  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number }
+  input: { slug: string; clientName: string; segment?: string; brandName?: string; accentColor?: string; logoUrl?: string; periodDays?: number; projectId?: string }
 ): Promise<MicrositeConfig> {
   if (!isValidMicrositeSlug(input.slug)) {
     throw new MicrositeSlugError("invalid-slug", `Invalid microsite slug: "${input.slug}"`);
@@ -151,13 +152,16 @@ export async function enableMicrosite(
     brandName: input.brandName || input.clientName,
     accentColor: input.accentColor || "#0f766e",
     ...(input.logoUrl ? { logoUrl: input.logoUrl } : {}),
+    // The owning project keys the synced-metrics lookup; a publish without a project
+    // (legacy per-user tenant) simply never substitutes live data.
+    ...(input.projectId ? { projectId: input.projectId } : {}),
     periodDays: input.periodDays && [30, 90, 365].includes(input.periodDays) ? input.periodDays : 30,
     enabled: true,
-    // buildMicrositeView() always renders scaledDataset() — the scaled case-study
-    // series — because no live-data substitution path exists yet. Until one does,
-    // every created microsite IS illustrative, so it must default to noindex +
-    // disclosure. Only the code path that actually swaps in synced series may flip
-    // this to false; leaving it unset would publish demo numbers as indexed "proof".
+    // The STORED flag stays true: whether the page may drop the disclosure + index
+    // is decided per REQUEST by resolveMicrositeView (sync state changes over time —
+    // a cleared sync must revert the page to disclosed sample without a registry
+    // write). A stored `false` would go stale the moment the project's metrics are
+    // cleared, publishing demo numbers as indexed "proof".
     illustrative: true,
     updatedAt: new Date().toISOString(),
   };
@@ -171,7 +175,33 @@ export async function disableMicrosite(tenant: string): Promise<void> {
   if (existing) await registry().doc(existing.slug).set({ enabled: false }, { merge: true });
 }
 
-/** Build the microsite's article from the latest snapshot — deterministic, no AI.
+/** The rendered microsite view. `live` is the page's honest source signal: robots
+ *  index + no disclosure banner ONLY on a fully synced-real view. */
+export interface MicrositeView {
+  article: Article;
+  snapshot: MetricsSnapshot;
+  asOf: string;
+  /** true when the series is the owning project's real synced Ads data */
+  live: boolean;
+}
+
+/** Snapshot + article from ONE dataset — the shared tail of both branches. */
+function buildView(
+  config: MicrositeConfig,
+  data: PerformanceData,
+  provenance: "synced" | "illustrative"
+): { article: Article; snapshot: MetricsSnapshot; asOf: string } {
+  const asOf = data.daily.at(-1)?.date ?? new Date().toISOString().slice(0, 10);
+  const snapshot = buildMetricsSnapshot(data, {
+    key: `${config.periodDays}d`,
+    label: periodLabel(config.periodDays),
+    days: config.periodDays,
+  });
+  const article = snapshotToArticle(snapshot, { name: config.clientName, segment: config.segment }, asOf, provenance);
+  return { article, snapshot, asOf };
+}
+
+/** Build the microsite's DISCLOSED-SAMPLE article — deterministic, no AI, no I/O.
  *  Re-runs on every request, so the page is always current. */
 export function buildMicrositeView(config: MicrositeConfig): {
   article: Article;
@@ -179,23 +209,64 @@ export function buildMicrositeView(config: MicrositeConfig): {
   asOf: string;
 } {
   // Per-client data: scale the base case-study series deterministically by the
-  // microsite's slug, so each client's microsite reads as ITS OWN reality.
+  // microsite's slug, so each client's microsite reads as ITS OWN reality. The
+  // article carries the SAME illustrative provenance the page chrome discloses via
+  // `config.illustrative` — otherwise the FAQ/perex self-certify demo numbers as
+  // the client's real series (and the Markdown twin has no page banner).
   const data = scaledDataset(seedScale(config.slug), { name: config.clientName });
-  const asOf = data.daily.at(-1)?.date ?? new Date().toISOString().slice(0, 10);
-  const snapshot = buildMetricsSnapshot(data, {
-    key: `${config.periodDays}d`,
-    label: periodLabel(config.periodDays),
-    days: config.periodDays,
-  });
-  const article = snapshotToArticle(
-    snapshot,
-    { name: config.clientName, segment: config.segment },
-    asOf,
-    // Every microsite today is built from a scaled case-study series (scaledDataset),
-    // so the article must carry the SAME illustrative provenance the page chrome
-    // discloses via `config.illustrative` — otherwise the FAQ/perex self-certify demo
-    // numbers as the client's real series (and the Markdown twin has no page banner).
-    config.illustrative === false ? "synced" : "illustrative"
-  );
-  return { article, snapshot, asOf };
+  return buildView(config, data, config.illustrative === false ? "synced" : "illustrative");
+}
+
+/** The synced series as the microsite's PerformanceData. Follows the same
+ *  neutralization rules as the report's live builder (report-metrics/build.ts):
+ *  ONLY `daily` is substantiated by the sync — the sample spine's channel mix,
+ *  per-day channel shares and story-event calendar must never ride under a
+ *  real-data claim, and `meta` is overwritten FROM THE ROWS. `goals` is retained
+ *  from the scaled spine (a forward-looking target, not a fabricated result — the
+ *  ruling build.ts documents); `client` keeps the microsite's own white-label
+ *  labels, so nothing of the owning project's identity reaches the public page. */
+function syncedDataset(config: MicrositeConfig, metrics: ReportMetrics): PerformanceData {
+  const base = scaledDataset(seedScale(config.slug), { name: config.clientName });
+  const daily = [...metrics.rows]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((r) => ({
+      date: r.date,
+      visits: Math.round(r.visits),
+      cost: Math.round(r.cost),
+      conversions: r.conversions,
+      revenue: Math.round(r.revenue),
+      ...(r.impressions !== undefined ? { impressions: Math.round(r.impressions) } : {}),
+      ...(r.clicks !== undefined ? { clicks: Math.round(r.clicks) } : {}),
+    }));
+  return {
+    ...base,
+    channels: [],
+    channelDaily: undefined,
+    events: undefined,
+    daily,
+    meta: { disclaimer: "", asOf: daily.at(-1)?.date ?? base.meta.asOf, days: daily.length, seed: 0 },
+  };
+}
+
+/** The view the public /m/{slug} page renders. Substitutes the owning project's
+ *  REAL synced series when it has one — same honest liveness rule as the report
+ *  and overview (isLiveMetrics: actually-synced rows, not a linked account) — else
+ *  returns today's disclosed-sample view unchanged. INTEGRITY: a view is either
+ *  fully synced-real (live:true, "synced" provenance) or fully disclosed-sample;
+ *  the two series are never blended. A non-CZK account stays on the disclosed
+ *  sample: snapshotToArticle formats koruny, and publishing a EUR series relabelled
+ *  as Kč on an indexable page is the exact dishonesty this seam exists to prevent.
+ *  A store hiccup degrades to the sample view — never breaks the public page. */
+export async function resolveMicrositeView(config: MicrositeConfig): Promise<MicrositeView> {
+  if (config.projectId) {
+    try {
+      const metrics = await getReportMetrics(config.projectId);
+      if (isLiveMetrics(metrics) && isBaseCurrency(metrics.meta.currencyCode)) {
+        return { ...buildView(config, syncedDataset(config, metrics), "synced"), live: true };
+      }
+    } catch (err) {
+      console.error(`[microsite] synced-metrics read failed for ${config.slug}:`, err);
+    }
+  }
+  return { ...buildMicrositeView(config), live: false };
 }
