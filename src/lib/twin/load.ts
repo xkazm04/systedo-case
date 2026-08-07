@@ -7,24 +7,28 @@
  *  into the USER prompt only, so the tools' goldens (system + schema) are untouched.
  *
  *  Returns `undefined` for an untrained twin, an unowned project, or any store
- *  hiccup — every consumer treats that as "write plainly, on brand". Mirrors the
- *  tenancy shape of `brand/load`. */
+ *  hiccup — every consumer treats that as "write plainly, on brand". A DEMO project
+ *  is the one exception: it speaks in the seeded sample voice, because the public
+ *  demo output should show twin flavour. A real tenant NEVER inherits that sample —
+ *  the trained/sample split comes from the resolve seam + the projects demo seam
+ *  (`selectInjectableVoice`), so an untrained tenant writes plainly instead of
+ *  impersonating a canned persona. Mirrors the tenancy shape of `brand/load`. */
 import "server-only";
 import type { Project } from "@/lib/projects/types";
 import type { TwinReplyVoice } from "@/lib/ai-types";
 import { getProject } from "@/lib/projects/store";
+import { resolveProjectKind } from "@/lib/projects/demo";
 import { DEMO_PROJECTS } from "@/lib/demo/projects";
 import { resolveTwin } from "./resolve";
-import { resolveVoice, type ToneScope } from "./types";
+import { selectInjectableVoice } from "./inject";
+import type { ToneScope } from "./types";
 import { voiceToWire } from "./wire";
 
 /** The wire voice for one project + scope, or undefined when nothing is trained. */
 export async function loadTwinVoice(project: Project, scope: ToneScope): Promise<TwinReplyVoice | undefined> {
-  const { state } = await resolveTwin(project.id, project.type);
-  const voice = resolveVoice(state.voices, scope);
-  // A voice row with no directives is an empty editor draft, not a trained voice.
-  if (!voice || !voice.directives.trim()) return undefined;
-  return voiceToWire(voice);
+  const resolved = await resolveTwin(project.id, project.type);
+  const voice = selectInjectableVoice(resolved, resolveProjectKind(project.id), scope);
+  return voice ? voiceToWire(voice) : undefined;
 }
 
 /** Tenancy-checked variant for the route handlers: a demo project is public, a real

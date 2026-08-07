@@ -16,6 +16,12 @@ export interface ResolvedTwin {
   state: TwinState;
   /** "sample" (seeded, untrained) or "trained" (the user has saved something) */
   source: "sample" | "trained";
+  /** The scopes whose voice rows the USER saved — as opposed to the seeded sample
+   *  rows `mergeVoices` fills the gaps with. The AI inject path (`twin/inject`)
+   *  needs this to keep a real tenant from speaking in the canned sample persona:
+   *  `source === "trained"` only says A ROW EXISTS (a channel toggle is enough),
+   *  not that any voice in `state.voices` is the tenant's own. */
+  trainedScopes: ToneScope[];
   updatedAt?: string;
 }
 
@@ -35,7 +41,7 @@ export async function resolveTwin(projectId: string, type: ProjectType): Promise
   } catch {
     saved = null; // store hiccup → the sample, never break the module
   }
-  if (!saved) return { state: seeded, source: "sample" };
+  if (!saved) return { state: seeded, source: "sample", trainedScopes: [] };
 
   return {
     state: {
@@ -47,6 +53,7 @@ export async function resolveTwin(projectId: string, type: ProjectType): Promise
       drafts: saved.drafts,
     },
     source: "trained",
+    trainedScopes: saved.voices.map((v) => v.scope),
     updatedAt: saved.updatedAt,
   };
 }
