@@ -121,9 +121,11 @@ test("the pure-sample FALLBACK path (no threaded input) is tagged too", () => {
   assert.deepEqual(urgent.filter((r) => r.sample !== true).map((r) => r.title), []);
 });
 
-test("a project whose signals are LIVE is unchanged — no sample tag anywhere", () => {
+test("a project whose signals are LIVE is unchanged — no sample tag on any local rec", () => {
   const recs = collectRecommendations(localProject, "cs", { ...input, live: ALL_LIVE });
-  assert.equal(recs.some((r) => r.sample), false);
+  // Scoped to the local seams under test: the cross-type channel rec reads the SEEDED
+  // organic plan (no live seam), so it stays disclosed regardless of local liveness.
+  assert.equal(localModules(recs).some((r) => r.sample), false);
   // …and the recs themselves are identical to the untagged pre-change output.
   const tagged = collectRecommendations(localProject, "cs", { ...input, live: ALL_SAMPLE });
   assert.deepEqual(

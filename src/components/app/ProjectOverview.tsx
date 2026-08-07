@@ -14,6 +14,7 @@ import type { CompareRow } from "@/components/app/overview/compare";
 import LocationsOverviewSection from "@/components/app/overview/LocationsOverviewSection";
 import { projectDataSource } from "@/lib/project-data/source";
 import { hasSyncedMetrics } from "@/lib/report-metrics/store";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import { getProjectDataset } from "@/lib/project-data/dataset";
 import { collectRecommendations, type LocalRecsInput } from "@/lib/insights/aggregate";
 import { SAMPLE_QUERIES, type CompareQuery } from "@/lib/seo-compare/sample";
@@ -293,11 +294,16 @@ export default async function ProjectOverview({
   if (projects.length <= 1) {
     const project = projects[0]!;
     const data = getProjectDataset(project);
-    const [localInput, seoQueries] = await Promise.all([
+    // Honest label: "živá data" only once the project has SYNCED rows (not merely
+    // linked an Ads account) — the same signal the Monthly Report/AI recap use. The
+    // SAME boolean is threaded into the aggregator so the dataset-derived recs
+    // (profit/seasonality) carry the same provenance the pill shows.
+    const [localInput, seoQueries, synced] = await Promise.all([
       resolveLocalRecsInput(project),
       resolveSeoQueries(project),
+      hasSyncedMetrics(project.id),
     ]);
-    const recs: ProjRec[] = collectRecommendations(project, locale, localInput, seoQueries).map((r) => ({
+    const recs: ProjRec[] = collectRecommendations(project, locale, localInput, seoQueries, synced).map((r) => ({
       ...r,
       projectId: project.id,
       projectName: project.name,
@@ -305,9 +311,7 @@ export default async function ProjectOverview({
     }));
     const meta = projectTypeMeta(project.type, locale);
     const typeIcon = PROJECT_TYPE_META[project.type].icon;
-    // Honest label: "živá data" only once the project has SYNCED rows (not merely
-    // linked an Ads account) — the same signal the Monthly Report/AI recap use.
-    const ds = projectDataSource(await hasSyncedMetrics(project.id), locale);
+    const ds = projectDataSource(synced, locale);
     const last30 = totalsOf(data.daily.slice(-30));
     const monthlyRevenue = bucketize(data.daily.slice(-365), "month").map((b) => b.revenue);
     const lastDate = data.daily.at(-1)?.date;
@@ -408,6 +412,17 @@ export default async function ProjectOverview({
   }
 
   /* --------------------------------------------------------- portfolio (2+) */
+  // Honest source per row: the same synced-rows signal the single-project pill uses.
+  // Demo fixture ids short-circuit — they are never persisted (persist-guard), so the
+  // store read would always come back empty; skipping it keeps the public /dashboard
+  // portfolio free of per-request store round-trips for fixtures.
+  const syncedById = new Map<string, boolean>(
+    await Promise.all(
+      projects.map(
+        async (p) => [p.id, isDemoProjectId(p.id) ? false : await hasSyncedMetrics(p.id)] as const
+      )
+    )
+  );
   const rows: CompareRow[] = projects.map((p) => {
     const data = getProjectDataset(p);
     return {
@@ -416,6 +431,7 @@ export default async function ProjectOverview({
       type: p.type,
       accentColor: p.accentColor,
       domain: p.domain,
+      live: syncedById.get(p.id) ?? false,
       totals: totalsOf(data.daily.slice(-30)),
       revenueSpark: bucketize(data.daily.slice(-365), "month").map((b) => b.revenue),
     };
@@ -441,7 +457,13 @@ export default async function ProjectOverview({
   );
   const combined: ProjRec[] = projects
     .flatMap((p) =>
-      collectRecommendations(p, locale, localInputs.get(p.id), seoQueriesByProject.get(p.id)).map((r) => ({
+      collectRecommendations(
+        p,
+        locale,
+        localInputs.get(p.id),
+        seoQueriesByProject.get(p.id),
+        syncedById.get(p.id) ?? false
+      ).map((r) => ({
         ...r,
         id: `${p.id}:${r.id}`,
         projectId: p.id,

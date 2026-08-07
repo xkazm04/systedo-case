@@ -86,6 +86,8 @@ import { buildSnapshot } from "@/lib/snapshot";
 import { ANALYSIS_PERIODS, type AnalysisPeriod } from "@/lib/ai-types";
 import { reportTilesForType, type ReportSnap } from "@/lib/report/compute";
 import { clustersForProject, SAMPLE_DECAY } from "@/lib/content-engine/sample";
+import { SAMPLE_CONTENT_ENTRIES } from "@/lib/content-library/sample";
+import DemoSavedContent from "@/components/demo/DemoSavedContent";
 import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample";
 import { audienceForProject } from "@/lib/audience/sample";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
@@ -145,14 +147,14 @@ export default async function DemoModule({
     /* -------------------------------------------------------------- Overview */
     case "vykon":
       return (
-        <ModulePage moduleKey="vykon">
+        <ModulePage moduleKey="vykon" sample>
           <DashboardClient data={getProjectDataset(project)} reportHref="/dashboard/report" />
         </ModulePage>
       );
     case "start": {
       const steps = stepsForType(project.type).map((d) => ({ ...d, done: false }));
       return (
-        <ModulePage moduleKey="start">
+        <ModulePage moduleKey="start" sample>
           <OnboardingModule
             projectType={project.type}
             defaultUrl={project.domain ?? ""}
@@ -167,14 +169,14 @@ export default async function DemoModule({
       const focus = PROJECT_TYPE_META[project.type].channelFocus;
       const t = await getT(KAMPANE_T);
       return (
-        <ModulePage moduleKey="kampane" description={focus ? t("desc", { focus }) : undefined}>
+        <ModulePage moduleKey="kampane" sample description={focus ? t("desc", { focus }) : undefined}>
           <CampaignsClient />
         </ModulePage>
       );
     }
     case "klicova-slova":
       return (
-        <ModulePage moduleKey="klicova-slova">
+        <ModulePage moduleKey="klicova-slova" sample>
           <KeywordsModule />
         </ModulePage>
       );
@@ -184,7 +186,7 @@ export default async function DemoModule({
       const localities = localitiesFor(project).map((l) => l.name);
       const sample = channelPlanForProject(project, { category: categories[0], locality: localities[0] });
       return (
-        <ModulePage moduleKey="kanaly">
+        <ModulePage moduleKey="kanaly" sample>
           <OrganicChannels
             channels={sample}
             tracks={{}}
@@ -228,7 +230,7 @@ export default async function DemoModule({
       });
       const changeSet = budgetChangeSet(stock);
       return (
-        <ModulePage moduleKey="sklad-sezonnost">
+        <ModulePage moduleKey="sklad-sezonnost" sample>
           <div className="mb-5">
             <WarehouseSourceBar connection={connection} skuCount={products.length} />
           </div>
@@ -288,19 +290,19 @@ export default async function DemoModule({
     /* ----------------------------------------------------------------- Studio */
     case "obsahovy-engine":
       return (
-        <ModulePage moduleKey="obsahovy-engine">
+        <ModulePage moduleKey="obsahovy-engine" sample>
           <ContentEngine clusters={clustersForProject(project)} decay={SAMPLE_DECAY} derivedFrom="sample" />
         </ModulePage>
       );
     case "socialni":
       return (
-        <ModulePage moduleKey="socialni">
+        <ModulePage moduleKey="socialni" sample>
           <SocialClient />
         </ModulePage>
       );
     case "kreativa":
       return (
-        <ModulePage moduleKey="kreativa">
+        <ModulePage moduleKey="kreativa" sample>
           <CreativeStudio />
         </ModulePage>
       );
@@ -379,6 +381,15 @@ export default async function DemoModule({
         </ModulePage>
       );
     }
+    case "ulozeny-obsah":
+      // The saved-content library, seeded with illustrative entries (the authed page
+      // reads the per-project store; the demo has none). Previously this key had no
+      // case at all and silently fell through to the portfolio grid.
+      return (
+        <ModulePage moduleKey="ulozeny-obsah" sample>
+          <DemoSavedContent entries={SAMPLE_CONTENT_ENTRIES} />
+        </ModulePage>
+      );
     case "obsah-plan":
       return (
         <ModulePage moduleKey="obsah-plan" sample>
@@ -392,14 +403,14 @@ export default async function DemoModule({
     /* --------------------------------------------------------------- Insights */
     case "knihovna":
       return (
-        <ModulePage moduleKey="knihovna">
+        <ModulePage moduleKey="knihovna" sample>
           <PatternsLibrary />
         </ModulePage>
       );
     case "reporty": {
       const t = await getT(REPORTY_T);
       return (
-        <ModulePage moduleKey="reporty" description={t("desc")}>
+        <ModulePage moduleKey="reporty" sample description={t("desc")}>
           <SharedReportsList refreshSignal={0} />
         </ModulePage>
       );
@@ -502,7 +513,7 @@ export default async function DemoModule({
     /* ----------------------------------------------------------------- System */
     case "nastaveni":
       return (
-        <ModulePage moduleKey="nastaveni">
+        <ModulePage moduleKey="nastaveni" sample>
           <ProjectSettings live={false} />
         </ModulePage>
       );
@@ -550,7 +561,7 @@ export default async function DemoModule({
       // Live brand-accent + logo preview. Persistence targets an authed route, so
       // saving is a no-op in the public demo — the preview itself is the point.
       return (
-        <ModulePage moduleKey="branding">
+        <ModulePage moduleKey="branding" sample>
           <BrandingModule
             projectId={project.id}
             name={project.name}

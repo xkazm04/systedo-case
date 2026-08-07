@@ -7,9 +7,11 @@
  *  Overview when a workspace holds more than one project. */
 import Sparkline from "@/components/charts/Sparkline";
 import { ModuleIcon } from "@/components/app/icon-map";
+import { Pill } from "@/components/ui";
 import { useFormatters } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { PROJECT_TYPE_META, projectTypeMeta } from "@/lib/projects/types";
+import { projectDataSource } from "@/lib/project-data/source";
 import { compareLabels, type CompareRow } from "./compare";
 
 /** Generic "healthy PNO" bar used to tint the column. It is a cross-type placeholder,
@@ -61,6 +63,10 @@ export default function PortfolioCompare({
               const meta = projectTypeMeta(r.type, locale);
               const share = r.totals.revenue / maxRevenue;
               const active = r.id === activeProjectId;
+              // The SAME cross-surface label the single-project Overview pill uses
+              // (projectDataSource is framework-free by design) — a portfolio row's
+              // numbers disclose their source exactly like the project's own header.
+              const ds = projectDataSource(r.live, locale);
               return (
                 <tr
                   key={r.id}
@@ -85,9 +91,14 @@ export default function PortfolioCompare({
                             </span>
                           )}
                         </p>
-                        <p className="truncate text-xs text-muted">
-                          {meta.label}
-                          {r.domain ? ` · ${r.domain}` : ""}
+                        <p className="flex items-center gap-2 text-xs text-muted">
+                          <span className="truncate">
+                            {meta.label}
+                            {r.domain ? ` · ${r.domain}` : ""}
+                          </span>
+                          <Pill tone={ds.live ? "positive" : "neutral"} className="shrink-0">
+                            {ds.label}
+                          </Pill>
                         </p>
                       </div>
                     </div>

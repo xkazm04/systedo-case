@@ -58,25 +58,41 @@ function rec(
   };
 }
 
-function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] {
+/** Tag a rec with the provenance of the SIGNAL it was derived from — the exact
+ *  pattern localRecs established: each rec reads one signal, so the flag is per-rec,
+ *  never per-project. `signalLive` is the caller-threaded liveness of that signal's
+ *  resolver seam (fail-CLOSED: unknown → sample, so the worst case is over-disclosure). */
+const from = (signalLive: boolean, r: Recommendation): Recommendation =>
+  signalLive ? r : { ...r, sample: true };
+
+/** A rec derived from a static illustrative fixture (SAMPLE_PRODUCTS, SAMPLE_LEADS,
+ *  SAMPLE_DECAY, seeded per-project samples…) that has NO live import seam yet. Such a
+ *  signal can never be live, tenant or demo — so the rec always discloses itself. When
+ *  a signal gains a resolver seam (the localRecs / seoQueries treatment), switch its
+ *  recs from `fixture(...)` to `from(resolved.live, ...)`. */
+const fixture = (r: Recommendation): Recommendation => from(false, r);
+
+function eshopRecs(project: Project, locale: SupportedLocale, metricsLive: boolean): Recommendation[] {
   // Numbers must follow the sentence's language — an English recommendation
   // with "1 234 567 Kč" inside reads as a rendering bug.
   const f = createFormatters(locale);
   const data = getProjectDataset(project);
   const out: Recommendation[] = [];
 
-  // Profit → channels losing money after margin
+  // Profit → channels losing money after margin. Provenance follows the performance
+  // dataset's seam (`metricsLive` = hasSyncedMetrics, the same truth source the
+  // Živá/Ukázková pill reads) — sample until the project has actually synced rows.
   const rows = channelRows(data.channels, totalsOf(data.daily.slice(-90)));
   const { rows: profit } = computeProfit(rows, defaultMargins(data.channels));
   for (const r of profit.filter((p) => !p.profitable)) {
-    out.push(rec(locale, "zisk", "critical",
+    out.push(from(metricsLive, rec(locale, "zisk", "critical",
       locale === "en"
         ? `${r.channel} loses money after margin`
         : `${r.channel} prodělává po marži`,
       locale === "en"
         ? `ROAS ${f.fmtMultiple(r.roas)} is below break-even ${f.fmtMultiple(r.breakEvenRoas)}. Shift budget to profitable channels.`
         : `ROAS ${f.fmtMultiple(r.roas)} je pod bodem zvratu ${f.fmtMultiple(r.breakEvenRoas)}. Přesuňte rozpočet do ziskových kanálů.`,
-      f.fmtCZK(r.netProfit), Math.abs(r.netProfit)));
+      f.fmtCZK(r.netProfit), Math.abs(r.netProfit))));
   }
 
   // Reference "now" derived from the dataset's last day → deterministic projected dates.
@@ -84,54 +100,56 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   const now = lastDate ? new Date(`${lastDate}T00:00:00Z`) : new Date();
   const stock = stockRows(SAMPLE_PRODUCTS, now);
 
-  // Stock → items about to run out
+  // Stock → items about to run out. All four stock recs read SAMPLE_PRODUCTS — a
+  // static fixture with no warehouse import seam yet — so they are `fixture(...)`
+  // (always disclosed) regardless of the metrics seam.
   for (const s of stock.filter((s) => s.status === "pause")) {
-    out.push(rec(locale, "sklad-sezonnost", "warning",
+    out.push(fixture(rec(locale, "sklad-sezonnost", "warning",
       locale === "en"
         ? `${s.product.title} runs out soon`
         : `${s.product.title} brzy dojde`,
       locale === "en"
         ? `Stock for ${Math.round(s.daysOfCover)} days. Consider pausing ads for this product.`
         : `Zásoba na ${Math.round(s.daysOfCover)} dní. Zvažte pozastavení reklamy na tento produkt.`,
-      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue));
+      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue)));
   }
 
   // Stock → early warning: SKUs trending toward stockout (< 14 dní), not yet a hard pauza.
   for (const s of stock.filter((s) => s.atRisk)) {
-    out.push(rec(locale, "sklad-sezonnost", "opportunity",
+    out.push(fixture(rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `${s.product.title} approaching stockout`
         : `${s.product.title} se blíží vyprodání`,
       locale === "en"
         ? `Stock dropping below ${AT_RISK_DAYS} days (${Math.round(s.daysOfCover)} days left). Restock before you need to pause ads.`
         : `Zásoba klesá pod ${AT_RISK_DAYS} dní (zbývá ${Math.round(s.daysOfCover)} dní). Doplňte sklad včas, než bude nutné pozastavit reklamu.`,
-      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue));
+      `${Math.round(s.daysOfCover)} ${locale === "en" ? "days" : "dní"}`, s.coverValue)));
   }
 
   // Stock → paused SKU with a scheduled restock inside the horizon (resuming).
   for (const s of stock.filter((s) => s.status === "resuming")) {
-    out.push(rec(locale, "sklad-sezonnost", "info",
+    out.push(fixture(rec(locale, "sklad-sezonnost", "info",
       locale === "en"
         ? `Refresh: ${s.product.title}`
         : `${s.product.title} se brzy obnoví`,
       locale === "en"
         ? `Out of stock, but restock is scheduled${s.resumeAt ? ` for ${s.resumeAt}` : ""}. Pause ads now, resume after delivery.`
         : `Sklad dojde, ale doskladnění je naplánováno${s.resumeAt ? ` na ${s.resumeAt}` : ""}. Reklamu zatím pozastavte a po doplnění obnovte.`,
-      s.resumeAt ?? undefined));
+      s.resumeAt ?? undefined)));
   }
 
   // Stock → propose reallocating budget from constrained SKU to fast movers in the
   // same category (top proposed move only, to keep the command center concise).
   const topMove = budgetChangeSet(stock).moves[0];
   if (topMove) {
-    out.push(rec(locale, "sklad-sezonnost", "opportunity",
+    out.push(fixture(rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `Shift budget: ${topMove.fromTitle} → ${topMove.toTitle}`
         : `Přesunout rozpočet: ${topMove.fromTitle} → ${topMove.toTitle}`,
       locale === "en"
         ? `${topMove.fromTitle} is stock-constrained. Move part of its budget to fast-moving SKUs in the same category (${topMove.category}).`
         : `${topMove.fromTitle} je omezené zásobou. Přesuňte část rozpočtu na rychloobrátkové SKU ve stejné kategorii (${topMove.category}).`,
-      f.fmtCZK(topMove.amountCzk), topMove.amountCzk));
+      f.fmtCZK(topMove.amountCzk), topMove.amountCzk)));
   }
 
   // Seasonality → upcoming peak
@@ -139,14 +157,16 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
   const cur = now.getUTCMonth();
   const next = season[(cur + 1) % 12]!;
   if (next.index >= 1.15) {
-    out.push(rec(locale, "sklad-sezonnost", "opportunity",
+    // Seasonality is computed from the same performance dataset as the profit recs,
+    // so it follows the same metrics-seam provenance.
+    out.push(from(metricsLive, rec(locale, "sklad-sezonnost", "opportunity",
       locale === "en"
         ? `${next.label} is a seasonal peak`
         : `${next.label} bývá sezónní špička`,
       locale === "en"
         ? `Index ${f.fmtMultiple(next.index)}. Prepare a higher budget and stock in advance.`
         : `Index ${f.fmtMultiple(next.index)}. Připravte vyšší rozpočet a zásoby s předstihem.`,
-      f.fmtMultiple(next.index)));
+      f.fmtMultiple(next.index))));
   }
   return out;
 }
@@ -164,35 +184,39 @@ function eshopRecs(project: Project, locale: SupportedLocale): Recommendation[] 
 function appRecs(project: Project, locale: SupportedLocale, seoQueries: CompareQuery[]): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
+  // resolveCohorts is the pure per-project SAMPLE the /ltv page also renders — there
+  // is no billing-import seam yet, so the ratio is seeded fiction and says so.
   const ltv = ltvSummary(resolveCohorts(project));
   if (ltv.avgLtvCac < 3) {
-    out.push(rec(locale, "ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
+    out.push(fixture(rec(locale, "ltv", ltv.avgLtvCac < 1 ? "critical" : "warning",
       locale === "en"
         ? "LTV:CAC below target"
         : "LTV:CAC pod cílem",
       locale === "en"
         ? `Ratio ${f.fmtMultiple(ltv.avgLtvCac)} (target ≥ 3×). Before adding budget, improve retention/ARPU or reduce CAC.`
         : `Poměr ${f.fmtMultiple(ltv.avgLtvCac)} (cíl ≥ 3×). Než přidáte rozpočet, zlepšete retenci/ARPU nebo snižte CAC.`,
-      f.fmtMultiple(ltv.avgLtvCac)));
+      f.fmtMultiple(ltv.avgLtvCac))));
   }
   for (const w of SAMPLE_EXPERIMENTS.map(evaluate).filter((r) => r.significant)) {
-    out.push(rec(locale, "experimenty-lp", "opportunity",
+    out.push(fixture(rec(locale, "experimenty-lp", "opportunity",
       locale === "en"
         ? `Ship the winner: ${w.cluster}`
         : `Nasadit vítěze: ${w.cluster}`,
       locale === "en"
         ? `Variant leads conclusively (${f.fmtPct(w.confidence)} confidence). Deploy it as the primary landing page.`
-        : `Varianta vede průkazně (${f.fmtPct(w.confidence)} jistota). Nasaďte ji jako hlavní landing page.`));
+        : `Varianta vede průkazně (${f.fmtPct(w.confidence)} jistota). Nasaďte ji jako hlavní landing page.`)));
   }
+  // Even a catalog-generated slate carries SEEDED volumes/difficulty (there is no
+  // keyword-tool import) — the volume number in this rec is illustrative either way.
   const top = scoreQueries(seoQueries).find((q) => q.opportunity === "high");
   if (top) {
-    out.push(rec(locale, "srovnani-seo", "opportunity",
+    out.push(fixture(rec(locale, "srovnani-seo", "opportunity",
       locale === "en"
         ? `Content for query ${top.query}`
         : `Obsah pro dotaz ${top.query}`,
       locale === "en"
         ? `High opportunity, ${f.fmtInt(top.volume)} searches/mo. Create a comparison page.`
-        : `Vysoká příležitost, ${f.fmtInt(top.volume)} hledání/měs. Vytvořte srovnávací stránku.`));
+        : `Vysoká příležitost, ${f.fmtInt(top.volume)} hledání/měs. Vytvořte srovnávací stránku.`)));
   }
   return out;
 }
@@ -200,41 +224,41 @@ function appRecs(project: Project, locale: SupportedLocale, seoQueries: CompareQ
 function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
+  // Every leadgen signal below (SAMPLE_SOURCES, SAMPLE_LEADS, SAMPLE_TARGETS) is a
+  // static fixture with no CRM/inbox import seam yet — all fixture-tagged.
   for (const s of SAMPLE_SOURCES.map(leadMetrics).filter((s) => s.junk)) {
-    out.push(rec(locale, "kvalita-leadu", "warning",
+    out.push(fixture(rec(locale, "kvalita-leadu", "warning",
       locale === "en"
         ? `${s.source}: cheap but low-quality leads`
         : `${s.source}: levné, ale nekvalitní leady`,
       locale === "en"
         ? `Qualification rate ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimize bidding toward qualified leads.`
         : `Míra kvalifikace ${f.fmtPct(s.qualRate)}, CPQL ${f.fmtCZK(s.cpql)}. Optimalizujte bidding na kvalifikované leady.`,
-      f.fmtCZK(s.spend), s.spend));
+      f.fmtCZK(s.spend), s.spend)));
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
-    // Provenance: computed from the hardcoded SAMPLE_LEADS (no lead intake exists
-    // yet), so for a real tenant this "critical" would otherwise be a permanent,
-    // tenant-independent false alarm. Tagged rather than suppressed — the sample
-    // chip is exactly the disclosure the type asks for, and the demo Overview
-    // keeps its illustrative urgency untouched.
-    out.push({ ...rec(locale, "schranka", "critical",
+    // Tagged rather than suppressed: without the disclosure this "critical" would be
+    // a permanent tenant-independent false alarm; the sample chip is exactly the
+    // disclosure the type asks for, and the demo Overview keeps its urgency.
+    out.push(fixture(rec(locale, "schranka", "critical",
       locale === "en"
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
       locale === "en"
         ? `Respond within ${SLA_TARGET_MIN} minutes. Response speed determines lead conversion.`
         : `Reagujte do ${SLA_TARGET_MIN} minut. Rychlost reakce rozhoduje o konverzi leadu.`,
-      `${overdue}`), sample: true });
+      `${overdue}`)));
   }
   const gap = gaps(SAMPLE_TARGETS)[0];
   if (gap) {
-    out.push(rec(locale, "lokalni", "opportunity",
+    out.push(fixture(rec(locale, "lokalni", "opportunity",
       locale === "en"
         ? `Missing page: ${gap.service} ${gap.area}`
         : `Chybí stránka: ${gap.service} ${gap.area}`,
       locale === "en"
         ? `${f.fmtInt(gap.monthlyVolume)} searches/mo. with no coverage. Deploy a local microsite.`
-        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí. Nasaďte lokální microsite.`));
+        : `${f.fmtInt(gap.monthlyVolume)} hledání/měs. bez pokrytí. Nasaďte lokální microsite.`)));
   }
   return out;
 }
@@ -292,12 +316,9 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
   const live = input.live ?? ALL_SAMPLE;
-  /** Tag a rec with the provenance of the SIGNAL it was derived from. Each local rec
-   *  reads exactly one seam, so the flag is per-rec, not per-project — a project live
-   *  on reviews but not on the ladder gets an untagged reviews rec next to a tagged
-   *  rank rec, which is precisely the truth. */
-  const from = (signalLive: boolean, r: Recommendation): Recommendation =>
-    signalLive ? r : { ...r, sample: true };
+  // Provenance per rec via the module-level `from`: each local rec reads exactly one
+  // seam, so a project live on reviews but not on the ladder gets an untagged reviews
+  // rec next to a tagged rank rec — which is precisely the truth.
 
   // Coverage gap → the highest-volume uncovered service×area (from the project's
   // RESOLVED targets, not the hardcoded HVAC sample the leadgen branch used).
@@ -346,15 +367,16 @@ function localRecs(locale: SupportedLocale, input: LocalRecsInput): Recommendati
 function contentRecs(locale: SupportedLocale): Recommendation[] {
   const f = createFormatters(locale);
   const out: Recommendation[] = [];
+  // SAMPLE_DECAY is a static fixture (no Search Console import seam) → always tagged.
   for (const p of decayingPosts(SAMPLE_DECAY)) {
-    out.push(rec(locale, "obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
+    out.push(fixture(rec(locale, "obsahovy-engine", p.trafficChangePct <= -0.3 ? "warning" : "info",
       locale === "en"
         ? `Refresh: ${p.title}`
         : `Obnovit: ${p.title}`,
       locale === "en"
         ? `Traffic ${f.fmtPct(p.trafficChangePct)} year-on-year. Update and re-link into the cluster.`
         : `Návštěvnost ${f.fmtPct(p.trafficChangePct)} meziročně. Aktualizujte a znovu prolinkujte do klastru.`,
-      f.fmtPct(p.trafficChangePct)));
+      f.fmtPct(p.trafficChangePct))));
   }
   return out;
 }
@@ -366,8 +388,9 @@ function channelRecs(project: Project, locale: SupportedLocale): Recommendation[
   const plan = channelPlanForProject(project);
   const quickWin = plan.find((c) => c.effort === "low" && c.fit >= 70) ?? plan[0];
   if (!quickWin) return [];
+  // channelPlanForProject is a seeded per-project plan (fit scores are illustrative).
   return [
-    rec(
+    fixture(rec(
       locale,
       "kanaly",
       "opportunity",
@@ -376,7 +399,7 @@ function channelRecs(project: Project, locale: SupportedLocale): Recommendation[
         ? `Low-effort, high-fit organic channel (fit ${quickWin.fit}). Get visible without an ad budget. Open the plan for the first steps.`
         : `Bezplatný kanál s nízkou náročností a vysokou vhodností (fit ${quickWin.fit}). Získejte viditelnost bez rozpočtu na reklamu. V plánu máte první kroky.`,
       `fit ${quickWin.fit}`
-    ),
+    )),
   ];
 }
 
@@ -392,11 +415,16 @@ export function collectRecommendations(
   /** resolved comparison queries for an `app` project's SEO rec, threaded by the
    *  caller (mirrors srovnani-seo/page.tsx). Omitted → the static SAMPLE_QUERIES,
    *  so an app project without a resolved slate behaves exactly as before. */
-  seoQueries?: CompareQuery[] | null
+  seoQueries?: CompareQuery[] | null,
+  /** liveness of the performance-dataset seam (`hasSyncedMetrics` — the same truth
+   *  source the Živá/Ukázková pill reads), threaded by the caller. Governs the recs
+   *  computed from the project dataset (profit channels, seasonality). Fail-CLOSED:
+   *  omitted → false → those recs disclose themselves as sample-derived. */
+  metricsLive = false
 ): Recommendation[] {
   const typeRecs =
     project.type === "eshop"
-      ? eshopRecs(project, locale)
+      ? eshopRecs(project, locale, metricsLive)
       : project.type === "app"
         ? appRecs(project, locale, seoQueries ?? SAMPLE_QUERIES)
         : project.type === "leadgen"
