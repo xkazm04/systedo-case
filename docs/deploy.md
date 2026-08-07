@@ -98,9 +98,10 @@ host = an adamant-named Vercel host; free during validation.
    canonical origin (e.g. `https://adamant.vercel.app`, or the custom domain
    once one exists) and redeploy — OG tags, canonicals, the sitemap and share
    URLs all derive from it.
-3. Then update the hardcoded fallback in **`src/lib/site.ts`**
-   (`"https://systedo-case.vercel.app"`) to the new origin, so a build without
-   the env var can never advertise the dead host.
+3. ~~Then update the hardcoded fallback in **`src/lib/site.ts`**~~ — done
+   (2026-08-07): the fallback now reads `"https://adamant.vercel.app"`. If the
+   Vercel project ends up under a different name or a custom domain, update the
+   literal again so a build without the env var can never advertise a dead host.
 4. Update the Google OAuth authorized redirect URI
    (`https://<new-host>/api/auth/callback/google`) in Google Cloud Console.
 
