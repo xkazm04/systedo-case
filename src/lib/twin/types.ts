@@ -10,8 +10,9 @@
  *  the personas twin got from a distilled-fact table comes from the catalog
  *  Offering spine instead (see lib/brand/context).
  *
- *  Everything the wire can supply passes through `sanitizeTwinState` first: the
- *  client owns this blob (it POSTs the whole thing), so nothing here may be trusted. */
+ *  Everything the wire can supply passes through `sanitizeTwinCommit` /
+ *  `sanitizeTwinState` first: the client edits this blob (it POSTs scoped slices,
+ *  or legacy whole-state blobs), so nothing here may be trusted. */
 
 /* -------------------------------------------------------------------------- */
 /*  Channels + tone scopes                                                     */
@@ -416,7 +417,9 @@ export function twinAvoidContext(
 /* -------------------------------------------------------------------------- */
 
 const MAX_VOICES = TONE_SCOPES.length;
-const MAX_FACTS = 200;
+/** Hard cap on stored style facts; exported so the slice-commit append cap (which
+ *  keeps the NEWEST facts) is pinned by tests. */
+export const MAX_FACTS = 200;
 /** The wire boundary's HARD safety ceiling on the drafts array — a bound on the
  *  POST payload, NOT the hot-blob policy. Sanitize must no longer silently slice
  *  audit records at 200 (the old MAX_DRAFTS): the server route splits live vs.
@@ -549,30 +552,123 @@ function sanitizeDraft(raw: unknown, i: number): TwinDraft | null {
   return draft;
 }
 
+/** One voice per scope — a duplicate scope would make `resolveVoice` order-dependent. */
+function sanitizeVoices(v: unknown): TwinVoice[] {
+  const voices = Array.isArray(v) ? v.map(sanitizeVoice).filter((x): x is TwinVoice => x !== null) : [];
+  const byScope = new Map<ToneScope, TwinVoice>();
+  for (const voice of voices.slice(0, MAX_VOICES * 2)) byScope.set(voice.scope, voice);
+  return [...byScope.values()];
+}
+
+/** One config per channel — last write per channel wins, like voices per scope. */
+function sanitizeChannels(v: unknown): TwinChannelConfig[] {
+  const channels = Array.isArray(v) ? v.map(sanitizeChannelConfig).filter((x): x is TwinChannelConfig => x !== null) : [];
+  const byChannel = new Map<TwinChannel, TwinChannelConfig>();
+  for (const c of channels) byChannel.set(c.channel, c);
+  return [...byChannel.values()];
+}
+
+function sanitizeFacts(v: unknown): TwinStyleFact[] {
+  return Array.isArray(v)
+    ? v.map(sanitizeFact).filter((f): f is TwinStyleFact => f !== null).slice(0, MAX_FACTS)
+    : [];
+}
+
+function sanitizeDrafts(v: unknown): TwinDraft[] {
+  return Array.isArray(v)
+    ? v.map(sanitizeDraft).filter((d): d is TwinDraft => d !== null).slice(0, MAX_DRAFTS_WIRE)
+    : [];
+}
+
 /** Coerce an arbitrary client payload into a bounded, well-typed `TwinState`. */
 export function sanitizeTwinState(raw: unknown): TwinState {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const voices = Array.isArray(o.voices)
-    ? o.voices.map(sanitizeVoice).filter((v): v is TwinVoice => v !== null)
-    : [];
-  // One voice per scope — a duplicate scope would make `resolveVoice` order-dependent.
-  const byScope = new Map<ToneScope, TwinVoice>();
-  for (const v of voices.slice(0, MAX_VOICES * 2)) byScope.set(v.scope, v);
+  return {
+    voices: sanitizeVoices(o.voices),
+    channels: sanitizeChannels(o.channels),
+    facts: sanitizeFacts(o.facts),
+    drafts: sanitizeDrafts(o.drafts),
+  };
+}
 
-  const channels = Array.isArray(o.channels)
-    ? o.channels.map(sanitizeChannelConfig).filter((c): c is TwinChannelConfig => c !== null)
-    : [];
-  const byChannel = new Map<TwinChannel, TwinChannelConfig>();
-  for (const c of channels) byChannel.set(c.channel, c);
+/* -------------------------------------------------------------------------- */
+/*  Slice commits — POST the change, not the blob                             */
+/* -------------------------------------------------------------------------- */
+
+/** A scoped twin write. Every interaction used to POST the ENTIRE blob (voices +
+ *  facts + ≤200 drafts × 4000-char replies) through full sanitize — an approve, a
+ *  toggle and an auto-bank each paid the whole payload, and two tabs last-writer-
+ *  won each other's unrelated sections. A commit now carries only the sections it
+ *  changed; the server merges it over the STORED state inside the atomic mutate.
+ *
+ *  Semantics per key (ABSENT key = keep the stored section untouched):
+ *   - `voices` / `channels` / `facts` — REPLACE the whole section (each module owns
+ *     its full section list when editing it; the lists are small).
+ *   - `addFacts` — APPEND facts (the outbox banks an edit-fact alongside a draft
+ *     without carrying — or clobbering — the training corpus). Capped to MAX_FACTS,
+ *     keeping the NEWEST.
+ *   - `drafts` — UPSERT by id (append or replace in place). No client deletes
+ *     drafts (untrain uses DELETE; archival is server-side), so upsert loses
+ *     nothing — and it ends whole-list last-writer-wins between tabs: two tabs
+ *     touching different drafts now both land.
+ *
+ *  A LEGACY full-state blob is a valid slice with every key present (replace +
+ *  upsert-all ≡ the old replace + terminal-merge, since clients always posted every
+ *  draft they knew), so a stale open tab from before this change keeps working —
+ *  backward compatible by construction, while every in-repo caller migrates to
+ *  scoped slices atomically. */
+export interface TwinCommitSlice {
+  voices?: TwinVoice[];
+  channels?: TwinChannelConfig[];
+  facts?: TwinStyleFact[];
+  addFacts?: TwinStyleFact[];
+  drafts?: TwinDraft[];
+}
+
+/** Coerce a wire payload into a bounded slice: only the keys PRESENT on the wire
+ *  survive (a present-but-empty array is a deliberate section clear; an absent key
+ *  means "don't touch"). Each section runs the same sanitizer the full-state path
+ *  uses — the wire stays exactly as untrusted as before. */
+export function sanitizeTwinCommit(raw: unknown): TwinCommitSlice {
+  const o = (raw ?? {}) as Record<string, unknown>;
+  const out: TwinCommitSlice = {};
+  if ("voices" in o) out.voices = sanitizeVoices(o.voices);
+  if ("channels" in o) out.channels = sanitizeChannels(o.channels);
+  if ("facts" in o) out.facts = sanitizeFacts(o.facts);
+  if ("addFacts" in o) out.addFacts = sanitizeFacts(o.addFacts);
+  if ("drafts" in o) out.drafts = sanitizeDrafts(o.drafts);
+  return out;
+}
+
+/** Apply a sanitized slice over the stored state. Pure/total, so it runs INSIDE the
+ *  atomic mutate (sqlite BEGIN IMMEDIATE / Firestore runTransaction — the mutator
+ *  may re-run, so no side effects here). Draft upserts keep both lifecycle
+ *  invariants: `enforceServerSent` demotes a freshly client-claimed `sent` ("sent
+ *  means sent"), and `mergeTerminalDrafts` keeps a STORED terminal record frozen
+ *  against any posted copy. The route layers `enforceAutonomy`/`enforceConnectors`
+ *  on top (they are env-/server-scoped, not wire-shape concerns). */
+export function applyTwinCommit(prev: TwinState | null, slice: TwinCommitSlice): TwinState {
+  const base: TwinState = prev ?? { voices: [], channels: [], facts: [], drafts: [] };
+
+  let facts = slice.facts ?? base.facts;
+  if (slice.addFacts && slice.addFacts.length > 0) {
+    // Append, capped to the newest MAX_FACTS — the freshest lesson wins over the oldest.
+    facts = [...facts, ...slice.addFacts].slice(-MAX_FACTS);
+  }
+
+  let drafts = base.drafts;
+  if (slice.drafts && slice.drafts.length > 0) {
+    let next = base.drafts;
+    for (const d of slice.drafts) {
+      next = next.some((x) => x.id === d.id) ? next.map((x) => (x.id === d.id ? d : x)) : [...next, d];
+    }
+    drafts = mergeTerminalDrafts(base.drafts, enforceServerSent(base.drafts, next));
+  }
 
   return {
-    voices: [...byScope.values()],
-    channels: [...byChannel.values()],
-    facts: Array.isArray(o.facts)
-      ? o.facts.map(sanitizeFact).filter((f): f is TwinStyleFact => f !== null).slice(0, MAX_FACTS)
-      : [],
-    drafts: Array.isArray(o.drafts)
-      ? o.drafts.map(sanitizeDraft).filter((d): d is TwinDraft => d !== null).slice(0, MAX_DRAFTS_WIRE)
-      : [],
+    voices: slice.voices ?? base.voices,
+    channels: slice.channels ?? base.channels,
+    facts,
+    drafts,
   };
 }

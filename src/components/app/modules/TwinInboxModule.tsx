@@ -124,11 +124,16 @@ export default function TwinInboxModule({
   }, [state]);
   const bankLead = (draft: TwinDraft, fact?: TwinStyleFact) => {
     const s = stateRef.current;
-    return commit({
-      ...s,
-      drafts: upsertDraft(s.drafts, draft),
-      ...(fact ? { facts: [...s.facts, fact] } : {}),
-    });
+    // The wire carries only the changed slice: one draft upsert (+ the optional
+    // banked fact) — not the whole voices/facts/outbox blob.
+    return commit(
+      {
+        ...s,
+        drafts: upsertDraft(s.drafts, draft),
+        ...(fact ? { facts: [...s.facts, fact] } : {}),
+      },
+      { drafts: [draft], ...(fact ? { addFacts: [fact] } : {}) }
+    );
   };
 
   return (

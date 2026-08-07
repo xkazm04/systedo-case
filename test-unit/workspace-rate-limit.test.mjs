@@ -43,10 +43,12 @@ test("WORKSPACE_RATE: env-tunable, sane defaults, 60s window", () => {
   delete process.env.LOCAL_SIGNALS_IMPORT_PER_MIN;
   delete process.env.METRICS_SYNC_PER_MIN;
   delete process.env.TWIN_SEND_PER_MIN;
+  delete process.env.TWIN_COMMIT_PER_MIN;
   assert.equal(WORKSPACE_RATE.leadsImport().limit, 8);
   assert.equal(WORKSPACE_RATE.localSignalsImport().limit, 8);
   assert.equal(WORKSPACE_RATE.metricsSync().limit, 12);
   assert.equal(WORKSPACE_RATE.twinSend().limit, 20);
+  assert.equal(WORKSPACE_RATE.twinCommit().limit, 30, "the slice-commit write path is capped");
   assert.equal(WORKSPACE_RATE.metricsSync().windowMs, 60_000);
   // buckets are distinct so the routes never cross-consume
   const buckets = [
@@ -54,6 +56,7 @@ test("WORKSPACE_RATE: env-tunable, sane defaults, 60s window", () => {
     WORKSPACE_RATE.localSignalsImport().bucket,
     WORKSPACE_RATE.metricsSync().bucket,
     WORKSPACE_RATE.twinSend().bucket,
+    WORKSPACE_RATE.twinCommit().bucket,
   ];
-  assert.equal(new Set(buckets).size, 4);
+  assert.equal(new Set(buckets).size, 5);
 });

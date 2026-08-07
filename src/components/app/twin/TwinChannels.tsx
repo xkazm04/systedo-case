@@ -24,6 +24,7 @@ import {
   type Autonomy,
   type TwinChannel,
   type TwinChannelConfig,
+  type TwinCommitSlice,
   type TwinState,
 } from "@/lib/twin/types";
 
@@ -89,7 +90,9 @@ export default function TwinChannels({
 }: {
   state: TwinState;
   connectors: ConnectorInfo[];
-  onCommit: (next: TwinState) => void;
+  /** Apply `next` locally and persist `slice` — this screen only ever commits the
+   *  channels section. See useTwinState.commit. */
+  onCommit: (next: TwinState, slice?: TwinCommitSlice) => void;
 }) {
   const { locale } = useLocale();
   const t = useT(T);
@@ -99,10 +102,10 @@ export default function TwinChannels({
   const update = (channel: TwinChannel, patch: Partial<TwinChannelConfig>) => {
     const current = channelConfig(state.channels, channel);
     const next: TwinChannelConfig = { ...current, ...patch };
-    onCommit({
-      ...state,
-      channels: [...state.channels.filter((c) => c.channel !== channel), next],
-    });
+    const channels = [...state.channels.filter((c) => c.channel !== channel), next];
+    // The wire carries only the channels slice — a toggle no longer ships the
+    // voices/facts/outbox blob (and can no longer clobber another tab's edits there).
+    onCommit({ ...state, channels }, { channels });
   };
 
   const anyRealConnector = connectors.some((c) => c.configured && c.id !== "manual");

@@ -26,6 +26,7 @@ import { SCOPE_LABELS } from "./labels";
 import {
   TONE_SCOPES,
   type ToneScope,
+  type TwinCommitSlice,
   type TwinState,
   type TwinStyleFact,
   type TwinVoice,
@@ -113,7 +114,9 @@ export default function TwinVoiceStudio({
 }: {
   state: TwinState;
   projectType: ProjectType;
-  onCommit: (next: TwinState) => void;
+  /** Apply `next` locally and persist `slice` — this screen commits the voices
+   *  section and appended facts, never the outbox. See useTwinState.commit. */
+  onCommit: (next: TwinState, slice?: TwinCommitSlice) => void;
 }) {
   const project = useProject();
   const { locale } = useLocale();
@@ -176,11 +179,12 @@ export default function TwinVoiceStudio({
       .filter(Boolean)
       .map((answer) => ({ id: uid(), scope, question: "", answer, source: "sample" as const, createdAt: now }));
 
-    onCommit({
-      ...state,
-      voices: [...state.voices.filter((v) => v.scope !== scope), voice],
-      facts: [...state.facts, ...bankedSamples],
-    });
+    const voices = [...state.voices.filter((v) => v.scope !== scope), voice];
+    // The wire carries the replaced voices + the appended facts — never the outbox.
+    onCommit(
+      { ...state, voices, facts: [...state.facts, ...bankedSamples] },
+      { voices, ...(bankedSamples.length > 0 ? { addFacts: bankedSamples } : {}) }
+    );
     setSamples([""]);
     setApplied(true);
   };
@@ -190,13 +194,16 @@ export default function TwinVoiceStudio({
   const saveAnswer = (question: string) => {
     const answer = (answers[question] ?? "").trim();
     if (!answer) return;
-    onCommit({
-      ...state,
-      facts: [
-        ...state.facts,
-        { id: uid(), scope, question, answer, source: "interview", createdAt: new Date().toISOString() },
-      ],
-    });
+    const fact: TwinStyleFact = {
+      id: uid(),
+      scope,
+      question,
+      answer,
+      source: "interview",
+      createdAt: new Date().toISOString(),
+    };
+    // One appended fact on the wire — the answer loop no longer re-posts the blob.
+    onCommit({ ...state, facts: [...state.facts, fact] }, { addFacts: [fact] });
     setAnswers((prev) => {
       const next = { ...prev };
       delete next[question];

@@ -1,22 +1,24 @@
 /** Persist a project's twin — the trained per-channel voice, the style facts it
  *  learned from, the channel/autonomy config and the draft outbox. Per-user,
- *  ownership-checked; the body is coerced to a clean, bounded blob (never trust the
- *  wire — the client POSTs the whole state). Server-only. Mirrors the
+ *  ownership-checked; the body is a SCOPED COMMIT SLICE ({voices?, channels?,
+ *  facts?, addFacts?, drafts?}) merged over the stored blob inside the atomic
+ *  mutate — a legacy full-state blob is simply a slice with every key present.
+ *  Never trust the wire: each section runs its sanitizer. Server-only. Mirrors the
  *  organic-channels route's auth shape. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
 import { mutateTwin, clearTwin } from "@/lib/twin/store";
 import { archiveDrafts, clearArchive, listArchivedRejects } from "@/lib/twin/archive-store";
 import { partitionDrafts } from "@/lib/twin/archive";
 import {
+  applyTwinCommit,
   channelConfig,
   decideDraft,
-  enforceServerSent,
-  mergeTerminalDrafts,
-  sanitizeTwinState,
+  isTerminalDraft,
+  sanitizeTwinCommit,
   type TwinState,
 } from "@/lib/twin/types";
 import { storableConnectorId } from "@/lib/twin/connectors";
-import { readJson } from "@/lib/api/route-utils";
+import { enforceUserRate, readJson, WORKSPACE_RATE } from "@/lib/api/route-utils";
 
 /** Re-derive the autonomy gate server-side so the `autoApproved` audit bit is owned by
  *  the gate, not by the client blob. `decideDraft` is "the one rule, in one place", but
@@ -63,57 +65,67 @@ function enforceConnectors(state: TwinState): TwinState {
   };
 }
 
+/** Post-save archive pass, thrown to skip the eviction write when the twin was
+ *  deleted between the two mutates (nothing to evict from). */
+class SkipEvict extends Error {}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const g = await requireOwnedProject(id, { envelope: "ok" });
   if ("error" in g) return g.error;
-  const { project } = g;
+  const { project, uid } = g;
+
+  // Per-user cap on the write path — every outbox interaction commits here, and the
+  // POST used to be the one twin route without a limiter (send-only coverage).
+  const limited = enforceUserRate(uid, WORKSPACE_RATE.twinCommit(), "Příliš mnoho uložení. Zkuste to prosím za chvíli.");
+  if (limited) return limited;
 
   const body = await readJson(req);
-  const state = enforceConnectors(enforceAutonomy(sanitizeTwinState(body)));
+  const slice = sanitizeTwinCommit(body);
 
-  // Split live (pending/approved) from terminal (sent/rejected) drafts. Terminal
-  // records beyond the recent window ARCHIVE out of the hot blob instead of being
-  // silently sliced at the wire cap. Eviction from the blob happens ONLY once the
-  // archive write succeeds, so a store hiccup keeps the records hot (retried next
-  // save) rather than losing them. A legacy oversized blob archives on this first
-  // save. `updatedAt` is refreshed AFTER the split so the timestamp isn't archived
-  // stale onto the records.
-  const { hot, archive } = partitionDrafts(state.drafts);
-  let keptDrafts = state.drafts;
-  if (archive.length > 0) {
-    try {
-      await archiveDrafts(project.id, archive);
-      keptDrafts = hot;
-    } catch (err) {
-      console.warn(
-        `[twin] archive failed for ${project.id}; keeping ${archive.length} terminal record(s) hot:`,
-        err
-      );
-    }
-  } else {
-    keptDrafts = hot;
-  }
-
-  // Write atomically, with the two draft-lifecycle guards run against the STORED
-  // state inside the same transaction (closing the check-then-act window against a
-  // concurrent send/route.ts claim):
+  // Merge the slice over the STORED blob inside one atomic mutate. applyTwinCommit
+  // carries both draft-lifecycle guards against the stored state (closing the
+  // check-then-act window against a concurrent send/route.ts claim):
   //
   //  WHEN each lifecycle event fires — the contract this route enforces:
   //   • `pending`/`approved`  — client-asserted here (the human loop), with the
-  //     machine `autoApproved` bit re-derived by enforceAutonomy above.
+  //     machine `autoApproved` bit re-derived by enforceAutonomy on the merged state.
   //   • `rejected` (+decidedAt) — client-asserted here; a human "no" is a genuine
   //     client-side decision and feeds the rejection-learning tally.
   //   • `sent` (+sentAt)      — NEVER minted here. enforceServerSent demotes any
   //     freshly client-claimed `sent` to `approved`; the only writer of the
   //     approved→sent transition is send/route.ts's atomic claim.
   //   • a STORED terminal record (`sent`/`rejected`) is frozen: mergeTerminalDrafts
-  //     makes it win over whatever the posted blob says for that id.
-  await mutateTwin(project.id, (prev) => ({
-    ...state,
-    drafts: mergeTerminalDrafts(prev?.drafts, enforceServerSent(prev?.drafts, keptDrafts)),
+  //     makes it win over whatever the posted slice says for that id.
+  const saved = await mutateTwin(project.id, (prev) => ({
+    ...enforceConnectors(enforceAutonomy(applyTwinCommit(prev, slice))),
     updatedAt: new Date().toISOString(),
   }));
+
+  // Archive pass, AFTER the merge (upserts grow the stored outbox, so the overflow
+  // is only known post-save): terminal records beyond the recent window move to the
+  // history store. Eviction from the hot blob happens ONLY once the archive write
+  // succeeds — a store hiccup keeps the records hot (retried next save) rather than
+  // losing them. Only still-terminal records with the archived ids are evicted, so
+  // a record that changed between the two mutates is never dropped.
+  const { archive } = partitionDrafts(saved.drafts);
+  if (archive.length > 0) {
+    try {
+      await archiveDrafts(project.id, archive);
+      const archivedIds = new Set(archive.map((d) => d.id));
+      await mutateTwin(project.id, (prev) => {
+        if (!prev) throw new SkipEvict();
+        return { ...prev, drafts: prev.drafts.filter((d) => !(archivedIds.has(d.id) && isTerminalDraft(d))) };
+      });
+    } catch (err) {
+      if (!(err instanceof SkipEvict)) {
+        console.warn(
+          `[twin] archive failed for ${project.id}; keeping ${archive.length} terminal record(s) hot:`,
+          err
+        );
+      }
+    }
+  }
   return Response.json({ ok: true });
 }
 

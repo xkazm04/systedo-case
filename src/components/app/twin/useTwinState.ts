@@ -12,7 +12,7 @@
  *  drifted between them would let one module's save clobber another's. */
 import { useState } from "react";
 import { useProject } from "@/lib/projects/context";
-import type { TwinState } from "@/lib/twin/types";
+import type { TwinCommitSlice, TwinState } from "@/lib/twin/types";
 
 export type TwinSource = "sample" | "trained";
 
@@ -28,19 +28,24 @@ export function useTwinState(
   const [source, setSource] = useState<TwinSource>(initialSource);
   const [resetting, setResetting] = useState(false);
 
-  /** Replace the twin and persist it. The server re-sanitizes the whole blob.
+  /** Apply `next` locally and persist the CHANGE. `slice` names only the sections
+   *  this commit touched ({voices?, channels?, facts?, addFacts?, drafts?} — drafts
+   *  are upserts); the server sanitizes it and merges it over the stored blob inside
+   *  one atomic mutate, so an approve no longer ships the whole outbox and two tabs
+   *  editing DIFFERENT sections stop clobbering each other. Omitting `slice` posts
+   *  the full state (a valid every-key slice) — correct, just heavier.
    *  Returns whether the save LANDED (false for a demo project / offline), so a
    *  caller whose next step depends on the persisted state — the leads inbox must
    *  save an approved draft before the send route's claim can find it — can await
    *  the write. Fire-and-forget callers simply ignore the promise (the documented
    *  graceful-degradation contract is unchanged). */
-  const commit = (next: TwinState): Promise<boolean> => {
+  const commit = (next: TwinState, slice?: TwinCommitSlice): Promise<boolean> => {
     setState(next);
     setSource("trained");
     return fetch(`/api/projects/${project.id}/twin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(next),
+      body: JSON.stringify(slice ?? next),
     })
       .then((res) => res.ok)
       .catch(() => false);

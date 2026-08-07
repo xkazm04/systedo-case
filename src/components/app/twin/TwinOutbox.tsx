@@ -41,6 +41,7 @@ import {
   TWIN_CHANNELS,
   type RejectReason,
   type TwinChannel,
+  type TwinCommitSlice,
   type TwinDraft,
   type TwinState,
 } from "@/lib/twin/types";
@@ -152,7 +153,9 @@ export default function TwinOutbox({
   projectType: ProjectType;
   channel: TwinChannel;
   onChannel: (c: TwinChannel) => void;
-  onCommit: (next: TwinState) => void;
+  /** Apply `next` locally and persist `slice` — the sections this commit changed
+   *  (drafts are upserts). See useTwinState.commit. */
+  onCommit: (next: TwinState, slice?: TwinCommitSlice) => void;
   /** archived rejects (bounded), folded into the rejection tally so learning
    *  survives drafts aging out of the hot blob into history */
   archivedRejects?: TwinDraft[];
@@ -306,7 +309,7 @@ export default function TwinOutbox({
       id,
       new Date().toISOString()
     );
-    onCommit({ ...state, drafts: [...state.drafts, draft] });
+    onCommit({ ...state, drafts: [...state.drafts, draft] }, { drafts: [draft] });
     // Surface the banked record: mirror the id into render state so the reply locks
     // read-only + an Edit affordance appears, and set pendingId so the approved→Send
     // banner shows for auto-approved drafts (it never did before, so Send was hidden).
@@ -324,7 +327,7 @@ export default function TwinOutbox({
     const banked = state.drafts.find((d) => d.id === autoBankedId);
     if (banked) {
       const reopened: TwinDraft = { ...banked, status: "pending", autoApproved: false };
-      onCommit({ ...state, drafts: upsertDraft(state.drafts, reopened) });
+      onCommit({ ...state, drafts: upsertDraft(state.drafts, reopened) }, { drafts: [reopened] });
     }
     setReviewingAuto(true);
     setPendingId(null);
@@ -350,11 +353,15 @@ export default function TwinOutbox({
     const editFact = isMeaningfulEdit(original, replyText)
       ? buildEditFact(original, replyText, channel, L, uid(), now)
       : null;
-    onCommit({
-      ...state,
-      drafts: existing ? upsertDraft(state.drafts, approved) : [...state.drafts, approved],
-      ...(editFact ? { facts: [...state.facts, editFact] } : {}),
-    });
+    onCommit(
+      {
+        ...state,
+        drafts: existing ? upsertDraft(state.drafts, approved) : [...state.drafts, approved],
+        ...(editFact ? { facts: [...state.facts, editFact] } : {}),
+      },
+      // One upserted draft (+ the optional banked edit-fact) — never the whole blob.
+      { drafts: [approved], ...(editFact ? { addFacts: [editFact] } : {}) }
+    );
     setPendingId(approved.id);
     setEditBanked(editFact !== null);
     autoBankedIdRef.current = null;
@@ -377,7 +384,7 @@ export default function TwinOutbox({
     const bankedId = autoBankedIdRef.current;
     const banked = bankedId !== null ? state.drafts.find((d) => d.id === bankedId) ?? null : null;
     const rejected = asRejected(banked ?? draft, now, rejectReason, rejectNote);
-    onCommit({ ...state, drafts: upsertDraft(state.drafts, rejected) });
+    onCommit({ ...state, drafts: upsertDraft(state.drafts, rejected) }, { drafts: [rejected] });
     autoBankedIdRef.current = null;
     setAutoBankedId(null);
     setReviewingAuto(false);
@@ -402,12 +409,19 @@ export default function TwinOutbox({
       const json = await res.json();
       if (res.ok) {
         setSendNote(json.detail ?? t("manualNote"));
-        onCommit({
-          ...state,
-          drafts: state.drafts.map((d) =>
-            d.id === draftId ? { ...d, status: "sent" as const, sentAt: json.sentAt } : d
-          ),
-        });
+        // Mirror the server's claim locally; the slice is a no-op server-side for
+        // this record (the stored terminal `sent` wins), so it only syncs the tab.
+        const claimed = state.drafts.find((d) => d.id === draftId);
+        const flipped = claimed ? { ...claimed, status: "sent" as const, sentAt: json.sentAt } : null;
+        onCommit(
+          {
+            ...state,
+            drafts: state.drafts.map((d) =>
+              d.id === draftId ? { ...d, status: "sent" as const, sentAt: json.sentAt } : d
+            ),
+          },
+          flipped ? { drafts: [flipped] } : {}
+        );
       } else {
         setSendNote(json.error ?? t("manualNote"));
       }

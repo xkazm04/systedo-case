@@ -233,6 +233,13 @@ export const WORKSPACE_RATE = {
   metricsSync: (): RateRule => ({ bucket: "metrics:sync", limit: envInt("METRICS_SYNC_PER_MIN", 12), windowMs: RATE_WINDOW_MS }),
   /** Twin send — an external channel-connector delivery (cheaper, so loosest). */
   twinSend: (): RateRule => ({ bucket: "twin:send", limit: envInt("TWIN_SEND_PER_MIN", 20), windowMs: RATE_WINDOW_MS }),
+  /** Twin commit — the slice-merge save every outbox/training interaction posts.
+   *  A pure store write (no outbound call), but each one is an atomic mutate plus a
+   *  possible archive pass, and it was the ONE twin route with no limiter. Sized
+   *  above twinSend: a human review loop (approve, reject, bank an edit) fires
+   *  several commits a minute; 30 covers brisk human use with headroom while
+   *  stopping a runaway loop. */
+  twinCommit: (): RateRule => ({ bucket: "twin:commit", limit: envInt("TWIN_COMMIT_PER_MIN", 30), windowMs: RATE_WINDOW_MS }),
 };
 
 /** Enforce a per-user rate rule (keyed by user id — same posture as catalog's
