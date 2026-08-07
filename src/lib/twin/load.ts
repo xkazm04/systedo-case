@@ -74,8 +74,12 @@ export async function resolveTwinDraftGate(
 ): Promise<DraftGateVerdict> {
   if (!projectId) return { allowed: true };
   try {
-    const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-    const project = demo ?? (userId ? await getProject(userId, projectId) : null);
+    // Demo-or-not via the seam; a demo-kind id never falls through to a tenant read.
+    const project = isDemoProjectId(projectId)
+      ? demoProjectById(projectId)
+      : userId
+        ? await getProject(userId, projectId)
+        : null;
     if (!project) return { allowed: true };
     const resolved = await resolveTwin(project.id, project.type);
     return draftGateVerdict(channelConfig(resolved.state.channels, channel));
