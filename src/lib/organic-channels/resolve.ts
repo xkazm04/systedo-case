@@ -5,13 +5,13 @@
  *  local-signals/resolve. Server-only (reads the organic-channels store). */
 import "server-only";
 import { getOrganicChannels } from "./store";
-import type { ChannelStatus, OrganicChannel } from "./types";
+import { sanitizeChannelState, type ChannelTrack, type OrganicChannel } from "./types";
 
 export interface ResolvedChannels {
   /** the active plan: the pinned AI plan when present, else the seeded sample */
   channels: OrganicChannel[];
-  /** channelId -> tracked status; a missing id means "not-started" */
-  statuses: Record<string, ChannelStatus>;
+  /** channelId -> tracked lifecycle; a missing id means "identified" */
+  tracks: Record<string, ChannelTrack>;
   /** "sample" (seeded, illustrative) or "ai" (a plan the user generated + pinned) */
   source: "sample" | "ai";
   /** true when the store READ failed (not the same as "never tracked"): the sample
@@ -40,12 +40,15 @@ export async function resolveOrganicChannels(
     degraded = true;
   }
   if (!state) {
-    return { channels: sample, statuses: {}, source: "sample", degraded };
+    return { channels: sample, tracks: {}, source: "sample", degraded };
   }
-  const pinned = state.plan && state.plan.length > 0;
+  // Re-sanitize on read: coerces the stored blob AND migrates pre-lifecycle blobs
+  // (flat `statuses` strings) onto the ChannelTrack shape in one pass.
+  const clean = sanitizeChannelState(state);
+  const pinned = clean.plan && clean.plan.length > 0;
   return {
-    channels: pinned ? state.plan! : sample,
-    statuses: state.statuses ?? {},
+    channels: pinned ? clean.plan! : sample,
+    tracks: clean.tracks,
     source: pinned ? "ai" : "sample",
     degraded: false,
     updatedAt: state.updatedAt,

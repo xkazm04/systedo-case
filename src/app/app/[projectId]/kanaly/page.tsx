@@ -1,17 +1,19 @@
-/** Kanály zdarma — a project's ranked plan of zero-ad-spend visibility channels
- *  (directories, marketplaces, communities, owned content, PR, partnerships), each
- *  with a fit score, effort and a first-steps playbook. Runs on a seeded per-type
- *  sample grounded in the project's catalog; a user can regenerate a plan tailored
- *  to the business with AI (channel-research) and track each channel's status. */
+/** Kanály zdarma — the communication signpost. A project's ranked plan of
+ *  zero-ad-spend visibility channels, each tracked through a lifecycle (who
+ *  speaks there — the operator or the twin — and what the next step is). The
+ *  page resolves the twin modules' state into a SignpostContext so the client
+ *  derives readiness from reality, not from stored flags. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import OrganicChannels, { type ChannelGrounding } from "@/components/app/modules/OrganicChannels";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
+import type { SignpostContext } from "@/lib/organic-channels/next-step";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
 import { curatedCompetitors } from "@/lib/competitors/types";
+import { resolveTwin } from "@/lib/twin/resolve";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -44,17 +46,34 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     category: categories[0],
     locality: localities[0],
   });
-  const resolved = await resolveOrganicChannels(project.id, sample);
+  const [resolved, twin] = await Promise.all([
+    resolveOrganicChannels(project.id, sample),
+    resolveTwin(project.id, project.type),
+  ]);
+
+  // Snapshot of the twin modules' REAL state — the signpost derives each
+  // channel's readiness (voice trained? channel enabled? drafts waiting?) from
+  // this instead of persisting flags that could drift out of sync.
+  const pendingByChannel: Record<string, number> = {};
+  for (const d of twin.state.drafts) {
+    if (d.status === "pending") pendingByChannel[d.channel] = (pendingByChannel[d.channel] ?? 0) + 1;
+  }
+  const signpost: SignpostContext = {
+    trainedScopes: twin.state.voices.filter((v) => v.directives.trim().length > 0).map((v) => v.scope),
+    enabledTwinChannels: twin.state.channels.filter((c) => c.enabled).map((c) => c.channel),
+    pendingByChannel,
+  };
 
   return (
     <ModulePage moduleKey="kanaly">
       <OrganicChannels
         channels={resolved.channels}
-        statuses={resolved.statuses}
+        tracks={resolved.tracks}
         source={resolved.source}
         degraded={resolved.degraded}
         projectType={project.type}
         grounding={grounding}
+        signpost={signpost}
       />
     </ModulePage>
   );

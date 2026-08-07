@@ -142,7 +142,7 @@ console.log(
           name: ch.name,
           category: ch.category,
           fit: ch.fit,
-          status: channels.statuses[ch.id] ?? "idea",
+          stage: channels.tracks[ch.id]?.stage ?? "identified",
         })),
       },
       // Which voice scopes are trained (non-empty directives) — dispatch readiness.

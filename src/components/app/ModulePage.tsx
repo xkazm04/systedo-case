@@ -2,10 +2,11 @@
  *  from the module registry by default) over the module body, with the app's
  *  page gutter. Keeps every module visually consistent without each page
  *  re-deriving its own header. Server component. */
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { MODULES, moduleLabel, moduleBlurb } from "@/lib/projects/modules";
 import { getServerLocale } from "@/lib/i18n/locale";
 import SampleDataNote from "@/components/app/SampleDataNote";
+import ReturnHint from "@/components/app/ReturnHint";
 
 export default async function ModulePage({
   moduleKey,
@@ -35,6 +36,10 @@ export default async function ModulePage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-10">
+      {/* Cross-module deep-link return (?from=kanaly) — Suspense per useSearchParams */}
+      <Suspense fallback={null}>
+        <ReturnHint />
+      </Suspense>
       <div className="mb-7 flex flex-col gap-4 border-b border-line pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-navy-800 sm:text-[28px]">

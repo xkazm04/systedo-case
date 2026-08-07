@@ -29,10 +29,58 @@ export const CHANNEL_CATEGORIES: ChannelCategory[] = [
  *  and lets the UI surface the low-effort / high-fit quick wins first. */
 export type ChannelEffort = "low" | "medium" | "high";
 
-/** The tracked checklist state of a channel for a project. Absent = not-started. */
-export type ChannelStatus = "not-started" | "active" | "done";
+/** The lifecycle a channel moves through once identified. Deliberately small:
+ *  stage stores the user's INTENT; readiness gaps (voice untrained, twin channel
+ *  disabled, no inbox source) are DERIVED live from the other modules' state by
+ *  `deriveChannelNext`, never persisted — so the signpost can't disagree with the
+ *  Twin/schranka modules about reality. Absent track = "identified". */
+export type ChannelStage = "identified" | "planned" | "live" | "paused" | "done";
 
-export const CHANNEL_STATUSES: ChannelStatus[] = ["not-started", "active", "done"];
+export const CHANNEL_STAGES: ChannelStage[] = ["identified", "planned", "live", "paused", "done"];
+
+/** Who speaks on the channel: the operator by hand, or the trained twin. */
+export type ChannelMode = "manual" | "twin";
+
+/** How inbound reactions from a conversational channel reach the schranka inbox.
+ *  "watch" (public-page polling) is reserved — it ships together with the headless
+ *  outreach scraping experiments, not before. */
+export type ChannelInboxSource = "manual" | "import";
+
+/** Broad interaction shape of a channel — different kinds have different
+ *  lifecycles (a directory listing can be "done"; a community never is). */
+export type ChannelKind = "listing" | "conversational" | "content" | "pr";
+
+export function channelKind(category: ChannelCategory): ChannelKind {
+  switch (category) {
+    case "directory":
+    case "marketplace":
+      return "listing";
+    case "community":
+    case "social":
+      return "conversational";
+    case "pr":
+    case "partnership":
+      return "pr";
+    default:
+      return "content";
+  }
+}
+
+/** Per-channel tracked state: the stage plus the decisions the setup wizard
+ *  wrote. Twin scope values mirror `TWIN_CHANNELS` (kept as a plain string here
+ *  so this module stays dependency-free; the wizard only ever writes real ones). */
+export interface ChannelTrack {
+  stage: ChannelStage;
+  mode?: ChannelMode;
+  /** which twin voice scope speaks here (mode "twin"), e.g. "social" | "email" */
+  twinScope?: string;
+  /** conversational channels: how reactions reach the schranka inbox */
+  inboxSource?: ChannelInboxSource;
+  /** anti-spam cadence cap the wizard set (posts per week, 1–14) */
+  maxPerWeek?: number;
+  /** ISO timestamp the mode decision was made */
+  decidedAt?: string;
+}
 
 /** One organic (zero ad-spend) visibility channel in a project's plan. */
 export interface OrganicChannel {
@@ -60,8 +108,8 @@ export interface OrganicChannel {
  *  AI-generated plan the user pinned (replaces the seeded sample as the source of
  *  truth). Mirrors the {meta, data} blobs of the other per-project stores. */
 export interface OrganicChannelState {
-  /** channelId (slug) -> tracked status; a missing id means "not-started" */
-  statuses: Record<string, ChannelStatus>;
+  /** channelId (slug) -> tracked lifecycle; a missing id means "identified" */
+  tracks: Record<string, ChannelTrack>;
   /** the pinned AI plan, when the user saved one; absent → the seeded sample shows */
   plan?: OrganicChannel[];
   /** provenance of `plan` (only "ai" today; the seed is implicit when plan is absent) */
@@ -77,13 +125,44 @@ export interface OrganicChannelState {
 
 const CATEGORY_SET = new Set<string>(CHANNEL_CATEGORIES);
 const EFFORT_SET = new Set<string>(["low", "medium", "high"]);
-const STATUS_SET = new Set<string>(CHANNEL_STATUSES);
+const STAGE_SET = new Set<string>(CHANNEL_STAGES);
+const MODE_SET = new Set<string>(["manual", "twin"]);
+const INBOX_SET = new Set<string>(["manual", "import"]);
 
 const s = (v: unknown, max: number): string =>
   (typeof v === "string" ? v.trim() : "").slice(0, max);
 
-export function sanitizeStatus(v: unknown): ChannelStatus {
-  return STATUS_SET.has(v as string) ? (v as ChannelStatus) : "not-started";
+/** Pre-lifecycle blobs stored a flat status string per channel. Map it onto the
+ *  stage vocabulary so existing tracked work survives the model change. */
+const LEGACY_STATUS_TO_STAGE: Record<string, ChannelStage> = {
+  active: "live",
+  done: "done",
+};
+
+/** Coerce one track from the wire (or a legacy status string) into a clean
+ *  ChannelTrack, or null to drop it (= "identified", the default). */
+export function sanitizeTrack(raw: unknown): ChannelTrack | null {
+  if (typeof raw === "string") {
+    const stage = LEGACY_STATUS_TO_STAGE[raw];
+    return stage ? { stage } : null;
+  }
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const stage = STAGE_SET.has(o.stage as string) ? (o.stage as ChannelStage) : null;
+  if (!stage || stage === "identified") {
+    // "identified" is the absent-track default — never persist it.
+    return null;
+  }
+  const track: ChannelTrack = { stage };
+  if (MODE_SET.has(o.mode as string)) track.mode = o.mode as ChannelMode;
+  const twinScope = s(o.twinScope, 24);
+  if (twinScope) track.twinScope = twinScope;
+  if (INBOX_SET.has(o.inboxSource as string)) track.inboxSource = o.inboxSource as ChannelInboxSource;
+  const cap = Math.round(Number(o.maxPerWeek));
+  if (Number.isFinite(cap) && cap >= 1) track.maxPerWeek = Math.min(14, cap);
+  const decidedAt = s(o.decidedAt, 40);
+  if (decidedAt) track.decidedAt = decidedAt;
+  return track;
 }
 
 /** Coerce one channel object from the wire into a clean OrganicChannel, or null to
@@ -127,21 +206,24 @@ export function sanitizeChannel(raw: unknown, index = 0): OrganicChannel | null 
  *  channels). Returns the blob without `updatedAt` (the store stamps that). */
 export function sanitizeChannelState(raw: unknown): Omit<OrganicChannelState, "updatedAt"> {
   const o = (raw ?? {}) as Record<string, unknown>;
-  const statuses: Record<string, ChannelStatus> = {};
-  if (o.statuses && typeof o.statuses === "object") {
+  const tracks: Record<string, ChannelTrack> = {};
+  // `tracks` is the current shape; `statuses` is the legacy flat-status map from
+  // pre-lifecycle blobs (and old clients) — sanitizeTrack migrates both.
+  const source = (o.tracks ?? o.statuses) as unknown;
+  if (source && typeof source === "object") {
     let n = 0;
-    for (const [k, v] of Object.entries(o.statuses as Record<string, unknown>)) {
+    for (const [k, v] of Object.entries(source as Record<string, unknown>)) {
       const key = s(k, 80);
       if (!key) continue;
-      const status = sanitizeStatus(v);
-      // Only track the non-default statuses — keeps the blob small.
-      if (status !== "not-started") {
-        statuses[key] = status;
+      const track = sanitizeTrack(v);
+      // Only persist the non-default tracks — keeps the blob small.
+      if (track) {
+        tracks[key] = track;
         if (++n >= 64) break;
       }
     }
   }
-  const out: Omit<OrganicChannelState, "updatedAt"> = { statuses };
+  const out: Omit<OrganicChannelState, "updatedAt"> = { tracks };
   if (Array.isArray(o.plan)) {
     const plan = o.plan
       .slice(0, 24)

@@ -1,12 +1,19 @@
 "use client";
 
+/** The Kanály module — the communication SIGNPOST. A project's ranked plan of
+ *  zero-ad-spend channels, each moving through a lifecycle (identified →
+ *  planned → live → paused/done). The table traces current state at a glance
+ *  (stage + mode + the ONE derived next step per channel) and routes the user
+ *  into the right communication module — Twin training, channel settings,
+ *  schranka, content — via the setup wizard and deep links. Lifecycle intent is
+ *  stored; readiness is derived (next-step.ts) from the twin modules' real
+ *  state, so this signpost can never disagree with them. */
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProject } from "@/lib/projects/context";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { useT } from "@/lib/i18n/client";
-import { ArrowRight, Bolt, Broadcast, Check, Link as LinkIcon, Sparkles } from "@/components/icons";
-import Modal from "@/components/app/Modal";
+import { ArrowRight, Bolt, Check, Sparkles } from "@/components/icons";
 import NextSteps from "@/components/app/NextSteps";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
@@ -15,11 +22,15 @@ import { isModuleAvailable } from "@/lib/projects/modules";
 import type { ChannelResearchResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
-  type ChannelCategory,
-  type ChannelEffort,
-  type ChannelStatus,
+  type ChannelStage,
+  type ChannelTrack,
   type OrganicChannel,
 } from "@/lib/organic-channels/types";
+import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/next-step";
+import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
+import ChannelWizard from "@/components/app/channels/ChannelWizard";
+import ChannelPlaybook from "@/components/app/channels/ChannelPlaybook";
+import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "@/components/app/channels/labels";
 import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
 /** Grounding the page resolves server-side and threads into the AI "tailor" call. */
@@ -35,7 +46,7 @@ const T = {
     sourceSample: "Ukázkový plán",
     sourceAi: "Plán na míru (AI)",
     intro:
-      "Kde vás zákazníci najdou zdarma, bez rozpočtu na reklamu. Každý kanál má vhodnost, náročnost a konkrétní první kroky. Kliknutím na řádek otevřete playbook.",
+      "Rozcestník vaší komunikace: kde vás zákazníci najdou zdarma a co je na každém kanálu další krok. Kliknutím na řádek otevřete playbook, tlačítkem uděláte další krok.",
     tailorCta: "Sestavit plán na míru (AI)",
     tailoring: "Sestavuji plán…",
     regenerate: "Přegenerovat",
@@ -43,39 +54,28 @@ const T = {
     quickWinHint: "Nízká náročnost, vysoká vhodnost. Začněte tady.",
     colChannel: "Kanál",
     colFit: "Vhodnost",
-    colEffort: "Náročnost",
-    colStatus: "Stav",
-    fitLabel: "Vhodnost",
-    effortLabel: "Náročnost",
+    colMode: "Režim",
+    colStage: "Stav",
+    colNext: "Další krok",
     channels: "{n} kanálů",
     aiReadyTitle: "Plán na míru je připravený",
     aiReadyBody: "Nahraďte ukázkový plán touto verzí přizpůsobenou vaší firmě.",
     applyPlan: "Použít tento plán",
     dismiss: "Zavřít",
     revertSample: "Zpět na ukázkový plán",
-    reverting: "Vracím…",
     stepContent: "Obsahový engine",
     stepContentHint: "Napište obsah pro vybraný kanál",
     stepSocial: "Sociální sítě",
     stepSocialHint: "Naplánujte a publikujte příspěvky",
-    // modal / playbook
-    why: "Proč právě tento kanál",
-    payoff: "Co přinese",
-    firstSteps: "První kroky",
-    visit: "Otevřít kanál",
-    createContent: "Vytvořit obsah pro tento kanál",
-    statusSet: "Stav:",
-    markNotStarted: "Nezačato",
-    markActive: "Probíhá",
-    markDone: "Hotovo",
-    degradedBanner: "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
+    degradedBanner:
+      "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
     defaultTopic: "{channel}: příspěvek pro {brand}",
   },
   en: {
     sourceSample: "Sample plan",
     sourceAi: "Tailored plan (AI)",
     intro:
-      "Where customers find you for free, with no ad budget. Each channel has a fit, an effort level and concrete first steps. Click a row to open the playbook.",
+      "Your communication signpost: where customers find you for free, and what the next step is on each channel. Click a row for the playbook; the button does the next step.",
     tailorCta: "Build a tailored plan (AI)",
     tailoring: "Building the plan…",
     regenerate: "Regenerate",
@@ -83,76 +83,43 @@ const T = {
     quickWinHint: "Low effort, high fit. Start here.",
     colChannel: "Channel",
     colFit: "Fit",
-    colEffort: "Effort",
-    colStatus: "Status",
-    fitLabel: "Fit",
-    effortLabel: "Effort",
+    colMode: "Mode",
+    colStage: "Status",
+    colNext: "Next step",
     channels: "{n} channels",
     aiReadyTitle: "Your tailored plan is ready",
     aiReadyBody: "Replace the sample plan with this version tailored to your business.",
     applyPlan: "Use this plan",
     dismiss: "Dismiss",
     revertSample: "Back to sample plan",
-    reverting: "Reverting…",
     stepContent: "Content engine",
     stepContentHint: "Write content for the chosen channel",
     stepSocial: "Social media",
     stepSocialHint: "Plan and publish posts",
-    why: "Why this channel",
-    payoff: "What it delivers",
-    firstSteps: "First steps",
-    visit: "Open channel",
-    createContent: "Create content for this channel",
-    statusSet: "Status:",
-    markNotStarted: "Not started",
-    markActive: "In progress",
-    markDone: "Done",
-    degradedBanner: "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
+    degradedBanner:
+      "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
     defaultTopic: "{channel}: post for {brand}",
   },
 } as const;
 
-const CATEGORY_LABELS: Record<ChannelCategory, { cs: string; en: string }> = {
-  directory: { cs: "Katalog", en: "Directory" },
-  marketplace: { cs: "Porovnávač", en: "Marketplace" },
-  community: { cs: "Komunita", en: "Community" },
-  content: { cs: "Obsah", en: "Content" },
-  social: { cs: "Sociální síť", en: "Social" },
-  pr: { cs: "PR", en: "PR" },
-  partnership: { cs: "Partnerství", en: "Partnership" },
-};
-
-const EFFORT_LABELS: Record<ChannelEffort, { cs: string; en: string; tone: string }> = {
-  low: { cs: "Nízká", en: "Low", tone: "bg-positive-soft text-positive" },
-  medium: { cs: "Střední", en: "Medium", tone: "bg-coral-soft text-coral-600" },
-  high: { cs: "Vysoká", en: "High", tone: "bg-navy-50 text-navy-700" },
-};
-
-const STATUS_LABELS: Record<ChannelStatus, { cs: string; en: string; tone: string }> = {
-  "not-started": { cs: "Nezačato", en: "Not started", tone: "bg-navy-50 text-muted" },
-  active: { cs: "Probíhá", en: "In progress", tone: "bg-brand-50 text-brand-700" },
-  done: { cs: "Hotovo", en: "Done", tone: "bg-positive-soft text-positive" },
-};
-
-/** The Kanály module: a project's ranked plan of zero-ad-spend visibility channels,
- *  each a table row that opens a playbook modal. A user can track each channel's
- *  status (persisted), regenerate a plan tailored to the business with AI, and hand
- *  a channel's content angle to the content engine. */
 export default function OrganicChannels({
   channels: initialChannels,
-  statuses: initialStatuses,
+  tracks: initialTracks,
   source: initialSource,
   degraded = false,
   projectType,
   grounding,
+  signpost,
 }: {
   channels: OrganicChannel[];
-  statuses: Record<string, ChannelStatus>;
+  tracks: Record<string, ChannelTrack>;
   source: "sample" | "ai";
-  /** the saved plan couldn't be read — show a read-only banner + block status writes */
+  /** the saved plan couldn't be read — show a read-only banner + block writes */
   degraded?: boolean;
   projectType: ProjectType;
   grounding: ChannelGrounding;
+  /** twin-module state snapshot the next-step derivation reads */
+  signpost: SignpostContext;
 }) {
   const project = useProject();
   const router = useRouter();
@@ -161,29 +128,25 @@ export default function OrganicChannels({
   const L = locale === "en" ? "en" : "cs";
 
   const [channels, setChannels] = useState<OrganicChannel[]>(initialChannels);
-  const [statuses, setStatuses] = useState<Record<string, ChannelStatus>>(initialStatuses);
+  const [tracks, setTracks] = useState<Record<string, ChannelTrack>>(initialTracks);
   const [source, setSource] = useState<"sample" | "ai">(initialSource);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [wizardQueue, setWizardQueue] = useState<OrganicChannel[]>([]);
   const [applied, setApplied] = useState(false);
 
   const ai = useAiTool<ChannelResearchResult>("channel-research");
 
   const open = channels.find((c) => c.id === openId) ?? null;
+  const nextOf = (c: OrganicChannel) => deriveChannelNext(c, tracks[c.id], signpost);
 
   const quickWin = useMemo(
-    () => channels.find((c) => c.effort === "low" && c.fit >= 70) ?? null,
-    [channels]
+    () => channels.find((c) => c.effort === "low" && c.fit >= 70 && !tracks[c.id]) ?? null,
+    [channels, tracks]
   );
 
-  const statusOf = (id: string): ChannelStatus => statuses[id] ?? "not-started";
-
-  /** Persist the current desired state (statuses + pinned plan when the source is
-   *  AI). Fire-and-forget: a demo project (or a failed save) just keeps the local
-   *  state — the same graceful degradation the other demo-capable modules use. */
-  const persist = (next: {
-    statuses: Record<string, ChannelStatus>;
-    plan?: OrganicChannel[];
-  }) => {
+  /** Persist the desired state. Fire-and-forget: a demo project (or a failed
+   *  save) just keeps the local state — the module's usual graceful degradation. */
+  const persist = (next: { tracks: Record<string, ChannelTrack>; plan?: OrganicChannel[] }) => {
     void fetch(`/api/projects/${project.id}/organic-channels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -191,18 +154,19 @@ export default function OrganicChannels({
     }).catch(() => {});
   };
 
-  const setStatus = (id: string, status: ChannelStatus) => {
-    // Read failed: the sample is a stand-in over a plan that may still exist — writing
-    // now (a whole-state POST) would clobber it. Refuse until a successful re-read.
-    if (degraded) return;
-    setStatuses((prev) => {
-      const next = { ...prev };
-      if (status === "not-started") delete next[id];
-      else next[id] = status;
-      persist({ statuses: next, ...(source === "ai" ? { plan: channels } : {}) });
+  const saveTracks = (mutate: (prev: Record<string, ChannelTrack>) => Record<string, ChannelTrack>) => {
+    if (degraded) return; // a whole-state POST now could clobber the unread real plan
+    setTracks((prev) => {
+      const next = mutate(prev);
+      persist({ tracks: next, ...(source === "ai" ? { plan: channels } : {}) });
       return next;
     });
   };
+
+  const setStage = (id: string, stage: ChannelStage) =>
+    saveTracks((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), stage } }));
+
+  const saveWizard = (id: string, track: ChannelTrack) => saveTracks((prev) => ({ ...prev, [id]: track }));
 
   const runTailor = () => {
     setApplied(false);
@@ -216,27 +180,28 @@ export default function OrganicChannels({
     });
   };
 
-  /** Pin the AI plan as the module's source of truth (replaces the sample). */
+  /** Pin the AI plan, then auto-offer the setup wizard for the top-3-fit
+   *  channels — the guided "now decide who speaks where" moment. */
   const applyPlan = () => {
     const plan = ai.data?.result.channels;
     if (!plan || plan.length === 0) return;
     setChannels(plan);
     setSource("ai");
     setApplied(true);
-    persist({ statuses, plan });
+    persist({ tracks, plan });
+    setWizardQueue(plan.filter((c) => !tracks[c.id]).slice(0, 3));
   };
 
-  /** Drop the pinned plan + statuses, back to the seeded sample. */
   const revertSample = () => {
     setChannels(initialChannels);
     setSource("sample");
-    setStatuses({});
+    setTracks({});
     setApplied(false);
     void fetch(`/api/projects/${project.id}/organic-channels`, { method: "DELETE" }).catch(() => {});
   };
 
-  /** Hand a channel's content angle to the content engine via the shared BriefSeed
-   *  session bridge, then route there — the "research → playbook → draft" loop. */
+  /** Hand a channel's content angle to the content engine via the BriefSeed
+   *  session bridge, then route there — the "playbook → draft" loop. */
   const createContent = (channel: OrganicChannel) => {
     const topic =
       channel.contentAngle || t("defaultTopic", { channel: channel.name, brand: project.name });
@@ -249,6 +214,20 @@ export default function OrganicChannels({
       /* storage unavailable — still navigate; the engine opens unseeded */
     }
     router.push(`/app/${project.id}/obsahovy-engine`);
+  };
+
+  /** The row CTA: deep-link when the step lives in another module, else act here. */
+  const doNext = (c: OrganicChannel) => {
+    const next = nextOf(c);
+    if (next.key === "none") return;
+    if (next.to) {
+      router.push(`/app/${project.id}/${next.to}?from=kanaly&channel=${c.id}`);
+      return;
+    }
+    if (next.key === "decide" || next.key === "set-inbox") setWizardQueue([c]);
+    else if (next.key === "go-live" || next.key === "resume") setStage(c.id, "live");
+    else if (next.key === "mark-done") setStage(c.id, "done");
+    else setOpenId(c.id); // first-action → the playbook
   };
 
   return (
@@ -287,6 +266,9 @@ export default function OrganicChannels({
           )}
         </div>
       </div>
+
+      {/* The signpost strip: lifecycle counts at a glance */}
+      <ChannelPipeline channels={channels} tracks={tracks} />
 
       {degraded && (
         <div
@@ -337,11 +319,11 @@ export default function OrganicChannels({
         </div>
       )}
 
-      {/* Quick win callout */}
+      {/* Quick win callout (only while undecided) */}
       {quickWin && (
         <button
           type="button"
-          onClick={() => setOpenId(quickWin.id)}
+          onClick={() => setWizardQueue([quickWin])}
           className="group flex w-full items-center gap-3 rounded-card border border-positive/40 bg-positive-soft px-4 py-3 text-left transition-colors hover:border-positive"
         >
           <Bolt width={18} height={18} className="shrink-0 text-positive" />
@@ -355,48 +337,75 @@ export default function OrganicChannels({
         </button>
       )}
 
-      {/* Channels table */}
+      {/* Signpost table: fit + mode + stage + the ONE next step per channel */}
       <div className="overflow-hidden rounded-card border border-line">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line bg-canvas text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <th className="px-4 py-3">{t("colChannel")}</th>
               <th className="hidden px-4 py-3 sm:table-cell">{t("colFit")}</th>
-              <th className="hidden px-4 py-3 sm:table-cell">{t("colEffort")}</th>
-              <th className="px-4 py-3">{t("colStatus")}</th>
+              <th className="hidden px-4 py-3 md:table-cell">{t("colMode")}</th>
+              <th className="px-4 py-3">{t("colStage")}</th>
+              <th className="px-4 py-3 text-right">{t("colNext")}</th>
             </tr>
           </thead>
           <tbody>
-            {channels.map((c) => (
-              <tr
-                key={c.id}
-                {...interactiveRowProps(() => setOpenId(c.id), c.name)}
-                className="cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
-              >
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-navy-800">{c.name}</span>
-                    <span className="pill bg-navy-50 text-muted">{CATEGORY_LABELS[c.category][L]}</span>
-                  </div>
-                </td>
-                <td className="hidden px-4 py-3 sm:table-cell">
-                  <span className="flex items-center gap-2">
-                    <span className="h-1.5 w-16 overflow-hidden rounded-full bg-navy-50" aria-hidden>
-                      <span className="block h-full rounded-full bg-brand-500" style={{ width: `${c.fit}%` }} />
+            {channels.map((c) => {
+              const track = tracks[c.id];
+              const stage = track?.stage ?? "identified";
+              const next = nextOf(c);
+              return (
+                <tr
+                  key={c.id}
+                  {...interactiveRowProps(() => setOpenId(c.id), c.name)}
+                  className="cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-navy-800">{c.name}</span>
+                      <span className="hidden pill bg-navy-50 text-muted lg:inline-flex">
+                        {CATEGORY_LABELS[c.category][L]}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="hidden px-4 py-3 sm:table-cell">
+                    <span className="flex items-center gap-2">
+                      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-navy-50" aria-hidden>
+                        <span className="block h-full rounded-full bg-brand-500" style={{ width: `${c.fit}%` }} />
+                      </span>
+                      <span className="tnum text-xs font-semibold text-navy-800">{c.fit}</span>
                     </span>
-                    <span className="tnum text-xs font-semibold text-navy-800">{c.fit}</span>
-                  </span>
-                </td>
-                <td className="hidden px-4 py-3 sm:table-cell">
-                  <span className={`pill ${EFFORT_LABELS[c.effort].tone}`}>{EFFORT_LABELS[c.effort][L]}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`pill ${STATUS_LABELS[statusOf(c.id)].tone}`}>
-                    {STATUS_LABELS[statusOf(c.id)][L]}
-                  </span>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="hidden px-4 py-3 md:table-cell">
+                    {track?.mode ? (
+                      <span className={`pill ${MODE_LABELS[track.mode].tone}`}>{MODE_LABELS[track.mode][L]}</span>
+                    ) : (
+                      <span className={`pill ${EFFORT_LABELS[c.effort].tone}`}>{EFFORT_LABELS[c.effort][L]}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`pill ${STAGE_LABELS[stage].tone}`}>{STAGE_LABELS[stage][L]}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {next.key !== "none" && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          doNext(c);
+                        }}
+                        disabled={degraded && !next.to}
+                        className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {NEXT_LABELS[next.key][L]}
+                        {next.count ? <span className="pill bg-brand-50 text-brand-700">{next.count}</span> : null}
+                        <ArrowRight width={12} height={12} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -408,92 +417,29 @@ export default function OrganicChannels({
         ].filter((s) => isModuleAvailable(projectType, s.to))}
       />
 
-      {/* Playbook modal */}
-      <Modal
-        open={open !== null}
+      <ChannelPlaybook
+        channel={open}
+        track={open ? tracks[open.id] : undefined}
+        next={open ? nextOf(open) : null}
+        projectId={project.id}
+        degraded={degraded}
         onClose={() => setOpenId(null)}
-        title={
-          open ? (
-            <span className="flex items-center gap-2">
-              <Broadcast width={18} height={18} className="text-brand-accent" />
-              {open.name}
-            </span>
-          ) : undefined
-        }
-        description={open ? `${CATEGORY_LABELS[open.category][L]} · ${t("fitLabel")} ${open.fit} · ${t("effortLabel")} ${EFFORT_LABELS[open.effort][L]}` : undefined}
-        size="md"
-      >
-        {open && (
-          <div className="space-y-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("why")}</p>
-              <p className="mt-1 text-sm leading-relaxed text-navy-700">{open.rationale}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("payoff")}</p>
-              <p className="mt-1 text-sm leading-relaxed text-navy-700">{open.payoff}</p>
-            </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t("firstSteps")}</p>
-              <ol className="mt-2 space-y-2">
-                {open.firstActions.map((a, i) => (
-                  <li key={i} className="flex gap-3 text-sm text-navy-700">
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700">
-                      {i + 1}
-                    </span>
-                    <span className="leading-relaxed">{a}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
+        onSetStage={setStage}
+        onOpenWizard={(c) => {
+          setOpenId(null);
+          setWizardQueue([c]);
+        }}
+        onCreateContent={createContent}
+      />
 
-            {open.url && (
-              <a
-                href={open.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-accent hover:text-brand-800"
-              >
-                <LinkIcon width={14} height={14} />
-                {t("visit")}
-              </a>
-            )}
-
-            {/* Status setter */}
-            <div className="rounded-card border border-line bg-canvas px-4 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">{t("statusSet")}</p>
-              <div className="flex flex-wrap gap-2">
-                {(["not-started", "active", "done"] as ChannelStatus[]).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setStatus(open.id, st)}
-                    disabled={degraded}
-                    aria-pressed={statusOf(open.id) === st}
-                    className={`rounded-pill border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                      statusOf(open.id) === st
-                        ? "border-brand-400 bg-brand-50 text-brand-800"
-                        : "border-line text-muted hover:border-navy-200"
-                    }`}
-                  >
-                    {STATUS_LABELS[st][L]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => createContent(open)}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99]"
-            >
-              <Bolt width={16} height={16} />
-              {t("createContent")}
-              <ArrowRight width={16} height={16} />
-            </button>
-          </div>
-        )}
-      </Modal>
+      <ChannelWizard
+        key={wizardQueue.map((c) => c.id).join(",")}
+        queue={wizardQueue}
+        ctx={signpost}
+        open={wizardQueue.length > 0}
+        onClose={() => setWizardQueue([])}
+        onSave={saveWizard}
+      />
     </div>
   );
 }

@@ -80,8 +80,11 @@ export async function resolveOnboardingProgress(
     (ranks.ladder.length > 0 ||
       (ranks.reviews?.items.length ?? 0) > 0 ||
       (ranks.gbp?.rows.length ?? 0) > 0);
+  // Any tracked lifecycle (or a legacy pre-track statuses blob) counts as touched.
   const channelsDone =
-    !!channels && (Object.keys(channels.statuses ?? {}).length > 0 || (channels.plan?.length ?? 0) > 0);
+    !!channels &&
+    (Object.keys(channels.tracks ?? (channels as { statuses?: object }).statuses ?? {}).length > 0 ||
+      (channels.plan?.length ?? 0) > 0);
   const costModelDone = !!costModel;
 
   const doneOf = (key: OnboardingStepKey): boolean => {

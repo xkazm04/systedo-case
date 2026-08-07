@@ -187,8 +187,9 @@ export default async function DemoModule({
         <ModulePage moduleKey="kanaly">
           <OrganicChannels
             channels={sample}
-            statuses={{}}
+            tracks={{}}
             source="sample"
+            signpost={{ trainedScopes: [], enabledTwinChannels: [], pendingByChannel: {} }}
             projectType={project.type}
             grounding={{
               ...(categories.length ? { offering: categories.slice(0, 4).join(", ") } : {}),
