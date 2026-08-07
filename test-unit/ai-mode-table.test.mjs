@@ -280,6 +280,48 @@ for (const [mode, genName] of [["twin-reply", "twinReply"], ["twin-style", "twin
   });
 }
 
+// ── twin-reply drafting gate ("review means review"): sprava-kanalu's promise that
+//    a disabled/`review` channel gets NO twin drafts is enforced server-side in the
+//    twin-reply prepare. The gate dep is optional (production lazy-imports the real
+//    resolver); a fake here pins BOTH the allow and the deny path. ──
+for (const [reason, csMatch, enMatch] of [
+  ["disabled", /vypnutý/, /switched off/],
+  ["review", /jen člověk/, /human-only/],
+]) {
+  test(`twin-reply: a ${reason} channel refuses drafting with a localized 422`, async () => {
+    const gateCalls = [];
+    const { table, calls } = harness({
+      resolveTwinDraftGate: async (...a) => {
+        gateCalls.push(a);
+        return { allowed: false, reason };
+      },
+    });
+    const value = { projectId: "proj", channel: "email", brand: "orig" };
+    const out = await prepare(table, "twin-reply", value);
+    assert.ok(out instanceof Response, "the refusal short-circuits prepare");
+    assert.equal(out.status, 422, "the shared semantic-refusal envelope (like noDiagnosisData)");
+    assert.match((await out.json()).error, csMatch, "honest Czech message");
+    assert.deepEqual(gateCalls, [["proj", "u1", "email"]], "gate sees project + caller + the TwinChannel");
+    assert.equal(calls.some((c) => c.name === "twinReply"), false, "no generation happens");
+    assert.equal(calls.some((c) => c.name === "resolveBrandContext"), false, "refused before grounding");
+
+    // The en mirror of the refusal copy.
+    const { table: t2 } = harness({ resolveTwinDraftGate: async () => ({ allowed: false, reason }) });
+    const outEn = await prepare(t2, "twin-reply", { projectId: "proj", channel: "email" }, { locale: "en" });
+    assert.match((await outEn.json()).error, enMatch, "honest English message");
+  });
+}
+
+test("twin-reply: an allowed channel drafts exactly as before (gate consulted, then brand)", async () => {
+  const { table, calls } = harness({ resolveTwinDraftGate: async () => ({ allowed: true }) });
+  const value = { projectId: "proj", channel: "leads", brand: "orig" };
+  const prepared = await prepare(table, "twin-reply", value);
+  assert.equal(value.brand, "BRAND", "brand grounding still upgrades the client name");
+  assert.equal(prepared.cacheValue, value);
+  await prepared.gen();
+  assert.ok(calls.some((c) => c.name === "twinReply"), "generation proceeds");
+});
+
 // ── repurpose: voice enters value; scope follows the channel (route.ts:493-505) ──
 test("repurpose: social scope for non-newsletter channels; voice enters value", async () => {
   const { table, calls } = harness();

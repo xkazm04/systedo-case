@@ -21,7 +21,15 @@ import { useProject } from "@/lib/projects/context";
 import { promptSafeName } from "@/lib/projects/name";
 import { asApproved, asRejected, asSent, buildDraft, type DraftSeed } from "@/lib/twin/banking";
 import { buildEditFact, isMeaningfulEdit } from "@/lib/twin/edit-facts";
-import { decideDraft, REJECT_REASONS, type RejectReason, type TwinChannelConfig, type TwinDraft, type TwinStyleFact } from "@/lib/twin/types";
+import {
+  decideDraft,
+  draftGateVerdict,
+  REJECT_REASONS,
+  type RejectReason,
+  type TwinChannelConfig,
+  type TwinDraft,
+  type TwinStyleFact,
+} from "@/lib/twin/types";
 import { REASON_LABELS } from "@/components/app/twin/labels";
 import type { TwinReplyResult, TwinReplyVoice } from "@/lib/ai-types";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -72,6 +80,9 @@ const T = {
     generationFailedSuffix: "Ponecháváme deterministický návrh.",
     retryBtn: "Zkusit znovu",
     demoMode: "Ukázkový režim (bez API klíče). Připojte LLM pro generování modelem.",
+    leadsLockedOff: "Kanál Poptávky je vypnutý — twin zde nenavrhuje odpovědi. Zapněte ho ve Správě kanálů.",
+    leadsLockedReview:
+      "Kanál Poptávky je v režimu „jen člověk“ — twin zde nenavrhuje odpovědi. Změňte samostatnost ve Správě kanálů.",
     sendReply: "Odeslat odpověď",
     sent: "Odesláno",
     sendDisclaimer: "Odeslání se v ukázce simuluje.",
@@ -128,6 +139,9 @@ const T = {
     generationFailedSuffix: "Keeping the deterministic draft.",
     retryBtn: "Retry",
     demoMode: "Demo mode (no API key). Connect an LLM to generate with the model.",
+    leadsLockedOff: "The Leads channel is off — the twin does not draft here. Turn it on in Channel management.",
+    leadsLockedReview:
+      "The Leads channel is set to human-only — the twin does not draft here. Change its autonomy in Channel management.",
     sendReply: "Send reply",
     sent: "Sent",
     sendDisclaimer: "Sending is simulated in this demo.",
@@ -260,8 +274,14 @@ export default function SpeedLeadModule({
     setReplyText(aiReply.reply);
   }
 
+  /** "Review means review": when the leads channel is disabled or human-only, the
+   *  twin does not draft here — the same pure verdict sprava-kanalu's copy promises
+   *  and the server's twin-reply gate enforces. Config absent (no banking wiring)
+   *  means no channel promise exists, so drafting stays available. */
+  const draftGate = leadsCfg ? draftGateVerdict(leadsCfg) : ({ allowed: true } as const);
+
   function generateReply() {
-    if (!selected || status === "loading") return;
+    if (!selected || status === "loading" || !draftGate.allowed) return;
     setAiLeadId(selected.id);
     const qualification = describeQualification(qualById.get(selected.id) ?? EMPTY_QUALIFICATION);
     run({
@@ -609,7 +629,7 @@ export default function SpeedLeadModule({
                 <button
                   type="button"
                   onClick={generateReply}
-                  disabled={status === "loading"}
+                  disabled={status === "loading" || !draftGate.allowed}
                   className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
                 >
                   {status === "loading" && aiLeadId === selectedId ? (
@@ -762,6 +782,16 @@ export default function SpeedLeadModule({
                   </button>
                 ))}
               </div>
+            ) : null}
+
+            {/* "Review means review": the honest reason the AI button is dead —
+                mirrors the server-side twin-reply gate, which refuses the same
+                channels for a direct API call too. */}
+            {!draftGate.allowed ? (
+              <p className="mt-2 flex items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 text-xs text-muted">
+                <Info width={14} height={14} className="shrink-0" />
+                {t(draftGate.reason === "review" ? "leadsLockedReview" : "leadsLockedOff")}
+              </p>
             ) : null}
 
             {/* generation status — loading / error / demo (keyless) mode */}

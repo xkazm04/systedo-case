@@ -14,6 +14,7 @@ import {
   confidenceTone,
   CONFIDENCE_WARN_MARGIN,
   decideDraft,
+  draftGateVerdict,
   DEFAULT_AUTO_THRESHOLD,
   recentRejectNotes,
   rejectionPatterns,
@@ -120,6 +121,22 @@ test("decideDraft: a disabled channel never self-approves, even when still set t
   const r = decideDraft(cfg({ enabled: false }), { confidence: 100, risks: [] });
   assert.equal(r.status, "pending");
   assert.equal(r.autoApproved, false);
+});
+
+// --- draftGateVerdict: may the twin draft here at all? ---------------------
+
+test("draftGateVerdict: disabled and human-only channels refuse drafting; assist/auto allow", () => {
+  assert.deepEqual(draftGateVerdict(cfg({ enabled: false })), { allowed: false, reason: "disabled" });
+  assert.deepEqual(draftGateVerdict(cfg({ autonomy: "review" })), { allowed: false, reason: "review" });
+  assert.deepEqual(
+    draftGateVerdict(cfg({ enabled: false, autonomy: "review" })),
+    { allowed: false, reason: "disabled" },
+    "an off channel reads as off, not as human-only"
+  );
+  assert.deepEqual(draftGateVerdict(cfg({ autonomy: "assist" })), { allowed: true });
+  assert.deepEqual(draftGateVerdict(cfg()), { allowed: true }, "auto allows drafting (the approval gate is decideDraft's job)");
+  // The invented default for an unconfigured channel is disabled → refuses drafting.
+  assert.deepEqual(draftGateVerdict(channelConfig([], "whatsapp")), { allowed: false, reason: "disabled" });
 });
 
 // --- resolveVoice ----------------------------------------------------------

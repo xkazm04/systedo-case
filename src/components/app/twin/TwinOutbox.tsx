@@ -82,6 +82,8 @@ const T = {
     editDraft: "Upravit",
     approved: "Schváleno",
     disabledChannel: "Tento kanál je vypnutý. Twin na něm nepíše. Zapněte ho v modulu Správa kanálů.",
+    reviewChannel:
+      "Kanál je v režimu „jen člověk“ — twin na něm nenavrhuje odpovědi. Změňte samostatnost v modulu Správa kanálů.",
     autonomyReview: "Režim: jen člověk",
     autonomyAssist: "Režim: twin píše, člověk schvaluje",
     autonomyAuto: "Režim: samostatný nad {n} % jistoty",
@@ -120,6 +122,8 @@ const T = {
     editDraft: "Edit",
     approved: "Approved",
     disabledChannel: "This channel is off. The twin does not write here. Turn it on in Channel management.",
+    reviewChannel:
+      "This channel is set to human-only — the twin does not draft here. Change its autonomy in Channel management.",
     autonomyReview: "Mode: human only",
     autonomyAssist: "Mode: twin drafts, human approves",
     autonomyAuto: "Mode: autonomous above {n}% confidence",
@@ -518,6 +522,15 @@ export default function TwinOutbox({
             <Sparkles width={16} height={16} className={ai.status === "loading" ? "animate-pulse" : ""} />
             {ai.status === "loading" ? t("drafting") : result ? t("regenerate") : t("draft")}
           </button>
+
+          {/* "Review means review": say WHY the button is dead — and the server's
+              twin-reply gate refuses the same channels, so this is a mirror of an
+              enforced rule, not the rule itself. */}
+          {cfg.autonomy === "review" && (
+            <p className="rounded-card border border-line bg-canvas px-4 py-3 text-sm text-muted">
+              {t("reviewChannel")}
+            </p>
+          )}
 
           {ai.status === "loading" && <LoadingTimer expectedMs={ai.expectedMs} />}
           {ai.status === "error" &&

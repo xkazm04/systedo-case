@@ -102,7 +102,7 @@ import {
 import type { DiagnosisSnapshot } from "@/lib/ai-types";
 import { isDemoProjectId } from "@/lib/projects/demo";
 import type { GroundingResult, ResolvedDiagnosis } from "./grounding";
-import type { ToneScope } from "@/lib/twin/types";
+import { isTwinChannel, type DraftGateVerdict, type ToneScope, type TwinChannel } from "@/lib/twin/types";
 
 // ─── shared contracts ──────────────────────────────────────────────────────────
 
@@ -218,6 +218,17 @@ export interface ModeDeps {
     userId: string | null,
     scope: ToneScope
   ) => Promise<TwinReplyVoice | undefined>;
+  /** "Review means review": the twin-reply drafting gate — resolves the project's
+   *  channel config server-side so a disabled/`review` channel refuses drafting.
+   *  OPTIONAL and used by the twin-reply row alone: when absent, the row
+   *  lazy-imports the real resolver (`@/lib/twin/load`), keeping the statically
+   *  imported table store-free for its unit tests, which inject a fake here to pin
+   *  both the allow and the deny path. */
+  resolveTwinDraftGate?: (
+    projectId: string | undefined,
+    userId: string | null,
+    channel: TwinChannel
+  ) => Promise<DraftGateVerdict>;
   /** Direction 1: the social tool's server-side grounding — the "what's working" +
    *  competitor text, and the effective brand voice (override → auto-brand → none). */
   resolveSocialContext: (
@@ -453,6 +464,30 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
     "twin-reply": defineMode<TwinReplyRequest>({
       validate: validateTwinReplyRequest,
       prepare: async (value, ctx) => {
+        // Drafting gate ("review means review"): sprava-kanalu's promise that a
+        // disabled or human-only channel gets NO twin drafts is enforced here, the
+        // same server tier as the auto-approval gate (twin POST) and the send gate
+        // (send route) — not just a disabled button. The channel is the same
+        // TwinChannel vocabulary the outbox/leads inbox submit and sprava-kanalu
+        // configures; the validator already guarantees it, the guard re-checks so a
+        // prepare called directly (tests) skips cleanly on a non-twin value.
+        if (isTwinChannel(value.channel)) {
+          const gate = deps.resolveTwinDraftGate ?? (await import("@/lib/twin/load")).resolveTwinDraftGate;
+          const verdict = await gate(value.projectId, ctx.userId, value.channel);
+          if (!verdict.allowed) {
+            // Honest, localized refusal — the 422 "invalid" envelope every mode's
+            // semantic refusal uses (see noDiagnosisData), so clients need no new code.
+            const msg =
+              verdict.reason === "review"
+                ? ctx.locale === "en"
+                  ? "This channel is set to human-only — the twin does not draft here. Change its autonomy in Channel management."
+                  : "Kanál je v režimu „jen člověk“ — twin na něm nenavrhuje odpovědi. Změňte samostatnost ve Správě kanálů."
+                : ctx.locale === "en"
+                  ? "This channel is switched off — the twin does not write here. Turn it on in Channel management."
+                  : "Tento kanál je vypnutý — twin na něm nepíše. Zapněte ho ve Správě kanálů.";
+            return bad(msg);
+          }
+        }
         value.brand = (await deps.resolveBrandContext(value.projectId, ctx.userId, ctx.locale)) || value.brand;
         return { cacheValue: value, gen: () => deps.gen.twinReply(value, ctx.locale, ctx.signal) };
       },

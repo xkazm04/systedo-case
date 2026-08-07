@@ -215,6 +215,21 @@ export function channelConfig(channels: TwinChannelConfig[], channel: TwinChanne
   );
 }
 
+/** Whether the twin may DRAFT on a channel at all — the rule behind Správa kanálů's
+ *  promise „Twin na tomto kanálu nepíše": a disabled channel and a `review`
+ *  (human-only) channel both refuse twin drafting. One pure function so the server
+ *  gate (the twin-reply mode's prepare) and every drafting UI (the outbox composer,
+ *  the leads inbox) can never drift on what "locked" means. Distinct from
+ *  `decideDraft`, which governs the pending↔approved verdict of a draft that was
+ *  ALLOWED to exist. */
+export type DraftGateVerdict = { allowed: true } | { allowed: false; reason: "disabled" | "review" };
+
+export function draftGateVerdict(cfg: TwinChannelConfig): DraftGateVerdict {
+  if (!cfg.enabled) return { allowed: false, reason: "disabled" };
+  if (cfg.autonomy === "review") return { allowed: false, reason: "review" };
+  return { allowed: true };
+}
+
 /** The autonomy gate. A freshly generated draft is `approved` only on an ENABLED
  *  channel, under `auto`, above the channel's confidence bar, AND with no flagged
  *  risks — a risk always buys a human read, however confident the model claims to be.
