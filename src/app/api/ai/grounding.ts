@@ -32,7 +32,8 @@ import { getClientProfile } from "@/lib/campaigns/report-config";
 import { getPatternLines } from "@/lib/patterns/store";
 import { sampleLessonsAllowed } from "@/lib/patterns/extract";
 import { adPatternQuery } from "@/lib/patterns/query";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { demoProjectById } from "@/lib/demo/projects";
+import { isDemoProjectId } from "@/lib/projects/demo";
 
 // ─── tenancy triad, resolved ONCE ────────────────────────────────────────────────
 
@@ -51,8 +52,11 @@ export async function resolveProjectAccess(
   userId: string | null
 ): Promise<ProjectAccess> {
   if (!projectId) return { kind: "none" };
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return { kind: "demo", project: demo };
+  if (isDemoProjectId(projectId)) {
+    // Demo-kind by the seam: serve the fixture, or nothing — never a tenant read.
+    const demo = demoProjectById(projectId);
+    return demo ? { kind: "demo", project: demo } : { kind: "none" };
+  }
   if (userId) {
     const project = await getProject(userId, projectId);
     if (project) return { kind: "owned", project };

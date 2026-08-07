@@ -100,7 +100,7 @@ import {
   extractLocalSnapshot,
 } from "@/lib/diagnoses/outcome";
 import type { DiagnosisSnapshot } from "@/lib/ai-types";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import type { GroundingResult, ResolvedDiagnosis } from "./grounding";
 import type { ToneScope } from "@/lib/twin/types";
 
@@ -537,7 +537,7 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
         );
         const cacheValue: MonthlyRecapRequest = { ...value, projectId: keyId };
         const projectId = value.projectId;
-        const isDemo = projectId ? DEMO_PROJECTS.some((d) => d.id === projectId) : false;
+        const isDemo = projectId ? isDemoProjectId(projectId) : false;
         const persistTarget = data && projectId && !isDemo ? projectId : null;
         return {
           cacheValue,

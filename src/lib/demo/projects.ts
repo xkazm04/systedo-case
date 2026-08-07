@@ -9,7 +9,7 @@
  *  the case-study client (Mionelo) so the demo agrees with the homepage proof
  *  band and the authed dashboard. Framework-free (no React) — importable from both
  *  the server dispatcher and the client shell. */
-import { demoProjectId } from "@/lib/projects/demo";
+import { demoProjectId, isDemoProjectId } from "@/lib/projects/demo";
 import { MODULES, type ModuleDef } from "@/lib/projects/modules";
 import { PROJECT_TYPE_META, PROJECT_TYPES, type Project, type ProjectType } from "@/lib/projects/types";
 
@@ -38,8 +38,18 @@ function toProject(type: ProjectType): Project {
   };
 }
 
-/** All four demo projects, in type order. */
+/** One demo project per business type (every entry of `PROJECT_TYPES`), in type order. */
 export const DEMO_PROJECTS: Project[] = PROJECT_TYPES.map(toProject);
+
+/** The demo fixture for an id, or undefined. The demo-or-not DECISION routes through
+ *  the seam ({@link isDemoProjectId}); the membership scan here is pure DATA lookup —
+ *  the one place a call site may resolve a demo id to its fixture Project. A demo-kind
+ *  id with no fixture (a drifted flavour) resolves to undefined, never to a tenant
+ *  read. A structural test (test-unit/projects-demo-seam.test.mjs) forbids re-deriving
+ *  demo-ness by fixture membership anywhere else. */
+export function demoProjectById(id: string): Project | undefined {
+  return isDemoProjectId(id) ? DEMO_PROJECTS.find((p) => p.id === id) : undefined;
+}
 
 /** The demo project for a business type. */
 export function demoProjectFor(type: ProjectType): Project {

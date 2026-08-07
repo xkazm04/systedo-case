@@ -67,8 +67,8 @@ export interface ModuleDef {
  *  dropping out of the sidebar. */
 const ALL: ProjectType[] = PROJECT_TYPES;
 
-/** The full registry. `availableFor` is what differentiates the four types — see
- *  the matrix in the redesign plan. */
+/** The full registry. `availableFor` is what differentiates the project types
+ *  (every entry of `PROJECT_TYPES`) — see the matrix in the redesign plan. */
 export const MODULES: ModuleDef[] = [
   {
     key: "",
@@ -506,7 +506,7 @@ export function isModuleAvailable(type: ProjectType, key: string): boolean {
 
 /* -------------------------------------------------------------------------- */
 /*  KPI presets — how the overview's headline figures adapt per type.          */
-/*  All four pull from the same metrics engine (the only dataset in v1) but    */
+/*  Every type pulls from the same metrics engine (the only dataset in v1) but */
 /*  relabel + reformat so the meaning fits the business: an e-shop sells        */
 /*  (revenue/ROAS), an app acquires users (signups/CAC), lead-gen books leads.  */
 /* -------------------------------------------------------------------------- */

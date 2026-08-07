@@ -7,7 +7,8 @@ import { getUserAccessToken } from "@/lib/google/token";
 import { adsConfigured } from "@/lib/google/ads";
 import { generateKeywordIdeas } from "@/lib/google/keyword-planner";
 import { getProject } from "@/lib/projects/store";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { demoProjectById } from "@/lib/demo/projects";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import { SklikClient, httpSklikTransport } from "@/lib/sklik/client";
 import { fetchSklikKeywordIdeas } from "@/lib/sklik/keywords";
 import { sampleKeywordIdeas } from "./sample";
@@ -32,8 +33,7 @@ async function resolveBrandName(
   projectId?: string
 ): Promise<string | undefined> {
   if (!projectId) return undefined;
-  const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-  if (demo) return demo.name;
+  if (isDemoProjectId(projectId)) return demoProjectById(projectId)?.name;
   if (userId) {
     const project = await getProject(userId, projectId);
     if (project) return project.name;

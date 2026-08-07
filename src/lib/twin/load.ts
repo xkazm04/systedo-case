@@ -17,8 +17,8 @@ import "server-only";
 import type { Project } from "@/lib/projects/types";
 import type { TwinReplyVoice } from "@/lib/ai-types";
 import { getProject } from "@/lib/projects/store";
-import { resolveProjectKind } from "@/lib/projects/demo";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { isDemoProjectId, resolveProjectKind } from "@/lib/projects/demo";
+import { demoProjectById } from "@/lib/demo/projects";
 import { resolveTwin } from "./resolve";
 import { selectInjectableVoice } from "./inject";
 import type { ToneScope } from "./types";
@@ -40,8 +40,10 @@ export async function resolveTwinVoice(
 ): Promise<TwinReplyVoice | undefined> {
   if (!projectId) return undefined;
   try {
-    const demo = DEMO_PROJECTS.find((p) => p.id === projectId);
-    if (demo) return await loadTwinVoice(demo, scope);
+    if (isDemoProjectId(projectId)) {
+      const demo = demoProjectById(projectId);
+      return demo ? await loadTwinVoice(demo, scope) : undefined;
+    }
     if (userId) {
       const project = await getProject(userId, projectId);
       if (project) return await loadTwinVoice(project, scope);

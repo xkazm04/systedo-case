@@ -118,6 +118,53 @@ test("the seam really is a seam — one prefix test, one minting site", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Rule 1b — demo-ness is never re-derived by FIXTURE MEMBERSHIP either
+// ---------------------------------------------------------------------------
+//
+// The second way to dodge the seam: instead of testing the `demo-` prefix, ask
+// whether the id is one of the DEMO_PROJECTS fixtures (`DEMO_PROJECTS.some/find
+// ((p) => p.id === id)`). That answer DISAGREES with resolveProjectKind for any
+// demo-prefixed id that is not a fixture — the call site treats it as a tenant
+// while the seam (and the persist guard) treat it as demo. The one sanctioned
+// id→fixture lookup is demoProjectById() in the fixture table itself, which
+// routes the demo-or-not DECISION through the seam and only then scans for data.
+
+/** The fixture table — the single file allowed to scan DEMO_PROJECTS by id. */
+const FIXTURES = join(SRC, "lib", "demo", "projects.ts");
+
+test("nothing outside the fixture table detects demo-ness by fixture membership", () => {
+  const offenders = [];
+  for (const file of sourceFiles(SRC)) {
+    if (file === FIXTURES) continue;
+    const src = code(readFileSync(file, "utf8"));
+    if (/DEMO_PROJECTS\s*\.\s*(?:some|find)\s*\(\s*\(?[\w$]+\)?\s*=>\s*[\w$]+\s*\.\s*id\s*===/.test(src)) {
+      offenders.push(rel(file));
+    }
+  }
+  assert.deepEqual(
+    offenders.sort(),
+    [],
+    "these files decide demo-ness by DEMO_PROJECTS membership instead of the seam " +
+      "(isDemoProjectId / resolveProjectKind; demoProjectById for the fixture record):\n" +
+      offenders.join("\n")
+  );
+});
+
+test("the sanctioned fixture lookup itself routes through the seam", () => {
+  const src = code(readFileSync(FIXTURES, "utf8"));
+  assert.match(
+    src,
+    /export function demoProjectById\b/,
+    "demoProjectById must live in the fixture table"
+  );
+  assert.match(
+    src,
+    /isDemoProjectId\s*\(\s*id\s*\)\s*\?/,
+    "demoProjectById must gate its membership scan on the seam's isDemoProjectId"
+  );
+});
+
+// ---------------------------------------------------------------------------
 // Rule 2 — no persisting Server Action re-inlines the write-path handshake
 // ---------------------------------------------------------------------------
 

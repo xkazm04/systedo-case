@@ -3,16 +3,19 @@
  *  it as the default voice instead of a blank field. Tenancy-checked: a demo id is
  *  public; a real id must belong to the caller. GET → { context }. */
 import { requireOwnedProject } from "@/lib/projects/api-guard";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { demoProjectById } from "@/lib/demo/projects";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import { getServerLocale } from "@/lib/i18n/locale";
 import { loadBrandContext } from "@/lib/brand/load";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const demo = DEMO_PROJECTS.find((p) => p.id === id);
   const locale = await getServerLocale();
-  if (demo) {
+  if (isDemoProjectId(id)) {
+    // Demo-kind by the seam: serve the fixture publicly, or 404 — never a tenant read.
+    const demo = demoProjectById(id);
+    if (!demo) return Response.json({ error: "Projekt nenalezen.", code: "not-found" }, { status: 404 });
     return Response.json({ context: await loadBrandContext(demo, locale) });
   }
 

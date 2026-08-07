@@ -19,7 +19,7 @@ import { evaluate } from "@/lib/lp-exp/compute";
 import { SAMPLE_EXPERIMENTS, type LpExperiment } from "@/lib/lp-exp/sample";
 import { listExperiments } from "@/lib/lp-exp/store";
 import { SAMPLE_ATTRIBUTION, type ChannelPerf } from "@/lib/distribution/sample";
-import { DEMO_PROJECTS } from "@/lib/demo/projects";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import type { ReportHistoryPoint } from "@/lib/ai-types";
 import type { Pattern, PatternCategory } from "./types";
 
@@ -286,7 +286,7 @@ export function promptSafePatterns(patterns: Pattern[], excludeSampleLessons: bo
  *  The library UI (getLibrary) still shows sample lessons to everyone, labeled — that
  *  surface is unchanged. Pure. */
 export function sampleLessonsAllowed(tenant: string, projectId?: string | null): boolean {
-  return tenant === "sample" || (!!projectId && DEMO_PROJECTS.some((p) => p.id === projectId));
+  return tenant === "sample" || (!!projectId && isDemoProjectId(projectId));
 }
 
 /** How many chars of raw `evidence` may ride into a prompt line. Auto-mined evidence
