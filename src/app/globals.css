@@ -382,6 +382,13 @@ html[data-theme="dark"] .theme-toggle-moon {
 .animate-drop {
   animation: drop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+/* Route-level page enter (app template.tsx) — a fast whole-content fade that
+   composes under `.stagger` module roots (the page fades in while sections
+   cascade), giving client-side navigations SPA continuity instead of a hard
+   skeleton→content snap. Kept subtle and quick so it never reads as latency. */
+.animate-page-in {
+  animation: fadeIn 0.22s ease both;
+}
 
 /* Staggered section reveal — add `stagger` to a module's section stack (the
    `space-y-*` container that holds its sections) and each DIRECT child eases up
