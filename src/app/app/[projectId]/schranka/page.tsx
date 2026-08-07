@@ -23,7 +23,12 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   ]);
 
   return (
-    <ModulePage moduleKey="schranka" sample={resolved.source !== "trained"}>
+    // The gutter note discloses the LEADS' provenance — and the lead list above is a
+    // hardcoded sample constant for every project until a real intake integration
+    // exists, so the note is unconditional. It must NOT key off the twin's `source`:
+    // training the twin (or merely toggling a channel, which also flips `source`)
+    // does not make these enquiries real.
+    <ModulePage moduleKey="schranka" sample>
       <TwinInboxModule
         state={resolved.state}
         source={resolved.source}

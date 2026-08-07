@@ -19,6 +19,7 @@ import TwinVoiceStudio from "@/components/app/twin/TwinVoiceStudio";
 import ReadinessRibbon from "@/components/app/twin/ReadinessRibbon";
 import { useTwinState, type TwinSource } from "@/components/app/twin/useTwinState";
 import { deriveReadiness, buildGaps, milestoneHint } from "@/lib/twin/readiness";
+import { hasTrainedVoice } from "@/lib/twin/voice-age";
 import { sampleTwin } from "@/lib/twin/sample";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import type { TwinState } from "@/lib/twin/types";
@@ -73,23 +74,30 @@ export default function TwinModule({
   // The seeded per-type sample is what "Reset training" must revert to — never the
   // mount blob, which for a trained twin is the trained state itself.
   const sampleState = useMemo(() => sampleTwin(projectType), [projectType]);
-  const { state, source, commit, untrain, resetting } = useTwinState(initialState, initialSource, sampleState);
+  const { state, commit, untrain, resetting } = useTwinState(initialState, initialSource, sampleState);
 
   const readiness = useMemo(() => deriveReadiness(state, { offerings }), [state, offerings]);
   const topGap = useMemo(() => buildGaps(readiness)[0] ?? null, [readiness]);
+
+  // "Trained" means a voice was actually trained — derived from the voices in view,
+  // never from resolveTwin's `source` (which is true the moment ANY row exists: a
+  // channel toggle in Správa kanálů used to earn the trained badge) nor from
+  // useTwinState's optimistic flip on unrelated commits. Training a voice updates
+  // `state` right here, so the pill still flips the moment a distillation lands.
+  const trained = useMemo(() => hasTrainedVoice(state.voices), [state.voices]);
 
   return (
     <div className="stagger space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-2xl space-y-2">
           <span
-            className={`pill ${source === "trained" ? "bg-brand-50 text-brand-700" : "bg-navy-50 text-muted"}`}
+            className={`pill ${trained ? "bg-brand-50 text-brand-700" : "bg-navy-50 text-muted"}`}
           >
-            {source === "trained" ? t("sourceTrained") : t("sourceSample")}
+            {trained ? t("sourceTrained") : t("sourceSample")}
           </span>
           <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
         </div>
-        {source === "trained" && (
+        {trained && (
           <button
             type="button"
             onClick={untrain}

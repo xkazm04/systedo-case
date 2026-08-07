@@ -31,6 +31,15 @@ export function voiceTrainedAt(voice: TwinVoice): string | null {
   return voice.updatedAt;
 }
 
+/** True when ANY voice row was actually trained — the honest "trained twin" bit.
+ *  Deliberately NOT `resolveTwin`'s `source`: that flips to "trained" the moment a
+ *  row exists (a channel toggle in Správa kanálů is enough), while this asks the
+ *  only question the trained-badge should ask — did someone train a voice? The
+ *  seed's EPOCH stamp and empty editor drafts don't count (voiceTrainedAt). */
+export function hasTrainedVoice(voices: TwinVoice[]): boolean {
+  return voices.some((v) => voiceTrainedAt(v) !== null);
+}
+
 /** Whole days between an ISO timestamp and `now` (≥ 0; NaN if unparseable). */
 export function ageDays(iso: string, now: Date = new Date()): number {
   const t = Date.parse(iso);

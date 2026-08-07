@@ -212,14 +212,19 @@ function leadgenRecs(locale: SupportedLocale): Recommendation[] {
   }
   const overdue = SAMPLE_LEADS.filter((l) => l.minutesAgo > SLA_TARGET_MIN).length;
   if (overdue > 0) {
-    out.push(rec(locale, "schranka", "critical",
+    // Provenance: computed from the hardcoded SAMPLE_LEADS (no lead intake exists
+    // yet), so for a real tenant this "critical" would otherwise be a permanent,
+    // tenant-independent false alarm. Tagged rather than suppressed — the sample
+    // chip is exactly the disclosure the type asks for, and the demo Overview
+    // keeps its illustrative urgency untouched.
+    out.push({ ...rec(locale, "schranka", "critical",
       locale === "en"
         ? `${overdue} leads past SLA`
         : `${overdue} poptávek po SLA`,
       locale === "en"
         ? `Respond within ${SLA_TARGET_MIN} minutes. Response speed determines lead conversion.`
         : `Reagujte do ${SLA_TARGET_MIN} minut. Rychlost reakce rozhoduje o konverzi leadu.`,
-      `${overdue}`));
+      `${overdue}`), sample: true });
   }
   const gap = gaps(SAMPLE_TARGETS)[0];
   if (gap) {

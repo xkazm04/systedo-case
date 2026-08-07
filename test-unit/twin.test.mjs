@@ -45,6 +45,7 @@ import {
 import {
   factsNewerThanVoice,
   formatVoiceAge,
+  hasTrainedVoice,
   RETRAIN_MARGIN,
   shouldNudgeRetrain,
   voiceTrainedAt,
@@ -495,6 +496,19 @@ test("voiceTrainedAt: a real training stamp is read, the seed epoch / empty voic
   assert.equal(voiceTrainedAt(trainedVoice()), "2026-04-15T00:00:00.000Z");
   assert.equal(voiceTrainedAt(voice("email")), null, "the epoch seed stamp is not a training event");
   assert.equal(voiceTrainedAt(trainedVoice({ directives: "   " })), null, "an empty voice is never 'trained'");
+});
+
+test("hasTrainedVoice: the trained badge asks 'was a voice trained', not 'does a row exist'", () => {
+  // A blob saved by a mere channel toggle in Správa kanálů: seeded voices only,
+  // all on the EPOCH stamp — resolveTwin's `source` says "trained", this must not.
+  assert.equal(hasTrainedVoice([voice("generic"), voice("email")]), false, "row-exists-but-untrained → no badge");
+  assert.equal(hasTrainedVoice([]), false);
+  assert.equal(hasTrainedVoice([voice("generic"), trainedVoice()]), true, "one real training event → badge");
+  assert.equal(
+    hasTrainedVoice([trainedVoice({ directives: "   " })]),
+    false,
+    "a trained-then-emptied voice is not trained"
+  );
 });
 
 test("formatVoiceAge mirrors the round-7 buckets + Czech instrumental grammar", () => {
