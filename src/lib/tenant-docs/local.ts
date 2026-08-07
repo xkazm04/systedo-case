@@ -116,7 +116,11 @@ export const localTenantDocs: TenantDocs = {
     if (opts?.orderBy) {
       // json_extract gives text affinity for an ISO string (createdAt/receivedAt) →
       // the same lexicographic ordering a Firestore orderBy on that field yields.
-      sql += ` ORDER BY json_extract(data, ?) ${opts.orderBy.dir === "desc" ? "DESC" : "ASC"}`;
+      // rowid tie-break: two docs written in the same millisecond share an ISO
+      // timestamp, and SQLite's order is otherwise unspecified for equal keys —
+      // insertion order keeps "newest first" true for rapid consecutive writes.
+      const dir = opts.orderBy.dir === "desc" ? "DESC" : "ASC";
+      sql += ` ORDER BY json_extract(data, ?) ${dir}, rowid ${dir}`;
       params.push(`$.${opts.orderBy.field}`);
     }
     if (opts?.limit !== undefined) {
