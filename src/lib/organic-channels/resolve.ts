@@ -49,7 +49,9 @@ export async function resolveOrganicChannels(
   return {
     channels: pinned ? clean.plan! : sample,
     tracks: clean.tracks,
-    source: pinned ? "ai" : "sample",
+    // `planSource` is the stored provenance of the pinned plan ("ai" is the only
+    // value today, and the sanitizer stamps it whenever a plan is stored).
+    source: pinned ? (clean.planSource ?? "ai") : "sample",
     degraded: false,
     updatedAt: state.updatedAt,
   };

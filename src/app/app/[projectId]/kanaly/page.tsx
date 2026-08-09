@@ -8,6 +8,7 @@ import ModulePage from "@/components/app/ModulePage";
 import OrganicChannels, { type ChannelGrounding } from "@/components/app/modules/OrganicChannels";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
+import { competitorsGrounding, planProvenance } from "@/lib/organic-channels/types";
 import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
@@ -23,10 +24,16 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // Ground the plan in the project's real business: its offering categories, the
   // localities it serves, and any named competitors — the same catalog/competitor
   // spine the other smart modules read.
-  const [catalog, competitorSet] = await Promise.all([
+  // A failed competitors read is NOT "the tenant has no competitors": it silently
+  // un-grounds regeneration, so the failure survives to the UI (degraded grounding).
+  const [catalog, competitorRead] = await Promise.all([
     loadProjectCatalog(project),
-    getCompetitors(project.id).catch(() => null),
+    getCompetitors(project.id).then(
+      (set) => ({ failed: false, set }),
+      () => ({ failed: true, set: null })
+    ),
   ]);
+  const competitorSet = competitorRead.set;
   const categories = [...new Set(catalog.map((o) => o.category).filter(Boolean))];
   const localities = localitiesFor(project).map((l) => l.name);
   const offering = categories.slice(0, 4).join(", ");
@@ -37,6 +44,10 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     ...(offering ? { offering } : {}),
     ...(localities.length ? { localities } : {}),
     ...(competitors.length ? { competitors } : {}),
+    // "unavailable" ≠ "none": only a FAILED read degrades the regenerate affordance.
+    ...(competitorsGrounding(competitorRead.failed, competitors) === "unavailable"
+      ? { competitorsUnavailable: true }
+      : {}),
     // Seed keywords for the SEO/content channels: the offerings the business sells.
     ...(catalog.length
       ? { keywords: [...new Set(catalog.map((o) => o.name).filter(Boolean))].slice(0, 8) }
@@ -65,13 +76,20 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   // voiceTrainedAt, tenant-chosen channels) — see buildSignpostContext.
   const signpost: SignpostContext = buildSignpostContext(twin, savedTwin);
 
+  // Every seeded number wears its label: a real tenant on the seeded fallback
+  // plan gets the same sample gutter as every other seeded module (the demo
+  // shell wraps this module in its own gutter — this page is not the demo);
+  // a pinned AI plan instead discloses when it was generated.
+  const provenance = planProvenance(resolved);
+
   return (
-    <ModulePage moduleKey="kanaly">
+    <ModulePage moduleKey="kanaly" sample={provenance.sample}>
       <OrganicChannels
         channels={resolved.channels}
         tracks={resolved.tracks}
         source={resolved.source}
         degraded={resolved.degraded}
+        generatedAt={provenance.generatedAt}
         projectType={project.type}
         grounding={grounding}
         signpost={signpost}

@@ -19,6 +19,7 @@ import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { isModuleAvailable } from "@/lib/projects/modules";
+import { createFormatters } from "@/lib/format";
 import type { ChannelResearchResult } from "@/lib/ai-types";
 import type { ProjectType } from "@/lib/projects/types";
 import {
@@ -40,6 +41,9 @@ export interface ChannelGrounding {
   localities?: string[];
   competitors?: string[];
   keywords?: string[];
+  /** the competitors READ failed (≠ "tenant has none"): regeneration would run
+   *  un-grounded, so the regenerate affordance discloses the degradation */
+  competitorsUnavailable?: boolean;
 }
 
 const T = {
@@ -70,6 +74,9 @@ const T = {
     stepSocialHint: "Naplánujte a publikujte příspěvky",
     degradedBanner:
       "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
+    generatedMeta: "Vygenerováno {date} z podkladů projektu",
+    groundingDegraded:
+      "Konkurenci se teď nepodařilo načíst — nový plán by vznikl bez ní. Zkuste to později.",
     defaultTopic: "{channel}: příspěvek pro {brand}",
     orphanNote: "V novém plánu už nejsou tyto dříve nastavené kanály:",
     orphanRemove: "Odebrat jejich nastavení",
@@ -102,6 +109,9 @@ const T = {
     stepSocialHint: "Plan and publish posts",
     degradedBanner:
       "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
+    generatedMeta: "Generated {date} from your project's data",
+    groundingDegraded:
+      "Competitors couldn't be loaded right now — a new plan would be built without them. Try again later.",
     defaultTopic: "{channel}: post for {brand}",
     orphanNote: "These previously configured channels are no longer in the new plan:",
     orphanRemove: "Remove their setup",
@@ -114,6 +124,7 @@ export default function OrganicChannels({
   tracks: initialTracks,
   source: initialSource,
   degraded = false,
+  generatedAt: initialGeneratedAt,
   projectType,
   grounding,
   signpost,
@@ -123,6 +134,8 @@ export default function OrganicChannels({
   source: "sample" | "ai";
   /** the saved plan couldn't be read — show a read-only banner + block writes */
   degraded?: boolean;
+  /** ISO timestamp the pinned AI plan was generated (planProvenance) */
+  generatedAt?: string;
   projectType: ProjectType;
   grounding: ChannelGrounding;
   /** twin-module state snapshot the next-step derivation reads */
@@ -137,6 +150,8 @@ export default function OrganicChannels({
   const [channels, setChannels] = useState<OrganicChannel[]>(initialChannels);
   const [tracks, setTracks] = useState<Record<string, ChannelTrack>>(initialTracks);
   const [source, setSource] = useState<"sample" | "ai">(initialSource);
+  /** when the AI plan was generated — server-resolved, refreshed on client apply */
+  const [generatedAt, setGeneratedAt] = useState<string | undefined>(initialGeneratedAt);
   const [openId, setOpenId] = useState<string | null>(null);
   const [wizardQueue, setWizardQueue] = useState<OrganicChannel[]>([]);
   const [applied, setApplied] = useState(false);
@@ -205,6 +220,7 @@ export default function OrganicChannels({
     const next = reconcilePlanTracks(plan, channels, tracks);
     setChannels(plan);
     setSource("ai");
+    setGeneratedAt(new Date().toISOString());
     setApplied(true);
     setTracks(next.tracks);
     setOrphans(next.orphans);
@@ -222,6 +238,7 @@ export default function OrganicChannels({
   const revertSample = () => {
     setChannels(initialChannels);
     setSource("sample");
+    setGeneratedAt(undefined);
     setTracks({});
     setApplied(false);
     setOrphans([]);
@@ -279,6 +296,13 @@ export default function OrganicChannels({
             </span>
             <span className="pill bg-navy-50 text-muted">{t("channels", { n: channels.length })}</span>
           </div>
+          {/* A pinned AI plan says when it was generated — a stale plan must not
+              read as fresh analysis (planSource/updatedAt, threaded from resolve). */}
+          {source === "ai" && generatedAt && (
+            <p className="text-xs text-muted">
+              {t("generatedMeta", { date: createFormatters(L).fmtDateTime(generatedAt) })}
+            </p>
+          )}
           <p className="text-sm leading-relaxed text-muted">{t("intro")}</p>
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-2">
@@ -299,6 +323,13 @@ export default function OrganicChannels({
             >
               {t("revertSample")}
             </button>
+          )}
+          {/* Degraded grounding ≠ no grounding: the competitors READ failed, so a
+              regeneration right now would silently run without them. */}
+          {grounding.competitorsUnavailable && (
+            <p className="max-w-56 text-center text-xs leading-relaxed text-coral-600 sm:text-right">
+              {t("groundingDegraded")}
+            </p>
           )}
         </div>
       </div>

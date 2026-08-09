@@ -119,6 +119,46 @@ export interface OrganicChannelState {
 }
 
 // --------------------------------------------------------------------------
+// Provenance — every seeded number wears its label. Pure helpers the kanaly
+// page uses to decide what disclosure the module owes the tenant.
+// --------------------------------------------------------------------------
+
+export interface PlanProvenance {
+  /** the module is showing SEEDED sample data → the standard sample gutter shows
+   *  (true also when the store read degraded to the read-only sample) */
+  sample: boolean;
+  /** when a pinned AI plan shows: the ISO timestamp it was generated (its save) */
+  generatedAt?: string;
+}
+
+/** What the module owes the tenant about the plan it renders: a seeded fallback
+ *  plan wears the sample gutter like every other seeded module; a pinned AI plan
+ *  instead discloses WHEN it was generated (`updatedAt` of the save that pinned
+ *  it) so a stale plan can't read as fresh analysis. */
+export function planProvenance(resolved: {
+  source: "sample" | "ai";
+  updatedAt?: string;
+}): PlanProvenance {
+  if (resolved.source !== "ai") return { sample: true };
+  return { sample: false, ...(resolved.updatedAt ? { generatedAt: resolved.updatedAt } : {}) };
+}
+
+/** Health of the competitor grounding the regenerate affordance would feed the
+ *  channel-research op. "unavailable" (the read FAILED) must stay distinct from
+ *  "none" (the tenant genuinely has no curated competitors): a failed read
+ *  silently un-grounds regeneration, and the tenant deserves to know before
+ *  they overwrite a grounded plan with an un-grounded one. */
+export type CompetitorsGrounding = "ok" | "none" | "unavailable";
+
+export function competitorsGrounding(
+  readFailed: boolean,
+  names: readonly string[]
+): CompetitorsGrounding {
+  if (readFailed) return "unavailable";
+  return names.length > 0 ? "ok" : "none";
+}
+
+// --------------------------------------------------------------------------
 // Request sanitizers — used by the persistence route to coerce arbitrary client
 // JSON into a clean, bounded state blob (never trust the wire). Framework-free.
 // --------------------------------------------------------------------------

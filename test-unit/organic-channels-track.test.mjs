@@ -4,7 +4,13 @@
  *  modules' real state (readiness is derived, never persisted). */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeTrack, sanitizeChannelState, channelKind } from "@/lib/organic-channels/types";
+import {
+  sanitizeTrack,
+  sanitizeChannelState,
+  channelKind,
+  planProvenance,
+  competitorsGrounding,
+} from "@/lib/organic-channels/types";
 import {
   deriveChannelNext,
   suggestedMode,
@@ -78,6 +84,28 @@ test("sanitizeChannelState reads tracks, migrates legacy statuses maps, stays bo
 
   const flood = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`k${i}`, { stage: "live" }]));
   assert.equal(Object.keys(sanitizeChannelState({ tracks: flood }).tracks).length, 64);
+});
+
+test("plan provenance: the sample gutter follows the source, a pinned plan carries its generation time", () => {
+  // Seeded fallback (a real tenant who never pinned a plan) → the standard
+  // sample gutter, exactly like every other seeded module.
+  assert.deepEqual(planProvenance({ source: "sample" }), { sample: true });
+  // A degraded read shows the read-only sample → it wears the gutter too.
+  assert.deepEqual(planProvenance({ source: "sample", updatedAt: "2026-08-01T00:00:00.000Z" }), {
+    sample: true,
+  });
+  // A pinned AI plan: no sample gutter, but it discloses WHEN it was generated.
+  assert.deepEqual(planProvenance({ source: "ai", updatedAt: "2026-08-01T00:00:00.000Z" }), {
+    sample: false,
+    generatedAt: "2026-08-01T00:00:00.000Z",
+  });
+  assert.deepEqual(planProvenance({ source: "ai" }), { sample: false });
+});
+
+test("competitor grounding: a FAILED read is distinct from a tenant with none", () => {
+  assert.equal(competitorsGrounding(false, ["Rival s.r.o."]), "ok");
+  assert.equal(competitorsGrounding(false, []), "none"); // genuinely no competitors
+  assert.equal(competitorsGrounding(true, []), "unavailable"); // read failed — degraded
 });
 
 test("wizard suggestions follow the channel kind", () => {
