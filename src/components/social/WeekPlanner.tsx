@@ -9,6 +9,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Calendar, Check, Clock, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
+import DraftHealth from "./DraftHealth";
+import { draftResponseMeta, mergeDraftMetas, type SocialDraftMeta } from "@/lib/social/draft-meta";
 import { readSocialBrand } from "@/lib/social/brand-storage";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -43,6 +45,7 @@ const T = {
     overLimit: "{count} témat: naplánuje se prvních 7, zbytek zůstane v poli.",
     voiceLabel: "Píše na značku",
     voiceHint: "Odvozeno z vašeho katalogu: příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
+    degradedBatch: "{n} z {total} návrhů se vrátilo s výhradou — zkontrolujte texty v kalendáři.",
   },
   en: {
     title: "Week plan",
@@ -63,6 +66,7 @@ const T = {
     overLimit: "{count} topics: the first 7 will be scheduled, the rest stay in the field.",
     voiceLabel: "Writing on-brand",
     voiceHint: "Derived from your catalog: posts stay in your range and vocabulary. Edit in Catalog.",
+    degradedBatch: "{n} of {total} drafts came back flagged — review the texts in the calendar.",
   },
 } as const;
 
@@ -155,6 +159,9 @@ export default function WeekPlanner() {
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Honesty verdict of the last batch: merged meta of every draft that came back
+  // degraded / wrong-language, plus how many topics were flagged. Null = all clean.
+  const [batchHealth, setBatchHealth] = useState<{ meta: SocialDraftMeta; flagged: number; total: number } | null>(null);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -235,6 +242,7 @@ export default function WeekPlanner() {
     if (topicLines.length === 0 || running) return;
     setRunning(true);
     setError(null);
+    setBatchHealth(null);
     setProgress({ done: 0, total: topicLines.length });
     // First slot today at the chosen hour; if that's already past, start tomorrow, so
     // every scheduled post lands in the future (the store keeps future-dated ones). The
@@ -254,6 +262,9 @@ export default function WeekPlanner() {
     // draft that silently omits a platform surfaces as "X of Y created" instead of a
     // green run that quietly holds fewer posts than "témat × sítě" advertised.
     let savedCount = 0;
+    // Per-topic honesty metas (degraded / wrong-language), surfaced after the run —
+    // a batch whose captions are truncated must not look identical to a clean one.
+    const draftMetas: (SocialDraftMeta | null)[] = [];
     for (let i = 0; i < topicLines.length; i++) {
       try {
         const draftRes = await fetch("/api/social/draft", {
@@ -277,6 +288,7 @@ export default function WeekPlanner() {
           failed = true;
           break;
         }
+        draftMetas.push(draftResponseMeta(draftJson));
         // One topic → a differentiated caption per selected platform, all scheduled on
         // the topic's day (the topic runs across every channel that day).
         const drafts: { platform: SocialPlatform; content: string }[] = draftJson.drafts ?? [];
@@ -314,6 +326,16 @@ export default function WeekPlanner() {
       }
     }
     setRunning(false);
+    // Surface the merged draft honesty regardless of how the run ended: posts from a
+    // degraded draft are already scheduled, so the flag matters even mid-failure.
+    const mergedMeta = mergeDraftMetas(draftMetas);
+    if (mergedMeta) {
+      setBatchHealth({
+        meta: mergedMeta,
+        flagged: draftMetas.filter((m) => m && (m.degraded || m.languageMismatch)).length,
+        total: topicLines.length,
+      });
+    }
     if (!failed) {
       // Keep any over-the-7-cap tail the run didn't touch instead of wiping the whole
       // field (topicLines is the first 7; rawLines is everything the user typed).
@@ -447,6 +469,14 @@ export default function WeekPlanner() {
             {running && progress ? t("generating", { done: progress.done, total: progress.total }) : t("planBtn")}
           </button>
           {error && <p className="text-xs text-negative">{error}</p>}
+          {batchHealth && (
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted">
+                {t("degradedBatch", { n: batchHealth.flagged, total: batchHealth.total })}
+              </p>
+              <DraftHealth meta={batchHealth.meta} />
+            </div>
+          )}
         </div>
       </div>
 

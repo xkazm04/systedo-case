@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Bolt, Check, Sparkles } from "@/components/icons";
 import { RefineBar } from "@/components/ai/primitives";
+import DraftHealth from "./DraftHealth";
+import { draftResponseMeta, type SocialDraftMeta } from "@/lib/social/draft-meta";
 import { useOptionalProject } from "@/lib/projects/context";
 import { readSocialBrand, writeSocialBrand } from "@/lib/social/brand-storage";
 import { useT } from "@/lib/i18n/client";
@@ -88,6 +90,9 @@ export default function Composer() {
   const [drafting, setDrafting] = useState<false | "template" | "ai">(false);
   const [draftSource, setDraftSource] = useState<string | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+  // Honesty meta of the last draft response (degraded / wrong-language) — null for
+  // a clean answer, so the healthy path renders no extra chrome.
+  const [draftMeta, setDraftMeta] = useState<SocialDraftMeta | null>(null);
   // Brand voice (what they sell + how they talk) — de-hardcodes the assistant from a
   // single brand; persisted locally so it sticks, and fed to the AI draft as `brand`.
   const [brand, setBrand] = useState("");
@@ -162,6 +167,9 @@ export default function Composer() {
       }
       setDrafts(json.drafts ?? []);
       setDraftSource(json.source ?? null);
+      // The route forwards the wrapper's honesty fields; surface them instead of
+      // letting a truncated or wrong-language caption look identical to a clean one.
+      setDraftMeta(draftResponseMeta(json));
     } catch {
       setDraftError(t("serverError"));
     } finally {
@@ -311,6 +319,9 @@ export default function Composer() {
               {draftSource === "ai" ? t("aiDraft") : draftSource === "demo" ? t("demoSource") : t("templateSource")}
             </span>
           )}
+          {/* Degraded / wrong-language answer: say so via the shared primitives —
+              a clean answer renders none of this. */}
+          <DraftHealth meta={draftMeta} onRetry={() => suggest(true)} />
           {drafts.map((d) => (
             <div key={d.platform} className="rounded-lg border border-line p-3">
               <div className="flex items-center justify-between">

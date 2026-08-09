@@ -152,9 +152,11 @@ export interface SocialSkillInput {
 }
 
 /** The deterministic per-platform drafts — the demo fallback, and the fill for any
- *  platform the model skips. */
+ *  platform the model skips. Carries the request's brand (like the route's plain
+ *  template mode does), so a backfilled caption still signs off as the user's own
+ *  brand instead of losing the voice the templates support. */
 function socialFallback(i: SocialSkillInput): { platform: SocialPlatform; content: string }[] {
-  return draftPosts(i.topic, i.tone, i.platforms) as { platform: SocialPlatform; content: string }[];
+  return draftPosts(i.topic, i.tone, i.platforms, i.brand) as { platform: SocialPlatform; content: string }[];
 }
 
 /** Reconcile the model's posts against the requested platforms: clamp each to its

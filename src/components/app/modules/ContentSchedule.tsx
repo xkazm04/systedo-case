@@ -28,6 +28,8 @@ import { useProject } from "@/lib/projects/context";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social/types";
+import DraftHealth from "@/components/social/DraftHealth";
+import { draftResponseMeta, type SocialDraftMeta } from "@/lib/social/draft-meta";
 import { channelSendAt, type ContentPost, type PostStatus } from "@/lib/content-schedule/sample";
 import {
   calendarGrid,
@@ -161,6 +163,9 @@ export default function ContentSchedule({
   });
   const [draftingId, setDraftingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
+  // Honesty meta of the LAST AI draft (per slot): a truncated / wrong-language
+  // caption must not land in the textarea looking identical to a clean one.
+  const [draftHealth, setDraftHealth] = useState<{ id: string; meta: SocialDraftMeta } | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendErrorId, setSendErrorId] = useState<string | null>(null);
   const [platform, setPlatform] = useState<SocialPlatform | "">(channels[0] ?? "");
@@ -277,6 +282,7 @@ export default function ContentSchedule({
     if (draftingId) return;
     setDraftingId(post.id);
     setErrorId(null);
+    setDraftHealth(null);
     try {
       const res = await fetch("/api/social/draft", {
         method: "POST",
@@ -295,6 +301,10 @@ export default function ContentSchedule({
         setErrorId(post.id);
         return;
       }
+      // Forwarded wrapper honesty (degraded / wrong-language) — surfaced next to
+      // the slot the caption landed in, via the shared draft-meta seam.
+      const meta = draftResponseMeta(json);
+      setDraftHealth(meta ? { id: post.id, meta } : null);
       setBody(post.id, copy, true);
     } catch {
       setErrorId(post.id);
@@ -431,6 +441,11 @@ export default function ContentSchedule({
                       </button>
                     )}
                     {errorId === p.id && <p className="mt-1.5 text-xs text-negative">{t("draftError")}</p>}
+                    {draftHealth?.id === p.id && (
+                      <div className="mt-1.5">
+                        <DraftHealth meta={draftHealth.meta} onRetry={() => void draftCopy(p)} />
+                      </div>
+                    )}
 
                     {/* The calendar as a starting point: the slot already knows the
                         topic, so the long-form workspace opens seeded from it. */}
