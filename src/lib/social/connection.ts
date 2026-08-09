@@ -73,7 +73,7 @@ export async function listConnectedSocialUserIds(): Promise<string[]> {
 export async function connectAccount(
   userId: string,
   platform: SocialPlatform,
-  opts: { token?: string } = {}
+  opts: { token?: string; brandLabel?: string } = {}
 ): Promise<void> {
   const stored = await listStored(userId);
   const existing = stored.find((a) => a.platform === platform);
@@ -88,6 +88,8 @@ export async function connectAccount(
       // Per-platform (not the global socialConfigured()): only THIS platform's
       // credentials make its connection real.
       realConfigured: providerConfigured(platform) && hasTokenCrypto(),
+      // The tenant's own brand for the demo handle — never a placeholder company.
+      brandLabel: opts.brandLabel,
     })
   );
   await (await backend()).saveStoredAccounts(userId, accounts);

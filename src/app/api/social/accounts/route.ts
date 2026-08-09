@@ -11,6 +11,19 @@ import {
   socialConfigured,
 } from "@/lib/social/connection";
 import { isSocialPlatform } from "@/lib/social/types";
+import { listProjects } from "@/lib/projects/store";
+
+/** The brand label for a freshly minted demo handle: the user's project name when
+ *  it is unambiguous (exactly one project), else none — with several brands we
+ *  never guess which one the account represents; the handle stays neutral. */
+async function demoBrandLabel(uid: string): Promise<string | undefined> {
+  try {
+    const projects = await listProjects(uid);
+    return projects.length === 1 ? projects[0]?.name : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 
 export async function GET() {
@@ -31,7 +44,10 @@ export async function POST(request: Request) {
   // Optional OAuth token (additive): when supplied with configured credentials the
   // connection becomes real and the token is encrypted at rest; absent → a demo connect.
   const token = typeof body?.token === "string" ? body.token : undefined;
-  await connectAccount(uid, platform, token ? { token } : {});
+  await connectAccount(uid, platform, {
+    ...(token ? { token } : {}),
+    brandLabel: await demoBrandLabel(uid),
+  });
   return Response.json({ accounts: await listAccounts(uid) });
 }
 
