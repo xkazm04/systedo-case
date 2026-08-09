@@ -1,9 +1,13 @@
 /** Social posts: list, create (schedule for later or publish now), delete.
- *  Per-tenant; anonymous visitors use the shared sample tenant so the flow demos
- *  without sign-in. Publishing is simulated in demo mode (see lib/social/publish). */
+ *  Per-tenant; anonymous visitors get a SESSION-scoped demo tenant (see
+ *  api/social/guard.ts) so the flow demos without sign-in — without any
+ *  visitor's writes rendering for other visitors. Writes are rate-limited
+ *  per user (authed) / per IP (anonymous). Publishing is simulated in demo
+ *  mode (see lib/social/publish). */
 import { currentUserId } from "@/lib/session";
-import { resolveTenant } from "@/lib/campaigns/connector";
 import { rejectUnknownProject } from "@/lib/projects/api-guard";
+import { guardSocialWrite, socialTenant } from "@/app/api/social/guard";
+import { SOCIAL_RATE } from "@/lib/social/rails";
 import { recordActivity } from "@/lib/campaigns/activity";
 import { socialPostActivityRow, socialPostPublishFields } from "@/lib/activity/publish";
 import { getServerLocale } from "@/lib/i18n/locale";
@@ -20,13 +24,6 @@ const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
  *  published immediately. */
 const PAST_SCHEDULE_SKEW_MS = 2 * 60 * 1000;
 
-async function tenantOf(projectId?: string | null): Promise<string> {
-  const uid = await currentUserId();
-  // Social content is account-agnostic — key it without the Ads customerId so a
-  // later account connect/switch can't orphan a user's scheduled posts + inbox.
-  return resolveTenant(uid, projectId, { accountScoped: false });
-}
-
 /** Resolve the publish context for the signed-in user + platform: the connected account
  *  and — only for a real (non-demo) connection — its decrypted token, so publishPost can
  *  choose the real adapter over an honest simulation. */
@@ -40,9 +37,10 @@ async function publishContextFor(platform: SocialPlatform): Promise<PublishConte
 
 export async function GET(request: Request) {
   const projectId = new URL(request.url).searchParams.get("projectId");
-  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  const uid = await currentUserId();
+  const unknown = await rejectUnknownProject(uid, projectId);
   if (unknown) return unknown;
-  return Response.json({ posts: await listPosts(await tenantOf(projectId)) });
+  return Response.json({ posts: await listPosts(await socialTenant(uid, projectId)) });
 }
 
 export async function POST(request: Request) {
@@ -65,9 +63,13 @@ export async function POST(request: Request) {
   }
 
   const projectId = str(body.projectId) || null;
-  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  const uid = await currentUserId();
+  const unknown = await rejectUnknownProject(uid, projectId);
   if (unknown) return unknown;
-  const tenant = await tenantOf(projectId);
+  // Write rail: per-user when signed in, durable per-IP for the anonymous demo.
+  const limited = await guardSocialWrite(request, uid, SOCIAL_RATE.postPerMin());
+  if (limited) return limited;
+  const tenant = await socialTenant(uid, projectId);
   // The activity row's prose is persisted, so it is written in the language of the
   // person who triggered it. The structured publish taxonomy below is unaffected.
   const locale = await getServerLocale();
@@ -139,8 +141,12 @@ export async function DELETE(request: Request) {
     /* fall through */
   }
   if (!id) return Response.json({ error: "Chybí ID." }, { status: 422 });
-  const unknown = await rejectUnknownProject(await currentUserId(), projectId);
+  const uid = await currentUserId();
+  const unknown = await rejectUnknownProject(uid, projectId);
   if (unknown) return unknown;
-  const ok = await deletePost(await tenantOf(projectId), id);
+  // Same write rail as POST — a delete is a store write too.
+  const limited = await guardSocialWrite(request, uid, SOCIAL_RATE.postPerMin());
+  if (limited) return limited;
+  const ok = await deletePost(await socialTenant(uid, projectId), id);
   return Response.json({ ok }, { status: ok ? 200 : 404 });
 }

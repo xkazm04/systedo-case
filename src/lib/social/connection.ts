@@ -1,5 +1,10 @@
 /** Per-user social-account connections — which platforms the user has linked.
- *  Stored in Firestore `socialConnections/{userId}` = { accounts: StoredSocialAccount[] }.
+ *  Backend-dispatched (the sklik-connection posture): prod = Firestore
+ *  `socialConnections/{userId}` = { accounts: StoredSocialAccount[] }; LOCAL_DB =
+ *  a node:sqlite twin (./connection.local, rows in the tenant_docs table under a
+ *  reserved pseudo-tenant), so `npm run dev:local` connects accounts and the
+ *  publish cron's connected-user scan works fully offline. The dynamic import
+ *  keeps firebase-admin out of the local path entirely (local-mode contract).
  *
  *  Real OAuth (Meta Graph / LinkedIn) is a seam gated behind env credentials; until
  *  those exist, `connectAccount` links a DEMO account so the whole compose → schedule →
@@ -9,7 +14,7 @@
  *  client — listAccounts strips it, publish.ts reads it through getAccountToken only.
  *  A demo connection stays a demo connection. Server-only. */
 import "server-only";
-import { firestore } from "@/lib/firebase";
+import { LOCAL_DB } from "@/lib/local-mode";
 import { hasTokenCrypto } from "@/lib/inventory/token-crypto";
 import { socialProvider } from "./providers";
 import type { SocialAccount, SocialPlatform } from "./types";
@@ -24,16 +29,6 @@ import {
 // offline; re-exported here so existing importers keep their single import site.
 export { buildSocialAccount, readAccountToken, stripToken };
 export type { StoredSocialAccount };
-
-const COLLECTION = "socialConnections";
-
-interface Doc {
-  accounts?: StoredSocialAccount[];
-}
-
-function ref(userId: string) {
-  return firestore.collection(COLLECTION).doc(userId);
-}
 
 /** Whether real publishing is configured for ANY platform (Meta / LinkedIn app
  *  credentials) — a coarse banner hint for the UI. NOT the per-account real-vs-demo
@@ -51,12 +46,15 @@ export function providerConfigured(platform: SocialPlatform): boolean {
   return Boolean(socialProvider(platform)?.configured());
 }
 
-// ── store ─────────────────────────────────────────────────────────────────────
+// ── store (backend-dispatched) ───────────────────────────────────────────────
+
+function backend() {
+  return LOCAL_DB ? import("./connection.local") : import("./connection.firestore");
+}
 
 /** Raw stored accounts (WITH token blobs) — server-only; never serialise directly. */
 async function listStored(userId: string): Promise<StoredSocialAccount[]> {
-  const doc = await ref(userId).get();
-  return (doc.data() as Doc | undefined)?.accounts ?? [];
+  return (await backend()).listStoredAccounts(userId);
 }
 
 /** Public accounts (token stripped) — safe to return to the client. */
@@ -66,8 +64,7 @@ export async function listAccounts(userId: string): Promise<SocialAccount[]> {
 
 /** User ids with at least one connected account — the set the publish cron walks. */
 export async function listConnectedSocialUserIds(): Promise<string[]> {
-  const snap = await firestore.collection(COLLECTION).get();
-  return snap.docs.filter((d) => ((d.data() as Doc).accounts?.length ?? 0) > 0).map((d) => d.id);
+  return (await backend()).listConnectedSocialUserIds();
 }
 
 /** Link a platform (idempotent per platform). With no token → a demo connection (records
@@ -93,12 +90,12 @@ export async function connectAccount(
       realConfigured: providerConfigured(platform) && hasTokenCrypto(),
     })
   );
-  await ref(userId).set({ accounts }, { merge: true });
+  await (await backend()).saveStoredAccounts(userId, accounts);
 }
 
 export async function disconnectAccount(userId: string, platform: SocialPlatform): Promise<void> {
   const accounts = (await listStored(userId)).filter((a) => a.platform !== platform);
-  await ref(userId).set({ accounts }, { merge: true });
+  await (await backend()).saveStoredAccounts(userId, accounts);
 }
 
 /** Public account for a platform (token stripped) — used for the demo-vs-real check. */
