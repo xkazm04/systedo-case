@@ -8,12 +8,13 @@ import ModulePage from "@/components/app/ModulePage";
 import OrganicChannels, { type ChannelGrounding } from "@/components/app/modules/OrganicChannels";
 import { channelPlanForProject } from "@/lib/organic-channels/sample";
 import { resolveOrganicChannels } from "@/lib/organic-channels/resolve";
-import type { SignpostContext } from "@/lib/organic-channels/next-step";
+import { buildSignpostContext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { loadProjectCatalog } from "@/lib/catalog/load";
 import { localitiesFor } from "@/lib/catalog/resolve";
 import { getCompetitors } from "@/lib/competitors/store";
 import { curatedCompetitors } from "@/lib/competitors/types";
 import { resolveTwin } from "@/lib/twin/resolve";
+import { getTwin } from "@/lib/twin/store";
 
 export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = await params;
@@ -46,23 +47,23 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
     category: categories[0],
     locality: localities[0],
   });
-  const [resolved, twin] = await Promise.all([
+  const [resolved, twin, savedTwin] = await Promise.all([
     resolveOrganicChannels(project.id, sample),
     resolveTwin(project.id, project.type),
+    // The RAW saved twin, read alongside resolveTwin's own read: the resolved
+    // state cannot say whether its channel list is the tenant's or the seed's
+    // (resolveTwin keeps seeded channels whenever saved.channels is empty), and
+    // the enabled-channel gate must not count seed defaults nobody chose. One
+    // extra keyed read buys that honesty; a hiccup degrades to "nothing chosen".
+    getTwin(project.id).catch(() => null),
   ]);
 
   // Snapshot of the twin modules' REAL state — the signpost derives each
   // channel's readiness (voice trained? channel enabled? drafts waiting?) from
-  // this instead of persisting flags that could drift out of sync.
-  const pendingByChannel: Record<string, number> = {};
-  for (const d of twin.state.drafts) {
-    if (d.status === "pending") pendingByChannel[d.channel] = (pendingByChannel[d.channel] ?? 0) + 1;
-  }
-  const signpost: SignpostContext = {
-    trainedScopes: twin.state.voices.filter((v) => v.directives.trim().length > 0).map((v) => v.scope),
-    enabledTwinChannels: twin.state.channels.filter((c) => c.enabled).map((c) => c.channel),
-    pendingByChannel,
-  };
+  // this instead of persisting flags that could drift out of sync. "Trained"
+  // and "enabled" are the honest predicates (tenant-trained voice via
+  // voiceTrainedAt, tenant-chosen channels) — see buildSignpostContext.
+  const signpost: SignpostContext = buildSignpostContext(twin, savedTwin);
 
   return (
     <ModulePage moduleKey="kanaly">

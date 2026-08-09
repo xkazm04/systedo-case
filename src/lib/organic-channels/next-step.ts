@@ -8,17 +8,64 @@ import {
   type ChannelTrack,
   type OrganicChannel,
 } from "./types";
+import { voiceTrainedAt } from "@/lib/twin/voice-age";
+import type { TwinState } from "@/lib/twin/types";
 
 /** Snapshot of the other modules' state the derivation reads. Assembled
- *  server-side by the kanaly page from resolveTwin (voices, channel configs,
- *  pending drafts) and passed down — plain data, client-safe. */
+ *  server-side by the kanaly page via {@link buildSignpostContext} (from
+ *  resolveTwin's voices/channel configs/pending drafts) and passed down —
+ *  plain data, client-safe. */
 export interface SignpostContext {
-  /** twin voice scopes with non-empty trained directives */
+  /** twin voice scopes the TENANT actually trained (see buildSignpostContext) */
   trainedScopes: readonly string[];
-  /** twin channels enabled in sprava-kanalu */
+  /** twin channels the tenant enabled in sprava-kanalu (seed defaults excluded) */
   enabledTwinChannels: readonly string[];
   /** pending (unreviewed) schranka drafts per twin channel */
   pendingByChannel: Record<string, number>;
+}
+
+/** Build the SignpostContext from the resolved twin plus the RAW saved twin
+ *  state. The two honesty rules live here (unit-tested) so the signpost, the
+ *  wizard checklist and the Twin header pill all read the same reality:
+ *
+ *  - "trained" means the TENANT trained a voice. The scope must be user-saved
+ *    (`trainedScopes` — seeded sample rows that `mergeVoices` fills gaps with
+ *    don't count) AND actually trained per `voiceTrainedAt` (non-empty
+ *    directives + a real timestamp — the seed's EPOCH stamp and an emptied
+ *    editor row don't count). Because saved rows win the per-scope merge, any
+ *    merged voice with a real training stamp IS the saved row, so this is the
+ *    exact per-scope restriction of the Twin header's `hasTrainedVoice` bit —
+ *    the two surfaces cannot disagree.
+ *
+ *  - "enabled" counts only TENANT-CHOSEN channel config. resolveTwin keeps the
+ *    seeded channels (all `enabled: true`, a default the app made) whenever
+ *    `saved.channels` is empty, so the resolved list alone cannot tell choice
+ *    from seed. The honest line is `saved.channels` non-empty: the
+ *    sprava-kanalu save persists the whole channel slice, so a non-empty saved
+ *    list means the tenant saved channel config at least once — and from that
+ *    moment the resolved list is exactly their choice (even where it happens
+ *    to equal the seed defaults). Until then, no channel counts as enabled. */
+export function buildSignpostContext(
+  twin: {
+    state: Pick<TwinState, "voices" | "channels" | "drafts">;
+    trainedScopes: readonly string[];
+  },
+  saved: Pick<TwinState, "channels"> | null
+): SignpostContext {
+  const pendingByChannel: Record<string, number> = {};
+  for (const d of twin.state.drafts) {
+    if (d.status === "pending") pendingByChannel[d.channel] = (pendingByChannel[d.channel] ?? 0) + 1;
+  }
+  const tenantChoseChannels = (saved?.channels.length ?? 0) > 0;
+  return {
+    trainedScopes: twin.state.voices
+      .filter((v) => twin.trainedScopes.includes(v.scope) && voiceTrainedAt(v) !== null)
+      .map((v) => v.scope),
+    enabledTwinChannels: tenantChoseChannels
+      ? twin.state.channels.filter((c) => c.enabled).map((c) => c.channel)
+      : [],
+    pendingByChannel,
+  };
 }
 
 export type ChannelNextKey =
