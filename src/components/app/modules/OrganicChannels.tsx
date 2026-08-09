@@ -146,7 +146,10 @@ export default function OrganicChannels({
   const ai = useAiTool<ChannelResearchResult>("channel-research");
 
   const open = channels.find((c) => c.id === openId) ?? null;
-  const nextOf = (c: OrganicChannel) => deriveChannelNext(c, tracks[c.id], signpost);
+  // The availability gate keeps every derived CTA honest for THIS project type
+  // (e.g. a leadgen plan's LinkedIn row must not deep-link to the absent socialni).
+  const nextOf = (c: OrganicChannel) =>
+    deriveChannelNext(c, tracks[c.id], signpost, (key) => isModuleAvailable(projectType, key));
 
   const quickWin = useMemo(
     () => channels.find((c) => c.effort === "low" && c.fit >= 70 && !tracks[c.id]) ?? null,
@@ -230,10 +233,14 @@ export default function OrganicChannels({
   const createContent = (channel: OrganicChannel) => {
     const topic =
       channel.contentAngle || t("defaultTopic", { channel: channel.name, brand: project.name });
+    // Seed the brief with a REAL catalog keyword (the page resolved them into the
+    // grounding) — the brand name is not an SEO keyword; it's only the last resort
+    // for a project with an empty catalog.
+    const primaryKeyword = grounding.keywords?.[0] ?? project.name;
     try {
       sessionStorage.setItem(
         briefSeedKey(project.id),
-        JSON.stringify({ topic, primaryKeyword: project.name, keywords: [] })
+        JSON.stringify({ topic, primaryKeyword, keywords: [] })
       );
     } catch {
       /* storage unavailable — still navigate; the engine opens unseeded */
@@ -246,7 +253,11 @@ export default function OrganicChannels({
     const next = nextOf(c);
     if (next.key === "none") return;
     if (next.to) {
-      router.push(`/app/${project.id}/${next.to}?from=kanaly&channel=${c.id}`);
+      // `channel` carries a TWIN channel (next.scope) only where the destination
+      // can honor it (schranka's picker); other modules get no dead parameter.
+      router.push(
+        `/app/${project.id}/${next.to}?from=kanaly${next.scope ? `&channel=${next.scope}` : ""}`
+      );
       return;
     }
     if (next.key === "decide" || next.key === "set-inbox") setWizardQueue([c]);

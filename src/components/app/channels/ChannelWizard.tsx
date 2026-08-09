@@ -211,7 +211,7 @@ export default function ChannelWizard({
     };
     onSave(channel.id, track);
     if (chosenMode === "twin" && !voiceTrained) {
-      router.push(`/app/${project.id}/twin?from=kanaly&channel=${channel.id}`);
+      router.push(`/app/${project.id}/twin?from=kanaly`);
       return;
     }
     advanceQueue();

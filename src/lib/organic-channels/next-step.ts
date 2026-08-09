@@ -87,6 +87,10 @@ export interface ChannelNext {
   to?: "twin" | "sprava-kanalu" | "schranka" | "obsahovy-engine" | "socialni";
   /** pending-draft count for "check-inbox" badges */
   count?: number;
+  /** twin channel the destination should open on ("check-inbox" → schranka's
+   *  channel picker) — the granularity the inbox actually has. CTAs append it
+   *  as `&channel=<scope>`; schranka reads it. No other step carries one. */
+  scope?: string;
 }
 
 /** Twin scope a channel maps to by default when the user picks twin mode. */
@@ -103,8 +107,20 @@ export function suggestedMode(channel: OrganicChannel): "manual" | "twin" {
 export function deriveChannelNext(
   channel: OrganicChannel,
   track: ChannelTrack | undefined,
-  ctx: SignpostContext
+  ctx: SignpostContext,
+  /** whether a module route segment exists for this project's type — the CTA
+   *  gate. Defaults to "everything exists" so pure callers/tests stay simple;
+   *  the UI passes `isModuleAvailable(projectType, key)` so a derived step can
+   *  never deep-link to a notFound() (e.g. `socialni` for leadgen). */
+  isAvailable: (moduleKey: string) => boolean = () => true
 ): ChannelNext {
+  /** Honesty gate on the derived deep link: a CTA must never promise a module
+   *  the project doesn't have. When the target is unavailable and no equivalent
+   *  module exists, fall back to working the channel here — the playbook's
+   *  first steps are always real. */
+  const guard = (next: ChannelNext): ChannelNext =>
+    !next.to || isAvailable(next.to) ? next : { key: "first-action" };
+
   const stage = track?.stage ?? "identified";
   if (stage === "identified") return { key: "decide" };
   if (stage === "paused") return { key: "resume" };
@@ -115,8 +131,9 @@ export function deriveChannelNext(
   if (stage === "planned") {
     if (track?.mode === "twin") {
       const scope = track.twinScope ?? suggestedTwinScope(channel);
-      if (!ctx.trainedScopes.includes(scope)) return { key: "train-voice", to: "twin" };
-      if (!ctx.enabledTwinChannels.includes(scope)) return { key: "enable-channel", to: "sprava-kanalu" };
+      if (!ctx.trainedScopes.includes(scope)) return guard({ key: "train-voice", to: "twin" });
+      if (!ctx.enabledTwinChannels.includes(scope))
+        return guard({ key: "enable-channel", to: "sprava-kanalu" });
       if (kind === "conversational" && !track.inboxSource) return { key: "set-inbox" };
       return { key: "go-live" };
     }
@@ -128,9 +145,14 @@ export function deriveChannelNext(
   if (kind === "conversational" && (track?.mode === "twin" || track?.inboxSource)) {
     const scope = track?.twinScope ?? suggestedTwinScope(channel);
     const count = ctx.pendingByChannel[scope] ?? 0;
-    return { key: "check-inbox", to: "schranka", ...(count > 0 ? { count } : {}) };
+    // `scope` rides along so the schranka CTA can open the inbox on the exact
+    // twin channel it counted pending drafts for.
+    return guard({ key: "check-inbox", to: "schranka", scope, ...(count > 0 ? { count } : {}) });
   }
   // Content, PR and manual conversational channels all continue by producing the
-  // next piece; social-category channels draft in the social planner.
-  return { key: "create-content", to: channel.category === "social" ? "socialni" : "obsahovy-engine" };
+  // next piece; social-category channels draft in the social planner — but only
+  // when the project type HAS the social planner (leadgen doesn't): the content
+  // engine (available for every type) is the honest fallback, not a 404.
+  const to = channel.category === "social" && isAvailable("socialni") ? "socialni" : "obsahovy-engine";
+  return guard({ key: "create-content", to });
 }

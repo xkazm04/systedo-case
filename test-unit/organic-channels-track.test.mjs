@@ -135,13 +135,15 @@ test("live stage routes by kind: listing closes, conversational checks inbox, co
     deriveChannelNext(ch({ category: "directory" }), { stage: "live", mode: "manual" }, ctx()),
     { key: "mark-done" }
   );
+  // `scope` rides along so the schranka CTA can open the picker on the exact
+  // twin channel it counted pending drafts for.
   assert.deepEqual(
     deriveChannelNext(
       ch(),
       { stage: "live", mode: "twin", twinScope: "social" },
       ctx({ pendingByChannel: { social: 3 } })
     ),
-    { key: "check-inbox", to: "schranka", count: 3 }
+    { key: "check-inbox", to: "schranka", scope: "social", count: 3 }
   );
   // Manual conversational without an inbox source keeps producing instead.
   assert.deepEqual(
@@ -151,5 +153,44 @@ test("live stage routes by kind: listing closes, conversational checks inbox, co
   assert.deepEqual(
     deriveChannelNext(ch({ category: "content" }), { stage: "live", mode: "manual" }, ctx()),
     { key: "create-content", to: "obsahovy-engine" }
+  );
+});
+
+test("the signpost keeps its promises: no CTA targets a module the project type lacks", async () => {
+  const { isModuleAvailable } = await import("@/lib/projects/modules");
+  // The real leadgen case: the seeded plan ships LinkedIn (category "social"),
+  // but `socialni` is not a leadgen module — pre-fix the CTA landed on notFound().
+  const leadgenGate = (key) => isModuleAvailable("leadgen", key);
+  assert.equal(isModuleAvailable("leadgen", "socialni"), false); // the premise
+  assert.deepEqual(
+    deriveChannelNext(
+      ch({ id: "linkedin-organic", category: "social" }),
+      { stage: "live", mode: "manual" },
+      ctx(),
+      leadgenGate
+    ),
+    // The content engine (available for every type) is the honest fallback.
+    { key: "create-content", to: "obsahovy-engine" }
+  );
+  // A type that HAS the social planner keeps the social deep link.
+  assert.deepEqual(
+    deriveChannelNext(
+      ch({ category: "social" }),
+      { stage: "live", mode: "manual" },
+      ctx(),
+      (key) => isModuleAvailable("eshop", key)
+    ),
+    { key: "create-content", to: "socialni" }
+  );
+  // The generic guard: an unavailable target with no equivalent module falls
+  // back to working the channel here (the playbook), never to a 404.
+  assert.deepEqual(
+    deriveChannelNext(
+      ch(),
+      { stage: "planned", mode: "twin", twinScope: "social" },
+      ctx(),
+      () => false
+    ),
+    { key: "first-action" }
   );
 });

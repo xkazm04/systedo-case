@@ -72,12 +72,16 @@ function useReplySeed(projectId: string) {
 export default function TwinInboxModule({
   state: initialState,
   source: initialSource,
+  initialChannel,
   projectType,
   leads,
   serviceHints,
 }: {
   state: TwinState;
   source: TwinSource;
+  /** channel to open the picker on (a validated `?channel=` deep link — the
+   *  Kanály signpost's "check the inbox" CTA names the channel it counted) */
+  initialChannel?: TwinChannel;
   projectType: ProjectType;
   /** the leads inbox, for the absorbed `leads` channel */
   leads: InboundLead[];
@@ -95,8 +99,12 @@ export default function TwinInboxModule({
   const archivedRejects = useArchivedRejects(project.id);
 
   const leadsEnabled = state.channels.some((c) => c.channel === "leads" && c.enabled);
+  // Priority: an explicit hand-off (reply seed) > the deep link's named channel >
+  // the default (leads first, else the first enabled channel).
   const [channel, setChannel] = useState<TwinChannel>(
-    seed?.channel ?? (leadsEnabled ? "leads" : (state.channels.find((c) => c.enabled)?.channel ?? "email"))
+    seed?.channel ??
+      initialChannel ??
+      (leadsEnabled ? "leads" : (state.channels.find((c) => c.enabled)?.channel ?? "email"))
   );
 
   /** The voice the `leads` inbox writes in — its own, else the generic register —

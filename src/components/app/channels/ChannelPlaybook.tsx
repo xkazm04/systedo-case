@@ -94,7 +94,7 @@ export default function ChannelPlaybook({
     if (next.to) {
       return (
         <Link
-          href={`/app/${projectId}/${next.to}?from=kanaly&channel=${channel.id}`}
+          href={`/app/${projectId}/${next.to}?from=kanaly${next.scope ? `&channel=${next.scope}` : ""}`}
           className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-5 py-3 text-sm font-semibold text-white transition-[background-color,transform] hover:bg-brand-800 active:scale-[0.99]"
         >
           {NEXT_LABELS[next.key][L]}
