@@ -6,6 +6,8 @@
  *  the `channel-research` LLM op; the tracked STATUS of each channel (the
  *  checklist state) persists per project through the store trio. Framework-free. */
 
+import { isTwinChannel } from "@/lib/twin/types";
+
 export type ChannelCategory =
   | "directory"
   | "marketplace"
@@ -67,8 +69,10 @@ export function channelKind(category: ChannelCategory): ChannelKind {
 }
 
 /** Per-channel tracked state: the stage plus the decisions the setup wizard
- *  wrote. Twin scope values mirror `TWIN_CHANNELS` (kept as a plain string here
- *  so this module stays dependency-free; the wizard only ever writes real ones). */
+ *  wrote. Twin scope values mirror `TWIN_CHANNELS` (typed as a plain string here
+ *  for wire tolerance, but the sanitizer validates against the real vocabulary —
+ *  a made-up scope would derive "train-voice" forever, a trap nothing could
+ *  ever satisfy). */
 export interface ChannelTrack {
   stage: ChannelStage;
   mode?: ChannelMode;
@@ -80,6 +84,18 @@ export interface ChannelTrack {
   maxPerWeek?: number;
   /** ISO timestamp the mode decision was made */
   decidedAt?: string;
+}
+
+/** Stage the setup wizard writes when it saves a decision. Re-entry EDITS, it
+ *  doesn't reset: a live channel stays live, done stays done, paused stays
+ *  paused — the stage stores the user's "this is running" INTENT, and edits to
+ *  settings don't stop it running. If the edits open a readiness gap (say, a
+ *  live channel switched to an untrained twin voice), the DERIVED next step
+ *  surfaces the gap — demoting the stage would erase intent to state a fact
+ *  the derivation already states. Only an undecided channel (no stored track /
+ *  the "identified" default) advances to "planned". */
+export function stageAfterDecision(existing: ChannelTrack | undefined): ChannelStage {
+  return existing && existing.stage !== "identified" ? existing.stage : "planned";
 }
 
 /** One organic (zero ad-spend) visibility channel in a project's plan. */
@@ -195,8 +211,11 @@ export function sanitizeTrack(raw: unknown): ChannelTrack | null {
   }
   const track: ChannelTrack = { stage };
   if (MODE_SET.has(o.mode as string)) track.mode = o.mode as ChannelMode;
-  const twinScope = s(o.twinScope, 24);
-  if (twinScope) track.twinScope = twinScope;
+  // Only a REAL twin channel may be stored as the scope: an arbitrary string
+  // would make `deriveChannelNext` demand training a voice that cannot exist.
+  // Dropping an invalid scope degrades safely — the derivation falls back to
+  // the channel's suggested scope.
+  if (isTwinChannel(o.twinScope)) track.twinScope = o.twinScope;
   if (INBOX_SET.has(o.inboxSource as string)) track.inboxSource = o.inboxSource as ChannelInboxSource;
   const cap = Math.round(Number(o.maxPerWeek));
   if (Number.isFinite(cap) && cap >= 1) track.maxPerWeek = Math.min(14, cap);

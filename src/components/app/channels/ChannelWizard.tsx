@@ -4,7 +4,8 @@
  *  (or a queue of top-fit channels after an AI plan lands) through: interaction
  *  mode (manual/twin, kind-based recommendation preselected) → twin voice scope
  *  with live readiness hints → inbox source for conversational channels →
- *  cadence cap. Writes a ChannelTrack (stage "planned"); readiness gaps stay
+ *  cadence cap. Re-entry EDITS the stored track (prefilled, stage preserved) —
+ *  it never resets a live channel back to "planned"; readiness gaps stay
  *  derived, so the finish CTA deep-links straight to the first blocker. */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,7 @@ import { useT } from "@/lib/i18n/client";
 import { ArrowRight, Check } from "@/components/icons";
 import {
   channelKind,
+  stageAfterDecision,
   type ChannelInboxSource,
   type ChannelMode,
   type ChannelTrack,
@@ -25,6 +27,7 @@ import {
   suggestedTwinScope,
   type SignpostContext,
 } from "@/lib/organic-channels/next-step";
+import OptionCard from "./OptionCard";
 
 const T = {
   cs: {
@@ -101,51 +104,35 @@ const SCOPE_LABELS: Record<(typeof SCOPES)[number], { cs: string; en: string }> 
 };
 const CADENCES = [1, 2, 3, 5, 7] as const;
 
-function OptionCard({
-  selected,
-  onSelect,
-  label,
-  hint,
-  badge,
-  disabled,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  label: string;
-  hint: string;
-  badge?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      disabled={disabled}
-      aria-pressed={selected}
-      className={`flex-1 rounded-card border px-4 py-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-        selected ? "border-brand-400 bg-brand-50" : "border-line hover:border-navy-200"
-      }`}
-    >
-      <span className="flex items-center gap-2">
-        <span className="text-sm font-semibold text-navy-800">{label}</span>
-        {badge && <span className="pill bg-positive-soft text-positive">{badge}</span>}
-      </span>
-      <span className="mt-1 block text-xs leading-relaxed text-muted">{hint}</span>
-    </button>
-  );
+type StepKey = "mode" | "scope" | "inbox" | "cadence";
+
+/** Ordered steps for a channel given the (chosen or prefilled) mode. */
+function stepsFor(channel: OrganicChannel, mode: ChannelMode): StepKey[] {
+  return [
+    "mode",
+    ...(mode === "twin" ? (["scope"] as const) : []),
+    ...(channelKind(channel.category) === "conversational" ? (["inbox"] as const) : []),
+    "cadence",
+  ];
 }
 
 export default function ChannelWizard({
   queue,
+  tracks,
   ctx,
   open,
+  startAt,
   onClose,
   onSave,
 }: {
   /** channels to walk through (1 = row-triggered; N = post-AI-plan auto-offer) */
   queue: OrganicChannel[];
+  /** stored lifecycle per channel — re-entry prefills from it and edits it */
+  tracks: Record<string, ChannelTrack>;
   ctx: SignpostContext;
   open: boolean;
+  /** land on a named step (the "set-inbox" CTA promises the inbox step) */
+  startAt?: StepKey;
   onClose: () => void;
   /** persist the decision; the parent owns the tracks map + the POST */
   onSave: (channelId: string, track: ChannelTrack) => void;
@@ -156,13 +143,30 @@ export default function ChannelWizard({
   const { locale } = useLocale();
   const L = locale === "en" ? "en" : "cs";
 
+  /** Per-channel initial state: the stored track when re-entering ("Změnit
+   *  nastavení" edits, it doesn't reset), else the kind-based defaults. */
+  const initFor = (c: OrganicChannel | undefined) => {
+    const tr = c ? tracks[c.id] : undefined;
+    const mode0 = tr?.mode ?? null;
+    // Land on the step the CTA named (when the channel's step list has it).
+    const idx =
+      c && startAt ? stepsFor(c, mode0 ?? suggestedMode(c)).indexOf(startAt) : -1;
+    return {
+      step: idx >= 0 ? idx : 0,
+      mode: mode0,
+      scope: tr?.twinScope ?? null,
+      inbox: tr?.inboxSource ?? ("manual" as ChannelInboxSource),
+      cadence: tr?.maxPerWeek ?? 3,
+    };
+  };
+
   const [qi, setQi] = useState(0);
   const channel = queue[Math.min(qi, queue.length - 1)];
-  const [step, setStep] = useState(0);
-  const [mode, setMode] = useState<ChannelMode | null>(null);
-  const [scope, setScope] = useState<string | null>(null);
-  const [inbox, setInbox] = useState<ChannelInboxSource>("manual");
-  const [cadence, setCadence] = useState<number>(3);
+  const [step, setStep] = useState(() => initFor(queue[0]).step);
+  const [mode, setMode] = useState<ChannelMode | null>(() => initFor(queue[0]).mode);
+  const [scope, setScope] = useState<string | null>(() => initFor(queue[0]).scope);
+  const [inbox, setInbox] = useState<ChannelInboxSource>(() => initFor(queue[0]).inbox);
+  const [cadence, setCadence] = useState<number>(() => initFor(queue[0]).cadence);
 
   if (!channel) return null;
   const kind = channelKind(channel.category);
@@ -171,38 +175,36 @@ export default function ChannelWizard({
   const voiceTrained = ctx.trainedScopes.includes(chosenScope);
   const channelEnabled = ctx.enabledTwinChannels.includes(chosenScope);
 
-  /** ordered steps for the current selection */
-  const steps: Array<"mode" | "scope" | "inbox" | "cadence"> = [
-    "mode",
-    ...(chosenMode === "twin" ? (["scope"] as const) : []),
-    ...(kind === "conversational" ? (["inbox"] as const) : []),
-    "cadence",
-  ];
+  const steps = stepsFor(channel, chosenMode);
   const stepKey = steps[Math.min(step, steps.length - 1)];
   const last = step >= steps.length - 1;
+  const lastInQueue = qi + 1 >= queue.length;
 
-  const reset = () => {
-    setStep(0);
-    setMode(null);
-    setScope(null);
-    setInbox("manual");
-    setCadence(3);
+  const reset = (c: OrganicChannel | undefined) => {
+    const init = initFor(c);
+    setStep(init.step);
+    setMode(init.mode);
+    setScope(init.scope);
+    setInbox(init.inbox);
+    setCadence(init.cadence);
   };
 
   const advanceQueue = () => {
-    if (qi + 1 < queue.length) {
+    if (!lastInQueue) {
       setQi(qi + 1);
-      reset();
+      reset(queue[qi + 1]);
     } else {
       onClose();
       setQi(0);
-      reset();
+      reset(queue[0]);
     }
   };
 
   const finish = () => {
     const track: ChannelTrack = {
-      stage: "planned",
+      // Editing settings never resets the lifecycle: live stays live, done stays
+      // done (rule + rationale pinned at stageAfterDecision).
+      stage: stageAfterDecision(tracks[channel.id]),
       mode: chosenMode,
       maxPerWeek: cadence,
       decidedAt: new Date().toISOString(),
@@ -210,7 +212,12 @@ export default function ChannelWizard({
       ...(kind === "conversational" ? { inboxSource: inbox } : {}),
     };
     onSave(channel.id, track);
-    if (chosenMode === "twin" && !voiceTrained) {
+    // The training detour must not abandon the queue ("Kanál 1 z 3"): mid-queue
+    // we advance to the next channel — the saved row's derived next step already
+    // reads "Vytrénovat hlas", one click away — and only the LAST channel routes
+    // straight to training (nothing left to abandon).
+    if (chosenMode === "twin" && !voiceTrained && lastInQueue) {
+      advanceQueue();
       router.push(`/app/${project.id}/twin?from=kanaly`);
       return;
     }
@@ -348,7 +355,13 @@ export default function ChannelWizard({
             onClick={() => (last ? finish() : setStep(step + 1))}
             className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-800"
           >
-            {last ? (chosenMode === "twin" && !voiceTrained ? t("saveTrain") : t("save")) : t("next")}
+            {/* "and train" is only promised where finish() actually routes there
+                (the last queue entry) — mid-queue the next channel comes first. */}
+            {last
+              ? chosenMode === "twin" && !voiceTrained && lastInQueue
+                ? t("saveTrain")
+                : t("save")
+              : t("next")}
             <ArrowRight width={13} height={13} />
           </button>
         </div>

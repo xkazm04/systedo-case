@@ -30,10 +30,9 @@ import {
 import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/next-step";
 import { reconcilePlanTracks } from "@/lib/organic-channels/reconcile";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
+import ChannelTable from "@/components/app/channels/ChannelTable";
 import ChannelWizard from "@/components/app/channels/ChannelWizard";
 import ChannelPlaybook from "@/components/app/channels/ChannelPlaybook";
-import { CATEGORY_LABELS, EFFORT_LABELS, MODE_LABELS, NEXT_LABELS, STAGE_LABELS } from "@/components/app/channels/labels";
-import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 
 /** Grounding the page resolves server-side and threads into the AI "tailor" call. */
 export interface ChannelGrounding {
@@ -57,11 +56,6 @@ const T = {
     regenerate: "Přegenerovat",
     quickWin: "Rychlá výhra",
     quickWinHint: "Nízká náročnost, vysoká vhodnost. Začněte tady.",
-    colChannel: "Kanál",
-    colFit: "Vhodnost",
-    colMode: "Režim",
-    colStage: "Stav",
-    colNext: "Další krok",
     channels: "{n} kanálů",
     aiReadyTitle: "Plán na míru je připravený",
     aiReadyBody: "Nahraďte ukázkový plán touto verzí přizpůsobenou vaší firmě.",
@@ -74,6 +68,8 @@ const T = {
     stepSocialHint: "Naplánujte a publikujte příspěvky",
     degradedBanner:
       "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
+    saveFailedBanner:
+      "Poslední změnu se nepodařilo uložit — zobrazený stav je jen v tomto okně a po obnovení stránky zmizí. Zkuste akci zopakovat.",
     generatedMeta: "Vygenerováno {date} z podkladů projektu",
     groundingDegraded:
       "Konkurenci se teď nepodařilo načíst — nový plán by vznikl bez ní. Zkuste to později.",
@@ -92,11 +88,6 @@ const T = {
     regenerate: "Regenerate",
     quickWin: "Quick win",
     quickWinHint: "Low effort, high fit. Start here.",
-    colChannel: "Channel",
-    colFit: "Fit",
-    colMode: "Mode",
-    colStage: "Status",
-    colNext: "Next step",
     channels: "{n} channels",
     aiReadyTitle: "Your tailored plan is ready",
     aiReadyBody: "Replace the sample plan with this version tailored to your business.",
@@ -109,6 +100,8 @@ const T = {
     stepSocialHint: "Plan and publish posts",
     degradedBanner:
       "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
+    saveFailedBanner:
+      "The last change couldn't be saved — what you see lives only in this window and will disappear on reload. Try the action again.",
     generatedMeta: "Generated {date} from your project's data",
     groundingDegraded:
       "Competitors couldn't be loaded right now — a new plan would be built without them. Try again later.",
@@ -154,6 +147,11 @@ export default function OrganicChannels({
   const [generatedAt, setGeneratedAt] = useState<string | undefined>(initialGeneratedAt);
   const [openId, setOpenId] = useState<string | null>(null);
   const [wizardQueue, setWizardQueue] = useState<OrganicChannel[]>([]);
+  /** step the wizard should land on (the "set-inbox" CTA promises the inbox step) */
+  const [wizardStart, setWizardStart] = useState<"inbox" | undefined>(undefined);
+  /** the last persist failed — the local state is ahead of the store and honesty
+   *  demands saying so (a demo project 404s every write, silently, otherwise) */
+  const [saveFailed, setSaveFailed] = useState(false);
   const [applied, setApplied] = useState(false);
   /** tracks left behind by the last applied plan — surfaced, never silently hidden */
   const [orphans, setOrphans] = useState<Array<{ id: string; name: string }>>([]);
@@ -171,14 +169,18 @@ export default function OrganicChannels({
     [channels, tracks]
   );
 
-  /** Persist the desired state. Fire-and-forget: a demo project (or a failed
-   *  save) just keeps the local state — the module's usual graceful degradation. */
+  /** Persist the desired state. The UI keeps its optimistic local state either
+   *  way, but a failed save (network, or a demo project whose API 404s every
+   *  write) flips `saveFailed` — following this module's `degraded` pattern —
+   *  instead of lying that the change stuck. A later success clears it. */
   const persist = (next: { tracks: Record<string, ChannelTrack>; plan?: OrganicChannel[] }) => {
     void fetch(`/api/projects/${project.id}/organic-channels`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
-    }).catch(() => {});
+    })
+      .then((r) => setSaveFailed(!r.ok))
+      .catch(() => setSaveFailed(true));
   };
 
   const saveTracks = (mutate: (prev: Record<string, ChannelTrack>) => Record<string, ChannelTrack>) => {
@@ -194,6 +196,11 @@ export default function OrganicChannels({
     saveTracks((prev) => ({ ...prev, [id]: { ...(prev[id] ?? {}), stage } }));
 
   const saveWizard = (id: string, track: ChannelTrack) => saveTracks((prev) => ({ ...prev, [id]: track }));
+
+  const openWizard = (q: OrganicChannel[], startAt?: "inbox") => {
+    setWizardStart(startAt);
+    setWizardQueue(q);
+  };
 
   const runTailor = () => {
     setApplied(false);
@@ -225,7 +232,7 @@ export default function OrganicChannels({
     setTracks(next.tracks);
     setOrphans(next.orphans);
     persist({ tracks: next.tracks, plan });
-    setWizardQueue(plan.filter((c) => !next.tracks[c.id]).slice(0, 3));
+    openWizard(plan.filter((c) => !next.tracks[c.id]).slice(0, 3));
   };
 
   /** Drop the surfaced leftover tracks (explicit user action — frees track cap). */
@@ -242,7 +249,9 @@ export default function OrganicChannels({
     setTracks({});
     setApplied(false);
     setOrphans([]);
-    void fetch(`/api/projects/${project.id}/organic-channels`, { method: "DELETE" }).catch(() => {});
+    void fetch(`/api/projects/${project.id}/organic-channels`, { method: "DELETE" })
+      .then((r) => setSaveFailed(!r.ok))
+      .catch(() => setSaveFailed(true));
   };
 
   /** Hand a channel's content angle to the content engine via the BriefSeed
@@ -277,7 +286,9 @@ export default function OrganicChannels({
       );
       return;
     }
-    if (next.key === "decide" || next.key === "set-inbox") setWizardQueue([c]);
+    // "set-inbox" opens the wizard ON the inbox step — the step the CTA names.
+    if (next.key === "decide") openWizard([c]);
+    else if (next.key === "set-inbox") openWizard([c], "inbox");
     else if (next.key === "go-live" || next.key === "resume") setStage(c.id, "live");
     else if (next.key === "mark-done") setStage(c.id, "done");
     else setOpenId(c.id); // first-action → the playbook
@@ -343,6 +354,17 @@ export default function OrganicChannels({
           className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
         >
           {t("degradedBanner")}
+        </div>
+      )}
+
+      {/* A failed persist must not masquerade as a saved change (the degraded
+          pattern's sibling: state is local-only until a save lands). */}
+      {saveFailed && !degraded && (
+        <div
+          role="status"
+          className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
+        >
+          {t("saveFailedBanner")}
         </div>
       )}
 
@@ -419,7 +441,7 @@ export default function OrganicChannels({
       {quickWin && (
         <button
           type="button"
-          onClick={() => setWizardQueue([quickWin])}
+          onClick={() => openWizard([quickWin])}
           className="group flex w-full items-center gap-3 rounded-card border border-positive/40 bg-positive-soft px-4 py-3 text-left transition-colors hover:border-positive"
         >
           <Bolt width={18} height={18} className="shrink-0 text-positive" />
@@ -434,77 +456,14 @@ export default function OrganicChannels({
       )}
 
       {/* Signpost table: fit + mode + stage + the ONE next step per channel */}
-      <div className="overflow-hidden rounded-card border border-line">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line bg-canvas text-left text-xs font-semibold uppercase tracking-wide text-muted">
-              <th className="px-4 py-3">{t("colChannel")}</th>
-              <th className="hidden px-4 py-3 sm:table-cell">{t("colFit")}</th>
-              <th className="hidden px-4 py-3 md:table-cell">{t("colMode")}</th>
-              <th className="px-4 py-3">{t("colStage")}</th>
-              <th className="px-4 py-3 text-right">{t("colNext")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {channels.map((c) => {
-              const track = tracks[c.id];
-              const stage = track?.stage ?? "identified";
-              const next = nextOf(c);
-              return (
-                <tr
-                  key={c.id}
-                  {...interactiveRowProps(() => setOpenId(c.id), c.name)}
-                  className="cursor-pointer border-b border-line last:border-0 transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-navy-800">{c.name}</span>
-                      <span className="hidden pill bg-navy-50 text-muted lg:inline-flex">
-                        {CATEGORY_LABELS[c.category][L]}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="hidden px-4 py-3 sm:table-cell">
-                    <span className="flex items-center gap-2">
-                      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-navy-50" aria-hidden>
-                        <span className="block h-full rounded-full bg-brand-500" style={{ width: `${c.fit}%` }} />
-                      </span>
-                      <span className="tnum text-xs font-semibold text-navy-800">{c.fit}</span>
-                    </span>
-                  </td>
-                  <td className="hidden px-4 py-3 md:table-cell">
-                    {track?.mode ? (
-                      <span className={`pill ${MODE_LABELS[track.mode].tone}`}>{MODE_LABELS[track.mode][L]}</span>
-                    ) : (
-                      <span className={`pill ${EFFORT_LABELS[c.effort].tone}`}>{EFFORT_LABELS[c.effort][L]}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`pill ${STAGE_LABELS[stage].tone}`}>{STAGE_LABELS[stage][L]}</span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {next.key !== "none" && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          doNext(c);
-                        }}
-                        disabled={degraded && !next.to}
-                        className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {NEXT_LABELS[next.key][L]}
-                        {next.count ? <span className="pill bg-brand-50 text-brand-700">{next.count}</span> : null}
-                        <ArrowRight width={12} height={12} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <ChannelTable
+        channels={channels}
+        tracks={tracks}
+        nextOf={nextOf}
+        degraded={degraded}
+        onOpen={setOpenId}
+        onNext={doNext}
+      />
 
       <NextSteps
         steps={[
@@ -521,9 +480,9 @@ export default function OrganicChannels({
         degraded={degraded}
         onClose={() => setOpenId(null)}
         onSetStage={setStage}
-        onOpenWizard={(c) => {
+        onOpenWizard={(c, startAt) => {
           setOpenId(null);
-          setWizardQueue([c]);
+          openWizard([c], startAt);
         }}
         onCreateContent={createContent}
       />
@@ -531,9 +490,11 @@ export default function OrganicChannels({
       <ChannelWizard
         key={wizardQueue.map((c) => c.id).join(",")}
         queue={wizardQueue}
+        tracks={tracks}
         ctx={signpost}
         open={wizardQueue.length > 0}
-        onClose={() => setWizardQueue([])}
+        startAt={wizardStart}
+        onClose={() => openWizard([])}
         onSave={saveWizard}
       />
     </div>

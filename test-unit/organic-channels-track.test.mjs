@@ -10,6 +10,7 @@ import {
   channelKind,
   planProvenance,
   competitorsGrounding,
+  stageAfterDecision,
 } from "@/lib/organic-channels/types";
 import {
   deriveChannelNext,
@@ -84,6 +85,34 @@ test("sanitizeChannelState reads tracks, migrates legacy statuses maps, stays bo
 
   const flood = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`k${i}`, { stage: "live" }]));
   assert.equal(Object.keys(sanitizeChannelState({ tracks: flood }).tracks).length, 64);
+});
+
+test("sanitizeTrack stores only REAL twin scopes (the train-voice-forever trap)", () => {
+  // A made-up scope would make deriveChannelNext demand training a voice that
+  // cannot exist — the sanitizer drops it (derivation falls back to suggested).
+  assert.deepEqual(sanitizeTrack({ stage: "planned", mode: "twin", twinScope: "myspace-dms" }), {
+    stage: "planned",
+    mode: "twin",
+  });
+  // Every real TWIN_CHANNELS value passes.
+  for (const scope of ["leads", "email", "chat", "social", "reviews", "sms", "whatsapp"]) {
+    assert.deepEqual(sanitizeTrack({ stage: "planned", mode: "twin", twinScope: scope }), {
+      stage: "planned",
+      mode: "twin",
+      twinScope: scope,
+    });
+  }
+});
+
+test("the wizard edits, it doesn't reset: re-entry preserves the lifecycle stage", () => {
+  // Re-entering "Změnit nastavení" on a LIVE channel must not demote it.
+  assert.equal(stageAfterDecision({ stage: "live", mode: "twin" }), "live");
+  assert.equal(stageAfterDecision({ stage: "done" }), "done");
+  assert.equal(stageAfterDecision({ stage: "paused", mode: "manual" }), "paused");
+  assert.equal(stageAfterDecision({ stage: "planned", mode: "manual" }), "planned");
+  // Only an undecided channel advances to "planned".
+  assert.equal(stageAfterDecision(undefined), "planned");
+  assert.equal(stageAfterDecision({ stage: "identified" }), "planned");
 });
 
 test("plan provenance: the sample gutter follows the source, a pinned plan carries its generation time", () => {

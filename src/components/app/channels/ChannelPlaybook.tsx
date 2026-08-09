@@ -78,7 +78,8 @@ export default function ChannelPlaybook({
   degraded: boolean;
   onClose: () => void;
   onSetStage: (id: string, stage: ChannelStage) => void;
-  onOpenWizard: (channel: OrganicChannel) => void;
+  /** open the setup wizard — optionally landing on the step the CTA names */
+  onOpenWizard: (channel: OrganicChannel, startAt?: "inbox") => void;
   onCreateContent: (channel: OrganicChannel) => void;
 }) {
   const { locale } = useLocale();
@@ -105,7 +106,8 @@ export default function ChannelPlaybook({
     }
     const local: Partial<Record<typeof next.key, () => void>> = {
       decide: () => onOpenWizard(channel),
-      "set-inbox": () => onOpenWizard(channel),
+      // The CTA names the inbox step — land there, not at step 0.
+      "set-inbox": () => onOpenWizard(channel, "inbox"),
       "first-action": undefined, // the playbook IS the first-action surface
       "go-live": () => onSetStage(channel.id, "live"),
       "mark-done": () => onSetStage(channel.id, "done"),
