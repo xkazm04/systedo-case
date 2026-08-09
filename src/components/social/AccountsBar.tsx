@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { Check, Info, Share } from "@/components/icons";
 import { useT } from "@/lib/i18n/client";
+import { useSocialAccounts } from "./useSocialAccounts";
 import {
   SOCIAL_PLATFORMS,
   SOCIAL_PLATFORM_LABELS,
@@ -28,26 +29,18 @@ const T = {
 
 export default function AccountsBar() {
   const { status } = useSession();
-  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
-  const [configured, setConfigured] = useState(false);
+  // Shared accounts source (one fetch for the whole social page) — the planner's
+  // and list's "nothing will publish" warnings read the same store, so a connect
+  // here dismisses them instantly.
+  const { accounts, configured, patch, reload } = useSocialAccounts();
   const [busy, setBusy] = useState<string | null>(null);
   const t = useT(T);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch("/api/social/accounts");
-      const json = (await res.json()) as { configured?: boolean; accounts?: SocialAccount[] };
-      setConfigured(Boolean(json.configured));
-      setAccounts(json.accounts ?? []);
-    } catch {
-      /* non-critical */
-    }
-  }, []);
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (status === "authenticated") void load();
-  }, [status, load]);
+    // The store's first fetch may have run before sign-in resolved — refresh once
+    // the session is authenticated so the connected list reflects THIS user.
+    if (status === "authenticated") reload();
+  }, [status, reload]);
 
   const toggle = async (platform: SocialPlatform, connected: boolean) => {
     setBusy(platform);
@@ -58,7 +51,7 @@ export default function AccountsBar() {
         body: JSON.stringify({ platform }),
       });
       const json = (await res.json()) as { accounts?: SocialAccount[] };
-      if (res.ok) setAccounts(json.accounts ?? []);
+      if (res.ok) patch(json.accounts ?? []);
     } finally {
       setBusy(null);
     }

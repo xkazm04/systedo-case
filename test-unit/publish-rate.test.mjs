@@ -225,3 +225,51 @@ test("a scheduled-then-published post counts once; a scheduled-then-failed post 
   assert.equal(bounced.published, 0);
   assert.equal(bounced.publishEvents, 0);
 });
+
+// --- the simulated split (D2: "scheduled means it will publish") ------------
+
+test("simulated tag: only on a publish row, and only when asked for", () => {
+  assert.deepEqual(socialPostPublishFields("published", { simulated: true }), {
+    publishKind: "social_post",
+    publishVia: "channel",
+    publishSimulated: true,
+  });
+  // real publish → no tag (absent, not false — the row shape stays byte-identical)
+  assert.deepEqual(socialPostPublishFields("published", { simulated: false }), {
+    publishKind: "social_post",
+    publishVia: "channel",
+  });
+  // never on non-publish rows, simulated or not
+  assert.deepEqual(socialPostPublishFields("scheduled", { simulated: true }), {});
+  assert.deepEqual(socialPostPublishFields("failed", { simulated: true }), {});
+});
+
+test("rollup splits simulated publishes WITHOUT double-counting or moving the rate", () => {
+  const g = gens("social", 6, 5);
+  const pubs = [
+    { kind: "social_post", at: daysAgo(3), simulated: true },
+    { kind: "social_post", at: daysAgo(2) },
+    { kind: "social_post", at: daysAgo(1), simulated: true },
+  ];
+  const r = publishRateRollup(g, pubs, { now: NOW });
+  // the split is a partition of the SAME events: counts unchanged vs untagged
+  assert.equal(r.publishEvents, 3);
+  assert.equal(r.published, 3);
+  assert.equal(r.simulatedPublishes, 2);
+  assert.ok(r.simulatedPublishes <= r.publishEvents);
+  assert.equal(r.rate, 3 / 6);
+  const bucket = r.buckets.find((b) => b.bucket === "channel_variant");
+  assert.equal(bucket.simulatedPublishes, 2);
+  // untagged events behave exactly as before (back-compat: legacy rows have no tag)
+  const legacy = publishRateRollup(g, pubs.map(({ kind, at }) => ({ kind, at })), { now: NOW });
+  assert.equal(legacy.published, r.published);
+  assert.equal(legacy.simulatedPublishes, 0);
+});
+
+test("a simulated publish outside the window is not counted in the split either", () => {
+  const r = publishRateRollup(gens("social", 5, 5), [
+    { kind: "social_post", at: daysAgo(DEFAULT_PUBLISH_WINDOW_DAYS + 2), simulated: true },
+  ], { now: NOW });
+  assert.equal(r.publishEvents, 0);
+  assert.equal(r.simulatedPublishes, 0);
+});

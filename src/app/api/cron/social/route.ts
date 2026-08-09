@@ -22,7 +22,7 @@ export const maxDuration = 300;
  *  Best-effort by contract (recordActivity swallows its own write failures) and
  *  always called inside the per-post try/catch, so an audit write can never abort
  *  the remaining due posts. */
-function recordPublished(tenant: string, platform: string): Promise<void> {
+function recordPublished(tenant: string, platform: string, simulated: boolean): Promise<void> {
   return recordActivity(tenant, {
     kind: "update",
     module: "socialni",
@@ -35,8 +35,10 @@ function recordPublished(tenant: string, platform: string): Promise<void> {
     actor: "Automatická synchronizace",
     // `socialPostActivityRow("published").publish` is true — this row IS the
     // asset-publish event, so it carries the structured taxonomy the rate counts.
-    // Derived from the same table as the title, never spelled out here.
-    ...socialPostPublishFields("published"),
+    // Derived from the same table as the title, never spelled out here. The
+    // simulated tag distinguishes a demo send from a live platform confirm in the
+    // publish-rate rollup (same row, same count, extra view).
+    ...socialPostPublishFields("published", { simulated }),
   });
 }
 
@@ -90,7 +92,7 @@ export async function GET(request: Request) {
                 externalUrl: result.externalUrl,
                 simulated: result.simulated,
               });
-              await recordPublished(tenant, post.platform);
+              await recordPublished(tenant, post.platform, result.simulated);
               published++;
             } else {
               // Failed → no publish row: nothing left the app.
@@ -127,7 +129,7 @@ export async function GET(request: Request) {
               // The provider DID send it and only the follow-up status write threw
               // — so the publish row was never written above. Write it here, and
               // only here, keeping it at exactly one row per post that went out.
-              if (result?.ok) await recordPublished(tenant, post.platform);
+              if (result?.ok) await recordPublished(tenant, post.platform, result.simulated);
             } catch (settleErr) {
               console.error(`[cron] social claim settle failed for post ${post.id}:`, settleErr);
             }

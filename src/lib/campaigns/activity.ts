@@ -41,6 +41,11 @@ export interface ActivityInput {
    *  row — including the "post scheduled" promise, which is not a publish. */
   publishKind?: string;
   publishVia?: string;
+  /** True when the publish behind this row was SIMULATED (demo connection / no
+   *  provider): content left the panel but never reached a live platform. Part of
+   *  the publish taxonomy (lib/activity/publish) — a tag, not a separate via, so
+   *  existing rollup consumers keep counting the same rows. */
+  publishSimulated?: boolean;
 }
 
 export interface ActivityRecord extends ActivityInput {

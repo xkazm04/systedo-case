@@ -100,6 +100,11 @@ export interface PublishEvent {
   kind: PublishAssetKind;
   /** ISO timestamp */
   at: string;
+  /** true when the publish was SIMULATED (demo connection / no real provider) —
+   *  the `publishSimulated` tag on the activity row. Counted like any publish
+   *  (the asset did leave the panel), but reported separately so a rate built on
+   *  demo sends is distinguishable from one built on live platform confirms. */
+  simulated?: boolean;
 }
 
 export interface BucketRollup {
@@ -115,6 +120,10 @@ export interface BucketRollup {
    *  hand-written post, or a re-copy of an already-counted asset). Reported, never
    *  folded into the rate. */
   unmatchedPublishes: number;
+  /** of `publishEvents`, how many were SIMULATED sends (demo connection). A split
+   *  of the same events, never an extra count — publishEvents already includes
+   *  them, so `simulatedPublishes ≤ publishEvents` by construction. */
+  simulatedPublishes: number;
   /** published ÷ generated, or null when there is nothing to divide by. */
   rate: number | null;
 }
@@ -129,6 +138,8 @@ export interface PublishRateRollup {
   publishEvents: number;
   published: number;
   unmatchedPublishes: number;
+  /** of `publishEvents` across all buckets, how many were simulated sends */
+  simulatedPublishes: number;
   /** published ÷ generated across all buckets — null unless `status === "ok"`, so
    *  a thin window can never render as a confident 0 %. */
   rate: number | null;
@@ -201,9 +212,11 @@ export function publishRateRollup(
 
   const gensByBucket = new Map<string, number[]>();
   const pubsByBucket = new Map<string, number[]>();
+  const simsByBucket = new Map<string, number>();
   for (const b of PUBLISH_BUCKETS) {
     gensByBucket.set(b.id, []);
     pubsByBucket.set(b.id, []);
+    simsByBucket.set(b.id, 0);
   }
 
   for (const g of generations) {
@@ -219,6 +232,9 @@ export function publishRateRollup(
     const ms = inWindow(p.at);
     if (ms === null) continue;
     pubsByBucket.get(bucket)!.push(ms);
+    // The simulated split rides the SAME event — a second view of one row, never
+    // a second count, so it can only ever partition publishEvents.
+    if (p.simulated) simsByBucket.set(bucket, simsByBucket.get(bucket)! + 1);
   }
 
   const buckets: BucketRollup[] = PUBLISH_BUCKETS.map((b) => {
@@ -231,6 +247,7 @@ export function publishRateRollup(
       publishEvents: pubs.length,
       published,
       unmatchedPublishes: pubs.length - published,
+      simulatedPublishes: simsByBucket.get(b.id)!,
       rate: gens.length > 0 ? published / gens.length : null,
     };
   });
@@ -239,6 +256,7 @@ export function publishRateRollup(
   const published = buckets.reduce((s, b) => s + b.published, 0);
   const publishEvents = buckets.reduce((s, b) => s + b.publishEvents, 0);
   const unmatchedPublishes = buckets.reduce((s, b) => s + b.unmatchedPublishes, 0);
+  const simulatedPublishes = buckets.reduce((s, b) => s + b.simulatedPublishes, 0);
 
   const status: PublishRateStatus =
     generated === 0 ? "no-generations" : generated < minGenerations ? "insufficient" : "ok";
@@ -250,6 +268,7 @@ export function publishRateRollup(
     publishEvents,
     published,
     unmatchedPublishes,
+    simulatedPublishes,
     rate: status === "ok" ? published / generated : null,
     status,
     minGenerations,

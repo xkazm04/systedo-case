@@ -70,7 +70,13 @@ export async function livePublishRateForProject(
   // than by a title match that could rot.
   const publishes: PublishEvent[] = records
     .filter((r) => isPublishAssetKind(r.publishKind))
-    .map((r) => ({ kind: r.publishKind as PublishEvent["kind"], at: r.at }));
+    .map((r) => ({
+      kind: r.publishKind as PublishEvent["kind"],
+      at: r.at,
+      // The simulated tag rides the same row (see socialPostPublishFields) — carried
+      // so the rollup can report the real-vs-simulated split of the same events.
+      ...(r.publishSimulated === true ? { simulated: true } : {}),
+    }));
 
   return { rollup: publishRateRollup(generations, publishes, { windowDays }), measurable: true, ok: true };
 }

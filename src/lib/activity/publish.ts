@@ -183,11 +183,25 @@ export function socialPostActivityRow(
  *      recordActivity(tenant, { …, title: row.title, ...socialPostPublishFields(o) })
  */
 export function socialPostPublishFields(
-  outcome: SocialPostOutcome
-): { publishKind: PublishAssetKind; publishVia: PublishVia } | Record<string, never> {
+  outcome: SocialPostOutcome,
+  opts: {
+    /** true when the publish was SIMULATED (no real provider/connection — see
+     *  lib/social/publish): the post never reached a live platform. */
+    simulated?: boolean;
+  } = {}
+):
+  | { publishKind: PublishAssetKind; publishVia: PublishVia; publishSimulated?: true }
+  | Record<string, never> {
   // Locale-independent by construction: only the `publish` bit is read here, and
   // the title is the row's only locale-sensitive half — so any locale answers.
+  //
+  // `publishSimulated` is a TAG on the event, deliberately NOT a new via or kind:
+  // a simulated publish still left through the `channel` route of the taxonomy, and
+  // a new via/kind would fall outside the PUBLISH_BUCKETS join — the rollup would
+  // silently drop (or double-bucket) those rows. The tag keeps every existing
+  // consumer's counts identical and lets the rollup report the real-vs-simulated
+  // split additively. Written only on a row that IS a publish event.
   return socialPostActivityRow(outcome, "cs").publish
-    ? { publishKind: "social_post", publishVia: "channel" }
+    ? { publishKind: "social_post", publishVia: "channel", ...(opts.simulated ? { publishSimulated: true as const } : {}) }
     : {};
 }

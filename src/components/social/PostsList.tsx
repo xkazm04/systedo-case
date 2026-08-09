@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Clock, Close, Refresh } from "@/components/icons";
+import { useSession } from "next-auth/react";
+import { Clock, Close, Info, Refresh } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
+import { useSocialAccounts } from "./useSocialAccounts";
+import { hasScheduledPosts, scheduleWillNotPublish } from "@/lib/social/schedule-signal";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -24,6 +27,7 @@ const T = {
     createdAt: "vytvořeno {rel}",
     link: "odkaz",
     demoLink: "Simulované publikování",
+    noAccountWarn: "Naplánované příspěvky se samy nezveřejní: není připojený žádný účet. Připojte ho v panelu výše.",
   },
   en: {
     posts: "Posts",
@@ -36,6 +40,7 @@ const T = {
     createdAt: "created {rel}",
     link: "link",
     demoLink: "Simulated publishing",
+    noAccountWarn: "Scheduled posts will not publish on their own: no account is connected. Connect one in the bar above.",
   },
 } as const;
 
@@ -55,6 +60,14 @@ export default function PostsList() {
   const { locale } = useLocale();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const { status: sessionStatus } = useSession();
+  // Shared accounts source (same store as AccountsBar/WeekPlanner): a scheduled
+  // post with zero connected accounts will never be picked up by the cron.
+  const { status: accountsStatus, accounts } = useSocialAccounts();
+  const publishBlocked =
+    sessionStatus === "authenticated" &&
+    hasScheduledPosts(posts) &&
+    scheduleWillNotPublish({ accountsReady: accountsStatus === "ready", accountCount: accounts.length });
 
   const load = useCallback(async () => {
     try {
@@ -99,6 +112,15 @@ export default function PostsList() {
           {t("refresh")}
         </button>
       </div>
+
+      {/* Honest signal: these "Naplánováno" pills are promises nothing will keep
+          until an account is connected (the cron walks connected users only). */}
+      {publishBlocked && (
+        <div className="flex items-start gap-2 rounded-lg border border-coral-500/25 bg-coral-soft px-4 py-3 text-sm text-navy-700">
+          <Info width={15} height={15} className="mt-0.5 shrink-0 text-coral-600" />
+          <p className="min-w-0">{t("noAccountWarn")}</p>
+        </div>
+      )}
 
       {loading ? (
         <div className="card p-8 text-center text-sm text-muted">{t("loading")}</div>

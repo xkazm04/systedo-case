@@ -7,9 +7,12 @@
  *  posts (POST /api/social/posts). No new backend — it orchestrates the existing
  *  draft + posts routes, then the calendar reflects them. */
 import { useCallback, useEffect, useState } from "react";
-import { Calendar, Check, Clock, Sparkles } from "@/components/icons";
+import { useSession } from "next-auth/react";
+import { Calendar, Check, Clock, Info, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import DraftHealth from "./DraftHealth";
+import { useSocialAccounts } from "./useSocialAccounts";
+import { scheduleWillNotPublish } from "@/lib/social/schedule-signal";
 import { draftResponseMeta, mergeDraftMetas, type SocialDraftMeta } from "@/lib/social/draft-meta";
 import { readSocialBrand } from "@/lib/social/brand-storage";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -46,6 +49,8 @@ const T = {
     voiceLabel: "Píše na značku",
     voiceHint: "Odvozeno z vašeho katalogu: příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
     degradedBatch: "{n} z {total} návrhů se vrátilo s výhradou — zkontrolujte texty v kalendáři.",
+    noAccountTitle: "Nic se samo nezveřejní.",
+    noAccountBody: "Není připojený žádný účet, takže naplánované příspěvky zůstanou ve stavu „Naplánováno“ napořád. Připojte účet v panelu výše a publikování se rozběhne.",
   },
   en: {
     title: "Week plan",
@@ -67,6 +72,8 @@ const T = {
     voiceLabel: "Writing on-brand",
     voiceHint: "Derived from your catalog: posts stay in your range and vocabulary. Edit in Catalog.",
     degradedBatch: "{n} of {total} drafts came back flagged — review the texts in the calendar.",
+    noAccountTitle: "Nothing will publish on its own.",
+    noAccountBody: "No account is connected, so scheduled posts will stay “Scheduled” forever. Connect an account in the bar above and publishing will start.",
   },
 } as const;
 
@@ -127,6 +134,15 @@ function buildWeek(fmt: Formatters, start: Date): Day[] {
 export default function WeekPlanner() {
   const project = useOptionalProject();
   const pid = project?.id;
+  const { status: sessionStatus } = useSession();
+  // Shared accounts source (one fetch with AccountsBar/PostsList): the cron only
+  // publishes for connected users, so scheduling with zero accounts is a dead
+  // letter — say so instead of letting posts sit "Naplánováno" forever. Anonymous
+  // visitors are in the demo sandbox; the sign-in card owns that framing.
+  const { status: accountsStatus, accounts } = useSocialAccounts();
+  const publishBlocked =
+    sessionStatus === "authenticated" &&
+    scheduleWillNotPublish({ accountsReady: accountsStatus === "ready", accountCount: accounts.length });
   const t = useT(T);
   const fmt = useFormatters();
   const { locale } = useLocale();
@@ -375,6 +391,17 @@ export default function WeekPlanner() {
       <p className="mt-1 text-sm text-muted">
         {t("subtitle")}
       </p>
+
+      {/* Honest scheduling: with no connected account the cron never picks these
+          posts up — warn at the surface that makes the promise. */}
+      {publishBlocked && (
+        <div className="mt-3 flex flex-wrap items-start gap-2 rounded-lg border border-coral-500/25 bg-coral-soft px-4 py-3 text-sm text-navy-700">
+          <Info width={15} height={15} className="mt-0.5 shrink-0 text-coral-600" />
+          <p className="min-w-0">
+            <span className="font-semibold text-coral-600">{t("noAccountTitle")}</span> {t("noAccountBody")}
+          </p>
+        </div>
+      )}
 
       {/* C1: prove the tool knows the brand — the auto-derived catalogue voice the
           batch will use by default (a manual voice, when set, overrides it). */}

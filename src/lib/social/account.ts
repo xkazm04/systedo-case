@@ -30,20 +30,31 @@ export function readAccountToken(a: StoredSocialAccount | null | undefined): str
   return decryptToken(a.tokenEnc);
 }
 
+/** The demo-connection handle. Carries the TENANT'S OWN brand label when the caller
+ *  supplies one (the project's brand/name), and stays brand-NEUTRAL otherwise — a
+ *  minted account must never claim to be a placeholder company ("Mionelo" was
+ *  hardcoded here for every tenant). Exported for the connect caller + tests. */
+export function demoAccountHandle(platform: SocialPlatform, brandLabel?: string): string {
+  const label = SOCIAL_PLATFORM_LABELS[platform];
+  const brand = brandLabel?.trim();
+  return brand ? `${brand} (${label}, demo)` : `${label} (demo)`;
+}
+
 /** Build a stored account for a (re)connect. A connection is REAL only when real
  *  publishing is configured AND a token is supplied AND crypto can encrypt it — else it
  *  stays a demo connection (no token, demo handle, demo:true). `realConfigured` is
  *  injected so this stays pure/testable; callers pass `socialConfigured() &&
- *  hasTokenCrypto()`. */
+ *  hasTokenCrypto()`. `brandLabel` (the tenant's own brand / project name) labels the
+ *  demo handle; absent, the handle stays brand-neutral. */
 export function buildSocialAccount(
   platform: SocialPlatform,
-  opts: { token?: string; realConfigured?: boolean; now?: string } = {}
+  opts: { token?: string; realConfigured?: boolean; now?: string; brandLabel?: string } = {}
 ): StoredSocialAccount {
   const token = opts.token?.trim();
   const real = Boolean(opts.realConfigured && token);
   return {
     platform,
-    handle: real ? SOCIAL_PLATFORM_LABELS[platform] : `Mionelo (${SOCIAL_PLATFORM_LABELS[platform]}, demo)`,
+    handle: real ? SOCIAL_PLATFORM_LABELS[platform] : demoAccountHandle(platform, opts.brandLabel),
     connectedAt: opts.now ?? new Date().toISOString(),
     demo: !real,
     ...(real && token ? { tokenEnc: encryptToken(token) } : {}),

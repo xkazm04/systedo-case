@@ -124,8 +124,9 @@ export async function POST(request: Request) {
     title: socialPostActivityRow(result.ok ? "published" : "failed", locale).title,
     detail: platform, actor: "Vy",
     // Only the successful branch carries the taxonomy — a failed publish left
-    // nothing behind and must not be counted.
-    ...socialPostPublishFields(result.ok ? "published" : "failed"),
+    // nothing behind and must not be counted. The simulated tag rides the same
+    // row so the publish-rate rollup can split demo sends from live confirms.
+    ...socialPostPublishFields(result.ok ? "published" : "failed", { simulated: result.simulated }),
   });
   return Response.json({ post: { ...post, ...patch } });
 }
