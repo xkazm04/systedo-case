@@ -47,6 +47,12 @@ export interface ProjectStateKeySpec {
 export const PROJECT_STATE_KEYS = {
   "content-schedule": { owner: "obsah-plan", version: 1, http: true },
   reviews: { owner: "recenze", version: 1, http: true },
+  // The social center's brand-voice field (a short free-text string). Used to live
+  // ONLY in localStorage (src/lib/social/brand-storage), so the voice never followed
+  // the user across devices; the client hook (useSocialBrand) migrates the local
+  // value here on first read (read-old-write-new) and keeps localStorage as the
+  // anonymous/offline fallback.
+  "social-brand": { owner: "socialni", version: 1, http: true },
   adCopy: { owner: "produkty", version: 1, http: false },
   distributionVariants: { owner: "distribuce", version: 1, http: false },
   contentLibrary: { owner: "ulozeny-obsah", version: 1, http: false },

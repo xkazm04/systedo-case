@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Clock, Close, Info, Refresh } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import { useSocialAccounts } from "./useSocialAccounts";
+import { useSocialPosts } from "./useSocialData";
 import { hasScheduledPosts, scheduleWillNotPublish } from "@/lib/social/schedule-signal";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
@@ -12,7 +12,6 @@ import {
   postStatusLabel,
   SOCIAL_PLATFORM_LABELS,
   type PostStatus,
-  type SocialPost,
 } from "@/lib/social/types";
 
 const T = {
@@ -58,8 +57,10 @@ export default function PostsList() {
   const t = useT(T);
   const fmt = useFormatters();
   const { locale } = useLocale();
-  const [posts, setPosts] = useState<SocialPost[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Shared posts source (one fetch with WeekPlanner, refetched on the
+  // `social:posts-changed` bus the mutators already dispatch).
+  const { posts, loaded, refresh } = useSocialPosts(pid);
+  const loading = !loaded;
   const { status: sessionStatus } = useSession();
   // Shared accounts source (same store as AccountsBar/WeekPlanner): a scheduled
   // post with zero connected accounts will never be picked up by the cron.
@@ -69,34 +70,15 @@ export default function PostsList() {
     hasScheduledPosts(posts) &&
     scheduleWillNotPublish({ accountsReady: accountsStatus === "ready", accountCount: accounts.length });
 
-  const load = useCallback(async () => {
-    try {
-      const url = pid ? `/api/social/posts?projectId=${encodeURIComponent(pid)}` : "/api/social/posts";
-      const res = await fetch(url);
-      const json = (await res.json()) as { posts?: SocialPost[] };
-      setPosts(json.posts ?? []);
-    } catch {
-      /* non-critical */
-    } finally {
-      setLoading(false);
-    }
-  }, [pid]);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load();
-    const handler = () => void load();
-    window.addEventListener("social:posts-changed", handler);
-    return () => window.removeEventListener("social:posts-changed", handler);
-  }, [load]);
-
   const remove = async (id: string) => {
     const res = await fetch("/api/social/posts", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, projectId: pid }),
     });
-    if (res.ok) setPosts((p) => p.filter((x) => x.id !== id));
+    // One writer, one bus: the shared store refetches for every subscriber
+    // (this list + the planner calendar) instead of patching a private copy.
+    if (res.ok) window.dispatchEvent(new CustomEvent("social:posts-changed"));
   };
 
   return (
@@ -105,7 +87,7 @@ export default function PostsList() {
         <h2 className="text-sm font-semibold text-navy-800">{t("posts")}</h2>
         <button
           type="button"
-          onClick={() => void load()}
+          onClick={() => refresh()}
           className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-medium text-navy-700 transition-colors hover:border-brand-300"
         >
           <Refresh width={13} height={13} />

@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bolt, Check, Sparkles } from "@/components/icons";
 import { RefineBar } from "@/components/ai/primitives";
 import DraftHealth from "./DraftHealth";
+import { useBrandContext } from "./useSocialData";
+import { useSocialBrand } from "./useSocialBrand";
 import { draftResponseMeta, type SocialDraftMeta } from "@/lib/social/draft-meta";
 import { useOptionalProject } from "@/lib/projects/context";
-import { readSocialBrand, writeSocialBrand } from "@/lib/social/brand-storage";
 import { useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import {
@@ -94,35 +95,14 @@ export default function Composer() {
   // a clean answer, so the healthy path renders no extra chrome.
   const [draftMeta, setDraftMeta] = useState<SocialDraftMeta | null>(null);
   // Brand voice (what they sell + how they talk) — de-hardcodes the assistant from a
-  // single brand; persisted locally so it sticks, and fed to the AI draft as `brand`.
-  const [brand, setBrand] = useState("");
-  useEffect(() => {
-    const saved = readSocialBrand(pid);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (saved) setBrand(saved);
-  }, [pid]);
-  useEffect(() => {
-    writeSocialBrand(pid, brand);
-    // Notify same-tab listeners (WeekPlanner's brand strip) — storage events only fire
-    // cross-tab, so mirror the posts-changed pattern for in-session edits.
-    window.dispatchEvent(new CustomEvent("social:brand-changed"));
-  }, [pid, brand]);
+  // single brand. Lives in the TENANT store (per user+project, localStorage-migrated
+  // via useSocialBrand) and is shared with WeekPlanner through the same store, which
+  // replaced the old `social:brand-changed` CustomEvent glue.
+  const { brand, setBrand } = useSocialBrand(pid);
   // C1 unify: the project's auto-derived catalogue voice — used by the server when
   // this field is blank, so show it here too (parity with the WeekPlanner strip).
-  const [autoBrand, setAutoBrand] = useState("");
-  useEffect(() => {
-    if (!pid) return;
-    let live = true;
-    fetch(`/api/projects/${encodeURIComponent(pid)}/brand-context`)
-      .then((r) => (r.ok ? r.json() : { context: "" }))
-      .then((j: { context?: string }) => {
-        if (live) setAutoBrand(j.context ?? "");
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [pid]);
+  // One shared fetch with WeekPlanner (useSocialData store).
+  const autoBrand = useBrandContext(pid);
 
   const [platform, setPlatform] = useState<SocialPlatform>("instagram");
   const [content, setContent] = useState("");

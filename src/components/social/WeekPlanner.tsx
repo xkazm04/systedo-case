@@ -5,16 +5,20 @@
  *  line) + a platform, and it drafts each with the AI social tool (reusing
  *  /api/social/draft) and schedules them across consecutive days as `scheduled`
  *  posts (POST /api/social/posts). No new backend — it orchestrates the existing
- *  draft + posts routes, then the calendar reflects them. */
-import { useCallback, useEffect, useState } from "react";
+ *  draft + posts routes, then the calendar reflects them. The batch engine
+ *  (bounded concurrency + abort-on-unmount) lives in usePlanWeek; posts and the
+ *  brand voice come from the shared social data stores, so this screen no longer
+ *  double-fetches what Composer/PostsList already loaded. */
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Calendar, Check, Clock, Info, Sparkles } from "@/components/icons";
 import { useOptionalProject } from "@/lib/projects/context";
 import DraftHealth from "./DraftHealth";
 import { useSocialAccounts } from "./useSocialAccounts";
+import { useBrandContext, useSocialPosts } from "./useSocialData";
+import { useSocialBrand } from "./useSocialBrand";
+import { usePlanWeek } from "./usePlanWeek";
 import { scheduleWillNotPublish } from "@/lib/social/schedule-signal";
-import { draftResponseMeta, mergeDraftMetas, type SocialDraftMeta } from "@/lib/social/draft-meta";
-import { readSocialBrand } from "@/lib/social/brand-storage";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { Formatters } from "@/lib/format";
@@ -41,10 +45,6 @@ const T = {
     timeLabel: "Čas",
     planBtn: "Naplánovat týden",
     generating: "Generuji… {done}/{total}",
-    genFailed: "Generování se nezdařilo.",
-    serverError: "Nepodařilo se spojit se serverem.",
-    partialKept: "Naplánováno {done}/{total} témat. V poli zůstala jen nezpracovaná, spusťte plánování znovu.",
-    partialPosts: "Vytvořeno {saved} z {promised} příspěvků. Pro některé sítě se nepodařilo vygenerovat text.",
     overLimit: "{count} témat: naplánuje se prvních 7, zbytek zůstane v poli.",
     voiceLabel: "Píše na značku",
     voiceHint: "Odvozeno z vašeho katalogu: příspěvky drží váš sortiment a slovník. Upravit v Katalogu.",
@@ -64,10 +64,6 @@ const T = {
     timeLabel: "Time",
     planBtn: "Plan the week",
     generating: "Generating… {done}/{total}",
-    genFailed: "Generation failed.",
-    serverError: "Could not reach the server.",
-    partialKept: "Scheduled {done}/{total} topics. Only the unprocessed ones were kept in the field; run the planner again.",
-    partialPosts: "Created {saved} of {promised} posts. Some networks could not be generated.",
     overLimit: "{count} topics: the first 7 will be scheduled, the rest stay in the field.",
     voiceLabel: "Writing on-brand",
     voiceHint: "Derived from your catalog: posts stay in your range and vocabulary. Edit in Catalog.",
@@ -146,7 +142,12 @@ export default function WeekPlanner() {
   const t = useT(T);
   const fmt = useFormatters();
   const { locale } = useLocale();
-  const [posts, setPosts] = useState<SocialPost[]>([]);
+  // Shared stores: one posts fetch (with PostsList) refetched on the
+  // `social:posts-changed` bus; one brand-context fetch (with Composer); the brand
+  // voice lives in the tenant store (localStorage-migrated) via useSocialBrand.
+  const { posts } = useSocialPosts(pid);
+  const autoBrand = useBrandContext(pid);
+  const { brand } = useSocialBrand(pid);
   const [week, setWeek] = useState<Day[]>([]);
 
   const [topics, setTopics] = useState("");
@@ -164,67 +165,15 @@ export default function WeekPlanner() {
   const [tone, setTone] = useState<Tone>("pratelsky");
   const [hour, setHour] = useState("10");
   const safeHour = parseHour(hour);
-  // Brand voice — kept fresh (not a one-shot mount snapshot): re-read on the
-  // brand-changed event the Composer emits and on cross-tab storage writes, and read
-  // fresh again at planWeek time so a just-edited voice is the one actually used.
-  const [brand, setBrand] = useState(() => readSocialBrand(pid));
-  // C1: the project's auto-derived brand voice (what it sells + how it talks), so the
-  // batch is on-brand BY DEFAULT — shown here, not buried in the Composer.
-  const [autoBrand, setAutoBrand] = useState("");
 
-  const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  // Honesty verdict of the last batch: merged meta of every draft that came back
-  // degraded / wrong-language, plus how many topics were flagged. Null = all clean.
-  const [batchHealth, setBatchHealth] = useState<{ meta: SocialDraftMeta; flagged: number; total: number } | null>(null);
-
-  const loadPosts = useCallback(async () => {
-    try {
-      const url = pid ? `/api/social/posts?projectId=${encodeURIComponent(pid)}` : "/api/social/posts";
-      const res = await fetch(url);
-      const json = (await res.json()) as { posts?: SocialPost[] };
-      setPosts(json.posts ?? []);
-    } catch {
-      /* non-critical */
-    }
-  }, [pid]);
+  // The batch engine: bounded-concurrency drafting + saves, abort on unmount,
+  // fail-fast on the first server error (rate-limit behavior unchanged).
+  const { running, progress, error, batchHealth, planWeek } = usePlanWeek();
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeek(buildWeek(fmt, firstSlotDate(safeHour)));
-    void loadPosts();
-    const handler = () => void loadPosts();
-    window.addEventListener("social:posts-changed", handler);
-    return () => window.removeEventListener("social:posts-changed", handler);
-  }, [loadPosts, fmt, safeHour]);
-
-  // Keep the brand voice in sync with the Composer (which owns the field) — mirror the
-  // posts-changed pattern so an edit made this session isn't ignored until a reload.
-  useEffect(() => {
-    const refresh = () => setBrand(readSocialBrand(pid));
-    window.addEventListener("social:brand-changed", refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener("social:brand-changed", refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, [pid]);
-
-  // Fetch the derived brand voice for this project (empty for an empty catalogue).
-  useEffect(() => {
-    if (!pid) return;
-    let live = true;
-    fetch(`/api/projects/${encodeURIComponent(pid)}/brand-context`)
-      .then((r) => (r.ok ? r.json() : { context: "" }))
-      .then((j: { context?: string }) => {
-        if (live) setAutoBrand(j.context ?? "");
-      })
-      .catch(() => {});
-    return () => {
-      live = false;
-    };
-  }, [pid]);
+  }, [fmt, safeHour]);
 
   // Scheduled posts grouped by their day (YYYY-MM-DD), for the calendar cells.
   const byDay = new Map<string, SocialPost[]>();
@@ -254,132 +203,27 @@ export default function WeekPlanner() {
           posts: topicLines.length * platforms.size,
         });
 
-  async function planWeek() {
+  async function handlePlan() {
     if (topicLines.length === 0 || running) return;
-    setRunning(true);
-    setError(null);
-    setBatchHealth(null);
-    setProgress({ done: 0, total: topicLines.length });
-    // First slot today at the chosen hour; if that's already past, start tomorrow, so
-    // every scheduled post lands in the future (the store keeps future-dated ones). The
-    // calendar anchors to this SAME date (buildWeek(fmt, firstSlotDate(safeHour))), so a
-    // batch can never land on an invisible day 8.
-    const first = firstSlotDate(safeHour);
-    // Read the brand fresh at run time (not the mount snapshot) so a voice edited in
-    // the Composer this session is the one the batch actually generates with.
-    const currentBrand = readSocialBrand(pid).trim();
-    let failed = false;
-    // Retry-safe batching: count topics whose posts ALL persisted, so a mid-batch
-    // failure can drop exactly the succeeded lines from the textarea. The old
-    // "keep everything on failure" retry re-ran topics 1..i-1 from scratch and
-    // double-scheduled every post that had already landed.
-    let doneCount = 0;
-    // Count posts actually persisted (in POSTS, the unit the summary promises) so a
-    // draft that silently omits a platform surfaces as "X of Y created" instead of a
-    // green run that quietly holds fewer posts than "témat × sítě" advertised.
-    let savedCount = 0;
-    // Per-topic honesty metas (degraded / wrong-language), surfaced after the run —
-    // a batch whose captions are truncated must not look identical to a clean one.
-    const draftMetas: (SocialDraftMeta | null)[] = [];
-    for (let i = 0; i < topicLines.length; i++) {
-      try {
-        const draftRes = await fetch("/api/social/draft", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic: topicLines[i],
-            tone,
-            platforms: [...platforms],
-            ai: true,
-            // On-brand by default (C1): a manual voice wins, else the auto-derived
-            // catalogue voice, else the project name — never a placeholder company.
-            // projectId grounds "what's working" and the server-side voice fallback.
-            brand: currentBrand || autoBrand || project?.name || undefined,
-            ...(pid ? { projectId: pid } : {}),
-          }),
-        });
-        const draftJson = await draftRes.json();
-        if (!draftRes.ok) {
-          setError(draftJson?.error ?? t("genFailed"));
-          failed = true;
-          break;
-        }
-        draftMetas.push(draftResponseMeta(draftJson));
-        // One topic → a differentiated caption per selected platform, all scheduled on
-        // the topic's day (the topic runs across every channel that day).
-        const drafts: { platform: SocialPlatform; content: string }[] = draftJson.drafts ?? [];
-        const when = new Date(first);
-        when.setDate(first.getDate() + i);
-        let saveFailed = false;
-        for (const d of drafts) {
-          if (!d?.content || !platforms.has(d.platform)) continue;
-          // Check the save response — a resolved fetch is not an HTTP success (401 on
-          // an expired session, 429 rate-limit, 500). Without this the progress bar
-          // completed while the posts were never persisted (success theater).
-          const saveRes = await fetch("/api/social/posts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ platform: d.platform, content: d.content, scheduledAt: when.toISOString(), projectId: pid }),
-          });
-          if (!saveRes.ok) {
-            const j = await saveRes.json().catch(() => null);
-            setError(j?.error ?? t("genFailed"));
-            saveFailed = true;
-            break;
-          }
-          savedCount += 1;
-        }
-        if (saveFailed) {
-          failed = true;
-          break;
-        }
-        doneCount = i + 1;
-        setProgress({ done: i + 1, total: topicLines.length });
-      } catch {
-        setError(t("serverError"));
-        failed = true;
-        break;
-      }
-    }
-    setRunning(false);
-    // Surface the merged draft honesty regardless of how the run ended: posts from a
-    // degraded draft are already scheduled, so the flag matters even mid-failure.
-    const mergedMeta = mergeDraftMetas(draftMetas);
-    if (mergedMeta) {
-      setBatchHealth({
-        meta: mergedMeta,
-        flagged: draftMetas.filter((m) => m && (m.degraded || m.languageMismatch)).length,
-        total: topicLines.length,
-      });
-    }
-    if (!failed) {
-      // Keep any over-the-7-cap tail the run didn't touch instead of wiping the whole
-      // field (topicLines is the first 7; rawLines is everything the user typed).
-      setTopics(rawLines.slice(topicLines.length).join("\n"));
-      // A green run can still yield fewer posts than promised if a draft omitted a
-      // platform — reconcile POSTS created against topics × networks and flag the gap.
-      const promised = topicLines.length * platforms.size;
-      if (savedCount < promised) {
-        setError(t("partialPosts", { saved: savedCount, promised }));
-      }
-    } else {
-      // Keep ONLY the unprocessed topics so a retry doesn't re-run (and
-      // double-schedule) the ones that already persisted. The failed topic
-      // itself stays — at worst its retry re-saves the platforms that landed
-      // before its failure, never whole earlier topics. Slice the FULL textarea
-      // lines (topicLines is capped at 7) so overflow lines survive too.
-      const allLines = topics
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      setTopics(allLines.slice(doneCount).join("\n"));
-      if (doneCount > 0) {
-        const kept = t("partialKept", { done: doneCount, total: topicLines.length });
-        setError((prev) => (prev ? `${prev} ${kept}` : kept));
-      }
-    }
+    const remaining = await planWeek({
+      topics: topicLines,
+      allLines: rawLines,
+      platforms: [...platforms],
+      tone,
+      // On-brand by default (C1): a manual voice wins, else the auto-derived
+      // catalogue voice, else the project name — never a placeholder company.
+      brand: brand.trim() || autoBrand || project?.name || undefined,
+      // First slot today at the chosen hour; if that's already past, start
+      // tomorrow. The calendar anchors to this SAME date (buildWeek above), so a
+      // batch can never land on an invisible day 8.
+      firstSlot: firstSlotDate(safeHour),
+      pid,
+    });
+    if (remaining === null) return; // aborted (unmount) — saved posts stand
+    // Keep only the lines the run did NOT fully persist (failed topics + the
+    // over-the-cap tail) so a retry can't double-schedule what already landed.
+    setTopics(remaining.join("\n"));
     window.dispatchEvent(new CustomEvent("social:posts-changed"));
-    void loadPosts();
   }
 
   return (
@@ -488,7 +332,7 @@ export default function WeekPlanner() {
           </div>
           <button
             type="button"
-            onClick={planWeek}
+            onClick={() => void handlePlan()}
             disabled={running || topicLines.length === 0}
             className="inline-flex w-full items-center justify-center gap-2 rounded-pill bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
