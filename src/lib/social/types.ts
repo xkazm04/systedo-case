@@ -124,6 +124,18 @@ export interface SocialMessage {
   receivedAt: string;
   status: "open" | "replied";
   reply?: string;
+  /** true when this is an ILLUSTRATIVE SAMPLE message (no real webhook intake
+   *  exists yet). Samples are served from code — never persisted into a tenant's
+   *  store except when the tenant replies to one, and then only WITH this flag —
+   *  so a real tenant can always tell a fixture ("Jana N.") from real inbound.
+   *  The UI labels it (Inbox's "Ukázka" pill), mirroring the r16 per-signal
+   *  provenance posture (insights/aggregate.ts from()/fixture()). */
+  sample?: boolean;
+  /** true when the recorded reply was SIMULATED (no reply adapter exists —
+   *  publish.ts publishReply). Absent on legacy rows, which were ALL simulated
+   *  (no adapter has ever shipped), so the UI treats absent as simulated — the
+   *  same honest-default posture as PostsList's demo.social URL sniff. */
+  replySimulated?: boolean;
 }
 
 /** One drafted caption (template or AI) for a platform. */

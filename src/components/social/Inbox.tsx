@@ -17,7 +17,9 @@ const T = {
     pending: "{n} nevyřízených",
     loadingInbox: "Načítám inbox…",
     comment: "komentář",
+    sampleTag: "Ukázka",
     replied: "Odpovězeno",
+    repliedSimulated: "· simulovaná odpověď",
     replyHint: "Navržená odpověď: upravte a schvalte",
     replyInTwin: "Odpovědět v twinu",
     handoffHint: "Odpověď připraví twin ve Schránce zpráv",
@@ -29,7 +31,9 @@ const T = {
     pending: "{n} pending",
     loadingInbox: "Loading inbox…",
     comment: "comment",
+    sampleTag: "Sample",
     replied: "Replied",
+    repliedSimulated: "· simulated reply",
     replyHint: "Suggested reply: edit and approve",
     replyInTwin: "Reply in the twin",
     handoffHint: "The twin drafts the reply in your Message box",
@@ -48,6 +52,11 @@ interface InboxMessage {
   status: "open" | "replied";
   reply?: string;
   suggestedReply?: string;
+  /** illustrative sample message served from code (no real webhook intake yet) */
+  sample?: boolean;
+  /** the recorded reply was simulated (no reply adapter). Absent on legacy rows —
+   *  which were ALL simulated — so absent renders as simulated (honest default). */
+  replySimulated?: boolean;
 }
 
 export default function Inbox() {
@@ -112,7 +121,11 @@ export default function Inbox() {
         body: JSON.stringify({ id: m.id, platform: m.platform, reply, projectId: pid }),
       });
       if (res.ok) {
-        setMessages((list) => list.map((x) => (x.id === m.id ? { ...x, status: "replied", reply } : x)));
+        const json = (await res.json().catch(() => ({}))) as { simulated?: boolean };
+        const replySimulated = json.simulated !== false;
+        setMessages((list) =>
+          list.map((x) => (x.id === m.id ? { ...x, status: "replied", reply, replySimulated } : x))
+        );
       }
     } finally {
       setBusy(null);
@@ -137,6 +150,9 @@ export default function Inbox() {
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-navy-800">{m.author}</span>
                 <span className="flex items-center gap-1.5 text-xs text-muted">
+                  {/* Provenance label: samples are served from code (no real webhook
+                      intake yet) and must never read as real inbound. */}
+                  {m.sample && <span className="pill bg-navy-50 text-muted">{t("sampleTag")}</span>}
                   <span className="pill bg-navy-50 text-muted">{SOCIAL_PLATFORM_LABELS[m.platform]}</span>
                   {m.kind === "dm" ? "DM" : t("comment")}
                 </span>
@@ -148,6 +164,13 @@ export default function Inbox() {
                   <span className="flex items-center gap-1.5 font-medium">
                     <Check width={14} height={14} />
                     {t("replied")}
+                    {/* No reply adapter exists yet, so a sent reply is a SIMULATION —
+                        say so instead of an unqualified green check (the PostsList
+                        "Simulované publikování" posture). Absent flag = legacy row,
+                        which was also simulated → honest default. */}
+                    {m.replySimulated !== false && (
+                      <span className="font-normal text-muted">{t("repliedSimulated")}</span>
+                    )}
                   </span>
                   <p className="mt-1 text-navy-700">{m.reply}</p>
                 </div>

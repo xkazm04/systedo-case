@@ -46,14 +46,25 @@ export async function POST(request: Request) {
   const unknown = await rejectUnknownProject(await currentUserId(), projectId);
   if (unknown) return unknown;
   const tenant = await tenantOf(projectId);
+  // Nothing has left the app unless a real adapter delivered it — so the recorded
+  // reply defaults to simulated (the Inbox labels it honestly, like PostsList's
+  // "Simulované publikování" for posts).
+  let simulated = true;
   if (isSocialPlatform(body.platform)) {
     // Same seam as post publishing: real when the account is connected with a token,
     // an honest no-op simulation otherwise.
     const uid = await currentUserId();
     const account = uid ? await getAccount(uid, body.platform) : null;
     const token = uid && account && !account.demo ? await getAccountToken(uid, body.platform) : null;
-    await publishReply(body.platform, id, reply, { account, token });
+    const result = await publishReply(body.platform, id, reply, { account, token });
+    // A REAL delivery that failed must not be recorded as replied — nothing was
+    // sent. (Unreachable today: no adapter implements reply, so every path is a
+    // successful simulation; the guard is for the first real adapter.)
+    if (!result.ok) {
+      return Response.json({ error: result.error ?? "Odpověď se nepodařilo odeslat." }, { status: 502 });
+    }
+    simulated = result.simulated;
   }
-  const ok = await markReplied(tenant, id, reply);
-  return Response.json({ ok }, { status: ok ? 200 : 404 });
+  const ok = await markReplied(tenant, id, reply, { simulated });
+  return Response.json({ ok, simulated }, { status: ok ? 200 : 404 });
 }

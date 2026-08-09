@@ -1,15 +1,16 @@
 /** Per-tenant social store: scheduled/published posts + the comms inbox. Sample
- *  inbound messages are seeded on first read so the inbox demos without real
- *  webhooks. Server-only.
+ *  inbound messages are RESOLVED from code at read time (never persisted on read)
+ *  so the inbox demos without real webhooks while a tenant's store only ever holds
+ *  labeled data — see the inbox section below. Server-only.
  *
  *  Offline parity — verdict: REAL user state (authored posts/drafts + the inbox and
  *  its reply status), so it carries a sqlite twin. Raw document access dispatches
  *  through the generic tenant-docs backend (Firestore vs node:sqlite `tenant_docs`,
  *  migration v17), so the whole social surface works offline under LOCAL_DB with a
  *  byte-identical Firestore path — including the atomic scheduled→publishing claim
- *  (compareAndSet → a Firestore transaction) and the inbox seed (batchSet → a
- *  Firestore batch). Domain logic (id minting, the sample messages, due filtering,
- *  receivedAt sort) stays here; only the document access is dispatched. */
+ *  (compareAndSet → a Firestore transaction). Domain logic (id minting, the sample
+ *  messages, due filtering, receivedAt sort) stays here; only the document access
+ *  is dispatched. */
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { tenantDocs } from "@/lib/tenant-docs/backend";
@@ -142,6 +143,26 @@ export async function reclaimStalePublishing(tenant: string, now = Date.now()): 
 }
 
 // --- inbox ------------------------------------------------------------------
+//
+// Provenance posture (resolve-don't-persist): no real inbound-webhook intake
+// exists yet, so the illustrative sample messages are SERVED FROM CODE on every
+// read and labeled `sample: true` — they are never written into a tenant's store
+// just for being read (a paying tenant must never find fabricated comments
+// persisted, indistinguishable from real inbound). The store holds only:
+//   - real inbound messages (once an intake exists) — unlabeled, and
+//   - a sample the tenant REPLIED to — persisted so the reply survives, but
+//     always WITH the `sample` label.
+// This mirrors the r16 schranka/leads ruling (unconditional disclosure until a
+// real intake exists) applied per-signal (the insights from()/fixture() pattern).
+//
+// Migration (the pre-provenance seed): listMessages used to batch-persist the
+// fixtures unlabeled into every tenant on first read. Those legacy rows are
+// byte-identical to the fixtures (`sample_{i}` id + same platform/author/kind/
+// text), so listMessages self-heals them lazily, exactly where the misdata would
+// otherwise be shown: an untouched (open) seeded row is DELETED (the code-served
+// sample replaces it, labeled); a REPLIED one is kept — it records the tenant's
+// own action — and merge-labeled `sample: true`. Runs through the tenantDocs
+// interface only, so it is safe on both backends.
 
 const SAMPLE_MESSAGES: Omit<SocialMessage, "id" | "receivedAt" | "status">[] = [
   { platform: "instagram", author: "Jana N.", kind: "comment", text: "Ahoj, kolik stojí ta směs ořechů z posledního příspěvku? 😍" },
@@ -150,34 +171,86 @@ const SAMPLE_MESSAGES: Omit<SocialMessage, "id" | "receivedAt" | "status">[] = [
   { platform: "linkedin", author: "Tomáš Dvořák", kind: "dm", text: "Dobrý den, řešíte i velkoobchodní spolupráci pro firemní balíčky?" },
 ];
 
-async function seedSampleMessages(tenant: string): Promise<void> {
-  const now = Date.now();
-  const docs = SAMPLE_MESSAGES.map((m, i) => ({
+/** The code-served sample inbox: stable ids (`sample_{i}`), recent relative
+ *  receivedAt stamps, and the `sample` provenance label. Recomputed per read —
+ *  nothing is persisted. */
+function sampleMessages(now = Date.now()): SocialMessage[] {
+  return SAMPLE_MESSAGES.map((m, i) => ({
     id: `sample_${i}`,
-    data: {
-      ...m,
-      receivedAt: new Date(now - (i + 1) * 3_600_000).toISOString(),
-      status: "open" as const,
-    },
+    ...m,
+    receivedAt: new Date(now - (i + 1) * 3_600_000).toISOString(),
+    status: "open" as const,
+    sample: true,
   }));
-  await (await tenantDocs()).batchSet(tenant, MESSAGES, docs);
+}
+
+/** Is a STORED row one of the legacy unlabeled seeds? Robust by construction: the
+ *  seed wrote byte-identical fixtures under `sample_{i}` ids, so both the id shape
+ *  AND the full fixture content must match — a real inbound message that merely
+ *  collided with the id shape would differ in content and stay untouched. */
+function isLegacySeededFixture(m: SocialMessage): boolean {
+  if (!/^sample_\d+$/.test(m.id)) return false;
+  return SAMPLE_MESSAGES.some(
+    (f) => f.platform === m.platform && f.author === m.author && f.kind === m.kind && f.text === m.text
+  );
 }
 
 export async function listMessages(tenant: string): Promise<SocialMessage[]> {
   const store = await tenantDocs();
-  let rows = await store.listDocs(tenant, MESSAGES);
-  if (rows.length === 0) {
-    await seedSampleMessages(tenant);
-    rows = await store.listDocs(tenant, MESSAGES);
+  const rows = await store.listDocs(tenant, MESSAGES);
+  const stored: SocialMessage[] = [];
+  for (const r of rows) {
+    const m = { id: r.id, ...(r.data as Omit<SocialMessage, "id">) };
+    if (!m.sample && isLegacySeededFixture(m)) {
+      if (m.status === "open") {
+        // Untouched pre-provenance seed: remove it — the code-served sample below
+        // takes its place, labeled.
+        await store.deleteDoc(tenant, MESSAGES, m.id);
+        continue;
+      }
+      // The tenant replied to it — keep their record, but labeled from now on.
+      await store.setDoc(tenant, MESSAGES, m.id, { sample: true }, { merge: true });
+      m.sample = true;
+    }
+    stored.push(m);
   }
-  return rows
-    .map((r) => ({ id: r.id, ...(r.data as Omit<SocialMessage, "id">) }))
-    .sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
+  // Serve the samples from code, minus any the tenant has interacted with (their
+  // stored, labeled copy wins so the reply state survives).
+  const storedIds = new Set(stored.map((m) => m.id));
+  const samples = sampleMessages().filter((s) => !storedIds.has(s.id));
+  return [...stored, ...samples].sort((a, b) => b.receivedAt.localeCompare(a.receivedAt));
 }
 
-export async function markReplied(tenant: string, id: string, reply: string): Promise<boolean> {
+export async function markReplied(
+  tenant: string,
+  id: string,
+  reply: string,
+  opts: { simulated?: boolean } = {}
+): Promise<boolean> {
   const store = await tenantDocs();
-  if (!(await store.getDoc(tenant, MESSAGES, id))) return false;
-  await store.setDoc(tenant, MESSAGES, id, { status: "replied", reply }, { merge: true });
+  const patch = {
+    status: "replied" as const,
+    reply,
+    ...(opts.simulated !== undefined ? { replySimulated: opts.simulated } : {}),
+  };
+  if (await store.getDoc(tenant, MESSAGES, id)) {
+    await store.setDoc(tenant, MESSAGES, id, patch, { merge: true });
+    return true;
+  }
+  // A code-served sample (resolve-don't-persist) has no stored doc yet: persist it
+  // now — the ONE moment a sample legitimately enters the store — with its full
+  // content, the frozen receivedAt, and ALWAYS the `sample` label.
+  const sample = sampleMessages().find((s) => s.id === id);
+  if (!sample) return false;
+  const data: Omit<SocialMessage, "id"> = {
+    platform: sample.platform,
+    author: sample.author,
+    text: sample.text,
+    kind: sample.kind,
+    receivedAt: sample.receivedAt,
+    sample: true,
+    ...patch,
+  };
+  await store.setDoc(tenant, MESSAGES, id, data);
   return true;
 }
