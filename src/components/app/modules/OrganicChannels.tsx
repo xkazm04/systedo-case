@@ -27,6 +27,7 @@ import {
   type OrganicChannel,
 } from "@/lib/organic-channels/types";
 import { deriveChannelNext, type SignpostContext } from "@/lib/organic-channels/next-step";
+import { reconcilePlanTracks } from "@/lib/organic-channels/reconcile";
 import ChannelPipeline from "@/components/app/channels/ChannelPipeline";
 import ChannelWizard from "@/components/app/channels/ChannelWizard";
 import ChannelPlaybook from "@/components/app/channels/ChannelPlaybook";
@@ -70,6 +71,9 @@ const T = {
     degradedBanner:
       "Uložený plán se nepodařilo načíst. Zobrazujeme ukázkový plán jen ke čtení. Změny stavu jsou dočasně vypnuté, aby nepřepsaly vaši uloženou práci. Obnovte stránku a zkuste to znovu.",
     defaultTopic: "{channel}: příspěvek pro {brand}",
+    orphanNote: "V novém plánu už nejsou tyto dříve nastavené kanály:",
+    orphanRemove: "Odebrat jejich nastavení",
+    orphanKeep: "Ponechat",
   },
   en: {
     sourceSample: "Sample plan",
@@ -99,6 +103,9 @@ const T = {
     degradedBanner:
       "Couldn't load your saved plan. Showing a read-only sample. Status changes are temporarily disabled so they can't overwrite your saved work. Refresh the page to try again.",
     defaultTopic: "{channel}: post for {brand}",
+    orphanNote: "These previously configured channels are no longer in the new plan:",
+    orphanRemove: "Remove their setup",
+    orphanKeep: "Keep",
   },
 } as const;
 
@@ -133,6 +140,8 @@ export default function OrganicChannels({
   const [openId, setOpenId] = useState<string | null>(null);
   const [wizardQueue, setWizardQueue] = useState<OrganicChannel[]>([]);
   const [applied, setApplied] = useState(false);
+  /** tracks left behind by the last applied plan — surfaced, never silently hidden */
+  const [orphans, setOrphans] = useState<Array<{ id: string; name: string }>>([]);
 
   const ai = useAiTool<ChannelResearchResult>("channel-research");
 
@@ -181,15 +190,30 @@ export default function OrganicChannels({
   };
 
   /** Pin the AI plan, then auto-offer the setup wizard for the top-3-fit
-   *  channels — the guided "now decide who speaks where" moment. */
+   *  channels — the guided "now decide who speaks where" moment. AI ids are
+   *  slugified model names, so a renamed-but-same channel would orphan its
+   *  configured track: reconcilePlanTracks re-keys existing lifecycle work onto
+   *  the new plan (fold-based, conservative), the auto-offer skips channels
+   *  whose folded identity is already configured, and anything unmatched is
+   *  surfaced in the orphans note instead of silently vanishing. */
   const applyPlan = () => {
     const plan = ai.data?.result.channels;
     if (!plan || plan.length === 0) return;
+    const next = reconcilePlanTracks(plan, channels, tracks);
     setChannels(plan);
     setSource("ai");
     setApplied(true);
-    persist({ tracks, plan });
-    setWizardQueue(plan.filter((c) => !tracks[c.id]).slice(0, 3));
+    setTracks(next.tracks);
+    setOrphans(next.orphans);
+    persist({ tracks: next.tracks, plan });
+    setWizardQueue(plan.filter((c) => !next.tracks[c.id]).slice(0, 3));
+  };
+
+  /** Drop the surfaced leftover tracks (explicit user action — frees track cap). */
+  const removeOrphans = () => {
+    const ids = new Set(orphans.map((o) => o.id));
+    saveTracks((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => !ids.has(id))));
+    setOrphans([]);
   };
 
   const revertSample = () => {
@@ -197,6 +221,7 @@ export default function OrganicChannels({
     setSource("sample");
     setTracks({});
     setApplied(false);
+    setOrphans([]);
     void fetch(`/api/projects/${project.id}/organic-channels`, { method: "DELETE" }).catch(() => {});
   };
 
@@ -276,6 +301,35 @@ export default function OrganicChannels({
           className="rounded-card border border-coral-400 bg-coral-soft px-4 py-3 text-sm leading-relaxed text-coral-600"
         >
           {t("degradedBanner")}
+        </div>
+      )}
+
+      {/* Honest leftovers: configured channels the regenerated plan no longer names */}
+      {orphans.length > 0 && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-canvas px-4 py-3 text-sm"
+        >
+          <p className="min-w-0 leading-relaxed text-muted">
+            {t("orphanNote")}{" "}
+            <span className="font-medium text-navy-800">{orphans.map((o) => o.name).join(", ")}</span>
+          </p>
+          <span className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={removeOrphans}
+              className="rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-coral-400 hover:text-coral-600"
+            >
+              {t("orphanRemove")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrphans([])}
+              className="text-xs font-medium text-muted transition-colors hover:text-navy-800"
+            >
+              {t("orphanKeep")}
+            </button>
+          </span>
         </div>
       )}
 
