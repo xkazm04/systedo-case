@@ -75,6 +75,12 @@ function harness(overrides = {}) {
       calls.push({ name: "resolveBrandContext", args: a });
       return "BRAND";
     },
+    // "Grounded means grounded": the brief row's saved-keyword grounding. Injected
+    // here so the row never falls back to its lazy store import inside the suite.
+    resolveSavedKeywords: async (...a) => {
+      calls.push({ name: "resolveSavedKeywords", args: a });
+      return [{ keyword: "kw", volume: 100, competition: "low" }];
+    },
     resolveTwinVoice: async (...a) => {
       calls.push({ name: "resolveTwinVoice", args: a });
       return VOICE;
@@ -249,7 +255,9 @@ test("ads: brand attaches even when patterns are empty (independent grounding)",
 });
 
 // ── brand-grounded content tools: brand enters value (route.ts:409-417, 510-516) ──
-for (const [mode, genName] of [["brief", "brief"], ["article-draft", "articleDraft"]]) {
+// article-draft keeps the plain brand-only shape; brief now also carries the
+// account's patterns + saved keywords — pinned in content-engine-grounding.test.mjs.
+for (const [mode, genName] of [["article-draft", "articleDraft"]]) {
   test(`${mode}: brand grounding enters value; cacheValue === value`, async () => {
     const { table, calls } = harness();
     const value = { projectId: "proj", topic: "T" };

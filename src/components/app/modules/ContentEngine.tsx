@@ -24,6 +24,10 @@ import { isModuleAvailable } from "@/lib/projects/modules";
 import type { ContentDerivation } from "@/lib/content-engine/resolve";
 import { rankedClusterStats, decayingPosts, type ClusterStat } from "@/lib/content-engine/compute";
 import type { ClusterArticle, DecayingPost, TopicCluster } from "@/lib/content-engine/sample";
+import { seedFromCluster, seedFromDecay } from "@/lib/content-engine/seed";
+import { groundableKeywords, groundablePatternCount } from "@/lib/content-engine/grounding";
+import { isDemoProjectId } from "@/lib/projects/demo";
+import type { Pattern } from "@/lib/patterns/types";
 import type { KeywordList } from "@/lib/keywords/types";
 import type { ContentPost } from "@/lib/content-schedule/sample";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -47,8 +51,8 @@ const T = {
     sourceLive: "Živá data · Search Console",
     sourceSample: "Ukázková data",
     adsNotDerived: "Připojený Google Ads sem zatím nevstupuje",
-    keywordsChip: "{n} klíčových slov",
-    patternsChip: "Podloženo {n} vzory",
+    keywordsChip: "{n} uložených klíčových slov v briefu",
+    patternsChip: "Podloženo {n} vzory z účtu",
     newContent: "Nový obsah",
     buildClusters: "Sestavit klastry z klíčových slov",
     clustersTitle: "Tematické klastry",
@@ -93,6 +97,8 @@ const T = {
     wsSeeded: "Obsahový brief",
     wsAds: "PPC inzeráty z briefu",
     // next steps
+    stepLibrary: "Uložený obsah",
+    stepLibraryHint: "Otevřít knihovnu hotových briefů a článků",
     stepDistribute: "Distribuovat",
     stepDistributeHint: "Rozšířit hotový článek na sítě a do newsletteru",
     stepSocial: "Sociální sítě",
@@ -104,8 +110,8 @@ const T = {
     sourceLive: "Live data · Search Console",
     sourceSample: "Sample data",
     adsNotDerived: "Your Google Ads sync doesn’t feed this screen yet",
-    keywordsChip: "{n} keywords",
-    patternsChip: "Grounded in {n} patterns",
+    keywordsChip: "{n} saved keywords in the brief",
+    patternsChip: "Grounded in {n} of your account’s patterns",
     newContent: "New content",
     buildClusters: "Build clusters from keywords",
     clustersTitle: "Topic clusters",
@@ -147,6 +153,8 @@ const T = {
     wsRefresh: "Refresh of “{title}”",
     wsSeeded: "Content brief",
     wsAds: "PPC ads from the brief",
+    stepLibrary: "Saved content",
+    stepLibraryHint: "Open the library of finished briefs and articles",
     stepDistribute: "Distribute",
     stepDistributeHint: "Push the finished article to social and newsletter",
     stepSocial: "Social media",
@@ -162,20 +170,6 @@ interface Workspace {
   seed: BriefSeed | null;
   title: string;
   nonce: number;
-}
-
-/** Brief seed from a cluster (optionally a specific article): the cluster topic is
- *  the primary keyword, the article/gap title is what to write. */
-function seedFromCluster(cluster: ClusterStat, article?: ClusterArticle): BriefSeed {
-  return {
-    topic: article?.title ?? cluster.nextGap?.title ?? cluster.topic,
-    primaryKeyword: cluster.topic,
-    keywords: [],
-  };
-}
-
-function seedFromDecay(post: DecayingPost): BriefSeed {
-  return { topic: post.title, primaryKeyword: post.title, keywords: [] };
 }
 
 /** The unified "Obsahový engine": a view-first surface (compact cluster + decay
@@ -228,7 +222,7 @@ export default function ContentEngine({
   // Interconnect signals fetched client-side; both endpoints return empty for the
   // anonymous demo tenant, so the chips simply don't show there.
   const [savedLists, setSavedLists] = useState<KeywordList[]>([]);
-  const [patternCount, setPatternCount] = useState(0);
+  const [library, setLibrary] = useState<{ auto?: Pattern[]; saved?: Pattern[] }>({});
 
   const openWorkspace = (seed: BriefSeed | null, title: string) =>
     setWs((prev) => ({ seed, title, nonce: (prev?.nonce ?? 0) + 1 }));
@@ -288,8 +282,8 @@ export default function ContentEngine({
       .catch(() => {});
     fetch(`/api/patterns${q}`)
       .then((r) => (r.ok ? r.json() : { auto: [], saved: [] }))
-      .then((j: { auto?: unknown[]; saved?: unknown[] }) => {
-        if (alive) setPatternCount((j.auto?.length ?? 0) + (j.saved?.length ?? 0));
+      .then((j: { auto?: Pattern[]; saved?: Pattern[] }) => {
+        if (alive) setLibrary(j);
       })
       .catch(() => {});
     return () => {
@@ -297,9 +291,18 @@ export default function ContentEngine({
     };
   }, [project.id]);
 
-  const totalKeywords = savedLists.reduce((n, l) => n + l.keywords.length, 0);
+  // The chips count what the brief prompt will ACTUALLY carry — the same
+  // derivations the /api/ai brief row injects (lib/content-engine/grounding), not
+  // the raw size of the library. Zero → the chip doesn't render, so the header
+  // never claims grounding the model won't see.
+  const groundedKeywords = useMemo(() => groundableKeywords(savedLists).length, [savedLists]);
+  const groundedPatterns = useMemo(
+    () => groundablePatternCount(library, isDemoProjectId(project.id)),
+    [library, project.id]
+  );
 
   const nextSteps = [
+    { to: "ulozeny-obsah", label: t("stepLibrary"), hint: t("stepLibraryHint") },
     { to: "distribuce", label: t("stepDistribute"), hint: t("stepDistributeHint") },
     { to: "socialni", label: t("stepSocial"), hint: t("stepSocialHint") },
     { to: "kreativa", label: t("stepCreative"), hint: t("stepCreativeHint") },
@@ -317,16 +320,16 @@ export default function ContentEngine({
               {t("adsNotDerived")}
             </span>
           )}
-          {totalKeywords > 0 && (
+          {groundedKeywords > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-xs font-medium text-brand-800">
               <Layers width={13} height={13} />
-              {t("keywordsChip", { n: totalKeywords })}
+              {t("keywordsChip", { n: groundedKeywords })}
             </span>
           )}
-          {patternCount > 0 && (
+          {groundedPatterns > 0 && (
             <span className="inline-flex items-center gap-1.5 rounded-pill bg-navy-50 px-3 py-1 text-xs font-medium text-navy-700">
               <Bulb width={13} height={13} />
-              {t("patternsChip", { n: patternCount })}
+              {t("patternsChip", { n: groundedPatterns })}
             </span>
           )}
         </div>

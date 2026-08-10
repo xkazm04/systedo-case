@@ -45,6 +45,7 @@ import type {
   AnalysisRequest,
   AnalysisPeriod,
   ArticleDraftRequest,
+  BriefKeyword,
   BriefRequest,
   ChannelResearchRequest,
   ChatRequest,
@@ -103,6 +104,11 @@ import type { DiagnosisSnapshot } from "@/lib/ai-types";
 import { isDemoProjectId } from "@/lib/projects/demo";
 import type { GroundingResult, ResolvedDiagnosis } from "./grounding";
 import { isTwinChannel, type DraftGateVerdict, type ToneScope, type TwinChannel } from "@/lib/twin/types";
+import {
+  briefPatternQuery,
+  composeBriefBrand,
+  mergeBriefKeywords,
+} from "@/lib/content-engine/grounding";
 
 // ─── shared contracts ──────────────────────────────────────────────────────────
 
@@ -229,6 +235,16 @@ export interface ModeDeps {
     userId: string | null,
     channel: TwinChannel
   ) => Promise<DraftGateVerdict>;
+  /** "Grounded means grounded": the tenant's SAVED keyword lists, in the rows the
+   *  brief prompt renders. OPTIONAL and used by the brief row alone: when absent the
+   *  row lazy-imports the real resolver (`@/lib/content-engine/grounding-load`), so
+   *  the statically imported table stays free of the keyword store's import graph —
+   *  the same idiom as `resolveTwinDraftGate`. Unit tests inject a fake here to pin
+   *  both the injected and the empty (byte-identical) path. */
+  resolveSavedKeywords?: (
+    projectId: string | undefined,
+    userId: string | null
+  ) => Promise<BriefKeyword[]>;
   /** Direction 1: the social tool's server-side grounding — the "what's working" +
    *  competitor text, and the effective brand voice (override → auto-brand → none). */
   resolveSocialContext: (
@@ -442,12 +458,43 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       },
     }),
 
-    // ── brand-grounded content tools: brand enters value (→ cache key + prompt);
-    //    "" for public/demo-less calls so the shape stays byte-identical. ──
+    // ── brief: the tool Tvorba's header chips make promises about, so it grounds in
+    //    everything those chips claim — brand context, the account's RELEVANT winning
+    //    patterns (the same RAG resolver + the same live-vs-sample integrity rules the
+    //    ads row uses: promptSafePatterns drops demo lessons for a real tenant), and
+    //    the tenant's SAVED keywords. All three ride the USER prompt only, so the
+    //    system prompt + schema — and the gate's golden fingerprint — are unmoved.
+    //
+    //    Byte-identity for the ungrounded / demo path is preserved on every axis:
+    //    composeBriefBrand returns the brand string unchanged when no pattern line
+    //    resolves, and `value.keywords` is left alone (not rewritten to an equal
+    //    array) when the account has no saved keywords — so the shape hashed into
+    //    the response-cache key is exactly what it was before.
+    //
+    //    Patterns reuse `resolveAdPatterns` deliberately: brief-shaped query in,
+    //    tenancy + sample-lesson policy + contradicted-pin filtering inherited. Saved
+    //    keywords come through an OPTIONAL dep that falls back to a lazy import (the
+    //    resolveTwinDraftGate idiom) — the table stays free of the store import graph
+    //    for its unit tests, which inject a fake here.
+    //
+    //    No twin voice, deliberately: the trained voice is the OPERATOR's personal
+    //    voice (their LinkedIn/e-mail register). A brief and its article are brand
+    //    editorial on the company's own site, already voiced by `brand` (the
+    //    catalogue-derived context). The twin enters exactly where the article
+    //    becomes a personal post — the `repurpose` / `social` rows below. ──
     brief: defineMode<BriefRequest>({
       validate: validateBriefRequest,
       prepare: async (value, ctx) => {
-        value.brand = await deps.resolveBrandContext(value.projectId, ctx.userId, ctx.locale);
+        const resolveKeywords =
+          deps.resolveSavedKeywords ??
+          (await import("@/lib/content-engine/grounding-load")).resolveBriefKeywords;
+        const [brand, patterns, saved] = await Promise.all([
+          deps.resolveBrandContext(value.projectId, ctx.userId, ctx.locale),
+          deps.resolveAdPatterns(value.projectId, ctx.userId, briefPatternQuery(value)),
+          resolveKeywords(value.projectId, ctx.userId),
+        ]);
+        value.brand = composeBriefBrand(brand, patterns);
+        if (saved.length > 0) value.keywords = mergeBriefKeywords(value.keywords, saved);
         return { cacheValue: value, gen: () => deps.gen.brief(value, ctx.locale, ctx.signal) };
       },
     }),
