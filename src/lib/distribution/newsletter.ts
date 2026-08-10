@@ -7,10 +7,6 @@
 import { escapeHtml } from "@/lib/html";
 import { HOME_MARKET_LOCALE, LOCALES, type SupportedLocale } from "@/lib/format";
 
-/** The „Předmět:" prefix the deterministic + AI Newsletter variant emits. The
- *  trailing space is optional, so we match it case-insensitively and trim. */
-const SUBJECT_PREFIX = /^\s*Předmět:\s*/i;
-
 /** Soft subject-line budget. Most inbox clients truncate around here, so we warn
  *  past it rather than past the much larger body budget. */
 export const NEWSLETTER_SUBJECT_MAX = 70;
@@ -33,6 +29,21 @@ export const NEWSLETTER_SUBJECT_LABELS: Record<SupportedLocale, string> = {
 function labelFor(labels: Record<SupportedLocale, string>, locale: SupportedLocale): string {
   return labels[locale] ?? labels[HOME_MARKET_LOCALE];
 }
+
+/** The subject-line prefix the deterministic + AI Newsletter variant emits. The
+ *  trailing space is optional, so we match it case-insensitively and trim.
+ *
+ *  Derived from {@link NEWSLETTER_SUBJECT_LABELS} rather than hardcoding „Předmět:"
+ *  — once generate.ts writes the subject line in the user's locale, a parser
+ *  pinned to one language would read an en variant as "no subject" and hand the
+ *  whole email to the body. Every locale's label is accepted no matter which one
+ *  generated the text, so switching locale mid-edit still parses. */
+const SUBJECT_PREFIX = new RegExp(
+  `^\\s*(?:${Object.values(NEWSLETTER_SUBJECT_LABELS)
+    .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|")}):\\s*`,
+  "i"
+);
 
 export interface NewsletterParts {
   /** The extracted subject line (no „Předmět:" prefix, trimmed). */

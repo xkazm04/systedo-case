@@ -4,36 +4,66 @@
  *  no backend: it joins the per-channel attribution with the generated variants
  *  (length + a coarse format bucket) and ranks. Seam: real per-variant analytics
  *  (UTM-tagged clicks) replacing the illustrative sample. */
+import type { SupportedLocale } from "@/lib/format";
 import type { ChannelPerf } from "./sample";
 
 /** Coarse content format per channel — how the article is repackaged. Drives the
- *  "best format" learning without needing a new field on the sample. */
-export type VariantFormat = "Newsletter" | "Dlouhý příspěvek" | "Vizuální" | "Krátký příspěvek";
+ *  "best format" learning without needing a new field on the sample.
+ *
+ *  A stable KEY, not a label: these values used to be Czech display strings, which
+ *  an en-locale project rendered verbatim in the Insights panel („Dlouhý
+ *  příspěvek" under "Best format"). The rollup is pure data, so the language
+ *  belongs at the render edge — see {@link FORMAT_LABELS}. */
+export type VariantFormat = "newsletter" | "longPost" | "visual" | "shortPost";
 
-/** Length bucket of a variant's body, derived from its character count. */
-export type LengthBucket = "Krátké" | "Střední" | "Dlouhé";
+/** Length bucket of a variant's body, derived from its character count. Key, not
+ *  label — same reason as {@link VariantFormat}. */
+export type LengthBucket = "short" | "medium" | "long";
+
+/** Display labels for the two derived dimensions. Kept beside the buckets they
+ *  name so a new bucket is a type error in both columns at once (the TDict
+ *  contract), and exported for the panel that renders them. */
+export const FORMAT_LABELS: Record<SupportedLocale, Record<VariantFormat, string>> = {
+  cs: {
+    newsletter: "Newsletter",
+    longPost: "Dlouhý příspěvek",
+    visual: "Vizuální",
+    shortPost: "Krátký příspěvek",
+  },
+  en: {
+    newsletter: "Newsletter",
+    longPost: "Long post",
+    visual: "Visual",
+    shortPost: "Short post",
+  },
+};
+
+export const LENGTH_LABELS: Record<SupportedLocale, Record<LengthBucket, string>> = {
+  cs: { short: "Krátké", medium: "Střední", long: "Dlouhé" },
+  en: { short: "Short", medium: "Medium", long: "Long" },
+};
 
 /** Upper bound (inclusive) of each non-final length bucket, in characters. */
 export const LENGTH_BUCKET_BOUNDS = { short: 300, medium: 900 } as const;
 
 export function lengthBucket(chars: number): LengthBucket {
-  if (chars <= LENGTH_BUCKET_BOUNDS.short) return "Krátké";
-  if (chars <= LENGTH_BUCKET_BOUNDS.medium) return "Střední";
-  return "Dlouhé";
+  if (chars <= LENGTH_BUCKET_BOUNDS.short) return "short";
+  if (chars <= LENGTH_BUCKET_BOUNDS.medium) return "medium";
+  return "long";
 }
 
 /** Channel → format bucket. Mirrors the repurpose() channels; unknown channels
  *  fall back to a short-post format so the rollup never drops a row. */
 const CHANNEL_FORMAT: Record<string, VariantFormat> = {
-  Newsletter: "Newsletter",
-  LinkedIn: "Dlouhý příspěvek",
-  Instagram: "Vizuální",
-  "X / Twitter": "Krátký příspěvek",
-  Facebook: "Dlouhý příspěvek",
+  Newsletter: "newsletter",
+  LinkedIn: "longPost",
+  Instagram: "visual",
+  "X / Twitter": "shortPost",
+  Facebook: "longPost",
 };
 
 export function channelFormat(channel: string): VariantFormat {
-  return CHANNEL_FORMAT[channel] ?? "Krátký příspěvek";
+  return CHANNEL_FORMAT[channel] ?? "shortPost";
 }
 
 /** A variant's measured row: the channel's reach/clicks plus the descriptive
@@ -53,9 +83,11 @@ export interface VariantPerf {
  *  generated/edited variant lengths; tests can pass a fixed map. */
 export type LengthByChannel = (channel: string) => number;
 
-/** One ranked dimension value (e.g. format = "Vizuální") with its blended CTR. */
-export interface DimensionLeader {
-  value: string;
+/** One ranked dimension value (e.g. format = "visual") with its blended CTR.
+ *  Generic in the value type so the format/length leaders stay typed to their
+ *  bucket keys and the panel's label lookup can't be handed a channel name. */
+export interface DimensionLeader<V extends string = string> {
+  value: V;
   /** reach-weighted CTR across the variants sharing this dimension value. */
   ctr: number;
   /** how many variants rolled into this value. */
@@ -69,8 +101,8 @@ export interface Learnings {
   bestVariant: VariantPerf | null;
   /** Best channel / format / length by reach-weighted CTR (null when empty). */
   bestChannel: DimensionLeader | null;
-  bestFormat: DimensionLeader | null;
-  bestLength: DimensionLeader | null;
+  bestFormat: DimensionLeader<VariantFormat> | null;
+  bestLength: DimensionLeader<LengthBucket> | null;
   /** Reach-weighted mean CTR across all variants (0 when no reach). */
   overallCtr: number;
 }
@@ -84,16 +116,19 @@ function weightedCtr(rows: VariantPerf[]): number {
 
 /** Rank the distinct values of one dimension by reach-weighted CTR, descending.
  *  Stable on ties (first-seen wins) so the ordering is deterministic. */
-function rankDimension(rows: VariantPerf[], key: (r: VariantPerf) => string): DimensionLeader | null {
+function rankDimension<V extends string>(
+  rows: VariantPerf[],
+  key: (r: VariantPerf) => V
+): DimensionLeader<V> | null {
   if (rows.length === 0) return null;
-  const groups = new Map<string, VariantPerf[]>();
+  const groups = new Map<V, VariantPerf[]>();
   for (const r of rows) {
     const v = key(r);
     const bucket = groups.get(v);
     if (bucket) bucket.push(r);
     else groups.set(v, [r]);
   }
-  let best: DimensionLeader | null = null;
+  let best: DimensionLeader<V> | null = null;
   for (const [value, group] of groups) {
     const ctr = weightedCtr(group);
     if (!best || ctr > best.ctr) best = { value, ctr, variants: group.length };

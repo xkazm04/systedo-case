@@ -12,7 +12,9 @@ import {
   newsletterHtml,
   NEWSLETTER_SUBJECT_MAX,
   NEWSLETTER_CTA_LABELS,
+  NEWSLETTER_SUBJECT_LABELS,
 } from "@/lib/distribution/newsletter";
+import { repurpose } from "@/lib/distribution/generate";
 
 test("splitNewsletter peels the Predmet prefix into subject + body", () => {
   const { subject, body } = splitNewsletter(
@@ -128,4 +130,29 @@ test("the plain-text handoff localizes both the CTA and the subject label", () =
   assert.ok(en.startsWith("Subject: Sleep guide\n"));
   assert.ok(en.includes(NEWSLETTER_CTA_LABELS.en));
   assert.ok(!en.includes("Předmět"));
+});
+
+test("splitNewsletter parses the subject line of EVERY locale, not just Czech", () => {
+  // Once generate.ts writes the subject line in the user's locale, a parser
+  // pinned to „Předmět:" would read an en variant as "no subject" and hand the
+  // whole email — CTA and all — to the body.
+  for (const label of Object.values(NEWSLETTER_SUBJECT_LABELS)) {
+    const { subject, body } = splitNewsletter(`${label}: Sleep guide\n\nFirst paragraph.`);
+    assert.equal(subject, "Sleep guide", `${label} prefix was not peeled`);
+    assert.equal(body, "First paragraph.");
+  }
+});
+
+test("an en newsletter variant round-trips generate → split → export", () => {
+  const [newsletter] = repurpose(
+    { title: "How to store nuts", url: "https://blog.example.cz/nuts", body: "Air, heat and light turn nuts rancid." },
+    "en"
+  );
+  const { subject, body } = splitNewsletter(newsletter.text);
+  assert.equal(subject, "How to store nuts");
+  assert.ok(body.length > 0, "en body must survive the split");
+  assert.equal(checkSubject(subject).status, "ok");
+  const out = newsletterPlainText({ subject, body, ctaUrl: newsletter.link, locale: "en" });
+  assert.ok(out.startsWith("Subject: How to store nuts\n"));
+  assert.ok(!out.includes("Předmět"));
 });

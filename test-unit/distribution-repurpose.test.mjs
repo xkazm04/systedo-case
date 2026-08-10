@@ -43,3 +43,50 @@ test("each variant stays within its soft channel budget", () => {
     assert.ok(v.text.length <= CHANNEL_LIMITS[v.channel], `${v.channel} over budget: ${v.text.length}`);
   }
 });
+
+// --- locale -----------------------------------------------------------------
+// The deterministic drafts are copy the user COPIES OUT of the app (into an
+// inbox, a LinkedIn composer, a scheduler). Hardcoded Czech meant an en-locale
+// project's four cards were Czech on first paint, before any regenerate.
+
+const bodyless = { title: "How to store nuts", url: "https://blog.example.cz/nuts" };
+
+test("the connective copy follows the locale — an en article ships no Czech", () => {
+  const en = repurpose(bodyless, "en");
+  const joined = en.map((v) => v.text).join("\n");
+  // The generator's own words: generic lead, both CTAs, the subject prefix.
+  assert.match(joined, /We wrote a practical guide/);
+  assert.match(joined, /Full article \(and checklist\) here:/);
+  assert.match(joined, /Save it for later/);
+  assert.match(joined, /^Subject: How to store nuts/m);
+  assert.match(joined, /Read the full article/);
+  // and nothing Czech survives
+  for (const cs of ["Sepsali jsme", "Celý článek", "Uložte si", "Předmět:", "Číst celý článek"]) {
+    assert.ok(!joined.includes(cs), `en variants leaked Czech copy: ${cs}`);
+  }
+});
+
+test("cs stays the default, so the AI tool's locale-less fallback is unchanged", () => {
+  assert.deepEqual(repurpose(bodyless), repurpose(bodyless, "cs"));
+  assert.match(repurpose(bodyless)[0].text, /^Předmět: /);
+});
+
+test("localizing never changes the channel set, order, budgets or links", () => {
+  const cs = repurpose(article, "cs");
+  const en = repurpose(article, "en");
+  assert.deepEqual(en.map((v) => v.channel), cs.map((v) => v.channel));
+  assert.deepEqual(en.map((v) => v.max), cs.map((v) => v.max));
+  assert.deepEqual(en.map((v) => v.link), cs.map((v) => v.link));
+});
+
+test("en variants also respect the soft channel budgets", () => {
+  for (const v of repurpose(article, "en")) {
+    assert.ok(v.text.length <= CHANNEL_LIMITS[v.channel], `${v.channel} over budget: ${v.text.length}`);
+  }
+});
+
+test("an unknown locale degrades to the home market rather than emitting raw keys", () => {
+  const out = repurpose(bodyless, "de");
+  assert.equal(out.length, REPURPOSE_CHANNELS.length);
+  assert.match(out[0].text, /^Předmět: /);
+});

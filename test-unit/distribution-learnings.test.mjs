@@ -9,24 +9,26 @@ import {
   rollupLearnings,
   lengthBucket,
   channelFormat,
+  FORMAT_LABELS,
+  LENGTH_LABELS,
 } from "@/lib/distribution/learnings";
 import { SAMPLE_ATTRIBUTION } from "@/lib/distribution/sample";
 
 const ZERO_LEN = () => 0;
 
 test("lengthBucket classifies by character count", () => {
-  assert.equal(lengthBucket(0), "Krátké");
-  assert.equal(lengthBucket(300), "Krátké");
-  assert.equal(lengthBucket(301), "Střední");
-  assert.equal(lengthBucket(900), "Střední");
-  assert.equal(lengthBucket(901), "Dlouhé");
+  assert.equal(lengthBucket(0), "short");
+  assert.equal(lengthBucket(300), "short");
+  assert.equal(lengthBucket(301), "medium");
+  assert.equal(lengthBucket(900), "medium");
+  assert.equal(lengthBucket(901), "long");
 });
 
 test("channelFormat maps known channels and falls back for unknown ones", () => {
-  assert.equal(channelFormat("Newsletter"), "Newsletter");
-  assert.equal(channelFormat("Instagram"), "Vizuální");
-  assert.equal(channelFormat("X / Twitter"), "Krátký příspěvek");
-  assert.equal(channelFormat("Neznámý"), "Krátký příspěvek");
+  assert.equal(channelFormat("Newsletter"), "newsletter");
+  assert.equal(channelFormat("Instagram"), "visual");
+  assert.equal(channelFormat("X / Twitter"), "shortPost");
+  assert.equal(channelFormat("Neznámý"), "shortPost");
 });
 
 test("rollupLearnings computes per-variant CTR and sorts descending", () => {
@@ -58,29 +60,29 @@ test("best channel / format / length use reach-weighted CTR", () => {
   const { bestChannel, bestFormat } = rollupLearnings(
     [
       { channel: "Newsletter", reach: 1000, clicks: 200 }, // 0.20, format Newsletter
-      { channel: "LinkedIn", reach: 100, clicks: 30 }, //     0.30, format Dlouhý
-      { channel: "Facebook", reach: 5000, clicks: 250 }, //   0.05, format Dlouhý
+      { channel: "LinkedIn", reach: 100, clicks: 30 }, //     0.30, format longPost
+      { channel: "Facebook", reach: 5000, clicks: 250 }, //   0.05, format longPost
     ],
     ZERO_LEN
   );
   // best single channel by its own CTR weighting (one variant each) = LinkedIn 0.30
   assert.equal(bestChannel.value, "LinkedIn");
-  // but the Dlouhý format blends LinkedIn+Facebook = 280/5100 ≈ 0.055 < Newsletter 0.20
-  assert.equal(bestFormat.value, "Newsletter");
+  // but the longPost format blends LinkedIn+Facebook = 280/5100 ≈ 0.055 < Newsletter 0.20
+  assert.equal(bestFormat.value, "newsletter");
 });
 
 test("best length groups by the provided per-channel lengths", () => {
   const lengthOf = (ch) => (ch === "Short" ? 100 : 1200);
   const { bestLength, rows } = rollupLearnings(
     [
-      { channel: "Short", reach: 1000, clicks: 200 }, // Krátké, 0.20
-      { channel: "Long", reach: 1000, clicks: 50 }, //   Dlouhé, 0.05
+      { channel: "Short", reach: 1000, clicks: 200 }, // short, 0.20
+      { channel: "Long", reach: 1000, clicks: 50 }, //   long, 0.05
     ],
     lengthOf
   );
-  assert.equal(bestLength.value, "Krátké");
-  assert.equal(rows.find((r) => r.channel === "Short").length, "Krátké");
-  assert.equal(rows.find((r) => r.channel === "Long").length, "Dlouhé");
+  assert.equal(bestLength.value, "short");
+  assert.equal(rows.find((r) => r.channel === "Short").length, "short");
+  assert.equal(rows.find((r) => r.channel === "Long").length, "long");
 });
 
 test("empty attribution rolls up to nulls, not throws", () => {
@@ -102,4 +104,39 @@ test("the bundled sample ranks Newsletter as the best variant + channel", () => 
   const totReach = SAMPLE_ATTRIBUTION.reduce((a, c) => a + c.reach, 0);
   const totClicks = SAMPLE_ATTRIBUTION.reduce((a, c) => a + c.clicks, 0);
   assert.ok(Math.abs(l.overallCtr - totClicks / totReach) < 1e-9);
+});
+
+// --- localization ------------------------------------------------------------
+// The rollup emits stable BUCKET KEYS; the language lives at the render edge.
+// These used to be Czech display strings, so an en project's Insights panel read
+// "Dlouhý příspěvek" under "Best format".
+
+test("every format / length bucket has a label in every locale", () => {
+  const formats = ["newsletter", "longPost", "visual", "shortPost"];
+  const lengths = ["short", "medium", "long"];
+  for (const locale of ["cs", "en"]) {
+    for (const f of formats) {
+      assert.equal(typeof FORMAT_LABELS[locale][f], "string", `${locale}.${f} label missing`);
+      assert.ok(FORMAT_LABELS[locale][f].length > 0);
+    }
+    for (const l of lengths) {
+      assert.equal(typeof LENGTH_LABELS[locale][l], "string", `${locale}.${l} label missing`);
+      assert.ok(LENGTH_LABELS[locale][l].length > 0);
+    }
+  }
+});
+
+test("the en column carries no Czech leftovers", () => {
+  const en = [...Object.values(FORMAT_LABELS.en), ...Object.values(LENGTH_LABELS.en)].join(" ");
+  assert.doesNotMatch(en, /[áčďéěíňóřšťúůýž]/i, `en labels leaked Czech diacritics: ${en}`);
+});
+
+test("the rollup itself is language-free — no display string ever reaches it", () => {
+  const l = rollupLearnings(SAMPLE_ATTRIBUTION, () => 100);
+  const emitted = [
+    l.bestFormat.value,
+    l.bestLength.value,
+    ...l.rows.flatMap((r) => [r.format, r.length]),
+  ];
+  for (const v of emitted) assert.doesNotMatch(v, /\s|[áčďéěíňóřšťúůýž]/i, `rollup emitted a label: ${v}`);
 });
