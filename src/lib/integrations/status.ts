@@ -2,27 +2,52 @@
  *  probes into integration-readiness rows. Kept apart from compute.ts (which stays
  *  pure and testable) so this file — which touches process.env + Firestore — never
  *  leaks into a client bundle. Env presence answers "is the platform configured";
- *  the best-effort probes answer "is THIS user/project actually connected" (a
- *  validated BYOM key, a saved warehouse feed, a linked Ads account). Each probe
- *  degrades to false on any error so the readout never throws. */
+ *  the probes answer "is THIS user/project actually connected, and is that
+ *  connection HEALTHY" (a validated-and-not-stale BYOM key, a saved warehouse feed,
+ *  a linked Ads account, linked social accounts, a stored Sklik token, a published
+ *  microsite). Each probe degrades to its safest value on any error so the readout
+ *  never throws — and a failed probe never upgrades a row to "connected". */
 import "server-only";
 import type { Project } from "@/lib/projects/types";
-import { computeIntegrationRows, type IntegrationRow } from "./compute";
+import {
+  bestByomHealth,
+  byomKeyHealth,
+  computeIntegrationRows,
+  type ByomKeyHealth,
+  type IntegrationRow,
+} from "./compute";
 import { getPublicByomConfig } from "@/lib/llm/keys/store";
+import { isByomValidationStale } from "@/lib/llm/keys/types";
 import { getConnection } from "@/lib/inventory/connection-store";
 import { getAdsConnection } from "@/lib/campaigns/connection";
+import { getSklikConnection } from "@/lib/campaigns/sklik-connection";
+import { listAccounts, providerConfigured, socialConfigured } from "@/lib/social/connection";
 import { getLocalSignals } from "@/lib/local-signals/store";
 
 const has = (v: string | undefined): boolean => typeof v === "string" && v.trim() !== "";
 
-/** A vendor key that validated and hasn't since errored. */
-async function probeByomValidated(userId: string | null): Promise<boolean> {
-  if (!userId) return false;
+/** BYOM health under the SAME rules the settings page shows the user: a stamp older
+ *  than BYOM_VALIDATION_STALE_DAYS stops being evidence, and a key with recorded
+ *  incidents is not healthy. Previously this accepted any `lastValidatedAt &&
+ *  !lastError`, so the board said "Připojeno" about a key nastaveni called
+ *  "Ověřeno dávno". */
+async function probeByomHealth(userId: string | null): Promise<ByomKeyHealth> {
+  if (!userId) return "none";
   try {
     const cfg = await getPublicByomConfig(userId);
-    return cfg.keys.some((k) => k.lastValidatedAt && !k.lastError);
+    return bestByomHealth(
+      cfg.keys.map((k) =>
+        byomKeyHealth({
+          present: true,
+          lastValidatedAt: k.lastValidatedAt,
+          lastError: k.lastError,
+          incidents: k.incidents?.length ?? 0,
+          stale: isByomValidationStale(k.lastValidatedAt),
+        })
+      )
+    );
   } catch {
-    return false;
+    return "none";
   }
 }
 
@@ -55,14 +80,69 @@ async function probeGbpImported(projectId: string): Promise<boolean> {
   }
 }
 
+/** Linked social accounts, split real vs demo. `demo` is the account's own stored
+ *  flag, so a demo connection stays a demo connection here too; "real" additionally
+ *  requires THIS platform's provider credentials (providerConfigured), never the
+ *  cross-platform OR that connection.ts explicitly warns against. */
+async function probeSocial(
+  userId: string | null
+): Promise<{ real: boolean; demo: boolean }> {
+  if (!userId) return { real: false, demo: false };
+  try {
+    const accounts = await listAccounts(userId);
+    return {
+      real: accounts.some((a) => !a.demo && providerConfigured(a.platform)),
+      demo: accounts.some((a) => a.demo || !providerConfigured(a.platform)),
+    };
+  } catch {
+    return { real: false, demo: false };
+  }
+}
+
+/** Does this user have their OWN stored Sklik token — the exact record the connect
+ *  card renders, so board and card cannot contradict each other. */
+async function probeSklikUserToken(userId: string | null): Promise<boolean> {
+  if (!userId) return false;
+  try {
+    return (await getSklikConnection(userId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** This project's published microsite, if any. Dynamically imported so the Firestore
+ *  registry module is only loaded when the board is actually rendered. */
+async function probeMicrosite(
+  userId: string | null,
+  projectId: string
+): Promise<{ enabled: boolean; illustrative: boolean }> {
+  if (!userId) return { enabled: false, illustrative: false };
+  try {
+    const [{ resolveTenant }, { getMicrositeForTenant }] = await Promise.all([
+      import("@/lib/campaigns/connector"),
+      import("@/lib/microsite"),
+    ]);
+    const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
+    const cfg = await getMicrositeForTenant(tenant);
+    if (!cfg?.enabled) return { enabled: false, illustrative: false };
+    return { enabled: true, illustrative: Boolean(cfg.illustrative) };
+  } catch {
+    return { enabled: false, illustrative: false };
+  }
+}
+
 export async function integrationStatus(project: Project, userId: string | null): Promise<IntegrationRow[]> {
   const e = process.env;
-  const [byomValidated, warehouse, adsLinked, gbpImported] = await Promise.all([
-    probeByomValidated(userId),
-    probeWarehouse(userId, project.id),
-    probeAdsLinked(userId, project),
-    probeGbpImported(project.id),
-  ]);
+  const [byomKey, warehouse, adsLinked, gbpImported, social, sklikUserToken, microsite] =
+    await Promise.all([
+      probeByomHealth(userId),
+      probeWarehouse(userId, project.id),
+      probeAdsLinked(userId, project),
+      probeGbpImported(project.id),
+      probeSocial(userId),
+      probeSklikUserToken(userId),
+      probeMicrosite(userId, project.id),
+    ]);
   return computeIntegrationRows({
     googleAdsToken: has(e.GOOGLE_ADS_DEVELOPER_TOKEN),
     googleAdsCustomer: has(e.GOOGLE_ADS_LOGIN_CUSTOMER_ID),
@@ -74,12 +154,19 @@ export async function integrationStatus(project: Project, userId: string | null)
     localDb: e.LOCAL_DB === "true",
     devAuth: e.DEV_AUTH === "true",
     lighttrack: has(e.LIGHTTRACK_URL) && has(e.LIGHTTRACK_KEY),
-    social: has(e.META_APP_ID) || has(e.LINKEDIN_CLIENT_ID),
     leonardo: has(e.LEONARDO_API_KEY),
     adsLinked,
-    byomValidated,
+    byomKey,
     warehouse,
-    sklikToken: has(e.SKLIK_API_TOKEN),
     gbpImported,
+    socialReal: social.real,
+    socialDemo: social.demo,
+    // The coarse "could a real connection exist at all" env signal — used ONLY to
+    // choose between "link an account" and "demo only", never to claim connection.
+    socialCredentials: socialConfigured(),
+    sklikUserToken,
+    sklikEnvToken: has(e.SKLIK_API_TOKEN),
+    micrositeEnabled: microsite.enabled,
+    micrositeIllustrative: microsite.illustrative,
   });
 }

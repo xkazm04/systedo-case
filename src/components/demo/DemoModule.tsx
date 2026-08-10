@@ -529,13 +529,19 @@ export default async function DemoModule({
       return (
         <ModulePage moduleKey="integrace" sample>
           <IntegrationStatusModule
+            projectId={project.id}
             rows={computeIntegrationRows({
               googleAdsToken: true, googleAdsCustomer: true, googleOAuth: true,
               gemini: true, resend: true, cron: true,
               firestore: true, localDb: false, devAuth: false,
-              lighttrack: false, social: false, leonardo: true,
-              adsLinked: true, byomValidated: false, warehouse: false,
-              sklikToken: false, gbpImported: true,
+              lighttrack: false, leonardo: true,
+              adsLinked: true, byomKey: "none", warehouse: false,
+              gbpImported: true,
+              // The demo tenant has a demo social connection and no Sklik token —
+              // exactly the states the board must NOT paint green.
+              socialReal: false, socialDemo: true, socialCredentials: false,
+              sklikUserToken: false, sklikEnvToken: false,
+              micrositeEnabled: true, micrositeIllustrative: true,
             })}
           />
         </ModulePage>

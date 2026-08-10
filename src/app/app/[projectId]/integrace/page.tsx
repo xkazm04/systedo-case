@@ -37,7 +37,7 @@ export default async function Page({ params }: { params: Promise<{ projectId: st
   const visible = admin ? rows : rows.filter((r) => !PLATFORM_ONLY_ROWS.has(r.id));
   return (
     <ModulePage moduleKey="integrace">
-      <IntegrationStatusModule rows={visible} />
+      <IntegrationStatusModule rows={visible} projectId={projectId} />
     </ModulePage>
   );
 }

@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Check, Close, Info } from "@/components/icons";
 import { Button } from "@/components/ui";
-import { useT } from "@/lib/i18n/client";
+import { useT, useFormatters } from "@/lib/i18n/client";
 import { useAuthedResource } from "./useAuthedResource";
 
 const T = {
@@ -13,7 +13,12 @@ const T = {
     lead: "Připojte svůj Sklik API token a přehled kampaní poběží na živých datech účtu, stejně jako Google Ads. Token se ukládá šifrovaně a nikdy se nevrací do prohlížeče.",
     anonPrompt: "Přihlaste se a připojte svůj účet Sklik.",
     connected: "Připojeno",
-    connectedNote: "Živá data účtu Sklik. Denní automatická synchronizace je aktivní.",
+    // Honest: what we KNOW is that a token is stored and the daily cron unions this
+    // user in. Nothing records the last successful Sklik sync (the connection row has
+    // no syncedAt and ReportMetrics only carries a google-ads source), so the card
+    // must not assert that syncing "is active".
+    connectedNote: "Token je uložený, denní synchronizace je naplánovaná. Poslední úspěšný běh se zatím nikde nezaznamenává.",
+    connectedSince: "Připojeno {d}",
     tokenLabel: "Sklik API token",
     tokenPlaceholder: "Vložte API token z účtu Sklik",
     connect: "Připojit",
@@ -31,7 +36,8 @@ const T = {
     lead: "Connect your Sklik API token and the campaigns dashboard runs on live account data, just like Google Ads. The token is stored encrypted and never returned to the browser.",
     anonPrompt: "Sign in to connect your Sklik account.",
     connected: "Connected",
-    connectedNote: "Live Sklik account data. Daily automatic sync is on.",
+    connectedNote: "Your token is stored and the daily sync is scheduled. The last successful run is not recorded anywhere yet.",
+    connectedSince: "Connected {d}",
     tokenLabel: "Sklik API token",
     tokenPlaceholder: "Paste the API token from your Sklik account",
     connect: "Connect",
@@ -70,6 +76,7 @@ function messageForCode(code: string | undefined, t: (k: keyof typeof T.cs) => s
 export default function SklikConnectCard() {
   const { status: authStatus } = useSession();
   const t = useT(T);
+  const fmt = useFormatters();
   const [token, setToken] = useState("");
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -152,7 +159,12 @@ export default function SklikConnectCard() {
         </p>
       ) : connected && !editing ? (
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted">{t("connectedNote")}</p>
+          <div className="text-sm text-muted">
+            <p>{t("connectedNote")}</p>
+            {status?.connectedAt && (
+              <p className="tnum mt-1 text-xs">{t("connectedSince", { d: fmt.fmtDate(status.connectedAt) })}</p>
+            )}
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setEditing(true)} disabled={busy}>
               {t("reconnect")}
