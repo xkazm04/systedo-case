@@ -18,7 +18,7 @@
  *  Pruning (rather than throwing) is deliberate: the failure mode this direction
  *  exists to remove is "your work vanished", and refusing the newest save would
  *  reintroduce it at the worst moment. */
-import type { BriefRequest, BriefResult, ContentType } from "@/lib/ai-types";
+import type { AiCallStatus, BriefRequest, BriefResult, ContentType } from "@/lib/ai-types";
 import { CONTENT_TYPES } from "@/lib/ai-types";
 import type { Block, FaqItem, Inline } from "@/lib/article";
 
@@ -26,12 +26,23 @@ import type { Block, FaqItem, Inline } from "@/lib/article";
 export type SavedContentKind = "brief" | "article";
 
 /** The slice of AiMeta worth persisting: enough to label the entry honestly (which
- *  model, was it the deterministic demo fallback, how long it took) WITHOUT the
- *  full prompt, which is the single largest field on the response. */
+ *  model, was it the deterministic demo fallback, how long it took, and — the
+ *  point of `status` — whether the generation came back HEALTHY) WITHOUT the full
+ *  prompt, which is the single largest field on the response.
+ *
+ *  Why `status` is here at all: without it, a brief the wrapper had judged
+ *  `corrupt` (truncated / missing a third of its required fields) was saved,
+ *  reopened, and rendered by exactly the same panels as a clean one — the library
+ *  laundered a degraded generation into a trustworthy-looking asset. It is optional
+ *  because entries written before this existed genuinely do not know; those restore
+ *  as UNKNOWN and are disclosed as unknown. Absent never means clean. */
 export interface SavedGenerationMeta {
   model: string;
   demo: boolean;
   tookMs: number;
+  /** the wrapper's health verdict at generation time; absent = a legacy entry
+   *  saved before this was persisted, i.e. genuinely unknown */
+  status?: AiCallStatus;
 }
 
 export interface SavedContentEntry {
@@ -75,12 +86,19 @@ const str = (v: unknown, max = MAX_TEXT): string =>
 const strList = (v: unknown, max = MAX_LIST, len = MAX_TEXT): string[] =>
   Array.isArray(v) ? v.slice(0, max).map((x) => str(x, len)).filter(Boolean) : [];
 
+const CALL_STATUSES: readonly AiCallStatus[] = ["success", "repaired", "corrupt"] as const;
+
 function sanitizeMeta(raw: unknown): SavedGenerationMeta {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  // An unrecognised status is dropped rather than coerced: "we don't know" is an
+  // honest state this schema has, and inventing "success" is exactly the lie the
+  // field exists to prevent.
+  const status = CALL_STATUSES.includes(o.status as AiCallStatus) ? (o.status as AiCallStatus) : undefined;
   return {
     model: str(o.model, 80),
     demo: o.demo === true,
     tookMs: typeof o.tookMs === "number" && Number.isFinite(o.tookMs) ? Math.max(0, Math.round(o.tookMs)) : 0,
+    ...(status ? { status } : {}),
   };
 }
 

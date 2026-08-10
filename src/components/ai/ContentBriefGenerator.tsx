@@ -104,6 +104,8 @@ const T = {
     placeholderTopic: "Jak skladovat ořechy a semínka",
     placeholderPrimaryKeyword: "skladování ořechů",
     placeholderAudience: "Lidé, kteří kupují ořechy a semínka ve velkém a chtějí je udržet čerstvé",
+    healthUnknown: "Stav generování neznámý",
+    healthUnknownTitle: "Tento záznam se uložil dřív, než knihovna začala ukládat i výsledek kontroly generování. Nevíme, jestli přišel kompletní — proto tu netvrdíme, že je v pořádku.",
   },
   en: {
     formHeading: "Content brief",
@@ -157,6 +159,8 @@ const T = {
     placeholderTopic: "How to store nuts and seeds",
     placeholderPrimaryKeyword: "storing nuts",
     placeholderAudience: "People who buy nuts and seeds in bulk and want to keep them fresh",
+    healthUnknown: "Generation health unknown",
+    healthUnknownTitle: "This entry was saved before the library kept the generation's health verdict. We don't know whether it came back complete — so we don't claim it did.",
   },
 } as const;
 
@@ -173,9 +177,28 @@ const EMPTY: BriefRequest = { topic: "", primaryKeyword: "", audience: "", conte
  *  stores model/demo/duration but NOT the prompt (the single largest field on a
  *  response, and not what makes the work worth keeping) — so the prompt comes back
  *  empty and the panels hide the transparency disclosure rather than showing an
- *  empty one pretending to be the real prompt. */
+ *  empty one pretending to be the real prompt.
+ *
+ *  `status` IS carried through, and that is the point: a brief the wrapper judged
+ *  `corrupt` used to be saved and then reopened rendering identically to a clean
+ *  one, because this rebuild dropped the verdict on the floor. Restored with it,
+ *  ResultMeta's existing degraded note fires on a restored entry exactly as it does
+ *  on a fresh generation — one vocabulary, not two. */
 function restoredMeta(meta: SavedGenerationMeta | undefined): AiMeta {
-  return { model: meta?.model ?? "", demo: meta?.demo ?? false, prompt: "", tookMs: meta?.tookMs ?? 0 };
+  return {
+    model: meta?.model ?? "",
+    demo: meta?.demo ?? false,
+    prompt: "",
+    tookMs: meta?.tookMs ?? 0,
+    ...(meta?.status ? { status: meta.status } : {}),
+  };
+}
+
+/** A legacy entry — saved before the health verdict was persisted — genuinely does
+ *  not know how its generation went. It is disclosed as unknown rather than
+ *  rendered as clean, which is the only honest reading of an absent verdict. */
+function healthUnknown(meta: SavedGenerationMeta | undefined): boolean {
+  return meta !== undefined && meta.status === undefined;
 }
 
 /** Structural guard for a restored draft — a stale/foreign shape is dropped
@@ -599,6 +622,13 @@ export default function ContentBriefGenerator({
               history={history}
               activeIndex={activeIndex}
               onRestore={restore}
+              extra={
+                healthUnknown(restored?.briefMeta) ? (
+                  <span className="pill bg-navy-50 text-muted" title={t("healthUnknownTitle")}>
+                    {t("healthUnknown")}
+                  </span>
+                ) : undefined
+              }
             />
 
             <div className="flex flex-wrap items-center justify-end gap-2">

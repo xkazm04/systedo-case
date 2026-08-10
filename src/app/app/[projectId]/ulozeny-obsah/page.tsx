@@ -5,12 +5,21 @@ import ModulePage from "@/components/app/ModulePage";
 import SavedContentLibrary from "@/components/ai/SavedContentLibrary";
 
 
-export default async function Page({ params }: { params: Promise<{ projectId: string }> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ projectId: string }>;
+  /** `?entry=<id>` — the plan slot's "Uložený koncept" link, which used to land on
+   *  the module root and leave the maker to find their own draft in the list. */
+  searchParams: Promise<{ entry?: string }>;
+}) {
   const { projectId } = await params;
+  const { entry } = await searchParams;
   await requireProjectModule(projectId, "ulozeny-obsah");
   return (
     <ModulePage moduleKey="ulozeny-obsah">
-      <SavedContentLibrary />
+      <SavedContentLibrary entryId={entry?.trim() || undefined} />
     </ModulePage>
   );
 }

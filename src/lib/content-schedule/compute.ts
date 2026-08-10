@@ -138,6 +138,28 @@ export function clearWithdrawnLinks(posts: ContentPost[]): ContentPost[] | null 
   });
 }
 
+/** Drop a dead pointer to a saved-library entry. When the maker deletes an entry
+ *  from Uložený obsah, every plan slot that pointed at it is left claiming
+ *  "Koncept hotový" and offering a link to an asset that no longer exists —
+ *  `slotProgress` reads `libraryEntryId` as proof there is copy behind the slot.
+ *
+ *  Clearing the pointer is the honest repair, and it is deliberately NOT paired
+ *  with clearing `briefStartedAt`: work genuinely did start from that slot, so the
+ *  slot falls back to "Rozpracováno" rather than to untouched.
+ *
+ *  Returns `null` when no slot pointed at the entry — so the caller can skip the
+ *  write entirely on the common case (a library entry that never came from a plan).
+ *  Pure; never mutates. */
+export function clearLibraryLinks(posts: ContentPost[], entryId: string): ContentPost[] | null {
+  if (!entryId || !posts.some((p) => p.libraryEntryId === entryId)) return null;
+  return posts.map((p) => {
+    if (p.libraryEntryId !== entryId) return p;
+    const next: ContentPost = { ...p };
+    delete next.libraryEntryId;
+    return next;
+  });
+}
+
 /** Lay dated posts into a 28-cell calendar (index = day). Ideas (day === null)
  *  are excluded. Cell order preserves input order. */
 export function calendarGrid(posts: ContentPost[]): ContentPost[][] {

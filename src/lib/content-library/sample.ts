@@ -8,8 +8,12 @@
  *  same shape the authed library stores. Framework-free. */
 import type { SavedContentEntry } from "./entries";
 
-/** Meta an entry generated in demo mode carries — honest about its provenance. */
-const DEMO_META = { model: "demo", demo: true, tookMs: 0 } as const;
+/** Meta an entry generated in demo mode carries — honest about its provenance.
+ *  `status: "success"` is not a boast: a deterministic fixture is structurally
+ *  complete by construction, and leaving it absent would make the demo entries
+ *  read as "health unknown", which is the state reserved for real entries saved
+ *  before the health verdict was persisted. */
+const DEMO_META = { model: "demo", demo: true, tookMs: 0, status: "success" } as const;
 
 export const SAMPLE_CONTENT_ENTRIES: SavedContentEntry[] = [
   {

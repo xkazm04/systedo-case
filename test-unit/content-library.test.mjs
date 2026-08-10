@@ -228,3 +228,82 @@ test("[local] projects and users are isolated", async () => {
   assert.equal(await getContentLibrary(U, "proj-lib-2"), null);
   assert.equal(await getContentLibrary("user-lib-2", P), null);
 });
+
+// --- the health verdict the library used to launder ------------------------
+
+/** THE BUG: SavedGenerationMeta persisted {model, demo, tookMs} and nothing about
+ *  how the generation WENT, and ContentBriefGenerator rebuilt its AiMeta from that
+ *  slice — so a brief the wrapper had judged `corrupt` (truncated, missing a third
+ *  of its required fields) was saved, reopened, and rendered by exactly the same
+ *  panels as a clean one. The library laundered degraded output into a
+ *  trustworthy-looking asset. */
+test("a degraded generation is saved degraded", () => {
+  const e = sanitizeEntry({ form, brief: brief(), briefMeta: { ...meta, status: "corrupt" } }, NOW);
+  assert.equal(e.briefMeta.status, "corrupt");
+});
+
+test("the brief's and the article's verdicts are kept apart", () => {
+  const draft = { blocks: [{ type: "p", content: ["Text."] }], faq: [] };
+  const e = sanitizeEntry(
+    {
+      form,
+      brief: brief(),
+      briefMeta: { ...meta, status: "success" },
+      draft,
+      draftMeta: { ...meta, status: "corrupt" },
+    },
+    NOW
+  );
+  assert.equal(e.briefMeta.status, "success");
+  assert.equal(e.draftMeta.status, "corrupt");
+});
+
+test("an absent verdict stays absent — unknown is never coerced to clean", () => {
+  const e = sanitizeEntry({ form, brief: brief(), briefMeta: meta }, NOW);
+  assert.equal("status" in e.briefMeta, false, "a legacy entry knows that it does not know");
+  // …and neither is a garbage one
+  const junk = sanitizeEntry({ form, brief: brief(), briefMeta: { ...meta, status: "totally-fine" } }, NOW);
+  assert.equal("status" in junk.briefMeta, false);
+  const wrongType = sanitizeEntry({ form, brief: brief(), briefMeta: { ...meta, status: 200 } }, NOW);
+  assert.equal("status" in wrongType.briefMeta, false);
+});
+
+test("the restore path carries the verdict back into the workspace", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(
+    new URL("../src/components/ai/ContentBriefGenerator.tsx", import.meta.url),
+    "utf8"
+  );
+  // restoredMeta must forward `status`, or a degraded entry reopens looking clean
+  const restored = src.slice(src.indexOf("function restoredMeta"), src.indexOf("function healthUnknown"));
+  assert.ok(/status: meta\.status/.test(restored), "the verdict survives the rebuild");
+  // and a legacy entry is disclosed as unknown rather than rendered as clean
+  assert.ok(src.includes("healthUnknown(restored?.briefMeta)"), "unknown is disclosed at the meta row");
+  assert.ok(/healthUnknown:\s*"Stav generování neznámý"/.test(src), "cs copy");
+  assert.ok(/healthUnknown:\s*"Generation health unknown"/.test(src), "en copy");
+});
+
+// --- provenance and pointers at list level ---------------------------------
+
+test("the library list discloses provenance, honors ?entry= and cleans its pointers", async () => {
+  const { readFileSync } = await import("node:fs");
+  const list = readFileSync(new URL("../src/components/ai/SavedContentLibrary.tsx", import.meta.url), "utf8");
+  const page = readFileSync(
+    new URL("../src/app/app/[projectId]/ulozeny-obsah/page.tsx", import.meta.url),
+    "utf8"
+  );
+  // (b) a demo/degraded entry is distinguishable from real, complete output
+  //     WITHOUT opening it, through the shared Pill conventions
+  assert.ok(list.includes("OriginChips"), "the row carries provenance chips");
+  assert.ok(list.includes('t("originDemo")') && list.includes('t("originDegraded")'));
+  assert.ok(list.includes('t("originUnknown")'), "…including the honest unknown");
+  assert.ok(list.includes("isDegraded("), "reuses the shared health predicate, no second vocabulary");
+  // (c) the slot → library deep link lands ON the entry
+  assert.ok(/searchParams: Promise<\{ entry\?: string \}>/.test(page), "the page reads the deep link");
+  assert.ok(/entryId=\{entry\?\.trim\(\) \|\| undefined\}/.test(page));
+  assert.ok(list.includes("list.find((e) => e.id === entryId)"), "…and opens that entry");
+  assert.ok(list.includes('t("missingEntry")'), "a pointer that resolves to nothing says so");
+  // (d) deleting an entry does not leave a plan slot claiming a draft that is gone
+  assert.ok(list.includes("clearLibraryLinks"), "the dangling plan pointer is swept at delete");
+  assert.ok(/await sweepPlanLinks\(id\)/.test(list));
+});

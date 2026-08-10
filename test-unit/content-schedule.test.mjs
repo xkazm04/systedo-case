@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   calendarGrid,
+  clearLibraryLinks,
   clearWithdrawnLinks,
   ideas,
   nextFreeDay,
@@ -414,4 +415,29 @@ test("on a demo id the board neither writes nor links out", () => {
   assert.ok(/socialLinked = isModuleAvailable\([^)]*\) && !demo/.test(src));
   assert.ok(/engineLinked = isModuleAvailable\([^)]*\) && !demo/.test(src));
   assert.ok(src.includes('t("demoNote")'), "…and the demo says why");
+});
+
+// ── a deleted library entry must not leave the slot claiming a draft ─────────
+
+test("clearLibraryLinks drops a pointer to a deleted entry, keeping the work started", () => {
+  const board = [
+    post({ id: "a", libraryEntryId: "ent-1", briefStartedAt: "2026-08-01T10:00:00.000Z" }),
+    post({ id: "b", libraryEntryId: "ent-2" }),
+  ];
+  const next = clearLibraryLinks(board, "ent-1");
+  assert.ok(next, "there was a pointer to clear");
+  assert.equal(next[0].libraryEntryId, undefined);
+  // the slot stops claiming a finished draft…
+  assert.equal(slotProgress(next[0]), "drafting");
+  // …but does not pretend the work never started
+  assert.equal(next[0].briefStartedAt, "2026-08-01T10:00:00.000Z");
+  // other slots are untouched, and the input is never mutated
+  assert.equal(next[1].libraryEntryId, "ent-2");
+  assert.equal(board[0].libraryEntryId, "ent-1");
+});
+
+test("clearLibraryLinks skips the write when nothing pointed at the entry", () => {
+  assert.equal(clearLibraryLinks([post({ id: "a" })], "ent-1"), null);
+  assert.equal(clearLibraryLinks([post({ id: "a", libraryEntryId: "ent-2" })], "ent-1"), null);
+  assert.equal(clearLibraryLinks([post({ id: "a", libraryEntryId: "ent-1" })], ""), null);
 });
