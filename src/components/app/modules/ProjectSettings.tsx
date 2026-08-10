@@ -32,13 +32,7 @@ const T = {
     savedLabel: "Uloženo",
     errorRequired: "Zadejte název projektu.",
     errorSaveFailed: "Uložení se nezdařilo.",
-    errorDeleteFailed: "Smazání projektu se nezdařilo.",
     errorGeneric: "Něco se pokazilo.",
-    dangerTitle: "Smazat projekt",
-    dangerHint: "Odebere projekt z vašeho pracovního prostoru. Tuto akci nelze vrátit zpět.",
-    confirmDelete: "Opravdu smazat „{name}“",
-    cancelBtn: "Zrušit",
-    deleteBtn: "Smazat projekt",
   },
   en: {
     dataSourceTitle: "Data source",
@@ -56,13 +50,7 @@ const T = {
     savedLabel: "Saved",
     errorRequired: "Please enter a project name.",
     errorSaveFailed: "Save failed.",
-    errorDeleteFailed: "Deleting the project failed.",
     errorGeneric: "Something went wrong.",
-    dangerTitle: "Delete project",
-    dangerHint: "Removes the project from your workspace. This action cannot be undone.",
-    confirmDelete: "Really delete “{name}”",
-    cancelBtn: "Cancel",
-    deleteBtn: "Delete project",
   },
 } as const;
 
@@ -83,8 +71,6 @@ export default function ProjectSettings({ live }: { live: boolean }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const dirty =
     name !== project.name ||
@@ -116,27 +102,6 @@ export default function ProjectSettings({ live }: { live: boolean }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : t("errorGeneric"));
     } finally {
-      setSaving(false);
-    }
-  }
-
-  async function remove() {
-    setSaving(true);
-    setDeleteError(null);
-    try {
-      const res = await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
-      if (!res.ok) {
-        // A resolved fetch is not a success: a 403/409/500 must NOT navigate away as
-        // if the project were gone (it would reappear in the workspace list, unexplained).
-        const json = (await res.json().catch(() => ({}))) as { error?: string };
-        setDeleteError(json.error ?? t("errorDeleteFailed"));
-        setSaving(false);
-        return;
-      }
-      router.push("/app");
-      router.refresh();
-    } catch {
-      setDeleteError(t("errorGeneric"));
       setSaving(false);
     }
   }
@@ -244,43 +209,6 @@ export default function ProjectSettings({ live }: { live: boolean }) {
         </div>
       </form>
 
-      {/* danger zone */}
-      <div className="card border-negative/30 p-6">
-        <h3 className="text-sm font-semibold text-navy-800">{t("dangerTitle")}</h3>
-        <p className="mt-1 text-sm text-muted">{t("dangerHint")}</p>
-        {deleteError && (
-          <p className="mt-3 rounded-lg bg-negative-soft px-3.5 py-2.5 text-sm text-negative" role="alert">
-            {deleteError}
-          </p>
-        )}
-        {confirmDelete ? (
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={remove}
-              disabled={saving}
-              className="rounded-pill bg-negative px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
-              {t("confirmDelete", { name: project.name })}
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="text-sm font-medium text-muted hover:text-navy-700"
-            >
-              {t("cancelBtn")}
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="mt-4 rounded-pill border border-negative/40 px-4 py-2 text-sm font-semibold text-negative transition-colors hover:bg-negative-soft"
-          >
-            {t("deleteBtn")}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
