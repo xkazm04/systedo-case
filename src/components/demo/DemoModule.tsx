@@ -92,6 +92,7 @@ import { attributionForProject, SAMPLE_SOURCE } from "@/lib/distribution/sample"
 import { audienceForProject } from "@/lib/audience/sample";
 import { PROJECT_TYPE_META, type Project } from "@/lib/projects/types";
 import { DEMO_PROJECTS, demoHref } from "@/lib/demo/projects";
+import { PLANS, planEntitlement } from "@/lib/plans";
 
 /** Profit / inventory period windows (mirrors the authed zisk + sklad pages). */
 const PERIOD_DAYS: Record<string, number> = { "30": 30, "90": 90, "365": 365 };
@@ -555,6 +556,10 @@ export default async function DemoModule({
             facts={{ hasEmail: true, oauth: true, devMode: false }}
             expiresDate={null}
             sessionCount={2}
+            entitlement={planEntitlement(
+              { plan: "free", limits: PLANS.free, used: { aiEval: 3, sync: 6, image: 1 }, day: "" },
+              false
+            )}
             signOutAction={demoAccountAction}
             signOutEverywhereAction={demoAccountAction}
             demo

@@ -7,6 +7,8 @@ import { requireProjectModule } from "@/lib/projects/guard";
 import { currentSession, currentUserId } from "@/lib/session";
 import { DEV_AUTH, signOut } from "@/auth";
 import { activeSessionCount, revokeAllSessions } from "@/lib/account/sessions";
+import { byomUnlocked, getUsage } from "@/lib/usage";
+import { planEntitlement, type PlanEntitlement } from "@/lib/plans";
 import ModulePage from "@/components/app/ModulePage";
 import AccountSecurity from "@/components/app/modules/AccountSecurity";
 
@@ -45,6 +47,19 @@ export default async function Page({
   // "unavailable" rather than asserting a measured "0 active sessions".
   const sessionCount = !DEV_AUTH && su?.id ? await activeSessionCount(su.id) : null;
 
+  // The plan, resolved server-side (usage + the same entitlement check /api/byom
+  // makes) and passed down. A failed read yields null, and the card is omitted —
+  // guessing "Free" would be an assertion about someone's billing, not a fact.
+  let entitlement: PlanEntitlement | null = null;
+  if (su?.id) {
+    try {
+      const usage = await getUsage(su.id);
+      entitlement = planEntitlement(usage, byomUnlocked(usage.plan));
+    } catch {
+      entitlement = null;
+    }
+  }
+
   async function signOutAction() {
     "use server";
     await signOut({ redirectTo: "/" });
@@ -69,6 +84,7 @@ export default async function Page({
         facts={facts}
         expiresDate={expiresDate}
         sessionCount={sessionCount}
+        entitlement={entitlement}
         revokeError={revoke === "error"}
         signOutAction={signOutAction}
         signOutEverywhereAction={signOutEverywhereAction}

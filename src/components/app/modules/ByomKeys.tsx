@@ -40,6 +40,7 @@ const T = {
     fingerprintUnknown: "Klíč neidentifikovaný",
     fingerprintUnknownTitle:
       "Tento klíč byl uložen dřív, než jsme začali ukládat poslední 4 znaky. Klíč nikdy nedešifrujeme jen kvůli zobrazení. Identifikaci uvidíte po nahrazení klíče.",
+    whatIsThis: "Co to znamená?",
     validatedAgo: "ověřeno {ago}",
     validatedNever: "zatím neověřeno",
     keyLabel: "API klíč",
@@ -91,6 +92,7 @@ const T = {
     fingerprintUnknown: "Key unidentified",
     fingerprintUnknownTitle:
       "This key was stored before we began keeping its last 4 characters. We never decrypt a key just to display it. Replace the key to make it identifiable.",
+    whatIsThis: "What does this mean?",
     validatedAgo: "verified {ago}",
     validatedNever: "not verified yet",
     keyLabel: "API key",
@@ -361,25 +363,35 @@ export default function ByomKeys() {
                     metadata the server already holds — the fingerprint is stored at
                     encrypt time, never derived by decrypting on read. */}
                 {key && (
-                  <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
-                    {key.keyLast4 ? (
-                      <span title={t("fingerprintTitle")} className="font-mono tracking-tight">
-                        {t("fingerprint", { last4: key.keyLast4 })}
+                  // The explanations used to live in `title=` alone: invisible to
+                  // touch, unreachable by keyboard, and unread by most screen
+                  // readers. A native <details> makes the same copy real content —
+                  // focusable, Enter/Space-operable, tappable, and announced.
+                  <details className="mt-1.5">
+                    <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted marker:content-['']">
+                      {key.keyLast4 ? (
+                        <span className="font-mono tracking-tight">
+                          {t("fingerprint", { last4: key.keyLast4 })}
+                        </span>
+                      ) : (
+                        <span className="italic">{t("fingerprintUnknown")}</span>
+                      )}
+                      <span aria-hidden="true">·</span>
+                      {key.lastValidatedAt ? (
+                        <span className={stale ? TONE_TEXT.coral : undefined}>
+                          {t("validatedAgo", { ago: fmt.fmtRelative(key.lastValidatedAt) })}
+                        </span>
+                      ) : (
+                        <span>{t("validatedNever")}</span>
+                      )}
+                      <span className="font-medium text-brand-accent underline underline-offset-2">
+                        {t("whatIsThis")}
                       </span>
-                    ) : (
-                      <span title={t("fingerprintUnknownTitle")} className="italic">
-                        {t("fingerprintUnknown")}
-                      </span>
-                    )}
-                    <span aria-hidden="true">·</span>
-                    {key.lastValidatedAt ? (
-                      <span className={stale ? TONE_TEXT.coral : undefined}>
-                        {t("validatedAgo", { ago: fmt.fmtRelative(key.lastValidatedAt) })}
-                      </span>
-                    ) : (
-                      <span>{t("validatedNever")}</span>
-                    )}
-                  </p>
+                    </summary>
+                    <p className="mt-1.5 max-w-prose text-xs leading-relaxed text-muted">
+                      {key.keyLast4 ? t("fingerprintTitle") : t("fingerprintUnknownTitle")}
+                    </p>
+                  </details>
                 )}
 
                 {/* No key yet, or replacing one → the key input. */}

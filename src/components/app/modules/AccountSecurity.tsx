@@ -10,12 +10,15 @@ import { useState } from "react";
 import { useT, useFormatters } from "@/lib/i18n/client";
 import { initials } from "@/lib/branding/compute";
 import { maskEmail, securityChecklist, type AccountFacts, type CheckState } from "@/lib/account/compute";
+import type { PlanEntitlement } from "@/lib/plans";
+import AccountPlanCard from "./AccountPlanCard";
 
 const SUPPORT_EMAIL = "podpora@adamant.app";
 
 const T = {
   cs: {
     profile: "Profil", email: "E-mail", userId: "ID uživatele",
+    revealEmail: "Zobrazit e-mail", hideEmail: "Skrýt e-mail",
     security: "Zabezpečení",
     ck_email: "E-mailová adresa", ck_sso: "Přihlášení přes Google (SSO)", ck_session: "Aktivní relace", ck_twofa: "Dvoufaktorové ověření",
     st_ok: "Aktivní", st_action: "Vyžaduje akci", st_unavailable: "Nedostupné",
@@ -35,6 +38,7 @@ const T = {
   },
   en: {
     profile: "Profile", email: "Email", userId: "User ID",
+    revealEmail: "Show email", hideEmail: "Hide email",
     security: "Security",
     ck_email: "Email address", ck_sso: "Google sign-in (SSO)", ck_session: "Active session", ck_twofa: "Two-factor authentication",
     st_ok: "Active", st_action: "Needs action", st_unavailable: "Unavailable",
@@ -69,6 +73,7 @@ export default function AccountSecurity({
   signOutAction,
   signOutEverywhereAction,
   demo = false,
+  entitlement = null,
 }: {
   user: { id: string | null; name: string; email: string; image?: string | null };
   facts: AccountFacts;
@@ -85,10 +90,15 @@ export default function AccountSecurity({
    *  actions are shown disabled with an explanation instead of being live controls
    *  wired to a silent server no-op (which reads as a bug, not a tour). */
   demo?: boolean;
+  /** the caller's plan + allowances, resolved server-side. null when the plan could
+   *  not be read (no session / a failed store read) — the card is then omitted
+   *  rather than defaulting to "Free", which would be an assertion, not a fact. */
+  entitlement?: PlanEntitlement | null;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
   const [requested, setRequested] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
   const checks = securityChecklist(facts);
 
   const stateLabel = (s: CheckState) => (s === "ok" ? t("st_ok") : s === "action" ? t("st_action") : t("st_unavailable"));
@@ -115,9 +125,28 @@ export default function AccountSecurity({
           </div>
         </div>
         <dl className="mt-5 space-y-2 text-sm">
-          <div className="flex justify-between gap-3">
+          {/* The mask used to be pure decoration: the very next row printed the same
+              address in full, so the bullets protected nothing while implying they
+              did. Resolved by masking BOTH and making the reveal an explicit,
+              deliberate act — the masking now has a real job (screen shares, agency
+              demos, shoulder-surfing) instead of being contradicted one line later. */}
+          <div className="flex items-center justify-between gap-3">
             <dt className="text-muted">{t("email")}</dt>
-            <dd className="truncate text-navy-800">{user.email || "—"}</dd>
+            <dd className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-navy-800">
+                {user.email ? (showEmail ? user.email : maskEmail(user.email)) : "—"}
+              </span>
+              {user.email && (
+                <button
+                  type="button"
+                  onClick={() => setShowEmail((v) => !v)}
+                  aria-pressed={showEmail}
+                  className="shrink-0 text-xs font-semibold text-brand-accent hover:text-brand-800"
+                >
+                  {showEmail ? t("hideEmail") : t("revealEmail")}
+                </button>
+              )}
+            </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-muted">{t("userId")}</dt>
@@ -125,6 +154,9 @@ export default function AccountSecurity({
           </div>
         </dl>
       </div>
+
+      {/* Plan — what you are actually on, next to who you are */}
+      {entitlement && <AccountPlanCard entitlement={entitlement} />}
 
       {/* Security checklist */}
       <div className="card overflow-hidden">

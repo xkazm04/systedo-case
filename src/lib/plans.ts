@@ -45,6 +45,52 @@ export function devByomUnlockActive(env: { BYOM_MATRIX?: string; NODE_ENV?: stri
   return env.BYOM_MATRIX === "true" && env.NODE_ENV !== "production";
 }
 
+/** How a plan's AI allowance must be PRESENTED. This exists so no surface can quote
+ *  `PLANS[plan].aiEval` as "your daily limit" for the BYOM tier: there the headline
+ *  is unlimited generation, delivered at RUNTIME (a call served by the user's own
+ *  provider key skips metering entirely), and the listed number is only the
+ *  app-funded fallback cap for when their key is missing or failing. Reading that
+ *  number as the plan's cap under-sells the plan; hiding it over-sells it. Pure. */
+export type AiAllowanceKind = "capped" | "unlimited-via-own-key";
+
+export function aiAllowanceKind(plan: Plan): AiAllowanceKind {
+  return planHasByom(plan) ? "unlimited-via-own-key" : "capped";
+}
+
+/** The monthly price shown for a plan, from the same catalogue /cena renders, so
+ *  the account page and the pricing page can never quote different numbers. */
+export function planPriceCzk(plan: Plan): number {
+  return PLAN_INFO.find((p) => p.id === plan)?.priceCzk ?? 0;
+}
+
+/** Everything a display surface needs to state a user's plan honestly: what they
+ *  are on, what it costs, whether the BYOM entitlement is actually active for them
+ *  (which is NOT always `planHasByom` — a dev flag can unlock it off-production),
+ *  and how the AI allowance must be framed. Pure; the caller resolves `byomActive`
+ *  from the server-side entitlement check (`byomUnlocked`). */
+export interface PlanEntitlement {
+  plan: Plan;
+  limits: PlanLimits;
+  used: Record<UsageKind, number>;
+  priceCzk: number;
+  byomActive: boolean;
+  aiAllowance: AiAllowanceKind;
+}
+
+export function planEntitlement(
+  status: UsageStatus,
+  byomActive: boolean
+): PlanEntitlement {
+  return {
+    plan: status.plan,
+    limits: status.limits,
+    used: status.used,
+    priceCzk: planPriceCzk(status.plan),
+    byomActive,
+    aiAllowance: aiAllowanceKind(status.plan),
+  };
+}
+
 export interface UsageStatus {
   plan: Plan;
   limits: PlanLimits;
