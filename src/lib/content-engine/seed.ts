@@ -44,3 +44,34 @@ export function seedFromCluster(cluster: ClusterStat, article?: ClusterArticle):
 export function seedFromDecay(post: DecayingPost): BriefSeed {
   return { topic: post.title, primaryKeyword: post.title, keywords: [] };
 }
+
+/** Brief seed for an organic channel's next piece (kanály → Tvorba).
+ *
+ *  There are TWO doors from the signpost — the channel drawer's "create content"
+ *  and the row CTA's derived next step — and they had drifted: one wrote a real
+ *  seed, the other pushed to the engine with nothing, landing the maker in a blank
+ *  workspace one click after the app told them exactly what to write. Both now
+ *  build the seed HERE, so the door taken cannot change what arrives.
+ *
+ *  `primaryKeyword` prefers a real catalog keyword the page already resolved into
+ *  its grounding: a brand name is not an SEO keyword, it is only the last resort
+ *  for a project with an empty catalog. */
+export function seedFromChannel(args: {
+  /** the channel's content angle, when the plan proposed one */
+  contentAngle?: string;
+  /** localized fallback topic ("{channel}: příspěvek pro {brand}") when it did not */
+  fallbackTopic: string;
+  /** the project's resolved catalog keywords, best first */
+  keywords?: string[];
+  /** last-resort primary keyword (the project name) */
+  projectName: string;
+}): BriefSeed {
+  return {
+    topic: args.contentAngle?.trim() || args.fallbackTopic,
+    primaryKeyword: args.keywords?.[0]?.trim() || args.projectName,
+    // No keyword rows: a channel plan carries an angle, not search-volume data.
+    // The account's saved keywords ground the brief server-side (the /api/ai brief
+    // row) — that is where measured numbers live.
+    keywords: [],
+  };
+}

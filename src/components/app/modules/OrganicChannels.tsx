@@ -18,6 +18,7 @@ import NextSteps from "@/components/app/NextSteps";
 import { useAiTool } from "@/components/ai/useAiTool";
 import { LoadingTimer, RefineBar, ResultMeta, TimeoutState, ToolError } from "@/components/ai/primitives";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
+import { seedFromChannel } from "@/lib/content-engine/seed";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import { createFormatters } from "@/lib/format";
 import type { ChannelResearchResult } from "@/lib/ai-types";
@@ -255,23 +256,25 @@ export default function OrganicChannels({
   };
 
   /** Hand a channel's content angle to the content engine via the BriefSeed
-   *  session bridge, then route there — the "playbook → draft" loop. */
+   *  session bridge, then route there — the "playbook → draft" loop.
+   *
+   *  ONE door: both the drawer's "create content" and the row CTA's derived
+   *  create-content step come through here, so the maker lands in the same seeded
+   *  workspace whichever they clicked (the CTA used to push an empty engine).
+   *  `?from=kanaly` rides along for the shared ReturnHint affordance. */
   const createContent = (channel: OrganicChannel) => {
-    const topic =
-      channel.contentAngle || t("defaultTopic", { channel: channel.name, brand: project.name });
-    // Seed the brief with a REAL catalog keyword (the page resolved them into the
-    // grounding) — the brand name is not an SEO keyword; it's only the last resort
-    // for a project with an empty catalog.
-    const primaryKeyword = grounding.keywords?.[0] ?? project.name;
+    const seed = seedFromChannel({
+      contentAngle: channel.contentAngle,
+      fallbackTopic: t("defaultTopic", { channel: channel.name, brand: project.name }),
+      keywords: grounding.keywords,
+      projectName: project.name,
+    });
     try {
-      sessionStorage.setItem(
-        briefSeedKey(project.id),
-        JSON.stringify({ topic, primaryKeyword, keywords: [] })
-      );
+      sessionStorage.setItem(briefSeedKey(project.id), JSON.stringify(seed));
     } catch {
       /* storage unavailable — still navigate; the engine opens unseeded */
     }
-    router.push(`/app/${project.id}/obsahovy-engine`);
+    router.push(`/app/${project.id}/obsahovy-engine?from=kanaly`);
   };
 
   /** The row CTA: deep-link when the step lives in another module, else act here. */
@@ -279,6 +282,15 @@ export default function OrganicChannels({
     const next = nextOf(c);
     if (next.key === "none") return;
     if (next.to) {
+      // The engine is not just a destination — it is a destination that needs to
+      // know WHAT to write. The CTA that says "Vytvořit obsah" now hands over the
+      // same seed the drawer does instead of opening a blank workspace. (The
+      // social planner branch of create-content keeps its plain deep link — it has
+      // no brief to seed.)
+      if (next.key === "create-content" && next.to === "obsahovy-engine") {
+        createContent(c);
+        return;
+      }
       // `channel` carries a TWIN channel (next.scope) only where the destination
       // can honor it (schranka's picker); other modules get no dead parameter.
       router.push(
