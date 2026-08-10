@@ -554,7 +554,18 @@ export function createModeTable(deps: ModeDeps): Record<string, ErasedMode> {
       prepare: async (value, ctx) => {
         const scope: ToneScope = value.channels.includes("Newsletter") ? "email" : "social";
         value.voice = await deps.resolveTwinVoice(value.projectId, ctx.userId, scope);
-        return { cacheValue: value, gen: () => deps.gen.repurpose(value, ctx.locale, ctx.signal) };
+        // Disclose the injection on the response meta (the withDiagnosisMeta
+        // posture: additive to meta, no tool fingerprint moves) — the client's
+        // ONLY honest basis for a voice pill. Prompt-sniffing would false-claim
+        // on untrained twins because the prompt also carries the user's prose.
+        const voiceApplied = value.voice && (scope === "email" || scope === "social");
+        const gen = async () => {
+          const res = await deps.gen.repurpose(value, ctx.locale, ctx.signal);
+          return voiceApplied
+            ? { ...res, meta: { ...res.meta, voiceApplied: { scope } } }
+            : res;
+        };
+        return { cacheValue: value, gen };
       },
     }),
 

@@ -110,6 +110,11 @@ export interface AiMeta {
    *  — click-path parity with the digest cron's honesty gate (which refuses sample; the
    *  click path labels instead). Server-set in the diagnosis modes' prepare(). */
   sampleGrounded?: boolean;
+  /** set when a TRAINED twin voice was server-injected into the generation (the
+   *  repurpose/social rows) — the client's honest basis for a "in your voice"
+   *  disclosure. Absent = no trained voice grounded this output; a client must
+   *  never infer voice use from the prompt text (it contains user prose too). */
+  voiceApplied?: { scope: "email" | "social" };
   /** Direction 1/2: the stable input digest of the SERVER-rebuilt diagnosis request,
    *  so the panel persists the digest of what was actually diagnosed (not a client-
    *  sent one) and the stale-badge comparison stays authoritative. */

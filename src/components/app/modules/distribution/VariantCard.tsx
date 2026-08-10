@@ -32,6 +32,8 @@ const REPURPOSE_TONE: Tone = "pratelsky";
 const T = {
   cs: {
     aiPill: "AI",
+    voicePill: "Váš hlas",
+    voicePillHint: "Vygenerováno s vaším natrénovaným hlasem z modulu Twin.",
     generateBtn: "Generuji…",
     regenerateBtn: "Vygenerovat znovu",
     rephraseBtn: "Vygenerovat AI variantu",
@@ -49,6 +51,8 @@ const T = {
   },
   en: {
     aiPill: "AI",
+    voicePill: "Your voice",
+    voicePillHint: "Generated with your trained voice from the Twin module.",
     generateBtn: "Generating…",
     regenerateBtn: "Regenerate",
     rephraseBtn: "Generate AI variant",
@@ -189,21 +193,20 @@ export default function VariantCard({
       <div className="flex items-center justify-between gap-2">
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-navy-800">{channel}</span>
-          {/* A bare "AI" pill is all this can honestly claim today. The server
-              resolves the project's TRAINED twin voice for this call (api/ai/modes
-              → resolveTwinVoice, scope `email` for Newsletter and `social`
-              otherwise) and injects it into the prompt — but that decision is not
-              returned in any structured field: `AiMeta` carries no voice flag, and
-              the only client-visible trace is the voice block inside `meta.prompt`,
-              which also contains the user's own article prose. Sniffing it could
-              therefore claim "trained voice" for an untrained twin, which is the
-              one failure mode this module must not have. Disclosing the grounding
-              needs `meta.voiceApplied` set in the repurpose mode's `prepare` (the
-              `withDiagnosisMeta` precedent) — a server change outside this module. */}
           {usingAi ? (
             <Pill tone="positive">
               <Sparkles width={12} height={12} />
               {t("aiPill")}
+            </Pill>
+          ) : null}
+          {/* Voice disclosure rides the STRUCTURED meta.voiceApplied flag the
+              repurpose mode sets when a trained twin voice was actually injected —
+              never sniffed from meta.prompt (which also carries the user's own
+              prose and would false-claim on an untrained twin). Absent flag =
+              no pill, honestly. */}
+          {usingAi && ai.data?.meta.voiceApplied ? (
+            <Pill tone="brand">
+              <span title={t("voicePillHint")}>{t("voicePill")}</span>
             </Pill>
           ) : null}
           {/* Only a variant with a PERSISTED record carries a badge, so a fresh
