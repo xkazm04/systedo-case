@@ -11,7 +11,8 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { interpolate } from "@/lib/i18n/interpolate";
 import { MODULES, moduleLabel } from "@/lib/projects/modules";
 import type { ActivityEvent, ActivitySeverity } from "@/lib/activity/sample";
-import { activeModules, filterActivity, severityCounts, type ActivityFilter } from "@/lib/activity/compute";
+import { activeModules, activityCsvRows, filterActivity, severityCounts, type ActivityFilter } from "@/lib/activity/compute";
+import { ACTIVITY_TEMPLATES } from "@/lib/activity/templates";
 import { toCsv, downloadText } from "@/lib/export";
 
 const T = {
@@ -22,6 +23,13 @@ const T = {
     today: "dnes", daysAgo: "před {n} dny",
     actorAi: "AI", actorSystem: "Systém", actorYou: "Vy",
     colWhen: "Kdy", colModule: "Modul", colSeverity: "Závažnost", colEvent: "Událost",
+    colSimulated: "Simulováno",
+    simulated: "Simulované publikování",
+    simulatedTitle: "Obsah opustil aplikaci, ale nedorazil na živou platformu (demo napojení).",
+    filterModule: "Filtrovat podle modulu",
+    filterSeverity: "Filtrovat podle závažnosti",
+    filterWindow: "Filtrovat podle období",
+    summary: "Zobrazeno {n} událostí: {success} úspěch, {info} info, {warning} varování, {critical} kritické.",
     footer: "Ilustrativní aktivita napříč moduly. Živá verze čte feed tenantu (recordActivity z každé změny, synchronizace a upozornění).",
     footerLive: "Živá aktivita tohoto projektu (recordActivity z každé změny, synchronizace a upozornění).",
   },
@@ -32,42 +40,17 @@ const T = {
     today: "today", daysAgo: "{n} days ago",
     actorAi: "AI", actorSystem: "System", actorYou: "You",
     colWhen: "When", colModule: "Module", colSeverity: "Severity", colEvent: "Event",
+    colSimulated: "Simulated",
+    simulated: "Simulated publishing",
+    simulatedTitle: "The content left the app but never reached a live platform (demo connection).",
+    filterModule: "Filter by module",
+    filterSeverity: "Filter by severity",
+    filterWindow: "Filter by period",
+    summary: "Showing {n} events: {success} success, {info} info, {warning} warning, {critical} critical.",
     footer: "Illustrative activity across modules. The live version reads the tenant feed (recordActivity from every change, sync and alert).",
     footerLive: "Live activity for this project (recordActivity from every change, sync and alert).",
   },
 } as const;
-
-/** Event title templates, kept out of the useT dict (they take params). */
-const TEMPLATES: Record<"cs" | "en", Record<string, string>> = {
-  cs: {
-    review_reply_drafted: "AI navrhla odpověď na recenzi ({area})",
-    review_flagged: "Recenze označena majiteli ({area})",
-    review_published: "Odpověď na recenzi publikována ({area})",
-    map_rank_up: "Pozice v mapě vzrostla na #{value} ({area})",
-    map_rank_down: "Pozice v mapě klesla na #{value} ({area})",
-    keyword_top3: "Klíčové slovo se posunulo do TOP 3 ({area})",
-    post_published: "Příspěvek publikován: {name}",
-    budget_shift: "Přesun rozpočtu do kampaně {name}",
-    sync: "Synchronizace dat z Google Ads",
-    location_needs: "Pobočka {area} vyžaduje pozornost",
-    coverage_gap: "Nalezena mezera v pokrytí ({area})",
-    integration_action: "Napojení vyžaduje dokončení: {name}",
-  },
-  en: {
-    review_reply_drafted: "AI drafted a reply to a review ({area})",
-    review_flagged: "Review flagged for owner ({area})",
-    review_published: "Review reply published ({area})",
-    map_rank_up: "Map pack rank rose to #{value} ({area})",
-    map_rank_down: "Map pack rank slipped to #{value} ({area})",
-    keyword_top3: "Keyword moved into the TOP 3 ({area})",
-    post_published: "Post published: {name}",
-    budget_shift: "Budget moved to campaign {name}",
-    sync: "Synced data from Google Ads",
-    location_needs: "Location {area} needs attention",
-    coverage_gap: "Coverage gap found ({area})",
-    integration_action: "Integration needs finishing: {name}",
-  },
-};
 
 const DOT: Record<ActivitySeverity, string> = {
   info: "bg-navy-400",
@@ -85,7 +68,7 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
   const visible = useMemo(() => filterActivity(events, filter), [events, filter]);
   const counts = useMemo(() => severityCounts(visible), [visible]);
 
-  const tmpl = TEMPLATES[locale === "en" ? "en" : "cs"];
+  const tmpl = ACTIVITY_TEMPLATES[locale === "en" ? "en" : "cs"];
   const title = (e: ActivityEvent) =>
     e.text ?? interpolate(tmpl[e.tmpl] ?? e.tmpl, e.params as Record<string, string | number>);
   const rel = (d: number) => (d <= 0 ? t("today") : t("daysAgo", { n: d }));
@@ -97,8 +80,10 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
   const actorLabel = (a: ActivityEvent["actor"]) => (a === "ai" ? t("actorAi") : a === "you" ? t("actorYou") : t("actorSystem"));
 
   function exportCsv() {
-    const header = [t("colWhen"), t("colModule"), t("colSeverity"), t("colEvent")];
-    const rows = visible.map((e) => [rel(e.daysAgo), modLabel(e.module), sevLabel(e.severity), title(e)]);
+    const header = [t("colWhen"), t("colModule"), t("colSeverity"), t("colEvent"), t("colSimulated")];
+    const rows = activityCsvRows(visible, {
+      when: rel, module: modLabel, severity: sevLabel, title, simulated: t("simulated"),
+    });
     downloadText("activity.csv", toCsv(header, rows));
   }
 
@@ -111,17 +96,23 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
 
   return (
     <div className="space-y-5">
-      {/* summary */}
+      {/* summary — the tiles are silent to a screen reader when a filter rewrites
+          them (four bare numbers, no relationship announced), so one polite live
+          region states the whole rollup after every filter change. */}
       <div className="flex flex-wrap items-center gap-6">
         <Sum label={t("success")} value={counts.success} dot="bg-positive" />
         <Sum label={t("info")} value={counts.info} dot="bg-navy-400" />
         <Sum label={t("warning")} value={counts.warning} dot="bg-coral-500" />
         <Sum label={t("critical")} value={counts.critical} dot="bg-negative" />
       </div>
+      <p className="sr-only" role="status" aria-live="polite">
+        {t("summary", { n: visible.length, ...counts })}
+      </p>
 
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-3">
         <select
+          aria-label={t("filterModule")}
           value={filter.module}
           onChange={(e) => setFilter((f) => ({ ...f, module: e.target.value }))}
           className="rounded-pill border border-line bg-surface px-3 py-2 text-sm text-navy-800 focus:border-brand-400 focus:outline-none"
@@ -131,11 +122,16 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
             <option key={m} value={m}>{modLabel(m)}</option>
           ))}
         </select>
-        <div className="inline-flex overflow-hidden rounded-pill border border-line">
+        {/* Toggle groups, not free-standing buttons: role="group" + a label names
+            what the set filters, aria-pressed states which one is active (the
+            ProjectSettings pattern) — without them the active filter was carried by
+            colour alone. */}
+        <div role="group" aria-label={t("filterSeverity")} className="inline-flex overflow-hidden rounded-pill border border-line">
           {severities.map((s) => (
             <button
               key={s}
               type="button"
+              aria-pressed={filter.severity === s}
               onClick={() => setFilter((f) => ({ ...f, severity: s }))}
               className={"px-3 py-1.5 text-xs font-semibold transition-colors " + (filter.severity === s ? "bg-brand-500/15 text-brand-accent" : "text-muted hover:bg-brand-50")}
             >
@@ -143,11 +139,12 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
             </button>
           ))}
         </div>
-        <div className="inline-flex overflow-hidden rounded-pill border border-line">
+        <div role="group" aria-label={t("filterWindow")} className="inline-flex overflow-hidden rounded-pill border border-line">
           {windows.map((w) => (
             <button
               key={w.days}
               type="button"
+              aria-pressed={filter.windowDays === w.days}
               onClick={() => setFilter((f) => ({ ...f, windowDays: w.days }))}
               className={"px-3 py-1.5 text-xs font-semibold transition-colors " + (filter.windowDays === w.days ? "bg-brand-500/15 text-brand-accent" : "text-muted hover:bg-brand-50")}
             >
@@ -178,6 +175,17 @@ export default function ActivityModule({ events, isLive = false }: { events: Act
                   <div className="text-sm text-navy-800">{title(e)}</div>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted">
                     <span className="rounded-pill bg-navy-50 px-1.5 py-0.5 font-medium text-navy-700">{modLabel(e.module)}</span>
+                    {/* A simulated publish is NOT a real one: the asset left the panel
+                        but never reached a live platform. Same wording as the posts
+                        list, so one event reads the same wherever it surfaces. */}
+                    {e.simulated && (
+                      <span
+                        className="rounded-pill bg-coral-50 px-1.5 py-0.5 font-medium text-coral-700"
+                        title={t("simulatedTitle")}
+                      >
+                        {t("simulated")}
+                      </span>
+                    )}
                     <span>· {actorLabel(e.actor)}</span>
                     <span>· {rel(e.daysAgo)}</span>
                   </div>

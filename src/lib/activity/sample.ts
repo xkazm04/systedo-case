@@ -25,6 +25,13 @@ export interface ActivityEvent {
   /** pre-localized literal title (set when mapped from a live ActivityRecord,
    *  which already stores a written title); the UI renders it instead of `tmpl`. */
   text?: string;
+  /** True only on a row that IS a publish event whose send was SIMULATED (demo
+   *  connection / no provider): the asset left the panel but never reached a live
+   *  platform. Carried from the stored row's `publishSimulated` tag (the same tag
+   *  the publish-rate rollup splits on), so the timeline an agency uses to explain
+   *  account changes to a client cannot render a simulated send as a real one.
+   *  Absent = real, matching the rollup's posture on legacy untagged rows. */
+  simulated?: boolean;
 }
 
 interface Recipe {

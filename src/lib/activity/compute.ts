@@ -39,6 +39,32 @@ export function activeModules(events: ActivityEvent[]): string[] {
  *  this module path. */
 export { csvCell } from "@/lib/export";
 
+/** Localized cell writers the CSV export needs — supplied by the component, which
+ *  owns the locale dictionaries. */
+export interface ActivityCsvLabels {
+  when(daysAgo: number): string;
+  module(key: string): string;
+  severity(s: ActivitySeverity): string;
+  title(e: ActivityEvent): string;
+  /** the word for a simulated send (empty string is written for a real one) */
+  simulated: string;
+}
+
+/** The exported timeline's body rows, in view order. Pure so the export can be
+ *  pinned: an exported feed is read as the record of what reached the client's
+ *  accounts, so the simulated tag rides its OWN column instead of being buried in
+ *  the event prose — an untagged (legacy) row exports as real, exactly as it
+ *  renders and exactly as the publish-rate rollup counts it. */
+export function activityCsvRows(events: ActivityEvent[], l: ActivityCsvLabels): string[][] {
+  return events.map((e) => [
+    l.when(e.daysAgo),
+    l.module(e.module),
+    l.severity(e.severity),
+    l.title(e),
+    e.simulated ? l.simulated : "",
+  ]);
+}
+
 const DAY_MS = 86_400_000;
 
 /** Module + severity a legacy campaign event maps to when it carries neither. */
@@ -76,5 +102,10 @@ export function recordToEvent(r: ActivityRecord, nowMs: number): ActivityEvent {
     daysAgo: Math.max(0, Math.floor((nowMs - Date.parse(r.at)) / DAY_MS)),
     params: {},
     text: r.detail ? `${r.title} — ${r.detail}` : r.title,
+    // Only a TRUE tag marks the row simulated: a legacy row written before the tag
+    // existed carries `undefined` and reads as a real publish — the same posture the
+    // publish-rate rollup takes (publish-rate-live.ts), so the two surfaces can never
+    // disagree about the same event.
+    ...(r.publishSimulated === true ? { simulated: true } : {}),
   };
 }
