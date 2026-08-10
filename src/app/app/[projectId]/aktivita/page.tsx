@@ -1,7 +1,10 @@
 /** Aktivita / Activity — a project-wide timeline of module + AI actions. Reads the
  *  tenant's live activity feed (written best-effort at each mutation/sync/alert
- *  seam); falls back to a seeded cross-module sample when the feed is empty
- *  (local/dev, or a fresh project). Account-level, every project type. */
+ *  seam) on BOTH backends — Firestore in prod, the node:sqlite twin under LOCAL_DB
+ *  (see campaigns/activity.ts's dispatcher), so `npm run dev:local` shows the real
+ *  offline trail. Falls back to a seeded cross-module sample only when the feed is
+ *  GENUINELY empty (a fresh project); a failed read is an outage, not emptiness, and
+ *  renders DataUnavailableNote instead. Account-level, every project type. */
 import { requireProjectModule } from "@/lib/projects/guard";
 import ModulePage from "@/components/app/ModulePage";
 import ActivityModule from "@/components/app/modules/ActivityModule";

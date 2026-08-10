@@ -4,8 +4,15 @@
  *  but that log is write-only plumbing with no user-facing surface; this feed is
  *  the human-readable timeline an agency uses to explain account changes to a
  *  client. Writes are best-effort and never throw into the calling path.
- *  Server-only. */
-import { firestore } from "@/lib/firebase";
+ *
+ *  Backend-dispatched (the social-connection posture): prod = Firestore
+ *  `tenants/{tenant}/activity` (./activity.firestore), LOCAL_DB = a node:sqlite twin
+ *  on the generic tenant_docs adapter (./activity.local), so `npm run dev:local`
+ *  records AND reads a real audit trail instead of throwing on every access. The
+ *  dynamic import keeps firebase-admin out of the local path entirely (local-mode
+ *  contract). The `{records, ok}` outage contract lives HERE, above both backends,
+ *  so a backend failure still reads as `ok:false` on either store. Server-only. */
+import { LOCAL_DB } from "@/lib/local-mode";
 
 export type ActivityKind = "budget_shift" | "pause" | "sync" | "alert" | "report" | "update";
 
@@ -48,20 +55,24 @@ export interface ActivityInput {
   publishSimulated?: boolean;
 }
 
+/** A stored row's fields — the input plus its write timestamp, WITHOUT the
+ *  backend-assigned id. The shape both backends read and write. */
+export type ActivityRecordData = ActivityInput & { at: string };
+
 export interface ActivityRecord extends ActivityInput {
   id: string;
   at: string;
 }
 
-function activityCol(tenant: string) {
-  return firestore.collection("tenants").doc(tenant).collection("activity");
+function backend() {
+  return LOCAL_DB ? import("./activity.local") : import("./activity.firestore");
 }
 
 /** Append one entry to the tenant's activity feed. Best-effort: a logging failure
  *  must never fail the mutation/sync/alert that triggered it. */
 export async function recordActivity(tenant: string, entry: ActivityInput): Promise<void> {
   try {
-    await activityCol(tenant).add({ ...entry, at: new Date().toISOString() });
+    await (await backend()).appendActivity(tenant, { ...entry, at: new Date().toISOString() });
   } catch (err) {
     console.error(`[activity] record failed for ${tenant}:`, err);
   }
@@ -76,11 +87,7 @@ export async function listActivity(
   limit = 50
 ): Promise<{ records: ActivityRecord[]; ok: boolean }> {
   try {
-    const snap = await activityCol(tenant).orderBy("at", "desc").limit(limit).get();
-    return {
-      records: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ActivityRecord, "id">) })),
-      ok: true,
-    };
+    return { records: await (await backend()).readActivity(tenant, { limit }), ok: true };
   } catch (err) {
     console.error(`[activity] list failed for ${tenant}:`, err);
     return { records: [], ok: false };
@@ -104,15 +111,7 @@ export async function listActivitySince(
   limit = ACTIVITY_WINDOW_MAX
 ): Promise<{ records: ActivityRecord[]; ok: boolean }> {
   try {
-    const snap = await activityCol(tenant)
-      .where("at", ">=", sinceIso)
-      .orderBy("at", "desc")
-      .limit(limit)
-      .get();
-    return {
-      records: snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ActivityRecord, "id">) })),
-      ok: true,
-    };
+    return { records: await (await backend()).readActivity(tenant, { limit, sinceIso }), ok: true };
   } catch (err) {
     console.error(`[activity] list-since failed for ${tenant}:`, err);
     return { records: [], ok: false };
