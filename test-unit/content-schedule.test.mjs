@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   calendarGrid,
+  clearWithdrawnLinks,
   ideas,
   nextFreeDay,
   planSlotSeed,
@@ -172,15 +173,66 @@ test("a slot linked to a channel post follows the CHANNEL, not the board", () =>
   assert.equal(overruled.status, "scheduled");
 });
 
-test("a link whose channel post is gone drops back to the plan with its claim cleared", () => {
-  const [slot] = reconcileWithChannel(
-    [post({ id: "x", status: "published", day: 3, channelPostId: "sp-gone", channelPlatform: "facebook", channelSendAt: "2026-08-10T07:00:00.000Z" })],
-    []
-  );
+const withdrawnSlot = () =>
+  post({
+    id: "x",
+    status: "published",
+    day: 3,
+    channelPostId: "sp-gone",
+    channelPlatform: "facebook",
+    channelSendAt: "2026-08-10T07:00:00.000Z",
+  });
+
+test("a link whose channel post is gone drops back to the plan and SAYS SO", () => {
+  const [slot] = reconcileWithChannel([withdrawnSlot()], []);
   assert.equal(slot.status, "scheduled");
+  // the withdrawal is news, not a silent revert
+  assert.equal(slot.channelWithdrawn, true);
+  // …and it is not a failure: the channel did not try and fail, someone removed it
+  assert.equal(slot.channelFailed, false);
+  // the dead link survives reconciliation as the evidence the board's one-shot
+  // cleanup keys off — reconcile is pure and cannot persist anything itself
+  assert.equal(slot.channelPostId, "sp-gone");
+});
+
+test("a live channel post clears a stale withdrawal flag", () => {
+  const relinked = post({ id: "x", status: "scheduled", day: 3, channelPostId: "sp-1", channelWithdrawn: true });
+  const [slot] = reconcileWithChannel([relinked], [{ id: "sp-1", status: "scheduled" }]);
+  assert.equal(slot.status, "queued");
+  assert.equal(slot.channelWithdrawn, false);
+});
+
+test("clearWithdrawnLinks persists the withdrawal and strips the dead link", () => {
+  const board = reconcileWithChannel([withdrawnSlot(), post({ id: "y", status: "idea", day: null })], []);
+  const cleaned = clearWithdrawnLinks(board);
+  assert.ok(cleaned, "there is something to clean after a withdrawal");
+  const [slot, untouched] = cleaned;
+  // the news survives…
+  assert.equal(slot.channelWithdrawn, true);
+  assert.equal(slot.status, "scheduled");
+  // …the platform survives (which channel it was), the dead promise does not
+  assert.equal(slot.channelPlatform, "facebook");
   assert.equal(slot.channelPostId, undefined);
-  assert.equal(slot.channelPlatform, undefined);
   assert.equal(slot.channelSendAt, undefined);
+  assert.deepEqual(untouched, board[1]);
+  // never mutates
+  assert.equal(board[0].channelPostId, "sp-gone");
+});
+
+test("the withdrawal cleanup is one-shot and survives the next load", () => {
+  const cleaned = clearWithdrawnLinks(reconcileWithChannel([withdrawnSlot()], []));
+  // nothing left to clean → no second write is ever issued
+  assert.equal(clearWithdrawnLinks(cleaned), null);
+  // and a board with no channel link is left alone by the next reconciliation,
+  // so the persisted flag is what the maker keeps seeing
+  const [again] = reconcileWithChannel(cleaned, []);
+  assert.equal(again.channelWithdrawn, true);
+  assert.equal(again.status, "scheduled");
+  assert.equal(clearWithdrawnLinks([again]), null);
+});
+
+test("clearWithdrawnLinks is a no-op on a board that never touched a channel", () => {
+  assert.equal(clearWithdrawnLinks([post({ id: "a", status: "idea", day: null }), post({ id: "b" })]), null);
 });
 
 // channel-absent path --------------------------------------------------------
@@ -297,4 +349,69 @@ test("the seeding + link-back contract is wired at both ends", () => {
   assert.ok(engine.includes("onSavedToLibrary"), "the link-back rides the library save");
   assert.ok(engine.includes("libraryEntryId"), "the slot stores a pointer to the entry");
   assert.ok(!/status:\s*"drafted"/.test(engine), "no second status vocabulary");
+});
+
+// ── the write must land before the hop ────────────────────────────────────────
+
+/** THE RACE this pins. `createContent` stamps `briefStartedAt` on the slot and
+ *  navigates to the content engine. The engine, after a library save, reads the
+ *  stored board, merges `libraryEntryId` into it and PUTs the whole blob back —
+ *  and /api/projects/[id]/state/[key] is a blind last-writer-wins write. So a
+ *  board PUT still in flight when we left could land after the engine's read and
+ *  erase the pointer the engine had just recorded. The fix is ordering: the write
+ *  is awaited before the navigation, which is a property of this source. */
+test("createContent awaits the board write before navigating away", () => {
+  const src = readFileSync(
+    new URL("../src/components/app/modules/ContentSchedule.tsx", import.meta.url),
+    "utf8"
+  );
+  // persist hands its promise back — a fire-and-forget `void fetch(...)` cannot be awaited
+  assert.ok(!/function persist\([^)]*\)[^{]*\{\s*[\s\S]{0,80}void fetch\(/.test(src), "persist is awaitable");
+  assert.ok(/function persist\([^)]*\): Promise<void>/.test(src), "persist declares a promise");
+  assert.ok(/function patch\([^)]*\): Promise<void>/.test(src), "patch forwards that promise");
+  const body = src.slice(src.indexOf("async function createContent"), src.indexOf("function setBody"));
+  assert.ok(body.length > 0, "createContent is still there");
+  const awaited = body.indexOf("await patch(");
+  const pushed = body.indexOf("router.push(");
+  assert.ok(awaited > -1, "the slot write is awaited");
+  assert.ok(pushed > awaited, "…and the navigation happens after it, not beside it");
+});
+
+// ── the calendar is reachable by keyboard and screen reader ──────────────────
+
+/** The day chips used to be inert <div>s whose whole state lived in `title=` —
+ *  unreachable by keyboard, touch, or a screen reader's default reading — and the
+ *  `+{n}` overflow was a dead label hiding the rest of the day from every input. */
+test("calendar day chips and the overflow are real controls", () => {
+  const src = readFileSync(
+    new URL("../src/components/app/modules/ContentScheduleCalendar.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.ok(!/title=\{\s*\n?\s*t\(STATUS_LABEL_KEY/.test(src), "state no longer lives only in title=");
+  assert.ok(src.includes("sr-only"), "the state is announced without expanding anything");
+  assert.equal((src.match(/aria-expanded=/g) ?? []).length, 2, "the chip AND the overflow disclose");
+  assert.ok(src.includes('role="group"'), "each day is a labelled group");
+  assert.ok(/aria-label=\{t\("dayLabel"/.test(src), "…with a real name, not just a number");
+  assert.ok(/onClick=\{\(\) => setExpandedDay\(/.test(src), "the overflow reveals the rest of the day");
+  assert.ok(src.includes("focus-visible:ring"), "focus is visible");
+});
+
+// ── the public demo does not push an anonymous visitor at a sign-in wall ─────
+
+/** DemoModule renders this board with a demo project id and no session: every
+ *  persist 401s silently and every cross-module link redirects to sign-in. The
+ *  SaveToLibrary pattern (isDemoProjectId → offer nothing) applied module-wide. */
+test("on a demo id the board neither writes nor links out", () => {
+  const src = readFileSync(
+    new URL("../src/components/app/modules/ContentSchedule.tsx", import.meta.url),
+    "utf8"
+  );
+  assert.ok(src.includes('from "@/lib/projects/demo"'), "reuses the shared demo-id predicate");
+  assert.ok(/const demo = isDemoProjectId\(projectId\)/.test(src));
+  // the write path short-circuits before the fetch
+  assert.ok(/if \(demo\) return Promise\.resolve\(\)/.test(src), "no persist on a demo id");
+  // and the links that would bounce the visitor are gated on the same flag
+  assert.ok(/socialLinked = isModuleAvailable\([^)]*\) && !demo/.test(src));
+  assert.ok(/engineLinked = isModuleAvailable\([^)]*\) && !demo/.test(src));
+  assert.ok(src.includes('t("demoNote")'), "…and the demo says why");
 });

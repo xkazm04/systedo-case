@@ -81,7 +81,12 @@ export interface ChannelPostState {
  *     failed → back to `scheduled` + `channelFailed` (a failure is not a publish),
  *     anything in flight → `queued`;
  *   • a link whose channel post is GONE (deleted in the social centre) drops back
- *     to `scheduled` with its channel fields cleared — never a stale claim;
+ *     to `scheduled` and is FLAGGED `channelWithdrawn` — never a stale claim, and
+ *     never a silent revert either: the maker handed a post over and it is no
+ *     longer there, which is news they have to be told. The dead link itself is
+ *     left in place here (this function is pure and derives on every load); the
+ *     board strips and persists it once through {@link clearWithdrawnLinks}, so
+ *     the flag outlives the evidence instead of being re-derived forever;
  *   • a slot claiming `published`/`queued` with NO link is a legacy board written
  *     by the old local-flip button. It is downgraded to `done` ("marked finished"),
  *     because nothing ever left the app for it.
@@ -99,16 +104,37 @@ export function reconcileWithChannel(
     }
     const channel = byId.get(p.channelPostId);
     if (channel === undefined) {
-      // Withdrawn in the social centre: the slot keeps its plan but loses the claim.
-      const next: ContentPost = { ...p, status: "scheduled", channelFailed: false };
-      delete next.channelPostId;
-      delete next.channelPlatform;
-      delete next.channelSendAt;
-      return next;
+      // Withdrawn in the social centre: the slot keeps its plan, loses the claim,
+      // and SAYS SO. The link is left for clearWithdrawnLinks to strip + persist.
+      return { ...p, status: "scheduled" as PostStatus, channelFailed: false, channelWithdrawn: true };
     }
-    if (channel === "published") return { ...p, status: "published" as PostStatus, channelFailed: false };
-    if (channel === "failed") return { ...p, status: "scheduled" as PostStatus, channelFailed: true };
-    return { ...p, status: "queued" as PostStatus, channelFailed: false };
+    if (channel === "published")
+      return { ...p, status: "published" as PostStatus, channelFailed: false, channelWithdrawn: false };
+    if (channel === "failed")
+      return { ...p, status: "scheduled" as PostStatus, channelFailed: true, channelWithdrawn: false };
+    return { ...p, status: "queued" as PostStatus, channelFailed: false, channelWithdrawn: false };
+  });
+}
+
+/** The persisted half of a withdrawal. `reconcileWithChannel` DERIVES the flag on
+ *  every load but must stay pure, so the dead `channelPostId`/`channelSendAt` it
+ *  flagged would otherwise sit in the stored blob until some unrelated mutation
+ *  happened to rewrite it — the exact staleness the reconciliation exists to remove.
+ *
+ *  This is the one-shot cleanup the board writes back: strip the dead link and the
+ *  send time that will never come, KEEP `channelWithdrawn` (the news) and
+ *  `channelPlatform` (which channel it was). Returns `null` when there is nothing
+ *  to clean — which is what makes it safe to call on every mount: after the first
+ *  write the stored board has no dead links left and no further PUT is issued.
+ *  Pure; never mutates. */
+export function clearWithdrawnLinks(posts: ContentPost[]): ContentPost[] | null {
+  if (!posts.some((p) => p.channelWithdrawn && p.channelPostId)) return null;
+  return posts.map((p) => {
+    if (!p.channelWithdrawn || !p.channelPostId) return p;
+    const next: ContentPost = { ...p };
+    delete next.channelPostId;
+    delete next.channelSendAt;
+    return next;
   });
 }
 

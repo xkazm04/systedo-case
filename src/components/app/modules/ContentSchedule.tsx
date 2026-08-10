@@ -17,123 +17,72 @@
  *      the post actually goes out. This surface therefore emits NO publish event
  *      of its own — that is what keeps the publish rate from double-counting.
  *    • no channel — "označit jako hotové", a private checkmark that says so.
- *  Google Business Profile posting is NOT built here and is no longer implied. */
+ *  Google Business Profile posting is NOT built here and is no longer implied.
+ *
+ *  DEMO SURFACE. The same component renders on the public /dashboard demo with a
+ *  demo project id and an anonymous visitor. Every persist there 401s silently and
+ *  every cross-module link bounces the visitor into a sign-in redirect, so on a
+ *  demo id the writes are skipped and the links that lead out of the demo are not
+ *  offered at all — the SaveToLibrary pattern (`isDemoProjectId` → render nothing)
+ *  applied to a whole module. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, Check, Document, Info, Plus, Send, Sparkles } from "@/components/icons";
-import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { useFormatters, useT } from "@/lib/i18n/client";
+import { Info } from "@/components/icons";
+import { useT } from "@/lib/i18n/client";
 import { useProject } from "@/lib/projects/context";
+import { isDemoProjectId } from "@/lib/projects/demo";
 import { isModuleAvailable } from "@/lib/projects/modules";
 import { briefSeedKey } from "@/lib/projects/brief-seed";
 import { SOCIAL_PLATFORM_LABELS, type SocialPlatform } from "@/lib/social/types";
-import DraftHealth from "@/components/social/DraftHealth";
 import { draftResponseMeta, type SocialDraftMeta } from "@/lib/social/draft-meta";
-import { channelSendAt, type ContentPost, type PostStatus } from "@/lib/content-schedule/sample";
+import { channelSendAt, type ContentPost } from "@/lib/content-schedule/sample";
 import {
-  calendarGrid,
+  clearWithdrawnLinks,
   nextFreeDay,
   planSlotSeed,
-  slotProgress,
   statusCounts,
   workingList,
 } from "@/lib/content-schedule/compute";
+import ContentScheduleCalendar from "./ContentScheduleCalendar";
+import ContentScheduleSlot, { type SlotHandlers } from "./ContentScheduleSlot";
 
 const T = {
   cs: {
     ideasTitle: "Náměty a plán",
     ideasEmpty: "Nezbývá nic k rozpracování.",
-    schedule: "Naplánovat",
-    calendarFull: "Kalendář je plný. Uvolněte den, než naplánujete další příspěvek.",
-    calendarTitle: "Kalendář (4 týdny)",
-    ideaCount: "Náměty", scheduledCount: "V plánu", queuedCount: "V kanálu",
-    publishedCount: "Publikováno", doneCount: "Hotovo",
-    unschedule: "Zpět do námětů",
-    more: "+{n} další",
-    statusIdea: "Námět", statusScheduled: "V plánu", statusQueued: "Odesláno do kanálu",
-    statusPublished: "Publikováno kanálem", statusDone: "Ručně označeno jako hotové",
-    draftCopy: "Napsat text", rewrite: "Přepsat", drafting: "Píšu…",
-    draftError: "Text se nepodařilo vygenerovat. Zkuste to znovu.",
-    bodyLabel: "Text příspěvku",
-    dayBadge: "Den {n}",
-    send: "Odeslat do kanálu", sending: "Odesílám…",
-    sendNeedsBody: "Nejdřív napište text příspěvku.",
-    sendError: "Odeslání do kanálu se nezdařilo. Zkuste to znovu.",
-    sendTitle: "Vytvoří skutečný naplánovaný příspěvek v napojeném kanálu. Zveřejní ho kanál. Aplikace stav jen přebírá.",
-    markDone: "Označit jako hotové",
-    markDoneTitle: "Jen si odškrtnete, že máte hotovo. Nikam se nic neodesílá.",
+    ideaCount: "Náměty",
+    scheduledCount: "V plánu",
+    queuedCount: "V kanálu",
+    publishedCount: "Publikováno",
+    doneCount: "Hotovo",
     channelLabel: "Kanál",
-    goesOut: "Vyjde {when}",
-    channelFailed: "Kanál příspěvek neodeslal. Je zpátky v plánu.",
     noChannelTitle: "Není napojený žádný kanál.",
-    noChannelBody: "Plán je zatím jen plán. Aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
+    noChannelBody:
+      "Plán je zatím jen plán. Aplikace z něj nikam nic neodesílá a na Google Business Profile nepublikuje. Napojte účet a naplánované příspěvky odsud půjdou do něj.",
     noChannelLink: "Napojit sociální sítě",
-    createContent: "Vytvořit obsah",
-    createContentTitle: "Otevře obsahový engine s předvyplněným zadáním z tohoto slotu. Téma i klíčové slovo už znáte z plánu.",
-    progressDrafting: "Rozpracováno",
-    progressDrafted: "Koncept hotový",
-    savedDraft: "Uložený koncept",
-    footer: "Napište text, naplánujte na den a, pokud máte napojený kanál, předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
+    demoNote: "Tohle je ukázka. Změny na této tabuli se nikam neukládají a odkazy do ostatních modulů jsou tu vypnuté — přihlaste se a plán bude váš.",
+    footer:
+      "Napište text, naplánujte na den a, pokud máte napojený kanál, předejte příspěvek kanálu. Zveřejnění potvrzuje kanál, ne tato obrazovka. Stav se ukládá k projektu.",
   },
   en: {
     ideasTitle: "Ideas & plan",
     ideasEmpty: "Nothing left to work on.",
-    schedule: "Schedule",
-    calendarFull: "The calendar is full. Free up a day before scheduling another post.",
-    calendarTitle: "Calendar (4 weeks)",
-    ideaCount: "Ideas", scheduledCount: "Planned", queuedCount: "In channel",
-    publishedCount: "Published", doneCount: "Done",
-    unschedule: "Back to ideas",
-    more: "+{n} more",
-    statusIdea: "Idea", statusScheduled: "Planned", statusQueued: "Handed to the channel",
-    statusPublished: "Published by the channel", statusDone: "Marked done by hand",
-    draftCopy: "Draft copy", rewrite: "Rewrite", drafting: "Writing…",
-    draftError: "Couldn't generate the copy. Try again.",
-    bodyLabel: "Post copy",
-    dayBadge: "Day {n}",
-    send: "Send to channel", sending: "Sending…",
-    sendNeedsBody: "Write the post copy first.",
-    sendError: "Handing the post to the channel failed. Try again.",
-    sendTitle: "Creates a real scheduled post in your connected channel. The channel publishes it. This app only reads the status back.",
-    markDone: "Mark as done",
-    markDoneTitle: "Just ticks the slot off for you. Nothing is sent anywhere.",
+    ideaCount: "Ideas",
+    scheduledCount: "Planned",
+    queuedCount: "In channel",
+    publishedCount: "Published",
+    doneCount: "Done",
     channelLabel: "Channel",
-    goesOut: "Goes out {when}",
-    channelFailed: "The channel didn't send it. It's back in the plan.",
     noChannelTitle: "No channel is connected.",
-    noChannelBody: "The plan is only a plan. Nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
+    noChannelBody:
+      "The plan is only a plan. Nothing is sent anywhere from here, and nothing is posted to a Google Business Profile. Connect an account and scheduled posts will go to it.",
     noChannelLink: "Connect social accounts",
-    createContent: "Create content",
-    createContentTitle: "Opens the content engine pre-filled from this slot. The topic and keyword are already decided in the plan.",
-    progressDrafting: "In progress",
-    progressDrafted: "Draft ready",
-    savedDraft: "Saved draft",
-    footer: "Draft copy, schedule it onto a day and, if you have a channel connected, hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
+    demoNote: "This is a sample. Nothing you change on this board is saved, and the links into the other modules are switched off here — sign in and the plan becomes yours.",
+    footer:
+      "Draft copy, schedule it onto a day and, if you have a channel connected, hand the post to that channel. Publishing is confirmed by the channel, not by this screen. State is saved to the project.",
   },
 } as const;
-
-/** Weekday headers kept out of the `useT` dict (which is string-only). */
-const WEEKDAYS = {
-  cs: ["Po", "Út", "St", "Čt", "Pá", "So", "Ne"],
-  en: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-} as const;
-
-const STATUS_CHIP: Record<PostStatus, string> = {
-  idea: "border-line bg-surface text-muted",
-  scheduled: "border-brand-300 bg-brand-500/12 text-brand-accent",
-  queued: "border-navy-200 bg-navy-50 text-navy-700",
-  published: "border-positive/40 bg-positive-soft text-positive",
-  done: "border-line bg-canvas text-muted",
-};
-
-const STATUS_LABEL_KEY: Record<PostStatus, keyof typeof T.cs> = {
-  idea: "statusIdea",
-  scheduled: "statusScheduled",
-  queued: "statusQueued",
-  published: "statusPublished",
-  done: "statusDone",
-};
 
 export default function ContentSchedule({
   posts: initial,
@@ -147,11 +96,11 @@ export default function ContentSchedule({
   channels?: SocialPlatform[];
 }) {
   const t = useT(T);
-  const fmt = useFormatters();
   const project = useProject();
   const router = useRouter();
-  const { locale } = useLocale();
-  const weekdays = WEEKDAYS[locale === "en" ? "en" : "cs"];
+  // The public demo: an anonymous visitor on a demo project id. Every write would
+  // 401 and every module link would redirect to sign-in, so both are withheld.
+  const demo = isDemoProjectId(projectId);
   const [posts, setPosts] = useState<ContentPost[]>(initial);
   // Latest posts, readable outside the render closure. draftCopy awaits a multi-second
   // AI call and then setBody()s; without this, its handlers would map over the `posts`
@@ -168,74 +117,108 @@ export default function ContentSchedule({
   const [draftHealth, setDraftHealth] = useState<{ id: string; meta: SocialDraftMeta } | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [sendErrorId, setSendErrorId] = useState<string | null>(null);
+  // The slot whose board write must land BEFORE we navigate away from it.
+  const [leavingId, setLeavingId] = useState<string | null>(null);
   const [platform, setPlatform] = useState<SocialPlatform | "">(channels[0] ?? "");
 
   const counts = useMemo(() => statusCounts(posts), [posts]);
   const queue = useMemo(() => workingList(posts), [posts]);
-  const grid = useMemo(() => calendarGrid(posts), [posts]);
   // Every day already at capacity → scheduling would strand a post; disable it.
   const boardFull = useMemo(() => nextFreeDay(posts) === null, [posts]);
-  const socialLinked = isModuleAvailable(project.type, "socialni");
-  const engineLinked = isModuleAvailable(project.type, "obsahovy-engine");
+  const socialLinked = isModuleAvailable(project.type, "socialni") && !demo;
+  const engineLinked = isModuleAvailable(project.type, "obsahovy-engine") && !demo;
 
   // Persist the whole board to the project (per-user, server-side). Best-effort:
-  // the local state is already updated, so a save failure never blocks the UI.
-  // Only a named transition surfaces on the activity feed — and the ONLY one this
-  // surface still names is "scheduled" (placed in the plan). The channel handoff
-  // deliberately passes no event: /api/social/posts writes that row itself, and a
-  // second one here would be the double-count the publish taxonomy forbids.
-  function persist(next: ContentPost[], event?: string) {
-    void fetch(`/api/projects/${projectId}/state/content-schedule`, {
+  // the local state is already updated, so a save failure never blocks the UI —
+  // but the promise IS returned, because one caller (createContent) must not leave
+  // the page until the write has landed. Only a named transition surfaces on the
+  // activity feed — and the ONLY one this surface still names is "scheduled"
+  // (placed in the plan). The channel handoff deliberately passes no event:
+  // /api/social/posts writes that row itself, and a second one here would be the
+  // double-count the publish taxonomy forbids.
+  function persist(next: ContentPost[], event?: string): Promise<void> {
+    if (demo) return Promise.resolve();
+    return fetch(`/api/projects/${projectId}/state/content-schedule`, {
       method: "PUT",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ data: next, ...(event ? { event } : {}) }),
-    }).catch(() => {});
+    })
+      .then(() => undefined)
+      .catch(() => undefined);
   }
+
+  // The persisted half of a channel withdrawal. reconcileWithChannel (in the page)
+  // DERIVES `channelWithdrawn` on every load but is pure, so the dead channel link
+  // it flagged would sit in the stored blob until some unrelated mutation rewrote
+  // it. Strip it once, here, and write the withdrawal back — after which
+  // clearWithdrawnLinks returns null and this effect is a no-op on every load.
+  const swept = useRef(false);
+  useEffect(() => {
+    if (swept.current || demo) return;
+    swept.current = true;
+    const cleaned = clearWithdrawnLinks(postsRef.current);
+    if (!cleaned) return;
+    setPosts(cleaned);
+    void persist(cleaned);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // All mutators derive `next` from postsRef.current (the latest state), never the
   // render closure, so concurrent/deferred handlers compose instead of clobbering.
-  function patch(id: string, change: Partial<ContentPost>, event?: string) {
+  function patch(id: string, change: Partial<ContentPost>, event?: string): Promise<void> {
     const next = postsRef.current.map((p) => (p.id === id ? { ...p, ...change } : p));
     setPosts(next);
-    persist(next, event);
+    return persist(next, event);
   }
   function schedule(id: string) {
     const day = nextFreeDay(postsRef.current);
     // Calendar full: don't overbook the last day (nextFreeDay now returns null) —
     // the "Naplánovat" buttons are disabled in this state, so this is a belt-and-braces guard.
     if (day === null) return;
-    patch(id, { status: "scheduled", day }, "scheduled");
+    void patch(id, { status: "scheduled", day }, "scheduled");
   }
   function unschedule(id: string) {
-    patch(id, { status: "idea", day: null, channelFailed: false });
+    void patch(id, { status: "idea", day: null, channelFailed: false, channelWithdrawn: false });
   }
   function markDone(id: string) {
     // A private checkmark. No event, no activity row, no publish taxonomy —
     // nothing left the app.
-    patch(id, { status: "done" });
+    void patch(id, { status: "done" });
   }
   /** Start generation FROM the plan: the slot already knows the service, the
    *  locality and the date, so the content engine opens pre-seeded from it through
    *  the EXISTING sessionStorage brief-seed bridge (the same one keywords,
    *  compare-seo and lp-experiments use) rather than from a blank workspace.
    *
-   *  The slot is stamped `briefStartedAt` first — which also guarantees the board
-   *  is PERSISTED before we leave, so the engine's link-back (saved entry → this
-   *  slot) has a stored board to patch. */
-  function createContent(post: ContentPost) {
+   *  The board write is AWAITED before we navigate. It used to be fired and
+   *  forgotten under a comment claiming it guaranteed persistence-before-leave,
+   *  which it did not: the engine's link-back reads the stored board, merges
+   *  `libraryEntryId` into it and writes the whole blob, and the state route is a
+   *  blind last-writer-wins PUT — so a `briefStartedAt` write still in flight could
+   *  land after that read and erase the pointer the engine had just recorded.
+   *  Awaiting orders the two writes; see the note in the module header of
+   *  lib/project-state/store for why the CAS token behind that route is deliberately
+   *  process-internal and not exposed over HTTP. */
+  async function createContent(post: ContentPost) {
+    if (leavingId) return;
     try {
       sessionStorage.setItem(briefSeedKey(projectId), JSON.stringify(planSlotSeed(post)));
     } catch {
       /* private mode / storage full: the engine still opens, just unseeded */
     }
-    patch(post.id, { briefStartedAt: new Date().toISOString() });
+    setLeavingId(post.id);
+    try {
+      await patch(post.id, { briefStartedAt: new Date().toISOString() });
+    } finally {
+      setLeavingId(null);
+    }
     router.push(`/app/${projectId}/obsahovy-engine`);
   }
 
   function setBody(id: string, body: string, persistIt = false) {
     const next = postsRef.current.map((p) => (p.id === id ? { ...p, body } : p));
     setPosts(next);
-    if (persistIt) persist(next);
+    if (persistIt) void persist(next);
   }
 
   /** Hand a planned slot to a REAL connected channel: create a scheduled post on
@@ -260,12 +243,13 @@ export default function ContentSchedule({
         setSendErrorId(post.id);
         return;
       }
-      patch(post.id, {
+      void patch(post.id, {
         status: "queued",
         channelPostId: json.post.id,
         channelPlatform: platform,
         channelSendAt: json.post.scheduledAt || sendAt,
         channelFailed: false,
+        channelWithdrawn: false,
       });
     } catch {
       setSendErrorId(post.id);
@@ -313,6 +297,16 @@ export default function ContentSchedule({
     }
   }
 
+  const handlers: SlotHandlers = {
+    onSchedule: schedule,
+    onUnschedule: unschedule,
+    onMarkDone: markDone,
+    onDraft: (p) => void draftCopy(p),
+    onBody: setBody,
+    onSend: (p) => void sendToChannel(p),
+    onCreateContent: (p) => void createContent(p),
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-6">
@@ -341,8 +335,17 @@ export default function ContentSchedule({
         )}
       </div>
 
+      {/* The demo says what it is, instead of offering writes that 401 and links
+          that bounce an anonymous visitor into a sign-in redirect. */}
+      {demo && (
+        <div className="flex flex-wrap items-start gap-2 rounded-card border border-line bg-canvas/60 px-4 py-3 text-sm text-muted">
+          <Info width={15} height={15} className="mt-0.5 shrink-0 text-navy-600" />
+          <p className="min-w-0">{t("demoNote")}</p>
+        </div>
+      )}
+
       {/* No way out of the app — say so, rather than offering a button that lies. */}
-      {channels.length === 0 && (
+      {channels.length === 0 && !demo && (
         <div className="flex flex-wrap items-start gap-2 rounded-card border border-line bg-canvas/60 px-4 py-3 text-sm text-muted">
           <Info width={15} height={15} className="mt-0.5 shrink-0 text-navy-600" />
           <p className="min-w-0">
@@ -363,199 +366,37 @@ export default function ContentSchedule({
       <div className="grid items-start gap-5 lg:grid-cols-[1fr_1.6fr]">
         {/* Working list: ideas + slots placed on a day but not yet handed over */}
         <div className="card overflow-hidden">
-          <h3 className="border-b border-line px-5 py-3 text-sm font-semibold text-navy-800">{t("ideasTitle")}</h3>
+          <h3 className="border-b border-line px-5 py-3 text-sm font-semibold text-navy-800">
+            {t("ideasTitle")}
+          </h3>
           {queue.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-muted">{t("ideasEmpty")}</p>
           ) : (
             <ul className="divide-y divide-line">
-              {queue.map((p) => {
-                const hasBody = (p.body ?? "").trim().length >= 2;
-                const progress = slotProgress(p);
-                return (
-                  <li key={p.id} className="px-5 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-navy-800">{p.title}</div>
-                        <div className="text-xs text-muted">
-                          {p.service} · {p.area}
-                          {p.status === "scheduled" && p.day !== null && (
-                            <> · {t("dayBadge", { n: p.day + 1 })}</>
-                          )}
-                        </div>
-                        {progress !== "planned" && (
-                          <span
-                            className={
-                              "mt-1 inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-medium " +
-                              (progress === "drafted"
-                                ? "bg-positive-soft text-positive"
-                                : "bg-navy-50 text-navy-700")
-                            }
-                          >
-                            {progress === "drafted" ? t("progressDrafted") : t("progressDrafting")}
-                          </span>
-                        )}
-                      </div>
-                      {p.status === "idea" && (
-                        <button
-                          type="button"
-                          onClick={() => schedule(p.id)}
-                          disabled={boardFull}
-                          title={boardFull ? t("calendarFull") : undefined}
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-line disabled:hover:text-navy-800"
-                        >
-                          <Plus width={13} height={13} />
-                          {t("schedule")}
-                        </button>
-                      )}
-                    </div>
-
-                    {p.body ? (
-                      <div className="mt-2.5">
-                        <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted">{t("bodyLabel")}</label>
-                        <textarea
-                          value={p.body}
-                          onChange={(e) => setBody(p.id, e.target.value)}
-                          onBlur={(e) => setBody(p.id, e.target.value, true)}
-                          rows={4}
-                          className="w-full resize-y rounded-lg border border-line bg-canvas/40 px-3 py-2 text-[13px] leading-relaxed text-navy-800 focus:border-brand-300 focus:outline-none"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => draftCopy(p)}
-                          disabled={draftingId !== null}
-                          className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent transition-opacity hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Sparkles width={13} height={13} />
-                          {draftingId === p.id ? t("drafting") : t("rewrite")}
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => draftCopy(p)}
-                        disabled={draftingId !== null}
-                        className="mt-2 inline-flex items-center gap-1.5 rounded-pill border border-brand-300/60 bg-brand-500/8 px-3 py-1.5 text-xs font-semibold text-brand-accent transition-colors hover:bg-brand-500/14 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Sparkles width={13} height={13} />
-                        {draftingId === p.id ? t("drafting") : t("draftCopy")}
-                      </button>
-                    )}
-                    {errorId === p.id && <p className="mt-1.5 text-xs text-negative">{t("draftError")}</p>}
-                    {draftHealth?.id === p.id && (
-                      <div className="mt-1.5">
-                        <DraftHealth meta={draftHealth.meta} onRetry={() => void draftCopy(p)} />
-                      </div>
-                    )}
-
-                    {/* The calendar as a starting point: the slot already knows the
-                        topic, so the long-form workspace opens seeded from it. */}
-                    {engineLinked && (
-                      <div className="mt-2 flex flex-wrap items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => createContent(p)}
-                          title={t("createContentTitle")}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-accent transition-opacity hover:opacity-80"
-                        >
-                          <Document width={13} height={13} />
-                          {t("createContent")}
-                        </button>
-                        {p.libraryEntryId && (
-                          <Link
-                            href={`/app/${projectId}/ulozeny-obsah`}
-                            className="text-xs font-medium text-muted underline-offset-2 transition-colors hover:text-navy-800 hover:underline"
-                          >
-                            {t("savedDraft")}
-                          </Link>
-                        )}
-                      </div>
-                    )}
-
-                    {p.status === "scheduled" && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                        {platform ? (
-                          <button
-                            type="button"
-                            onClick={() => void sendToChannel(p)}
-                            disabled={!hasBody || sendingId !== null}
-                            title={hasBody ? t("sendTitle") : t("sendNeedsBody")}
-                            className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Send width={13} height={13} />
-                            {sendingId === p.id ? t("sending") : t("send")}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => markDone(p.id)}
-                            title={t("markDoneTitle")}
-                            className="inline-flex items-center gap-1.5 rounded-pill border border-line px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:border-brand-300 hover:text-brand-accent"
-                          >
-                            <Check width={13} height={13} />
-                            {t("markDone")}
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => unschedule(p.id)}
-                          className="text-xs font-medium text-muted transition-colors hover:text-navy-800"
-                        >
-                          {t("unschedule")}
-                        </button>
-                      </div>
-                    )}
-                    {p.channelFailed && <p className="mt-1.5 text-xs text-negative">{t("channelFailed")}</p>}
-                    {sendErrorId === p.id && <p className="mt-1.5 text-xs text-negative">{t("sendError")}</p>}
-                  </li>
-                );
-              })}
+              {queue.map((p) => (
+                <ContentScheduleSlot
+                  key={p.id}
+                  post={p}
+                  projectId={projectId}
+                  boardFull={boardFull}
+                  canSend={platform !== ""}
+                  engineLinked={engineLinked}
+                  drafting={draftingId === p.id}
+                  draftBusy={draftingId !== null}
+                  leaving={leavingId === p.id}
+                  sending={sendingId === p.id}
+                  sendBusy={sendingId !== null}
+                  draftError={errorId === p.id}
+                  sendError={sendErrorId === p.id}
+                  health={draftHealth?.id === p.id ? draftHealth.meta : null}
+                  handlers={handlers}
+                />
+              ))}
             </ul>
           )}
         </div>
 
-        {/* Calendar — a read-only picture of the board. Actions live next to the
-            copy they act on (left), so no calendar chip can claim a transition
-            the app didn't perform. */}
-        <div className="card overflow-hidden">
-          <h3 className="flex items-center gap-2 border-b border-line px-5 py-3 text-sm font-semibold text-navy-800">
-            <Calendar width={16} height={16} className="text-brand-accent" />
-            {t("calendarTitle")}
-          </h3>
-          <div className="p-4">
-            <div className="grid grid-cols-7 gap-1.5">
-              {weekdays.map((d) => (
-                <div key={d} className="pb-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted">{d}</div>
-              ))}
-              {grid.map((cell, day) => (
-                <div key={day} className="min-h-[68px] rounded-lg border border-line/70 bg-canvas/40 p-1.5">
-                  <div className="tnum text-[10px] font-semibold text-muted">{day + 1}</div>
-                  <div className="mt-1 space-y-1">
-                    {cell.slice(0, 2).map((p) => (
-                      <div
-                        key={p.id}
-                        title={
-                          t(STATUS_LABEL_KEY[p.status]) +
-                          (p.status === "queued" && p.channelSendAt
-                            ? ` · ${t("goesOut", { when: fmt.fmtDateTime(p.channelSendAt) })}`
-                            : "")
-                        }
-                        className={"block w-full truncate rounded border px-1.5 py-0.5 text-left text-[10.5px] font-medium " + STATUS_CHIP[p.status]}
-                      >
-                        {p.status === "published" && <Check width={9} height={9} className="mr-0.5 inline" />}
-                        {p.status === "queued" && <Send width={9} height={9} className="mr-0.5 inline" />}
-                        {p.title}
-                      </div>
-                    ))}
-                    {cell.length > 2 && (
-                      <div className="text-[10px] text-muted">{t("more", { n: cell.length - 2 })}</div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="border-t border-line px-5 py-3 text-xs text-muted">{t("footer")}</div>
-        </div>
+        <ContentScheduleCalendar posts={posts} footer={t("footer")} />
       </div>
     </div>
   );
@@ -565,7 +406,14 @@ function Count({ label, value, tone }: { label: string; value: number; tone?: "b
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={"tnum mt-1 text-2xl font-semibold " + (tone === "brand" ? "text-brand-accent" : tone === "positive" ? "text-positive" : "text-navy-800")}>{value}</p>
+      <p
+        className={
+          "tnum mt-1 text-2xl font-semibold " +
+          (tone === "brand" ? "text-brand-accent" : tone === "positive" ? "text-positive" : "text-navy-800")
+        }
+      >
+        {value}
+      </p>
     </div>
   );
 }

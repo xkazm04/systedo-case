@@ -59,6 +59,15 @@ export interface ContentPost {
   /** the channel reported the send failed; the slot falls back to `scheduled` so
    *  the board never shows a failure as a publish */
   channelFailed?: boolean;
+  /** The post this slot was handed to is GONE from the channel — deleted in the
+   *  social centre after the handover. The slot falls back to `scheduled` like a
+   *  failure does, but it is NOT a failure (nothing went wrong on the channel's
+   *  side, someone withdrew it), so it carries its own flag and its own notice.
+   *
+   *  Derived by `reconcileWithChannel` from "linked post no longer exists", then
+   *  PERSISTED by the board (see `clearWithdrawnLinks`) so the withdrawal survives
+   *  the dead link being cleaned up instead of silently reverting every load. */
+  channelWithdrawn?: boolean;
   /** ISO instant a generation was launched FROM this slot (the calendar seeded the
    *  content engine). Marks the slot as work-in-progress rather than untouched. */
   briefStartedAt?: string;
