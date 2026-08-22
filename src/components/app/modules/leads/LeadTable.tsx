@@ -1,11 +1,9 @@
 "use client";
 
-/** Variant C — the whole database: search, stage/source filters, bulk actions and
- *  paging, with the detail pane beside it. Search and stage filtering are pushed to
- *  the API (the store owns the scan window); the source filter is applied over the
- *  loaded page, because attribution has no index and inventing one client-side
- *  would silently filter only the rows that happen to be on screen — so the control
- *  says as much in its own label. */
+/** The whole database: search, stage/source filters, bulk actions and paging,
+ *  with the detail pane beside it. All three filters are pushed to the API
+ *  (`ContactQuery`; source matches the derived display label server-side), so the
+ *  toolbar, the segment map above and the rows always describe the same set. */
 import { useMemo, useState } from "react";
 import { Button, Pill } from "@/components/ui";
 import { Search } from "@/components/icons";
