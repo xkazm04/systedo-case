@@ -1,13 +1,13 @@
 "use client";
 
 /** The selection card: what the picked cell (or the picked source) actually
- *  contains, and the two things an operator wants to do with it.
+ *  contains, in facts the grid itself has no room for.
  *
- *  It exists so the map stays a MAP — reading it never leaves the aggregate — while
- *  acting on what you found is one click away: "open in the table" hands the
- *  filter to the database view, which is the surface that owns individual people.
- *  The bulk-draft button is deliberately inert here: drafting to a segment goes
- *  through the twin's review gate, and a prototype must not fake that. */
+ *  It carries no "open in the table" button any more — the click that selected the
+ *  cell already filtered the table below and scrolled to it, so a second control
+ *  for the same thing would only invite the operator to doubt whether the first one
+ *  worked. The bulk-draft button stays deliberately inert: drafting to a segment
+ *  goes through the twin's review gate, and this must not fake that. */
 import { Button } from "@/components/ui";
 import { czPlural } from "@/lib/format";
 import { useFormatters, useT } from "@/lib/i18n/client";
@@ -18,7 +18,7 @@ import { STAGE_T } from "../copy";
 
 const T = {
   cs: {
-    idle: "Vyberte buňku matice nebo dlaždici zdroje — uvidíte, co obsahuje, a otevřete ji v tabulce.",
+    idle: "Vyberte buňku matice nebo dlaždici zdroje — uvidíte, co obsahuje, a tabulka níže se rovnou přefiltruje.",
     selected: "Vybráno: {what}",
     allStages: "všechny fáze",
     contactsOne: "{n} kontakt",
@@ -29,13 +29,12 @@ const T = {
     win: "úspěšnost {p}",
     value: "hodnota {v}",
     terminal: "{n} prohráno / vyřazeno",
-    open: "Otevřít v tabulce",
     bulk: "Hromadně: návrhy dvojníka ({n})",
     soon: "Připravujeme — hromadné návrhy půjdou přes schvalování dvojníka.",
-    stageOnly: "Tabulka zatím filtruje podle fáze; filtr zdroje čeká na doplnění v tabulce.",
+    applied: "Filtr je použitý na tabulku níže.",
   },
   en: {
-    idle: "Pick a matrix cell or a source tile — you'll see what it holds and can open it in the table.",
+    idle: "Pick a matrix cell or a source tile — you'll see what it holds, and the table below filters to it.",
     selected: "Selected: {what}",
     allStages: "all stages",
     contactsOne: "{n} contact",
@@ -46,22 +45,19 @@ const T = {
     win: "win rate {p}",
     value: "value {v}",
     terminal: "{n} lost / disqualified",
-    open: "Open in the table",
     bulk: "Bulk: twin drafts ({n})",
     soon: "Coming soon — bulk drafts will go through the twin's approval gate.",
-    stageOnly: "The table filters by stage for now; the source filter is still to be wired there.",
+    applied: "The filter is applied to the table below.",
   },
 } as const;
 
 export default function SegmentSelection({
   row,
   stage,
-  onOpen,
 }: {
   row: MatrixRow | null;
   /** null ⇒ the whole source is selected (a treemap tile) */
   stage: PipelineStage | null;
-  onOpen: (source: string, stage: PipelineStage | null) => void;
 }) {
   const t = useT(T);
   const stageName = useT(STAGE_T);
@@ -100,14 +96,11 @@ export default function SegmentSelection({
       </h3>
       <p className="tnum text-sm text-muted">{facts.join(" · ")}</p>
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" onClick={() => onOpen(row.label, stage)}>
-          {t("open")}
-        </Button>
         <Button size="sm" variant="secondary" disabled title={t("soon")}>
           {t("bulk", { n: fmt.fmtInt(count) })}
         </Button>
       </div>
-      <p className="text-xs text-muted">{t("stageOnly")}</p>
+      <p className="text-xs text-muted">{t("applied")}</p>
     </div>
   );
 }

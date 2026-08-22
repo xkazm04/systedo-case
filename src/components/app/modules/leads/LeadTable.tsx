@@ -23,6 +23,7 @@ const T = {
     search: "Hledat jméno, e-mail, telefon…",
     stageAll: "Fáze: vše",
     sourceAll: "Zdroj: vše",
+    clear: "Zrušit filtr",
     thName: "Jméno", thStage: "Fáze", thScore: "Skóre", thSource: "Zdroj", thLast: "Poslední aktivita",
     selectAll: "Vybrat vše na straně",
     select: "Vybrat {name}",
@@ -40,6 +41,7 @@ const T = {
     search: "Search name, email, phone…",
     stageAll: "Stage: all",
     sourceAll: "Source: all",
+    clear: "Clear filter",
     thName: "Name", thStage: "Stage", thScore: "Score", thSource: "Source", thLast: "Last activity",
     selectAll: "Select everything on this page",
     select: "Select {name}",
@@ -133,6 +135,17 @@ export default function LeadTable({
             </option>
           ))}
         </select>
+        {/* ONE control undoes the whole filter — including a segment picked in the
+            map above, whose selection is derived from exactly these values. */}
+        {filtered && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => api.setQuery({ q: "", stage: "", source: "", offset: 0 })}
+          >
+            {t("clear")}
+          </Button>
+        )}
       </div>
 
       {selected.size > 0 && (

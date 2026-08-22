@@ -1,20 +1,23 @@
 "use client";
 
-/** Segmenty — the aggregate overview that answers "where is the pipeline stuck,
- *  and which source is it stuck in".
+/** Segmenty — the segment map that opens the module, sitting directly above the
+ *  table it filters. It answers "where is the pipeline stuck, and which source is
+ *  it stuck in", and the answer is one click from the people it is about.
  *
  *  Everything on screen comes from ONE bounded scan (`GET /crm/summary`): the
  *  source × stage cross-tab, the per-source grade mix, the SLA breach counts. This
- *  view never fetches a contact — that is the whole point of the direction. A map
+ *  surface never fetches a contact — that is the whole point of the direction. A map
  *  that had to page through people to draw itself would be the list again, slower.
  *
- *  Reading and acting are the same gesture: every cell is a filter, and the
- *  selection card hands that filter to the database view. */
-import { useMemo, useState } from "react";
+ *  Reading and acting are the same gesture: a cell (or a source tile) applies its
+ *  filter to the table below and scrolls to it. The selection is DERIVED from that
+ *  filter rather than held here, so the matrix, the toolbar selects and the rows can
+ *  never disagree about what is being looked at. */
+import { useMemo } from "react";
 import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { useFormatters, useT } from "@/lib/i18n/client";
+import type { ContactSummary } from "@/lib/leads/summary";
 import type { PipelineStage } from "@/lib/leads/types";
-import type { AggregateViewProps } from "../view-props";
 import SegmentMatrix, { type CellRef } from "./SegmentMatrix";
 import SourceTreemap from "./SourceTreemap";
 import SegmentSelection from "./SegmentSelection";
@@ -32,17 +35,32 @@ const T = {
   },
 } as const;
 
-export default function SegmentsView({ summary, loading, onOpenInTable }: AggregateViewProps) {
+/** The table filter this map both reads and writes (the module's `LeadQuery` half
+ *  the map has an opinion about). */
+export interface SegmentFilter {
+  source: string;
+  stage: PipelineStage | "";
+}
+
+export default function SegmentsView({
+  summary,
+  loading,
+  filter,
+  onPick,
+}: {
+  summary: ContactSummary | null;
+  loading: boolean;
+  filter: SegmentFilter;
+  /** Apply this filter to the table below and bring it into view. */
+  onPick: (next: SegmentFilter) => void;
+}) {
   const t = useT(T);
   const fmt = useFormatters();
-  const [selected, setSelected] = useState<{ source: string; stage: PipelineStage | null } | null>(
-    null
-  );
 
   const rows = summary?.matrix ?? [];
   const selectedRow = useMemo(
-    () => rows.find((r) => r.label === selected?.source) ?? null,
-    [rows, selected]
+    () => rows.find((r) => r.label === filter.source) ?? null,
+    [rows, filter.source]
   );
   /** The treemap draws the sources the matrix also has a row for, so a tile can
    *  never select something the selection card cannot describe. What the cap left
@@ -61,12 +79,16 @@ export default function SegmentsView({ summary, loading, onOpenInTable }: Aggreg
     );
   }
 
+  const clear: SegmentFilter = { source: "", stage: "" };
+  /** Clicking the active cell again is "unfilter" — the same gesture both ways. */
   const pickCell = (ref: CellRef) =>
-    setSelected((prev) =>
-      prev?.source === ref.source && prev.stage === ref.stage ? null : { source: ref.source, stage: ref.stage }
+    onPick(
+      filter.source === ref.source && filter.stage === ref.stage
+        ? clear
+        : { source: ref.source, stage: ref.stage }
     );
   const pickSource = (label: string) =>
-    setSelected((prev) => (prev?.source === label && prev.stage === null ? null : { source: label, stage: null }));
+    onPick(filter.source === label && !filter.stage ? clear : { source: label, stage: "" });
 
   return (
     <div className="space-y-4">
@@ -74,22 +96,16 @@ export default function SegmentsView({ summary, loading, onOpenInTable }: Aggreg
         <SegmentMatrix
           rows={rows}
           other={summary.matrixOther}
-          selected={selected?.stage ? { source: selected.source, stage: selected.stage } : null}
+          selected={filter.stage ? { source: filter.source, stage: filter.stage } : null}
           onSelect={pickCell}
         />
         <div className="flex flex-col gap-4">
           <SourceTreemap
             rows={tiles}
-            selected={selected?.stage === null ? selected.source : null}
+            selected={filter.source && !filter.stage ? filter.source : null}
             onSelect={pickSource}
           />
-          <SegmentSelection
-            row={selectedRow}
-            stage={selected?.stage ?? null}
-            onOpen={(source, stage) =>
-              onOpenInTable({ source, ...(stage ? { stage } : {}) })
-            }
-          />
+          <SegmentSelection row={selectedRow} stage={filter.stage || null} />
         </div>
       </div>
 

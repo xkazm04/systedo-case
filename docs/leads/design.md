@@ -417,3 +417,33 @@ and the migration guard in `db-migrations.test.mjs`.
 Krajina prototype evaluated and removed 2026-08-22 in favour of Segmenty — the
 semantic-zoom canvas (`landscape/**`, `lib/leads/landscape.ts`, `crm/landscape`)
 is gone from the tree, not kept disabled.
+
+`components/app/modules/leads/` ships **two views**, registered in `views.ts` and
+carried in the URL as `?view=` (the default writes no param):
+
+| View | Key | What it is |
+|---|---|---|
+| Přehled / Overview | `prehled` (default) | the segment map **and** the database, one scrolling surface |
+| Fronta / Queue | `fronta` | the urgent, capped subset whose SLA clock is running |
+
+**Přehled**, top to bottom:
+
+1. `segments/SegmentsView` — the `source × stage` heat matrix (`SegmentMatrix`,
+   colour = share past SLA, number = count), the volume treemap (`SourceTreemap`)
+   and the selection card (`SegmentSelection`). All of it from ONE bounded scan
+   (`GET /crm/summary`); nothing here fetches a contact.
+2. `LeadTable` + `LeadDetail`.
+
+Picking a matrix cell or a treemap tile **filters the table in place**
+(`api.setQuery({ source, stage })`) and scrolls to it — there is no drill-down
+navigation, because the thing you drill into is already on screen. Clicking the
+active cell again clears the filter.
+
+The map holds **no selection state**: it is derived from `api.query`, which is why
+the matrix highlight, the toolbar's stage/source selects and the visible rows can
+never disagree, and why the toolbar's single **Zrušit filtr / Clear filter**
+control clears the search box, both selects and the map selection at once.
+
+`LeadSummaryBar` was **deleted** with this consolidation: the matrix carries the
+stage counts and is itself the filter control, so the strip was a second, quieter
+answer to a question already answered above it.

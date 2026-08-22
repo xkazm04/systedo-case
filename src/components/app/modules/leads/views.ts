@@ -2,18 +2,19 @@
  *  the renderer all read, so adding a view is one entry rather than four edits in
  *  three files.
  *
+ *  Two views only. Segmenty stopped being one on 2026-08-22: the segment map now
+ *  sits ON the landing view, above the table it filters, because a map you have to
+ *  leave in order to act on it is a map nobody uses twice.
+ *
  *  A disabled view is never rendered and never reachable from the URL —
- *  `parseView` degrades an unknown or disabled value to the default. The aggregate
- *  view receives `AggregateViewProps` (see view-props.ts) so it stays swappable
- *  without the module knowing its internals. */
+ *  `parseView` degrades an unknown or disabled value to the default. */
 import type { TDict } from "@/lib/i18n/interpolate";
 
-export const LEAD_VIEWS = ["vse", "fronta", "segmenty"] as const;
+export const LEAD_VIEWS = ["prehled", "fronta"] as const;
 export type LeadView = (typeof LEAD_VIEWS)[number];
 
-/** The database is the landing view: it is the one that scales past a few hundred
- *  contacts, and it is what an operator opening the module is usually looking for. */
-export const DEFAULT_VIEW: LeadView = "vse";
+/** The overview is the landing view: segment map on top, the database beneath it. */
+export const DEFAULT_VIEW: LeadView = "prehled";
 
 export interface LeadViewDef {
   key: LeadView;
@@ -22,16 +23,13 @@ export interface LeadViewDef {
 }
 
 export const LEAD_VIEW_DEFS: LeadViewDef[] = [
-  { key: "vse", enabled: true },
+  { key: "prehled", enabled: true },
   { key: "fronta", enabled: true },
-  // The aggregate overview the owner picked (2026-08-22) over the competing
-  // "Krajina" canvas prototype, which was removed rather than kept disabled.
-  { key: "segmenty", enabled: true },
 ];
 
 export const VIEW_T: TDict<LeadView> = {
-  cs: { vse: "Databáze", fronta: "Fronta", segmenty: "Segmenty" },
-  en: { vse: "Database", fronta: "Queue", segmenty: "Segments" },
+  cs: { prehled: "Přehled", fronta: "Fronta" },
+  en: { prehled: "Overview", fronta: "Queue" },
 };
 
 export function enabledViews(): LeadViewDef[] {
