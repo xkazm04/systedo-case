@@ -12,7 +12,7 @@
  *  own groups, link builder, active test and header/footer chrome. */
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { Chart, Chat, Cog, Grid, Megaphone, Palette } from "@/components/icons";
+import { Chart, Chat, Cog, Grid, Layers, Megaphone, Palette } from "@/components/icons";
 import { ModuleIcon } from "@/components/app/icon-map";
 import { moduleLabel, type ModuleDef, type ModuleSection } from "@/lib/projects/modules";
 import type { SupportedLocale } from "@/lib/format";
@@ -26,8 +26,15 @@ const SECTION_ICON: Record<ModuleSection, IconComp> = {
   studio: Palette,
   comms: Chat,
   insights: Chart,
-  system: Cog,
+  // Settings takes the Cog (it is where you change something); the operational
+  // system drawer keeps its own glyph so the two are never confused on the rail.
+  settings: Cog,
+  system: Layers,
 };
+
+/** Sections rendered at the BOTTOM of the rail rather than in the scrolling stack,
+ *  in this order. Both are workspace chrome, not the day's work. */
+const PINNED_SECTIONS: ModuleSection[] = ["settings", "system"];
 
 export interface NavGroup {
   section: ModuleSection;
@@ -77,10 +84,12 @@ export default function SectionRailNav({
   const shown = openSection ?? activeSection;
   const shownGroup = groups.find((g) => g.section === shown) ?? groups[0];
 
-  const railGroups = groups.filter((g) => g.section !== "system");
-  const systemGroup = groups.find((g) => g.section === "system");
+  const railGroups = groups.filter((g) => !PINNED_SECTIONS.includes(g.section));
+  const pinnedGroups = PINNED_SECTIONS.map((s) => groups.find((g) => g.section === s)).filter(
+    (g): g is NavGroup => g !== undefined
+  );
 
-  const groupButton = (group: NavGroup, pinned = false) => {
+  const groupButton = (group: NavGroup) => {
     const Icon = SECTION_ICON[group.section];
     const current = group.section === shown;
     return (
@@ -91,8 +100,6 @@ export default function SectionRailNav({
         aria-pressed={current}
         title={group.label}
         className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 transition-colors ${
-          pinned ? "mt-auto" : ""
-        } ${
           current
             ? "bg-brand-50 text-brand-800"
             : "text-muted hover:bg-navy-50 hover:text-navy-700"
@@ -110,7 +117,7 @@ export default function SectionRailNav({
       <div className="flex w-[74px] shrink-0 flex-col gap-1 border-r border-line bg-surface p-2">
         {railTop}
         <div className="flex flex-1 flex-col gap-1">{railGroups.map((g) => groupButton(g))}</div>
-        {systemGroup && groupButton(systemGroup, true)}
+        <div className="mt-auto flex flex-col gap-1">{pinnedGroups.map((g) => groupButton(g))}</div>
       </div>
 
       {/* second level — items of the selected group */}

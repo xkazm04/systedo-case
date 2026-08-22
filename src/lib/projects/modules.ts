@@ -7,14 +7,27 @@ import { PROJECT_TYPES, type ProjectType } from "./types";
 import type { SupportedLocale } from "@/lib/format";
 
 /** Sidebar grouping. Order here defines render order. */
-export type ModuleSection = "main" | "growth" | "studio" | "comms" | "insights" | "system";
+export type ModuleSection =
+  | "main"
+  | "growth"
+  | "studio"
+  | "comms"
+  | "insights"
+  | "settings"
+  | "system";
 
+/** `settings` is pinned directly above `system`: the four modules that configure
+ *  the workspace itself (project settings, integrations, account, branding) were
+ *  buried in an unlabeled `system` drawer next to the operational tools (catalog,
+ *  usage, monthly report, activity). Splitting them gives "where do I change
+ *  something" its own first-level rail glyph. */
 export const SECTION_ORDER: ModuleSection[] = [
   "main",
   "growth",
   "studio",
   "comms",
   "insights",
+  "settings",
   "system",
 ];
 
@@ -25,6 +38,7 @@ export const SECTION_LABELS: Record<ModuleSection, string> = {
   studio: "Tvorba",
   comms: "Komunikace",
   insights: "Analýza",
+  settings: "Nastavení",
   system: "",
 };
 
@@ -35,6 +49,7 @@ export const SECTION_LABELS_EN: Record<ModuleSection, string> = {
   studio: "Studio",
   comms: "Communication",
   insights: "Insights",
+  settings: "Settings",
   system: "",
 };
 
@@ -398,7 +413,7 @@ export const MODULES: ModuleDef[] = [
     label: "Účet & zabezpečení",
     labelEn: "Account & security",
     icon: "account",
-    section: "system",
+    section: "settings",
     availableFor: ALL,
     blurb: "Profil, přehled zabezpečení, odhlášení a žádost o smazání účtu.",
     blurbEn: "Profile, a security overview, sign-out and an account-deletion request.",
@@ -409,7 +424,7 @@ export const MODULES: ModuleDef[] = [
     label: "Branding",
     labelEn: "Branding",
     icon: "creative",
-    section: "system",
+    section: "settings",
     availableFor: ALL,
     blurb: "Brand accent a logo pro klientské reporty a web (s živým náhledem hlavičky).",
     blurbEn: "Brand accent and logo for client reports and the microsite (with a live header preview).",
@@ -453,7 +468,7 @@ export const MODULES: ModuleDef[] = [
     label: "Integrace",
     labelEn: "Integrations",
     icon: "integrations",
-    section: "system",
+    section: "settings",
     availableFor: ALL,
     blurb: "Stav napojení: připravenost konektorů (reklama, AI, recenze, reporty, infrastruktura) pro nasazení.",
     blurbEn: "Integration status: connector readiness (advertising, AI, reviews, reports, infrastructure) for deployment.",
@@ -464,7 +479,7 @@ export const MODULES: ModuleDef[] = [
     label: "Nastavení",
     labelEn: "Settings",
     icon: "settings",
-    section: "system",
+    section: "settings",
     availableFor: ALL,
     blurb: "Název, branding, napojení Google Ads a typ projektu.",
     blurbEn: "Name, branding, Google Ads connection and project type.",

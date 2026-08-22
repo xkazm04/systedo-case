@@ -63,12 +63,16 @@ test("no stale exemption — every exempted folder still exists", () => {
 // --- sort pin: current rendering must stay byte-identical ------------------
 // Captured from `modulesFor` at the time the explicit `order` field was introduced.
 // A diff here means the sidebar order changed — intentional edits update this map.
+// 2026-08-22: `settings` split out of `system` as a first-level rail area — the four
+// configure-the-workspace modules (ucet, branding, integrace, nastaveni) now render
+// as their own group ABOVE the operational system drawer (katalog, spotreba,
+// mesicni-report, aktivita). That is the only movement in this map.
 const EXPECTED_ORDER = {
-  eshop: ["", "vykon", "start", "kampane", "klicova-slova", "sklad-sezonnost", "obsahovy-engine", "kreativa", "produktova-kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "zisk", "ltv", "katalog", "ucet", "branding", "spotreba", "mesicni-report", "aktivita", "integrace", "nastaveni"],
-  app: ["", "vykon", "start", "kampane", "klicova-slova", "srovnani-seo", "obsahovy-engine", "experimenty-lp", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "ltv", "katalog", "ucet", "branding", "spotreba", "mesicni-report", "aktivita", "integrace", "nastaveni"],
-  leadgen: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "obsahovy-engine", "ulozeny-obsah", "kanaly", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "kvalita-leadu", "katalog", "ucet", "branding", "spotreba", "mesicni-report", "aktivita", "integrace", "nastaveni"],
-  content: ["", "vykon", "start", "klicova-slova", "obsahovy-engine", "kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "distribuce", "reporty", "publikum", "katalog", "ucet", "branding", "spotreba", "mesicni-report", "aktivita", "integrace", "nastaveni"],
-  local: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "mapa", "obsahovy-engine", "recenze", "obsah-plan", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "reporty", "katalog", "ucet", "branding", "spotreba", "mesicni-report", "aktivita", "integrace", "nastaveni"],
+  eshop: ["", "vykon", "start", "kampane", "klicova-slova", "sklad-sezonnost", "obsahovy-engine", "kreativa", "produktova-kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "zisk", "ltv", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
+  app: ["", "vykon", "start", "kampane", "klicova-slova", "srovnani-seo", "obsahovy-engine", "experimenty-lp", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "ltv", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
+  leadgen: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "obsahovy-engine", "ulozeny-obsah", "kanaly", "twin", "sprava-kanalu", "schranka", "knihovna", "reporty", "kvalita-leadu", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
+  content: ["", "vykon", "start", "klicova-slova", "obsahovy-engine", "kreativa", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "distribuce", "reporty", "publikum", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
+  local: ["", "vykon", "start", "kampane", "klicova-slova", "lokalni", "mapa", "obsahovy-engine", "recenze", "obsah-plan", "ulozeny-obsah", "kanaly", "socialni", "twin", "sprava-kanalu", "schranka", "reporty", "ucet", "branding", "integrace", "nastaveni", "katalog", "spotreba", "mesicni-report", "aktivita"],
 };
 
 test("modulesFor output is pinned per project type (order field preserves rendering)", () => {
