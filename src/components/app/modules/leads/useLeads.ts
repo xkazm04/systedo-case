@@ -13,11 +13,13 @@ import type { Contact, PipelineStage } from "@/lib/leads/types";
 export interface LeadQuery {
   q: string;
   stage: PipelineStage | "";
+  /** derived source label (see `sourceLabel`), "" = any — the aggregate views' drill-down key */
+  source: string;
   offset: number;
   limit: number;
 }
 
-export const DEFAULT_QUERY: LeadQuery = { q: "", stage: "", offset: 0, limit: 25 };
+export const DEFAULT_QUERY: LeadQuery = { q: "", stage: "", source: "", offset: 0, limit: 25 };
 
 export interface LeadsApi {
   contacts: Contact[];
@@ -72,6 +74,7 @@ export function useLeads(
         });
         if (q.q.trim()) params.set("q", q.q.trim());
         if (q.stage) params.set("stage", q.stage);
+        if (q.source) params.set("source", q.source);
         const res = await fetch(`${base}/contacts?${params.toString()}`);
         const json = (await res.json()) as ListResponse;
         if (!res.ok || json.ok === false) throw new Error(json.error ?? "load-failed");
@@ -99,7 +102,7 @@ export function useLeads(
     setQueryState((prev) => {
       // Any filter change resets paging — page 3 of the previous filter is a
       // guaranteed empty screen that reads as a bug.
-      const resetsPaging = next.q !== undefined || next.stage !== undefined;
+      const resetsPaging = next.q !== undefined || next.stage !== undefined || next.source !== undefined;
       return { ...prev, ...next, ...(resetsPaging && next.offset === undefined ? { offset: 0 } : {}) };
     });
   }, []);

@@ -22,7 +22,7 @@ const T = {
   cs: {
     search: "Hledat jméno, e-mail, telefon…",
     stageAll: "Fáze: vše",
-    sourceAll: "Zdroj: vše (na této straně)",
+    sourceAll: "Zdroj: vše",
     thName: "Jméno", thStage: "Fáze", thScore: "Skóre", thSource: "Zdroj", thLast: "Poslední aktivita",
     selectAll: "Vybrat vše na straně",
     select: "Vybrat {name}",
@@ -39,7 +39,7 @@ const T = {
   en: {
     search: "Search name, email, phone…",
     stageAll: "Stage: all",
-    sourceAll: "Source: all (on this page)",
+    sourceAll: "Source: all",
     thName: "Name", thStage: "Stage", thScore: "Score", thSource: "Source", thLast: "Last activity",
     selectAll: "Select everything on this page",
     select: "Select {name}",
@@ -67,17 +67,17 @@ export default function LeadTable({
   const t = useT(T);
   const stage = useT(STAGE_T);
   const fmt = useFormatters();
-  const [source, setSource] = useState("");
+  const source = api.query.source;
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  /** Server-side filter (derived source label). The option list is what this page
+   *  shows plus the active value, so a source drilled into from an aggregate view
+   *  stays selectable even when none of its rows are on the current page. */
   const sources = useMemo(
-    () => [...new Set(api.contacts.map((c) => sourceLabel(c.attribution)))].sort(),
-    [api.contacts]
-  );
-  const rows = useMemo(
-    () => (source ? api.contacts.filter((c) => sourceLabel(c.attribution) === source) : api.contacts),
+    () => [...new Set([...api.contacts.map((c) => sourceLabel(c.attribution)), ...(source ? [source] : [])])].sort(),
     [api.contacts, source]
   );
+  const rows = api.contacts;
 
   const toggle = (id: string) =>
     setSelected((prev) => {
@@ -122,7 +122,7 @@ export default function LeadTable({
         </select>
         <select
           value={source}
-          onChange={(e) => setSource(e.target.value)}
+          onChange={(e) => api.setQuery({ source: e.target.value })}
           aria-label={t("sourceAll")}
           className="rounded-pill border border-line bg-surface px-3.5 py-2 text-sm text-navy-800"
         >

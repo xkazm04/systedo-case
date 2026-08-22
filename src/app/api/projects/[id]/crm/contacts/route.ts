@@ -18,7 +18,7 @@ import type { ContactQuery } from "@/lib/leads/store";
 
 const MAX_LIMIT = 200;
 
-/** GET /api/projects/[id]/crm/contacts?stage=&q=&limit=&offset=
+/** GET /api/projects/[id]/crm/contacts?stage=&source=&q=&limit=&offset=
  *  Returns the resolved set: the project's real contacts when it has any, else the
  *  seeded sample with `live: false` so the UI can label it honestly. */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -29,8 +29,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const url = new URL(req.url);
   const stageParam = url.searchParams.get("stage");
+  const sourceParam = url.searchParams.get("source")?.trim().slice(0, 120);
   const query: ContactQuery = {
     ...(stageParam && isPipelineStage(stageParam) ? { stage: stageParam } : {}),
+    ...(sourceParam ? { source: sourceParam } : {}),
     search: url.searchParams.get("q") ?? undefined,
     limit: clampNumber(url.searchParams.get("limit"), 1, MAX_LIMIT, 100),
     offset: clampNumber(url.searchParams.get("offset"), 0, 100_000, 0),

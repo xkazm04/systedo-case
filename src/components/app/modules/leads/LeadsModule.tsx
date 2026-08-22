@@ -117,7 +117,14 @@ function LeadsModuleInner({
 
   /** An aggregate view's drill-down: apply its filter and land in the database. */
   const openInTable = (query: Partial<ContactQuery>) => {
-    api.setQuery({ ...query, offset: 0 });
+    // ContactQuery is the wire shape; LeadQuery is the client's — map explicitly so
+    // an aggregate view's filter is never silently dropped by a key mismatch.
+    api.setQuery({
+      stage: query.stage ?? "",
+      source: query.source ?? "",
+      q: query.search ?? "",
+      offset: 0,
+    });
     setView("vse");
   };
   const selected = api.contacts.find((c) => c.id === selectedId) ?? null;
