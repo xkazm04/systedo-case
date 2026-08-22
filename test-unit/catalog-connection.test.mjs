@@ -11,7 +11,7 @@ test("token crypto: round-trips, and a tampered blob fails the auth tag", () => 
   process.env.CATALOG_TOKEN_SECRET = "unit-test-secret-please-ignore";
   assert.equal(hasTokenCrypto(), true);
 
-  const secret = "bl-live-token-ABC123";
+  const secret = "bl-live-token-ABC123"; // secret-scan:allow — fixture, not a real token
   const blob = encryptToken(secret);
   assert.notEqual(blob, secret);
   assert.match(blob, /^v2\./); // current format carries a per-token salt

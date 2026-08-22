@@ -11,7 +11,7 @@ test("byom crypto: round-trips, and a tampered blob fails the auth tag", () => {
   process.env.BYOM_KEY_SECRET = "unit-test-byom-secret-please-ignore";
   assert.equal(hasByomCrypto(), true);
 
-  const apiKey = "sk-live-openai-ABC123";
+  const apiKey = "sk-live-openai-ABC123"; // secret-scan:allow — fixture, not a real key
   const blob = encryptByomKey(apiKey);
   assert.notEqual(blob, apiKey);
   assert.match(blob, /^v1\./);

@@ -21,7 +21,7 @@ function makeV1Blob(secret, plain) {
 
 test("v2: round-trips and writes a v2.<salt>.<iv>.<tag>.<ct> blob", () => {
   process.env.CATALOG_TOKEN_SECRET = SECRET;
-  const token = "bl-live-token-XYZ789";
+  const token = "bl-live-token-XYZ789"; // secret-scan:allow — fixture, not a real token
   const blob = encryptToken(token);
   const parts = blob.split(".");
   assert.equal(parts[0], "v2");

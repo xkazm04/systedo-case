@@ -1,6 +1,17 @@
 #!/usr/bin/env sh
 npx lint-staged
 
+# Secret scanning — the ONE supply-chain guardrail that prevents a leak instead of
+# reporting it, so it runs here and not only in CI. gitleaks when it is installed
+# (150+ rules + entropy); the zero-dep fallback otherwise, so a machine that never
+# installed gitleaks still has a floor rather than no guard at all. CI backstops
+# both with a full-history scan (.github/workflows/supply-chain.yml).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --no-banner || exit 1
+else
+  node scripts/secret-scan.mjs || exit 1
+fi
+
 # LLM wrapper gate: every place the app uses the wrapper must be tested, and
 # (only when the LLM code changed) it must pass against real Claude Code. A cached
 # pass is not re-run. See scripts/llm-gate.mjs.

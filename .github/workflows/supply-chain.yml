@@ -1,0 +1,96 @@
+name: Supply chain
+
+# Supply-chain backstop for the two guardrails a pre-commit hook cannot cover:
+# dependency advisories (nobody's hook runs `npm audit`) and secrets that are
+# ALREADY in history (the hook only ever sees the commit in front of it).
+#
+# Rung discipline, same as the i18n step in ci.yml: a stage is BLOCKING only if it
+# passes today.
+#   • npm audit        → REPORTING. It reports transitive advisories the app cannot
+#                        always fix on its own schedule; blocking every push on a
+#                        third party's disclosure timing buys noise, not safety.
+#                        Dependabot (.github/dependabot.yml) does the fixing.
+#   • history secrets  → BLOCKING. It passes today, and a leaked credential is not
+#                        a "report it later" class of problem.
+#
+# Explicitly OUT OF SCOPE for this repo: SBOM generation and artifact signing. This
+# is a single Vercel-deployed app with no distributed build artifact for anyone to
+# verify — declaring them out of scope is more honest than a checkbox job.
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly deep pass, so an advisory published after the last push still surfaces.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Dependency audit (reporting)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+          cache: npm
+
+      # Reporting rung: the summary is the deliverable, the exit code is not.
+      # Promote to blocking (drop continue-on-error) once a clean high-severity
+      # run is the steady state.
+      - name: npm audit --audit-level=high
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - name: Advisory summary
+        continue-on-error: true
+        run: |
+          npm audit --json > audit.json || true
+          node -e '
+            const a = JSON.parse(require("fs").readFileSync("audit.json", "utf8"));
+            const v = a.metadata?.vulnerabilities ?? {};
+            const line = Object.entries(v).map(([k, n]) => `${k}: ${n}`).join(" · ");
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `### npm audit\n\n${line || "no advisories reported"}\n`);
+          '
+
+  secrets:
+    name: Secret scan (full history, blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history — a secret is usually in an OLD commit)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.14.0
+
+      # The release BINARY at a pinned version, not gitleaks-action: the action is
+      # licence-gated for organisation accounts and follows a moving major, and this
+      # job blocks — a surprise rule change must be an explicit version bump here
+      # rather than a Monday-morning red build. Same version the pre-commit hook
+      # expects locally.
+      - name: Install gitleaks 8.30.1
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          tar -xzf gitleaks.tar.gz gitleaks
+          ./gitleaks version
+
+      - name: gitleaks (full history)
+        run: ./gitleaks git . --redact --no-banner --exit-code 1
+
+      # Belt and braces: the same zero-dep scanner the pre-commit hook falls back
+      # to, run over the working tree. It costs a second and it is the check whose
+      # rules live in THIS repo, so a rule we care about cannot be dropped by an
+      # upstream release.
+      - name: Repo-local scanner (tracked files)
+        run: node scripts/secret-scan.mjs --all
