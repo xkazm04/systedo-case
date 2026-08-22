@@ -27,16 +27,72 @@
  *  deliberately lighter, IP-throttle-only upload (aiPerMin only, no daily ceiling, its
  *  own multipart 8 MB file-size cap, and no concurrency slot) — a different guard
  *  class, consistent with `durableGuard`'s "an upload omits spendUnits" carve-out. */
-import { durableGuard } from "./durable-limit";
+import { durableGuard, peekDurableRemaining, peekGlobalSpend } from "./durable-limit";
 import {
   RATE_RULES,
   acquireSlot,
   clientIp,
+  layerForRule,
   payloadTooLarge,
   releaseSlot,
   tooLarge,
   tooManyRequests,
+  type RateResult,
+  type RateRule,
+  type RefusalDetail,
 } from "./rate-limit";
+
+const DAY_SECONDS = 86_400;
+
+/** Work out WHICH layer refused and where the caller stands, for the refusal body.
+ *
+ *  The local limiter reports this itself (`result.refusal`); the durable one cannot
+ *  today — its decision happens inside a Firestore transaction whose result type is
+ *  shared with the local path — so on that path we re-read the same counters through
+ *  the existing read-only peeks (`peekDurableRemaining` / `peekGlobalSpend`, which
+ *  already back /api/ai/status) and identify the exhausted layer by elimination: a
+ *  rule with nothing remaining is the one that said no, otherwise it was the global
+ *  ceiling. Two extra reads on the REFUSAL path only.
+ *
+ *  Best-effort by construction: any failure returns undefined and the 429 keeps its
+ *  historical shape. A diagnostic must never turn a refusal into a 500. */
+export async function describeRefusal(
+  ip: string,
+  rules: RateRule[],
+  result: RateResult
+): Promise<RefusalDetail | undefined> {
+  if (result.refusal) return result.refusal;
+  try {
+    const [remaining, spend] = await Promise.all([
+      peekDurableRemaining(ip, rules),
+      peekGlobalSpend(),
+    ]);
+    for (let i = 0; i < rules.length; i++) {
+      if ((remaining[i] ?? 1) > 0) continue;
+      return {
+        layer: layerForRule(rules[i]),
+        limit: rules[i].limit,
+        windowSeconds: Math.round(rules[i].windowMs / 1000),
+        used: rules[i].limit,
+        remaining: 0,
+        bucket: rules[i].bucket,
+      };
+    }
+    if (spend.ceiling > 0 && spend.used >= spend.ceiling) {
+      return {
+        layer: "global-ceiling",
+        limit: spend.ceiling,
+        windowSeconds: DAY_SECONDS,
+        used: spend.used,
+        remaining: 0,
+        bucket: "_global_",
+      };
+    }
+  } catch {
+    /* peek failed — fall through to the historical, detail-free 429 */
+  }
+  return undefined;
+}
 
 export async function guardPaidGeneration(
   request: Request,
@@ -52,14 +108,16 @@ export async function guardPaidGeneration(
   if (!acquireSlot()) {
     return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
   }
-  const limited = await durableGuard(
-    clientIp(request),
-    [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()],
-    { spendUnits: 1 }
-  );
+  const ip = clientIp(request);
+  const rules = [RATE_RULES.aiPerMin(), RATE_RULES.aiPerDay()];
+  const limited = await durableGuard(ip, rules, { spendUnits: 1 });
   if (!limited.ok) {
     releaseSlot(); // no provider work will run — don't hold the slot for a 429.
-    return tooManyRequests(limited.retryAfter, rateLimitedMessage(limited.retryAfter));
+    return tooManyRequests(
+      limited.retryAfter,
+      rateLimitedMessage(limited.retryAfter),
+      await describeRefusal(ip, rules, limited)
+    );
   }
   return null;
 }

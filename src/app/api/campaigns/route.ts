@@ -28,6 +28,7 @@ import {
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
+import { describeRefusal } from "@/lib/ai/paid-guard";
 
 
 /** Everything the page needs in one payload: campaigns, sync metadata, the latest
@@ -100,11 +101,14 @@ export async function POST(request: Request) {
   if (tooLarge(request)) {
     return payloadTooLarge("Požadavek je příliš velký.");
   }
-  const limited = await durableGuard(clientIp(request), [RATE_RULES.syncPerMin()]);
+  const ip = clientIp(request);
+  const syncRules = [RATE_RULES.syncPerMin()];
+  const limited = await durableGuard(ip, syncRules);
   if (!limited.ok) {
     return tooManyRequests(
       limited.retryAfter,
-      `Příliš mnoho synchronizací. Zkuste to prosím znovu za ${limited.retryAfter} s.`
+      `Příliš mnoho synchronizací. Zkuste to prosím znovu za ${limited.retryAfter} s.`,
+      await describeRefusal(ip, syncRules, limited)
     );
   }
 
@@ -141,6 +145,16 @@ export async function POST(request: Request) {
         {
           error: `Denní limit synchronizací vyčerpán (${quota.status.used.sync}/${quota.status.limits.sync}). Zkuste to zítra nebo přejděte na vyšší plán (ceník na /cena).`,
           upgradeUrl: "/cena",
+          // Additive machine half of the same sentence: which layer refused (the
+          // per-user PLAN quota, not one of the per-IP throttles above), the rule
+          // it enforced, and the standing. The prose already said it in Czech; a
+          // client should not have to parse Czech to branch on it.
+          code: "quota",
+          layer: "plan-quota",
+          limit: quota.status.limits.sync,
+          windowSeconds: 86_400,
+          used: quota.status.used.sync,
+          remaining: Math.max(0, quota.status.limits.sync - quota.status.used.sync),
         },
         { status: 429 }
       );

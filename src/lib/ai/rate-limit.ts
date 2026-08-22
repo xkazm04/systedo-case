@@ -31,10 +31,57 @@ export interface RateRule {
   windowMs: number;
 }
 
+/** WHICH limit refused. Four layers guard the paid paths and they call for
+ *  different caller behaviour: a per-IP refusal is "you are limited" (back off,
+ *  retry later, or sign in), a global-ceiling refusal is "EVERYONE is limited"
+ *  (retrying from another IP changes nothing and the wall lasts until UTC
+ *  midnight), and a plan-quota refusal is "upgrade or wait for tomorrow". One
+ *  indistinguishable 429 across all four left the client guessing.
+ *
+ *  `per-user-minute` is the fifth, non-AI layer: the workspace write throttle in
+ *  src/lib/api/route-utils.ts is keyed by user id, not by IP. */
+export type LimitLayer =
+  | "per-ip-minute"
+  | "per-ip-day"
+  | "per-user-minute"
+  | "global-ceiling"
+  | "plan-quota";
+
+/** The refusal contract's two missing halves: the RULE that was enforced and the
+ *  caller's CURRENT STANDING against it. Publishing the rule in the refusal is
+ *  what stops the enforced number and any advertised number from drifting; the
+ *  standing is what lets a client say "3 of 8 left this minute" instead of a bare
+ *  "later". Every field is optional at the wire — see {@link tooManyRequests}. */
+export interface RefusalDetail {
+  /** which layer said no */
+  layer: LimitLayer;
+  /** the enforced allowance for that layer */
+  limit: number;
+  /** the window the allowance applies to, in seconds */
+  windowSeconds: number;
+  /** how much of the allowance is spent (when known) */
+  used?: number;
+  /** how much is left (0 on the layer that refused) */
+  remaining?: number;
+  /** the logical counter bucket, for support/telemetry correlation */
+  bucket?: string;
+}
+
 export interface RateResult {
   ok: boolean;
   /** seconds until the caller may retry (only meaningful when !ok) */
   retryAfter: number;
+  /** ADDITIVE: which rule refused and where the caller stands against it. Absent
+   *  when the refusing path could not determine it (a Firestore peek failure must
+   *  never turn a 429 into a 500), so every consumer must treat it as optional. */
+  refusal?: RefusalDetail;
+}
+
+/** Classify a fixed-window rule by its window. The per-IP rules are minute- or
+ *  day-shaped; anything else is reported by its window rather than guessed at. */
+export function layerForRule(rule: RateRule, keyedBy: "ip" | "user" = "ip"): LimitLayer {
+  if (keyedBy === "user") return "per-user-minute";
+  return rule.windowMs <= MIN ? "per-ip-minute" : "per-ip-day";
 }
 
 const MIN = 60_000;
@@ -141,7 +188,18 @@ export function rateLimit(ip: string, rules: RateRule[]): RateResult {
     const current = row && row.window_start >= windowStart ? row.count : 0;
     if (current >= rule.limit) {
       const retryAfter = Math.ceil((windowStart + rule.windowMs - now) / 1000);
-      return { ok: false, retryAfter: Math.max(1, retryAfter) };
+      return {
+        ok: false,
+        retryAfter: Math.max(1, retryAfter),
+        refusal: {
+          layer: layerForRule(rule, ip.startsWith("user:") ? "user" : "ip"),
+          limit: rule.limit,
+          windowSeconds: Math.round(rule.windowMs / 1000),
+          used: current,
+          remaining: 0,
+          bucket: rule.bucket,
+        },
+      };
     }
     plans.push({ rule, windowStart, nextCount: current + 1 });
   }
@@ -191,10 +249,39 @@ export function releaseSlot(): void {
 
 // --- response helpers ------------------------------------------------------
 
-/** 429 with a `Retry-After` header. */
-export function tooManyRequests(retryAfter: number, message: string): Response {
+/** 429 with a `Retry-After` header.
+ *
+ *  `detail` completes the refusal contract: the RULE that was enforced (`limit` +
+ *  `windowSeconds`), the caller's CURRENT STANDING against it (`used` /
+ *  `remaining`) and WHICH of the layers refused (`layer`). All of it is ADDITIVE —
+ *  the historical `{ error, code, retryAfter }` fields and the header are
+ *  unchanged, and omitting `detail` reproduces the previous body byte for byte, so
+ *  a client that renders only `error`/`retryAfter` is unaffected.
+ *
+ *  Standard `RateLimit-*` headers are deliberately NOT emitted: the retry-after
+ *  header is the one the browser/client stack already understands, and inventing a
+ *  second header family here would be a contract nobody reads. */
+export function tooManyRequests(
+  retryAfter: number,
+  message: string,
+  detail?: RefusalDetail
+): Response {
   return Response.json(
-    { error: message, code: "rate_limited", retryAfter },
+    {
+      error: message,
+      code: "rate_limited",
+      retryAfter,
+      ...(detail
+        ? {
+            layer: detail.layer,
+            limit: detail.limit,
+            windowSeconds: detail.windowSeconds,
+            ...(detail.used === undefined ? {} : { used: detail.used }),
+            ...(detail.remaining === undefined ? {} : { remaining: detail.remaining }),
+            ...(detail.bucket === undefined ? {} : { bucket: detail.bucket }),
+          }
+        : {}),
+    },
     { status: 429, headers: { "Retry-After": String(retryAfter) } }
   );
 }

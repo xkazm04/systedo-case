@@ -36,6 +36,7 @@ import {
   tooManyRequests,
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
+import { describeRefusal } from "@/lib/ai/paid-guard";
 
 
 export async function POST(request: Request) {
@@ -47,11 +48,14 @@ export async function POST(request: Request) {
   // global spend ceiling. A cache hit is a free repeat, not a paid evaluation — the
   // daily budget + ceiling are charged below only on a real cache-miss generation
   // (matching the batch sibling's cache-first-then-charge order).
-  const throttle = await durableGuard(clientIp(request), [RATE_RULES.evalPerMin()]);
+  const ip = clientIp(request);
+  const throttleRules = [RATE_RULES.evalPerMin()];
+  const throttle = await durableGuard(ip, throttleRules);
   if (!throttle.ok) {
     return tooManyRequests(
       throttle.retryAfter,
-      `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${throttle.retryAfter} s.`
+      `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${throttle.retryAfter} s.`,
+      await describeRefusal(ip, throttleRules, throttle)
     );
   }
 
@@ -123,16 +127,17 @@ export async function POST(request: Request) {
     if (!acquireSlot()) {
       return tooManyRequests(5, "Server je momentálně vytížený. Zkuste to prosím za chvíli.");
     }
-    const limited = await durableGuard(
-      clientIp(request),
-      [RATE_RULES.evalPerDay()],
-      { spendUnits: 1 }
-    );
+    const dayRules = [RATE_RULES.evalPerDay()];
+    const limited = await durableGuard(ip, dayRules, { spendUnits: 1 });
     if (!limited.ok) {
       releaseSlot(); // no provider work will run — don't hold the slot for a 429.
       return tooManyRequests(
         limited.retryAfter,
-        `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${limited.retryAfter} s.`
+        `Příliš mnoho vyhodnocení. Zkuste to prosím znovu za ${limited.retryAfter} s.`,
+        // Which of the two paid layers refused — the per-IP daily eval budget, or
+        // the shared global ceiling that no amount of waiting-and-retrying from
+        // another address will move.
+        await describeRefusal(ip, dayRules, limited)
       );
     }
 

@@ -248,6 +248,12 @@ export const WORKSPACE_RATE = {
  *  over the limit, else null so the caller proceeds. */
 export function enforceUserRate(userId: string, rule: RateRule, message: string): Response | null {
   const result = rateLimit(`user:${userId}`, [rule]);
-  if (!result.ok) return tooManyRequests(result.retryAfter, message);
+  // The 429 now also publishes the rule it enforced and the caller's standing
+  // against it (`limit` / `windowSeconds` / `used` / `remaining` / `layer` —
+  // "per-user-minute" here, since these buckets are keyed by user id, not by IP).
+  // Additive: `error`, `code` and `retryAfter` are unchanged, so a client that
+  // renders only those is untouched. Publishing the rule in the refusal IS the
+  // documentation — it is the only copy that cannot drift from what is enforced.
+  if (!result.ok) return tooManyRequests(result.retryAfter, message, result.refusal);
   return null;
 }

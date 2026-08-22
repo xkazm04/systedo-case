@@ -128,6 +128,36 @@ test("tooManyRequests is a 429 with a Retry-After header and typed code", async 
   assert.equal(body.error, "slow down");
 });
 
+test("tooManyRequests publishes the rule + standing when a refusal detail is given", async () => {
+  const res = tooManyRequests(30, "slow down", {
+    layer: "per-ip-minute",
+    limit: 8,
+    windowSeconds: 60,
+    used: 8,
+    remaining: 0,
+    bucket: "ai:min",
+  });
+  const body = await res.json();
+  // The rule the server ACTUALLY enforced, so the published number cannot drift
+  // from the enforced one, plus where this caller stands against it.
+  assert.equal(body.layer, "per-ip-minute");
+  assert.equal(body.limit, 8);
+  assert.equal(body.windowSeconds, 60);
+  assert.equal(body.used, 8);
+  assert.equal(body.remaining, 0);
+  assert.equal(body.bucket, "ai:min");
+  // …and every historical field is untouched (the addition is ADDITIVE).
+  assert.equal(res.status, 429);
+  assert.equal(res.headers.get("Retry-After"), "30");
+  assert.equal(body.code, "rate_limited");
+  assert.equal(body.retryAfter, 30);
+});
+
+test("tooManyRequests without a detail is byte-identical to the historical body", async () => {
+  const body = await tooManyRequests(9, "slow down").json();
+  assert.deepEqual(Object.keys(body).sort(), ["code", "error", "retryAfter"]);
+});
+
 test("payloadTooLarge is a 413 with a typed code", async () => {
   const res = payloadTooLarge("too big");
   assert.equal(res.status, 413);
@@ -142,7 +172,9 @@ test("payloadTooLarge is a 413 with a typed code", async () => {
 const BKT = "test:rl:primary";
 const BKT_A = "test:rl:multiA";
 const BKT_B = "test:rl:multiB";
-const ALL = [BKT, BKT_A, BKT_B];
+const BKT_C = "test:rl:refusal";
+const BKT_D = "test:rl:refusalUser";
+const ALL = [BKT, BKT_A, BKT_B, BKT_C, BKT_D];
 
 function clearBuckets() {
   const db = getDb();
@@ -162,6 +194,28 @@ test("rateLimit allows exactly `limit` requests, then 429s with a retry-after", 
   const blocked = rateLimit(ip, [rule]);
   assert.equal(blocked.ok, false);
   assert.ok(blocked.retryAfter >= 1, "retryAfter should be a positive seconds value");
+});
+
+test("a rateLimit refusal names the layer, the rule and the standing", () => {
+  const rule = { bucket: BKT_C, limit: 2, windowMs: 60_000 };
+  rateLimit("10.0.0.7", [rule]);
+  rateLimit("10.0.0.7", [rule]);
+  const blocked = rateLimit("10.0.0.7", [rule]);
+  assert.equal(blocked.ok, false);
+  assert.deepEqual(blocked.refusal, {
+    layer: "per-ip-minute",
+    limit: 2,
+    windowSeconds: 60,
+    used: 2,
+    remaining: 0,
+    bucket: BKT_C,
+  });
+
+  // The same limiter keyed by USER id (route-utils' workspace throttle) reports the
+  // per-user layer — "you are limited" and "everyone is limited" are different facts.
+  const userRule = { bucket: BKT_D, limit: 1, windowMs: 60_000 };
+  rateLimit("user:u1", [userRule]);
+  assert.equal(rateLimit("user:u1", [userRule]).refusal.layer, "per-user-minute");
 });
 
 test("rateLimit isolates buckets by ip", () => {
