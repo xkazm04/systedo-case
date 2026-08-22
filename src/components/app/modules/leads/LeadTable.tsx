@@ -32,6 +32,7 @@ const T = {
     empty: "Žádné kontakty neodpovídají filtru.",
     emptyAll: "Zatím žádné kontakty. Založte první nebo naimportujte CSV v Integracích.",
     range: "{from}–{to} z {total}",
+    rangeFiltered: "{from}–{to} z filtrovaných",
     prev: "Předchozí", next: "Další strana",
     loading: "Načítám…",
   },
@@ -48,6 +49,7 @@ const T = {
     empty: "No contacts match the filter.",
     emptyAll: "No contacts yet. Add the first one, or import a CSV under Integrations.",
     range: "{from}–{to} of {total}",
+    rangeFiltered: "{from}–{to} of the filtered set",
     prev: "Previous", next: "Next page",
     loading: "Loading…",
   },
@@ -87,6 +89,9 @@ export default function LeadTable({
 
   const from = api.query.offset + 1;
   const to = api.query.offset + rows.length;
+  /** With a filter on, the project-wide total is not the size of THIS result set,
+   *  so the range is shown without one rather than with a misleading denominator. */
+  const filtered = Boolean(api.query.q.trim() || api.query.stage || source);
 
   return (
     <div className="card overflow-hidden">
@@ -205,7 +210,13 @@ export default function LeadTable({
 
       <div className="flex items-center justify-between gap-3 border-t border-line px-4 py-3">
         <span className="tnum text-xs text-muted">
-          {t("range", { from: fmt.fmtInt(rows.length ? from : 0), to: fmt.fmtInt(to), total: fmt.fmtInt(api.total || rows.length) })}
+          {filtered
+            ? t("rangeFiltered", { from: fmt.fmtInt(rows.length ? from : 0), to: fmt.fmtInt(to) })
+            : t("range", {
+                from: fmt.fmtInt(rows.length ? from : 0),
+                to: fmt.fmtInt(to),
+                total: fmt.fmtInt(api.total || rows.length),
+              })}
         </span>
         <span className="flex gap-2">
           <Button
@@ -219,7 +230,7 @@ export default function LeadTable({
           <Button
             size="sm"
             variant="ghost"
-            disabled={to >= (api.total || rows.length)}
+            disabled={!api.hasNext}
             onClick={() => api.setQuery({ offset: api.query.offset + api.query.limit })}
           >
             {t("next")}

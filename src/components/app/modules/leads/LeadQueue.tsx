@@ -1,22 +1,28 @@
 "use client";
 
-/** Variant B — the prioritised SLA work queue, the module's LANDING view.
+/** Fronta — the urgent, finishable subset. Deliberately NOT "every open lead,
+ *  ranked": at a thousand contacts a ranked list is a database view wearing a
+ *  to-do list's clothes, and the full database already has a tab of its own. This
+ *  is the capped set whose clock is running, with the band figures coming from the
+ *  server's ONE bounded aggregate rather than from the rows on screen.
  *
- *  Not a list of everything: the answer to "what do I do next", ranked by what is
- *  actually being lost (deadline first, grade second). Every figure in the band is
- *  derived from the SAME contact set the rows render, so a tile can never disagree
- *  with the list underneath it, and a row's reply button hands off to Schránka
- *  rather than growing a second reply surface here. */
-import { useEffect, useMemo, useState } from "react";
+ *  Both bounds (the aggregate's scan window and this list's fetch window) are
+ *  stated in the footnote — a queue that silently described a slice as "your
+ *  leads" would be the expensive kind of wrong. */
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pill } from "@/components/ui";
 import { Clock } from "@/components/icons";
 import { useFormatters, useT } from "@/lib/i18n/client";
 import type { Contact } from "@/lib/leads/types";
-import { contactSla, isQueued, queueAnalytics, sortQueue, LEAD_SLA_TARGET_MIN, type SlaPhase } from "./leadSla";
+import { contactSla, urgentQueue, LEAD_SLA_TARGET_MIN, URGENT_QUEUE_CAP, type SlaPhase } from "@/lib/leads/sla";
 import { seedTwinReply, schrankaHref } from "./handoff";
 import { STAGE_T } from "./copy";
+import { useLeadSummary } from "./useLeadSummary";
 import LeadQueueRow from "./LeadQueueRow";
+
+/** How many recent contacts the queue pulls to pick its urgent subset from. */
+const QUEUE_FETCH = 200;
 
 const T = {
   cs: {
@@ -27,6 +33,9 @@ const T = {
     sortNote: "Řazeno: termín SLA, pak skóre",
     empty: "Inbox nula — nikdo nečeká. Nové leady se objeví tady.",
     minutes: "{n} min",
+    overflow: "Zobrazeno prvních {cap}; čeká ještě {n}. Vyřiďte tyto a načtěte zbytek.",
+    bounds: "Fronta vybírá z posledních {fetch} kontaktů, souhrnná čísla ze {scan} — u větších databází jde o výřez, ne o celý projekt.",
+    loading: "Načítám frontu…",
   },
   en: {
     medianTitle: "Median response", medianEmpty: "nothing answered yet",
@@ -36,34 +45,56 @@ const T = {
     sortNote: "Sorted by SLA deadline, then score",
     empty: "Inbox zero — nobody is waiting. New leads show up here.",
     minutes: "{n} min",
+    overflow: "Showing the first {cap}; {n} more are waiting. Clear these and load the rest.",
+    bounds: "The queue picks from the {fetch} most recent contacts and the band from {scan} — on a larger database that is a slice, not the whole project.",
+    loading: "Loading the queue…",
   },
 } as const;
 
 export default function LeadQueue({
   projectId,
-  contacts,
   live,
+  reloadKey,
   onOpen,
   onAdvance,
 }: {
   projectId: string;
-  contacts: Contact[];
   live: boolean;
+  /** bumped by the shell after a write, so the queue and the band refetch together */
+  reloadKey: number;
   onOpen: (c: Contact) => void;
-  onAdvance: (c: Contact) => void;
+  onAdvance: (c: Contact) => Promise<void>;
 }) {
   const t = useT(T);
   const fmt = useFormatters();
   const stage = useT(STAGE_T);
   const router = useRouter();
+  const { summary } = useLeadSummary(projectId, reloadKey);
 
-  // One clock for the whole queue — never one timer per row. Started after mount
-  // so the server and the first client render agree on the markup.
+  const [pool, setPool] = useState<Contact[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/projects/${encodeURIComponent(projectId)}/crm/contacts?limit=${QUEUE_FETCH}`
+        );
+        const json = (await res.json()) as { contacts?: Contact[] };
+        if (!cancelled) setPool(json.contacts ?? []);
+      } catch {
+        if (!cancelled) setPool([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, reloadKey]);
+
+  // One clock for the whole queue, and the first tick is SCHEDULED so the server
+  // and the first client render agree on the markup.
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
-    // The first tick is scheduled, not called inline: reading the clock during the
-    // effect would set state synchronously and cascade a second render.
     const first = setTimeout(tick, 0);
     const id = setInterval(tick, 30_000);
     return () => {
@@ -71,45 +102,41 @@ export default function LeadQueue({
       clearInterval(id);
     };
   }, []);
-  // Until the first tick lands, the countdowns render as "—": the server has no
-  // clock the client would agree with, and a hydration mismatch on every row is a
-  // worse trade than one frame of dashes.
+
   const ready = now !== null;
   const nowMs = now ?? 0;
-
-  const rows = useMemo(() => sortQueue(contacts.filter(isQueued)), [contacts]);
-  const a = useMemo(() => queueAnalytics(contacts, nowMs), [contacts, nowMs]);
-  const dash = (v: string) => (ready ? v : "—");
-
-  const reply = (c: Contact) => {
-    seedTwinReply(projectId, c, c.notes ?? "");
-    router.push(schrankaHref(projectId));
-  };
+  const { rows, overflow } = ready && pool ? urgentQueue(pool, nowMs) : { rows: [], overflow: 0 };
+  const a = summary?.analytics ?? null;
+  const dash = (v: string | null) => (a === null ? "—" : v ?? "—");
 
   return (
     <div className="stagger space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label={t("medianTitle")}
-          value={dash(a.medianResponseMin === null ? "—" : t("minutes", { n: fmt.fmtInt(a.medianResponseMin) }))}
-          note={a.medianResponseMin === null ? t("medianEmpty") : t("slaGoal", { min: LEAD_SLA_TARGET_MIN })}
+          value={dash(a?.medianResponseMin == null ? null : t("minutes", { n: fmt.fmtInt(a.medianResponseMin) }))}
+          note={a?.medianResponseMin == null ? t("medianEmpty") : t("slaGoal", { min: LEAD_SLA_TARGET_MIN })}
         />
         <Stat
           label={t("slaTitle")}
-          value={dash(a.withinSlaRatio === null ? "—" : fmt.fmtPct(a.withinSlaRatio))}
-          note={a.withinSlaRatio === null ? t("slaEmpty") : t("slaGoal", { min: LEAD_SLA_TARGET_MIN })}
-          tone={ready && a.withinSlaRatio !== null && a.withinSlaRatio < 0.8 ? "negative" : undefined}
+          value={dash(a?.withinSlaRatio == null ? null : fmt.fmtPct(a.withinSlaRatio))}
+          note={a?.withinSlaRatio == null ? t("slaEmpty") : t("slaGoal", { min: LEAD_SLA_TARGET_MIN })}
+          tone={a?.withinSlaRatio != null && a.withinSlaRatio < 0.8 ? "negative" : undefined}
         />
         <Stat
           label={t("waitingTitle")}
-          value={dash(fmt.fmtInt(a.waiting))}
-          note={ready && a.breached > 0 ? t("overdue", { n: fmt.fmtInt(a.breached) }) : t("allOnTrack")}
-          tone={ready && a.breached > 0 ? "negative" : undefined}
+          value={dash(a ? fmt.fmtInt(a.waiting) : null)}
+          note={a && a.breached > 0 ? t("overdue", { n: fmt.fmtInt(a.breached) }) : t("allOnTrack")}
+          tone={a && a.breached > 0 ? "negative" : undefined}
         />
         <Stat
           label={t("weekTitle")}
-          value={dash(t("weekLeads", { n: fmt.fmtInt(a.weekLeads) }))}
-          note={t("weekBreak", { q: fmt.fmtInt(a.weekQualified), w: fmt.fmtInt(a.weekWon) })}
+          value={dash(a ? t("weekLeads", { n: fmt.fmtInt(a.weekLeads) }) : null)}
+          note={
+            a
+              ? t("weekBreak", { q: fmt.fmtInt(a.weekQualified), w: fmt.fmtInt(a.weekWon) })
+              : t("sortNote")
+          }
         />
       </div>
 
@@ -123,30 +150,45 @@ export default function LeadQueue({
           <span className="text-xs text-muted">{t("sortNote")}</span>
         </div>
 
-        {rows.length === 0 ? (
+        {pool === null || !ready ? (
+          <p className="px-5 py-10 text-center text-sm text-muted">{t("loading")}</p>
+        ) : rows.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-muted">{t("empty")}</p>
         ) : (
           <ul className="divide-y divide-line">
             {rows.map((c) => {
-              const sla = ready ? contactSla(c, nowMs) : null;
+              const sla = contactSla(c, nowMs);
               return (
                 <LeadQueueRow
                   key={c.id}
                   contact={c}
-                  phase={sla?.phase ?? ("ontrack" as SlaPhase)}
-                  remainingMin={sla?.remainingMin ?? 0}
-                  pending={!ready}
+                  phase={sla.phase as SlaPhase}
+                  remainingMin={sla.remainingMin}
+                  pending={false}
                   stageLabel={stage(c.stage)}
                   live={live}
                   onOpen={() => onOpen(c)}
-                  onReply={() => reply(c)}
-                  onAdvance={() => onAdvance(c)}
+                  onReply={() => {
+                    seedTwinReply(projectId, c, c.notes ?? "");
+                    router.push(schrankaHref(projectId));
+                  }}
+                  onAdvance={() => void onAdvance(c)}
                 />
               );
             })}
           </ul>
         )}
+
+        {overflow > 0 && (
+          <p className="border-t border-line px-5 py-2.5 text-xs text-muted">
+            {t("overflow", { cap: URGENT_QUEUE_CAP, n: fmt.fmtInt(overflow) })}
+          </p>
+        )}
       </div>
+
+      <p className="text-xs text-muted">
+        {t("bounds", { fetch: QUEUE_FETCH, scan: fmt.fmtInt(summary?.scanned ?? 0) })}
+      </p>
     </div>
   );
 }

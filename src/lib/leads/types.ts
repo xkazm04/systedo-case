@@ -254,6 +254,16 @@ export interface Contact {
   /** denormalised for list rendering */
   companyName?: string;
 
+  // coarse location — ADDITIVE and optional. A lead's geography is the one
+  // aggregate a local/leadgen operator asks for that stage and source cannot
+  // answer ("where is the demand"), and it is cheap to carry when a connector
+  // happens to know it. Nothing derives one; a contact without them simply does
+  // not appear in the regional breakdown (see summary.ts), which is honest.
+  city?: string;
+  postalCode?: string;
+  /** free-form region/kraj label when the source supplies one */
+  region?: string;
+
   // identity (normalised, for dedup — never displayed)
   /** normalizeEmail(email) */
   emailKey?: string;

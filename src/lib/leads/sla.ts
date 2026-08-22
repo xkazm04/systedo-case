@@ -8,7 +8,7 @@
  *
  *  Pure so the numbers in the analytics band are testable and so the module can
  *  re-derive everything from one clock tick. */
-import { PIPELINE_RANK, isTerminalStage, type Contact, type LeadGrade } from "@/lib/leads/types";
+import { PIPELINE_RANK, isTerminalStage, type Contact, type LeadGrade } from "./types";
 
 /** Minutes we promise ourselves to answer a new enquiry in. Deliberately NOT
  *  `speed-lead`'s 5 min: that module simulates a live phone-desk drill, this one
@@ -69,6 +69,26 @@ export function sortQueue(contacts: readonly Contact[]): Contact[] {
     if (g !== 0) return g;
     return PIPELINE_RANK[a.stage] - PIPELINE_RANK[b.stage];
   });
+}
+
+/** How many rows the urgent queue will ever show. The queue is NOT "every open
+ *  lead ranked" — a thousand-row ranked list is a database view wearing a to-do
+ *  list's clothes. It is the short, finishable set whose clock is running:
+ *  breached, warning, or due inside the target window. */
+export const URGENT_QUEUE_CAP = 50;
+
+/** The urgent subset, ordered and capped. `overflow` is how many more qualified
+ *  than the cap could show — surfaced rather than silently dropped. */
+export function urgentQueue(
+  contacts: readonly Contact[],
+  nowMs: number,
+  cap: number = URGENT_QUEUE_CAP
+): { rows: Contact[]; overflow: number } {
+  // Everything still awaiting a first reply has a running clock by construction
+  // (breached, warning, or inside the target window); the CAP — not a phase
+  // filter — is what keeps this a finishable list instead of a second database.
+  const sorted = sortQueue(contacts.filter(isQueued).filter((c) => Number.isFinite(contactSla(c, nowMs).dueAt)));
+  return { rows: sorted.slice(0, cap), overflow: Math.max(0, sorted.length - cap) };
 }
 
 export interface QueueAnalytics {

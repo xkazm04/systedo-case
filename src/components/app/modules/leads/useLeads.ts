@@ -22,7 +22,12 @@ export const DEFAULT_QUERY: LeadQuery = { q: "", stage: "", offset: 0, limit: 25
 export interface LeadsApi {
   contacts: Contact[];
   live: boolean;
+  /** contacts the project holds in total (unfiltered) */
   total: number;
+  /** a full page came back, so there is at least one more. Derived rather than
+   *  counted: the store has no cheap filtered COUNT, and a "1–25 of 900" that
+   *  silently ignores the active filter is worse than no total at all. */
+  hasNext: boolean;
   loading: boolean;
   error: string | null;
   query: LeadQuery;
@@ -156,5 +161,18 @@ export function useLeads(
     [base]
   );
 
-  return { contacts, live, total, loading, error, query, setQuery, refresh, create, patch, erase };
+  return {
+    contacts,
+    live,
+    total,
+    hasNext: contacts.length >= query.limit,
+    loading,
+    error,
+    query,
+    setQuery,
+    refresh,
+    create,
+    patch,
+    erase,
+  };
 }

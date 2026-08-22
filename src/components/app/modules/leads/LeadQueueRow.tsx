@@ -10,7 +10,7 @@ import { useFormatters, useT } from "@/lib/i18n/client";
 import { interactiveRowProps } from "@/lib/a11y/rowActivation";
 import { sourceLabel } from "@/lib/leads/aggregate";
 import type { Contact } from "@/lib/leads/types";
-import type { SlaPhase } from "./leadSla";
+import type { SlaPhase } from "@/lib/leads/sla";
 
 const T = {
   cs: {
