@@ -4,11 +4,11 @@
  *
  *  A disabled view is never rendered and never reachable from the URL —
  *  `parseView` degrades an unknown or disabled value to the default. The aggregate
- *  views receive the shared `AggregateViewProps` (see view-props.ts) so they stay
- *  swappable without the module knowing their internals. */
+ *  view receives `AggregateViewProps` (see view-props.ts) so it stays swappable
+ *  without the module knowing its internals. */
 import type { TDict } from "@/lib/i18n/interpolate";
 
-export const LEAD_VIEWS = ["vse", "fronta", "segmenty", "krajina"] as const;
+export const LEAD_VIEWS = ["vse", "fronta", "segmenty"] as const;
 export type LeadView = (typeof LEAD_VIEWS)[number];
 
 /** The database is the landing view: it is the one that scales past a few hundred
@@ -24,15 +24,14 @@ export interface LeadViewDef {
 export const LEAD_VIEW_DEFS: LeadViewDef[] = [
   { key: "vse", enabled: true },
   { key: "fronta", enabled: true },
-  // Two competing aggregate overviews, built as separate prototypes so the owner
-  // can pick the winner in the app; the loser is removed, not kept disabled.
+  // The aggregate overview the owner picked (2026-08-22) over the competing
+  // "Krajina" canvas prototype, which was removed rather than kept disabled.
   { key: "segmenty", enabled: true },
-  { key: "krajina", enabled: true },
 ];
 
 export const VIEW_T: TDict<LeadView> = {
-  cs: { vse: "Databáze", fronta: "Fronta", segmenty: "Segmenty", krajina: "Krajina" },
-  en: { vse: "Database", fronta: "Queue", segmenty: "Segments", krajina: "Landscape" },
+  cs: { vse: "Databáze", fronta: "Fronta", segmenty: "Segmenty" },
+  en: { vse: "Database", fronta: "Queue", segmenty: "Segments" },
 };
 
 export function enabledViews(): LeadViewDef[] {

@@ -1,4 +1,4 @@
-/** The contract every AGGREGATE overview (Segmenty, Krajina, …) renders against.
+/** The contract the AGGREGATE overview (Segmenty) renders against.
  *  The module owns the data seam (`useLeadSummary`) and the hand-off back into the
  *  database view; an overview never fetches contacts page-by-page on its own. */
 import type { ContactSummary } from "@/lib/leads/summary";

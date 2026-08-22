@@ -409,3 +409,11 @@ Server-only: `store.ts` (+ `.local` / `.firestore`), `apply.ts`, `mutate.ts`,
 Tests: `test-unit/leads-normalize.test.mjs`, `leads-score.test.mjs`,
 `leads-aggregate.test.mjs`, `leads-apply.test.mjs`, `leads-connectors.test.mjs`,
 and the migration guard in `db-migrations.test.mjs`.
+
+---
+
+## 12. Module views (UI phase)
+
+Krajina prototype evaluated and removed 2026-08-22 in favour of Segmenty — the
+semantic-zoom canvas (`landscape/**`, `lib/leads/landscape.ts`, `crm/landscape`)
+is gone from the tree, not kept disabled.

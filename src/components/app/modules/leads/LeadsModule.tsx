@@ -10,9 +10,10 @@
  *    • Fronta — the urgent, capped subset whose clock is running. Secondary on
  *      purpose: a fully ranked queue over a large database is a list nobody
  *      finishes.
- *    • Segmenty / Krajina — two competing AGGREGATE overviews over `/crm/summary`,
- *      prototyped side by side so the owner can pick the winner in the app. Both
- *      render against `AggregateViewProps` and drill down into Databáze.
+ *    • Segmenty — the AGGREGATE overview over `/crm/summary`: source × stage as a
+ *      heat matrix, sources by volume. Every cell is a filter that drills down into
+ *      Databáze. (The competing "Krajina" canvas prototype was evaluated and
+ *      removed on 2026-08-22.)
  *
  *  The active view lives in the URL (`?view=`) so a link, a refresh and the back
  *  button all land where the operator expects. */
@@ -38,10 +39,6 @@ import type { ContactQuery } from "@/lib/leads/store-filter";
 const SegmentsView = dynamic(() => import("./segments/SegmentsView"), {
   loading: () => <SectionSkeleton />,
 });
-const LandscapeView = dynamic(() => import("./landscape/LandscapeView"), {
-  loading: () => <SectionSkeleton />,
-});
-
 const T = {
   cs: {
     view: "Zobrazení",
@@ -49,7 +46,6 @@ const T = {
     introVse: "Kompletní databáze kontaktů — filtrování, hromadné akce, časová osa a souhlasy na jednom místě.",
     introFronta: "Co udělat teď: nejnaléhavější poptávky, kterým právě běží čas. Zkrácený seznam, ne celá databáze.",
     introSegmenty: "Mapa segmentů: zdroj × fáze jako teplotní matice, zdroje podle objemu. Každá buňka je filtr do databáze.",
-    introKrajina: "Krajina leadů: shluky podle zvolené osy, uvnitř jednotlivci. Zoomem se z přehledu dostanete k člověku.",
   },
   en: {
     view: "View",
@@ -57,7 +53,6 @@ const T = {
     introVse: "The complete contact database — filters, bulk actions, timeline and consents in one place.",
     introFronta: "What to do now: the most urgent enquiries whose clock is running. A short list, not the whole database.",
     introSegmenty: "Segment map: source × stage as a heat matrix, sources by volume. Every cell is a filter into the database.",
-    introKrajina: "Lead landscape: clusters along a chosen axis with individuals inside. Zoom from the overview to a person.",
   },
 } as const;
 
@@ -65,7 +60,6 @@ const INTRO_KEY = {
   vse: "introVse",
   fronta: "introFronta",
   segmenty: "introSegmenty",
-  krajina: "introKrajina",
 } as const satisfies Record<LeadView, keyof typeof T.cs>;
 
 export default function LeadsModule(props: {
@@ -172,20 +166,15 @@ function LeadsModuleInner({
 
       <p className="max-w-2xl text-sm leading-relaxed text-muted">{t(INTRO_KEY[view])}</p>
 
-      {view === "segmenty" || view === "krajina" ? (
-        (() => {
-          const Aggregate = view === "segmenty" ? SegmentsView : LandscapeView;
-          return (
-            <Aggregate
-              projectId={projectId}
-              summary={summary}
-              live={summaryLive}
-              total={summaryTotal}
-              loading={summaryLoading}
-              onOpenInTable={openInTable}
-            />
-          );
-        })()
+      {view === "segmenty" ? (
+        <SegmentsView
+          projectId={projectId}
+          summary={summary}
+          live={summaryLive}
+          total={summaryTotal}
+          loading={summaryLoading}
+          onOpenInTable={openInTable}
+        />
       ) : view === "fronta" ? (
         <LeadQueue
           projectId={projectId}
