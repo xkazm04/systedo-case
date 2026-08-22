@@ -109,3 +109,6 @@ kpi-sim/*
 
 # outreach loop vault (local state, never committed - see .claude/skills/outreach)
 .outreach/
+
+# /consult skill log (counts reach the ai-registry signals lane; the log itself stays local)
+.ai/consults.jsonl
