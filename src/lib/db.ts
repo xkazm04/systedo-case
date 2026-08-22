@@ -244,6 +244,64 @@ const SCHEMA = `
     updated_at TEXT NOT NULL
   );
 
+  -- The CRM lead ENTITY layer (src/lib/leads/). Deliberately ROW-BASED, not the
+  -- single-JSON-blob-per-project shape every other module here uses: a lead archive
+  -- with an activity timeline is the first genuinely UNBOUNDED, append-heavy domain
+  -- in this repo, and a blob would hit Firestore's 1 MiB document cap and lose
+  -- updates to read-modify-write races between a connector write and a UI write.
+  -- One row per contact, keyed (project_id, id); email_key/phone_key are the
+  -- NORMALISED dedup keys (see leads/normalize.ts) columned + indexed so an upsert
+  -- is an indexed probe, not a scan. stage/updated_at back the list ordering.
+  CREATE TABLE IF NOT EXISTS lead_contacts (
+    project_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    stage      TEXT NOT NULL,
+    email_key  TEXT,
+    phone_key  TEXT,
+    updated_at TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lead_contacts_project
+    ON lead_contacts (project_id, updated_at);
+  CREATE INDEX IF NOT EXISTS idx_lead_contacts_email
+    ON lead_contacts (project_id, email_key);
+  CREATE INDEX IF NOT EXISTS idx_lead_contacts_phone
+    ON lead_contacts (project_id, phone_key);
+
+  -- Raw inbound connector events, kept for replay/audit AND as the idempotency
+  -- ledger: dedup_key is "connectorId:externalId" and is UNIQUE per project,
+  -- which is the single mechanism that makes polling safely re-runnable and webhook
+  -- retries harmless. Cold archive — never read on the hot list path.
+  CREATE TABLE IF NOT EXISTS lead_events (
+    project_id  TEXT NOT NULL,
+    dedup_key   TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    data        TEXT NOT NULL,
+    PRIMARY KEY (project_id, dedup_key)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lead_events_project
+    ON lead_events (project_id, occurred_at);
+
+  -- The per-contact activity timeline, one row per entry (capped per contact on
+  -- write, oldest evicted). stage_change rows are what make time-in-stage and real
+  -- daysToQualify/daysToClose computable per lead instead of sampled constants.
+  CREATE TABLE IF NOT EXISTS lead_activities (
+    project_id TEXT NOT NULL,
+    contact_id TEXT NOT NULL,
+    id         TEXT NOT NULL,
+    at         TEXT NOT NULL,
+    kind       TEXT NOT NULL,
+    data       TEXT NOT NULL,
+    PRIMARY KEY (project_id, id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_lead_activities_contact
+    ON lead_activities (project_id, contact_id, at);
+
   -- The Start module's onboarding state: the applied website-scan business profile
   -- + a couple of flags (scanApplied, dismissed), as one blob. Absent → a fresh
   -- project (nothing scanned yet); the connector checklist's per-step "done" is
@@ -738,6 +796,62 @@ const MIGRATIONS: Migration[] = [
       ["organic_channels", "diagnoses", "recaps", "annotations", "lp_experiments", "twin", "onboarding"].every(
         (t) => tableExists(db, t)
       ),
+  },
+  {
+    version: 21,
+    name: "lead_contacts/lead_events/lead_activities (the CRM lead entity layer — ROW-based, not a blob)",
+    up: (db) => {
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS lead_contacts (
+          project_id TEXT NOT NULL,
+          id         TEXT NOT NULL,
+          stage      TEXT NOT NULL,
+          email_key  TEXT,
+          phone_key  TEXT,
+          updated_at TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          PRIMARY KEY (project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lead_contacts_project ON lead_contacts (project_id, updated_at)"
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lead_contacts_email ON lead_contacts (project_id, email_key)"
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lead_contacts_phone ON lead_contacts (project_id, phone_key)"
+      );
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS lead_events (
+          project_id  TEXT NOT NULL,
+          dedup_key   TEXT NOT NULL,
+          occurred_at TEXT NOT NULL,
+          status      TEXT NOT NULL,
+          data        TEXT NOT NULL,
+          PRIMARY KEY (project_id, dedup_key)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lead_events_project ON lead_events (project_id, occurred_at)"
+      );
+      db.exec(
+        `CREATE TABLE IF NOT EXISTS lead_activities (
+          project_id TEXT NOT NULL,
+          contact_id TEXT NOT NULL,
+          id         TEXT NOT NULL,
+          at         TEXT NOT NULL,
+          kind       TEXT NOT NULL,
+          data       TEXT NOT NULL,
+          PRIMARY KEY (project_id, id)
+        )`
+      );
+      db.exec(
+        "CREATE INDEX IF NOT EXISTS idx_lead_activities_contact ON lead_activities (project_id, contact_id, at)"
+      );
+    },
+    applied: (db) =>
+      ["lead_contacts", "lead_events", "lead_activities"].every((t) => tableExists(db, t)),
   },
 ];
 
