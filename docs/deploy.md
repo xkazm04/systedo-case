@@ -47,6 +47,49 @@ Optional / feature-gating:
 - Both bypass flags are safety-fused: `DEV_AUTH` and `LOCAL_DB` are **ignored
   when `NODE_ENV=production`**.
 
+## Telemetry retention (`llmTelemetry`)
+
+Every `generateStructured` call writes one Firestore document to **`llmTelemetry`**
+(cost, latency, tokens, status, extraction rung). Nothing in the request path
+deletes them, so without a policy the collection grows for the lifetime of the
+deployment — while its readers are already bounded (the per-project spend rollup
+looks back **60 days** and caps its read at 5000 rows).
+
+**Retention window: 90 days.** The readers' 60-day lookback plus a 30-day margin,
+so a window the app actually renders can never be truncated by expiry, and one
+quarter of history remains for an ad-hoc cost / prompt-drift investigation. The
+number lives in code as `LLM_TELEMETRY_RETENTION_DAYS`
+(`src/lib/llm/telemetry.ts`) — change it there and here together.
+
+Enforcement is a **Firestore TTL policy**, not a cron: it deletes server-side, costs
+no reads, and cannot fail silently the way a scheduled sweep can. The app's half is
+that every write stamps an `expiresAt` **Timestamp** (`now + 90 days`) at the single
+write door; a document written without it is never expired.
+
+Create the policy **once per Firestore project** (it is not code-deployable):
+
+```bash
+gcloud firestore fields ttls update expiresAt \
+  --collection-group=llmTelemetry \
+  --enable-ttl \
+  --project=<firebase-project-id>
+# verify:
+gcloud firestore fields ttls list --project=<firebase-project-id>
+```
+
+(Console equivalent: *Firestore → Time-to-live → Create policy* → collection group
+`llmTelemetry`, timestamp field `expiresAt`.)
+
+Notes:
+
+- Deletion is asynchronous — Google documents expiry within ~24 h of `expiresAt`,
+  so treat 90 days as a floor, not a deadline.
+- Documents written **before** this shipped carry no `expiresAt` and will never
+  expire. They are harmless (the readers window them out); delete them with a
+  one-off `at < <cutoff>` sweep if the collection size matters.
+- The local dev store (`LOCAL_DB=true`) does not use Firestore and has no TTL —
+  `.data/` is disposable.
+
 ## Pre-deploy checklist
 
 - [ ] `npm run check:ci` green locally (typecheck + lint + build + seed check + unit + llm gate).
