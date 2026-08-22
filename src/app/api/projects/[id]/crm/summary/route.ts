@@ -2,8 +2,12 @@
  *
  *  Exists because paging through a thousand contacts is not a way to learn what a
  *  pipeline looks like. Counts by stage, source, grade and region, the SLA phase
- *  tally, and the response-time band — all from ONE bounded scan, with `scanned` /
- *  `capped` in the payload so a slice can never be read as the whole project.
+ *  tally, the response-time band, and the source × stage CROSS-TAB the segment map
+ *  renders — all from ONE bounded scan, with `scanned` / `capped` in the payload so
+ *  a slice can never be read as the whole project. The cross-tab is deliberately
+ *  part of this payload rather than a second endpoint: it is the same pass over
+ *  the same contacts, and a second scan would be a second set of numbers to
+ *  disagree with.
  *
  *  Resolves through the SAME sample↔live seam as the list (`resolveContacts`), so
  *  a project with no contacts gets an aggregate of the illustrative set flagged

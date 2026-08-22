@@ -3,7 +3,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-const { summarizeContacts, regionLabel } = await import("@/lib/leads/summary");
+const { summarizeContacts, regionLabel, MATRIX_SOURCE_CAP } = await import("@/lib/leads/summary");
+const { contactsToLeadSources } = await import("@/lib/leads/aggregate");
+const { withMetrics } = await import("@/lib/lead-quality/compute");
 const { urgentQueue, contactSla, LEAD_SLA_TARGET_MIN, URGENT_QUEUE_CAP } = await import("@/lib/leads/sla");
 
 const NOW = Date.parse("2026-08-22T12:00:00.000Z");
@@ -108,6 +110,99 @@ test("an answered or terminal contact is not queue work", () => {
     NOW
   );
   assert.deepEqual(rows.map((r) => r.id), ["open"]);
+});
+
+/* ── the source × stage cross-tabulation (the segment map's data) ───────────── */
+
+const scored = (grade) => ({ fit: 80, engagement: 80, grade, computedAt: "" });
+
+test("the matrix cross-tabulates source × stage on the SAME scan", () => {
+  const old = new Date(NOW - 90 * MIN).toISOString();
+  const s = summarizeContacts(
+    [
+      contact({ id: "a", stage: "new", firstSeenAt: old, score: scored("A") }),
+      contact({ id: "b", stage: "new" }),
+      contact({ id: "c", stage: "won", attribution: { source: "sklik" } }),
+      contact({ id: "d", stage: "lost", attribution: { source: "sklik" } }),
+    ],
+    NOW
+  );
+
+  const ads = s.matrix.find((r) => r.label === "Google Ads");
+  assert.equal(ads.total, 2);
+  assert.equal(ads.cells.new.count, 2);
+  assert.equal(ads.cells.new.breached, 1, "only the overdue, unanswered one is breached");
+  assert.equal(ads.cells.new.ab, 1);
+  assert.equal(ads.cells.new.value, null, "no deal tier supplied ⇒ unknown, never a fabricated 0");
+
+  const sklik = s.matrix.find((r) => r.label === "Sklik");
+  assert.equal(sklik.total, 2, "a lost contact still belongs to its source");
+  assert.equal(sklik.terminal, 1);
+  assert.equal(sklik.cells.won.count, 1);
+
+  // The cross-tab must reconcile with the flat breakdowns it sits beside.
+  const cellSum = s.matrix.reduce(
+    (a, r) => a + Object.values(r.cells).reduce((x, c) => x + c.count, 0),
+    0
+  );
+  assert.equal(cellSum, s.scanned, "every scanned contact lands in exactly one cell");
+  for (const row of s.matrix) {
+    assert.equal(row.total, s.bySource.find((b) => b.label === row.label).count);
+  }
+});
+
+test("winRate in the matrix IS lead-quality's winRate — one funnel, computed twice", () => {
+  const contacts = [
+    contact({ id: "a", stage: "qualified" }),
+    contact({ id: "b", stage: "opportunity" }),
+    contact({ id: "c", stage: "won" }),
+    contact({ id: "d", stage: "new" }),
+    contact({ id: "e", stage: "lost" }),
+  ];
+  const row = summarizeContacts(contacts, NOW).matrix[0];
+  const funnel = withMetrics(contactsToLeadSources(contacts)[0]);
+
+  assert.equal(row.total, funnel.leads, "row total = the funnel's entered leads");
+  assert.equal(row.qualified, funnel.qualified, "cumulative at lead-quality's ranks");
+  assert.equal(row.won, funnel.won);
+  assert.equal(row.winRate, funnel.winRate);
+});
+
+test("a win rate over nothing is unknown, not 0 %", () => {
+  const row = summarizeContacts([contact({ stage: "new" })], NOW).matrix[0];
+  assert.equal(row.qualified, 0);
+  assert.equal(row.winRate, null);
+});
+
+test("deal values are summed only when the caller actually has them", () => {
+  const s = summarizeContacts([contact({ id: "a", stage: "opportunity" })], NOW, false, {
+    dealValueByContact: new Map([["a", 250_000]]),
+  });
+  assert.equal(s.matrix[0].cells.opportunity.value, 250_000);
+});
+
+test("the matrix is capped, and what did not fit is disclosed rather than dropped", () => {
+  const many = Array.from({ length: MATRIX_SOURCE_CAP + 3 }, (_, i) =>
+    contact({ id: `c${i}`, attribution: { source: `src-${i}` } })
+  );
+  const s = summarizeContacts(many, NOW);
+  assert.equal(s.matrix.length, MATRIX_SOURCE_CAP);
+  assert.equal(s.matrixOther.sources, 3);
+  assert.equal(s.matrixOther.count, 3);
+  assert.equal(s.bySourceGrade.length, MATRIX_SOURCE_CAP + 3, "the grade mix covers every source");
+});
+
+test("bySourceGrade reports the A/B share per source", () => {
+  const s = summarizeContacts(
+    [
+      contact({ id: "a", score: scored("A") }),
+      contact({ id: "b", score: scored("B") }),
+      contact({ id: "c", score: scored("D") }),
+      contact({ id: "d" }),
+    ],
+    NOW
+  );
+  assert.deepEqual(s.bySourceGrade, [{ label: "Google Ads", count: 4, ab: 2, abShare: 0.5 }]);
 });
 
 test("the SLA target is a stated number, not a magic constant", () => {
