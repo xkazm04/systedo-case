@@ -5,6 +5,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white)
 ![Quality gate](https://img.shields.io/badge/check-typecheck%20%C2%B7%20lint%20%C2%B7%20build-2ea44f)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 
 **Adamant** je AI pracovní prostor pro reklamu — vzácný druh v adtech. Změří
 výkon účtu, vysvětlí, co čísla znamenají, a vygeneruje podklady, které z nich
@@ -130,6 +131,45 @@ cp .env.example .env.local   # doplňte GEMINI_API_KEY
 
 Kanonická URL se řeší env-first (`NEXT_PUBLIC_SITE_URL` →
 `VERCEL_PROJECT_PRODUCTION_URL` → fallback) — viz `src/lib/site.ts`.
+
+## License & self-hosting
+
+*(Anglicky — tato sekce míří na open-source publikum; detaily jsou v
+[`docs/open-source/`](./docs/open-source/).)*
+
+Adamant is licensed under **AGPL-3.0-only** ([`LICENSE`](./LICENSE)).
+
+**It is meant to run on your machine, on your models, on your data.** Nothing is
+held back from this repository to sell elsewhere: the reporting, the campaign
+intelligence, the content engine and all of its AI operations, Creative Studio,
+the brand-voice twin, keywords, local SEO and the catalog spine are the whole
+product, not a trial edition. A self-hosted install is intended to be **unmetered
+— no plans, no quotas** — because the metering that exists is cost control on the
+operator's own provider bill, and in a self-hosted install that operator is you.
+There is no analytics SDK in the tree and nothing phones home by default.
+
+A **hosted version** exists for teams who would rather not run servers. It is the
+same software with the operations handled — hosting, backups, upgrades, managed
+crons, a public HTTPS origin, and the approved provider credentials (a Google Ads
+developer token, a Sklik token, reviewed platform apps) that cannot be shipped
+inside an open repository. It is not a better version.
+
+> **Status: not there yet.** A production build currently *requires* Firestore
+> and Google OAuth, so self-hosting does not work today. What has to change,
+> with file-level evidence, is in
+> [`docs/open-source/impact.md`](./docs/open-source/impact.md); the agreed design
+> for the fix — self-host mode, the auth seam, SQLite as a production store,
+> BYOM/Ollama, packaging, crons, and a full external-egress inventory — is in
+> [`docs/open-source/self-hosting.md`](./docs/open-source/self-hosting.md).
+
+> **Note on the AGPL.** Run it internally however you like. If you modify Adamant
+> and offer it to others over a network, §13 requires you to offer those users
+> your modified source.
+
+Contributions are welcome under a CLA — see [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+for the setup and the verification gate, [`CLA.md`](./CLA.md) for why the CLA
+exists, and [`CODE_OF_CONDUCT.md`](./CODE_OF_CONDUCT.md). Security issues go
+through [`SECURITY.md`](./SECURITY.md), never a public issue.
 
 ## Historie projektu
 
