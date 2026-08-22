@@ -29,7 +29,11 @@ export function telemetryToSpend(
         model: e.model,
         calls: 1,
         tokens: e.inputTokens + e.outputTokens,
-        costUsd: e.estCostUsd,
+        // An unpriced entry (dev CLI subscription / a model with no rate row) carries
+        // NO cost figure. It contributes nothing to the row's total — it is unknown,
+        // not free — and the count of such calls travels separately on LiveSpend
+        // .unpricedCalls so a surface can disclose it rather than imply completeness.
+        costUsd: e.estCostUsd ?? 0,
         daysAgo,
       };
     });

@@ -4,6 +4,7 @@
  *  can share them without dragging a server-only dependency into its bundle — the
  *  same "pure math, no I/O" boundary telemetry-ops already keeps. Type-only import
  *  of LlmTelemetryEntry (erased at runtime, so no cycle). */
+import type { AiExtractionRung } from "@/lib/ai-types";
 import type { LlmTelemetryEntry } from "./telemetry";
 
 /** Per-call outcome recorded durably so monitoring can tell healthy traffic from
@@ -58,6 +59,53 @@ export function successRate(entries: StatusFields[]): number {
   if (real.length === 0) return 1;
   const good = real.filter((e) => isHealthyStatus(entryStatus(e))).length;
   return good / real.length;
+}
+
+// ===========================================================================
+// Unpriced disclosure — `nullable-cost-never-zero`
+// ===========================================================================
+
+/** The subset of an entry needed to decide whether its cost is known. */
+type CostFields = Pick<LlmTelemetryEntry, "estCostUsd" | "unpriced">;
+
+/** True when the call did real work whose cost we cannot state: the dev Claude CLI
+ *  (subscription, no usage reported) or a model with no rate row in cost.ts. Such an
+ *  entry carries NO `estCostUsd` — it must never be folded in as a zero without the
+ *  aggregate also disclosing how many of its calls were unpriced. Legacy rows (which
+ *  always wrote a number) read as priced. */
+export function isUnpriced(e: CostFields): boolean {
+  return e.unpriced === true || e.estCostUsd == null;
+}
+
+/** How many entries in the window carry no cost figure. The companion every
+ *  cost total must be read next to: "$0.42 over 30 calls (11 unpriced)". */
+export function countUnpriced(entries: CostFields[]): number {
+  return entries.filter(isUnpriced).length;
+}
+
+// ===========================================================================
+// Extraction observability
+// ===========================================================================
+
+/** The subset of an entry needed for the extraction rollup. */
+type ExtractionFields = Pick<LlmTelemetryEntry, "promptHash" | "extraction">;
+
+/** Per-prompt-fingerprint distribution of which extraction rung produced the parse,
+ *  e.g. `{ "a1b2…": { direct: 40, fence: 2 } }`. Split by `promptHash` because that
+ *  IS the contract-version boundary: comparing two fingerprints' distributions
+ *  answers "did this prompt revision make the model's JSON harder to extract?".
+ *  Entries with no rung (natively-parsed providers, legacy rows) are skipped, so a
+ *  fingerprint that only ever ran on Gemini simply does not appear. */
+export function extractionDistribution(
+  entries: ExtractionFields[]
+): Record<string, Partial<Record<AiExtractionRung, number>>> {
+  const out: Record<string, Partial<Record<AiExtractionRung, number>>> = {};
+  for (const e of entries) {
+    if (!e.extraction) continue;
+    const bucket = (out[e.promptHash] ??= {});
+    bucket[e.extraction] = (bucket[e.extraction] ?? 0) + 1;
+  }
+  return out;
 }
 
 /** Nearest-rank percentile of an ASCENDING-sorted array; 0 for an empty array. */

@@ -10,7 +10,7 @@
  *  deterministic demo when no provider is available so the app still works from a
  *  clean checkout. Server-only.
  */
-import type { AiMeta, AiResponse } from "../ai-types";
+import type { AiExtractionRung, AiMeta, AiResponse } from "../ai-types";
 import { callStatus, looksCorrupt } from "./output-health";
 import { languageViolations } from "./language-check";
 // The char-limit violation vocabulary is owned by the tools' shared string layer
@@ -121,7 +121,13 @@ interface ProviderCall {
 interface Provider {
   modelFor: (tier?: ModelTier) => string;
   available: () => boolean;
-  run: (call: ProviderCall) => Promise<{ parsed: unknown; usage?: TokenUsage }>;
+  run: (call: ProviderCall) => Promise<{
+    parsed: unknown;
+    usage?: TokenUsage;
+    /** which extraction rung produced the parse — prompt-embedded providers only
+     *  (Gemini parses natively against its responseSchema, so it reports none). */
+    extraction?: AiExtractionRung;
+  }>;
   /** Lower bound for this provider's wrapper deadline (ms). The Claude CLI already
    *  self-times-out at CLAUDE_TIMEOUT_MS; flooring its deadline there guarantees
    *  the outer deadline never SHORTENS the CLI path (happy-path byte-identical).
@@ -134,11 +140,12 @@ const claudeProvider: Provider = {
   modelFor: claudeModelTag,
   available: claudeAvailable,
   deadlineFloorMs: CLAUDE_TIMEOUT_MS,
-  // Claude runs on the dev subscription — no metered token usage to report.
-  run: async (c) => ({
-    parsed: await runClaude({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal }),
-    usage: undefined,
-  }),
+  // Claude runs on the dev subscription — no metered token usage to report, so the
+  // call is UNPRICED (the wrapper omits estCostUsd rather than claiming $0).
+  run: async (c) => {
+    const out = await runClaude({ system: c.system, prompt: c.prompt, schema: c.schema, tier: c.tier, signal: c.signal });
+    return { parsed: out.value, usage: undefined, extraction: out.rung };
+  },
 };
 
 const geminiProvider: Provider = {
@@ -212,7 +219,7 @@ async function runWithRetry(
   provider: Provider,
   call: ProviderCall,
   attempts: number
-): Promise<{ parsed: unknown; usage?: TokenUsage; attempts: number }> {
+): Promise<{ parsed: unknown; usage?: TokenUsage; extraction?: AiExtractionRung; attempts: number }> {
   const deadlineMs = attemptDeadlineMs(provider, call.tier);
   let lastErr: unknown;
   for (let i = 1; i <= attempts; i++) {
@@ -303,6 +310,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // into validate()/normalize() and the persisted output).
       let parsed = pruneToSchema(first.parsed, args.schema);
       let usage = first.usage;
+      let extraction = first.extraction;
       let totalAttempts = first.attempts;
 
       // Server-side output validation + one self-repair re-prompt — but only when
@@ -342,6 +350,9 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
           // (tokens + cost), not just the second's. "Latest wins" here undercounted
           // telemetry + on-screen cost by a whole paid call on every repair.
           usage = addUsage(usage, second.usage);
+          // The repaired parse is the one we ship, so its rung is the one that
+          // describes the shipped output.
+          extraction = second.extraction;
           totalAttempts += second.attempts;
           repaired = true;
           // Re-check on the REPAIRED parse. The repair gets exactly one shot: if the
@@ -384,16 +395,26 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
       // was allowed. Say so — the alternative is shipping Czech to an English user
       // and letting them work out why.
       if (languageMismatch) meta.languageMismatch = true;
+      // Which rung of the extraction ladder produced the shipped parse — the leading
+      // indicator of prompt/producer drift. Absent for natively-parsed providers.
+      if (extraction) meta.extraction = extraction;
+      // Cost, or an honest absence. Two calls genuinely CANNOT be priced: the dev
+      // Claude CLI (subscription — it reports no usage at all) and any model with no
+      // row in cost.ts RATES. Both used to write a hard 0, which reads across every
+      // spend surface as "this was free" — a claim, where the truth is "unknown".
+      // `nullable-cost-never-zero`: omit the field and count the call as unpriced.
+      let estCostUsd: number | null = null;
       if (usage) {
         meta.usage = usage;
         // Prefer a provider-reported real cost (e.g. OpenRouter's usage.cost) over
         // the local RATES estimate; fall back to the estimate when none is returned.
-        meta.estCostUsd = usage.costUsd ?? estimateCostUsd(model, usage);
-      } else if (provider === claudeProvider) {
-        meta.estCostUsd = 0; // dev subscription — no metered cost
+        estCostUsd = usage.costUsd ?? estimateCostUsd(model, usage);
+        if (estCostUsd !== null) meta.estCostUsd = estCostUsd;
       }
 
       // Persist eval telemetry (cost/latency/usage) that we'd otherwise discard.
+      // Firestore rejects `undefined` fields, so the unpriced case spreads an
+      // explicit `unpriced: true` marker INSTEAD of an estCostUsd key.
       await recordLlmCall({
         toolId,
         promptHash,
@@ -405,7 +426,8 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         repaired,
         fellBack: idx > 0,
         status,
-        estCostUsd: meta.estCostUsd ?? 0,
+        ...(estCostUsd !== null ? { estCostUsd } : { unpriced: true }),
+        ...(extraction ? { extraction } : {}),
         inputTokens: usage?.inputTokens ?? 0,
         outputTokens: usage?.outputTokens ?? 0,
         at: new Date().toISOString(),
@@ -445,6 +467,8 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
         repaired: false,
         fellBack: idx > 0,
         status: "error",
+        // A genuine 0: no usable output landed and no usage was reported, so there
+        // is nothing to price. (Unlike the unpriced case above, which DID do work.)
         estCostUsd: 0,
         inputTokens: 0,
         outputTokens: 0,
@@ -481,6 +505,7 @@ export async function generateStructured<T>(args: GenerateArgs<T>): Promise<AiRe
     attempts: 0,
     repaired: false,
     status: "demo",
+    // A genuine 0: the deterministic demo touches no provider at all.
     estCostUsd: 0,
     inputTokens: 0,
     outputTokens: 0,

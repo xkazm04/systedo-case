@@ -19,6 +19,7 @@ import {
   type ModelTier,
 } from "./models";
 import { isTimeoutAbort, LlmCallError } from "./errors";
+import type { AiExtractionRung } from "../ai-types";
 
 const isWindows = process.platform === "win32";
 
@@ -213,21 +214,31 @@ function extractBalanced(text: string): Record<string, unknown> | null {
   return null;
 }
 
+/** The extraction ladder's result, carrying WHICH rung produced the parse.
+ *  `extraction-observability`: the rung that fired is the leading indicator of a
+ *  producer/prompt change — a tool that used to land on `direct` and now routinely
+ *  needs `balanced` is drifting weeks before `balanced` starts failing too. */
+export interface ExtractedJson {
+  value: Record<string, unknown>;
+  rung: AiExtractionRung;
+}
+
 /** Robustly extract a JSON object from CLI output: direct parse → fenced block →
- *  stream-json text fields → balanced brace scan. */
-export function extractJson(raw: string): Record<string, unknown> | null {
+ *  stream-json text fields → balanced brace scan — reporting which rung fired.
+ *  `extractJson` is the untraced facade over this (BYOM adapters use it). */
+export function extractJsonTraced(raw: string): ExtractedJson | null {
   const text = raw.trim();
   if (!text) return null;
 
   const direct = tryParse(text);
-  if (direct) return direct;
+  if (direct) return { value: direct, rung: "direct" };
 
   // fenced ```json ... ``` blocks
   const fence = /```(?:json)?\s*([\s\S]*?)```/gi;
   let m: RegExpExecArray | null;
   while ((m = fence.exec(raw)) !== null) {
     const p = tryParse(m[1].trim()) ?? extractBalanced(m[1]);
-    if (p) return p;
+    if (p) return { value: p, rung: "fence" };
   }
 
   // stream-json envelope lines (claude --output-format json/stream-json)
@@ -249,14 +260,22 @@ export function extractJson(raw: string): Record<string, unknown> | null {
   }
   if (assembled) {
     const p = tryParse(assembled.trim()) ?? extractBalanced(assembled);
-    if (p) return p;
+    if (p) return { value: p, rung: "envelope" };
   }
 
-  return extractBalanced(raw);
+  const balanced = extractBalanced(raw);
+  return balanced ? { value: balanced, rung: "balanced" } : null;
+}
+
+/** Robustly extract a JSON object from CLI output. Rung-agnostic facade over
+ *  {@link extractJsonTraced} — byte-identical behaviour to before. */
+export function extractJson(raw: string): Record<string, unknown> | null {
+  return extractJsonTraced(raw)?.value ?? null;
 }
 
 /** Run a structured generation through the Claude CLI. Returns the parsed JSON
- *  object (pre-normalization). Throws on CLI failure, unparseable output, or a
+ *  object (pre-normalization) plus the extraction rung that produced it, so the
+ *  wrapper can stamp + record it. Throws on CLI failure, unparseable output, or a
  *  client abort (the CLI child is killed). `tier` picks the model alias. */
 export async function runClaude(args: {
   system: string;
@@ -264,12 +283,12 @@ export async function runClaude(args: {
   schema: object;
   tier?: ModelTier;
   signal?: AbortSignal;
-}): Promise<Record<string, unknown>> {
+}): Promise<ExtractedJson> {
   const out = await runCli(buildCliPrompt(args.system, args.prompt, args.schema), {
     tier: args.tier,
     signal: args.signal,
   });
-  const parsed = extractJson(out);
+  const parsed = extractJsonTraced(out);
   if (!parsed) {
     // Unparseable output → code "malformed_json" (retryable). Append a bounded raw
     // snippet so a parse failure is diagnosable from the log.
