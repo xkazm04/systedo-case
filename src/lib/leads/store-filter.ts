@@ -2,6 +2,7 @@
  *  Firestore list can never disagree about what "search=nov" matches. Diacritic
  *  folding matters here: a Czech operator types "novak" and must find "Novák". */
 import { normalizeForSearch } from "@/lib/nav";
+import { sourceLabel } from "./aggregate";
 import { isErased, type Contact, type PipelineStage } from "./types";
 
 /** List filter. `search` is matched in memory against name/email/phone/company
@@ -11,6 +12,13 @@ import { isErased, type Contact, type PipelineStage } from "./types";
  *  import it without a cycle through the dispatcher. */
 export interface ContactQuery {
   stage?: PipelineStage;
+  /** exact DISPLAY label of the attribution source (`aggregate.ts#sourceLabel`),
+   *  which is what every aggregate groups by — filtering on the raw `source` key
+   *  would silently merge two campaigns the segment map shows as two rows.
+   *  Matched in memory over the bounded scan, like `search`: there is no source
+   *  column/index on either backend and adding one would be a migration, not a
+   *  filter. */
+  source?: string;
   /** free text — folded, matched against name/email/phone/company/tags */
   search?: string;
   /** page size (default DEFAULT_LIST_LIMIT) */
@@ -46,13 +54,15 @@ export function contactMatches(c: Contact, foldedNeedle: string): boolean {
   return false;
 }
 
-/** Apply the in-memory half of a ContactQuery (search + erased visibility) and the
+/** Apply the in-memory half of a ContactQuery (search + source + erased visibility) and the
  *  page window. Stage filtering is pushed into the backend query (it is columned /
  *  indexed), so it is NOT re-applied here. */
 export function applyContactQuery(rows: Contact[], query: ContactQuery): Contact[] {
   const needle = normalizeForSearch(query.search ?? "").trim();
+  const source = query.source?.trim();
   const filtered = rows.filter((c) => {
     if (!query.includeErased && isErased(c)) return false;
+    if (source && sourceLabel(c.attribution) !== source) return false;
     return contactMatches(c, needle);
   });
   const offset = Math.max(0, query.offset ?? 0);
