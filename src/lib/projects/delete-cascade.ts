@@ -30,6 +30,7 @@ import { clearAnnotations } from "@/lib/annotations/store";
 import { clearExperiments } from "@/lib/lp-exp/store";
 import { clearTwin } from "@/lib/twin/store";
 import { clearLeadImports } from "@/lib/lead-quality/store";
+import { clearProjectLeads } from "@/lib/leads/store";
 import { clearOnboarding } from "@/lib/onboarding/store";
 import { deleteCatalog } from "@/lib/catalog/store";
 import { deleteProjectState } from "@/lib/project-state/store";
@@ -67,6 +68,10 @@ export const PROJECT_STORE_DELETERS: ProjectStoreDeleter[] = [
   { name: "inventory-plan", delete: (p) => clearInventoryPlanState(p) },
   { name: "finance-inputs", delete: (p) => clearFinanceInputs(p) },
   { name: "lead-imports", delete: (p) => clearLeadImports(p) },
+  // The CRM lead ENTITY layer (contacts + raw events + timelines). Row-based, so
+  // this wipes three tables/subcollections rather than one blob — and it holds the
+  // most sensitive data in the product, which makes registering it non-optional.
+  { name: "leads", delete: (p) => clearProjectLeads(p) },
   { name: "onboarding", delete: (p) => clearOnboarding(p) },
   { name: "catalog", delete: (p, u) => deleteCatalog(u, p) },
   { name: "project-state", delete: (p, u) => deleteProjectState(u, p) },

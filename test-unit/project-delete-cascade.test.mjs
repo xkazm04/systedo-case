@@ -55,6 +55,7 @@ const { saveRecaps, getRecaps } = await import("@/lib/recaps/store");
 const { saveExperiments, getExperiments } = await import("@/lib/lp-exp/store");
 const { saveLeadImports, getLeadImports } = await import("@/lib/lead-quality/store");
 const { saveOnboarding, getOnboarding } = await import("@/lib/onboarding/store");
+const { saveContact, getContact } = await import("@/lib/leads/store");
 const { archiveDrafts, listArchivedDrafts } = await import("@/lib/twin/archive-store");
 const { saveProjectGoal, getProjectGoal } = await import("@/lib/goals/store");
 const { saveInventoryPlanState, getInventoryPlanState } = await import("@/lib/inventory/plan-store");
@@ -155,6 +156,28 @@ const STORE_FIXTURES = [
     name: "lead-imports",
     seed: (u, p) => saveLeadImports(p, { leads: [], updatedAt: NOW }),
     present: async (u, p) => (await getLeadImports(p)) !== null,
+  },
+  {
+    // The CRM lead entity layer: row-based (contacts + events + timelines), and the
+    // most sensitive per-project data in the product — its cascade is not optional.
+    name: "leads",
+    seed: (u, p) =>
+      saveContact(p, {
+        id: "cascade-1",
+        projectId: p,
+        name: "Jan Novák",
+        emailKey: "jan@firma.cz",
+        stage: "new",
+        stageEnteredAt: NOW,
+        attribution: { source: "manual" },
+        consent: [],
+        tags: [],
+        firstSeenAt: NOW,
+        lastActivityAt: NOW,
+        createdAt: NOW,
+        updatedAt: NOW,
+      }),
+    present: async (u, p) => (await getContact(p, "cascade-1")) !== null,
   },
   {
     name: "onboarding",
