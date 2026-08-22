@@ -37,6 +37,7 @@ import {
 } from "@/lib/ai/rate-limit";
 import { durableGuard } from "@/lib/ai/durable-limit";
 import { describeRefusal } from "@/lib/ai/paid-guard";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
 
 export async function POST(request: Request) {
@@ -73,6 +74,12 @@ export async function POST(request: Request) {
     const userId = await currentUserId();
     const rawProjectId = (body as { projectId?: unknown } | null)?.projectId;
     const projectId = typeof rawProjectId === "string" ? rawProjectId : undefined;
+    // Prove the wire projectId before it composes a tenant key — an unverified id
+    // mints a fresh empty tenant, which here surfaces as the "sync your campaigns
+    // first" 409 rather than the truth ("that project is not yours / does not
+    // exist"), and leaves an orphan tenant nothing can clean up.
+    const unknownProject = await rejectUnknownProject(userId, projectId);
+    if (unknownProject) return unknownProject;
     const tenant = await resolveTenant(userId, projectId);
 
     const meta = await getSyncMeta(tenant);

@@ -18,12 +18,18 @@ import { GuardrailError, NoSnapshotsError } from "@/lib/campaigns/control-plane-
 import { getAlert } from "@/lib/campaigns/alerts";
 import { alertCampaignIds } from "@/lib/campaigns/alert-suppression";
 import { getCostModel } from "@/lib/cost-model/store";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
 
 export async function GET(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ changeSets: [] });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  // Prove the wire projectId before it composes a tenant key — an unverified id
+  // mints a fresh empty tenant, which for a governance ledger means an EMPTY
+  // ledger, which is exactly the answer you must not give about ad-ops changes.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId);
   return Response.json({ changeSets: await listChangeSets(tenant) });
 }
@@ -50,6 +56,8 @@ export async function POST(request: Request) {
   const override = body.override === true;
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
   const alertId = typeof body.alertId === "string" ? body.alertId : "";
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId);
 
   if (action === "create") {

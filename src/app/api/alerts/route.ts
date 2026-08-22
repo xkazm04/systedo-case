@@ -10,6 +10,7 @@ import { currentUserId } from "@/lib/session";
 import { resolveTenant } from "@/lib/campaigns/connector";
 import { listAlerts, markAlertsRead, acknowledgeAlert } from "@/lib/campaigns/alerts";
 import { planAlertAction } from "@/lib/campaigns/alert-actions";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
 
 export async function GET(request: Request) {
@@ -17,6 +18,11 @@ export async function GET(request: Request) {
   if (!userId) return Response.json({ alerts: [], unread: 0 });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  // Prove the wire projectId is the caller's BEFORE it composes a tenant key — an
+  // unverified id mints a fresh empty tenant rather than failing, so the inbox would
+  // read "no alerts" for a typo instead of saying the project is unknown.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId);
   const alerts = await listAlerts(tenant);
   const unread = alerts.filter((a) => !a.read).length;
@@ -46,6 +52,8 @@ export async function POST(request: Request) {
   const plan = planAlertAction({ action, id });
   if ("error" in plan) return Response.json({ error: plan.error }, { status: plan.status });
 
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId);
 
   switch (plan.kind) {

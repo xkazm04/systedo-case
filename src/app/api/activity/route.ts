@@ -18,6 +18,7 @@ import {
   publishActivityTitle,
 } from "@/lib/activity/publish";
 import { getServerLocale } from "@/lib/i18n/locale";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
 
 export async function GET(request: Request) {
@@ -25,6 +26,12 @@ export async function GET(request: Request) {
   if (!userId) return Response.json({ activity: [] });
 
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  // A wire projectId must be proved to be the caller's BEFORE it composes a tenant
+  // key: an unverified id does not fail, it silently mints a FRESH EMPTY tenant —
+  // here, a timeline that reads as "no history yet" and an orphan the delete cascade
+  // can never reach. The keyless paths (anonymous, no active project) are untouched.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   const { records } = await listActivity(tenant);
   return Response.json({ activity: records });
@@ -52,6 +59,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "Neznámý způsob publikace." }, { status: 400 });
   }
   const projectId = typeof body.projectId === "string" && body.projectId ? body.projectId : undefined;
+  // Same rule on the write path, and it matters more here: an audit row written into
+  // a phantom tenant is a record nobody can ever read back.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
 
   const tenant = await resolveTenant(userId, projectId, { accountScoped: false });
   // The row's prose is composed here and PERSISTED, so it is written in the

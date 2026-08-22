@@ -4,6 +4,7 @@
 import { currentUserId } from "@/lib/session";
 import { resolveCampaignContext, resolveTenant } from "@/lib/campaigns/connector";
 import { getProject } from "@/lib/projects/store";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 import {
   getCampaignSeries,
   getLatestChanges,
@@ -87,7 +88,13 @@ export async function GET(request: Request) {
     // when it was never synced — the client then falls back to a real sync).
     const rawPeriod = url.searchParams.get("period");
     const period = isCampaignPeriod(rawPeriod) ? rawPeriod : undefined;
-    const tenant = await resolveTenant(await currentUserId(), projectId);
+    const userId = await currentUserId();
+    // Prove the wire projectId before it composes a tenant key — an unverified id
+    // mints a fresh empty tenant, so a typo answers "no campaigns synced yet"
+    // (indistinguishable from a real cold project) and leaves an orphan behind.
+    const unknown = await rejectUnknownProject(userId, projectId);
+    if (unknown) return unknown;
+    const tenant = await resolveTenant(userId, projectId);
     return Response.json(await loadState(tenant, period));
   } catch (err) {
     console.error("[campaigns] loadState failed:", err);
@@ -125,6 +132,8 @@ export async function POST(request: Request) {
   const preferStored = Boolean((body as { preferStored?: unknown } | null)?.preferStored);
 
   const userId = await currentUserId();
+  const unknownProject = await rejectUnknownProject(userId, projectId);
+  if (unknownProject) return unknownProject;
 
   // Period toggle fast path: when the requested period's stored state is warm
   // (it has been synced before), flip the tenant's active pointer and serve it

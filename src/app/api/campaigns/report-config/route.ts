@@ -10,6 +10,7 @@ import {
   type ClientProfile,
   type ReportCadence,
 } from "@/lib/campaigns/report-config";
+import { rejectUnknownProject } from "@/lib/projects/api-guard";
 
 
 const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
@@ -42,6 +43,11 @@ export async function GET(request: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Nepřihlášeno." }, { status: 401 });
   const projectId = new URL(request.url).searchParams.get("projectId") ?? undefined;
+  // Prove the wire projectId before it composes a tenant key: an unverified id mints
+  // a fresh empty tenant, and for THIS resource an unset tenant reads back the seeded
+  // demo identity — a typo would hand the caller the wrong company's report branding.
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   return Response.json(await getReportConfig(await resolveTenant(userId, projectId)));
 }
 
@@ -80,6 +86,8 @@ export async function PUT(request: Request) {
     clientProfile: parsed.profile,
   };
   const projectId = typeof body.projectId === "string" ? body.projectId : undefined;
+  const unknown = await rejectUnknownProject(userId, projectId);
+  if (unknown) return unknown;
   const tenant = await resolveTenant(userId, projectId);
   await setReportConfig(tenant, patch);
   return Response.json({ ...(await getReportConfig(tenant)) });
