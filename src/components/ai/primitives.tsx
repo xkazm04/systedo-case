@@ -464,10 +464,17 @@ export function RefineBar({ onRefine, disabled }: { onRefine: (note: string) => 
   );
 }
 
-/** Transparency: collapsible view of the exact prompt sent to the model. */
-export function PromptDisclosure({ prompt }: { prompt: string }) {
+/** Transparency: collapsible view of the exact prompt sent to the model.
+ *
+ *  The prompt is a DEBUG channel: /api/ai strips `meta.prompt` from its responses
+ *  (it carries server-resolved grounding) unless DEV_INSPECT=1, so it is normally
+ *  ABSENT. Render nothing rather than an empty disclosure card — that keeps every
+ *  call site (`<PromptDisclosure prompt={data.meta.prompt} />`) valid and correct
+ *  without each panel having to guard. */
+export function PromptDisclosure({ prompt }: { prompt?: string }) {
   const t = useT(T);
   const [open, setOpen] = useState(false);
+  if (!prompt) return null;
   return (
     <div className="card overflow-hidden">
       <div className="flex w-full items-center justify-between px-5 py-4 text-sm font-medium text-navy-800">

@@ -95,7 +95,11 @@ export async function saveReport(
     model: response.meta.model,
     demo: response.meta.demo,
     payload: response.result,
-    prompt: response.meta.prompt,
+    // `meta.prompt` is optional now (the AI dispatch masks it out of client egress
+    // and the durable cache), and a report saved from a durable cache hit therefore
+    // has none. Firestore rejects an `undefined` field, so store "" — the report
+    // renders its disclosure only when a prompt is actually present.
+    prompt: response.meta.prompt ?? "",
     took_ms: response.meta.tookMs,
     created_at: createdAt,
     input_hash: inputHash ?? null,

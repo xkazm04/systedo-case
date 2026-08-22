@@ -117,6 +117,33 @@ const realDeps: ModeDeps = {
  *  policy; only its injected deps touch the world. */
 export const MODE_TABLE = createModeTable(realDeps);
 
+/** The assembled prompt is a DEBUG channel, not a client one.
+ *
+ *  `meta.prompt` carries the fully-assembled prompt INCLUDING every server-resolved
+ *  grounding the caller never sent — competitor lists, catalog rows, the twin voice
+ *  profile, lead/diagnosis figures. `/api/ai` is a public, unauthenticated POST, so
+ *  returning it verbatim published that grounding to anyone who could shape an input;
+ *  writing it into the durable L2 cache persisted it too. Both egresses are masked
+ *  here, at the ONE door every /api/ai response passes through.
+ *
+ *  The escape hatch is the repo's existing local-inspection flag (`npm run
+ *  dev:inspect` → DEV_INSPECT=1), read per call so nothing is baked at module load
+ *  and production — which never sets it — cannot be flipped by a stale import.
+ *  Consumers treat `meta.prompt` as optional (see AiMeta) and render nothing when
+ *  it is absent. */
+function inspectEnabled(): boolean {
+  return process.env.DEV_INSPECT === "1";
+}
+
+/** Strip `meta.prompt` unless local inspection is on. Returns the SAME object when
+ *  there is nothing to strip, so the untouched path stays byte-identical. */
+function maskPrompt<T>(r: AiResponse<T>): AiResponse<T> {
+  if (inspectEnabled() || r.meta?.prompt === undefined) return r;
+  const meta = { ...r.meta };
+  delete meta.prompt;
+  return { ...r, meta };
+}
+
 /** The outcome of a metered generation: an error Response (quota exhausted) to return
  *  as-is, or the AiResponse + whether it came from the response cache — so a delegate
  *  can reshape it into its own envelope. */
@@ -214,12 +241,15 @@ export async function runMetered(
   }
 
   setCachedAi(key, result); // L1 (process-local, synchronous)
-  setCachedAiDurable(mode, key, result); // L2 (durable, fire-and-forget — never awaited)
+  // L2 (durable, fire-and-forget — never awaited). The durable copy outlives the
+  // process and is read back by other instances, so the grounded prompt is stripped
+  // BEFORE it is persisted, not only on the way out.
+  setCachedAiDurable(mode, key, maskPrompt(result));
   return { ok: true, result, cached: false };
 }
 
-/** The /api/ai adapter: run the metered generation and wrap it as a JSON Response —
- *  byte-identical to the old inline `cachedRespond`. */
+/** The /api/ai adapter: run the metered generation and wrap it as a JSON Response,
+ *  with the assembled prompt masked out of the client egress (see maskPrompt). */
 export async function cachedRespond(
   mode: string,
   value: unknown,
@@ -228,5 +258,5 @@ export async function cachedRespond(
   gen: () => Promise<AiResponse<unknown>>
 ): Promise<Response> {
   const m = await runMetered(mode, value, locale, userId, gen);
-  return m.ok ? Response.json(m.result) : m.response;
+  return m.ok ? Response.json(maskPrompt(m.result)) : m.response;
 }
