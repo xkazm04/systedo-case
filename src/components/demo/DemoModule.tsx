@@ -543,6 +543,9 @@ export default async function DemoModule({
               socialReal: false, socialDemo: true, socialCredentials: false,
               sklikUserToken: false, sklikEnvToken: false,
               micrositeEnabled: true, micrositeIllustrative: true,
+              // The demo tenant has no stored contacts, so lead ingestion reads as
+              // the manual CSV path it actually is.
+              leadContacts: false,
             })}
           />
         </ModulePage>

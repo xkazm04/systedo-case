@@ -42,7 +42,7 @@ const COPY: Record<SupportedLocale, Copy> = {
     sumConnected: "Připojeno", sumAction: "Vyžaduje akci", sumMissing: "Nenastaveno",
     sumManual: "Manuálně", sumOptional: "Volitelné",
     open: "Otevřít",
-    categories: { ads: "Reklama", ai: "AI", content: "Obsah", reviews: "Recenze", reports: "Reporty", infra: "Infrastruktura" },
+    categories: { ads: "Reklama", ai: "AI", content: "Obsah", leads: "Leady", reviews: "Recenze", reports: "Reporty", infra: "Infrastruktura" },
     status: { connected: "Připojeno", action: "Vyžaduje akci", missing: "Nenastaveno", manual: "Manuálně", optional: "Volitelné" },
     hint: { connected: "Aktivní.", action: "Dokončete připojení účtu nebo klíče.", missing: "Nastavte přihlašovací údaje v prostředí.", manual: "Bez živého napojení, dnes manuální proces.", optional: "Volitelné / vypnuto." },
     detail: {
@@ -59,6 +59,9 @@ const COPY: Record<SupportedLocale, Copy> = {
       "gbp-none": "Naimportujte Google Business Profile v modulu Mapa. Pak se recenze a pobočky propíší živě.",
       "microsite-sample": "Mikrostránka běží na ukázkové řadě — je označená a neindexuje se. Po synchronizaci dat ukáže reálná čísla.",
       "microsite-off": "Veřejná mikrostránka klienta zatím není publikovaná.",
+      "leads-csv-active": "Kontakty v projektu jsou. Další dávku naimportujete na kartě Napojení.",
+      "leads-csv-idle": "Funguje bez přihlašovacích údajů: vložte CSV nebo zadejte kontakt ručně. Opakovaný import stejného souboru nic nezduplikuje.",
+      "leads-planned": "Připravujeme. Podmínky a omezení najdete na kartě Napojení — přečtěte si je dřív, než na tento kanál vsadíte.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generování (Gemini / vlastní klíč)",
@@ -66,6 +69,8 @@ const COPY: Record<SupportedLocale, Copy> = {
       "creative-images": "Generování obrázků (Leonardo)", microsite: "Klientská mikrostránka",
       "email-reports": "E-mail & reporty (Resend)", lighttrack: "LightTrack (LLM telemetrie)",
       persistence: "Datové úložiště", warehouse: "Datový sklad / feed", auth: "Přihlášení (Google OAuth)", cron: "Automatizace (cron)",
+      "leads-csv": "CSV / ruční zadání", "leads-gsheet": "Google Sheets", "leads-gmail": "Gmail",
+      "leads-whatsapp": "WhatsApp", "leads-linkedin": "LinkedIn Lead Sync",
     },
     probeNote: "Zahrnuje živé ověření: zdraví vlastního AI klíče (včetně stáří ověření), připojené sociální účty (ukázkové vs. reálné), váš Sklik token, datový sklad, účet Google Ads a publikovanou mikrostránku.",
   },
@@ -74,7 +79,7 @@ const COPY: Record<SupportedLocale, Copy> = {
     sumConnected: "Connected", sumAction: "Needs action", sumMissing: "Not configured",
     sumManual: "Manual", sumOptional: "Optional",
     open: "Open",
-    categories: { ads: "Advertising", ai: "AI", content: "Content", reviews: "Reviews", reports: "Reports", infra: "Infrastructure" },
+    categories: { ads: "Advertising", ai: "AI", content: "Content", leads: "Leads", reviews: "Reviews", reports: "Reports", infra: "Infrastructure" },
     status: { connected: "Connected", action: "Needs action", missing: "Not configured", manual: "Manual", optional: "Optional" },
     hint: { connected: "Active.", action: "Finish linking the account or key.", missing: "Set the credentials in the environment.", manual: "No live integration, a manual process today.", optional: "Optional / turned off." },
     detail: {
@@ -91,6 +96,9 @@ const COPY: Record<SupportedLocale, Copy> = {
       "gbp-none": "Import your Google Business Profile in the Map module. Reviews and locations then flow in live.",
       "microsite-sample": "The microsite runs on the sample series — disclosed and not indexed. It shows real figures once data is synced.",
       "microsite-off": "No public client microsite is published yet.",
+      "leads-csv-active": "This project holds contacts. Import the next batch on the Connections tab.",
+      "leads-csv-idle": "Works with no credentials at all: paste a CSV or enter a contact by hand. Re-importing the same file duplicates nothing.",
+      "leads-planned": "Coming soon. The conditions and limits are on the Connections tab — read them before betting on this channel.",
     },
     items: {
       "google-ads": "Google Ads", sklik: "Sklik", "ai-llm": "AI generation (Gemini / own key)",
@@ -98,6 +106,8 @@ const COPY: Record<SupportedLocale, Copy> = {
       "creative-images": "Image generation (Leonardo)", microsite: "Client microsite",
       "email-reports": "Email & reports (Resend)", lighttrack: "LightTrack (LLM telemetry)",
       persistence: "Data store", warehouse: "Data warehouse / feed", auth: "Sign-in (Google OAuth)", cron: "Automation (cron)",
+      "leads-csv": "CSV / manual entry", "leads-gsheet": "Google Sheets", "leads-gmail": "Gmail",
+      "leads-whatsapp": "WhatsApp", "leads-linkedin": "LinkedIn Lead Sync",
     },
     probeNote: "Includes live checks: your own AI key's health (validation age included), linked social accounts (demo vs real), your Sklik token, the data warehouse, the Google Ads account, and a published microsite.",
   },
@@ -115,9 +125,11 @@ const TONE: Record<IntStatus, PillTone> = {
  *  overview (where the Ads account is connected). */
 const LINK_PATH: Record<IntLink, string> = {
   home: "", socialni: "/socialni", mapa: "/mapa", branding: "/branding", nastaveni: "/nastaveni",
+  // The lead-connector rows' action lives on this module's own second tab.
+  "leads-connect": "/integrace?tab=napojeni",
 };
 
-const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "reviews", "reports", "infra"];
+const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];
 
 export default async function IntegrationStatusModule({
   rows,

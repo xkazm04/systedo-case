@@ -21,7 +21,7 @@ export type IntStatus =
 // tone, a hint and a summary tally in every locale. Vocabulary the board cannot
 // emit is vocabulary that can only mislead a reader of this file.
 
-export type IntCategory = "ads" | "ai" | "content" | "reviews" | "reports" | "infra";
+export type IntCategory = "ads" | "ai" | "content" | "leads" | "reviews" | "reports" | "infra";
 
 /** Every connector the board can render. A closed union (not `string`) so a new
  *  connector fails `typecheck` in the module's label table instead of rendering its
@@ -39,7 +39,16 @@ export type IntItemId =
   | "persistence"
   | "warehouse"
   | "auth"
-  | "cron";
+  | "cron"
+  // Lead connectors (src/lib/leads/connectors/registry.ts). Only CSV/manual ingest
+  // exists today; the other four are registered-but-unbuilt and say so — a board
+  // that quietly omitted them would read as "we have no lead ingestion", and one
+  // that listed them as connectable would be a lie.
+  | "leads-csv"
+  | "leads-gsheet"
+  | "leads-gmail"
+  | "leads-whatsapp"
+  | "leads-linkedin";
 
 /** A connector-specific explanation the coarse status word cannot give — e.g.
  *  "connected, but only a DEMO account" or "validated, but 30+ days ago". Closed
@@ -57,11 +66,14 @@ export type IntDetail =
   | "sklik-none"
   | "gbp-none"
   | "microsite-sample"
-  | "microsite-off";
+  | "microsite-off"
+  | "leads-csv-active"
+  | "leads-csv-idle"
+  | "leads-planned";
 
 /** Where the row's action lives. A hint that names a step must be able to TAKE the
  *  reader there; module slugs are resolved against the current project by the UI. */
-export type IntLink = "home" | "socialni" | "mapa" | "branding" | "nastaveni";
+export type IntLink = "home" | "socialni" | "mapa" | "branding" | "nastaveni" | "leads-connect";
 
 export interface IntegrationRow {
   id: IntItemId;
@@ -127,9 +139,39 @@ export interface ProvisionInput {
   /** the published microsite is still on the disclosed sample series (illustrative),
    *  i.e. it is live but not yet showing the client's own synced numbers */
   micrositeIllustrative: boolean;
+  /** live probe: this project holds at least one real contact in the lead store,
+   *  i.e. the CSV/manual ingest path has actually been used */
+  leadContacts: boolean;
 }
 
-const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "reviews", "reports", "infra"];
+const CATEGORY_ORDER: IntCategory[] = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];
+
+/** Lead ingestion. CSV/manual is a REAL path that ships today — it just has no
+ *  credentials to hold, so an unused one reads "manual", not "missing". The other
+ *  four are registered-but-unbuilt: `optional`, with their honest caveat one click
+ *  away on the Napojení tab rather than hidden behind a "coming soon" word. */
+function leadRows(p: ProvisionInput): IntegrationRow[] {
+  const planned = (id: IntItemId): IntegrationRow => ({
+    id,
+    category: "leads",
+    status: "optional",
+    detail: "leads-planned",
+    link: "leads-connect",
+  });
+  return [
+    {
+      id: "leads-csv",
+      category: "leads",
+      status: p.leadContacts ? "connected" : "manual",
+      detail: p.leadContacts ? "leads-csv-active" : "leads-csv-idle",
+      link: "leads-connect",
+    },
+    planned("leads-gsheet"),
+    planned("leads-gmail"),
+    planned("leads-whatsapp"),
+    planned("leads-linkedin"),
+  ];
+}
 
 /** The AI row: a server key OR a HEALTHY own key. A stale/erroring BYOM key is not
  *  a working integration — the settings page already says so; this must agree. */
@@ -221,6 +263,7 @@ export function computeIntegrationRows(p: ProvisionInput): IntegrationRow[] {
       status: p.googleOAuth ? "connected" : p.devAuth ? "action" : "missing",
     },
     { id: "cron", category: "infra", status: p.cron ? "connected" : "missing" },
+    ...leadRows(p),
   ];
   return rows.sort(
     (a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)

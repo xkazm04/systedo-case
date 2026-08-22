@@ -19,6 +19,7 @@ const NONE = {
   socialReal: false, socialDemo: false, socialCredentials: false,
   sklikUserToken: false, sklikEnvToken: false,
   micrositeEnabled: false, micrositeIllustrative: false,
+  leadContacts: false,
 };
 
 const rowById = (rows, id) => rows.find((r) => r.id === id);
@@ -154,7 +155,7 @@ test('no row can ever emit the retired "planned" vocabulary', () => {
 
 test("rows are grouped by category order and summary tallies every visible row", () => {
   const rows = computeIntegrationRows(NONE);
-  const order = ["ads", "ai", "content", "reviews", "reports", "infra"];
+  const order = ["ads", "ai", "content", "leads", "reviews", "reports", "infra"];
   let last = -1;
   for (const r of rows) {
     const idx = order.indexOf(r.category);
@@ -166,4 +167,22 @@ test("rows are grouped by category order and summary tallies every visible row",
   // The summary must have exactly the statuses the board can render — a key that no
   // row produces is dead vocabulary, which is what "planned" was.
   assert.deepEqual(Object.keys(s).sort(), ["action", "connected", "manual", "missing", "optional"]);
+});
+
+test("lead connectors: CSV is manual until contacts exist, the unbuilt four stay optional", () => {
+  const idle = row({}, "leads-csv");
+  assert.equal(idle.status, "manual", "CSV import ships and needs no credentials — never 'missing'");
+  assert.equal(idle.detail, "leads-csv-idle");
+  assert.equal(idle.link, "leads-connect");
+
+  const active = row({ leadContacts: true }, "leads-csv");
+  assert.equal(active.status, "connected");
+  assert.equal(active.detail, "leads-csv-active");
+
+  for (const id of ["leads-gsheet", "leads-gmail", "leads-whatsapp", "leads-linkedin"]) {
+    const r = row({ leadContacts: true }, id);
+    assert.equal(r.status, "optional", `${id} is registered but unbuilt — it must not read as connectable`);
+    assert.equal(r.detail, "leads-planned");
+    assert.equal(r.link, "leads-connect");
+  }
 });

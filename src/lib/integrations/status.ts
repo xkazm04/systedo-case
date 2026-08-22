@@ -23,6 +23,7 @@ import { getAdsConnection } from "@/lib/campaigns/connection";
 import { getSklikConnection } from "@/lib/campaigns/sklik-connection";
 import { listAccounts, providerConfigured, socialConfigured } from "@/lib/social/connection";
 import { getLocalSignals } from "@/lib/local-signals/store";
+import { listContacts } from "@/lib/leads/store";
 
 const has = (v: string | undefined): boolean => typeof v === "string" && v.trim() !== "";
 
@@ -131,9 +132,20 @@ async function probeMicrosite(
   }
 }
 
+/** Has the lead store any real contact for this project? Probed by a bounded read
+ *  rather than the contact counter — the counter is an optimisation, and a project
+ *  whose counter is stale must not be reported as having no ingestion. */
+async function probeLeadContacts(projectId: string): Promise<boolean> {
+  try {
+    return (await listContacts(projectId, { limit: 1, includeErased: true })).length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export async function integrationStatus(project: Project, userId: string | null): Promise<IntegrationRow[]> {
   const e = process.env;
-  const [byomKey, warehouse, adsLinked, gbpImported, social, sklikUserToken, microsite] =
+  const [byomKey, warehouse, adsLinked, gbpImported, social, sklikUserToken, microsite, leadContacts] =
     await Promise.all([
       probeByomHealth(userId),
       probeWarehouse(userId, project.id),
@@ -142,6 +154,7 @@ export async function integrationStatus(project: Project, userId: string | null)
       probeSocial(userId),
       probeSklikUserToken(userId),
       probeMicrosite(userId, project.id),
+      probeLeadContacts(project.id),
     ]);
   return computeIntegrationRows({
     googleAdsToken: has(e.GOOGLE_ADS_DEVELOPER_TOKEN),
@@ -168,5 +181,6 @@ export async function integrationStatus(project: Project, userId: string | null)
     sklikEnvToken: has(e.SKLIK_API_TOKEN),
     micrositeEnabled: microsite.enabled,
     micrositeIllustrative: microsite.illustrative,
+    leadContacts,
   });
 }
