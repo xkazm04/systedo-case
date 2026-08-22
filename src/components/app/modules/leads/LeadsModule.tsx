@@ -10,12 +10,16 @@
  *    • Fronta — the urgent, capped subset whose clock is running. Secondary on
  *      purpose: a fully ranked queue over a large database is a list nobody
  *      finishes.
- *    • Mapa — declared in the registry, not built yet (the seam, not a promise).
+ *    • Segmenty / Krajina — two competing AGGREGATE overviews over `/crm/summary`,
+ *      prototyped side by side so the owner can pick the winner in the app. Both
+ *      render against `AggregateViewProps` and drill down into Databáze.
  *
  *  The active view lives in the URL (`?view=`) so a link, a refresh and the back
  *  button all land where the operator expects. */
 import { Suspense, useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import SectionSkeleton from "@/components/app/SectionSkeleton";
 import { Button } from "@/components/ui";
 import { Plus } from "@/components/icons";
 import Segmented from "@/components/dashboard/vykon/Segmented";
@@ -29,6 +33,14 @@ import LeadTable from "./LeadTable";
 import LeadDetail from "./LeadDetail";
 import LeadSummaryBar from "./LeadSummaryBar";
 import LeadCreateModal from "./LeadCreateModal";
+import type { ContactQuery } from "@/lib/leads/store-filter";
+
+const SegmentsView = dynamic(() => import("./segments/SegmentsView"), {
+  loading: () => <SectionSkeleton />,
+});
+const LandscapeView = dynamic(() => import("./landscape/LandscapeView"), {
+  loading: () => <SectionSkeleton />,
+});
 
 const T = {
   cs: {
@@ -36,14 +48,25 @@ const T = {
     create: "Nový kontakt",
     introVse: "Kompletní databáze kontaktů — filtrování, hromadné akce, časová osa a souhlasy na jednom místě.",
     introFronta: "Co udělat teď: nejnaléhavější poptávky, kterým právě běží čas. Zkrácený seznam, ne celá databáze.",
+    introSegmenty: "Mapa segmentů: zdroj × fáze jako teplotní matice, zdroje podle objemu. Každá buňka je filtr do databáze.",
+    introKrajina: "Krajina leadů: shluky podle zvolené osy, uvnitř jednotlivci. Zoomem se z přehledu dostanete k člověku.",
   },
   en: {
     view: "View",
     create: "New contact",
     introVse: "The complete contact database — filters, bulk actions, timeline and consents in one place.",
     introFronta: "What to do now: the most urgent enquiries whose clock is running. A short list, not the whole database.",
+    introSegmenty: "Segment map: source × stage as a heat matrix, sources by volume. Every cell is a filter into the database.",
+    introKrajina: "Lead landscape: clusters along a chosen axis with individuals inside. Zoom from the overview to a person.",
   },
 } as const;
+
+const INTRO_KEY = {
+  vse: "introVse",
+  fronta: "introFronta",
+  segmenty: "introSegmenty",
+  krajina: "introKrajina",
+} as const satisfies Record<LeadView, keyof typeof T.cs>;
 
 export default function LeadsModule(props: {
   projectId: string;
@@ -74,7 +97,8 @@ function LeadsModuleInner({
    *  refetch together — three surfaces disagreeing about the same contact is the
    *  failure mode a shared reload key exists to prevent. */
   const [reloadKey, setReloadKey] = useState(0);
-  const { summary } = useLeadSummary(projectId, reloadKey);
+  const { summary, live: summaryLive, total: summaryTotal, loading: summaryLoading } =
+    useLeadSummary(projectId, reloadKey);
 
   const view = parseView(search.get("view"));
   const setView = useCallback(
@@ -90,6 +114,12 @@ function LeadsModuleInner({
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+
+  /** An aggregate view's drill-down: apply its filter and land in the database. */
+  const openInTable = (query: Partial<ContactQuery>) => {
+    api.setQuery({ ...query, offset: 0 });
+    setView("vse");
+  };
   const selected = api.contacts.find((c) => c.id === selectedId) ?? null;
 
   const afterWrite = async () => {
@@ -133,11 +163,23 @@ function LeadsModuleInner({
         </Button>
       </div>
 
-      <p className="max-w-2xl text-sm leading-relaxed text-muted">
-        {view === "fronta" ? t("introFronta") : t("introVse")}
-      </p>
+      <p className="max-w-2xl text-sm leading-relaxed text-muted">{t(INTRO_KEY[view])}</p>
 
-      {view === "fronta" ? (
+      {view === "segmenty" || view === "krajina" ? (
+        (() => {
+          const Aggregate = view === "segmenty" ? SegmentsView : LandscapeView;
+          return (
+            <Aggregate
+              projectId={projectId}
+              summary={summary}
+              live={summaryLive}
+              total={summaryTotal}
+              loading={summaryLoading}
+              onOpenInTable={openInTable}
+            />
+          );
+        })()
+      ) : view === "fronta" ? (
         <LeadQueue
           projectId={projectId}
           live={api.live}

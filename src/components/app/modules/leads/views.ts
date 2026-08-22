@@ -2,14 +2,13 @@
  *  the renderer all read, so adding a view is one entry rather than four edits in
  *  three files.
  *
- *  `mapa` is declared and NOT enabled on purpose: an aggregate/map overview is the
- *  next view this module gets, and leaving the seam typed (rather than "we'll add a
- *  tab later") is what stops the third view from being bolted on beside a hardcoded
- *  ternary. A disabled view is never rendered and never reachable from the URL —
- *  `parseView` degrades an unknown or disabled value to the default. */
+ *  A disabled view is never rendered and never reachable from the URL —
+ *  `parseView` degrades an unknown or disabled value to the default. The aggregate
+ *  views receive the shared `AggregateViewProps` (see view-props.ts) so they stay
+ *  swappable without the module knowing their internals. */
 import type { TDict } from "@/lib/i18n/interpolate";
 
-export const LEAD_VIEWS = ["vse", "fronta", "mapa"] as const;
+export const LEAD_VIEWS = ["vse", "fronta", "segmenty", "krajina"] as const;
 export type LeadView = (typeof LEAD_VIEWS)[number];
 
 /** The database is the landing view: it is the one that scales past a few hundred
@@ -25,12 +24,15 @@ export interface LeadViewDef {
 export const LEAD_VIEW_DEFS: LeadViewDef[] = [
   { key: "vse", enabled: true },
   { key: "fronta", enabled: true },
-  { key: "mapa", enabled: false },
+  // Two competing aggregate overviews, built as separate prototypes so the owner
+  // can pick the winner in the app; the loser is removed, not kept disabled.
+  { key: "segmenty", enabled: true },
+  { key: "krajina", enabled: true },
 ];
 
 export const VIEW_T: TDict<LeadView> = {
-  cs: { vse: "Databáze", fronta: "Fronta", mapa: "Mapa" },
-  en: { vse: "Database", fronta: "Queue", mapa: "Map" },
+  cs: { vse: "Databáze", fronta: "Fronta", segmenty: "Segmenty", krajina: "Krajina" },
+  en: { vse: "Database", fronta: "Queue", segmenty: "Segments", krajina: "Landscape" },
 };
 
 export function enabledViews(): LeadViewDef[] {
