@@ -22,9 +22,12 @@ npm run seed:local    # once: dev user + sample projects into .data/systedo.db
 npm run dev           # real auth mode (needs Google OAuth + Firestore creds)
 npm run check         # typecheck + lint + build
 npm run test:unit     # node:test suites in test-unit/
-npm run test:e2e      # Playwright (NOT in CI)
+npm run test:e2e      # Playwright — also runs in CI (the key-free `e2e-smoke` job)
 npm run check:ci      # what CI runs: check + seed:check + test:unit + llm:gate:check
 npm run llm:gate      # LLM proof gate (llm:list shows call sites)
+npm run doctor        # env preflight (not a gate — reports missing/odd env)
+npm run i18n:gate     # localization-wave gate: diffs the tree vs a ref (--base)
+npm run i18n:audit    # coverage / leftover-source / register audit (ratcheted)
 ```
 
 ## Architecture in 10 lines
