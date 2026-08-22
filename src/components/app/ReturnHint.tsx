@@ -12,9 +12,19 @@ import { useT } from "@/lib/i18n/client";
 import { ArrowRight } from "@/components/icons";
 
 const T = {
-  cs: { back: "Zpět na Kanály" },
-  en: { back: "Back to Channels" },
+  cs: { kanaly: "Zpět na Kanály", leady: "Zpět na Leady" },
+  en: { kanaly: "Back to Channels", leady: "Back to Leads" },
 } as const;
+
+/** The modules that hand off to another one and therefore deserve a way back.
+ *  A closed list, not "any module key": an arbitrary `?from=` would render a link
+ *  to a route that may not exist for this project type. */
+const ORIGINS = ["kanaly", "leady"] as const;
+type Origin = (typeof ORIGINS)[number];
+
+function isOrigin(v: string | null): v is Origin {
+  return v !== null && (ORIGINS as readonly string[]).includes(v);
+}
 
 export default function ReturnHint() {
   const t = useT(T);
@@ -23,9 +33,10 @@ export default function ReturnHint() {
   const search = useSearchParams();
 
   const projectId = params?.projectId;
-  if (!projectId || search.get("from") !== "kanaly") return null;
+  const from = search.get("from");
+  if (!projectId || !isOrigin(from)) return null;
 
-  const href = `/app/${projectId}/kanaly`;
+  const href = `/app/${projectId}/${from}`;
 
   return (
     <div className="mb-4 animate-fade-in">
@@ -45,7 +56,7 @@ export default function ReturnHint() {
         className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted transition-colors hover:text-navy-800"
       >
         <ArrowRight width={12} height={12} className="rotate-180" />
-        {t("back")}
+        {t(from)}
       </Link>
     </div>
   );

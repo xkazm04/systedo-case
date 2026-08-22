@@ -501,6 +501,20 @@ export const MODULES: ModuleDef[] = [
     blurb: "Uložené briefy a koncepty článků z Obsahového enginu: u projektu, ne jen v prohlížeči.",
     blurbEn: "Saved briefs and article drafts from the Content engine: kept with the project, not just in your browser.",
   },
+  {
+    // Lead management over the row-based `lib/leads` store (docs/leads/design.md).
+    // Appended with the next `order` so no existing sidebar sequence shifts; renders
+    // last within Komunikace. Every project type gets enquiries, hence ALL.
+    key: "leady",
+    order: 36,
+    label: "Leady",
+    labelEn: "Leads",
+    icon: "leads",
+    section: "comms",
+    availableFor: ALL,
+    blurb: "Kontakty a poptávky s fází, skóre a SLA odpočtem: co vyřídit teď, celá databáze a časová osa.",
+    blurbEn: "Contacts and enquiries with stage, score and an SLA clock: what to handle now, the full database and a timeline.",
+  },
 ];
 
 /** Modules available for a project type, grouped by section then by explicit
