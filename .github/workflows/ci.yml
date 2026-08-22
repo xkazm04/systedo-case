@@ -44,6 +44,20 @@ jobs:
       - name: Full CI gate (npm run check:ci)
         run: npm run check:ci
 
+      # i18n audit — REPORTING rung, deliberately non-blocking.
+      #
+      # The rung is chosen by measurement, not preference: the audit does not pass
+      # today (40 coverage gaps / 42 leftover-source values as of 2026-08-22), so
+      # making it blocking would only teach people to skip CI. It runs, it prints,
+      # and it exits 0 here. What it DOES enforce is the ratchet inside
+      # scripts/i18n-audit.mjs: `--check` fails when a count rises above its
+      # baseline. Promote this step to blocking (drop continue-on-error) once the
+      # counts have been ratcheted down far enough that a red run is always a real
+      # regression rather than pre-existing debt.
+      - name: i18n audit (reporting rung, ratcheted)
+        continue-on-error: true
+        run: npm run i18n:audit:check
+
   # Key-free E2E smoke lane. Runs the Playwright suite with NO GEMINI_API_KEY:
   # the two keyed specs (ai-asistent, kampane-triage's model bits) skip their
   # live-model tests and keep structural + demo-mode + timeout coverage; the

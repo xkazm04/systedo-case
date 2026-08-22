@@ -332,5 +332,33 @@ if (JSON_OUT) {
   console.log();
 }
 
-const failed = leftover.length + register.length;
-if (process.argv.includes("--check") && failed > 0) process.exit(1);
+/** RATCHET (gate rung: REPORTING → BLOCKING-on-regression).
+ *
+ *  This audit cannot be zeroed today, so `--check` is not "must be clean" — it is
+ *  "must not get worse". Each number below is the measured population on the day
+ *  the gate was wired (2026-08-22); a count may only go DOWN. Lower the baseline
+ *  in the SAME commit that fixes findings, or the ratchet stops biting.
+ *
+ *  Do NOT raise a number to make a red run green: that is the one edit this file
+ *  exists to prevent. */
+const RATCHET = {
+  coverage: 40, // hardcoded cs strings outside any T table
+  leftover: 42, // cs values byte-identical to en, minus the DNT list
+  register: 0, // tykání in the cs column (already clean — keep it there)
+};
+
+if (process.argv.includes("--check")) {
+  const now = {
+    coverage: coverage.reduce((a, r) => a + r.count, 0),
+    leftover: leftover.length,
+    register: register.length,
+  };
+  const over = Object.keys(RATCHET).filter((k) => now[k] > RATCHET[k]);
+  const under = Object.keys(RATCHET).filter((k) => now[k] < RATCHET[k]);
+  for (const k of over)
+    console.error(`RATCHET BROKEN  ${k}: ${now[k]} > baseline ${RATCHET[k]} — a new finding was introduced.`);
+  for (const k of under)
+    console.log(`ratchet slack   ${k}: ${now[k]} < baseline ${RATCHET[k]} — lower RATCHET.${k} in scripts/i18n-audit.mjs.`);
+  if (over.length) process.exit(1);
+  if (!under.length) console.log("i18n ratchet held.");
+}

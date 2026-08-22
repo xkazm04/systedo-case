@@ -59,7 +59,14 @@ npm run i18n:audit    # coverage / leftover-source / register audit (ratcheted)
   `docs/roadmap/component-debt.md`.
 - i18n parity is the type system: `TDict`/`Messages` make a key added to one
   locale column and not the other a `typecheck` failure. There is no parity
-  script — do not invent one.
+  script — do not invent one. What typecheck cannot see (a cs value never
+  actually written, tykání, strings that never reached a `T` table) is
+  `npm run i18n:audit`, which sits on the **reporting** rung in CI: it prints,
+  it does not block, and `--check` fails only when a count rises above the
+  `RATCHET` baseline in `scripts/i18n-audit.mjs`. Fix findings and lower the
+  baseline in the same commit; never raise it. `npm run i18n:gate` is the
+  per-wave diff gate (run it during a localization wave, not on every commit);
+  `npm run doctor` is env preflight, not a gate.
 - `context-map.json` maps all files to feature contexts; read it at task start
   and scope edits to the relevant context's `file_paths`.
 - Deploy/env questions (required env names, rollback, crons, host rename):
