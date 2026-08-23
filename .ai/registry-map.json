@@ -15,12 +15,14 @@
   },
   "stats": {
     "contexts": 117,
-    "pairs": 473,
+    "pairs": 474,
     "unmatched": 0,
     "weaklyGoverned": 13,
     "medianTopScore": 415.6,
     "carriedVerdicts": 0,
-    "restoredPairs": 0
+    "restoredPairs": 0,
+    "judged": 2,
+    "deviations": 1
   },
   "subjectIndex": {
     "demo-data-plane": [
@@ -4857,7 +4859,10 @@
             "prod"
           ],
           "confidence": "strong",
-          "state": "unknown"
+          "state": "not-applicable",
+          "evidence": "Subject scopes to image/video vendors (golden path:18, resolution/plate techniques); this context routes structured TEXT llm calls (index.ts:261).",
+          "evaluatedAt": "2026-08-23",
+          "evaluatedAgainst": "sha256:e9c2b2c9f86b4264"
         },
         {
           "subject": "error-handling",
@@ -4906,6 +4911,16 @@
           ],
           "confidence": "probable",
           "state": "unknown"
+        },
+        {
+          "subject": "model-routing",
+          "bundle": "software-engineering",
+          "source": "conform",
+          "confidence": "strong",
+          "state": "unknown",
+          "evidence": "Corrected pairing from /conform: the text-LLM chokepoint the media subject was wrongly matched to. Not yet evaluated.",
+          "evaluatedAt": "2026-08-23",
+          "evaluatedAgainst": "sha256:1117665ec59c1168"
         }
       ],
       "governance": "governed"
@@ -7203,7 +7218,10 @@
             "section"
           ],
           "confidence": "strong",
-          "state": "unknown"
+          "state": "deviation",
+          "evidence": "UI copy promises the model 'must not invent' numbers (MonthlyReport.tsx:34,67) but validateRecap checks field presence only; no numeric-membership gate exists. Caveats drop at the share seam.",
+          "evaluatedAt": "2026-08-23",
+          "evaluatedAgainst": "sha256:1117665ec59c1168"
         },
         {
           "subject": "docs-sync",
