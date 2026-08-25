@@ -1,9 +1,9 @@
 {
-  "summary": "Kohorty se v čase zhoršují: LTV:CAC klesl z 4,5× (2025-01) na 1,0× (2025-03), CAC roste (1 200→2 100 Kč) a M3 retence padá (62 %→31 %) s exponenciálním tvarem poklesu (100→70→48→31 %). U 2025-03 se návratnost investice vůbec nevrací v horizontu a kanálový rozpad ukazuje, že kohortu táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC 0,8×, 150 akvizic) proti ziskovému Organic (LTV:CAC 6,0×, 90 akvizic zdarma).",
+  "summary": "Unit ekonomika kohort se plošně zhoršuje: LTV:CAC klesá z 4,5× (01/2025) přes 2,4× (02/2025) na 1,0× (03/2025), CAC roste ze 1 200 Kč na 2 100 Kč a M3 retence padá ze 62 % na 31 %. Kohorta 03/2025 se investice nevrací v žádném horizontu. Kanálový rozpad ukazuje, že kohortu táhne dolů Google Ads (CAC 2 600 Kč, LTV:CAC pouze 0,8×, 150 z 240 akvizic, tj. 62,5 % objemu), zatímco Organic je vysoce ziskový (LTV:CAC 6,0×, 90 akvizic, nulový CAC). Retenční křivka (100 %→70 %→48 %→31 %) má tvar strmého propadu hned v M0–M1 a poté pokračujícího, relativně se zrychlujícího odlivu bez známek stabilizace.",
   "worstCohort": "2025-03",
-  "recommendation": "Okamžitě omezit/přesměrovat rozpočet z Google Ads (LTV:CAC 0,8×) směrem k Organic akvizici a zlepšit onboarding/retenci v M1–M2, kde dochází k největšímu propadu (70 %→48 %).",
+  "recommendation": "Okamžitě omezit nebo pozastavit akvizici z Google Ads v kohortě 03/2025 (CAC 2 600 Kč při LTV:CAC 0,8× je ztrátová) a přesměrovat rozpočet a kapacitu na Organic kanál (LTV:CAC 6,0×), čímž se zvýší blended LTV:CAC a zkrátí návratnost dalších kohort.",
   "risks": [
-    "Blended CAC 1 650 Kč a průměrné LTV:CAC 2,6× maskují, že nejnovější kohorta je ztrátová.",
-    "Bez zásahu do retence v M1 se návratnost dalších kohort dál prodlouží nad únosný horizont."
+    "Kanálový rozpad je k dispozici pouze pro kohortu 03/2025, takže příčinu zhoršení u 01/2025 a 02/2025 nelze kanálově potvrdit, jen odvodit z trendu.",
+    "Retenční hodnoty za M3 u kohorty 03/2025 jsou označené jako modelované, nikoli plně naměřené, což snižuje jistotu odhadu tvaru poklesu."
   ]
 }

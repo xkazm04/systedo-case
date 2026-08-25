@@ -1,30 +1,29 @@
 {
-  "titleTag": "Jak správně skladovat ořechy: praktický návod",
-  "metaDescription": "Zjistěte, jak skladovat ořechy, aby zůstaly čerstvé a chutné co nejdéle. Tipy na teplotu, vlhkost, obaly a rozpoznání zkažených ořechů.",
+  "titleTag": "Jak skladovat ořechy: tipy pro dlouhou trvanlivost",
+  "metaDescription": "Zjistěte, jak správně skladovat ořechy, aby si zachovaly chuť a čerstvost. Praktické tipy na teplotu, vlhkost a vhodné obaly pro domácí skladování.",
   "outline": [
     {
-      "heading": "Proč je správné skladování ořechů důležité",
+      "heading": "Optimální podmínky pro skladování ořechů",
       "points": [
-        "Ořechy obsahují tuky náchylné k oxidaci a žluknutí",
-        "Nesprávné skladování zkracuje trvanlivost a mění chuť",
-        "Vliv světla, vzduchu, tepla a vlhkosti na kvalitu"
+        "Teplota do 18 °C zpomaluje žluknutí tuků",
+        "Nízká vlhkost brání vzniku plísní",
+        "Tma a uzavřený prostor chrání ořechy před oxidací"
       ]
     },
     {
-      "heading": "Nejlepší způsoby skladování podle typu ořechů",
+      "heading": "Vhodné obaly a nádoby",
       "points": [
-        "Skladování ve spíži vs. v lednici vs. v mrazáku",
-        "Vhodné obaly: vzduchotěsné nádoby, sklenice, sáčky se zipem",
-        "Rozdíly mezi loupanými a neloupanými ořechy",
-        "Doporučená trvanlivost jednotlivých druhů (vlašské, mandle, kešu)"
+        "Vzduchotěsné sklenice nebo dózy s víkem",
+        "Vakuové sáčky pro dlouhodobé uchování",
+        "Vyhněte se papírovým sáčkům bez uzávěru"
       ]
     },
     {
-      "heading": "Jak poznat zkažené ořechy a časté chyby",
+      "heading": "Skladování podle druhu ořechů a délky uchování",
       "points": [
-        "Známky žluknutí: zápach, hořká chuť, změna barvy",
-        "Chyby jako skladování na slunci nebo v teple kuchyně",
-        "Kdy ořechy raději vyhodit a proč riziko nepodceňovat"
+        "Loupané ořechy vydrží v lednici 3–6 měsíců",
+        "Neloupané ořechy lze skladovat i rok při správných podmínkách",
+        "Mražení prodlužuje trvanlivost až na 1–2 roky"
       ]
     }
   ]

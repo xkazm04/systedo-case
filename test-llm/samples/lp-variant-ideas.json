@@ -1,25 +1,25 @@
 {
   "variants": [
     {
-      "label": "Konkrétní přínos v čísle úspor času",
-      "hypothesis": "Headline zdůrazňující konkrétní přínos (úspora času při plánování) zvýší konverzi oproti obecnému popisu produktu.",
-      "headline": "Přehled o všech projektech na jednom místě – bez chaosu v úkolech",
+      "label": "Bolest a řešení",
+      "hypothesis": "Headline pojmenovávající konkrétní každodenní problém (chaos v úkolech, promeškané termíny) zvýší konverzi více než obecný popis produktu v kontrolní variantě.",
+      "headline": "Konec chaosu v úkolech. Váš tým vždy ví, co má dělat dál.",
       "primaryCTA": "Vyzkoušet zdarma",
-      "rationale": "Konkrétní slib řešení bolesti (chaos v úkolech) je přesvědčivější než obecný popis funkcí."
+      "rationale": "Pojmenování konkrétní bolesti zvyšuje relevanci sdělení a emoční zapojení návštěvníka oproti obecnému popisu produktu v kontrole."
     },
     {
-      "label": "Sociální důkaz a důvěra",
-      "hypothesis": "Přidání důkazu, že nástroj používají jiné týmy/firmy, zvýší důvěryhodnost a konverzi oproti čistě produktovému sdělení kontroly.",
-      "headline": "Nástroj pro řízení projektů, kterému věří stovky týmů",
-      "primaryCTA": "Chci to vidět v akci",
-      "rationale": "Sociální důkaz snižuje vnímané riziko rozhodnutí vyzkoušet nový nástroj."
+      "label": "Rychlý start bez tření",
+      "hypothesis": "Minimalizace vstupní bariéry k vyzkoušení nástroje zvýší konverzi oproti kontrole i oproti dlouhému formuláři, který již selhal jako varianta C.",
+      "headline": "Projektové řízení, které rozjedete za minutu",
+      "primaryCTA": "Začít jen s e-mailem",
+      "rationale": "Odstranění kroků a polí řeší přesně ten důvod, proč varianta s dlouhým formulářem konvertovala hůř než kontrola."
     },
     {
-      "label": "Rychlé zahájení bez bariér",
-      "hypothesis": "Zdůraznění snadného a rychlého startu (bez nutnosti složitého nastavení) sníží vnímanou bariéru vstupu a zvýší konverzi oproti obecné variantě.",
-      "headline": "Zorganizujte první projekt za 5 minut",
-      "primaryCTA": "Začít hned teď",
-      "rationale": "Nízká vnímaná časová a technická náročnost motivuje k okamžité akci, na rozdíl od obecného popisu produktu."
+      "label": "Důvěra týmů místo slevy",
+      "hypothesis": "Zdůraznění důvěryhodnosti a využití nástroje jinými týmy zvýší konverzi bez cenové motivace, na rozdíl od slevové varianty B, která selhala.",
+      "headline": "Nástroj pro řízení projektů, kterému týmy důvěřují",
+      "primaryCTA": "Přidat se s týmem zdarma",
+      "rationale": "Sociální důkaz buduje důvěru jiným způsobem než sleva, takže neoslabuje vnímanou hodnotu produktu jako varianta B."
     }
   ]
 }

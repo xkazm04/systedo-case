@@ -1,15 +1,17 @@
 {
-  "reply": "Dobrý den, děkujeme za poptávku – rádi se domluvíme na termínu revize elektroinstalace ve Vaší kanceláři (cca 200 m²). Abychom Vám mohli nabídnout konkrétní termín a rozsah prací, potřebovali bychom ještě pár doplňujících informací. Ozveme se Vám s návrhem termínu, jakmile je budeme mít.",
+  "reply": "Dobrý den, [Příjmení], děkujeme za Vaši poptávku – revizi elektroinstalace pro kancelářské prostory o rozloze cca 200 m² Vám rádi zajistíme a konkrétní termín Vám potvrdíme, jakmile si u našich revizních techniků ověříme volnou kapacitu. Abychom mohli termín i rozsah prací co nejpřesněji naplánovat, potřebovali bychom od Vás ještě pár doplňujících informací (viz níže). Jakmile je obdržíme, ozveme se Vám s konkrétním návrhem termínu.",
   "questions": [
-    "Jaké je přesné datum poslední revize elektroinstalace v této kanceláři?",
-    "Jde o revizi pravidelnou (periodickou), nebo je požadovaná z jiného důvodu (např. kolaudace, změna nájemce)?",
-    "Jaká je adresa objektu a preferujete termín v konkrétním týdnu, nebo je pro Vás rozhodující co nejdřívější volný termín?"
+    "Jde o pravidelnou (periodickou) revizi, nebo o revizi mimořádnou/výchozí, a kdy proběhla revize naposledy?",
+    "Na jaké adrese se kancelářské prostory nacházejí a je možné dohodnout termín prohlídky před samotnou revizí?",
+    "Na koho a na jaký telefon/e-mail se máme obrátit s návrhem termínu a orientační nabídkou?"
   ],
   "confidence": 55,
   "risks": [
-    "Nemáme jméno/příjmení odesílatele – oslovení příjmením podle hlasu značky nelze aplikovat, dokud se nezjistí.",
-    "Zpráva neobsahuje žádný konkrétní termín ani cenu z podkladů – nebylo nic slíbeno, je potřeba doplnit reálnou dostupnost kapacit před odesláním.",
-    "Ověřit, zda 200 m² odpovídá standardní kategorii revize, nebo je nutná individuální kalkulace rozsahu."
+    "Příjmení odesílatele není z dotazu známé – oslovení je nutné před odesláním doplnit.",
+    "V podkladech není uveden aktuální harmonogram/kapacita revizních techniků – termín proto nelze potvrdit, pouze přislíbit jeho dohledání.",
+    "V podkladech není cena revize pro plochu cca 200 m² – cenu nelze v odpovědi uvádět ani odhadovat.",
+    "Ověřit, zda je pro tento typ prostoru a rozsah potřeba specifická kvalifikace revizního technika.",
+    "Před odesláním ověřit, zda firma aktuálně vůbec přijímá nové zakázky tohoto typu."
   ],
-  "toneNotes": "Odpověď reaguje na dotaz hned v první větě (potvrzení zájmu o termín revize). Vykání dodrženo v celé zprávě. Oslovení příjmením nebylo možné použít, protože jméno klienta není v podkladech k dispozici – ponechán neutrální pozdrav 'Dobrý den'. Žádný termín ani cena nebyly slíbeny."
+  "toneNotes": "Vykání dodrženo v celém textu, oslovení příjmením ponecháno jako placeholder [Příjmení], protože ho zpráva klienta neobsahuje (uvedeno v risks). První věta přímo reaguje na dotaz „Kdy máte volno?“ tím, že vysvětluje, že termín bude potvrzen po ověření kapacity – bez vymýšlení konkrétního data. Nikde není uvedena cena ani závazný termín, v souladu s pravidlem NIKDY."
 }

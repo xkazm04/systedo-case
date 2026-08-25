@@ -1,9 +1,9 @@
 {
-  "summary": "Lokální pokrytí je na 43 % (3 ze 7 kombinací služba×lokalita), v mezerách uniká 3 100 hledání/měsíc. Mapa-pack výkon je slabý (jen 40 % v top 3, průměrná pozice 6,2) a trend za 30 dní se zhoršuje (−5). Recenze jsou solidní (4,3★, 214 hodnocení), takže prioritou je rozšíření obsahového pokrytí, ne reputace.",
+  "summary": "Zubní klinika Dentalis pokrývá vlastní stránkou jen 43 % sledovaných kombinací služba×lokalita (3 ze 7), což znamená ztrátu až 3 100 hledání měsíčně bez cílené stránky. Mapa-pack výkon je slabý – jen 40 % kombinací v top 3, průměrná pozice 6,2, a za posledních 30 dní se trend zhoršuje (1 zlepšení vs. 3 zhoršení, čistý posun −5). Recenze jsou solidní (4,3★ ze 214 hodnocení, 170 pozitivních), ale 22 negativních recenzí stojí za sledování. Nejvyšší nevyužitý objem má kombinace Bělení zubů — Praha s 1 400 hledáními měsíčně bez vlastní stránky.",
   "worstGap": "Bělení zubů — Praha",
-  "recommendation": "Vytvořit dedikovanou stránku služby Bělení zubů pro Prahu (1 400 hledání/měs. bez pokrytí) — nejvyšší objem ze všech mezer, uzavření obnoví největší kus ztraceného vyhledávacího provozu.",
+  "recommendation": "Vytvořit a publikovat dedikovanou lokální landing page pro službu Bělení zubů v Praze (s NAP daty, service-area nastavením v Google Business Profile a lokálním obsahem), protože tato mezera má nejvyšší nevyužitý objem hledání (1 400/měs.) ze všech tří identifikovaných mezer.",
   "risks": [
-    "Zhoršující se trend mapa-pack pozic (−5 za 30 dní) může nová stránka bez doprovodných signálů (recenze, citace) plně nekompenzovat.",
-    "22 negativních recenzí může brzdit konverzi i při zlepšeném pokrytí, pokud se neřeší souběžně."
+    "Zhoršující se trend map-pack pozic (−5 za 30 dní) může nový obsah bez doprovodné práce na citacích a recenzích jen částečně kompenzovat.",
+    "22 negativních recenzí z celkových 214 může snižovat konverzní poměr i u nově pokryté kombinace, pokud nebudou řešeny souběžně."
   ]
 }
