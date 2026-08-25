@@ -42,6 +42,10 @@ const T = {
       "AI pro digitální reklamu e-shopů a agentur: měřte výkon, třiďte kampaně a generujte reklamy, opřené o vaše živá data z Google Ads.",
     heroSeeDemo: "Podívejte se na živou ukázku",
     heroStartFree: "Začít zdarma",
+    heroFreeLine:
+      "Během validace zcela zdarma — bez platební brány, bez limitů, které by vás zaskočily.",
+    heroByomLine:
+      "Vaše modely, vaše data: BYOM včetně lokální Ollamy. Nic odsud samo nevolá domů.",
     heroWorksAcross: "Funguje napříč",
     proofLabel: "Důkaz",
     proofHeadline: "Na ukázkovém účtu, posledních 90 dní",
@@ -63,6 +67,10 @@ const T = {
       "Digital advertising AI for e-shops and agencies: measure performance, triage campaigns and generate the ads, grounded in your live Google Ads data.",
     heroSeeDemo: "See a live example",
     heroStartFree: "Start free",
+    heroFreeLine:
+      "Completely free during validation — no payment gateway, no surprise limits.",
+    heroByomLine:
+      "Your models, your data: bring your own model, local Ollama included. Nothing phones home on its own.",
     heroWorksAcross: "Works across",
     proofLabel: "Proof",
     proofHeadline: "On the demo account, last 90 days",
@@ -177,6 +185,24 @@ export default async function BrandLanding() {
                 {t("heroSeeDemo")}
               </Link>
             </div>
+
+            {/* Local-first proof lines — only what is TRUE today: free during
+                validation (elevates what /cena states, no payment gateway is
+                wired), and BYOM across 6 vendors incl. a local Ollama with no
+                analytics SDK in the tree (src/lib/llm/byom/adapters.ts, README
+                "License & self-hosting"). Deliberately NOT an "open source" or
+                self-hosting claim — that is a commitment, and self-hosting does
+                not work yet. */}
+            <ul className="mt-6 max-w-lg space-y-1.5 text-sm leading-relaxed text-onyx-muted">
+              <li className="flex gap-2.5">
+                <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 bg-brand-300" />
+                {t("heroFreeLine")}
+              </li>
+              <li className="flex gap-2.5">
+                <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rotate-45 bg-brand-300" />
+                {t("heroByomLine")}
+              </li>
+            </ul>
 
             <div className="mt-8 flex flex-wrap items-center gap-2 text-sm text-onyx-muted">
               <span className="font-medium">{t("heroWorksAcross")}</span>

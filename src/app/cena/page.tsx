@@ -33,6 +33,10 @@ const T = {
     perMonth: "/ měsíc",
     ctaFree: "Začít zdarma",
     comingSoon: "Spustíme po validaci",
+    selfHostHeading: "Provozujte sami",
+    selfHostStatus: "Připravujeme — self-hosting zatím není funkční",
+    selfHostBody:
+      "Stejný software, žádná odlehčená edice: Adamant je pod licencí AGPL a je zamýšlen tak, aby běžel na vašem stroji, na vašich modelech, nad vašimi daty — bez plánů a bez kvót. Zatím to ale neumí: produkční build se dnes neobejde bez Firestore a přihlášení Googlem. Pracujeme na tom.",
     disclaimer:
       "Placené plány zatím nejsou spuštěné a platební brána není napojená. Během validace nic neúčtujeme. Limity jsou denní a počítají se v UTC.",
   },
@@ -49,6 +53,10 @@ const T = {
     perMonth: "/ month",
     ctaFree: "Start free",
     comingSoon: "Coming after validation",
+    selfHostHeading: "Run it yourself",
+    selfHostStatus: "In preparation — self-hosting is not functional yet",
+    selfHostBody:
+      "The same software, no lite edition: Adamant is AGPL-licensed and meant to run on your machine, on your models, on your data — no plans, no quotas. It cannot do that yet: a production build still requires Firestore and Google sign-in today. We are working on it.",
     disclaimer:
       "Paid plans are not live yet and no payment gateway is wired up. Nothing is charged during validation. Limits are daily and counted in UTC.",
   },
@@ -217,6 +225,20 @@ export default async function PricingPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* Self-host band — the local-first COMMITMENT, stated with the same
+          honesty pattern as the paid tiers' "Coming after validation": what it
+          will be (same software, unmetered, AGPL — mirrors README "License &
+          self-hosting") plus an explicit not-functional-yet status chip, because
+          a production build still requires Firestore + Google OAuth today. No
+          numbers here on purpose — nothing to drift from lib/plans.ts. */}
+      <div className="card mx-auto mt-12 max-w-3xl p-7">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-lg font-semibold text-navy-800">{t("selfHostHeading")}</h2>
+          <Pill tone="neutral">{t("selfHostStatus")}</Pill>
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{t("selfHostBody")}</p>
       </div>
 
       <p className="mx-auto mt-10 max-w-2xl text-center text-xs text-muted">
